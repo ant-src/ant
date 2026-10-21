@@ -1,3 +1,4 @@
+// spec: 11 Synchronization; 9 Synchronization
 // If the function given to Once.value panics, the once is complete and every call panics with
 // the same message (section 11).
 var attempts = 0

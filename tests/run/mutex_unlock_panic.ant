@@ -1,3 +1,5 @@
+// spec: 11 Synchronization; 12 Runtime panics
+// panics: Mutex.unlock; library-value
 // Unlocking a Mutex that is not locked panics (section 11).
 func main(): void {
   var m = Mutex.new()

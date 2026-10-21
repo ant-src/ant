@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: call
 // A constructor takes exactly one positional argument of its base kind (section 12).
 type UserId = string
 func main(): void { print(UserId(1)) }

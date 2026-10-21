@@ -1,3 +1,4 @@
+// spec: 11 String
 // String.from on numbers (section 11): integers render in decimal; floats as the shortest
 // decimal that reads back to the same value, with .0 added when integral, and as NaN, Infinity,
 // or -Infinity.

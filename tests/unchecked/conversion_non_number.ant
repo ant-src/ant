@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: library-kind
 // A numeric conversion of a non-number panics (section 12).
 func main(): void { print(int("1")) }
 

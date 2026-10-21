@@ -1,3 +1,4 @@
+// spec: 8 defer; 12 Deferred blocks and panics
 // defer (sections 8, 12): a deferred block runs when its block exits, by falling off the end,
 // return, break, or continue, in reverse order of registration, in the scope it was registered
 // in; return inside a deferred block returns from the deferred block only.

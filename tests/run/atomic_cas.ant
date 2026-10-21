@@ -1,3 +1,4 @@
+// spec: 9 Synchronization; 11 Synchronization
 // Atomic: load, store, add, and compareAndSwap, which compares with == (sections 9, 11).
 type Point = { x: int, y: int }
 

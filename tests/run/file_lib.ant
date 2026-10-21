@@ -1,3 +1,4 @@
+// spec: stdlib File
 // File (stdlib.md): every function, in a temporary directory given as the first argument;
 // every failure is a Result with Error, never a panic.
 func main(): void {

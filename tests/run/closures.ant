@@ -1,3 +1,4 @@
+// spec: 6 Closures and first-class values
 // Closures (section 6): functions capture variables by reference, each loop iteration binds a
 // fresh variable, and return inside a lambda returns from the lambda only.
 func counter(): func(): int {

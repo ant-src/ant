@@ -1,3 +1,4 @@
+// spec: 10; 4 Checking and running
 // A syntax error anywhere stops the program before main, with exit status 2 (sections 4, 10).
 func main(): void {
   print("never printed")

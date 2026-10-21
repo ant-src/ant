@@ -1,3 +1,4 @@
+// spec: 8 try; 8 Result
 // Section 8: try needs a Result and an enclosing function whose return type accepts the error;
 // Result types with different error types are different types, and try widens.
 type EmptyInput = {}

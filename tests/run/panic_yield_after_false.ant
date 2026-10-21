@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 5 Loops
+// panics: for-yield
 // A sequence that calls yield again after it returned false panics (section 12).
 func bad(yield: func(int): bool): void {
   _ = yield(1)

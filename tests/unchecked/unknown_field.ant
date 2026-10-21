@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: record-literal
 // A record literal naming a field the tag does not list panics (section 12).
 type P = { x: int }
 func main(): void { print(P{ x: 1, y: 2 }) }

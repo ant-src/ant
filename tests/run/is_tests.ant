@@ -1,3 +1,4 @@
+// spec: 5 is; 4 Tagged unions
 // is (sections 4, 5): tests on tags and kinds, complete chains without else, every kind of a
 // wide union, and a named primitive among plain kinds.
 type Circle = { radius: float64 }

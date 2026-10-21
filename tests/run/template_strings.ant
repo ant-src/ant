@@ -1,3 +1,4 @@
+// spec: 2 Literals
 // Template strings (section 2): any expression interpolates through String.from, braces nest,
 // a template may span lines, and the escapes.
 type Point = { x: int, y: int }

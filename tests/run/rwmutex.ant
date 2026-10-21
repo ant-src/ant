@@ -1,3 +1,4 @@
+// spec: 9 Synchronization; 11 Synchronization
 // RwMutex: many readers at once, writers alone; the with forms release even on a panic
 // (sections 9, 11).
 func main(): void {

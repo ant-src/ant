@@ -1,3 +1,4 @@
+// spec: 10
 // Section 10: only exports are visible; imports are read-only; a top-level initializer may refer
 // only to the variables above it; main takes no parameters and returns void.
 import "./lib/exports.ant" { Point, distance, counter, hidden } // ERR: hidden is not exported

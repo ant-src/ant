@@ -1,3 +1,4 @@
+// spec: stdlib Os
 // Os (stdlib.md): env of a variable that is not set is null, and exit ends the program with the
 // given status without running deferred blocks.
 func main(): void {

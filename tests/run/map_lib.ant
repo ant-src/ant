@@ -1,3 +1,4 @@
+// spec: 11 Map
 // Map (section 11): every function, insertion order throughout, a stored null told from a
 // missing key by Map.has, and Record.same.
 type P = { x: int }

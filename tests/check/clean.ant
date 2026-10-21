@@ -1,3 +1,4 @@
+// spec: 4 Checking and running
 // A program that uses most of the language and must check clean: the spec's own examples
 // from sections 3 through 9, lightly adapted into one module.
 type Point = { x: float64, y: float64 }

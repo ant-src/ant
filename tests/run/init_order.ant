@@ -1,3 +1,4 @@
+// spec: 10; 3
 // Top-level initializers run in source order; func and type declarations are hoisted and
 // visible throughout the module (section 10).
 var a = compute()

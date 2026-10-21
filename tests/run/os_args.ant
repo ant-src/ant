@@ -1,3 +1,4 @@
+// spec: stdlib Os
 // Os.args returns the arguments after the program path (stdlib.md).
 func main(): void {
   print(Os.args())

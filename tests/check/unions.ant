@@ -1,3 +1,4 @@
+// spec: 4 Unions
 // Section 4: unions need distinguishable members; anonymous and named record types do not
 // mix; a type parameter shares a union only with null, void, other parameters, and named
 // types without arguments; aliases cannot form cycles.

@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: int-overflow
 // Unsigned subtraction below zero panics (section 12).
 func main(): void {
   var a = byte(1)

@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: index-range
 // An array index out of range panics (section 12).
 func main(): void {
   var xs = [1, 2]

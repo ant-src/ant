@@ -1,3 +1,4 @@
+// spec: 11 String
 // String.from on arrays, maps, and records (section 11): arrays render as [1, 2], maps as
 // Map{ "a": 1 } with string keys always quoted, records as Point{ x: 1.0, y: 2.0 } with the name
 // of their tag and the fields in declaration order; entries are separated by ", "; an empty

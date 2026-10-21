@@ -1,3 +1,4 @@
+// spec: 3; 12 Names and scopes
 // Scopes (sections 3, 12): an inner scope shadows an outer one, a closure reads the variable it
 // captured and sees later assignments, and a local function calls itself through its own name
 // once its type is stated.

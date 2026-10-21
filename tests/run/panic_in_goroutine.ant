@@ -1,3 +1,4 @@
+// spec: 9 Panics in goroutines; 12 Goroutines
 // A panic in a goroutine ends that goroutine after its deferred blocks run, is reported, and
 // nothing else happens: the program continues and exits normally (section 9).
 func main(): void {

@@ -1,3 +1,4 @@
+// spec: stdlib Time
 // Time (stdlib.md): sleep blocks only the calling goroutine, monotonic never goes backwards,
 // and now is a plausible epoch time.
 func main(): void {

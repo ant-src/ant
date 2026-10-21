@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 5 is
+// panics: is
 // is against an alias panics, since an alias has no run-time identity (section 5).
 type Id = int | string
 func main(): void { var v: int | string = 1; print(v is Id) }

@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: depth
 // A call deeper than the runtime's limit panics rather than crashing (section 12).
 func down(n: int): int { down(n + 1) }
 

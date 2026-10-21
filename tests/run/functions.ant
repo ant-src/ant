@@ -1,3 +1,4 @@
+// spec: 6 Calling
 // Functions (section 6): positional, named, and defaulted arguments; defaults evaluated in the
 // callee's scope, in parameter order, after the arguments; lambdas; anonymous functions; the
 // pipe puts its left operand first.

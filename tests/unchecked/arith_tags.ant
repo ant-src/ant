@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 4 Named primitive types
+// panics: arith-kind
 // An operator on a tagged value and a plain one panics (section 12).
 type Meters = float64
 func main(): void { print(Meters(1.0) * 2.0) }

@@ -1,3 +1,4 @@
+// spec: 7; 7 Narrowing
 // Nullability (section 7): ?. on fields, indexes, and calls skips the rest of the chain; ?? and
 // its short circuit; narrowing by != null.
 type Address = { city: string | null }

@@ -1,3 +1,4 @@
+// spec: 9 Goroutines; 9 Sharing results
 // Goroutines (section 9): results come back through containers, completion through a
 // WaitGroup; each loop iteration binds a fresh variable, so closures in go blocks keep their
 // own value; Mutex.withLock and Atomic serialize a counter.

@@ -1,3 +1,4 @@
+// spec: 4 Records; 4 Named primitive types; 4 Type declarations
 // Section 4: records are nominal, anonymous record types are structural, named primitive types
 // are distinct from their base, and a type is not a value.
 type Named = { name: string }

@@ -1,3 +1,5 @@
+// spec: 2 Identifiers and keywords; 12 Runtime panics
+// panics: underscore
 // Reading _ panics (section 2).
 func main(): void { print(_) }
 

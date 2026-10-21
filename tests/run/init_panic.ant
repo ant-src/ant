@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 3
+// panics: var-init
 // Reading a top-level var through a call before its initializer has run panics (section 10).
 func peek(): int { later }
 

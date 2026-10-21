@@ -1,3 +1,4 @@
+// spec: 9 Data races
 // Data races are program errors, but the runtime stays memory-safe: a thousand goroutines race
 // on one array, one map, and one record without synchronization, and the program still ends
 // (section 9).

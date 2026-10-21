@@ -1,3 +1,4 @@
+// spec: 4 Named primitive types
 // Named primitive types (section 4): construction, unwrapping, operators on one tag, map keys,
 // the constructor as a function value, and distinct tags over one base.
 type UserId = string

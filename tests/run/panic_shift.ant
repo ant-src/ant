@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 11 Math and Bits
+// panics: shift; Bits.shiftLeft
 // A shift count outside the operand's width panics (section 11).
 func main(): void {
   var n = 64

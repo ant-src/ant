@@ -1,3 +1,4 @@
+// spec: 2 Literals; 5 Operators; 12 Expressions
 // Numbers (sections 2, 5, 12): literal forms, integer division and remainder toward zero, float
 // arithmetic by IEEE 754, the sized kinds, and conversions.
 func main(): void {

@@ -1,3 +1,4 @@
+// spec: 11 Math and Bits
 // Bits (section 11): bitwise operations and wrapping arithmetic, each within its kind's width;
 // shiftRight is arithmetic for signed kinds and logical for unsigned ones.
 func main(): void {

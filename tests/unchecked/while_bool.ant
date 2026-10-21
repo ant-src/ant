@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: bool-kind
 // A while condition that is not a bool panics (section 12).
 func main(): void { while "yes" { print("x") } }
 

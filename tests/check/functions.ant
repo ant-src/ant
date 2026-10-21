@@ -1,3 +1,4 @@
+// spec: 6 Calling; 6 Anonymous functions
 // Section 6: parameters are annotated; a lambda needs an expected function type with at most
 // one parameter; a recursive or exported function states its return type; named arguments
 // apply only to declared functions; there are no methods.

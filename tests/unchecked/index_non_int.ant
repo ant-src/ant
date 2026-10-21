@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: index-range
 // An array index that is not an int panics (section 12).
 func main(): void { print([1][0.0]) }
 

@@ -1,3 +1,4 @@
+// spec: 13
 // The example of section 13, verbatim.
 type Active = {}
 type Suspended = { reason: string }

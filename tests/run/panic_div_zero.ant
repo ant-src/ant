@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 5 Operators
+// panics: div-zero
 // Integer division by zero panics; float division by zero does not (section 12).
 func main(): void {
   var zero = 0

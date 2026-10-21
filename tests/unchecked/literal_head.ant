@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: record-literal
 // A record literal whose head is not a record tag panics (section 12).
 type Id = int | string
 func main(): void { print(Id{}) }

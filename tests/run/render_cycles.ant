@@ -1,3 +1,4 @@
+// spec: 11 String; 12 Values
 // String.from on cyclic values (section 11): a value already being rendered renders as ..., so
 // rendering terminates; a value rendered twice side by side is not a cycle.
 type Node = { value: int, next: Node | null }

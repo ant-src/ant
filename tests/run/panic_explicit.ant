@@ -1,3 +1,5 @@
+// spec: 8 panic; 12 Runtime panics
+// panics: panic
 // panic stops the program with its message (section 8).
 func main(): void {
   print("start")

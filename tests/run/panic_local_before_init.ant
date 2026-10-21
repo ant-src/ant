@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 3
+// panics: var-init
 // A local read through a call made from its own initializer panics (sections 3, 12).
 func main(): void {
   var later: int = (func(): int { later })()

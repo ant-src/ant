@@ -1,3 +1,4 @@
+// spec: 11 String; 4 Named primitive types
 // String.from on named primitive types (section 11): a tagged value renders as its constructor
 // call, with the payload rendered as it would be inside a container.
 type UserId = string

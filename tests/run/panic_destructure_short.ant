@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics; 5 Destructuring
+// panics: destructuring-short
 // An array destructuring with fewer elements than positions panics (section 5).
 func main(): void {
   var one = [1]

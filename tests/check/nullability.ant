@@ -1,3 +1,4 @@
+// spec: 7; 7 Narrowing
 // Section 7: null is its own type; ?. and ?? need a nullable left side; narrowing applies to
 // locals and parameters only, never to a field path or a local assigned in a nested body.
 type Address = { city: string }

@@ -1,3 +1,4 @@
+// spec: 11 Synchronization; 9 Synchronization
 // Once.value caches one computation; Once.do runs its function the first time only; a panic in
 // the function is shared by every call (sections 9, 11).
 var calls = 0

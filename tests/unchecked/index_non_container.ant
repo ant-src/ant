@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: index
 // Indexing a value that is neither an array nor a map panics (section 12).
 func main(): void { print("abc"[0]) }
 

@@ -1,3 +1,4 @@
+// spec: 11 String
 // String (section 11): every function; lengths, indices, and slices count code points.
 func main(): void {
   var s = "añb"

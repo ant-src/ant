@@ -1,3 +1,4 @@
+// spec: 8 Result; 8 try
 // Result and try (section 8): Ok and Err are records, try unwraps an Ok or returns a fresh Err
 // from the enclosing function, try reads only the outer tag, and the Result functions.
 type EmptyInput = {}

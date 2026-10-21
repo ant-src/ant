@@ -1,3 +1,4 @@
+// spec: 11 String
 // String.from on functions, constructors, and sync objects (section 11): a function renders as
 // func, a constructor as its type's name, and a sync object as its namespace name.
 type UserId = string

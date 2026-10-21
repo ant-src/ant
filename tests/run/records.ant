@@ -1,3 +1,4 @@
+// spec: 4 Records
 // Records (section 4): literals with shorthand and spread, reference semantics, structural
 // equality by tag and fields, records as map keys, and anonymous record parameters.
 type Point = { x: float64, y: float64 }

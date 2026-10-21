@@ -151,8 +151,8 @@ deterministic stress tests instead. Two fixes are expected to come out of this p
 fuzzers can run long: a nesting depth limit in the parser (recursive descent on a Go stack cannot
 recover from overflow) and the same limit in the checker's and evaluator's recursion on nested
 expressions. Cyclic values are a third hazard to test on purpose rather than hope the fuzzer
-finds: `==` is specified to terminate on a cycle; `String.from`, `Hash` for map keys, and
-`Json.stringify` on a record that contains itself need a decided behavior and a test.
+finds: `==`, `String.from` and map hashing are specified to terminate on a cycle, and
+`Json.stringify` panics with `cyclic value` (section 6); each needs a test.
 
 CI runs each fuzzer for 20 seconds; long runs are local. Crashers Go writes under `testdata/fuzz`
 are committed as regressions.
@@ -360,6 +360,6 @@ Taken:
 - The REPL stays as it is. No line editing, no dependency.
 - Coverage thresholds are 90% overall and 80% per package, enforced by the gate.
 - The repository is `github.com/ant-src/ant`, public, default branch `master`, like the spec.
-- **Cyclic values**: `String.from`, map hashing and `Json.stringify` panic with the message
-  `cyclic value`; the spec gains a ◆ row for it in the chapter 12 table (an entry in
-  `SPEC-FEEDBACK.md` until it does).
+- **Cyclic values**: the spec already settles `String.from` (a value being rendered renders as
+  `...`, line 1478) and map hashing (a bounded prefix, line 1601). `Json.stringify`, where `...`
+  is not JSON, panics with the message `cyclic value`; `SPEC-FEEDBACK.md` records it.

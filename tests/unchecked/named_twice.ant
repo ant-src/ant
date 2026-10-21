@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: call
 // A named argument for a parameter already filled panics (section 12).
 func f(a: int): int { a }
 func main(): void { print(f(1, a: 2)) }

@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: call
 // Too many positional arguments panic (section 12).
 func f(a: int): int { a }
 func main(): void { print(f(1, 2)) }

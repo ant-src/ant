@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: array-literal
 // A spread of a non-array in an array literal panics (section 12).
 func main(): void { print([...1]) }
 

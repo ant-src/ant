@@ -1,3 +1,4 @@
+// spec: 5 if; 5 Loops; 5 return, break, continue
 // Control flow (section 5): if is an expression, while and for are void, break and continue,
 // return from inside loops, and for over an array, a string, a map (parenthesized in a
 // header, as section 5 requires), and a sequence function.

@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: field
 // Reading a field a record does not have panics (section 12).
 type P = { x: int }
 func main(): void { print(P{ x: 1 }.y) }

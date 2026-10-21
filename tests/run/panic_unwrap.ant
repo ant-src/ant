@@ -1,3 +1,5 @@
+// spec: 11 Result and Record; 12 Runtime panics
+// panics: Result.unwrap; library-value
 // Result.unwrap on an Err panics (section 11).
 func main(): void {
   var r: Result[int, string] = Result.err("boom")

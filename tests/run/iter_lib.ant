@@ -1,3 +1,4 @@
+// spec: 11 Iter
 // Iter (section 11): lazy sequences; nothing runs until Iter.toArray or for; a sequence may be
 // run more than once; take stops its source.
 func evens(limit: int): Seq[int] {

@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: string-bool
 // string on a non-string panics (section 12).
 func main(): void { print(string(1)) }
 

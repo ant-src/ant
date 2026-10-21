@@ -1,3 +1,4 @@
+// spec: stdlib Http
 // Http (stdlib.md): get and post against a test server whose URL is the first argument; a
 // failed connection is an Err, a non-2xx status is still a response.
 func main(): void {

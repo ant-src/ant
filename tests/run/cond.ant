@@ -1,3 +1,4 @@
+// spec: 9 Synchronization; 11 Synchronization
 // Cond: a producer and a consumer hand items over through a shared array under a mutex
 // (sections 9, 11).
 func main(): void {

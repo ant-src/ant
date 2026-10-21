@@ -1,3 +1,4 @@
+// spec: 10; 6 Functions on types
 // Modules (sections 6, 10): named, renamed, and namespace imports; live exports; one
 // initialization per module, depth first in source order; types and the functions declared on
 // them travel with imports under whatever local name they are given.

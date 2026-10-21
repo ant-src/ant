@@ -1,3 +1,4 @@
+// spec: 10
 // An import of a file that does not exist cannot load: exit status 2 (section 10).
 import "./lib/nonexistent.ant" { thing }
 

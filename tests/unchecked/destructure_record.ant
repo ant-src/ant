@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: destructuring
 // A record destructuring that meets a non-record panics (section 12).
 func main(): void { var { x } = 1; print(x) }
 

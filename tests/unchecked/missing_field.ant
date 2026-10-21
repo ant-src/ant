@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: record-literal
 // A record literal leaving a field without a value panics (section 12).
 type P = { x: int, y: int }
 func main(): void { print(P{ x: 1 }) }

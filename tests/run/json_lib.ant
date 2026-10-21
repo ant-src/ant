@@ -1,3 +1,4 @@
+// spec: stdlib Json
 // Json (stdlib.md): parse gives Json.Value trees, numbers as float64, objects as maps in
 // document order; a decoder narrows with is; stringify renders records as objects without
 // their tag.

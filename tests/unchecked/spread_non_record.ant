@@ -1,3 +1,5 @@
+// spec: 12 Runtime panics
+// panics: record-literal
 // A spread of a non-record in a record literal panics (section 12).
 type P = { x: int }
 func main(): void { print(P{ ...1 }) }

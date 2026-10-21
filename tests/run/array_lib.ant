@@ -1,3 +1,4 @@
+// spec: 11 Array
 // Array (section 11): every function, in the order of the listing; sorts are stable and
 // return new arrays.
 func main(): void {
