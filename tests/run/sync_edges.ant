@@ -1,0 +1,87 @@
+// spec: 11 Synchronization; 9 Synchronization
+// The with forms release even when the function panics; Once.do makes later calls wait for the
+// first; Once.value caches; WaitGroup.wait blocks until the counter is zero; broadcast wakes
+// every waiter; compareAndSwap compares with ==; add returns the new value.
+type Flag = { v: bool }
+
+func main(): void {
+  var lock = Mutex.new()
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go { defer { WaitGroup.done(wg) }; Mutex.withLock(lock, { panic("inside lock") }) }
+  WaitGroup.wait(wg)
+  Mutex.lock(lock)
+  print("locked after panic")
+  Mutex.unlock(lock)
+  var rw = RwMutex.new()
+  WaitGroup.add(wg, 1)
+  go { defer { WaitGroup.done(wg) }; RwMutex.withWrite(rw, { panic("inside write") }) }
+  WaitGroup.wait(wg)
+  print(RwMutex.withRead(rw, { "read after panic" }))
+  var once = Once.new()
+  var ready = Atomic.new(false)
+  var incomplete = Atomic.new(0)
+  var wg2 = WaitGroup.new()
+  for _ in Iter.range(0, 5) {
+    WaitGroup.add(wg2, 1)
+    go {
+      defer { WaitGroup.done(wg2) }
+      Once.do(once, { Time.sleep(20); Atomic.store(ready, true) })
+      if !Atomic.load(ready) { _ = Atomic.add(incomplete, 1) }
+    }
+  }
+  WaitGroup.wait(wg2)
+  print(`incomplete: ${Atomic.load(incomplete)}`)
+  var calls = Atomic.new(0)
+  var v = Once.value({ _ = Atomic.add(calls, 1); "cached" })
+  print(v() + v())
+  print(Atomic.load(calls))
+  var wg3 = WaitGroup.new()
+  WaitGroup.add(wg3, 2)
+  var done = Atomic.new(0)
+  go { _ = Atomic.add(done, 1); WaitGroup.done(wg3) }
+  go { _ = Atomic.add(done, 1); WaitGroup.done(wg3) }
+  WaitGroup.wait(wg3)
+  print(Atomic.load(done))
+  var lock2 = Mutex.new()
+  var c = Cond.new(lock2)
+  var flag = Flag{ v: false }
+  var woke = Atomic.new(0)
+  var wg4 = WaitGroup.new()
+  for _ in Iter.range(0, 3) {
+    WaitGroup.add(wg4, 1)
+    go {
+      defer { WaitGroup.done(wg4) }
+      Mutex.lock(lock2)
+      while !flag.v { Cond.wait(c) }
+      Mutex.unlock(lock2)
+      _ = Atomic.add(woke, 1)
+    }
+  }
+  Time.sleep(10)
+  Mutex.withLock(lock2, { flag.v = true; Cond.broadcast(c) })
+  WaitGroup.wait(wg4)
+  print(Atomic.load(woke))
+  var a = Atomic.new([1, 2])
+  print(Atomic.compareAndSwap(a, [1, 2], [3]))
+  print(Atomic.load(a))
+  var n = Atomic.new(1.5)
+  print(Atomic.add(n, 1.0))
+  Atomic.store(n, 0.0)
+  print(Atomic.load(n))
+}
+
+// expect
+// out: locked after panic
+// out: read after panic
+// out: incomplete: 0
+// out: cachedcached
+// out: 1
+// out: 2
+// out: 3
+// out: true
+// out: [3]
+// out: 2.5
+// out: 0.0
+// err: inside lock
+// err: inside write

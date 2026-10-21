@@ -1,0 +1,21 @@
+// spec: 10
+// A module is identified by its canonical path, so two spellings of one file are one module:
+// it is initialized once, and its exported var is one variable under both names.
+import "./lib/geometry.ant" { counter, bump }
+import "./lib/../lib/geometry.ant" Geometry
+
+func main(): void {
+  bump()
+  print(counter)
+  print(Geometry.counter)
+  Geometry.bump()
+  print(counter)
+  print(Geometry.distance(Geometry.Point{ x: 0.0, y: 0.0 }, Geometry.Point{ x: 3.0, y: 4.0 }))
+}
+
+// expect
+// out: geometry init
+// out: 1
+// out: 1
+// out: 2
+// out: 5.0

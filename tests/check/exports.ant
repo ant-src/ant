@@ -1,0 +1,14 @@
+// spec: 10; 6 Functions on types
+// Section 10: there is no re-export, so a name a module imports is not visible through it; an
+// exported function on a type needs an exported type; main takes no parameters and returns
+// void.
+import "./lib/reexport.ant" { twice, distance } // ERR: distance is not exported
+import "../run/lib/geometry.ant" { Point }
+
+type Secret = { v: int }
+
+export func Secret.reveal(s: Secret): int { s.v } // ERR: Secret.reveal is exported but Secret is not
+
+func main(): void {
+  print(twice(Point{ x: 0.0, y: 0.0 }, Point{ x: 1.0, y: 0.0 }))
+}

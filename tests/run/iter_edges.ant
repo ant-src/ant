@@ -1,0 +1,42 @@
+// spec: 11 Iter
+// Every Iter function returns a new sequence without running the source; toArray and for run
+// it; a sequence may run more than once; take 0 and an empty range yield nothing.
+func main(): void {
+  var seen: Array[int] = []
+  var s = Iter.map(Iter.fromArray([1, 2, 3]), { Array.push(seen, x); x * 10 })
+  print(seen)
+  print(Iter.toArray(s))
+  print(seen)
+  print(Iter.toArray(s))
+  print(seen)
+  print(Iter.toArray(Iter.take(Iter.range(0, 100), 0)))
+  print(Iter.toArray(Iter.filter(Iter.range(0, 10), { x % 3 == 0 })))
+  print(Iter.toArray(Iter.range(5, 5)))
+  print(Iter.toArray(Iter.take(Iter.range(0, 3), 10)))
+  var taken = Iter.range(0, 1000) | Iter.map({ x * x }) | Iter.filter({ x % 2 == 0 }) | Iter.take(3) | Iter.toArray()
+  print(taken)
+  for v in Iter.take(Iter.fromArray(["a", "b", "c"]), 2) { print(v) }
+  var lazy = Iter.filter(Iter.range(0, 5), { print(`test ${x}`); x > 2 })
+  print("built")
+  for v in lazy { print(v); break }
+}
+
+// expect
+// out: []
+// out: [10, 20, 30]
+// out: [1, 2, 3]
+// out: [10, 20, 30]
+// out: [1, 2, 3, 1, 2, 3]
+// out: []
+// out: [0, 3, 6, 9]
+// out: []
+// out: [0, 1, 2]
+// out: [0, 4, 16]
+// out: a
+// out: b
+// out: built
+// out: test 0
+// out: test 1
+// out: test 2
+// out: test 3
+// out: 3

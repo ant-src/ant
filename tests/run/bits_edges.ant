@@ -1,0 +1,50 @@
+// spec: 11 Math and Bits
+// Bits at its documented edges: the operations within each kind's width, shiftRight arithmetic
+// for signed and logical for unsigned kinds, shiftLeft dropping the bits that leave the width,
+// popCount of negatives, and wrapping arithmetic in two's complement.
+func main(): void {
+  print(Bits.and(12, 10))
+  print(Bits.or(12, 10))
+  print(Bits.xor(12, 10))
+  print(Bits.not(0))
+  print(Bits.not(uint8(0)))
+  print(Bits.and(int8(-1), int8(5)))
+  print(Bits.shiftRight(-8, 1))
+  print(Bits.shiftRight(uint8(128), 1))
+  print(Bits.shiftRight(int8(-128), 1))
+  print(Bits.shiftLeft(uint8(129), 1))
+  print(Bits.shiftLeft(1, 62))
+  print(Bits.shiftLeft(int8(64), 1))
+  print(Bits.shiftLeft(uint16(1), 15))
+  print(Bits.popCount(255))
+  print(Bits.popCount(-1))
+  print(Bits.popCount(uint8(255)))
+  print(Bits.wrapAdd(int8(127), int8(1)))
+  print(Bits.wrapSub(uint8(0), uint8(1)))
+  print(Bits.wrapMul(int8(64), int8(4)))
+  print(Bits.wrapAdd(Math.maxInt, 1) == Math.minInt)
+  print(Bits.xor(uint64(1), uint64(3)))
+}
+
+// expect
+// out: 8
+// out: 14
+// out: 6
+// out: -1
+// out: 255
+// out: 5
+// out: -4
+// out: 64
+// out: -64
+// out: 2
+// out: 4611686018427387904
+// out: -128
+// out: 32768
+// out: 8
+// out: 64
+// out: 8
+// out: -128
+// out: 255
+// out: 0
+// out: true
+// out: 2

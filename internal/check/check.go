@@ -320,13 +320,15 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			continue
 		}
 		for _, n := range imp.Names {
-			ent, ok := target.names[n.Name]
+			// Only the target's own exported declarations are visible: a name the target
+			// imported is not re-exported (section 10).
+			ent, ok := target.exports[n.Name]
 			if !ok {
-				c.errorf(n.Pos, "%s has no declaration %s", imp.Path, n.Name)
-				continue
-			}
-			if !ent.exported {
-				c.errorf(n.Pos, "%s is not exported by %s", n.Name, imp.Path)
+				if _, declared := target.names[n.Name]; declared {
+					c.errorf(n.Pos, "%s is not exported by %s", n.Name, imp.Path)
+				} else {
+					c.errorf(n.Pos, "%s has no declaration %s", imp.Path, n.Name)
+				}
 				continue
 			}
 			mi.names[n.Alias] = ent

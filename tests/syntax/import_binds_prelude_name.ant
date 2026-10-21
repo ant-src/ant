@@ -1,0 +1,7 @@
+// spec: 10
+import "../run/lib/geometry.ant" { distance: print }
+func main(): void {}
+
+// expect
+// exit: 2
+// err: print

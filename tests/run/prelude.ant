@@ -1,0 +1,47 @@
+// spec: 11 Prelude; 4 Primitives
+// The prelude's own names: print renders with String.from and a newline, panic is never, the
+// record types Ok, Err, Error, Entry and Indexed are ordinary records, Seq is a function type,
+// Integer, Number and Ordered bound type parameters, and the conversion names unwrap a named
+// primitive over a kind they take.
+type Count = int
+type Label = string
+
+func total[T: Number](xs: Array[T]): T | null { Array.sum(xs) }
+func smallest[T: Ordered](a: T, b: T): T { Math.min(a, b) }
+func bits[T: Integer](a: T): int { Bits.popCount(a) }
+func twice(s: Seq[int]): Seq[int] { Iter.map(s, { x * 2 }) }
+
+func main(): void {
+  print("a line")
+  var one: Result[int, string] = Result.ok(1)
+  var failed: Result[int, string] = Result.err("e")
+  print(Ok{ value: 1 } == one && Err{ error: "e" } == failed)
+  var e: Error = Error{ message: "m" }
+  print(e.message)
+  var entry: Entry[string, int] = Entry{ key: "k", value: 1 }
+  var indexed = Indexed{ index: 0, value: "v" }
+  print(`${entry.key}${entry.value}${indexed.index}${indexed.value}`)
+  print(Iter.toArray(twice(Iter.range(1, 4))))
+  print(total([1.5, 2.5]))
+  print(smallest("b", "a"))
+  print(bits(uint8(7)))
+  print(int(Count(41)) + 1)
+  print(string(Label("l")) + "!")
+  print(float64(Count(2)) / 4.0)
+  var failing: (func(): never) | null = { panic("unreachable") }
+  print(failing is func)
+}
+
+// expect
+// out: a line
+// out: true
+// out: m
+// out: k10v
+// out: [2, 4, 6]
+// out: 4.0
+// out: a
+// out: 3
+// out: 42
+// out: l!
+// out: 0.5
+// out: true

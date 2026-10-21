@@ -1,0 +1,4 @@
+// Imports distance without exporting it: there is no re-export. Not a test itself.
+import "../../run/lib/geometry.ant" { distance, Point }
+
+export func twice(a: Point, b: Point): float64 { 2.0 * distance(a, b) }

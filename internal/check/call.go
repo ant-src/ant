@@ -386,6 +386,11 @@ func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, pos
 		if types.IsInvalid(t) {
 			continue
 		}
+		if tp, ok := t.(types.Param); ok && tp.Decl.Bound != nil && types.Assignable(tp.Decl.Bound, p.Bound) {
+			// A bounded parameter stands for one member of its bound, so it satisfies any bound
+			// that contains its own (section 4, Generics).
+			continue
+		}
 		members := types.Members(p.Bound)
 		if len(members) > 1 {
 			single := false

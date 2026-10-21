@@ -1072,8 +1072,22 @@ func (c *Checker) alwaysTrue(declared, target types.Type, pos ast.Pos) bool {
 			return false
 		}
 	}
-	c.errorf(pos, "the test is always true: %s is already %s", types.String(declared), types.String(target))
+	c.errorf(pos, "the test is always true: %s is already %s", types.String(declared), targetName(target))
 	return true
+}
+
+// targetName names the target of an is test: a kind word for func, Array and Map, which carry
+// no type arguments there, and the type otherwise.
+func targetName(target types.Type) string {
+	switch target.(type) {
+	case types.Func:
+		return "func"
+	case types.Array:
+		return "Array"
+	case types.Map:
+		return "Map"
+	}
+	return types.String(target)
 }
 
 func matchesTarget(m, target types.Type) bool {
