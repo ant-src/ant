@@ -7,8 +7,8 @@
 # its statements that some test ran, not an average over its functions. A block that several
 # test binaries report is counted once.
 set -eu
-overall_min=${1:-83}
-package_min=${2:-0}
+overall_min=${1:-90}
+package_min=${2:-80}
 profile=${COVERPROFILE:-$(mktemp)}
 report=$(mktemp)
 go test -coverpkg=./... -coverprofile="$profile" ./... > /dev/null

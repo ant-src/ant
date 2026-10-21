@@ -363,3 +363,11 @@ Taken:
 - **Cyclic values**: the spec already settles `String.from` (a value being rendered renders as
   `...`, line 1478) and map hashing (a bounded prefix, line 1601). `Json.stringify`, where `...`
   is not JSON, panics with the message `cyclic value`; `SPEC-FEEDBACK.md` records it.
+
+## 7. Status
+
+Phases 9 to 17 are done and committed: the harness with tags and coverage tests, the fuzzers
+and CI, the ten examples, the audit of every chapter (all three pending lists are empty), the
+generated-expression test (300 000 cases across three seeds without a disagreement), and the
+coverage gate at 90% overall and 80% per package, which the tree passes. Phases 18 to 20
+(diagnostics, benchmarks, documentation and release) remain.

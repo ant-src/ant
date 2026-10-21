@@ -1,0 +1,36 @@
+// spec: 3; 5 Destructuring; 4 Assignability
+// Section 3: an assignment target is a variable, a field, an element, or an array
+// destructuring of such places, and the right side must be assignable to each; a compound
+// assignment needs an operator that applies to the target's type; an imported or top-level
+// var is assignable in its own module; the elements of a heterogeneous literal have the union
+// type, so a destructuring assignment from one is an error (SPEC-FEEDBACK.md).
+type Point = { x: int, y: int }
+
+var count = 0
+
+func bump(): void { count += 1 }
+
+func main(): void {
+  var p = Point{ x: 1, y: 2 }
+  var xs = [1, 2]
+  var m: Map[string, int] = Map{}
+  var s = "s"
+  var n = 1
+  p.x = "s" // ERR: cannot use string where int is expected
+  xs[0] = "s" // ERR: cannot use string where int is expected
+  xs["k"] = 1 // ERR: cannot use string where int is expected
+  m[1] = 2 // ERR: cannot use int where string is expected
+  m["k"] = "v" // ERR: cannot use string where int is expected
+  n = "s" // ERR: cannot use string where int is expected
+  s -= 1 // ERR: - needs both operands of one type, got string and int
+  s += "t"
+  n += 1.5 // ERR: + needs both operands of one type
+  [n, n] = [1, 2]
+  [n, s] = [1, "t"] // ERR: cannot use int | string where int is expected ;; cannot use int | string where string is expected
+  [p.x, xs[1], ...xs] = [3, 4, 5]
+  [n, ...s] = [1, 2] // ERR: cannot use Array[int] where string is expected
+  p = Point{ x: 0, y: 0 }
+  _ = n
+  bump()
+  print(`${p} ${xs} ${m} ${s} ${n} ${count}`)
+}

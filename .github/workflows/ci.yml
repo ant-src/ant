@@ -37,7 +37,7 @@ jobs:
       - name: coverage gate
         if: matrix.os == 'ubuntu-latest' && matrix.go == 'stable'
         working-directory: ant
-        run: scripts/coverage.sh 83 0
+        run: scripts/coverage.sh 90 80
 
   fuzz:
     runs-on: ubuntu-latest

@@ -1,0 +1,24 @@
+// spec: 6 Calling; 11 Prelude
+// Named arguments apply to a library function as to any declared function, taken from the
+// parameter names of its signature, positional before named.
+func main(): void {
+  var xs = [1, 2, 3, 4]
+  print(Array.slice(xs, from: 1, to: 3))
+  print(Array.slice(xs, to: 2, from: 0))
+  print(Math.max(a: 1, b: 2))
+  print(String.replace("a-b", old: "-", new: "+"))
+  print(String.repeat(n: 2, s: "ab"))
+  print(Array.filled(n: 2, v: "x"))
+  print(xs | Array.slice(from: 2, to: 4))
+  print(Iter.toArray(Iter.range(to: 3, from: 0)))
+}
+
+// expect
+// out: [2, 3]
+// out: [1, 2]
+// out: 2
+// out: a+b
+// out: abab
+// out: ["x", "x"]
+// out: [3, 4]
+// out: [0, 1, 2]

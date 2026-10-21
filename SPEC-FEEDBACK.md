@@ -67,6 +67,14 @@ bounded prefix (line 1601), so both terminate. `Json.stringify` is described as 
 panics with the message `cyclic value`. The chapter 12 table could gain it as a ◆ case of the
 library function row.
 
+## Chapter 5, Destructuring (line 793)
+
+"The checker types each binding from the source, `T` for an element of `Array[T]`", so
+`var [n, s] = [1, "t"]` gives both `n` and `s` the type `int | string`, and the assignment form
+`[n, s] = [1, "t"]` with `n: int` and `s: string` is a compile error, although the runtime would
+store 1 and "t". The implementation follows the sentence as written; the spec may want to say so
+explicitly, or to give a literal on the right of a destructuring element-wise types.
+
 ## Chapter 11, `String.from` on floats (line 1430)
 
 The rendering of floats of very large or very small magnitude is not stated. The implementation

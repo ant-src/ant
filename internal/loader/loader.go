@@ -92,7 +92,9 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 // written; importer is the raw path of the importing module, or "" for the root.
 func (l *loader) canonical(raw, importer string) (key, display string) {
 	joined := raw
-	if importer != "" {
+	// An absolute path names the module itself, wherever it was written; a relative one is
+	// resolved against the importing file.
+	if importer != "" && !path.IsAbs(raw) && !filepath.IsAbs(raw) {
 		if l.cfg.FS != nil || l.isSource(importer) {
 			joined = path.Join(path.Dir(importer), raw)
 		} else {
