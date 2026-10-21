@@ -1,0 +1,48 @@
+// spec: 7 Narrowing
+// Section 7: a narrowing lasts until the next assignment, an assignment anywhere in a loop body
+// cancels it from the loop head on, a while with a break does not narrow after it, a top-level
+// var never narrows, and the else branch gets the complement.
+type Config = { name: string }
+
+var attempts = 0
+var global: int | null = 1
+
+func load(): Config | null { attempts += 1; if attempts > 2 { Config{ name: "c" } } else { null } }
+
+func fromGlobal(): int {
+  if global != null { global + 1 } else { 0 } // ERR: + needs both operands of one type, got int | null and int
+}
+
+func main(): void {
+  var v: int | null = 1
+  var i = 0
+  while i < 3 {
+    print(v + 1) // ERR: + needs both operands of one type, got int | null and int
+    v = null
+    i += 1
+  }
+  var c: Config | null = null
+  while c == null {
+    c = load()
+    if attempts > 5 { break }
+  }
+  print(c.name) // ERR: narrow the value first
+  var w: int | null = 1
+  if w != null {
+    print(w + 1)
+    w = null
+    print(w + 1) // ERR: + needs both operands of one type, got null and int
+  }
+  var x: int | string = 1
+  if x is int { print(x + 1) } else { print(String.length(x)); print(x + 1) } // ERR: + needs both operands of one type
+  if !(x is int) { print(String.length(x)) }
+  var d: Config | null = null
+  while d == null { d = load() }
+  print(d.name)
+  var u: int | null = 1
+  var keep = func(): int { u ?? 0 }
+  if u != null {
+    var inner = func(): int { u + 1 }
+    print(inner() + keep())
+  }
+}

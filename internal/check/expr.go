@@ -501,12 +501,16 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		}
 	}
 	given := map[string]bool{}
+	spreadUnknown := false // a spread whose fields cannot be known supplies no field
 	for _, en := range x.Entries {
 		if en.Spread != nil {
 			st := c.synth(en.Spread, sc)
 			n, ok := types.Expand(st).(types.Named)
 			if !ok || n.Decl.Kind != types.RecordDecl {
-				c.errorf(en.Pos, "a spread needs a value of a named record type, got %s", types.String(st))
+				if !types.IsInvalid(st) {
+					c.errorf(en.Pos, "a spread needs a value of a named record type, got %s", types.String(st))
+				}
+				spreadUnknown = true
 				continue
 			}
 			for _, f := range n.FieldsOf() {
@@ -541,7 +545,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		given[en.Name] = true
 	}
 	for _, f := range decl.Fields {
-		if !given[f.Name] {
+		if !given[f.Name] && !spreadUnknown {
 			c.errorf(x.Pos, "%s literal is missing the field %s", decl.Name, f.Name)
 		}
 	}

@@ -1,0 +1,32 @@
+// spec: 4 Function types; 4 Assignability
+// Section 4: a function with defaults is assignable to a type listing its required parameters
+// plus a prefix of the optional ones; parameters are contravariant and results covariant; a
+// void result admits only void.
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Shape = Circle | Rect
+
+func connect(host: string, port: int = 443, tls: bool = true): string { `${host}:${port}:${tls}` }
+func makeCircle(): Circle { Circle{ radius: 1.0 } }
+func anyArea(s: Shape): float64 { if s is Circle { s.radius } else { s.width } }
+func circleArea(c: Circle): float64 { c.radius }
+
+func main(): void {
+  var f1: func(string): string = connect
+  var f2: func(string, int): string = connect
+  var f3: func(string, int, bool): string = connect
+  var f4: func(string, bool): string = connect // ERR: cannot use func(string, int = ..., bool = ...): string where func(string, bool): string is expected
+  var f5: func(): string = connect // ERR: cannot use func(string, int = ..., bool = ...): string where func(): string is expected
+  var h: func(): Shape = makeCircle
+  var k: func(Circle): float64 = anyArea
+  var m: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
+  var cb: func(): void = { 1 } // ERR: cannot use int where void is expected
+  var cb2: func(): void = { _ = 1 }
+  var cb3: func(): void = func(): int { 1 } // ERR: cannot use func(): int where func(): void is expected
+  var cb4: func(int): int = { x }
+  print(f1("a") + f2("a", 1) + f3("a", 1, false))
+  print(h())
+  print(k(Circle{ radius: 2.0 }))
+  cb2()
+  print(cb4(1))
+}

@@ -183,8 +183,6 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 // pendingSpec lists the headings no test program names yet. The audit phases of PLAN2.md
 // empty it.
 var pendingSpec = []string{
-	"4 Arrays and maps",
-	"4 Function types",
 	"11 Prelude",
 }
 
@@ -229,7 +227,7 @@ func TestSpecCoverage(t *testing.T) {
 }
 
 // pendingLibrary lists the prelude functions and constants no test program uses yet.
-var pendingLibrary = []string{"int64", "uint16"}
+var pendingLibrary = []string{}
 
 // TestLibraryCoverage checks that every function and constant the prelude declares is used by
 // some test program.

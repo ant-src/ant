@@ -33,7 +33,7 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			return c.applySig(s, x, sc, expected, true)
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {
-				return c.construct(ent.decl, x, sc)
+				return c.construct(ent.decl, x, sc, expected)
 			}
 			c.errorf(x.Pos, "%s is a type, not a function", ent.decl.Name)
 			c.synthArgs(x.Args, sc)
@@ -117,17 +117,28 @@ func itoa(n int) string {
 }
 
 // construct checks a named primitive type's constructor call.
-func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope) types.Type {
+func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope, expected types.Type) types.Type {
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
 		c.errorf(x.Pos, "the constructor %s takes exactly one positional argument", decl.Name)
 		c.synthArgs(x.Args, sc)
 	} else {
 		c.check(x.Args[0].Value, sc, types.Prim{Kind: decl.Base})
 	}
+	if len(decl.Params) == 0 {
+		return types.Named{Decl: decl}
+	}
+	// type Id[T] = string: the body does not mention T, so only an expected type fixes it.
+	if expected != nil {
+		for _, m := range types.Members(expected) {
+			if n, ok := types.Expand(m).(types.Named); ok && n.Decl == decl && len(n.Args) == len(decl.Params) {
+				return n
+			}
+		}
+	}
 	var args []types.Type
 	for _, p := range decl.Params {
-		// type Id[T] = string: the arguments are fixed only by an expected type; leave them open
-		args = append(args, types.Param{Decl: p})
+		c.errorf(x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
+		args = append(args, types.Invalid{})
 	}
 	return types.Named{Decl: decl, Args: args}
 }
@@ -410,10 +421,12 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 	}
 	if p, ok := pattern.(types.Param); ok {
 		if bound, done := subst[p.Decl]; done {
+			if types.IsNever(bound) {
+				// bound by a never argument: any other argument fixes it for real
+				subst[p.Decl] = actual
+				return true
+			}
 			return types.Equal(bound, actual) || types.Assignable(actual, bound)
-		}
-		if _, isNever := actual.(types.Never); isNever {
-			return true
 		}
 		subst[p.Decl] = actual
 		return true
@@ -571,6 +584,10 @@ func discriminatorOf(t types.Type) (string, string, bool) {
 // solved part.
 func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool, sc *scope) types.Type {
 	switch x := e.(type) {
+	case *ast.Ident, *ast.Field:
+		if t := c.genericArg(x, pattern, subst, unsolved, sc); t != nil {
+			return t
+		}
 	case *ast.ArrayLit:
 		if a, ok := types.Expand(pattern).(types.Array); ok {
 			var elems []types.Type
@@ -678,4 +695,54 @@ func bindInvalid(pattern types.Type, subst map[*types.ParamDecl]types.Type) {
 			bindInvalid(m, subst)
 		}
 	}
+}
+
+// genericArg instantiates a generic function passed as an argument from the parts of the
+// parameter's pattern the call has solved so far: in Array.map(xs, byte) the element type fixes
+// byte's own type parameter, and the call then solves its U from byte's result. It returns nil
+// when e is not a generic function, no function type is expected, or too little is known yet,
+// and the plain path reports the problem.
+func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool, sc *scope) types.Type {
+	pat, err := types.Subst(pattern, subst)
+	if err != nil {
+		return nil
+	}
+	pf, ok := types.Expand(pat).(types.Func)
+	if !ok {
+		return nil
+	}
+	ent := c.entityPath(e, sc)
+	if ent == nil || ent.kind != entFunc {
+		return nil
+	}
+	s := c.sigOf(ent, e.Position())
+	if s == nil || len(s.tparams) == 0 {
+		return nil
+	}
+	argSubst := map[*types.ParamDecl]types.Type{}
+	for i := range pf.Params {
+		if i >= len(s.fn.Params) {
+			break
+		}
+		if types.Mentions(pf.Params[i], unsolved) {
+			continue
+		}
+		if !c.unify(s.fn.Params[i], pf.Params[i], argSubst) {
+			return nil
+		}
+	}
+	if !types.Mentions(pf.Return, unsolved) {
+		c.unify(s.fn.Return, pf.Return, argSubst)
+	}
+	for _, p := range s.tparams {
+		if _, bound := argSubst[p]; !bound {
+			return nil
+		}
+	}
+	c.checkBounds(s, argSubst, e.Position())
+	inst, err := types.Subst(s.fn, argSubst)
+	if err != nil {
+		return nil
+	}
+	return inst
 }

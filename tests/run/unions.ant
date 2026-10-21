@@ -1,0 +1,68 @@
+// spec: 4 Unions; 4 Tagged unions; 4 Function types
+// A field read through a union when every member declares it; an enumeration of empty records
+// whose members are types of their own; a sync type in a union narrowed by testing the other
+// member; a function type's return type extends to the right; parameter names in a function
+// type only document.
+type A = { id: int, name: string }
+type B = { id: string, name: string }
+type Empty = {}
+type Pending = {}
+type Status = Empty | Pending
+type Handler = func(request: int): string
+
+func describe(u: A | B): string { `${u.id} ${u.name}` }
+
+func onlyEmpty(e: Empty): string { "empty" }
+
+func maybeLock(m: Mutex | null): string {
+  if m != null { Mutex.withLock(m, { "locked" }) } else { "none" }
+}
+
+func parse(s: string): int | string {
+  var n = String.toInt(s)
+  if n != null { n } else { s }
+}
+
+func positive(): func(int): int | null { { if x > 0 { x } else { null } } }
+
+func main(): void {
+  print(describe(A{ id: 1, name: "a" }))
+  print(describe(B{ id: "x", name: "b" }))
+  var u: A | B = B{ id: "x", name: "b" }
+  var id = u.id
+  print(id is string)
+  print(onlyEmpty(Empty{}))
+  var st: Status = Pending{}
+  print(st is Pending)
+  print(st is Empty)
+  print(maybeLock(Mutex.new()))
+  print(maybeLock(null))
+  print(parse("12"))
+  print(parse("x"))
+  var f = positive()
+  print(f(1))
+  print(f(-1))
+  var h: Handler = { `request ${x}` }
+  print(h(7))
+  var n: int | float64 = 2.5
+  print(n is float64)
+  var nested: int | string | null = null
+  print(nested == null)
+}
+
+// expect
+// out: 1 a
+// out: x b
+// out: true
+// out: empty
+// out: true
+// out: false
+// out: locked
+// out: none
+// out: 12
+// out: x
+// out: 1
+// out: null
+// out: request 7
+// out: true
+// out: true

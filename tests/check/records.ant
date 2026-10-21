@@ -1,0 +1,28 @@
+// spec: 4 Records; 4 Type declarations
+// Section 4: a record literal lists exactly the fields of its type, its head is a record type, a
+// spread operand has a named record type, a record is not iterated or indexed, and an alias of a
+// named primitive type would mint a second tag.
+type Point = { x: float64, y: float64 }
+type Named = { name: string }
+type UserId = string
+type Alias = int | string
+type Copy = UserId // ERR: would mint a second tag
+
+func copy(n: { name: string }): Named { Named{ ...n } } // ERR: a spread needs a value of a named record type
+
+func main(): void {
+  var p = Point{ x: 1.0, y: 2.0 }
+  print(Point{ x: 1.0, y: 2.0, z: 3.0 }) // ERR: Point has no field z
+  print(UserId{ value: "x" }) // ERR: UserId is not a record type
+  print(Alias{}) // ERR: Alias is not a record type
+  for e in p { print(e) } // ERR: for needs an array, a map, a string, or a sequence, got Point
+  p.z = 1.0 // ERR: Point has no field z
+  print(p.z) // ERR: Point has no field z
+  var x = 1.0
+  print(Point{ x, y }) // ERR: y is not defined
+  var a: { name: string } = Named{ name: "a" }
+  var b: { name: string } = Named{ name: "a" }
+  print(a == b)
+  print(Point{ ...p })
+  print(Named{ ...p }) // ERR: Named literal is missing the field name ;; Named has no field x ;; Named has no field y
+}

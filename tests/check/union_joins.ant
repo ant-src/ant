@@ -1,0 +1,39 @@
+// spec: 4 Unions; 4 Tagged unions
+// Section 4: a field read through a union needs every member to declare it with types that form
+// a valid union; an anonymous record type is at most one member and never beside a named one; a
+// type parameter shares a union only with null, void, other parameters, and named types without
+// arguments; at most one sync type; an exhaustive chain breaks when a member is added.
+type Box[T] = { value: T }
+type Point = { x: int }
+type NotFound = {}
+type U1 = { items: Array[int], name: string }
+type U2 = { items: Array[string] }
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Tri = { base: float64 }
+type Shape = Circle | Rect | Tri
+type Either[A, B] = A | B
+type Bad = { name: string } | Point // ERR: anonymous record type
+type Bad2 = { a: int } | { b: int } // ERR: are both an anonymous record
+type P2[T] = T | Box[int] // ERR: a type parameter may not share a union with Box[int]
+type Fine[T] = T | NotFound | null
+type R[T, E] = Ok[T] | Err[E]
+type S = Mutex | WaitGroup // ERR: at most one sync type
+type OneOfEach = Array[int] | Map[string, int] | (func(): int) | null | int | float64 | string | bool | Point
+
+func items(u: U1 | U2): int { Array.length(u.items) } // ERR: a union may contain each discriminator at most once
+func name(u: U1 | U2): string { u.name } // ERR: U2 has no field name
+func area(s: Shape): float64 {
+  if s is Circle { s.radius } else if s is Rect { s.width } // ERR: an if without else has type void
+}
+
+func main(): void {
+  var e: Either[Box[int], { value: string }] = Box{ value: 1 } // ERR: anonymous record type
+  var f: Fine[int] = NotFound{}
+  var r: R[int, string] = Result.ok(1)
+  var o: OneOfEach = null
+  print(f)
+  print(r)
+  print(o)
+  print(area(Tri{ base: 1.0 }))
+}

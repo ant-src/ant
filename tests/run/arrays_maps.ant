@@ -1,0 +1,68 @@
+// spec: 4 Arrays and maps
+// Spread copies an array; a map literal's bare word is a string key, a parenthesized name is a
+// variable, any other expression is a key, and a bare word alone is shorthand; a map keeps
+// insertion order, replacing keeps the position, removing and reinserting goes to the end; a
+// record or an array is a key; mutating a key after insertion stays memory-safe.
+type Point = { x: int, y: int }
+
+func main(): void {
+  var xs: Array[int] = [1, 2, 3]
+  var more = [...xs, 4]
+  print(more)
+  print(xs)
+  var name = "ada"
+  var ages = Map{ ada: 36, linus: 54 }
+  print(ages)
+  var keyed = Map{ (name): 1, 7: "seven" }
+  print(keyed)
+  print(Map{ name })
+  print(Map.keys(Map{ for: 1, type: 2, if: 3 }))
+  var empty: Map[string, int] = Map{}
+  print(Map.size(empty))
+  var m = Map{ a: 1, b: 2, c: 3 }
+  m["b"] = 20
+  print(Map.keys(m))
+  _ = Map.remove(m, "a")
+  m["a"] = 100
+  print(m)
+  var byPoint: Map[Point, string] = Map{}
+  byPoint[Point{ x: 1, y: 2 }] = "p"
+  print(byPoint[Point{ x: 1, y: 2 }])
+  print(byPoint[Point{ x: 2, y: 1 }])
+  var byList: Map[Array[int], int] = Map{}
+  byList[[1, 2]] = 3
+  print(byList[[1, 2]])
+  var key = Point{ x: 0, y: 0 }
+  var tricky: Map[Point, int] = Map{}
+  tricky[key] = 1
+  key.x = 9
+  print(Map.size(tricky))
+  Array.push(xs, 4)
+  xs[0] = 10
+  print(xs)
+  print(Array.length(xs))
+  var nested = [[1], [2, 3]]
+  print(nested[1][0])
+  var grid: Array[Array[int]] = Array.filled(2, Array.filled(2, 0))
+  grid[0][0] = 1
+  print(grid)
+}
+
+// expect
+// out: [1, 2, 3, 4]
+// out: [1, 2, 3]
+// out: Map{ "ada": 36, "linus": 54 }
+// out: Map{ "ada": 1, 7: "seven" }
+// out: Map{ "name": "ada" }
+// out: ["for", "type", "if"]
+// out: 0
+// out: ["a", "b", "c"]
+// out: Map{ "b": 20, "c": 3, "a": 100 }
+// out: p
+// out: null
+// out: 3
+// out: 1
+// out: [10, 2, 3, 4]
+// out: 4
+// out: 2
+// out: [[1, 0], [1, 0]]

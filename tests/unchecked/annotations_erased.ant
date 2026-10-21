@@ -1,0 +1,15 @@
+// spec: 4 Checking and running
+// ant run parses and discards annotations: a program the checker rejects runs when its values
+// are consistent at run time, since every runtime rule is defined on values.
+func double(n: string): int { n * 2 }
+
+func main(): void {
+  var x: string = 21
+  print(double(x))
+  var y: Array[bool] = Map{ a: 1 }
+  print(y["a"])
+}
+
+// expect
+// out: 42
+// out: 1

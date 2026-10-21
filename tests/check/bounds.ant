@@ -1,0 +1,39 @@
+// spec: 4 Generics
+// Section 4: inside a generic body T is known only through its bound: an operator applies when
+// it applies to every member, the fields of a record bound are usable, a bounded T may be tested
+// against a member of its bound, and an unbounded T is opaque except for == and map keys; a
+// solution must satisfy the bound; a type parameter a primitive body does not mention gives
+// distinct static types over one tag.
+type Id[T] = string
+type User = {}
+type Account = {}
+type Both = Id[User] | Id[Account] // ERR: a union may contain each discriminator at most once
+
+func diff[T: Ordered](a: T, b: T): T { a - b } // ERR: - applies to
+func plus[T: Ordered](a: T, b: T): T { a + b }
+func same[T](a: T, b: T): bool { a == b }
+func opaqueAdd[T](a: T, b: T): T { a + b } // ERR: + applies to
+func keyed[T](k: T): Map[T, int] { Map{ (k): 1 } }
+func show[T: Ordered](x: T): string { if x is string { x } else { String.from(x) } }
+func isStr[T](x: T): bool { x is string } // ERR: is
+func rename[T: { name: string }](x: T): T { x.name = "n"; x }
+func ageOf[T: { name: string }](x: T): int { x.age } // ERR: has no field age
+func bigger[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+
+type Named = { name: string }
+
+func main(): void {
+  print(plus(1, 2) + plus(3, 4))
+  print(plus("a", "b"))
+  print(same(1, 1) && same("a", "a"))
+  print(keyed("k"))
+  print(show(1) + show("s"))
+  print(rename(Named{ name: "x" }))
+  print(bigger("a", 1)) // ERR: cannot use int where string is expected
+  print(bigger(true, false)) // ERR: T would be bool
+  var o: Ordered = 1
+  print(bigger(o, o)) // ERR: T would be Ordered
+  var u: Id[User] = Id("u")
+  var a: Id[Account] = u // ERR: cannot use Id[User] where Id[Account] is expected
+  print(string(u))
+}

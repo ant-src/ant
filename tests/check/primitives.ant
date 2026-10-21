@@ -1,0 +1,27 @@
+// spec: 4 Primitives; 2 Literals
+// Section 4: primitives never widen, a literal is int or float64 and nothing else, string and
+// bool convert only their own kind or a named primitive over it, a numeric conversion takes a
+// number, never is the type of what does not return, and a conversion passed as a value keeps
+// its bound.
+func fails(): never { panic("always") }
+func notNever(): never { 1 } // ERR: cannot use int where never is expected
+
+func main(): void {
+  var a: int8 = 1 // ERR: cannot use int where int8 is expected
+  var f: float64 = 1 // ERR: cannot use int where float64 is expected
+  var i: int = 1.0 // ERR: cannot use float64 where int is expected
+  var v: void = 1 // ERR: cannot use int where void is expected
+  var n: never = 1 // ERR: cannot use int where never is expected
+  print(string(1)) // ERR: string converts
+  print(bool("x")) // ERR: bool converts
+  print(int8(true)) // ERR: int8 converts a number
+  print(1 + int8(1)) // ERR: + needs both operands of one type, got int and int8
+  var u: uint8 = byte(1)
+  var l: int64 = 1
+  var w: int = l + 1
+  print(u)
+  print(w)
+  print(Array.map(["a"], byte)) // ERR: T would be string
+  print(Array.map([1.5], int))
+  print(fails())
+}

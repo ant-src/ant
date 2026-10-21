@@ -1,0 +1,49 @@
+// spec: 4 Inference; 4 Type declarations; 2 Line endings; 3
+// Section 4: an unannotated var has exactly its initializer's type; a generic call solves from
+// the expected type, then the arguments, then the lambdas; a lambda body solves the result; an
+// exported or recursive function states its return type; an if drops never; literals get no
+// help from context; an alias is its body; and from sections 2 and 3, a return at the end of a
+// line returns void, and a top-level initializer reads only the vars above it.
+type Active = {}
+type Suspended = { reason: string }
+type Status = Active | Suspended
+type NotFound = { id: int }
+type TransferError = NotFound | Error
+type Id = int | string
+type UserId = string
+
+var later = earlier + 1 // ERR: earlier
+var earlier = 1
+var selfish = selfish + 1 // ERR: selfish
+
+export func exported(x: int) { x } // ERR: exported
+
+func count(): int {
+  return // ERR: cannot use void where int is expected
+}
+
+func main(): void {
+  var s = Active{}
+  s = Suspended{ reason: "x" } // ERR: cannot use Suspended where Active is expected
+  var t: Status = Active{}
+  t = Suspended{ reason: "x" }
+  var r: Result[void, TransferError] = Result.err(NotFound{ id: 1 })
+  var bad = Result.err(NotFound{ id: 1 }) // ERR: cannot infer the type parameter T of Result.err
+  var e = Map{} // ERR: cannot infer
+  var two: func(int, int): int = { x } // ERR: a lambda has at most one parameter
+  var ys = Array.map([1], { String.from(x) })
+  var z: int = ys[0] // ERR: cannot use string where int is expected
+  var c = true
+  var n = if c { 1 } else { return }
+  var m: int = n
+  var id: UserId = "u-1" // ERR: cannot use string where UserId is expected
+  var i: Id = 1
+  var j: int | string = i
+  var k: Id = j
+  print(s)
+  print(t)
+  print(r)
+  print(m + z)
+  print(k)
+  print(later + earlier + selfish + count())
+}

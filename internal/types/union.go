@@ -69,6 +69,9 @@ func discriminator(t Type) (key, describe string, ok bool) {
 	case Func:
 		return "func", "a function", true
 	case Named:
+		if x.Decl.Kind == OpaqueDecl {
+			return "", "", false // a sync type: is does not accept it
+		}
 		return fmt.Sprintf("tag:%p", x.Decl), "the tag " + x.Decl.Name, true
 	case Record:
 		return "record", "an anonymous record", true
@@ -83,9 +86,16 @@ func checkDiscriminators(members []Type) error {
 	var record Type
 	var namedRecords, params []Type
 	var others []Type
+	var opaque Type
 	for _, m := range members {
 		key, desc, ok := discriminator(m)
 		if !ok {
+			if n, isNamed := Expand(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
+				if opaque != nil {
+					return fmt.Errorf("a union may contain at most one sync type, since is cannot tell %s from %s", String(opaque), String(m))
+				}
+				opaque = m
+			}
 			continue
 		}
 		if prev, dup := seen[key]; dup {

@@ -1,0 +1,75 @@
+// spec: 7 Narrowing; 7
+// Narrowing by a test, by the never branch of an if without else, by ?? return, by a while
+// whose body has no break, and by assignment; where branches meet, a variable has the union of
+// the branch types; a field path is read into a local first.
+type Config = { name: string }
+type Address = { city: string }
+type User = { name: string, address: Address | null }
+
+var attempts = 0
+
+func load(): Config | null {
+  attempts += 1
+  if attempts < 3 { null } else { Config{ name: "loaded" } }
+}
+
+func find(id: int): User | null {
+  if id <= 0 { return null }
+  User{ name: `u${id}`, address: if id == 1 { Address{ city: "Paris" } } else { null } }
+}
+
+func firstName(id: int): string {
+  var user = find(id)
+  if user == null { return "nobody" }
+  user.name
+}
+
+func cityOf(id: int): string {
+  var user = find(id) ?? return "nobody"
+  var address = user.address
+  if address != null { address.city } else { "unknown" }
+}
+
+func main(): void {
+  var c: Config | null = null
+  while c == null { c = load() }
+  print(c.name)
+  print(attempts)
+  var d: Config | null = null
+  if d == null { d = Config{ name: "direct" } }
+  print(d.name)
+  print(firstName(1))
+  print(firstName(0))
+  print(cityOf(1))
+  print(cityOf(2))
+  print(cityOf(0))
+  var v: int | string = 1
+  v = "now a string"
+  print(String.length(v))
+  var w: int | null = 5
+  if w != null { print(w + 1) } else { print("none") }
+  var x: int | string | null = "s"
+  if x is string || x == null { print("string or null") } else { print(x + 1) }
+  if !(x is int) { print("not int") } else { print(x * 2) }
+  var y: int | null = null
+  var z = if y == null { 0 } else { y }
+  print(z)
+  var picked: int | string = if attempts > 1 { 1 } else { "one" }
+  if picked is int { print(picked + 1) }
+}
+
+// expect
+// out: loaded
+// out: 3
+// out: direct
+// out: u1
+// out: nobody
+// out: Paris
+// out: unknown
+// out: nobody
+// out: 12
+// out: 6
+// out: string or null
+// out: not int
+// out: 0
+// out: 2
