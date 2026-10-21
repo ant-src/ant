@@ -1,0 +1,183 @@
+// spec: 4 Tagged unions; 4 Type declarations; 6 Functions on types; 8 try; 5 is
+// A calculator: a tokenizer, a recursive-descent parser into a tagged union of records, and an
+// evaluator over an environment. Every error is a Result, and try threads them up.
+type Num = { value: float64 }
+type Ident = { name: string }
+type Punct = { text: string }
+type Token = Num | Ident | Punct
+
+type Lit = { value: float64 }
+type Ref = { name: string }
+type Neg = { operand: Expr }
+type Bin = { op: string, left: Expr, right: Expr }
+type Expr = Lit | Ref | Neg | Bin
+
+func isDigit(ch: string): bool { ch >= "0" && ch <= "9" || ch == "." }
+func isLetter(ch: string): bool { ch >= "a" && ch <= "z" || ch >= "A" && ch <= "Z" }
+
+func tokenize(src: string): Result[Array[Token], Error] {
+  var tokens: Array[Token] = []
+  var chars = String.chars(src)
+  var i = 0
+  while i < Array.length(chars) {
+    var ch = chars[i]
+    if ch == " " {
+      i += 1
+    } else if isDigit(ch) {
+      var start = i
+      while i < Array.length(chars) && isDigit(chars[i]) { i += 1 }
+      var text = String.join(Array.slice(chars, start, i), "")
+      var n = String.toFloat(text) ?? return Result.err(Error{ message: `bad number ${text}` })
+      Array.push(tokens, Num{ value: n })
+    } else if isLetter(ch) {
+      var start = i
+      while i < Array.length(chars) && isLetter(chars[i]) { i += 1 }
+      Array.push(tokens, Ident{ name: String.join(Array.slice(chars, start, i), "") })
+    } else if String.contains("+-*/()", ch) {
+      Array.push(tokens, Punct{ text: ch })
+      i += 1
+    } else {
+      return Result.err(Error{ message: `unexpected character ${ch} at ${i}` })
+    }
+  }
+  Result.ok(tokens)
+}
+
+type Parser = { tokens: Array[Token], pos: int }
+
+func Parser.peek(p: Parser): Token | null { Array.get(p.tokens, p.pos) }
+
+func Parser.next(p: Parser): Token | null {
+  var t = Array.get(p.tokens, p.pos)
+  p.pos += 1
+  t
+}
+
+func Parser.atPunct(p: Parser, text: string): bool {
+  var t = Parser.peek(p)
+  t is Punct && t.text == text
+}
+
+// expr := term (("+" | "-") term)*
+func Parser.expr(p: Parser): Result[Expr, Error] {
+  var left = try Parser.term(p)
+  while Parser.atPunct(p, "+") || Parser.atPunct(p, "-") {
+    var op = Parser.next(p)
+    if op is Punct {
+      left = Bin{ op: op.text, left: left, right: try Parser.term(p) }
+    }
+  }
+  Result.ok(left)
+}
+
+// term := unary (("*" | "/") unary)*
+func Parser.term(p: Parser): Result[Expr, Error] {
+  var left = try Parser.unary(p)
+  while Parser.atPunct(p, "*") || Parser.atPunct(p, "/") {
+    var op = Parser.next(p)
+    if op is Punct {
+      left = Bin{ op: op.text, left: left, right: try Parser.unary(p) }
+    }
+  }
+  Result.ok(left)
+}
+
+// unary := "-" unary | primary
+func Parser.unary(p: Parser): Result[Expr, Error] {
+  if Parser.atPunct(p, "-") {
+    _ = Parser.next(p)
+    return Result.ok(Neg{ operand: try Parser.unary(p) })
+  }
+  Parser.primary(p)
+}
+
+// primary := number | name | "(" expr ")"
+func Parser.primary(p: Parser): Result[Expr, Error] {
+  var t = Parser.next(p) ?? return Result.err(Error{ message: "unexpected end of input" })
+  if t is Num { return Result.ok(Lit{ value: t.value }) }
+  if t is Ident { return Result.ok(Ref{ name: t.name }) }
+  if t.text == "(" {
+    var inner = try Parser.expr(p)
+    if !Parser.atPunct(p, ")") { return Result.err(Error{ message: "expected )" }) }
+    _ = Parser.next(p)
+    return Result.ok(inner)
+  }
+  Result.err(Error{ message: `unexpected ${t.text}` })
+}
+
+func parse(src: string): Result[Expr, Error] {
+  var p = Parser{ tokens: try tokenize(src), pos: 0 }
+  var e = try Parser.expr(p)
+  var rest = Parser.peek(p)
+  if rest != null { return Result.err(Error{ message: `unexpected ${show(rest)} after the expression` }) }
+  Result.ok(e)
+}
+
+func show(t: Token): string {
+  if t is Num { String.from(t.value) } else if t is Ident { t.name } else { t.text }
+}
+
+func eval(e: Expr, env: Map[string, float64]): Result[float64, Error] {
+  if e is Lit { return Result.ok(e.value) }
+  if e is Ref {
+    var v = env[e.name] ?? return Result.err(Error{ message: `unknown variable ${e.name}` })
+    return Result.ok(v)
+  }
+  if e is Neg { return Result.ok(-(try eval(e.operand, env))) }
+  var l = try eval(e.left, env)
+  var r = try eval(e.right, env)
+  if e.op == "+" { Result.ok(l + r) }
+  else if e.op == "-" { Result.ok(l - r) }
+  else if e.op == "*" { Result.ok(l * r) }
+  else if r == 0.0 { Result.err(Error{ message: "division by zero" }) }
+  else { Result.ok(l / r) }
+}
+
+func format(e: Expr): string {
+  if e is Lit { String.from(e.value) }
+  else if e is Ref { e.name }
+  else if e is Neg { `(-${format(e.operand)})` }
+  else { `(${format(e.left)} ${e.op} ${format(e.right)})` }
+}
+
+func calculate(src: string, env: Map[string, float64]): string {
+  var parsed = parse(src)
+  if parsed is Err { return `${src} => error: ${parsed.error.message}` }
+  var result = eval(parsed.value, env)
+  if result is Err { return `${format(parsed.value)} => error: ${result.error.message}` }
+  `${format(parsed.value)} => ${result.value}`
+}
+
+func main(): void {
+  var env = Map{ x: 2.0, y: 0.5, pi: 3.14159 }
+  for src in [
+    "1 + 2 * 3",
+    "(1 + 2) * 3",
+    "x * 2 + y",
+    "-x * -(y + 1)",
+    "10 / 4",
+    "pi * x * x",
+    "1 / (x - 2)",
+    "1 +",
+    "2 * (3",
+    "3 $ 4",
+    "z + 1",
+    "1 2",
+    "1.5.2",
+  ] { print(calculate(src, env)) }
+}
+
+// expect
+// out: (1.0 + (2.0 * 3.0)) => 7.0
+// out: ((1.0 + 2.0) * 3.0) => 9.0
+// out: ((x * 2.0) + y) => 4.5
+// out: ((-x) * (-(y + 1.0))) => 3.0
+// out: (10.0 / 4.0) => 2.5
+// out: ((pi * x) * x) => 12.56636
+// out: (1.0 / (x - 2.0)) => error: division by zero
+// out: 1 + => error: unexpected end of input
+// out: 2 * (3 => error: expected )
+// out: 3 $ 4 => error: unexpected character $ at 2
+// out: (z + 1.0) => error: unknown variable z
+// out: 1 2 => error: unexpected 2.0 after the expression
+// out: 1.5.2 => error: bad number 1.5.2

@@ -60,6 +60,26 @@ v, err = s.Eval("x * 21")                     // 42, a value.Value
 The library never exits the process or writes anywhere but the writers it is given. See
 `example_test.go` for complete examples.
 
+## Examples
+
+The programs under `examples/` are real programs of a hundred to three hundred lines each, and
+the test suite runs them like the conformance programs. Start with `examples/config.ant`, a JSON
+decoder into records, `examples/calc.ant`, a parser and evaluator over a tagged union, and
+`examples/wordfreq.ant`, which counts words across files with one goroutine per file.
+
+## Testing
+
+```
+go test -race ./...             # everything, including the spec corpus and the examples
+go test ./tests -run TestSpecCoverage -v   # the matrix of spec headings against programs
+scripts/coverage.sh 90 80       # statement coverage, whole program, with thresholds
+go test -run '^$' -fuzz FuzzParse -fuzztime 1m ./parser   # one of the fuzzers
+```
+
+`tests/README.md` describes the corpus: how programs are tagged with the heading of the
+specification they prove, and the trailers that say what each must do. The specification is
+expected as a sibling checkout at `../spec`, or wherever `ANT_SPEC` points.
+
 ## License
 
 MIT

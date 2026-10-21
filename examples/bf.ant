@@ -1,0 +1,77 @@
+// spec: 4 Primitives; 11 Math and Bits; 11 String; 11 Map; 8 Result; 5 Loops
+// An interpreter for a small tape language: a tape of bytes that wrap around on + and -, a
+// bracket table built once by a Result-returning pass, and output collected as code points.
+type Program = { code: Array[string], jumps: Map[int, int] }
+
+func compile(src: string): Result[Program, Error] {
+  var code: Array[string] = []
+  for ch in src { if String.contains("+-<>[].,", ch) { Array.push(code, ch) } }
+  var jumps: Map[int, int] = Map{}
+  var open: Array[int] = []
+  for { index, value } in Array.entries(code) {
+    if value == "[" {
+      Array.push(open, index)
+    } else if value == "]" {
+      var start = Array.pop(open) ?? return Result.err(Error{ message: `] without [ at ${index}` })
+      jumps[start] = index
+      jumps[index] = start
+    }
+  }
+  if !Array.isEmpty(open) { return Result.err(Error{ message: `[ without ] at ${open[0]}` }) }
+  Result.ok(Program{ code: code, jumps: jumps })
+}
+
+func run(p: Program, input: string): string {
+  var tape: Array[byte] = Array.filled(300, byte(0))
+  var inputs = String.toCodePoints(input)
+  var inputAt = 0
+  var out: Array[int] = []
+  var pc = 0
+  var ptr = 0
+  var one = byte(1)
+  while pc < Array.length(p.code) {
+    var op = p.code[pc]
+    if op == "+" { tape[ptr] = Bits.wrapAdd(tape[ptr], one) }
+    else if op == "-" { tape[ptr] = Bits.wrapSub(tape[ptr], one) }
+    else if op == ">" { ptr += 1 }
+    else if op == "<" { ptr -= 1 }
+    else if op == "." { Array.push(out, int(tape[ptr])) }
+    else if op == "," {
+      var next = Array.get(inputs, inputAt) ?? 0
+      tape[ptr] = byte(next)
+      inputAt += 1
+    }
+    else if op == "[" && tape[ptr] == byte(0) { pc = p.jumps[pc] ?? pc }
+    else if op == "]" && tape[ptr] != byte(0) { pc = p.jumps[pc] ?? pc }
+    pc += 1
+  }
+  String.fromCodePoints(out) ?? "<not text>"
+}
+
+func main(): void {
+  var hello = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+  var programs = [
+    hello,
+    "++++++++[>++++++++<-]>+.+.+.",
+    ",[.,]",
+    "-.",
+    "+++[>+++[>+++<-]<-]>>++++++.",
+    "[[]",
+    "]",
+  ]
+  for src in programs {
+    var compiled = compile(src)
+    if compiled is Err { print(`error: ${compiled.error.message}`) }
+    else { print(String.from(run(compiled.value, "ant"))) }
+  }
+}
+
+// expect
+// out: Hello World!
+// out:
+// out: ABC
+// out: ant
+// out: ÿ
+// out: !
+// out: error: [ without ] at 0
+// out: error: ] without [ at 0

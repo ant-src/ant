@@ -1,0 +1,48 @@
+// spec: 10; 6 Functions on types; 4 Tagged unions; 11 Array
+// A program over two modules: geometry exports points, a live counter and a constructor; the
+// shapes module imports it by a relative path and exports a tagged union with functions on it.
+// The program imports both, once by name and once as a namespace, and sees the same live
+// counter through either.
+import "./lib/geometry.ant" Geometry
+import "./lib/geometry.ant" { Point, origin, make }
+import "./lib/shapes/shapes.ant" { Shape, Circle, Rect, Triangle, unitSquare }
+
+func describe(s: Shape): string {
+  `${Shape.name(s)}: area ${round(Shape.area(s))}, perimeter ${round(Shape.perimeter(s))}`
+}
+
+func round(x: float64): float64 { Math.round(x * 1000.0) / 1000.0 }
+
+func main(): void {
+  var shapes: Array[Shape] = [
+    Circle{ center: origin, radius: 1.0 },
+    Rect{ corner: make(1.0, 1.0), width: 3.0, height: 2.0 },
+    Triangle{ a: origin, b: make(4.0, 0.0), c: make(0.0, 3.0) },
+    unitSquare(),
+  ]
+  for s in shapes { print(describe(s)) }
+  var largest = Array.reduce(shapes, shapes[0], func(best: Shape, s: Shape): Shape { if Shape.area(s) > Shape.area(best) { s } else { best } })
+  print(`largest: ${Shape.name(largest)}`)
+  var byArea = Array.sortBy(shapes, { Shape.area(x) })
+  print(Array.map(byArea, Shape.name))
+  print(`points made: ${Geometry.created} ${Geometry.created == Geometry.created}`)
+  var p = Point.add(make(1.0, 2.0), Point.scale(Geometry.origin, 5.0))
+  print(p)
+  print(Geometry.distance(p, origin))
+  print(`points made: ${Geometry.created}`)
+  var circles = Array.filter(shapes, { x is Circle })
+  print(Array.length(circles))
+}
+
+// expect
+// out: circle: area 3.142, perimeter 6.283
+// out: rect: area 6.0, perimeter 10.0
+// out: triangle: area 6.0, perimeter 12.0
+// out: rect: area 1.0, perimeter 4.0
+// out: largest: rect
+// out: ["rect", "circle", "rect", "triangle"]
+// out: points made: 4 true
+// out: Point{ x: 1.0, y: 2.0 }
+// out: 2.23606797749979
+// out: points made: 5
+// out: 1

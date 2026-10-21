@@ -1,0 +1,82 @@
+// spec: stdlib File; stdlib Os; 9 Goroutines; 9 Synchronization; 9 Sharing results; 11 Map; 11 Array
+// A word counter: one goroutine per file, each counting into its own map, merged under a mutex,
+// then ranked with a comparator. The files are written first into the directory given as the
+// only argument, and a missing file is an Err, not a panic.
+func words(text: string): Array[string] {
+  var out: Array[string] = []
+  var current = ""
+  for ch in String.toLower(text) {
+    if ch >= "a" && ch <= "z" || ch == "'" {
+      current = current + ch
+    } else if current != "" {
+      Array.push(out, current)
+      current = ""
+    }
+  }
+  if current != "" { Array.push(out, current) }
+  out
+}
+
+func countFile(path: string): Result[Map[string, int], Error] {
+  var text = try File.read(path)
+  var counts: Map[string, int] = Map{}
+  for w in words(text) { counts[w] = (counts[w] ?? 0) + 1 }
+  Result.ok(counts)
+}
+
+func byCountThenWord(a: Entry[string, int], b: Entry[string, int]): int {
+  if a.value != b.value { b.value - a.value }
+  else if a.key < b.key { -1 }
+  else if a.key > b.key { 1 }
+  else { 0 }
+}
+
+func main(): void {
+  var dir = Os.args()[0]
+  var samples = Map{
+    "fox.txt": "The quick brown fox jumps over the lazy dog. The dog sleeps; the fox doesn't.",
+    "rain.txt": "The rain in Spain stays mainly in the plain. In the plain the rain is plain.",
+    "song.txt": "Row, row, row your boat gently down the stream. The stream, the stream!",
+    "empty.txt": "",
+  }
+  for { key, value } in samples {
+    if File.write(`${dir}/${key}`, value) is Err { print(`cannot write ${key}`) }
+  }
+  var totals: Map[string, int] = Map{}
+  var files = 0
+  var lock = Mutex.new()
+  var wg = WaitGroup.new()
+  for name in Array.concat(Map.keys(samples), ["missing.txt"]) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      var counted = countFile(`${dir}/${name}`)
+      if counted is Ok {
+        var counts = counted.value
+        Mutex.withLock(lock, {
+          files += 1
+          for { key, value } in counts { totals[key] = (totals[key] ?? 0) + value }
+        })
+      } else {
+        Mutex.withLock(lock, { print(`skipped ${name}`) })
+      }
+    }
+  }
+  WaitGroup.wait(wg)
+  var ranked = Array.sortWith(Map.entries(totals), byCountThenWord)
+  for e in Array.slice(ranked, 0, 6) { print(`${e.key}: ${e.value}`) }
+  print(`${files} files, ${Map.size(totals)} distinct words, ${Array.sum(Map.values(totals)) ?? 0} in all`)
+  print(words("Don't stop-me now!"))
+}
+
+// expect
+// out: skipped missing.txt
+// out: the: 11
+// out: in: 3
+// out: plain: 3
+// out: row: 3
+// out: stream: 3
+// out: dog: 2
+// out: 4 files, 23 distinct words, 44 in all
+// out: ["don't", "stop", "me", "now"]
+// args: $TMP

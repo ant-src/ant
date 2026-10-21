@@ -11,13 +11,14 @@ import (
 	"github.com/ant-src/ant"
 )
 
-// TestCheckRunCorpus checks that every program under run/ passes ant check: those programs
-// reach only value-dependent panics, which the checker allows.
+// TestCheckRunCorpus checks that every program under run/ and examples/ passes ant check:
+// those programs reach only value-dependent panics, which the checker allows.
 func TestCheckRunCorpus(t *testing.T) {
 	paths, _ := filepath.Glob("run/*.ant")
+	examples, _ := filepath.Glob(filepath.Join("..", "examples", "*.ant"))
+	paths = append(paths, examples...)
 	for _, path := range paths {
-		name := strings.TrimSuffix(filepath.Base(path), ".ant")
-		t.Run(name, func(t *testing.T) {
+		t.Run(testName(path), func(t *testing.T) {
 			t.Parallel()
 			src, _ := os.ReadFile(path)
 			if strings.Contains(string(src), "// exit: 2") {

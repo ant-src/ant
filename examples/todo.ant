@@ -1,0 +1,123 @@
+// spec: stdlib File; stdlib Json; stdlib Os; 5 Destructuring; 8 Result; 8 try; 6 Calling
+// A to-do list kept in a JSON file: subcommands add, done, remove, list and clear, each a run of
+// the program with the file's directory as the first argument. Here main scripts a session and
+// then runs whatever further arguments it was given, exiting with the last command's status.
+type Task = { id: int, title: string, done: bool }
+
+func decodeTask(v: Json.Value, path: string): Result[Task, Error] {
+  if !(v is Map) { return Result.err(Error{ message: `${path}: expected an object` }) }
+  var id = v["id"]
+  var title = v["title"]
+  var done = v["done"]
+  if !(id is float64) { return Result.err(Error{ message: `${path}.id: expected a number` }) }
+  var n = Math.toInt(id) ?? return Result.err(Error{ message: `${path}.id: expected an integer` })
+  if !(title is string) { return Result.err(Error{ message: `${path}.title: expected a string` }) }
+  if !(done is bool) { return Result.err(Error{ message: `${path}.done: expected a bool` }) }
+  Result.ok(Task{ id: n, title: title, done: done })
+}
+
+func load(path: string): Result[Array[Task], Error] {
+  if !File.exists(path) { return Result.ok([]) }
+  var tree = try Json.parse(try File.read(path))
+  if !(tree is Array) { return Result.err(Error{ message: "$: expected an array" }) }
+  var tasks: Array[Task] = []
+  for { index, value } in Array.entries(tree) { Array.push(tasks, try decodeTask(value, `$[${index}]`)) }
+  Result.ok(tasks)
+}
+
+func save(path: string, tasks: Array[Task]): Result[void, Error] { File.write(path, Json.stringify(tasks)) }
+
+func find(tasks: Array[Task], arg: string | null): Result[Task, Error] {
+  var text = arg ?? return Result.err(Error{ message: "an id is required" })
+  var id = String.toInt(text) ?? return Result.err(Error{ message: `${text} is not an id` })
+  var task = Array.find(tasks, { x.id == id }) ?? return Result.err(Error{ message: `no task ${id}` })
+  Result.ok(task)
+}
+
+func execute(path: string, command: string, args: Array[string]): Result[string, Error] {
+  var tasks = try load(path)
+  if command == "add" {
+    if Array.isEmpty(args) { return Result.err(Error{ message: "a title is required" }) }
+    var next = Array.reduce(tasks, 0, func(high: int, t: Task): int { Math.max(high, t.id) }) + 1
+    Array.push(tasks, Task{ id: next, title: String.join(args, " "), done: false })
+    try save(path, tasks)
+    return Result.ok(`added ${next}`)
+  }
+  if command == "done" {
+    var task = try find(tasks, Array.get(args, 0))
+    task.done = true
+    try save(path, tasks)
+    return Result.ok(`done ${task.id}`)
+  }
+  if command == "remove" {
+    var task = try find(tasks, Array.get(args, 0))
+    try save(path, Array.filter(tasks, { x.id != task.id }))
+    return Result.ok(`removed ${task.id}`)
+  }
+  if command == "clear" {
+    if File.exists(path) { try File.remove(path) }
+    return Result.ok("cleared")
+  }
+  if command == "list" {
+    if Array.isEmpty(tasks) { return Result.ok("nothing to do") }
+    var lines: Array[string] = []
+    for { id, title, done } in tasks { Array.push(lines, `${if done { "[x]" } else { "[ ]" }} ${id} ${title}`) }
+    return Result.ok(String.join(lines, "\n"))
+  }
+  Result.err(Error{ message: `unknown command ${command}; use add, done, remove, list, or clear` })
+}
+
+func run(path: string, argv: Array[string]): int {
+  var command = Array.get(argv, 0) ?? "list"
+  var args = Array.slice(argv, 1, Array.length(argv))
+  var outcome = execute(path, command, args)
+  if outcome is Ok { print(outcome.value); 0 }
+  else { print(`error: ${outcome.error.message}`); 1 }
+}
+
+func main(): void {
+  var argv = Os.args()
+  var dir = Array.get(argv, 0) ?? "."
+  var rest = Array.slice(argv, 1, Array.length(argv))
+  var path = `${dir}/todo.json`
+  var script = [
+    ["list"], ["add", "buy", "milk"], ["add", "write", "tests"], ["add"], ["list"],
+    ["done", "1"], ["done", "7"], ["done", "x"], ["list"], ["remove", "2"], ["list"],
+  ]
+  var status = 0
+  for argv in script {
+    print(`$ todo ${String.join(argv, " ")}`)
+    status = run(path, argv)
+  }
+  print(Result.unwrapOr(File.read(path), "no file"))
+  if !Array.isEmpty(rest) { status = run(path, rest) }
+  if status != 0 { Os.exit(status) }
+}
+
+// expect
+// out: $ todo list
+// out: nothing to do
+// out: $ todo add buy milk
+// out: added 1
+// out: $ todo add write tests
+// out: added 2
+// out: $ todo add
+// out: error: a title is required
+// out: $ todo list
+// out: [ ] 1 buy milk
+// out: [ ] 2 write tests
+// out: $ todo done 1
+// out: done 1
+// out: $ todo done 7
+// out: error: no task 7
+// out: $ todo done x
+// out: error: x is not an id
+// out: $ todo list
+// out: [x] 1 buy milk
+// out: [ ] 2 write tests
+// out: $ todo remove 2
+// out: removed 2
+// out: $ todo list
+// out: [x] 1 buy milk
+// out: [{"id":1,"title":"buy milk","done":true}]
+// args: $TMP

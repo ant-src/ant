@@ -1,0 +1,25 @@
+// Shapes as a tagged union over the geometry module's points. Not a test itself.
+import "../geometry.ant" { Point, distance, make }
+
+export type Circle = { center: Point, radius: float64 }
+export type Rect = { corner: Point, width: float64, height: float64 }
+export type Triangle = { a: Point, b: Point, c: Point }
+export type Shape = Circle | Rect | Triangle
+
+export func Shape.area(s: Shape): float64 {
+  if s is Circle { 3.141592653589793 * s.radius * s.radius }
+  else if s is Rect { s.width * s.height }
+  else { Math.abs((s.b.x - s.a.x) * (s.c.y - s.a.y) - (s.c.x - s.a.x) * (s.b.y - s.a.y)) / 2.0 }
+}
+
+export func Shape.perimeter(s: Shape): float64 {
+  if s is Circle { 2.0 * 3.141592653589793 * s.radius }
+  else if s is Rect { 2.0 * (s.width + s.height) }
+  else { distance(s.a, s.b) + distance(s.b, s.c) + distance(s.c, s.a) }
+}
+
+export func Shape.name(s: Shape): string {
+  if s is Circle { "circle" } else if s is Rect { "rect" } else { "triangle" }
+}
+
+export func unitSquare(): Shape { Rect{ corner: make(0.0, 0.0), width: 1.0, height: 1.0 } }

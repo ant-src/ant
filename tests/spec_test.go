@@ -190,7 +190,6 @@ var pendingSpec = []string{
 	"4 Inference",
 	"5 Blocks",
 	"5 Pipes",
-	"9 Visibility",
 	"11 Prelude",
 }
 

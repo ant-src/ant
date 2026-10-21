@@ -1,0 +1,75 @@
+// spec: 9 Sharing results; 9 Synchronization; 9 Data races; 9 Visibility; 11 Synchronization
+// A bank with a thousand goroutines moving money between ten accounts under a read-write lock,
+// auditing the total under read locks while transfers hold the write lock, loading a rate table
+// once for everyone, and electing a leader with one compare-and-swap. Every transfer is designed
+// to succeed, so the final state does not depend on scheduling.
+type Account = { id: int, balance: int }
+type Bank = { accounts: Array[Account], lock: RwMutex, transfers: Atomic[int], audits: Atomic[int], mismatches: Atomic[int] }
+
+func Bank.new(accounts: int, each: int): Bank {
+  var list: Array[Account] = []
+  for i in Iter.range(0, accounts) { Array.push(list, Account{ id: i, balance: each }) }
+  Bank{ accounts: list, lock: RwMutex.new(), transfers: Atomic.new(0), audits: Atomic.new(0), mismatches: Atomic.new(0) }
+}
+
+func Bank.transfer(b: Bank, from: int, to: int, amount: int): bool {
+  RwMutex.withWrite(b.lock, {
+    var source = b.accounts[from]
+    if source.balance < amount { return false }
+    source.balance -= amount
+    b.accounts[to].balance += amount
+    _ = Atomic.add(b.transfers, 1)
+    true
+  })
+}
+
+func Bank.total(b: Bank): int {
+  RwMutex.withRead(b.lock, { Array.reduce(b.accounts, 0, func(sum: int, a: Account): int { sum + a.balance }) })
+}
+
+func Bank.audit(b: Bank, expected: int): void {
+  _ = Atomic.add(b.audits, 1)
+  if Bank.total(b) != expected { _ = Atomic.add(b.mismatches, 1) }
+}
+
+var loads = Atomic.new(0)
+var rates = Once.value(func(): Map[string, int] {
+  _ = Atomic.add(loads, 1)
+  Map{ fee: 0 }
+})
+
+func main(): void {
+  var bank = Bank.new(10, 1000)
+  var expected = Bank.total(bank)
+  var leader = Atomic.new(false)
+  var leaders = Atomic.new(0)
+  var wg = WaitGroup.new()
+  for g in Iter.range(0, 1000) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      if Atomic.compareAndSwap(leader, false, true) { _ = Atomic.add(leaders, 1) }
+      var fee = rates()["fee"] ?? 0
+      var own = g % 10
+      var next = (g + 1) % 10
+      for _ in Iter.range(0, 10) {
+        if !Bank.transfer(bank, own, next, 1 + fee) { panic("a transfer failed") }
+        Bank.audit(bank, expected)
+        if !Bank.transfer(bank, next, own, 1 + fee) { panic("a transfer back failed") }
+      }
+    }
+  }
+  WaitGroup.wait(wg)
+  print(`transfers: ${Atomic.load(bank.transfers)}`)
+  print(`audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}`)
+  print(`total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}`)
+  print(`rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}`)
+  print(Bank.transfer(bank, 0, 1, 5000))
+}
+
+// expect
+// out: transfers: 20000
+// out: audits: 10000, mismatches: 0
+// out: total 10000 of 10000, balances [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]
+// out: rates loaded 1 time(s), leaders elected 1
+// out: false

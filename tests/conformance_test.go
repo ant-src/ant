@@ -81,11 +81,16 @@ func TestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	paths = append(paths, unchecked...)
+	examples, err := filepath.Glob(filepath.Join("..", "examples", "*.ant"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths = append(paths, examples...)
 	if len(paths) == 0 {
 		t.Fatal("no programs under run/")
 	}
 	for _, path := range paths {
-		t.Run(strings.TrimSuffix(strings.TrimPrefix(path, "run/"), ".ant"), func(t *testing.T) {
+		t.Run(testName(path), func(t *testing.T) {
 			t.Parallel()
 			src, err := os.ReadFile(path)
 			if err != nil {
@@ -136,6 +141,17 @@ func TestRun(t *testing.T) {
 			}
 		})
 	}
+}
+
+// testName names a program's subtest: its file name, prefixed by its directory unless that is
+// run/.
+func testName(path string) string {
+	name := strings.TrimSuffix(filepath.Base(path), ".ant")
+	dir := filepath.Base(filepath.Dir(path))
+	if dir == "run" {
+		return name
+	}
+	return dir + "/" + name
 }
 
 // lockedBuffer is a bytes.Buffer safe for concurrent writers.

@@ -1,0 +1,89 @@
+// spec: 9 Synchronization; 9 Goroutines; 9 Panics in goroutines; 8 defer; 6 Functions on types
+// A bounded queue guarded by a mutex and two condition variables, with producers and consumers
+// on both sides, counters in atomics, and a worker that panics: its deferred done still runs,
+// the report goes to standard error, and the program carries on.
+type Queue = { items: Array[int], capacity: int, closed: bool, lock: Mutex, notEmpty: Cond, notFull: Cond }
+
+func Queue.new(capacity: int): Queue {
+  var lock = Mutex.new()
+  Queue{ items: [], capacity: capacity, closed: false, lock: lock, notEmpty: Cond.new(lock), notFull: Cond.new(lock) }
+}
+
+func Queue.put(q: Queue, v: int): void {
+  Mutex.lock(q.lock)
+  defer { Mutex.unlock(q.lock) }
+  while Array.length(q.items) >= q.capacity { Cond.wait(q.notFull) }
+  Array.push(q.items, v)
+  Cond.signal(q.notEmpty)
+}
+
+// take returns null once the queue is closed and drained.
+func Queue.take(q: Queue): int | null {
+  Mutex.lock(q.lock)
+  defer { Mutex.unlock(q.lock) }
+  while Array.isEmpty(q.items) && !q.closed { Cond.wait(q.notEmpty) }
+  if Array.isEmpty(q.items) { return null }
+  var v = q.items[0]
+  q.items = Array.slice(q.items, 1, Array.length(q.items))
+  Cond.signal(q.notFull)
+  v
+}
+
+func Queue.close(q: Queue): void {
+  Mutex.withLock(q.lock, {
+    q.closed = true
+    Cond.broadcast(q.notEmpty)
+  })
+}
+
+func main(): void {
+  var q = Queue.new(4)
+  var producers = WaitGroup.new()
+  for p in Iter.range(0, 3) {
+    WaitGroup.add(producers, 1)
+    go {
+      defer { WaitGroup.done(producers) }
+      for k in Iter.range(1, 21) { Queue.put(q, p * 100 + k) }
+    }
+  }
+  var consumers = WaitGroup.new()
+  var taken = Atomic.new(0)
+  var sum = Atomic.new(0)
+  var largest = Atomic.new(0)
+  for _ in Iter.range(0, 2) {
+    WaitGroup.add(consumers, 1)
+    go {
+      defer { WaitGroup.done(consumers) }
+      while true {
+        var v = Queue.take(q) ?? break
+        _ = Atomic.add(taken, 1)
+        _ = Atomic.add(sum, v)
+        var seen = Atomic.load(largest)
+        while v > seen && !Atomic.compareAndSwap(largest, seen, v) { seen = Atomic.load(largest) }
+      }
+    }
+  }
+  WaitGroup.wait(producers)
+  Queue.close(q)
+  WaitGroup.wait(consumers)
+  print(`took ${Atomic.load(taken)} items, sum ${Atomic.load(sum)}, largest ${Atomic.load(largest)}`)
+  print(`queue drained: ${Array.isEmpty(q.items)}`)
+  var workers = WaitGroup.new()
+  var finished = Atomic.new(0)
+  for id in Iter.range(0, 3) {
+    WaitGroup.add(workers, 1)
+    go {
+      defer { WaitGroup.done(workers) }
+      if id == 1 { panic(`worker ${id} failed`) }
+      _ = Atomic.add(finished, 1)
+    }
+  }
+  WaitGroup.wait(workers)
+  print(`${Atomic.load(finished)} of 3 workers finished`)
+}
+
+// expect
+// out: took 60 items, sum 6630, largest 220
+// out: queue drained: true
+// out: 2 of 3 workers finished
+// err: worker 1 failed

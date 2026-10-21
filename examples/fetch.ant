@@ -1,0 +1,62 @@
+// spec: stdlib Http; stdlib Json; 8 try; 8 Result; 11 Map
+// An HTTP client against the test server whose base URL is the first argument: a plain GET, a
+// status the caller must check, a POST that echoes its body and a header, JSON over the wire in
+// both directions, and the failures, which are all Err values and never panics.
+func getJson(url: string): Result[Json.Value, Error] {
+  var r = try Http.get(url)
+  if r.status != 200 { return Result.err(Error{ message: `status ${r.status}` }) }
+  Json.parse(r.body)
+}
+
+func postJson(url: string, payload: Json.Value, token: string): Result[Json.Value, Error] {
+  var headers = Map{ "Content-Type": "application/json", "X-Token": token }
+  var r = try Http.post(url, Json.stringify(payload), headers)
+  if r.status != 200 { return Result.err(Error{ message: `status ${r.status}` }) }
+  var echoed = r.headers["X-Token"] ?? ""
+  if echoed != token { return Result.err(Error{ message: "the token did not come back" }) }
+  Json.parse(r.body)
+}
+
+func main(): void {
+  var base = Os.args()[0]
+  var hello = Http.get(`${base}/hello`)
+  if hello is Ok {
+    var r = hello.value
+    print(`${r.status} ${r.headers["Content-Type"]} ${r.body}`)
+  }
+  var missing = Result.unwrap(Http.get(`${base}/status/404`))
+  print(`status ${missing.status}, body ${missing.body}`)
+  print(getJson(`${base}/status/500`))
+  print(getJson(`${base}/hello`) is Err)
+  var payload: Json.Value = Map{ "n": 1.0, "tags": ["a", "b"], "nested": Map{ "ok": true } }
+  var reply = postJson(`${base}/echo`, payload, "secret")
+  if reply is Ok {
+    var v = reply.value
+    if v is Map {
+      print(v["n"])
+      print(v["tags"])
+      var nested = v["nested"]
+      if nested is Map { print(nested["ok"]) }
+    }
+    print(Json.stringify(v) == Json.stringify(payload))
+  } else {
+    print(reply.error.message)
+  }
+  print(Http.get("http://127.0.0.1:1/") is Err)
+  print(Http.post("::nope", "", Map{}) is Err)
+  print(Result.unwrapOr(Result.map(Http.get(`${base}/nowhere`), { x.status }), -1))
+}
+
+// expect
+// out: 200 text/plain hello
+// out: status 404, body status
+// out: Err{ error: Error{ message: "status 500" } }
+// out: true
+// out: 1.0
+// out: ["a", "b"]
+// out: true
+// out: true
+// out: true
+// out: true
+// out: 404
+// args: $HTTP
