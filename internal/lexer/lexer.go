@@ -19,12 +19,17 @@ type Error struct {
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
 
 type lexer struct {
-	src  string
-	pos  int
-	line int
-	col  int
-	toks []token.Token
+	src     string
+	pos     int
+	line    int
+	col     int
+	toks    []token.Token
+	nesting int // template interpolations entered, bounded by maxNesting
 }
+
+// maxNesting bounds the nesting of template interpolations, so that no input can overflow the
+// Go stack in the lexer.
+const maxNesting = 1000
 
 // Lex tokenizes src. The token stream ends with a Newline (unless empty) and an EOF.
 func Lex(src string) (toks []token.Token, err error) {
@@ -417,6 +422,11 @@ func (l *lexer) template() {
 
 // interpolation lexes the tokens of a ${...} up to its matching brace, which it consumes.
 func (l *lexer) interpolation(pos token.Pos) []token.Token {
+	l.nesting++
+	if l.nesting > maxNesting {
+		l.fail(pos, "nesting deeper than %d levels", maxNesting)
+	}
+	defer func() { l.nesting-- }()
 	outer := l.toks
 	l.toks = nil
 	depth := 0

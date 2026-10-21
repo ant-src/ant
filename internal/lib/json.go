@@ -33,7 +33,9 @@ func init() {
 			}),
 			fn("Json.stringify", "value", func(g *interp.Goroutine, a []value.Value) value.Value {
 				var sb strings.Builder
-				stringify(&sb, a[0], nil)
+				if !stringify(&sb, a[0], nil) {
+					g.Panic("Json.stringify: cyclic value")
+				}
 				return sb.String()
 			}),
 		)
@@ -102,7 +104,8 @@ func parseFrom(dec *json.Decoder, tok json.Token) (value.Value, error) {
 	return nil, fmt.Errorf("unexpected JSON token %v", tok)
 }
 
-func stringify(sb *strings.Builder, v value.Value, stack []any) {
+// stringify writes v as JSON. It returns false on a cyclic value, which has no JSON form.
+func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))
@@ -115,11 +118,10 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) {
 	case bool:
 		sb.WriteString(strconv.FormatBool(x))
 	case *value.Tagged:
-		stringify(sb, x.Payload, stack)
+		return stringify(sb, x.Payload, stack)
 	case *value.Record:
 		if onStack(stack, x) {
-			sb.WriteString("null")
-			return
+			return false
 		}
 		stack = append(stack, x)
 		sb.WriteByte('{')
@@ -129,13 +131,14 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) {
 			}
 			writeJSONString(sb, name)
 			sb.WriteByte(':')
-			stringify(sb, x.Get(i), stack)
+			if !stringify(sb, x.Get(i), stack) {
+				return false
+			}
 		}
 		sb.WriteByte('}')
 	case *value.Array:
 		if onStack(stack, x) {
-			sb.WriteString("null")
-			return
+			return false
 		}
 		stack = append(stack, x)
 		sb.WriteByte('[')
@@ -143,13 +146,14 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) {
 			if i > 0 {
 				sb.WriteByte(',')
 			}
-			stringify(sb, e, stack)
+			if !stringify(sb, e, stack) {
+				return false
+			}
 		}
 		sb.WriteByte(']')
 	case *value.Map:
 		if onStack(stack, x) {
-			sb.WriteString("null")
-			return
+			return false
 		}
 		stack = append(stack, x)
 		sb.WriteByte('{')
@@ -163,12 +167,15 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) {
 				writeJSONString(sb, value.Render(e.Key))
 			}
 			sb.WriteByte(':')
-			stringify(sb, e.Value, stack)
+			if !stringify(sb, e.Value, stack) {
+				return false
+			}
 		}
 		sb.WriteByte('}')
 	default:
 		sb.WriteString("null")
 	}
+	return true
 }
 
 func onStack(stack []any, v any) bool {

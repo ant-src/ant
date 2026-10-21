@@ -1,0 +1,33 @@
+// spec: 7 Narrowing; 5 Operators
+// A test narrows through && and || inside the expression itself, not only in the branch of an
+// if: the right operand of && sees the narrowed type, the right operand of || sees the
+// complement, wherever the expression appears (section 7).
+type Point = { x: int, y: int }
+type Label = { text: string }
+type Item = Point | Label | null
+
+func isOrigin(v: Item): bool { v is Point && v.x == 0 && v.y == 0 }
+
+func isNullOrEmpty(v: Item): bool { v == null || v is Point || v.text == "" }
+
+func main(): void {
+  var items: Array[Item] = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Label{ text: "" }, Label{ text: "t" }, null]
+  for v in items {
+    var origin = v is Point && v.x == 0 && v.y == 0
+    var longLabel = v is Label && String.length(v.text) > 0
+    var notPositive = !(v is Point) || v.x <= 0
+    print(`${v}: ${origin} ${longLabel} ${notPositive} ${isOrigin(v)} ${isNullOrEmpty(v)}`)
+  }
+  var p: Point | null = Point{ x: 3, y: 4 }
+  print(p != null && p.x + p.y == 7)
+  print(p == null || p.x > 10)
+}
+
+// expect
+// out: Point{ x: 0, y: 0 }: true false true true true
+// out: Point{ x: 1, y: 0 }: false false false false true
+// out: Label{ text: "" }: false false true false true
+// out: Label{ text: "t" }: false true true false false
+// out: null: false false true false true
+// out: true
+// out: false

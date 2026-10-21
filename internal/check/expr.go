@@ -792,8 +792,11 @@ func (c *Checker) operandOK(t types.Type, op string, strings bool) bool {
 func (c *Checker) binary(x *ast.Binary, sc *scope) types.Type {
 	switch x.Op {
 	case "&&", "||":
-		c.check(x.X, sc, types.BoolType)
-		c.check(x.Y, sc, types.BoolType)
+		// The right operand sees the narrowing of the left one, as in a condition (section 7),
+		// but the expression's value narrows nothing after it.
+		saved := c.flow
+		c.cond(x, sc)
+		c.flow = saved
 		return types.BoolType
 	case "??":
 		return c.nullish(x, sc, nil)

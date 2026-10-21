@@ -74,7 +74,21 @@ type parser struct {
 	boundary string     // "", "func", "lambda", "go", or "defer"
 	loops    int        // loops entered inside the current boundary
 	curBlock *ast.Block // the innermost block whose statements are being parsed
+	depth    int        // nesting of expressions, types, and blocks, bounded by maxNesting
 }
+
+// maxNesting bounds the nesting of expressions, types and blocks, so that no input can overflow
+// the Go stack in the parser or in the passes that walk the tree after it.
+const maxNesting = 1000
+
+func (p *parser) nest() {
+	p.depth++
+	if p.depth > maxNesting {
+		p.fail(p.peek().Pos, "nesting deeper than %d levels", maxNesting)
+	}
+}
+
+func (p *parser) unnest() { p.depth-- }
 
 func (p *parser) recover(err *error) {
 	if r := recover(); r != nil {
@@ -471,6 +485,8 @@ func (p *parser) signature() ([]ast.Param, ast.Type) {
 // ---- types
 
 func (p *parser) parseType() ast.Type {
+	p.nest()
+	defer p.unnest()
 	first := p.typeTerm()
 	if !p.at("|") {
 		return first
@@ -576,6 +592,8 @@ func (p *parser) funcType() *ast.FuncType {
 // ---- blocks and statements
 
 func (p *parser) block() *ast.Block {
+	p.nest()
+	defer p.unnest()
 	t := p.expect("{")
 	b := &ast.Block{Pos: pos(t)}
 	saved := p.enterBlock(b)
@@ -628,6 +646,8 @@ func isAssignOp(s string) bool {
 }
 
 func (p *parser) expression() ast.Expr {
+	p.nest()
+	defer p.unnest()
 	left := p.pipe()
 	t := p.peek()
 	if t.Kind == token.Op && isAssignOp(t.Text) {
@@ -832,6 +852,8 @@ func (p *parser) multiplicative() ast.Expr {
 func (p *parser) unary() ast.Expr {
 	t := p.peek()
 	if t.Is("-") || t.Is("!") || t.Is("try") {
+		p.nest()
+		defer p.unnest()
 		p.next()
 		return &ast.Unary{Pos: pos(t), Op: t.Text, X: p.unary()}
 	}

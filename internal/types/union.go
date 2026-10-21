@@ -9,9 +9,16 @@ import (
 // an error when two members share a discriminator (section 4, Unions).
 func MakeUnion(members []Type) (Type, error) {
 	var flat []Type
+	expanding := map[*Decl]bool{} // aliases being flattened, so that a cyclic alias terminates
 	var collect func(ts []Type)
 	collect = func(ts []Type) {
 		for _, t := range ts {
+			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
+				if expanding[n.Decl] {
+					continue
+				}
+				expanding[n.Decl] = true
+			}
 			switch x := Expand(t).(type) {
 			case Union:
 				collect(x.Members)

@@ -235,3 +235,28 @@ func TestHasDefer(t *testing.T) {
 		t.Error("the if block should have the defer")
 	}
 }
+
+// TestNesting checks the nesting limit: a thousand levels parse, more are a syntax error rather
+// than a stack overflow, in expressions, types and blocks alike.
+func TestNesting(t *testing.T) {
+	deep := func(open, close string, n int) string {
+		return strings.Repeat(open, n) + "1" + strings.Repeat(close, n)
+	}
+	if _, err := Parse("t", "var x = "+deep("(", ")", 900), Program); err != nil {
+		t.Errorf("900 levels: %v", err)
+	}
+	cases := []string{
+		"var x = " + deep("(", ")", 1100),
+		"var x = " + deep("[", "]", 1100),
+		"var x = " + strings.Repeat("-", 1100) + "1",
+		"var x: " + strings.Repeat("Array[", 1100) + "int" + strings.Repeat("]", 1100) + " = 1",
+		"func f(): void " + strings.Repeat("{", 1100) + strings.Repeat("}", 1100),
+		"var s = " + strings.Repeat("`${", 1100) + "1" + strings.Repeat("}`", 1100),
+	}
+	for _, src := range cases {
+		_, err := Parse("t", src, Program)
+		if err == nil || !strings.Contains(err.Error(), "nesting deeper than") {
+			t.Errorf("%.30q: got %v, want a nesting error", src, err)
+		}
+	}
+}

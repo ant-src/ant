@@ -402,10 +402,10 @@ func targetNames(t ast.Target) []*ast.NameTarget {
 // declared on its types.
 func (c *Checker) resolveTypes(mi *moduleInfo) {
 	c.mod = mi
+	// A cyclic alias is marked invalid as soon as its body is resolved, before a later
+	// declaration can expand it.
 	for _, ti := range mi.types {
 		c.resolveTypeDecl(ti, mi)
-	}
-	for _, ti := range mi.types {
 		c.checkAliasCycle(ti)
 	}
 	for _, fi := range mi.funcs {

@@ -1,0 +1,21 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: an alias that reaches itself without passing through a record, array, map, or
+// function is an error, directly, through a union, through a chain of aliases, and whichever
+// declaration order the cycle is written in; a later declaration that mentions the cyclic alias
+// does not loop. Recursion through a record or an array is fine.
+type Self = Self | null // ERR: refers to itself without passing through
+type Chain = Link | int
+type Link = Chain | string // ERR: refers to itself without passing through
+type Mentions = Self | Link | bool
+type Tree = { value: int, children: Array[Tree] }
+type Forest = Array[Tree] | null
+type Pair[T] = { first: T, second: Pair[T] | null }
+
+func main(): void {
+  var t = Tree{ value: 1, children: [] }
+  var f: Forest = [t]
+  var p = Pair{ first: 1, second: null }
+  print(t)
+  print(f)
+  print(p)
+}

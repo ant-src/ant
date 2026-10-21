@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go: ["1.24", "stable"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ant
+      - uses: actions/checkout@v4
+        with:
+          repository: ant-src/spec
+          path: spec
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: gofmt
+        working-directory: ant
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: vet
+        working-directory: ant
+        run: go vet ./...
+      - name: build
+        working-directory: ant
+        run: go build ./cmd/ant
+      - name: test
+        working-directory: ant
+        run: go test -race ./...
+      - name: coverage gate
+        if: matrix.os == 'ubuntu-latest' && matrix.go == 'stable'
+        working-directory: ant
+        run: scripts/coverage.sh 83 0
+
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - { pkg: ./internal/lexer, name: FuzzLex }
+          - { pkg: ./parser, name: FuzzParse }
+          - { pkg: ., name: FuzzCheck }
+          - { pkg: ., name: FuzzRun }
+          - { pkg: ., name: FuzzStrings }
+          - { pkg: ./internal/lib, name: FuzzJSON }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ant
+      - uses: actions/checkout@v4
+        with:
+          repository: ant-src/spec
+          path: spec
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: fuzz ${{ matrix.target.name }}
+        working-directory: ant
+        run: go test -run '^$' -fuzz '^${{ matrix.target.name }}$' -fuzztime 20s ${{ matrix.target.pkg }}
