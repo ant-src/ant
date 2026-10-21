@@ -1,0 +1,22 @@
+// String.from on cyclic values (section 11): a value already being rendered renders as ..., so
+// rendering terminates; a value rendered twice side by side is not a cycle.
+type Node = { value: int, next: Node | null }
+type Cell = { items: Array[Cell] }
+
+func main(): void {
+  var a = Node{ value: 1, next: null }
+  a.next = a
+  print(a)
+  var b = Node{ value: 2, next: Node{ value: 3, next: null } }
+  print(b)
+  var c = Cell{ items: [] }
+  Array.push(c.items, c)
+  print(c)
+  print([c, c])
+}
+
+// expect
+// out: Node{ value: 1, next: ... }
+// out: Node{ value: 2, next: Node{ value: 3, next: null } }
+// out: Cell{ items: [...] }
+// out: [Cell{ items: [...] }, Cell{ items: [...] }]

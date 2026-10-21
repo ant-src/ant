@@ -1,0 +1,10 @@
+// Os.args returns the arguments after the program path (stdlib.md).
+func main(): void {
+  print(Os.args())
+  print(Array.length(Os.args()))
+}
+
+// expect
+// args: one two three
+// out: ["one", "two", "three"]
+// out: 3

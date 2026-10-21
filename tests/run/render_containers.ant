@@ -1,0 +1,40 @@
+// String.from on arrays, maps, and records (section 11): arrays render as [1, 2], maps as
+// Map{ "a": 1 } with string keys always quoted, records as Point{ x: 1.0, y: 2.0 } with the name
+// of their tag and the fields in declaration order; entries are separated by ", "; an empty
+// array, map, or record renders as [], Map{}, or Empty{} with nothing inside.
+type Point = { x: float64, y: float64 }
+type Empty = {}
+type Pair = { first: Point, second: Array[int] }
+
+func main(): void {
+  print([1, 2, 3])
+  print([[1], [], [2, 3]])
+  print(Map{ a: 1, b: 2 })
+  print(Map{ 1: "one", 2: "two" })
+  var byPoint: Map[Point, string] = Map{}
+  byPoint[Point{ x: 0.0, y: 0.0 }] = "origin"
+  print(byPoint)
+  print(Point{ x: 1.0, y: 2.0 })
+  print(Point{ y: 2.0, x: 1.0 })
+  print(Pair{ first: Point{ x: 0.5, y: 0.0 }, second: [7] })
+  var empty: Array[int] = []
+  print(empty)
+  var emptyMap: Map[string, int] = Map{}
+  print(emptyMap)
+  print(Empty{})
+  print([Empty{}, Empty{}])
+}
+
+// expect
+// out: [1, 2, 3]
+// out: [[1], [], [2, 3]]
+// out: Map{ "a": 1, "b": 2 }
+// out: Map{ 1: "one", 2: "two" }
+// out: Map{ Point{ x: 0.0, y: 0.0 }: "origin" }
+// out: Point{ x: 1.0, y: 2.0 }
+// out: Point{ x: 1.0, y: 2.0 }
+// out: Pair{ first: Point{ x: 0.5, y: 0.0 }, second: [7] }
+// out: []
+// out: Map{}
+// out: Empty{}
+// out: [Empty{}, Empty{}]

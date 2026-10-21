@@ -1,0 +1,31 @@
+// String.from on strings, bools, null, and void (section 11): a string renders as itself at the
+// top level and quoted with escapes inside a container; bool, null, and void render as their
+// literals; a template string renders each interpolation with String.from.
+func main(): void {
+  print("plain")
+  print("")
+  print("with \"quotes\" and a \\ backslash")
+  print(["plain"])
+  print(["tab\there", "new\nline", "quote\"", "back\\slash"])
+  print(`${"inner"} and ${1}`)
+  print(true)
+  print(false)
+  print(null)
+  print(void)
+  print([true, null, void])
+  print(Map{ k: "v" })
+}
+
+// expect
+// out: plain
+// out:
+// out: with "quotes" and a \ backslash
+// out: ["plain"]
+// out: ["tab\there", "new\nline", "quote\"", "back\\slash"]
+// out: inner and 1
+// out: true
+// out: false
+// out: null
+// out: void
+// out: [true, null, void]
+// out: Map{ "k": "v" }

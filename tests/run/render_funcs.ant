@@ -1,0 +1,33 @@
+// String.from on functions, constructors, and sync objects (section 11): a function renders as
+// func, a constructor as its type's name, and a sync object as its namespace name.
+type UserId = string
+
+func helper(): int { 1 }
+
+func main(): void {
+  print(helper)
+  print(func(a: int): int { a })
+  var double: func(int): int = { x * 2 }
+  print(double)
+  print(UserId)
+  print([double, double])
+  print(Mutex.new())
+  print(RwMutex.new())
+  print(WaitGroup.new())
+  print(Once.new())
+  print(Cond.new(Mutex.new()))
+  print(Atomic.new(0))
+}
+
+// expect
+// out: func
+// out: func
+// out: func
+// out: UserId
+// out: [func, func]
+// out: Mutex
+// out: RwMutex
+// out: WaitGroup
+// out: Once
+// out: Cond
+// out: Atomic

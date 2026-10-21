@@ -1,0 +1,22 @@
+// String.from on named primitive types (section 11): a tagged value renders as its constructor
+// call, with the payload rendered as it would be inside a container.
+type UserId = string
+type Meters = float64
+type Flag = bool
+
+func main(): void {
+  print(UserId("u-1"))
+  print(Meters(2.5))
+  print(Meters(3.0))
+  print(Flag(true))
+  print([UserId("a"), UserId("b")])
+  print(Map{ k: UserId("q") })
+}
+
+// expect
+// out: UserId("u-1")
+// out: Meters(2.5)
+// out: Meters(3.0)
+// out: Flag(true)
+// out: [UserId("a"), UserId("b")]
+// out: Map{ "k": UserId("q") }

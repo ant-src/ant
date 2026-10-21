@@ -1,0 +1,65 @@
+// The example of section 13, verbatim.
+type Active = {}
+type Suspended = { reason: string }
+type Status = Active | Suspended
+type AccountId = int
+
+type Account = {
+  id: AccountId,
+  owner: string,
+  balance: float64,
+  status: Status,
+}
+
+type NotFound = { id: AccountId }
+type Insufficient = { needed: float64 }
+type AccountSuspended = { id: AccountId, reason: string }
+type TransferError = NotFound | Insufficient | AccountSuspended
+
+func transfer(accounts: Map[AccountId, Account], from: AccountId, to: AccountId, amount: float64): Result[void, TransferError] {
+  var source = accounts[from] ?? return Result.err(NotFound{ id: from })
+  var target = accounts[to] ?? return Result.err(NotFound{ id: to })
+
+  var status = source.status
+  if status is Suspended {
+    return Result.err(AccountSuspended{ id: from, reason: status.reason })
+  }
+  if source.balance < amount {
+    return Result.err(Insufficient{ needed: amount - source.balance })
+  }
+
+  source.balance -= amount
+  target.balance += amount
+  Result.ok(void)
+}
+
+func report(accounts: Map[AccountId, Account]): string {
+  Map.values(accounts)
+    | Array.filter({ x.status is Active })
+    | Array.sortBy({ x.balance })
+    | Array.map({ `${x.owner}: ${x.balance}` })
+    | String.join("\n")
+}
+
+func main() {
+  var accounts: Map[AccountId, Account] = Map{}
+  var ada = AccountId(1)
+  var linus = AccountId(2)
+  accounts[ada] = Account{ id: ada, owner: "ada", balance: 100.0, status: Active{} }
+  accounts[linus] = Account{ id: linus, owner: "linus", balance: 20.0, status: Suspended{ reason: "audit" } }
+
+  var result = transfer(accounts, ada, linus, 50.0)
+  if result is Ok { print("ok") }
+  else {
+    var error = result.error
+    if error is NotFound { print(`unknown account ${int(error.id)}`) }
+    else if error is Insufficient { print(`short by ${error.needed}`) }
+    else { print(`account ${int(error.id)} is suspended: ${error.reason}`) }
+  }
+
+  print(report(accounts))
+}
+
+// expect
+// out: ok
+// out: ada: 50.0
