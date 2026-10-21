@@ -1,0 +1,53 @@
+// Nullability (section 7): ?. on fields, indexes, and calls skips the rest of the chain; ?? and
+// its short circuit; narrowing by != null.
+type Address = { city: string | null }
+type User = { name: string, address: Address | null }
+
+var count = 0
+
+func bump(): int { count += 1; 0 }
+
+func find(users: Array[User], name: string): User | null {
+  for u in users { if u.name == name { return u } }
+  null
+}
+
+func main(): void {
+  var users = [User{ name: "ada", address: Address{ city: "london" } }, User{ name: "bob", address: null }]
+  var ada = find(users, "ada")
+  print(ada?.address?.city)
+  print(find(users, "bob")?.address?.city)
+  print(find(users, "zed")?.name ?? "anonymous")
+  var m = Map{ a: 1 }
+  print(m["missing"] ?? -1)
+  print(m["a"] ?? -1)
+  var f: (func(int): int) | null = null
+  print(f?.(3))
+  var ys: Array[int] | null = null
+  print(ys?.[0])
+  var v: int | null = null
+  print(v ?? bump())
+  var w: int | null = 9
+  print(w ?? bump())
+  print(count)
+  var u = find(users, "ada")
+  if u != null { print(u.name) }
+  var c = u?.address
+  if c == null { print("no address") } else { print(c.city ?? "no city") }
+  print(null == null)
+}
+
+// expect
+// out: london
+// out: null
+// out: anonymous
+// out: -1
+// out: 1
+// out: null
+// out: null
+// out: 0
+// out: 9
+// out: 1
+// out: ada
+// out: london
+// out: true

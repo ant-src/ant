@@ -1,0 +1,53 @@
+// Destructuring (section 5): in var and for, records and arrays, nesting, the rest, the
+// write-only _, and the array destructuring assignment into any places.
+type Point = { x: int, y: int }
+type Line = { from: Point, to: Point }
+
+func main(): void {
+  var { x, y } = Point{ x: 1, y: 2 }
+  print(x + y)
+  var { from: { x: fx }, to: { y: ty } } = Line{ from: Point{ x: 5, y: 6 }, to: Point{ x: 7, y: 8 } }
+  print(fx * ty)
+  var [a, b, ...rest] = [1, 2, 3, 4]
+  print(a)
+  print(b)
+  print(rest)
+  var [c, _, d] = [9, 8, 7]
+  print(c + d)
+  [a, b] = [b, a]
+  print(`${a} ${b}`)
+  var [[p], q] = [[10], 20]
+  print(p + q)
+  var [first] = [1, 2, 3]
+  print(first)
+  var xs = [0, 0]
+  [xs[0], xs[1]] = [4, 5]
+  print(xs)
+  var [...all] = [6, 7]
+  print(all)
+  var pt = Point{ x: 0, y: 0 }
+  [pt.x, [pt.y], ...xs] = [1, [2], 3, 4]
+  print(pt)
+  print(xs)
+  for { x: px, y: py } in [Point{ x: 1, y: 1 }, Point{ x: 2, y: 3 }] { print(px * py) }
+  for [m, n] in [[1, 2], [3, 4]] { print(m + n) }
+}
+
+// expect
+// out: 3
+// out: 40
+// out: 1
+// out: 2
+// out: [3, 4]
+// out: 16
+// out: 2 1
+// out: 30
+// out: 1
+// out: [4, 5]
+// out: [6, 7]
+// out: Point{ x: 1, y: 2 }
+// out: [3, 4]
+// out: 1
+// out: 6
+// out: 3
+// out: 7

@@ -1,0 +1,58 @@
+// Functions (section 6): positional, named, and defaulted arguments; defaults evaluated in the
+// callee's scope, in parameter order, after the arguments; lambdas; anonymous functions; the
+// pipe puts its left operand first.
+var log = ""
+
+func trace(s: string): int { log = log + s; 1 }
+
+func f(a: int = trace("a"), b: int = trace("b")): int { a + b }
+
+func connect(host: string, port: int = 443, tls: bool = true): string { `${host}:${port}:${tls}` }
+
+func clamp(value: int, low: int, high: int): int {
+  if value < low { return low }
+  if value > high { return high }
+  value
+}
+
+func apply(g: func(int): int, v: int): int { g(v) }
+
+func main(): void {
+  print(f(b: 5))
+  print(log)
+  print(f())
+  print(log)
+  print(f(2, 3))
+  print(connect("example.com"))
+  print(connect("example.com", 8080))
+  print(connect("example.com", tls: false))
+  print(connect(port: 80, host: "example.com"))
+  print(clamp(15, 0, 10))
+  print(clamp(-5, 0, 10))
+  print(clamp(5, 0, 10))
+  print(apply({ x * 2 }, 21))
+  print(apply(func(v: int): int { v - 1 }, 1))
+  var zero: func(): int = { 7 }
+  print(zero())
+  print(5 | clamp(0, 3))
+  print({ x + 1 } | apply(10))
+}
+
+// expect
+// out: 6
+// out: a
+// out: 2
+// out: aab
+// out: 5
+// out: example.com:443:true
+// out: example.com:8080:true
+// out: example.com:443:false
+// out: example.com:80:true
+// out: 10
+// out: 0
+// out: 5
+// out: 42
+// out: 0
+// out: 7
+// out: 3
+// out: 11

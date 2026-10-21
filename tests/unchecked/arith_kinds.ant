@@ -1,0 +1,6 @@
+// + on operands of different kinds panics (section 12).
+func main(): void { print(1 + 2.0) }
+
+// expect
+// exit: 1
+// err: + needs two numbers of one kind or two strings, got int and float64

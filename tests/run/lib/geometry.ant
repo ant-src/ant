@@ -1,0 +1,25 @@
+// Helper module for the module tests. Not a test itself.
+export type Point = { x: float64, y: float64 }
+
+export func distance(a: Point, b: Point): float64 {
+  var dx = a.x - b.x
+  var dy = a.y - b.y
+  sqrt(dx * dx + dy * dy)
+}
+
+// Newton's method, so that this module needs no library.
+func sqrt(v: float64): float64 {
+  if v == 0.0 { return 0.0 }
+  var r = v
+  var i = 0
+  while i < 40 { r = (r + v / r) / 2.0; i += 1 }
+  r
+}
+
+export var counter = 0
+
+export func bump(): void { counter += 1 }
+
+var hidden = announce()
+
+func announce(): int { print("geometry init"); 1 }

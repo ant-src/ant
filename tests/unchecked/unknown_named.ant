@@ -1,0 +1,7 @@
+// A named argument for an unknown parameter panics (section 12).
+func f(a: int): int { a }
+func main(): void { print(f(b: 1)) }
+
+// expect
+// exit: 1
+// err: f has no parameter b

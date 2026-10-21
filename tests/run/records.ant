@@ -1,0 +1,50 @@
+// Records (section 4): literals with shorthand and spread, reference semantics, structural
+// equality by tag and fields, records as map keys, and anonymous record parameters.
+type Point = { x: float64, y: float64 }
+type Vec = { x: float64, y: float64 }
+type Named = { name: string }
+type Person = { name: string, age: int }
+
+func greet(n: { name: string }): string { `hi ${n.name}` }
+
+func main(): void {
+  var x = 1.0
+  var y = 2.0
+  var p = Point{ x, y }
+  print(p)
+  var q = p
+  q.x = 5.0
+  print(p.x)
+  print(p == Point{ x: 5.0, y: 2.0 })
+  var v = Vec{ ...p }
+  print(v)
+  var moved = Point{ ...p, x: 0.0 }
+  print(moved)
+  print(p == q)
+  var user = Person{ name: "ada", age: 36 }
+  print(greet(user))
+  print(greet(Named{ name: "bob" }))
+  var m: Map[Point, string] = Map{}
+  m[Point{ x: 1.0, y: 1.0 }] = "one"
+  print(m[Point{ x: 1.0, y: 1.0 }])
+  print(m[Point{ x: 1.0, y: 2.0 }])
+  user.age += 1
+  print(user)
+  var people = [user, Person{ name: "bob", age: 1 }]
+  people[1].age = 2
+  print(people)
+}
+
+// expect
+// out: Point{ x: 1.0, y: 2.0 }
+// out: 5.0
+// out: true
+// out: Vec{ x: 5.0, y: 2.0 }
+// out: Point{ x: 0.0, y: 2.0 }
+// out: true
+// out: hi ada
+// out: hi bob
+// out: one
+// out: null
+// out: Person{ name: "ada", age: 37 }
+// out: [Person{ name: "ada", age: 37 }, Person{ name: "bob", age: 2 }]

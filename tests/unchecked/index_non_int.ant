@@ -1,0 +1,6 @@
+// An array index that is not an int panics (section 12).
+func main(): void { print([1][0.0]) }
+
+// expect
+// exit: 1
+// err: an array index must be an int, got float64

@@ -1,0 +1,6 @@
+// Reading a field of a non-record panics (section 12).
+func main(): void { var n = 1; print(n.x) }
+
+// expect
+// exit: 1
+// err: int is not a record, so it has no field x

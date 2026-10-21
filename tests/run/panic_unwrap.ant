@@ -1,0 +1,9 @@
+// Result.unwrap on an Err panics (section 11).
+func main(): void {
+  var r: Result[int, string] = Result.err("boom")
+  print(Result.unwrap(r))
+}
+
+// expect
+// exit: 1
+// err: boom

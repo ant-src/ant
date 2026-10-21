@@ -1,0 +1,12 @@
+// An array index out of range panics (section 12).
+func main(): void {
+  var xs = [1, 2]
+  var i = 5
+  print(xs[1])
+  print(xs[i])
+}
+
+// expect
+// out: 2
+// exit: 1
+// err: index 5 out of range for an array of length 2

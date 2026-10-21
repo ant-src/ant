@@ -1,0 +1,10 @@
+// A name no scope binds panics when it is reached, not before (section 4).
+func main(): void {
+  print("reached")
+  print(nothing)
+}
+
+// expect
+// out: reached
+// exit: 1
+// err: nothing is not defined

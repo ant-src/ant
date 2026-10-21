@@ -1,0 +1,11 @@
+// A conversion into an integer kind panics when the value does not fit (section 12).
+func main(): void {
+  var n = 300
+  print("before")
+  print(int8(n))
+}
+
+// expect
+// out: before
+// exit: 1
+// err: 300 out of range for int8

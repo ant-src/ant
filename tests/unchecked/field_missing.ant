@@ -1,0 +1,7 @@
+// Reading a field a record does not have panics (section 12).
+type P = { x: int }
+func main(): void { print(P{ x: 1 }.y) }
+
+// expect
+// exit: 1
+// err: P has no field y

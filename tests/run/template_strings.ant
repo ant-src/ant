@@ -1,0 +1,26 @@
+// Template strings (section 2): any expression interpolates through String.from, braces nest,
+// a template may span lines, and the escapes.
+type Point = { x: int, y: int }
+
+func main(): void {
+  var count = 3
+  print(`total: ${count} items`)
+  print(`${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}`)
+  print(`nested: ${ `inner ${count}` }`)
+  print(`multi
+line`)
+  print(`escapes: \` \${not} \\ \u{41}`)
+  print(`$ alone and ${count}$`)
+  var f: func(int): string = { `${x * 2}` }
+  print(f(21))
+}
+
+// expect
+// out: total: 3 items
+// out: 3 s true null [1, 2] Point{ x: 1, y: 2 }
+// out: nested: inner 3
+// out: multi
+// out: line
+// out: escapes: ` ${not} \ A
+// out: $ alone and 3$
+// out: 42

@@ -1,0 +1,69 @@
+// is (sections 4, 5): tests on tags and kinds, complete chains without else, every kind of a
+// wide union, and a named primitive among plain kinds.
+type Circle = { radius: float64 }
+type Rect = { width: float64, height: float64 }
+type Empty = {}
+type Shape = Circle | Rect | Empty
+type Meters = float64
+
+func area(s: Shape): float64 {
+  if s is Circle { 3.0 * s.radius * s.radius }
+  else if s is Rect { s.width * s.height }
+  else if s is Empty { 0.0 }
+}
+
+func describe(v: int | string | null | Array[int] | Map[string, int] | func(): int | Meters | float64 | bool | void): string {
+  if v is int { `int ${v}` }
+  else if v is string { `string ${v}` }
+  else if v is null { "null" }
+  else if v is Array { `array ${v}` }
+  else if v is Map { `map ${v}` }
+  else if v is func { `func giving ${v()}` }
+  else if v is Meters { `meters ${float64(v)}` }
+  else if v is float64 { `float ${v}` }
+  else if v is bool { `bool ${v}` }
+  else { "void" }
+}
+
+func main(): void {
+  print(area(Circle{ radius: 2.0 }))
+  print(area(Rect{ width: 2.0, height: 3.5 }))
+  print(area(Empty{}))
+  print(describe(5))
+  print(describe("s"))
+  print(describe(null))
+  print(describe([1, 2]))
+  print(describe(Map{ a: 1 }))
+  print(describe(func(): int { 9 }))
+  print(describe(Meters(1.5)))
+  print(describe(2.5))
+  print(describe(true))
+  print(describe(void))
+  var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Empty{}, Rect{ width: 1.0, height: 1.0 }]
+  var circles = 0
+  for s in shapes { if s is Circle { circles += 1 } }
+  print(circles)
+  print(!(shapes[1] is Circle))
+  var b: byte | int = byte(7)
+  print(b is byte)
+  print(b is int)
+}
+
+// expect
+// out: 12.0
+// out: 7.0
+// out: 0.0
+// out: int 5
+// out: string s
+// out: null
+// out: array [1, 2]
+// out: map Map{ "a": 1 }
+// out: func giving 9
+// out: meters 1.5
+// out: float 2.5
+// out: bool true
+// out: void
+// out: 1
+// out: true
+// out: true
+// out: false

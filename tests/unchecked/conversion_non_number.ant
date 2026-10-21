@@ -1,0 +1,6 @@
+// A numeric conversion of a non-number panics (section 12).
+func main(): void { print(int("1")) }
+
+// expect
+// exit: 1
+// err: int needs a number, got string

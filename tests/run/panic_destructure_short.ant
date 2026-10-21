@@ -1,0 +1,10 @@
+// An array destructuring with fewer elements than positions panics (section 5).
+func main(): void {
+  var one = [1]
+  var [a, b] = one
+  print(a + b)
+}
+
+// expect
+// exit: 1
+// err: a destructuring needs 2 elements, got 1

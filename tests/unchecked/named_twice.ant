@@ -1,0 +1,7 @@
+// A named argument for a parameter already filled panics (section 12).
+func f(a: int): int { a }
+func main(): void { print(f(1, a: 2)) }
+
+// expect
+// exit: 1
+// err: the parameter a is given twice

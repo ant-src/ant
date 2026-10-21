@@ -1,0 +1,59 @@
+// Named primitive types (section 4): construction, unwrapping, operators on one tag, map keys,
+// the constructor as a function value, and distinct tags over one base.
+type UserId = string
+type AccountId = string
+type Meters = float64
+type Count = int
+
+func main(): void {
+  var id = UserId("u-1")
+  print(string(id))
+  print(id == UserId("u-1"))
+  print(id == UserId("u-2"))
+  var v: UserId | string = id
+  print(v is UserId)
+  v = "plain"
+  print(v is UserId)
+  print(v is string)
+  var w: UserId | AccountId = AccountId("a-1")
+  print(w is AccountId)
+  print(w is UserId)
+  var d = Meters(3.0) * Meters(2.0)
+  print(d)
+  print(Meters(1.0) < Meters(2.0))
+  print(float64(d) + 1.0)
+  var m: Map[UserId, int] = Map{}
+  m[UserId("k")] = 1
+  print(m[UserId("k")])
+  print(m[UserId("x")])
+  var f: (func(string): UserId) | string = UserId
+  print(f is func)
+  var make = UserId
+  print(make("z"))
+  var c = Count(2) + Count(3)
+  print(c)
+  print(int(c) * 2)
+  print(-Meters(1.5))
+  print(Count(7) % Count(4))
+}
+
+// expect
+// out: u-1
+// out: true
+// out: false
+// out: true
+// out: false
+// out: true
+// out: true
+// out: false
+// out: Meters(6.0)
+// out: true
+// out: 7.0
+// out: 1
+// out: null
+// out: true
+// out: UserId("z")
+// out: Count(5)
+// out: 10
+// out: Meters(-1.5)
+// out: Count(3)

@@ -120,6 +120,8 @@ type Param struct {
 	Name    string
 	Type    Type
 	Default Expr
+	// Slot is filled by the resolver.
+	Slot Slot
 }
 
 // ---- Types

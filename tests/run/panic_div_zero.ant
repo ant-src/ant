@@ -1,0 +1,11 @@
+// Integer division by zero panics; float division by zero does not (section 12).
+func main(): void {
+  var zero = 0
+  print(1.0 / 0.0)
+  print(1 / zero)
+}
+
+// expect
+// out: Infinity
+// exit: 1
+// err: division by zero

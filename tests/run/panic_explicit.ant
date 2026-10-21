@@ -1,0 +1,11 @@
+// panic stops the program with its message (section 8).
+func main(): void {
+  print("start")
+  panic("something impossible happened")
+  print("never")
+}
+
+// expect
+// out: start
+// exit: 1
+// err: something impossible happened

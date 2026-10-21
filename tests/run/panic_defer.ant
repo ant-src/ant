@@ -1,0 +1,22 @@
+// A panic unwinds every block, running deferred blocks in reverse order, then the program exits
+// with status 1 and the message on standard error (sections 8, 12).
+func work(): void {
+  defer { print("defer 1") }
+  defer { print("defer 2") }
+  print("working")
+  panic("boom")
+}
+
+func main(): void {
+  defer { print("main defer") }
+  work()
+  print("unreachable")
+}
+
+// expect
+// out: working
+// out: defer 2
+// out: defer 1
+// out: main defer
+// exit: 1
+// err: boom

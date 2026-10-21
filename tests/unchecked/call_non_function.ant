@@ -1,0 +1,6 @@
+// Calling a value that is not a function panics (section 12).
+func main(): void { var f = 1; f() }
+
+// expect
+// exit: 1
+// err: int is not a function and cannot be called

@@ -1,0 +1,11 @@
+// Reading a top-level var through a call before its initializer has run panics (section 10).
+func peek(): int { later }
+
+var early = peek()
+var later = 1
+
+func main(): void { print(early) }
+
+// expect
+// exit: 1
+// err: later is read before its initializer has run

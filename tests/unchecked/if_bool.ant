@@ -1,0 +1,6 @@
+// An if condition that is not a bool panics (section 12).
+func main(): void { if 1 { print("x") } }
+
+// expect
+// exit: 1
+// err: an if condition must be a bool, got int

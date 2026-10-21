@@ -1,0 +1,6 @@
+// A comparison across kinds panics (section 12).
+func main(): void { print("a" < 1) }
+
+// expect
+// exit: 1
+// err: < needs two numbers of one kind or two strings, got string and int

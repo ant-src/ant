@@ -1,0 +1,53 @@
+// Modules (sections 6, 10): named, renamed, and namespace imports; live exports; one
+// initialization per module, depth first in source order; types and the functions declared on
+// them travel with imports under whatever local name they are given.
+import "./lib/shapes.ant" { unit }
+import "./lib/geometry.ant" Geometry
+import "./lib/geometry.ant" { distance: dist, Point, counter, bump }
+import "./lib/points.ant" { Point: P, Shape, Circle, Rect, UserId, Box: Container }
+import "./lib/points.ant" Points
+
+func main(): void {
+  print(dist(Point{ x: 0.0, y: 0.0 }, Point{ x: 3.0, y: 4.0 }))
+  print(Geometry.distance(unit(), Geometry.Point{ x: 1.0, y: 0.0 }))
+  var p: Point | null = unit()
+  print(p is Point)
+  print(counter)
+  bump()
+  print(counter)
+  print(Geometry.counter)
+  print(unit())
+  var q = P{ x: 3.0, y: 4.0 }
+  print(P.sum(q, P.origin()))
+  print(P.describe(q))
+  print(Points.Point.sum(a: q, b: q))
+  var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
+  for s in shapes { print(Shape.area(s)) }
+  print(UserId.parse("u-1"))
+  print(UserId.parse("x"))
+  print(Container.map(Container{ value: 2 }, { x * 10 }))
+  print(q | P.sum(q))
+  var sum = P.sum
+  print(sum(q, q))
+}
+
+// expect
+// out: geometry init
+// out: shapes init
+// out: 5.0
+// out: 0.0
+// out: true
+// out: 0
+// out: 1
+// out: 1
+// out: Point{ x: 1.0, y: 0.0 }
+// out: Point{ x: 3.0, y: 4.0 }
+// out: 3.0,4.0 (private)
+// out: Point{ x: 6.0, y: 8.0 }
+// out: 3.0
+// out: 6.0
+// out: UserId("u-1")
+// out: null
+// out: Box{ value: 20 }
+// out: Point{ x: 6.0, y: 8.0 }
+// out: Point{ x: 6.0, y: 8.0 }

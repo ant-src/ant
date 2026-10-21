@@ -1,0 +1,10 @@
+// Unsigned subtraction below zero panics (section 12).
+func main(): void {
+  var a = byte(1)
+  var b = byte(2)
+  print(a - b)
+}
+
+// expect
+// exit: 1
+// err: integer overflow

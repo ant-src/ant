@@ -1,0 +1,45 @@
+// Evaluation order (sections 5, 12): strictly left to right, the callee before its arguments,
+// an assignment's target sub-expressions before its right side, later literal entries winning,
+// and the short circuits of &&, ||, and ??.
+var log = ""
+
+func t(label: string, v: int): int { log = log + label; v }
+
+func pick(label: string): func(int): int { log = log + label; { x } }
+
+type P = { a: int, b: int }
+
+func main(): void {
+  var r = t("l", 1) + t("r", 2)
+  var xs = [t("x", 0), 0]
+  xs[t("i", 0)] = t("v", 5)
+  var p = P{ a: t("a", 1), b: t("b", 2) }
+  _ = pick("f")(t("g", 1))
+  print(log)
+  print(r + xs[0] + p.a + p.b)
+  var q = P{ a: 1, b: 2, ...P{ a: 9, b: 9 }, a: 3 }
+  print(q)
+  var m = Map{ k: 1, k: 2 }
+  print(m["k"])
+  log = ""
+  print(t("1", 0) == 0 && t("2", 0) == 1 && t("3", 0) == 0)
+  print(t("4", 0) == 0 || t("5", 0) == 0)
+  print(log)
+  var n: int | null = null
+  print(n ?? t("6", 7))
+  n = 9
+  print(n ?? t("7", 8))
+  print(log)
+}
+
+// expect
+// out: lrxivabfg
+// out: 11
+// out: P{ a: 3, b: 9 }
+// out: 2
+// out: false
+// out: true
+// out: 124
+// out: 7
+// out: 9
+// out: 1246

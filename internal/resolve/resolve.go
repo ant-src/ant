@@ -64,6 +64,7 @@ type resolver struct {
 	errs      []*Error
 	uses      []use
 	targetsOf []targetBinding
+	paramsOf  []paramBinding
 	scopes    []*scope
 	module    *scope
 	fields    *ast.ModuleScope
@@ -228,8 +229,9 @@ func (r *resolver) funcDecl(d *ast.FuncDecl) {
 }
 
 func (r *resolver) params(ps []ast.Param, s *scope) {
-	for _, p := range ps {
-		r.declare(s, p.Name, p.Pos)
+	for i := range ps {
+		b := r.declare(s, ps[i].Name, ps[i].Pos)
+		r.paramsOf = append(r.paramsOf, paramBinding{&ps[i], b})
 	}
 	for _, p := range ps {
 		if p.Default != nil {
@@ -266,6 +268,11 @@ func (r *resolver) bindTarget(t *ast.NameTarget, b *binding) {
 
 type targetBinding struct {
 	t *ast.NameTarget
+	b *binding
+}
+
+type paramBinding struct {
+	p *ast.Param
 	b *binding
 }
 
@@ -498,6 +505,9 @@ func (r *resolver) finalize() {
 				s.block.Scope = &bs
 			}
 		}
+	}
+	for _, pb := range r.paramsOf {
+		pb.p.Slot = ast.Slot{Index: pb.b.index, Shared: pb.b.shared}
 	}
 	for _, tb := range r.targetsOf {
 		if tb.t.Name == "_" {

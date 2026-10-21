@@ -1,0 +1,6 @@
+// A program without main cannot start: exit status 2 (section 10).
+func helper(): void { print("never") }
+
+// expect
+// exit: 2
+// err: no func main

@@ -1,0 +1,89 @@
+// Control flow (section 5): if is an expression, while and for are void, break and continue,
+// return from inside loops, and for over an array, a string, a map (parenthesized in a
+// header, as section 5 requires), and a sequence function.
+func evens(limit: int): Seq[int] {
+  func(yield: func(int): bool): void {
+    var i = 0
+    while i < limit {
+      if !yield(i) { print("stopped"); return }
+      i += 2
+    }
+    print("exhausted")
+  }
+}
+
+func firstNegative(xs: Array[int]): int | null {
+  for x in xs { if x < 0 { return x } }
+  null
+}
+
+func findInSeq(): int {
+  for v in evens(100) {
+    if v == 6 { return v * 100 }
+  }
+  -1
+}
+
+func main(): void {
+  var label = if 5 < 0 { "negative" } else if 5 == 0 { "zero" } else { "positive" }
+  print(label)
+  var n = 0
+  while n < 10 {
+    n += 1
+    if n % 2 == 0 { continue }
+    if n > 7 { break }
+    print(n)
+  }
+  print(n)
+  for ch in "añb" { print(ch) }
+  for { key, value } in (Map{ a: 1, b: 2 }) { print(`${key}=${value}`) }
+  for e in (Map{ c: 3 }) { print(e) }
+  for v in evens(6) { print(v) }
+  for v in evens(100) {
+    if v == 4 { break }
+    print(v)
+  }
+  for v in evens(100) {
+    if v == 2 { continue }
+    if v == 6 { print("returning"); print(firstNegative([1, -2, 3])); break }
+    print(v)
+  }
+  print(firstNegative([1, 2]))
+  print(findInSeq())
+  var r = while false { }
+  print(r)
+  var ys = [1, 2, 3]
+  for y in ys { if y == 1 { ys[2] = 30 }; print(y) }
+}
+
+// expect
+// out: positive
+// out: 1
+// out: 3
+// out: 5
+// out: 7
+// out: 9
+// out: a
+// out: ñ
+// out: b
+// out: a=1
+// out: b=2
+// out: Entry{ key: "c", value: 3 }
+// out: 0
+// out: 2
+// out: 4
+// out: exhausted
+// out: 0
+// out: 2
+// out: stopped
+// out: 0
+// out: 4
+// out: returning
+// out: -2
+// out: stopped
+// out: null
+// out: 600
+// out: void
+// out: 1
+// out: 2
+// out: 30

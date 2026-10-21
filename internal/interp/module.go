@@ -1,0 +1,127 @@
+package interp
+
+import (
+	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/loader"
+	"github.com/ant-src/ant/value"
+)
+
+// module is a module's run-time state: its record and resolved imports.
+type module struct {
+	m       *loader.Module
+	rec     *value.Record
+	imports []importRef
+	root    *Env
+	tags    map[string]*value.Tag // the tag of each type declaration, for functions on types
+}
+
+type importRef struct {
+	rec   *value.Record
+	field int // -1 for a namespace import
+	name  string
+}
+
+// setupModules creates every module record with its tags and functions, so that all names
+// exist before any initializer runs (section 10).
+func (in *Instance) setupModules() {
+	in.modules = make([]*module, len(in.prog.Modules))
+	for _, lm := range in.prog.Modules {
+		f := lm.File
+		tag := value.NewTag(f.Path, value.RecordTag, f.Scope.Fields)
+		m := &module{m: lm, rec: value.NewRecord(tag, nil), tags: map[string]*value.Tag{}}
+		m.root = &Env{mod: m}
+		in.modules[lm.Index] = m
+	}
+	for _, m := range in.modules {
+		f := m.m.File
+		for _, imp := range f.Imports {
+			target := in.modules[imp.Module]
+			if imp.Namespace != "" {
+				m.imports = append(m.imports, importRef{rec: target.rec, field: -1, name: imp.Namespace})
+				continue
+			}
+			m.imports = append(m.imports, importRef{rec: target.rec, field: -2})
+		}
+		for _, d := range f.Decls {
+			switch d := d.(type) {
+			case *ast.TypeDecl:
+				v := in.typeValue(d)
+				m.rec.SetField(d.Name, v)
+				switch x := v.(type) {
+				case *value.Tag:
+					m.tags[d.Name] = x
+				case *value.Constructor:
+					m.tags[d.Name] = x.Tag
+				}
+			}
+		}
+		for _, d := range f.Decls {
+			fd, ok := d.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+			fn := &Func{Name: fd.Name, Params: fd.Params, Body: fd.Body, Scope: fd.Scope, Env: m.root}
+			if fd.Owner == "" {
+				m.rec.SetField(fd.Name, fn)
+				continue
+			}
+			fn.Name = fd.Owner + "." + fd.Name
+			m.tags[fd.Owner].SetFunc(fd.Name, fn)
+		}
+	}
+}
+
+// typeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.
+func (in *Instance) typeValue(d *ast.TypeDecl) value.Value {
+	switch body := d.Body.(type) {
+	case *ast.RecordType:
+		fields := make([]string, len(body.Fields))
+		for i, f := range body.Fields {
+			fields[i] = f.Name
+		}
+		return value.NewTag(d.Name, value.RecordTag, fields)
+	case *ast.TypeName:
+		if len(body.Path) == 1 && len(body.Args) == 0 {
+			if k, ok := value.KindByName(body.Path[0]); ok && k.IsPrimitive() {
+				return &value.Constructor{Tag: value.NewPrimitiveTag(d.Name, k)}
+			}
+		}
+	}
+	return value.NewTag(d.Name, value.AliasTag, nil)
+}
+
+// initModules runs every module's top-level initializers in dependency order.
+func (in *Instance) initModules(g *Goroutine) {
+	for _, m := range in.modules {
+		in.initModule(g, m)
+	}
+}
+
+func (in *Instance) initModule(g *Goroutine, m *module) {
+	g.stack = append(g.stack, Frame{Function: "module " + m.m.File.Path, Path: m.m.File.Path})
+	for _, d := range m.m.File.Decls {
+		vd, ok := d.(*ast.VarDecl)
+		if !ok {
+			continue
+		}
+		v := g.evalValue(vd.Init, m.root)
+		g.bind(vd.Target, v, m.root)
+	}
+	g.stack = g.stack[:len(g.stack)-1]
+}
+
+// importValue reads an imported name: the module record for a namespace, or a field.
+func (g *Goroutine) importValue(env *Env, ref ast.Ref, pos ast.Pos) value.Value {
+	ir := env.mod.imports[ref.Index]
+	if ir.field == -1 {
+		return ir.rec
+	}
+	v, ok := ir.rec.Field(ref.Name)
+	if !ok {
+		g.panicf(pos, "%s has no export %s", ir.rec.Tag.Name, ref.Name)
+	}
+	if v == value.Uninitialized {
+		g.panicf(pos, "%s is read before its initializer has run", ref.Name)
+	}
+	return v
+}

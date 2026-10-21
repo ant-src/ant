@@ -1,0 +1,6 @@
+// Indexing a value that is neither an array nor a map panics (section 12).
+func main(): void { print("abc"[0]) }
+
+// expect
+// exit: 1
+// err: string is not an array or a map

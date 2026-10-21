@@ -1,0 +1,24 @@
+// Top-level initializers run in source order; func and type declarations are hoisted and
+// visible throughout the module (section 10).
+var a = compute()
+var b = a + 1
+var c: Later = Later{ n: b }
+var d = describe(c)
+
+func compute(): int { print("init a"); 41 }
+
+type Later = { n: int }
+
+func describe(l: Later): string { `later ${l.n}` }
+
+func main(): void {
+  print(b)
+  print(c)
+  print(d)
+}
+
+// expect
+// out: init a
+// out: 42
+// out: Later{ n: 42 }
+// out: later 42

@@ -1,0 +1,6 @@
+// A record destructuring that meets a non-record panics (section 12).
+func main(): void { var { x } = 1; print(x) }
+
+// expect
+// exit: 1
+// err: a record destructuring needs a record, got int

@@ -1,0 +1,36 @@
+// Scopes (sections 3, 12): an inner scope shadows an outer one, a closure reads the variable it
+// captured and sees later assignments, and a local function calls itself through its own name
+// once its type is stated.
+var top = "module"
+
+func shadow(): void {
+  print(top)
+  var top = "function"
+  print(top)
+  if true {
+    var top = "block"
+    print(top)
+  }
+  print(top)
+}
+
+func main(): void {
+  shadow()
+  var n = 1
+  var get = func(): int { n }
+  n = 2
+  print(get())
+  var fact: func(int): int = func(k: int): int { if k <= 1 { 1 } else { k * fact(k - 1) } }
+  print(fact(5))
+  var fs = [func(): int { 10 }, func(): int { 20 }]
+  print(fs[1]())
+}
+
+// expect
+// out: module
+// out: function
+// out: block
+// out: function
+// out: 2
+// out: 120
+// out: 20

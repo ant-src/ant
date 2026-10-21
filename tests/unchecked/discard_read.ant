@@ -1,0 +1,6 @@
+// Reading _ panics (section 2).
+func main(): void { print(_) }
+
+// expect
+// exit: 1
+// err: _ cannot be read

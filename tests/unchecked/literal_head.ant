@@ -1,0 +1,7 @@
+// A record literal whose head is not a record tag panics (section 12).
+type Id = int | string
+func main(): void { print(Id{}) }
+
+// expect
+// exit: 1
+// err: Id is not a record type

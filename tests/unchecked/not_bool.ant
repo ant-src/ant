@@ -1,0 +1,6 @@
+// ! on a non-bool panics (section 12).
+func main(): void { print(!1) }
+
+// expect
+// exit: 1
+// err: ! needs a bool, got int

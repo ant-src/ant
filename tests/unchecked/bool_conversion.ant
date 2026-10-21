@@ -1,0 +1,6 @@
+// bool on a non-bool panics (section 12).
+func main(): void { print(bool("true")) }
+
+// expect
+// exit: 1
+// err: bool needs a bool, got string

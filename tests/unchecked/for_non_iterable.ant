@@ -1,0 +1,6 @@
+// for over a value that is not iterable panics (section 12).
+func main(): void { for x in 5 { print(x) } }
+
+// expect
+// exit: 1
+// err: for needs an array, a map, a string, or a function, got int

@@ -1,0 +1,18 @@
+// A sequence that calls yield again after it returned false panics (section 12).
+func bad(yield: func(int): bool): void {
+  _ = yield(1)
+  _ = yield(2)
+  print("not reached")
+}
+
+func main(): void {
+  for v in bad {
+    print(v)
+    break
+  }
+}
+
+// expect
+// out: 1
+// exit: 1
+// err: yield called after the sequence ended

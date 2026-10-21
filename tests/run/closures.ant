@@ -1,0 +1,36 @@
+// Closures (section 6): functions capture variables by reference, each loop iteration binds a
+// fresh variable, and return inside a lambda returns from the lambda only.
+func counter(): func(): int {
+  var n = 0
+  func() { n += 1; n }
+}
+
+func main(): void {
+  var next = counter()
+  print(next())
+  print(next())
+  var other = counter()
+  print(other())
+  var fs: Array[func(): int] = []
+  for i in [1, 2, 3] {
+    var k = i * 10
+    fs = [...fs, func(): int { k + i }]
+  }
+  print(fs[0]())
+  print(fs[2]())
+  var early: func(int): int = { if x > 0 { return 1 }; 0 }
+  print(early(5))
+  print(early(-5))
+  var make = func(step: int): func(int): int { { x + step } }
+  print(make(3)(4))
+}
+
+// expect
+// out: 1
+// out: 2
+// out: 1
+// out: 11
+// out: 33
+// out: 1
+// out: 0
+// out: 7

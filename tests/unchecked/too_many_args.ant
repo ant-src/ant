@@ -1,0 +1,7 @@
+// Too many positional arguments panic (section 12).
+func f(a: int): int { a }
+func main(): void { print(f(1, 2)) }
+
+// expect
+// exit: 1
+// err: f takes 1 argument, got 2

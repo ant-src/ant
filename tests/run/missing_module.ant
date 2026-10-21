@@ -1,0 +1,8 @@
+// An import of a file that does not exist cannot load: exit status 2 (section 10).
+import "./lib/nonexistent.ant" { thing }
+
+func main(): void { print("never") }
+
+// expect
+// exit: 2
+// err: cannot find module "./lib/nonexistent.ant"

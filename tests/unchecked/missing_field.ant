@@ -1,0 +1,7 @@
+// A record literal leaving a field without a value panics (section 12).
+type P = { x: int, y: int }
+func main(): void { print(P{ x: 1 }) }
+
+// expect
+// exit: 1
+// err: P literal is missing the field y

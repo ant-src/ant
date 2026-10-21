@@ -1,0 +1,28 @@
+// Helper module for the functions-on-types tests. Not a test itself.
+export type Point = { x: float64, y: float64 }
+
+export func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
+
+export func Point.sum(a: Point, b: Point): Point { Point{ x: a.x + b.x, y: a.y + b.y } }
+
+func Point.secret(p: Point): string { "private" }
+
+export func Point.describe(p: Point): string { `${p.x},${p.y} (${Point.secret(p)})` }
+
+export type Circle = { radius: float64 }
+export type Rect = { width: float64, height: float64 }
+export type Shape = Circle | Rect
+
+export func Shape.area(s: Shape): float64 {
+  if s is Circle { 3.0 * s.radius * s.radius } else { s.width * s.height }
+}
+
+export type UserId = string
+
+export func UserId.parse(s: string): UserId | null {
+  if s == "u-1" || s == "u-2" { UserId(s) } else { null }
+}
+
+export type Box[T] = { value: T }
+
+export func Box.map[T, U](b: Box[T], f: func(T): U): Box[U] { Box{ value: f(b.value) } }

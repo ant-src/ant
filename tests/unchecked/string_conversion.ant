@@ -1,0 +1,6 @@
+// string on a non-string panics (section 12).
+func main(): void { print(string(1)) }
+
+// expect
+// exit: 1
+// err: string needs a string, got int

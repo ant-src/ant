@@ -1,0 +1,6 @@
+// A named argument to a lambda panics (section 12).
+func main(): void { var f: func(int): int = { x }; print(f(x: 1)) }
+
+// expect
+// exit: 1
+// err: a lambda takes no named arguments

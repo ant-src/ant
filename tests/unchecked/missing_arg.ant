@@ -1,0 +1,7 @@
+// A required parameter left unfilled panics (section 12).
+func f(a: int, b: int): int { a + b }
+func main(): void { print(f(1)) }
+
+// expect
+// exit: 1
+// err: f needs an argument for b

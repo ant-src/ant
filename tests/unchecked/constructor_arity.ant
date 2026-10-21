@@ -1,0 +1,7 @@
+// A constructor with two arguments panics (section 12).
+type UserId = string
+func main(): void { print(UserId("a", "b")) }
+
+// expect
+// exit: 1
+// err: the constructor UserId takes exactly one positional argument

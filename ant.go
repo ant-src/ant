@@ -15,6 +15,8 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/ant-src/ant/internal/interp"
+	"github.com/ant-src/ant/internal/lib"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/parser"
 )
@@ -103,8 +105,23 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 // It returns nil when main returns, a *PanicError when the main goroutine panics, an *ExitError
 // when the program calls Os.exit, and ctx.Err() when the context is cancelled first.
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
-	_ = p.cfg.with(opts)
-	return &PanicError{Message: "the interpreter is not implemented yet"}
+	cfg := p.cfg.with(opts)
+	err := interp.Run(ctx, p.prog, interp.Config{
+		Prelude: lib.Prelude(), Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args, Env: cfg.env,
+	})
+	switch e := err.(type) {
+	case nil:
+		return nil
+	case *interp.PanicError:
+		trace := make([]Frame, len(e.Trace))
+		for i, f := range e.Trace {
+			trace[i] = Frame{Function: f.Function, Pos: Position{Path: f.Path, Line: f.Pos.Line, Col: f.Pos.Col}}
+		}
+		return &PanicError{Message: e.Message, Trace: trace}
+	case *interp.ExitError:
+		return &ExitError{Status: e.Status}
+	}
+	return err
 }
 
 // Check type-checks every module of the program, including code nothing calls, and returns the

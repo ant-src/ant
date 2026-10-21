@@ -1,0 +1,4 @@
+// Helper module for the import cycle test. Not a test itself.
+import "./cycle_b.ant" B
+
+export var a = 1

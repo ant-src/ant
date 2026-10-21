@@ -1,0 +1,9 @@
+// An import cycle is an error: no module in it could be initialized after its imports, so the
+// program stops before main with exit status 2 (section 10).
+import "./lib/cycle_a.ant" A
+
+func main(): void { print("never") }
+
+// expect
+// exit: 2
+// err: import cycle

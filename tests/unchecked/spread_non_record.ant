@@ -1,0 +1,7 @@
+// A spread of a non-record in a record literal panics (section 12).
+type P = { x: int }
+func main(): void { print(P{ ...1 }) }
+
+// expect
+// exit: 1
+// err: a spread in a record literal needs a record, got int

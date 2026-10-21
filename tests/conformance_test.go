@@ -10,8 +10,9 @@
 //	// err: <text>     standard error must contain this text; may repeat
 //	// args: a b c     command-line arguments, split on spaces
 //
-// Files under run/lib are modules the programs import, not tests. Every program must also pass
-// ant check; that is tested once the checker exists.
+// Files under run/lib are modules the programs import, not tests. Every program under run/ must
+// also pass ant check, which is tested once the checker exists; programs under unchecked/ are
+// the kind panics the checker would reject, and are only run.
 package tests
 
 import (
@@ -69,11 +70,16 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	unchecked, err := filepath.Glob("unchecked/*.ant")
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths = append(paths, unchecked...)
 	if len(paths) == 0 {
 		t.Fatal("no programs under run/")
 	}
 	for _, path := range paths {
-		t.Run(strings.TrimSuffix(filepath.Base(path), ".ant"), func(t *testing.T) {
+		t.Run(strings.TrimSuffix(strings.TrimPrefix(path, "run/"), ".ant"), func(t *testing.T) {
 			t.Parallel()
 			src, err := os.ReadFile(path)
 			if err != nil {

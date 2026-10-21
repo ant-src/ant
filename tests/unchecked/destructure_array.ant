@@ -1,0 +1,6 @@
+// An array destructuring that meets a non-array panics (section 12).
+func main(): void { var [a] = "s"; print(a) }
+
+// expect
+// exit: 1
+// err: an array destructuring needs an array, got string

@@ -1,0 +1,10 @@
+// A call deeper than the runtime's limit panics rather than crashing (section 12).
+func down(n: int): int { down(n + 1) }
+
+func main(): void {
+  print(down(0))
+}
+
+// expect
+// exit: 1
+// err: call depth exceeded

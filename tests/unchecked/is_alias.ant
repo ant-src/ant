@@ -1,0 +1,7 @@
+// is against an alias panics, since an alias has no run-time identity (section 5).
+type Id = int | string
+func main(): void { var v: int | string = 1; print(v is Id) }
+
+// expect
+// exit: 1
+// err: Id is not one
