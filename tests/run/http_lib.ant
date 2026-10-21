@@ -1,0 +1,31 @@
+// Http (stdlib.md): get and post against a test server whose URL is the first argument; a
+// failed connection is an Err, a non-2xx status is still a response.
+func main(): void {
+  var base = Os.args()[0]
+  var r = Result.unwrap(Http.get(`${base}/hello`))
+  print(r.status)
+  print(r.body)
+  print(r.headers["Content-Type"])
+  print(r is Http.Response)
+  var missing = Result.unwrap(Http.get(`${base}/status/404`))
+  print(missing.status)
+  var posted = Result.unwrap(Http.post(`${base}/echo`, "payload", Map{ "X-Token": "secret" }))
+  print(posted.status)
+  print(posted.body)
+  print(posted.headers["X-Token"])
+  print(Http.get("http://127.0.0.1:1/unreachable") is Err)
+  print(Http.get("::not a url") is Err)
+}
+
+// expect
+// args: $HTTP
+// out: 200
+// out: hello
+// out: text/plain
+// out: true
+// out: 404
+// out: 200
+// out: payload
+// out: secret
+// out: true
+// out: true

@@ -39,6 +39,8 @@ type Config struct {
 	Mode parser.Mode
 	// RequireMain rejects a root module without func main.
 	RequireMain bool
+	// Extra names the prelude binds in this program, beyond the standard ones.
+	Extra []string
 }
 
 // Module is one loaded module.
@@ -159,7 +161,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
 		return nil
 	}
-	for _, e := range resolve.Resolve(f, resolve.Options{}) {
+	for _, e := range resolve.Resolve(f, resolve.Options{Extra: l.cfg.Extra}) {
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
 	}
 	if root && l.cfg.RequireMain && !hasMain(f) {

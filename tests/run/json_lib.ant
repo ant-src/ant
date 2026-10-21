@@ -1,0 +1,48 @@
+// Json (stdlib.md): parse gives Json.Value trees, numbers as float64, objects as maps in
+// document order; a decoder narrows with is; stringify renders records as objects without
+// their tag.
+type Server = { host: string, port: int }
+
+func decodeServer(v: Json.Value, path: string): Result[Server, Error] {
+  if !(v is Map) { return Result.err(Error{ message: `${path}: not an object` }) }
+  var host = v["host"] ?? return Result.err(Error{ message: `${path}.host: missing` })
+  if !(host is string) { return Result.err(Error{ message: `${path}.host: not a string` }) }
+  var port = v["port"] ?? return Result.err(Error{ message: `${path}.port: missing` })
+  if !(port is float64) { return Result.err(Error{ message: `${path}.port: not a number` }) }
+  var p = Math.toInt(port) ?? return Result.err(Error{ message: `${path}.port: not an integer` })
+  Result.ok(Server{ host: host, port: p })
+}
+
+func main(): void {
+  print(Json.parse(`{"b": 1, "a": [true, null, "x", 2.5], "c": {"d": {}}}`))
+  print(Json.parse("[1, 2"))
+  print(Json.parse("{} extra") is Err)
+  print(Json.parse("") is Err)
+  print(Json.parse("42"))
+  var parsed = Json.parse(`{"host": "example.com", "port": 8080}`)
+  if parsed is Ok { print(decodeServer(parsed.value, "$")) }
+  var bad = Json.parse(`{"host": "example.com", "port": 80.5}`)
+  if bad is Ok { print(decodeServer(bad.value, "$")) }
+  print(Json.stringify(Server{ host: "h", port: 1 }))
+  print(Json.stringify([1, "two", 3.5, null, true, Map{ k: [] }]))
+  print(Json.stringify("quote \" and \n newline"))
+  print(Json.stringify(Map{ 1: "one" }))
+  print(Json.stringify(1.0 / 0.0))
+  var round = Json.parse(Json.stringify(Map{ x: [1.5, "s"] }))
+  print(round)
+}
+
+// expect
+// out: Ok{ value: Map{ "b": 1.0, "a": [true, null, "x", 2.5], "c": Map{ "d": Map{} } } }
+// out: Err{ error: Error{ message: "unexpected end of JSON input" } }
+// out: true
+// out: true
+// out: Ok{ value: 42.0 }
+// out: Ok{ value: Server{ host: "example.com", port: 8080 } }
+// out: Err{ error: Error{ message: "$.port: not an integer" } }
+// out: {"host":"h","port":1}
+// out: [1,"two",3.5,null,true,{"k":[]}]
+// out: "quote \" and \n newline"
+// out: {"1":"one"}
+// out: null
+// out: Ok{ value: Map{ "x": [1.5, "s"] } }

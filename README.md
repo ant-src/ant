@@ -18,13 +18,33 @@ ant                           # a REPL
 ## Library
 
 ```go
-prog, err := ant.Load("main.ant")
+prog, err := ant.Load("main.ant")             // or ant.WithSource / ant.WithFS for sources in memory
 if err != nil { ... }                         // *ant.LoadError: syntax error, missing module, cycle
 err = prog.Run(ctx, ant.WithArgs(args))       // nil, *ant.PanicError, or *ant.ExitError
 diags := prog.Check()                         // []ant.Diagnostic
 ```
 
-The library never exits the process or writes anywhere but the writers it is given.
+To call Ant from Go, start an instance instead of running main:
+
+```go
+in, err := prog.Start(ctx)
+defer in.Close()
+scale, _ := in.Func("scale")
+result, err := scale.Call(point, 2.0)         // an Ant panic comes back as *ant.PanicError
+```
+
+To call Go from Ant, give the program a namespace declared in Ant notation:
+
+```go
+prog, err := ant.Load("main.ant", ant.WithNamespace(ant.Namespace{
+    Name:       "Kv",
+    Signatures: "func Kv.get(key: string): string | null",
+    Funcs:      map[string]ant.HostFunc{"get": get},
+}), ant.WithoutNamespaces("File", "Http"))
+```
+
+The library never exits the process or writes anywhere but the writers it is given. See
+`example_test.go` for complete examples.
 
 ## License
 

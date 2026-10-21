@@ -26,6 +26,8 @@ type Options struct {
 	// Fields carries the module fields of earlier inputs in a session, so a later input can
 	// refer to them and redeclare them. It is updated in place.
 	Fields *ast.ModuleScope
+	// Extra names the prelude binds in this program, such as host namespaces.
+	Extra []string
 }
 
 type binding struct {
@@ -69,11 +71,17 @@ type resolver struct {
 	module    *scope
 	fields    *ast.ModuleScope
 	session   bool
+	extra     map[string]bool
 }
+
+func (r *resolver) isPrelude(name string) bool { return prelude.IsName(name) || r.extra[name] }
 
 // Resolve annotates f and returns the scope errors it finds.
 func Resolve(f *ast.File, opts Options) []*Error {
-	r := &resolver{session: opts.Session}
+	r := &resolver{session: opts.Session, extra: map[string]bool{}}
+	for _, n := range opts.Extra {
+		r.extra[n] = true
+	}
 	r.fields = opts.Fields
 	if r.fields == nil {
 		r.fields = &ast.ModuleScope{Index: map[string]int{}}
@@ -115,7 +123,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
 	if name == "_" {
 		return b
 	}
-	if prelude.IsName(name) {
+	if r.isPrelude(name) {
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
 		return b
 	}
@@ -153,7 +161,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
 }
 
 func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, impName string) {
-	if prelude.IsName(name) {
+	if r.isPrelude(name) {
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
 		return
 	}
@@ -461,7 +469,7 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 			crossed = true
 		}
 	}
-	if prelude.IsName(id.Name) {
+	if r.isPrelude(id.Name) {
 		id.Ref = ast.Ref{Kind: ast.RefPrelude, Name: id.Name}
 		return
 	}

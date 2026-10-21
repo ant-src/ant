@@ -72,7 +72,10 @@ func (in *Instance) setupModules() {
 }
 
 // typeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.
-func (in *Instance) typeValue(d *ast.TypeDecl) value.Value {
+func (in *Instance) typeValue(d *ast.TypeDecl) value.Value { return TypeValue(d) }
+
+// TypeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.
+func TypeValue(d *ast.TypeDecl) value.Value {
 	switch body := d.Body.(type) {
 	case *ast.RecordType:
 		fields := make([]string, len(body.Fields))

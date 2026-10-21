@@ -16,9 +16,9 @@ import (
 	"os"
 
 	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/lib"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/parser"
+	"github.com/ant-src/ant/value"
 )
 
 type config struct {
@@ -28,6 +28,9 @@ type config struct {
 	stderr  io.Writer
 	args    []string
 	env     func(name string) (string, bool)
+	// host namespaces added and prelude namespaces removed
+	namespaces []Namespace
+	removed    []string
 }
 
 func defaultConfig() config {
@@ -75,8 +78,9 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 
 // A Program is a loaded, parsed, and resolved module graph. It is immutable.
 type Program struct {
-	prog *loader.Program
-	cfg  config
+	prog    *loader.Program
+	cfg     config
+	prelude map[string]value.Value
 }
 
 // Load parses the module at path and every module it imports. It returns a *LoadError when a
@@ -84,13 +88,17 @@ type Program struct {
 // module does not declare main.
 func Load(path string, opts ...Option) (*Program, error) {
 	cfg := defaultConfig().with(opts)
+	table, extra, err := cfg.prelude()
+	if err != nil {
+		return nil, &LoadError{Diagnostics: []Diagnostic{{Message: err.Error()}}}
+	}
 	prog, diags := loader.Load(path, loader.Config{
-		FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, RequireMain: true,
+		FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, RequireMain: true, Extra: extra,
 	})
 	if len(diags) > 0 {
 		return nil, &LoadError{Diagnostics: convert(diags)}
 	}
-	return &Program{prog: prog, cfg: cfg}, nil
+	return &Program{prog: prog, cfg: cfg, prelude: table}, nil
 }
 
 func convert(diags []loader.Diagnostic) []Diagnostic {
@@ -106,22 +114,9 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 // when the program calls Os.exit, and ctx.Err() when the context is cancelled first.
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	cfg := p.cfg.with(opts)
-	err := interp.Run(ctx, p.prog, interp.Config{
-		Prelude: lib.Prelude(), Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args, Env: cfg.env,
-	})
-	switch e := err.(type) {
-	case nil:
-		return nil
-	case *interp.PanicError:
-		trace := make([]Frame, len(e.Trace))
-		for i, f := range e.Trace {
-			trace[i] = Frame{Function: f.Function, Pos: Position{Path: f.Path, Line: f.Pos.Line, Col: f.Pos.Col}}
-		}
-		return &PanicError{Message: e.Message, Trace: trace}
-	case *interp.ExitError:
-		return &ExitError{Status: e.Status}
-	}
-	return err
+	return convertRunError(interp.Run(ctx, p.prog, interp.Config{
+		Prelude: p.prelude, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args, Env: cfg.env,
+	}))
 }
 
 // Check type-checks every module of the program, including code nothing calls, and returns the

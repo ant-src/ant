@@ -8,7 +8,9 @@
 //	                   empty line
 //	// exit: <n>       the expected exit status, as the ant command would report it; default 0
 //	// err: <text>     standard error must contain this text; may repeat
-//	// args: a b c     command-line arguments, split on spaces
+//	// args: a b c     command-line arguments, split on spaces; $TMP is replaced by a fresh
+//	                   temporary directory and $HTTP by the URL of a test HTTP server that
+//	                   echoes requests
 //
 // Files under run/lib are modules the programs import, not tests. Every program under run/ must
 // also pass ant check, which is tested once the checker exists; programs under unchecked/ are
@@ -18,6 +20,9 @@ package tests
 import (
 	"bytes"
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -87,6 +92,14 @@ func TestRun(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := parseTrailer(t, path, string(src))
+			for i, a := range want.args {
+				switch a {
+				case "$TMP":
+					want.args[i] = t.TempDir()
+				case "$HTTP":
+					want.args[i] = echoServer(t)
+				}
+			}
 			abs, err := filepath.Abs(path)
 			if err != nil {
 				t.Fatal(err)
@@ -153,4 +166,30 @@ func (b *lockedBuffer) Len() int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.buf.Len()
+}
+
+// echoServer serves a small API for the Http programs: GET /hello answers "hello", GET
+// /status/404 answers that status, and POST /echo answers the request body with the
+// request's X-Token header copied into the response.
+func echoServer(t *testing.T) string {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/hello":
+			w.Header().Set("Content-Type", "text/plain")
+			io.WriteString(w, "hello")
+		case r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/status/"):
+			code, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/status/"))
+			w.WriteHeader(code)
+			io.WriteString(w, "status")
+		case r.Method == "POST" && r.URL.Path == "/echo":
+			w.Header().Set("X-Token", r.Header.Get("X-Token"))
+			body, _ := io.ReadAll(r.Body)
+			w.Write(body)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL
 }
