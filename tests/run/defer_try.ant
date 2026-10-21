@@ -1,0 +1,32 @@
+// spec: 8 defer; 8 try; stdlib File
+// The copy function of section 8: a deferred close runs when try leaves the function early with
+// an Err, and in reverse order of registration when it succeeds.
+func copy(src: string, dst: string): Result[void, Error] {
+  var input = try File.open(src)
+  defer { print("closing input"); File.close(input) }
+  var output = try File.create(dst)
+  defer { print("closing output"); File.close(output) }
+  File.pipe(input, output)
+}
+
+func main(): void {
+  var dir = Os.args()[0]
+  print(File.write(`${dir}/a.txt`, "payload\n"))
+  print(copy(`${dir}/a.txt`, `${dir}/b.txt`))
+  print(File.read(`${dir}/b.txt`))
+  print(copy(`${dir}/missing.txt`, `${dir}/c.txt`) is Err)
+  print(File.exists(`${dir}/c.txt`))
+  print(copy(`${dir}/a.txt`, `${dir}/nodir/c.txt`) is Err)
+}
+
+// expect
+// out: Ok{ value: void }
+// out: closing output
+// out: closing input
+// out: Ok{ value: void }
+// out: Ok{ value: "payload\n" }
+// out: true
+// out: false
+// out: closing input
+// out: true
+// args: $TMP

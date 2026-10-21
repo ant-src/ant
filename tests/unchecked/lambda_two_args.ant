@@ -1,0 +1,11 @@
+// spec: 12 Runtime panics; 6 Anonymous functions
+// panics: call
+// A lambda given two arguments panics (section 12).
+func main(): void {
+  var f: func(int): int = { x }
+  print(f(1, 2))
+}
+
+// expect
+// exit: 1
+// err: lambda

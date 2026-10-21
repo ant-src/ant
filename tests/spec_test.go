@@ -303,11 +303,7 @@ var panicRows = [][]string{
 }
 
 // pendingPanics lists the panic keys no test program triggers yet.
-var pendingPanics = []string{
-	"Array.filled", "Array.sum", "Atomic.add", "Bits.shiftRight", "Cond.wait", "Iter.take",
-	"Math.abs", "RwMutex.readUnlock", "RwMutex.writeUnlock", "String.repeat", "String.replace",
-	"String.slice", "String.split", "WaitGroup.add", "never",
-}
+var pendingPanics = []string{}
 
 // TestPanicCoverage checks that every row of the chapter 12 panics table and every ◆ function
 // of chapter 11 has a program that triggers it.

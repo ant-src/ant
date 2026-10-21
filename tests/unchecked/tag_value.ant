@@ -1,0 +1,24 @@
+// spec: 12 Values; 12 Expressions
+// A type declaration binds a tag, which is a value at run time: it renders, compares by
+// identity, carries the functions declared on its type as fields, and a variable holding it
+// serves as the right side of is.
+type Point = { x: int }
+
+func Point.origin(): Point { Point{ x: 0 } }
+
+func main(): void {
+  var t = Point
+  print(t == Point)
+  print(t.origin())
+  var p = Point{ x: 1 }
+  print(p is t)
+  print(1 is t)
+  print(t)
+}
+
+// expect
+// out: true
+// out: Point{ x: 0 }
+// out: true
+// out: false
+// out: Point

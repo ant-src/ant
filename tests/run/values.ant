@@ -1,0 +1,56 @@
+// spec: 12 Values; 12 Expressions; 6 Calling
+// Arrays, maps, records, functions and sync objects are references and the rest is immutable;
+// functions, tags and sync objects are equal only to themselves; a record literal's fields take
+// the tag's order whatever order they are written; defaults evaluate in the callee's scope in
+// parameter order and may use earlier parameters; a float conversion preserves NaN.
+type Point = { x: int, y: int }
+
+func after(a: int, b: int = a + 1, c: int = b * 2): Array[int] { [a, b, c] }
+
+func main(): void {
+  var xs = [1]
+  var ys = xs
+  Array.push(ys, 2)
+  print(xs)
+  var m = Map{ a: 1 }
+  var n = m
+  n["b"] = 2
+  print(m)
+  var s = "immutable"
+  var t = s
+  t = t + "!"
+  print(s)
+  var f = func(): int { 1 }
+  var g = f
+  print(f == g)
+  print(f == func(): int { 1 })
+  print(Point{ y: 2, x: 1 })
+  print(after(1))
+  print(after(1, 5))
+  print(after(1, c: 9))
+  var nan = float32(0.0 / 0.0)
+  print(nan == nan)
+  print(float64(nan) != float64(nan))
+  print(int8(-1) == int8(-1) && byte(200) != byte(201))
+  var p = Point{ x: 1, y: 2 }
+  var q = p
+  q.x = 9
+  print(p == q && Record.same(p, q))
+  print(Array.same(xs, ys) && !Array.same(xs, [1, 2]) && Map.same(m, n))
+}
+
+// expect
+// out: [1, 2]
+// out: Map{ "a": 1, "b": 2 }
+// out: immutable
+// out: true
+// out: false
+// out: Point{ x: 1, y: 2 }
+// out: [1, 2, 4]
+// out: [1, 5, 10]
+// out: [1, 2, 9]
+// out: false
+// out: true
+// out: true
+// out: true
+// out: true

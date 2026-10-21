@@ -1,0 +1,12 @@
+// spec: 11 String; 12 Runtime panics
+// panics: String.slice; library-value
+// String.slice with a range outside the string, or from after to, panics (section 11).
+func main(): void {
+  print(String.slice("héllo", 1, 3))
+  print(String.slice("héllo", 3, 2))
+}
+
+// expect
+// out: él
+// exit: 1
+// err: String.slice

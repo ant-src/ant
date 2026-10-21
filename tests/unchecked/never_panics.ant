@@ -1,0 +1,32 @@
+// spec: 12 Runtime panics; 12 Expressions
+// panics: never
+// ??, ?., == and != never panic themselves: values of different kinds are simply unequal, and
+// ?? and ?. look only for null; on a non-null left side the plain rule applies.
+func main(): void {
+  print(1 == "1")
+  print(1 == 1.0)
+  print(1 != true)
+  print([1] == Map{ a: 1 })
+  print(null == void)
+  var x = 5
+  print(x ?? "fallback")
+  var n = null
+  print(n ?? "fallback")
+  print(n?.field)
+  print(n?.[0])
+  print(n?.())
+  print("done")
+}
+
+// expect
+// out: false
+// out: false
+// out: true
+// out: false
+// out: false
+// out: 5
+// out: fallback
+// out: null
+// out: null
+// out: null
+// out: done

@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics
+// panics: arith-kind
+// Unary - needs a number (section 12).
+func main(): void {
+  print(-"s")
+}
+
+// expect
+// exit: 1
+// err: -

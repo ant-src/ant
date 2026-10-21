@@ -1,0 +1,36 @@
+// spec: 9 Synchronization; 9 Sharing results; stdlib Http
+// The fetchAll function of section 9: one goroutine per URL, results shared through an array
+// slot under a mutex, completion through a WaitGroup, and the test server as the first argument.
+func fetchAll(urls: Array[string]): Array[Result[Http.Response, Error]] {
+  var results: Array[Result[Http.Response, Error]] = Array.filled(Array.length(urls), Result.err(Error{ message: "pending" }))
+  var lock = Mutex.new()
+  var wg = WaitGroup.new()
+  for entry in Array.entries(urls) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      var response = Http.get(entry.value)
+      Mutex.withLock(lock, { results[entry.index] = response })
+    }
+  }
+  WaitGroup.wait(wg)
+  results
+}
+
+func main(): void {
+  var base = Os.args()[0]
+  var results = fetchAll([`${base}/hello`, `${base}/status/404`, "http://127.0.0.1:1/", `${base}/status/500`])
+  for r in results {
+    if r is Ok { print(r.value.status) } else { print("error") }
+  }
+  var first = results[0]
+  if first is Ok { print(first.value.body) }
+}
+
+// expect
+// out: 200
+// out: 404
+// out: error
+// out: 500
+// out: hello
+// args: $HTTP

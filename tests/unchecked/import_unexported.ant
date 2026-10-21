@@ -1,0 +1,14 @@
+// spec: 12 Names and scopes; 10
+// export is a checker rule: at run time every field of a module record is readable, so an
+// import of an unexported name runs.
+import "../run/lib/geometry.ant" { hidden, sqrt }
+
+func main(): void {
+  print(hidden)
+  print(sqrt(16.0))
+}
+
+// expect
+// out: geometry init
+// out: 1
+// out: 4.0

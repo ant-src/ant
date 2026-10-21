@@ -1,0 +1,21 @@
+// spec: 9 Goroutines; 12 Goroutines
+// go returns at once with type void; goroutines are preemptive, so a goroutine that never blocks
+// cannot keep main from running; and the program exits when main returns, whatever other
+// goroutines are doing.
+func main(): void {
+  var started: void = go { while true { } }
+  print(started)
+  var spins = Atomic.new(0)
+  go { while true { _ = Atomic.add(spins, 1) } }
+  var total = 0
+  for i in Iter.range(0, 100000) { total += i }
+  print(total)
+  print(Atomic.load(spins) >= 0)
+  print("main returns")
+}
+
+// expect
+// out: void
+// out: 4999950000
+// out: true
+// out: main returns

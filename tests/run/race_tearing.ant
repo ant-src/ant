@@ -1,0 +1,54 @@
+// spec: 9 Data races; 12 Goroutines
+// A racy read observes some value that was stored, never a mix: a field that alternates between
+// kinds is always one whole value, an array under racing push, pop, sort, and index stays a
+// valid array, and a map under racing set, remove, and iteration stays a valid map.
+type Box = { v: int | string | Array[int] | null }
+
+func main(): void {
+  var box = Box{ v: null }
+  var bad = Atomic.new(0)
+  var wg = WaitGroup.new()
+  for i in Iter.range(0, 400) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      if i % 4 == 0 { box.v = i }
+      else if i % 4 == 1 { box.v = `s${i}` }
+      else if i % 4 == 2 { box.v = [i, i] }
+      else { box.v = null }
+      var seen = box.v
+      if seen is string && !String.startsWith(seen, "s") { _ = Atomic.add(bad, 1) }
+      if seen is Array && Array.length(seen) != 2 { _ = Atomic.add(bad, 1) }
+      if seen is int && seen % 4 != 0 { _ = Atomic.add(bad, 1) }
+    }
+  }
+  WaitGroup.wait(wg)
+  print(Atomic.load(bad))
+  var xs: Array[int] = []
+  var m: Map[string, int] = Map{}
+  var wg2 = WaitGroup.new()
+  for i in Iter.range(0, 300) {
+    WaitGroup.add(wg2, 1)
+    go {
+      defer { WaitGroup.done(wg2) }
+      Array.push(xs, i)
+      _ = Array.sort(xs)
+      _ = Array.get(xs, i)
+      if i % 5 == 0 { _ = Array.pop(xs) }
+      m[`k${i % 20}`] = i
+      if i % 3 == 0 { _ = Map.remove(m, `k${i % 20}`) }
+      var total = 0
+      for { key, value } in m { total += value }
+      _ = Map.keys(m)
+      _ = Array.length(Array.filter(xs, { x > 10 }))
+    }
+  }
+  WaitGroup.wait(wg2)
+  print(Array.length(xs) <= 300 && Map.size(m) <= 20)
+  print("memory safe")
+}
+
+// expect
+// out: 0
+// out: true
+// out: memory safe

@@ -1,0 +1,50 @@
+// spec: 12 Expressions; 3; 5 Destructuring
+// An assignment evaluates the target's sub-expressions, then the right side, then stores; a
+// compound assignment evaluates the target once; an array destructuring target stores left to
+// right with a rest receiving a new array; a map index target inserts or replaces.
+var log = ""
+
+func t(label: string, v: int): int { log = log + label; v }
+
+func main(): void {
+  var xs = [10, 20, 30]
+  xs[t("i", 1)] += t("v", 5)
+  print(xs)
+  print(log)
+  log = ""
+  var a = 0
+  var b = 0
+  var rest: Array[int] = []
+  [a, b, ...rest] = [t("1", 1), t("2", 2), t("3", 3), t("4", 4)]
+  print(`${a} ${b} ${rest} ${log}`)
+  var m: Map[string, int] = Map{}
+  m["k"] = 1
+  m["k"] += 1
+  m["j"] = 0
+  print(m)
+  var p = [0, 0]
+  [p[t("x", 0)], p[t("y", 1)]] = [t("r", 7), t("s", 8)]
+  print(p)
+  print(log)
+  var v = 1
+  var assigned: void = v = 2
+  print(assigned)
+  print(v)
+  var inner = [[1, 2], [3]]
+  inner[0][1] = 20
+  [inner[1][0], v] = [30, 40]
+  print(inner)
+  print(v)
+}
+
+// expect
+// out: [10, 25, 30]
+// out: iv
+// out: 1 2 [3, 4] 1234
+// out: Map{ "k": 2, "j": 0 }
+// out: [7, 8]
+// out: 1234xyrs
+// out: void
+// out: 2
+// out: [[1, 20], [30]]
+// out: 40

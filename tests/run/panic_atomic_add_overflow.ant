@@ -1,0 +1,12 @@
+// spec: 11 Synchronization; 12 Runtime panics
+// panics: Atomic.add; library-value
+// Atomic.add panics on overflow and leaves the value untouched (section 11).
+func main(): void {
+  var a = Atomic.new(int8(126)); print(Atomic.add(a, int8(1)))
+  print(Atomic.add(a, int8(1)))
+}
+
+// expect
+// out: 127
+// exit: 1
+// err: overflow

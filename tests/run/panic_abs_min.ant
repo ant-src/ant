@@ -1,0 +1,12 @@
+// spec: 11 Math and Bits; 12 Runtime panics
+// panics: Math.abs; library-value
+// Math.abs of the most negative integer panics (section 11).
+func main(): void {
+  print(Math.abs(Math.minInt + 1))
+  print(Math.abs(Math.minInt))
+}
+
+// expect
+// out: 9223372036854775807
+// exit: 1
+// err: Math.abs

@@ -1,0 +1,12 @@
+// spec: 11 Math and Bits; 12 Runtime panics
+// panics: Bits.shiftRight; library-value
+// Bits.shiftRight with a count at or beyond the operand width panics (section 11).
+func main(): void {
+  print(Bits.shiftRight(int8(-128), 7))
+  print(Bits.shiftRight(int8(-128), 8))
+}
+
+// expect
+// out: -1
+// exit: 1
+// err: shift

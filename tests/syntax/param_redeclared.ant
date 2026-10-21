@@ -1,0 +1,7 @@
+// spec: 12 Names and scopes; 3
+func f(x: int): int { var x = 2; x }
+func main(): void {}
+
+// expect
+// exit: 2
+// err: already declared

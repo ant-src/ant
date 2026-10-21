@@ -1,0 +1,43 @@
+// spec: 5 Loops; 12 Expressions
+// for over an array iterates by index while the index is below the current length, so appended
+// elements are visited and removed ones are not; over a map, an entry inserted during the loop is
+// visited, one removed before the loop reaches it is not, no entry is visited twice, and a key
+// removed and inserted again is a new entry at the end.
+func main(): void {
+  var xs = [1, 2, 3]
+  for x in xs {
+    if x == 1 { Array.push(xs, 4) }
+    if x == 2 { _ = Array.pop(xs) }
+    print(x)
+  }
+  print(xs)
+  var m = Map{ a: 1, b: 2, c: 3, d: 4 }
+  for { key, value } in m {
+    if key == "a" { m["e"] = 5; _ = Map.remove(m, "c") }
+    if key == "b" { _ = Map.remove(m, "a"); m["a"] = 10 }
+    print(`${key}=${value}`)
+  }
+  print(m)
+  var count = 0
+  var grow = Map{ x: 0 }
+  for { key, value } in grow {
+    count += 1
+    if count < 5 { grow[`${key}${count}`] = count }
+  }
+  print(count)
+  print(Map.size(grow))
+}
+
+// expect
+// out: 1
+// out: 2
+// out: 3
+// out: [1, 2, 3]
+// out: a=1
+// out: b=2
+// out: d=4
+// out: e=5
+// out: a=10
+// out: Map{ "b": 2, "d": 4, "e": 5, "a": 10 }
+// out: 5
+// out: 5

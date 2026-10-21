@@ -1,0 +1,12 @@
+// spec: 11 Synchronization; 12 Runtime panics
+// panics: RwMutex.readUnlock; library-value
+// RwMutex.readUnlock when not read-locked panics (section 11).
+func main(): void {
+  var rw = RwMutex.new(); RwMutex.readLock(rw); RwMutex.readUnlock(rw); print("balanced")
+  RwMutex.readUnlock(rw)
+}
+
+// expect
+// out: balanced
+// exit: 1
+// err: not read-locked

@@ -1,0 +1,12 @@
+// spec: 11 Array; 12 Runtime panics
+// panics: Array.sum; library-value
+// Array.sum panics when the sum does not fit the kind (section 11).
+func main(): void {
+  print(Array.sum([int8(100), int8(27)]))
+  print(Array.sum([int8(100), int8(28)]))
+}
+
+// expect
+// out: 127
+// exit: 1
+// err: overflow

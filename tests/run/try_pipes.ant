@@ -1,0 +1,51 @@
+// spec: 8 try; 5 Pipes; 8 Result
+// try binds like a prefix operator: try f(x) | g() unwraps the first stage and pipes the value;
+// a parenthesized pipeline propagates the error of the whole; Ok{ value } is the same value as
+// Result.ok; try on Ok[Ok[int]] yields the inner Ok.
+func parseAll(xs: Array[string]): Result[Array[int], Error] {
+  var ints = try (xs | Array.map(parseOne) | Result.all())
+  Result.ok(ints)
+}
+
+func parseOne(s: string): Result[int, Error] {
+  var n = String.toInt(s) ?? return Result.err(Error{ message: `not a number: ${s}` })
+  Result.ok(n)
+}
+
+func firstDoubled(xs: Array[string]): Result[int, Error] {
+  var doubled = try parseOne(xs[0]) | Math.max(0)
+  Result.ok(doubled * 2)
+}
+
+func nested(): Result[Result[int, Error], Error] { Result.ok(Result.ok(5)) }
+
+func inner(): Result[int, Error] {
+  var r = try nested()
+  print(r)
+  r
+}
+
+func main(): void {
+  print(parseAll(["1", "2", "3"]))
+  print(parseAll(["1", "x", "3"]))
+  print(firstDoubled(["21"]))
+  print(firstDoubled(["no"]))
+  print(inner())
+  var one: Result[int, Error] = Result.ok(1)
+  print(Ok{ value: 1 } == one)
+  var failed: Result[int, Error] = Result.err(Error{ message: "m" })
+  print(Err{ error: Error{ message: "m" } } == failed)
+  var e: Result[int, Error] = Result.err(Error{ message: "e" })
+  print(Result.mapErr(e, { Error{ message: `wrapped: ${x.message}` } }))
+}
+
+// expect
+// out: Ok{ value: [1, 2, 3] }
+// out: Err{ error: Error{ message: "not a number: x" } }
+// out: Ok{ value: 42 }
+// out: Err{ error: Error{ message: "not a number: no" } }
+// out: Ok{ value: 5 }
+// out: Ok{ value: 5 }
+// out: true
+// out: true
+// out: Err{ error: Error{ message: "wrapped: e" } }
