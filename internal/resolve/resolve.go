@@ -90,6 +90,11 @@ func Resolve(f *ast.File, opts Options) []*Error {
 	}
 	f.Scope = r.fields
 	r.module = r.push(&scope{module: true})
+	if opts.Session {
+		for name, idx := range r.fields.Index {
+			r.module.names[name] = &binding{name: name, scope: r.module, module: true, index: idx, imp: -1}
+		}
+	}
 	r.declareModule(f)
 	for _, d := range f.Decls {
 		switch d := d.(type) {
@@ -131,8 +136,19 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
 	}
 	if old, ok := s.names[name]; ok {
 		switch {
-		case old.imp >= 0 && b.imp < 0 && !s.module:
-			// unreachable: imports live in the module scope only
+		case s.module && r.session && old.imp >= 0:
+			// a session declaration replaces an earlier import
+			s.names[name] = b
+			s.order = append(s.order, b)
+			b.module = true
+			if idx, ok := r.fields.Index[name]; ok {
+				b.index = idx
+			} else {
+				b.index = len(r.fields.Fields)
+				r.fields.Fields = append(r.fields.Fields, name)
+				r.fields.Index[name] = b.index
+			}
+			return b
 		case s.module && r.session:
 			// A session replaces the binding; the field keeps its index.
 			b.module = true
@@ -167,7 +183,7 @@ func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, im
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
 		return
 	}
-	if _, ok := s.names[name]; ok {
+	if _, ok := s.names[name]; ok && !r.session {
 		r.errorf(pos, "%s is already bound by an import", name)
 		return
 	}

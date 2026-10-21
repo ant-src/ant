@@ -1,0 +1,96 @@
+package ant_test
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/value"
+)
+
+func TestSession(t *testing.T) {
+	var out, errOut strings.Builder
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(&out), ant.WithStderr(&errOut),
+		ant.WithSource("lib.ant", "export var counter = 0\nexport func bump(): void { counter += 1 }\nexport type P = { x: int }"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	eval := func(src string) value.Value {
+		t.Helper()
+		v, err := s.Eval(src)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		return v
+	}
+	if v := eval("1 + 2"); v != int64(3) {
+		t.Errorf("1 + 2 = %v", v)
+	}
+	if v := eval("var x = 10"); v != value.Void {
+		t.Errorf("a declaration is void, got %v", v)
+	}
+	if v := eval("x * 2"); v != int64(20) {
+		t.Errorf("x * 2 = %v", v)
+	}
+	eval("func double(n: int): int { n * 2 }")
+	eval("type Point = { x: int, y: int }")
+	if v := eval("double(x)"); v != int64(20) {
+		t.Errorf("double(x) = %v", v)
+	}
+	if v := value.Render(eval("Point{ x: 1, y: 2 }")); v != "Point{ x: 1, y: 2 }" {
+		t.Errorf("record: %s", v)
+	}
+	eval("var x = \"again\"")
+	if v := eval("x"); v != "again" {
+		t.Errorf("redeclared x = %v", v)
+	}
+	eval(`print("hello")`)
+	if !strings.Contains(out.String(), "hello\n") {
+		t.Errorf("stdout: %q", out.String())
+	}
+	// multi-line input
+	if v := eval("var f = func(a: int): int {\n  a + 1\n}\nf(1)"); v != int64(2) {
+		t.Errorf("multi-line: %v", v)
+	}
+	// a panic is reported and the session continues
+	if _, err := s.Eval("panic(\"boom\")"); err == nil {
+		t.Error("expected a panic error")
+	} else if _, ok := err.(*ant.PanicError); !ok {
+		t.Errorf("expected *PanicError, got %T", err)
+	}
+	if !strings.Contains(errOut.String(), "boom") {
+		t.Errorf("stderr lacks the report: %q", errOut.String())
+	}
+	if v := eval("x"); v != "again" {
+		t.Errorf("after a panic x = %v", v)
+	}
+	// a syntax error is a load error
+	if _, err := s.Eval("var = 1"); err == nil {
+		t.Error("expected a syntax error")
+	} else if _, ok := err.(*ant.LoadError); !ok {
+		t.Errorf("expected *LoadError, got %T", err)
+	}
+	// imports stay in force and modules initialize once
+	eval(`import "lib.ant" { counter, bump, P }`)
+	eval("bump()")
+	eval("bump()")
+	if v := eval("counter"); v != int64(2) {
+		t.Errorf("counter = %v", v)
+	}
+	if v := value.Render(eval("P{ x: 7 }")); v != "P{ x: 7 }" {
+		t.Errorf("imported type: %s", v)
+	}
+	// incomplete inputs
+	for _, src := range []string{"func f() {", "var s = \"open", "[1,", "`${"} {
+		if !ant.Incomplete(src) {
+			t.Errorf("%q should be incomplete", src)
+		}
+	}
+	for _, src := range []string{"1 + 2", "func f() {}", "var x = = 1"} {
+		if ant.Incomplete(src) {
+			t.Errorf("%q should not be incomplete", src)
+		}
+	}
+}

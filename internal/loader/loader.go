@@ -41,6 +41,9 @@ type Config struct {
 	RequireMain bool
 	// Extra names the prelude binds in this program, beyond the standard ones.
 	Extra []string
+	// Session, when set, makes the root an input of a session: its fields accumulate in this
+	// scope and may be declared again.
+	Session *ast.ModuleScope
 }
 
 // Module is one loaded module.
@@ -161,7 +164,12 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
 		return nil
 	}
-	for _, e := range resolve.Resolve(f, resolve.Options{Extra: l.cfg.Extra}) {
+	opts := resolve.Options{Extra: l.cfg.Extra}
+	if root && l.cfg.Session != nil {
+		opts.Session = true
+		opts.Fields = l.cfg.Session
+	}
+	for _, e := range resolve.Resolve(f, opts) {
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
 	}
 	if root && l.cfg.RequireMain && !hasMain(f) {

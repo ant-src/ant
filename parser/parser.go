@@ -4,6 +4,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/lexer"
@@ -25,10 +26,12 @@ const (
 	Declarations
 )
 
-// Error is a syntax error.
+// Error is a syntax error. Incomplete is set when the input ended too early, which a REPL
+// uses to keep reading.
 type Error struct {
-	Pos ast.Pos
-	Msg string
+	Pos        ast.Pos
+	Msg        string
+	Incomplete bool
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
@@ -38,7 +41,7 @@ func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	toks, lerr := lexer.Lex(src)
 	if lerr != nil {
 		le := lerr.(*lexer.Error)
-		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg}
+		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg, Incomplete: strings.HasPrefix(le.Msg, "unterminated")}
 	}
 	p := &parser{mode: mode, toks: toks}
 	defer p.recover(&err)
@@ -84,7 +87,8 @@ func (p *parser) recover(err *error) {
 }
 
 func (p *parser) fail(pos token.Pos, format string, args ...any) {
-	panic(&Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...)})
+	incomplete := p.i < len(p.toks) && p.toks[p.i].Kind == token.EOF
+	panic(&Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...), Incomplete: incomplete})
 }
 
 func pos(t token.Token) ast.Pos { return ast.Pos{Line: t.Pos.Line, Col: t.Pos.Col} }

@@ -411,7 +411,8 @@ REPL, so this behaviour is a project decision; line editing and history can come
 
 ## 9. Phases
 
-Each phase ends with its tests green and `go vet` clean. Rough sizes are lines of Go.
+Each phase ends with its tests green and `go vet` clean. Rough sizes are lines of Go. All
+eight phases are done; the table records what each delivered and what proved it.
 
 | Phase | Work | Done when | Size |
 | ----- | ---- | --------- | ---- |
@@ -425,9 +426,11 @@ Each phase ends with its tests green and `go vet` clean. Rough sizes are lines o
 | 7 | checker, in sub-steps: types and declarations; expressions and generics; narrowing and exhaustiveness; modules and exports; diagnostics | `ant check` passes every program under `tests/run` and reports every compile error the spec shows inline | 5 000 |
 | 8 | `Session` and the loop in `cmd/ant` | a `Session` test covers declarations, expressions, redeclaration, panics, imports; a manual session matches | 400 |
 
-Phase 8 is small and independent of phase 7, so it can be slotted in whenever a demo of `ant`
-is wanted. Phases 1 through 4 are strictly sequential; phase 5 and 6 can proceed in parallel with
-phase 7.
+Two things changed in the building. The parser stayed pure grammar and a separate resolver
+pass (`internal/resolve`) assigns slots and enforces the scope rules, so the public parser
+has no prelude dependency. And the value-dependent panics live under `tests/run`, which must
+also check clean, while the kind panics the checker rejects live under `tests/unchecked`,
+which is only run.
 
 ## 10. Open points
 
@@ -447,6 +450,11 @@ Decisions taken here that the spec leaves open, recorded so they can be revisite
   importers are not forced to upgrade.
 - Goroutines still running when `Run` returns are stopped at their next check rather than killed,
   since Go cannot kill a goroutine; a goroutine blocked in a host call it does not cancel lingers.
+  `Run` waits a grace period of 100 ms for them, so a panic report in progress completes.
+- In the REPL an import stays in force by being prepended to every later input, so an imported
+  `export var` reads live; a session's diagnostics subtract that line.
+- Union types print flattened in messages: `Result[int, ParseError | Error]` shows its members,
+  since normalization expands aliases to check discriminators.
 - Buffered stdout with the flush points listed in section 5.
 - The checker's handling of the I/O namespaces depends on `prelude.ant` carrying their
   signatures, which `stdlib.md` calls a sketch; they will be transcribed as written.

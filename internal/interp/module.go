@@ -26,16 +26,28 @@ type importRef struct {
 func (in *Instance) setupModules() {
 	in.modules = make([]*module, len(in.prog.Modules))
 	for _, lm := range in.prog.Modules {
-		f := lm.File
-		tag := value.NewTag(f.Path, value.RecordTag, f.Scope.Fields)
-		m := &module{m: lm, rec: value.NewRecord(tag, nil), tags: map[string]*value.Tag{}}
-		m.root = &Env{mod: m}
-		in.modules[lm.Index] = m
+		in.modules[lm.Index] = newModule(lm)
 	}
 	for _, m := range in.modules {
+		in.linkModule(m, func(i int) *module { return in.modules[i] })
+	}
+}
+
+func newModule(lm *loader.Module) *module {
+	f := lm.File
+	tag := value.NewTag(f.Path, value.RecordTag, f.Scope.Fields)
+	m := &module{m: lm, rec: value.NewRecord(tag, nil), tags: map[string]*value.Tag{}}
+	m.root = &Env{mod: m}
+	return m
+}
+
+// linkModule resolves a module's imports and binds its types and functions.
+func (in *Instance) linkModule(m *module, lookup func(int) *module) {
+	{
 		f := m.m.File
+		m.imports = nil
 		for _, imp := range f.Imports {
-			target := in.modules[imp.Module]
+			target := lookup(imp.Module)
 			if imp.Namespace != "" {
 				m.imports = append(m.imports, importRef{rec: target.rec, field: -1, name: imp.Namespace})
 				continue

@@ -17,6 +17,7 @@ import (
 	"os/signal"
 
 	"github.com/ant-src/ant"
+	replpkg "github.com/ant-src/ant/internal/repl"
 )
 
 const usage = `usage:
@@ -81,6 +82,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func repl(stdin io.Reader, stdout, stderr io.Writer) int {
-	fmt.Fprintln(stderr, "ant: the REPL is not implemented yet")
-	return 2
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	return replpkg.Run(ctx, stdin, stdout, stderr)
 }
