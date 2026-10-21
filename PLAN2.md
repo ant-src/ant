@@ -360,9 +360,6 @@ Taken:
 - The REPL stays as it is. No line editing, no dependency.
 - Coverage thresholds are 90% overall and 80% per package, enforced by the gate.
 - The repository is `github.com/ant-src/ant`, public, default branch `master`, like the spec.
-
-Open:
-
-- **Cyclic values**: what `String.from`, map hashing and `Json.stringify` should do. The proposal
-  is a panic with the message `cyclic value`, added to the chapter 12 table as a ◆ row for the
-  library.
+- **Cyclic values**: `String.from`, map hashing and `Json.stringify` panic with the message
+  `cyclic value`; the spec gains a ◆ row for it in the chapter 12 table (an entry in
+  `SPEC-FEEDBACK.md` until it does).
