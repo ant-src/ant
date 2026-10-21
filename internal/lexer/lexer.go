@@ -1,0 +1,449 @@
+// Package lexer turns Ant source into tokens, applying the line-ending rule of section 2.
+package lexer
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/ant-src/ant/internal/token"
+)
+
+// Error is a lexical error.
+type Error struct {
+	Pos token.Pos
+	Msg string
+}
+
+func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
+
+type lexer struct {
+	src  string
+	pos  int
+	line int
+	col  int
+	toks []token.Token
+}
+
+// Lex tokenizes src. The token stream ends with a Newline (unless empty) and an EOF.
+func Lex(src string) (toks []token.Token, err error) {
+	l := &lexer{src: src, line: 1, col: 1}
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*Error); ok {
+				toks, err = nil, e
+				return
+			}
+			panic(r)
+		}
+	}()
+	for l.scan(l.toplevel) {
+	}
+	if len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind != token.Newline {
+		l.emit(token.Token{Kind: token.Newline, Pos: l.here()})
+	}
+	l.emit(token.Token{Kind: token.EOF, Pos: l.here()})
+	return l.toks, nil
+}
+
+func (l *lexer) fail(pos token.Pos, format string, args ...any) {
+	panic(&Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+}
+
+func (l *lexer) here() token.Pos { return token.Pos{Line: l.line, Col: l.col} }
+
+func (l *lexer) peek(k int) byte {
+	if l.pos+k < len(l.src) {
+		return l.src[l.pos+k]
+	}
+	return 0
+}
+
+func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) }
+
+func (l *lexer) advance(n int) {
+	for i := 0; i < n && l.pos < len(l.src); i++ {
+		if l.src[l.pos] == '\n' {
+			l.line++
+			l.col = 1
+		} else {
+			l.col++
+		}
+		l.pos++
+	}
+}
+
+func (l *lexer) emit(t token.Token) { l.toks = append(l.toks, t) }
+
+// Keywords that can end an expression; every other keyword continues the line.
+var endingKeywords = map[string]bool{
+	"return": true, "break": true, "continue": true, "true": true, "false": true, "null": true,
+	"void": true,
+}
+
+// lastContinues reports whether the previous token cannot end an expression, so that a line
+// break after it is not a statement end.
+func (l *lexer) lastContinues() bool {
+	if len(l.toks) == 0 {
+		return true
+	}
+	t := l.toks[len(l.toks)-1]
+	switch t.Kind {
+	case token.Newline:
+		return true
+	case token.Op:
+		return t.Text != ")" && t.Text != "]" && t.Text != "}" && t.Text != ";" && t.Text != "..."
+	case token.Keyword:
+		return !endingKeywords[t.Text]
+	}
+	return false
+}
+
+// nextLineContinues reports whether the next non-blank, non-comment text starts with ".",
+// "?.", "|", or "else", which continues the expression (section 2).
+func (l *lexer) nextLineContinues() bool {
+	i := l.pos
+	src := l.src
+	for i < len(src) {
+		switch {
+		case src[i] == ' ' || src[i] == '\t' || src[i] == '\r' || src[i] == '\n':
+			i++
+		case strings.HasPrefix(src[i:], "//"):
+			j := strings.IndexByte(src[i:], '\n')
+			if j < 0 {
+				return false
+			}
+			i += j
+		case strings.HasPrefix(src[i:], "/*"):
+			j := strings.Index(src[i+2:], "*/")
+			if j < 0 {
+				return false
+			}
+			i += 2 + j + 2
+		default:
+			rest := src[i:]
+			if strings.HasPrefix(rest, "...") {
+				return false
+			}
+			if strings.HasPrefix(rest, ".") || strings.HasPrefix(rest, "?.") || strings.HasPrefix(rest, "|") {
+				return true
+			}
+			if strings.HasPrefix(rest, "else") && (len(rest) == 4 || !isIdentChar(rest[4])) {
+				return true
+			}
+			return false
+		}
+	}
+	return false
+}
+
+// toplevel is the default mode: it never stops before the end of the source.
+func (l *lexer) toplevel(t token.Token) bool { return false }
+
+// scan lexes one token, or whitespace and comments. It returns false at the end of the source
+// or when stop reports that the token just scanned ends the current stream.
+func (l *lexer) scan(stop func(token.Token) bool) bool {
+	if l.pos >= len(l.src) {
+		return false
+	}
+	c := l.src[l.pos]
+	pos := l.here()
+	switch {
+	case c == '\n':
+		if !l.lastContinues() && !l.nextLineContinues() {
+			l.emit(token.Token{Kind: token.Newline, Pos: pos})
+		}
+		l.advance(1)
+		return true
+	case c == ' ' || c == '\t' || c == '\r':
+		l.advance(1)
+		return true
+	case l.has("//"):
+		for l.pos < len(l.src) && l.src[l.pos] != '\n' {
+			l.advance(1)
+		}
+		return true
+	case l.has("/*"):
+		end := strings.Index(l.src[l.pos+2:], "*/")
+		if end < 0 {
+			l.fail(pos, "unterminated block comment")
+		}
+		l.advance(2 + end + 2)
+		return true
+	case isDigit(c):
+		l.number()
+	case isLetter(c) || c == '_':
+		l.identifier()
+	case c == '"':
+		l.string()
+	case c == '`':
+		l.template()
+	case c == '.' && isDigit(l.peek(1)):
+		l.fail(pos, "a float literal needs a digit before the point")
+	default:
+		l.operator()
+	}
+	return !stop(l.toks[len(l.toks)-1])
+}
+
+func (l *lexer) operator() {
+	pos := l.here()
+	for _, op := range []string{"...", "?.", "??", "==", "!=", "<=", ">=", "&&", "||", "+=", "-=", "*=", "/=", "%="} {
+		if l.has(op) {
+			l.advance(len(op))
+			l.emit(token.Token{Kind: token.Op, Text: op, Pos: pos})
+			return
+		}
+	}
+	c := l.src[l.pos]
+	if strings.IndexByte("+-*/%<>=!|.,:;()[]{}", c) >= 0 {
+		l.advance(1)
+		l.emit(token.Token{Kind: token.Op, Text: string(c), Pos: pos})
+		return
+	}
+	r, _ := utf8.DecodeRuneInString(l.src[l.pos:])
+	l.fail(pos, "unexpected character %q", r)
+}
+
+func isDigit(c byte) bool  { return c >= '0' && c <= '9' }
+func isLetter(c byte) bool { return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' }
+func isHex(c byte) bool    { return isDigit(c) || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F' }
+func isBinary(c byte) bool { return c == '0' || c == '1' }
+func isIdentChar(c byte) bool {
+	return isLetter(c) || isDigit(c) || c == '_'
+}
+
+// digits scans digit { ["_"] digit }: at least one digit, underscores only between digits.
+func (l *lexer) digits(allowed func(byte) bool, what string) {
+	if !allowed(l.peek(0)) {
+		l.fail(l.here(), "malformed %s literal", what)
+	}
+	l.advance(1)
+	for {
+		switch {
+		case allowed(l.peek(0)):
+			l.advance(1)
+		case l.peek(0) == '_' && allowed(l.peek(1)):
+			l.advance(2)
+		default:
+			return
+		}
+	}
+}
+
+func (l *lexer) number() {
+	pos := l.here()
+	start := l.pos
+	kind := token.Int
+	base := 10
+	switch {
+	case l.has("0x") || l.has("0X"):
+		l.advance(2)
+		base = 16
+		l.digits(isHex, "hexadecimal")
+	case l.has("0b") || l.has("0B"):
+		l.advance(2)
+		base = 2
+		l.digits(isBinary, "binary")
+	default:
+		l.digits(isDigit, "number")
+		if l.peek(0) == '.' {
+			if !isDigit(l.peek(1)) {
+				l.fail(l.here(), "a float literal needs a digit after the point")
+			}
+			kind = token.Float
+			l.advance(1)
+			l.digits(isDigit, "number")
+		}
+		if l.peek(0) == 'e' || l.peek(0) == 'E' {
+			kind = token.Float
+			l.advance(1)
+			if l.peek(0) == '+' || l.peek(0) == '-' {
+				l.advance(1)
+			}
+			l.digits(isDigit, "exponent")
+		}
+	}
+	if isIdentChar(l.peek(0)) {
+		l.fail(l.here(), "malformed number literal")
+	}
+	text := l.src[start:l.pos]
+	clean := strings.ReplaceAll(text, "_", "")
+	t := token.Token{Kind: kind, Text: text, Pos: pos}
+	if kind == token.Int {
+		if base != 10 {
+			clean = clean[2:]
+		}
+		v, err := strconv.ParseInt(clean, base, 64)
+		if err != nil {
+			l.fail(pos, "integer literal %s does not fit an int", text)
+		}
+		t.Value = v
+	} else {
+		v, err := strconv.ParseFloat(clean, 64)
+		if err != nil {
+			l.fail(pos, "float literal %s is out of range", text)
+		}
+		t.Float = v
+	}
+	l.emit(t)
+}
+
+func (l *lexer) identifier() {
+	pos := l.here()
+	start := l.pos
+	for isIdentChar(l.peek(0)) {
+		l.advance(1)
+	}
+	word := l.src[start:l.pos]
+	kind := token.Ident
+	afterDot := len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind == token.Op &&
+		(l.toks[len(l.toks)-1].Text == "." || l.toks[len(l.toks)-1].Text == "?.")
+	switch {
+	case afterDot:
+		// A field name: any word is a name after a dot (section 2).
+	case token.IsReserved(word):
+		kind = token.Reserved
+	case token.IsKeyword(word):
+		kind = token.Keyword
+	}
+	l.emit(token.Token{Kind: kind, Text: word, Pos: pos})
+}
+
+// escape is called at a backslash; it validates the escape, steps over it, and returns the
+// character it denotes.
+func (l *lexer) escape() string {
+	pos := l.here()
+	l.advance(1)
+	c := l.peek(0)
+	switch c {
+	case 'n':
+		l.advance(1)
+		return "\n"
+	case 't':
+		l.advance(1)
+		return "\t"
+	case 'r':
+		l.advance(1)
+		return "\r"
+	case '\\', '"', '`', '$':
+		l.advance(1)
+		return string(c)
+	case 'u':
+		if l.peek(1) != '{' {
+			l.fail(pos, "bad escape: \\u needs a {...} code")
+		}
+		l.advance(2)
+		start := l.pos
+		for isHex(l.peek(0)) {
+			l.advance(1)
+		}
+		if l.pos == start || l.peek(0) != '}' {
+			l.fail(pos, "bad escape: \\u{...} needs hexadecimal digits")
+		}
+		v, err := strconv.ParseUint(l.src[start:l.pos], 16, 32)
+		if err != nil || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF) {
+			l.fail(pos, "bad escape: \\u{%s} is not a Unicode scalar value", l.src[start:l.pos])
+		}
+		l.advance(1)
+		return string(rune(v))
+	}
+	if c == 0 {
+		l.fail(pos, "unterminated string")
+	}
+	l.fail(pos, "bad escape '\\%c'", c)
+	return ""
+}
+
+func (l *lexer) string() {
+	pos := l.here()
+	l.advance(1)
+	var sb strings.Builder
+	for {
+		c := l.peek(0)
+		switch {
+		case c == 0 || c == '\n':
+			l.fail(pos, "unterminated string")
+		case c == '"':
+			l.advance(1)
+			l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
+			return
+		case c == '\\':
+			sb.WriteString(l.escape())
+		default:
+			sb.WriteByte(c)
+			l.advance(1)
+		}
+	}
+}
+
+func (l *lexer) template() {
+	pos := l.here()
+	l.advance(1)
+	var parts []token.Part
+	var sb strings.Builder
+	textPos := l.here()
+	flush := func() {
+		if sb.Len() > 0 {
+			parts = append(parts, token.Part{Text: sb.String(), Pos: textPos})
+			sb.Reset()
+		}
+	}
+	for {
+		c := l.peek(0)
+		switch {
+		case c == 0:
+			l.fail(pos, "unterminated template string")
+		case c == '`':
+			l.advance(1)
+			flush()
+			l.emit(token.Token{Kind: token.Template, Parts: parts, Pos: pos})
+			return
+		case c == '\\':
+			sb.WriteString(l.escape())
+		case c == '$' && l.peek(1) == '{':
+			flush()
+			exprPos := l.here()
+			l.advance(2)
+			parts = append(parts, token.Part{Tokens: l.interpolation(exprPos), Pos: exprPos})
+			textPos = l.here()
+		default:
+			sb.WriteByte(c)
+			l.advance(1)
+		}
+	}
+}
+
+// interpolation lexes the tokens of a ${...} up to its matching brace, which it consumes.
+func (l *lexer) interpolation(pos token.Pos) []token.Token {
+	outer := l.toks
+	l.toks = nil
+	depth := 0
+	closed := false
+	stop := func(t token.Token) bool {
+		if t.Kind != token.Op {
+			return false
+		}
+		switch t.Text {
+		case "{":
+			depth++
+		case "}":
+			if depth == 0 {
+				closed = true
+				return true
+			}
+			depth--
+		}
+		return false
+	}
+	for l.scan(stop) {
+	}
+	if !closed {
+		l.fail(pos, "unterminated ${ in template string")
+	}
+	toks := l.toks[:len(l.toks)-1] // drop the closing brace
+	toks = append(toks, token.Token{Kind: token.EOF, Pos: l.here()})
+	l.toks = outer
+	return toks
+}

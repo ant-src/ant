@@ -14,6 +14,9 @@ import (
 	"io"
 	"io/fs"
 	"os"
+
+	"github.com/ant-src/ant/internal/loader"
+	"github.com/ant-src/ant/parser"
 )
 
 type config struct {
@@ -70,7 +73,7 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 
 // A Program is a loaded, parsed, and resolved module graph. It is immutable.
 type Program struct {
-	root string
+	prog *loader.Program
 	cfg  config
 }
 
@@ -79,11 +82,21 @@ type Program struct {
 // module does not declare main.
 func Load(path string, opts ...Option) (*Program, error) {
 	cfg := defaultConfig().with(opts)
-	_ = cfg
-	return nil, &LoadError{Diagnostics: []Diagnostic{{
-		Pos:     Position{Path: path},
-		Message: "the interpreter is not implemented yet",
-	}}}
+	prog, diags := loader.Load(path, loader.Config{
+		FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, RequireMain: true,
+	})
+	if len(diags) > 0 {
+		return nil, &LoadError{Diagnostics: convert(diags)}
+	}
+	return &Program{prog: prog, cfg: cfg}, nil
+}
+
+func convert(diags []loader.Diagnostic) []Diagnostic {
+	out := make([]Diagnostic, len(diags))
+	for i, d := range diags {
+		out[i] = Diagnostic{Pos: Position{Path: d.Path, Line: d.Pos.Line, Col: d.Pos.Col}, Message: d.Msg}
+	}
+	return out
 }
 
 // Run executes the program: it initializes every module in dependency order, then calls main.
@@ -97,5 +110,5 @@ func (p *Program) Run(ctx context.Context, opts ...Option) error {
 // Check type-checks every module of the program, including code nothing calls, and returns the
 // errors sorted by position. A program with no diagnostics is well typed.
 func (p *Program) Check() []Diagnostic {
-	return []Diagnostic{{Pos: Position{Path: p.root}, Message: "the checker is not implemented yet"}}
+	return []Diagnostic{{Pos: Position{Path: p.prog.Root.File.Path}, Message: "the checker is not implemented yet"}}
 }
