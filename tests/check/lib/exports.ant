@@ -1,0 +1,6 @@
+// Helper module for the module checks. Not a test itself.
+export type Point = { x: float64, y: float64 }
+export func distance(a: Point, b: Point): float64 { a.x - b.x }
+export var counter = 0
+func hidden(): int { 1 }
+type Secret = {}

@@ -31,15 +31,17 @@ type Options struct {
 }
 
 type binding struct {
-	name     string
-	pos      ast.Pos
-	scope    *scope
-	captured bool
-	module   bool
-	index    int // module field index, or slot index after finalize
-	shared   bool
-	imp      int    // RefImport: the import's index; -1 otherwise
-	impName  string // RefImport: the export's name, "" for a namespace
+	name           string
+	pos            ast.Pos
+	scope          *scope
+	captured       bool
+	reassigned     bool
+	assignedNested bool
+	module         bool
+	index          int // module field index, or slot index after finalize
+	shared         bool
+	imp            int    // RefImport: the import's index; -1 otherwise
+	impName        string // RefImport: the export's name, "" for a namespace
 }
 
 type scope struct {
@@ -428,6 +430,7 @@ func (r *resolver) assignTarget(t ast.Node, s *scope) {
 	switch t := t.(type) {
 	case *ast.Ident:
 		r.use(t, s)
+		r.markAssigned(t, s)
 	case *ast.Field:
 		r.expr(t.X, s)
 	case *ast.Index:
@@ -439,6 +442,26 @@ func (r *resolver) assignTarget(t ast.Node, s *scope) {
 		}
 		if t.Rest != nil {
 			r.assignTarget(t.Rest, s)
+		}
+	}
+}
+
+// markAssigned records that a local is assigned, and whether from a nested body.
+func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
+	crossed := false
+	for sc := s; sc != nil; sc = sc.parent {
+		if b, ok := sc.names[id.Name]; ok {
+			if b.module || b.imp >= 0 {
+				return
+			}
+			b.reassigned = true
+			if crossed {
+				b.assignedNested = true
+			}
+			return
+		}
+		if sc.boundary {
+			crossed = true
 		}
 	}
 }
@@ -501,7 +524,7 @@ func (r *resolver) finalize() {
 		case s.fnScope != nil:
 			s.fnScope.BlockScope = bs
 			if s.xBinding != nil {
-				s.fnScope.X = ast.Slot{Index: s.xBinding.index, Shared: s.xBinding.shared}
+				s.fnScope.X = ast.Slot{Index: s.xBinding.index, Shared: s.xBinding.shared, Reassigned: s.xBinding.reassigned, AssignedNested: s.xBinding.assignedNested}
 			}
 		case s.loop != nil:
 			s.loop.Scope = &ast.BlockScope{Plain: plain, Shared: shared}
@@ -515,7 +538,7 @@ func (r *resolver) finalize() {
 		}
 	}
 	for _, pb := range r.paramsOf {
-		pb.p.Slot = ast.Slot{Index: pb.b.index, Shared: pb.b.shared}
+		pb.p.Slot = ast.Slot{Index: pb.b.index, Shared: pb.b.shared, Reassigned: pb.b.reassigned, AssignedNested: pb.b.assignedNested}
 	}
 	for _, tb := range r.targetsOf {
 		if tb.t.Name == "_" {
@@ -524,7 +547,7 @@ func (r *resolver) finalize() {
 		if tb.b.module {
 			tb.t.Slot = ast.Slot{Index: tb.b.index, Module: true}
 		} else {
-			tb.t.Slot = ast.Slot{Index: tb.b.index, Shared: tb.b.shared}
+			tb.t.Slot = ast.Slot{Index: tb.b.index, Shared: tb.b.shared, Reassigned: tb.b.reassigned, AssignedNested: tb.b.assignedNested}
 		}
 	}
 	for _, u := range r.uses {

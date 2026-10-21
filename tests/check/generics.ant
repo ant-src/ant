@@ -1,0 +1,38 @@
+// Section 4: type arguments are never written at a call; they are solved from the expected
+// type and the arguments, in that order; bounds admit one member, never a union; type
+// arguments are invariant.
+type Pair[A, B] = { first: A, second: B }
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Shape = Circle | Rect
+
+func swap[A, B](p: Pair[A, B]): Pair[B, A] { Pair{ first: p.second, second: p.first } }
+func bigger[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+func names[T: { name: string }](xs: Array[T]): Array[string] { Array.map(xs, { x.name }) }
+func choose(a: Number, b: Number): Number {
+  bigger(a, b) // ERR: T would be Number, which is not a single member of its bound
+}
+func circleArea(c: Circle): float64 { c.radius }
+func anyArea(s: Shape): float64 { if s is Circle { s.radius } else { s.width } }
+
+type Named = { name: string }
+
+func main(): void {
+  var xs = Array.map([1, 2, 3], { x * 2 })
+  var ys: Array[string] = []
+  var zs = [] // ERR: cannot infer the element type of an empty array
+  print(swap(Pair{ first: 1, second: "a" }))
+  print(bigger(1, 2))
+  print(bigger(1, 2.0)) // ERR: cannot use float64 where int is expected
+  print(names([Named{ name: "a" }]))
+  var circles = [Circle{ radius: 1.0 }]
+  var shapes: Array[Shape] = circles // ERR: cannot use Array[Circle] where Array[Shape] is expected
+  var widened: Array[Shape] = [...circles]
+  var f: func(Circle): float64 = anyArea
+  var g: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
+  var r = Result.ok(1) // ERR: cannot infer the type parameter E of Result.ok
+  var ok: Result[int, Error] = Result.ok(1)
+  print(Array.sum(xs) ?? 0)
+  print(Array.sort(shapes)) // ERR: T would be Shape, which is not a single member of its bound Ordered
+  print(Array.sortBy(shapes, { anyArea(x) }))
+}

@@ -1,0 +1,34 @@
+// Section 4: unions need distinguishable members; anonymous and named record types do not
+// mix; a type parameter shares a union only with null, void, other parameters, and named
+// types without arguments; aliases cannot form cycles.
+type Box[T] = { value: T }
+type Circle = { radius: float64 }
+type Rect = { width: float64, height: float64 }
+type Shape = Circle | Rect
+type Both = Array[int] | Array[string] // ERR: a union may contain each discriminator at most once
+type Mixed = Box[int] | { value: string } // ERR: a union may not contain an anonymous record type
+type Shared[T] = T | Array[int] // ERR: a type parameter may share a union only with
+type Loop = Loop | null // ERR: refers to itself without passing through
+type Either[A, B] = A | B
+type Tree = { value: int, children: Array[Tree] }
+type Fine[T] = T | null | Circle
+
+func area(s: Shape): float64 {
+  if s is Circle { 3.14 * s.radius * s.radius } else { s.width * s.height }
+}
+
+func pick(c: bool): Array[int] | Array[string] { // ERR: a union may contain each discriminator at most once
+  if c { [1] } else { ["a"] }
+}
+
+func main(): void {
+  var e: Either[Box[int], Box[string]] = Box{ value: 1 } // ERR: Either[Box[int], Box[string]]
+  var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 1.0, height: 2.0 }]
+  print(Array.length(shapes))
+  var mixed = if true { [1] } else { ["a"] } // ERR: the branches of this if do not form a valid type
+  var t = Tree{ value: 1, children: [] }
+  print(t)
+  var s: Shape = Circle{ radius: 2.0 }
+  s.radius = 1.0 // ERR: cannot assign a field through the union
+  print(area(s))
+}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/lib"
 	"github.com/ant-src/ant/parser"
@@ -55,10 +56,10 @@ func WithoutNamespaces(names ...string) Option {
 }
 
 // build parses a namespace's signatures and binds its functions.
-func (ns Namespace) build() (value.Value, error) {
+func (ns Namespace) build() (value.Value, *ast.File, error) {
 	f, err := parser.Parse("namespace "+ns.Name, ns.Signatures, parser.Declarations)
 	if err != nil {
-		return nil, fmt.Errorf("namespace %s: %v", ns.Name, err)
+		return nil, nil, fmt.Errorf("namespace %s: %v", ns.Name, err)
 	}
 	var fields []string
 	var vals []value.Value
@@ -67,11 +68,11 @@ func (ns Namespace) build() (value.Value, error) {
 		switch d := d.(type) {
 		case *ast.FuncDecl:
 			if d.Owner != ns.Name {
-				return nil, fmt.Errorf("namespace %s: func %s must be declared as %s.%s", ns.Name, d.Name, ns.Name, d.Name)
+				return nil, nil, fmt.Errorf("namespace %s: func %s must be declared as %s.%s", ns.Name, d.Name, ns.Name, d.Name)
 			}
 			impl, ok := ns.Funcs[d.Name]
 			if !ok {
-				return nil, fmt.Errorf("namespace %s: no implementation for %s", ns.Name, d.Name)
+				return nil, nil, fmt.Errorf("namespace %s: no implementation for %s", ns.Name, d.Name)
 			}
 			params := make([]string, len(d.Params))
 			for i, p := range d.Params {
@@ -84,16 +85,16 @@ func (ns Namespace) build() (value.Value, error) {
 			fields = append(fields, d.Name)
 			vals = append(vals, lib.TypeValue(d))
 		default:
-			return nil, fmt.Errorf("namespace %s: only func and type declarations are allowed", ns.Name)
+			return nil, nil, fmt.Errorf("namespace %s: only func and type declarations are allowed", ns.Name)
 		}
 	}
 	for name := range ns.Funcs {
 		if !seen[name] {
-			return nil, fmt.Errorf("namespace %s: %s has no signature", ns.Name, name)
+			return nil, nil, fmt.Errorf("namespace %s: %s has no signature", ns.Name, name)
 		}
 	}
 	tag := value.NewTag(ns.Name, value.RecordTag, fields)
-	return value.NewRecord(tag, vals), nil
+	return value.NewRecord(tag, vals), f, nil
 }
 
 func hostBuiltin(impl HostFunc) func(*interp.Goroutine, []value.Value) value.Value {
@@ -111,7 +112,7 @@ func hostBuiltin(impl HostFunc) func(*interp.Goroutine, []value.Value) value.Val
 
 // prelude builds the table of prelude names for a program: the standard library, less the
 // removed namespaces, plus the host namespaces.
-func (c config) prelude() (map[string]value.Value, []string, error) {
+func (c config) prelude() (map[string]value.Value, []string, []check.HostNamespace, error) {
 	table := make(map[string]value.Value, len(lib.Prelude())+len(c.namespaces))
 	for k, v := range lib.Prelude() {
 		table[k] = v
@@ -120,15 +121,17 @@ func (c config) prelude() (map[string]value.Value, []string, error) {
 		delete(table, name)
 	}
 	var extra []string
+	var decls []check.HostNamespace
 	for _, ns := range c.namespaces {
-		v, err := ns.build()
+		v, f, err := ns.build()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		table[ns.Name] = v
 		extra = append(extra, ns.Name)
+		decls = append(decls, check.HostNamespace{Name: ns.Name, Decls: f})
 	}
-	return table, extra, nil
+	return table, extra, decls, nil
 }
 
 // An Instance is a started program: its modules are initialized and its functions can be

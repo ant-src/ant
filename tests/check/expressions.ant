@@ -1,0 +1,45 @@
+// Section 5: no implicit coercion, no truthiness, operands of one type, assignment is void,
+// is needs a union, and a complete chain of tests admits no else.
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Empty = {}
+type Shape = Circle | Rect | Empty
+type Id = int | string
+
+func area(s: Shape): float64 {
+  if s is Circle { s.radius }
+  else if s is Rect { s.width }
+  else if s is Empty { 0.0 }
+}
+
+func wrong(s: Shape): float64 {
+  if s is Circle { s.radius }
+  else if s is Rect { s.width }
+  else if s is Empty { 0.0 }
+  else { 1.0 } // ERR: this else cannot run
+}
+
+func main(): void {
+  var count = 0
+  if count = 5 { print("x") } // ERR: cannot use void where bool is expected
+  if count { print("x") } // ERR: cannot use int where bool is expected
+  print(1 + 2.0) // ERR: + needs both operands of one type, got int and float64
+  print("a" + 1) // ERR: + needs both operands of one type, got string and int
+  print(!1) // ERR: cannot use int where bool is expected
+  print(true && 1) // ERR: cannot use int where bool is expected
+  var n: Number = 1
+  var m: Number = 2
+  print(n > m) // ERR: > applies to
+  var id: Id = 1
+  print(id is Id) // ERR: Id is an alias and has no run-time identity
+  var b = byte(7)
+  print(b is byte) // ERR: the test is always true
+  print(id is bool) // ERR: Id is never a bool
+  print(count == "x") // ERR: int and string cannot be compared
+  var s: Shape = Empty{}
+  print(area(s))
+  print(wrong(s))
+  print(_) // ERR: _ is write-only
+  var label = if count > 0 { "positive" } else { null }
+  print(label)
+}

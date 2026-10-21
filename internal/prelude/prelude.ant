@@ -1,0 +1,238 @@
+// The prelude, in Ant notation: every type and function signature the checker binds in every
+// module (section 11 and stdlib.md). The runtime binds the same names to Go implementations;
+// a test keeps the two in step. Parsed in declarations mode: a func has no body, a type may be
+// opaque, and var Name.CONSTANT: T declares a namespace constant.
+
+type Ok[T] = { value: T }
+type Err[E] = { error: E }
+type Result[T, E] = Ok[T] | Err[E]
+type Error = { message: string }
+type Entry[K, V] = { key: K, value: V }
+type Indexed[T] = { index: int, value: T }
+type Seq[T] = func(func(T): bool): void
+type Integer = int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64
+type Number = Integer | float32 | float64
+type Ordered = Number | string
+
+func print[T](value: T): void
+func panic(message: string): never
+
+// The twelve conversion names are built into the checker; these give their shape. Each also
+// accepts a named primitive whose base is a kind it takes, and unwraps it.
+func int8[T: Number](x: T): int8
+func int16[T: Number](x: T): int16
+func int32[T: Number](x: T): int32
+func int64[T: Number](x: T): int64
+func uint8[T: Number](x: T): uint8
+func uint16[T: Number](x: T): uint16
+func uint32[T: Number](x: T): uint32
+func uint64[T: Number](x: T): uint64
+func float32[T: Number](x: T): float32
+func float64[T: Number](x: T): float64
+func int[T: Number](x: T): int
+func byte[T: Number](x: T): byte
+func string(x: string): string
+func bool(x: bool): bool
+
+// Array
+
+func Array.length[T](xs: Array[T]): int
+func Array.isEmpty[T](xs: Array[T]): bool
+func Array.get[T](xs: Array[T], i: int): T | null
+func Array.push[T](xs: Array[T], v: T): void
+func Array.pop[T](xs: Array[T]): T | null
+func Array.slice[T](xs: Array[T], from: int, to: int): Array[T]
+func Array.concat[T](xs: Array[T], ys: Array[T]): Array[T]
+func Array.map[T, U](xs: Array[T], f: func(T): U): Array[U]
+func Array.filter[T](xs: Array[T], f: func(T): bool): Array[T]
+func Array.reduce[T, A](xs: Array[T], init: A, f: func(A, T): A): A
+func Array.find[T](xs: Array[T], f: func(T): bool): T | null
+func Array.some[T](xs: Array[T], f: func(T): bool): bool
+func Array.every[T](xs: Array[T], f: func(T): bool): bool
+func Array.contains[T](xs: Array[T], v: T): bool
+func Array.indexOf[T](xs: Array[T], v: T): int | null
+func Array.sort[T: Ordered](xs: Array[T]): Array[T]
+func Array.sortBy[T, K: Ordered](xs: Array[T], key: func(T): K): Array[T]
+func Array.sortWith[T](xs: Array[T], cmp: func(T, T): int): Array[T]
+func Array.reverse[T](xs: Array[T]): Array[T]
+func Array.entries[T](xs: Array[T]): Array[Indexed[T]]
+func Array.range(from: int, to: int): Array[int]
+func Array.filled[T](n: int, v: T): Array[T]
+func Array.flatten[T](xs: Array[Array[T]]): Array[T]
+func Array.sum[T: Number](xs: Array[T]): T | null
+func Array.same[T](xs: Array[T], ys: Array[T]): bool
+
+// Map
+
+func Map.size[K, V](m: Map[K, V]): int
+func Map.isEmpty[K, V](m: Map[K, V]): bool
+func Map.has[K, V](m: Map[K, V], k: K): bool
+func Map.get[K, V](m: Map[K, V], k: K): V | null
+func Map.set[K, V](m: Map[K, V], k: K, v: V): void
+func Map.remove[K, V](m: Map[K, V], k: K): V | null
+func Map.keys[K, V](m: Map[K, V]): Array[K]
+func Map.values[K, V](m: Map[K, V]): Array[V]
+func Map.entries[K, V](m: Map[K, V]): Array[Entry[K, V]]
+func Map.fromEntries[K, V](entries: Array[Entry[K, V]]): Map[K, V]
+func Map.map[K, V, W](m: Map[K, V], f: func(Entry[K, V]): W): Map[K, W]
+func Map.filter[K, V](m: Map[K, V], f: func(Entry[K, V]): bool): Map[K, V]
+func Map.merge[K, V](m: Map[K, V], n: Map[K, V]): Map[K, V]
+func Map.same[K, V](m: Map[K, V], n: Map[K, V]): bool
+
+// String
+
+func String.length(s: string): int
+func String.isEmpty(s: string): bool
+func String.slice(s: string, from: int, to: int): string
+func String.concat(parts: Array[string]): string
+func String.split(s: string, sep: string): Array[string]
+func String.join(parts: Array[string], sep: string): string
+func String.repeat(s: string, n: int): string
+func String.trim(s: string): string
+func String.contains(s: string, t: string): bool
+func String.startsWith(s: string, t: string): bool
+func String.endsWith(s: string, t: string): bool
+func String.indexOf(s: string, t: string): int | null
+func String.replace(s: string, old: string, new: string): string
+func String.toUpper(s: string): string
+func String.toLower(s: string): string
+func String.chars(s: string): Array[string]
+func String.toBytes(s: string): Array[byte]
+func String.fromBytes(bytes: Array[byte]): string | null
+func String.toCodePoints(s: string): Array[int]
+func String.fromCodePoints(points: Array[int]): string | null
+func String.toInt(s: string): int | null
+func String.toFloat(s: string): float64 | null
+func String.from[T](value: T): string
+
+// Iter
+
+func Iter.range(from: int, to: int): Seq[int]
+func Iter.fromArray[T](xs: Array[T]): Seq[T]
+func Iter.map[T, U](s: Seq[T], f: func(T): U): Seq[U]
+func Iter.filter[T](s: Seq[T], f: func(T): bool): Seq[T]
+func Iter.take[T](s: Seq[T], n: int): Seq[T]
+func Iter.toArray[T](s: Seq[T]): Array[T]
+
+// Math and Bits
+
+func Math.abs[T: Number](x: T): T
+func Math.min[T: Ordered](a: T, b: T): T
+func Math.max[T: Ordered](a: T, b: T): T
+func Math.pow(x: float64, y: float64): float64
+func Math.sqrt(x: float64): float64
+func Math.floor(x: float64): float64
+func Math.ceil(x: float64): float64
+func Math.round(x: float64): float64
+func Math.trunc(x: float64): float64
+func Math.toInt(x: float64): int | null
+var Math.PI: float64
+var Math.E: float64
+var Math.minInt: int
+var Math.maxInt: int
+
+func Bits.and[T: Integer](a: T, b: T): T
+func Bits.or[T: Integer](a: T, b: T): T
+func Bits.xor[T: Integer](a: T, b: T): T
+func Bits.not[T: Integer](a: T): T
+func Bits.shiftLeft[T: Integer](a: T, n: int): T
+func Bits.shiftRight[T: Integer](a: T, n: int): T
+func Bits.popCount[T: Integer](a: T): int
+func Bits.wrapAdd[T: Integer](a: T, b: T): T
+func Bits.wrapSub[T: Integer](a: T, b: T): T
+func Bits.wrapMul[T: Integer](a: T, b: T): T
+
+// Result and Record
+
+func Result.ok[T, E](value: T): Result[T, E]
+func Result.err[T, E](error: E): Result[T, E]
+func Result.isOk[T, E](r: Result[T, E]): bool
+func Result.map[T, U, E](r: Result[T, E], f: func(T): U): Result[U, E]
+func Result.mapErr[T, E, F](r: Result[T, E], f: func(E): F): Result[T, F]
+func Result.unwrap[T, E](r: Result[T, E]): T
+func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
+func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
+
+func Record.same[T: {}](a: T, b: T): bool
+
+// Synchronization
+
+type Mutex
+func Mutex.new(): Mutex
+func Mutex.lock(m: Mutex): void
+func Mutex.unlock(m: Mutex): void
+func Mutex.withLock[T](m: Mutex, f: func(): T): T
+
+type RwMutex
+func RwMutex.new(): RwMutex
+func RwMutex.readLock(m: RwMutex): void
+func RwMutex.readUnlock(m: RwMutex): void
+func RwMutex.writeLock(m: RwMutex): void
+func RwMutex.writeUnlock(m: RwMutex): void
+func RwMutex.withRead[T](m: RwMutex, f: func(): T): T
+func RwMutex.withWrite[T](m: RwMutex, f: func(): T): T
+
+type WaitGroup
+func WaitGroup.new(): WaitGroup
+func WaitGroup.add(wg: WaitGroup, n: int): void
+func WaitGroup.done(wg: WaitGroup): void
+func WaitGroup.wait(wg: WaitGroup): void
+
+type Once
+func Once.new(): Once
+func Once.do[T](once: Once, f: func(): T): void
+func Once.value[T](f: func(): T): func(): T
+
+type Cond
+func Cond.new(m: Mutex): Cond
+func Cond.wait(c: Cond): void
+func Cond.signal(c: Cond): void
+func Cond.broadcast(c: Cond): void
+
+type Atomic[T]
+func Atomic.new[T](v: T): Atomic[T]
+func Atomic.load[T](a: Atomic[T]): T
+func Atomic.store[T](a: Atomic[T], v: T): void
+func Atomic.add[T: Number](a: Atomic[T], d: T): T
+func Atomic.compareAndSwap[T](a: Atomic[T], expected: T, v: T): bool
+
+// File
+
+type File.Handle
+func File.read(path: string): Result[string, Error]
+func File.readBytes(path: string): Result[Array[byte], Error]
+func File.write(path: string, text: string): Result[void, Error]
+func File.writeBytes(path: string, bytes: Array[byte]): Result[void, Error]
+func File.exists(path: string): bool
+func File.remove(path: string): Result[void, Error]
+func File.list(dir: string): Result[Array[string], Error]
+func File.open(path: string): Result[File.Handle, Error]
+func File.create(path: string): Result[File.Handle, Error]
+func File.readLine(f: File.Handle): Result[string | null, Error]
+func File.writeLine(f: File.Handle, line: string): Result[void, Error]
+func File.pipe(src: File.Handle, dst: File.Handle): Result[void, Error]
+func File.close(f: File.Handle): void
+
+// Http
+
+type Http.Response = { status: int, headers: Map[string, string], body: string }
+func Http.get(url: string): Result[Http.Response, Error]
+func Http.post(url: string, body: string, headers: Map[string, string]): Result[Http.Response, Error]
+
+// Time
+
+func Time.now(): int
+func Time.sleep(ms: int): void
+func Time.monotonic(): int
+
+// Os
+
+func Os.args(): Array[string]
+func Os.env(name: string): string | null
+func Os.exit(status: int): never
+
+// Json
+
+type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[string, Json.Value]
+func Json.parse(text: string): Result[Json.Value, Error]
+func Json.stringify[T](value: T): string

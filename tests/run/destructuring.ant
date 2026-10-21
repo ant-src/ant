@@ -16,7 +16,7 @@ func main(): void {
   print(c + d)
   [a, b] = [b, a]
   print(`${a} ${b}`)
-  var [[p], q] = [[10], 20]
+  var [[p], [q]] = [[10], [20]]
   print(p + q)
   var [first] = [1, 2, 3]
   print(first)
@@ -26,9 +26,11 @@ func main(): void {
   var [...all] = [6, 7]
   print(all)
   var pt = Point{ x: 0, y: 0 }
-  [pt.x, [pt.y], ...xs] = [1, [2], 3, 4]
+  [pt.x, pt.y, ...xs] = [1, 2, 3, 4]
   print(pt)
   print(xs)
+  [[pt.x], [pt.y]] = [[5], [6]]
+  print(pt)
   for { x: px, y: py } in [Point{ x: 1, y: 1 }, Point{ x: 2, y: 3 }] { print(px * py) }
   for [m, n] in [[1, 2], [3, 4]] { print(m + n) }
 }
@@ -47,6 +49,7 @@ func main(): void {
 // out: [6, 7]
 // out: Point{ x: 1, y: 2 }
 // out: [3, 4]
+// out: Point{ x: 5, y: 6 }
 // out: 1
 // out: 6
 // out: 3

@@ -95,7 +95,7 @@ func Prelude() map[string]value.Value {
 		table["Error"] = value.ErrorTag
 		table["Entry"] = value.EntryTag
 		table["Indexed"] = value.IndexedTag
-		for _, name := range []string{"never", "Integer", "Number", "Ordered", "Seq"} {
+		for _, name := range []string{"Integer", "Number", "Ordered", "Seq"} {
 			table[name] = value.NewTag(name, value.AliasTag, nil)
 		}
 		table["Result"] = withFuncs(value.NewTag("Result", value.AliasTag, nil), resultFuncs())

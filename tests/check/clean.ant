@@ -1,0 +1,145 @@
+// A program that uses most of the language and must check clean: the spec's own examples
+// from sections 3 through 9, lightly adapted into one module.
+type Point = { x: float64, y: float64 }
+type Vec = { x: float64, y: float64 }
+type Circle = { radius: float64 }
+type Rect = { width: float64, height: float64 }
+type Empty = {}
+type Shape = Circle | Rect | Empty
+type UserId = string
+type Id = int | string
+type Box[T] = { value: T }
+type Tree = { value: int, children: Array[Tree] }
+type Predicate[T] = func(T): bool
+type Pair[A, B] = { first: A, second: B }
+type Active = {}
+type Suspended = { reason: string }
+type Status = Active | Suspended
+
+func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
+func Point.distance(a: Point, b: Point): float64 {
+  Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
+}
+func Point.norm(p: Point): float64 { p | Point.distance(Point.origin()) }
+func Shape.area(s: Shape): float64 {
+  if s is Circle { 3.14159 * s.radius * s.radius }
+  else if s is Rect { s.width * s.height }
+  else if s is Empty { 0.0 }
+}
+func Box.map[T, U](b: Box[T], f: func(T): U): Box[U] { Box{ value: f(b.value) } }
+func Tree.size(t: Tree): int { 1 + (Array.sum(Array.map(t.children, Tree.size)) ?? 0) }
+func swap[A, B](p: Pair[A, B]): Pair[B, A] { Pair{ first: p.second, second: p.first } }
+func max[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+func describe(id: Id): string { if id is int { `number ${id}` } else { `text ${id}` } }
+func clamp(value: int, low: int, high: int): int {
+  if value < low { return low }
+  if value > high { return high }
+  value
+}
+func counter(): func(): int {
+  var n = 0
+  func() { n += 1; n }
+}
+func evens(limit: int): Seq[int] {
+  func(yield: func(int): bool) {
+    var i = 0
+    while i < limit {
+      if !yield(i) { return }
+      i += 2
+    }
+  }
+}
+func connect(host: string, port: int = 443, tls: bool = true): string { `${host}:${port}:${tls}` }
+func fetchAll(urls: Array[string]): Array[Result[Http.Response, Error]] {
+  var results: Array[Result[Http.Response, Error]] = Array.filled(Array.length(urls), Result.err(Error{ message: "pending" }))
+  var lock = Mutex.new()
+  var wg = WaitGroup.new()
+  for entry in Array.entries(urls) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      var response = Http.get(entry.value)
+      Mutex.withLock(lock, { results[entry.index] = response })
+    }
+  }
+  WaitGroup.wait(wg)
+  results
+}
+func loadConfig(path: string): Result[Json.Value, Error] {
+  var text = try File.read(path)
+  var json = try Json.parse(text)
+  Result.ok(json)
+}
+func label(s: string | null): string { `value: ${s ?? return "missing"}` }
+
+func main(): void {
+  var p = Point{ x: 1.0, y: 2.0 }
+  var moved = Point{ ...p, x: 0.0 }
+  var v = Vec{ ...p }
+  print(`${moved} ${v} ${Point.norm(p)}`)
+  var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }, Empty{}]
+  print(Array.map(shapes, Shape.area))
+  print(Array.filter(shapes, { x is Circle }))
+  var s: Shape = shapes[0]
+  if s is Circle && s.radius > 0.5 { print(s.radius) }
+  print(describe(1) + describe("a"))
+  var id = UserId("u-1")
+  print(string(id) == "u-1" && id == UserId("u-1"))
+  var byUser: Map[UserId, int] = Map{}
+  byUser[id] = 1
+  print(byUser[id] ?? 0)
+  var ids = Array.map(["a", "b"], UserId)
+  print(ids)
+  var box = Box{ value: 2 } | Box.map({ x * 10 })
+  print(box.value)
+  var tree = Tree{ value: 1, children: [Tree{ value: 2, children: [] }] }
+  print(Tree.size(tree))
+  print(swap(Pair{ first: 1, second: "a" }).first)
+  print(max(1, 2) + Math.max(3, 4))
+  print(max("a", "b"))
+  var next = counter()
+  print(next() + next())
+  for n in evens(6) { print(n) }
+  print(Iter.range(0, 1000) | Iter.filter({ x % 7 == 0 }) | Iter.take(5) | Iter.toArray())
+  print(connect("example.com") + connect("example.com", tls: false) + connect(port: 80, host: "h"))
+  print(clamp(5, 0, 3))
+  var names = ["b", "a"]
+    | Array.filter({ String.length(x) > 0 })
+    | Array.map({ x + "!" })
+    | Array.sort()
+  print(names)
+  var { x, y } = p
+  var [first, ...rest] = [1, 2, 3]
+  print(x + y + float64(first + Array.length(rest)))
+  var status: Status = Active{}
+  status = Suspended{ reason: "x" }
+  if status is Suspended { print(status.reason) }
+  var isAdult: Predicate[int] = { x >= 18 }
+  print(isAdult(20))
+  var config = Once.value({ Map{ name: "cfg" } })
+  print(config()["name"] ?? "")
+  print(label(null) + label("v"))
+  var cache: Atomic[Point | null] = Atomic.new(null)
+  Atomic.store(cache, p)
+  var snapshot = Atomic.load(cache)
+  if snapshot != null { print(snapshot.x) }
+  var total = 0
+  for i in Iter.range(0, 3) { total += i }
+  while total > 0 { total -= 1 }
+  print(total)
+  var m: Map[string, Array[int]] = Map{ a: [], b: [1] }
+  print(Map.keys(m))
+  print(Json.stringify([1, "two", null]))
+  var lengths: Array[int] = Array.map(Map.values(m), { Array.length(x) })
+  print(lengths)
+  var r = loadConfig("nope")
+  if r is Err { print(r.error.message) }
+  var f = fetchAll([])
+  print(Array.length(f))
+  var n: int | null = 1
+  if n == null { print("none") } else { print(n + 1) }
+  var scores: Array[int] = []
+  Array.push(scores, 1)
+  var ratio = float64(7) / 2.0
+  print(ratio)
+}

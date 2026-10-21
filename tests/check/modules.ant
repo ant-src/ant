@@ -1,0 +1,17 @@
+// Section 10: only exports are visible; imports are read-only; a top-level initializer may refer
+// only to the variables above it; main takes no parameters and returns void.
+import "./lib/exports.ant" { Point, distance, counter, hidden } // ERR: hidden is not exported
+import "./lib/exports.ant" Geometry
+
+var early = later + 1 // ERR: later is declared later in the module
+var later = 1
+
+func main(a: int): int { // ERR: main takes no parameters ;; main returns void, not int
+  counter = 2 // ERR: cannot assign to the imported variable counter
+  Geometry.counter = 3 // ERR: imports are read-only
+  var s: Geometry.Secret = Geometry.Secret{} // ERR: Secret is not exported by Geometry ;; Secret is not exported by Geometry
+  print(Geometry.hidden()) // ERR: hidden is not exported by Geometry
+  print(distance(Point{ x: 1.0, y: 2.0 }, Geometry.Point{ x: 0.0, y: 0.0 }))
+  print(counter + Geometry.counter)
+  1
+}

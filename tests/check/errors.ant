@@ -1,0 +1,44 @@
+// Section 8: try needs a Result and an enclosing function whose return type accepts the error;
+// Result types with different error types are different types, and try widens.
+type EmptyInput = {}
+type BadDigit = { at: int }
+type ParseError = EmptyInput | BadDigit
+type Config = { n: int }
+
+func parse(s: string): Result[int, ParseError] {
+  if s == "" { return Result.err(EmptyInput{}) }
+  Result.ok(1)
+}
+
+func load(path: string): Result[Config, Error] {
+  var text = try File.read(path)
+  Result.ok(Config{ n: String.length(text) })
+}
+
+func both(path: string): Result[int, ParseError | Error] {
+  var c = try load(path)
+  var n = try parse("1")
+  Result.ok(c.n + n)
+}
+
+func narrower(): Result[int, ParseError] {
+  var c = try load("x") // ERR: try would return Err[Error], but the function returns Result[int, ParseError]
+  Result.ok(c.n)
+}
+
+func plain(): int {
+  var n = try parse("1") // ERR: but the function returns int
+  n
+}
+
+func main(): void {
+  var r = parse("")
+  if r is Ok { print(r.value) } else { print(r.error) }
+  var n = try 1 // ERR: try needs a Result, got int
+  go { var m = try parse("1") } // ERR: try needs an enclosing function that returns a Result
+  var wide: Result[int, ParseError | Error] = parse("1") // ERR: cannot use Result[int, ParseError] where
+  var mapped: Result[int, ParseError | Error] = Result.mapErr(parse("1"), { x })
+  print(mapped)
+  print(Result.unwrap(parse("1")))
+  print(both("x"))
+}

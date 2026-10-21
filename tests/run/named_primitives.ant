@@ -12,9 +12,9 @@ func main(): void {
   print(id == UserId("u-2"))
   var v: UserId | string = id
   print(v is UserId)
-  v = "plain"
-  print(v is UserId)
-  print(v is string)
+  var plain: UserId | string = "plain"
+  print(plain is UserId)
+  print(plain is string)
   var w: UserId | AccountId = AccountId("a-1")
   print(w is AccountId)
   print(w is UserId)

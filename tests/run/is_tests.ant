@@ -12,7 +12,7 @@ func area(s: Shape): float64 {
   else if s is Empty { 0.0 }
 }
 
-func describe(v: int | string | null | Array[int] | Map[string, int] | func(): int | Meters | float64 | bool | void): string {
+func describe(v: int | string | null | Array[int] | Map[string, int] | (func(): int) | Meters | float64 | bool | void): string {
   if v is int { `int ${v}` }
   else if v is string { `string ${v}` }
   else if v is null { "null" }

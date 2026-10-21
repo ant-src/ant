@@ -15,6 +15,7 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/parser"
@@ -81,6 +82,7 @@ type Program struct {
 	prog    *loader.Program
 	cfg     config
 	prelude map[string]value.Value
+	nsDecls []check.HostNamespace
 }
 
 // Load parses the module at path and every module it imports. It returns a *LoadError when a
@@ -88,7 +90,7 @@ type Program struct {
 // module does not declare main.
 func Load(path string, opts ...Option) (*Program, error) {
 	cfg := defaultConfig().with(opts)
-	table, extra, err := cfg.prelude()
+	table, extra, nsDecls, err := cfg.prelude()
 	if err != nil {
 		return nil, &LoadError{Diagnostics: []Diagnostic{{Message: err.Error()}}}
 	}
@@ -98,7 +100,7 @@ func Load(path string, opts ...Option) (*Program, error) {
 	if len(diags) > 0 {
 		return nil, &LoadError{Diagnostics: convert(diags)}
 	}
-	return &Program{prog: prog, cfg: cfg, prelude: table}, nil
+	return &Program{prog: prog, cfg: cfg, prelude: table, nsDecls: nsDecls}, nil
 }
 
 func convert(diags []loader.Diagnostic) []Diagnostic {
@@ -122,5 +124,10 @@ func (p *Program) Run(ctx context.Context, opts ...Option) error {
 // Check type-checks every module of the program, including code nothing calls, and returns the
 // errors sorted by position. A program with no diagnostics is well typed.
 func (p *Program) Check() []Diagnostic {
-	return []Diagnostic{{Pos: Position{Path: p.prog.Root.File.Path}, Message: "the checker is not implemented yet"}}
+	diags := check.Program(p.prog, check.Config{Namespaces: p.nsDecls, Removed: p.cfg.removed})
+	out := make([]Diagnostic, len(diags))
+	for i, d := range diags {
+		out[i] = Diagnostic{Pos: Position{Path: d.Path, Line: d.Pos.Line, Col: d.Pos.Col}, Message: d.Msg}
+	}
+	return out
 }

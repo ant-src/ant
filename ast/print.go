@@ -91,10 +91,15 @@ func sprint(sb *strings.Builder, n Node) {
 		if x.Export {
 			sb.WriteString("export ")
 		}
+		if x.Owner != "" {
+			sb.WriteString(x.Owner + ".")
+		}
 		sb.WriteString(x.Name)
 		typeParams(sb, x.TypeParams)
-		sb.WriteString(" ")
-		sprint(sb, x.Body)
+		if x.Body != nil {
+			sb.WriteString(" ")
+			sprint(sb, x.Body)
+		}
 		sb.WriteString(")")
 	case *TypeName:
 		sb.WriteString(strings.Join(x.Path, "."))

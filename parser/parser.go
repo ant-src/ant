@@ -339,6 +339,15 @@ func (p *parser) varDecl() *ast.VarDecl {
 	case p.atKind(token.Ident):
 		n := p.next()
 		d.Target = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+		if p.mode == Declarations && p.at(".") {
+			p.next()
+			d.Owner = n.Text
+			m := p.expectName("a constant name")
+			d.Target = &ast.NameTarget{Pos: pos(m), Name: m.Text}
+			p.expect(":")
+			d.Type = p.parseType()
+			return d
+		}
 		if p.at(":") {
 			p.next()
 			d.Type = p.parseType()
@@ -384,8 +393,16 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 	t := p.expect("type")
 	name := p.expectIdent("a type name")
 	d := &ast.TypeDecl{Pos: pos(t), Name: name.Text}
+	if p.mode == Declarations && p.at(".") {
+		p.next()
+		d.Owner = d.Name
+		d.Name = p.expectIdent("a type name").Text
+	}
 	if p.at("[") {
 		d.TypeParams = p.typeParams()
+	}
+	if p.mode == Declarations && !p.at("=") {
+		return d // an opaque type
 	}
 	p.expect("=")
 	d.Body = p.parseType()

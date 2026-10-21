@@ -6,7 +6,8 @@ func main(): void {
   print(r.status)
   print(r.body)
   print(r.headers["Content-Type"])
-  print(r is Http.Response)
+  var maybe: Http.Response | null = r
+  print(maybe is Http.Response)
   var missing = Result.unwrap(Http.get(`${base}/status/404`))
   print(missing.status)
   var posted = Result.unwrap(Http.post(`${base}/echo`, "payload", Map{ "X-Token": "secret" }))

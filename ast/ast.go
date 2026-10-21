@@ -75,10 +75,12 @@ type Decl interface {
 	Exported() bool
 }
 
-// VarDecl is a var declaration, at the top level or in a block.
+// VarDecl is a var declaration, at the top level or in a block. In declarations mode a
+// constant such as var Math.PI: float64 has an Owner and no Init.
 type VarDecl struct {
 	Pos    Pos
 	Export bool
+	Owner  string
 	Target Target
 	Type   Type // nil when inferred; only with a NameTarget
 	Init   Expr
@@ -98,10 +100,12 @@ type FuncDecl struct {
 	Scope *FuncScope
 }
 
-// TypeDecl is a type declaration.
+// TypeDecl is a type declaration. In declarations mode Owner may name the namespace the type
+// belongs to, as in type Json.Value, and Body may be nil for an opaque type such as Mutex.
 type TypeDecl struct {
 	Pos        Pos
 	Export     bool
+	Owner      string
 	Name       string
 	TypeParams []TypeParam
 	Body       Type
@@ -419,11 +423,15 @@ type Ref struct {
 	Name   string
 }
 
-// Slot is where a binding lives in its environment.
+// Slot is where a binding lives in its environment, with the facts narrowing needs.
 type Slot struct {
 	Index  int
 	Shared bool
 	Module bool // a module field rather than a local slot
+	// Reassigned is set when the binding is assigned after its declaration anywhere;
+	// AssignedNested when it is assigned inside a nested body (section 7).
+	Reassigned     bool
+	AssignedNested bool
 }
 
 // BlockScope describes the environment a block, loop iteration, or function allocates.

@@ -24,7 +24,7 @@ func main(): void {
   var bad = Json.parse(`{"host": "example.com", "port": 80.5}`)
   if bad is Ok { print(decodeServer(bad.value, "$")) }
   print(Json.stringify(Server{ host: "h", port: 1 }))
-  print(Json.stringify([1, "two", 3.5, null, true, Map{ k: [] }]))
+  print(Json.stringify([1, "two", 3.5, null, true, Map{ k: [0] }]))
   print(Json.stringify("quote \" and \n newline"))
   print(Json.stringify(Map{ 1: "one" }))
   print(Json.stringify(1.0 / 0.0))
@@ -41,7 +41,7 @@ func main(): void {
 // out: Ok{ value: Server{ host: "example.com", port: 8080 } }
 // out: Err{ error: Error{ message: "$.port: not an integer" } }
 // out: {"host":"h","port":1}
-// out: [1,"two",3.5,null,true,{"k":[]}]
+// out: [1,"two",3.5,null,true,{"k":[0]}]
 // out: "quote \" and \n newline"
 // out: {"1":"one"}
 // out: null

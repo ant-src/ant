@@ -1,0 +1,40 @@
+// Section 7: null is its own type; ?. and ?? need a nullable left side; narrowing applies to
+// locals and parameters only, never to a field path or a local assigned in a nested body.
+type Address = { city: string }
+type User = { name: string, address: Address | null }
+
+func find(id: int): User | null { if id == 1 { User{ name: "ada", address: null } } else { null } }
+
+func main(): void {
+  var s: string = null // ERR: cannot use null where string is expected
+  var user = find(1)
+  print(user.name) // ERR: narrow the value first
+  print(user?.name ?? "anonymous")
+  if user != null { print(user.name) }
+  var name = "x"
+  print(name?.length) // ERR: ?. needs a nullable left side
+  print(name ?? "y") // ERR: ?? needs a nullable left side
+  if user != null && user.address != null { print(user.address.city) } // ERR: narrow the value first
+  if user != null {
+    var address = user.address
+    if address != null { print(address.city) }
+  }
+  var hit: User | null = null
+  go { hit = find(1) }
+  if hit != null { print(hit.name) } // ERR: narrow the value first
+  var lock = Mutex.new()
+  var u = find(2)
+  if u != null {
+    Mutex.withLock(lock, { print(u.name) })
+  }
+  var reassigned = find(1)
+  if reassigned != null {
+    Mutex.withLock(lock, { print(reassigned.name) }) // ERR: narrow the value first
+  }
+  reassigned = null
+  var v: int | null = 1
+  var w = v ?? return
+  print(w + 1)
+  var missing = Map{ a: 1 }["b"] ?? panic("unreachable")
+  print(missing + 1)
+}

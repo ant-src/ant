@@ -1,0 +1,36 @@
+// Section 6: parameters are annotated; a lambda needs an expected function type with at most
+// one parameter; a recursive or exported function states its return type; named arguments
+// apply only to declared functions; there are no methods.
+type Point = { x: float64, y: float64 }
+
+func Point.distance(a: Point, b: Point): float64 { a.x - b.x + a.y - b.y }
+
+export func exported(a: int) { a } // ERR: must state its return type
+
+func fact(n: int) { if n <= 1 { 1 } else { n * fact(n - 1) } } // ERR: fact is recursive; state its return type
+
+func apply(f: func(int, int): int): int { f(1, 2) }
+
+func main(): void {
+  var double = { x * 2 } // ERR: a lambda needs an expected function type
+  var ok: func(int): int = { x * 2 }
+  print(apply({ x })) // ERR: a lambda has at most one parameter
+  print(apply(func(a: int, b: int): int { a + b }))
+  var p = Point{ x: 1.0, y: 2.0 }
+  print(p.distance(p)) // ERR: Point has no field distance
+  print(Point.distance(a: p, b: p))
+  var dist = Point.distance
+  print(dist(a: p, b: p)) // ERR: a call through a function value is positional
+  print(dist(p, p))
+  var once = Once.new()
+  Once.do(once, { print(x) }) // ERR: x is not defined
+  print(Point.distance(p)) // ERR: Point.distance needs an argument for b
+  print(Point.distance(p, p, p)) // ERR: Point.distance takes 2 arguments
+  print(Point.distance(p, c: p)) // ERR: Point.distance has no parameter c
+  var early = func(): int {
+    return // ERR: cannot use void where int is expected
+  }
+  print(early())
+  var g: func(int): int = func(a: int, b: int): int { a + b } // ERR: cannot use func(int, int): int where func(int): int is expected
+  print(ok(1))
+}
