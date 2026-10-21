@@ -57,8 +57,10 @@ v, err := s.Eval("var x = 2")                 // void
 v, err = s.Eval("x * 21")                     // 42, a value.Value
 ```
 
-The library never exits the process or writes anywhere but the writers it is given. See
-`example_test.go` for complete examples.
+Values cross the boundary as `value.Value`: `int64`, `float64`, `string`, `bool`, `value.Null`
+and `value.Void` for the primitives, and `*value.Array`, `*value.Map`, `*value.Record` and
+`*value.Tagged` for the rest. The package documentation lists the mapping; `example_test.go` has
+complete examples.
 
 ## Examples
 
@@ -79,6 +81,15 @@ go test -run '^$' -fuzz FuzzParse -fuzztime 1m ./parser   # one of the fuzzers
 `tests/README.md` describes the corpus: how programs are tagged with the heading of the
 specification they prove, and the trailers that say what each must do. The specification is
 expected as a sibling checkout at `../spec`, or wherever `ANT_SPEC` points.
+
+## Benchmarks
+
+```
+go test -run '^$' -bench . -benchmem ./bench
+```
+
+`bench/BASELINE.md` records the numbers of the last baseline. Compare a change with
+`benchstat` on two runs.
 
 ## License
 

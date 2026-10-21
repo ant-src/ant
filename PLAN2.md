@@ -366,8 +366,9 @@ Taken:
 
 ## 7. Status
 
-Phases 9 to 17 are done and committed: the harness with tags and coverage tests, the fuzzers
+Phases 9 to 20 are done and committed: the harness with tags and coverage tests, the fuzzers
 and CI, the ten examples, the audit of every chapter (all three pending lists are empty), the
-generated-expression test (300 000 cases across three seeds without a disagreement), and the
-coverage gate at 90% overall and 80% per package, which the tree passes. Phases 18 to 20
-(diagnostics, benchmarks, documentation and release) remain.
+generated-expression test (300 000 cases across three seeds without a disagreement), the
+coverage gate at 90% overall and 80% per package, the diagnostics pass, the benchmark baseline
+in `bench/BASELINE.md`, and the documentation and changelog. The `v0.1.0` tag and the push are
+yours; the two optimizations the baseline names are deliberately not made.

@@ -7,6 +7,41 @@
 //
 // The library reads sources through an fs.FS, writes only to the writers it is given, takes its
 // arguments and environment from options, and never exits the process.
+//
+// # Calling across the boundary
+//
+// Program.Start initializes a program without calling main and returns an Instance; its Func
+// method finds a top-level function, which Func.Call calls with positional arguments, and its
+// Value method reads a top-level var or a type's tag. WithNamespace gives a program a set of Go
+// functions that Ant code reaches as Name.function, declared in Ant notation so the checker
+// can type the calls. A Session evaluates inputs one at a time on a persistent module.
+//
+// # Values
+//
+// Ant values cross the boundary as value.Value, which is a Go interface value holding one of
+// these representations:
+//
+//	Ant                         Go
+//	int, int64                  int64
+//	int8 … int32, uint8 … uint64, byte   the Go integer type of that width (byte is uint8)
+//	float32, float64            float32, float64
+//	string                      string
+//	bool                        bool
+//	null, void                  value.Null, value.Void
+//	Array[T]                    *value.Array  (value.NewArray, Values, Get, Set, Push)
+//	Map[K, V]                   *value.Map    (value.NewMap, Get, Set, Keys, Entries)
+//	a record                    *value.Record (value.NewRecord with its *value.Tag, Field, SetField)
+//	a named primitive type      *value.Tagged (Tag and Payload)
+//	Result[T, E], Error         records built by value.Ok, value.Err, and value.ErrorValue
+//	Entry[K, V], Indexed[T]     records built by value.Entry and value.Indexed
+//	a function                  an opaque value.Callable: pass it back to Func.Call or Runtime.Call
+//	a type                      *value.Tag, from Instance.Value("Name")
+//
+// A record's tag comes from the instance, since the program declares it: the Example_call test
+// builds a Point that way. A host function receives its arguments in the order its signature
+// lists them, already of these representations, and returns a value of them; an error it
+// returns becomes an Ant panic with the error's message. value.Render renders any value the way
+// String.from does.
 package ant
 
 import (
