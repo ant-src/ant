@@ -453,8 +453,8 @@ Decisions taken here that the spec leaves open, recorded so they can be revisite
   `Run` waits a grace period of 100 ms for them, so a panic report in progress completes.
 - In the REPL an import stays in force by being prepended to every later input, so an imported
   `export var` reads live; a session's diagnostics subtract that line.
-- Union types print flattened in messages: `Result[int, ParseError | Error]` shows its members,
-  since normalization expands aliases to check discriminators.
+- Union types keep their written form beside the normalized members, so a message prints
+  `Result[int, ParseError | Error]` rather than the flattened members (`Union.Written`).
 - Buffered stdout with the flush points listed in section 5.
 - The checker's handling of the I/O namespaces depends on `prelude.ant` carrying their
   signatures, which `stdlib.md` calls a sketch; they will be transcribed as written.

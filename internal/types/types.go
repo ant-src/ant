@@ -102,9 +102,12 @@ type Param struct {
 }
 
 // Union is A | B. It is always normalized: flat, without duplicates or never, and with at
-// least two members.
+// least two members. Written keeps the members as they were written when one of them was an
+// alias that normalization expanded, so that messages can name the alias; it is nil otherwise
+// and takes no part in equality.
 type Union struct {
 	Members []Type
+	Written []Type
 }
 
 func (Prim) isType()    {}
@@ -372,7 +375,11 @@ func write(sb *strings.Builder, t Type, depth int) {
 	case Param:
 		sb.WriteString(x.Decl.Name)
 	case Union:
-		for i, m := range x.Members {
+		members := x.Members
+		if x.Written != nil {
+			members = x.Written
+		}
+		for i, m := range members {
 			if i > 0 {
 				sb.WriteString(" | ")
 			}

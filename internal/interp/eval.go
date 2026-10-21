@@ -220,7 +220,11 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 		return g.forLoop(e, env)
 	case *ast.Go:
 		body, scope := e.Body, e.Scope
+		path, pos := env.mod.m.File.Path, e.Pos
 		g.spawn(func(ng *Goroutine) {
+			// the block is the goroutine's root frame, so its panics report a position
+			ng.push("go block", path, pos)
+			defer ng.pop()
 			ng.evalBlock(body, newEnv(&scope.BlockScope, env))
 		})
 		return value.Void, ctlNone

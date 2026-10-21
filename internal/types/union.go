@@ -10,6 +10,7 @@ import (
 func MakeUnion(members []Type) (Type, error) {
 	var flat []Type
 	expanding := map[*Decl]bool{} // aliases being flattened, so that a cyclic alias terminates
+	aliased := false              // an alias was expanded, so the written form is kept for messages
 	var collect func(ts []Type)
 	collect = func(ts []Type) {
 		for _, t := range ts {
@@ -18,6 +19,7 @@ func MakeUnion(members []Type) (Type, error) {
 					continue
 				}
 				expanding[n.Decl] = true
+				aliased = true
 			}
 			switch x := Expand(t).(type) {
 			case Union:
@@ -47,7 +49,25 @@ func MakeUnion(members []Type) (Type, error) {
 	if err := checkDiscriminators(flat); err != nil {
 		return Invalid{}, err
 	}
-	return Union{Members: flat}, nil
+	u := Union{Members: flat}
+	if aliased {
+		for _, m := range members {
+			if _, never := m.(Never); never {
+				continue
+			}
+			dup := false
+			for _, w := range u.Written {
+				if Equal(w, m) {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				u.Written = append(u.Written, m)
+			}
+		}
+	}
+	return u, nil
 }
 
 // Join forms the union of branch types where control merges, or returns an error to report.

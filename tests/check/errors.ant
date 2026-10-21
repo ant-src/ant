@@ -37,7 +37,7 @@ func main(): void {
   if r is Ok { print(r.value) } else { print(r.error) }
   var n = try 1 // ERR: try needs a Result, got int
   go { var m = try parse("1") } // ERR: try needs an enclosing function that returns a Result
-  var wide: Result[int, ParseError | Error] = parse("1") // ERR: cannot use Result[int, ParseError] where
+  var wide: Result[int, ParseError | Error] = parse("1") // ERR: cannot use Result[int, ParseError] where Result[int, ParseError | Error] is expected
   var mapped: Result[int, ParseError | Error] = Result.mapErr(parse("1"), { x })
   print(mapped)
   print(Result.unwrap(parse("1")))
