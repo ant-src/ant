@@ -1,0 +1,100 @@
+// Array (section 11): every function, in the order of the listing; sorts are stable and
+// return new arrays.
+func main(): void {
+  var xs = [3, 1, 2]
+  print(Array.length(xs))
+  print(Array.isEmpty(xs))
+  var none: Array[int] = []
+  print(Array.isEmpty(none))
+  print(Array.get(xs, 1))
+  print(Array.get(xs, 3))
+  print(Array.get(xs, -1))
+  Array.push(xs, 4)
+  print(xs)
+  print(Array.pop(xs))
+  print(Array.pop(none))
+  print(xs)
+  print(Array.slice(xs, 1, 3))
+  print(Array.slice(xs, 0, 0))
+  print(Array.concat(xs, [9]))
+  print(xs)
+  print(Array.map(xs, { x * 2 }))
+  print(Array.filter(xs, { x > 1 }))
+  print(Array.reduce(xs, 10, func(acc: int, x: int): int { acc + x }))
+  print(Array.find(xs, { x < 3 }))
+  print(Array.find(xs, { x > 5 }))
+  print(Array.some(xs, { x == 2 }))
+  print(Array.every(xs, { x > 0 }))
+  print(Array.every(xs, { x > 1 }))
+  print(Array.contains(xs, 2))
+  print(Array.contains(xs, 7))
+  print(Array.indexOf(xs, 2))
+  print(Array.indexOf(xs, 7))
+  print(Array.sort(xs))
+  print(Array.sort(["b", "a", "c"]))
+  print(xs)
+  print(Array.sortBy(["ccc", "a", "bb"], { String.length(x) }))
+  print(Array.sortWith([1, 2, 3], func(a: int, b: int): int { b - a }))
+  print(Array.sortBy([3, 1, 2, 1], { x % 2 }))
+  print(Array.reverse(xs))
+  print(Array.entries(["a", "b"]))
+  print(Array.range(0, 4))
+  print(Array.range(3, 3))
+  print(Array.filled(3, "x"))
+  print(Array.flatten([[1], [], [2, 3]]))
+  print(Array.sum(xs))
+  print(Array.sum(none))
+  print(Array.sum([1.5, 2.5]))
+  print(Array.sum(none) ?? 0)
+  var ys = xs
+  print(Array.same(xs, ys))
+  print(Array.same(xs, Array.concat(xs, [])))
+  print(Array.contains([[1, 2]], [1, 2]))
+}
+
+// expect
+// out: 3
+// out: false
+// out: true
+// out: 1
+// out: null
+// out: null
+// out: [3, 1, 2, 4]
+// out: 4
+// out: null
+// out: [3, 1, 2]
+// out: [1, 2]
+// out: []
+// out: [3, 1, 2, 9]
+// out: [3, 1, 2]
+// out: [6, 2, 4]
+// out: [3, 2]
+// out: 16
+// out: 1
+// out: null
+// out: true
+// out: true
+// out: false
+// out: true
+// out: false
+// out: 2
+// out: null
+// out: [1, 2, 3]
+// out: ["a", "b", "c"]
+// out: [3, 1, 2]
+// out: ["a", "bb", "ccc"]
+// out: [3, 2, 1]
+// out: [2, 3, 1, 1]
+// out: [2, 1, 3]
+// out: [Indexed{ index: 0, value: "a" }, Indexed{ index: 1, value: "b" }]
+// out: [0, 1, 2, 3]
+// out: []
+// out: ["x", "x", "x"]
+// out: [1, 2, 3]
+// out: 6
+// out: null
+// out: 4.0
+// out: 0
+// out: true
+// out: false
+// out: true

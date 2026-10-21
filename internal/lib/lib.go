@@ -21,13 +21,29 @@ func fn(name, params string, impl func(g *interp.Goroutine, args []value.Value) 
 	return &interp.Builtin{Name: name, Params: ps, Fn: impl}
 }
 
-// namespace builds a record of functions under a tag named name.
-func namespace(name string, funcs []*interp.Builtin) *value.Record {
-	fields := make([]string, len(funcs))
-	vals := make([]value.Value, len(funcs))
-	for i, f := range funcs {
-		fields[i] = f.Name[strings.LastIndex(f.Name, ".")+1:]
-		vals[i] = f
+// entry is one field of a namespace: a function or a constant.
+type entry struct {
+	name string
+	v    value.Value
+}
+
+// constant declares a namespace constant such as Math.PI.
+func constant(name string, v value.Value) entry { return entry{name: name, v: v} }
+
+// namespace builds a record of functions and constants under a tag named name. A function's
+// field is the part of its name after the last dot.
+func namespace(name string, entries ...any) *value.Record {
+	var fields []string
+	var vals []value.Value
+	for _, e := range entries {
+		switch x := e.(type) {
+		case *interp.Builtin:
+			fields = append(fields, x.Name[strings.LastIndex(x.Name, ".")+1:])
+			vals = append(vals, x)
+		case entry:
+			fields = append(fields, x.name)
+			vals = append(vals, x.v)
+		}
 	}
 	tag := value.NewTag(name, value.RecordTag, fields)
 	return value.NewRecord(tag, vals)

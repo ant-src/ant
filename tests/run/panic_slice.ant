@@ -1,0 +1,11 @@
+// Array.slice with a range outside the array panics (section 11).
+func main(): void {
+  var xs = [1, 2, 3]
+  print(Array.slice(xs, 0, 3))
+  print(Array.slice(xs, 2, 1))
+}
+
+// expect
+// out: [1, 2, 3]
+// exit: 1
+// err: Array.slice: the range 2..1 is not within 0..3

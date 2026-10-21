@@ -1,0 +1,56 @@
+// Iter (section 11): lazy sequences; nothing runs until Iter.toArray or for; a sequence may be
+// run more than once; take stops its source.
+func evens(limit: int): Seq[int] {
+  func(yield: func(int): bool): void {
+    var i = 0
+    while i < limit {
+      if !yield(i) { print("stopped"); return }
+      i += 2
+    }
+    print("exhausted")
+  }
+}
+
+func main(): void {
+  print(Iter.toArray(Iter.range(0, 5)))
+  print(Iter.toArray(Iter.range(3, 3)))
+  var s = Iter.fromArray([1, 2, 3])
+  print(Iter.toArray(s))
+  print(Iter.toArray(s))
+  print(Iter.toArray(Iter.map(evens(5), { x * x })))
+  var lazy = Iter.map(Iter.range(0, 3), { print(`mapping ${x}`); x })
+  print("built")
+  print(Iter.toArray(lazy))
+  print(Iter.toArray(Iter.filter(Iter.range(0, 10), { x % 4 == 0 })))
+  print(Iter.toArray(Iter.take(Iter.range(0, 100), 3)))
+  print(Iter.toArray(Iter.take(Iter.range(0, 100), 0)))
+  print(Iter.toArray(Iter.take(evens(100), 2)))
+  print(Iter.range(0, 1000) | Iter.filter({ x % 7 == 0 }) | Iter.take(5) | Iter.toArray())
+  for n in Iter.range(0, 3) { print(n) }
+  for n in Iter.take(evens(100), 2) { print(n) }
+}
+
+// expect
+// out: [0, 1, 2, 3, 4]
+// out: []
+// out: [1, 2, 3]
+// out: [1, 2, 3]
+// out: exhausted
+// out: [0, 4, 16]
+// out: built
+// out: mapping 0
+// out: mapping 1
+// out: mapping 2
+// out: [0, 1, 2]
+// out: [0, 4, 8]
+// out: [0, 1, 2]
+// out: []
+// out: stopped
+// out: [0, 2]
+// out: [0, 7, 14, 21, 28]
+// out: 0
+// out: 1
+// out: 2
+// out: 0
+// out: 2
+// out: stopped

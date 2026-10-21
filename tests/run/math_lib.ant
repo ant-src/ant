@@ -1,0 +1,58 @@
+// Math (section 11): every function and constant; round is half away from zero; toInt is int
+// without the panic.
+func main(): void {
+  print(Math.abs(-5))
+  print(Math.abs(5))
+  print(Math.abs(-2.5))
+  print(Math.abs(int8(-3)))
+  print(Math.min(1, 2))
+  print(Math.max(1, 2))
+  print(Math.min("b", "a"))
+  print(Math.max(1.5, -1.5))
+  print(Math.pow(2.0, 10.0))
+  print(Math.sqrt(16.0))
+  print(Math.floor(-1.5))
+  print(Math.ceil(-1.5))
+  print(Math.round(2.5))
+  print(Math.round(-2.5))
+  print(Math.round(2.4))
+  print(Math.trunc(-2.7))
+  print(int(Math.trunc(-2.7)))
+  print(Math.toInt(3.0))
+  print(Math.toInt(3.5))
+  print(Math.toInt(1e30))
+  print(Math.toInt(0.0 / 0.0))
+  print(Math.PI > 3.14 && Math.PI < 3.15)
+  print(Math.E > 2.71 && Math.E < 2.72)
+  print(Math.minInt)
+  print(Math.maxInt)
+  print(Math.maxInt == 9223372036854775807)
+}
+
+// expect
+// out: 5
+// out: 5
+// out: 2.5
+// out: 3
+// out: 1
+// out: 2
+// out: a
+// out: 1.5
+// out: 1024.0
+// out: 4.0
+// out: -2.0
+// out: -1.0
+// out: 3.0
+// out: -3.0
+// out: 2.0
+// out: -2.0
+// out: -2
+// out: 3
+// out: null
+// out: null
+// out: null
+// out: true
+// out: true
+// out: -9223372036854775808
+// out: 9223372036854775807
+// out: true
