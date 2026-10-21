@@ -18,7 +18,6 @@ Measured on the current tree (commit 449e2fb).
 | Programs under `tests/run`, `tests/unchecked`, `tests/check` | 63, 36, 9 |
 | Largest test program | 100 lines |
 | Spec code blocks parsed by the parser test | 118 of 118 |
-| Spec `// compile error:` comments reproduced verbatim as checker messages | not checked |
 | Library functions with no use in any test | not known |
 | Checker asserted to reject every `tests/unchecked` program | no |
 | Fuzz targets, benchmarks | 0, 0 |
@@ -33,9 +32,9 @@ Ant is "tested" when all of these hold and a test or a CI job keeps each one tru
 1. **Every rule-bearing heading of the spec has tests.** Each `###` heading in chapters 2 to 12,
    each chapter without subsections (3, 10), and each namespace of `stdlib.md` is named by at
    least one test program, and a test fails when one is not (section 3.1).
-2. **Every spec example is honored.** Each `// compile error: <text>` in a spec code block is a
-   checker message the corpus reproduces verbatim; each `// panic: <text>` likewise; each
-   `// <value>` comment on an expression is asserted by a run test (section 3.2).
+2. **Every spec example is honored.** Each `// compile error` comment in a spec code block has a
+   check program that rejects the same construct, and each `// panic:` or `// <value>` comment on
+   an expression is asserted by a run test (section 3.2).
 3. **Every library function and every panic is exercised.** Each function and constant in
    `prelude.ant` appears in some test program; each of the 33 ◆ functions in chapter 11 and each
    of the 23 rows of the chapter 12 panics table has a program that triggers it (section 3.3).
@@ -88,17 +87,19 @@ under `tests/unchecked` are tagged like any other, usually with `12 Runtime pani
 
 ### 3.2 Spec comments as oracles
 
-The spec's code blocks carry three kinds of comment the corpus must honor, and a test
-(`TestSpecComments` in `tests/spec_test.go`) checks that it does:
+The spec's code blocks carry three kinds of comment the corpus must honor, and the audit
+transcribes each by hand into a tagged program:
 
-- `// compile error: <text>` (11 in code blocks). The text must appear verbatim as an `// ERR:`
-  marker in some `tests/check` program. This makes the spec's wording the canonical wording of the
-  checker's messages, which is the right owner for it.
-- `// panic: <text>`. The text must appear in an `// err:` trailer line of some run or unchecked
-  program.
-- `// <literal>` after an expression, such as `// 3.5`, `// true`, `// "u-1"`. These are
-  transcribed by hand into run tests during the audit; the test does not try to match them, since
-  the blocks are fragments. The audit checklist in section 4 counts them per chapter.
+- `// compile error: ...` (11 in code blocks, more in prose). Each becomes a `tests/check`
+  program with an `// ERR:` marker on the same construct. The marker text is the checker's own
+  wording; the spec's comment explains the error and does not dictate the message.
+- `// panic: ...`. Each becomes a run or unchecked program with an `// err:` trailer line.
+- `// <literal>` after an expression, such as `// 3.5`, `// true`, `// "u-1"`. Each becomes an
+  assertion in a run test.
+
+No test matches these comments automatically, since the blocks are fragments; the tag on each
+program ties it to the heading, and the coverage test of section 3.1 is what keeps the
+transcription complete.
 
 Making whole spec blocks executable was considered and rejected: most blocks are fragments with
 `...` placeholders, and a wrapper that guesses the missing context would be a second, hidden
@@ -185,9 +186,9 @@ function the test calls with piped standard input; `internal/repl` the same way.
 
 `.github/workflows/ci.yml` on push and pull request, matrix of ubuntu and macOS, Go from `go.mod`
 and latest: `gofmt -l` must print nothing, `go vet ./...`, `go build ./cmd/ant`,
-`go test -race ./...`, the coverage gate, and one short job per fuzzer. The spec repository is
-checked out beside the module (`ANT_SPEC` points the parser test at it) so the spec tests run in
-CI too; if the spec repository is private, the workflow needs a token, which is an open point.
+`go test -race ./...`, the coverage gate, and one short job per fuzzer. The public spec
+repository is checked out beside the module (`ANT_SPEC` points the parser test at it) so the
+spec tests run in CI too.
 
 ### 3.8 Examples: real programs
 
@@ -258,8 +259,8 @@ entries, all found so far:
 
 The spec's own `// compile error:` comments set the style: short, concrete, in the spec's
 vocabulary ("a Person is not a Named", "T would be Number, a union; narrow a and b first").
-Section 3.2 enforces the eleven that exist; the diagnostics phase brings the rest of the messages
-into the same voice, fixes the flattened union names (keep the declared alias beside the
+The messages are not matched against the spec verbatim, but the diagnostics phase brings them
+into that voice, fixes the flattened union names (keep the declared alias beside the
 normalized form and print the alias), confirms no cascades on every check program, and gives the
 panic report a tested format: `panic: <message>` then one `at` line per frame, innermost first.
 
@@ -319,9 +320,8 @@ be sized; the list is a reminder of scope, not a substitute for reading the chap
 Each phase is one commit, or a few, with the suite green under `-race` and the coverage gate at
 least where it was.
 
-- **Phase 9: harness.** Tag convention; `TestSpecCoverage`, `TestSpecComments`,
-  `TestLibraryCoverage`, `TestPanicCoverage` with their pending lists filled from the current
-  corpus; `TestUncheckedRejected`; `TestCheckExact`; `tests/README.md` describing corpora,
+- **Phase 9: harness.** Tag convention; `TestSpecCoverage`, `TestLibraryCoverage`,
+  `TestPanicCoverage` with their pending lists filled from the current corpus; `TestUncheckedRejected`; `TestCheckExact`; `tests/README.md` describing corpora,
   trailers and tags; `SPEC-FEEDBACK.md` with the initial entries. Done when the current corpus is
   tagged and every new test passes with honest pending lists.
 - **Phase 10: fuzzers and CI.** The six fuzzers with seeds; the nesting limits; the cyclic-value
@@ -351,17 +351,18 @@ least where it was.
 Phases 12 to 15 can be reordered or split; the order above puts the checker's chapter early
 because the checker is the newest code with the thinnest tests.
 
-## 6. Decisions for you
+## 6. Decisions
 
-- **Spec messages as canonical wording** (section 3.2): the checker's messages follow the spec's
-  `// compile error:` comments verbatim. The alternative is free wording with the spec's comments
-  treated as paraphrase.
-- **Spec repository in CI**: the spec tests need the spec checked out; a private repository
-  needs a token in the workflow.
+Taken:
+
+- The spec's `// compile error:` comments explain errors; they do not dictate the checker's
+  wording. No verbatim matching.
+- The REPL stays as it is. No line editing, no dependency.
+- Coverage thresholds are 90% overall and 80% per package, enforced by the gate.
+- The repository is `github.com/ant-src/ant`, public, default branch `master`, like the spec.
+
+Open:
+
 - **Cyclic values**: what `String.from`, map hashing and `Json.stringify` should do. The proposal
   is a panic with the message `cyclic value`, added to the chapter 12 table as a ◆ row for the
   library.
-- **REPL line editing**: history and editing need `golang.org/x/term` at minimum, the first
-  dependency of the module. Out of this plan unless you want it in.
-- **Coverage thresholds**: 90% overall and 80% per package are the proposal; the gate makes any
-  number enforceable.
