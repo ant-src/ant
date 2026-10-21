@@ -72,12 +72,49 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 		if x.Op == "??" {
 			t = c.nullish(x, sc, expected)
 		}
+	case *ast.Ident, *ast.Field:
+		t = c.genericValue(x, sc, expected)
 	}
 	if t == nil {
 		t = c.synth(e, sc)
 	}
 	c.expect(e.Position(), t, expected)
 	return t
+}
+
+// genericValue instantiates a generic function used as a value from the expected function
+// type, which fixes its type parameters (section 4, Generics). It returns nil when e is not a
+// generic function or no function type is expected.
+func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types.Type {
+	f, ok := types.Expand(expected).(types.Func)
+	if !ok {
+		return nil
+	}
+	ent := c.entityPath(e, sc)
+	if ent == nil || ent.kind != entFunc {
+		return nil
+	}
+	s := c.sigOf(ent, e.Position())
+	if s == nil || len(s.tparams) == 0 {
+		return nil
+	}
+	subst := map[*types.ParamDecl]types.Type{}
+	if !c.unify(s.fn, f, subst) {
+		c.errorf(e.Position(), "cannot use %s where %s is expected", s.fullName(), types.String(expected))
+		return types.Invalid{}
+	}
+	for _, p := range s.tparams {
+		if _, bound := subst[p]; !bound {
+			c.errorf(e.Position(), "%s does not fix %s of %s", types.String(expected), p.Name, s.fullName())
+			return types.Invalid{}
+		}
+	}
+	inst, err := types.Subst(s.fn, subst)
+	if err != nil {
+		c.errorf(e.Position(), "%s", err)
+		return types.Invalid{}
+	}
+	return inst
 }
 
 // expect reports a type that is not assignable to the expected one.

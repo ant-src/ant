@@ -1,0 +1,7 @@
+// spec: 5 is
+type Box[T] = { value: T }
+func main(): void { var b = Box{ value: 1 }; print(b is Box[int]) }
+
+// expect
+// exit: 2
+// err: expected

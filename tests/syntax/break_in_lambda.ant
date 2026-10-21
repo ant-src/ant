@@ -1,0 +1,6 @@
+// spec: 5 return, break, continue
+func main(): void { for x in [1] { Array.map([1], { break }) } }
+
+// expect
+// exit: 2
+// err: 'break' outside a loop

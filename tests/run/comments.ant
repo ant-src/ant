@@ -1,0 +1,21 @@
+// spec: 2 Comments
+// Line comments run to the end of the line, block comments to the first */ and do not nest, and
+// neither is seen inside a string or a template.
+/* a block comment
+   spanning lines */
+func main(): void { // trailing comment
+  var x = 1 /* inline */ + 2
+  print(x) // prints 3
+  /* block comments do not nest: /* this does not open another */
+  print("after the comment")
+  print("// not a comment")
+  print(`/* not a comment either */`)
+  /**/ print("empty comment")
+}
+
+// expect
+// out: 3
+// out: after the comment
+// out: // not a comment
+// out: /* not a comment either */
+// out: empty comment

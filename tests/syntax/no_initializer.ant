@@ -1,0 +1,6 @@
+// spec: 3
+func main(): void { var x: int }
+
+// expect
+// exit: 2
+// err: expected '='

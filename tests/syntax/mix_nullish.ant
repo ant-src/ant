@@ -1,0 +1,6 @@
+// spec: 5 Operators
+func main(): void { var a: int | null = null; var x = a ?? 1 && true }
+
+// expect
+// exit: 2
+// err: cannot mix

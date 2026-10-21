@@ -1,0 +1,6 @@
+// spec: 2 Identifiers and keywords
+function main() {}
+
+// expect
+// exit: 2
+// err: reserved word

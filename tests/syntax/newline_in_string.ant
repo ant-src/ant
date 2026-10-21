@@ -1,0 +1,8 @@
+// spec: 2 Literals
+var s = "a
+b"
+func main(): void {}
+
+// expect
+// exit: 2
+// err: unterminated string

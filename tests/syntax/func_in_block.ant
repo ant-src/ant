@@ -1,0 +1,6 @@
+// spec: 6
+func main(): void { func g(): int { 1 } }
+
+// expect
+// exit: 2
+// err: only allowed at the top level

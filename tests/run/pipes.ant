@@ -1,0 +1,37 @@
+// spec: 5 Pipes
+// a | f(b, c) is f(a, b, c): the right side is a call, pipes associate to the left, chains read
+// top to bottom, and the piped value may be followed by named arguments or feed a function on a
+// type.
+type Point = { x: int, y: int }
+
+func Point.shift(p: Point, dx: int, dy: int = 0): Point { Point{ x: p.x + dx, y: p.y + dy } }
+
+func clamp(value: int, low: int, high: int): int { Math.min(Math.max(value, low), high) }
+
+func main(): void {
+  print(5 | clamp(0, 3))
+  print(5 | clamp(low: 0, high: 10))
+  print(-5 | clamp(0, 3))
+  var total = [3, 1, 2]
+    | Array.filter({ x > 1 })
+    | Array.map({ x * 10 })
+    | Array.sort()
+  print(total)
+  print([1, 2, 3] | Array.map({ x * x }) | Array.sum())
+  print(Point{ x: 1, y: 1 } | Point.shift(2) | Point.shift(0, dy: 5))
+  print((["a", "b"] | Array.length()) + 1)
+  print(Iter.range(0, 100) | Iter.filter({ x % 7 == 0 }) | Iter.take(4) | Iter.toArray())
+  var words = "b a c" | String.split(" ") | Array.sort() | String.join("-")
+  print(words)
+}
+
+// expect
+// out: 3
+// out: 5
+// out: 0
+// out: [20, 30]
+// out: 14
+// out: Point{ x: 3, y: 6 }
+// out: 3
+// out: [0, 7, 14, 21]
+// out: a-b-c

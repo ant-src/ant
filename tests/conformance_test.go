@@ -81,6 +81,11 @@ func TestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	paths = append(paths, unchecked...)
+	syntax, err := filepath.Glob("syntax/*.ant")
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths = append(paths, syntax...)
 	examples, err := filepath.Glob(filepath.Join("..", "examples", "*.ant"))
 	if err != nil {
 		t.Fatal(err)

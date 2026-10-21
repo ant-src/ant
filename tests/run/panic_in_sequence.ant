@@ -1,0 +1,33 @@
+// spec: 5 Loops; 12 Runtime panics
+// panics: panic
+// A panic in the body of a for over a sequence propagates through the sequence function as
+// through any call: the sequence's own code after yield does not run, and deferred blocks on the
+// way out do.
+func numbers(): Seq[int] {
+  func(yield: func(int): bool): void {
+    defer { print("sequence unwound") }
+    var i = 0
+    while i < 10 {
+      if !yield(i) { print("stopped"); return }
+      i += 1
+    }
+    print("exhausted")
+  }
+}
+
+func main(): void {
+  defer { print("main unwound") }
+  for n in numbers() {
+    if n == 2 { panic(`boom at ${n}`) }
+    print(n)
+  }
+  print("not reached")
+}
+
+// expect
+// out: 0
+// out: 1
+// out: sequence unwound
+// out: main unwound
+// exit: 1
+// err: boom at 2

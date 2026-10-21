@@ -1,0 +1,6 @@
+// spec: 5 return, break, continue
+func main(): void { break }
+
+// expect
+// exit: 2
+// err: 'break' outside a loop

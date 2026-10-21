@@ -1,0 +1,6 @@
+// spec: 2 Line endings
+func main(): void { var a = 1 var b = 2 }
+
+// expect
+// exit: 2
+// err: expected a newline or ';'

@@ -306,6 +306,15 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 		sc.names[nt.Name] = l
 		locals = append(locals, l)
 	}
+	if declared == nil && len(locals) == 1 {
+		// A func literal with a stated return type gives the var its type before the body is
+		// checked, which is how a local function calls itself (section 6).
+		if fl, ok := d.Init.(*ast.FuncLit); ok && fl.Return != nil {
+			s := c.signature(&ast.FuncDecl{Pos: fl.Pos, Params: fl.Params, Return: fl.Return, Body: fl.Body}, sc, "")
+			locals[0].typ = s.fn
+			locals[0].stated = true
+		}
+	}
 	var t types.Type
 	if declared != nil {
 		c.check(d.Init, sc, declared)
@@ -421,8 +430,13 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 			c.errorf(x.Pos, "an if without else has type void when the condition is false, which cannot be used where %s is expected", types.String(expected))
 		}
 	}
-	if expected != nil && types.IsInvalid(expected) {
-		return types.Invalid{}
+	if expected != nil {
+		// Each branch was checked against the expected type and any mismatch is reported
+		// there; reporting the union again at the if would be a second error for one mistake.
+		if types.IsInvalid(expected) {
+			return types.Invalid{}
+		}
+		return expected
 	}
 	u, err := types.MakeUnion([]types.Type{thenT, elseT})
 	if err != nil {

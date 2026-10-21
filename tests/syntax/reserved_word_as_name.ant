@@ -1,0 +1,6 @@
+// spec: 2 Identifiers and keywords
+func main(): void { var class = 1 }
+
+// expect
+// exit: 2
+// err: cannot be a variable name

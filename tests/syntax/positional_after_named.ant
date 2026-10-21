@@ -1,0 +1,7 @@
+// spec: 6 Calling
+func f(a: int, b: int): int { a + b }
+func main(): void { print(f(a: 1, 2)) }
+
+// expect
+// exit: 2
+// err: cannot follow a named argument

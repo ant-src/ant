@@ -1,0 +1,46 @@
+// spec: 5 if; 5 is; 5 Loops; 5 Blocks; 5 return, break, continue; 6 Anonymous functions; 6 Calling; 6 Functions on types; 4 Inference
+// Section 5 and 6: an if without else is void on that branch; an explicit else after a complete
+// chain cannot run; is takes no type arguments and needs a union or an anonymous record that
+// determines the type; while true without break is never; a lambda needs an expected type and x
+// is out of scope at arity zero; named arguments need a declared function; a method call is a
+// field read; and a recursive function states its return type.
+type Point = { x: int, y: int }
+type Box[T] = { value: T }
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Shape = Circle | Rect
+
+func connect(host: string, port: int = 443): string { `${host}:${port}` }
+
+func Point.norm(p: Point): int { p.x + p.y }
+
+func loops(): int { while true { return 1 } }
+func breaks(): int { while true { break } } // ERR: cannot use void where int is expected
+
+func fact(n: int) { if n < 2 { 1 } else { n * fact(n - 1) } } // ERR: fact is recursive; state its return type
+
+func main(): void {
+  var c = true
+  var n: int = if c { 1 } // ERR: an if without else has type void
+  var label: string = if c { "a" } else { 1 } // ERR: cannot use int where string is expected
+  var either = if c { 1 } else { "s" }
+  print(either is int)
+  var s: Shape = Circle{ radius: 1.0 }
+  if s is Circle { print("c") } else if s is Rect { print("r") } else { print("never") } // ERR: this else cannot run
+  var b: { value: int } = Box{ value: 1 }
+  if b is Box { print(b.value + 1) }
+  var e: {} = Box{ value: 1 }
+  print(e is Box) // ERR: does not determine the type parameter T
+  var p = Point{ x: 1, y: 2 }
+  print(p is Point) // ERR: the test is always true
+  var f = { x * 2 } // ERR: a lambda needs an expected function type
+  var zero: func(): int = { x } // ERR: x is not defined
+  var g = connect
+  print(g(host: "a")) // ERR: named arguments apply only to a declared function
+  print(connect("a", port: 1, tls: false)) // ERR: no parameter tls
+  print(p.norm()) // ERR: Point has no field norm
+  var h: func(int): int = func(a: int, b: int): int { a + b } // ERR: cannot use func(int, int): int where func(int): int is expected
+  print(h(1) + loops() + breaks() + fact(1))
+  var twice: func(Array[int]): Array[int] = { Array.map(x, { x + 1 }) }
+  print(twice([1]))
+}

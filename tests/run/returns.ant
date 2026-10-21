@@ -1,0 +1,70 @@
+// spec: 5 return, break, continue; 8 panic
+// return, break and continue have type never and appear wherever an expression is expected;
+// return takes the whole expression to its right unless parenthesized; panic is a function of
+// type never; return leaves the innermost boundary, so inside a lambda it leaves the lambda.
+func describe(n: int | null, extra: int): string {
+  var v = n ?? return `none plus ${extra + 1}`
+  `${v}`
+}
+
+func describeShort(n: int | null): int {
+  var v = (n ?? return 0) + 100
+  v
+}
+
+func firstPositive(xs: Array[int]): int {
+  for x in xs {
+    for y in [x] { if y > 0 { return y } }
+  }
+  -1
+}
+
+func parse(digits: Map[string, int], s: string): Array[int] {
+  var out: Array[int] = []
+  for ch in s {
+    var d = digits[ch] ?? continue
+    Array.push(out, d)
+  }
+  out
+}
+
+func untilNull(xs: Array[int | null]): Array[int] {
+  var out: Array[int] = []
+  for x in xs {
+    var v = x ?? break
+    Array.push(out, v)
+  }
+  out
+}
+
+func main(): void {
+  print(describe(null, 1))
+  print(describe(5, 1))
+  print(describeShort(null))
+  print(describeShort(5))
+  print(firstPositive([-1, 0, 3, 4]))
+  print(parse(Map{ "1": 1, "2": 2 }, "1x2"))
+  print(untilNull([1, 2, null, 4]))
+  var inner: func(int): int = { if x > 0 { return x * 2 }; -1 }
+  print(inner(3))
+  print(inner(-3))
+  var n: int = if true { 1 } else { return }
+  print(n)
+  var fallback: int | null = null
+  var chosen: int = fallback ?? panic("unreachable")
+  print(chosen)
+}
+
+// expect
+// out: none plus 2
+// out: 5
+// out: 0
+// out: 105
+// out: 3
+// out: [1, 2]
+// out: [1, 2]
+// out: 6
+// out: -1
+// out: 1
+// exit: 1
+// err: unreachable

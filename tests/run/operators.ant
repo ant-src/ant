@@ -1,0 +1,79 @@
+// spec: 5 Operators
+// The precedence table from tightest to loosest: postfix, prefix, multiplicative, additive,
+// comparison with is, equality, && then ||, ??, pipe, assignment; left associativity; string
+// concatenation; arithmetic on a named primitive keeps its tag; equality is structural.
+type P = { x: int, y: int }
+type Meters = float64
+
+func half(r: Result[int, Error]): Result[int, Error] { Result.ok(try r / 2 + 1) }
+
+func main(): void {
+  print(-2 * 3 + 4)
+  print(2 + 3 * 4)
+  print(10 - 4 - 3)
+  print(2 * 3 % 4)
+  print(100 / 10 / 5)
+  print(1 + 2 < 4 == true)
+  print(!true == false)
+  var p = P{ x: 3, y: 4 }
+  var xs = [5, 6]
+  print(-p.x + -xs[0])
+  print(!Array.isEmpty(xs))
+  print(half(Result.ok(8)))
+  print(true && false || true && true)
+  print(false || true && false)
+  var none: int | null = null
+  var some: int | null = 7
+  print((none ?? 0) == 0 && (some ?? 0) == 7)
+  print(none ?? none ?? 3)
+  print(some ?? 0 | Math.max(9))
+  print(xs | Array.map({ x * 2 }) | Array.sum())
+  var v = 0
+  v = 1 + 2 | Math.max(10)
+  print(v)
+  print("ant" + "-" + "lang")
+  print("ant" < "bee" && "Z" < "a" && "" <= "")
+  var d = Meters(2.0) + Meters(3.0) * Meters(2.0)
+  print(d)
+  print(Meters(1.0) < Meters(2.0))
+  print(-Meters(1.5))
+  print(P{ x: 1, y: 2 } == P{ x: 1, y: 2 } && [1, [2]] == [1, [2]] && Map{ a: 1 } == Map{ a: 1 })
+  print(P{ x: 1, y: 2 } != P{ x: 2, y: 1 })
+  print(some == null)
+  print(none == null)
+  var u: int | string = 3
+  print(u is int == true)
+  print(7 % 3 == 1 && -7 % 3 == -1 && 7 % -3 == 1 && 7.5 % 2.0 == 1.5)
+  print(7 / 2 == 3 && -7 / 2 == -3)
+}
+
+// expect
+// out: -2
+// out: 14
+// out: 3
+// out: 2
+// out: 2
+// out: true
+// out: true
+// out: -8
+// out: true
+// out: Ok{ value: 5 }
+// out: true
+// out: false
+// out: true
+// out: 3
+// out: 9
+// out: 22
+// out: 10
+// out: ant-lang
+// out: true
+// out: Meters(8.0)
+// out: true
+// out: Meters(-1.5)
+// out: true
+// out: true
+// out: false
+// out: true
+// out: true
+// out: true
+// out: true

@@ -183,13 +183,8 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 // pendingSpec lists the headings no test program names yet. The audit phases of PLAN2.md
 // empty it.
 var pendingSpec = []string{
-	"2 Comments",
-	"2 Line endings",
 	"4 Arrays and maps",
 	"4 Function types",
-	"4 Inference",
-	"5 Blocks",
-	"5 Pipes",
 	"11 Prelude",
 }
 

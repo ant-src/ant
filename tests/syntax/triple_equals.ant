@@ -1,0 +1,6 @@
+// spec: 5 Operators
+func main(): void { print(1 === 1) }
+
+// expect
+// exit: 2
+// err: unexpected

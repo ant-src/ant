@@ -1,0 +1,59 @@
+// spec: 5 Blocks
+// A block's value is its last expression and void after a declaration or assignment; braces after
+// a type name build a value, after func, else, go, defer, or a header they are a block, and
+// anywhere else a lambda; a header ends at the first brace that is not an operand, so a literal
+// in a header is parenthesized.
+type Point = { x: int, y: int }
+type User = { name: string }
+
+var origin = Point{ x: 0, y: 0 }
+
+func main(): void {
+  var three = if true { var t = 1; t + 2 } else { 0 }
+  print(three)
+  var nothing: void = if true { var t = 1 } else { }
+  print(nothing)
+  var assigned: void = if true { three = 4 } else { }
+  print(assigned)
+  print(three)
+  var empty: void = if true {} else {}
+  print(empty)
+  var noop: func(): void = {}
+  print(noop())
+  var chosen = if three > 1 { Point{ x: 1, y: 0 } } else { origin }
+  print(chosen)
+  var u = User{ name: "ada" }
+  if u == (User{ name: "ada" }) { print("same user") }
+  if (Map{ a: 1 })["a"] == 1 { print("map in header") }
+  var fs: Array[func(int): int] = [{ x + 1 }, { x * 2 }]
+  print(fs[0](1) + fs[1](1))
+  var xs = [1, 2]
+  if xs[0] == 1 { print("after an index") }
+  if Array.isEmpty(xs) { print("no") } else { print("after a call") }
+  if u.name == "ada" { print("after a path") }
+  if 2 > 1 { print("after a literal") }
+  var a = 1; var b = 2; print(a + b)
+  var seq: func(): int = {
+    var inner = 10
+    inner * 2
+  }
+  print(seq())
+}
+
+// expect
+// out: 3
+// out: void
+// out: void
+// out: 4
+// out: void
+// out: void
+// out: Point{ x: 1, y: 0 }
+// out: same user
+// out: map in header
+// out: 4
+// out: after an index
+// out: after a call
+// out: after a path
+// out: after a literal
+// out: 3
+// out: 20

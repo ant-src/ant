@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var x = 9223372036854775808
+func main(): void {}
+
+// expect
+// exit: 2
+// err: does not fit an int

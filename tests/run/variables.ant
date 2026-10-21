@@ -1,0 +1,60 @@
+// spec: 3
+// var declares a mutable binding with an inferred or written type; compound assignment on
+// variables, fields, and elements; an array destructuring of targets swaps in place; an inner
+// scope shadows an outer one; a local function calls itself through its own name inside its
+// body; and a top-level initializer reads the vars above it.
+type P = { x: int }
+
+var base = 1
+var derived = base + 1
+
+func main(): void {
+  var count = 0
+  count = count + 1
+  count += 2
+  count -= 1
+  count *= 10
+  count /= 4
+  count %= 3
+  print(count)
+  var p = P{ x: 1 }
+  p.x = 5
+  p.x += 1
+  print(p.x)
+  var xs = [1, 2, 3]
+  xs[0] = 10
+  xs[1] *= 3
+  print(xs)
+  var a = 0
+  var b = 0
+  [a, b] = [7, 8]
+  print(a + b)
+  [a, b] = [b, a]
+  print(`${a} ${b}`)
+  var shadow = "outer"
+  if true {
+    var shadow = "inner"
+    print(shadow)
+  }
+  print(shadow)
+  var fact = func(n: int): int { if n < 2 { 1 } else { n * fact(n - 1) } }
+  print(fact(5))
+  var typed: string = "ant"
+  print(typed)
+  print(derived)
+  var chosen = if count > 1 { "yes" } else { "no" }
+  print(chosen)
+}
+
+// expect
+// out: 2
+// out: 6
+// out: [10, 6, 3]
+// out: 15
+// out: 8 7
+// out: inner
+// out: outer
+// out: 120
+// out: ant
+// out: 2
+// out: yes

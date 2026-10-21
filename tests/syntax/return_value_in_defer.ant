@@ -1,0 +1,6 @@
+// spec: 5 return, break, continue
+func main(): void { defer { return 1 } }
+
+// expect
+// exit: 2
+// err: 'return' takes no value in a defer block

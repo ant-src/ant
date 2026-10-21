@@ -1,0 +1,60 @@
+// spec: 2 Literals
+// Every escape, \u{...} up to the last scalar value, a plain string on one line, a template over
+// several lines with lambdas and record literals inside ${...}, and the literal forms of numbers.
+type P = { x: int }
+
+func main(): void {
+  print("tab:\t|")
+  print("quote:\" backslash:\\")
+  print("backtick:\` dollar:\$")
+  print("line\nbreak")
+  print("a\rb" == "a" + "\r" + "b")
+  print("\u{41}\u{e9}\u{1F600}")
+  print(String.length("\u{1F600}\u{10FFFF}"))
+  print("\u{10FFFF}" == "\u{10ffff}")
+  print(`backtick: \` dollar: \$ brace: \${x}`)
+  print(`doubled: ${Array.map([1, 2], { x * 2 })} point: ${P{ x: 5 }.x} nested: ${`in ${1 + 1}`}`)
+  print(`multi
+line template`)
+  print(1_000 + 0x10 + 0b11)
+  print(0xff == 255 && 0B1 == 1 && 0X1 == 1)
+  print(1e3)
+  print(2.5e-3)
+  print(1.5E2)
+  print(0.5 + 0.25)
+  var big: int = 9_223_372_036_854_775_807
+  print(big)
+  print(Math.minInt)
+  print(byte(255))
+  print(float32(1.5))
+  print(true && !false)
+  var nothing: int | null = null
+  print(nothing)
+}
+
+// expect
+// out: tab:	|
+// out: quote:" backslash:\
+// out: backtick:` dollar:$
+// out: line
+// out: break
+// out: true
+// out: Aé😀
+// out: 2
+// out: true
+// out: backtick: ` dollar: $ brace: ${x}
+// out: doubled: [2, 4] point: 5 nested: in 2
+// out: multi
+// out: line template
+// out: 1019
+// out: true
+// out: 1000.0
+// out: 0.0025
+// out: 150.0
+// out: 0.75
+// out: 9223372036854775807
+// out: -9223372036854775808
+// out: 255
+// out: 1.5
+// out: true
+// out: null

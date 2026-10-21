@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var x = 1.
+func main(): void {}
+
+// expect
+// exit: 2
+// err: digit after the point

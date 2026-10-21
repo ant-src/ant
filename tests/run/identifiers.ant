@@ -1,0 +1,48 @@
+// spec: 2 Identifiers and keywords
+// Case distinguishes identifiers; _ is bound or assigned to discard a value; a keyword or a
+// reserved word is a plain name after . and before : in a record type, a literal, or a record
+// destructuring, and the key of Map{ null: 1 } is the string "null"; prelude names are ordinary
+// identifiers whose values can be bound.
+type Event = { type: string, class: int }
+
+func main(): void {
+  var value = 1
+  var Value = 2
+  var VALUE = 3
+  print(value + Value + VALUE)
+  var _ = value
+  _ = value + 1
+  var event = Event{ type: "click", class: 3 }
+  print(event.type)
+  print(event.class)
+  var { type: kind, class: level } = event
+  print(`${kind} ${level}`)
+  var byClass = Map{ class: "a", if: "b" }
+  print(byClass["class"])
+  print(byClass["if"])
+  var nullKey = Map{ null: 1 }
+  print(Map.keys(nullKey))
+  print(nullKey["null"])
+  var maybe: Event | null = event
+  print(maybe?.type)
+  var length: func(Array[int]): int = Array.length
+  print(length([1, 2]))
+  var _private = 1
+  var x_1 = 2
+  var __ = 3
+  var camelCase9 = 4
+  print(_private + x_1 + __ + camelCase9)
+}
+
+// expect
+// out: 6
+// out: click
+// out: 3
+// out: click 3
+// out: a
+// out: b
+// out: ["null"]
+// out: 1
+// out: click
+// out: 2
+// out: 10

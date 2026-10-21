@@ -1,0 +1,80 @@
+// spec: 5 Loops
+// for and while are void, except that while true without a break is never; break and continue
+// target the innermost loop; a sequence stops after a break and sees return and panics propagate;
+// a map yields entries and a string code points; each iteration binds a fresh variable.
+func firstEven(xs: Array[int]): int {
+  var i = 0
+  while true {
+    if xs[i] % 2 == 0 { return xs[i] }
+    i += 1
+  }
+}
+
+func countdown(from: int): Seq[int] {
+  func(yield: func(int): bool): void {
+    var n = from
+    while n > 0 {
+      if !yield(n) { print("stopped early"); return }
+      n -= 1
+    }
+    print("ran out")
+  }
+}
+
+func findInSeq(target: int): string {
+  for n in countdown(5) { if n == target { return `found ${n}` } }
+  "not found"
+}
+
+func main(): void {
+  print(firstEven([1, 3, 6, 7]))
+  for i in Iter.range(0, 3) {
+    for j in Iter.range(0, 3) {
+      if j == 1 { continue }
+      if j == 2 { break }
+      print(`${i}${j}`)
+    }
+  }
+  var n = 0
+  while n < 5 { n += 1; if n == 2 { continue }; if n == 4 { break } }
+  print(n)
+  for v in countdown(3) { print(v) }
+  for v in countdown(5) { if v == 4 { break } }
+  print(findInSeq(2))
+  print(findInSeq(9))
+  var fs: Array[func(): int] = []
+  for k in [1, 2, 3] { Array.push(fs, func(): int { k * 10 }) }
+  print(Array.map(fs, { x() }))
+  for { key, value } in (Map{ a: 1, b: 2 }) { print(`${key}${value}`) }
+  for ch in "añ😀" { print(String.length(ch)) }
+  var none: Array[int] = []
+  for _ in none { print("never") }
+  var w: void = for x in [1] { }
+  print(w)
+  var taken: Array[int] = []
+  for x in Iter.range(0, 1000) { if x > 2 { break }; Array.push(taken, x) }
+  print(taken)
+}
+
+// expect
+// out: 6
+// out: 00
+// out: 10
+// out: 20
+// out: 4
+// out: 3
+// out: 2
+// out: 1
+// out: ran out
+// out: stopped early
+// out: found 2
+// out: ran out
+// out: not found
+// out: [10, 20, 30]
+// out: a1
+// out: b2
+// out: 1
+// out: 1
+// out: 1
+// out: void
+// out: [0, 1, 2]

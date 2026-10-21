@@ -1,0 +1,7 @@
+// spec: 2 Identifiers and keywords
+func f(this: int): int { this }
+func main(): void {}
+
+// expect
+// exit: 2
+// err: reserved word

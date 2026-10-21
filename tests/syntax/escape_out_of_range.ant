@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var s = "\u{110000}"
+func main(): void {}
+
+// expect
+// exit: 2
+// err: not a Unicode scalar value

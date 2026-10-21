@@ -1,0 +1,56 @@
+// spec: 6 Functions on types; 6 Calling; 6 Closures and first-class values
+// A function on a type lives in the type's namespace, need not take the type, is a value, takes
+// named arguments, and is declared on a record, a named primitive, or an alias, including an
+// alias of a union; a closure sees later assignments to what it captured.
+type Point = { x: float64, y: float64 }
+type Count = int
+type Id = int | string
+type Circle = { radius: float64 }
+type Square = { side: float64 }
+type Shape = Circle | Square
+
+func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
+func Point.distance(a: Point, b: Point): float64 { Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)) }
+func Point.norm(p: Point): float64 { p | Point.distance(Point.origin()) }
+func Count.double(c: Count): Count { Count(int(c) * 2) }
+func Id.show(id: Id): string { if id is int { `#${id}` } else { id } }
+func Shape.area(s: Shape): float64 { if s is Circle { 3.0 * s.radius * s.radius } else { s.side * s.side } }
+func Shape.largest(shapes: Array[Shape]): Shape | null {
+  var best: Shape | null = null
+  for s in shapes {
+    var current = best
+    if current == null || Shape.area(s) > Shape.area(current) { best = s }
+  }
+  best
+}
+
+func main(): void {
+  var points = [Point{ x: 3.0, y: 4.0 }, Point.origin()]
+  print(Array.map(points, Point.norm))
+  print(Point.distance(b: Point.origin(), a: Point{ x: 0.0, y: 2.0 }))
+  var dist = Point.distance
+  print(dist(points[0], points[1]))
+  print(Count.double(Count(21)))
+  print(Id.show(7) + Id.show("x"))
+  print(Shape.largest([Circle{ radius: 1.0 }, Square{ side: 2.0 }]))
+  print(Shape.largest([]))
+  var n = 1
+  var read = func(): int { n }
+  n = 2
+  print(read())
+  var ops: Map[string, func(int, int): int] = Map{ add: func(a: int, b: int): int { a + b }, mul: func(a: int, b: int): int { a * b } }
+  print((ops["add"] ?? panic("none"))(2, 3))
+  print((ops["mul"] ?? panic("none"))(2, 3))
+}
+
+// expect
+// out: [5.0, 0.0]
+// out: 2.0
+// out: 5.0
+// out: Count(42)
+// out: #7x
+// out: Square{ side: 2.0 }
+// out: null
+// out: 2
+// out: 5
+// out: 6
