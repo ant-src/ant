@@ -1,0 +1,13 @@
+// Unlocking a Mutex that is not locked panics (section 11).
+func main(): void {
+  var m = Mutex.new()
+  Mutex.lock(m)
+  Mutex.unlock(m)
+  print("unlocked once")
+  Mutex.unlock(m)
+}
+
+// expect
+// out: unlocked once
+// exit: 1
+// err: Mutex.unlock: unlock of a Mutex that is not locked

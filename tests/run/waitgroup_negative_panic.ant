@@ -1,0 +1,13 @@
+// A WaitGroup counter that would go negative panics (section 11).
+func main(): void {
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  WaitGroup.done(wg)
+  print("balanced")
+  WaitGroup.done(wg)
+}
+
+// expect
+// out: balanced
+// exit: 1
+// err: WaitGroup.done: WaitGroup.done when the counter is already zero

@@ -1,0 +1,37 @@
+// Data races are program errors, but the runtime stays memory-safe: a thousand goroutines race
+// on one array, one map, and one record without synchronization, and the program still ends
+// (section 9).
+type Box = { n: int, label: string }
+
+func main(): void {
+  var xs: Array[int] = []
+  var m: Map[int, string] = Map{}
+  var box = Box{ n: 0, label: "" }
+  var wg = WaitGroup.new()
+  for i in Iter.range(0, 1000) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      Array.push(xs, i)
+      _ = Array.get(xs, i / 2)
+      if i % 3 == 0 { _ = Array.pop(xs) }
+      m[i % 50] = `v${i}`
+      _ = m[i % 25]
+      if i % 7 == 0 { _ = Map.remove(m, i % 50) }
+      box.n = i
+      box.label = `${i}`
+      _ = box.n + 1
+      for _ in m { break }
+      for _ in xs { break }
+    }
+  }
+  WaitGroup.wait(wg)
+  print(Array.length(xs) >= 0)
+  print(Map.size(m) <= 50)
+  print("done")
+}
+
+// expect
+// out: true
+// out: true
+// out: done

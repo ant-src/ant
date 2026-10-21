@@ -1,0 +1,16 @@
+// Os (stdlib.md): env of a variable that is not set is null, and exit ends the program with the
+// given status without running deferred blocks.
+func main(): void {
+  print(Os.env("ANT_SURELY_UNSET_VARIABLE_7F3A"))
+  print(Array.length(Os.args()))
+  defer { print("never, since exit does not unwind") }
+  print("exiting")
+  Os.exit(3)
+  print("not reached")
+}
+
+// expect
+// out: null
+// out: 0
+// out: exiting
+// exit: 3

@@ -1,0 +1,69 @@
+// Goroutines (section 9): results come back through containers, completion through a
+// WaitGroup; each loop iteration binds a fresh variable, so closures in go blocks keep their
+// own value; Mutex.withLock and Atomic serialize a counter.
+func main(): void {
+  var results: Array[int] = Array.filled(4, 0)
+  var wg = WaitGroup.new()
+  for i in Iter.range(0, 4) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      results[i] = i * i
+    }
+  }
+  WaitGroup.wait(wg)
+  print(results)
+  var counter = 0
+  var lock = Mutex.new()
+  var wg2 = WaitGroup.new()
+  for _ in Iter.range(0, 100) {
+    WaitGroup.add(wg2, 1)
+    go {
+      defer { WaitGroup.done(wg2) }
+      Mutex.withLock(lock, { counter += 1 })
+    }
+  }
+  WaitGroup.wait(wg2)
+  print(counter)
+  var total = Atomic.new(0)
+  var wg3 = WaitGroup.new()
+  for k in [1, 2, 3] {
+    WaitGroup.add(wg3, 1)
+    go {
+      defer { WaitGroup.done(wg3) }
+      _ = Atomic.add(total, k)
+    }
+  }
+  WaitGroup.wait(wg3)
+  print(Atomic.load(total))
+  var slots: Array[string | null] = Array.filled(1, null)
+  var wg4 = WaitGroup.new()
+  WaitGroup.add(wg4, 1)
+  go {
+    defer { WaitGroup.done(wg4) }
+    slots[0] = "ready"
+  }
+  WaitGroup.wait(wg4)
+  var snapshot = slots[0]
+  if snapshot != null { print(String.toUpper(snapshot)) }
+  var latest: Atomic[string | null] = Atomic.new(null)
+  var wg5 = WaitGroup.new()
+  WaitGroup.add(wg5, 1)
+  go {
+    defer { WaitGroup.done(wg5) }
+    Atomic.store(latest, "stored")
+  }
+  WaitGroup.wait(wg5)
+  print(Atomic.load(latest))
+  Mutex.lock(lock)
+  Mutex.unlock(lock)
+  print(Mutex.withLock(lock, { 7 }))
+}
+
+// expect
+// out: [0, 1, 4, 9]
+// out: 100
+// out: 6
+// out: READY
+// out: stored
+// out: 7

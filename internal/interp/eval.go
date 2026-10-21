@@ -75,6 +75,9 @@ func (g *Goroutine) evalDeferBlock(b *ast.Block, env *Env) (v value.Value, c ctl
 	defer func() {
 		g.defers = g.defers[:len(g.defers)-1]
 		r := recover()
+		if _, exiting := r.(*exitSignal); exiting {
+			panic(r)
+		}
 		for i := len(frame.list) - 1; i >= 0; i-- {
 			if p := g.runDeferred(frame.list[i]); p != nil {
 				r = p

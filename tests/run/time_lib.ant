@@ -1,0 +1,28 @@
+// Time (stdlib.md): sleep blocks only the calling goroutine, monotonic never goes backwards,
+// and now is a plausible epoch time.
+func main(): void {
+  var start = Time.monotonic()
+  var wg = WaitGroup.new()
+  var order = Atomic.new("")
+  WaitGroup.add(wg, 2)
+  go {
+    defer { WaitGroup.done(wg) }
+    Time.sleep(60)
+    Atomic.store(order, Atomic.load(order) + "slow ")
+  }
+  go {
+    defer { WaitGroup.done(wg) }
+    Time.sleep(5)
+    Atomic.store(order, Atomic.load(order) + "fast ")
+  }
+  WaitGroup.wait(wg)
+  print(Atomic.load(order))
+  var elapsed = Time.monotonic() - start
+  print(elapsed >= 60)
+  print(Time.now() > 1600000000000)
+}
+
+// expect
+// out: fast slow 
+// out: true
+// out: true

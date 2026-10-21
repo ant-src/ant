@@ -1,0 +1,36 @@
+// Once.value caches one computation; Once.do runs its function the first time only; a panic in
+// the function is shared by every call (sections 9, 11).
+var calls = 0
+
+func load(): string { calls += 1; "config" }
+
+func main(): void {
+  var config = Once.value(load)
+  print(config())
+  print(config())
+  print(calls)
+  var once = Once.new()
+  Once.do(once, { print("first") })
+  Once.do(once, { print("second") })
+  var wg = WaitGroup.new()
+  var shared = Once.new()
+  var hits = Atomic.new(0)
+  for _ in Iter.range(0, 20) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      Once.do(shared, { _ = Atomic.add(hits, 1) })
+    }
+  }
+  WaitGroup.wait(wg)
+  print(Atomic.load(hits))
+  print("done")
+}
+
+// expect
+// out: config
+// out: config
+// out: 1
+// out: first
+// out: 1
+// out: done

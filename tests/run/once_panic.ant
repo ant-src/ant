@@ -1,0 +1,23 @@
+// If the function given to Once.value panics, the once is complete and every call panics with
+// the same message (section 11).
+var attempts = 0
+
+func boom(): int { attempts += 1; panic("load failed") }
+
+func main(): void {
+  var value = Once.value(boom)
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    print(value())
+  }
+  WaitGroup.wait(wg)
+  print(attempts)
+  print(value())
+}
+
+// expect
+// out: 1
+// exit: 1
+// err: load failed

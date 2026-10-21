@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
@@ -24,6 +25,10 @@ type Config struct {
 	Stderr  io.Writer
 	Args    []string
 	Env     func(name string) (string, bool)
+	// Grace is how long Run waits, after main returns, for the other goroutines to finish.
+	// They are told to stop at once; the wait only lets reports in progress complete. Zero
+	// means the default of 100 milliseconds.
+	Grace time.Duration
 }
 
 // Frame is one entry of a panic trace, innermost first.
@@ -60,6 +65,8 @@ type Instance struct {
 	result  chan error
 	once    sync.Once
 	ctx     context.Context
+	cancel  context.CancelFunc
+	active  sync.WaitGroup
 }
 
 // AntPanic is the Go panic value that carries an Ant panic while it unwinds.
@@ -78,7 +85,9 @@ type cancelSignal struct{}
 func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
 	in := New(ctx, prog, cfg)
 	g := in.newGoroutine(true)
+	in.active.Add(1)
 	go func() {
+		defer in.active.Done()
 		defer in.recoverRoot(g)
 		in.initModules(g)
 		main, ok := in.modules[prog.Root.Index].rec.Field("main")
@@ -98,22 +107,38 @@ func New(ctx context.Context, prog *loader.Program, cfg Config) *Instance {
 	if cfg.Stderr == nil {
 		cfg.Stderr = io.Discard
 	}
-	in := &Instance{prog: prog, cfg: cfg, out: bufio.NewWriter(cfg.Stdout), result: make(chan error, 1), ctx: ctx}
+	if cfg.Grace == 0 {
+		cfg.Grace = 100 * time.Millisecond
+	}
+	in := &Instance{prog: prog, cfg: cfg, out: bufio.NewWriter(cfg.Stdout), result: make(chan error, 1)}
+	in.ctx, in.cancel = context.WithCancel(ctx)
 	in.setupModules()
 	return in
 }
 
+// wait blocks until main returns, a goroutine calls Os.exit, or the context is cancelled, then
+// stops the run: every goroutine finds the flag at its next check, blocking calls see the
+// cancelled context, and a report in progress gets the grace period to finish.
 func (in *Instance) wait() error {
+	var err error
 	select {
-	case err := <-in.result:
-		in.done.Store(true)
-		in.Flush()
-		return err
+	case err = <-in.result:
 	case <-in.ctx.Done():
-		in.done.Store(true)
-		in.Flush()
-		return in.ctx.Err()
+		err = in.ctx.Err()
 	}
+	in.done.Store(true)
+	in.cancel()
+	finished := make(chan struct{})
+	go func() {
+		in.active.Wait()
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case <-time.After(in.cfg.Grace):
+	}
+	in.Flush()
+	return err
 }
 
 func (in *Instance) finish(err error) {
@@ -194,9 +219,9 @@ func (in *Instance) LookupEnv(name string) (string, bool) {
 // Context returns the run's context, for blocking builtins.
 func (in *Instance) Context() context.Context { return in.ctx }
 
-// Exit ends the run with the given status, from any goroutine.
+// Exit ends the run with the given status, from any goroutine. Deferred blocks do not run on
+// the way out; the run's other goroutines stop at their next check.
 func (in *Instance) Exit(status int) {
-	in.done.Store(true)
 	panic(&exitSignal{status: status})
 }
 
@@ -228,7 +253,9 @@ func (g *Goroutine) Instance() *Instance { return g.in }
 // Spawn runs body on a new goroutine.
 func (g *Goroutine) spawn(body func(*Goroutine)) {
 	ng := g.in.newGoroutine(false)
+	g.in.active.Add(1)
 	go func() {
+		defer g.in.active.Done()
 		defer g.in.recoverRoot(ng)
 		body(ng)
 	}()
@@ -260,3 +287,24 @@ func (g *Goroutine) check() {
 		panic(&cancelSignal{})
 	}
 }
+
+// Catch runs f and returns the Ant panic that ended it, if one did. Other panics, such as
+// Os.exit and cancellation, propagate.
+func (g *Goroutine) Catch(f func()) (p *AntPanic) {
+	defer func() {
+		if r := recover(); r != nil {
+			if ap, ok := r.(*AntPanic); ok {
+				p = ap
+				return
+			}
+			panic(r)
+		}
+	}()
+	f()
+	return nil
+}
+
+// Repanic raises a caught Ant panic again.
+func (g *Goroutine) Repanic(p *AntPanic) { panic(p) }
+
+func (p *AntPanic) Error() string { return "panic: " + p.Message }

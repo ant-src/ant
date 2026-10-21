@@ -276,3 +276,14 @@ func NewAtomic(v Value) *Atomic {
 
 // SyncName returns "Atomic".
 func (a *Atomic) SyncName() string { return "Atomic" }
+
+// TryLock takes the mutex if it is free and reports whether it did.
+func (m *Mutex) TryLock() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.locked {
+		return false
+	}
+	m.locked = true
+	return true
+}

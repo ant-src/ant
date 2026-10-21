@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -90,7 +91,7 @@ func TestRun(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var stdout, stderr bytes.Buffer
+			var stdout, stderr lockedBuffer
 			prog, err := ant.Load(abs)
 			if err == nil {
 				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -122,4 +123,34 @@ func TestRun(t *testing.T) {
 			}
 		})
 	}
+}
+
+// lockedBuffer is a bytes.Buffer safe for concurrent writers.
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) WriteString(s string) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.WriteString(s)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func (b *lockedBuffer) Len() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Len()
 }
