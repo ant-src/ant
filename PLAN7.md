@@ -270,3 +270,11 @@ iteration has, the printer, seven syntax programs and the parser's cases for the
 3.4, and fuzz seeds with selects. One thing the parser had to know: a line that starts with `else`
 continues the line before it, so no terminator separates a clause's block from the `else` clause.
 The three spec blocks parse and left `pendingBlocks`, and `5 select` left `pendingSpec`.
+
+Phase 53 was done on 2026-10-23: `checkSelect` types each head through the call checker, rejects
+an argument beyond the head's own, so a context on a head names the `Context.wait` clause, binds
+the result in the clause's scope and refuses a binding on a `void` head, checks each body against
+the expected type or joins the bodies into the union with `never` dropped, and starts every body
+from the flow before the `select`, since exactly one runs, joining the flows of the bodies that
+complete. A check program covers each error and the clean forms: a `select` as a function's
+value, as a union, and in a loop with `break` and `return` in its bodies.

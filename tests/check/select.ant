@@ -1,0 +1,57 @@
+// spec: 5 select
+// Section 5, select: a head is typed as the call it names and binds its result; a head that
+// returns void has nothing to bind; a head takes no context, which is a clause of its own; each
+// body is checked against the expected type, or the select has the union of its bodies' types;
+// the bound variable narrows in its body; break and return in a body act on the loop and the
+// function around the select.
+type Line = { text: string }
+type Closed = {}
+type Tick = {}
+type Event = Line | Closed | Tick
+
+func events(lines: Chan[string], ctx: Context): Event {
+  select {
+    var line = Chan.receive(lines) { if line == null { Closed{} } else { Line{ text: line } } }
+    Time.sleep(1000) { Tick{} }
+    Context.wait(ctx) { Closed{} }
+  }
+}
+
+func wrong(lines: Chan[string], out: Chan[int], ctx: Context): int {
+  var n: int = select {
+    var line = Chan.receive(lines) { line } // ERR: cannot use string | null where int is expected
+    var done = Context.wait(ctx) { 0 } // ERR: Context.wait returns void, so there is nothing to bind to done
+    Chan.receive(lines, ctx) { 1 } // ERR: a select clause's head takes no context
+    var sent = Chan.send(out, "x") { 2 } // ERR: cannot use string where int is expected
+  }
+  n
+}
+
+func union(lines: Chan[string]): string | int {
+  select {
+    var line = Chan.receive(lines) { line ?? "" }
+    else { 0 }
+  }
+}
+
+func loop(lines: Chan[string], ctx: Context): int {
+  var count = 0
+  while true {
+    select {
+      var line = Chan.receive(lines) {
+        if line == null { break }
+        count += String.length(line)
+      }
+      Context.wait(ctx) { return count }
+    }
+  }
+  count
+}
+
+func main(): void {
+  var lines: Chan[string] = Chan.new()
+  var ctx = Context.new()
+  print(events(lines, ctx))
+  print(union(lines))
+  print(loop(lines, ctx))
+}

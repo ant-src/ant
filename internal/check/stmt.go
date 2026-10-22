@@ -98,6 +98,13 @@ func walkAssigned(n ast.Node, visit func(string)) {
 	case *ast.For:
 		walkAssigned(x.Iter, visit)
 		walkAssigned(x.Body, visit)
+	case *ast.Select:
+		for _, cl := range x.Clauses {
+			if cl.Head != nil {
+				walkAssigned(cl.Head, visit)
+			}
+			walkAssigned(cl.Body, visit)
+		}
 	case *ast.Go:
 		walkAssigned(x.Body, visit)
 	case *ast.Defer:
@@ -441,6 +448,71 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 	u, err := types.MakeUnion([]types.Type{thenT, elseT})
 	if err != nil {
 		c.errorf(x.Pos, "the branches of this if do not form a valid type: %s", err)
+		return types.Invalid{}
+	}
+	return u
+}
+
+// selectHeadArity is the argument count each head of a select takes. A head gives no context,
+// which is a clause of its own, so an argument beyond these is an error (section 5).
+var selectHeadArity = map[string]int{
+	"Chan.receive": 1, "Chan.send": 2, "Context.wait": 1, "WaitGroup.wait": 1, "Time.sleep": 1,
+}
+
+// selectHeadName is the head's function, as the parser checked it: a two-part path.
+func selectHeadName(head *ast.Call) string {
+	f := head.Fn.(*ast.Field)
+	return f.X.(*ast.Ident).Name + "." + f.Name
+}
+
+// checkSelect types a select (section 5): each head as the call it names, with its required
+// arguments only, its result bound in the clause's scope when the clause binds; each body
+// against the expected type, or the select's type is the union of the bodies' types with never
+// dropped, as an if. The heads' operands belong to the enclosing scope, and every body starts
+// from the flow before the select, since exactly one runs.
+func (c *Checker) checkSelect(x *ast.Select, sc *scope, expected types.Type) types.Type {
+	before := c.flow.copy()
+	var after []flow
+	var bodyTypes []types.Type
+	for _, cl := range x.Clauses {
+		c.flow = before.copy()
+		inner := &scope{parent: sc, names: map[string]*local{}}
+		if cl.Head != nil {
+			name := selectHeadName(cl.Head)
+			if len(cl.Head.Args) > selectHeadArity[name] {
+				c.errorf(cl.Head.Pos, "a select clause's head takes no context: the context is a clause of its own, Context.wait(ctx) { ... }")
+			}
+			t := c.call(cl.Head, sc, nil)
+			if cl.Target != nil {
+				if _, isVoid := types.Expand(t).(types.Void); isVoid {
+					c.errorf(cl.Target.Pos, "%s returns void, so there is nothing to bind to %s", name, cl.Target.Name)
+					t = types.Invalid{}
+				}
+				c.declareTarget(cl.Target, t, inner)
+			}
+		}
+		t := c.block(cl.Body, inner, expected)
+		bodyTypes = append(bodyTypes, t)
+		if !types.IsNever(t) {
+			after = append(after, c.flow)
+		}
+	}
+	if len(after) > 0 {
+		f := after[0]
+		for _, g := range after[1:] {
+			f = joinFlows(f, g)
+		}
+		c.flow = f
+	}
+	if expected != nil {
+		if types.IsInvalid(expected) {
+			return types.Invalid{}
+		}
+		return expected
+	}
+	u, err := types.MakeUnion(bodyTypes)
+	if err != nil {
+		c.errorf(x.Pos, "the clauses of this select do not form a valid type: %s", err)
 		return types.Invalid{}
 	}
 	return u

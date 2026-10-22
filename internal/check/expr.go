@@ -64,6 +64,8 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 		t = c.recordLit(x, sc, expected)
 	case *ast.If:
 		t = c.checkIf(x, sc, expected)
+	case *ast.Select:
+		t = c.checkSelect(x, sc, expected)
 	case *ast.Call:
 		t = c.call(x, sc, expected)
 	case *ast.Block:
@@ -178,6 +180,8 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 		return c.assign(x, sc)
 	case *ast.If:
 		return c.checkIf(x, sc, nil)
+	case *ast.Select:
+		return c.checkSelect(x, sc, nil)
 	case *ast.While:
 		return c.whileLoop(x, sc)
 	case *ast.For:
