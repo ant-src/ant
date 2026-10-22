@@ -563,4 +563,6 @@ on 2026-10-22, with the note on 14 that Ant is new and unused, so `Time.now()` c
 Written on 2026-10-22, the Time section rewritten around Temporal the same day and corrected
 after a second agent's review: the unions needed a discriminator, `since` is not `until`
 reversed, `hoursInDay` is a float, days need no `relativeTo`, `modified` is an `Instant`, and the
-zone table of decision 18 was added. The decisions were taken the same day; Phase 21 is in progress.
+zone table of decision 18 was added. The decisions were taken the same day. Phase 21 is done: the
+spec commit is in the spec repository, and `stdlib Path` sits in the suite's pending list until
+Phase 26. Next is Phase 22.
