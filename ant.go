@@ -72,6 +72,7 @@ type config struct {
 	// host namespaces added and prelude namespaces removed
 	namespaces []Namespace
 	removed    []string
+	interrupts <-chan struct{}
 }
 
 func defaultConfig() config {
@@ -123,6 +124,13 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 
 // WithEnvironment gives the run its whole environment: what Os.env and Os.environ see, and
 // what a child of Os.exec inherits when it is given no env of its own.
+// WithInterrupts delivers interrupts to a run, one per value the host sends on c. The first goes
+// to the context Os.interrupt returns, when the program has called it and the context is not
+// done, so the program can drain and exit; otherwise, and for a program that never called it,
+// an interrupt cancels the run, as cancelling the context given to Run does. The ant command
+// sends one per Ctrl-C or SIGTERM.
+func WithInterrupts(c <-chan struct{}) Option { return func(cfg *config) { cfg.interrupts = c } }
+
 func WithEnvironment(vars map[string]string) Option {
 	return func(c *config) {
 		c.env = func(name string) (string, bool) { v, ok := vars[name]; return v, ok }
@@ -178,7 +186,7 @@ func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	cfg := p.cfg.with(opts)
 	return convertRunError(interp.Run(ctx, p.prog, interp.Config{
 		Prelude: p.prelude, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr,
-		Args: cfg.args, Env: cfg.env, Environ: cfg.environ,
+		Args: cfg.args, Env: cfg.env, Environ: cfg.environ, Interrupts: cfg.interrupts,
 	}))
 }
 

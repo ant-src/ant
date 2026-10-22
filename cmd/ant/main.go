@@ -17,6 +17,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/ant-src/ant"
 	replpkg "github.com/ant-src/ant/internal/repl"
@@ -46,10 +47,22 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, err)
 			return ant.ExitStatus(err)
 		}
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer stop()
-		err = prog.Run(ctx, ant.WithStdin(stdin), ant.WithStdout(stdout), ant.WithStderr(stderr),
-			ant.WithArgs(args[2:]))
+		// An interrupt goes to the program when it asked for one (Os.interrupt), and ends the
+		// run otherwise, or at the second; the run decides, the command only relays.
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+		defer signal.Stop(sigs)
+		interrupts := make(chan struct{}, 1)
+		go func() {
+			for range sigs {
+				select {
+				case interrupts <- struct{}{}:
+				default:
+				}
+			}
+		}()
+		err = prog.Run(context.Background(), ant.WithStdin(stdin), ant.WithStdout(stdout), ant.WithStderr(stderr),
+			ant.WithArgs(args[2:]), ant.WithInterrupts(interrupts))
 		switch err.(type) {
 		case nil, *ant.PanicError, *ant.ExitError:
 			// A panic has already been reported by the runtime; an exit says nothing.

@@ -107,6 +107,9 @@ func init() {
 			fn("Os.exec", "program, args?, dir?, env?, stdin?, ctx?", execProcess),
 			// The standard streams are one handle each per run, so that a program reading its
 			// input from two places shares one buffer.
+			fn("Os.interrupt", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return g.Instance().Interrupt()
+			}),
 			fn("Os.stdin", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				in := g.Instance()
 				return in.Keep("Os.stdin", func() any {

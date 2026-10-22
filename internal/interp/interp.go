@@ -32,6 +32,10 @@ type Config struct {
 	// They are told to stop at once; the wait only lets reports in progress complete. Zero
 	// means the default of 100 milliseconds.
 	Grace time.Duration
+	// Interrupts delivers the host's interrupts, one value each. The first goes to the context
+	// Os.interrupt created, when the program created one and it is not done; otherwise the run
+	// is cancelled, as the first is for a program that never asked. Nil delivers none.
+	Interrupts <-chan struct{}
 }
 
 // Frame is one entry of a panic trace, innermost first.
@@ -72,6 +76,9 @@ type Instance struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	active  sync.WaitGroup
+	// interrupt is the context Os.interrupt returns, made at the first call.
+	interruptMu sync.Mutex
+	interrupt   *value.Context
 }
 
 // AntPanic is the Go panic value that carries an Ant panic while it unwinds.
@@ -118,7 +125,44 @@ func New(ctx context.Context, prog *loader.Program, cfg Config) *Instance {
 	in := &Instance{prog: prog, cfg: cfg, out: bufio.NewWriter(cfg.Stdout), result: make(chan error, 1)}
 	in.ctx, in.cancel = context.WithCancel(ctx)
 	in.setupModules()
+	if cfg.Interrupts != nil {
+		go in.relayInterrupts(cfg.Interrupts)
+	}
 	return in
+}
+
+// relayInterrupts delivers each interrupt the host sends: to the program's interrupt context
+// while the program holds one that is not done, and otherwise by cancelling the run.
+func (in *Instance) relayInterrupts(interrupts <-chan struct{}) {
+	for {
+		select {
+		case _, ok := <-interrupts:
+			if !ok {
+				return
+			}
+			in.interruptMu.Lock()
+			c := in.interrupt
+			in.interruptMu.Unlock()
+			if c != nil && !c.Done() {
+				c.Cancel(value.ErrInterrupt)
+			} else {
+				in.cancel()
+			}
+		case <-in.ctx.Done():
+			return
+		}
+	}
+}
+
+// Interrupt returns the context Os.interrupt gives: the same one at every call, done when the
+// host delivers an interrupt.
+func (in *Instance) Interrupt() *value.Context {
+	in.interruptMu.Lock()
+	defer in.interruptMu.Unlock()
+	if in.interrupt == nil {
+		in.interrupt = value.NewContext(in.ctx, 0)
+	}
+	return in.interrupt
 }
 
 // wait blocks until main returns, a goroutine calls Os.exit, or the context is cancelled, then
@@ -306,7 +350,11 @@ func (in *Instance) newGoroutine(main bool) *Goroutine {
 // Instance returns the run this goroutine belongs to.
 func (g *Goroutine) Instance() *Instance { return g.in }
 
-// Spawn runs body on a new goroutine.
+// Spawn runs body on a new Ant goroutine, as a go block does: a panic in it is reported and
+// ends it alone, and the run's grace period waits for it.
+func (g *Goroutine) Spawn(body func(*Goroutine)) { g.spawn(body) }
+
+// spawn runs body on a new goroutine.
 func (g *Goroutine) spawn(body func(*Goroutine)) {
 	ng := g.in.newGoroutine(false)
 	g.in.active.Add(1)

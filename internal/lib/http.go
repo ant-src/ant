@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -98,6 +99,90 @@ func optionalString(g *interp.Goroutine, who string, v value.Value) string {
 	return stringArg(g, who, v)
 }
 
+// RequestTag is Http.Request: what a handler of Http.serve receives.
+var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method", "path", "query", "headers", "body", "remote"})
+
+// serve is Http.serve: an http.Server on the listener until ctx is done, then a shutdown that
+// waits up to five seconds for the requests in flight. Each request's handler runs on an Ant
+// goroutine of its own; a panic there is reported as any goroutine's is and answered with 500.
+func serve(g *interp.Goroutine, a []value.Value) value.Value {
+	const who = "Http.serve"
+	l := listenerArg(g, who, a[0])
+	handler := funcArg(g, who, a[1])
+	ctx := waitContext(g, optionalContext(g, who, a[2]))
+	srv := &http.Server{
+		ReadHeaderTimeout: 10 * time.Second,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			serveRequest(g, handler, w, r)
+		}),
+	}
+	g.Instance().Flush()
+	done := make(chan error, 1)
+	go func() { done <- srv.Serve(l.l) }()
+	select {
+	case err := <-done:
+		if l.isClosed() {
+			return value.Err(value.ErrorValue("the listener is closed"))
+		}
+		return errResult(err)
+	case <-ctx.Done():
+		stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		srv.Shutdown(stop)
+		<-done
+		return value.Ok(value.Void)
+	}
+}
+
+// serveRequest answers one request: the Http.Request record goes to the handler on a new Ant
+// goroutine, and its Http.Response is written back, or 500 when the handler panicked.
+func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	headers := value.NewMap()
+	for k, vs := range r.Header {
+		headers.Set(k, strings.Join(vs, ", "))
+	}
+	req := value.NewRecord(RequestTag, []value.Value{r.Method, r.URL.Path, r.URL.RawQuery, headers, string(body), r.RemoteAddr})
+	result := make(chan *value.Record, 1)
+	g.Spawn(func(ng *interp.Goroutine) {
+		defer close(result)
+		resp, ok := ng.Call(handler, req).(*value.Record)
+		if !ok || resp.Tag != ResponseTag {
+			ng.Panic("Http.serve: the handler must return an Http.Response")
+		}
+		status, _ := resp.Field("status")
+		if n, ok := status.(int64); !ok || n < 100 || n > 599 {
+			ng.Panic("Http.serve: the response status %s is outside 100 to 599", value.Render(status))
+		}
+		result <- resp
+	})
+	resp, ok := <-result
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	status, _ := resp.Field("status")
+	hdrs, _ := resp.Field("headers")
+	text, _ := resp.Field("body")
+	if m, ok := hdrs.(*value.Map); ok {
+		for _, e := range m.Entries() {
+			k, kok := e.Key.(string)
+			v, vok := e.Value.(string)
+			if kok && vok {
+				w.Header().Set(k, v)
+			}
+		}
+	}
+	out, _ := text.(string)
+	w.Header().Set("Content-Length", strconv.Itoa(len(out)))
+	w.WriteHeader(int(status.(int64)))
+	io.WriteString(w, out)
+}
+
 func init() {
 	register("Http", func() value.Value {
 		return namespace("Http",
@@ -114,6 +199,8 @@ func init() {
 				const who = "Http.post"
 				return request(g, who, "POST", stringArg(g, who, a[0]), stringArg(g, who, a[1]), a[2], a[3], a[4])
 			}),
+			constant("Request", RequestTag),
+			fn("Http.serve", "l, handler, ctx?", serve),
 		)
 	})
 }

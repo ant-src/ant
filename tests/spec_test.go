@@ -299,11 +299,8 @@ var panicRows = [][]string{
 	{"never"},                                // ??, ?., ==, != never panic
 }
 
-// pendingPanics lists the panic keys no test program triggers yet: the ◆ functions Plan 6
-// specified in Phase 44, which get their programs in Phases 45, 46 and 49.
-var pendingPanics = []string{
-	"Http.serve",
-}
+// pendingPanics lists the panic keys no test program triggers yet.
+var pendingPanics = []string{}
 
 // TestBoundedSleeps checks the corpus's rule that every wait has a bound: a Time.sleep with a
 // literal count above a second and no context would hold the suite, so none is allowed under

@@ -1,0 +1,16 @@
+// spec: stdlib Os; 9 Waiting
+// Os.interrupt gives one context, the same at every call, that is not done until the process
+// is interrupted; the interrupt itself is driven by the host, which a Go test does.
+func main(): void {
+  var stop = Os.interrupt()
+  print(Context.isDone(stop))
+  print(Context.reason(stop))
+  print(Os.interrupt() == stop)
+  print(Context.isDone(Context.new(parent: stop)))
+}
+
+// expect
+// out: false
+// out: null
+// out: true
+// out: false

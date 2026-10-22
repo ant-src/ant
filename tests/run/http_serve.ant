@@ -1,0 +1,48 @@
+// spec: stdlib Http; stdlib Net; 9 Waiting; 12 Runtime panics
+// panics: Http.serve; library-value
+// Http.serve on a listener taken on a free port, run on a goroutine and talked to with
+// Http.request: the handler sees the method, the decoded path, the raw query, the headers and
+// the body, and its response goes back with its status, its headers and Content-Length; a
+// handler that panics answers 500 and is reported as a goroutine's panic; a status outside
+// 100 to 599 is the ◆, which takes the same path; cancelling the context stops the server and
+// serve returns Ok.
+func handle(req: Http.Request): Http.Response {
+  if req.path == "/boom" { panic("boom") }
+  if req.path == "/bad" { return Http.Response{ status: 999, headers: Map{}, body: "" } }
+  var body = `${req.method} ${req.path} ${req.query} ${req.headers["X-Token"] ?? "-"} ${req.body}`
+  Http.Response{ status: 201, headers: Map{ "X-Served": "yes" }, body }
+}
+
+func main(): void {
+  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+  var base = `http://${Net.address(listener)}`
+  var stop = Context.new()
+  var served: Chan[Result[void, Error]] = Chan.new(1)
+  go { Chan.send(served, Http.serve(listener, handle, stop)) }
+  var r = Result.unwrap(Http.request("PUT", `${base}/items/a%20b?x=1&y=2`, "payload", Map{ "X-Token": "t" }, Time.duration(seconds: 5)))
+  print(r.status)
+  print(r.body)
+  print(r.headers["X-Served"])
+  print(r.headers["Content-Length"])
+  var boom = Result.unwrap(Http.get(`${base}/boom`, timeout: Time.duration(seconds: 5)))
+  print(boom.status)
+  print(boom.body == "")
+  var bad = Result.unwrap(Http.get(`${base}/bad`, timeout: Time.duration(seconds: 5)))
+  print(bad.status)
+  Context.cancel(stop)
+  print(Chan.receive(served))
+  print(Result.isOk(Http.get(`${base}/items`, timeout: Time.duration(seconds: 2))))
+}
+
+// expect
+// out: 201
+// out: PUT /items/a b x=1&y=2 t payload
+// out: yes
+// out: 32
+// out: 500
+// out: true
+// out: 500
+// out: Ok{ value: void }
+// out: false
+// err: panic: boom
+// err: Http.serve: the response status 999 is outside 100 to 599

@@ -626,3 +626,13 @@ deadline as a read does, and connection handles whose writes flush and whose rea
 ends; the corpus program listens on a free port, serves an echo on a goroutine, talks to it,
 and covers the read, accept and dial that give up and the closed listener. `pendingSpec` is
 empty again.
+
+Phase 49 was done on 2026-10-22: `Http.Request` and `Http.serve` over an `http.Server` with a
+five-second shutdown, each request's handler on an Ant goroutine through a new exported
+`Goroutine.Spawn`, a panic there answered with 500 and reported as any goroutine's is, and a
+status outside 100 to 599 the ◆ on the same path; `Os.interrupt` from an `Instance.Interrupt`
+made at the first call; `ant.WithInterrupts` and the instance's relay, which gives the first
+interrupt to that context and ends the run otherwise; the `ant` command relaying `os.Interrupt`
+and `SIGTERM` through it, with the REPL unchanged. The corpus serves itself and checks the
+500s and the shutdown, and `TestInterrupts` drives the three cases of the rule through the
+package. The pending lists are empty.
