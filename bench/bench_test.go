@@ -12,7 +12,12 @@ import (
 	"github.com/ant-src/ant"
 )
 
+// parallel lists the programs that take a goroutine count as their argument, and the counts the
+// benchmark runs them at.
+var parallel = map[string][]string{"par_fib": {"1", "4", "10"}, "par_map": {"1", "4", "10"}}
+
 // BenchmarkRun runs each program under bench/ once per iteration, with its output discarded.
+// A parallel program runs once per goroutine count, as <name>/n=<count>.
 func BenchmarkRun(b *testing.B) {
 	paths, err := filepath.Glob("*.ant")
 	if err != nil || len(paths) == 0 {
@@ -23,14 +28,23 @@ func BenchmarkRun(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		b.Run(strings.TrimSuffix(path, ".ant"), func(b *testing.B) {
+		name := strings.TrimSuffix(path, ".ant")
+		run := func(b *testing.B, args []string) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				if err := prog.Run(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard)); err != nil {
+				if err := prog.Run(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard), ant.WithArgs(args)); err != nil {
 					b.Fatal(err)
 				}
 			}
-		})
+		}
+		counts, ok := parallel[name]
+		if !ok {
+			b.Run(name, func(b *testing.B) { run(b, nil) })
+			continue
+		}
+		for _, n := range counts {
+			b.Run(name+"/n="+n, func(b *testing.B) { run(b, []string{n}) })
+		}
 	}
 }
 

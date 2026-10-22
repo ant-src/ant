@@ -234,4 +234,10 @@ Each phase ends in a commit whose message quotes its `benchstat`, with every tes
 
 ## 6. Status
 
-Written on 2026-10-22 from the measurements in section 1. No phase started.
+Written on 2026-10-22 from the measurements in section 1. Work happens on branch `perf`.
+Decisions 1 and 2 were taken as proposed: `SetGCPercent(400)` in `cmd/ant`, and `any` stays in
+the public API.
+
+Phase 28 is done: `ant run --cpuprofile/--memprofile`, `par_fib` and `par_map` in `bench/` with
+sub-benchmarks at n = 1, 4 and 10, `scripts/bench.sh`, the CI bench smoke, and `BASELINE.md`
+re-recorded.

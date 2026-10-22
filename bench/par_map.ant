@@ -1,0 +1,35 @@
+// Parallel allocation: N goroutines each build and read back a 200 k-entry map with string keys,
+// with no shared state. N is the first argument (default 8). Measures how the allocator and GC
+// scale alongside the interpreter.
+func work(): int {
+  var m: Map[string, int] = Map{}
+  for i in Iter.range(0, 200000) { m[`k${i}`] = i }
+  var sum = 0
+  for i in Iter.range(0, 200000) { sum += m[`k${i}`] ?? 0 }
+  sum
+}
+
+func main(): void {
+  var args = Os.args()
+  var n = 8
+  if Array.length(args) > 0 {
+    var r = Json.parse(args[0])
+    if r is Ok {
+      var v = r.value
+      if v is float64 { n = int(v) }
+    }
+  }
+  var wg = WaitGroup.new()
+  var lock = Mutex.new()
+  var total = 0
+  for i in Iter.range(0, n) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      var f = work()
+      Mutex.withLock(lock, { total += f })
+    }
+  }
+  WaitGroup.wait(wg)
+  print(total)
+}

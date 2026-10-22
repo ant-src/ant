@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -11,6 +13,22 @@ const (
 	panics  = "../../tests/run/panic_explicit.ant"
 	missing = "../../tests/run/missing_main.ant"
 )
+
+var tempDir string
+
+// tempPath names a file in a directory removed when the tests end.
+func tempPath(name string) string { return filepath.Join(tempDir, name) }
+
+func TestMain(m *testing.M) {
+	dir, err := os.MkdirTemp("", "ant-cmd")
+	if err != nil {
+		panic(err)
+	}
+	tempDir = dir
+	code := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(code)
+}
 
 func TestRunCommand(t *testing.T) {
 	cases := []struct {
@@ -26,6 +44,8 @@ func TestRunCommand(t *testing.T) {
 		{"run panic", []string{"run", panics}, "", 1, "", "panic:"},
 		{"run cannot load", []string{"run", missing}, "", 2, "", "main"},
 		{"run no file", []string{"run"}, "", 2, "", "usage"},
+		{"run unknown flag", []string{"run", "--frob", "x", example}, "", 2, "", "usage"},
+		{"run profiles", []string{"run", "--cpuprofile", tempPath("cpu.out"), "--memprofile", tempPath("mem.out"), example}, "", 0, "ada: 50.0\n", ""},
 		{"run nonexistent", []string{"run", "/nonexistent/x.ant"}, "", 2, "", ""},
 		{"check clean", []string{"check", example}, "", 0, "", ""},
 		{"check errors", []string{"check", broken}, "", 1, "", "types.ant:"},
