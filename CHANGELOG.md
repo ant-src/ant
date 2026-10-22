@@ -28,3 +28,27 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   `internal/temporal`. `Time.now()` returns an `Instant`.
 - The coverage gate runs `go test` itself with `-run`, and three more examples: a task runner
   over `Os.exec`, a filter over standard input, and an agenda across zones.
+
+- The everyday library (Plan 5). A regular expression literal `/.../flags` with RE2 inside: a
+  `/` begins one unless the token before it is an operand, so every existing program keeps its
+  meaning, which a differential fuzz test checks; a pattern is a value compared by source and
+  flags, rendered as a literal that reads back. A `Regex` namespace: `compile`, `test`, `find`,
+  `findAll`, `replace`, `replaceFirst`, `replaceWith`, `split`, `escape`, `source` and `flags`,
+  with `Regex.Match` in code point indices.
+- `String.fromInt` and `fromFloat`, `toInt` with a base, `padStart` and `padEnd`, one-sided
+  trims, `trimPrefix` and `trimSuffix`, `lastIndexOf`, `count`, `replaceFirst`, `cut` with
+  `String.Cut`, `fields`, `lines` and the class tests `isDigit`, `isLetter`, `isSpace`,
+  `isUpper` and `isLower`.
+- `Array.first`, `last`, `insert`, `removeAt`, `flatMap`, `findIndex`, `findLast`,
+  `findLastIndex`, `countWhere`, `lastIndexOf`, `min`, `max`, `minBy`, `maxBy`, `unique`,
+  `uniqueBy`, `chunk` and `groupBy`; the checker infers a lambda's result through `Array[U]`.
+- `Math.log`, `log2`, `log10`, `exp`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`,
+  `hypot`, `cbrt`, `isNaN`, `isFinite`, `clamp`, `randomInt`, `NaN`, `Infinity` and
+  `maxFloat64`; `Bits.rotateLeft`, `rotateRight`, `leadingZeros` and `trailingZeros`.
+- `Http.request` with any method, headers and a `Time.Duration` timeout, and `get` and `post`
+  with the same options.
+- Four I/O namespaces: `Encoding` for base64 and hex, `Url` with `Url.Parts` and ordered query
+  maps, `Csv` with a separator, and `Crypto` with SHA-2, SHA-1, MD5, HMAC, a constant-time
+  compare, random bytes and UUIDs.
+- The panic gate reads `stdlib.md` as well as chapter 11, and two more examples: a log summary
+  with patterns and padding, and a signed webhook delivery.

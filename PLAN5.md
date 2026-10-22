@@ -629,3 +629,8 @@ timeout as a deadline on the run's context with the conversion rules of section 
 test server's `/echo` answering any method with `X-Method` set and a `/slow` route that
 answers once the client has given up, and a corpus program for the methods, the headers and
 every timeout rule. Nothing differs from the plan.
+
+Phase 43 was done on 2026-10-22: `examples/logstat.ant` and `examples/webhook.ant`, the
+CHANGELOG, the README's first paragraph and the package documentation's value table. Plan 5
+is done: every pending list is empty, the suite is green under `-race`, and the coverage gate
+stands at 91% overall with every package above 85%.

@@ -1,0 +1,37 @@
+// spec: stdlib Http; stdlib Crypto; stdlib Encoding; stdlib Json; stdlib Time
+// A webhook delivery: a JSON payload is signed with an HMAC, sent with PUT, headers and a
+// timeout, and the body the server echoes is verified against the signature before it is read
+// back. The first argument is the server, which the corpus's test server plays. Try:
+//   ant run examples/webhook.ant http://localhost:8080
+type Event = { id: string, kind: string, amount: float64 }
+
+var secret = String.toBytes("shared-secret")
+
+func sign(body: string): string {
+  "sha256=" + Encoding.toHex(Crypto.hmacSha256(secret, String.toBytes(body)))
+}
+
+func main(): void {
+  var base = Os.args()[0]
+  var body = Json.stringify(Event{ id: "evt_1", kind: "payment", amount: 12.5 })
+  var headers = Map{ "Content-Type": "application/json", "X-Signature": sign(body) }
+  var response = Http.request("PUT", `${base}/echo`, body, headers, Time.duration(seconds: 5))
+  var r = if response is Ok { response.value } else {
+    print(`delivery failed: ${response.error.message}`)
+    Os.exit(1)
+  }
+  print(`${r.status} ${r.headers["X-Method"] ?? "?"}`)
+  var verified = Crypto.equal(String.toBytes(sign(r.body)), String.toBytes(headers["X-Signature"] ?? ""))
+  print(`signature ${if verified { "verified" } else { "rejected" }}`)
+  var echoed = Result.unwrap(Json.parse(r.body))
+  if echoed is Map {
+    var amount = echoed["amount"]
+    if amount is float64 { print(`amount ${String.fromFloat(amount, 2)}`) }
+  }
+}
+
+// expect
+// args: $HTTP
+// out: 200 PUT
+// out: signature verified
+// out: amount 12.50

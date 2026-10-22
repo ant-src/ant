@@ -1,0 +1,49 @@
+// spec: 11 Regex; 11 Array; 11 String; stdlib Os; stdlib File
+// A summary of an access log in the common log format, read from standard input: each line
+// is matched against a pattern with named groups, the hits are grouped by status, and a table
+// reports each status's count, its share to two decimals, and the mean response size, padded
+// into columns. Try:
+//   ant run examples/logstat.ant < access.log
+type Hit = { status: string, bytes: int }
+
+var line = /^(\S+) \S+ \S+ \[[^\]]*\] "(?<method>[A-Z]+) (?<path>\S+)[^"]*" (?<status>\d{3}) (?<bytes>\d+|-)$/
+
+func parse(text: string): Hit | null {
+  var m = Regex.find(line, text) ?? return null
+  var bytes = String.toInt(m.named["bytes"] ?? "-") ?? 0
+  Hit{ status: m.named["status"] ?? "", bytes }
+}
+
+func main(): void {
+  var hits: Array[Hit] = []
+  var unparsed = 0
+  var text = Result.unwrap(File.readAll(Os.stdin()))
+  for raw in String.lines(text) {
+    var hit = parse(raw)
+    if hit != null { Array.push(hits, hit) } else { unparsed += 1 }
+  }
+  var total = Array.length(hits)
+  print(`${total} requests, ${unparsed} unparsed`)
+  print(String.padEnd("status", 8) + String.padStart("count", 6) + String.padStart("share", 8) + String.padStart("mean", 8))
+  var groups = Array.groupBy(hits, { x.status })
+  for status in Array.sort(Map.keys(groups)) {
+    var group: Array[Hit] = groups[status] ?? []
+    var count = Array.length(group)
+    var share = 100.0 * float64(count) / float64(total)
+    var mean = float64(Array.sum(Array.map(group, { x.bytes })) ?? 0) / float64(count)
+    print(String.padEnd(status, 8) + String.padStart(String.fromInt(count), 6)
+      + String.padStart(String.fromFloat(share, 2) + "%", 8) + String.padStart(String.fromFloat(mean, 1), 8))
+  }
+}
+
+// expect
+// stdin: 127.0.0.1 - - [10/Oct/2026:13:55:36 +0000] "GET /index.html HTTP/1.1" 200 2326
+// stdin: 127.0.0.1 - frank [10/Oct/2026:13:55:37 +0000] "GET /missing HTTP/1.1" 404 512
+// stdin: 10.0.0.5 - - [10/Oct/2026:13:55:38 +0000] "POST /api/items HTTP/1.1" 200 74
+// stdin: 10.0.0.5 - - [10/Oct/2026:13:55:39 +0000] "GET /favicon.ico HTTP/1.1" 304 -
+// stdin: not a log line
+// out: 4 requests, 1 unparsed
+// out: status   count   share    mean
+// out: 200          2  50.00%  1200.0
+// out: 304          1  25.00%     0.0
+// out: 404          1  25.00%   512.0

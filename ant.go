@@ -37,6 +37,7 @@
 //	a function                  an opaque value.Callable: pass it back to Func.Call or Runtime.Call
 //	a type                      *value.Tag, from Instance.Value("Name")
 //	a time value                an opaque value.Time: its String is the RFC 9557 form; pass it back
+//	a Regex.Pattern             *value.Regex, from value.NewRegex: its String is the literal form
 //
 // A record's tag comes from the instance, since the program declares it: the Example_call test
 // builds a Point that way. A host function receives its arguments in the order its signature
