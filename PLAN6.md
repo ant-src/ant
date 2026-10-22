@@ -591,3 +591,11 @@ reads and connections, `Http.Request` and `Http.serve`, `Net`, `Time.sleep`, `Os
 `Os.interrupt`. In this repository `pendingSpec` holds `9 Waiting` and `stdlib Net`, and
 `pendingPanics` the seven new ◆ functions. Decisions 1 to 17 are written into the spec as
 recommended, so they are taken with this phase.
+
+Phase 45 was done on 2026-10-22: `value.Context` over `context.WithCancelCause`, with the
+deadline from `WithTimeoutCause` layered on top so a cancel keeps its own cause, the six
+functions in `internal/lib/context.go` beside the helpers every blocking call will use,
+`WaitGroup` rebuilt on a channel closed at zero, `Time.sleep` and `WaitGroup.wait` with a
+context, and the duration conversion shared with `Http.request`. The corpus program covers every
+reason, a child of a done parent, and a goroutine stopped by a cancel; it names `9 Waiting`, so
+that heading left the pending list a phase early.

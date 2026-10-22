@@ -1,8 +1,10 @@
 package value
 
 import (
+	"context"
 	"errors"
 	"sync"
+	"time"
 )
 
 // The sync objects of section 9, as small state machines guarded by Go primitives. Each
@@ -118,17 +120,19 @@ func (m *RwMutex) WriteUnlock() error {
 	return nil
 }
 
-// WaitGroup counts goroutines to wait for.
+// WaitGroup counts goroutines to wait for. A channel is closed when the counter reaches zero
+// and replaced at the next add from zero, so a wait with a context is a select that leaks
+// nothing when it gives up.
 type WaitGroup struct {
 	mu   sync.Mutex
-	cond *sync.Cond
 	n    int64
+	zero chan struct{}
 }
 
 // NewWaitGroup creates a WaitGroup at zero.
 func NewWaitGroup() *WaitGroup {
-	w := &WaitGroup{}
-	w.cond = sync.NewCond(&w.mu)
+	w := &WaitGroup{zero: make(chan struct{})}
+	close(w.zero)
 	return w
 }
 
@@ -142,9 +146,12 @@ func (w *WaitGroup) Add(n int64) error {
 	if w.n+n < 0 {
 		return errors.New("WaitGroup counter would go negative")
 	}
+	if w.n == 0 && n > 0 {
+		w.zero = make(chan struct{})
+	}
 	w.n += n
-	if w.n == 0 {
-		w.cond.Broadcast()
+	if w.n == 0 && n != 0 {
+		close(w.zero)
 	}
 	return nil
 }
@@ -158,18 +165,79 @@ func (w *WaitGroup) Done() error {
 	}
 	w.n--
 	if w.n == 0 {
-		w.cond.Broadcast()
+		close(w.zero)
 	}
 	return nil
 }
 
-// Wait blocks until the counter is zero.
-func (w *WaitGroup) Wait() {
+// Zero returns a channel that is closed once the counter reaches zero. A counter at zero gives
+// a closed channel.
+func (w *WaitGroup) Zero() <-chan struct{} {
 	w.mu.Lock()
-	for w.n > 0 {
-		w.cond.Wait()
+	defer w.mu.Unlock()
+	return w.zero
+}
+
+// Wait blocks until the counter is zero.
+func (w *WaitGroup) Wait() { <-w.Zero() }
+
+// The reasons a Context is done, as context causes; Reason names them.
+var (
+	ErrCancelled = errors.New("cancelled")
+	ErrTimeout   = errors.New("timeout")
+	ErrInterrupt = errors.New("interrupt")
+)
+
+// Context is a Context of section 9: done once, by a call, a deadline or its parent, with a
+// reason. It wraps a Go context whose cause is the reason, so every blocking call selects on
+// Ctx.Done and reads Reason.
+type Context struct {
+	Ctx    context.Context
+	cancel context.CancelCauseFunc
+	stop   context.CancelFunc // releases the timer of a context with a deadline
+}
+
+// NewContext makes a child of parent that is done when parent is, when timeout passes if it is
+// positive, or when Cancel is called.
+func NewContext(parent context.Context, timeout time.Duration) *Context {
+	c := &Context{}
+	c.Ctx, c.cancel = context.WithCancelCause(parent)
+	if timeout > 0 {
+		c.Ctx, c.stop = context.WithTimeoutCause(c.Ctx, timeout, ErrTimeout)
 	}
-	w.mu.Unlock()
+	return c
+}
+
+// SyncName returns "Context".
+func (c *Context) SyncName() string { return "Context" }
+
+// Cancel makes the context done with cause, unless it is done already.
+func (c *Context) Cancel(cause error) {
+	c.cancel(cause)
+	if c.stop != nil {
+		c.stop()
+	}
+}
+
+// Done reports whether the context is done.
+func (c *Context) Done() bool { return c.Ctx.Err() != nil }
+
+// Reason names why the context is done, or "" while it runs: cancelled, timeout or interrupt,
+// a parent's reason, and cancelled for the host ending the run.
+func (c *Context) Reason() string { return ReasonOf(c.Ctx) }
+
+// ReasonOf names why a Go context is done, as Reason does, for the run's own context too.
+func ReasonOf(ctx context.Context) string {
+	cause := context.Cause(ctx)
+	switch {
+	case cause == nil:
+		return ""
+	case errors.Is(cause, ErrTimeout), errors.Is(cause, context.DeadlineExceeded):
+		return "timeout"
+	case errors.Is(cause, ErrInterrupt):
+		return "interrupt"
+	}
+	return "cancelled"
 }
 
 // Once runs one function once. If that function panics, every call, waiting or later, gets the

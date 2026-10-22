@@ -1,0 +1,77 @@
+// spec: 9 Waiting; 11 Synchronization; stdlib Time
+// Context: done once, by a call, a deadline or its parent, with a reason; isDone, reason and
+// deadline before and after; wait blocks until done; a child of a done parent is done at once
+// with the parent's reason, and a child with its own deadline is done when its parent is
+// cancelled; a cancel after done does nothing; Time.sleep and WaitGroup.wait return early when
+// the context ends, and the program asks the context; a goroutine stops on a cancel.
+func main(): void {
+  var ctx = Context.new()
+  print(Context.isDone(ctx))
+  print(Context.reason(ctx))
+  Context.cancel(ctx)
+  print(Context.isDone(ctx))
+  print(Context.reason(ctx))
+  Context.cancel(ctx)
+  print(Context.reason(ctx))
+  var timed = Context.new(Time.duration(milliseconds: 50))
+  print(Context.deadline(timed) != null)
+  var before = Time.monotonic()
+  Context.wait(timed)
+  print(Time.monotonic() - before >= 49)
+  print(Context.reason(timed))
+  var child = Context.new(parent: timed)
+  print(Context.isDone(child))
+  print(Context.reason(child))
+  var parent = Context.new()
+  var kid = Context.new(Time.duration(seconds: 10), parent)
+  print(Context.deadline(kid) != null)
+  Context.cancel(parent)
+  print(Context.reason(kid))
+  var sleeper = Context.new(Time.duration(milliseconds: 20))
+  before = Time.monotonic()
+  Time.sleep(10000, sleeper)
+  print(Time.monotonic() - before < 5000)
+  print(Context.isDone(sleeper))
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  var bounded = Context.new(Time.duration(milliseconds: 20))
+  WaitGroup.wait(wg, bounded)
+  print(Context.isDone(bounded))
+  WaitGroup.done(wg)
+  WaitGroup.wait(wg, Context.new())
+  print("waited")
+  var stop = Context.new()
+  var ticks = Atomic.new(0)
+  var done = WaitGroup.new()
+  WaitGroup.add(done, 1)
+  go {
+    defer { WaitGroup.done(done) }
+    while !Context.isDone(stop) {
+      Atomic.add(ticks, 1)
+      Time.sleep(5, stop)
+    }
+  }
+  Time.sleep(30)
+  Context.cancel(stop)
+  WaitGroup.wait(done)
+  print(Atomic.load(ticks) > 0)
+}
+
+// expect
+// out: false
+// out: null
+// out: true
+// out: cancelled
+// out: cancelled
+// out: true
+// out: true
+// out: timeout
+// out: true
+// out: timeout
+// out: true
+// out: cancelled
+// out: true
+// out: true
+// out: true
+// out: waited
+// out: true

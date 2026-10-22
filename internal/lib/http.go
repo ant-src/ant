@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -19,28 +18,13 @@ var ResponseTag = value.NewTag("Http.Response", value.RecordTag, []string{"statu
 // timeoutError is the Err of a request whose timeout passed.
 var timeoutError = errors.New("timeout")
 
-// timeout converts an optional Time.Duration to a Go duration by the rules of stdlib.md: hours
-// and smaller units are exact and a day is 24 hours; years, months or weeks, which have no
-// fixed length, and a zero or negative duration are errors; a duration beyond Go's range is
-// taken as that range. Zero means no deadline.
+// timeout converts an optional Time.Duration to a Go duration by goDuration's rules; zero means
+// no deadline, and an invalid duration is the Err of the request.
 func timeout(g *interp.Goroutine, who string, v value.Value) (time.Duration, error) {
 	if !given(v) {
 		return 0, nil
 	}
-	d := durationArg(g, who, v)
-	if d.Years != 0 || d.Months != 0 || d.Weeks != 0 {
-		return 0, errors.New("the timeout has years, months or weeks, which have no fixed length")
-	}
-	if d.Sign() <= 0 {
-		return 0, errors.New("the timeout is zero or negative")
-	}
-	seconds := float64(d.Days)*86400 + float64(d.Hours)*3600 + float64(d.Minutes)*60 + float64(d.Seconds) +
-		float64(d.Milliseconds)/1e3 + float64(d.Microseconds)/1e6 + float64(d.Nanoseconds)/1e9
-	ns := seconds * 1e9
-	if ns >= math.MaxInt64 {
-		return time.Duration(math.MaxInt64), nil
-	}
-	return time.Duration(ns), nil
+	return goDuration(durationArg(g, who, v))
 }
 
 // headers reads an optional Map[string, string] of request headers.

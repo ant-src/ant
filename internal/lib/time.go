@@ -288,16 +288,18 @@ func init() {
 			fn("Time.nowIn", "z", func(g *interp.Goroutine, a []value.Value) value.Value {
 				return temporal.Now().InZone(timeArg[*temporal.Zone](g, "Time.nowIn", a[0]))
 			}),
-			fn("Time.sleep", "ms", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Time.sleep", "ms, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				ms := intArg(g, "Time.sleep", a[0])
 				if ms > math.MaxInt64/int64(time.Millisecond) {
 					ms = math.MaxInt64 / int64(time.Millisecond) // 292 years: past any run
 				}
-				in := g.Instance()
-				in.Flush()
+				ctx := waitContext(g, optionalContext(g, "Time.sleep", a[1]))
+				g.Instance().Flush()
+				timer := time.NewTimer(time.Duration(ms) * time.Millisecond)
+				defer timer.Stop()
 				select {
-				case <-time.After(time.Duration(ms) * time.Millisecond):
-				case <-in.Context().Done():
+				case <-timer.C:
+				case <-ctx.Done():
 				}
 				return value.Void
 			}),

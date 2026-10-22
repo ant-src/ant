@@ -168,10 +168,14 @@ func init() {
 				}
 				return value.Void
 			}),
-			fn("WaitGroup.wait", "wg", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("WaitGroup.wait", "wg, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				w := wgArg(g, "WaitGroup.wait", a[0])
+				ctx := waitContext(g, optionalContext(g, "WaitGroup.wait", a[1]))
 				g.Instance().Flush()
-				w.Wait()
+				select {
+				case <-w.Zero():
+				case <-ctx.Done():
+				}
 				return value.Void
 			}),
 		)

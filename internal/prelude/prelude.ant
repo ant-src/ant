@@ -257,7 +257,7 @@ type WaitGroup
 func WaitGroup.new(): WaitGroup
 func WaitGroup.add(wg: WaitGroup, n: int): void
 func WaitGroup.done(wg: WaitGroup): void
-func WaitGroup.wait(wg: WaitGroup): void
+func WaitGroup.wait(wg: WaitGroup, ctx: Context | null = null): void
 
 type Once
 func Once.new(): Once
@@ -276,6 +276,14 @@ func Atomic.load[T](a: Atomic[T]): T
 func Atomic.store[T](a: Atomic[T], v: T): void
 func Atomic.add[T: Number](a: Atomic[T], d: T): T
 func Atomic.compareAndSwap[T](a: Atomic[T], expected: T, v: T): bool
+
+type Context
+func Context.new(timeout: Time.Duration | null = null, parent: Context | null = null): Context
+func Context.cancel(ctx: Context): void
+func Context.isDone(ctx: Context): bool
+func Context.reason(ctx: Context): string | null
+func Context.deadline(ctx: Context): Time.Instant | null
+func Context.wait(ctx: Context): void
 
 // File
 
@@ -370,7 +378,7 @@ func Time.zoneId(z: Time.Zone): string
 
 func Time.now(): Time.Instant
 func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
-func Time.sleep(ms: int): void
+func Time.sleep(ms: int, ctx: Context | null = null): void
 func Time.monotonic(): int
 func Time.fromEpochMillis(ms: int): Time.Instant
 func Time.fromEpochNanos(ns: int): Time.Instant

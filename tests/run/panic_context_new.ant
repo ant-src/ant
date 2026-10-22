@@ -1,0 +1,13 @@
+// spec: 11 Synchronization; 12 Runtime panics
+// panics: Context.new; library-value
+// A timeout with years, months or weeks has no fixed length, and one that is not positive is
+// a mistake: both are a ◆ panic, since Context.new is computation and not I/O.
+func main(): void {
+  print(Context.isDone(Context.new(Time.duration(hours: 1))))
+  print(Context.isDone(Context.new(Time.duration(months: 1))))
+}
+
+// expect
+// exit: 1
+// out: false
+// err: Context.new: the timeout has years, months or weeks, which have no fixed length
