@@ -147,6 +147,19 @@ func String.from[T](value: T): string
 // Regex
 
 type Regex.Pattern
+type Regex.Match = { text: string, start: int, end: int, groups: Array[string | null], named: Map[string, string | null] }
+
+func Regex.compile(source: string, flags: string = ""): Result[Regex.Pattern, Error]
+func Regex.test(p: Regex.Pattern, s: string): bool
+func Regex.find(p: Regex.Pattern, s: string): Regex.Match | null
+func Regex.findAll(p: Regex.Pattern, s: string): Array[Regex.Match]
+func Regex.replace(p: Regex.Pattern, s: string, replacement: string): string
+func Regex.replaceFirst(p: Regex.Pattern, s: string, replacement: string): string
+func Regex.replaceWith(p: Regex.Pattern, s: string, f: func(Regex.Match): string): string
+func Regex.split(p: Regex.Pattern, s: string): Array[string]
+func Regex.escape(s: string): string
+func Regex.source(p: Regex.Pattern): string
+func Regex.flags(p: Regex.Pattern): string
 
 // Iter
 

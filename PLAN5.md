@@ -610,3 +610,9 @@ equality, hash, rendering and JSON cases, the checker's type for a literal, and 
 `FuzzRegexDivision` is the differential test, which ran clean for ten minutes. The prelude's
 list of bound names in `names.go` is hand-written, so `Regex` was added there; Phase 41 adds
 the four stdlib namespaces the same way.
+
+Phase 40 was done on 2026-10-22: the eleven functions of section 3.5 in `internal/lib/regex.go`
+over Go's `regexp`, with `Regex.Match` as a tagged record and the code point indices from one
+cursor per call, and a corpus program that matches, replaces and splits non-ASCII text at the
+right indices and compares `Regex.compile`'s values with literals. Nothing differs from the
+plan.
