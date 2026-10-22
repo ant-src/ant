@@ -305,12 +305,22 @@ var panicRows = [][]string{
 // pendingPanics lists the panic keys no test program triggers yet: the ◆ functions Plan 6
 // specified in Phase 44, which get their programs in Phases 45, 46 and 49.
 var pendingPanics = []string{
-	"Chan.new",
-	"Chan.send",
-	"Chan.close",
-	"Select.send",
-	"Select.wait",
 	"Http.serve",
+}
+
+// TestBoundedSleeps checks the corpus's rule that every wait has a bound: a Time.sleep with a
+// literal count above a second and no context would hold the suite, so none is allowed under
+// tests/run. A sleep with a context is bounded by it, whatever its count.
+func TestBoundedSleeps(t *testing.T) {
+	long := regexp.MustCompile(`Time\.sleep\((\d+)\)`)
+	programs, _ := corpus(t)
+	for _, p := range programs {
+		for _, m := range long.FindAllStringSubmatch(p.src, -1) {
+			if len(m[1]) > 4 || len(m[1]) == 4 && m[1] > "1000" {
+				t.Errorf("%s: Time.sleep(%s) without a context would hold the suite; bound it with a context", p.path, m[1])
+			}
+		}
+	}
 }
 
 // panicFunctions returns the ◆ functions of a specification file's code blocks, in order: the

@@ -1,0 +1,15 @@
+// spec: 11 Synchronization; 12 Runtime panics
+// panics: Chan.send; library-value
+// A send on a closed channel is a ◆ panic: a value with no receiver is the sender's bug.
+func main(): void {
+  var c: Chan[int] = Chan.new(1)
+  Chan.send(c, 1)
+  Chan.close(c)
+  print(Chan.receive(c))
+  var sent = Chan.send(c, 2)
+}
+
+// expect
+// exit: 1
+// out: 1
+// err: Chan.send: the channel is closed

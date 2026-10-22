@@ -285,6 +285,21 @@ func Context.reason(ctx: Context): string | null
 func Context.deadline(ctx: Context): Time.Instant | null
 func Context.wait(ctx: Context): void
 
+type Chan[T]
+func Chan.new[T](capacity: int = 0): Chan[T]
+func Chan.send[T](c: Chan[T], v: T, ctx: Context | null = null): bool
+func Chan.receive[T](c: Chan[T], ctx: Context | null = null): T | null
+func Chan.close[T](c: Chan[T]): void
+func Chan.isClosed[T](c: Chan[T]): bool
+func Chan.length[T](c: Chan[T]): int
+func Chan.values[T](c: Chan[T], ctx: Context | null = null): Seq[T]
+
+type Select.Case[R]
+func Select.receive[T, R](c: Chan[T], f: func(T | null): R): Select.Case[R]
+func Select.send[T, R](c: Chan[T], v: T, f: func(): R): Select.Case[R]
+func Select.otherwise[R](f: func(): R): Select.Case[R]
+func Select.wait[R](cases: Array[Select.Case[R]], ctx: Context | null = null): R | null
+
 // File
 
 type File.Handle

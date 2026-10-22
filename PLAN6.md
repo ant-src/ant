@@ -599,3 +599,13 @@ functions in `internal/lib/context.go` beside the helpers every blocking call wi
 context, and the duration conversion shared with `Http.request`. The corpus program covers every
 reason, a child of a done parent, and a goroutine stopped by a cancel; it names `9 Waiting`, so
 that heading left the pending list a phase early.
+
+Phase 46 was done on 2026-10-22: `value.Chan` over a Go channel with a closed flag, the seven
+`Chan` functions, `Select` with `Select.Case` as an opaque reference and `wait` over
+`reflect.Select` with the context as one more receive, the stress program, the patterns of
+section 3.7 as a corpus program, and a program per ◆. One thing to know: a named function
+declared `void` cannot end in `Chan.send`, since its body's value would be a `bool`, which is
+the rule for every non-void call and not a channel matter; a `go` block and a lambda are not
+affected, and a `var` takes the value where it matters. The bound on sleeps is a test,
+`TestBoundedSleeps`, that refuses a `Time.sleep` above a second without a context under
+`tests/run`; the rest of the bound is kept by the trailers, which fail a program that hangs.

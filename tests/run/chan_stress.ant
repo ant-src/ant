@@ -1,0 +1,47 @@
+// spec: 9 Waiting; 11 Synchronization
+// Ten thousand values from a hundred senders through one unbuffered channel to ten receivers,
+// every one counted; then a hundred receivers blocked on an empty channel, all released by one
+// cancel, each seeing null with the context done.
+func main(): void {
+  var c: Chan[int] = Chan.new()
+  var senders = WaitGroup.new()
+  for s in Array.range(0, 100) {
+    WaitGroup.add(senders, 1)
+    go {
+      defer { WaitGroup.done(senders) }
+      for i in Array.range(0, 100) { Chan.send(c, 1) }
+    }
+  }
+  var total = Atomic.new(0)
+  var receivers = WaitGroup.new()
+  for r in Array.range(0, 10) {
+    WaitGroup.add(receivers, 1)
+    go {
+      defer { WaitGroup.done(receivers) }
+      for v in Chan.values(c) { Atomic.add(total, v) }
+    }
+  }
+  WaitGroup.wait(senders)
+  Chan.close(c)
+  WaitGroup.wait(receivers)
+  print(Atomic.load(total))
+  var idle: Chan[int] = Chan.new()
+  var ctx = Context.new()
+  var blocked = WaitGroup.new()
+  var gaveUp = Atomic.new(0)
+  for r in Array.range(0, 100) {
+    WaitGroup.add(blocked, 1)
+    go {
+      defer { WaitGroup.done(blocked) }
+      if Chan.receive(idle, ctx) == null && Context.isDone(ctx) { Atomic.add(gaveUp, 1) }
+    }
+  }
+  Time.sleep(20)
+  Context.cancel(ctx)
+  WaitGroup.wait(blocked, Context.new(Time.duration(seconds: 5)))
+  print(Atomic.load(gaveUp))
+}
+
+// expect
+// out: 10000
+// out: 100

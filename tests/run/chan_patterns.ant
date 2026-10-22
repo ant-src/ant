@@ -1,0 +1,68 @@
+// spec: 9 Waiting
+// The patterns of Waiting: a mailbox of a union type fed by several producers and drained by
+// one loop with an is chain; the first of several with the rest stopped through a context; a
+// worker pool over a channel of jobs and a channel of results; a future as a channel of
+// capacity one; a ticker as a loop of sleeps that a context ends.
+type Tick = { n: int }
+type Said = { text: string }
+type Quit = {}
+type Event = Tick | Said | Quit
+
+type Job = { id: int, x: int }
+type Done = { id: int, square: int }
+
+func main(): void {
+  var events: Chan[Event] = Chan.new()
+  go { for i in Array.range(1, 4) { Chan.send(events, Tick{ n: i }) } }
+  go { Chan.send(events, Said{ text: "hello" }) }
+  go { Time.sleep(30); Chan.send(events, Quit{}) }
+  var ticks = 0
+  var said = ""
+  for event in Chan.values(events) {
+    if event is Tick { ticks += event.n }
+    else if event is Said { said = event.text }
+    else if event is Quit { break }
+  }
+  print(`${ticks} ${said}`)
+  var ctx = Context.new()
+  var race: Chan[string] = Chan.new()
+  go { Time.sleep(200, ctx); Chan.send(race, "slow", ctx) }
+  go { Time.sleep(10, ctx); Chan.send(race, "fast", ctx) }
+  print(Chan.receive(race))
+  Context.cancel(ctx)
+  print(Context.reason(ctx))
+  var jobs: Chan[Job] = Chan.new()
+  var results: Chan[Done] = Chan.new(10)
+  var wg = WaitGroup.new()
+  for w in Array.range(0, 3) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for job in Chan.values(jobs) { Chan.send(results, Done{ id: job.id, square: job.x * job.x }) }
+    }
+  }
+  for i in Array.range(0, 10) { Chan.send(jobs, Job{ id: i, x: i }) }
+  Chan.close(jobs)
+  WaitGroup.wait(wg)
+  Chan.close(results)
+  var squares = Iter.toArray(Chan.values(results)) | Array.sortBy({ x.id }) | Array.map({ x.square })
+  print(squares)
+  var future: Chan[int] = Chan.new(1)
+  go { Chan.send(future, 21 * 2) }
+  print(Chan.receive(future))
+  var stop = Context.new(Time.duration(milliseconds: 35))
+  var beats = 0
+  while !Context.isDone(stop) {
+    beats += 1
+    Time.sleep(10, stop)
+  }
+  print(beats >= 3)
+}
+
+// expect
+// out: 6 hello
+// out: fast
+// out: cancelled
+// out: [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
+// out: 42
+// out: true
