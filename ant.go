@@ -6,7 +6,10 @@
 // program calls Os.exit. Program.Check runs the type checker and returns its diagnostics.
 //
 // The library reads sources through an fs.FS, writes only to the writers it is given, takes its
-// standard input, arguments and environment from options, and never exits the process.
+// standard input, arguments and environment from options, and never exits the process. An
+// interrupt reaches a program through WithInterrupts: the first goes to the context Os.interrupt
+// returns when the program asked for one, and otherwise, or at the second, the run ends as it
+// does when the context given to Run is cancelled.
 //
 // # Calling across the boundary
 //
@@ -38,6 +41,7 @@
 //	a type                      *value.Tag, from Instance.Value("Name")
 //	a time value                an opaque value.Time: its String is the RFC 9557 form; pass it back
 //	a Regex.Pattern             *value.Regex, from value.NewRegex: its String is the literal form
+//	a sync object, Chan, Context  an opaque value.Sync: pass it back
 //
 // A record's tag comes from the instance, since the program declares it: the Example_call test
 // builds a Point that way. A host function receives its arguments in the order its signature

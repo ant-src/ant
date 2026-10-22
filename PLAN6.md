@@ -636,3 +636,11 @@ interrupt to that context and ends the run otherwise; the `ant` command relaying
 and `SIGTERM` through it, with the REPL unchanged. The corpus serves itself and checks the
 500s and the shutdown, and `TestInterrupts` drives the three cases of the rule through the
 package. The pending lists are empty.
+
+Phase 50 was done on 2026-10-22: `examples/pool.ant`, a worker pool with one deadline over the
+corpus's test server; `examples/echo.ant`, a socket line server that serves three of its own
+clients and stops through a context; and `examples/api.ant`, a JSON API that drains on
+`Os.interrupt`, and with the port 0 runs its own client and stops itself, which is how the
+corpus runs it; the CHANGELOG, the README's first paragraph and the package documentation,
+with `WithInterrupts`. Plan 6 is done: every pending list is empty, the suite is green under
+`-race`, and the coverage gate stands at 91% overall with every package above 85%.

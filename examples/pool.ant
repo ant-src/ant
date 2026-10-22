@@ -1,0 +1,46 @@
+// spec: 9 Waiting; stdlib Http
+// A worker pool: the paths go down a channel to three workers, each request bounded by one
+// context with a deadline, and the results come back up another channel, in whatever order
+// they finish, to be sorted. The first argument is the server to fetch from; the corpus's test
+// server answers /hello, /status/N, and /slow, which never answers in time. Try:
+//   ant run examples/pool.ant http://localhost:8080
+type Fetched = { url: string, status: int | null, error: string | null }
+
+func fetch(url: string, ctx: Context): Fetched {
+  var response = Http.get(url, ctx: ctx)
+  if response is Ok { Fetched{ url, status: response.value.status, error: null } }
+  else { Fetched{ url, status: null, error: response.error.message } }
+}
+
+func main(): void {
+  var base = Os.args()[0]
+  var paths = ["/hello", "/status/404", "/status/500", "/slow", "/hello"]
+  var jobs: Chan[string] = Chan.new()
+  var results: Chan[Fetched] = Chan.new(Array.length(paths))
+  var deadline = Context.new(Time.duration(milliseconds: 500))
+  var wg = WaitGroup.new()
+  for w in Array.range(0, 3) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for url in Chan.values(jobs) { Chan.send(results, fetch(url, deadline)) }
+    }
+  }
+  for p in paths { Chan.send(jobs, base + p) }
+  Chan.close(jobs)
+  WaitGroup.wait(wg)
+  Chan.close(results)
+  for f in Iter.toArray(Chan.values(results)) | Array.sortBy({ x.url }) {
+    var status = f.status
+    var outcome = if status != null { String.from(status) } else { f.error ?? "?" }
+    print(`${String.padEnd(String.trimPrefix(f.url, base), 12)} ${outcome}`)
+  }
+}
+
+// expect
+// args: $HTTP
+// out: /hello       200
+// out: /hello       200
+// out: /slow        timeout
+// out: /status/404  404
+// out: /status/500  500

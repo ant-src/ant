@@ -52,3 +52,20 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   compare, random bytes and UUIDs.
 - The panic gate reads `stdlib.md` as well as chapter 11, and two more examples: a log summary
   with patterns and padding, and a signed webhook delivery.
+
+- The waiting (Plan 6). A `Context` is done once, by a call, a deadline or its parent, and
+  every blocking library call takes one as its last parameter and gives up with its reason:
+  `Chan` and `Select`, `WaitGroup.wait`, `Time.sleep`, `Http.request`, `Os.exec`, the `File`
+  reads, `Net`, and `Http.serve`. `WaitGroup` is rebuilt on a channel closed at zero.
+- `Chan[T]`, a channel as a sync object: `new`, `send`, `receive`, `close`, `isClosed`,
+  `length` and `values` for `for`; and `Select`, a select as a call over clauses, `receive`,
+  `send` and `otherwise`, run by `Select.wait` with Go's atomic choice. Section 9's Waiting
+  gives the mailbox, the first of several, the pool, the future and the ticker.
+- `Net`: `listen`, `address`, `accept`, `close`, `dial` and `peer`, with a connection as a
+  `File.Handle` whose writes flush and whose reads a context ends through the deadline.
+- `Http.serve` over a listener with `Http.Request`, each handler on its own goroutine, a panic
+  or a bad status answered with 500, and a five-second drain when the context is done.
+- `Os.interrupt`, a context the first Ctrl-C or SIGTERM completes when the program asked for
+  it, the second ending the run; `ant.WithInterrupts` for hosts, and the `ant` command relaying
+  its signals. Three more examples: a worker pool with a deadline, a socket echo server, and a
+  JSON API that drains on an interrupt.

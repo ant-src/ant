@@ -1,0 +1,71 @@
+// spec: stdlib Http; stdlib Net; stdlib Json; stdlib Os; 9 Waiting
+// A small HTTP API: GET /health, GET /items, and POST /items with a JSON body, the items kept
+// in an array under a mutex, served until Ctrl-C, when the server drains and the program says
+// why it stopped. With the port 0 the program takes a free port, runs its own client against
+// it, and stops itself, which is how the corpus runs it. Try:
+//   ant run examples/api.ant 8080
+//   curl -X POST localhost:8080/items -d '{"name": "ant"}'
+type Item = { id: int, name: string }
+
+var items: Array[Item] = []
+var lock = Mutex.new()
+
+func json(status: int, body: string): Http.Response {
+  Http.Response{ status, headers: Map{ "Content-Type": "application/json" }, body }
+}
+
+func handle(req: Http.Request): Http.Response {
+  if req.method == "GET" && req.path == "/health" { return json(200, "{\"ok\": true}") }
+  if req.method == "GET" && req.path == "/items" {
+    return json(200, Mutex.withLock(lock, { Json.stringify(items) }))
+  }
+  if req.method == "POST" && req.path == "/items" {
+    var parsed = Json.parse(req.body)
+    if parsed is Err { return json(400, Json.stringify(Map{ "error": parsed.error.message })) }
+    var body = parsed.value
+    if body is Map {
+      var name = body["name"]
+      if name is string {
+        var item = Mutex.withLock(lock, {
+          var next = Item{ id: Array.length(items) + 1, name }
+          Array.push(items, next)
+          next
+        })
+        return json(201, Json.stringify(item))
+      }
+    }
+    return json(400, "{\"error\": \"a name is required\"}")
+  }
+  json(404, "{\"error\": \"no such route\"}")
+}
+
+func main(): void {
+  var port = Array.get(Os.args(), 0) ?? "8080"
+  var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
+  var base = `http://${Net.address(listener)}`
+  var stop = Context.new(parent: Os.interrupt())
+  var served: Chan[Result[void, Error]] = Chan.new(1)
+  go { Chan.send(served, Http.serve(listener, handle, stop)) }
+  print(`serving on port ${port}`)
+  if port == "0" {
+    print(Result.unwrap(Http.get(`${base}/health`)).body)
+    print(Result.unwrap(Http.post(`${base}/items`, "{\"name\": \"ant\"}")).body)
+    print(Result.unwrap(Http.post(`${base}/items`, "{\"name\": 7}")).status)
+    print(Result.unwrap(Http.post(`${base}/items`, "not json")).status)
+    print(Result.unwrap(Http.get(`${base}/items`)).body)
+    print(Result.unwrap(Http.get(`${base}/nowhere`)).status)
+    Context.cancel(stop)
+  }
+  print(`stopped: ${Chan.receive(served)} (${Context.reason(stop) ?? "?"})`)
+}
+
+// expect
+// args: 0
+// out: serving on port 0
+// out: {"ok": true}
+// out: {"id":1,"name":"ant"}
+// out: 400
+// out: 400
+// out: [{"id":1,"name":"ant"}]
+// out: 404
+// out: stopped: Ok{ value: void } (cancelled)
