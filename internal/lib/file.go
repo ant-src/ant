@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -310,10 +311,18 @@ func init() {
 			fn("File.pipe", "src, dst", func(g *interp.Goroutine, a []value.Value) value.Value {
 				src := handleArg(g, "File.pipe", a[0])
 				dst := handleArg(g, "File.pipe", a[1])
-				src.mu.Lock()
-				defer src.mu.Unlock()
-				dst.mu.Lock()
-				defer dst.mu.Unlock()
+				if src == dst {
+					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
+				}
+				// Two handles lock in address order, so pipes in both directions cannot deadlock.
+				first, second := src, dst
+				if reflect.ValueOf(first).Pointer() > reflect.ValueOf(second).Pointer() {
+					first, second = second, first
+				}
+				first.mu.Lock()
+				defer first.mu.Unlock()
+				second.mu.Lock()
+				defer second.mu.Unlock()
 				if src.closed || src.r == nil {
 					return value.Err(value.ErrorValue("the source is not open for reading"))
 				}

@@ -58,10 +58,11 @@ func (ZonedDateTime) TimeType() string { return "Time.ZonedDateTime" }
 // Key is the canonical form == compares: the instant and the zone.
 func (z ZonedDateTime) Key() string { return z.inst.Key() + " " + z.zone.Key() }
 
-// String is 2024-11-03T01:00:00-04:00[America/New_York].
+// String is 2024-11-03T01:00:00-04:00[America/New_York]: the offset rounded to the minute,
+// since RFC 9557 has no seconds in it, while Offset keeps them.
 func (z ZonedDateTime) String() string {
 	off := z.OffsetSeconds()
-	return wallOf(z.inst, off).String() + formatOffset(off) + "[" + z.zone.id + "]"
+	return wallOf(z.inst, off).String() + formatOffset(roundToMinute(off)) + "[" + z.zone.id + "]"
 }
 
 // PossibleInstants is the instants a wall-clock time has in a zone: none in a gap, two in an

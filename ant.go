@@ -50,6 +50,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"sort"
 
 	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/interp"
@@ -66,6 +67,7 @@ type config struct {
 	stderr  io.Writer
 	args    []string
 	env     func(name string) (string, bool)
+	environ func() []string
 	// host namespaces added and prelude namespaces removed
 	namespaces []Namespace
 	removed    []string
@@ -112,9 +114,26 @@ func WithStderr(w io.Writer) Option { return func(c *config) { c.stderr = w } }
 // WithArgs sets what Os.args returns.
 func WithArgs(args []string) Option { return func(c *config) { c.args = args } }
 
-// WithEnv sets what Os.env consults. The default is os.LookupEnv.
+// WithEnv sets what Os.env consults. The default is os.LookupEnv. Os.environ and the
+// environment a child of Os.exec inherits stay the process's; WithEnvironment replaces all three.
 func WithEnv(lookup func(name string) (string, bool)) Option {
 	return func(c *config) { c.env = lookup }
+}
+
+// WithEnvironment gives the run its whole environment: what Os.env and Os.environ see, and
+// what a child of Os.exec inherits when it is given no env of its own.
+func WithEnvironment(vars map[string]string) Option {
+	return func(c *config) {
+		c.env = func(name string) (string, bool) { v, ok := vars[name]; return v, ok }
+		c.environ = func() []string {
+			out := make([]string, 0, len(vars))
+			for k, v := range vars {
+				out = append(out, k+"="+v)
+			}
+			sort.Strings(out)
+			return out
+		}
+	}
 }
 
 // A Program is a loaded, parsed, and resolved module graph. It is immutable.
@@ -158,7 +177,7 @@ func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	cfg := p.cfg.with(opts)
 	return convertRunError(interp.Run(ctx, p.prog, interp.Config{
 		Prelude: p.prelude, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr,
-		Args: cfg.args, Env: cfg.env,
+		Args: cfg.args, Env: cfg.env, Environ: cfg.environ,
 	}))
 }
 

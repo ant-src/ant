@@ -226,3 +226,38 @@ func TestExecCancelled(t *testing.T) {
 		t.Errorf("cancelled exec: %v after %v", err, time.Since(start))
 	}
 }
+
+// TestHostTimeNamespace: a host namespace named Time declares sync types, not time types, so
+// the checker rejects is on them as it does for the prelude's sync types.
+func TestHostTimeNamespace(t *testing.T) {
+	ns := ant.Namespace{
+		Name:       "Time",
+		Signatures: "type Time.Stamp\nfunc Time.stamp(): Time.Stamp | null",
+		Funcs: map[string]ant.HostFunc{
+			"stamp": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil },
+		},
+	}
+	prog := loadSrc(t, `func main(): void { var s = Time.stamp(); print(s is Time.Stamp) }`, ant.WithNamespace(ns), ant.WithoutNamespaces("Time"))
+	diags := prog.Check()
+	if len(diags) != 1 || !strings.Contains(diags[0].Message, "is cannot test Time.Stamp") {
+		t.Errorf("check: %v", diags)
+	}
+}
+
+// TestWithEnvironment: the whole environment, for Os.env, Os.environ and a child of Os.exec.
+func TestWithEnvironment(t *testing.T) {
+	prog := loadSrc(t, `func main(): void {
+  print(Os.env("ANT_ONLY"))
+  print(Os.env("PATH"))
+  print(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
+  print(Os.exec("/usr/bin/env"))
+}`)
+	var out strings.Builder
+	err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "yes\nnull\ntrue\nOk{ value: Os.Output{ status: 0, stdout: \"ANT_ONLY=yes\\n\", stderr: \"\" } }\n"; out.String() != want {
+		t.Errorf("output %q, want %q", out.String(), want)
+	}
+}

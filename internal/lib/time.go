@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"math"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -103,7 +104,10 @@ var units, modes = enumTable(unitNames), enumTable(modeNames)
 func unitArg(g *interp.Goroutine, who string, v value.Value, fallback int) (temporal.Unit, bool) {
 	if v == nil || v == value.Null {
 		if fallback < 0 {
-			return 0, false
+			if v == nil {
+				return 0, false
+			}
+			g.Panic("%s needs a Time.Unit, got null", who)
 		}
 		return temporal.Unit(fallback), true
 	}
@@ -286,6 +290,9 @@ func init() {
 			}),
 			fn("Time.sleep", "ms", func(g *interp.Goroutine, a []value.Value) value.Value {
 				ms := intArg(g, "Time.sleep", a[0])
+				if ms > math.MaxInt64/int64(time.Millisecond) {
+					ms = math.MaxInt64 / int64(time.Millisecond) // 292 years: past any run
+				}
 				in := g.Instance()
 				in.Flush()
 				select {

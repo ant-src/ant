@@ -33,6 +33,7 @@ func execProcess(g *interp.Goroutine, a []value.Value) value.Value {
 	}
 	cmd := exec.CommandContext(in.Context(), program, args...)
 	cmd.WaitDelay = time.Second // a child that ignores the kill does not hold the run
+	cmd.Env = in.Environ()      // the run's environment, which a host may have replaced
 	if given(a[2]) {
 		cmd.Dir = stringArg(g, who, a[2])
 	}
@@ -85,7 +86,7 @@ func init() {
 			}),
 			fn("Os.environ", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				m := value.NewMap()
-				for _, kv := range os.Environ() {
+				for _, kv := range g.Instance().Environ() {
 					k, v, _ := strings.Cut(kv, "=")
 					m.Set(k, v)
 				}

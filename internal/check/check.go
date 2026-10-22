@@ -442,9 +442,9 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo, mi *moduleInfo) {
 	}
 	switch body := d.Body.(type) {
 	case nil:
-		// The time types of stdlib.md are the opaque types of the Time namespace; every other
-		// opaque type is a sync type, which is cannot test.
-		if strings.HasPrefix(decl.Name, "Time.") {
+		// The time types of stdlib.md are the opaque types the prelude declares under Time; every
+		// other opaque type, a host's included, is a sync type, which is cannot test.
+		if strings.HasPrefix(decl.Name, "Time.") && c.mod != nil && c.mod.path == "prelude.ant" {
 			decl.Kind = types.TimeDecl
 		} else {
 			decl.Kind = types.OpaqueDecl

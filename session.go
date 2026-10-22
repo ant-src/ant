@@ -32,7 +32,7 @@ func NewSession(ctx context.Context, opts ...Option) (*Session, error) {
 	}
 	s := interp.NewSession(ctx, interp.Config{
 		Prelude: table, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args,
-		Env: cfg.env,
+		Env: cfg.env, Environ: cfg.environ,
 	})
 	return &Session{cfg: cfg, prelude: table, extra: extra, s: s}, nil
 }

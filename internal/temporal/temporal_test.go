@@ -129,6 +129,11 @@ func TestParsePlain(t *testing.T) {
 	if d, err := ParsePlainDate("2024-11-03T01:00:00Z[UTC]"); err != nil || d.String() != "2024-11-03" {
 		t.Errorf("Z with a zone: %v %v", d, err)
 	}
+	for _, bad := range []string{"2026-10-22T25:00", "2026-10-22T14:60", "2026-10-22T14:03:60"} {
+		if _, err := ParsePlainDate(bad); err == nil {
+			t.Errorf("a date with the impossible time %q", bad)
+		}
+	}
 	if _, err := ParsePlainDate("2024-02-30"); err == nil || !strings.Contains(err.Error(), "no such date") {
 		t.Errorf("February 30: %v", err)
 	}
@@ -330,6 +335,15 @@ func TestParseEdges(t *testing.T) {
 	}
 	if _, err := ParseZoned("1883-11-18T12:00:00-04:56:00[America/New_York]", Compatible); err == nil {
 		t.Error("an offset with seconds that do not match")
+	}
+	// The string rounds a sub-minute offset to the minute, as RFC 9557 has no seconds; the
+	// offset itself keeps them, and the string parses back to the same instant.
+	lmt, err := ParseZoned("1874-12-07T19:33:28+00:53:28[Europe/Berlin]", Compatible)
+	if err != nil || lmt.String() != "1874-12-07T19:33:28+00:53[Europe/Berlin]" || lmt.Offset() != "+00:53:28" {
+		t.Errorf("local mean time in Berlin: %v %q %v", lmt, lmt.Offset(), err)
+	}
+	if back, err := ParseZoned(lmt.String(), Compatible); err != nil || back.Key() != lmt.Key() {
+		t.Errorf("the rounded string does not parse back: %v %v", back, err)
 	}
 	for off, want := range map[int]int{-17762: -17760, 17762: 17760, 29: 0, 30: 60, -30: -60, 31: 60} {
 		if got := roundToMinute(off); got != want {

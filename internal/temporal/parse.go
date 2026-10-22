@@ -353,6 +353,11 @@ func ParsePlainDate(s string) (PlainDate, error) {
 	if err := p.plainZ(); err != nil {
 		return PlainDate{}, err
 	}
+	if p.hasTime {
+		if _, err := p.clock(); err != nil {
+			return PlainDate{}, err
+		}
+	}
 	return p.date()
 }
 

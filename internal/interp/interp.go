@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -26,6 +27,7 @@ type Config struct {
 	Stderr  io.Writer
 	Args    []string
 	Env     func(name string) (string, bool)
+	Environ func() []string // every variable as name=value; nil is the process's environment
 	// Grace is how long Run waits, after main returns, for the other goroutines to finish.
 	// They are told to stop at once; the wait only lets reports in progress complete. Zero
 	// means the default of 100 milliseconds.
@@ -260,6 +262,14 @@ func (in *Instance) LookupEnv(name string) (string, bool) {
 		return "", false
 	}
 	return in.cfg.Env(name)
+}
+
+// Environ returns the run's whole environment as name=value pairs.
+func (in *Instance) Environ() []string {
+	if in.cfg.Environ == nil {
+		return os.Environ()
+	}
+	return in.cfg.Environ()
 }
 
 // Context returns the run's context, for blocking builtins.
