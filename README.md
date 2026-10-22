@@ -1,11 +1,60 @@
 # Ant
 
 A Go implementation of [Ant](https://github.com/ant-src/spec): a tree-walking interpreter, a
-type checker, and a REPL, usable as a command and as a Go module. `PLAN.md` describes the design.
+type checker, and a REPL, usable as a command and as a Go module.
 
 The interpreter implements section 12 of the specification and the whole standard library; the
 checker implements the rules of sections 4 through 10. Programs under `tests/run` are the
 acceptance suite for `ant run`, programs under `tests/check` for `ant check`.
+
+## Example
+
+```ts
+type Account = { id: string, balance: int }
+type Transfer = { from: string, to: string, amount: int }
+
+type NoAccount = { id: string }
+type Insufficient = { id: string, short: int }
+type TransferError = NoAccount | Insufficient
+
+func withdraw(accounts: Map[string, Account], id: string, amount: int): Result[void, TransferError] {
+  var account = accounts[id] ?? return Result.err(NoAccount{ id })
+  if account.balance < amount {
+    return Result.err(Insufficient{ id, short: amount - account.balance })
+  }
+  account.balance -= amount
+  Result.ok(void)
+}
+
+func transfer(accounts: Map[string, Account], t: Transfer): Result[void, TransferError] {
+  var target = accounts[t.to] ?? return Result.err(NoAccount{ id: t.to })
+  try withdraw(accounts, t.from, t.amount)
+  target.balance += t.amount
+  Result.ok(void)
+}
+
+func explain(e: TransferError): string {
+  if e is NoAccount { `no account named ${e.id}` }
+  else if e is Insufficient { `${e.id} is short by ${e.short}` }
+}
+
+func main(): void {
+  var accounts = Map{
+    ada: Account{ id: "ada", balance: 100 },
+    bob: Account{ id: "bob", balance: 20 },
+  }
+  var transfers = [
+    Transfer{ from: "ada", to: "bob", amount: 30 },
+    Transfer{ from: "bob", to: "ada", amount: 500 },
+    Transfer{ from: "ada", to: "eve", amount: 1 },
+  ]
+  for t in transfers {
+    var result = transfer(accounts, t)
+    if result is Err { print(explain(result.error)) }
+  }
+  print(Map.values(accounts) | Array.map({ `${x.id}: ${x.balance}` }))
+}
+```
 
 ## Command
 
@@ -64,44 +113,6 @@ Values cross the boundary as `value.Value`: `int64`, `float64`, `string`, `bool`
 and `value.Void` for the primitives, and `*value.Array`, `*value.Map`, `*value.Record` and
 `*value.Tagged` for the rest. The package documentation lists the mapping; `example_test.go` has
 complete examples.
-
-## Examples
-
-The programs under `examples/` are real programs of a hundred to three hundred lines each, and
-the test suite runs them like the conformance programs. Start with `examples/config.ant`, a JSON
-decoder into records, `examples/calc.ant`, a parser and evaluator over a tagged union, and
-`examples/wordfreq.ant`, which counts words across files with one goroutine per file. The world
-outside is in `examples/runner.ant`, a task runner over `Os.exec`, `examples/sift.ant`, a filter
-over standard input, and `examples/agenda.ant`, meetings across time zones with the Temporal-style
-`Time` namespace.
-
-## Testing
-
-```
-go test -race ./...             # everything, including the spec corpus and the examples
-go test ./tests -run TestSpecCoverage -v   # the matrix of spec headings against programs
-go run ./cmd/ant run scripts/coverage.ant -run cover.out 90 80   # the coverage gate, in Ant
-go test -run '^$' -fuzz FuzzParse -fuzztime 1m ./parser   # one of the fuzzers
-```
-
-The coverage gate is an Ant program: `scripts/coverage.ant` runs `go test` with a profile when
-given `-run`, or reads a profile already written, counts each block once however many test
-binaries report it, and exits with status 1 when a package or the total is below its threshold,
-the first number overall and the second per package. `tests/coverage_script_test.go` runs it on
-a small profile.
-
-`tests/README.md` describes the corpus: how programs are tagged with the heading of the
-specification they prove, and the trailers that say what each must do. The specification is
-expected as a sibling checkout at `../spec`, or wherever `ANT_SPEC` points.
-
-## Benchmarks
-
-```
-go test -run '^$' -bench . -benchmem ./bench
-```
-
-`bench/BASELINE.md` records the numbers of the last baseline. Compare a change with
-`benchstat` on two runs.
 
 ## License
 

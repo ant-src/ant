@@ -1,9 +1,0 @@
-// Map set and get with string keys, and iteration over entries.
-func main(): void {
-  var m: Map[string, int] = Map{}
-  for i in Iter.range(0, 100000) { m[`key${i}`] = i }
-  var total = 0
-  for i in Iter.range(0, 100000) { total += m[`key${i}`] ?? 0 }
-  for { key, value } in m { total += value % 3 }
-  print(total)
-}

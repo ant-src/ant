@@ -13,7 +13,7 @@ import (
 	"github.com/ant-src/ant/internal/prelude"
 )
 
-// The tests in this file keep the corpus traceable to the specification (PLAN2.md, section 3).
+// The tests in this file keep the corpus traceable to the specification.
 //
 // Every test program starts with a tag line naming the heading or headings of the specification
 // it proves, in the form "// spec: 4 Unions; 10; stdlib Json": a chapter number followed by a
@@ -180,8 +180,7 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 	}
 }
 
-// pendingSpec lists the headings no test program names yet. The audit phases of PLAN2.md
-// empty it.
+// pendingSpec lists the headings no test program names yet.
 var pendingSpec = []string{}
 
 // TestSpecCoverage checks that every tag names a heading of the specification and that every

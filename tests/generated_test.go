@@ -18,8 +18,7 @@ import (
 )
 
 // TestGenerated builds random typed expressions from a small grammar and checks that the
-// checker and the runtime agree (PLAN2.md, section 3.6). For each case with expression e of
-// type T:
+// checker and the runtime agree. For each case with expression e of type T:
 //
 //  1. a program binding e to a variable of type T checks clean;
 //  2. evaluating e yields a value whose kind matches T, or an Ant panic from a value-dependent

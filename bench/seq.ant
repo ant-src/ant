@@ -1,7 +1,0 @@
-// Sequences driven by for, with filter and map stages.
-func main(): void {
-  var total = 0
-  for v in Iter.range(0, 300000) | Iter.filter({ x % 3 == 0 }) | Iter.map({ x * 2 }) { total += v }
-  var taken = Iter.range(0, 1000000) | Iter.take(100000) | Iter.toArray()
-  print(total + Array.length(taken))
-}
