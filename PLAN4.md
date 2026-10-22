@@ -285,3 +285,13 @@ contract on `Builtin` now says `Fn` must not keep its slice, the library was aud
 `goroutines`, `closures` +3% (within the 5% rule). The gate asked for half: what remains in
 `records` and `array` is a box and a cell per stored `float64` or large `int`, which only
 unboxed values remove.
+
+Phase 34 is done and stops the plan's unboxing branch: the gate cannot hold. Instead of the
+spike, an upper bound was measured. A throwaway change served every `int` result from 0 to 8 M
+of `+`, `-` and `%` out of a prebuilt table, so `loop` boxed one value per iteration instead of
+three. Interleaved, 6 runs: `loop` −11.5% (6 M → 2 M allocations), `fib` unchanged. A real `V`
+would do no better: it widens every `eval` result from two words to three. Unboxing is worth
+about 1.15× on `loop`, not 2×. Phase 35 is not started. The same experiment shows how far the
+Go benchmarks run GC-bound: the table's 128 MB of live heap stretched the GC cycle, and
+`par_fib n=10` ran 47% faster with no fewer allocations. `ant run` sets `GOGC=400` (Phase 29);
+the benchmarks run through the library at Go's default.
