@@ -180,8 +180,12 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 	}
 }
 
-// pendingSpec lists the headings no test program names yet.
-var pendingSpec = []string{}
+// pendingSpec lists the headings no test program names yet: what Plan 6 specified in Phase 44,
+// which gets its programs in Phases 46 and 48.
+var pendingSpec = []string{
+	"9 Waiting",
+	"stdlib Net",
+}
 
 // TestSpecCoverage checks that every tag names a heading of the specification and that every
 // heading has a tag. Under -v it prints the matrix.
@@ -299,8 +303,17 @@ var panicRows = [][]string{
 	{"never"},                                // ??, ?., ==, != never panic
 }
 
-// pendingPanics lists the panic keys no test program triggers yet.
-var pendingPanics = []string{}
+// pendingPanics lists the panic keys no test program triggers yet: the ◆ functions Plan 6
+// specified in Phase 44, which get their programs in Phases 45, 46 and 49.
+var pendingPanics = []string{
+	"Context.new",
+	"Chan.new",
+	"Chan.send",
+	"Chan.close",
+	"Select.send",
+	"Select.wait",
+	"Http.serve",
+}
 
 // panicFunctions returns the ◆ functions of a specification file's code blocks, in order: the
 // signatures whose comment carries ◆ and whose name has an owner. In ant-lang.md only chapter 11
