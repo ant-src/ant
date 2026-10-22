@@ -1,0 +1,13 @@
+// Closure creation and calls, and lambdas through the library.
+func counter(): func(): int {
+  var n = 0
+  func(): int { n += 1; n }
+}
+
+func main(): void {
+  var next = counter()
+  var last = 0
+  for i in Iter.range(0, 1000000) { last = next() }
+  var doubled = Array.map(Array.range(0, 200000), { x * 2 })
+  print(last + Array.length(doubled))
+}

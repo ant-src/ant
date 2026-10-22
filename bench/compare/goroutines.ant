@@ -1,0 +1,15 @@
+// Goroutine fan-out with a WaitGroup and a Mutex-guarded counter.
+func main(): void {
+  var wg = WaitGroup.new()
+  var lock = Mutex.new()
+  var count = 0
+  for i in Iter.range(0, 2000) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for i in Iter.range(0, 50) { Mutex.withLock(lock, { count += 1 }) }
+    }
+  }
+  WaitGroup.wait(wg)
+  print(count)
+}

@@ -1,0 +1,12 @@
+// JSON stringify and parse of a document of a few thousand entries.
+func main(): void {
+  var m: Map[string, Json.Value] = Map{}
+  for i in Iter.range(0, 2000) { m[`k${i}`] = [float64(i), `v${i}`, true, null] }
+  var total = 0
+  for i in Iter.range(0, 5) {
+    var text = Json.stringify(m)
+    var back = Json.parse(text)
+    if back is Ok { total += String.length(Json.stringify(back.value)) }
+  }
+  print(total)
+}

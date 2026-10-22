@@ -1,0 +1,14 @@
+// Record allocation, field reads and writes, and functions on types.
+type Point = { x: float64, y: float64 }
+
+func addPoints(a: Point, b: Point): Point { Point{ x: a.x + b.x, y: a.y + b.y } }
+
+func main(): void {
+  var acc = Point{ x: 0.0, y: 0.0 }
+  for i in Iter.range(0, 300000) {
+    var p = Point{ x: float64(i), y: 1.0 }
+    acc = addPoints(acc, p)
+    acc.y = acc.y * 0.5
+  }
+  print(acc.x)
+}
