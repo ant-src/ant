@@ -1,0 +1,45 @@
+// spec: stdlib Encoding
+// Encoding: base64 in the standard and the URL-safe alphabet, padded on the way out and with
+// the padding optional and line breaks ignored on the way in; hex in lower case out and either
+// case in; Err on a character outside the alphabet or an odd length.
+func main(): void {
+  var bytes = String.toBytes("hi there")
+  print(Encoding.toBase64(bytes))
+  print(Encoding.toBase64(String.toBytes("")))
+  print(Encoding.toBase64([byte(251), byte(255)]))
+  print(Encoding.toBase64([byte(251), byte(255)], url: true))
+  print(Encoding.fromBase64("aGkgdGhlcmU="))
+  print(Encoding.fromBase64("aGkgdGhlcmU"))
+  print(Encoding.fromBase64("aGkg\ndGhlcmU=\n"))
+  print(Encoding.fromBase64("-_8=", url: true))
+  print(Encoding.fromBase64("+/8="))
+  print(Encoding.fromBase64("-_8="))
+  print(Result.isOk(Encoding.fromBase64("a")))
+  print(Encoding.fromBase64("aGkgdGhlcmU=") | Result.map(String.fromBytes))
+  print(Encoding.toHex(bytes))
+  print(Encoding.toHex([]))
+  print(Encoding.fromHex("6869"))
+  print(Encoding.fromHex("6A6B") == Encoding.fromHex("6a6b"))
+  print(Result.isOk(Encoding.fromHex("abc")))
+  print(Encoding.fromHex("zz"))
+}
+
+// expect
+// out: aGkgdGhlcmU=
+// out:
+// out: +/8=
+// out: -_8=
+// out: Ok{ value: [104, 105, 32, 116, 104, 101, 114, 101] }
+// out: Ok{ value: [104, 105, 32, 116, 104, 101, 114, 101] }
+// out: Ok{ value: [104, 105, 32, 116, 104, 101, 114, 101] }
+// out: Ok{ value: [251, 255] }
+// out: Ok{ value: [251, 255] }
+// out: Err{ error: Error{ message: "illegal base64 data at input byte 0" } }
+// out: false
+// out: Ok{ value: "hi there" }
+// out: 6869207468657265
+// out:
+// out: Ok{ value: [104, 105] }
+// out: true
+// out: false
+// out: Err{ error: Error{ message: "encoding/hex: invalid byte: U+007A 'z'" } }

@@ -1,0 +1,13 @@
+// spec: stdlib Csv; 12 Runtime panics
+// panics: Csv.parse; library-value
+// A separator that is not one character, or is a quote, a line break, U+0000 or U+FFFD, is a
+// ◆ panic: it is part of the program, not of the data.
+func main(): void {
+  print(Csv.parse("a;b", ";"))
+  print(Csv.parse("a,b", "ab"))
+}
+
+// expect
+// exit: 1
+// out: Ok{ value: [["a", "b"]] }
+// err: Csv.parse needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "ab"

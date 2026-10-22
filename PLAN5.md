@@ -616,3 +616,10 @@ over Go's `regexp`, with `Regex.Match` as a tagged record and the code point ind
 cursor per call, and a corpus program that matches, replaces and splits non-ASCII text at the
 right indices and compares `Regex.compile`'s values with literals. Nothing differs from the
 plan.
+
+Phase 41 was done on 2026-10-22: `Csv`, `Encoding`, `Url` and `Crypto` in four files under
+`internal/lib`, a program per namespace with the FIPS 180-4, RFC 2202 and RFC 4231 vectors,
+and one per ◆, which empties `pendingSpec` and `pendingPanics`. Two small choices on the way:
+`Url.parseQuery` reads the pairs itself, since Go's `ParseQuery` returns an unordered map, and
+`Csv.stringify` writes its rows itself, since Go's writer also quotes a field that is `\.`, a
+PostgreSQL convention the spec does not have.

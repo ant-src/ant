@@ -454,3 +454,39 @@ func Os.stderr(): File.Handle
 type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[string, Json.Value]
 func Json.parse(text: string): Result[Json.Value, Error]
 func Json.stringify[T](value: T): string
+
+// Csv
+
+func Csv.parse(text: string, sep: string = ","): Result[Array[Array[string]], Error]
+func Csv.stringify(rows: Array[Array[string]], sep: string = ","): string
+
+// Encoding
+
+func Encoding.toBase64(bytes: Array[byte], url: bool = false): string
+func Encoding.fromBase64(s: string, url: bool = false): Result[Array[byte], Error]
+func Encoding.toHex(bytes: Array[byte]): string
+func Encoding.fromHex(s: string): Result[Array[byte], Error]
+
+// Url
+
+type Url.Parts = { scheme: string, opaque: string, user: string, host: string, port: string, path: string, query: string, fragment: string }
+
+func Url.parse(s: string): Result[Url.Parts, Error]
+func Url.stringify(parts: Url.Parts): string
+func Url.escape(s: string): string
+func Url.unescape(s: string): Result[string, Error]
+func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
+func Url.stringifyQuery(params: Map[string, Array[string]]): string
+
+// Crypto
+
+func Crypto.sha256(bytes: Array[byte]): Array[byte]
+func Crypto.sha512(bytes: Array[byte]): Array[byte]
+func Crypto.sha1(bytes: Array[byte]): Array[byte]
+func Crypto.md5(bytes: Array[byte]): Array[byte]
+func Crypto.hmacSha1(key: Array[byte], message: Array[byte]): Array[byte]
+func Crypto.hmacSha256(key: Array[byte], message: Array[byte]): Array[byte]
+func Crypto.hmacSha512(key: Array[byte], message: Array[byte]): Array[byte]
+func Crypto.equal(a: Array[byte], b: Array[byte]): bool
+func Crypto.randomBytes(n: int): Array[byte]
+func Crypto.uuid(): string
