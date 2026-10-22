@@ -245,3 +245,13 @@ re-recorded.
 Phase 29 is done: `cmd/ant` sets `SetGCPercent(400)` unless `GOGC` is set, and `Flush` takes
 `outMu` only when output is waiting. `ant run`, 15 runs each: `par_fib 10` 443 → 231 ms (1.92×),
 `par_map 10` 245 → 199 ms, `par_fib 1` and `loop` unchanged.
+
+Phase 30 is done in part. Done: environments of up to four plain slots are one allocation, sized
+exactly (`env1` to `env4`); a fixed inline array was tried first and made every frame 144 bytes,
+which cost more than it saved. A call of an Ant function with no named arguments evaluates onto
+the goroutine's argument stack and binds from it; every `recover` resets the stack. Positional
+calls of the right arity skip `filled`. Not done: `defer g.pop()` stays, since open-coded defers
+cost about nothing here. benchstat against Phase 29, 8 runs: `fib` −12% (450 k → 150 k
+allocations, 2 per call), `par_fib` −11 to −13%, `records` −3%, allocations −30% geomean, no
+regression. The 30% time gate is missed: a profile of `fib(32)` now shows dispatch (`eval`,
+`binary`, `arith`, `ident`), which is Phase 32's.

@@ -91,7 +91,11 @@ func (g *Goroutine) evalDeferBlock(b *ast.Block, env *Env) (v value.Value, c ctl
 }
 
 func (g *Goroutine) runDeferred(d deferred) (p any) {
-	defer func() { p = recover() }()
+	mark := len(g.args)
+	defer func() {
+		p = recover()
+		g.unwindArgs(mark)
+	}()
 	g.evalBlock(d.body, newEnv(&d.scope.BlockScope, d.env))
 	return nil
 }
@@ -339,42 +343,79 @@ func (g *Goroutine) postfix(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 		}
 		return g.index(recv, idx, x.Pos), ctlNone, false
 	case *ast.Call:
-		var args []value.Value
-		var names []string
-		rest := x.Args
-		if x.Pipe {
-			v, c := g.eval(x.Args[0].Value, env)
-			if c != ctlNone {
-				return v, c, false
-			}
-			args = append(args, v)
-			rest = x.Args[1:]
-		}
-		fn, c, skip := g.postfix(x.Fn, env)
-		if c != ctlNone {
-			return fn, c, false
-		}
-		if skip || (x.Optional && fn == value.Null) {
-			return value.Null, ctlNone, true
-		}
-		for _, a := range rest {
-			v, c := g.eval(a.Value, env)
-			if c != ctlNone {
-				return v, c, false
-			}
-			if a.Name != "" && names == nil {
-				names = make([]string, len(args), len(x.Args))
-			}
-			args = append(args, v)
-			if names != nil {
-				names = append(names, a.Name)
-			}
-		}
-		return g.callValue(fn, args, names, x.Pos), ctlNone, false
+		return g.call(x, env)
 	default:
 		v, c := g.eval(e, env)
 		return v, c, false
 	}
+}
+
+// call evaluates a call. Arguments to an Ant function with no named arguments go on the
+// goroutine's argument stack, which the callee copies into its frame before its body runs, so
+// such a call allocates no argument slice. Arguments to anything else get their own slice,
+// because a builtin may keep it.
+func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
+	var pipe value.Value
+	rest := x.Args
+	if x.Pipe {
+		v, c := g.eval(x.Args[0].Value, env)
+		if c != ctlNone {
+			return v, c, false
+		}
+		pipe = v
+		rest = x.Args[1:]
+	}
+	fn, c, skip := g.postfix(x.Fn, env)
+	if c != ctlNone {
+		return fn, c, false
+	}
+	if skip || (x.Optional && fn == value.Null) {
+		return value.Null, ctlNone, true
+	}
+	if f, ok := fn.(*Func); ok && !namedArgs(rest) {
+		base := len(g.args)
+		if x.Pipe {
+			g.args = append(g.args, pipe)
+		}
+		for _, a := range rest {
+			v, c := g.eval(a.Value, env)
+			if c != ctlNone {
+				g.args = g.args[:base]
+				return v, c, false
+			}
+			g.args = append(g.args, v)
+		}
+		g.check()
+		return g.callFuncStack(f, base, x.Pos), ctlNone, false
+	}
+	var args []value.Value
+	var names []string
+	if x.Pipe {
+		args = append(args, pipe)
+	}
+	for _, a := range rest {
+		v, c := g.eval(a.Value, env)
+		if c != ctlNone {
+			return v, c, false
+		}
+		if a.Name != "" && names == nil {
+			names = make([]string, len(args), len(x.Args))
+		}
+		args = append(args, v)
+		if names != nil {
+			names = append(names, a.Name)
+		}
+	}
+	return g.callValue(fn, args, names, x.Pos), ctlNone, false
+}
+
+func namedArgs(args []ast.Arg) bool {
+	for _, a := range args {
+		if a.Name != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Goroutine) field(recv value.Value, name string, pos ast.Pos) value.Value {
@@ -471,7 +512,32 @@ func (g *Goroutine) pop() {
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
 	g.push(f.FuncName(), f.Env.mod.m.File.Path, pos)
 	defer g.pop()
+	env := g.frame(f, args, names, pos)
+	v, _ := g.evalBlock(f.Body, env)
+	return v
+}
+
+// callFuncStack calls f with the arguments on the argument stack from base up, and pops them
+// once they are bound.
+func (g *Goroutine) callFuncStack(f *Func, base int, pos ast.Pos) value.Value {
+	g.push(f.FuncName(), f.Env.mod.m.File.Path, pos)
+	defer g.pop()
+	env := g.frame(f, g.args[base:], nil, pos)
+	clear(g.args[base:])
+	g.args = g.args[:base]
+	v, _ := g.evalBlock(f.Body, env)
+	return v
+}
+
+// frame opens f's environment and binds the arguments of a call to it.
+func (g *Goroutine) frame(f *Func, args []value.Value, names []string, pos ast.Pos) *Env {
 	env := newEnv(&f.Scope.BlockScope, f.Env)
+	if !f.Lambda && names == nil && len(args) == len(f.Params) {
+		for i := range args {
+			env.set(f.Params[i].Slot, args[i])
+		}
+		return env
+	}
 	if f.Lambda {
 		if names != nil {
 			g.panicf(pos, "a lambda takes no named arguments")
@@ -529,8 +595,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			env.set(p.Slot, v)
 		}
 	}
-	v, _ := g.evalBlock(f.Body, env)
-	return v
+	return env
 }
 
 func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, pos ast.Pos) value.Value {
@@ -1061,9 +1126,11 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 		}
 		return false
 	}}
+	mark := len(g.args)
 	defer func() {
 		if r := recover(); r != nil {
 			if u, ok := r.(*loopUnwind); ok && u.loop == e {
+				g.unwindArgs(mark)
 				rv, rc = u.v, ctlReturn
 				return
 			}

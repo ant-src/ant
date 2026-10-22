@@ -15,21 +15,67 @@ type Env struct {
 	mod    *module
 }
 
-func newEnv(scope *ast.BlockScope, parent *Env) *Env {
-	e := &Env{parent: parent}
-	if parent != nil {
-		e.mod = parent.mod
+// Environments with up to four plain slots are allocated together with their slots, sized
+// exactly, so that opening one is a single allocation of no more than it needs.
+type (
+	env1 struct {
+		Env
+		slots [1]value.Value
 	}
-	if scope != nil {
-		if scope.Plain > 0 {
-			e.plain = make([]value.Value, scope.Plain)
-			for i := range e.plain {
-				e.plain[i] = value.Uninitialized
-			}
+	env2 struct {
+		Env
+		slots [2]value.Value
+	}
+	env3 struct {
+		Env
+		slots [3]value.Value
+	}
+	env4 struct {
+		Env
+		slots [4]value.Value
+	}
+)
+
+func allocEnv(plain int) *Env {
+	switch plain {
+	case 0:
+		return &Env{}
+	case 1:
+		x := &env1{}
+		x.plain = x.slots[:]
+		return &x.Env
+	case 2:
+		x := &env2{}
+		x.plain = x.slots[:]
+		return &x.Env
+	case 3:
+		x := &env3{}
+		x.plain = x.slots[:]
+		return &x.Env
+	case 4:
+		x := &env4{}
+		x.plain = x.slots[:]
+		return &x.Env
+	}
+	return &Env{plain: make([]value.Value, plain)}
+}
+
+func newEnv(scope *ast.BlockScope, parent *Env) *Env {
+	var e *Env
+	if scope == nil {
+		e = &Env{}
+	} else {
+		e = allocEnv(scope.Plain)
+		for i := range e.plain {
+			e.plain[i] = value.Uninitialized
 		}
 		if scope.Shared > 0 {
 			e.shared = make([]value.Slot, scope.Shared)
 		}
+	}
+	e.parent = parent
+	if parent != nil {
+		e.mod = parent.mod
 	}
 	return e
 }
