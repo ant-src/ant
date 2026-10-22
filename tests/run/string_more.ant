@@ -1,0 +1,93 @@
+// spec: 11 String
+// The String functions Plan 5 added: lastIndexOf in code points, one-sided trims, a prefix or
+// suffix removed once, count without overlap, replaceFirst, cut around the first separator,
+// fields on runs of white space, lines on \n and \r\n without an empty final line, and the
+// class tests, which hold for every code point and fail on the empty string.
+func main(): void {
+  print(String.lastIndexOf("añbñc", "ñ"))
+  print(String.lastIndexOf("abc", "z"))
+  print(String.lastIndexOf("abc", ""))
+  print(String.trimStart("  x  ") + "|")
+  print(String.trimEnd("  x  ") + "|")
+  print(String.trimPrefix("prefix-x", "prefix-"))
+  print(String.trimPrefix("x", "prefix-"))
+  print(String.trimPrefix("aab", "a"))
+  print(String.trimSuffix("x.ant", ".ant"))
+  print(String.trimSuffix("x.ant", ".go"))
+  print(String.count("cheese", "e"))
+  print(String.count("aaaa", "aa"))
+  print(String.count("abc", "z"))
+  print(String.replaceFirst("a-b-c", "-", "+"))
+  print(String.replaceFirst("abc", "z", "+"))
+  print(String.cut("k=v=w", "="))
+  print(String.cut("kvw", "="))
+  var c = String.cut("host:8080", ":") ?? String.Cut{ before: "", after: "" }
+  print(c.before + " " + c.after)
+  print(String.fields("  a \t b\n c  "))
+  print(String.fields("   "))
+  print(String.lines("a\r\nb\n"))
+  print(String.lines("a\nb"))
+  print(String.lines("\n"))
+  print(String.lines(""))
+  print(String.lines("a\r"))
+  print(String.lines("\n\n"))
+  print(String.isDigit("123"))
+  print(String.isDigit("١٢٣"))
+  print(String.isDigit("12a"))
+  print(String.isDigit(""))
+  print(String.isLetter("añB"))
+  print(String.isLetter("a1"))
+  print(String.isSpace(" \t\n\u{00A0}"))
+  print(String.isSpace("a"))
+  print(String.isUpper("AÑ"))
+  print(String.isUpper("Añ"))
+  print(String.isLower("añ"))
+  print(String.isLower("a1"))
+  for ch in "a1 B" {
+    print(`${ch}: ${String.isLetter(ch)} ${String.isDigit(ch)} ${String.isSpace(ch)} ${String.isUpper(ch)}`)
+  }
+}
+
+// expect
+// out: 3
+// out: null
+// out: 3
+// out: x  |
+// out:   x|
+// out: x
+// out: x
+// out: ab
+// out: x
+// out: x.ant
+// out: 3
+// out: 2
+// out: 0
+// out: a+b-c
+// out: abc
+// out: String.Cut{ before: "k", after: "v=w" }
+// out: null
+// out: host 8080
+// out: ["a", "b", "c"]
+// out: []
+// out: ["a", "b"]
+// out: ["a", "b"]
+// out: [""]
+// out: []
+// out: ["a\r"]
+// out: ["", ""]
+// out: true
+// out: true
+// out: false
+// out: false
+// out: true
+// out: false
+// out: true
+// out: false
+// out: true
+// out: false
+// out: true
+// out: false
+// out: a: true false false false
+// out: 1: false true false false
+// out:  : false false true false
+// out: B: true false false true

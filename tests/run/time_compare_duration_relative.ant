@@ -1,0 +1,15 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: Time.compareDuration; library-value
+// compareDuration orders by length, and is a ◆ panic on years, months or weeks without a
+// relativeTo point to measure them from.
+func main(): void {
+  print(Time.compareDuration(Time.duration(hours: 1), Time.duration(minutes: 90)))
+  print(Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30), relativeTo: Time.plainDate(2026, 2, 1)))
+  print(Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30)))
+}
+
+// expect
+// exit: 1
+// out: -1
+// out: -1
+// err: Time.compareDuration: years, months or weeks need a relativeTo point to compare

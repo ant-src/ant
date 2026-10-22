@@ -584,3 +584,10 @@ instead of waiting for Phase 37, which leaves `Time.with`, `since`, `addDuration
 block of the spec could not read the section 2 example with a literal in it, so it gained a
 `pendingBlocks` list of the same kind as the others, which Phase 39 empties. Decisions 1 to 3 and
 5 to 17 are written into the spec as recommended, so they are taken with this phase.
+
+Phase 37 was done on 2026-10-22: sections 3.1 and 3.2 in `internal/lib/string.go` and the
+prelude, `String.Cut` as the first type on a core namespace, two corpus programs for the
+functions, one per ◆, and a program for each of the five `Time` ◆ functions Phase 36 left
+pending. `String.toInt` keeps its own digit check in front of the parse, now for any base, so
+that a prefix, a space or an underscore is `null` whatever the parser would take. Nothing else
+differs from the plan.

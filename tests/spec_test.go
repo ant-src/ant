@@ -307,17 +307,8 @@ var panicRows = [][]string{
 }
 
 // pendingPanics lists the panic keys no test program triggers yet: the ◆ functions Plan 5
-// specified in Phase 36, which get their programs in Phases 37 to 41, and the ◆ functions of Time
-// that came under the gate when it was extended to stdlib.md, which Phase 37 covers.
+// specified in Phase 36, which get their programs in Phases 38 to 41.
 var pendingPanics = []string{
-	"String.padStart",
-	"String.padEnd",
-	"String.count",
-	"String.replaceFirst",
-	"String.cut",
-	"String.toInt",
-	"String.fromInt",
-	"String.fromFloat",
 	"Array.insert",
 	"Array.removeAt",
 	"Array.chunk",
@@ -325,11 +316,6 @@ var pendingPanics = []string{
 	"Math.randomInt",
 	"Bits.rotateLeft",
 	"Bits.rotateRight",
-	"Time.with",
-	"Time.since",
-	"Time.addDuration",
-	"Time.compareDuration",
-	"Time.roundDuration",
 	"Csv.parse",
 	"Csv.stringify",
 	"Crypto.randomBytes",

@@ -1,0 +1,100 @@
+// spec: 11 String
+// Numbers to text and back: fromInt writes digits of any base from 2 to 36, an unsigned value
+// as the number it is and the most negative int with its sign; fromFloat is fixed point, half
+// to even on a tie, and renders NaN and the infinities as String.from does; toInt reads the
+// digits of a base in either letter case with an optional sign and nothing else; the pads count
+// code points and cut a longer pad to what is missing.
+func main(): void {
+  print(String.fromInt(255))
+  print(String.fromInt(255, 16))
+  print(String.fromInt(255, 2))
+  print(String.fromInt(-255, 16))
+  print(String.fromInt(35, 36))
+  print(String.fromInt(Math.minInt, 2))
+  print(String.fromInt(Math.minInt, 10))
+  print(String.fromInt(Math.minInt, 36))
+  print(String.fromInt(Bits.not(uint64(0))))
+  print(String.fromInt(Bits.not(uint64(0)), 16))
+  print(String.fromInt(int8(-128), 2))
+  print(String.fromInt(byte(7), 2))
+  print(String.fromFloat(3.14159, 2))
+  print(String.fromFloat(2.5, 0))
+  print(String.fromFloat(3.5, 0))
+  print(String.fromFloat(-1.5, 0))
+  print(String.fromFloat(1.0, 3))
+  print(String.fromFloat(1e21, 0))
+  print(String.fromFloat(0.0 / 0.0, 2))
+  print(String.fromFloat(1.0 / 0.0, 2))
+  print(String.fromFloat(-1.0 / 0.0, 2))
+  print(String.toInt("ff", 16))
+  print(String.toInt("FF", 16))
+  print(String.toInt("-ff", 16))
+  print(String.toInt("0xff", 16))
+  print(String.toInt("101", 2))
+  print(String.toInt("2", 2))
+  print(String.toInt("z", 36))
+  print(String.toInt("Z", 36))
+  print(String.toInt("ffffffffffffffff", 16))
+  print(String.toInt("7fffffffffffffff", 16))
+  print(String.toInt("-8000000000000000", 16))
+  print(String.toInt("", 16))
+  print(String.toInt("-", 16))
+  print(String.toInt("1_0", 16))
+  print(String.toInt(" 1", 16))
+  print(String.toInt("42"))
+  print(String.padStart("7", 3, "0"))
+  print(String.padStart("7", 4, "ab"))
+  print(String.padEnd("7", 4, "ab"))
+  print(String.padStart("abc", 2))
+  print(String.padStart("ñ", 3))
+  print(String.padEnd("ñ", 3) + "|")
+  print(String.padStart("ab", 2, "x"))
+  print(`${String.fromFloat(1234.5678, 2)} ${String.padStart(String.fromInt(255, 16), 8, "0")}`)
+}
+
+// expect
+// out: 255
+// out: ff
+// out: 11111111
+// out: -ff
+// out: z
+// out: -1000000000000000000000000000000000000000000000000000000000000000
+// out: -9223372036854775808
+// out: -1y2p0ij32e8e8
+// out: 18446744073709551615
+// out: ffffffffffffffff
+// out: -10000000
+// out: 111
+// out: 3.14
+// out: 2
+// out: 4
+// out: -2
+// out: 1.000
+// out: 1000000000000000000000
+// out: NaN
+// out: Infinity
+// out: -Infinity
+// out: 255
+// out: 255
+// out: -255
+// out: null
+// out: 5
+// out: null
+// out: 35
+// out: 35
+// out: null
+// out: 9223372036854775807
+// out: -9223372036854775808
+// out: null
+// out: null
+// out: null
+// out: null
+// out: 42
+// out: 007
+// out: aba7
+// out: 7aba
+// out: abc
+// out:   ñ
+// out: ñ  |
+// out: ab
+// out: 1234.57 000000ff

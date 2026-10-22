@@ -1,0 +1,12 @@
+// spec: 11 String; 12 Runtime panics
+// panics: String.replaceFirst; library-value
+// Replacing the empty string is a ◆ panic, as it is for String.replace.
+func main(): void {
+  print(String.replaceFirst("a-b", "-", "+"))
+  print(String.replaceFirst("a-b", "", "+"))
+}
+
+// expect
+// exit: 1
+// out: a+b
+// err: String.replaceFirst needs a pattern that is not empty

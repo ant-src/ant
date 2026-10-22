@@ -1,0 +1,13 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: Time.with; library-value
+// with constrains a field the type has and is a ◆ panic on a field it lacks: a PlainDate has
+// no hour.
+func main(): void {
+  print(Time.with(Time.plainDate(2026, 1, 31), month: 2))
+  print(Time.with(Time.plainDate(2026, 1, 31), hour: 1))
+}
+
+// expect
+// exit: 1
+// out: 2026-02-28
+// err: Time.with: a date has no time fields

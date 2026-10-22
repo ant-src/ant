@@ -1,0 +1,12 @@
+// spec: 11 String; 12 Runtime panics
+// panics: String.toInt; library-value
+// A base outside 2 to 36 is a ◆ panic: it is part of the program, not of the text.
+func main(): void {
+  print(String.toInt("11", 36))
+  print(String.toInt("11", 37))
+}
+
+// expect
+// exit: 1
+// out: 37
+// err: String.toInt needs a base from 2 to 36, got 37

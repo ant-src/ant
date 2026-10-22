@@ -1,0 +1,13 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: Time.roundDuration; library-value
+// roundDuration balances to largestUnit or rounds to smallestUnit, and with neither given has
+// nothing to do, which is a ◆ panic.
+func main(): void {
+  print(Time.roundDuration(Time.duration(minutes: 90), largestUnit: Time.Hour{}))
+  print(Time.roundDuration(Time.duration(minutes: 90)))
+}
+
+// expect
+// exit: 1
+// out: PT1H30M
+// err: Time.roundDuration: roundDuration needs a smallest or a largest unit

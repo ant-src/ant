@@ -81,6 +81,8 @@ func Map.same[K, V](m: Map[K, V], n: Map[K, V]): bool
 
 // String
 
+type String.Cut = { before: string, after: string }
+
 func String.length(s: string): int
 func String.isEmpty(s: string): bool
 func String.slice(s: string, from: int, to: int): string
@@ -89,20 +91,39 @@ func String.split(s: string, sep: string): Array[string]
 func String.join(parts: Array[string], sep: string): string
 func String.repeat(s: string, n: int): string
 func String.trim(s: string): string
+func String.trimStart(s: string): string
+func String.trimEnd(s: string): string
+func String.trimPrefix(s: string, prefix: string): string
+func String.trimSuffix(s: string, suffix: string): string
+func String.padStart(s: string, width: int, pad: string = " "): string
+func String.padEnd(s: string, width: int, pad: string = " "): string
 func String.contains(s: string, t: string): bool
 func String.startsWith(s: string, t: string): bool
 func String.endsWith(s: string, t: string): bool
 func String.indexOf(s: string, t: string): int | null
+func String.lastIndexOf(s: string, t: string): int | null
+func String.count(s: string, t: string): int
 func String.replace(s: string, old: string, new: string): string
+func String.replaceFirst(s: string, old: string, new: string): string
+func String.cut(s: string, sep: string): String.Cut | null
+func String.fields(s: string): Array[string]
+func String.lines(s: string): Array[string]
 func String.toUpper(s: string): string
 func String.toLower(s: string): string
+func String.isDigit(s: string): bool
+func String.isLetter(s: string): bool
+func String.isSpace(s: string): bool
+func String.isUpper(s: string): bool
+func String.isLower(s: string): bool
 func String.chars(s: string): Array[string]
 func String.toBytes(s: string): Array[byte]
 func String.fromBytes(bytes: Array[byte]): string | null
 func String.toCodePoints(s: string): Array[int]
 func String.fromCodePoints(points: Array[int]): string | null
-func String.toInt(s: string): int | null
+func String.toInt(s: string, base: int = 10): int | null
 func String.toFloat(s: string): float64 | null
+func String.fromInt[T: Integer](x: T, base: int = 10): string
+func String.fromFloat(x: float64, digits: int): string
 func String.from[T](value: T): string
 
 // Iter
