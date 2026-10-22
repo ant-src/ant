@@ -2,13 +2,27 @@ package lib
 
 import (
 	"bufio"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/ant-src/ant/internal/interp"
+	"github.com/ant-src/ant/internal/temporal"
 	"github.com/ant-src/ant/value"
 )
+
+// InfoTag is File.Info: { name: string, size: int, isDir: bool, modified: Time.Instant }.
+var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "modified"})
+
+func okVoid(err error) value.Value {
+	if err != nil {
+		return errResult(err)
+	}
+	return value.Ok(value.Void)
+}
 
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
@@ -92,6 +106,68 @@ func init() {
 	register("File", func() value.Value {
 		return namespace("File",
 			constant("Handle", value.NewTag("File.Handle", value.SyncTag, nil)),
+			constant("Info", InfoTag),
+			fn("File.stat", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
+				fi, err := os.Stat(stringArg(g, "File.stat", a[0]))
+				if err != nil {
+					return errResult(err)
+				}
+				modified, err := temporal.NewInstant(fi.ModTime().Unix(), int64(fi.ModTime().Nanosecond()))
+				if err != nil {
+					return errResult(err)
+				}
+				return value.Ok(value.NewRecord(InfoTag, []value.Value{fi.Name(), fi.Size(), fi.IsDir(), modified}))
+			}),
+			fn("File.mkdir", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return okVoid(os.MkdirAll(stringArg(g, "File.mkdir", a[0]), 0o755))
+			}),
+			fn("File.removeAll", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return okVoid(os.RemoveAll(stringArg(g, "File.removeAll", a[0])))
+			}),
+			fn("File.rename", "from, to", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return okVoid(os.Rename(stringArg(g, "File.rename", a[0]), stringArg(g, "File.rename", a[1])))
+			}),
+			fn("File.tempDir", "prefix", func(g *interp.Goroutine, a []value.Value) value.Value {
+				dir, err := os.MkdirTemp("", stringArg(g, "File.tempDir", a[0]))
+				if err != nil {
+					return errResult(err)
+				}
+				return value.Ok(dir)
+			}),
+			fn("File.walk", "dir", func(g *interp.Goroutine, a []value.Value) value.Value {
+				dir := stringArg(g, "File.walk", a[0])
+				if fi, err := os.Stat(dir); err != nil {
+					return errResult(err)
+				} else if !fi.IsDir() {
+					return errResult(errors.New(dir + " is not a directory"))
+				}
+				var files []value.Value
+				err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+					if err != nil {
+						return err
+					}
+					if d.IsDir() {
+						return nil
+					}
+					rel, err := filepath.Rel(dir, p)
+					if err != nil {
+						return err
+					}
+					files = append(files, rel)
+					return nil
+				})
+				if err != nil {
+					return errResult(err)
+				}
+				return value.Ok(value.NewArray(files))
+			}),
+			fn("File.append", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
+				f, err := os.OpenFile(stringArg(g, "File.append", a[0]), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+				if err != nil {
+					return errResult(err)
+				}
+				return value.Ok(&Handle{f: f, w: bufio.NewWriter(f)})
+			}),
 			fn("File.read", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
 				data, err := os.ReadFile(stringArg(g, "File.read", a[0]))
 				if err != nil {

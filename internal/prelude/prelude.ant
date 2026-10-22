@@ -200,6 +200,14 @@ func Atomic.compareAndSwap[T](a: Atomic[T], expected: T, v: T): bool
 // File
 
 type File.Handle
+type File.Info = { name: string, size: int, isDir: bool, modified: Time.Instant }
+func File.stat(path: string): Result[File.Info, Error]
+func File.mkdir(path: string): Result[void, Error]
+func File.removeAll(path: string): Result[void, Error]
+func File.rename(from: string, to: string): Result[void, Error]
+func File.tempDir(prefix: string): Result[string, Error]
+func File.walk(dir: string): Result[Array[string], Error]
+func File.append(path: string): Result[File.Handle, Error]
 func File.read(path: string): Result[string, Error]
 func File.readBytes(path: string): Result[Array[byte], Error]
 func File.write(path: string, text: string): Result[void, Error]
@@ -216,6 +224,17 @@ func File.close(f: File.Handle): void
 func File.readAll(f: File.Handle): Result[string, Error]
 func File.writeText(f: File.Handle, text: string): Result[void, Error]
 func File.flush(f: File.Handle): Result[void, Error]
+
+// Path
+
+func Path.join(parts: Array[string]): string
+func Path.base(p: string): string
+func Path.dir(p: string): string
+func Path.ext(p: string): string
+func Path.clean(p: string): string
+func Path.isAbs(p: string): bool
+func Path.abs(p: string): Result[string, Error]
+func Path.rel(base: string, target: string): Result[string, Error]
 
 // Http
 

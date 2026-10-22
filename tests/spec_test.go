@@ -182,7 +182,7 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 
 // pendingSpec lists the headings no test program names yet. The audit phases of PLAN2.md
 // empty it.
-var pendingSpec = []string{"stdlib Path"} // until Phase 26 of PLAN3.md
+var pendingSpec = []string{}
 
 // TestSpecCoverage checks that every tag names a heading of the specification and that every
 // heading has a tag. Under -v it prints the matrix.

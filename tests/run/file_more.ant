@@ -1,0 +1,64 @@
+// spec: stdlib File
+// Files and directories (stdlib.md): stat, mkdir with its parents, append, walk in lexical
+// order with relative paths, rename, tempDir and removeAll, in a temporary directory given as
+// the first argument.
+func main(): void {
+  var dir = Os.args()[0]
+  print(File.mkdir(`${dir}/a/b`))
+  print(File.mkdir(`${dir}/a/b`))
+  print(File.write(`${dir}/a/one.txt`, "1"))
+  print(File.write(`${dir}/a/b/two.txt`, "22"))
+  var out = Result.unwrap(File.append(`${dir}/a/one.txt`))
+  print(File.writeText(out, "11"))
+  File.close(out)
+  print(File.read(`${dir}/a/one.txt`))
+  var info = Result.unwrap(File.stat(`${dir}/a/one.txt`))
+  print(info.name)
+  print(info.size)
+  print(info.isDir)
+  print(Time.epochMillis(info.modified) > 1700000000000)
+  print(Result.unwrap(File.stat(`${dir}/a`)).isDir)
+  print(File.stat(`${dir}/nope`) is Err)
+  print(File.walk(`${dir}/a`))
+  print(File.walk(`${dir}/a/one.txt`) is Err)
+  print(File.rename(`${dir}/a/one.txt`, `${dir}/a/b/moved.txt`))
+  print(File.walk(`${dir}/a`))
+  var tmp = Result.unwrap(File.tempDir("ant-"))
+  print(String.contains(Path.base(tmp), "ant-"))
+  print(File.removeAll(tmp))
+  print(File.exists(tmp))
+  print(File.remove(`${dir}/a`) is Err)
+  print(File.removeAll(`${dir}/a`))
+  print(File.removeAll(`${dir}/a`))
+  print(File.exists(`${dir}/a`))
+  print(File.append(`${dir}/zz/none.txt`) is Err)
+  print(File.rename(`${dir}/none`, `${dir}/other`) is Err)
+}
+
+// expect
+// args: $TMP
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: "111" }
+// out: one.txt
+// out: 3
+// out: false
+// out: true
+// out: true
+// out: true
+// out: Ok{ value: ["b/two.txt", "one.txt"] }
+// out: true
+// out: Ok{ value: void }
+// out: Ok{ value: ["b/moved.txt", "b/two.txt"] }
+// out: true
+// out: Ok{ value: void }
+// out: false
+// out: true
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: false
+// out: true
+// out: true

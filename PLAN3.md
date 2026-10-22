@@ -579,5 +579,6 @@ fails to check, since `T` becomes the parameter's union and `r` is a `Result` of
 a variable in between checks. Phase 25 is done: durations with Temporal's bounds, parsing and
 rendering; `add`, `subtract`, `until`, `since`, `with`, `round` on every type; `addDuration`,
 `compareDuration`, `total` and `roundDuration` with the relative nudging and bubbling of
-Temporal's reference implementation; the transitions over `ZoneBounds`; `Math.random`. Next is
-Phase 26.
+Temporal's reference implementation; the transitions over `ZoneBounds`; `Math.random`. Phase 26
+is done: `File.stat`, `mkdir`, `removeAll`, `rename`, `walk`, `tempDir`, `append` and the
+`Path` namespace, with `stdlib Path` off the pending list. Next is Phase 27.
