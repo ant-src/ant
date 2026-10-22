@@ -1,0 +1,53 @@
+// spec: stdlib Os
+// Processes (stdlib.md): Os.exec runs a program without a shell and captures its outputs; a
+// nonzero exit is Ok with its status, and a program that cannot start is Err. The suite runs
+// under go test, so go is on the path, and dir, env and stdin reach a small Go program that
+// reports them, run in a temporary directory given as the first argument.
+func main(): void {
+  var version = Result.unwrap(Os.exec("go", ["version"]))
+  print(version.status)
+  print(String.startsWith(version.stdout, "go version"))
+  print(version.stderr == "")
+  var bad = Result.unwrap(Os.exec("go", ["nonsense"]))
+  print(bad.status)
+  print(bad.stdout == "")
+  print(String.contains(bad.stderr, "nonsense"))
+  print(Os.exec("ant-no-such-program-xyz") is Err)
+  print(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
+  print(Map.has(Os.environ(), "PATH"))
+  print(Os.cwd() is Ok)
+
+  var dir = Os.args()[0]
+  var parts = String.split(dir, "/")
+  var base = parts[Array.length(parts) - 1]
+  var src = "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"path/filepath\"\n\t\"strings\"\n)\n\n" +
+    "func main() {\n\twd, _ := os.Getwd()\n\tline, _ := bufio.NewReader(os.Stdin).ReadString('\\n')\n" +
+    "\tfmt.Print(filepath.Base(wd) == os.Args[1], \" \", os.Getenv(\"ANT_EXEC_TEST\"), \" \", strings.TrimSpace(line))\n" +
+    "\tfmt.Fprintln(os.Stderr, \"warned\")\n}\n"
+  print(File.write(`${dir}/echo.go`, src))
+  var env = Os.environ()
+  env["ANT_EXEC_TEST"] = "seen"
+  var out = Result.unwrap(Os.exec("go", ["run", "echo.go", base], dir: dir, env: env, stdin: "typed\n"))
+  print(out.status)
+  print(out.stdout)
+  print(String.contains(out.stderr, "warned"))
+  print(out)
+}
+
+// expect
+// args: $TMP
+// out: 0
+// out: true
+// out: true
+// out: 2
+// out: true
+// out: true
+// out: true
+// out: true
+// out: true
+// out: true
+// out: Ok{ value: void }
+// out: 0
+// out: true seen typed
+// out: true
+// out: Os.Output{ status: 0, stdout: "true seen typed", stderr: "warned\n" }

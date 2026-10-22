@@ -568,4 +568,6 @@ spec commit is in the spec repository, and `stdlib Path` sits in the suite's pen
 Phase 26. Phase 22 is done: `Builtin.Optional` (the plan's `Required`, counted from the other
 end), host namespaces with defaults, `WithStdin`, the `// stdin:` trailer, the three streams,
 `File.readAll`, `File.writeText` and `File.flush`, with the REPL rule and Go tests for the option
-and a cancelled read. Next is Phase 23.
+and a cancelled read. Phase 23 is done: `Os.exec`, `Os.environ`, `Os.cwd`, the cancellation
+test, the coverage script's `-run` flag, the workflow's one-command coverage step, the README.
+Next is Phase 24.

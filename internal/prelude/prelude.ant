@@ -230,9 +230,13 @@ func Time.monotonic(): int
 
 // Os
 
+type Os.Output = { status: int, stdout: string, stderr: string }
 func Os.args(): Array[string]
 func Os.env(name: string): string | null
+func Os.environ(): Map[string, string]
+func Os.cwd(): Result[string, Error]
 func Os.exit(status: int): never
+func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string = ""): Result[Os.Output, Error]
 func Os.stdin(): File.Handle
 func Os.stdout(): File.Handle
 func Os.stderr(): File.Handle

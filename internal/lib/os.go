@@ -2,6 +2,11 @@ package lib
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -9,6 +14,57 @@ import (
 )
 
 var origin = time.Now()
+
+// OutputTag is Os.Output: { status: int, stdout: string, stderr: string }.
+var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr"})
+
+// given reports whether an optional argument was passed and is not null.
+func given(v value.Value) bool { return v != nil && v != value.Null }
+
+// execProcess is Os.exec: no shell, the outputs captured, Err only when the child could not be
+// started or run to its end, a nonzero exit as Ok with its status.
+func execProcess(g *interp.Goroutine, a []value.Value) value.Value {
+	const who = "Os.exec"
+	in := g.Instance()
+	program := stringArg(g, who, a[0])
+	var args []string
+	if given(a[1]) {
+		for _, v := range arrayArg(g, who, a[1]).Values() {
+			args = append(args, stringArg(g, who, v))
+		}
+	}
+	cmd := exec.CommandContext(in.Context(), program, args...)
+	cmd.WaitDelay = time.Second // a child that ignores the kill does not hold the run
+	if given(a[2]) {
+		cmd.Dir = stringArg(g, who, a[2])
+	}
+	if given(a[3]) {
+		env := []string{}
+		for _, e := range mapArg(g, who, a[3]).Entries() {
+			env = append(env, stringArg(g, who, e.Key)+"="+stringArg(g, who, e.Value))
+		}
+		cmd.Env = env
+	}
+	if given(a[4]) {
+		cmd.Stdin = strings.NewReader(stringArg(g, who, a[4]))
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	in.Flush() // what the program printed precedes what it prints from the child
+	err := cmd.Run()
+	status := 0
+	if err != nil {
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) {
+			return errResult(err)
+		}
+		if in.Context().Err() != nil {
+			return value.Err(value.ErrorValue("the run was cancelled"))
+		}
+		status = exit.ExitCode()
+	}
+	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(status), stdout.String(), stderr.String()}))
+}
 
 func init() {
 	register("Time", func() value.Value {
@@ -33,6 +89,7 @@ func init() {
 	})
 	register("Os", func() value.Value {
 		return namespace("Os",
+			constant("Output", OutputTag),
 			fn("Os.args", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				args := g.Instance().Args()
 				out := make([]value.Value, len(args))
@@ -48,10 +105,26 @@ func init() {
 				}
 				return v
 			}),
+			fn("Os.environ", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				m := value.NewMap()
+				for _, kv := range os.Environ() {
+					k, v, _ := strings.Cut(kv, "=")
+					m.Set(k, v)
+				}
+				return m
+			}),
+			fn("Os.cwd", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				dir, err := os.Getwd()
+				if err != nil {
+					return errResult(err)
+				}
+				return value.Ok(dir)
+			}),
 			fn("Os.exit", "status", func(g *interp.Goroutine, a []value.Value) value.Value {
 				g.Instance().Exit(int(intArg(g, "Os.exit", a[0])))
 				return nil
 			}),
+			fn("Os.exec", "program, args?, dir?, env?, stdin?", execProcess),
 			// The standard streams are one handle each per run, so that a program reading its
 			// input from two places shares one buffer.
 			fn("Os.stdin", "", func(g *interp.Goroutine, a []value.Value) value.Value {

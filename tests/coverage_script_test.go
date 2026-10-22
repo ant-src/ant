@@ -71,7 +71,10 @@ func TestCoverageScript(t *testing.T) {
 			row("total", 100*20.0/31, "  BELOW 90%"),
 		}},
 		{"usage", nil, 2, []string{
-			"usage: ant run scripts/coverage.ant <profile> [overall-min] [package-min]",
+			"usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]",
+		}},
+		{"run flag needs a profile", []string{"-run"}, 2, []string{ // -run is a flag, not a path
+			"usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]",
 		}},
 		{"bad threshold", []string{profile, "ninety"}, 2, []string{"not a number: ninety"}},
 		{"missing profile", []string{filepath.Join(t.TempDir(), "none")}, 2, nil},

@@ -214,3 +214,15 @@ func TestWithStdin(t *testing.T) {
 		t.Errorf("blocked read: %v after %v", err, time.Since(start))
 	}
 }
+
+// TestExecCancelled: cancelling the run kills the child, and Run returns promptly.
+func TestExecCancelled(t *testing.T) {
+	prog := loadSrc(t, `func main(): void { print(Os.exec("sleep", ["30"])) }`)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	err := prog.Run(ctx, ant.WithStdout(&strings.Builder{}))
+	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 5*time.Second {
+		t.Errorf("cancelled exec: %v after %v", err, time.Since(start))
+	}
+}

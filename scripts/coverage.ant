@@ -1,6 +1,10 @@
 // coverage.ant reads a Go coverage profile and fails when statement coverage is below the
 // thresholds: the first number is the minimum overall, the second the minimum per package.
-// Usage: ant run scripts/coverage.ant <profile> [overall-min] [package-min]
+// Usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]
+//
+// With -run the script first runs go test -coverpkg=./... -coverprofile=<profile> ./... in the
+// working directory, passes the test output through, and exits with the test's status when it
+// is not zero.
 //
 // Coverage is statement-weighted, computed from the profile: a package's figure is the share of
 // its statements that some test ran, not an average over its functions. A block that several
@@ -34,6 +38,15 @@ func threshold(arg: string | null, fallback: int): int {
   String.toInt(text) ?? fail(`not a number: ${text}`)
 }
 
+// runTests writes the profile by running the suite, and ends the program when the suite fails.
+func runTests(profile: string): void {
+  var run = Os.exec("go", ["test", "-coverpkg=./...", `-coverprofile=${profile}`, "./..."])
+  var output = if run is Ok { run.value } else { fail(`cannot run go test: ${run.error.message}`) }
+  File.writeText(Os.stdout(), output.stdout)
+  File.writeText(Os.stderr(), output.stderr)
+  if output.status != 0 { Os.exit(output.status) }
+}
+
 func readFile(path: string): string {
   var read = File.read(path)
   if read is Ok { read.value } else { fail(`cannot read ${path}: ${read.error.message}`) }
@@ -59,10 +72,13 @@ func padLeft(s: string, width: int): string {
 
 func main(): void {
   var args = Os.args()
+  var run = (Array.get(args, 0) ?? "") == "-run"
+  if run { args = Array.slice(args, 1, Array.length(args)) }
   var profile = Array.get(args, 0) ??
-    fail("usage: ant run scripts/coverage.ant <profile> [overall-min] [package-min]")
+    fail("usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]")
   var overallMin = threshold(Array.get(args, 1), 90)
   var packageMin = threshold(Array.get(args, 2), 80)
+  if run { runTests(profile) }
 
   var statements: Map[string, int] = Map{}   // per package, each block once
   var covered: Map[string, int] = Map{}      // per package, each block once when some run hit it
