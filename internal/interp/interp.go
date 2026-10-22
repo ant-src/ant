@@ -146,6 +146,9 @@ func (in *Instance) relayInterrupts(interrupts <-chan struct{}) {
 			if c != nil && !c.Done() {
 				c.Cancel(value.ErrInterrupt)
 			} else {
+				// As Close does: the flag first, so a goroutine whose wait the cancellation
+				// ends finds it at its very next check and runs nothing more.
+				in.done.Store(true)
 				in.cancel()
 			}
 		case <-in.ctx.Done():
