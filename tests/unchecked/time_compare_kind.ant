@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: library-kind
+// compare needs two values of one time type.
+func main(): void { print(Time.compare(Time.plainDate(2026, 1, 1), Time.plainTime())) }
+
+// expect
+// exit: 1
+// err: Time.compare needs a Time.PlainDate, got Time.PlainTime

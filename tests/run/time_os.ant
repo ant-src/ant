@@ -1,8 +1,7 @@
 // spec: stdlib Time; stdlib Os
-// Time.now is milliseconds since the epoch, sleep takes milliseconds and monotonic measures
-// them; Os.env reads a set variable and gives null for an unset one.
+// Time.now is an instant, sleep takes milliseconds and monotonic measures them; Os.env reads a set variable and gives null for an unset one.
 func main(): void {
-  print(Time.now() > 1600000000000)
+  print(Time.epochMillis(Time.now()) > 1600000000000)
   var t0 = Time.monotonic()
   Time.sleep(5)
   print(Time.monotonic() - t0 >= 5)

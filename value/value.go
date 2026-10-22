@@ -57,6 +57,7 @@ const (
 	KindFunc
 	KindTag
 	KindSync
+	KindTime
 )
 
 var kindNames = [...]string{
@@ -65,7 +66,7 @@ var kindNames = [...]string{
 	KindUint64: "uint64", KindFloat32: "float32", KindFloat64: "float64", KindBool: "bool",
 	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map",
 	KindRecord: "record", KindTagged: "tagged primitive", KindFunc: "func", KindTag: "type",
-	KindSync: "sync object",
+	KindSync: "sync object", KindTime: "time value",
 }
 
 func (k Kind) String() string { return kindNames[k] }
@@ -186,6 +187,8 @@ func KindOf(v Value) Kind {
 		return KindFunc
 	case Sync:
 		return KindSync
+	case Time:
+		return KindTime
 	}
 	return KindInvalid
 }
@@ -262,6 +265,7 @@ const (
 	AliasTag                    // an alias: neither literals nor is accept it
 	PrimitiveTag                // a named primitive type: its Constructor carries it
 	SyncTag                     // Mutex and the other sync types: a namespace for their functions
+	TimeTag                     // a time type of stdlib.md: is tests a time value's type by its name
 )
 
 // Tag is the run-time identity of a named type: what a type declaration binds. A record tag
@@ -403,6 +407,15 @@ func (c *Constructor) FuncName() string { return c.Tag.Name }
 // Sync is implemented by the sync objects.
 type Sync interface {
 	SyncName() string
+}
+
+// Time is implemented by the time values of stdlib.md's Time namespace: immutable, compared by
+// value, rendered as their RFC 9557 string or, for a zone, its identifier. Two time values are
+// equal when they have the same type and the same key, which names the fields == compares.
+type Time interface {
+	TimeType() string // the name of its type's tag, such as "Time.Instant"
+	Key() string      // a canonical form of the fields == compares
+	String() string
 }
 
 // ---- Prelude tags

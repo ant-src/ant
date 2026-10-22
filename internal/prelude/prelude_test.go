@@ -28,7 +28,7 @@ func TestPreludeParses(t *testing.T) {
 			}
 		}
 	}
-	if funcs < 150 || types < 15 || consts != 4 {
+	if funcs < 150 || types < 15 || consts != 5 {
 		t.Errorf("unexpected counts: %d funcs, %d types, %d constants", funcs, types, consts)
 	}
 }

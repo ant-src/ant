@@ -1,0 +1,176 @@
+// spec: stdlib Time
+// Time values (stdlib.md): instants, zones, the plain types and zoned date-times as Temporal
+// has them: construction and parsing, RFC 9557 rendering, fields, conversions between the
+// types, gaps and overlaps resolved by disambiguation, equality by value and compare by
+// instant, with the examples of Temporal's documentation.
+func describe(t: Time.Dated): string {
+  if t is Time.PlainDate { `date ${t}` }
+  else if t is Time.ZonedDateTime { `zoned in ${Time.zoneId(Time.zoneOf(t))}` }
+  else { `date-time on ${Time.toPlainDate(t)}` }
+}
+
+func main(): void {
+  var ny = Result.unwrap(Time.zone("America/New_York"))
+  print(ny)
+  print(Time.zoneId(Result.unwrap(Time.zone("europe/stockholm"))))
+  print(Time.zone("Mars/Olympus") is Err)
+  print(Time.zone("") is Err)
+  print(Time.zone("Asia/Calcutta") == Time.zone("Asia/Kolkata"))
+  print(Time.zoneId(Result.unwrap(Time.zone("+0530"))))
+  print(Time.utc)
+  print(Time.zoneId(Time.localZone()) != "")
+
+  var i = Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z"))
+  print(i)
+  print(Time.epochMillis(i))
+  print(Time.epochNanos(i))
+  print(Time.fromEpochMillis(1792677785500) == Time.fromEpochNanos(1792677785500000000))
+  print(Time.fromEpochMillis(0))
+  print(Result.unwrap(Time.parseInstant("2026-10-22T16:03:05.5+02:00[Europe/Stockholm]")) == i)
+  print(Time.parseInstant("2026-10-22T14:03:05") is Err)
+
+  var z = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York]"))
+  print(z)
+  print(Time.offset(z))
+  print(Time.offsetSeconds(z))
+  print(Time.hoursInDay(z))
+  print(Time.zoneOf(z) == ny)
+  print(Time.toInstant(z))
+  print(Time.inZone(Time.toInstant(z), Time.utc))
+  print(Time.withZone(z, Result.unwrap(Time.zone("Asia/Tokyo"))))
+  print(Time.toPlainDateTime(z))
+  print(Time.toPlainDate(z))
+  print(Time.toPlainTime(z))
+  print(Time.startOfDay(z))
+  print(Time.parseZoned("2024-11-03T01:05:00[America/New_York]"))
+  print(Time.parseZoned("2024-11-03T01:05:00[America/New_York]", Time.Later{}))
+  print(Time.parseZoned("2024-03-10T02:05:00[America/New_York]"))
+  print(Time.parseZoned("2019-12-23T12:00:00-02:00[America/Sao_Paulo]") is Err)
+  print(Time.parseZoned("2026-10-22T16:03:05+02:00") is Err)
+
+  var gap = Result.unwrap(Time.parsePlainDateTime("2024-03-10T02:30:00"))
+  print(Time.toZoned(gap, ny))
+  print(Time.toZoned(gap, ny, Time.Earlier{}))
+  print(Time.toZoned(gap, ny, disambiguation: Time.Later{}))
+  print(Array.length(Time.possibleInstants(gap, ny)))
+  var overlap = Result.unwrap(Time.parsePlainDateTime("2024-11-03T01:30:00"))
+  print(Time.possibleInstants(overlap, ny))
+  print(Time.toZoned(overlap, ny, Time.Compatible{}))
+  print(Time.toZoned(overlap, ny, Time.Later{}))
+  print(Time.hoursInDay(Time.toZoned(gap, ny)))
+  print(Time.hoursInDay(Result.unwrap(Time.parseZoned("2024-10-06T12:00[Australia/Lord_Howe]"))))
+
+  var d = Time.plainDate(2026, 10, 22)
+  print(d)
+  print([Time.year(d), Time.month(d), Time.day(d), Time.dayOfWeek(d), Time.dayOfYear(d),
+    Time.weekOfYear(d), Time.yearOfWeek(d), Time.daysInMonth(d), Time.daysInYear(d)])
+  print(Time.inLeapYear(d))
+  print(Time.yearOfWeek(Time.plainDate(2021, 1, 1)))
+  var t = Time.plainTime(14, 3, 5, 123, 456, 789)
+  print(t)
+  print([Time.hour(t), Time.minute(t), Time.second(t), Time.millisecond(t), Time.microsecond(t), Time.nanosecond(t)])
+  print(Time.plainTime())
+  print(Time.plainTime(9, second: 30))
+  var dt = Time.plainDateTime(d, t)
+  print(dt)
+  print(Time.year(dt) + Time.hour(dt))
+  print(Time.year(z))
+  print(Time.hour(z))
+  print(Time.parsePlainDate("2024-11-03T01:00:00-04:00[America/New_York]"))
+  print(Time.parsePlainDate("2024-02-30") is Err)
+  print(Time.parsePlainTime("14:03:05.123"))
+  print(Time.parsePlainDateTime("2024-11-03T01:00:00Z") is Err)
+  print(Time.plainDate(-100000, 1, 1))
+
+  var a = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Kolkata]"))
+  var b = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Calcutta]"))
+  var c = Result.unwrap(Time.parseZoned("2021-07-01T07:04:56+00:00[UTC]"))
+  print(a == b)
+  print(a == c)
+  print(d == Time.plainDate(2026, 10, 22) && t == Time.plainTime(14, 3, 5, 123, 456, 789) && dt == Time.plainDateTime(d, t))
+  print(Time.compare(a, c))
+  print(Time.compare(Time.plainDate(2024, 2, 29), d))
+  print(Time.compare(t, Time.plainTime(14)))
+  var seen: Map[Time.Instant, string] = Map{}
+  seen[Time.toInstant(a)] = "a"
+  print(seen[Time.toInstant(c)])
+  print(Json.stringify([d, t, a]))
+  print(describe(d))
+  print(describe(z))
+  print(describe(dt))
+  print(Time.epochMillis(Time.now()) > 1700000000000)
+  print(Time.year(Time.nowIn(Time.utc)) >= 2026)
+}
+
+// expect
+// out: America/New_York
+// out: Europe/Stockholm
+// out: true
+// out: true
+// out: true
+// out: +05:30
+// out: UTC
+// out: true
+// out: 2026-10-22T14:03:05.5Z
+// out: 1792677785500
+// out: 1792677785500000000
+// out: true
+// out: 1970-01-01T00:00:00Z
+// out: true
+// out: true
+// out: 2024-11-03T01:00:00-04:00[America/New_York]
+// out: -04:00
+// out: -14400
+// out: 25.0
+// out: true
+// out: 2024-11-03T05:00:00Z
+// out: 2024-11-03T05:00:00+00:00[UTC]
+// out: 2024-11-03T14:00:00+09:00[Asia/Tokyo]
+// out: 2024-11-03T01:00:00
+// out: 2024-11-03
+// out: 01:00:00
+// out: 2024-11-03T00:00:00-04:00[America/New_York]
+// out: Ok{ value: 2024-11-03T01:05:00-04:00[America/New_York] }
+// out: Ok{ value: 2024-11-03T01:05:00-05:00[America/New_York] }
+// out: Ok{ value: 2024-03-10T03:05:00-04:00[America/New_York] }
+// out: true
+// out: true
+// out: 2024-03-10T03:30:00-04:00[America/New_York]
+// out: 2024-03-10T01:30:00-05:00[America/New_York]
+// out: 2024-03-10T03:30:00-04:00[America/New_York]
+// out: 0
+// out: [2024-11-03T05:30:00Z, 2024-11-03T06:30:00Z]
+// out: 2024-11-03T01:30:00-04:00[America/New_York]
+// out: 2024-11-03T01:30:00-05:00[America/New_York]
+// out: 23.0
+// out: 23.5
+// out: 2026-10-22
+// out: [2026, 10, 22, 4, 295, 43, 2026, 31, 365]
+// out: false
+// out: 2020
+// out: 14:03:05.123456789
+// out: [14, 3, 5, 123, 456, 789]
+// out: 00:00:00
+// out: 09:00:30
+// out: 2026-10-22T14:03:05.123456789
+// out: 2040
+// out: 2024
+// out: 1
+// out: Ok{ value: 2024-11-03 }
+// out: true
+// out: Ok{ value: 14:03:05.123 }
+// out: true
+// out: -100000-01-01
+// out: true
+// out: false
+// out: true
+// out: 0
+// out: -1
+// out: 1
+// out: a
+// out: ["2026-10-22","14:03:05.123456789","2021-07-01T12:34:56+05:30[Asia/Kolkata]"]
+// out: date 2026-10-22
+// out: zoned in America/New_York
+// out: date-time on 2026-10-22
+// out: true
+// out: true

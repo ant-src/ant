@@ -1,0 +1,12 @@
+// spec: stdlib Time
+// panics: library-value
+// A time field out of range is a ◆ panic.
+func main(): void {
+  print(Time.plainTime(23, 59, 59, 999, 999, 999))
+  print(Time.plainTime(25))
+}
+
+// expect
+// exit: 1
+// out: 23:59:59.999999999
+// err: Time.plainTime: hour out of range: 25

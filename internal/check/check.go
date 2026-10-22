@@ -6,6 +6,7 @@ package check
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
@@ -441,7 +442,13 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo, mi *moduleInfo) {
 	}
 	switch body := d.Body.(type) {
 	case nil:
-		decl.Kind = types.OpaqueDecl
+		// The time types of stdlib.md are the opaque types of the Time namespace; every other
+		// opaque type is a sync type, which is cannot test.
+		if strings.HasPrefix(decl.Name, "Time.") {
+			decl.Kind = types.TimeDecl
+		} else {
+			decl.Kind = types.OpaqueDecl
+		}
 	case *ast.RecordType:
 		decl.Kind = types.RecordDecl
 		seen := map[string]bool{}

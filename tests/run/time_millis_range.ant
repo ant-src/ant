@@ -1,0 +1,12 @@
+// spec: stdlib Time
+// panics: library-value
+// fromEpochMillis is a ◆ panic beyond 100 million days from the epoch.
+func main(): void {
+  print(Time.fromEpochMillis(8640000000000000))
+  print(Time.fromEpochMillis(8640000000000001))
+}
+
+// expect
+// exit: 1
+// out: +275760-09-13T00:00:00Z
+// err: Time.fromEpochMillis: outside the range of time values

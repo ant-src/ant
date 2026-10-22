@@ -182,6 +182,8 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 			}
 		}
 		sb.WriteByte('}')
+	case value.Time:
+		writeJSONString(sb, x.String())
 	default:
 		sb.WriteString("null")
 	}

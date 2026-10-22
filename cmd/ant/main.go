@@ -10,6 +10,8 @@
 package main
 
 import (
+	_ "time/tzdata" // the zone database, for hosts that have none
+
 	"context"
 	"fmt"
 	"io"

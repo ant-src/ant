@@ -67,6 +67,7 @@ const (
 	RecordDecl    DeclKind = iota // a named record type
 	PrimitiveDecl                 // a named primitive type
 	OpaqueDecl                    // a prelude type with no structure, such as Mutex
+	TimeDecl                      // a time type of stdlib.md: opaque, but is tests it by its tag
 	AliasDecl                     // an alias, interchangeable with its body
 )
 

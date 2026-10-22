@@ -742,8 +742,12 @@ func (g *Goroutine) is(e *ast.Is, env *Env) (value.Value, ctl) {
 	}
 	switch tag := t.(type) {
 	case *value.Tag:
+		if tag.Kind == value.TimeTag {
+			tv, ok := v.(value.Time)
+			return ok && tv.TimeType() == tag.Name, ctlNone
+		}
 		if tag.Kind != value.RecordTag {
-			g.panicf(e.Pos, "is needs a record type or a named primitive type; %s is not one", tag.Name)
+			g.panicf(e.Pos, "is needs a record type, a named primitive type or a time type; %s is not one", tag.Name)
 		}
 		r, ok := v.(*value.Record)
 		return ok && r.Tag == tag, ctlNone

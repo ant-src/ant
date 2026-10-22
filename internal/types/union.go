@@ -92,7 +92,7 @@ func discriminator(t Type) (key, describe string, ok bool) {
 		if x.Decl.Kind == OpaqueDecl {
 			return "", "", false // a sync type: is does not accept it
 		}
-		return fmt.Sprintf("tag:%p", x.Decl), "the tag " + x.Decl.Name, true
+		return fmt.Sprintf("tag:%p", x.Decl), "the tag " + x.Decl.Name, true // a record, primitive or time type
 	case Record:
 		return "record", "an anonymous record", true
 	case Param:

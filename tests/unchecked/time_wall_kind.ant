@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: library-kind
+// The date of a value with no wall clock panics.
+func main(): void { print(Time.toPlainDate(Time.now())) }
+
+// expect
+// exit: 1
+// err: Time.toPlainDate needs a Time.ZonedDateTime or Time.PlainDateTime, got Time.Instant

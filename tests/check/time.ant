@@ -1,0 +1,25 @@
+// spec: 4 Unions; 5 is
+// Sections 4 and 5 for the time types of stdlib.md: a union of time types is legal, since each
+// carries a tag; is tests one and narrows; an alias of them is not a target; a bound stands for
+// one member; the comparison operators do not apply; a sync type may share a union with them.
+func describe(t: Time.Dated): string {
+  if t is Time.PlainDate { "date" }
+  else if t is Time.ZonedDateTime { "zoned" }
+  else { "date-time" }
+}
+
+func main(): void {
+  var d = Time.plainDate(2026, 10, 22)
+  var i = Time.now()
+  var some: Time.Instant | Time.PlainDate | null = d
+  print(some is Time.PlainDate)
+  print(some is Time.Dated)             // ERR: is an alias and has no run-time identity
+  print(d < d)                          // ERR: < applies to a single numeric kind
+  print(Time.year(some))                // ERR: cannot use Time.Instant | Time.PlainDate | null where Time.Dated is expected
+  var mixed: Time.Dated = d
+  print(Time.year(mixed))
+  print(Time.compare(mixed, mixed))     // ERR: not a single member of its bound
+  var shared: Mutex | Time.Instant = i
+  print(shared is Time.Instant)
+  print(describe(d))
+}

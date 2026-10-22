@@ -13,8 +13,6 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-var origin = time.Now()
-
 // OutputTag is Os.Output: { status: int, stdout: string, stderr: string }.
 var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr"})
 
@@ -67,26 +65,6 @@ func execProcess(g *interp.Goroutine, a []value.Value) value.Value {
 }
 
 func init() {
-	register("Time", func() value.Value {
-		return namespace("Time",
-			fn("Time.now", "", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return time.Now().UnixMilli()
-			}),
-			fn("Time.sleep", "ms", func(g *interp.Goroutine, a []value.Value) value.Value {
-				ms := intArg(g, "Time.sleep", a[0])
-				in := g.Instance()
-				in.Flush()
-				select {
-				case <-time.After(time.Duration(ms) * time.Millisecond):
-				case <-in.Context().Done():
-				}
-				return value.Void
-			}),
-			fn("Time.monotonic", "", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return time.Since(origin).Milliseconds()
-			}),
-		)
-	})
 	register("Os", func() value.Value {
 		return namespace("Os",
 			constant("Output", OutputTag),

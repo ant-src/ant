@@ -120,6 +120,8 @@ func Describe(v Value) string {
 		return x.Tag.Name
 	case *Record:
 		return x.Tag.Name
+	case Time:
+		return x.TimeType()
 	}
 	return KindOf(v).String()
 }

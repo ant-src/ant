@@ -570,4 +570,10 @@ end), host namespaces with defaults, `WithStdin`, the `// stdin:` trailer, the t
 `File.readAll`, `File.writeText` and `File.flush`, with the REPL rule and Go tests for the option
 and a cancelled read. Phase 23 is done: `Os.exec`, `Os.environ`, `Os.cwd`, the cancellation
 test, the coverage script's `-run` flag, the workflow's one-command coverage step, the README.
-Next is Phase 24.
+Phase 24 is done: `internal/temporal` with the six types, the generated zone table, parsing,
+rendering, fields, conversions and `compare`; the `time` kind in the value package, the checker
+(`TimeDecl`, the opaque types of `Time`) and the interpreter; the corpus and the Go tests on
+Temporal's examples; `cmd/ant` imports `time/tzdata`. One observation for later: the checker
+solves a type parameter from the expected type first, so `Time.epochMillis(Result.unwrap(r))`
+fails to check, since `T` becomes the parameter's union and `r` is a `Result` of one member;
+a variable in between checks. Next is Phase 25.

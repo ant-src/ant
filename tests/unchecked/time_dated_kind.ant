@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: library-kind
+// A field of a date on a value with no date panics (section 12, the library row).
+func main(): void { print(Time.year("2026")) }
+
+// expect
+// exit: 1
+// err: Time.year needs a Time.ZonedDateTime, Time.PlainDate or Time.PlainDateTime, got string

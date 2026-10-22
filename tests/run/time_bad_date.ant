@@ -1,0 +1,12 @@
+// spec: stdlib Time
+// panics: library-value
+// A date that is not there is a ◆ panic, as a constructor rejects what with constrains.
+func main(): void {
+  print(Time.plainDate(2024, 2, 29))
+  print(Time.plainDate(2026, 2, 30))
+}
+
+// expect
+// exit: 1
+// out: 2024-02-29
+// err: Time.plainDate: no such date: 2026-02-30

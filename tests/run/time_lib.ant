@@ -1,6 +1,6 @@
 // spec: stdlib Time
 // Time (stdlib.md): sleep blocks only the calling goroutine, monotonic never goes backwards,
-// and now is a plausible epoch time.
+// and now is a plausible instant.
 func main(): void {
   var start = Time.monotonic()
   var wg = WaitGroup.new()
@@ -20,7 +20,7 @@ func main(): void {
   print(Atomic.load(order))
   var elapsed = Time.monotonic() - start
   print(elapsed >= 60)
-  print(Time.now() > 1600000000000)
+  print(Time.epochMillis(Time.now()) > 1600000000000)
 }
 
 // expect

@@ -222,11 +222,79 @@ type Http.Response = { status: int, headers: Map[string, string], body: string }
 func Http.get(url: string): Result[Http.Response, Error]
 func Http.post(url: string, body: string, headers: Map[string, string]): Result[Http.Response, Error]
 
-// Time
+// Time (stdlib.md): the types are opaque and carry a tag is tests; the options are
+// enumerations of empty records.
 
-func Time.now(): int
+type Time.Zone
+type Time.Instant
+type Time.ZonedDateTime
+type Time.PlainDate
+type Time.PlainTime
+type Time.PlainDateTime
+type Time.Point = Time.Instant | Time.ZonedDateTime | Time.PlainDate | Time.PlainTime | Time.PlainDateTime
+type Time.Wall = Time.ZonedDateTime | Time.PlainDate | Time.PlainTime | Time.PlainDateTime
+type Time.Dated = Time.ZonedDateTime | Time.PlainDate | Time.PlainDateTime
+type Time.Timed = Time.ZonedDateTime | Time.PlainTime | Time.PlainDateTime
+type Time.Compatible = {}
+type Time.Earlier = {}
+type Time.Later = {}
+type Time.Disambiguation = Time.Compatible | Time.Earlier | Time.Later
+
+var Time.utc: Time.Zone
+func Time.zone(id: string): Result[Time.Zone, Error]
+func Time.localZone(): Time.Zone
+func Time.zoneId(z: Time.Zone): string
+
+func Time.now(): Time.Instant
+func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
 func Time.sleep(ms: int): void
 func Time.monotonic(): int
+func Time.fromEpochMillis(ms: int): Time.Instant
+func Time.fromEpochNanos(ns: int): Time.Instant
+func Time.epochMillis(t: Time.Instant | Time.ZonedDateTime): int
+func Time.epochNanos(t: Time.Instant | Time.ZonedDateTime): int
+
+func Time.plainDate(year: int, month: int, day: int): Time.PlainDate
+func Time.plainTime(hour: int = 0, minute: int = 0, second: int = 0, millisecond: int = 0, microsecond: int = 0, nanosecond: int = 0): Time.PlainTime
+func Time.plainDateTime(date: Time.PlainDate, time: Time.PlainTime): Time.PlainDateTime
+
+func Time.parseInstant(s: string): Result[Time.Instant, Error]
+func Time.parseZoned(s: string, disambiguation: Time.Disambiguation = Time.Compatible{}): Result[Time.ZonedDateTime, Error]
+func Time.parsePlainDate(s: string): Result[Time.PlainDate, Error]
+func Time.parsePlainTime(s: string): Result[Time.PlainTime, Error]
+func Time.parsePlainDateTime(s: string): Result[Time.PlainDateTime, Error]
+
+func Time.inZone(t: Time.Instant, z: Time.Zone): Time.ZonedDateTime
+func Time.withZone(t: Time.ZonedDateTime, z: Time.Zone): Time.ZonedDateTime
+func Time.toZoned(t: Time.PlainDateTime, z: Time.Zone, disambiguation: Time.Disambiguation = Time.Compatible{}): Time.ZonedDateTime
+func Time.possibleInstants(t: Time.PlainDateTime, z: Time.Zone): Array[Time.Instant]
+func Time.toInstant(t: Time.ZonedDateTime): Time.Instant
+func Time.toPlainDate(t: Time.ZonedDateTime | Time.PlainDateTime): Time.PlainDate
+func Time.toPlainTime(t: Time.ZonedDateTime | Time.PlainDateTime): Time.PlainTime
+func Time.toPlainDateTime(t: Time.ZonedDateTime): Time.PlainDateTime
+func Time.startOfDay(t: Time.ZonedDateTime): Time.ZonedDateTime
+func Time.zoneOf(t: Time.ZonedDateTime): Time.Zone
+func Time.offset(t: Time.ZonedDateTime): string
+func Time.offsetSeconds(t: Time.ZonedDateTime): int
+func Time.hoursInDay(t: Time.ZonedDateTime): float64
+
+func Time.year(t: Time.Dated): int
+func Time.month(t: Time.Dated): int
+func Time.day(t: Time.Dated): int
+func Time.dayOfWeek(t: Time.Dated): int
+func Time.dayOfYear(t: Time.Dated): int
+func Time.weekOfYear(t: Time.Dated): int
+func Time.yearOfWeek(t: Time.Dated): int
+func Time.daysInMonth(t: Time.Dated): int
+func Time.daysInYear(t: Time.Dated): int
+func Time.inLeapYear(t: Time.Dated): bool
+func Time.hour(t: Time.Timed): int
+func Time.minute(t: Time.Timed): int
+func Time.second(t: Time.Timed): int
+func Time.millisecond(t: Time.Timed): int
+func Time.microsecond(t: Time.Timed): int
+func Time.nanosecond(t: Time.Timed): int
+func Time.compare[T: Time.Point](a: T, b: T): int
 
 // Os
 

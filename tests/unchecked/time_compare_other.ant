@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: library-kind
+// compare on values that are no time values panics.
+func main(): void { print(Time.compare("a", "b")) }
+
+// expect
+// exit: 1
+// err: Time.compare needs two time values of one type, got string
