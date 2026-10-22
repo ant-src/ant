@@ -11,7 +11,7 @@ var Names = []string{
 	"Error", "Ok", "Err", "Result",
 	"Array", "Map", "String", "Regex", "Iter", "Math", "Bits", "Record",
 	"Mutex", "RwMutex", "WaitGroup", "Once", "Cond", "Atomic", "Context", "Chan", "Select",
-	"File", "Http", "Path", "Time", "Os", "Json", "Csv", "Encoding", "Url", "Crypto",
+	"File", "Http", "Net", "Path", "Time", "Os", "Json", "Csv", "Encoding", "Url", "Crypto",
 }
 
 var names = func() map[string]bool {

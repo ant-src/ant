@@ -1,0 +1,54 @@
+// spec: stdlib Net; stdlib File; 9 Waiting
+// Net: a listener on any free port, its address, a connection dialed to it and one accepted
+// from it, lines exchanged both ways with writes that flush, the peer of each end, a read on
+// a connection that a context ends, an accept that a context ends, a dial that fails, and a
+// closed listener whose accept is Err.
+func main(): void {
+  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+  var address = Net.address(listener)
+  print(String.startsWith(address, "127.0.0.1:"))
+  var served = WaitGroup.new()
+  WaitGroup.add(served, 1)
+  go {
+    defer { WaitGroup.done(served) }
+    var conn = Result.unwrap(Net.accept(listener))
+    var line = Result.unwrap(File.readLine(conn))
+    while line != null {
+      Result.unwrap(File.writeLine(conn, `echo: ${line}`))
+      line = Result.unwrap(File.readLine(conn))
+    }
+    File.close(conn)
+  }
+  var client = Result.unwrap(Net.dial(address, Context.new(Time.duration(seconds: 5))))
+  print(Net.peer(client) == address)
+  print(Net.peer(Os.stdout()))
+  Result.unwrap(File.writeLine(client, "hello"))
+  print(File.readLine(client))
+  Result.unwrap(File.writeText(client, "wor"))
+  Result.unwrap(File.writeLine(client, "ld"))
+  print(File.readLine(client))
+  print(File.readLine(client, Context.new(Time.duration(milliseconds: 50))))
+  Result.unwrap(File.writeLine(client, "still here"))
+  print(File.readLine(client))
+  File.close(client)
+  WaitGroup.wait(served)
+  print(Net.accept(listener, Context.new(Time.duration(milliseconds: 50))))
+  Net.close(listener)
+  print(Net.accept(listener))
+  Net.close(listener)
+  print(Result.isOk(Net.dial(address, Context.new(Time.duration(seconds: 5)))))
+  print(Result.isOk(Net.listen("256.256.256.256:1")))
+}
+
+// expect
+// out: true
+// out: true
+// out: null
+// out: Ok{ value: "echo: hello" }
+// out: Ok{ value: "echo: world" }
+// out: Err{ error: Error{ message: "timeout" } }
+// out: Ok{ value: "echo: still here" }
+// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "the listener is closed" } }
+// out: false
+// out: false

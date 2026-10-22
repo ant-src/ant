@@ -460,6 +460,16 @@ func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.D
 func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null = null): float64
 func Time.roundDuration(d: Time.Duration, smallestUnit: Time.Unit | null = null, largestUnit: Time.Unit | null = null, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}, relativeTo: Time.Dated | null = null): Time.Duration
 
+// Net
+
+type Net.Listener
+func Net.listen(addr: string): Result[Net.Listener, Error]
+func Net.address(l: Net.Listener): string
+func Net.accept(l: Net.Listener, ctx: Context | null = null): Result[File.Handle, Error]
+func Net.close(l: Net.Listener): void
+func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Error]
+func Net.peer(f: File.Handle): string | null
+
 // Os
 
 type Os.Output = { status: int, stdout: string, stderr: string }

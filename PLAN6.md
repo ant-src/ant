@@ -619,3 +619,10 @@ regular file looks at the context only before the read. The host's cancellation 
 `cancelled` everywhere, where a read of standard input said "the run was cancelled". One
 program covers the Http reasons, both exec cases and the file reads; the connection read that
 gives up waits for Phase 48.
+
+Phase 48 was done on 2026-10-22: `Net.Listener` as an opaque reference over a TCP listener,
+the six functions in `internal/lib/net.go`, an accept that a context ends through the listener's
+deadline as a read does, and connection handles whose writes flush and whose reads a context
+ends; the corpus program listens on a free port, serves an echo on a goroutine, talks to it,
+and covers the read, accept and dial that give up and the closed listener. `pendingSpec` is
+empty again.

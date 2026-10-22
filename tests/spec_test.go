@@ -180,11 +180,8 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 	}
 }
 
-// pendingSpec lists the headings no test program names yet: what Plan 6 specified in Phase 44,
-// which gets its programs in Phases 46 and 48.
-var pendingSpec = []string{
-	"stdlib Net",
-}
+// pendingSpec lists the headings no test program names yet.
+var pendingSpec = []string{}
 
 // TestSpecCoverage checks that every tag names a heading of the specification and that every
 // heading has a tag. Under -v it prints the matrix.
