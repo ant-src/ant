@@ -23,6 +23,13 @@ func specPath(t *testing.T) string {
 	return p
 }
 
+// pendingBlocks lists the ```ant blocks of the specification the parser cannot read yet, each by
+// its first line: the regular expression literal of section 2, which Phase 39 of Plan 5
+// implements. A pending block that parses is an error, so the list shrinks as the parser grows.
+var pendingBlocks = []string{
+	"var r = (total",
+}
+
 // TestSpecBlocks parses every ```ant block of the specification in spec mode.
 func TestSpecBlocks(t *testing.T) {
 	data, err := os.ReadFile(specPath(t))
@@ -41,10 +48,20 @@ func TestSpecBlocks(t *testing.T) {
 			j++
 		}
 		blocks++
+		pending := false
+		for _, first := range pendingBlocks {
+			if start < len(lines) && strings.TrimSpace(lines[start]) == first {
+				pending = true
+			}
+		}
 		src := strings.Join(lines[start:j], "\n")
-		if _, err := Parse("spec", src, Spec); err != nil {
+		_, err := Parse("spec", src, Spec)
+		switch {
+		case err != nil && !pending:
 			e := err.(*Error)
 			t.Errorf("block at spec line %d: %s (spec line %d)\n%s", start+1, e.Msg, start+e.Pos.Line, src)
+		case err == nil && pending:
+			t.Errorf("block at spec line %d parses now; remove it from pendingBlocks", start+1)
 		}
 		i = j
 	}

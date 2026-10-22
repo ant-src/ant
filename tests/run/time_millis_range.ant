@@ -1,5 +1,5 @@
 // spec: stdlib Time
-// panics: library-value
+// panics: Time.fromEpochMillis; library-value
 // fromEpochMillis is a ◆ panic beyond 100 million days from the epoch.
 func main(): void {
   print(Time.fromEpochMillis(8640000000000000))

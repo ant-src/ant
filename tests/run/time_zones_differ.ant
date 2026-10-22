@@ -1,5 +1,5 @@
 // spec: stdlib Time
-// panics: library-value
+// panics: Time.until; library-value
 // A difference in days between zoned date-times in different zones is a ◆ panic.
 func main(): void {
   var a = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York]"))

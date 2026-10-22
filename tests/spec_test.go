@@ -20,7 +20,7 @@ import (
 // subsection heading, a chapter number alone for the chapter's own text, or "stdlib" and a
 // namespace of stdlib.md. A program that triggers a runtime panic also carries
 // "// panics: <key>" naming a row of the chapter 12 table (see panicRows) or a ◆ function of
-// chapter 11, such as "Array.slice".
+// chapter 11 or of stdlib.md, such as "Array.slice" or "Time.plainDate".
 //
 // Programs under a directory named lib are modules the tests import, not tests, and carry no
 // tags.
@@ -180,8 +180,15 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 	}
 }
 
-// pendingSpec lists the headings no test program names yet.
-var pendingSpec = []string{}
+// pendingSpec lists the headings no test program names yet: the namespaces Plan 5 specified in
+// Phase 36, which get their programs in Phases 40 and 41.
+var pendingSpec = []string{
+	"11 Regex",
+	"stdlib Csv",
+	"stdlib Encoding",
+	"stdlib Url",
+	"stdlib Crypto",
+}
 
 // TestSpecCoverage checks that every tag names a heading of the specification and that every
 // heading has a tag. Under -v it prints the matrix.
@@ -299,45 +306,108 @@ var panicRows = [][]string{
 	{"never"},                                // ??, ?., ==, != never panic
 }
 
-// pendingPanics lists the panic keys no test program triggers yet.
-var pendingPanics = []string{}
+// pendingPanics lists the panic keys no test program triggers yet: the ◆ functions Plan 5
+// specified in Phase 36, which get their programs in Phases 37 to 41, and the ◆ functions of Time
+// that came under the gate when it was extended to stdlib.md, which Phase 37 covers.
+var pendingPanics = []string{
+	"String.padStart",
+	"String.padEnd",
+	"String.count",
+	"String.replaceFirst",
+	"String.cut",
+	"String.toInt",
+	"String.fromInt",
+	"String.fromFloat",
+	"Array.insert",
+	"Array.removeAt",
+	"Array.chunk",
+	"Math.clamp",
+	"Math.randomInt",
+	"Bits.rotateLeft",
+	"Bits.rotateRight",
+	"Time.with",
+	"Time.since",
+	"Time.addDuration",
+	"Time.compareDuration",
+	"Time.roundDuration",
+	"Csv.parse",
+	"Csv.stringify",
+	"Crypto.randomBytes",
+}
 
-// TestPanicCoverage checks that every row of the chapter 12 panics table and every ◆ function
-// of chapter 11 has a program that triggers it.
-func TestPanicCoverage(t *testing.T) {
-	lines := readSpec(t, "ant-lang.md")
-	var required []string
+// panicFunctions returns the ◆ functions of a specification file's code blocks, in order: the
+// signatures whose comment carries ◆ and whose name has an owner. In ant-lang.md only chapter 11
+// is read, so that the conversions (int8 and "the other nine") stay the table's conversion row; in
+// stdlib.md every block is. A signature wrapped over several lines continues on lines that start
+// with white space, as Time.with does, and its ◆ may sit on any of them, so the lines of a
+// signature are joined before its name is read.
+func panicFunctions(t *testing.T, file string) []string {
+	t.Helper()
+	var names []string
 	known := make(map[string]bool)
-	// ◆ functions of chapter 11: code-block lines whose comment carries ◆ and whose name has an
-	// owner. The conversions (int8 and "the other nine") are the table's conversion row.
-	inChapter, inBlock := false, false
-	for _, line := range lines {
-		if strings.HasPrefix(line, "## 11.") {
-			inChapter = true
-		} else if strings.HasPrefix(line, "## 12.") {
-			inChapter = false
+	signature := ""
+	flush := func() {
+		if strings.Contains(signature, "◆") {
+			name := signature
+			if i := strings.IndexAny(name, "[("); i >= 0 {
+				name = name[:i]
+			}
+			if strings.Contains(name, ".") && !strings.ContainsAny(name, " \t") && !known[name] {
+				known[name] = true
+				names = append(names, name)
+			}
+		}
+		signature = ""
+	}
+	inChapter := file != "ant-lang.md"
+	inBlock := false
+	for _, line := range readSpec(t, file) {
+		if file == "ant-lang.md" {
+			if strings.HasPrefix(line, "## 11.") {
+				inChapter = true
+			} else if strings.HasPrefix(line, "## 12.") {
+				inChapter = false
+			}
 		}
 		if !inChapter {
 			continue
 		}
 		if strings.HasPrefix(line, "```") {
+			flush()
 			inBlock = !inBlock
 			continue
 		}
-		if !inBlock || !strings.Contains(line, "◆") {
+		if !inBlock {
 			continue
 		}
-		name := line
-		if i := strings.IndexAny(name, "[("); i >= 0 {
-			name = name[:i]
+		if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+			signature += " " + strings.TrimSpace(line)
+			continue
 		}
-		if strings.Contains(name, ".") && !known[name] {
-			known[name] = true
-			required = append(required, name)
-		}
+		flush()
+		signature = line
 	}
-	if len(required) == 0 {
-		t.Fatal("no ◆ functions found in chapter 11")
+	flush()
+	return names
+}
+
+// TestPanicCoverage checks that every row of the chapter 12 panics table and every ◆ function
+// of chapter 11 and of stdlib.md has a program that triggers it.
+func TestPanicCoverage(t *testing.T) {
+	lines := readSpec(t, "ant-lang.md")
+	var required []string
+	known := make(map[string]bool)
+	for _, file := range []string{"ant-lang.md", "stdlib.md"} {
+		names := panicFunctions(t, file)
+		if len(names) == 0 {
+			t.Fatalf("no ◆ functions found in %s", file)
+		}
+		for _, name := range names {
+			if !known[name] {
+				known[name] = true
+				required = append(required, name)
+			}
+		}
 	}
 	// Rows of the panics table.
 	rows := 0

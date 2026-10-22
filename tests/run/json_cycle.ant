@@ -1,5 +1,5 @@
 // spec: stdlib Json; 12 Runtime panics
-// panics: library-value
+// panics: Json.stringify; library-value
 // Json.stringify on a cyclic value panics: a value already being written has no JSON form, unlike
 // String.from, which renders it as ... (SPEC-FEEDBACK.md).
 type Node = { value: int, next: Node | null }

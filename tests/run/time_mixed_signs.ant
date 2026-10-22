@@ -1,5 +1,5 @@
 // spec: stdlib Time
-// panics: library-value
+// panics: Time.duration; library-value
 // A duration with fields of both signs is a ◆ panic.
 func main(): void {
   print(Time.duration(hours: -1, minutes: -30))

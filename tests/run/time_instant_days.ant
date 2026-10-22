@@ -1,5 +1,5 @@
 // spec: stdlib Time
-// panics: library-value
+// panics: Time.add; library-value
 // A day added to an instant is a ◆ panic: an instant has no calendar.
 func main(): void {
   print(Time.add(Time.fromEpochMillis(0), Time.duration(hours: 24)))
