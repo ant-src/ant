@@ -581,4 +581,6 @@ rendering; `add`, `subtract`, `until`, `since`, `with`, `round` on every type; `
 `compareDuration`, `total` and `roundDuration` with the relative nudging and bubbling of
 Temporal's reference implementation; the transitions over `ZoneBounds`; `Math.random`. Phase 26
 is done: `File.stat`, `mkdir`, `removeAll`, `rename`, `walk`, `tempDir`, `append` and the
-`Path` namespace, with `stdlib Path` off the pending list. Next is Phase 27.
+`Path` namespace, with `stdlib Path` off the pending list. Phase 27 is done: `examples/runner.ant`,
+`examples/sift.ant` and `examples/agenda.ant`, the CHANGELOG, the README and the package
+documentation. Every phase of this plan is done.

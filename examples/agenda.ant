@@ -1,0 +1,86 @@
+// spec: stdlib Time; stdlib Json; stdlib Os; stdlib File; 11 Array
+// An agenda across zones: meetings arrive on standard input as JSON, each a wall-clock time
+// with its zone. Each is placed in its zone, shown in the reader's zone with its weekday and
+// the days until it, and they are sorted by the moment they happen. The reader's zone and
+// today's date are the arguments. A daylight-saving change in a meeting's zone between two
+// meetings at the same wall-clock time moves one of them an hour on the reader's clock. Try:
+//   ant run examples/agenda.ant Europe/Stockholm 2024-10-30 < meetings.json
+type Meeting = { title: string, when: Time.ZonedDateTime }
+
+var weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+func text(object: Map[string, Json.Value], name: string): Result[string, Error] {
+  var v = object[name]
+  if v is string { Result.ok(v) } else { Result.err(Error{ message: `${name} must be a string` }) }
+}
+
+func meetingOf(object: Map[string, Json.Value]): Result[Meeting, Error] {
+  var title = try text(object, "title")
+  var zone = try Time.zone(try text(object, "zone"))
+  var when = try Time.parsePlainDateTime(try text(object, "when"))
+  Result.ok(Meeting{ title: title, when: Time.toZoned(when, zone) })
+}
+
+func meeting(v: Json.Value): Result[Meeting, Error] {
+  if v is Map { meetingOf(v) } else { Result.err(Error{ message: "a meeting must be an object" }) }
+}
+
+func pad(n: int): string { if n < 10 { `0${n}` } else { String.from(n) } }
+
+func clock(t: Time.ZonedDateTime): string { `${pad(Time.hour(t))}:${pad(Time.minute(t))}` }
+
+func byMoment(a: Meeting, b: Meeting): int { Time.compare(a.when, b.when) }
+
+func zoneOrExit(id: string): Time.Zone {
+  var z = Time.zone(id)
+  if z is Ok { z.value } else { print(`unknown zone: ${id}`); Os.exit(2) }
+}
+
+func dateOrExit(s: string): Time.PlainDate {
+  var d = Time.parsePlainDate(s)
+  if d is Ok { d.value } else { print(`not a date: ${s}`); Os.exit(2) }
+}
+
+func listOrExit(parsed: Result[Json.Value, Error]): Array[Json.Value] {
+  if parsed is Ok {
+    var v = parsed.value
+    if v is Array { v } else { print("the meetings must be an array"); Os.exit(2) }
+  } else {
+    print(`bad input: ${parsed.error.message}`)
+    Os.exit(2)
+  }
+}
+
+func main(): void {
+  var args = Os.args()
+  if Array.length(args) != 2 {
+    print("usage: ant run examples/agenda.ant <zone> <today> < meetings.json")
+    Os.exit(2)
+  }
+  var reader = zoneOrExit(args[0])
+  var today = Time.toZoned(Time.plainDateTime(dateOrExit(args[1]), Time.plainTime()), reader)
+  var items = listOrExit(Json.parse(Result.unwrap(File.readAll(Os.stdin()))))
+  var meetings: Array[Meeting] = []
+  for item in items {
+    var m = meeting(item)
+    if m is Ok { Array.push(meetings, m.value) }
+    else { File.writeLine(Os.stderr(), `skipped: ${m.error.message}`) }
+  }
+  for m in Array.sortWith(meetings, byMoment) {
+    var local = Time.withZone(m.when, reader)
+    var days = Time.part(Time.until(today, local, Time.Day{}), Time.Day{})
+    var from = `${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}`
+    print(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
+  }
+}
+
+// expect
+// args: Europe/Stockholm 2024-10-30
+// stdin: [{"title": "Standup", "when": "2024-11-01T09:00", "zone": "America/New_York"},
+// stdin:  {"title": "Retro", "when": "2024-11-05T09:00", "zone": "America/New_York"},
+// stdin:  {"title": "Planning", "when": "2024-11-04T17:00", "zone": "Asia/Tokyo"},
+// stdin:  {"title": "Ghost", "when": "2024-11-02T10:00", "zone": "Mars/Olympus"}]
+// out: Fri 2024-11-01 14:00 +01:00  Standup (09:00 in America/New_York), in 2 days
+// out: Mon 2024-11-04 09:00 +01:00  Planning (17:00 in Asia/Tokyo), in 5 days
+// out: Tue 2024-11-05 15:00 +01:00  Retro (09:00 in America/New_York), in 6 days
+// err: skipped: unknown time zone

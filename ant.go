@@ -6,7 +6,7 @@
 // program calls Os.exit. Program.Check runs the type checker and returns its diagnostics.
 //
 // The library reads sources through an fs.FS, writes only to the writers it is given, takes its
-// arguments and environment from options, and never exits the process.
+// standard input, arguments and environment from options, and never exits the process.
 //
 // # Calling across the boundary
 //
@@ -36,6 +36,7 @@
 //	Entry[K, V], Indexed[T]     records built by value.Entry and value.Indexed
 //	a function                  an opaque value.Callable: pass it back to Func.Call or Runtime.Call
 //	a type                      *value.Tag, from Instance.Value("Name")
+//	a time value                an opaque value.Time: its String is the RFC 9557 form; pass it back
 //
 // A record's tag comes from the instance, since the program declares it: the Example_call test
 // builds a Point that way. A host function receives its arguments in the order its signature

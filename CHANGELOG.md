@@ -16,5 +16,18 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   every panic; ten example programs; fuzzers for every layer; a generated-expression test of the
   checker against the runtime; statement coverage above 90%.
 
+- The world outside (`PLAN3.md`): `Os.exec` without a shell, `Os.environ`, `Os.cwd`, the
+  standard streams as `File.Handle`s through `Os.stdin`, `Os.stdout` and `Os.stderr`;
+  `File.stat`, `mkdir`, `removeAll`, `rename`, `walk`, `tempDir`, `append`, `readAll`,
+  `writeText` and `flush`; a `Path` namespace; `Math.random`; defaults on library parameters;
+  `ant.WithStdin`; and a `// stdin:` trailer in the corpus.
+- Time values after JavaScript's Temporal: `Instant`, `ZonedDateTime`, `PlainDate`, `PlainTime`,
+  `PlainDateTime`, `Zone` and `Duration` as a `time` kind compared by value, with RFC 9557
+  strings, IANA zones from a generated table, gaps and overlaps resolved by disambiguation,
+  calendar and exact arithmetic, rounding, totals, balancing and transitions, in
+  `internal/temporal`. `Time.now()` returns an `Instant`.
+- The coverage gate runs `go test` itself with `-run`, and three more examples: a task runner
+  over `Os.exec`, a filter over standard input, and an agenda across zones.
+
 Decisions the specification leaves open are recorded in `PLAN.md` and questions for the
 specification in `SPEC-FEEDBACK.md`.

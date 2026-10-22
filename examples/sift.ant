@@ -1,0 +1,38 @@
+// spec: stdlib Os; stdlib File; 11 String; 11 Array
+// A filter in the manner of grep: it keeps the lines of standard input that contain every
+// argument, in any letter case, numbers them, and reports the count on standard error. Try:
+//   ant run examples/sift.ant time zone < ../spec/stdlib.md
+func keeps(line: string, needles: Array[string]): bool {
+  var lower = String.toLower(line)
+  Array.every(needles, { String.contains(lower, x) })
+}
+
+func main(): void {
+  var needles = Array.map(Os.args(), { String.toLower(x) })
+  if Array.length(needles) == 0 {
+    File.writeLine(Os.stderr(), "usage: ant run examples/sift.ant word... < file")
+    Os.exit(2)
+  }
+  var input = Os.stdin()
+  var number = 0
+  var kept = 0
+  var line = Result.unwrap(File.readLine(input))
+  while line != null {
+    number += 1
+    if keeps(line, needles) {
+      kept += 1
+      print(`${number}: ${line}`)
+    }
+    line = Result.unwrap(File.readLine(input))
+  }
+  if File.writeLine(Os.stderr(), `${kept} of ${number} lines`) is Err { Os.exit(1) }
+}
+
+// expect
+// args: ant time
+// stdin: Ant has time values
+// stdin: no match here
+// stdin: TIME and ANT again
+// out: 1: Ant has time values
+// out: 3: TIME and ANT again
+// err: 2 of 3 lines

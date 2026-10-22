@@ -29,6 +29,9 @@ err = prog.Run(ctx, ant.WithArgs(args))       // nil, *ant.PanicError, or *ant.E
 diags := prog.Check()                         // []ant.Diagnostic
 ```
 
+`WithStdin`, `WithStdout`, `WithStderr`, `WithArgs` and `WithEnv` give a run its streams, its
+arguments and its environment; `Os.stdin()` and the other streams read and write them.
+
 To call Ant from Go, start an instance instead of running main:
 
 ```go
@@ -67,7 +70,10 @@ complete examples.
 The programs under `examples/` are real programs of a hundred to three hundred lines each, and
 the test suite runs them like the conformance programs. Start with `examples/config.ant`, a JSON
 decoder into records, `examples/calc.ant`, a parser and evaluator over a tagged union, and
-`examples/wordfreq.ant`, which counts words across files with one goroutine per file.
+`examples/wordfreq.ant`, which counts words across files with one goroutine per file. The world
+outside is in `examples/runner.ant`, a task runner over `Os.exec`, `examples/sift.ant`, a filter
+over standard input, and `examples/agenda.ant`, meetings across time zones with the Temporal-style
+`Time` namespace.
 
 ## Testing
 
