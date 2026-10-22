@@ -90,6 +90,36 @@ func shift(name string, right bool) *interp.Builtin {
 	})
 }
 
+// widthMask is the mask of a kind's bits.
+func widthMask(k value.Kind) uint64 {
+	if k.Bits() == 64 {
+		return ^uint64(0)
+	}
+	return uint64(1)<<uint(k.Bits()) - 1
+}
+
+// rotate is Bits.rotateLeft and Bits.rotateRight: by n modulo the width, so a count at or
+// beyond the width wraps; a negative count panics as the shifts do.
+func rotate(name string, right bool) *interp.Builtin {
+	return fn(name, "a, n", func(g *interp.Goroutine, a []value.Value) value.Value {
+		x, k := intBits(g, name, a[0])
+		n := intArg(g, name, a[1])
+		if n < 0 {
+			g.Panic("%s needs a count of at least 0, got %d", name, n)
+		}
+		width := int64(k.Bits())
+		n %= width
+		if right {
+			n = (width - n) % width
+		}
+		x &= widthMask(k)
+		if n == 0 {
+			return fromBits(k, x)
+		}
+		return fromBits(k, (x<<uint(n)|x>>uint(width-n))&widthMask(k))
+	})
+}
+
 func init() {
 	register("Bits", func() value.Value {
 		return namespace("Bits",
@@ -102,13 +132,22 @@ func init() {
 			}),
 			shift("Bits.shiftLeft", false),
 			shift("Bits.shiftRight", true),
+			rotate("Bits.rotateLeft", false),
+			rotate("Bits.rotateRight", true),
 			fn("Bits.popCount", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
 				x, k := intBits(g, "Bits.popCount", a[0])
-				mask := uint64(1)<<uint(k.Bits()) - 1
-				if k.Bits() == 64 {
-					mask = ^uint64(0)
+				return int64(bits.OnesCount64(x & widthMask(k)))
+			}),
+			fn("Bits.leadingZeros", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
+				x, k := intBits(g, "Bits.leadingZeros", a[0])
+				return int64(bits.LeadingZeros64(x&widthMask(k)) - (64 - k.Bits()))
+			}),
+			fn("Bits.trailingZeros", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
+				x, k := intBits(g, "Bits.trailingZeros", a[0])
+				if x&widthMask(k) == 0 {
+					return int64(k.Bits())
 				}
-				return int64(bits.OnesCount64(x & mask))
+				return int64(bits.TrailingZeros64(x & widthMask(k)))
 			}),
 			binaryBits("Bits.wrapAdd", func(x, y uint64) uint64 { return x + y }),
 			binaryBits("Bits.wrapSub", func(x, y uint64) uint64 { return x - y }),

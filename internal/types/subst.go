@@ -85,35 +85,44 @@ func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 
 // Mentions reports whether t mentions any type parameter in the set.
 func Mentions(t Type, set map[*ParamDecl]bool) bool {
+	return mentions(t, func(p Param) bool { return set[p.Decl] })
+}
+
+// HasParam reports whether t mentions any type parameter at all.
+func HasParam(t Type) bool {
+	return mentions(t, func(Param) bool { return true })
+}
+
+func mentions(t Type, pred func(Param) bool) bool {
 	switch x := t.(type) {
 	case Param:
-		return set[x.Decl]
+		return pred(x)
 	case Array:
-		return Mentions(x.Elem, set)
+		return mentions(x.Elem, pred)
 	case Map:
-		return Mentions(x.Key, set) || Mentions(x.Val, set)
+		return mentions(x.Key, pred) || mentions(x.Val, pred)
 	case Func:
 		for _, p := range x.Params {
-			if Mentions(p, set) {
+			if mentions(p, pred) {
 				return true
 			}
 		}
-		return Mentions(x.Return, set)
+		return mentions(x.Return, pred)
 	case Record:
 		for _, f := range x.Fields {
-			if Mentions(f.Type, set) {
+			if mentions(f.Type, pred) {
 				return true
 			}
 		}
 	case Named:
 		for _, a := range x.Args {
-			if Mentions(a, set) {
+			if mentions(a, pred) {
 				return true
 			}
 		}
 	case Union:
 		for _, m := range x.Members {
-			if Mentions(m, set) {
+			if mentions(m, pred) {
 				return true
 			}
 		}

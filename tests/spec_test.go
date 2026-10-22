@@ -307,15 +307,8 @@ var panicRows = [][]string{
 }
 
 // pendingPanics lists the panic keys no test program triggers yet: the ◆ functions Plan 5
-// specified in Phase 36, which get their programs in Phases 38 to 41.
+// specified in Phase 36, which get their programs in Phase 41.
 var pendingPanics = []string{
-	"Array.insert",
-	"Array.removeAt",
-	"Array.chunk",
-	"Math.clamp",
-	"Math.randomInt",
-	"Bits.rotateLeft",
-	"Bits.rotateRight",
 	"Csv.parse",
 	"Csv.stringify",
 	"Crypto.randomBytes",

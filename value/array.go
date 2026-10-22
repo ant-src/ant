@@ -90,6 +90,53 @@ func (a *Array) Pop() (Value, bool) {
 	return v, true
 }
 
+// Insert stores v at i and shifts the elements from i on up by one, or reports false when i is
+// outside 0 ..= Len(). The elements go into a fresh slice, so a reader of the old header sees
+// the array as it was.
+func (a *Array) Insert(i int, v Value) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	h := a.h.Load()
+	if i < 0 || i > h.n {
+		return false
+	}
+	c := len(h.elems)
+	if h.n == c {
+		c = growCap(c)
+	}
+	elems := make([]Slot, c)
+	for j := 0; j < i; j++ {
+		elems[j].Store(h.elems[j].Load())
+	}
+	elems[i].Store(v)
+	for j := i; j < h.n; j++ {
+		elems[j+1].Store(h.elems[j].Load())
+	}
+	a.h.Store(&arrayHeader{elems: elems, n: h.n + 1})
+	return true
+}
+
+// Remove removes and returns the element at i, shifting the rest down by one, or reports false
+// when i is out of range. As Insert, it publishes a fresh slice.
+func (a *Array) Remove(i int) (Value, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	h := a.h.Load()
+	if i < 0 || i >= h.n {
+		return nil, false
+	}
+	v := h.elems[i].Load()
+	elems := make([]Slot, len(h.elems))
+	for j := 0; j < i; j++ {
+		elems[j].Store(h.elems[j].Load())
+	}
+	for j := i + 1; j < h.n; j++ {
+		elems[j-1].Store(h.elems[j].Load())
+	}
+	a.h.Store(&arrayHeader{elems: elems, n: h.n - 1})
+	return v, true
+}
+
 // Values copies the elements out, from one consistent header.
 func (a *Array) Values() []Value {
 	h := a.h.Load()

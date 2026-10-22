@@ -66,14 +66,69 @@ func init() {
 				}
 				return v
 			}),
+			unary("Math.log", math.Log),
+			unary("Math.log2", math.Log2),
+			unary("Math.log10", math.Log10),
+			unary("Math.exp", math.Exp),
+			unary("Math.sin", math.Sin),
+			unary("Math.cos", math.Cos),
+			unary("Math.tan", math.Tan),
+			unary("Math.asin", math.Asin),
+			unary("Math.acos", math.Acos),
+			unary("Math.atan", math.Atan),
+			fn("Math.atan2", "y, x", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return math.Atan2(floatArg(g, "Math.atan2", a[0]), floatArg(g, "Math.atan2", a[1]))
+			}),
+			fn("Math.hypot", "x, y", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return math.Hypot(floatArg(g, "Math.hypot", a[0]), floatArg(g, "Math.hypot", a[1]))
+			}),
+			unary("Math.cbrt", math.Cbrt),
+			fn("Math.isNaN", "x", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return math.IsNaN(floatArg(g, "Math.isNaN", a[0]))
+			}),
+			fn("Math.isFinite", "x", func(g *interp.Goroutine, a []value.Value) value.Value {
+				x := floatArg(g, "Math.isFinite", a[0])
+				return !math.IsNaN(x) && !math.IsInf(x, 0)
+			}),
+			fn("Math.clamp", "x, lo, hi", func(g *interp.Goroutine, a []value.Value) value.Value {
+				x, lo, hi := a[0], a[1], a[2]
+				if less(g, "Math.clamp", hi, lo) {
+					g.Panic("Math.clamp needs lo <= hi, got %s and %s", value.Render(lo), value.Render(hi))
+				}
+				if less(g, "Math.clamp", x, lo) {
+					return lo
+				}
+				if less(g, "Math.clamp", hi, x) {
+					return hi
+				}
+				return x
+			}),
 			fn("Math.random", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				return rand.Float64()
 			}),
+			fn("Math.randomInt", "from, to", func(g *interp.Goroutine, a []value.Value) value.Value {
+				from, to := intArg(g, "Math.randomInt", a[0]), intArg(g, "Math.randomInt", a[1])
+				if to <= from {
+					g.Panic("Math.randomInt needs from < to, got %d and %d", from, to)
+				}
+				// The span may exceed the int range, so it is taken as a uint64.
+				return int64(uint64(from) + rand.Uint64N(uint64(to)-uint64(from)))
+			}),
 			constant("PI", math.Pi),
 			constant("E", math.E),
+			constant("NaN", math.NaN()),
+			constant("Infinity", math.Inf(1)),
+			constant("maxFloat64", math.MaxFloat64),
 			constant("minInt", int64(math.MinInt64)),
 			constant("maxInt", int64(math.MaxInt64)),
 		)
+	})
+}
+
+// unary is a Math function over one float64.
+func unary(name string, f func(float64) float64) *interp.Builtin {
+	return fn(name, "x", func(g *interp.Goroutine, a []value.Value) value.Value {
+		return f(floatArg(g, name, a[0]))
 	})
 }
 

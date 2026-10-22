@@ -1,0 +1,12 @@
+// spec: 11 Array; 12 Runtime panics
+// panics: Array.chunk; library-value
+// A chunk size below 1 is a ◆ panic: no chunk could hold an element.
+func main(): void {
+  print(Array.chunk([1, 2, 3], 1))
+  print(Array.chunk([1, 2, 3], 0))
+}
+
+// expect
+// exit: 1
+// out: [[1], [2], [3]]
+// err: Array.chunk needs a size of at least 1, got 0

@@ -726,7 +726,10 @@ func (c *Checker) checkLambda(x *ast.Lambda, sc *scope, expected types.Type) typ
 // type is an unsolved type parameter, the body's type stands in for it.
 func (c *Checker) lambda(x *ast.Lambda, sc *scope, ft types.Func) types.Type {
 	ctx := &fnCtx{parent: c.fn, kind: "lambda", name: "lambda", declared: ft.Return}
-	if _, isParam := ft.Return.(types.Param); isParam {
+	if types.HasParam(ft.Return) {
+		// The expected result mentions a type parameter the call has not solved yet, as U in
+		// Array.map's U or Array.flatMap's Array[U]; the body is synthesized and the call
+		// unifies the two to solve it (section 4, Inference).
 		ctx.declared = nil
 	}
 	inner := &scope{parent: sc, names: map[string]*local{}}

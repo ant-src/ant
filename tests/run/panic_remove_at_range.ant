@@ -1,0 +1,16 @@
+// spec: 11 Array; 12 Runtime panics
+// panics: Array.removeAt; library-value
+// removeAt takes an index from 0 up to but excluding the length; the length itself is a ◆
+// panic, as is a negative index.
+func main(): void {
+  var xs = [1, 2]
+  print(Array.removeAt(xs, 1))
+  print(xs)
+  print(Array.removeAt(xs, 1))
+}
+
+// expect
+// exit: 1
+// out: 2
+// out: [1]
+// err: Array.removeAt: the index 1 is out of range for a length of 1

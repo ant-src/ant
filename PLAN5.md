@@ -591,3 +591,11 @@ functions, one per ◆, and a program for each of the five `Time` ◆ functions 
 pending. `String.toInt` keeps its own digit check in front of the parse, now for any base, so
 that a prefix, a space or an underscore is `null` whatever the parser would take. Nothing else
 differs from the plan.
+
+Phase 38 was done on 2026-10-22: sections 3.3 and 3.4 in `array.go`, `math.go` and `bits.go`,
+with `Insert` and `Remove` on the array value, which publish a fresh slice so a concurrent
+reader keeps a consistent view, and three corpus programs plus one per ◆. One thing was found
+on the way: the checker synthesized a lambda's body only when the expected result was a bare
+type parameter, so `Array.flatMap(xs, { [x] })` failed to infer `U` from `Array[U]`. It now
+synthesizes whenever the expected result mentions an unsolved parameter, and the Inference
+section of the spec says so in one clause.

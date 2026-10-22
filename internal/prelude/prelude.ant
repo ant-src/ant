@@ -39,22 +39,40 @@ func bool(x: bool): bool
 func Array.length[T](xs: Array[T]): int
 func Array.isEmpty[T](xs: Array[T]): bool
 func Array.get[T](xs: Array[T], i: int): T | null
+func Array.first[T](xs: Array[T]): T | null
+func Array.last[T](xs: Array[T]): T | null
 func Array.push[T](xs: Array[T], v: T): void
 func Array.pop[T](xs: Array[T]): T | null
+func Array.insert[T](xs: Array[T], i: int, v: T): void
+func Array.removeAt[T](xs: Array[T], i: int): T
 func Array.slice[T](xs: Array[T], from: int, to: int): Array[T]
 func Array.concat[T](xs: Array[T], ys: Array[T]): Array[T]
 func Array.map[T, U](xs: Array[T], f: func(T): U): Array[U]
+func Array.flatMap[T, U](xs: Array[T], f: func(T): Array[U]): Array[U]
 func Array.filter[T](xs: Array[T], f: func(T): bool): Array[T]
 func Array.reduce[T, A](xs: Array[T], init: A, f: func(A, T): A): A
 func Array.find[T](xs: Array[T], f: func(T): bool): T | null
+func Array.findIndex[T](xs: Array[T], f: func(T): bool): int | null
+func Array.findLast[T](xs: Array[T], f: func(T): bool): T | null
+func Array.findLastIndex[T](xs: Array[T], f: func(T): bool): int | null
 func Array.some[T](xs: Array[T], f: func(T): bool): bool
 func Array.every[T](xs: Array[T], f: func(T): bool): bool
+func Array.countWhere[T](xs: Array[T], f: func(T): bool): int
 func Array.contains[T](xs: Array[T], v: T): bool
 func Array.indexOf[T](xs: Array[T], v: T): int | null
+func Array.lastIndexOf[T](xs: Array[T], v: T): int | null
+func Array.min[T: Ordered](xs: Array[T]): T | null
+func Array.max[T: Ordered](xs: Array[T]): T | null
+func Array.minBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
+func Array.maxBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
 func Array.sort[T: Ordered](xs: Array[T]): Array[T]
 func Array.sortBy[T, K: Ordered](xs: Array[T], key: func(T): K): Array[T]
 func Array.sortWith[T](xs: Array[T], cmp: func(T, T): int): Array[T]
 func Array.reverse[T](xs: Array[T]): Array[T]
+func Array.unique[T](xs: Array[T]): Array[T]
+func Array.uniqueBy[T, K](xs: Array[T], key: func(T): K): Array[T]
+func Array.chunk[T](xs: Array[T], n: int): Array[Array[T]]
+func Array.groupBy[T, K](xs: Array[T], key: func(T): K): Map[K, Array[T]]
 func Array.entries[T](xs: Array[T]): Array[Indexed[T]]
 func Array.range(from: int, to: int): Array[int]
 func Array.filled[T](n: int, v: T): Array[T]
@@ -147,9 +165,29 @@ func Math.ceil(x: float64): float64
 func Math.round(x: float64): float64
 func Math.trunc(x: float64): float64
 func Math.toInt(x: float64): int | null
+func Math.log(x: float64): float64
+func Math.log2(x: float64): float64
+func Math.log10(x: float64): float64
+func Math.exp(x: float64): float64
+func Math.sin(x: float64): float64
+func Math.cos(x: float64): float64
+func Math.tan(x: float64): float64
+func Math.asin(x: float64): float64
+func Math.acos(x: float64): float64
+func Math.atan(x: float64): float64
+func Math.atan2(y: float64, x: float64): float64
+func Math.hypot(x: float64, y: float64): float64
+func Math.cbrt(x: float64): float64
+func Math.isNaN(x: float64): bool
+func Math.isFinite(x: float64): bool
+func Math.clamp[T: Ordered](x: T, lo: T, hi: T): T
 func Math.random(): float64
+func Math.randomInt(from: int, to: int): int
 var Math.PI: float64
 var Math.E: float64
+var Math.NaN: float64
+var Math.Infinity: float64
+var Math.maxFloat64: float64
 var Math.minInt: int
 var Math.maxInt: int
 
@@ -159,7 +197,11 @@ func Bits.xor[T: Integer](a: T, b: T): T
 func Bits.not[T: Integer](a: T): T
 func Bits.shiftLeft[T: Integer](a: T, n: int): T
 func Bits.shiftRight[T: Integer](a: T, n: int): T
+func Bits.rotateLeft[T: Integer](a: T, n: int): T
+func Bits.rotateRight[T: Integer](a: T, n: int): T
 func Bits.popCount[T: Integer](a: T): int
+func Bits.leadingZeros[T: Integer](a: T): int
+func Bits.trailingZeros[T: Integer](a: T): int
 func Bits.wrapAdd[T: Integer](a: T, b: T): T
 func Bits.wrapSub[T: Integer](a: T, b: T): T
 func Bits.wrapMul[T: Integer](a: T, b: T): T

@@ -1,0 +1,12 @@
+// spec: 11 Math and Bits; 12 Runtime panics
+// panics: Math.randomInt; library-value
+// randomInt with to at or below from is a ◆ panic: the range is empty.
+func main(): void {
+  print(Math.randomInt(3, 4))
+  print(Math.randomInt(3, 3))
+}
+
+// expect
+// exit: 1
+// out: 3
+// err: Math.randomInt needs from < to, got 3 and 3
