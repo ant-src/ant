@@ -1,0 +1,9 @@
+// spec: 5 select
+func main(): void {
+  var c: Chan[int] = Chan.new()
+  select {}
+}
+
+// expect
+// exit: 2
+// err: a select needs at least one clause with a head

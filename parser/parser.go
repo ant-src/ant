@@ -998,6 +998,8 @@ func (p *parser) primary() ast.Expr {
 			return &ast.FuncLit{Pos: pos(t), Params: params, Return: ret, Body: body}
 		case "if":
 			return p.ifExpr()
+		case "select":
+			return p.selectExpr()
 		case "while":
 			p.next()
 			cond := p.headerExpr("while")
@@ -1142,6 +1144,90 @@ func (p *parser) ifExpr() *ast.If {
 		}
 	}
 	return n
+}
+
+// selectHeads are the five blocking calls a select clause may wait on, by namespace and
+// function; no declaration may shadow a prelude name, so the path is the function.
+var selectHeads = map[string]map[string]bool{
+	"Chan":      {"receive": true, "send": true},
+	"Context":   {"wait": true},
+	"WaitGroup": {"wait": true},
+	"Time":      {"sleep": true},
+}
+
+const selectHeadNames = "Chan.receive, Chan.send, Context.wait, WaitGroup.wait or Time.sleep"
+
+// selectExpr parses select { clauses }: each clause a head, one of the five blocking calls
+// written and not performed, with an optional var x = binding and a block, or else and a block,
+// written last (section 5). Newlines separate clauses, as they do statements.
+func (p *parser) selectExpr() *ast.Select {
+	t := p.expect("select")
+	s := &ast.Select{Pos: pos(t)}
+	open := p.expect("{")
+	saved := p.enterBlock(p.curBlock)
+	heads, hasElse := 0, false
+	p.skipTerms()
+	for !p.at("}") {
+		if p.atKind(token.EOF) {
+			p.fail(p.peek().Pos, "expected '}', got end of file")
+		}
+		start := p.peek()
+		c := &ast.SelectClause{Pos: pos(start)}
+		if p.at("var") {
+			p.next()
+			n := p.expectIdent("a name for the clause's result")
+			c.Target = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+			p.expect("=")
+		}
+		if p.at("else") {
+			if c.Target != nil {
+				p.fail(start.Pos, "an else clause binds nothing; it runs when no head can proceed")
+			}
+			if hasElse {
+				p.fail(start.Pos, "a select has at most one else clause")
+			}
+			hasElse = true
+			p.next()
+			c.Body = p.block()
+		} else {
+			if hasElse {
+				p.fail(start.Pos, "the else clause must be the last clause of a select")
+			}
+			c.Head = p.selectHead(p.headerExpr("select clause"))
+			heads++
+			c.Body = p.block()
+		}
+		s.Clauses = append(s.Clauses, c)
+		if p.at("}") {
+			break
+		}
+		// A line that starts with else continues the line before it (section 2), so no
+		// terminator separates a clause's block from an else clause.
+		if !p.at("else") {
+			p.expectTerm()
+		}
+		p.skipTerms()
+	}
+	p.expect("}")
+	p.leave(saved)
+	if heads == 0 {
+		p.fail(open.Pos, "a select needs at least one clause with a head: %s", selectHeadNames)
+	}
+	return s
+}
+
+// selectHead checks that a clause's head is one of the five calls, written plainly.
+func (p *parser) selectHead(e ast.Expr) *ast.Call {
+	if call, ok := e.(*ast.Call); ok && !call.Optional && !call.Pipe {
+		if f, ok := call.Fn.(*ast.Field); ok && !f.Optional {
+			if ns, ok := f.X.(*ast.Ident); ok && selectHeads[ns.Name][f.Name] {
+				return call
+			}
+		}
+	}
+	at := e.Position()
+	p.fail(token.Pos{Line: at.Line, Col: at.Col}, "a select clause's head must be a call of %s", selectHeadNames)
+	return nil
 }
 
 func (p *parser) forExpr() *ast.For {

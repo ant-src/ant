@@ -348,6 +348,24 @@ type (
 		Body   *Block
 		Scope  *BlockScope // the per-iteration scope, filled by the resolver
 	}
+	// Select is a select expression (section 5): clauses with a head each, and at most one
+	// else, last.
+	Select struct {
+		Pos     Pos
+		Clauses []*SelectClause
+	}
+	// SelectClause is one clause of a select. Head is the call that names the wait, one of
+	// Chan.receive, Chan.send, Context.wait, WaitGroup.wait and Time.sleep, which the parser
+	// checks, and nil for else. Target binds the head's result when the clause has var x =.
+	// Scope is the body's scope with that binding, filled by the resolver, nil when it declares
+	// nothing.
+	SelectClause struct {
+		Pos    Pos
+		Target *NameTarget
+		Head   *Call
+		Body   *Block
+		Scope  *BlockScope
+	}
 	Go struct {
 		Pos   Pos
 		Body  *Block
@@ -503,6 +521,7 @@ func (n *If) Position() Pos           { return n.Pos }
 func (n *While) Position() Pos        { return n.Pos }
 func (n *For) Position() Pos          { return n.Pos }
 func (n *Go) Position() Pos           { return n.Pos }
+func (n *Select) Position() Pos       { return n.Pos }
 func (n *Defer) Position() Pos        { return n.Pos }
 func (n *Return) Position() Pos       { return n.Pos }
 func (n *Break) Position() Pos        { return n.Pos }
@@ -544,6 +563,7 @@ func (*If) stmtNode()          {}
 func (*While) stmtNode()       {}
 func (*For) stmtNode()         {}
 func (*Go) stmtNode()          {}
+func (*Select) stmtNode()      {}
 func (*Defer) stmtNode()       {}
 func (*Return) stmtNode()      {}
 func (*Break) stmtNode()       {}
@@ -576,6 +596,7 @@ func (*If) exprNode()          {}
 func (*While) exprNode()       {}
 func (*For) exprNode()         {}
 func (*Go) exprNode()          {}
+func (*Select) exprNode()      {}
 func (*Defer) exprNode()       {}
 func (*Return) exprNode()      {}
 func (*Break) exprNode()       {}

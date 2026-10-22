@@ -1,0 +1,11 @@
+// spec: 5 select
+func main(): void {
+  var c: Chan[int] = Chan.new()
+  select {
+    Array.length([1]) { print("no") }
+  }
+}
+
+// expect
+// exit: 2
+// err: a select clause's head must be a call of Chan.receive, Chan.send, Context.wait, WaitGroup.wait or Time.sleep

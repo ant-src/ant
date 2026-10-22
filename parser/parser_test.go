@@ -24,13 +24,9 @@ func specPath(t *testing.T) string {
 }
 
 // pendingBlocks lists the ```ant blocks of the specification the parser cannot read yet, each by
-// its first line: the select of Plan 7, which Phase 52 implements. A pending block that parses is
-// an error, so the list shrinks as the parser grows.
-var pendingBlocks = []string{
-	"select {",
-	"var event: Event = select {",
-	"func generating(s: Session, ctx: Context): void {",
-}
+// its first line. A pending block that parses is an error, so the list shrinks as the parser
+// grows.
+var pendingBlocks = []string{}
 
 // TestSpecBlocks parses every ```ant block of the specification in spec mode.
 func TestSpecBlocks(t *testing.T) {
@@ -91,6 +87,14 @@ func TestSyntaxErrors(t *testing.T) {
 		{"regex backreference", "var r = /(a)\\1/", "backreferences are not supported", Program},
 		{"regex unicode escape", "var r = /\\u0041/", "write a code point as", Program},
 		{"regex unbalanced", "var r = /(/", "missing closing )", Program},
+		{"select empty", "func f() { select {} }", "at least one clause with a head", Program},
+		{"select else only", "func f() { select { else { 1 } } }", "at least one clause with a head", Program},
+		{"select two else", "func f() { select { Chan.receive(c) { 1 }\n else { 2 }\n else { 3 } } }", "at most one else clause", Program},
+		{"select else not last", "func f() { select { else { 2 }\n Chan.receive(c) { 1 } } }", "must be the last clause", Program},
+		{"select bind else", "func f() { select { var x = else { 2 } } }", "an else clause binds nothing", Program},
+		{"select bad head", "func f() { select { g(c) { 1 } } }", "head must be a call of", Program},
+		{"select pipe head", "func f() { select { c | Chan.receive() { 1 } } }", "head must be a call of", Program},
+		{"select brace on next line", "func f() { select { Chan.receive(c)\n { 1 } } }", "expected '{' after the select clause header", Program},
 		{"float trailing dot", "var x = 1.", "digit after the point", Program},
 		{"int overflow", "var x = 9223372036854775808", "does not fit an int", Program},
 		{"octal-looking", "var x = 0o17", "malformed number", Program},

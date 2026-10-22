@@ -1,0 +1,12 @@
+// spec: 5 select
+func main(): void {
+  var c: Chan[int] = Chan.new()
+  select {
+    else { print("idle") }
+    Chan.receive(c) { print("got") }
+  }
+}
+
+// expect
+// exit: 2
+// err: the else clause must be the last clause of a select

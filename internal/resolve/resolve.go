@@ -53,6 +53,7 @@ type scope struct {
 	module   bool
 	block    *ast.Block
 	loop     *ast.For
+	clause   *ast.SelectClause
 	fnScope  *ast.FuncScope
 	xBinding *binding
 	alloc    bool
@@ -427,6 +428,19 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		it := r.push(&scope{parent: s, loop: e})
 		r.target(e.Target, it)
 		r.stmts(e.Body.Stmts, it)
+	case *ast.Select:
+		// The heads' operands belong to the enclosing scope; each body is a scope of its own
+		// with the clause's binding, as a loop's iteration is.
+		for _, c := range e.Clauses {
+			if c.Head != nil {
+				r.expr(c.Head, s)
+			}
+			cs := r.push(&scope{parent: s, clause: c})
+			if c.Target != nil {
+				r.target(c.Target, cs)
+			}
+			r.stmts(c.Body.Stmts, cs)
+		}
 	case *ast.Go:
 		e.Scope = &ast.FuncScope{}
 		r.body("go", e.Body, s, e.Scope)
@@ -546,6 +560,10 @@ func (r *resolver) finalize() {
 			s.loop.Scope = &ast.BlockScope{Plain: plain, Shared: shared}
 			if !s.alloc {
 				s.loop.Scope = nil
+			}
+		case s.clause != nil:
+			if s.alloc {
+				s.clause.Scope = &bs
 			}
 		case s.block != nil:
 			if s.alloc {

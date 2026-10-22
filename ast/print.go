@@ -356,6 +356,25 @@ func sprint(sb *strings.Builder, n Node) {
 		sb.WriteString(" ")
 		sprint(sb, x.Body)
 		sb.WriteString(")")
+	case *Select:
+		sb.WriteString("(select")
+		for _, c := range x.Clauses {
+			sb.WriteString(" (")
+			if c.Target != nil {
+				sb.WriteString("var ")
+				sprint(sb, c.Target)
+				sb.WriteString(" = ")
+			}
+			if c.Head == nil {
+				sb.WriteString("else")
+			} else {
+				sprint(sb, c.Head)
+			}
+			sb.WriteString(" ")
+			sprint(sb, c.Body)
+			sb.WriteString(")")
+		}
+		sb.WriteString(")")
 	case *Go:
 		sb.WriteString("(go ")
 		sprint(sb, x.Body)

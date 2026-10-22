@@ -1,0 +1,12 @@
+// spec: 5 select
+func main(): void {
+  var c: Chan[int] = Chan.new()
+  select {
+    Chan.receive(c) { print("got") }
+    var x = else { print("idle") }
+  }
+}
+
+// expect
+// exit: 2
+// err: an else clause binds nothing

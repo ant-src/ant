@@ -99,8 +99,8 @@ func (t Token) Is(text string) bool {
 var keywords = map[string]bool{
 	"break": true, "continue": true, "defer": true, "else": true, "export": true, "false": true,
 	"for": true, "func": true, "go": true, "if": true, "import": true, "in": true, "is": true,
-	"null": true, "return": true, "true": true, "try": true, "type": true, "var": true,
-	"void": true, "while": true,
+	"null": true, "return": true, "select": true, "true": true, "try": true, "type": true,
+	"var": true, "void": true, "while": true,
 }
 
 var reserved = map[string]bool{

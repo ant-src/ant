@@ -262,3 +262,11 @@ a `select` bullet in section 12's expressions and a row in its panics table. Her
 spec blocks on the parser's `pendingBlocks`, and the two panic programs of the namespace keep
 only the table's key until Phase 54 removes them. Decisions 1 to 10 are written into the spec as
 recommended, so they are taken with this phase.
+
+Phase 52 was done on 2026-10-23: `select` among the keywords, the `Select` and `SelectClause`
+nodes, the parser reading a clause as a header and a block with the five heads checked by their
+path, the resolver giving each clause's body a scope of its own with the binding, as a loop's
+iteration has, the printer, seven syntax programs and the parser's cases for the errors of section
+3.4, and fuzz seeds with selects. One thing the parser had to know: a line that starts with `else`
+continues the line before it, so no terminator separates a clause's block from the `else` clause.
+The three spec blocks parse and left `pendingBlocks`, and `5 select` left `pendingSpec`.

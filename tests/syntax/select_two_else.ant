@@ -1,0 +1,13 @@
+// spec: 5 select
+func main(): void {
+  var c: Chan[int] = Chan.new()
+  select {
+    Chan.receive(c) { print("got") }
+    else { print("a") }
+    else { print("b") }
+  }
+}
+
+// expect
+// exit: 2
+// err: a select has at most one else clause
