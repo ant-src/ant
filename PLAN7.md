@@ -287,3 +287,11 @@ runs; a send chosen on a closed channel is the ◆. The `Select` namespace, its 
 prelude lines and its name are gone, and the corpus has `select_expr.ant` for every head and
 `else`, `select_loop.ant` for the state machine driven by goroutines, and the closed-send panic
 program under the table's row. The pending lists are empty.
+
+Phase 55 was done on 2026-10-23: the CHANGELOG, with Plan 6's entry no longer naming the
+namespace, the README and the status here; the package documentation needed nothing, since a
+`select` is syntax. Running the suite under the race detector on the way found a window in Plan
+6's interrupt relay: the run was cancelled before its flag was set, so a goroutine whose sleep
+the cancellation ended could run one more statement; the relay now sets the flag first, as
+`Close` does. Plan 7 is done: every pending list is empty, the suite is green under `-race`,
+and the coverage gate stands at 91% overall with every package above 85%.

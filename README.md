@@ -4,8 +4,8 @@ A Go implementation of [Ant](https://github.com/ant-src/spec): a tree-walking in
 type checker, and a REPL, usable as a command and as a Go module.
 
 The interpreter implements section 12 of the specification and the whole standard library, from
-`Array` and `String` to `Regex` with its `/.../flags` literal, `Time` after Temporal, channels
-and contexts for goroutines that wait, `Http` as a client and a server, `Net`, `Csv`,
+`Array` and `String` to `Regex` with its `/.../flags` literal, `Time` after Temporal, channels,
+contexts and a `select` for goroutines that wait, `Http` as a client and a server, `Net`, `Csv`,
 `Encoding`, `Url` and `Crypto`; the checker implements the rules of sections 4 through 10.
 Programs under `tests/run` are the acceptance suite for `ant run`, programs under `tests/check`
 for `ant check`.

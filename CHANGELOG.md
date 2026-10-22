@@ -58,9 +58,8 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   `Chan` and `Select`, `WaitGroup.wait`, `Time.sleep`, `Http.request`, `Os.exec`, the `File`
   reads, `Net`, and `Http.serve`. `WaitGroup` is rebuilt on a channel closed at zero.
 - `Chan[T]`, a channel as a sync object: `new`, `send`, `receive`, `close`, `isClosed`,
-  `length` and `values` for `for`; and `Select`, a select as a call over clauses, `receive`,
-  `send` and `otherwise`, run by `Select.wait` with Go's atomic choice. Section 9's Waiting
-  gives the mailbox, the first of several, the pool, the future and the ticker.
+  `length` and `values` for `for`. Section 9's Waiting gives the mailbox, the first of several,
+  the pool, the future and the ticker.
 - `Net`: `listen`, `address`, `accept`, `close`, `dial` and `peer`, with a connection as a
   `File.Handle` whose writes flush and whose reads a context ends through the deadline.
 - `Http.serve` over a listener with `Http.Request`, each handler on its own goroutine, a panic
@@ -69,3 +68,11 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   it, the second ending the run; `ant.WithInterrupts` for hosts, and the `ant` command relaying
   its signals. Three more examples: a worker pool with a deadline, a socket echo server, and a
   JSON API that drains on an interrupt.
+
+- `select` (Plan 7), a keyword: a clause is one of five blocking calls, `Chan.receive`,
+  `Chan.send`, `Context.wait`, `WaitGroup.wait` or `Time.sleep`, written as the call and not
+  performed, with a block each, `var x =` binding the result and `else` for nothing ready. The
+  heads' operands evaluate once before the wait, one ready head is chosen at random, and the
+  blocks return, break and continue like any other, so a state machine is a loop around a
+  `select`. A `select` is an expression typed like an `if`. The `Select` namespace of Plan 6 is
+  gone.
