@@ -172,9 +172,10 @@ func f(a: int): int {
 		t.Fatal(errs[0])
 	}
 	fn := f.Decls[1].(*ast.FuncDecl)
-	// a is captured by the lambda: shared; b by the go block: shared; g is plain.
-	if fn.Scope.Shared != 2 || fn.Scope.Plain != 1 {
-		t.Errorf("function scope: plain %d shared %d, want 1 and 2", fn.Scope.Plain, fn.Scope.Shared)
+	// a is captured by the lambda: shared; b by the go block: shared; g is plain, and so is the
+	// if block's c, which the function's environment hosts after g.
+	if fn.Scope.Shared != 2 || fn.Scope.Plain != 2 {
+		t.Errorf("function scope: plain %d shared %d, want 2 and 2", fn.Scope.Plain, fn.Scope.Shared)
 	}
 	a := find(fn, "a")
 	if r := a[0].Ref; r.Kind != ast.RefLocal || r.Depth != 0 || !r.Shared {
@@ -192,13 +193,16 @@ func f(a: int): int {
 	if r := find(fn, "_")[0].Ref; r.Kind != ast.RefDiscard {
 		t.Errorf("_: %+v", r)
 	}
-	// c lives in the if block's own environment, one hop from the function's.
+	// c captures nothing, so the if block opens no environment: c is the function's slot 1.
 	ifBlock := fn.Body.Stmts[1].(*ast.If).Then
-	if ifBlock.Scope == nil || ifBlock.Scope.Plain != 1 {
+	if s := ifBlock.Scope; s == nil || !s.Inline || s.Plain != 1 || s.Base != 1 {
 		t.Errorf("if block scope: %+v", ifBlock.Scope)
 	}
+	if r := find(fn, "c")[0].Ref; r.Depth != 0 || r.Index != 1 || r.Shared {
+		t.Errorf("c in if block: %+v", r)
+	}
 	b := find(fn, "b")
-	if r := b[0].Ref; r.Kind != ast.RefLocal || r.Depth != 1 || !r.Shared {
+	if r := b[0].Ref; r.Kind != ast.RefLocal || r.Depth != 0 || !r.Shared {
 		t.Errorf("b in if block: %+v", r)
 	}
 	if r := b[1].Ref; r.Kind != ast.RefLocal || r.Depth != 1 || !r.Shared {

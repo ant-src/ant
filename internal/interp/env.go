@@ -80,6 +80,19 @@ func newEnv(scope *ast.BlockScope, parent *Env) *Env {
 	return e
 }
 
+// enter opens a block or loop iteration's scope in env: a new environment, or, for an inline
+// scope, its range of env's slots reset to unbound.
+func enter(scope *ast.BlockScope, env *Env) *Env {
+	if !scope.Inline {
+		return newEnv(scope, env)
+	}
+	slots := env.plain[scope.Base : scope.Base+scope.Plain]
+	for i := range slots {
+		slots[i] = value.Uninitialized
+	}
+	return env
+}
+
 func (e *Env) up(depth int) *Env {
 	for ; depth > 0; depth-- {
 		e = e.parent

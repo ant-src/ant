@@ -255,3 +255,12 @@ cost about nothing here. benchstat against Phase 29, 8 runs: `fib` −12% (450 k
 allocations, 2 per call), `par_fib` −11 to −13%, `records` −3%, allocations −30% geomean, no
 regression. The 30% time gate is missed: a profile of `fib(32)` now shows dispatch (`eval`,
 `binary`, `arith`, `ident`), which is Phase 32's.
+
+Phase 31 is done: a block or loop scope with no captured binding opens no environment. Its slots
+go into the nearest enclosing environment of the same function (`BlockScope.Inline` and `Base`),
+siblings share a range, and entering the block resets the range. Locals are not hoisted within a
+block, so a plain slot cannot be read before its binding and the reset is only defensive.
+`tests/run/loop_scopes.ant` covers fresh bindings per iteration, sibling and nested blocks, and
+recursion through a block. benchstat against Phase 30, 8 runs: `map` −11%, `par_map` −11 to
+−14%, `records` −8%, `strings` −9%, `array` and `seq` −5%, no regression. A memory profile of
+`records` shows `newEnv` only under `frame`.

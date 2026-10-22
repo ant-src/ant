@@ -56,6 +56,11 @@ type scope struct {
 	fnScope  *ast.FuncScope
 	xBinding *binding
 	alloc    bool
+	// layout, set by finalize
+	plain, shared int    // own slots
+	host          *scope // the environment a scope without one of its own keeps its slots in
+	base          int    // where those slots start in host
+	extent        int    // for a scope with an environment: its plain slots and its guests'
 }
 
 type use struct {
@@ -518,24 +523,50 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 // ---- finalize
 
 func (r *resolver) finalize() {
-	// Slot numbering and environment allocation per scope.
+	// Slot numbering and environment allocation per scope. Scopes come parent first. A block
+	// or loop scope with no captured binding opens no environment: its slots go into the
+	// nearest enclosing environment of the same function, after that environment's own and
+	// after its enclosing guests', so sibling blocks share a range.
 	for _, s := range r.scopes {
 		if s.module {
 			continue
 		}
-		plain, shared := 0, 0
 		for _, b := range s.order {
 			if b.captured {
 				b.shared = true
-				b.index = shared
-				shared++
+				b.index = s.shared
+				s.shared++
 			} else {
-				b.index = plain
-				plain++
+				b.index = s.plain
+				s.plain++
 			}
 		}
+		p := s.parent
+		if !s.fn && s.shared == 0 && p != nil && !p.module {
+			if p.alloc {
+				s.host, s.base = p, p.plain
+			} else if p.host != nil {
+				s.host, s.base = p.host, p.base+p.plain
+			}
+		}
+		if s.host != nil {
+			for _, b := range s.order {
+				b.index += s.base
+			}
+			s.host.extent = max(s.host.extent, s.base+s.plain)
+			continue
+		}
 		s.alloc = s.fn || len(s.order) > 0
-		bs := ast.BlockScope{Plain: plain, Shared: shared}
+		s.extent = max(s.extent, s.plain)
+	}
+	for _, s := range r.scopes {
+		if s.module {
+			continue
+		}
+		bs := ast.BlockScope{Plain: s.extent, Shared: s.shared}
+		if s.host != nil {
+			bs = ast.BlockScope{Plain: s.plain, Inline: true, Base: s.base}
+		}
 		switch {
 		case s.fnScope != nil:
 			s.fnScope.BlockScope = bs
@@ -543,12 +574,12 @@ func (r *resolver) finalize() {
 				s.fnScope.X = ast.Slot{Index: s.xBinding.index, Shared: s.xBinding.shared, Reassigned: s.xBinding.reassigned, AssignedNested: s.xBinding.assignedNested}
 			}
 		case s.loop != nil:
-			s.loop.Scope = &ast.BlockScope{Plain: plain, Shared: shared}
-			if !s.alloc {
-				s.loop.Scope = nil
+			s.loop.Scope = nil
+			if s.alloc || s.plain > 0 {
+				s.loop.Scope = &bs
 			}
 		case s.block != nil:
-			if s.alloc {
+			if s.alloc || s.plain > 0 {
 				s.block.Scope = &bs
 			}
 		}

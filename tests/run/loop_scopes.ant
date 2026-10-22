@@ -1,0 +1,43 @@
+// spec: 5 Loops
+// Each iteration binds a fresh variable: closures made in a loop keep their own iteration's
+// values, while locals no closure captures start each iteration anew, and blocks side by side
+// or nested inside a recursive call keep their values apart.
+func depth(n: int): int {
+  if n == 0 { return 0 }
+  var below = 0
+  if n > 0 {
+    var mine = n * 100
+    below = depth(n - 1)
+    if mine != n * 100 { panic("clobbered") }
+  }
+  below + 1
+}
+
+func main(): void {
+  var fs: Array[func(): int] = []
+  for i in Iter.range(0, 3) {
+    var doubled = i * 2
+    Array.push(fs, func(): int { doubled })
+  }
+  print(Array.map(fs, { x() }))
+  var seen: Array[int] = []
+  for i in [1, 2, 3] {
+    var fresh = 0
+    fresh += i
+    Array.push(seen, fresh)
+  }
+  print(seen)
+  var sum = 0
+  for i in [1, 2] {
+    if i == 1 { var a = 10; sum += a } else { var b = 20; sum += b }
+    if true { var c = 1000; if c > 0 { var d = c + i; sum += d } }
+  }
+  print(sum)
+  print(depth(5))
+}
+
+// expect
+// out: [0, 2, 4]
+// out: [1, 2, 3]
+// out: 2033
+// out: 5

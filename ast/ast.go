@@ -438,6 +438,10 @@ type Slot struct {
 type BlockScope struct {
 	Plain  int // number of plain slots
 	Shared int // number of shared slots
+	// Inline is set on a block or loop scope that opens no environment: its Plain slots live
+	// in the enclosing environment from Base on, and are reset to unbound on entry.
+	Inline bool
+	Base   int
 }
 
 // FuncScope describes a function body, lambda, go block, or defer block.

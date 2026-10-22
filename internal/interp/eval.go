@@ -58,7 +58,7 @@ func (g *Goroutine) evalStmts(stmts []ast.Stmt, env *Env) (value.Value, ctl) {
 
 func (g *Goroutine) evalBlock(b *ast.Block, env *Env) (value.Value, ctl) {
 	if b.Scope != nil {
-		env = newEnv(b.Scope, env)
+		env = enter(b.Scope, env)
 	}
 	if !b.HasDefer {
 		return g.evalStmts(b.Stmts, env)
@@ -1058,7 +1058,7 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	run := func(v value.Value) (value.Value, ctl, bool) {
 		ienv := env
 		if e.Scope != nil {
-			ienv = newEnv(e.Scope, env)
+			ienv = enter(e.Scope, env)
 		}
 		g.bind(e.Target, v, ienv)
 		rv, rc := g.evalBlock(e.Body, ienv)
