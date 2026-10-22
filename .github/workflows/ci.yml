@@ -7,6 +7,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         go: ["1.24", "stable"]
@@ -22,6 +23,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
+          cache: false
       - name: gofmt
         working-directory: ant
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
@@ -61,6 +63,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+          cache: false
       - name: fuzz ${{ matrix.target.name }}
         working-directory: ant
         run: go test -run '^$' -fuzz '^${{ matrix.target.name }}$' -fuzztime 20s ${{ matrix.target.pkg }}

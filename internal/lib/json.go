@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -24,7 +25,7 @@ func init() {
 				dec := json.NewDecoder(strings.NewReader(stringArg(g, "Json.parse", a[0])))
 				v, err := parseJSON(dec)
 				if err != nil {
-					return value.Err(value.ErrorValue(err.Error()))
+					return value.Err(value.ErrorValue(parseError(err)))
 				}
 				if _, err := dec.Token(); err != io.EOF {
 					return value.Err(value.ErrorValue("unexpected text after the JSON value"))
@@ -42,12 +43,21 @@ func init() {
 	})
 }
 
+// parseError is the message of a decoding error. Truncated input gets one message whatever Go
+// version built the binary: encoding/json reports an unexpected end as io.EOF, as
+// io.ErrUnexpectedEOF or as a SyntaxError depending on where the text stops and on the version.
+func parseError(err error) string {
+	var syn *json.SyntaxError
+	if err == io.EOF || err == io.ErrUnexpectedEOF ||
+		(errors.As(err, &syn) && strings.HasPrefix(syn.Error(), "unexpected end")) {
+		return "unexpected end of JSON input"
+	}
+	return err.Error()
+}
+
 func parseJSON(dec *json.Decoder) (value.Value, error) {
 	tok, err := dec.Token()
 	if err != nil {
-		if err == io.EOF {
-			return nil, fmt.Errorf("unexpected end of JSON text")
-		}
 		return nil, err
 	}
 	return parseFrom(dec, tok)

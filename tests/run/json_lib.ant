@@ -19,6 +19,8 @@ func main(): void {
   print(Json.parse("[1, 2"))
   print(Json.parse("{} extra") is Err)
   print(Json.parse("") is Err)
+  print(Json.parse(`"abc`))
+  print(Json.parse(`{"a":`))
   print(Json.parse("42"))
   var parsed = Json.parse(`{"host": "example.com", "port": 8080}`)
   if parsed is Ok { print(decodeServer(parsed.value, "$")) }
@@ -38,6 +40,8 @@ func main(): void {
 // out: Err{ error: Error{ message: "unexpected end of JSON input" } }
 // out: true
 // out: true
+// out: Err{ error: Error{ message: "unexpected end of JSON input" } }
+// out: Err{ error: Error{ message: "unexpected end of JSON input" } }
 // out: Ok{ value: 42.0 }
 // out: Ok{ value: Server{ host: "example.com", port: 8080 } }
 // out: Err{ error: Error{ message: "$.port: not an integer" } }
