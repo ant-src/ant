@@ -24,26 +24,44 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
           cache: false
-      - name: gofmt
-        working-directory: ant
-        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
-      - name: vet
-        working-directory: ant
-        run: go vet ./...
-      - name: build
-        working-directory: ant
-        run: go build ./cmd/ant
       - name: test
         working-directory: ant
         run: go test -race ./...
-      - name: coverage gate
-        if: matrix.os == 'ubuntu-latest' && matrix.go == 'stable'
+
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gofmt
+            run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          - name: vet
+            run: go vet ./...
+          - name: build
+            run: go build ./cmd/ant
+          - name: coverage
+            run: scripts/coverage.sh 90 80
+    name: check (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ant
+      - uses: actions/checkout@v4
+        with:
+          repository: ant-src/spec
+          path: spec
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: ${{ matrix.name }}
         working-directory: ant
-        run: scripts/coverage.sh 90 80
+        run: ${{ matrix.run }}
 
   fuzz:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         target:
           - { pkg: ./internal/lexer, name: FuzzLex }
@@ -52,6 +70,8 @@ jobs:
           - { pkg: ., name: FuzzRun }
           - { pkg: ., name: FuzzStrings }
           - { pkg: ./internal/lib, name: FuzzJSON }
+    name: fuzz (${{ matrix.target.name }})
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:

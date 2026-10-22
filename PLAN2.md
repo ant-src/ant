@@ -184,11 +184,12 @@ each phase that raises coverage raises the gate in the same commit; the end stat
 and 80% per package. `cmd/ant` reaches its floor by moving everything but `func main` into a
 function the test calls with piped standard input; `internal/repl` the same way.
 
-`.github/workflows/ci.yml` on push and pull request, matrix of ubuntu and macOS, Go from `go.mod`
-and latest: `gofmt -l` must print nothing, `go vet ./...`, `go build ./cmd/ant`,
-`go test -race ./...`, the coverage gate, and one short job per fuzzer. The public spec
-repository is checked out beside the module (`ANT_SPEC` points the parser test at it) so the
-spec tests run in CI too.
+`.github/workflows/ci.yml` on push and pull request, three job matrices that all run in
+parallel and never cancel a sibling: `test` runs `go test -race ./...` on ubuntu and macOS with
+Go from `go.mod` and latest; `check` runs `gofmt -l` (must print nothing), `go vet ./...`,
+`go build ./cmd/ant` and the coverage gate as four jobs on ubuntu with the latest Go; `fuzz` is
+one short job per fuzzer. The public spec repository is checked out beside the module
+(`ANT_SPEC` points the parser test at it) so the spec tests run in CI too.
 
 ### 3.8 Examples: real programs
 
