@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -14,9 +13,6 @@ import (
 
 // ResponseTag is Http.Response: { status: int, headers: Map[string, string], body: string }.
 var ResponseTag = value.NewTag("Http.Response", value.RecordTag, []string{"status", "headers", "body"})
-
-// timeoutError is the Err of a request whose timeout passed.
-var timeoutError = errors.New("timeout")
 
 // timeout converts an optional Time.Duration to a Go duration by goDuration's rules; zero means
 // no deadline, and an invalid duration is the Err of the request.
@@ -46,17 +42,18 @@ func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) 
 }
 
 // request is Http.request and, with the method filled in, Http.get and Http.post: one request
-// under the run's context and the timeout, the whole response read. A response of any status
-// is Ok; a failure to get one is Err, with the message "timeout" when the timeout passed.
-func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit value.Value) value.Value {
+// under the run's context, the given context and the timeout, the whole response read. A
+// response of any status is Ok; a failure to get one is Err, with the context's reason, or
+// "timeout", when a bound ended it.
+func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c value.Value) value.Value {
 	wait, err := timeout(g, who, limit)
 	if err != nil {
 		return errResult(err)
 	}
-	ctx := g.Context()
+	ctx := waitContext(g, optionalContext(g, who, c))
 	if wait > 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, wait)
+		ctx, cancel = context.WithTimeoutCause(ctx, wait, value.ErrTimeout)
 		defer cancel()
 	}
 	var reader io.Reader
@@ -71,12 +68,12 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit val
 	g.Instance().Flush()
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errResult(timedOut(ctx, err))
+		return failed(ctx, err)
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errResult(timedOut(ctx, err))
+		return failed(ctx, err)
 	}
 	out := value.NewMap()
 	for k, vs := range resp.Header {
@@ -85,12 +82,13 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit val
 	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, string(data)}))
 }
 
-// timedOut replaces err with the timeout error when the request's own deadline passed.
-func timedOut(ctx context.Context, err error) error {
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return timeoutError
+// failed is the Err of a request that got no response: the context's reason when a bound
+// ended it, the Go error otherwise.
+func failed(ctx context.Context, err error) value.Value {
+	if ctx.Err() != nil {
+		return gaveUp(ctx)
 	}
-	return err
+	return errResult(err)
 }
 
 func optionalString(g *interp.Goroutine, who string, v value.Value) string {
@@ -104,17 +102,17 @@ func init() {
 	register("Http", func() value.Value {
 		return namespace("Http",
 			constant("Response", ResponseTag),
-			fn("Http.request", "method, url, body?, headers?, timeout?", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Http.request", "method, url, body?, headers?, timeout?, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Http.request"
-				return request(g, who, stringArg(g, who, a[0]), stringArg(g, who, a[1]), optionalString(g, who, a[2]), a[3], a[4])
+				return request(g, who, stringArg(g, who, a[0]), stringArg(g, who, a[1]), optionalString(g, who, a[2]), a[3], a[4], a[5])
 			}),
-			fn("Http.get", "url, headers?, timeout?", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Http.get", "url, headers?, timeout?, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Http.get"
-				return request(g, who, "GET", stringArg(g, who, a[0]), "", a[1], a[2])
+				return request(g, who, "GET", stringArg(g, who, a[0]), "", a[1], a[2], a[3])
 			}),
-			fn("Http.post", "url, body, headers?, timeout?", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Http.post", "url, body, headers?, timeout?, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Http.post"
-				return request(g, who, "POST", stringArg(g, who, a[0]), stringArg(g, who, a[1]), a[2], a[3])
+				return request(g, who, "POST", stringArg(g, who, a[0]), stringArg(g, who, a[1]), a[2], a[3], a[4])
 			}),
 		)
 	})

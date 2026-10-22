@@ -609,3 +609,13 @@ the rule for every non-void call and not a channel matter; a `go` block and a la
 affected, and a `var` takes the value where it matters. The bound on sleeps is a test,
 `TestBoundedSleeps`, that refuses a `Time.sleep` above a second without a context under
 `tests/run`; the rest of the bound is kept by the trailers, which fail a program that hangs.
+
+Phase 47 was done on 2026-10-22: `Http.request`, `get` and `post` with a context chained under
+the timeout, so the earlier bound wins and the reason names it; `Os.exec` on the context, the
+child killed and the result the reason; `File.Handle` generalized to a closer with an optional
+read deadline, which a connection will have, with `readLine`, `readAll` and `pipe` taking a
+context: standard input keeps its goroutine, a connection gets its deadline set to now, and a
+regular file looks at the context only before the read. The host's cancellation now reads as
+`cancelled` everywhere, where a read of standard input said "the run was cancelled". One
+program covers the Http reasons, both exec cases and the file reads; the connection read that
+gives up waits for Phase 48.

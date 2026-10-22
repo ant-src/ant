@@ -320,11 +320,11 @@ func File.remove(path: string): Result[void, Error]
 func File.list(dir: string): Result[Array[string], Error]
 func File.open(path: string): Result[File.Handle, Error]
 func File.create(path: string): Result[File.Handle, Error]
-func File.readLine(f: File.Handle): Result[string | null, Error]
+func File.readLine(f: File.Handle, ctx: Context | null = null): Result[string | null, Error]
 func File.writeLine(f: File.Handle, line: string): Result[void, Error]
-func File.pipe(src: File.Handle, dst: File.Handle): Result[void, Error]
+func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): Result[void, Error]
 func File.close(f: File.Handle): void
-func File.readAll(f: File.Handle): Result[string, Error]
+func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Error]
 func File.writeText(f: File.Handle, text: string): Result[void, Error]
 func File.flush(f: File.Handle): Result[void, Error]
 
@@ -342,9 +342,9 @@ func Path.rel(base: string, target: string): Result[string, Error]
 // Http
 
 type Http.Response = { status: int, headers: Map[string, string], body: string }
-func Http.request(method: string, url: string, body: string = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null): Result[Http.Response, Error]
-func Http.get(url: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null): Result[Http.Response, Error]
-func Http.post(url: string, body: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null): Result[Http.Response, Error]
+func Http.request(method: string, url: string, body: string = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
+func Http.get(url: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
+func Http.post(url: string, body: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 
 // Time (stdlib.md): the types are opaque and carry a tag is tests; the options are
 // enumerations of empty records.
@@ -468,7 +468,8 @@ func Os.env(name: string): string | null
 func Os.environ(): Map[string, string]
 func Os.cwd(): Result[string, Error]
 func Os.exit(status: int): never
-func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string = ""): Result[Os.Output, Error]
+func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string = "",
+        ctx: Context | null = null): Result[Os.Output, Error]
 func Os.stdin(): File.Handle
 func Os.stdout(): File.Handle
 func Os.stderr(): File.Handle

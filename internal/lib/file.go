@@ -2,6 +2,7 @@ package lib
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"io"
 	"io/fs"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/temporal"
@@ -27,40 +29,78 @@ func okVoid(err error) value.Value {
 
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
-// Handle is an open file, or a standard stream: File.Handle.
+// deadliner is what a connection has and a regular file lacks: a read deadline, which a context
+// sets to now to end a read that waits.
+type deadliner interface {
+	SetReadDeadline(t time.Time) error
+}
+
+// Handle is an open file, a standard stream, or a connection: File.Handle.
 type Handle struct {
 	mu     sync.Mutex
-	f      *os.File
+	c      io.Closer // the file or connection, closed by File.close
+	dl     deadliner // a connection's read deadline; nil for a file, whose reads never wait
 	r      *bufio.Reader
 	w      *bufio.Writer
 	closed bool
 	std    bool             // a standard stream: close does nothing, a write flushes
+	conn   bool             // a connection: a write flushes
+	peer   string           // a connection's remote address, for Net.peer
 	in     *interp.Instance // standard input: a read flushes stdout first and stops when the run is cancelled
 }
 
-// read runs f, which reads from h.r, under h.mu. On standard input it flushes stdout first, so
-// a prompt is seen before the program waits, and waits for f in a goroutine so a cancelled run
-// is not held by a terminal; the handle is closed then, since the abandoned read still owns it.
-func (h *Handle) read(f func() value.Value) value.Value {
-	if h.in == nil {
-		return f()
+// read runs f, which reads from h.r, under h.mu, and gives up with the context's reason when
+// ctx is done. Standard input flushes stdout first, so a prompt is seen before the program
+// waits, and is read on a goroutine so a terminal cannot hold a cancelled run; the handle is
+// closed then, since the abandoned read still owns it. A connection has its read deadline set
+// to now when the context ends, so the read returns. A regular file never waits, so the
+// context is looked at only before the read begins.
+func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
+	if ctx.Err() != nil {
+		return gaveUp(ctx)
 	}
-	h.in.Flush()
-	done := make(chan value.Value, 1)
-	go func() { done <- f() }()
-	select {
-	case v := <-done:
+	switch {
+	case h.in != nil:
+		h.in.Flush()
+		done := make(chan value.Value, 1)
+		go func() { done <- f() }()
+		select {
+		case v := <-done:
+			return v
+		case <-ctx.Done():
+			h.closed = true
+			return gaveUp(ctx)
+		}
+	case h.dl != nil:
+		stop := make(chan struct{})
+		watcher := make(chan struct{})
+		go func() {
+			defer close(watcher)
+			select {
+			case <-ctx.Done():
+				h.dl.SetReadDeadline(time.Now())
+			case <-stop:
+			}
+		}()
+		v := f()
+		close(stop)
+		<-watcher
+		if ctx.Err() != nil {
+			h.dl.SetReadDeadline(time.Time{})
+			if r, ok := v.(*value.Record); ok && r.Tag == value.ErrTag {
+				return gaveUp(ctx)
+			}
+		}
 		return v
-	case <-h.in.Context().Done():
-		h.closed = true
-		return value.Err(value.ErrorValue("the run was cancelled"))
 	}
+	return f()
 }
 
-// flushed flushes a standard stream after a write, so that what a program writes to stdout
-// interleaves with print in program order and what it writes to stderr is not lost at exit.
+// flushed flushes a standard stream or a connection after a write, so that what a program
+// writes to stdout interleaves with print in program order, what it writes to stderr is not
+// lost at exit, and what it writes to a connection reaches the other end, which is waiting.
 func (h *Handle) flushed(err error) value.Value {
-	if err == nil && h.std {
+	if err == nil && (h.std || h.conn) {
 		err = h.w.Flush()
 	}
 	if err != nil {
@@ -167,7 +207,7 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(&Handle{f: f, w: bufio.NewWriter(f)})
+				return value.Ok(&Handle{c: f, w: bufio.NewWriter(f)})
 			}),
 			fn("File.read", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
 				data, err := os.ReadFile(stringArg(g, "File.read", a[0]))
@@ -223,23 +263,24 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(&Handle{f: f, r: bufio.NewReader(f)})
+				return value.Ok(&Handle{c: f, r: bufio.NewReader(f)})
 			}),
 			fn("File.create", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
 				f, err := os.Create(stringArg(g, "File.create", a[0]))
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(&Handle{f: f, w: bufio.NewWriter(f)})
+				return value.Ok(&Handle{c: f, w: bufio.NewWriter(f)})
 			}),
-			fn("File.readLine", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("File.readLine", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.readLine", a[0])
+				ctx := waitContext(g, optionalContext(g, "File.readLine", a[1]))
 				h.mu.Lock()
 				defer h.mu.Unlock()
 				if h.closed || h.r == nil {
 					return value.Err(value.ErrorValue("the file is not open for reading"))
 				}
-				return h.read(func() value.Value {
+				return h.read(ctx, func() value.Value {
 					line, err := h.r.ReadString('\n')
 					if err != nil && err != io.EOF {
 						return errResult(err)
@@ -256,14 +297,15 @@ func init() {
 					return value.Ok(line)
 				})
 			}),
-			fn("File.readAll", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("File.readAll", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.readAll", a[0])
+				ctx := waitContext(g, optionalContext(g, "File.readAll", a[1]))
 				h.mu.Lock()
 				defer h.mu.Unlock()
 				if h.closed || h.r == nil {
 					return value.Err(value.ErrorValue("the file is not open for reading"))
 				}
-				return h.read(func() value.Value {
+				return h.read(ctx, func() value.Value {
 					data, err := io.ReadAll(h.r)
 					if err != nil {
 						return errResult(err)
@@ -308,9 +350,10 @@ func init() {
 				}
 				return value.Ok(value.Void)
 			}),
-			fn("File.pipe", "src, dst", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("File.pipe", "src, dst, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				src := handleArg(g, "File.pipe", a[0])
 				dst := handleArg(g, "File.pipe", a[1])
+				ctx := waitContext(g, optionalContext(g, "File.pipe", a[2]))
 				if src == dst {
 					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
 				}
@@ -329,7 +372,7 @@ func init() {
 				if dst.closed || dst.w == nil {
 					return value.Err(value.ErrorValue("the destination is not open for writing"))
 				}
-				return src.read(func() value.Value {
+				return src.read(ctx, func() value.Value {
 					_, err := io.Copy(dst.w, src.r)
 					return dst.flushed(err)
 				})
@@ -347,7 +390,7 @@ func init() {
 				if h.std {
 					return value.Void
 				}
-				h.f.Close()
+				h.c.Close()
 				h.closed = true
 				return value.Void
 			}),

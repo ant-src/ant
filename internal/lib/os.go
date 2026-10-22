@@ -31,7 +31,8 @@ func execProcess(g *interp.Goroutine, a []value.Value) value.Value {
 			args = append(args, stringArg(g, who, v))
 		}
 	}
-	cmd := exec.CommandContext(in.Context(), program, args...)
+	ctx := waitContext(g, optionalContext(g, who, a[5]))
+	cmd := exec.CommandContext(ctx, program, args...)
 	cmd.WaitDelay = time.Second // a child that ignores the kill does not hold the run
 	cmd.Env = in.Environ()      // the run's environment, which a host may have replaced
 	if given(a[2]) {
@@ -53,12 +54,12 @@ func execProcess(g *interp.Goroutine, a []value.Value) value.Value {
 	err := cmd.Run()
 	status := 0
 	if err != nil {
+		if ctx.Err() != nil {
+			return gaveUp(ctx) // the child was killed, or never started
+		}
 		var exit *exec.ExitError
 		if !errors.As(err, &exit) {
 			return errResult(err)
-		}
-		if in.Context().Err() != nil {
-			return value.Err(value.ErrorValue("the run was cancelled"))
 		}
 		status = exit.ExitCode()
 	}
@@ -103,7 +104,7 @@ func init() {
 				g.Instance().Exit(int(intArg(g, "Os.exit", a[0])))
 				return nil
 			}),
-			fn("Os.exec", "program, args?, dir?, env?, stdin?", execProcess),
+			fn("Os.exec", "program, args?, dir?, env?, stdin?, ctx?", execProcess),
 			// The standard streams are one handle each per run, so that a program reading its
 			// input from two places shares one buffer.
 			fn("Os.stdin", "", func(g *interp.Goroutine, a []value.Value) value.Value {
