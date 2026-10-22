@@ -2,6 +2,7 @@ package lib
 
 import (
 	"math"
+	"math/rand/v2"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
@@ -64,6 +65,9 @@ func init() {
 					return value.Null
 				}
 				return v
+			}),
+			fn("Math.random", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				return rand.Float64()
 			}),
 			constant("PI", math.Pi),
 			constant("E", math.E),

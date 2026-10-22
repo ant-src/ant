@@ -576,4 +576,8 @@ rendering, fields, conversions and `compare`; the `time` kind in the value packa
 Temporal's examples; `cmd/ant` imports `time/tzdata`. One observation for later: the checker
 solves a type parameter from the expected type first, so `Time.epochMillis(Result.unwrap(r))`
 fails to check, since `T` becomes the parameter's union and `r` is a `Result` of one member;
-a variable in between checks. Next is Phase 25.
+a variable in between checks. Phase 25 is done: durations with Temporal's bounds, parsing and
+rendering; `add`, `subtract`, `until`, `since`, `with`, `round` on every type; `addDuration`,
+`compareDuration`, `total` and `roundDuration` with the relative nudging and bubbling of
+Temporal's reference implementation; the transitions over `ZoneBounds`; `Math.random`. Next is
+Phase 26.

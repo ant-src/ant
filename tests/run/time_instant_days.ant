@@ -1,0 +1,12 @@
+// spec: stdlib Time
+// panics: library-value
+// A day added to an instant is a ◆ panic: an instant has no calendar.
+func main(): void {
+  print(Time.add(Time.fromEpochMillis(0), Time.duration(hours: 24)))
+  print(Time.add(Time.fromEpochMillis(0), Time.duration(days: 1)))
+}
+
+// expect
+// exit: 1
+// out: 1970-01-02T00:00:00Z
+// err: Time.add: an instant has no calendar; days cannot be added to it

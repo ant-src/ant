@@ -19,6 +19,11 @@ func main(): void {
   var mixed: Time.Dated = d
   print(Time.year(mixed))
   print(Time.compare(mixed, mixed))     // ERR: not a single member of its bound
+  print(Time.round(d, Time.Day{}))      // ERR: not a single member of its bound Time.Instant | Time.Timed
+  print(Time.with(i, year: 2020))       // ERR: not a single member of its bound Time.Wall
+  print(Time.add(mixed, Time.duration(days: 1)))   // ERR: not a single member of its bound Time.Point
+  print(Time.until(d, i))               // ERR: cannot use Time.Instant where Time.PlainDate is expected
+  print(Time.round(i, Time.Hour{}, mode: Time.Compatible{}))   // ERR: cannot use Time.Compatible where Time.RoundingMode is expected
   var shared: Mutex | Time.Instant = i
   print(shared is Time.Instant)
   print(describe(d))

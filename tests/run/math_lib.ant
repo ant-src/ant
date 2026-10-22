@@ -28,6 +28,7 @@ func main(): void {
   print(Math.minInt)
   print(Math.maxInt)
   print(Math.maxInt == 9223372036854775807)
+  print(Math.random() >= 0.0 && Math.random() < 1.0)
 }
 
 // expect
@@ -56,4 +57,5 @@ func main(): void {
 // out: true
 // out: -9223372036854775808
 // out: 9223372036854775807
+// out: true
 // out: true

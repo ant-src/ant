@@ -126,6 +126,7 @@ func Math.ceil(x: float64): float64
 func Math.round(x: float64): float64
 func Math.trunc(x: float64): float64
 func Math.toInt(x: float64): int | null
+func Math.random(): float64
 var Math.PI: float64
 var Math.E: float64
 var Math.minInt: int
@@ -235,10 +236,32 @@ type Time.Point = Time.Instant | Time.ZonedDateTime | Time.PlainDate | Time.Plai
 type Time.Wall = Time.ZonedDateTime | Time.PlainDate | Time.PlainTime | Time.PlainDateTime
 type Time.Dated = Time.ZonedDateTime | Time.PlainDate | Time.PlainDateTime
 type Time.Timed = Time.ZonedDateTime | Time.PlainTime | Time.PlainDateTime
+type Time.Duration
 type Time.Compatible = {}
 type Time.Earlier = {}
 type Time.Later = {}
 type Time.Disambiguation = Time.Compatible | Time.Earlier | Time.Later
+type Time.Year = {}
+type Time.Month = {}
+type Time.Week = {}
+type Time.Day = {}
+type Time.Hour = {}
+type Time.Minute = {}
+type Time.Second = {}
+type Time.Millisecond = {}
+type Time.Microsecond = {}
+type Time.Nanosecond = {}
+type Time.Unit = Time.Year | Time.Month | Time.Week | Time.Day | Time.Hour | Time.Minute | Time.Second | Time.Millisecond | Time.Microsecond | Time.Nanosecond
+type Time.Ceil = {}
+type Time.Floor = {}
+type Time.Expand = {}
+type Time.Trunc = {}
+type Time.HalfCeil = {}
+type Time.HalfFloor = {}
+type Time.HalfExpand = {}
+type Time.HalfTrunc = {}
+type Time.HalfEven = {}
+type Time.RoundingMode = Time.Ceil | Time.Floor | Time.Expand | Time.Trunc | Time.HalfCeil | Time.HalfFloor | Time.HalfExpand | Time.HalfTrunc | Time.HalfEven
 
 var Time.utc: Time.Zone
 func Time.zone(id: string): Result[Time.Zone, Error]
@@ -257,12 +280,14 @@ func Time.epochNanos(t: Time.Instant | Time.ZonedDateTime): int
 func Time.plainDate(year: int, month: int, day: int): Time.PlainDate
 func Time.plainTime(hour: int = 0, minute: int = 0, second: int = 0, millisecond: int = 0, microsecond: int = 0, nanosecond: int = 0): Time.PlainTime
 func Time.plainDateTime(date: Time.PlainDate, time: Time.PlainTime): Time.PlainDateTime
+func Time.duration(years: int = 0, months: int = 0, weeks: int = 0, days: int = 0, hours: int = 0, minutes: int = 0, seconds: int = 0, milliseconds: int = 0, microseconds: int = 0, nanoseconds: int = 0): Time.Duration
 
 func Time.parseInstant(s: string): Result[Time.Instant, Error]
 func Time.parseZoned(s: string, disambiguation: Time.Disambiguation = Time.Compatible{}): Result[Time.ZonedDateTime, Error]
 func Time.parsePlainDate(s: string): Result[Time.PlainDate, Error]
 func Time.parsePlainTime(s: string): Result[Time.PlainTime, Error]
 func Time.parsePlainDateTime(s: string): Result[Time.PlainDateTime, Error]
+func Time.parseDuration(s: string): Result[Time.Duration, Error]
 
 func Time.inZone(t: Time.Instant, z: Time.Zone): Time.ZonedDateTime
 func Time.withZone(t: Time.ZonedDateTime, z: Time.Zone): Time.ZonedDateTime
@@ -277,6 +302,8 @@ func Time.zoneOf(t: Time.ZonedDateTime): Time.Zone
 func Time.offset(t: Time.ZonedDateTime): string
 func Time.offsetSeconds(t: Time.ZonedDateTime): int
 func Time.hoursInDay(t: Time.ZonedDateTime): float64
+func Time.nextTransition(t: Time.ZonedDateTime): Time.ZonedDateTime | null
+func Time.previousTransition(t: Time.ZonedDateTime): Time.ZonedDateTime | null
 
 func Time.year(t: Time.Dated): int
 func Time.month(t: Time.Dated): int
@@ -294,7 +321,21 @@ func Time.second(t: Time.Timed): int
 func Time.millisecond(t: Time.Timed): int
 func Time.microsecond(t: Time.Timed): int
 func Time.nanosecond(t: Time.Timed): int
+func Time.with[T: Time.Wall](t: T, year: int | null = null, month: int | null = null, day: int | null = null, hour: int | null = null, minute: int | null = null, second: int | null = null, millisecond: int | null = null, microsecond: int | null = null, nanosecond: int | null = null, disambiguation: Time.Disambiguation = Time.Compatible{}): T
+func Time.add[T: Time.Point](t: T, d: Time.Duration): T
+func Time.subtract[T: Time.Point](t: T, d: Time.Duration): T
+func Time.until[T: Time.Point](from: T, to: T, largestUnit: Time.Unit | null = null): Time.Duration
+func Time.since[T: Time.Point](t: T, other: T, largestUnit: Time.Unit | null = null): Time.Duration
+func Time.round[T: Time.Instant | Time.Timed](t: T, smallestUnit: Time.Unit, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}): T
 func Time.compare[T: Time.Point](a: T, b: T): int
+func Time.part(d: Time.Duration, unit: Time.Unit): int
+func Time.sign(d: Time.Duration): int
+func Time.negate(d: Time.Duration): Time.Duration
+func Time.abs(d: Time.Duration): Time.Duration
+func Time.addDuration(a: Time.Duration, b: Time.Duration): Time.Duration
+func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.Dated | null = null): int
+func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null = null): float64
+func Time.roundDuration(d: Time.Duration, smallestUnit: Time.Unit | null = null, largestUnit: Time.Unit | null = null, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}, relativeTo: Time.Dated | null = null): Time.Duration
 
 // Os
 

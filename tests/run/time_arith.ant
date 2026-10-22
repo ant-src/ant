@@ -1,0 +1,158 @@
+// spec: stdlib Time
+// Time arithmetic (stdlib.md): durations kept as given, calendar and exact units added
+// differently, differences counted from their start, rounding by Temporal's modes, totals and
+// balancing relative to a point, and the transitions of a zone, with the examples of
+// Temporal's documentation.
+func main(): void {
+  var d = Time.duration(hours: 1, minutes: 90)
+  print(d)
+  print(Time.part(d, Time.Minute{}))
+  print([Time.sign(d), Time.sign(Time.negate(d)), Time.sign(Time.duration())])
+  print(Time.negate(d))
+  print(Time.abs(Time.negate(d)) == d)
+  print(Time.duration(milliseconds: 1500))
+  print(Time.parseDuration("P1Y2M3DT4H5M6.5S"))
+  print(Time.parseDuration("PT1.5H"))
+  print(Time.parseDuration("P1H") is Err)
+  print(Time.roundDuration(d, largestUnit: Time.Hour{}))
+  print(Time.roundDuration(Time.duration(minutes: 80, seconds: 90), largestUnit: Time.Hour{}))
+  print(Time.roundDuration(Time.duration(hours: 1, minutes: 30, seconds: 15), Time.Minute{}))
+  print(Time.roundDuration(Time.duration(hours: 1, minutes: 17), Time.Minute{}, increment: 15))
+  print(Time.roundDuration(Time.duration(days: 1, hours: 1, minutes: 30), Time.Hour{}, Time.Hour{}, mode: Time.Floor{}))
+  print(Time.roundDuration(Time.duration(days: 370), largestUnit: Time.Year{}, relativeTo: Time.plainDate(2019, 1, 1)))
+  print(Time.roundDuration(Time.duration(days: 370), largestUnit: Time.Year{}, relativeTo: Time.plainDate(2020, 1, 1)))
+  var la = Result.unwrap(Time.parseZoned("2020-03-08T00:00:00-08:00[America/Los_Angeles]"))
+  print(Time.roundDuration(Time.duration(hours: 48), largestUnit: Time.Day{}))
+  print(Time.roundDuration(Time.duration(hours: 48), largestUnit: Time.Day{}, relativeTo: la))
+  print(Time.addDuration(Time.duration(hours: 26, minutes: 45), Time.duration(minutes: 30)))
+  print(Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25)))
+  print(Time.total(Time.duration(hours: 1, minutes: 30), Time.Minute{}))
+  print(Time.total(Time.duration(hours: 1, minutes: 30), Time.Hour{}))
+  print(Time.total(Time.duration(months: 1), Time.Day{}, Time.plainDate(2021, 1, 1)))
+  print(Time.total(Time.duration(days: 45), Time.Month{}, relativeTo: Time.plainDate(2021, 1, 1)))
+  print(Time.compareDuration(Time.duration(hours: 1), Time.duration(minutes: 60)))
+  print(Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30), Time.plainDate(2021, 1, 1)))
+  print(Time.compareDuration(Time.duration(days: 1), Time.duration(hours: 24), la))
+
+  var start = Result.unwrap(Time.parseZoned("2021-11-01T12:34:56-04:00[America/New_York]"))
+  print(Time.add(start, Time.duration(1, 2, 3, 4, 5, 6, 7, 8)))
+  var before = Result.unwrap(Time.parseZoned("2024-11-02T01:00:00-04:00[America/New_York]"))
+  print(Time.add(before, Time.duration(days: 1)))
+  print(Time.add(Time.add(before, Time.duration(days: 1)), Time.duration(hours: 1)))
+  print(Time.subtract(before, Time.duration(days: 1)))
+  print(Time.add(Time.plainDate(2024, 8, 31), Time.duration(months: 1)))
+  print(Time.add(Time.plainTime(23), Time.duration(hours: 2)))
+  print(Time.add(Result.unwrap(Time.parsePlainDateTime("2026-10-22T23:00")), Time.duration(hours: 2)))
+  print(Time.add(Time.fromEpochMillis(0), Time.duration(seconds: 90)))
+
+  var a = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York]"))
+  var b = Result.unwrap(Time.parseZoned("2024-11-04T01:00:00-05:00[America/New_York]"))
+  print(Time.until(a, b))
+  print(Time.until(a, b, Time.Day{}))
+  print(Time.since(b, a, Time.Day{}))
+  print(Time.until(b, a, Time.Day{}))
+  var lima = Result.unwrap(Time.parseZoned("2024-11-04T01:00:00-05:00[America/Lima]"))
+  print(Time.until(a, lima))
+  print(Time.until(Time.withZone(a, Time.zoneOf(lima)), lima, Time.Day{}))
+  var mar31 = Time.plainDate(2024, 3, 31)
+  var feb29 = Time.plainDate(2024, 2, 29)
+  print(Time.since(mar31, feb29, Time.Month{}))
+  print(Time.until(feb29, mar31, Time.Month{}))
+  print(Time.until(Time.plainDate(2022, 1, 1), Time.plainDate(2022, 1, 28)))
+  print(Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(5400000)))
+  print(Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(5400000), Time.Hour{}))
+  print(Time.until(Time.plainTime(23), Time.plainTime(1)))
+
+  var dt = Result.unwrap(Time.parsePlainDateTime("2021-07-01T12:34:56.123456789"))
+  print(Time.round(dt, Time.Millisecond{}))
+  print(Time.round(dt, Time.Minute{}, 30))
+  print(Time.round(dt, Time.Day{}, mode: Time.Ceil{}))
+  print(Time.round(Result.unwrap(Time.parseZoned("2024-03-10T01:00:00-05:00[America/New_York]")), Time.Hour{}, 2))
+  print(Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Second{}))
+  print(Time.round(Time.plainTime(10, 44, 30), Time.Hour{}, mode: Time.HalfEven{}))
+  print(Time.with(before, day: 3))
+  print(Time.with(Time.plainDate(2024, 1, 31), month: 2))
+  print(Time.with(Time.plainDate(2024, 1, 31), month: 13))
+  print(Time.with(Time.plainTime(1), hour: 25, nanosecond: 7))
+  print(Time.with(dt, year: 2020, second: 0, millisecond: 0, microsecond: 0, nanosecond: 0))
+  var jan = Result.unwrap(Time.parseZoned("2024-01-01T00:00:00-05:00[America/New_York]"))
+  print(Time.nextTransition(jan))
+  print(Time.previousTransition(jan))
+  print(Time.nextTransition(Time.inZone(Time.toInstant(jan), Time.utc)))
+  print(Time.until(dt, Time.add(dt, Time.duration(hours: 30)), Time.Day{}))
+  print(Time.compare(dt, Time.add(dt, Time.duration(nanoseconds: 1))))
+  print(Time.total(Time.duration(hours: 36), Time.Day{}, relativeTo: dt))
+  print(Time.epochNanos(a))
+  print(Json.stringify(d))
+  var maybe: Time.Duration | null = d
+  print(maybe is Time.Duration)
+}
+
+// expect
+// out: PT1H90M
+// out: 90
+// out: [1, -1, 0]
+// out: -PT1H90M
+// out: true
+// out: PT1.5S
+// out: Ok{ value: P1Y2M3DT4H5M6.5S }
+// out: Ok{ value: PT1H30M }
+// out: true
+// out: PT2H30M
+// out: PT1H21M30S
+// out: PT1H30M
+// out: PT1H15M
+// out: PT25H
+// out: P1Y5D
+// out: P1Y4D
+// out: P2D
+// out: P2DT1H
+// out: PT27H15M
+// out: P2DT1H
+// out: 90.0
+// out: 1.5
+// out: 31.0
+// out: 1.5
+// out: 0
+// out: 1
+// out: -1
+// out: 2023-01-26T17:41:03.008-05:00[America/New_York]
+// out: 2024-11-03T01:00:00-04:00[America/New_York]
+// out: 2024-11-03T01:00:00-05:00[America/New_York]
+// out: 2024-11-01T01:00:00-04:00[America/New_York]
+// out: 2024-09-30
+// out: 01:00:00
+// out: 2026-10-23T01:00:00
+// out: 1970-01-01T00:01:30Z
+// out: PT25H
+// out: P1D
+// out: P1D
+// out: -P1D
+// out: PT25H
+// out: P1DT1H
+// out: P1M
+// out: P1M2D
+// out: P27D
+// out: PT5400S
+// out: PT1H30M
+// out: -PT22H
+// out: 2021-07-01T12:34:56.123
+// out: 2021-07-01T12:30:00
+// out: 2021-07-02T00:00:00
+// out: 2024-03-10T03:00:00-04:00[America/New_York]
+// out: 2026-10-22T14:03:06Z
+// out: 11:00:00
+// out: 2024-11-03T01:00:00-04:00[America/New_York]
+// out: 2024-02-29
+// out: 2024-12-31
+// out: 23:00:00.000000007
+// out: 2020-07-01T12:34:00
+// out: 2024-03-10T03:00:00-04:00[America/New_York]
+// out: 2023-11-05T01:00:00-05:00[America/New_York]
+// out: null
+// out: P1DT6H
+// out: -1
+// out: 1.5
+// out: 1730610000000000000
+// out: "PT1H90M"
+// out: true

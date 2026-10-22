@@ -1,0 +1,12 @@
+// spec: stdlib Time
+// panics: library-value
+// A duration with fields of both signs is a ◆ panic.
+func main(): void {
+  print(Time.duration(hours: -1, minutes: -30))
+  print(Time.duration(hours: 1, minutes: -1))
+}
+
+// expect
+// exit: 1
+// out: -PT1H30M
+// err: Time.duration: a duration's fields must all have one sign

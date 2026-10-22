@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; stdlib Time
+// panics: library-kind
+// An instant has no fields to replace.
+func main(): void { print(Time.with(Time.fromEpochMillis(0), year: 2020)) }
+
+// expect
+// exit: 1
+// err: Time.with needs a Time.ZonedDateTime, Time.PlainDate, Time.PlainTime or Time.PlainDateTime, got Time.Instant
