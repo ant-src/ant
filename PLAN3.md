@@ -555,11 +555,12 @@ Open, each with the recommendation the plan is written to:
     case-sensitive on Linux only, tells aliases apart, and names the Windows zone `Local`.
 
 Taken, carried over from the earlier conversation: `Os.exec` runs no shell, returns `Err` only
-when the process cannot start, and captures both outputs.
+when the process cannot start, and captures both outputs. All eighteen were taken as recommended
+on 2026-10-22, with the note on 14 that Ant is new and unused, so `Time.now()` changes shape.
 
 ## 7. Status
 
 Written on 2026-10-22, the Time section rewritten around Temporal the same day and corrected
 after a second agent's review: the unions needed a discriminator, `since` is not `until`
 reversed, `hoursInDay` is a float, days need no `relativeTo`, `modified` is an `Instant`, and the
-zone table of decision 18 was added. No phase started. The decisions of section 6 are the user's.
+zone table of decision 18 was added. The decisions were taken the same day; Phase 21 is in progress.
