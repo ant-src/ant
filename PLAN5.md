@@ -623,3 +623,9 @@ and one per ◆, which empties `pendingSpec` and `pendingPanics`. Two small choi
 `Url.parseQuery` reads the pairs itself, since Go's `ParseQuery` returns an unordered map, and
 `Csv.stringify` writes its rows itself, since Go's writer also quotes a field that is `\.`, a
 PostgreSQL convention the spec does not have.
+
+Phase 42 was done on 2026-10-22: `Http.request` with `get` and `post` as its forms, the
+timeout as a deadline on the run's context with the conversion rules of section 3.8, the
+test server's `/echo` answering any method with `X-Method` set and a `/slow` route that
+answers once the client has given up, and a corpus program for the methods, the headers and
+every timeout rule. Nothing differs from the plan.

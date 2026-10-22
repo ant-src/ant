@@ -319,8 +319,9 @@ func Path.rel(base: string, target: string): Result[string, Error]
 // Http
 
 type Http.Response = { status: int, headers: Map[string, string], body: string }
-func Http.get(url: string): Result[Http.Response, Error]
-func Http.post(url: string, body: string, headers: Map[string, string]): Result[Http.Response, Error]
+func Http.request(method: string, url: string, body: string = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null): Result[Http.Response, Error]
+func Http.get(url: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null): Result[Http.Response, Error]
+func Http.post(url: string, body: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null): Result[Http.Response, Error]
 
 // Time (stdlib.md): the types are opaque and carry a tag is tests; the options are
 // enumerations of empty records.

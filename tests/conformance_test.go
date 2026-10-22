@@ -195,8 +195,9 @@ func (b *lockedBuffer) Len() int {
 }
 
 // echoServer serves a small API for the Http programs: GET /hello answers "hello", GET
-// /status/404 answers that status, and POST /echo answers the request body with the
-// request's X-Token header copied into the response.
+// /status/404 answers that status, /echo with any method answers the request body with the
+// method in X-Method and the request's X-Token header copied into the response, and /slow
+// answers only once the client has given up, or after three seconds, for the timeout.
 func echoServer(t *testing.T) string {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -208,10 +209,17 @@ func echoServer(t *testing.T) string {
 			code, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/status/"))
 			w.WriteHeader(code)
 			io.WriteString(w, "status")
-		case r.Method == "POST" && r.URL.Path == "/echo":
+		case r.URL.Path == "/echo":
+			w.Header().Set("X-Method", r.Method)
 			w.Header().Set("X-Token", r.Header.Get("X-Token"))
 			body, _ := io.ReadAll(r.Body)
 			w.Write(body)
+		case r.URL.Path == "/slow":
+			select {
+			case <-r.Context().Done():
+			case <-time.After(3 * time.Second):
+			}
+			io.WriteString(w, "slow")
 		default:
 			http.NotFound(w, r)
 		}
