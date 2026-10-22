@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bufio"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -50,6 +51,26 @@ func init() {
 			fn("Os.exit", "status", func(g *interp.Goroutine, a []value.Value) value.Value {
 				g.Instance().Exit(int(intArg(g, "Os.exit", a[0])))
 				return nil
+			}),
+			// The standard streams are one handle each per run, so that a program reading its
+			// input from two places shares one buffer.
+			fn("Os.stdin", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				in := g.Instance()
+				return in.Keep("Os.stdin", func() any {
+					return &Handle{r: bufio.NewReader(in.Stdin()), std: true, in: in}
+				}).(*Handle)
+			}),
+			fn("Os.stdout", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				in := g.Instance()
+				return in.Keep("Os.stdout", func() any {
+					return &Handle{w: bufio.NewWriter(in.Stdout()), std: true}
+				}).(*Handle)
+			}),
+			fn("Os.stderr", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+				in := g.Instance()
+				return in.Keep("Os.stderr", func() any {
+					return &Handle{w: bufio.NewWriter(in.Stderr()), std: true}
+				}).(*Handle)
 			}),
 		)
 	})

@@ -565,4 +565,7 @@ after a second agent's review: the unions needed a discriminator, `since` is not
 reversed, `hoursInDay` is a float, days need no `relativeTo`, `modified` is an `Instant`, and the
 zone table of decision 18 was added. The decisions were taken the same day. Phase 21 is done: the
 spec commit is in the spec repository, and `stdlib Path` sits in the suite's pending list until
-Phase 26. Next is Phase 22.
+Phase 26. Phase 22 is done: `Builtin.Optional` (the plan's `Required`, counted from the other
+end), host namespaces with defaults, `WithStdin`, the `// stdin:` trailer, the three streams,
+`File.readAll`, `File.writeText` and `File.flush`, with the REPL rule and Go tests for the option
+and a cancelled read. Next is Phase 23.

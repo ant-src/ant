@@ -1,0 +1,38 @@
+// spec: stdlib File
+// Handles (stdlib.md): writeText and flush on a file being written, readAll on one being read,
+// and every function on a closed handle is an Err.
+func main(): void {
+  var dir = Os.args()[0]
+  var path = `${dir}/log.txt`
+  var out = Result.unwrap(File.create(path))
+  print(File.writeText(out, "a"))
+  print(File.read(path))
+  print(File.flush(out))
+  print(File.read(path))
+  print(File.writeText(out, "b\n"))
+  File.close(out)
+  var input = Result.unwrap(File.open(path))
+  print(File.readLine(input))
+  print(File.readAll(input))
+  print(File.readAll(input))
+  print(File.flush(input))
+  print(File.writeText(input, "x") is Err)
+  File.close(input)
+  print(File.readAll(input) is Err)
+  print(File.flush(input) is Err)
+}
+
+// expect
+// args: $TMP
+// out: Ok{ value: void }
+// out: Ok{ value: "" }
+// out: Ok{ value: void }
+// out: Ok{ value: "a" }
+// out: Ok{ value: void }
+// out: Ok{ value: "ab" }
+// out: Ok{ value: "" }
+// out: Ok{ value: "" }
+// out: Ok{ value: void }
+// out: true
+// out: true
+// out: true

@@ -62,6 +62,13 @@ func TestPreludeMatchesLibrary(t *testing.T) {
 					t.Errorf("%s.%s: parameter %d is %s, declared %s", d.Owner, d.Name, i, b.Params[i], p.Name)
 				}
 			}
+			optional := 0
+			for i := len(d.Params) - 1; i >= 0 && d.Params[i].Default != nil; i-- {
+				optional++
+			}
+			if b.Optional != optional {
+				t.Errorf("%s.%s: %d optional parameters implemented, %d declared with defaults", d.Owner, d.Name, b.Optional, optional)
+			}
 		case *ast.VarDecl:
 			name := d.Target.(*ast.NameTarget).Name
 			declared[d.Owner+"."+name] = true

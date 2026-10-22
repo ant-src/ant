@@ -77,11 +77,13 @@ func (f *Func) FuncName() string {
 }
 
 // Builtin is a function implemented in Go. It receives its arguments positionally, exactly
-// len(Params) of them.
+// len(Params) of them. A call may omit the last Optional parameters, and an omitted one arrives
+// as nil, for the builtin to replace by its default.
 type Builtin struct {
-	Name   string
-	Params []string
-	Fn     func(g *Goroutine, args []value.Value) value.Value
+	Name     string
+	Params   []string
+	Optional int
+	Fn       func(g *Goroutine, args []value.Value) value.Value
 }
 
 // FuncName returns the builtin's name.

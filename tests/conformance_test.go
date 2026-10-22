@@ -11,6 +11,8 @@
 //	// args: a b c     command-line arguments, split on spaces; $TMP is replaced by a fresh
 //	                   temporary directory and $HTTP by the URL of a test HTTP server that
 //	                   echoes requests
+//	// stdin: <line>   one line of standard input, in order; the program reads them through
+//	                   Os.stdin()
 //
 // Files under run/lib are modules the programs import, not tests. Every program under run/ must
 // also pass ant check, which is tested once the checker exists; programs under unchecked/ are
@@ -35,10 +37,11 @@ import (
 )
 
 type expectation struct {
-	out  []string
-	exit int
-	err  []string
-	args []string
+	out   []string
+	exit  int
+	err   []string
+	args  []string
+	stdin string
 }
 
 func parseTrailer(t *testing.T, path, src string) expectation {
@@ -64,6 +67,8 @@ func parseTrailer(t *testing.T, path, src string) expectation {
 			e.err = append(e.err, strings.TrimSpace(rest))
 		case "// args":
 			e.args = strings.Fields(rest)
+		case "// stdin":
+			e.stdin += rest + "\n"
 		default:
 			t.Fatalf("%s: unexpected trailer line %q", path, line)
 		}
@@ -119,7 +124,7 @@ func TestRun(t *testing.T) {
 			if err == nil {
 				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 				defer cancel()
-				err = prog.Run(ctx,
+				err = prog.Run(ctx, ant.WithStdin(strings.NewReader(want.stdin)),
 					ant.WithStdout(&stdout), ant.WithStderr(&stderr), ant.WithArgs(want.args))
 			}
 			// The command prints load errors and unexpected errors itself; mirror that.

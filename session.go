@@ -31,7 +31,8 @@ func NewSession(ctx context.Context, opts ...Option) (*Session, error) {
 		return nil, &LoadError{Diagnostics: []Diagnostic{{Message: err.Error()}}}
 	}
 	s := interp.NewSession(ctx, interp.Config{
-		Prelude: table, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args, Env: cfg.env,
+		Prelude: table, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args,
+		Env: cfg.env,
 	})
 	return &Session{cfg: cfg, prelude: table, extra: extra, s: s}, nil
 }

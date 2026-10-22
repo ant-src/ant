@@ -52,6 +52,7 @@ reading `// expect`:
 // err: text        standard error must contain this text; may repeat
 // args: a b c      command-line arguments; $TMP becomes a fresh temporary directory and $HTTP
 //                  the URL of a test server (see echoServer in conformance_test.go)
+// stdin: line      one line of standard input, in order, for Os.stdin(); may repeat
 ```
 
 A program under `check/` marks each expected error on its line:

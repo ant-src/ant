@@ -12,13 +12,46 @@ import (
 
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
-// Handle is an open file: File.Handle.
+// Handle is an open file, or a standard stream: File.Handle.
 type Handle struct {
 	mu     sync.Mutex
 	f      *os.File
 	r      *bufio.Reader
 	w      *bufio.Writer
 	closed bool
+	std    bool             // a standard stream: close does nothing, a write flushes
+	in     *interp.Instance // standard input: a read flushes stdout first and stops when the run is cancelled
+}
+
+// read runs f, which reads from h.r, under h.mu. On standard input it flushes stdout first, so
+// a prompt is seen before the program waits, and waits for f in a goroutine so a cancelled run
+// is not held by a terminal; the handle is closed then, since the abandoned read still owns it.
+func (h *Handle) read(f func() value.Value) value.Value {
+	if h.in == nil {
+		return f()
+	}
+	h.in.Flush()
+	done := make(chan value.Value, 1)
+	go func() { done <- f() }()
+	select {
+	case v := <-done:
+		return v
+	case <-h.in.Context().Done():
+		h.closed = true
+		return value.Err(value.ErrorValue("the run was cancelled"))
+	}
+}
+
+// flushed flushes a standard stream after a write, so that what a program writes to stdout
+// interleaves with print in program order and what it writes to stderr is not lost at exit.
+func (h *Handle) flushed(err error) value.Value {
+	if err == nil && h.std {
+		err = h.w.Flush()
+	}
+	if err != nil {
+		return errResult(err)
+	}
+	return value.Ok(value.Void)
 }
 
 // SyncName names the handle for rendering.
@@ -129,20 +162,37 @@ func init() {
 				if h.closed || h.r == nil {
 					return value.Err(value.ErrorValue("the file is not open for reading"))
 				}
-				line, err := h.r.ReadString('\n')
-				if err != nil && err != io.EOF {
-					return errResult(err)
-				}
-				if line == "" && err == io.EOF {
-					return value.Ok(value.Null)
-				}
-				if len(line) > 0 && line[len(line)-1] == '\n' {
-					line = line[:len(line)-1]
-					if len(line) > 0 && line[len(line)-1] == '\r' {
-						line = line[:len(line)-1]
+				return h.read(func() value.Value {
+					line, err := h.r.ReadString('\n')
+					if err != nil && err != io.EOF {
+						return errResult(err)
 					}
+					if line == "" && err == io.EOF {
+						return value.Ok(value.Null)
+					}
+					if len(line) > 0 && line[len(line)-1] == '\n' {
+						line = line[:len(line)-1]
+						if len(line) > 0 && line[len(line)-1] == '\r' {
+							line = line[:len(line)-1]
+						}
+					}
+					return value.Ok(line)
+				})
+			}),
+			fn("File.readAll", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
+				h := handleArg(g, "File.readAll", a[0])
+				h.mu.Lock()
+				defer h.mu.Unlock()
+				if h.closed || h.r == nil {
+					return value.Err(value.ErrorValue("the file is not open for reading"))
 				}
-				return value.Ok(line)
+				return h.read(func() value.Value {
+					data, err := io.ReadAll(h.r)
+					if err != nil {
+						return errResult(err)
+					}
+					return value.Ok(string(data))
+				})
 			}),
 			fn("File.writeLine", "f, line", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.writeLine", a[0])
@@ -152,7 +202,31 @@ func init() {
 				if h.closed || h.w == nil {
 					return value.Err(value.ErrorValue("the file is not open for writing"))
 				}
-				if _, err := h.w.WriteString(line + "\n"); err != nil {
+				_, err := h.w.WriteString(line + "\n")
+				return h.flushed(err)
+			}),
+			fn("File.writeText", "f, text", func(g *interp.Goroutine, a []value.Value) value.Value {
+				h := handleArg(g, "File.writeText", a[0])
+				text := stringArg(g, "File.writeText", a[1])
+				h.mu.Lock()
+				defer h.mu.Unlock()
+				if h.closed || h.w == nil {
+					return value.Err(value.ErrorValue("the file is not open for writing"))
+				}
+				_, err := h.w.WriteString(text)
+				return h.flushed(err)
+			}),
+			fn("File.flush", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
+				h := handleArg(g, "File.flush", a[0])
+				h.mu.Lock()
+				defer h.mu.Unlock()
+				if h.closed {
+					return value.Err(value.ErrorValue("the file is closed"))
+				}
+				if h.w == nil {
+					return value.Ok(value.Void)
+				}
+				if err := h.w.Flush(); err != nil {
 					return errResult(err)
 				}
 				return value.Ok(value.Void)
@@ -170,10 +244,10 @@ func init() {
 				if dst.closed || dst.w == nil {
 					return value.Err(value.ErrorValue("the destination is not open for writing"))
 				}
-				if _, err := io.Copy(dst.w, src.r); err != nil {
-					return errResult(err)
-				}
-				return value.Ok(value.Void)
+				return src.read(func() value.Value {
+					_, err := io.Copy(dst.w, src.r)
+					return dst.flushed(err)
+				})
 			}),
 			fn("File.close", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.close", a[0])
@@ -184,6 +258,9 @@ func init() {
 				}
 				if h.w != nil {
 					h.w.Flush()
+				}
+				if h.std {
+					return value.Void
 				}
 				h.f.Close()
 				h.closed = true

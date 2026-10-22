@@ -46,7 +46,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
-		err = prog.Run(ctx, ant.WithStdout(stdout), ant.WithStderr(stderr), ant.WithArgs(args[2:]))
+		err = prog.Run(ctx, ant.WithStdin(stdin), ant.WithStdout(stdout), ant.WithStderr(stderr),
+			ant.WithArgs(args[2:]))
 		switch err.(type) {
 		case nil, *ant.PanicError, *ant.ExitError:
 			// A panic has already been reported by the runtime; an exit says nothing.

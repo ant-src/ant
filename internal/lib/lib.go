@@ -11,15 +11,26 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// fn declares a builtin. params is its parameter list, comma separated.
+// fn declares a builtin. params is its parameter list, comma separated; a name ending in ? is
+// optional, which only trailing parameters can be, and the builtin receives nil for it when
+// the call omits it. The prelude declares the same parameters with their defaults, and a test
+// keeps the two in step.
 func fn(name, params string, impl func(g *interp.Goroutine, args []value.Value) value.Value) *interp.Builtin {
 	var ps []string
+	optional := 0
 	if params != "" {
 		for _, p := range strings.Split(params, ",") {
-			ps = append(ps, strings.TrimSpace(p))
+			p = strings.TrimSpace(p)
+			if strings.HasSuffix(p, "?") {
+				p = strings.TrimSuffix(p, "?")
+				optional++
+			} else if optional > 0 {
+				panic(name + ": an optional parameter precedes a required one")
+			}
+			ps = append(ps, p)
 		}
 	}
-	return &interp.Builtin{Name: name, Params: ps, Fn: impl}
+	return &interp.Builtin{Name: name, Params: ps, Optional: optional, Fn: impl}
 }
 
 // entry is one field of a namespace: a function or a constant.

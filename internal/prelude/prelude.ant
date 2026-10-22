@@ -212,6 +212,9 @@ func File.readLine(f: File.Handle): Result[string | null, Error]
 func File.writeLine(f: File.Handle, line: string): Result[void, Error]
 func File.pipe(src: File.Handle, dst: File.Handle): Result[void, Error]
 func File.close(f: File.Handle): void
+func File.readAll(f: File.Handle): Result[string, Error]
+func File.writeText(f: File.Handle, text: string): Result[void, Error]
+func File.flush(f: File.Handle): Result[void, Error]
 
 // Http
 
@@ -230,6 +233,9 @@ func Time.monotonic(): int
 func Os.args(): Array[string]
 func Os.env(name: string): string | null
 func Os.exit(status: int): never
+func Os.stdin(): File.Handle
+func Os.stdout(): File.Handle
+func Os.stderr(): File.Handle
 
 // Json
 

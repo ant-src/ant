@@ -563,13 +563,20 @@ func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, 
 			filled[idx] = true
 		}
 		for i, ok := range filled {
-			if !ok {
+			if !ok && i < len(f.Params)-f.Optional {
 				g.panicf(pos, "%s needs an argument for %s", f.Name, f.Params[i])
 			}
 		}
 		args = ordered
-	} else if len(args) != len(f.Params) {
+	} else if len(args) < len(f.Params)-f.Optional || len(args) > len(f.Params) {
+		if f.Optional > 0 {
+			g.panicf(pos, "%s takes %d to %d arguments, got %d", f.Name, len(f.Params)-f.Optional, len(f.Params), len(args))
+		}
 		g.panicf(pos, "%s takes %s, got %d", f.Name, plural(len(f.Params), "argument"), len(args))
+	} else if len(args) < len(f.Params) {
+		full := make([]value.Value, len(f.Params))
+		copy(full, args)
+		args = full
 	}
 	saved := g.pos
 	g.pos = pos

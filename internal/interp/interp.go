@@ -21,6 +21,7 @@ import (
 // Config configures a run.
 type Config struct {
 	Prelude map[string]value.Value
+	Stdin   io.Reader // what Os.stdin reads; nil is an empty stream
 	Stdout  io.Writer
 	Stderr  io.Writer
 	Args    []string
@@ -61,6 +62,8 @@ type Instance struct {
 	out     *bufio.Writer
 	outMu   sync.Mutex
 	errMu   sync.Mutex
+	keep    map[string]any
+	keepMu  sync.Mutex
 	done    atomic.Bool
 	result  chan error
 	once    sync.Once
@@ -207,6 +210,49 @@ func (in *Instance) Flush() {
 
 // Args returns the program's arguments.
 func (in *Instance) Args() []string { return in.cfg.Args }
+
+// Stdin returns the run's standard input, an empty stream when none was given.
+func (in *Instance) Stdin() io.Reader {
+	if in.cfg.Stdin == nil {
+		return eofReader{}
+	}
+	return in.cfg.Stdin
+}
+
+type eofReader struct{}
+
+func (eofReader) Read([]byte) (int, error) { return 0, io.EOF }
+
+// Stdout returns a writer into the buffer print writes to, locked per write, so that what a
+// program writes through it and what it prints come out in program order.
+func (in *Instance) Stdout() io.Writer { return stdoutWriter{in} }
+
+type stdoutWriter struct{ in *Instance }
+
+func (w stdoutWriter) Write(p []byte) (int, error) {
+	w.in.outMu.Lock()
+	defer w.in.outMu.Unlock()
+	return w.in.out.Write(p)
+}
+
+// Stderr returns the run's standard error.
+func (in *Instance) Stderr() io.Writer { return in.cfg.Stderr }
+
+// Keep returns the value stored under key for this run, creating it with create on the first
+// call: a library's per-run state, such as the handles of the standard streams.
+func (in *Instance) Keep(key string, create func() any) any {
+	in.keepMu.Lock()
+	defer in.keepMu.Unlock()
+	if v, ok := in.keep[key]; ok {
+		return v
+	}
+	if in.keep == nil {
+		in.keep = map[string]any{}
+	}
+	v := create()
+	in.keep[key] = v
+	return v
+}
 
 // LookupEnv consults the run's environment.
 func (in *Instance) LookupEnv(name string) (string, bool) {

@@ -15,7 +15,9 @@ import (
 // Run reads inputs from stdin until it ends, evaluating each on one session, printing every
 // non-void result with String.from, and reporting errors on stderr. It returns the exit status.
 func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
-	s, err := ant.NewSession(ctx, ant.WithStdout(stdout), ant.WithStderr(stderr))
+	// The REPL owns standard input, so a program's Os.stdin() is at end of file.
+	s, err := ant.NewSession(ctx, ant.WithStdin(strings.NewReader("")), ant.WithStdout(stdout),
+		ant.WithStderr(stderr))
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 2

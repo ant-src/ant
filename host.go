@@ -78,8 +78,12 @@ func (ns Namespace) build() (value.Value, *ast.File, error) {
 			for i, p := range d.Params {
 				params[i] = p.Name
 			}
+			optional := 0
+			for i := len(d.Params) - 1; i >= 0 && d.Params[i].Default != nil; i-- {
+				optional++
+			}
 			fields = append(fields, d.Name)
-			vals = append(vals, &interp.Builtin{Name: ns.Name + "." + d.Name, Params: params, Fn: hostBuiltin(impl)})
+			vals = append(vals, &interp.Builtin{Name: ns.Name + "." + d.Name, Params: params, Optional: optional, Fn: hostBuiltin(impl)})
 			seen[d.Name] = true
 		case *ast.TypeDecl:
 			fields = append(fields, d.Name)

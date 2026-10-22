@@ -60,6 +60,7 @@ import (
 type config struct {
 	fsys    fs.FS
 	sources map[string]string
+	stdin   io.Reader
 	stdout  io.Writer
 	stderr  io.Writer
 	args    []string
@@ -70,7 +71,7 @@ type config struct {
 }
 
 func defaultConfig() config {
-	return config{stdout: os.Stdout, stderr: os.Stderr, env: os.LookupEnv}
+	return config{stdin: os.Stdin, stdout: os.Stdout, stderr: os.Stderr, env: os.LookupEnv}
 }
 
 func (c config) with(opts []Option) config {
@@ -98,7 +99,10 @@ func WithSource(path, src string) Option {
 	}
 }
 
-// WithStdout sets where print writes. The default is os.Stdout.
+// WithStdin sets what Os.stdin reads. The default is os.Stdin.
+func WithStdin(r io.Reader) Option { return func(c *config) { c.stdin = r } }
+
+// WithStdout sets where print and Os.stdout write. The default is os.Stdout.
 func WithStdout(w io.Writer) Option { return func(c *config) { c.stdout = w } }
 
 // WithStderr sets where panic reports are written. The default is os.Stderr.
@@ -152,7 +156,8 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	cfg := p.cfg.with(opts)
 	return convertRunError(interp.Run(ctx, p.prog, interp.Config{
-		Prelude: p.prelude, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args, Env: cfg.env,
+		Prelude: p.prelude, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr,
+		Args: cfg.args, Env: cfg.env,
 	}))
 }
 

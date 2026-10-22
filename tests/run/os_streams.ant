@@ -1,0 +1,37 @@
+// spec: stdlib Os
+// The standard streams as handles (stdlib.md): input from the harness's stdin trailer, output
+// through the same buffer as print, so the two interleave in program order, and errors on
+// standard error. Os.stdin() is one handle per run, and close does nothing to a stream.
+func main(): void {
+  var input = Os.stdin()
+  var out = Os.stdout()
+  print(File.writeText(out, "name? "))
+  var name = File.readLine(input)
+  print(name)
+  print(File.writeLine(out, `hello, ${Result.unwrap(name) ?? "nobody"}`))
+  print(File.flush(out))
+  print(File.writeLine(Os.stderr(), "to stderr"))
+  print(File.readAll(input))
+  print(File.readLine(input))
+  File.close(input)
+  print(File.readLine(input))
+  print(Os.stdin() == input)
+  print(input)
+}
+
+// expect
+// stdin: ada
+// stdin: one
+// stdin: two
+// err: to stderr
+// out: name? Ok{ value: void }
+// out: Ok{ value: "ada" }
+// out: hello, ada
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: "one\ntwo\n" }
+// out: Ok{ value: null }
+// out: Ok{ value: null }
+// out: true
+// out: File.Handle

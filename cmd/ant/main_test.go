@@ -35,6 +35,7 @@ func TestRunCommand(t *testing.T) {
 		{"help flag", []string{"--help"}, "", 0, "usage", ""},
 		{"unknown", []string{"frobnicate"}, "", 2, "", "usage"},
 		{"repl", nil, "1 + 1\nvar s = \"x\"\ns + s\n", 0, "2\n", ""},
+		{"repl owns stdin", nil, "File.readLine(Os.stdin())\n", 0, "Ok{ value: null }\n", ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

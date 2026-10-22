@@ -3,9 +3,11 @@ package ant_test
 import (
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/ant-src/ant"
 	"github.com/ant-src/ant/value"
@@ -152,5 +154,63 @@ func TestSessionValue(t *testing.T) {
 	}
 	if !ant.Incomplete("func f() {") || ant.Incomplete("1 +") || ant.Incomplete("1") {
 		t.Error("Incomplete")
+	}
+}
+
+// TestNamespaceDefaults: a host function declared with defaults may be called with fewer
+// arguments or by name, and the omitted ones arrive as nil.
+func TestNamespaceDefaults(t *testing.T) {
+	greet := ant.Namespace{
+		Name:       "Greet",
+		Signatures: `func Greet.hello(name: string, greeting: string = "hi", punct: string = "!"): string`,
+		Funcs: map[string]ant.HostFunc{
+			"hello": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				greeting, punct := "hi", "!"
+				if args[1] != nil {
+					greeting = args[1].(string)
+				}
+				if args[2] != nil {
+					punct = args[2].(string)
+				}
+				return greeting + " " + args[0].(string) + punct, nil
+			},
+		},
+	}
+	prog := loadSrc(t, `func main(): void {
+  print(Greet.hello("ada"))
+  print(Greet.hello("ada", "yo"))
+  print(Greet.hello("ada", punct: "?"))
+}`, ant.WithNamespace(greet))
+	if diags := prog.Check(); len(diags) != 0 {
+		t.Errorf("check: %v", diags)
+	}
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&out)); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != "hi ada!\nyo ada!\nhi ada?\n" {
+		t.Errorf("output %q", out.String())
+	}
+}
+
+// TestWithStdin: Os.stdin reads what the option gives, and a read blocked on input that never
+// comes ends when the run is cancelled.
+func TestWithStdin(t *testing.T) {
+	prog := loadSrc(t, `func main(): void { print(File.readAll(Os.stdin())) }`)
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdin(strings.NewReader("a\nb\n")), ant.WithStdout(&out)); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != "Ok{ value: \"a\\nb\\n\" }\n" {
+		t.Errorf("output %q", out.String())
+	}
+	pr, pw := io.Pipe()
+	defer pw.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	err := prog.Run(ctx, ant.WithStdin(pr), ant.WithStdout(&strings.Builder{}))
+	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 5*time.Second {
+		t.Errorf("blocked read: %v after %v", err, time.Since(start))
 	}
 }
