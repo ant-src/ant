@@ -461,10 +461,12 @@ so the command carries its own copy where there is none, on Windows and in minim
 zone names, so `LoadLocation` takes `europe/stockholm` on macOS, whose file system ignores case,
 and rejects it on Linux, and it takes `Local` and the empty string; and Go has no link table, so
 `Asia/Calcutta` and `Asia/Kolkata` are two locations. `internal/temporal` therefore carries a
-generated table, `zones_gen.go`, of every zone name with its primary name, from the IANA
-database's `Zone` and `Link` lines, and of CLDR's `windowsZones.xml`, which maps Windows zone
-names to IANA names; a `go generate` program under `internal/temporal` rebuilds it from the two
-published files and the output is committed. `Time.zone` resolves a name through the table, in
+generated table, `zones_gen.go`, of every zone name from the IANA database's `Zone` and `Link`
+lines, of the aliases CLDR's `timezone.xml` groups, which is what Temporal's implementations
+canonicalize by and keeps `Europe/Stockholm` apart from `Europe/Berlin` where the IANA database
+has merged them, and of CLDR's `windowsZones.xml`, which maps Windows zone names to IANA names;
+a `go generate` program under `internal/temporal` rebuilds it from the three published files and
+the output is committed. `Time.zone` resolves a name through the table, in
 any case, and loads the primary; `==` on zones compares primaries. `Time.localZone()` reads `TZ`,
 then the target of `/etc/localtime` on Unix, and on Windows the registry's `TimeZoneKeyName`
 through the table, and falls back to a fixed-offset zone of the moment's local offset, which is
@@ -583,4 +585,10 @@ Temporal's reference implementation; the transitions over `ZoneBounds`; `Math.ra
 is done: `File.stat`, `mkdir`, `removeAll`, `rename`, `walk`, `tempDir`, `append` and the
 `Path` namespace, with `stdlib Path` off the pending list. Phase 27 is done: `examples/runner.ant`,
 `examples/sift.ant` and `examples/agenda.ant`, the CHANGELOG, the README and the package
-documentation. Every phase of this plan is done.
+documentation. Every phase of this plan is done. A review on 2026-10-22, by a second agent and
+by hand, found and fixed: a pipe of a handle into itself deadlocked; zoned strings rendered
+sub-minute offsets; a host namespace named `Time` was typed as time types; `parsePlainDate` took
+an impossible time; `Os.environ` ignored the host's environment, now `WithEnvironment`; month-end
+differences constrained the day before comparing, against Temporal; zone identity followed
+tzdata's post-1970 merges, now CLDR's aliases. The spec gained the general range ◆, the increment
+rule for date units, the `relativeTo` date rule, `±HHMM` offsets and the minute-rounded offset.

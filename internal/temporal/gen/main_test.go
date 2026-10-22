@@ -19,6 +19,19 @@ L Europe/Oslo Arctic/Longyearbyen
 L Asia/Kolkata Asia/Calcutta
 `
 
+const cldr = `<?xml version="1.0" encoding="UTF-8" ?>
+<ldmlBCP47>
+	<keyword>
+		<key name="tz">
+			<type name="deber" alias="Europe/Berlin"/>
+			<type name="sesto" alias="Europe/Stockholm"/>
+			<type name="inccu" alias="Asia/Calcutta Asia/Kolkata" iana="Asia/Kolkata"/>
+			<type name="utc" alias="Etc/UTC UTC Zulu"/>
+		</key>
+	</keyword>
+</ldmlBCP47>
+`
+
 const windows = `<?xml version="1.0" encoding="UTF-8" ?>
 <supplementalData>
 	<windowsZones>
@@ -34,11 +47,13 @@ const windows = `<?xml version="1.0" encoding="UTF-8" ?>
 func TestGenerate(t *testing.T) {
 	dir := t.TempDir()
 	tz := filepath.Join(dir, "tzdata.zi")
+	cl := filepath.Join(dir, "timezone.xml")
 	win := filepath.Join(dir, "windowsZones.xml")
 	out := filepath.Join(dir, "zones_gen.go")
 	os.WriteFile(tz, []byte(tzdata), 0o644)
+	os.WriteFile(cl, []byte(cldr), 0o644)
 	os.WriteFile(win, []byte(windows), 0o644)
-	if err := generate(tz, win, out); err != nil {
+	if err := generate(tz, cl, win, out); err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := os.ReadFile(out)
@@ -47,8 +62,7 @@ func TestGenerate(t *testing.T) {
 		`tzdataVersion = "2026d"`,
 		`"europe/oslo": "Europe/Oslo"`,
 		`"arctic/longyearbyen": "Arctic/Longyearbyen"`,
-		`"Arctic/Longyearbyen": "Europe/Berlin"`, // a link to a link ends at the zone
-		`"Asia/Calcutta": "Asia/Kolkata"`,
+		`"Asia/Kolkata": "Asia/Calcutta"`, // CLDR's first name, whatever tzdata links to
 		`"W. Europe Standard Time": "Europe/Berlin"`,
 		`"India Standard Time": "Asia/Calcutta"`,
 	} {
@@ -58,6 +72,22 @@ func TestGenerate(t *testing.T) {
 	}
 	if strings.Contains(src, "Andorra") {
 		t.Error("a territory other than 001 was taken")
+	}
+	for _, absent := range []string{`"Europe/Oslo": "Europe/Berlin"`, `"Arctic/Longyearbyen":`, `"Zulu":`} {
+		if strings.Contains(src, absent) {
+			t.Errorf("generated table has %s: tzdata's links are not aliases, and a name outside tzdata is not listed", absent)
+		}
+	}
+	if _, err := readCLDR(filepath.Join(dir, "none"), nil); err == nil {
+		t.Error("a missing CLDR file")
+	}
+	os.WriteFile(cl, []byte("<ldmlBCP47/>"), 0o644)
+	if _, err := readCLDR(cl, nil); err == nil {
+		t.Error("a CLDR file with no groups")
+	}
+	os.WriteFile(cl, []byte("<notxml"), 0o644)
+	if _, err := readCLDR(cl, nil); err == nil {
+		t.Error("malformed CLDR xml")
 	}
 	if _, _, _, err := readTzdata(filepath.Join(dir, "none")); err == nil {
 		t.Error("a missing tzdata file")
@@ -77,7 +107,7 @@ func TestGenerate(t *testing.T) {
 	if _, err := readWindows(win); err == nil {
 		t.Error("no entries")
 	}
-	if err := generate(tz, win, out); err == nil {
+	if err := generate(tz, cl, win, out); err == nil {
 		t.Error("generate with bad inputs")
 	}
 }

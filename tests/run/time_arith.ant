@@ -58,6 +58,8 @@ func main(): void {
   var feb29 = Time.plainDate(2024, 2, 29)
   print(Time.since(mar31, feb29, Time.Month{}))
   print(Time.until(feb29, mar31, Time.Month{}))
+  print(Time.until(Time.plainDate(2023, 1, 31), Time.plainDate(2023, 2, 28), Time.Month{}))
+  print(Time.until(Time.plainDate(2024, 2, 29), Time.plainDate(2025, 2, 28), Time.Year{}))
   print(Time.until(Time.plainDate(2022, 1, 1), Time.plainDate(2022, 1, 28)))
   print(Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(5400000)))
   print(Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(5400000), Time.Hour{}))
@@ -71,6 +73,8 @@ func main(): void {
   print(Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Second{}))
   print(Time.round(Time.plainTime(10, 44, 30), Time.Hour{}, mode: Time.HalfEven{}))
   print(Time.with(before, day: 3))
+  print(Time.with(Result.unwrap(Time.parseZoned("2024-11-04T01:05:00-05:00[America/New_York]")), day: 3))
+  print(Time.round(Result.unwrap(Time.parseZoned("2024-11-03T12:00:00-05:00[America/New_York]")), Time.Day{}))
   print(Time.with(Time.plainDate(2024, 1, 31), month: 2))
   print(Time.with(Time.plainDate(2024, 1, 31), month: 13))
   print(Time.with(Time.plainTime(1), hour: 25, nanosecond: 7))
@@ -79,6 +83,7 @@ func main(): void {
   print(Time.nextTransition(jan))
   print(Time.previousTransition(jan))
   print(Time.nextTransition(Time.inZone(Time.toInstant(jan), Time.utc)))
+  print(Time.previousTransition(Time.inZone(Time.toInstant(jan), Time.utc)))
   print(Time.until(dt, Time.add(dt, Time.duration(hours: 30)), Time.Day{}))
   print(Time.compare(dt, Time.add(dt, Time.duration(nanoseconds: 1))))
   print(Time.total(Time.duration(hours: 36), Time.Day{}, relativeTo: dt))
@@ -132,6 +137,8 @@ func main(): void {
 // out: P1DT1H
 // out: P1M
 // out: P1M2D
+// out: P28D
+// out: P11M30D
 // out: P27D
 // out: PT5400S
 // out: PT1H30M
@@ -143,12 +150,15 @@ func main(): void {
 // out: 2026-10-22T14:03:06Z
 // out: 11:00:00
 // out: 2024-11-03T01:00:00-04:00[America/New_York]
+// out: 2024-11-03T01:05:00-05:00[America/New_York]
+// out: 2024-11-04T00:00:00-05:00[America/New_York]
 // out: 2024-02-29
 // out: 2024-12-31
 // out: 23:00:00.000000007
 // out: 2020-07-01T12:34:00
 // out: 2024-03-10T03:00:00-04:00[America/New_York]
 // out: 2023-11-05T01:00:00-05:00[America/New_York]
+// out: null
 // out: null
 // out: P1DT6H
 // out: -1

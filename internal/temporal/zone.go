@@ -1,7 +1,8 @@
 package temporal
 
-// The zone table comes from the IANA database's tzdata.zi and CLDR's windowsZones.xml:
-//go:generate go run ./gen -tzdata /usr/share/zoneinfo/tzdata.zi -windows windowsZones.xml -o zones_gen.go
+// The zone table comes from the IANA database's tzdata.zi and CLDR's timezone.xml and
+// windowsZones.xml:
+//go:generate go run ./gen -tzdata /usr/share/zoneinfo/tzdata.zi -cldr timezone.xml -windows windowsZones.xml -o zones_gen.go
 
 import (
 	"fmt"
@@ -15,7 +16,7 @@ import (
 // Zone is a zone of the IANA database, or a fixed offset.
 type Zone struct {
 	id      string // as the database spells it, or the offset as ±HH:MM
-	primary string // the zone a link names; the id itself otherwise
+	primary string // the first name of its CLDR alias group, which == compares; the id otherwise
 	loc     *time.Location
 	fixed   bool
 	offset  int // fixed zones: seconds east of UTC
@@ -26,9 +27,9 @@ var (
 	zoneCache = map[string]*Zone{}
 )
 
-// LoadZone resolves a name of the IANA database in any letter case, a link such as
+// LoadZone resolves a name of the IANA database in any letter case, an alias such as
 // Asia/Calcutta included, or an offset ±HH, ±HH:MM or ±HHMM. Anything else is an error,
-// the empty string and Go's "Local" included.
+// the empty string and Go's "Local" included. The rules are loaded under the name itself.
 func LoadZone(id string) (*Zone, error) {
 	if off, ok := parseOffsetZone(id); ok {
 		return FixedZone(off), nil
@@ -46,7 +47,7 @@ func LoadZone(id string) (*Zone, error) {
 	if target, ok := zoneLinks[spelled]; ok {
 		primary = target
 	}
-	loc, err := time.LoadLocation(primary)
+	loc, err := time.LoadLocation(spelled)
 	if err != nil {
 		return nil, fmt.Errorf("time zone %s: %v", spelled, err)
 	}
@@ -117,8 +118,9 @@ func (z *Zone) offsetAt(i Instant) int {
 // TimeType is the name of the type's tag.
 func (*Zone) TimeType() string { return "Time.Zone" }
 
-// Key is the canonical form == compares: the zone a link names, so Asia/Calcutta equals
-// Asia/Kolkata; an offset zone never equals a named one.
+// Key is the canonical form == compares: the first name of the zone's CLDR alias group, so
+// Asia/Calcutta equals Asia/Kolkata and Europe/Stockholm stays apart from Europe/Berlin; an
+// offset zone never equals a named one.
 func (z *Zone) Key() string {
 	if z.fixed {
 		return "offset " + z.id

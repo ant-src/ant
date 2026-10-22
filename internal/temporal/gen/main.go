@@ -1,11 +1,15 @@
-// Command gen writes zones_gen.go, the zone table of package temporal, from two published
+// Command gen writes zones_gen.go, the zone table of package temporal, from three published
 // files: tzdata.zi, the compact form of the IANA time zone database that systems ship under
-// zoneinfo (its Z lines are the zones and its L lines the links to them), and CLDR's
-// windowsZones.xml, which maps Windows zone names to IANA names. Go's time package has no list
-// of zone names and no link table, so the table is what makes a lookup case-insensitive on
-// every platform, Asia/Calcutta equal to Asia/Kolkata, and a Windows machine's local zone known.
+// zoneinfo (its Z lines are the zones and its L lines the links to them), which gives every
+// name; CLDR's bcp47/timezone.xml, whose alias groups say which names are one zone, as
+// Temporal's implementations canonicalize, so that Asia/Calcutta equals Asia/Kolkata while
+// Europe/Stockholm stays apart from Europe/Berlin although the IANA database has merged their
+// rules since 1970; and CLDR's windowsZones.xml, which maps Windows zone names to IANA names.
+// Go's time package has no list of zone names and no alias table, so the table is what makes a
+// lookup case-insensitive on every platform, aliases equal, and a Windows machine's local zone
+// known.
 //
-//	go run ./internal/temporal/gen -tzdata /usr/share/zoneinfo/tzdata.zi -windows windowsZones.xml
+//	go run ./internal/temporal/gen -tzdata /usr/share/zoneinfo/tzdata.zi -cldr timezone.xml -windows windowsZones.xml
 package main
 
 import (
@@ -23,20 +27,26 @@ import (
 
 func main() {
 	tzdata := flag.String("tzdata", "/usr/share/zoneinfo/tzdata.zi", "the tzdata.zi file")
+	cldr := flag.String("cldr", "", "CLDR's bcp47/timezone.xml")
 	windows := flag.String("windows", "", "CLDR's windowsZones.xml")
 	out := flag.String("o", "zones_gen.go", "the file to write")
 	flag.Parse()
-	if *windows == "" {
-		log.Fatal("gen: -windows is required")
+	if *cldr == "" || *windows == "" {
+		log.Fatal("gen: -cldr and -windows are required")
 	}
-	if err := generate(*tzdata, *windows, *out); err != nil {
+	if err := generate(*tzdata, *cldr, *windows, *out); err != nil {
 		log.Fatalf("gen: %v", err)
 	}
 }
 
-// generate writes the table for the two source files to out.
-func generate(tzdata, windows, out string) error {
-	version, zones, links, err := readTzdata(tzdata)
+// generate writes the table for the three source files to out.
+func generate(tzdata, cldr, windows, out string) error {
+	version, zones, tzLinks, err := readTzdata(tzdata)
+	if err != nil {
+		return err
+	}
+	names := append(append([]string{}, zones...), keys(tzLinks)...)
+	links, err := readCLDR(cldr, names)
 	if err != nil {
 		return err
 	}
@@ -49,13 +59,12 @@ func generate(tzdata, windows, out string) error {
 	b.WriteString("package temporal\n\n")
 	fmt.Fprintf(&b, "// tzdataVersion is the version of the IANA database the table was made from.\nconst tzdataVersion = %q\n\n", version)
 	b.WriteString("// zoneNames maps every zone name, in lower case, to its spelling in the database.\nvar zoneNames = map[string]string{\n")
-	names := append(append([]string{}, zones...), keys(links)...)
 	sort.Strings(names)
 	for _, n := range names {
 		fmt.Fprintf(&b, "\t%q: %q,\n", strings.ToLower(n), n)
 	}
 	b.WriteString("}\n\n")
-	b.WriteString("// zoneLinks maps a link name to the zone it names.\nvar zoneLinks = map[string]string{\n")
+	b.WriteString("// zoneLinks maps an alias to the first name of its CLDR group, the name == compares.\nvar zoneLinks = map[string]string{\n")
 	for _, n := range keys(links) {
 		fmt.Fprintf(&b, "\t%q: %q,\n", n, links[n])
 	}
@@ -132,6 +141,45 @@ func readTzdata(path string) (version string, zones []string, links map[string]s
 		links[name] = target
 	}
 	return version, zones, links, nil
+}
+
+// readCLDR returns, for every name of names that is not the first of its alias group in CLDR's
+// timezone.xml, the first name of that group.
+func readCLDR(path string, names []string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var doc struct {
+		Types []struct {
+			Alias string `xml:"alias,attr"`
+		} `xml:"keyword>key>type"`
+	}
+	if err := xml.Unmarshal(data, &doc); err != nil {
+		return nil, fmt.Errorf("%s: %v", path, err)
+	}
+	known := map[string]bool{}
+	for _, n := range names {
+		known[n] = true
+	}
+	out := map[string]string{}
+	groups := 0
+	for _, t := range doc.Types {
+		aliases := strings.Fields(t.Alias)
+		if len(aliases) < 2 {
+			continue
+		}
+		groups++
+		for _, a := range aliases[1:] {
+			if known[a] {
+				out[a] = aliases[0]
+			}
+		}
+	}
+	if groups == 0 {
+		return nil, fmt.Errorf("%s has no alias groups", path)
+	}
+	return out, nil
 }
 
 // readWindows returns the territory-001 mapping of windowsZones.xml: one IANA zone per

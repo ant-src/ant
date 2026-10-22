@@ -127,6 +127,23 @@ func TestUntil(t *testing.T) {
 	check(t, "weeks", r, err, "P3W6D")
 	r, err = date(t, "2020-02-29").Until(date(t, "2024-02-28"), Year)
 	check(t, "years with a leap day", r, err, "P3Y11M30D")
+	// At a month's end a month has passed only when the day is reached, as Temporal has it.
+	r, err = date(t, "2023-01-31").Until(date(t, "2023-02-28"), Month)
+	check(t, "January 31 until February 28", r, err, "P28D")
+	r, err = date(t, "2024-01-31").Until(date(t, "2024-02-29"), Month)
+	check(t, "January 31 until February 29", r, err, "P29D")
+	r, err = date(t, "2024-03-31").Until(date(t, "2024-04-30"), Month)
+	check(t, "March 31 until April 30", r, err, "P30D")
+	r, err = date(t, "2024-02-29").Until(date(t, "2025-02-28"), Year)
+	check(t, "a leap day until the next February 28", r, err, "P11M30D")
+	r, err = date(t, "2023-02-28").Until(date(t, "2023-01-31"), Month)
+	check(t, "February 28 back to January 31", r, err, "-P28D")
+	r, err = date(t, "2023-01-30").Until(date(t, "2023-02-28"), Month)
+	check(t, "January 30 until February 28", r, err, "P29D")
+	r, err = date(t, "2023-01-28").Until(date(t, "2023-02-28"), Month)
+	check(t, "January 28 until February 28", r, err, "P1M")
+	r, err = dur(t, "P29D").Round(0, false, Month, true, 1, HalfExpand, date(t, "2024-01-31"))
+	check(t, "29 days from January 31 in months", r, err, "P29D")
 	if _, err := mar31.Until(feb29, Hour); err == nil {
 		t.Error("hours between dates")
 	}

@@ -56,12 +56,18 @@ func dateAdd(d PlainDate, dd dateDur) (PlainDate, error) {
 	return addDays(intermediate, dd.days+7*dd.weeks)
 }
 
+// compareSurpasses reports whether a candidate date, its fields unconstrained, lies past the
+// target in the direction of sign. The day is compared as given, so January 31 does not reach
+// February 28 as a month, as Temporal's CompareSurpasses has it.
 func compareSurpasses(sign int, y int64, m, day int, d2 PlainDate) bool {
-	c, err := constrainDate(y, m, day)
-	if err != nil {
-		return true
+	c := cmp(y, int64(d2.Year))
+	if c == 0 {
+		c = cmp(int64(m), int64(d2.Month))
 	}
-	return sign*c.Compare(d2) > 0
+	if c == 0 {
+		c = cmp(int64(day), int64(d2.Day))
+	}
+	return sign*c > 0
 }
 
 func isoDateSurpasses(sign int, base, d2 PlainDate, years, months int64) bool {

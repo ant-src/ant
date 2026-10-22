@@ -16,6 +16,8 @@ func main(): void {
   print(Time.zone("Mars/Olympus") is Err)
   print(Time.zone("") is Err)
   print(Time.zone("Asia/Calcutta") == Time.zone("Asia/Kolkata"))
+  print(Time.zone("Europe/Stockholm") == Time.zone("Europe/Berlin"))
+  print(Result.unwrap(Time.zone("US/Eastern")) == ny)
   print(Time.zoneId(Result.unwrap(Time.zone("+0530"))))
   print(Time.utc)
   print(Time.zoneId(Time.localZone()) != "")
@@ -107,6 +109,8 @@ func main(): void {
 // out: Europe/Stockholm
 // out: true
 // out: true
+// out: true
+// out: false
 // out: true
 // out: +05:30
 // out: UTC

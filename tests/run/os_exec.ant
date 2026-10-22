@@ -14,6 +14,7 @@ func main(): void {
   print(String.contains(bad.stderr, "nonsense"))
   print(Os.exec("ant-no-such-program-xyz") is Err)
   print(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
+  print(Result.unwrap(Os.exec("sh", ["-c", "kill -9 $$"])).status)
   print(Map.has(Os.environ(), "PATH"))
   print(Os.cwd() is Ok)
 
@@ -44,6 +45,7 @@ func main(): void {
 // out: true
 // out: true
 // out: true
+// out: -1
 // out: true
 // out: true
 // out: Ok{ value: void }

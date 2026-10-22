@@ -227,6 +227,19 @@ func TestZones(t *testing.T) {
 	if UTC.ID() != "UTC" || UTC.Key() != zone(t, "Etc/UTC").Key() || UTC.Key() == zone(t, "+00:00").Key() {
 		t.Errorf("UTC: %q", UTC.Key())
 	}
+	// Aliases follow CLDR: tzdata's post-1970 merges do not make two zones one.
+	if zone(t, "Europe/Stockholm").Key() == zone(t, "Europe/Berlin").Key() {
+		t.Error("Stockholm and Berlin are one zone")
+	}
+	if zone(t, "US/Eastern").Key() != zone(t, "America/New_York").Key() {
+		t.Error("US/Eastern and New York are two zones")
+	}
+	if zone(t, "Etc/GMT").Key() == UTC.Key() {
+		t.Error("GMT and UTC are one zone")
+	}
+	if zone(t, "Europe/Kiev").Key() != zone(t, "Europe/Kyiv").Key() {
+		t.Error("Kiev and Kyiv are two zones")
+	}
 	t.Setenv("TZ", "Europe/Stockholm")
 	if LocalZone().ID() != "Europe/Stockholm" {
 		t.Errorf("local from TZ: %s", LocalZone())
