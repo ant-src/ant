@@ -274,3 +274,14 @@ with a cancellation check per element as before; map buckets chained through the
 `seq` −26%, `records` −15%, `map` −18%, `par_map` −29 to −36%, `loop` −7%, geomean −13%, no
 regression. The gate's 25% holds for `seq` only: `loop` spends 27% in `convT64` and `records`
 in cells and record allocation, which are Phases 33 to 35.
+
+Phase 33 is done, its gate missed. Done: `cellOf` hands out the record's, array's or map's own
+cell and shared cells for `null`, `void`, the booleans and the ints −128 to 1023; records of up
+to four fields are one allocation with their fields, and a record literal builds its record in
+place. Added beyond the plan: positional calls of builtins use the argument stack too. The
+contract on `Builtin` now says `Fn` must not keep its slice, the library was audited for it, and
+`hostBuiltin` hands host functions a copy. benchstat against Phase 32, 6 runs: `array` −8%,
+`strings` −10%, `goroutines` −9%, allocations −17% in `records` and `array` and −32% in
+`goroutines`, `closures` +3% (within the 5% rule). The gate asked for half: what remains in
+`records` and `array` is a box and a cell per stored `float64` or large `int`, which only
+unboxed values remove.

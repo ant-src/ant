@@ -350,10 +350,10 @@ func (g *Goroutine) postfix(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 	}
 }
 
-// call evaluates a call. Arguments to an Ant function with no named arguments go on the
-// goroutine's argument stack, which the callee copies into its frame before its body runs, so
-// such a call allocates no argument slice. Arguments to anything else get their own slice,
-// because a builtin may keep it.
+// call evaluates a call. Positional arguments to an Ant function or a builtin go on the
+// goroutine's argument stack, so such a call allocates no argument slice: an Ant function copies
+// them into its frame before its body runs, and a builtin must not keep its slice once it
+// returns (see Builtin). Other calls get a slice of their own.
 func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
 	var pipe value.Value
 	rest := x.Args
@@ -372,7 +372,9 @@ func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
 	if skip || (x.Optional && fn == value.Null) {
 		return value.Null, ctlNone, true
 	}
-	if f, ok := fn.(*Func); ok && !namedArgs(rest) {
+	f, isFunc := fn.(*Func)
+	b, isBuiltin := fn.(*Builtin)
+	if (isFunc || isBuiltin) && !namedArgs(rest) {
 		base := len(g.args)
 		if x.Pipe {
 			g.args = append(g.args, pipe)
@@ -386,7 +388,13 @@ func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
 			g.args = append(g.args, v)
 		}
 		g.check()
-		return g.callFuncStack(f, base, x.Pos), ctlNone, false
+		if isFunc {
+			return g.callFuncStack(f, base, x.Pos), ctlNone, false
+		}
+		v := g.callBuiltin(b, g.args[base:], nil, x.Pos)
+		clear(g.args[base:])
+		g.args = g.args[:base]
+		return v, ctlNone, false
 	}
 	var args []value.Value
 	var names []string
@@ -715,7 +723,7 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 		}
 		g.panicf(e.Pos, "%s is not a record type, so it has no literal", name)
 	}
-	vals := make([]value.Value, len(tag.Fields))
+	rec := value.NewEmptyRecord(tag)
 	idxs := g.literalIndexes(e, tag)
 	for k, en := range e.Entries {
 		if en.Spread != nil {
@@ -732,7 +740,7 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 				if !ok {
 					g.panicf(en.Pos, "%s has no field %s", tag.Name, name)
 				}
-				vals[idx] = src.Get(i)
+				rec.Set(idx, src.Get(i))
 			}
 			continue
 		}
@@ -744,14 +752,14 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 		if idx < 0 {
 			g.panicf(en.Pos, "%s has no field %s", tag.Name, en.Name)
 		}
-		vals[idx] = v
+		rec.Set(idx, v)
 	}
-	for i, v := range vals {
-		if v == nil {
+	for i := range tag.Fields {
+		if !rec.IsSet(i) {
 			g.panicf(e.Pos, "%s literal is missing the field %s", tag.Name, tag.Fields[i])
 		}
 	}
-	return value.NewRecord(tag, vals), ctlNone
+	return rec, ctlNone
 }
 
 // ---- operators

@@ -3,6 +3,7 @@ package ant
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -103,7 +104,8 @@ func (ns Namespace) build() (value.Value, *ast.File, error) {
 
 func hostBuiltin(impl HostFunc) func(*interp.Goroutine, []value.Value) value.Value {
 	return func(g *interp.Goroutine, args []value.Value) value.Value {
-		v, err := impl(g, args)
+		// a host function may keep its arguments; the interpreter's slice is not its to keep
+		v, err := impl(g, slices.Clone(args))
 		if err != nil {
 			g.Panic("%s", strings.TrimSpace(err.Error()))
 		}

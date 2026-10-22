@@ -215,7 +215,58 @@ func (s *Slot) Load() Value {
 }
 
 // Store sets the slot's value.
-func (s *Slot) Store(v Value) { s.p.Store(&cell{v: v}) }
+func (s *Slot) Store(v Value) { s.p.Store(cellOf(v)) }
+
+// cellOf returns an immutable cell holding v. Cells are never written after they are made, so
+// one may serve any number of slots: a record, an array or a map carries the cell holding
+// itself, and null, void, the booleans and the ints from minCellInt to maxCellInt have one
+// each. Storing any of those allocates nothing.
+func cellOf(v Value) *cell {
+	switch x := v.(type) {
+	case int64:
+		if x >= minCellInt && x <= maxCellInt {
+			return &intCells[x-minCellInt]
+		}
+	case bool:
+		if x {
+			return &trueCell
+		}
+		return &falseCell
+	case nullType:
+		return &nullCell
+	case voidType:
+		return &voidCell
+	case *Record:
+		if x.self.v != nil {
+			return &x.self
+		}
+	case *Array:
+		if x.self.v != nil {
+			return &x.self
+		}
+	case *Map:
+		if x.self.v != nil {
+			return &x.self
+		}
+	}
+	return &cell{v: v}
+}
+
+const (
+	minCellInt = -128
+	maxCellInt = 1023
+)
+
+var (
+	intCells                                [maxCellInt - minCellInt + 1]cell
+	trueCell, falseCell, nullCell, voidCell = cell{v: true}, cell{v: false}, cell{v: Null}, cell{v: Void}
+)
+
+func init() {
+	for i := range intCells {
+		intCells[i].v = int64(i + minCellInt)
+	}
+}
 
 // CompareAndSwap stores v when the slot holds a value equal (by ==) to expected, and reports
 // whether it did. It is lock-free: every store publishes a fresh cell, so the cell pointer
@@ -327,12 +378,13 @@ func (t *Tag) Funcs() map[string]Value { return t.funcs }
 type Record struct {
 	Tag    *Tag
 	fields []Slot
+	self   cell // holds the record, for slots that store it
 }
 
 // NewRecord creates a record with the given field values, in the tag's order. A nil entry
 // leaves the field uninitialized.
 func NewRecord(tag *Tag, fields []Value) *Record {
-	r := &Record{Tag: tag, fields: make([]Slot, len(tag.Fields))}
+	r := NewEmptyRecord(tag)
 	for i, v := range fields {
 		if v != nil {
 			r.fields[i].Store(v)
@@ -340,6 +392,53 @@ func NewRecord(tag *Tag, fields []Value) *Record {
 	}
 	return r
 }
+
+// Records with up to four fields are allocated together with their fields.
+type (
+	record1 struct {
+		Record
+		slots [1]Slot
+	}
+	record2 struct {
+		Record
+		slots [2]Slot
+	}
+	record3 struct {
+		Record
+		slots [3]Slot
+	}
+	record4 struct {
+		Record
+		slots [4]Slot
+	}
+)
+
+// NewEmptyRecord creates a record of tag with every field uninitialized.
+func NewEmptyRecord(tag *Tag) *Record {
+	var r *Record
+	switch len(tag.Fields) {
+	case 1:
+		x := &record1{}
+		x.fields, r = x.slots[:], &x.Record
+	case 2:
+		x := &record2{}
+		x.fields, r = x.slots[:], &x.Record
+	case 3:
+		x := &record3{}
+		x.fields, r = x.slots[:], &x.Record
+	case 4:
+		x := &record4{}
+		x.fields, r = x.slots[:], &x.Record
+	default:
+		r = &Record{fields: make([]Slot, len(tag.Fields))}
+	}
+	r.Tag = tag
+	r.self.v = r
+	return r
+}
+
+// IsSet reports whether field i was ever stored.
+func (r *Record) IsSet(i int) bool { return r.fields[i].p.Load() != nil }
 
 // Len is the number of fields.
 func (r *Record) Len() int { return len(r.fields) }
