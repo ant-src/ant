@@ -40,7 +40,9 @@ jobs:
           - name: build
             run: go build ./cmd/ant
           - name: coverage
-            run: scripts/coverage.sh 90 80
+            run: |
+              go test -coverpkg=./... -coverprofile=cover.out ./...
+              go run ./cmd/ant run scripts/coverage.ant cover.out 90 80
     name: check (${{ matrix.name }})
     runs-on: ubuntu-latest
     steps:

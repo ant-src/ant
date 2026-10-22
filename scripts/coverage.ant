@@ -4,7 +4,8 @@
 //
 // Coverage is statement-weighted, computed from the profile: a package's figure is the share of
 // its statements that some test ran, not an average over its functions. A block that several
-// test binaries report is counted once. scripts/coverage.sh produces the profile and runs this.
+// test binaries report is counted once. The profile comes from
+// go test -coverpkg=./... -coverprofile=cover.out ./... as the ci workflow runs it.
 
 var modulePath = "github.com/ant-src/ant"
 

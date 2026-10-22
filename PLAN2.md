@@ -177,10 +177,11 @@ prints the program so it can be copied into the corpus as a regression test.
 
 ### 3.7 Coverage gate and CI
 
-`scripts/coverage.sh` runs the whole test suite with `-coverpkg=./... -coverprofile` and hands
-the profile to `scripts/coverage.ant`, an Ant program that computes statement-weighted coverage
-overall and per package, counting a block once however many test binaries report it, and exits
-with status 1 below the thresholds it is given. A Go test runs the program on a small profile. The gate starts at today's 83% overall with no per-package floor, and
+The suite runs with `-coverpkg=./... -coverprofile`, and `scripts/coverage.ant`, an Ant
+program, reads the profile, computes statement-weighted coverage overall and per package,
+counting a block once however many test binaries report it, and exits with status 1 below the
+thresholds it is given. A Go test runs the program on a small profile. Ant cannot start a
+process yet, so the `go test` call stays in the workflow and the README; `Os.exec` is planned. The gate starts at today's 83% overall with no per-package floor, and
 each phase that raises coverage raises the gate in the same commit; the end state is 90% overall
 and 80% per package. `cmd/ant` reaches its floor by moving everything but `func main` into a
 function the test calls with piped standard input; `internal/repl` the same way.
