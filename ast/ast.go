@@ -446,9 +446,11 @@ type Cache struct {
 	p atomic.Pointer[CacheEntry]
 }
 
-// CacheEntry is a cached lookup: the type it holds for and the indexes found for it.
+// CacheEntry is a cached lookup: the identity it holds for, as the interpreter chooses it, and
+// the indexes found for it. The identity must not keep run-time state alive, because the tree
+// outlives the runs that fill its caches.
 type CacheEntry struct {
-	Type    any
+	Key     any
 	Index   int
 	Indexes []int
 }

@@ -425,16 +425,27 @@ func (g *Goroutine) evalArgs(x *ast.Call, pipe value.Value, rest []ast.Arg, env 
 	return args, names, nil, ctlNone
 }
 
+// fieldsKey identifies the field list of a record tag for the inline caches. A field's index
+// depends on nothing else, and the list, unlike the tag, holds no functions and so no module
+// environment of a finished run. A tag with no fields has no key and is never cached.
+func fieldsKey(t *value.Tag) any {
+	if len(t.Fields) == 0 {
+		return nil
+	}
+	return &t.Fields[0]
+}
+
 // fieldIndex returns the index of x's field in rec, through x's inline cache.
 func fieldIndex(rec *value.Record, x *ast.Field) (int, bool) {
-	if x.Cache != nil {
-		if e := x.Cache.Load(); e != nil && e.Type == any(rec.Tag) {
+	key := fieldsKey(rec.Tag)
+	if x.Cache != nil && key != nil {
+		if e := x.Cache.Load(); e != nil && e.Key == key {
 			return e.Index, true
 		}
 	}
 	i, ok := rec.Tag.FieldIndex(x.Name)
-	if ok && x.Cache != nil {
-		x.Cache.Store(&ast.CacheEntry{Type: rec.Tag, Index: i})
+	if ok && x.Cache != nil && key != nil {
+		x.Cache.Store(&ast.CacheEntry{Key: key, Index: i})
 	}
 	return i, ok
 }
@@ -677,8 +688,9 @@ func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, 
 // literalIndexes returns, per entry of e, the index of its field in tag, or -1 for a spread or
 // a name tag lacks, through e's inline cache.
 func (g *Goroutine) literalIndexes(e *ast.RecordLit, tag *value.Tag) []int {
-	if e.Cache != nil {
-		if c := e.Cache.Load(); c != nil && c.Type == any(tag) {
+	key := fieldsKey(tag)
+	if e.Cache != nil && key != nil {
+		if c := e.Cache.Load(); c != nil && c.Key == key {
 			return c.Indexes
 		}
 	}
@@ -691,8 +703,8 @@ func (g *Goroutine) literalIndexes(e *ast.RecordLit, tag *value.Tag) []int {
 			}
 		}
 	}
-	if e.Cache != nil {
-		e.Cache.Store(&ast.CacheEntry{Type: tag, Indexes: idxs})
+	if e.Cache != nil && key != nil {
+		e.Cache.Store(&ast.CacheEntry{Key: key, Indexes: idxs})
 	}
 	return idxs
 }
@@ -1251,23 +1263,32 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	return value.Void, ctlNone
 }
 
-// forEach runs a for loop over a sequence the library implements in Go.
+// forEach runs a for loop over a sequence the library implements in Go. A break stops the
+// sequence by pushing false; a return unwinds through it, as in forSeq, so that no stage or
+// source it wraps runs again.
 func (g *Goroutine) forEach(e *ast.For, seq *Builtin, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
 	saved := g.pos
 	g.pos = e.Pos
-	defer func() { g.pos = saved }()
+	defer func() {
+		g.pos = saved
+		if r := recover(); r != nil {
+			if u, ok := r.(*loopUnwind); ok && u.loop == e {
+				rv, rc = u.v, ctlReturn
+				return
+			}
+			panic(r)
+		}
+	}()
 	g.check()
-	rc = ctlNone
 	seq.Each(g, func(v value.Value) bool {
 		g.check()
-		var stop bool
-		rv, rc, stop = run(v)
+		v, c, stop := run(v)
+		if c == ctlReturn {
+			panic(&loopUnwind{loop: e, v: v})
+		}
 		return !stop
 	})
-	if rc != ctlReturn {
-		return value.Void, ctlNone
-	}
-	return rv, rc
+	return value.Void, ctlNone
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {

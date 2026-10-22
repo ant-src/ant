@@ -1,0 +1,42 @@
+// spec: 5 Loops
+// A return from a for body over a sequence propagates out of it: neither a library stage nor the
+// source it wraps runs again, while a break lets the source see false and finish on its own.
+func countdown(from: int): Seq[int] {
+  func(yield: func(int): bool): void {
+    var n = from
+    while n > 0 {
+      if !yield(n) { print("source saw false"); return }
+      n -= 1
+    }
+  }
+}
+
+func firstMapped(): int {
+  for v in countdown(3) | Iter.map({ x * 10 }) { return v }
+  0
+}
+
+func firstFiltered(): int {
+  for v in countdown(5) | Iter.filter({ x % 2 == 0 }) | Iter.take(2) { return v }
+  0
+}
+
+func firstInRange(): int {
+  for v in Iter.range(0, 10) | Iter.map({ x * x }) { if v > 10 { return v } }
+  0
+}
+
+func main(): void {
+  print(firstMapped())
+  print(firstFiltered())
+  print(firstInRange())
+  for v in countdown(3) | Iter.map({ x * 10 }) { break }
+  print("done")
+}
+
+// expect
+// out: 30
+// out: 4
+// out: 16
+// out: source saw false
+// out: done

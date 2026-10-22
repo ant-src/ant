@@ -306,3 +306,11 @@ Ant function now evaluates its arguments into an array on the Go stack, in a fun
 again. benchstat against Phase 34, 8 runs: geomean +0.1%, `fib` unchanged, `par_fib` −2 to −10%,
 `strings` +14% and `array` +8%, which still leaves both faster than `master`. The branch adds
 561 net lines of Go outside tests, the profiling flags included.
+
+Two review findings, fixed. `forEach` turned a `return` from the loop body into a `false` from
+`push`, so a user-written source behind `Iter.map` or `Iter.filter` kept running after the loop
+had returned; it now unwinds with `loopUnwind` as `forSeq` does
+(`tests/run/loop_return_through_stages.ant`). The inline caches were keyed by the tag, whose
+functions hold the module environment, so a cached `Program` kept its last run's globals alive;
+they are now keyed by the tag's field list, which determines the indexes and holds nothing else
+(`cache_test.go`). No change in benchstat.
