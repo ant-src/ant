@@ -74,9 +74,14 @@ decoder into records, `examples/calc.ant`, a parser and evaluator over a tagged 
 ```
 go test -race ./...             # everything, including the spec corpus and the examples
 go test ./tests -run TestSpecCoverage -v   # the matrix of spec headings against programs
-scripts/coverage.sh 90 80       # statement coverage, whole program, with thresholds
+scripts/coverage.sh 90 80       # statement coverage, whole program, gated by scripts/coverage.ant
 go test -run '^$' -fuzz FuzzParse -fuzztime 1m ./parser   # one of the fuzzers
 ```
+
+The coverage gate is an Ant program: `scripts/coverage.ant` reads the profile that `go test`
+writes, counts each block once however many test binaries report it, and exits with status 1
+when a package or the total is below its threshold. `tests/coverage_script_test.go` runs it on a
+small profile.
 
 `tests/README.md` describes the corpus: how programs are tagged with the heading of the
 specification they prove, and the trailers that say what each must do. The specification is

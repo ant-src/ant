@@ -1,0 +1,107 @@
+// coverage.ant reads a Go coverage profile and fails when statement coverage is below the
+// thresholds: the first number is the minimum overall, the second the minimum per package.
+// Usage: ant run scripts/coverage.ant <profile> [overall-min] [package-min]
+//
+// Coverage is statement-weighted, computed from the profile: a package's figure is the share of
+// its statements that some test ran, not an average over its functions. A block that several
+// test binaries report is counted once. scripts/coverage.sh produces the profile and runs this.
+
+var modulePath = "github.com/ant-src/ant"
+
+// fail prints the message and exits with status 2, the status of a bad invocation.
+func fail(message: string): never {
+  print(message)
+  Os.exit(2)
+}
+
+// packageOf gives the package of a profile block such as
+// github.com/ant-src/ant/value/numeric.go:12.30,14.2 relative to the module, or (root) for
+// the module itself.
+func packageOf(block: string): string {
+  var file = String.slice(block, 0, String.indexOf(block, ":") ?? String.length(block))
+  var parts = String.split(file, "/")
+  var dir = String.join(Array.slice(parts, 0, Array.length(parts) - 1), "/")
+  if dir == modulePath { "(root)" }
+  else if String.startsWith(dir, modulePath + "/") {
+    String.slice(dir, String.length(modulePath) + 1, String.length(dir))
+  }
+  else { dir }
+}
+
+func threshold(arg: string | null, fallback: int): int {
+  var text = arg ?? return fallback
+  String.toInt(text) ?? fail(`not a number: ${text}`)
+}
+
+func readFile(path: string): string {
+  var read = File.read(path)
+  if read is Ok { read.value } else { fail(`cannot read ${path}: ${read.error.message}`) }
+}
+
+func percent(hit: int, total: int): float64 {
+  if total == 0 { 0.0 } else { 100.0 * float64(hit) / float64(total) }
+}
+
+// fixed1 renders x with one decimal, as printf "%.1f" would.
+func fixed1(x: float64): string {
+  var tenths = Math.toInt(Math.round(x * 10.0)) ?? 0
+  `${tenths / 10}.${tenths % 10}`
+}
+
+func padRight(s: string, width: int): string {
+  s + String.repeat(" ", Math.max(0, width - String.length(s)))
+}
+
+func padLeft(s: string, width: int): string {
+  String.repeat(" ", Math.max(0, width - String.length(s))) + s
+}
+
+func main(): void {
+  var args = Os.args()
+  var profile = Array.get(args, 0) ??
+    fail("usage: ant run scripts/coverage.ant <profile> [overall-min] [package-min]")
+  var overallMin = threshold(Array.get(args, 1), 90)
+  var packageMin = threshold(Array.get(args, 2), 80)
+
+  var statements: Map[string, int] = Map{}   // per package, each block once
+  var covered: Map[string, int] = Map{}      // per package, each block once when some run hit it
+  var seen: Map[string, bool] = Map{}
+  var hit: Map[string, bool] = Map{}
+  var all = 0
+  var allHit = 0
+  for line in String.split(readFile(profile), "\n") {
+    if line != "" && !String.startsWith(line, "mode:") {
+      var fields = String.split(line, " ")
+      if Array.length(fields) != 3 { fail(`malformed profile line: ${line}`) }
+      var block = fields[0]
+      var n = String.toInt(fields[1]) ?? fail(`malformed profile line: ${line}`)
+      var count = String.toInt(fields[2]) ?? fail(`malformed profile line: ${line}`)
+      var pkg = packageOf(block)
+      if !Map.has(seen, block) {
+        seen[block] = true
+        statements[pkg] = (statements[pkg] ?? 0) + n
+        all += n
+      }
+      if count > 0 && !Map.has(hit, block) {
+        hit[block] = true
+        covered[pkg] = (covered[pkg] ?? 0) + n
+        allHit += n
+      }
+    }
+  }
+
+  var below = false
+  var report = func(name: string, pct: float64, min: int): void {
+    var mark = ""
+    if pct + 0.05 < float64(min) {
+      mark = `  BELOW ${min}%`
+      below = true
+    }
+    print(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)
+  }
+  for pkg in Array.sort(Map.keys(statements)) {
+    report(pkg, percent(covered[pkg] ?? 0, statements[pkg] ?? 0), packageMin)
+  }
+  report("total", percent(allHit, all), overallMin)
+  if below { Os.exit(1) }
+}
