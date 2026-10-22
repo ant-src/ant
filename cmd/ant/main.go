@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"runtime/pprof"
 	"strings"
 
@@ -32,7 +33,16 @@ const usage = `usage:
   ant check <file.ant>
   ant`
 
+// gcPercent is the GC target the command sets when GOGC is not in the environment. The
+// interpreter allocates fast and keeps a small live heap, so Go's default of 100 runs the
+// collector constantly; goroutines running in parallel then queue on the heap lock. The library
+// leaves the setting to the embedding program.
+const gcPercent = 400
+
 func main() {
+	if _, ok := os.LookupEnv("GOGC"); !ok {
+		debug.SetGCPercent(gcPercent)
+	}
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
 

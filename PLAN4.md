@@ -241,3 +241,7 @@ the public API.
 Phase 28 is done: `ant run --cpuprofile/--memprofile`, `par_fib` and `par_map` in `bench/` with
 sub-benchmarks at n = 1, 4 and 10, `scripts/bench.sh`, the CI bench smoke, and `BASELINE.md`
 re-recorded.
+
+Phase 29 is done: `cmd/ant` sets `SetGCPercent(400)` unless `GOGC` is set, and `Flush` takes
+`outMu` only when output is waiting. `ant run`, 15 runs each: `par_fib 10` 443 → 231 ms (1.92×),
+`par_map 10` 245 → 199 ms, `par_fib 1` and `loop` unchanged.

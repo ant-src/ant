@@ -63,6 +63,7 @@ type Instance struct {
 	modules []*module
 	out     *bufio.Writer
 	outMu   sync.Mutex
+	dirty   atomic.Bool // out holds bytes not yet flushed; written under outMu
 	errMu   sync.Mutex
 	keep    map[string]any
 	keepMu  sync.Mutex
@@ -200,13 +201,20 @@ func (in *Instance) Print(s string) {
 	in.outMu.Lock()
 	in.out.WriteString(s)
 	in.out.WriteByte('\n')
+	in.dirty.Store(true)
 	in.outMu.Unlock()
 }
 
-// Flush flushes stdout; blocking builtins call it so output is not held back.
+// Flush flushes stdout; blocking builtins call it so output is not held back. With nothing to
+// flush it takes no lock, so goroutines blocking at once do not queue on the run's stdout.
+// Whatever the calling goroutine printed has set dirty before, so it is never skipped.
 func (in *Instance) Flush() {
+	if !in.dirty.Load() {
+		return
+	}
 	in.outMu.Lock()
 	in.out.Flush()
+	in.dirty.Store(false)
 	in.outMu.Unlock()
 }
 
@@ -234,6 +242,7 @@ type stdoutWriter struct{ in *Instance }
 func (w stdoutWriter) Write(p []byte) (int, error) {
 	w.in.outMu.Lock()
 	defer w.in.outMu.Unlock()
+	w.in.dirty.Store(true)
 	return w.in.out.Write(p)
 }
 
