@@ -147,6 +147,9 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 	case Time:
 		y, ok := b.(Time)
 		return ok && x.TimeType() == y.TimeType() && x.Key() == y.Key()
+	case *Regex:
+		y, ok := b.(*Regex)
+		return ok && x.Source == y.Source && x.Flags == y.Flags
 	}
 	return false
 }
@@ -239,6 +242,10 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 	case Time:
 		h.WriteString(x.TimeType())
 		h.WriteString(x.Key())
+	case *Regex:
+		h.WriteString("regex")
+		h.WriteString(x.Source)
+		h.WriteString(x.Flags)
 	default:
 		// Functions and sync objects compare by identity; hash their identity.
 		writeUint(h, identity(v))

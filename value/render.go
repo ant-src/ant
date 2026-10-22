@@ -126,6 +126,8 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		sb.WriteString(x.SyncName())
 	case Time:
 		sb.WriteString(x.String())
+	case *Regex:
+		sb.WriteString(x.String())
 	case uninitType:
 		sb.WriteString("<uninitialized>")
 	default:

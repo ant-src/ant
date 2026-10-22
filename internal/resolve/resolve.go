@@ -345,7 +345,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 	case nil:
 	case *ast.Ident:
 		r.use(e, s)
-	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.BoolLit, *ast.NullLit, *ast.VoidLit,
+	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.RegexLit, *ast.BoolLit, *ast.NullLit, *ast.VoidLit,
 		*ast.Break, *ast.Continue, *ast.Placeholder:
 	case *ast.Template:
 		for _, p := range e.Parts {

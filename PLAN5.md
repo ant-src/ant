@@ -599,3 +599,14 @@ on the way: the checker synthesized a lambda's body only when the expected resul
 type parameter, so `Array.flatMap(xs, { [x] })` failed to infer `U` from `Array[U]`. It now
 synthesizes whenever the expected result mentions an unsolved parameter, and the Inference
 section of the spec says so in one clause.
+
+Phase 39 was done on 2026-10-22: the `Regex` token with the operand rule in the lexer, the
+`RegexLit` node built by the parser from `value.NewRegex`, which is the one path that
+normalizes, sorts the flags, compiles and rewords RE2's errors, the `regex` value kind with its
+equality, hash, rendering and JSON cases, the checker's type for a literal, and `is` on
+`Regex.Pattern`. The lexer keeps the source as written and leaves the normalization to
+`NewRegex`, so a literal and `Regex.compile` share every step. Thirteen programs under
+`tests/syntax` and two under `tests/run` cover the lexing cases of section 4.4, and
+`FuzzRegexDivision` is the differential test, which ran clean for ten minutes. The prelude's
+list of bound names in `names.go` is hand-written, so `Regex` was added there; Phase 41 adds
+the four stdlib namespaces the same way.

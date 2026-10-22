@@ -2,6 +2,8 @@
 // resolver annotates it.
 package ast
 
+import "github.com/ant-src/ant/value"
+
 // Pos is a position in the module's source: 1-based line and 1-based byte column.
 type Pos struct {
 	Line, Col int
@@ -227,6 +229,14 @@ type (
 		Value bool
 	}
 	NullLit struct{ Pos Pos }
+	// RegexLit is a regular expression literal (section 2). Pattern is the value it evaluates
+	// to, built once when the literal is parsed.
+	RegexLit struct {
+		Pos     Pos
+		Source  string // normalized
+		Flags   string // sorted
+		Pattern *value.Regex
+	}
 	VoidLit struct{ Pos Pos }
 	// Template is a template string; each part is literal text or an interpolated expression.
 	Template struct {
@@ -471,6 +481,7 @@ func (n *Ident) Position() Pos        { return n.Pos }
 func (n *IntLit) Position() Pos       { return n.Pos }
 func (n *FloatLit) Position() Pos     { return n.Pos }
 func (n *StringLit) Position() Pos    { return n.Pos }
+func (n *RegexLit) Position() Pos     { return n.Pos }
 func (n *BoolLit) Position() Pos      { return n.Pos }
 func (n *NullLit) Position() Pos      { return n.Pos }
 func (n *VoidLit) Position() Pos      { return n.Pos }
@@ -512,6 +523,7 @@ func (*Ident) stmtNode()       {}
 func (*IntLit) stmtNode()      {}
 func (*FloatLit) stmtNode()    {}
 func (*StringLit) stmtNode()   {}
+func (*RegexLit) stmtNode()    {}
 func (*BoolLit) stmtNode()     {}
 func (*NullLit) stmtNode()     {}
 func (*VoidLit) stmtNode()     {}
@@ -543,6 +555,7 @@ func (*Ident) exprNode()       {}
 func (*IntLit) exprNode()      {}
 func (*FloatLit) exprNode()    {}
 func (*StringLit) exprNode()   {}
+func (*RegexLit) exprNode()    {}
 func (*BoolLit) exprNode()     {}
 func (*NullLit) exprNode()     {}
 func (*VoidLit) exprNode()     {}

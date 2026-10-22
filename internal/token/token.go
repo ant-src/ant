@@ -17,6 +17,7 @@ const (
 	String        // a string literal; Text holds the unescaped value
 	Template      // a template string; Parts holds its pieces
 	Op            // an operator or punctuation; Text holds it
+	Regex         // a regular expression literal; Text holds the source as written, Flags the sorted flags
 )
 
 func (k Kind) String() string {
@@ -41,6 +42,8 @@ func (k Kind) String() string {
 		return "template string"
 	case Op:
 		return "operator"
+	case Regex:
+		return "regular expression"
 	}
 	return "token"
 }
@@ -57,6 +60,7 @@ type Token struct {
 	Value int64   // for Int
 	Float float64 // for Float
 	Parts []Part  // for Template
+	Flags string  // for Regex
 	Pos   Pos
 }
 
@@ -81,6 +85,8 @@ func (t Token) String() string {
 		return "string literal"
 	case Template:
 		return "template string"
+	case Regex:
+		return "regular expression literal"
 	}
 	return t.Kind.String()
 }

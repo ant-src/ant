@@ -24,11 +24,9 @@ func specPath(t *testing.T) string {
 }
 
 // pendingBlocks lists the ```ant blocks of the specification the parser cannot read yet, each by
-// its first line: the regular expression literal of section 2, which Phase 39 of Plan 5
-// implements. A pending block that parses is an error, so the list shrinks as the parser grows.
-var pendingBlocks = []string{
-	"var r = (total",
-}
+// its first line. A pending block that parses is an error, so the list shrinks as the parser
+// grows.
+var pendingBlocks = []string{}
 
 // TestSpecBlocks parses every ```ant block of the specification in spec mode.
 func TestSpecBlocks(t *testing.T) {
@@ -77,6 +75,18 @@ func TestSyntaxErrors(t *testing.T) {
 		mode            Mode
 	}{
 		{"float leading dot", "var x = .5", "digit before the point", Program},
+		{"regex unterminated", "var r = /abc", "unterminated regular expression", Program},
+		{"regex newline", "var r = /ab\ncd/", "unterminated regular expression", Program},
+		{"regex unknown flag", "var r = /a/x", "unknown flag", Program},
+		{"regex repeated flag", "var r = /a/ii", "the flag i is repeated", Program},
+		{"regex flag g", "var r = /a/g", "there is no g flag", Program},
+		{"regex flag y", "var r = /a/y", "there is no y flag", Program},
+		{"regex flag u", "var r = /a/u", "there is no u flag", Program},
+		{"regex lookahead", "var r = /(?=a)/", "lookahead is not supported", Program},
+		{"regex lookbehind", "var r = /(?<!a)/", "lookbehind is not supported", Program},
+		{"regex backreference", "var r = /(a)\\1/", "backreferences are not supported", Program},
+		{"regex unicode escape", "var r = /\\u0041/", "write a code point as", Program},
+		{"regex unbalanced", "var r = /(/", "missing closing )", Program},
 		{"float trailing dot", "var x = 1.", "digit after the point", Program},
 		{"int overflow", "var x = 9223372036854775808", "does not fit an int", Program},
 		{"octal-looking", "var x = 0o17", "malformed number", Program},

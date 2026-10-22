@@ -122,6 +122,8 @@ func Describe(v Value) string {
 		return x.Tag.Name
 	case Time:
 		return x.TimeType()
+	case *Regex:
+		return "Regex.Pattern"
 	}
 	return KindOf(v).String()
 }

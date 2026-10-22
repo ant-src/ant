@@ -9,6 +9,7 @@ import (
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/lexer"
 	"github.com/ant-src/ant/internal/token"
+	"github.com/ant-src/ant/value"
 )
 
 // Mode selects what a source may contain at the top level.
@@ -957,6 +958,13 @@ func (p *parser) primary() ast.Expr {
 	case token.String:
 		p.next()
 		return &ast.StringLit{Pos: pos(t), Value: t.Text}
+	case token.Regex:
+		p.next()
+		re, err := value.NewRegex(t.Text, t.Flags)
+		if err != nil {
+			p.fail(t.Pos, "%s", err)
+		}
+		return &ast.RegexLit{Pos: pos(t), Source: re.Source, Flags: re.Flags, Pattern: re}
 	case token.Template:
 		p.next()
 		return p.template(t)

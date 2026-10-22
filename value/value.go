@@ -58,6 +58,7 @@ const (
 	KindTag
 	KindSync
 	KindTime
+	KindRegex
 )
 
 var kindNames = [...]string{
@@ -66,7 +67,7 @@ var kindNames = [...]string{
 	KindUint64: "uint64", KindFloat32: "float32", KindFloat64: "float64", KindBool: "bool",
 	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map",
 	KindRecord: "record", KindTagged: "tagged primitive", KindFunc: "func", KindTag: "type",
-	KindSync: "sync object", KindTime: "time value",
+	KindSync: "sync object", KindTime: "time value", KindRegex: "regular expression",
 }
 
 func (k Kind) String() string { return kindNames[k] }
@@ -189,6 +190,8 @@ func KindOf(v Value) Kind {
 		return KindSync
 	case Time:
 		return KindTime
+	case *Regex:
+		return KindRegex
 	}
 	return KindInvalid
 }
@@ -266,6 +269,7 @@ const (
 	PrimitiveTag                // a named primitive type: its Constructor carries it
 	SyncTag                     // Mutex and the other sync types: a namespace for their functions
 	TimeTag                     // a time type of stdlib.md: is tests a time value's type by its name
+	RegexTag                    // Regex.Pattern: is tests for a pattern
 )
 
 // Tag is the run-time identity of a named type: what a type declaration binds. A record tag

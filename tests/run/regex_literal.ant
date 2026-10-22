@@ -1,0 +1,67 @@
+// spec: 2 Literals; 11 Regex; stdlib Json
+// The regular expression literal: a / begins one after an opening bracket, a comma, =, ??,
+// return, and at the start of an interpolation; \/ and a / in a class do not end it; the
+// pattern renders as a literal that reads back to it, with the flags sorted; patterns compare
+// by source and flags, serve as map keys, answer is, and stringify as that rendering; each
+// literal is one value however often it is evaluated.
+func pick(): Regex.Pattern { return /x/ }
+
+func isPattern(v: Regex.Pattern | string): bool { v is Regex.Pattern }
+
+func main(): void {
+  var p = /a+/
+  print(p)
+  print(/b/i)
+  print([/c/, /d/])
+  var q = null ?? /e/
+  print(q)
+  print(pick())
+  print(`${ /f/ } and ${ /g/i }`)
+  print((/=/))
+  print(/[/]/)
+  print(/a\/b/)
+  print(/a/si)
+  print(/^(\d{4})-(\d{2})$/)
+  print(/\bant\b/i)
+  var m: Map[Regex.Pattern, int] = Map{}
+  m[/k/] = 1
+  print(m[/k/])
+  print(/a/i == /a/i)
+  print(/a/si == /a/is)
+  print(/a/ == /b/)
+  print(/a/ == /a/i)
+  print(/a\/b/ == /a\/b/)
+  print(isPattern(/z/))
+  print(isPattern("z"))
+  print(Json.stringify(/a+/i))
+  print(Json.stringify([/a\/b/]))
+  for i in Array.range(0, 2) {
+    print(/loop/)
+  }
+}
+
+// expect
+// out: /a+/
+// out: /b/i
+// out: [/c/, /d/]
+// out: /e/
+// out: /x/
+// out: /f/ and /g/i
+// out: /=/
+// out: /[\/]/
+// out: /a\/b/
+// out: /a/is
+// out: /^(\d{4})-(\d{2})$/
+// out: /\bant\b/i
+// out: 1
+// out: true
+// out: true
+// out: false
+// out: false
+// out: true
+// out: true
+// out: false
+// out: "/a+/i"
+// out: ["/a\\/b/"]
+// out: /loop/
+// out: /loop/

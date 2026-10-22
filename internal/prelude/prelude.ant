@@ -144,6 +144,10 @@ func String.fromInt[T: Integer](x: T, base: int = 10): string
 func String.fromFloat(x: float64, digits: int): string
 func String.from[T](value: T): string
 
+// Regex
+
+type Regex.Pattern
+
 // Iter
 
 func Iter.range(from: int, to: int): Seq[int]

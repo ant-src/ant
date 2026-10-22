@@ -106,6 +106,8 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 		return e.Value, ctlNone
 	case *ast.StringLit:
 		return e.Value, ctlNone
+	case *ast.RegexLit:
+		return e.Pattern, ctlNone
 	case *ast.BoolLit:
 		return e.Value, ctlNone
 	case *ast.NullLit:
@@ -746,8 +748,12 @@ func (g *Goroutine) is(e *ast.Is, env *Env) (value.Value, ctl) {
 			tv, ok := v.(value.Time)
 			return ok && tv.TimeType() == tag.Name, ctlNone
 		}
+		if tag.Kind == value.RegexTag {
+			_, ok := v.(*value.Regex)
+			return ok, ctlNone
+		}
 		if tag.Kind != value.RecordTag {
-			g.panicf(e.Pos, "is needs a record type, a named primitive type or a time type; %s is not one", tag.Name)
+			g.panicf(e.Pos, "is needs a record type, a named primitive type, a time type or Regex.Pattern; %s is not one", tag.Name)
 		}
 		r, ok := v.(*value.Record)
 		return ok && r.Tag == tag, ctlNone

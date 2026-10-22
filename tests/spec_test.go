@@ -181,9 +181,8 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 }
 
 // pendingSpec lists the headings no test program names yet: the namespaces Plan 5 specified in
-// Phase 36, which get their programs in Phases 40 and 41.
+// Phase 36, which get their programs in Phase 41.
 var pendingSpec = []string{
-	"11 Regex",
 	"stdlib Csv",
 	"stdlib Encoding",
 	"stdlib Url",

@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var r = /a/ii
+func main(): void {}
+
+// expect
+// exit: 2
+// err: the flag i is repeated

@@ -64,11 +64,11 @@ type Record struct {
 type DeclKind int
 
 const (
-	RecordDecl    DeclKind = iota // a named record type
-	PrimitiveDecl                 // a named primitive type
-	OpaqueDecl                    // a prelude type with no structure, such as Mutex
-	TimeDecl                      // a time type of stdlib.md: opaque, but is tests it by its tag
-	AliasDecl                     // an alias, interchangeable with its body
+	RecordDecl       DeclKind = iota // a named record type
+	PrimitiveDecl                    // a named primitive type
+	OpaqueDecl                       // a prelude type with no structure, such as Mutex
+	TaggedOpaqueDecl                 // an opaque type whose values carry its tag, as the time types of stdlib.md and Regex.Pattern do: is tests it by the tag
+	AliasDecl                        // an alias, interchangeable with its body
 )
 
 // Decl is a type declaration.

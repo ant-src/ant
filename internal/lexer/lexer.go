@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ant-src/ant/internal/token"
+	"github.com/ant-src/ant/value"
 )
 
 // Error is a lexical error.
@@ -24,7 +25,8 @@ type lexer struct {
 	line    int
 	col     int
 	toks    []token.Token
-	nesting int // template interpolations entered, bounded by maxNesting
+	nesting int  // template interpolations entered, bounded by maxNesting
+	noRegex bool // read / as the operator always, for the differential test of the operand rule
 }
 
 // maxNesting bounds the nesting of template interpolations, so that no input can overflow the
@@ -32,8 +34,13 @@ type lexer struct {
 const maxNesting = 1000
 
 // Lex tokenizes src. The token stream ends with a Newline (unless empty) and an EOF.
-func Lex(src string) (toks []token.Token, err error) {
-	l := &lexer{src: src, line: 1, col: 1}
+func Lex(src string) ([]token.Token, error) { return LexWith(src, true) }
+
+// LexWith tokenizes src as Lex does. With regex false, a / never begins a regular expression
+// literal, which gives the lexer as it was before the literal existed; the fuzz test compares
+// the two on every input in which the literal does not occur.
+func LexWith(src string, regex bool) (toks []token.Token, err error) {
+	l := &lexer{src: src, line: 1, col: 1, noRegex: !regex}
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*Error); ok {
@@ -103,6 +110,31 @@ func (l *lexer) lastContinues() bool {
 		return !endingKeywords[t.Text]
 	}
 	return false
+}
+
+// operandKeywords are the keywords that are operands, after which a / is division.
+var operandKeywords = map[string]bool{"true": true, "false": true, "null": true, "void": true}
+
+// regexAllowed reports whether a / here begins a regular expression literal: when the last
+// token, skipping line breaks, is not an operand (section 2). An operand is an identifier, a
+// literal of any kind, true, false, null, void, or a closing bracket. With no previous token, at
+// the start of a file or of an interpolation, a / begins a literal.
+func (l *lexer) regexAllowed() bool {
+	for i := len(l.toks) - 1; i >= 0; i-- {
+		t := l.toks[i]
+		switch t.Kind {
+		case token.Newline:
+			continue
+		case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex:
+			return false
+		case token.Keyword:
+			return !operandKeywords[t.Text]
+		case token.Op:
+			return t.Text != ")" && t.Text != "]" && t.Text != "}"
+		}
+		return true
+	}
+	return true
 }
 
 // nextLineContinues reports whether the next non-blank, non-comment text starts with ".",
@@ -186,10 +218,55 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 		l.template()
 	case c == '.' && isDigit(l.peek(1)):
 		l.fail(pos, "a float literal needs a digit before the point")
+	case c == '/' && !l.noRegex && l.regexAllowed():
+		l.regex()
 	default:
 		l.operator()
 	}
 	return !stop(l.toks[len(l.toks)-1])
+}
+
+// regex scans a regular expression literal at its opening /: the source up to the closing /,
+// and the flags after it. A \ escapes the next character, so \/ does not end the literal, and
+// neither does a / inside a character class; the literal stays on one line. The source is kept
+// as written, and value.NewRegex normalizes it when the parser builds the pattern.
+func (l *lexer) regex() {
+	pos := l.here()
+	l.advance(1)
+	start := l.pos
+	inClass := false
+	for {
+		c := l.peek(0)
+		switch {
+		case c == 0 || c == '\n':
+			l.fail(pos, "unterminated regular expression")
+		case c == '\\':
+			if n := l.peek(1); n == 0 || n == '\n' {
+				l.fail(pos, "unterminated regular expression")
+			}
+			l.advance(2)
+			continue
+		case c == '[':
+			inClass = true
+		case c == ']':
+			inClass = false
+		case c == '/' && !inClass:
+			source := l.src[start:l.pos]
+			l.advance(1)
+			flagPos := l.here()
+			flagStart := l.pos
+			for isIdentChar(l.peek(0)) {
+				l.advance(1)
+			}
+			flags, err := value.RegexFlags(l.src[flagStart:l.pos])
+			if err != nil {
+				l.fail(flagPos, "%s", err)
+			}
+			l.emit(token.Token{Kind: token.Regex, Text: source, Flags: flags, Pos: pos})
+			return
+		}
+		l.advance(1)
+	}
 }
 
 func (l *lexer) operator() {

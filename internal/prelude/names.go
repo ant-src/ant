@@ -9,7 +9,7 @@ var Names = []string{
 	"float32", "float64", "int", "byte", "string", "bool",
 	"never", "Integer", "Number", "Ordered", "Seq", "Entry", "Indexed",
 	"Error", "Ok", "Err", "Result",
-	"Array", "Map", "String", "Iter", "Math", "Bits", "Record",
+	"Array", "Map", "String", "Regex", "Iter", "Math", "Bits", "Record",
 	"Mutex", "RwMutex", "WaitGroup", "Once", "Cond", "Atomic",
 	"File", "Http", "Path", "Time", "Os", "Json",
 }

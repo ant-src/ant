@@ -1,0 +1,135 @@
+package value
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
+
+// Regex is a compiled regular expression: a Regex.Pattern of section 11, built from a literal
+// or by Regex.compile. It is immutable and compared by its normalized source and its sorted
+// flags, so it serves as a map key, and its compiled form matches in time linear in the input.
+type Regex struct {
+	Source string         // normalized: no backslash before a /
+	Flags  string         // sorted: some of i, m and s, in that order
+	Re     *regexp.Regexp // compiled from (?flags)source
+}
+
+// RegexPatternTag is the tag of Regex.Pattern, which is tests.
+var RegexPatternTag = NewTag("Regex.Pattern", RegexTag, nil)
+
+// RegexFlags validates a flag string and returns it sorted: each of i, m and s at most once, in
+// that order. The error for one of JavaScript's other flags names the Ant way.
+func RegexFlags(flags string) (string, error) {
+	seen := map[rune]bool{}
+	for _, r := range flags {
+		switch r {
+		case 'i', 'm', 's':
+			if seen[r] {
+				return "", fmt.Errorf("the flag %c is repeated", r)
+			}
+			seen[r] = true
+		case 'g':
+			return "", fmt.Errorf("there is no g flag: Regex.findAll and Regex.replace work on every match")
+		case 'y':
+			return "", fmt.Errorf("there is no y flag: anchor the pattern with ^ and match a String.slice")
+		case 'u', 'v', 'd':
+			return "", fmt.Errorf("there is no %c flag: a pattern is Unicode and a match carries its indices already", r)
+		default:
+			return "", fmt.Errorf("unknown flag %q; the flags are i, m and s", r)
+		}
+	}
+	var sb strings.Builder
+	for _, r := range "ims" {
+		if seen[r] {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String(), nil
+}
+
+// NormalizeRegexSource removes the backslash before a / in source, since RE2 reads \/ and /
+// alike and a literal needs the backslash only to keep the / from ending it. Every other
+// escape, \\ included, is kept as written.
+func NormalizeRegexSource(source string) string {
+	if !strings.Contains(source, `\/`) {
+		return source
+	}
+	var sb strings.Builder
+	for i := 0; i < len(source); i++ {
+		if source[i] == '\\' && i+1 < len(source) {
+			if source[i+1] != '/' {
+				sb.WriteByte('\\')
+			}
+			sb.WriteByte(source[i+1])
+			i++
+			continue
+		}
+		sb.WriteByte(source[i])
+	}
+	return sb.String()
+}
+
+// NewRegex compiles source with flags into a pattern. The source is normalized and the flags
+// sorted, so a literal and Regex.compile build equal values from one expression. An error
+// names the construct a JavaScript programmer will meet: lookaround, a backreference, or \u.
+func NewRegex(source, flags string) (*Regex, error) {
+	sorted, err := RegexFlags(flags)
+	if err != nil {
+		return nil, err
+	}
+	source = NormalizeRegexSource(source)
+	expr := source
+	if sorted != "" {
+		expr = "(?" + sorted + ")" + source
+	}
+	re, err := regexp.Compile(expr)
+	if err != nil {
+		return nil, regexError(err)
+	}
+	return &Regex{Source: source, Flags: sorted, Re: re}, nil
+}
+
+// regexError rewords Go's message for the constructs RE2 lacks.
+func regexError(err error) error {
+	msg := strings.TrimPrefix(err.Error(), "error parsing regexp: ")
+	switch {
+	case strings.Contains(msg, "`(?=`") || strings.Contains(msg, "`(?!`"):
+		return fmt.Errorf("lookahead is not supported: a pattern is RE2, which has no lookahead, lookbehind or backreferences")
+	case strings.Contains(msg, "`(?<=") || strings.Contains(msg, "`(?<!"):
+		return fmt.Errorf("lookbehind is not supported: a pattern is RE2, which has no lookahead, lookbehind or backreferences")
+	case strings.HasPrefix(msg, "invalid escape sequence: `\\") && len(msg) > 27 && msg[27] >= '1' && msg[27] <= '9':
+		return fmt.Errorf("backreferences are not supported: a pattern is RE2, which has no lookahead, lookbehind or backreferences")
+	case strings.HasPrefix(msg, "invalid escape sequence: `\\u`"):
+		return fmt.Errorf("\\u is not an escape in a pattern: write a code point as \\x{0041}")
+	}
+	return fmt.Errorf("invalid regular expression: %s", msg)
+}
+
+// String renders the pattern as a literal that reads back to it.
+func (r *Regex) String() string { return RegexLiteral(r.Source, r.Flags) }
+
+// RegexLiteral writes a source and flags as a literal that reads back to them: every / of the
+// source escaped, a line break as \n or \r, and an empty source as (?:), as JavaScript has it.
+func RegexLiteral(source, flags string) string {
+	if source == "" {
+		source = "(?:)"
+	}
+	var sb strings.Builder
+	sb.WriteByte('/')
+	for i := 0; i < len(source); i++ {
+		switch source[i] {
+		case '/':
+			sb.WriteString(`\/`)
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\r':
+			sb.WriteString(`\r`)
+		default:
+			sb.WriteByte(source[i])
+		}
+	}
+	sb.WriteByte('/')
+	sb.WriteString(flags)
+	return sb.String()
+}

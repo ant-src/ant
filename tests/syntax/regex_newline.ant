@@ -1,0 +1,8 @@
+// spec: 2 Literals
+var r = /ab
+cd/
+func main(): void {}
+
+// expect
+// exit: 2
+// err: unterminated regular expression

@@ -135,6 +135,8 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 		return types.Float64Type
 	case *ast.StringLit:
 		return types.StringType
+	case *ast.RegexLit:
+		return c.regexPattern()
 	case *ast.BoolLit:
 		return types.BoolType
 	case *ast.NullLit:
@@ -1295,4 +1297,14 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 			}
 		}
 	}
+}
+
+// regexPattern is the type of a regular expression literal: Regex.Pattern of the prelude.
+func (c *Checker) regexPattern() types.Type {
+	if ns, ok := c.prelude["Regex"]; ok {
+		if p, ok := ns.members["Pattern"]; ok && p.decl != nil {
+			return types.Named{Decl: p.decl}
+		}
+	}
+	return types.Invalid{}
 }

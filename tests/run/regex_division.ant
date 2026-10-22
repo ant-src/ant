@@ -1,0 +1,46 @@
+// spec: 2 Literals; 5 Operators
+// A / after an operand is division, as it was before the regular expression literal existed:
+// after an identifier, a literal, true, a closing bracket of any kind, across a line break
+// inside brackets, in a compound assignment, and before a comment.
+func half(x: int): int { x / 2 }
+
+func main(): void {
+  var a = 12
+  var b = 3
+  var c = 2
+  print(a / b / c)
+  print(half(8) / 2)
+  var xs = [8]
+  print(xs[0] / 2)
+  print(if a > 0 { 8 } else { 6 } / 2)
+  var y = 9
+  y /= 3
+  print(y)
+  var r = (a
+    / b)
+  print(r)
+  var ys = [a
+    / b, 1]
+  print(ys)
+  var total = 10
+  var count = 4
+  print(total
+    / count)
+  print(1.0 / 4.0)
+  print(true /* a comment, not a pattern */ == true)
+  print(8 // nor this
+    / 2)
+}
+
+// expect
+// out: 2
+// out: 2
+// out: 4
+// out: 4
+// out: 3
+// out: 4
+// out: [4, 1]
+// out: 2
+// out: 0.25
+// out: true
+// out: 4

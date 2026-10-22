@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var r = /(a)\1/
+func main(): void {}
+
+// expect
+// exit: 2
+// err: backreferences are not supported

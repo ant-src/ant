@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var r = /\u0041/
+func main(): void {}
+
+// expect
+// exit: 2
+// err: write a code point as \x{0041}

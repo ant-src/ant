@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/ant-src/ant/value"
 )
 
 // Sprint renders a node as an S-expression, for tests and debugging.
@@ -184,6 +186,8 @@ func sprint(sb *strings.Builder, n Node) {
 		sb.WriteString(strconv.FormatFloat(x.Value, 'g', -1, 64))
 	case *StringLit:
 		sb.WriteString(strconv.Quote(x.Value))
+	case *RegexLit:
+		sb.WriteString(value.RegexLiteral(x.Source, x.Flags))
 	case *BoolLit:
 		sb.WriteString(strconv.FormatBool(x.Value))
 	case *NullLit:
