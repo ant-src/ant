@@ -1,0 +1,107 @@
+// spec: 5 select; 9 Waiting
+// select: a clause per head with its result bound, channels of different types in one wait,
+// the select an expression; a value stays in a channel whose clause was not chosen; a closed
+// channel is ready with null; else runs when nothing is ready; a send head; Context.wait,
+// Time.sleep and WaitGroup.wait as heads; blocks that return void; the heads' operands
+// evaluated once, in order, before the wait.
+type Num = { n: int }
+type Word = { w: string }
+type Closed = {}
+type Sent = {}
+type Nothing = {}
+type Outcome = Num | Word | Closed | Sent | Nothing
+
+func next(nums: Chan[int], words: Chan[string]): Outcome {
+  select {
+    var n = Chan.receive(nums) { if n == null { Closed{} } else { Num{ n } } }
+    var w = Chan.receive(words) { if w == null { Closed{} } else { Word{ w } } }
+  }
+}
+
+func noting(order: Array[string], name: string, c: Chan[int]): Chan[int] {
+  Array.push(order, name)
+  c
+}
+
+func main(): void {
+  var nums: Chan[int] = Chan.new(1)
+  var words: Chan[string] = Chan.new(1)
+  Chan.send(words, "hi")
+  print(next(nums, words))
+  Chan.send(nums, 7)
+  print(next(nums, words))
+  var idle: Outcome = select {
+    var n = Chan.receive(nums) { Num{ n: n ?? -1 } }
+    else { Nothing{} }
+  }
+  print(idle)
+  Chan.send(nums, 8)
+  Chan.send(words, "yo")
+  var first = next(nums, words)
+  print(Chan.length(nums) + Chan.length(words))
+  print(first is Num || first is Word)
+  var second = next(nums, words)
+  print(Chan.length(nums) + Chan.length(words))
+  print(second is Num || second is Word)
+  Chan.close(words)
+  print(next(nums, words))
+  var out: Chan[int] = Chan.new(1)
+  var sent: Outcome = select {
+    var ok = Chan.send(out, 42) { Sent{} }
+    var n = Chan.receive(nums) { Num{ n: n ?? -1 } }
+  }
+  print(sent)
+  print(Chan.receive(out))
+  var ctx = Context.new(Time.duration(milliseconds: 20))
+  var stopped: Outcome = select {
+    var n = Chan.receive(nums) { Num{ n: n ?? -1 } }
+    Context.wait(ctx) { Closed{} }
+  }
+  print(stopped)
+  var slept: Outcome = select {
+    var n = Chan.receive(nums) { Num{ n: n ?? -1 } }
+    Time.sleep(20) { Nothing{} }
+  }
+  print(slept)
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go {
+    Time.sleep(10)
+    WaitGroup.done(wg)
+  }
+  var joined: Outcome = select {
+    var n = Chan.receive(nums) { Num{ n: n ?? -1 } }
+    WaitGroup.wait(wg) { Sent{} }
+  }
+  print(joined)
+  Chan.send(nums, 1)
+  select {
+    var n = Chan.receive(nums) { print(`took ${n ?? 0}`) }
+    else { print("nothing") }
+  }
+  var order: Array[string] = []
+  select {
+    var a = Chan.receive(noting(order, "a", nums)) { print(a) }
+    var b = Chan.receive(noting(order, "b", nums)) { print(b) }
+    else { print("nothing ready") }
+  }
+  print(order)
+}
+
+// expect
+// out: Word{ w: "hi" }
+// out: Num{ n: 7 }
+// out: Nothing{}
+// out: 1
+// out: true
+// out: 0
+// out: true
+// out: Closed{}
+// out: Sent{}
+// out: 42
+// out: Closed{}
+// out: Nothing{}
+// out: Sent{}
+// out: took 1
+// out: nothing ready
+// out: ["a", "b"]

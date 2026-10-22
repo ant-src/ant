@@ -1,15 +1,12 @@
 package lib
 
 import (
-	"reflect"
-
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
 
-// Chan and Select of section 9 (Waiting) and section 11: a channel is a sync type with
-// functions, and Select is a namespace whose clauses carry a function each, run on the calling
-// goroutine when reflect.Select chooses them.
+// Chan of section 9 (Waiting) and section 11: a channel as a sync type with functions. A select
+// over channels is the interpreter's, in internal/interp/select.go.
 
 func chanArg(g *interp.Goroutine, who string, v value.Value) *value.Chan {
 	c, ok := v.(*value.Chan)
@@ -18,17 +15,6 @@ func chanArg(g *interp.Goroutine, who string, v value.Value) *value.Chan {
 	}
 	return c
 }
-
-func caseArg(g *interp.Goroutine, who string, v value.Value) *value.SelectCase {
-	c, ok := v.(*value.SelectCase)
-	if !ok {
-		g.Panic("%s needs an array of Select.Case, got an element of kind %s", who, value.Describe(v))
-	}
-	return c
-}
-
-// CaseTag is Select.Case, the type of a clause.
-var CaseTag = value.NewTag("Select.Case", value.SyncTag, nil)
 
 func init() {
 	register("Chan", func() value.Value {
@@ -90,82 +76,4 @@ func init() {
 			}),
 		)
 	})
-	register("Select", func() value.Value {
-		return namespace("Select",
-			constant("Case", CaseTag),
-			fn("Select.receive", "c, f", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return &value.SelectCase{Chan: chanArg(g, "Select.receive", a[0]), Fn: funcArg(g, "Select.receive", a[1])}
-			}),
-			fn("Select.send", "c, v, f", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return &value.SelectCase{Chan: chanArg(g, "Select.send", a[0]), Send: true, Value: a[1], Fn: funcArg(g, "Select.send", a[2])}
-			}),
-			fn("Select.otherwise", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return &value.SelectCase{Fn: funcArg(g, "Select.otherwise", a[0])}
-			}),
-			fn("Select.wait", "cases, ctx?", selectWait),
-		)
-	})
-}
-
-// selectWait is Select.wait: one reflect.Select over the clauses and the context, then the
-// chosen clause's function on the calling goroutine.
-func selectWait(g *interp.Goroutine, a []value.Value) value.Value {
-	const who = "Select.wait"
-	clauses := arrayArg(g, who, a[0]).Values()
-	ctx := waitContext(g, optionalContext(g, who, a[1]))
-	if len(clauses) == 0 {
-		g.Panic("%s needs at least one clause", who)
-	}
-	cases := make([]reflect.SelectCase, 0, len(clauses)+1)
-	sel := make([]*value.SelectCase, 0, len(clauses))
-	otherwise := false
-	for _, v := range clauses {
-		sc := caseArg(g, who, v)
-		switch {
-		case sc.Chan == nil:
-			if otherwise {
-				g.Panic("%s takes at most one otherwise clause", who)
-			}
-			otherwise = true
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectDefault})
-		case sc.Send:
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(sc.Chan.Raw()), Send: reflect.ValueOf(sc.Value)})
-		default:
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(sc.Chan.Raw())})
-		}
-		sel = append(sel, sc)
-	}
-	cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ctx.Done())})
-	g.Instance().Flush()
-	chosen, recv, ok, closed := doSelect(cases)
-	if closed {
-		g.Panic("Select.send: the channel is closed")
-	}
-	if chosen == len(sel) {
-		return value.Null // the context ended the wait
-	}
-	sc := sel[chosen]
-	if sc.Chan == nil || sc.Send {
-		return g.Call(sc.Fn)
-	}
-	if !ok {
-		return g.Call(sc.Fn, value.Null)
-	}
-	return g.Call(sc.Fn, recv.Interface().(value.Value))
-}
-
-// doSelect runs reflect.Select and reports a send chosen on a closed channel instead of the
-// runtime's panic.
-func doSelect(cases []reflect.SelectCase) (chosen int, recv reflect.Value, ok bool, closed bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, isErr := r.(error); isErr && e.Error() == "send on closed channel" {
-				closed = true
-				return
-			}
-			panic(r)
-		}
-	}()
-	chosen, recv, ok = reflect.Select(cases)
-	return
 }

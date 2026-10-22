@@ -1,0 +1,50 @@
+// spec: 5 select; 9 Waiting
+// A state machine over a session's own channels, as Go writes one: a loop around a select with
+// a clause per source, where a transition is the block's own return or break; a cancelled
+// context, a closed channel, and an interrupt each end the loop their own way.
+type Session = { pending: Array[string], interrupted: bool, flushed: int }
+
+func generating(s: Session, ctx: Context, speech: Chan[void], messages: Chan[string], interrupts: Chan[int]): string {
+  while true {
+    select {
+      Context.wait(ctx) { return "cancelled" }
+      Chan.receive(speech) { s.flushed += 1 }
+      var message = Chan.receive(messages) {
+        if message == null { break }
+        Array.push(s.pending, message)
+      }
+      var offset = Chan.receive(interrupts) {
+        if offset != null { s.interrupted = true }
+        return `interrupted at ${offset ?? -1}`
+      }
+    }
+  }
+  "closed"
+}
+
+func main(): void {
+  var s = Session{ pending: [], interrupted: false, flushed: 0 }
+  var ctx = Context.new()
+  var speech: Chan[void] = Chan.new()
+  var messages: Chan[string] = Chan.new()
+  var interrupts: Chan[int] = Chan.new()
+  go {
+    Chan.send(speech, void)
+    Chan.send(messages, "hello")
+    Chan.send(messages, "again")
+    Chan.send(interrupts, 42)
+  }
+  print(generating(s, ctx, speech, messages, interrupts))
+  print(s)
+  go { Chan.close(messages) }
+  print(generating(s, ctx, speech, messages, interrupts))
+  var quiet: Chan[string] = Chan.new()
+  Context.cancel(ctx)
+  print(generating(s, ctx, speech, quiet, interrupts))
+}
+
+// expect
+// out: interrupted at 42
+// out: Session{ pending: ["hello", "again"], interrupted: true, flushed: 1 }
+// out: closed
+// out: cancelled

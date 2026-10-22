@@ -1,0 +1,16 @@
+// spec: 5 select; 12 Runtime panics
+// panics: select-closed
+// A send clause chosen on a closed channel is a ◆ panic, as a send is.
+func main(): void {
+  var c: Chan[int] = Chan.new(1)
+  var first: string = select { Chan.send(c, 1) { "sent" } }
+  print(first)
+  Chan.close(c)
+  var second: string = select { Chan.send(c, 2) { "sent" } }
+  print(second)
+}
+
+// expect
+// exit: 1
+// out: sent
+// err: select: a send clause was chosen on a closed channel

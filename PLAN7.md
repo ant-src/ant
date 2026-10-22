@@ -278,3 +278,12 @@ the expected type or joins the bodies into the union with `never` dropped, and s
 from the flow before the `select`, since exactly one runs, joining the flows of the bodies that
 complete. A check program covers each error and the clean forms: a `select` as a function's
 value, as a union, and in a loop with `break` and `return` in its bodies.
+
+Phase 54 was done on 2026-10-23: `selectExpr` in `internal/interp/select.go` evaluates the
+heads' operands in order, by position or by name, builds one `reflect.SelectCase` per head from
+the channel, the context's `Done`, the group's zero channel or a timer, adds a default for
+`else` and a receive on the run's context, and binds the chosen head's result before its block
+runs; a send chosen on a closed channel is the ◆. The `Select` namespace, its `Case` value, its
+prelude lines and its name are gone, and the corpus has `select_expr.ant` for every head and
+`else`, `select_loop.ant` for the state machine driven by goroutines, and the closed-send panic
+program under the table's row. The pending lists are empty.

@@ -88,15 +88,3 @@ func isClosedPanic(e error) bool {
 	msg := e.Error()
 	return msg == "send on closed channel" || msg == "close of closed channel"
 }
-
-// SelectCase is a Select.Case of section 11: one clause of Select.wait. Chan is nil for an
-// otherwise clause; Fn is the function to run when the clause is chosen.
-type SelectCase struct {
-	Chan  *Chan
-	Send  bool
-	Value Value
-	Fn    Value
-}
-
-// SyncName returns "Select.Case".
-func (s *SelectCase) SyncName() string { return "Select.Case" }

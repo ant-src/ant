@@ -294,12 +294,6 @@ func Chan.isClosed[T](c: Chan[T]): bool
 func Chan.length[T](c: Chan[T]): int
 func Chan.values[T](c: Chan[T], ctx: Context | null = null): Seq[T]
 
-type Select.Case[R]
-func Select.receive[T, R](c: Chan[T], f: func(T | null): R): Select.Case[R]
-func Select.send[T, R](c: Chan[T], v: T, f: func(): R): Select.Case[R]
-func Select.otherwise[R](f: func(): R): Select.Case[R]
-func Select.wait[R](cases: Array[Select.Case[R]], ctx: Context | null = null): R | null
-
 // File
 
 type File.Handle

@@ -177,6 +177,8 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 		return g.is(e, env)
 	case *ast.Assign:
 		return g.assign(e, env)
+	case *ast.Select:
+		return g.selectExpr(e, env)
 	case *ast.If:
 		cond, c := g.eval(e.Cond, env)
 		if c != ctlNone {
