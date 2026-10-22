@@ -180,8 +180,11 @@ func checkPending(t *testing.T, what string, required []string, covered map[stri
 	}
 }
 
-// pendingSpec lists the headings no test program names yet.
-var pendingSpec = []string{}
+// pendingSpec lists the headings no test program names yet: the select of Plan 7, specified in
+// Phase 51 and implemented in Phases 52 to 54.
+var pendingSpec = []string{
+	"5 select",
+}
 
 // TestSpecCoverage checks that every tag names a heading of the specification and that every
 // heading has a tag. Under -v it prints the matrix.
@@ -296,11 +299,15 @@ var panicRows = [][]string{
 	{"panic"},                                // ◆ panic
 	{"depth"},                                // ◆ call depth
 	{"try"},                                  // try on a non-Result
+	{"select-closed"},                        // ◆ select: a send clause chosen on a closed channel
 	{"never"},                                // ??, ?., ==, != never panic
 }
 
-// pendingPanics lists the panic keys no test program triggers yet.
-var pendingPanics = []string{}
+// pendingPanics lists the panic keys no test program triggers yet: the select row of Plan 7,
+// which Phase 54 covers.
+var pendingPanics = []string{
+	"select-closed",
+}
 
 // TestBoundedSleeps checks the corpus's rule that every wait has a bound: a Time.sleep with a
 // literal count above a second and no context would hold the suite, so none is allowed under

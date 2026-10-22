@@ -24,9 +24,13 @@ func specPath(t *testing.T) string {
 }
 
 // pendingBlocks lists the ```ant blocks of the specification the parser cannot read yet, each by
-// its first line. A pending block that parses is an error, so the list shrinks as the parser
-// grows.
-var pendingBlocks = []string{}
+// its first line: the select of Plan 7, which Phase 52 implements. A pending block that parses is
+// an error, so the list shrinks as the parser grows.
+var pendingBlocks = []string{
+	"select {",
+	"var event: Event = select {",
+	"func generating(s: Session, ctx: Context): void {",
+}
 
 // TestSpecBlocks parses every ```ant block of the specification in spec mode.
 func TestSpecBlocks(t *testing.T) {

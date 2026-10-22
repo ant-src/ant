@@ -1,5 +1,5 @@
 // spec: 11 Synchronization; 12 Runtime panics
-// panics: Select.wait; library-value
+// panics: library-value
 // A wait with no clause could never return, and two otherwise clauses have no order: both are
 // a ◆ panic.
 func main(): void {

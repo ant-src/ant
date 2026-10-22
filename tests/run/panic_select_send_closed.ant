@@ -1,5 +1,5 @@
 // spec: 11 Synchronization; 12 Runtime panics
-// panics: Select.send; library-value
+// panics: library-value
 // A send clause chosen on a closed channel is a ◆ panic, as a send is.
 func main(): void {
   var c: Chan[int] = Chan.new(1)
