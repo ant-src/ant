@@ -1,0 +1,10 @@
+// spec: 5 Destructuring
+// An array literal on the right of a destructuring is typed as an array, so each binding has the
+// element type of the literal, the union of its elements' types.
+func main(): void {
+  var [n, s] = [1, "t"]
+  var i: int = n // ERR: cannot use int | string where int is expected
+  var t: string = s // ERR: cannot use int | string where string is expected
+  var u: int | string = n
+  print(u)
+}

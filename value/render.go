@@ -39,9 +39,9 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 	case uint64:
 		sb.WriteString(strconv.FormatUint(x, 10))
 	case float64:
-		sb.WriteString(formatFloat(x, 64))
+		sb.WriteString(FormatFloat(x, 64))
 	case float32:
-		sb.WriteString(formatFloat(float64(x), 32))
+		sb.WriteString(FormatFloat(float64(x), 32))
 	case string:
 		if top {
 			sb.WriteString(x)
@@ -140,7 +140,10 @@ func onStack(stack []any, v any) bool {
 	return false
 }
 
-func formatFloat(f float64, bits int) string {
+// FormatFloat renders a float as section 11 says: the shortest decimal that reads back to the
+// same value, with .0 when integral, and in JavaScript's exponent form, 1e+21 or 1.5e-7, when the
+// magnitude is at or above 1e21 or below 1e-6. bits is 32 for a float32.
+func FormatFloat(f float64, bits int) string {
 	switch {
 	case math.IsNaN(f):
 		return "NaN"
@@ -149,8 +152,16 @@ func formatFloat(f float64, bits int) string {
 	case math.IsInf(f, -1):
 		return "-Infinity"
 	}
+	if abs := math.Abs(f); abs != 0 && (abs < 1e-6 || abs >= 1e21) {
+		s := strconv.FormatFloat(f, 'e', -1, bits)
+		// Go pads the exponent to two digits; JavaScript does not: 1e-7, not 1e-07.
+		if i := strings.LastIndexAny(s, "+-"); i > 0 && len(s) > i+2 && s[i+1] == '0' {
+			s = s[:i+1] + s[i+2:]
+		}
+		return s
+	}
 	s := strconv.FormatFloat(f, 'f', -1, bits)
-	if !strings.ContainsAny(s, ".") {
+	if !strings.Contains(s, ".") {
 		s += ".0"
 	}
 	return s

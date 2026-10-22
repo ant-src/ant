@@ -1,0 +1,19 @@
+// spec: 5 if; 5 Loops
+// A record or map literal in an if, while, or for header is parenthesized, since its brace would
+// otherwise begin the body.
+type Point = { x: int, y: int }
+
+func main(): void {
+  var p = Point{ x: 1, y: 2 }
+  if p.x == (Point{ x: 1, y: 2 }).x { print("same x") }
+  for { key, value } in (Map{ a: 1, b: 2 }) { print(`${key}=${value}`) }
+  var n = 0
+  while n < (Point{ x: 3, y: 0 }).x { n += 1 }
+  print(n)
+}
+
+// expect
+// out: same x
+// out: a=1
+// out: b=2
+// out: 3

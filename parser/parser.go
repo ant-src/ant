@@ -1087,7 +1087,31 @@ func (p *parser) headerExpr(what string) ast.Expr {
 	if !p.at("{") {
 		p.fail(p.peek().Pos, "expected '{' after the %s header, got %s", what, p.peek())
 	}
+	if p.entryFollows() {
+		p.fail(p.peek().Pos, "a record or map literal in the %s header must be parenthesized", what)
+	}
 	return e
+}
+
+// entryFollows reports whether the brace at the cursor is followed by an entry, `name:` or
+// `"key":`, which no block can begin with: the brace opens a record or map literal that the
+// header stopped before.
+func (p *parser) entryFollows() bool {
+	j := p.i + 1
+	for j < len(p.toks) && p.toks[j].Kind == token.Newline {
+		j++
+	}
+	if j >= len(p.toks) {
+		return false
+	}
+	switch p.toks[j].Kind {
+	case token.Ident, token.String, token.Int, token.Float, token.Reserved:
+	default:
+		return false
+	}
+	for j++; j < len(p.toks) && p.toks[j].Kind == token.Newline; j++ {
+	}
+	return j < len(p.toks) && p.toks[j].Is(":")
 }
 
 func (p *parser) loopBody() *ast.Block {

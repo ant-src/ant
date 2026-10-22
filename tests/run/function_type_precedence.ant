@@ -1,0 +1,22 @@
+// spec: 4 Function types
+// The return type of a function type extends as far as it can: func(): int | Meters returns the
+// union. A union with a function type parenthesizes the function type.
+type Meters = int
+type Thunk = func(): int | Meters
+type ThunkOrMeters = (func(): int) | Meters
+
+func describe(v: ThunkOrMeters): string {
+  if v is Meters { `meters ${int(v)}` } else { `thunk ${v()}` }
+}
+
+func main(): void {
+  var t: Thunk = func(): int | Meters { Meters(7) }
+  print(t() is Meters)
+  print(describe(Meters(3)))
+  print(describe(func(): int { 4 }))
+}
+
+// expect
+// out: true
+// out: meters 3
+// out: thunk 4

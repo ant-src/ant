@@ -202,7 +202,7 @@ func writeFloat(sb *strings.Builder, f float64, bits int) {
 		sb.WriteString("null")
 		return
 	}
-	sb.WriteString(strconv.FormatFloat(f, 'g', -1, bits))
+	sb.WriteString(value.FormatFloat(f, bits))
 }
 
 func writeJSONString(sb *strings.Builder, s string) {
