@@ -264,3 +264,13 @@ block, so a plain slot cannot be read before its binding and the reset is only d
 recursion through a block. benchstat against Phase 30, 8 runs: `map` −11%, `par_map` −11 to
 −14%, `records` −8%, `strings` −9%, `array` and `seq` −5%, no regression. A memory profile of
 `records` shows `newEnv` only under `frame`.
+
+Phase 32 is done, its gate in part. Done: `ast.OpCode` on `Binary` and `Assign`, set by the
+parser; a fast path for two `int`s or two `float64`s covering exactly the cases with nothing to
+report; atomic inline caches (`ast.Cache`) on `Field` and `RecordLit`; `Builtin.Each` on the
+library's sequences, driven directly by `for` (`forEach`) and by the library's stages (`drive`),
+with a cancellation check per element as before; map buckets chained through the entries; and
+`Hash` going straight to `maphash` for string and int keys. benchstat against Phase 31, 6 runs:
+`seq` −26%, `records` −15%, `map` −18%, `par_map` −29 to −36%, `loop` −7%, geomean −13%, no
+regression. The gate's 25% holds for `seq` only: `loop` spends 27% in `convT64` and `records`
+in cells and record allocation, which are Phases 33 to 35.

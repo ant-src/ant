@@ -156,6 +156,14 @@ var seed = maphash.MakeSeed()
 // Hash agrees with Equal: equal values hash alike. It walks a bounded prefix of a container, so
 // it terminates on cyclic values.
 func Hash(v Value) uint64 {
+	// The commonest keys hash directly; every string and every int takes the same path, so
+	// equal keys still hash alike.
+	switch x := v.(type) {
+	case string:
+		return maphash.String(seed, x)
+	case int64:
+		return maphash.Comparable(seed, x)
+	}
 	var h maphash.Hash
 	h.SetSeed(seed)
 	hashInto(&h, v, 0)

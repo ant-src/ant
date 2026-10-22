@@ -2,6 +2,8 @@
 // resolver annotates it.
 package ast
 
+import "sync/atomic"
+
 // Pos is a position in the module's source: 1-based line and 1-based byte column.
 type Pos struct {
 	Line, Col int
@@ -238,6 +240,7 @@ type (
 		Pos     Pos
 		Head    Expr
 		Entries []RecordEntry
+		Cache   *Cache // the field index of each entry for the last record type built; nil when unused
 	}
 	// MapLit is Map{ entries }.
 	MapLit struct {
@@ -269,6 +272,7 @@ type (
 		X        Expr
 		Name     string
 		Optional bool
+		Cache    *Cache // the field's index in the last record type read; nil when unused
 	}
 	// Index is a[i] or a?.[i].
 	Index struct {
@@ -296,6 +300,7 @@ type (
 	Binary struct {
 		Pos  Pos
 		Op   string
+		Code OpCode // Op as a number, for the interpreter's dispatch
 		X, Y Expr
 	}
 	// Is is x is T. Kind is set for a kind test (null, void, bool, string, func, Array, Map, and
@@ -310,6 +315,7 @@ type (
 	Assign struct {
 		Pos    Pos
 		Op     string
+		Code   OpCode // the operator of a compound assignment, OpNone for =
 		Target Node
 		Value  Expr
 	}
@@ -433,6 +439,57 @@ type Slot struct {
 	Reassigned     bool
 	AssignedNested bool
 }
+
+// Cache is an inline cache the interpreter keeps on a node: what it looked up for the last
+// type it saw there. One tree serves every goroutine, so it is published atomically.
+type Cache struct {
+	p atomic.Pointer[CacheEntry]
+}
+
+// CacheEntry is a cached lookup: the type it holds for and the indexes found for it.
+type CacheEntry struct {
+	Type    any
+	Index   int
+	Indexes []int
+}
+
+// Load returns the cached entry, or nil.
+func (c *Cache) Load() *CacheEntry { return c.p.Load() }
+
+// Store replaces the cached entry.
+func (c *Cache) Store(e *CacheEntry) { c.p.Store(e) }
+
+// OpCode numbers the binary operators.
+type OpCode uint8
+
+const (
+	OpNone OpCode = iota
+	OpAdd
+	OpSub
+	OpMul
+	OpDiv
+	OpRem
+	OpEq
+	OpNe
+	OpLt
+	OpLe
+	OpGt
+	OpGe
+	OpAnd
+	OpOr
+	OpCoalesce
+)
+
+var opCodes = map[string]OpCode{
+	"+": OpAdd, "-": OpSub, "*": OpMul, "/": OpDiv, "%": OpRem,
+	"==": OpEq, "!=": OpNe, "<": OpLt, "<=": OpLe, ">": OpGt, ">=": OpGe,
+	"&&": OpAnd, "||": OpOr, "??": OpCoalesce,
+	"+=": OpAdd, "-=": OpSub, "*=": OpMul, "/=": OpDiv, "%=": OpRem,
+}
+
+// OpCodeOf returns the code of a binary operator or of a compound assignment's operator, and
+// OpNone for anything else, = included.
+func OpCodeOf(op string) OpCode { return opCodes[op] }
 
 // BlockScope describes the environment a block, loop iteration, or function allocates.
 type BlockScope struct {

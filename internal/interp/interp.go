@@ -348,6 +348,9 @@ func (g *Goroutine) trace(pos ast.Pos) []Frame {
 }
 
 // check is the cancellation check at calls and loop back-edges.
+// Check ends the goroutine when the run is over; library loops that run Ant code call it per step.
+func (g *Goroutine) Check() { g.check() }
+
 func (g *Goroutine) check() {
 	if g.in.done.Load() {
 		panic(&cancelSignal{})

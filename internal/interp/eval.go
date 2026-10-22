@@ -328,7 +328,7 @@ func (g *Goroutine) postfix(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 		if skip || (x.Optional && recv == value.Null) {
 			return value.Null, ctlNone, true
 		}
-		return g.field(recv, x.Name, x.Pos), ctlNone, false
+		return g.fieldAt(recv, x), ctlNone, false
 	case *ast.Index:
 		recv, c, skip := g.postfix(x.X, env)
 		if c != ctlNone {
@@ -416,6 +416,34 @@ func namedArgs(args []ast.Arg) bool {
 		}
 	}
 	return false
+}
+
+// fieldIndex returns the index of x's field in rec, through x's inline cache.
+func fieldIndex(rec *value.Record, x *ast.Field) (int, bool) {
+	if x.Cache != nil {
+		if e := x.Cache.Load(); e != nil && e.Type == any(rec.Tag) {
+			return e.Index, true
+		}
+	}
+	i, ok := rec.Tag.FieldIndex(x.Name)
+	if ok && x.Cache != nil {
+		x.Cache.Store(&ast.CacheEntry{Type: rec.Tag, Index: i})
+	}
+	return i, ok
+}
+
+// fieldAt reads the field x names, taking the inline cache for a record.
+func (g *Goroutine) fieldAt(recv value.Value, x *ast.Field) value.Value {
+	if rec, ok := recv.(*value.Record); ok {
+		if i, ok := fieldIndex(rec, x); ok {
+			v := rec.Get(i)
+			if v == value.Uninitialized {
+				g.panicf(x.Pos, "%s is read before its initializer has run", x.Name)
+			}
+			return v
+		}
+	}
+	return g.field(recv, x.Name, x.Pos)
 }
 
 func (g *Goroutine) field(recv value.Value, name string, pos ast.Pos) value.Value {
@@ -651,6 +679,29 @@ func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, 
 
 // ---- literals
 
+// literalIndexes returns, per entry of e, the index of its field in tag, or -1 for a spread or
+// a name tag lacks, through e's inline cache.
+func (g *Goroutine) literalIndexes(e *ast.RecordLit, tag *value.Tag) []int {
+	if e.Cache != nil {
+		if c := e.Cache.Load(); c != nil && c.Type == any(tag) {
+			return c.Indexes
+		}
+	}
+	idxs := make([]int, len(e.Entries))
+	for k, en := range e.Entries {
+		idxs[k] = -1
+		if en.Spread == nil {
+			if i, ok := tag.FieldIndex(en.Name); ok {
+				idxs[k] = i
+			}
+		}
+	}
+	if e.Cache != nil {
+		e.Cache.Store(&ast.CacheEntry{Type: tag, Indexes: idxs})
+	}
+	return idxs
+}
+
 func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 	head, c := g.eval(e.Head, env)
 	if c != ctlNone {
@@ -665,7 +716,8 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 		g.panicf(e.Pos, "%s is not a record type, so it has no literal", name)
 	}
 	vals := make([]value.Value, len(tag.Fields))
-	for _, en := range e.Entries {
+	idxs := g.literalIndexes(e, tag)
+	for k, en := range e.Entries {
 		if en.Spread != nil {
 			v, c := g.eval(en.Spread, env)
 			if c != ctlNone {
@@ -688,8 +740,8 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 		if c != ctlNone {
 			return v, c
 		}
-		idx, ok := tag.FieldIndex(en.Name)
-		if !ok {
+		idx := idxs[k]
+		if idx < 0 {
 			g.panicf(en.Pos, "%s has no field %s", tag.Name, en.Name)
 		}
 		vals[idx] = v
@@ -741,13 +793,13 @@ func (g *Goroutine) binary(e *ast.Binary, env *Env) (value.Value, ctl) {
 	if c != ctlNone {
 		return l, c
 	}
-	switch e.Op {
-	case "&&", "||":
+	switch e.Code {
+	case ast.OpAnd, ast.OpOr:
 		lb, ok := l.(bool)
 		if !ok {
 			g.panicf(e.Pos, "%s needs a bool on the left, got %s", e.Op, value.Describe(l))
 		}
-		if (e.Op == "&&") != lb {
+		if (e.Code == ast.OpAnd) != lb {
 			return lb, ctlNone
 		}
 		r, c := g.eval(e.Y, env)
@@ -759,7 +811,7 @@ func (g *Goroutine) binary(e *ast.Binary, env *Env) (value.Value, ctl) {
 			g.panicf(e.Pos, "%s needs a bool on the right, got %s", e.Op, value.Describe(r))
 		}
 		return rb, ctlNone
-	case "??":
+	case ast.OpCoalesce:
 		if l != value.Null {
 			return l, ctlNone
 		}
@@ -769,16 +821,33 @@ func (g *Goroutine) binary(e *ast.Binary, env *Env) (value.Value, ctl) {
 	if c != ctlNone {
 		return r, c
 	}
-	return g.arith(e.Op, l, r, e.Pos), ctlNone
+	return g.arith(e.Code, e.Op, l, r, e.Pos), ctlNone
 }
 
-func (g *Goroutine) arith(op string, l, r value.Value, pos ast.Pos) value.Value {
-	switch op {
-	case "==":
+// arith applies a binary operator. Two ints or two float64s, the commonest operands, take a
+// fast path; it covers only the cases with no overflow and no error to report, and leaves the
+// rest to the value package, which reports them.
+func (g *Goroutine) arith(code ast.OpCode, op string, l, r value.Value, pos ast.Pos) value.Value {
+	switch x := l.(type) {
+	case int64:
+		if y, ok := r.(int64); ok {
+			if v, ok := intOp(code, x, y); ok {
+				return v
+			}
+		}
+	case float64:
+		if y, ok := r.(float64); ok {
+			if v, ok := floatOp(code, x, y); ok {
+				return v
+			}
+		}
+	}
+	switch code {
+	case ast.OpEq:
 		return value.Equal(l, r)
-	case "!=":
+	case ast.OpNe:
 		return !value.Equal(l, r)
-	case "<", "<=", ">", ">=":
+	case ast.OpLt, ast.OpLe, ast.OpGt, ast.OpGe:
 		b, err := value.Compare(op, l, r)
 		if err != nil {
 			g.panicf(pos, "%s", err)
@@ -790,6 +859,72 @@ func (g *Goroutine) arith(op string, l, r value.Value, pos ast.Pos) value.Value 
 		g.panicf(pos, "%s", err)
 	}
 	return v
+}
+
+// intOp computes an int operator whose result needs no check: a sum or difference that does not
+// overflow, a product of operands that fit in 32 bits, a quotient or remainder by a positive
+// divisor, or a comparison.
+func intOp(code ast.OpCode, x, y int64) (value.Value, bool) {
+	switch code {
+	case ast.OpAdd:
+		r := x + y
+		return r, (r > x) == (y > 0)
+	case ast.OpSub:
+		r := x - y
+		return r, (r < x) == (y > 0)
+	case ast.OpMul:
+		if x == int64(int32(x)) && y == int64(int32(y)) {
+			return x * y, true
+		}
+	case ast.OpDiv:
+		if y > 0 {
+			return x / y, true
+		}
+	case ast.OpRem:
+		if y > 0 {
+			return x % y, true
+		}
+	case ast.OpEq:
+		return x == y, true
+	case ast.OpNe:
+		return x != y, true
+	case ast.OpLt:
+		return x < y, true
+	case ast.OpLe:
+		return x <= y, true
+	case ast.OpGt:
+		return x > y, true
+	case ast.OpGe:
+		return x >= y, true
+	}
+	return nil, false
+}
+
+// floatOp computes a float64 operator other than %, as the value package does.
+func floatOp(code ast.OpCode, x, y float64) (value.Value, bool) {
+	switch code {
+	case ast.OpAdd:
+		return x + y, true
+	case ast.OpSub:
+		return x - y, true
+	case ast.OpMul:
+		return x * y, true
+	case ast.OpDiv:
+		return x / y, true
+	case ast.OpEq:
+		return x == y, true
+	case ast.OpNe:
+		return x != y, true
+	case ast.OpLt:
+		return x < y, true
+	case ast.OpLe:
+		return x <= y, true
+	case ast.OpGt:
+		return x > y, true
+	case ast.OpGe:
+		return x >= y, true
+	}
+	return nil, false
 }
 
 func (g *Goroutine) is(e *ast.Is, env *Env) (value.Value, ctl) {
@@ -839,7 +974,7 @@ func (g *Goroutine) assign(e *ast.Assign, env *Env) (value.Value, ctl) {
 			return v, c
 		}
 		if e.Op != "=" {
-			v = g.arith(op, cur, v, e.Pos)
+			v = g.arith(e.Code, op, cur, v, e.Pos)
 		}
 		g.assignIdent(t, v, env)
 	case *ast.Field:
@@ -849,14 +984,20 @@ func (g *Goroutine) assign(e *ast.Assign, env *Env) (value.Value, ctl) {
 		}
 		var cur value.Value
 		if e.Op != "=" {
-			cur = g.field(recv, t.Name, t.Pos)
+			cur = g.fieldAt(recv, t)
 		}
 		v, c := g.eval(e.Value, env)
 		if c != ctlNone {
 			return v, c
 		}
 		if e.Op != "=" {
-			v = g.arith(op, cur, v, e.Pos)
+			v = g.arith(e.Code, op, cur, v, e.Pos)
+		}
+		if rec, ok := recv.(*value.Record); ok {
+			if i, ok := fieldIndex(rec, t); ok {
+				rec.Set(i, v)
+				break
+			}
 		}
 		g.setField(recv, t.Name, v, t.Pos)
 	case *ast.Index:
@@ -877,7 +1018,7 @@ func (g *Goroutine) assign(e *ast.Assign, env *Env) (value.Value, ctl) {
 			return v, c
 		}
 		if e.Op != "=" {
-			v = g.arith(op, cur, v, e.Pos)
+			v = g.arith(e.Code, op, cur, v, e.Pos)
 		}
 		g.setIndex(recv, idx, v, t.Pos)
 	case *ast.AssignArray:
@@ -1102,12 +1243,36 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 				return rv, rc
 			}
 		}
+	case *Builtin:
+		if x.Each == nil {
+			return g.forSeq(e, x, run)
+		}
+		return g.forEach(e, x, run)
 	case value.Callable:
 		return g.forSeq(e, x, run)
 	default:
 		g.panicf(e.Iter.Position(), "for needs an array, a map, a string, or a function, got %s", value.Describe(iter))
 	}
 	return value.Void, ctlNone
+}
+
+// forEach runs a for loop over a sequence the library implements in Go.
+func (g *Goroutine) forEach(e *ast.For, seq *Builtin, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
+	saved := g.pos
+	g.pos = e.Pos
+	defer func() { g.pos = saved }()
+	g.check()
+	rc = ctlNone
+	seq.Each(g, func(v value.Value) bool {
+		g.check()
+		var stop bool
+		rv, rc, stop = run(v)
+		return !stop
+	})
+	if rc != ctlReturn {
+		return value.Void, ctlNone
+	}
+	return rv, rc
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {

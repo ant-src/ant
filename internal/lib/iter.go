@@ -11,18 +11,31 @@ import (
 // seq builds a sequence function from a Go loop body. push sends one element and reports
 // whether the consumer wants more.
 func seq(name string, run func(g *interp.Goroutine, push func(value.Value) bool)) *interp.Builtin {
-	return fn(name, "yield", func(g *interp.Goroutine, a []value.Value) value.Value {
+	b := fn(name, "yield", func(g *interp.Goroutine, a []value.Value) value.Value {
 		y := funcArg(g, name, a[0])
 		run(g, func(v value.Value) bool {
 			return boolResult(g, "a sequence's yield", g.Call(y, v))
 		})
 		return value.Void
 	})
+	b.Each = run
+	return b
 }
 
 // drive runs a sequence with a yield that calls push and stops the source once push says so.
 func drive(g *interp.Goroutine, who string, s value.Value, push func(value.Value) bool) {
 	more := true
+	if b, ok := funcArg(g, who, s).(*interp.Builtin); ok && b.Each != nil {
+		b.Each(g, func(v value.Value) bool {
+			g.Check()
+			if !more {
+				return false
+			}
+			more = push(v)
+			return more
+		})
+		return
+	}
 	y := fn("yield", "x", func(g *interp.Goroutine, a []value.Value) value.Value {
 		if !more {
 			return false

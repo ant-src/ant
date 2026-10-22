@@ -657,7 +657,7 @@ func (p *parser) expression() ast.Expr {
 		if n := p.peek(); n.Kind == token.Op && isAssignOp(n.Text) {
 			p.fail(n.Pos, "assignment cannot be chained")
 		}
-		return &ast.Assign{Pos: pos(t), Op: t.Text, Target: target, Value: right}
+		return &ast.Assign{Pos: pos(t), Op: t.Text, Code: ast.OpCodeOf(t.Text), Target: target, Value: right}
 	}
 	return left
 }
@@ -743,7 +743,7 @@ func (p *parser) pipeOperand() ast.Expr {
 	if p.at("??") {
 		for p.at("??") {
 			t := p.next()
-			left = &ast.Binary{Pos: pos(t), Op: "??", X: left, Y: p.equality()}
+			left = &ast.Binary{Pos: pos(t), Op: "??", Code: ast.OpCoalesce, X: left, Y: p.equality()}
 		}
 		if p.at("&&") || p.at("||") {
 			p.fail(p.peek().Pos, "'??' cannot mix with '&&' or '||' without parentheses")
@@ -755,7 +755,7 @@ func (p *parser) pipeOperand() ast.Expr {
 		for p.at("||") {
 			t := p.next()
 			right := p.andTail(p.equality())
-			left = &ast.Binary{Pos: pos(t), Op: "||", X: left, Y: right}
+			left = &ast.Binary{Pos: pos(t), Op: "||", Code: ast.OpOr, X: left, Y: right}
 		}
 		if p.at("??") {
 			p.fail(p.peek().Pos, "'??' cannot mix with '&&' or '||' without parentheses")
@@ -767,7 +767,7 @@ func (p *parser) pipeOperand() ast.Expr {
 func (p *parser) andTail(left ast.Expr) ast.Expr {
 	for p.at("&&") {
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: "&&", X: left, Y: p.equality()}
+		left = &ast.Binary{Pos: pos(t), Op: "&&", Code: ast.OpAnd, X: left, Y: p.equality()}
 	}
 	return left
 }
@@ -776,7 +776,7 @@ func (p *parser) equality() ast.Expr {
 	left := p.comparison()
 	for p.at("==") || p.at("!=") {
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.comparison()}
+		left = &ast.Binary{Pos: pos(t), Op: t.Text, Code: ast.OpCodeOf(t.Text), X: left, Y: p.comparison()}
 	}
 	return left
 }
@@ -795,7 +795,7 @@ func (p *parser) comparison() ast.Expr {
 		switch {
 		case t.Is("<") || t.Is("<=") || t.Is(">") || t.Is(">="):
 			p.next()
-			left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.additive()}
+			left = &ast.Binary{Pos: pos(t), Op: t.Text, Code: ast.OpCodeOf(t.Text), X: left, Y: p.additive()}
 		case t.Is("is"):
 			p.next()
 			is := &ast.Is{Pos: pos(t), X: left}
@@ -822,7 +822,7 @@ func (p *parser) isTarget() (string, ast.Expr) {
 	for p.at(".") {
 		d := p.next()
 		name := p.expectIdent("a type name")
-		e = &ast.Field{Pos: pos(d), X: e, Name: name.Text}
+		e = &ast.Field{Pos: pos(d), X: e, Name: name.Text, Cache: &ast.Cache{}}
 		single = false
 	}
 	if single && kindNames[t.Text] {
@@ -835,7 +835,7 @@ func (p *parser) additive() ast.Expr {
 	left := p.multiplicative()
 	for p.at("+") || p.at("-") {
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.multiplicative()}
+		left = &ast.Binary{Pos: pos(t), Op: t.Text, Code: ast.OpCodeOf(t.Text), X: left, Y: p.multiplicative()}
 	}
 	return left
 }
@@ -844,7 +844,7 @@ func (p *parser) multiplicative() ast.Expr {
 	left := p.unary()
 	for p.at("*") || p.at("/") || p.at("%") {
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.unary()}
+		left = &ast.Binary{Pos: pos(t), Op: t.Text, Code: ast.OpCodeOf(t.Text), X: left, Y: p.unary()}
 	}
 	return left
 }
@@ -872,7 +872,7 @@ func (p *parser) postfix() ast.Expr {
 		case ".":
 			p.next()
 			name := p.expectIdent("a field name")
-			node = &ast.Field{Pos: pos(t), X: node, Name: name.Text}
+			node = &ast.Field{Pos: pos(t), X: node, Name: name.Text, Cache: &ast.Cache{}}
 			if isPath && p.at("{") && !p.header {
 				return p.braceLit(node)
 			}
@@ -892,7 +892,7 @@ func (p *parser) postfix() ast.Expr {
 				node = &ast.Call{Pos: pos(lp), Fn: node, Args: p.callArgs(), Optional: true}
 			default:
 				name := p.expectIdent("a field name")
-				node = &ast.Field{Pos: pos(t), X: node, Name: name.Text, Optional: true}
+				node = &ast.Field{Pos: pos(t), X: node, Name: name.Text, Optional: true, Cache: &ast.Cache{}}
 			}
 		case "[":
 			p.next()
@@ -1280,7 +1280,7 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 	if isMap {
 		return &ast.MapLit{Pos: pos(t), Entries: entries}
 	}
-	return &ast.RecordLit{Pos: head.Position(), Head: head, Entries: rec}
+	return &ast.RecordLit{Pos: head.Position(), Head: head, Entries: rec, Cache: &ast.Cache{}}
 }
 
 func (p *parser) arrayLit() *ast.ArrayLit {

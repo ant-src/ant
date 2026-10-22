@@ -143,6 +143,10 @@ type Builtin struct {
 	Params   []string
 	Optional int
 	Fn       func(g *Goroutine, args []value.Value) value.Value
+	// Each is set on a sequence the library implements in Go. It runs the sequence, pushing
+	// each element until push reports false. A for loop or a library stage drives it through
+	// Each rather than calling Fn with a yield function, which no Ant code could observe.
+	Each func(g *Goroutine, push func(value.Value) bool)
 }
 
 // FuncName returns the builtin's name.
