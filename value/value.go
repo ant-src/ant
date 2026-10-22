@@ -218,9 +218,8 @@ func (s *Slot) Load() Value {
 func (s *Slot) Store(v Value) { s.p.Store(cellOf(v)) }
 
 // cellOf returns an immutable cell holding v. Cells are never written after they are made, so
-// one may serve any number of slots: a record, an array or a map carries the cell holding
-// itself, and null, void, the booleans and the ints from minCellInt to maxCellInt have one
-// each. Storing any of those allocates nothing.
+// one may serve any number of slots: null, void, the booleans and the ints from minCellInt to
+// maxCellInt have one each, and storing them allocates nothing.
 func cellOf(v Value) *cell {
 	switch x := v.(type) {
 	case int64:
@@ -236,18 +235,6 @@ func cellOf(v Value) *cell {
 		return &nullCell
 	case voidType:
 		return &voidCell
-	case *Record:
-		if x.self.v != nil {
-			return &x.self
-		}
-	case *Array:
-		if x.self.v != nil {
-			return &x.self
-		}
-	case *Map:
-		if x.self.v != nil {
-			return &x.self
-		}
 	}
 	return &cell{v: v}
 }
@@ -378,7 +365,6 @@ func (t *Tag) Funcs() map[string]Value { return t.funcs }
 type Record struct {
 	Tag    *Tag
 	fields []Slot
-	self   cell // holds the record, for slots that store it
 }
 
 // NewRecord creates a record with the given field values, in the tag's order. A nil entry
@@ -433,7 +419,6 @@ func NewEmptyRecord(tag *Tag) *Record {
 		r = &Record{fields: make([]Slot, len(tag.Fields))}
 	}
 	r.Tag = tag
-	r.self.v = r
 	return r
 }
 

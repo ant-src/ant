@@ -301,8 +301,7 @@ type Goroutine struct {
 	main  bool
 	stack []Frame
 	depth int
-	pos   ast.Pos       // the call site of the builtin in progress, for its panics
-	args  []value.Value // the argument stack: arguments evaluated and not yet bound
+	pos   ast.Pos // the call site of the builtin in progress, for its panics
 	// frames of blocks that registered deferred blocks, innermost last
 	defers []*deferFrame
 }
@@ -360,10 +359,8 @@ func (g *Goroutine) check() {
 // Catch runs f and returns the Ant panic that ended it, if one did. Other panics, such as
 // Os.exit and cancellation, propagate.
 func (g *Goroutine) Catch(f func()) (p *AntPanic) {
-	mark := len(g.args)
 	defer func() {
 		if r := recover(); r != nil {
-			g.unwindArgs(mark)
 			if ap, ok := r.(*AntPanic); ok {
 				p = ap
 				return
@@ -373,12 +370,6 @@ func (g *Goroutine) Catch(f func()) (p *AntPanic) {
 	}()
 	f()
 	return nil
-}
-
-// unwindArgs drops what a panic left on the argument stack above mark.
-func (g *Goroutine) unwindArgs(mark int) {
-	clear(g.args[mark:])
-	g.args = g.args[:mark]
 }
 
 // Repanic raises a caught Ant panic again.

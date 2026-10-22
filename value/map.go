@@ -16,7 +16,6 @@ type Map struct {
 	index   map[uint64]int32
 	live    int
 	seq     uint64
-	self    cell // holds the map, for slots that store it
 }
 
 type mapEntry struct {
@@ -29,9 +28,7 @@ type mapEntry struct {
 
 // NewMap creates an empty map.
 func NewMap() *Map {
-	m := &Map{index: map[uint64]int32{}}
-	m.self.v = m
-	return m
+	return &Map{index: map[uint64]int32{}}
 }
 
 // Len is the number of entries.

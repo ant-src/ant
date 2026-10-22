@@ -26,11 +26,8 @@ func Start(ctx context.Context, prog *loader.Program, cfg Config) (*Instance, er
 func (in *Instance) runOn(g *Goroutine, f func()) (err error) {
 	in.active.Add(1)
 	defer in.active.Done()
-	mark := len(g.args)
 	defer func() {
-		x := recover()
-		g.unwindArgs(mark)
-		switch x := x.(type) {
+		switch x := recover().(type) {
 		case nil:
 		case *AntPanic:
 			in.report(x)

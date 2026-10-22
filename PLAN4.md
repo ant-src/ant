@@ -27,7 +27,8 @@ Measured on 2026-10-22, Apple M4 Pro (10 performance and 4 efficiency cores), Go
 | GC cycles in one 350 ms run of `par_fib 8` | about 300 |
 | Startup, `ant run` of an empty `main` | 3.7 ms |
 
-The profiles give the causes:
+The profiles give the causes. Phases 30 to 34 showed the order of them wrong: allocation was the
+smaller cost, and dispatch in the tree walker the larger (see section 6, Phase 34).
 
 1. **Every call allocates its environment piece by piece.** `newEnv` makes the `Env`, a `plain`
    slice and a `shared` slice. `callFunc` adds a `filled []bool`, and `postfix` adds the argument
@@ -295,3 +296,13 @@ about 1.15× on `loop`, not 2×. Phase 35 is not started. The same experiment sh
 Go benchmarks run GC-bound: the table's 128 MB of live heap stretched the GC cycle, and
 `par_fib n=10` ran 47% faster with no fewer allocations. `ant run` sets `GOGC=400` (Phase 29);
 the benchmarks run through the library at Go's default.
+
+Simplification pass, after review. Two pieces cost more in invariants than they returned and are
+gone. Self-cells on records, arrays and maps bought about 1%; the shared cells for `null`,
+`void`, the booleans and small ints stay. The argument stack is gone too, with its rule that
+every `recover` resets it and its rule that a builtin must not keep its arguments. A call of an
+Ant function now evaluates its arguments into an array on the Go stack, in a function of its own
+(`callFuncArgs`) so that escape analysis keeps it there, and builtins get a slice of their own
+again. benchstat against Phase 34, 8 runs: geomean +0.1%, `fib` unchanged, `par_fib` −2 to −10%,
+`strings` +14% and `array` +8%, which still leaves both faster than `master`. The branch adds
+561 net lines of Go outside tests, the profiling flags included.

@@ -137,8 +137,7 @@ func (f *Func) FuncName() string {
 
 // Builtin is a function implemented in Go. It receives its arguments positionally, exactly
 // len(Params) of them. A call may omit the last Optional parameters, and an omitted one arrives
-// as nil, for the builtin to replace by its default. The slice may live on the goroutine's
-// argument stack, so Fn must not keep it, or a subslice of it, after it returns.
+// as nil, for the builtin to replace by its default.
 type Builtin struct {
 	Name     string
 	Params   []string

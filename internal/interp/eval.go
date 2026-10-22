@@ -91,11 +91,7 @@ func (g *Goroutine) evalDeferBlock(b *ast.Block, env *Env) (v value.Value, c ctl
 }
 
 func (g *Goroutine) runDeferred(d deferred) (p any) {
-	mark := len(g.args)
-	defer func() {
-		p = recover()
-		g.unwindArgs(mark)
-	}()
+	defer func() { p = recover() }()
 	g.evalBlock(d.body, newEnv(&d.scope.BlockScope, d.env))
 	return nil
 }
@@ -350,10 +346,8 @@ func (g *Goroutine) postfix(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 	}
 }
 
-// call evaluates a call. Positional arguments to an Ant function or a builtin go on the
-// goroutine's argument stack, so such a call allocates no argument slice: an Ant function copies
-// them into its frame before its body runs, and a builtin must not keep its slice once it
-// returns (see Builtin). Other calls get a slice of their own.
+// call evaluates a call. Arguments to an Ant function are evaluated into a small array on the
+// Go stack, which the callee copies into its frame, so such a call allocates no argument slice.
 func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
 	var pipe value.Value
 	rest := x.Args
@@ -372,31 +366,21 @@ func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
 	if skip || (x.Optional && fn == value.Null) {
 		return value.Null, ctlNone, true
 	}
-	f, isFunc := fn.(*Func)
-	b, isBuiltin := fn.(*Builtin)
-	if (isFunc || isBuiltin) && !namedArgs(rest) {
-		base := len(g.args)
-		if x.Pipe {
-			g.args = append(g.args, pipe)
-		}
-		for _, a := range rest {
-			v, c := g.eval(a.Value, env)
-			if c != ctlNone {
-				g.args = g.args[:base]
-				return v, c, false
-			}
-			g.args = append(g.args, v)
-		}
-		g.check()
-		if isFunc {
-			return g.callFuncStack(f, base, x.Pos), ctlNone, false
-		}
-		v := g.callBuiltin(b, g.args[base:], nil, x.Pos)
-		clear(g.args[base:])
-		g.args = g.args[:base]
-		return v, ctlNone, false
+	if f, ok := fn.(*Func); ok {
+		return g.callFuncArgs(f, x, pipe, rest, env)
 	}
-	var args []value.Value
+	args, names, v, c := g.evalArgs(x, pipe, rest, env)
+	if c != ctlNone {
+		return v, c, false
+	}
+	return g.callValue(fn, args, names, x.Pos), ctlNone, false
+}
+
+// callFuncArgs evaluates a call's arguments into an array on the Go stack and calls f. It is a
+// function of its own so that escape analysis sees the array reach only f's frame.
+func (g *Goroutine) callFuncArgs(f *Func, x *ast.Call, pipe value.Value, rest []ast.Arg, env *Env) (value.Value, ctl, bool) {
+	var buf [4]value.Value
+	args := buf[:0]
 	var names []string
 	if x.Pipe {
 		args = append(args, pipe)
@@ -414,16 +398,31 @@ func (g *Goroutine) call(x *ast.Call, env *Env) (value.Value, ctl, bool) {
 			names = append(names, a.Name)
 		}
 	}
-	return g.callValue(fn, args, names, x.Pos), ctlNone, false
+	g.check()
+	return g.callFunc(f, args, names, x.Pos), ctlNone, false
 }
 
-func namedArgs(args []ast.Arg) bool {
-	for _, a := range args {
-		if a.Name != "" {
-			return true
+// evalArgs evaluates a call's arguments, with their names when any is named.
+func (g *Goroutine) evalArgs(x *ast.Call, pipe value.Value, rest []ast.Arg, env *Env) ([]value.Value, []string, value.Value, ctl) {
+	var args []value.Value
+	var names []string
+	if x.Pipe {
+		args = append(args, pipe)
+	}
+	for _, a := range rest {
+		v, c := g.eval(a.Value, env)
+		if c != ctlNone {
+			return nil, nil, v, c
+		}
+		if a.Name != "" && names == nil {
+			names = make([]string, len(args), len(x.Args))
+		}
+		args = append(args, v)
+		if names != nil {
+			names = append(names, a.Name)
 		}
 	}
-	return false
+	return args, names, nil, ctlNone
 }
 
 // fieldIndex returns the index of x's field in rec, through x's inline cache.
@@ -549,18 +548,6 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 	g.push(f.FuncName(), f.Env.mod.m.File.Path, pos)
 	defer g.pop()
 	env := g.frame(f, args, names, pos)
-	v, _ := g.evalBlock(f.Body, env)
-	return v
-}
-
-// callFuncStack calls f with the arguments on the argument stack from base up, and pops them
-// once they are bound.
-func (g *Goroutine) callFuncStack(f *Func, base int, pos ast.Pos) value.Value {
-	g.push(f.FuncName(), f.Env.mod.m.File.Path, pos)
-	defer g.pop()
-	env := g.frame(f, g.args[base:], nil, pos)
-	clear(g.args[base:])
-	g.args = g.args[:base]
 	v, _ := g.evalBlock(f.Body, env)
 	return v
 }
@@ -1299,11 +1286,9 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 		}
 		return false
 	}}
-	mark := len(g.args)
 	defer func() {
 		if r := recover(); r != nil {
 			if u, ok := r.(*loopUnwind); ok && u.loop == e {
-				g.unwindArgs(mark)
 				rv, rc = u.v, ctlReturn
 				return
 			}

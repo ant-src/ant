@@ -9,9 +9,8 @@ import (
 // behind an atomic pointer; push and pop take the mutex and publish a new header. A concurrent
 // push or pop leaves a reader the state before or after it, never a corrupted structure.
 type Array struct {
-	h    atomic.Pointer[arrayHeader]
-	mu   sync.Mutex
-	self cell // holds the array, for slots that store it
+	h  atomic.Pointer[arrayHeader]
+	mu sync.Mutex
 }
 
 type arrayHeader struct {
@@ -22,7 +21,6 @@ type arrayHeader struct {
 // NewArray creates an array holding elems.
 func NewArray(elems []Value) *Array {
 	a := &Array{}
-	a.self.v = a
 	h := &arrayHeader{elems: make([]Slot, len(elems)), n: len(elems)}
 	for i, v := range elems {
 		h.elems[i].Store(v)
