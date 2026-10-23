@@ -273,28 +273,32 @@ type (
 		Body   *Block
 		Scope  *FuncScope
 	}
-	// Field is a.name or a?.name.
+	// Field is a.name or a?.name. Grouped marks one written in parentheses, which ends its
+	// postfix chain: a ?. inside skips nothing outside (section 12).
 	Field struct {
 		Pos      Pos
 		X        Expr
 		Name     string
 		Optional bool
+		Grouped  bool
 	}
-	// Index is a[i] or a?.[i].
+	// Index is a[i] or a?.[i]; Grouped as for Field.
 	Index struct {
 		Pos      Pos
 		X        Expr
 		Index    Expr
 		Optional bool
+		Grouped  bool
 	}
 	// Call is f(args) or f?.(args). A pipe a | f(b) is a Call with Pipe set and a as the first
-	// argument; it evaluates that argument before f.
+	// argument; it evaluates that argument before f. Grouped as for Field.
 	Call struct {
 		Pos      Pos
 		Fn       Expr
 		Args     []Arg
 		Optional bool
 		Pipe     bool
+		Grouped  bool
 	}
 	// Unary is -a, !a, or try a.
 	Unary struct {

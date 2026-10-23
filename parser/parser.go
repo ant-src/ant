@@ -1104,6 +1104,15 @@ func (p *parser) primary() ast.Expr {
 			e := p.expression()
 			p.expect(")")
 			p.leave(saved)
+			// the parentheses end a postfix chain, so a ?. inside skips nothing after them
+			switch x := e.(type) {
+			case *ast.Field:
+				x.Grouped = true
+			case *ast.Index:
+				x.Grouped = true
+			case *ast.Call:
+				x.Grouped = true
+			}
 			return e
 		case "...":
 			if p.mode == Spec {

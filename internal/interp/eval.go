@@ -322,8 +322,30 @@ func (g *Goroutine) assignIdent(e *ast.Ident, v value.Value, env *Env) {
 // ---- postfix chains
 
 // postfix evaluates a field read, index, or call, skipping the rest of the chain after a ?.
-// that met null. The third result reports that skip.
+// that met null. The third result reports that skip; a chain in parentheses never reports one.
 func (g *Goroutine) postfix(e ast.Expr, env *Env) (value.Value, ctl, bool) {
+	v, c, skip := g.link(e, env)
+	if skip && grouped(e) {
+		skip = false
+	}
+	return v, c, skip
+}
+
+// grouped reports a postfix expression written in parentheses.
+func grouped(e ast.Expr) bool {
+	switch x := e.(type) {
+	case *ast.Field:
+		return x.Grouped
+	case *ast.Index:
+		return x.Grouped
+	case *ast.Call:
+		return x.Grouped
+	}
+	return false
+}
+
+// link evaluates one link of a postfix chain, for postfix.
+func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 	switch x := e.(type) {
 	case *ast.Field:
 		recv, c, skip := g.postfix(x.X, env)

@@ -1,0 +1,17 @@
+// spec: 12 Expressions; 12 Runtime panics
+// panics: field
+// Parentheses end a postfix chain: a ?. that met null inside them skips nothing after them, so
+// (a?.b).c reads a field of null and panics, while a?.b.c is null.
+type In = { c: int }
+type P = { b: In }
+
+func main(): void {
+  var a: P | null = null
+  print(a?.b.c)
+  print((a?.b).c)
+}
+
+// expect
+// out: null
+// exit: 1
+// err: null is not a record, so it has no field c
