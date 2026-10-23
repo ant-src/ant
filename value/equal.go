@@ -5,7 +5,8 @@ import (
 	"math"
 )
 
-// Equal is == (section 12): structural, never panics, and finite on cyclic values.
+// Equal is == (section 12): structural, never panics, and finite on cyclic values. It never
+// shortcuts on identity, so a container holding NaN is unequal even to itself.
 func Equal(a, b Value) bool {
 	return equal(a, b, nil)
 }
@@ -64,9 +65,6 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		if !ok || x.Tag != y.Tag {
 			return false
 		}
-		if x == y {
-			return true
-		}
 		if visiting == nil {
 			visiting = map[pair]bool{}
 		}
@@ -86,9 +84,6 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		y, ok := b.(*Array)
 		if !ok {
 			return false
-		}
-		if x == y {
-			return true
 		}
 		if visiting == nil {
 			visiting = map[pair]bool{}
@@ -114,9 +109,6 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		if !ok {
 			return false
 		}
-		if x == y {
-			return true
-		}
 		if visiting == nil {
 			visiting = map[pair]bool{}
 		}
@@ -141,9 +133,6 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		y, ok := b.(*Set)
 		if !ok {
 			return false
-		}
-		if x == y {
-			return true
 		}
 		if visiting == nil {
 			visiting = map[pair]bool{}

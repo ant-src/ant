@@ -98,6 +98,15 @@ func TestEqualAndHash(t *testing.T) {
 			t.Errorf("Equal(%v, %v) = true", p[0], p[1])
 		}
 	}
+	// == is structural, never identity: a container holding NaN is unequal even to itself.
+	nanMap, nanSet := NewMap(), NewSet()
+	nanMap.Set("a", math.NaN())
+	nanSet.Add(math.NaN())
+	for _, v := range []Value{NewArray([]Value{math.NaN()}), rec(point, math.NaN(), 1.0), nanMap, nanSet} {
+		if Equal(v, v) {
+			t.Errorf("Equal(%v, itself) = true", Render(v))
+		}
+	}
 	m1, m2 := NewMap(), NewMap()
 	m1.Set("a", int64(1))
 	m1.Set("b", int64(2))
