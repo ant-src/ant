@@ -2,12 +2,14 @@
 //
 //	ant run file.ant [args...]   run a program
 //	ant check file.ant           type-check a program and every module it imports
+//	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant                          start a REPL
 //
 // Exit status: 0 when main returns or the check passes, 1 when the main goroutine panics or the
 // check finds errors, 2 when the program cannot be loaded or the usage is wrong, 130 when an
 // interrupt the program did not ask for ends the run, with nothing printed, as a shell does.
-// Os.exit sets its own status.
+// Os.exit sets its own status. ant fmt exits 1 when --check finds a file to change and 2 when a
+// file cannot be read, parsed, or written.
 package main
 
 import (
@@ -28,6 +30,7 @@ import (
 const usage = `usage:
   ant run <file.ant> [args...]
   ant check <file.ant>
+  ant fmt [--check] <path>...   (- for standard input)
   ant`
 
 func main() {
@@ -95,6 +98,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return 1
 		}
 		return 0
+	case "fmt":
+		return fmtCommand(args[1:], stdin, stdout, stderr)
 	case "help", "-h", "--help":
 		fmt.Fprintln(stdout, usage)
 		return 0
