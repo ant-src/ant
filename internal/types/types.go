@@ -86,8 +86,6 @@ type Decl struct {
 	Body   Type       // AliasDecl: the body, with Params inside
 	Funcs  map[string]*Func
 	Pos    any // the declaration's position, for messages
-	// resolving marks an alias whose body is being resolved, to catch cycles.
-	Resolving bool
 }
 
 // Named is a reference to a declared type with type arguments.
@@ -189,16 +187,6 @@ func (n Named) FieldsOf() []Field {
 		out[i] = Field{Name: f.Name, Type: t}
 	}
 	return out
-}
-
-// Field returns a named record type's field.
-func (n Named) Field(name string) (Type, bool) {
-	for _, f := range n.FieldsOf() {
-		if f.Name == name {
-			return f.Type, true
-		}
-	}
-	return nil, false
 }
 
 // ---- equality

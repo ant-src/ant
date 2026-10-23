@@ -337,7 +337,7 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 	} else {
 		t = c.synth(d.Init, sc)
 	}
-	c.bindTargetTypes(d.Target, t, sc, func(name string, ty types.Type) {
+	c.bindTargetTypes(d.Target, t, func(name string, ty types.Type) {
 		for _, l := range locals {
 			if l.name == name {
 				if !l.stated {
@@ -353,7 +353,7 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 }
 
 // bindTargetTypes computes the type each name of a target binds from the source type.
-func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, sc *scope, bind func(string, types.Type)) {
+func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string, types.Type)) {
 	switch t := t.(type) {
 	case *ast.NameTarget:
 		if t.Name != "_" {
@@ -370,7 +370,7 @@ func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, sc *scope, bind 
 			if !types.IsInvalid(src) {
 				ft = c.fieldOf(src, f.Name, f.Pos)
 			}
-			c.bindTargetTypes(f.Target, ft, sc, bind)
+			c.bindTargetTypes(f.Target, ft, bind)
 		}
 	case *ast.ArrayTarget:
 		elem := types.Type(types.Invalid{})
@@ -380,10 +380,10 @@ func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, sc *scope, bind 
 			c.errorf(t.Pos, "an array destructuring needs an array, got %s", types.String(src))
 		}
 		for _, e := range t.Elems {
-			c.bindTargetTypes(e, elem, sc, bind)
+			c.bindTargetTypes(e, elem, bind)
 		}
 		if t.Rest != nil {
-			c.bindTargetTypes(t.Rest, types.Array{Elem: elem}, sc, bind)
+			c.bindTargetTypes(t.Rest, types.Array{Elem: elem}, bind)
 		}
 	}
 }
@@ -396,7 +396,7 @@ func (c *Checker) declareTarget(t ast.Target, src types.Type, sc *scope) {
 		slots[nt.Name] = nt.Slot
 		positions[nt.Name] = nt.Pos
 	}
-	c.bindTargetTypes(t, src, sc, func(name string, ty types.Type) {
+	c.bindTargetTypes(t, src, func(name string, ty types.Type) {
 		sc.names[name] = &local{name: name, typ: ty, slot: slots[name], ctx: c.fn, pos: positions[name]}
 	})
 }
@@ -540,7 +540,6 @@ func narrowedToNever(wt, wf flow) bool {
 }
 
 func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
-	before := c.flow.copy()
 	c.resetAssigned(x.Body, sc)
 	loop := &loopCtx{}
 	c.fn.loops = append(c.fn.loops, loop)
@@ -554,7 +553,6 @@ func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
 	} else {
 		c.flow = wf
 	}
-	_ = before
 	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && !loop.hasBreak {
 		return types.Never{}
 	}

@@ -28,9 +28,6 @@ func (c *Checker) typeOfLocal(l *local) types.Type {
 	return l.typ
 }
 
-// inNested reports whether the current context is a nested body of l's function.
-func (c *Checker) inNested(l *local) bool { return l.ctx != c.fn }
-
 // check checks e against an expected type and returns e's type.
 func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	if expected == nil {
@@ -211,10 +208,10 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 	case *ast.For:
 		return c.forLoop(x, sc)
 	case *ast.Go:
-		c.nestedBody(x.Body, sc, "go", x.Scope)
+		c.nestedBody(x.Body, sc, "go")
 		return types.Void{}
 	case *ast.Defer:
-		c.nestedBody(x.Body, sc, "defer", x.Scope)
+		c.nestedBody(x.Body, sc, "defer")
 		return types.Void{}
 	case *ast.Return:
 		return c.returnExpr(x, sc)
@@ -261,11 +258,11 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 		c.errorf(x.Pos, "%s is not defined", x.Name)
 		return types.Invalid{}
 	}
-	return c.entityValue(ent, x.Pos, sc)
+	return c.entityValue(ent, x.Pos)
 }
 
 // entityValue is the type of an entity used as a value.
-func (c *Checker) entityValue(ent *entity, pos ast.Pos, sc *scope) types.Type {
+func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 	switch ent.kind {
 	case entVar:
 		return c.varType(ent.v, pos, c.fn != nil && c.fn.kind == "init")
@@ -386,7 +383,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 			if m == nil {
 				return types.Invalid{}
 			}
-			return c.entityValue(m, x.Pos, sc)
+			return c.entityValue(m, x.Pos)
 		case entNamespace, entType:
 			m, ok := base.members[x.Name]
 			if !ok {
@@ -400,7 +397,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 				c.errorf(x.Pos, "%s.%s is not exported", base.name, x.Name)
 				return types.Invalid{}
 			}
-			return c.entityValue(m, x.Pos, sc)
+			return c.entityValue(m, x.Pos)
 		}
 	}
 	recv, short := c.chainRecv(x.X, sc)
@@ -907,7 +904,7 @@ func (c *Checker) withNested(ctx *fnCtx, f func() types.Type) types.Type {
 }
 
 // nestedBody checks a go or defer block.
-func (c *Checker) nestedBody(body *ast.Block, sc *scope, kind string, fs *ast.FuncScope) {
+func (c *Checker) nestedBody(body *ast.Block, sc *scope, kind string) {
 	ctx := &fnCtx{parent: c.fn, kind: kind, name: kind + " block"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	c.withNested(ctx, func() types.Type { c.synthBlock(body, inner); return types.Void{} })
@@ -922,7 +919,7 @@ func (c *Checker) unary(x *ast.Unary, sc *scope) types.Type {
 		return types.BoolType
 	case "-":
 		t := c.synth(x.X, sc)
-		if !c.operandOK(t, "-", false) {
+		if !c.operandOK(t, false) {
 			c.errorf(x.Pos, "unary - needs a number, got %s", types.String(t))
 			return types.Invalid{}
 		}
@@ -936,7 +933,7 @@ func (c *Checker) unary(x *ast.Unary, sc *scope) types.Type {
 // operandOK reports whether an arithmetic operand type is a single numeric kind, string when
 // strings are allowed, a named primitive over such a base, or a type parameter whose bound
 // admits the operator on every member.
-func (c *Checker) operandOK(t types.Type, op string, strings bool) bool {
+func (c *Checker) operandOK(t types.Type, strings bool) bool {
 	switch x := types.Expand(t).(type) {
 	case types.Invalid:
 		return true
@@ -955,7 +952,7 @@ func (c *Checker) operandOK(t types.Type, op string, strings bool) bool {
 			return false
 		}
 		for _, m := range types.Members(x.Decl.Bound) {
-			if !c.operandOK(m, op, strings) {
+			if !c.operandOK(m, strings) {
 				return false
 			}
 		}
@@ -985,9 +982,7 @@ func (c *Checker) binary(x *ast.Binary, sc *scope) types.Type {
 	case "<", "<=", ">", ">=":
 		l := c.synth(x.X, sc)
 		r := c.synth(x.Y, sc)
-		if !c.sameOperands(l, r, x.Op, true, x.Pos) {
-			return types.BoolType
-		}
+		c.sameOperands(l, r, x.Op, true, x.Pos)
 		return types.BoolType
 	}
 	l := c.synth(x.X, sc)
@@ -1010,7 +1005,7 @@ func (c *Checker) sameOperands(l, r types.Type, op string, strings bool, pos ast
 		c.errorf(pos, "%s needs both operands of one type, got %s and %s", op, types.String(l), types.String(r))
 		return false
 	}
-	if !c.operandOK(l, op, strings) {
+	if !c.operandOK(l, strings) {
 		what := "a single numeric kind or a named primitive type over one"
 		if strings {
 			what = "a single numeric kind, string, or a named primitive type over one"

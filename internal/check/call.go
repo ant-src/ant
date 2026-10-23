@@ -1,6 +1,8 @@
 package check
 
 import (
+	"strconv"
+
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
@@ -93,26 +95,7 @@ func plural(n int, noun string) string {
 	if n == 1 {
 		return "1 " + noun
 	}
-	return itoa(n) + " " + noun + "s"
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var b []byte
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	for n > 0 {
-		b = append([]byte{byte('0' + n%10)}, b...)
-		n /= 10
-	}
-	if neg {
-		b = append([]byte{'-'}, b...)
-	}
-	return string(b)
+	return strconv.Itoa(n) + " " + noun + "s"
 }
 
 // construct checks a named primitive type's constructor call.
@@ -167,7 +150,7 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 		}
 	default:
 		if !ok || !p.Kind.IsNumber() {
-			if pp, isParam := types.Expand(base).(types.Param); isParam && pp.Decl.Bound != nil && c.operandOK(base, "+", false) {
+			if pp, isParam := types.Expand(base).(types.Param); isParam && pp.Decl.Bound != nil && c.operandOK(base, false) {
 				return result
 			}
 			c.errorf(x.Pos, "%s converts a number or a named primitive type over a number, got %s", ent.name, types.String(t))
@@ -530,18 +513,15 @@ func (c *Checker) unifyUnion(pt types.Union, actual types.Type, subst map[*types
 			params = append(params, p)
 			continue
 		}
-		matched := false
 		for i, am := range remaining {
 			if sameDiscriminator(pm, am) {
 				if !c.unify(pm, am, subst) {
 					return false
 				}
 				remaining = append(remaining[:i], remaining[i+1:]...)
-				matched = true
 				break
 			}
 		}
-		_ = matched
 	}
 	if len(params) == 0 {
 		return len(remaining) == 0
@@ -562,42 +542,39 @@ func (c *Checker) unifyUnion(pt types.Union, actual types.Type, subst map[*types
 		return false
 	}
 	if _, isNever := rest.(types.Never); isNever {
-		if _, done := subst[params[0].Decl]; done {
-			return true
-		}
 		return true
 	}
 	return c.unify(params[0], rest, subst)
 }
 
 func sameDiscriminator(a, b types.Type) bool {
-	ka, _, oka := discriminatorOf(a)
-	kb, _, okb := discriminatorOf(b)
+	ka, oka := discriminatorOf(a)
+	kb, okb := discriminatorOf(b)
 	return oka && okb && ka == kb
 }
 
-func discriminatorOf(t types.Type) (string, string, bool) {
+func discriminatorOf(t types.Type) (string, bool) {
 	switch x := types.Expand(t).(type) {
 	case types.Prim:
-		return "kind:" + x.Kind.String(), "", true
+		return "kind:" + x.Kind.String(), true
 	case types.Null:
-		return "null", "", true
+		return "null", true
 	case types.Void:
-		return "void", "", true
+		return "void", true
 	case types.Array:
-		return "array", "", true
+		return "array", true
 	case types.Map:
-		return "map", "", true
+		return "map", true
 	case types.Set:
-		return "set", "", true
+		return "set", true
 	case types.Func:
-		return "func", "", true
+		return "func", true
 	case types.Named:
-		return "tag:" + x.Decl.Name + itoa(len(x.Decl.Fields)), "", true
+		return "tag:" + x.Decl.Name + strconv.Itoa(len(x.Decl.Fields)), true
 	case types.Record:
-		return "record", "", true
+		return "record", true
 	}
-	return "", "", false
+	return "", false
 }
 
 // synthWithPattern synthesizes an argument whose parameter type still mentions unsolved type

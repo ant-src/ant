@@ -107,7 +107,7 @@ func checkDiscriminators(members []Type) error {
 	seen := map[string]Type{}
 	var record Type
 	var namedRecords, params []Type
-	var others []Type
+
 	var opaque Type
 	for _, m := range members {
 		key, desc, ok := discriminator(m)
@@ -134,12 +134,6 @@ func checkDiscriminators(members []Type) error {
 			if x.Decl.Kind == RecordDecl {
 				namedRecords = append(namedRecords, m)
 			}
-			if len(x.Args) > 0 || x.Decl.Kind == OpaqueDecl && x.Decl.Kind != OpaqueDecl {
-				others = append(others, m)
-			}
-		case Null, Void:
-		default:
-			others = append(others, m)
 		}
 	}
 	if record != nil && len(namedRecords) > 0 {
@@ -159,6 +153,5 @@ func checkDiscriminators(members []Type) error {
 			}
 		}
 	}
-	_ = others
 	return nil
 }

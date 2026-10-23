@@ -185,7 +185,6 @@ type varInfo struct {
 	mod   *moduleInfo
 	name  string
 	typ   types.Type
-	state int
 	index int
 	group *varGroup
 }
@@ -213,12 +212,12 @@ func (c *Checker) loadPrelude(cfg Config) {
 	if err != nil {
 		panic("prelude: " + err.Error())
 	}
-	c.declareFile(f, "", nil)
+	c.declareFile(f, "")
 	for _, name := range cfg.Removed {
 		delete(c.prelude, name)
 	}
 	for _, ns := range cfg.Namespaces {
-		c.declareFile(ns.Decls, ns.Name, nil)
+		c.declareFile(ns.Decls, ns.Name)
 	}
 	for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {
 		if e, ok := c.prelude[name]; ok {
@@ -230,7 +229,7 @@ func (c *Checker) loadPrelude(cfg Config) {
 
 // declareFile declares the entities of a declarations-mode file into the prelude. In a host
 // namespace, plain declarations belong to that namespace.
-func (c *Checker) declareFile(f *ast.File, defaultOwner string, _ *moduleInfo) {
+func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 	saved := c.mod
 	c.mod = &moduleInfo{path: f.Path, names: map[string]*entity{}}
 	defer func() { c.mod = saved }()
@@ -279,7 +278,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string, _ *moduleInfo) {
 		pending = append(pending, &typeInfo{decl: td, t: decl, ent: ent})
 	}
 	for _, ti := range pending {
-		c.resolveTypeDecl(ti, nil)
+		c.resolveTypeDecl(ti)
 	}
 	for _, d := range f.Decls {
 		switch d := d.(type) {
@@ -414,7 +413,7 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 	// A cyclic alias is marked invalid as soon as its body is resolved, before a later
 	// declaration can expand it.
 	for _, ti := range mi.types {
-		c.resolveTypeDecl(ti, mi)
+		c.resolveTypeDecl(ti)
 		c.checkAliasCycle(ti)
 	}
 	for _, fi := range mi.funcs {
@@ -435,7 +434,7 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 	}
 }
 
-func (c *Checker) resolveTypeDecl(ti *typeInfo, mi *moduleInfo) {
+func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 	d, decl := ti.decl, ti.t
 	sc := &scope{tparams: map[string]*types.ParamDecl{}}
 	for i, tp := range d.TypeParams {
@@ -839,7 +838,7 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 		t = c.synth(d.Init, sc)
 	}
 	g.types = map[string]types.Type{}
-	c.bindTargetTypes(d.Target, t, sc, func(name string, ty types.Type) { g.types[name] = ty })
+	c.bindTargetTypes(d.Target, t, func(name string, ty types.Type) { g.types[name] = ty })
 	g.state = 2
 	c.mod, c.fn, c.flow = savedMod, savedFn, savedFlow
 	if ty, ok := g.types[v.name]; ok {
@@ -881,8 +880,8 @@ type local struct {
 	pos     ast.Pos
 	pending bool
 	// unset marks a parameter with a default while the defaults up to its own are checked.
-	unset bool
-	stated  bool
+	unset  bool
+	stated bool
 }
 
 // checkFunc checks a declared function's body, inferring its return type when it has none.
@@ -959,12 +958,11 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 // inferBody checks a function body against its declared return type, or infers one from the
 // body's value and its returns.
 func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
-	var t types.Type
 	if ctx.declared != nil {
-		t = c.checkBlock(body, sc, ctx.declared)
+		c.checkBlock(body, sc, ctx.declared)
 		return ctx.declared
 	}
-	t = c.synthBlock(body, sc)
+	t := c.synthBlock(body, sc)
 	all := append([]types.Type{t}, ctx.returns...)
 	u, err := types.MakeUnion(all)
 	if err != nil {
