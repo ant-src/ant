@@ -112,7 +112,28 @@ func Resolve(f *ast.File, opts Options) []*Error {
 		r.stmt(s, r.module)
 	}
 	r.finalize()
+	if r.session && len(r.errs) == 0 {
+		r.keepTypes(f)
+	}
 	return r.errs
+}
+
+// keepTypes records in a session's fields which names are now types, so a later input can
+// declare functions on them: a name this input declares is a type only if declared as one.
+func (r *resolver) keepTypes(f *ast.File) {
+	if r.fields.Types == nil {
+		r.fields.Types = map[string]*ast.TypeDecl{}
+	}
+	for name, b := range r.module.names {
+		if b.pos != (ast.Pos{}) {
+			delete(r.fields.Types, name)
+		}
+	}
+	for _, d := range f.Decls {
+		if td, ok := d.(*ast.TypeDecl); ok {
+			r.fields.Types[td.Name] = td
+		}
+	}
 }
 
 func (r *resolver) errorf(pos ast.Pos, format string, args ...any) {
@@ -224,6 +245,9 @@ func (r *resolver) declareModule(f *ast.File) {
 			continue
 		}
 		td, ok := types[fd.Owner]
+		if b := r.module.names[fd.Owner]; !ok && r.session && b != nil && b.pos == (ast.Pos{}) {
+			td, ok = r.fields.Types[fd.Owner] // a type of an earlier input, not redeclared here
+		}
 		if !ok {
 			r.errorf(fd.Pos, "func %s.%s: %s is not a type declared in this module", fd.Owner, fd.Name, fd.Owner)
 			continue

@@ -170,3 +170,34 @@ func TestSessionImportInFailedInput(t *testing.T) {
 		t.Errorf("L.bump() = %v, %v", v, err)
 	}
 }
+
+// TestSessionTypeFuncLater checks that a function may be declared on a type an earlier input
+// declared, and not on a name an earlier input redeclared as a variable.
+func TestSessionTypeFuncLater(t *testing.T) {
+	s, err := ant.NewSession(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	for _, src := range []string{"type P = { x: int }", "func P.get(p: P): int { p.x * 2 }"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+	}
+	if v, err := s.Eval("P.get(P{ x: 4 })"); err != nil || v != int64(8) {
+		t.Errorf("P.get = %v, %v", v, err)
+	}
+	if _, err := s.Eval("var P = 1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Eval("func P.other(): int { 1 }"); err == nil {
+		t.Error("expected a load error for a function on a variable")
+	}
+	// a type whose input failed to load is not a type of the session
+	if _, err := s.Eval("type Z = { x: int }; var print = 1"); err == nil {
+		t.Fatal("expected a load error")
+	}
+	if _, err := s.Eval("func Z.get(): int { 1 }"); err == nil {
+		t.Error("expected a load error for a function on a type that failed to load")
+	}
+}

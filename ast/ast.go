@@ -483,6 +483,9 @@ type FuncScope struct {
 type ModuleScope struct {
 	Fields []string
 	Index  map[string]int
+	// Types holds, in a session, the type declared by each field that names one, so a later
+	// input can declare functions on it.
+	Types map[string]*TypeDecl
 }
 
 // ---- Interface plumbing

@@ -118,7 +118,9 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 				continue
 			}
 			fn.Name = fd.Owner + "." + fd.Name
-			m.tags[fd.Owner].SetFunc(fd.Name, fn)
+			if tag := m.tags[fd.Owner]; tag != nil { // nil only for a session type never bound
+				tag.SetFunc(fd.Name, fn)
+			}
 		}
 	}
 }
