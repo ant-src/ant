@@ -218,7 +218,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	}
 	if !ok {
 		c.synthArgs(x.Args, sc)
-		return c.resultOf(s, nil)
+		return c.resultOf(s, nil, x.Pos)
 	}
 	for i := range slots {
 		if slots[i] == nil && !(i < len(s.defaults) && s.defaults[i]) {
@@ -228,7 +228,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	}
 	if !ok {
 		c.synthArgs(x.Args, sc)
-		return c.resultOf(s, nil)
+		return c.resultOf(s, nil, x.Pos)
 	}
 	if len(s.tparams) == 0 {
 		for i, a := range slots {
@@ -346,7 +346,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.errorf(slots[pe.i].Pos, "cannot use %s where %s is expected", types.String(pe.t), types.String(want))
 		}
 	}
-	return c.resultOf(s, subst)
+	return c.resultOf(s, subst, x.Pos)
 }
 
 func anyParamMentions(ps []types.Type, set map[*types.ParamDecl]bool) bool {
@@ -358,7 +358,7 @@ func anyParamMentions(ps []types.Type, set map[*types.ParamDecl]bool) bool {
 	return false
 }
 
-func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type) types.Type {
+func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, pos ast.Pos) types.Type {
 	if s.fn.Return == nil {
 		return types.Invalid{}
 	}
@@ -370,6 +370,7 @@ func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type) types.
 	}
 	t, err := types.Subst(s.fn.Return, subst)
 	if err != nil {
+		c.errorf(pos, "the result of %s: %s", s.fullName(), err)
 		return types.Invalid{}
 	}
 	return t

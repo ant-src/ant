@@ -2,7 +2,8 @@
 // Section 4: a field read through a union needs every member to declare it with types that form
 // a valid union; an anonymous record type is at most one member and never beside a named one; a
 // type parameter shares a union only with null, void, other parameters, and named types without
-// arguments; at most one sync type; an exhaustive chain breaks when a member is added.
+// arguments; at most one sync type; an exhaustive chain breaks when a member is added; the
+// result of a generic call is a union formed again from the solved type arguments.
 type Box[T] = { value: T }
 type Point = { x: int }
 type NotFound = {}
@@ -26,8 +27,14 @@ func name(u: U1 | U2): string { u.name } // ERR: U2 has no field name
 func area(s: Shape): float64 {
   if s is Circle { s.radius } else if s is Rect { s.width } // ERR: an if without else has type void
 }
+func pick[A, B](a: A, b: B, first: bool): A | B { if first { a } else { b } }
 
 func main(): void {
+  var same = pick(1, 2, true)
+  var mixed = pick(1, "a", true)
+  var boxes = pick(Box{ value: 1 }, Box{ value: "s" }, false) // ERR: the result of pick: a union may contain each discriminator at most once
+  print(same + 1)
+  print(mixed)
   var e: Either[Box[int], { value: string }] = Box{ value: 1 } // ERR: anonymous record type
   var f: Fine[int] = NotFound{}
   var r: R[int, string] = Result.ok(1)
