@@ -1025,14 +1025,15 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	if c != ctlNone {
 		return iter, c
 	}
-	// run runs the body once; stop reports a break or a return.
-	run := func(v value.Value) (value.Value, ctl, bool) {
+	// runOn runs the body once, on the goroutine that reached it: g, or for a sequence,
+	// whichever goroutine called yield; stop reports a break or a return.
+	runOn := func(rg *Goroutine, v value.Value) (value.Value, ctl, bool) {
 		ienv := env
 		if e.Scope != nil {
 			ienv = newEnv(e.Scope, env)
 		}
-		g.bind(e.Target, v, ienv)
-		rv, rc := g.evalBlock(e.Body, ienv)
+		rg.bind(e.Target, v, ienv)
+		rv, rc := rg.evalBlock(e.Body, ienv)
 		switch rc {
 		case ctlBreak:
 			return nil, ctlNone, true
@@ -1041,6 +1042,7 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 		}
 		return nil, ctlNone, false
 	}
+	run := func(v value.Value) (value.Value, ctl, bool) { return runOn(g, v) }
 	switch x := iter.(type) {
 	case *value.Array:
 		for i := 0; i < x.Len(); i++ {
@@ -1087,25 +1089,29 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 			}
 		}
 	case value.Callable:
-		return g.forSeq(e, x, run)
+		return g.forSeq(e, x, runOn)
 	default:
 		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, or a function, got %s", value.Describe(iter))
 	}
 	return value.Void, ctlNone
 }
 
-func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
+func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
 	active := true
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
 		if !active {
 			g2.Panic("yield called after the sequence ended")
 		}
-		v, c, stop := run(args[0])
+		v, c, stop := run(g2, args[0])
 		if !stop {
 			return true
 		}
 		active = false
 		if c == ctlReturn {
+			if g2 != g {
+				// The loop's function is on another goroutine's stack, out of reach.
+				g2.Panic("a return in a for body cannot leave the loop from a yield called on another goroutine")
+			}
 			panic(&loopUnwind{loop: &active, v: v})
 		}
 		return false

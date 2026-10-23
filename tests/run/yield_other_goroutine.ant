@@ -1,0 +1,46 @@
+// spec: 12 Expressions
+// A sequence may call yield from goroutines of its own: each call runs the body on the goroutine
+// that made it, concurrently with the loop's, and a return there cannot reach the loop's function
+// on the other stack, so it panics in that goroutine alone.
+func fanOut(yield: func(int): bool): void {
+  var wg = WaitGroup.new()
+  for i in Iter.range(0, 4) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for j in Iter.range(0, 50) { _ = yield(i * 50 + j) }
+    }
+  }
+  for j in Iter.range(200, 250) { _ = yield(j) }
+  WaitGroup.wait(wg)
+}
+
+func elsewhere(yield: func(int): bool): void {
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    _ = yield(1)
+  }
+  WaitGroup.wait(wg)
+}
+
+func first(): int {
+  for v in elsewhere { return v }
+  0
+}
+
+func main(): void {
+  var total = Atomic.new(0)
+  for v in fanOut {
+    var kept = [v]
+    defer { _ = Atomic.add(total, kept[0]) }
+  }
+  print(Atomic.load(total))
+  print(first())
+}
+
+// expect
+// out: 31125
+// out: 0
+// err: a return in a for body cannot leave the loop from a yield called on another goroutine
