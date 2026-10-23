@@ -1,8 +1,10 @@
-// spec: 4 Primitives; 2 Literals
+// spec: 4 Primitives; 2 Literals; 11 Prelude
 // Section 4: primitives never widen, a literal is int or float64 and nothing else, string and
 // bool convert only their own kind or a named primitive over it, a numeric conversion takes a
 // number, never is the type of what does not return, and a conversion passed as a value keeps
-// its bound.
+// its bound and, as in a call, unwraps a named primitive over a kind it takes (11 Prelude).
+type Count = int
+type Label = string
 func fails(): never { panic("always") }
 func notNever(): never { 1 } // ERR: cannot use int where never is expected
 
@@ -23,5 +25,12 @@ func main(): void {
   print(w)
   print(Array.map(["a"], byte)) // ERR: T would be string
   print(Array.map([1.5], int))
+  print(Array.map([Count(1)], int))
+  print(Array.map([Count(1)], float64))
+  print(Array.map([Label("a")], string))
+  var unwrap: func(Count): int = int
+  print(unwrap(Count(2)))
+  var wrongKind: func(Label): int = int // ERR: T would be Label
+  print(Array.map([Count(1)], string)) // ERR: cannot infer the type parameter U ;; cannot use func(string): string where func(Count): U is expected ;; cannot use func(string): string where func(Count): ? is expected
   print(fails())
 }

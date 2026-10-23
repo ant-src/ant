@@ -98,6 +98,9 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 	if ent == nil || ent.kind != entFunc {
 		return nil
 	}
+	if t := convValue(ent, f); t != nil {
+		return t
+	}
 	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil
@@ -120,6 +123,24 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 		return types.Invalid{}
 	}
 	return inst
+}
+
+// convValue types a conversion used as a value where a function from a named primitive is
+// expected: a conversion also takes a named primitive over a kind it accepts, and unwraps it
+// (section 11, Prelude), as a value as in a call. It returns nil otherwise.
+func convValue(ent *entity, f types.Func) types.Type {
+	if !ent.isConv || len(f.Params) != 1 {
+		return nil
+	}
+	n, isNamed := types.Expand(f.Params[0]).(types.Named)
+	if !isNamed || n.Decl.Kind != types.PrimitiveDecl {
+		return nil
+	}
+	conv := ent.conversion
+	if n.Decl.Base != conv && (conv == value.KindString || conv == value.KindBool || !n.Decl.Base.IsNumber()) {
+		return nil
+	}
+	return types.Func{Params: []types.Type{f.Params[0]}, Return: types.Prim{Kind: conv}, Required: 1}
 }
 
 // expect reports a type that is not assignable to the expected one.

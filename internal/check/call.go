@@ -740,6 +740,9 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 	if ent == nil || ent.kind != entFunc {
 		return nil
 	}
+	if t := convValue(ent, pf); t != nil {
+		return t
+	}
 	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil
