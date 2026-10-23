@@ -217,6 +217,28 @@ func TestArray(t *testing.T) {
 	if b.Len() != 8000 {
 		t.Errorf("len after racing pushes: %d", b.Len())
 	}
+	// a read racing a pop sees the popped value or nothing, never a value from nowhere
+	c := NewArray([]Value{int64(1), int64(2)})
+	stop := make(chan struct{})
+	go func() {
+		defer close(stop)
+		for i := 0; i < 20000; i++ {
+			c.Pop()
+			c.Push(int64(2))
+		}
+	}()
+	for done := false; !done; {
+		select {
+		case <-stop:
+			done = true
+		default:
+		}
+		for _, v := range c.Values() {
+			if v != int64(1) && v != int64(2) {
+				t.Fatalf("racing read saw %v", v)
+			}
+		}
+	}
 }
 
 func TestArithmetic(t *testing.T) {

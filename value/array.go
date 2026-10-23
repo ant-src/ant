@@ -84,8 +84,9 @@ func (a *Array) Pop() (Value, bool) {
 	if h.n == 0 {
 		return nil, false
 	}
+	// The slot keeps its value: a reader holding the old header may still read it, and must
+	// see a value that was stored there, never a cleared one.
 	v := h.elems[h.n-1].Load()
-	h.elems[h.n-1].Store(nil)
 	a.h.Store(&arrayHeader{elems: h.elems, n: h.n - 1})
 	return v, true
 }
