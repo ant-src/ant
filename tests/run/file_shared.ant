@@ -1,0 +1,57 @@
+// spec: stdlib File; stdlib Net
+// One goroutine reads a connection while another writes it, since a handle's reads and writes
+// lock apart, and a close from a third goroutine ends a read in progress with an Err.
+func serve(l: Net.Listener): void {
+  var c = Result.unwrap(Net.accept(l))
+  for i in [1, 2, 3] {
+    var got = Result.unwrap(File.readLine(c))
+    var x = File.writeLine(c, `echo ${got ?? ""}`)
+  }
+  File.close(c)
+}
+
+func main(): void {
+  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+  go { serve(l) }
+  var c = Result.unwrap(Net.dial(Net.address(l)))
+  var replies: Chan[string | null] = Chan.new()
+  go {
+    while true {
+      var line = Result.unwrap(File.readLine(c))
+      Chan.send(replies, line)
+      if line == null { break }
+    }
+  }
+  for word in ["a", "b", "c"] {
+    var x = File.writeLine(c, word)
+    print(Chan.receive(replies))
+  }
+  print(Chan.receive(replies))
+
+  var l2 = Result.unwrap(Net.listen("127.0.0.1:0"))
+  var done: Chan[bool] = Chan.new()
+  go {
+    var s = Result.unwrap(Net.accept(l2))
+    Chan.receive(done)
+    File.close(s)
+  }
+  var c2 = Result.unwrap(Net.dial(Net.address(l2)))
+  var ended: Chan[bool] = Chan.new()
+  go {
+    var r = File.readLine(c2)
+    Chan.send(ended, r is Err)
+  }
+  Time.sleep(50)
+  File.close(c2)
+  print(`read ended: ${Chan.receive(ended) ?? false}`)
+  print(File.readLine(c2))
+  var sent = Chan.send(done, true)
+}
+
+// expect
+// out: echo a
+// out: echo b
+// out: echo c
+// out: null
+// out: read ended: true
+// out: Err{ error: Error{ message: "the file is not open for reading" } }

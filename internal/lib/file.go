@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,42 +35,79 @@ type deadliner interface {
 	SetReadDeadline(t time.Time) error
 }
 
-// Handle is an open file, a standard stream, or a connection: File.Handle.
+// Handle is an open file, a standard stream, or a connection: File.Handle. A reader holds the
+// read slot, a writer the write mutex, and close takes the state mutex alone, so one goroutine
+// may read a connection while another writes it, and a close from a third ends both.
 type Handle struct {
-	mu     sync.Mutex
-	c      io.Closer // the file or connection, closed by File.close
-	dl     deadliner // a connection's read deadline; nil for a file, whose reads never wait
-	r      *bufio.Reader
-	w      *bufio.Writer
-	closed bool
-	std    bool             // a standard stream: close does nothing, a write flushes
-	conn   bool             // a connection: a write flushes
-	peer   string           // a connection's remote address, for Net.peer
-	in     *interp.Instance // standard input: a read flushes stdout first and stops when the run is cancelled
+	state   sync.Mutex
+	closed  bool
+	c       io.Closer        // the file or connection, closed by File.close; nil for a standard stream
+	reads   chan struct{}    // the read slot, taken with the caller's context; nil when the handle does not read
+	r       *bufio.Reader    // the input; a read consumes it into pending
+	pending string           // what a read consumed before its context ended it, for the next read
+	dl      deadliner        // a connection's read deadline; nil for a file, whose reads never wait
+	pump    *pump            // standard input, read on a goroutine so a terminal cannot hold a cancelled run
+	in      *interp.Instance // standard input: a read flushes stdout first
+	writes  sync.Mutex
+	w       *bufio.Writer
+	std     bool   // a standard stream: close does nothing, a write flushes
+	conn    bool   // a connection: a write flushes
+	peer    string // a connection's remote address, for Net.peer
 }
 
-// read runs f, which reads from h.r, under h.mu, and gives up with the context's reason when
-// ctx is done. Standard input flushes stdout first, so a prompt is seen before the program
-// waits, and is read on a goroutine so a terminal cannot hold a cancelled run; the handle is
-// closed then, since the abandoned read still owns it. A connection has its read deadline set
-// to now when the context ends, so the read returns. A regular file never waits, so the
-// context is looked at only before the read begins.
+// newHandle makes a handle over c that reads r and writes w, either of which may be nil.
+func newHandle(c io.Closer, r io.Reader, w io.Writer) *Handle {
+	h := &Handle{c: c}
+	if r != nil {
+		h.r = bufio.NewReader(r)
+		h.reads = make(chan struct{}, 1)
+	}
+	if w != nil {
+		h.w = bufio.NewWriter(w)
+	}
+	return h
+}
+
+func (h *Handle) isClosed() bool {
+	h.state.Lock()
+	defer h.state.Unlock()
+	return h.closed
+}
+
+var errNotReadable = value.ErrorValue("the file is not open for reading")
+var errNotWritable = value.ErrorValue("the file is not open for writing")
+
+// read runs f, which reads from h.r into h.pending and answers from there, holding the read
+// slot, and gives up with the context's reason when ctx is done, whether while waiting for the
+// slot behind another reader or during the read: a connection has its read deadline set to now,
+// the pump of standard input stops handing out chunks, and a regular file never waits, so there
+// the context is looked at only before the read begins. What f consumed before giving up stays
+// in h.pending for the next read, so nothing is lost and the handle stays open.
 func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
+	if h.r == nil {
+		return value.Err(errNotReadable)
+	}
+	select {
+	case h.reads <- struct{}{}:
+	case <-ctx.Done():
+		return gaveUp(ctx)
+	}
+	defer func() { <-h.reads }()
+	if h.isClosed() {
+		return value.Err(errNotReadable)
+	}
 	if ctx.Err() != nil {
 		return gaveUp(ctx)
 	}
-	switch {
-	case h.in != nil:
+	if h.in != nil {
 		h.in.Flush()
-		done := make(chan value.Value, 1)
-		go func() { done <- f() }()
-		select {
-		case v := <-done:
-			return v
-		case <-ctx.Done():
-			h.closed = true
-			return gaveUp(ctx)
-		}
+	}
+	switch {
+	case h.pump != nil:
+		h.pump.cancel = ctx.Done()
+		v := f()
+		h.pump.cancel = nil
+		return h.ended(ctx, v)
 	case h.dl != nil:
 		stop := make(chan struct{})
 		watcher := make(chan struct{})
@@ -87,26 +124,144 @@ func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
 		<-watcher
 		if ctx.Err() != nil {
 			h.dl.SetReadDeadline(time.Time{})
-			if r, ok := v.(*value.Record); ok && r.Tag == value.ErrTag {
-				return gaveUp(ctx)
-			}
 		}
-		return v
+		return h.ended(ctx, v)
 	}
 	return f()
 }
 
-// flushed flushes a standard stream or a connection after a write, so that what a program
-// writes to stdout interleaves with print in program order, what it writes to stderr is not
-// lost at exit, and what it writes to a connection reaches the other end, which is waiting.
+// ended gives a read that failed under a done context the context's reason.
+func (h *Handle) ended(ctx context.Context, v value.Value) value.Value {
+	if ctx.Err() != nil {
+		if r, ok := v.(*value.Record); ok && r.Tag == value.ErrTag {
+			return gaveUp(ctx)
+		}
+	}
+	return v
+}
+
+// readLine is File.readLine's read: a line from pending when it holds one, else more of the
+// input. At the end of the input the rest is the last line, or null when there is nothing.
+func (h *Handle) readLine() value.Value {
+	for {
+		if i := strings.IndexByte(h.pending, '\n'); i >= 0 {
+			line := strings.TrimSuffix(h.pending[:i], "\r")
+			h.pending = h.pending[i+1:]
+			return value.Ok(line)
+		}
+		s, err := h.r.ReadString('\n')
+		h.pending += s
+		if err == nil {
+			continue
+		}
+		if err == io.EOF {
+			if h.pending == "" {
+				return value.Ok(value.Null)
+			}
+			line := h.pending
+			h.pending = ""
+			return value.Ok(line)
+		}
+		return errResult(err)
+	}
+}
+
+// readAll is File.readAll's read: pending and the rest of the input.
+func (h *Handle) readAll() value.Value {
+	data, err := io.ReadAll(h.r)
+	h.pending += string(data)
+	if err != nil {
+		return errResult(err)
+	}
+	text := h.pending
+	h.pending = ""
+	return value.Ok(text)
+}
+
+// write writes s under the write mutex and flushes a stream or a connection.
+func (h *Handle) write(s string) value.Value {
+	if h.w == nil {
+		return value.Err(errNotWritable)
+	}
+	h.writes.Lock()
+	defer h.writes.Unlock()
+	if h.isClosed() {
+		return value.Err(errNotWritable)
+	}
+	_, err := h.w.WriteString(s)
+	return h.flushed(err)
+}
+
+// flushed flushes a standard stream or a connection after a write, whatever the write's error,
+// so that what a program writes to stdout interleaves with print in program order, what it
+// writes to stderr is not lost at exit, what it writes to a connection reaches the other end,
+// which is waiting, and what a pipe copied before its context ended it is delivered.
 func (h *Handle) flushed(err error) value.Value {
-	if err == nil && (h.std || h.conn) {
-		err = h.w.Flush()
+	if h.std || h.conn {
+		if ferr := h.w.Flush(); err == nil {
+			err = ferr
+		}
 	}
 	if err != nil {
 		return errResult(err)
 	}
 	return value.Ok(value.Void)
+}
+
+// pump reads standard input on a goroutine of its own, since no deadline and no close ends a
+// terminal's read: the goroutine blocks in the real read and hands chunks over a channel, and
+// Read takes them, or gives up when the current reader's context is done without taking one, so
+// a read the context ended loses nothing and the next read gets the chunk. The goroutine starts
+// at the first read and ends with the input, or stays in its read when the run ends first.
+type pump struct {
+	src    io.Reader
+	done   <-chan struct{} // the run's end, after which a chunk has no taker
+	chunks chan chunk
+	once   sync.Once
+	rest   []byte          // the unread part of the last chunk
+	err    error           // what ended the input, given once rest is empty
+	cancel <-chan struct{} // the current reader's context, set under the read slot
+}
+
+type chunk struct {
+	data []byte
+	err  error
+}
+
+func (p *pump) run() {
+	for {
+		buf := make([]byte, 4096)
+		n, err := p.src.Read(buf)
+		select {
+		case p.chunks <- chunk{buf[:n], err}:
+		case <-p.done:
+			return
+		}
+		if err != nil {
+			return
+		}
+	}
+}
+
+func (p *pump) Read(b []byte) (int, error) {
+	p.once.Do(func() {
+		p.chunks = make(chan chunk)
+		go p.run()
+	})
+	if len(p.rest) == 0 && p.err == nil {
+		select {
+		case c := <-p.chunks:
+			p.rest, p.err = c.data, c.err
+		case <-p.cancel:
+			return 0, os.ErrDeadlineExceeded
+		}
+	}
+	n := copy(b, p.rest)
+	p.rest = p.rest[n:]
+	if n == 0 {
+		return 0, p.err
+	}
+	return n, nil
 }
 
 // SyncName names the handle for rendering.
@@ -207,7 +362,7 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(&Handle{c: f, w: bufio.NewWriter(f)})
+				return value.Ok(newHandle(f, nil, f))
 			}),
 			fn("File.read", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
 				data, err := os.ReadFile(stringArg(g, "File.read", a[0]))
@@ -263,83 +418,38 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(&Handle{c: f, r: bufio.NewReader(f)})
+				return value.Ok(newHandle(f, f, nil))
 			}),
 			fn("File.create", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
 				f, err := os.Create(stringArg(g, "File.create", a[0]))
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(&Handle{c: f, w: bufio.NewWriter(f)})
+				return value.Ok(newHandle(f, nil, f))
 			}),
 			fn("File.readLine", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.readLine", a[0])
 				ctx := waitContext(g, optionalContext(g, "File.readLine", a[1]))
-				h.mu.Lock()
-				defer h.mu.Unlock()
-				if h.closed || h.r == nil {
-					return value.Err(value.ErrorValue("the file is not open for reading"))
-				}
-				return h.read(ctx, func() value.Value {
-					line, err := h.r.ReadString('\n')
-					if err != nil && err != io.EOF {
-						return errResult(err)
-					}
-					if line == "" && err == io.EOF {
-						return value.Ok(value.Null)
-					}
-					if len(line) > 0 && line[len(line)-1] == '\n' {
-						line = line[:len(line)-1]
-						if len(line) > 0 && line[len(line)-1] == '\r' {
-							line = line[:len(line)-1]
-						}
-					}
-					return value.Ok(line)
-				})
+				return h.read(ctx, h.readLine)
 			}),
 			fn("File.readAll", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.readAll", a[0])
 				ctx := waitContext(g, optionalContext(g, "File.readAll", a[1]))
-				h.mu.Lock()
-				defer h.mu.Unlock()
-				if h.closed || h.r == nil {
-					return value.Err(value.ErrorValue("the file is not open for reading"))
-				}
-				return h.read(ctx, func() value.Value {
-					data, err := io.ReadAll(h.r)
-					if err != nil {
-						return errResult(err)
-					}
-					return value.Ok(string(data))
-				})
+				return h.read(ctx, h.readAll)
 			}),
 			fn("File.writeLine", "f, line", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.writeLine", a[0])
-				line := stringArg(g, "File.writeLine", a[1])
-				h.mu.Lock()
-				defer h.mu.Unlock()
-				if h.closed || h.w == nil {
-					return value.Err(value.ErrorValue("the file is not open for writing"))
-				}
-				_, err := h.w.WriteString(line + "\n")
-				return h.flushed(err)
+				return h.write(stringArg(g, "File.writeLine", a[1]) + "\n")
 			}),
 			fn("File.writeText", "f, text", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.writeText", a[0])
-				text := stringArg(g, "File.writeText", a[1])
-				h.mu.Lock()
-				defer h.mu.Unlock()
-				if h.closed || h.w == nil {
-					return value.Err(value.ErrorValue("the file is not open for writing"))
-				}
-				_, err := h.w.WriteString(text)
-				return h.flushed(err)
+				return h.write(stringArg(g, "File.writeText", a[1]))
 			}),
 			fn("File.flush", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.flush", a[0])
-				h.mu.Lock()
-				defer h.mu.Unlock()
-				if h.closed {
+				h.writes.Lock()
+				defer h.writes.Unlock()
+				if h.isClosed() {
 					return value.Err(value.ErrorValue("the file is closed"))
 				}
 				if h.w == nil {
@@ -357,41 +467,54 @@ func init() {
 				if src == dst {
 					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
 				}
-				// Two handles lock in address order, so pipes in both directions cannot deadlock.
-				first, second := src, dst
-				if reflect.ValueOf(first).Pointer() > reflect.ValueOf(second).Pointer() {
-					first, second = second, first
-				}
-				first.mu.Lock()
-				defer first.mu.Unlock()
-				second.mu.Lock()
-				defer second.mu.Unlock()
-				if src.closed || src.r == nil {
+				if src.r == nil || src.isClosed() {
 					return value.Err(value.ErrorValue("the source is not open for reading"))
 				}
-				if dst.closed || dst.w == nil {
+				if dst.w == nil || dst.isClosed() {
 					return value.Err(value.ErrorValue("the destination is not open for writing"))
 				}
+				// The source's read slot, then the destination's write mutex: a pipe the other
+				// way takes the other two, so the two cannot deadlock.
 				return src.read(ctx, func() value.Value {
-					_, err := io.Copy(dst.w, src.r)
+					dst.writes.Lock()
+					defer dst.writes.Unlock()
+					if dst.isClosed() {
+						return value.Err(value.ErrorValue("the destination is not open for writing"))
+					}
+					_, err := dst.w.WriteString(src.pending)
+					src.pending = ""
+					if err == nil {
+						_, err = io.Copy(dst.w, src.r)
+					}
 					return dst.flushed(err)
 				})
 			}),
 			fn("File.close", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.close", a[0])
-				h.mu.Lock()
-				defer h.mu.Unlock()
-				if h.closed {
-					return value.Void
-				}
-				if h.w != nil {
-					h.w.Flush()
-				}
 				if h.std {
+					if h.w != nil {
+						h.writes.Lock()
+						h.w.Flush()
+						h.writes.Unlock()
+					}
 					return value.Void
+				}
+				h.state.Lock()
+				if h.closed {
+					h.state.Unlock()
+					return value.Void
+				}
+				h.closed = true
+				h.state.Unlock()
+				// A file's writes never block, so its buffer is flushed before the close; a
+				// connection's are flushed as they are written, and its close ends a write or a
+				// read in progress on another goroutine.
+				if h.w != nil && !h.conn {
+					h.writes.Lock()
+					h.w.Flush()
+					h.writes.Unlock()
 				}
 				h.c.Close()
-				h.closed = true
 				return value.Void
 			}),
 		)

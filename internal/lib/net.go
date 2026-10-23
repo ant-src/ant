@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"bufio"
 	"context"
 	"net"
 	"sync"
@@ -35,7 +34,9 @@ func listenerArg(g *interp.Goroutine, who string, v value.Value) *Listener {
 // connHandle wraps a connection as a handle: buffered both ways, writes flushed, reads ended
 // by a context through the deadline.
 func connHandle(c net.Conn) *Handle {
-	return &Handle{c: c, dl: c, r: bufio.NewReader(c), w: bufio.NewWriter(c), conn: true, peer: c.RemoteAddr().String()}
+	h := newHandle(c, c, c)
+	h.dl, h.conn, h.peer = c, true, c.RemoteAddr().String()
+	return h
 }
 
 // accept waits for the next connection, or gives up when ctx is done by setting the listener's

@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"os"
@@ -113,19 +112,26 @@ func init() {
 			fn("Os.stdin", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				in := g.Instance()
 				return in.Keep("Os.stdin", func() any {
-					return &Handle{r: bufio.NewReader(in.Stdin()), std: true, in: in}
+					p := &pump{src: in.Stdin(), done: in.Context().Done()}
+					h := newHandle(nil, p, nil)
+					h.std, h.in, h.pump = true, in, p
+					return h
 				}).(*Handle)
 			}),
 			fn("Os.stdout", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				in := g.Instance()
 				return in.Keep("Os.stdout", func() any {
-					return &Handle{w: bufio.NewWriter(in.Stdout()), std: true}
+					h := newHandle(nil, nil, in.Stdout())
+					h.std = true
+					return h
 				}).(*Handle)
 			}),
 			fn("Os.stderr", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				in := g.Instance()
 				return in.Keep("Os.stderr", func() any {
-					return &Handle{w: bufio.NewWriter(in.Stderr()), std: true}
+					h := newHandle(nil, nil, in.Stderr())
+					h.std = true
+					return h
 				}).(*Handle)
 			}),
 		)
