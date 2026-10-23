@@ -84,6 +84,18 @@ func TestSession(t *testing.T) {
 	if v := value.Render(eval("P{ x: 7 }")); v != "P{ x: 7 }" {
 		t.Errorf("imported type: %s", v)
 	}
+	// an input after an import keeps its own positions, in a panic's trace and in a load error
+	eval("func deep(): int {\n  [1][3]\n}")
+	if _, err := s.Eval("deep()"); err == nil {
+		t.Error("expected a panic error")
+	} else if pe, ok := err.(*ant.PanicError); !ok || len(pe.Trace) == 0 || pe.Trace[0].Pos.Line != 2 {
+		t.Errorf("trace after an import: %v", err)
+	}
+	if _, err := s.Eval("var a = 1\nvar = 2"); err == nil {
+		t.Error("expected a load error")
+	} else if le, ok := err.(*ant.LoadError); !ok || le.Diagnostics[0].Pos.Line != 2 {
+		t.Errorf("load error after an import: %v", err)
+	}
 	// incomplete inputs
 	for _, src := range []string{"func f() {", "var s = \"open", "[1,", "`${"} {
 		if !ant.Incomplete(src) {

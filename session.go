@@ -16,11 +16,12 @@ import (
 // built on. Each input may hold declarations and statements; declarations accumulate, a name
 // may be declared again, imports stay in force, and goroutines keep running between inputs.
 type Session struct {
-	cfg     config
-	prelude map[string]value.Value
-	extra   []string
-	s       *interp.Session
-	imports []string
+	cfg         config
+	prelude     map[string]value.Value
+	extra       []string
+	s           *interp.Session
+	imports     []string      // the imports in force, as text, to keep each once
+	importDecls []*ast.Import // the same, parsed, which every later input takes before its own
 }
 
 // NewSession creates a session. The options are those of Load and Run.
@@ -50,30 +51,18 @@ func Incomplete(src string) bool {
 // Eval evaluates one input and returns the value of its last expression, or void. A syntax
 // or scope error comes back as a *LoadError, a panic as a *PanicError after being reported.
 func (s *Session) Eval(src string) (value.Value, error) {
-	prefix := strings.Join(s.imports, "; ")
-	full := src
-	if prefix != "" {
-		full = prefix + "\n" + src
-	}
 	prog, diags := loader.Load("<input>", loader.Config{
-		FS: s.cfg.fsys, Sources: withSource(s.cfg.sources, "<input>", full),
-		Mode: parser.Session, Extra: s.extra, Session: s.s.Fields,
+		FS: s.cfg.fsys, Sources: withSource(s.cfg.sources, "<input>", src),
+		Mode: parser.Session, Extra: s.extra, Session: s.s.Fields, Imports: s.importDecls,
 	})
 	if len(diags) > 0 {
-		if prefix != "" {
-			for i := range diags {
-				if diags[i].Path == "<input>" && diags[i].Pos.Line > 0 {
-					diags[i].Pos.Line--
-				}
-			}
-		}
 		return nil, &LoadError{Diagnostics: convert(diags)}
 	}
 	v, err := s.s.Eval(prog)
 	if err != nil {
 		return nil, convertRunError(err)
 	}
-	for _, imp := range prog.Root.File.Imports {
+	for _, imp := range prog.Root.File.Imports[len(s.importDecls):] {
 		s.remember(imp)
 	}
 	return v, nil
@@ -105,6 +94,7 @@ func (s *Session) remember(imp *ast.Import) {
 		}
 	}
 	s.imports = append(s.imports, text)
+	s.importDecls = append(s.importDecls, imp)
 }
 
 func withSource(sources map[string]string, path, src string) map[string]string {

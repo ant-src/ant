@@ -44,6 +44,9 @@ type Config struct {
 	// Session, when set, makes the root an input of a session: its fields accumulate in this
 	// scope and may be declared again.
 	Session *ast.ModuleScope
+	// Imports, for a session, are the imports of earlier inputs still in force: the root takes
+	// them before its own, without their text, so its positions stay those of its source.
+	Imports []*ast.Import
 }
 
 // Module is one loaded module.
@@ -176,6 +179,14 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		pe := err.(*parser.Error)
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
 		return nil
+	}
+	if root && len(l.cfg.Imports) > 0 {
+		imports := make([]*ast.Import, 0, len(l.cfg.Imports)+len(f.Imports))
+		for _, imp := range l.cfg.Imports {
+			c := *imp
+			imports = append(imports, &c)
+		}
+		f.Imports = append(imports, f.Imports...)
 	}
 	opts := resolve.Options{Extra: l.cfg.Extra}
 	if root && l.cfg.Session != nil {
