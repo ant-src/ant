@@ -2,6 +2,7 @@ package interp
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
@@ -36,7 +37,9 @@ func (s *Session) Lookup(name string) (value.Value, bool) {
 	if s.mod == nil {
 		return nil, false
 	}
+	s.mod.grow.RLock()
 	v, ok := s.mod.rec.Field(name)
+	s.mod.grow.RUnlock()
 	if !ok || v == value.Uninitialized {
 		return nil, false
 	}
@@ -67,10 +70,14 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 		s.known[lm.Path] = m
 		fresh = append(fresh, m)
 	}
-	// the session module: grow its record to the fields known now, keeping earlier values
+	// the session module: grow its record to the fields known now, keeping earlier values,
+	// and relink it, under its lock, since goroutines of earlier inputs may be using it
 	if s.mod == nil {
 		s.mod = newModule(root)
-	} else {
+		s.mod.grow = &sync.RWMutex{}
+	}
+	s.mod.grow.Lock()
+	if s.mod.m != root {
 		s.mod.m = root
 		if len(s.Fields.Fields) > s.mod.rec.Len() {
 			tag := value.NewTag(root.File.Path, value.RecordTag, append([]string(nil), s.Fields.Fields...))
@@ -87,6 +94,7 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 		s.in.linkModule(m, lookup)
 	}
 	s.in.linkModule(s.mod, lookup)
+	s.mod.grow.Unlock()
 	g := s.in.newGoroutine(true)
 	var result value.Value = value.Void
 	err := s.in.runOn(g, func() {

@@ -2,6 +2,7 @@ package ant_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -107,5 +108,33 @@ func TestSessionContext(t *testing.T) {
 	defer s.Close()
 	if _, err := s.Eval("var n = 0\nwhile true { n += 1 }"); err == nil {
 		t.Fatal("an endless loop returned without an error")
+	}
+}
+
+// TestSessionGrowsUnderGoroutines: an input that declares new names grows the session's module
+// while a goroutine of an earlier input stores into it, reads an import and calls a function;
+// no store is lost and nothing races.
+func TestSessionGrowsUnderGoroutines(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(&strings.Builder{}),
+		ant.WithSource("lib.ant", "export var step = 1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval(`import "./lib.ant" L
+var n = 0
+var done: Channel[bool] = Channel.new(1)
+func add(): void { n += L.step }
+go { for i in Iter.range(0, 100000) { add() }; Channel.send(done, true) }`); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 200; i++ {
+		if _, err := s.Eval(fmt.Sprintf("var v%d = %d", i, i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	v, err := s.Eval("Channel.receive(done)\nn")
+	if err != nil || v != value.Value(int64(100000)) {
+		t.Errorf("n = %v, %v; want 100000", v, err)
 	}
 }

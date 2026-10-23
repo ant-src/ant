@@ -229,7 +229,7 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 		return g.forLoop(e, env)
 	case *ast.Go:
 		body, scope := e.Body, e.Scope
-		path, pos := env.mod.m.File.Path, e.Pos
+		path, pos := env.mod.path, e.Pos
 		g.spawn(func(ng *Goroutine) {
 			// the block is the goroutine's root frame, so its panics report a position
 			ng.push("go block", path, pos)
@@ -277,7 +277,7 @@ func (g *Goroutine) ident(e *ast.Ident, env *Env) value.Value {
 		}
 		return v
 	case ast.RefModule:
-		v := env.mod.rec.Get(e.Ref.Index)
+		v := env.mod.get(e.Ref.Index)
 		if v == value.Uninitialized {
 			g.panicf(e.Pos, "%s is read before its initializer has run", e.Name)
 		}
@@ -302,9 +302,9 @@ func (g *Goroutine) assignIdent(e *ast.Ident, v value.Value, env *Env) {
 	case ast.RefLocal:
 		env.up(e.Ref.Depth).set(ast.Slot{Index: e.Ref.Index, Shared: e.Ref.Shared}, v)
 	case ast.RefModule:
-		env.mod.rec.Set(e.Ref.Index, v)
+		env.mod.set(e.Ref.Index, v)
 	case ast.RefImport:
-		ir := env.mod.imports[e.Ref.Index]
+		ir := env.mod.importAt(e.Ref.Index)
 		if ir.field == -1 {
 			g.panicf(e.Pos, "cannot assign to the namespace %s", e.Name)
 		}
@@ -478,7 +478,7 @@ func (g *Goroutine) pop() {
 }
 
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
-	g.push(f.FuncName(), f.Env.mod.m.File.Path, pos)
+	g.push(f.FuncName(), f.Env.mod.path, pos)
 	defer g.pop()
 	env := newEnv(&f.Scope.BlockScope, f.Env)
 	if f.Lambda {
@@ -962,7 +962,7 @@ func (g *Goroutine) bind(t ast.Target, v value.Value, env *Env) {
 			return
 		}
 		if t.Slot.Module {
-			env.mod.rec.Set(t.Slot.Index, v)
+			env.mod.set(t.Slot.Index, v)
 			return
 		}
 		env.set(t.Slot, v)

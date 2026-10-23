@@ -1,6 +1,8 @@
 package interp
 
 import (
+	"sync"
+
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/value"
@@ -9,10 +11,48 @@ import (
 // module is a module's run-time state: its record and resolved imports.
 type module struct {
 	m       *loader.Module
+	path    string // m's path, which a session's later inputs keep
 	rec     *value.Record
 	imports []importRef
 	root    *Env
 	tags    map[string]*value.Tag // the tag of each type declaration, for functions on types
+	// grow is a session module's lock: an input that declares new names replaces rec and
+	// imports under it while goroutines of earlier inputs use them under its read side. Nil
+	// for a program's modules, which never change.
+	grow *sync.RWMutex
+}
+
+// get reads the module's variable at i.
+func (m *module) get(i int) value.Value {
+	if m.grow == nil {
+		return m.rec.Get(i)
+	}
+	m.grow.RLock()
+	v := m.rec.Get(i)
+	m.grow.RUnlock()
+	return v
+}
+
+// set stores the module's variable at i.
+func (m *module) set(i int, v value.Value) {
+	if m.grow == nil {
+		m.rec.Set(i, v)
+		return
+	}
+	m.grow.RLock()
+	m.rec.Set(i, v)
+	m.grow.RUnlock()
+}
+
+// importAt returns the module's import at i.
+func (m *module) importAt(i int) importRef {
+	if m.grow == nil {
+		return m.imports[i]
+	}
+	m.grow.RLock()
+	ir := m.imports[i]
+	m.grow.RUnlock()
+	return ir
 }
 
 type importRef struct {
@@ -36,7 +76,7 @@ func (in *Instance) setupModules() {
 func newModule(lm *loader.Module) *module {
 	f := lm.File
 	tag := value.NewTag(f.Path, value.RecordTag, f.Scope.Fields)
-	m := &module{m: lm, rec: value.NewRecord(tag, nil), tags: map[string]*value.Tag{}}
+	m := &module{m: lm, path: f.Path, rec: value.NewRecord(tag, nil), tags: map[string]*value.Tag{}}
 	m.root = &Env{mod: m}
 	return m
 }
@@ -127,7 +167,7 @@ func (in *Instance) initModule(g *Goroutine, m *module) {
 
 // importValue reads an imported name: the module record for a namespace, or a field.
 func (g *Goroutine) importValue(env *Env, ref ast.Ref, pos ast.Pos) value.Value {
-	ir := env.mod.imports[ref.Index]
+	ir := env.mod.importAt(ref.Index)
 	if ir.field == -1 {
 		return ir.rec
 	}
