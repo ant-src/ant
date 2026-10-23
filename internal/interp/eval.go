@@ -963,7 +963,7 @@ func (g *Goroutine) storePlaces(p place, v value.Value) {
 	}
 	vals := arr.Values()
 	if len(vals) < len(p.nested) {
-		g.panicf(p.pos, "a destructuring needs %d elements, got %d", len(p.nested), len(vals))
+		g.panicf(p.pos, "a destructuring needs %s, got %d", plural(len(p.nested), "element"), len(vals))
 	}
 	for i, np := range p.nested {
 		if np.store != nil {
@@ -1008,7 +1008,7 @@ func (g *Goroutine) bind(t ast.Target, v value.Value, env *Env) {
 		}
 		vals := arr.Values()
 		if len(vals) < len(t.Elems) {
-			g.panicf(t.Pos, "a destructuring needs %d elements, got %d", len(t.Elems), len(vals))
+			g.panicf(t.Pos, "a destructuring needs %s, got %d", plural(len(t.Elems), "element"), len(vals))
 		}
 		for i, el := range t.Elems {
 			g.bind(el, vals[i], env)
