@@ -734,6 +734,15 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 			return types.Invalid{}
 		}
 	}
+	if decl.Kind == types.RecordDecl && len(args) > 0 {
+		// The same holds for a field type, as A | B in { v: A | B }.
+		for _, f := range decl.Fields {
+			if _, err := types.Subst(f.Type, bindingsOf(decl.Params, args)); err != nil {
+				c.errorf(x.Pos, "%s: %s", types.String(n), err)
+				return types.Invalid{}
+			}
+		}
+	}
 	return n
 }
 

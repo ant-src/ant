@@ -3,7 +3,8 @@
 // a valid union; an anonymous record type is at most one member and never beside a named one; a
 // type parameter shares a union only with null, void, other parameters, and named types without
 // arguments; at most one sync type; an exhaustive chain breaks when a member is added; the
-// result of a generic call is a union formed again from the solved type arguments.
+// result of a generic call and a field of a generic record are unions formed again from the
+// type arguments.
 type Box[T] = { value: T }
 type Point = { x: int }
 type NotFound = {}
@@ -27,12 +28,20 @@ func name(u: U1 | U2): string { u.name } // ERR: U2 has no field name
 func area(s: Shape): float64 {
   if s is Circle { s.radius } else if s is Rect { s.width } // ERR: an if without else has type void
 }
+type Mix[A, B] = { a: A, b: B, either: A | B }
+func mix[A, B](a: A, b: B): Mix[A, B] { Mix{ a, b, either: a } }
+func written(m: Mix[Box[int], Box[string]]): void {} // ERR: Mix[Box[int], Box[string]]: a union may contain each discriminator at most once
 func pick[A, B](a: A, b: B, first: bool): A | B { if first { a } else { b } }
 
 func main(): void {
   var same = pick(1, 2, true)
   var mixed = pick(1, "a", true)
   var boxes = pick(Box{ value: 1 }, Box{ value: "s" }, false) // ERR: the result of pick: a union may contain each discriminator at most once
+  var m = mix(Box{ value: 1 }, Box{ value: "s" })
+  print(m.a.value + 1)
+  var either = m.either // ERR: reading either through Mix[Box[int], Box[string]]
+  var { either: e2 } = m // ERR: reading either through Mix[Box[int], Box[string]]
+  print(mix(1, "s").either)
   print(same + 1)
   print(mixed)
   var e: Either[Box[int], { value: string }] = Box{ value: 1 } // ERR: anonymous record type

@@ -429,11 +429,31 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos) types.Type 
 	}
 	for _, f := range fields {
 		if f.Name == name {
+			if err := fieldUnionErr(recv, name); err != nil {
+				c.errorf(pos, "reading %s through %s: %s", name, types.String(recv), err)
+			}
 			return f.Type
 		}
 	}
 	c.errorf(pos, "%s has no field %s", types.String(recv), name)
 	return types.Invalid{}
+}
+
+// fieldUnionErr is the error of forming the type of a named record's field from its type
+// arguments, as in the field A | B of P[Box[int], Box[string]], which FieldsOf replaces by
+// an invalid type (section 4, Unions).
+func fieldUnionErr(recv types.Type, name string) error {
+	n, ok := types.Expand(recv).(types.Named)
+	if !ok || len(n.Args) == 0 || n.Decl.Kind != types.RecordDecl {
+		return nil
+	}
+	for _, f := range n.Decl.Fields {
+		if f.Name == name {
+			_, err := types.Subst(f.Type, bindingsOf(n.Decl.Params, n.Args))
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Checker) index(x *ast.Index, sc *scope) types.Type {
