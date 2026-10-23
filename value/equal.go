@@ -15,65 +15,46 @@ type pair struct{ a, b any }
 
 func equal(a, b Value, visiting map[pair]bool) bool {
 	switch x := a.(type) {
-	case int64:
-		y, ok := b.(int64)
-		return ok && x == y
-	case float64:
-		y, ok := b.(float64)
-		return ok && x == y
-	case string:
-		y, ok := b.(string)
-		return ok && x == y
-	case bool:
-		y, ok := b.(bool)
-		return ok && x == y
-	case nullType:
-		_, ok := b.(nullType)
-		return ok
-	case voidType:
-		_, ok := b.(voidType)
-		return ok
-	case int8:
-		y, ok := b.(int8)
-		return ok && x == y
-	case int16:
-		y, ok := b.(int16)
-		return ok && x == y
-	case int32:
-		y, ok := b.(int32)
-		return ok && x == y
-	case uint8:
-		y, ok := b.(uint8)
-		return ok && x == y
-	case uint16:
-		y, ok := b.(uint16)
-		return ok && x == y
-	case uint32:
-		y, ok := b.(uint32)
-		return ok && x == y
-	case uint64:
-		y, ok := b.(uint64)
-		return ok && x == y
-	case float32:
-		y, ok := b.(float32)
-		return ok && x == y
+	case int64, int8, int16, int32, uint8, uint16, uint32, uint64, float64, float32, string, bool,
+		nullType, voidType, *Tag:
+		// Interface comparison checks the dynamic type first, so float32 never equals float64,
+		// and it compares floats by value, so NaN is unequal to itself and -0.0 equals 0.0.
+		return a == b
 	case *Tagged:
 		y, ok := b.(*Tagged)
 		return ok && x.Tag == y.Tag && equal(x.Payload, y.Payload, visiting)
-	case *Record:
-		y, ok := b.(*Record)
-		if !ok || x.Tag != y.Tag {
-			return false
-		}
+	case *Record, *Array, *Map, *Set:
+		// A pair already under comparison is assumed equal, so cyclic values compare finitely.
 		if visiting == nil {
 			visiting = map[pair]bool{}
 		}
-		p := pair{x, y}
+		p := pair{a, b}
 		if visiting[p] {
 			return true
 		}
 		visiting[p] = true
 		defer delete(visiting, p)
+		return equalContainer(a, b, visiting)
+	case Callable, Sync:
+		return a == b
+	case Time:
+		y, ok := b.(Time)
+		return ok && x.TimeType() == y.TimeType() && x.Key() == y.Key()
+	case *Regex:
+		y, ok := b.(*Regex)
+		return ok && x.Source == y.Source && x.Flags == y.Flags
+	}
+	return false
+}
+
+// equalContainer compares a record, array, map or set with b, element by element.
+func equalContainer(a, b Value, visiting map[pair]bool) bool {
+	switch x := a.(type) {
+	case *Record:
+		y, ok := b.(*Record)
+		if !ok || x.Tag != y.Tag {
+			return false
+		}
 		for i := 0; i < x.Len(); i++ {
 			if !equal(x.Get(i), y.Get(i), visiting) {
 				return false
@@ -85,15 +66,6 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		if !ok {
 			return false
 		}
-		if visiting == nil {
-			visiting = map[pair]bool{}
-		}
-		p := pair{x, y}
-		if visiting[p] {
-			return true
-		}
-		visiting[p] = true
-		defer delete(visiting, p)
 		xs, ys := x.Values(), y.Values()
 		if len(xs) != len(ys) {
 			return false
@@ -106,23 +78,10 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		return true
 	case *Map:
 		y, ok := b.(*Map)
-		if !ok {
+		if !ok || x.Len() != y.Len() {
 			return false
 		}
-		if visiting == nil {
-			visiting = map[pair]bool{}
-		}
-		p := pair{x, y}
-		if visiting[p] {
-			return true
-		}
-		visiting[p] = true
-		defer delete(visiting, p)
-		xs := x.Entries()
-		if len(xs) != y.Len() {
-			return false
-		}
-		for _, e := range xs {
+		for _, e := range x.Entries() {
 			v, ok := lookup(y, e.Key, visiting)
 			if !ok || !equal(e.Value, v, visiting) {
 				return false
@@ -131,41 +90,15 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		return true
 	case *Set:
 		y, ok := b.(*Set)
-		if !ok {
+		if !ok || x.Len() != y.Len() {
 			return false
 		}
-		if visiting == nil {
-			visiting = map[pair]bool{}
-		}
-		p := pair{x, y}
-		if visiting[p] {
-			return true
-		}
-		visiting[p] = true
-		defer delete(visiting, p)
-		xs := x.Values()
-		if len(xs) != y.Len() {
-			return false
-		}
-		for _, e := range xs {
+		for _, e := range x.Values() {
 			if _, ok := lookup(&y.m, e, visiting); !ok {
 				return false
 			}
 		}
 		return true
-	case *Tag:
-		y, ok := b.(*Tag)
-		return ok && x == y
-	case Callable:
-		return a == b
-	case Sync:
-		return a == b
-	case Time:
-		y, ok := b.(Time)
-		return ok && x.TimeType() == y.TimeType() && x.Key() == y.Key()
-	case *Regex:
-		y, ok := b.(*Regex)
-		return ok && x.Source == y.Source && x.Flags == y.Flags
 	}
 	return false
 }
@@ -201,22 +134,10 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 	k := KindOf(v)
 	h.WriteByte(byte(k))
 	switch x := v.(type) {
-	case int64:
-		writeUint(h, uint64(x))
-	case int8:
-		writeUint(h, uint64(x))
-	case int16:
-		writeUint(h, uint64(x))
-	case int32:
-		writeUint(h, uint64(x))
-	case uint8:
-		writeUint(h, uint64(x))
-	case uint16:
-		writeUint(h, uint64(x))
-	case uint32:
-		writeUint(h, uint64(x))
-	case uint64:
-		writeUint(h, x)
+	case int64, int8, int16, int32:
+		writeUint(h, uint64(toInt64(v)))
+	case uint8, uint16, uint32, uint64:
+		writeUint(h, toUint64(v))
 	case float64:
 		if x == 0 {
 			x = 0 // -0.0 and 0.0 are equal

@@ -21,23 +21,20 @@ func RenderQuoted(v Value) string {
 }
 
 func render(sb *strings.Builder, v Value, top bool, stack []any) {
+	switch v.(type) {
+	case *Record, *Array, *Map, *Set:
+		// A container inside itself renders as ... at the inner occurrence.
+		if onStack(stack, v) {
+			sb.WriteString("...")
+			return
+		}
+		stack = append(stack, v)
+	}
 	switch x := v.(type) {
-	case int64:
-		sb.WriteString(strconv.FormatInt(x, 10))
-	case int8:
-		sb.WriteString(strconv.FormatInt(int64(x), 10))
-	case int16:
-		sb.WriteString(strconv.FormatInt(int64(x), 10))
-	case int32:
-		sb.WriteString(strconv.FormatInt(int64(x), 10))
-	case uint8:
-		sb.WriteString(strconv.FormatUint(uint64(x), 10))
-	case uint16:
-		sb.WriteString(strconv.FormatUint(uint64(x), 10))
-	case uint32:
-		sb.WriteString(strconv.FormatUint(uint64(x), 10))
-	case uint64:
-		sb.WriteString(strconv.FormatUint(x, 10))
+	case int64, int8, int16, int32:
+		sb.WriteString(strconv.FormatInt(toInt64(v), 10))
+	case uint8, uint16, uint32, uint64:
+		sb.WriteString(strconv.FormatUint(toUint64(v), 10))
 	case float64:
 		sb.WriteString(FormatFloat(x, 64))
 	case float32:
@@ -60,11 +57,6 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		render(sb, x.Payload, false, stack)
 		sb.WriteByte(')')
 	case *Record:
-		if onStack(stack, x) {
-			sb.WriteString("...")
-			return
-		}
-		stack = append(stack, x)
 		sb.WriteString(x.Tag.Name)
 		if x.Len() == 0 {
 			sb.WriteString("{}")
@@ -81,11 +73,6 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		}
 		sb.WriteString(" }")
 	case *Array:
-		if onStack(stack, x) {
-			sb.WriteString("...")
-			return
-		}
-		stack = append(stack, x)
 		xs := x.Values()
 		sb.WriteByte('[')
 		for i, e := range xs {
@@ -96,11 +83,6 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		}
 		sb.WriteByte(']')
 	case *Map:
-		if onStack(stack, x) {
-			sb.WriteString("...")
-			return
-		}
-		stack = append(stack, x)
 		es := x.Entries()
 		if len(es) == 0 {
 			sb.WriteString("Map{}")
@@ -117,11 +99,6 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		}
 		sb.WriteString(" }")
 	case *Set:
-		if onStack(stack, x) {
-			sb.WriteString("...")
-			return
-		}
-		stack = append(stack, x)
 		sb.WriteString("Set.of([")
 		for i, e := range x.Values() {
 			if i > 0 {
