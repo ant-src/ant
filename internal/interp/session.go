@@ -97,16 +97,11 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 		for _, m := range fresh {
 			s.in.initModule(g, m)
 		}
-		env := s.mod.root
-		for _, st := range root.File.Stmts {
-			switch st := st.(type) {
-			case *ast.VarDecl:
-				v := g.evalValue(st.Init, env)
-				g.bind(st.Target, v, env)
-				result = value.Void
-			case ast.Expr:
-				result = g.evalValue(st, env)
-			}
+		var c ctl
+		result, c = g.evalStmts(root.File.Stmts, s.mod.root)
+		if c != ctlNone {
+			// The parser keeps return, break, continue and try inside a function or a loop.
+			g.panicf(ast.Pos{}, "internal error: control left a session input")
 		}
 	})
 	s.in.Flush()

@@ -372,12 +372,11 @@ func (in *Instance) Exit(status int) {
 
 // ---- goroutines
 
-// Goroutine is the per-goroutine interpreter state: its call stack and depth.
+// Goroutine is the per-goroutine interpreter state: its call stack, whose length is the depth.
 type Goroutine struct {
 	in    *Instance
 	main  bool
 	stack []Frame
-	depth int
 	pos   ast.Pos // the call site of the builtin in progress, for its panics
 	// frames of blocks that registered deferred blocks, innermost last
 	defers []*deferFrame

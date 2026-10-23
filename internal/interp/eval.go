@@ -488,17 +488,13 @@ func (g *Goroutine) callValue(fn value.Value, args []value.Value, names []string
 }
 
 func (g *Goroutine) push(name, path string, pos ast.Pos) {
-	if g.depth >= maxDepth {
+	if len(g.stack) >= maxDepth {
 		g.panicf(pos, "call depth exceeded %d", maxDepth)
 	}
-	g.depth++
 	g.stack = append(g.stack, Frame{Function: name, Path: path, Pos: pos})
 }
 
-func (g *Goroutine) pop() {
-	g.depth--
-	g.stack = g.stack[:len(g.stack)-1]
-}
+func (g *Goroutine) pop() { g.stack = g.stack[:len(g.stack)-1] }
 
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
 	g.push(f.FuncName(), f.Env.mod.path, pos)
