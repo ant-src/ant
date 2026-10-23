@@ -8,6 +8,8 @@ func main() {
   print(`total: ${a + b} items, first ${Array.map(xs, { x * 2 })[0]}`)
   print(`kept   as   written ${Point{ x: 1 }}   `)
   print(`a ${`inner ${a} `} b`)
+  print(`${a
+    - b} subtracts across the break`)
   print(`multi
     line ${a +
           b} text`)

@@ -92,3 +92,31 @@ func TestParseRecordsNoRoles(t *testing.T) {
 		t.Error("mark filled a nil role map")
 	}
 }
+
+// TestPrefix checks that ParseLayout marks the - and ! it reads as prefix operators, and only
+// them: a - after a line break inside a list or an interpolation still subtracts.
+func TestPrefix(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{"var x = -a - -b", "- -"},
+		{"var x = !a && !(b)", "! !"},
+		{"func f() { a\n-1 }", "-"},
+		{"var x = (a\n- 1)", ""},
+		{"var x = [a,\n-1]", "-"},
+		{"var x = `${a\n  - b} ${-c}`", "-"},
+		{"var x = try f()", ""},
+	} {
+		_, l, err := ParseLayout("t.ant", c.src)
+		if err != nil {
+			t.Fatalf("%q: %v", c.src, err)
+		}
+		var got []string
+		for off := range len(c.src) {
+			if l.Prefix[off] {
+				got = append(got, c.src[off:off+1])
+			}
+		}
+		if strings.Join(got, " ") != c.want {
+			t.Errorf("%q: prefix %q, want %q", c.src, strings.Join(got, " "), c.want)
+		}
+	}
+}

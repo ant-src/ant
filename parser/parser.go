@@ -60,6 +60,8 @@ type Layout struct {
 	Tokens   []token.Token
 	Comments []token.Comment
 	Roles    map[int]Role
+	// Prefix holds the offsets of the - and ! tokens the parser read as prefix operators.
+	Prefix map[int]bool
 }
 
 // Role is what an opening bracket is, as the parser decided while parsing it.
@@ -75,8 +77,8 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 	if lerr != nil {
 		return nil, nil, lexError(src, lerr)
 	}
-	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}}
-	p := &parser{mode: Program, toks: toks, roles: l.Roles}
+	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
+	p := &parser{mode: Program, toks: toks, roles: l.Roles, prefix: l.Prefix}
 	defer p.recover(&err)
 	return p.file(path), l, nil
 }
@@ -123,6 +125,7 @@ type parser struct {
 	curBlock *ast.Block   // the innermost block whose statements are being parsed
 	depth    int          // nesting of expressions, types, and blocks, bounded by maxNesting
 	roles    map[int]Role // filled for ParseLayout, nil otherwise
+	prefix   map[int]bool // likewise
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -905,6 +908,9 @@ func (p *parser) unary() ast.Expr {
 		p.nest()
 		defer p.unnest()
 		p.next()
+		if p.prefix != nil && t.Kind == token.Op {
+			p.prefix[t.Off] = true
+		}
 		return &ast.Unary{Pos: pos(t), Op: t.Text, X: p.unary()}
 	}
 	return p.postfix()
@@ -1131,7 +1137,7 @@ func (p *parser) template(t token.Token) *ast.Template {
 			n.Parts = append(n.Parts, ast.TemplatePart{Text: part.Text})
 			continue
 		}
-		sub := &parser{mode: p.mode, toks: part.Tokens, nl: 1, boundary: p.boundary, loops: p.loops, curBlock: p.curBlock, roles: p.roles}
+		sub := &parser{mode: p.mode, toks: part.Tokens, nl: 1, boundary: p.boundary, loops: p.loops, curBlock: p.curBlock, roles: p.roles, prefix: p.prefix}
 		e := sub.expression()
 		if !sub.atKind(token.EOF) {
 			sub.fail(sub.peek().Pos, "unexpected %s in a template expression", sub.peek())

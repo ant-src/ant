@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/ant-src/ant/internal/lexer"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/parser"
 )
@@ -20,8 +21,7 @@ func Source(path string, src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &printer{src: s, roles: l.Roles, unary: map[int]bool{}}
-	p.markUnary(l.Tokens)
+	p := &printer{src: s, roles: l.Roles, prefix: l.Prefix}
 	p.comments = l.Comments
 	file := p.build(l.Tokens, 0, len(s))
 	p.file(file)
@@ -87,7 +87,7 @@ func (e elem) isNewline() bool { return e.tok != nil && e.tok.Kind == token.Newl
 type printer struct {
 	src      string
 	roles    map[int]parser.Role
-	unary    map[int]bool // the offsets of the - tokens that are prefix
+	prefix   map[int]bool // the offsets of the - and ! the parser read as prefix
 	comments []token.Comment
 	out      strings.Builder
 	indent   int   // the indentation level of the line being written
@@ -142,48 +142,6 @@ func (p *printer) build(toks []token.Token, from, to int) *group {
 		add(elem{com: &coms[ci]})
 	}
 	return root
-}
-
-// markUnary records each - that is a prefix operator: one that starts a statement or whose
-// previous token is not an operand. A newline starts a statement only where the parser reads it,
-// in a block; inside a list, a - after a line break still subtracts.
-func (p *printer) markUnary(toks []token.Token) {
-	var prev *token.Token
-	blocks := []bool{true}
-	for i := range toks {
-		t := &toks[i]
-		for _, part := range t.Parts {
-			p.markUnary(part.Tokens)
-		}
-		switch {
-		case t.Kind == token.EOF:
-			continue
-		case t.Kind == token.Newline:
-			if blocks[len(blocks)-1] {
-				prev = nil
-			}
-			continue
-		case t.Is("(") || t.Is("[") || t.Is("{"):
-			blocks = append(blocks, p.roles[t.Off].Block)
-		case (t.Is(")") || t.Is("]") || t.Is("}")) && len(blocks) > 1:
-			blocks = blocks[:len(blocks)-1]
-		case t.Is("-") && (prev == nil || !operand(*prev)):
-			p.unary[t.Off] = true
-		}
-		prev = t
-	}
-}
-
-func operand(t token.Token) bool {
-	switch t.Kind {
-	case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex:
-		return true
-	case token.Keyword:
-		return t.Text == "true" || t.Text == "false" || t.Text == "null" || t.Text == "void"
-	case token.Op:
-		return t.Text == ")" || t.Text == "]" || t.Text == "}"
-	}
-	return false
 }
 
 // ---- statements and items
@@ -653,11 +611,11 @@ func (p *printer) space(prev, cur token.Token) int {
 		return 1
 	case prev.Is(".") || prev.Is("?.") || prev.Is("..."):
 		return 0
-	case (cur.Is("(") || cur.Is("[")) && (operand(prev) || prev.Is("func")):
+	case (cur.Is("(") || cur.Is("[")) && (lexer.Operand(prev) || prev.Is("func")):
 		return 0
 	case cur.Is("{") && p.roles[cur.Off].Typed:
 		return 0
-	case prev.Is("!") || prev.Is("-") && p.unary[prev.Off]:
+	case p.prefix[prev.Off] && prev.Kind == token.Op:
 		return 0
 	}
 	return 1

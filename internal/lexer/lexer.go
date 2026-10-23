@@ -147,24 +147,28 @@ func (l *lexer) lastContinues() bool {
 // operandKeywords are the keywords that are operands, after which a / is division.
 var operandKeywords = map[string]bool{"true": true, "false": true, "null": true, "void": true}
 
+// Operand reports whether t is an operand in the sense of section 2: an identifier, a literal of
+// any kind, true, false, null, void, or a closing bracket. After an operand a / is division.
+func Operand(t token.Token) bool {
+	switch t.Kind {
+	case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex:
+		return true
+	case token.Keyword:
+		return operandKeywords[t.Text]
+	case token.Op:
+		return t.Text == ")" || t.Text == "]" || t.Text == "}"
+	}
+	return false
+}
+
 // regexAllowed reports whether a / here begins a regular expression literal: when the last
-// token, skipping line breaks, is not an operand (section 2). An operand is an identifier, a
-// literal of any kind, true, false, null, void, or a closing bracket. With no previous token, at
-// the start of a file or of an interpolation, a / begins a literal.
+// token, skipping line breaks, is not an Operand (section 2). With no previous token, at the
+// start of a file or of an interpolation, a / begins a literal.
 func (l *lexer) regexAllowed() bool {
 	for i := len(l.toks) - 1; i >= 0; i-- {
-		t := l.toks[i]
-		switch t.Kind {
-		case token.Newline:
-			continue
-		case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex:
-			return false
-		case token.Keyword:
-			return !operandKeywords[t.Text]
-		case token.Op:
-			return t.Text != ")" && t.Text != "]" && t.Text != "}"
+		if t := l.toks[i]; t.Kind != token.Newline {
+			return !Operand(t)
 		}
-		return true
 	}
 	return true
 }
