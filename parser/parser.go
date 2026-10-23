@@ -1170,6 +1170,8 @@ func (p *parser) loopBody() *ast.Block {
 }
 
 func (p *parser) ifExpr() *ast.If {
+	p.nest() // an else-if chain nests each if in the one before
+	defer p.unnest()
 	t := p.expect("if")
 	cond := p.headerExpr("if")
 	n := &ast.If{Pos: pos(t), Cond: cond, Then: p.block()}
