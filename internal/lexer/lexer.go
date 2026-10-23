@@ -27,6 +27,9 @@ type lexer struct {
 	toks    []token.Token
 	nesting int  // template interpolations entered, bounded by maxNesting
 	noRegex bool // read / as the operator always, for the differential test of the operand rule
+	lines   []int           // the byte offset at which each line starts
+	layout  bool            // keep the comments, for the formatter
+	comment []token.Comment // the comments kept in layout mode, in source order
 }
 
 // maxNesting bounds the nesting of template interpolations, so that no input can overflow the
@@ -40,11 +43,22 @@ func Lex(src string) ([]token.Token, error) { return LexWith(src, true) }
 // literal, which gives the lexer as it was before the literal existed; the fuzz test compares
 // the two on every input in which the literal does not occur.
 func LexWith(src string, regex bool) (toks []token.Token, err error) {
-	l := &lexer{src: src, line: 1, col: 1, noRegex: !regex}
+	toks, _, err = lex(&lexer{src: src, noRegex: !regex})
+	return toks, err
+}
+
+// LexLayout tokenizes src as Lex does, and also returns its comments in source order, for the
+// formatter, which must print them where they were.
+func LexLayout(src string) ([]token.Token, []token.Comment, error) {
+	return lex(&lexer{src: src, layout: true})
+}
+
+func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
+	l.line, l.col, l.lines = 1, 1, []int{0}
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*Error); ok {
-				toks, err = nil, e
+				toks, comments, err = nil, nil, e
 				return
 			}
 			panic(r)
@@ -56,7 +70,7 @@ func LexWith(src string, regex bool) (toks []token.Token, err error) {
 		l.emit(token.Token{Kind: token.Newline, Pos: l.here()})
 	}
 	l.emit(token.Token{Kind: token.EOF, Pos: l.here()})
-	return l.toks, nil
+	return l.toks, l.comment, nil
 }
 
 func (l *lexer) fail(pos token.Pos, format string, args ...any) {
@@ -79,6 +93,7 @@ func (l *lexer) advance(n int) {
 		if l.src[l.pos] == '\n' {
 			l.line++
 			l.col = 1
+			l.lines = append(l.lines, l.pos+1)
 		} else {
 			l.col++
 		}
@@ -86,7 +101,24 @@ func (l *lexer) advance(n int) {
 	}
 }
 
-func (l *lexer) emit(t token.Token) { l.toks = append(l.toks, t) }
+// emit appends t, which starts at t.Pos and ends where the lexer stands.
+func (l *lexer) emit(t token.Token) {
+	t.Off, t.End = l.offset(t.Pos), l.pos
+	if t.Kind == token.Newline {
+		t.End = t.Off
+	}
+	l.toks = append(l.toks, t)
+}
+
+// offset is the byte offset of a position the lexer has passed.
+func (l *lexer) offset(p token.Pos) int { return l.lines[p.Line-1] + p.Col - 1 }
+
+// keepComment records the comment from start to where the lexer stands, in layout mode.
+func (l *lexer) keepComment(pos token.Pos, start int) {
+	if l.layout {
+		l.comment = append(l.comment, token.Comment{Text: l.src[start:l.pos], Pos: pos, Off: start, End: l.pos})
+	}
+}
 
 // Keywords that can end an expression; every other keyword continues the line.
 var endingKeywords = map[string]bool{
@@ -197,16 +229,20 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 		l.advance(1)
 		return true
 	case l.has("//"):
+		start := l.pos
 		for l.pos < len(l.src) && l.src[l.pos] != '\n' {
 			l.advance(1)
 		}
+		l.keepComment(pos, start)
 		return true
 	case l.has("/*"):
 		end := strings.Index(l.src[l.pos+2:], "*/")
 		if end < 0 {
 			l.fail(pos, "unterminated block comment")
 		}
+		start := l.pos
 		l.advance(2 + end + 2)
+		l.keepComment(pos, start)
 		return true
 	case isDigit(c):
 		l.number()
@@ -479,7 +515,7 @@ func (l *lexer) template() {
 	textPos := l.here()
 	flush := func() {
 		if sb.Len() > 0 {
-			parts = append(parts, token.Part{Text: sb.String(), Pos: textPos})
+			parts = append(parts, token.Part{Text: sb.String(), Pos: textPos, Off: l.offset(textPos), End: l.pos})
 			sb.Reset()
 		}
 	}
@@ -489,8 +525,8 @@ func (l *lexer) template() {
 		case c == 0:
 			l.fail(pos, "unterminated template string")
 		case c == '`':
-			l.advance(1)
 			flush()
+			l.advance(1)
 			l.emit(token.Token{Kind: token.Template, Parts: parts, Pos: pos})
 			return
 		case c == '\\':
@@ -499,7 +535,8 @@ func (l *lexer) template() {
 			flush()
 			exprPos := l.here()
 			l.advance(2)
-			parts = append(parts, token.Part{Tokens: l.interpolation(exprPos), Pos: exprPos})
+			toks := l.interpolation(exprPos)
+			parts = append(parts, token.Part{Tokens: toks, Pos: exprPos, Off: l.offset(exprPos), End: l.pos})
 			textPos = l.here()
 		default:
 			sb.WriteByte(c)

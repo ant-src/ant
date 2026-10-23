@@ -62,6 +62,9 @@ type Token struct {
 	Parts []Part  // for Template
 	Flags string  // for Regex
 	Pos   Pos
+	// Off and End are the token's byte span in the source: the source between them is the token
+	// as written. A Newline is empty, at its line break.
+	Off, End int
 }
 
 // Part is one piece of a template string: literal text, or the tokens of an interpolation
@@ -70,6 +73,16 @@ type Part struct {
 	Text   string
 	Tokens []Token
 	Pos    Pos
+	// Off and End are the part's byte span in the source: the text as written, or an
+	// interpolation from its $ to its closing brace.
+	Off, End int
+}
+
+// Comment is a comment as written, kept only by lexer.LexLayout.
+type Comment struct {
+	Text     string // the comment's source, from // or /* to the end of the line or */
+	Pos      Pos
+	Off, End int
 }
 
 // String describes the token for error messages.
