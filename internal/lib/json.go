@@ -177,10 +177,14 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 			if i > 0 {
 				sb.WriteByte(',')
 			}
-			if s, ok := e.Key.(string); ok {
+			key := e.Key
+			if t, ok := key.(*value.Tagged); ok {
+				key = t.Payload // a named primitive key, without its tag as a value is written
+			}
+			if s, ok := key.(string); ok {
 				writeJSONString(sb, s)
 			} else {
-				writeJSONString(sb, value.Render(e.Key))
+				writeJSONString(sb, value.Render(key))
 			}
 			sb.WriteByte(':')
 			if !stringify(sb, e.Value, stack) {
