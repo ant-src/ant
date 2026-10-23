@@ -15,12 +15,8 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// Diagnostic is one checker error.
-type Diagnostic struct {
-	Path string
-	Pos  ast.Pos
-	Msg  string
-}
+// Diagnostic is one checker error, of the loader's shape.
+type Diagnostic = loader.Diagnostic
 
 // HostNamespace is a host namespace's parsed signatures.
 type HostNamespace struct {
@@ -747,7 +743,6 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	}
 	return n
 }
-
 
 // lookupEntity finds a module-level or prelude name.
 func (c *Checker) lookupEntity(name string) *entity {

@@ -326,3 +326,23 @@ func TestCallSite(t *testing.T) {
 		t.Errorf("the call's frame is at %d:%d, want line 3", f.Pos.Line, f.Pos.Col)
 	}
 }
+
+// TestStartInterrupts: an instance honors WithInterrupts as a run does. An interrupt the
+// program never asked for ends the instance, and the call in progress returns ErrInterrupted.
+func TestStartInterrupts(t *testing.T) {
+	src := "func spin(): int {\n  var n = 0\n  while true { n += 1 }\n  n\n}\nfunc main(): void {}\n"
+	interrupts := make(chan struct{}, 1)
+	// The deadline only bounds the test: without the interrupt the call would never end.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	in, err := loadSrc(t, src).Start(ctx, ant.WithInterrupts(interrupts))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	time.AfterFunc(50*time.Millisecond, func() { interrupts <- struct{}{} })
+	spin, _ := in.Func("spin")
+	if _, err := spin.Call(); !errors.Is(err, ant.ErrInterrupted) {
+		t.Fatalf("an interrupted call ended with %v, want ErrInterrupted", err)
+	}
+}

@@ -147,11 +147,7 @@ type Instance struct {
 // Start initializes the program's modules without calling main. The options given to Load
 // apply, and options given here override them.
 func (p *Program) Start(ctx context.Context, opts ...Option) (*Instance, error) {
-	cfg := p.cfg.with(opts)
-	in, err := interp.Start(ctx, p.prog, interp.Config{
-		Prelude: p.prelude, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args,
-		Env: cfg.env, Environ: cfg.environ,
-	})
+	in, err := interp.Start(ctx, p.prog, p.cfg.with(opts).run(p.prelude))
 	if err != nil {
 		return nil, convertRunError(err)
 	}

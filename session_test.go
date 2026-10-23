@@ -2,6 +2,7 @@ package ant_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -199,5 +200,23 @@ func TestSessionTypeFuncLater(t *testing.T) {
 	}
 	if _, err := s.Eval("func Z.get(): int { 1 }"); err == nil {
 		t.Error("expected a load error for a function on a type that failed to load")
+	}
+}
+
+// TestSessionInterrupts: a session honors WithInterrupts as a run does, so an interrupt ends
+// an input that never waits.
+func TestSessionInterrupts(t *testing.T) {
+	interrupts := make(chan struct{}, 1)
+	// The deadline only bounds the test: without the interrupt the input would never end.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	s, err := ant.NewSession(ctx, ant.WithInterrupts(interrupts))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	time.AfterFunc(50*time.Millisecond, func() { interrupts <- struct{}{} })
+	if _, err := s.Eval("var n = 0\nwhile true { n += 1 }"); !errors.Is(err, ant.ErrInterrupted) {
+		t.Fatalf("an interrupted input ended with %v, want ErrInterrupted", err)
 	}
 }

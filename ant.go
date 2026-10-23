@@ -91,6 +91,14 @@ func (c config) with(opts []Option) config {
 	return c
 }
 
+// run is the interpreter's configuration for a run, an instance, or a session.
+func (c config) run(prelude map[string]value.Value) interp.Config {
+	return interp.Config{
+		Prelude: prelude, Stdin: c.stdin, Stdout: c.stdout, Stderr: c.stderr,
+		Args: c.args, Env: c.env, Environ: c.environ, Interrupts: c.interrupts,
+	}
+}
+
 // An Option configures Load, Run, or both. Options given to Run override those given to Load.
 type Option func(*config)
 
@@ -127,11 +135,11 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 	return func(c *config) { c.env = lookup }
 }
 
-// WithInterrupts delivers interrupts to a run, one per value the host sends on c. The first goes
-// to the context Os.interrupt returns, when the program has called it and the context is not
-// done, so the program can drain and exit; otherwise, and for a program that never called it,
-// an interrupt ends the run, and Run returns ErrInterrupted. The ant command sends one per
-// Ctrl-C or SIGTERM.
+// WithInterrupts delivers interrupts to a run, an instance, or a session, one per value the host
+// sends on c. The first goes to the context Os.interrupt returns, when the program has called it
+// and the context is not done, so the program can drain and exit; otherwise, and for a program
+// that never called it, an interrupt ends the run, and Run, the Func.Call or the Session.Eval in
+// progress returns ErrInterrupted. The ant command sends one per Ctrl-C or SIGTERM.
 func WithInterrupts(c <-chan struct{}) Option { return func(cfg *config) { cfg.interrupts = c } }
 
 // ErrInterrupted is what Run returns when an interrupt ended the run: one the program had not
@@ -192,20 +200,11 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 // It returns nil when main returns, a *PanicError when the main goroutine panics, an *ExitError
 // when the program calls Os.exit, and ctx.Err() when the context is cancelled first.
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
-	cfg := p.cfg.with(opts)
-	return convertRunError(interp.Run(ctx, p.prog, interp.Config{
-		Prelude: p.prelude, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr,
-		Args: cfg.args, Env: cfg.env, Environ: cfg.environ, Interrupts: cfg.interrupts,
-	}))
+	return convertRunError(interp.Run(ctx, p.prog, p.cfg.with(opts).run(p.prelude)))
 }
 
 // Check type-checks every module of the program, including code nothing calls, and returns the
 // errors sorted by position. A program with no diagnostics is well typed.
 func (p *Program) Check() []Diagnostic {
-	diags := check.Program(p.prog, check.Config{Namespaces: p.nsDecls, Removed: p.cfg.removed})
-	out := make([]Diagnostic, len(diags))
-	for i, d := range diags {
-		out[i] = Diagnostic{Pos: Position{Path: d.Path, Line: d.Pos.Line, Col: d.Pos.Col}, Message: d.Msg}
-	}
-	return out
+	return convert(check.Program(p.prog, check.Config{Namespaces: p.nsDecls, Removed: p.cfg.removed}))
 }

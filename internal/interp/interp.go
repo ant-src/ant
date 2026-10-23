@@ -138,6 +138,9 @@ func New(ctx context.Context, prog *loader.Program, cfg Config) *Instance {
 	}
 	in := &Instance{prog: prog, cfg: cfg, out: bufio.NewWriter(cfg.Stdout), result: make(chan error, 1)}
 	in.ctx, in.cancel = context.WithCancel(ctx)
+	// The context's end sets the flag, so a goroutine that never waits stops at its next check
+	// too, whether Close, an interrupt, or the caller's context ended the run.
+	context.AfterFunc(in.ctx, func() { in.done.Store(true) })
 	in.setupModules()
 	if cfg.Interrupts != nil {
 		go in.relayInterrupts(cfg.Interrupts)
@@ -191,11 +194,16 @@ func (in *Instance) wait() error {
 	select {
 	case err = <-in.result:
 	case <-in.ctx.Done():
-		err = in.ctx.Err()
-		if in.interrupted.Load() {
-			err = ErrInterrupted
-		}
+		err = in.stopErr()
 	}
+	in.stop()
+	return err
+}
+
+// stop ends the run: the flag first, so a goroutine whose wait the cancellation ends finds it
+// at its very next check, then the context, then the grace period for the goroutines still
+// running, and a last flush.
+func (in *Instance) stop() {
 	in.done.Store(true)
 	in.cancel()
 	finished := make(chan struct{})
@@ -208,7 +216,19 @@ func (in *Instance) wait() error {
 	case <-time.After(in.cfg.Grace):
 	}
 	in.Flush()
-	return err
+}
+
+// stopErr is the error of a run its context ended: ErrInterrupted when an interrupt did, which
+// the relay records before it sets the flag, and otherwise the context's error. A goroutine may
+// find the flag before the context is cancelled, so the error is never nil.
+func (in *Instance) stopErr() error {
+	if in.interrupted.Load() {
+		return ErrInterrupted
+	}
+	if err := in.ctx.Err(); err != nil {
+		return err
+	}
+	return context.Canceled
 }
 
 func (in *Instance) finish(err error) {
@@ -219,31 +239,35 @@ func (in *Instance) finish(err error) {
 // return of the main goroutine.
 func (in *Instance) recoverRoot(g *Goroutine) {
 	r := recover()
-	switch x := r.(type) {
-	case nil:
+	if r == nil {
 		if g.main {
 			in.finish(nil)
 		}
+		return
+	}
+	err := in.endErr(r)
+	if _, exit := err.(*ExitError); exit || g.main {
+		in.finish(err)
+	}
+}
+
+// endErr converts what a goroutine panicked with into the error that ends it: an Ant panic,
+// which it reports, Os.exit, or the run's end. Any other panic is a Go one and goes on.
+func (in *Instance) endErr(r any) error {
+	switch x := r.(type) {
 	case *AntPanic:
 		in.report(x)
-		if g.main {
-			in.finish(&PanicError{Message: x.Message, Trace: x.Trace})
-		}
+		return &PanicError{Message: x.Message, Trace: x.Trace}
 	case *exitSignal:
-		in.finish(&ExitError{Status: x.status})
+		return &ExitError{Status: x.status}
 	case *cancelSignal:
-		if g.main {
-			in.finish(in.ctx.Err())
-		}
+		return in.stopErr()
 	case *loopUnwind:
-		// cannot escape a function; treat as an internal error
+		// forSeq catches its own on the goroutine that raised it, so this would be a bug.
 		in.report(&AntPanic{Message: "internal error: loop unwind escaped its loop"})
-		if g.main {
-			in.finish(&PanicError{Message: "internal error"})
-		}
-	default:
-		panic(r)
+		return &PanicError{Message: "internal error"}
 	}
+	panic(r)
 }
 
 func (in *Instance) report(p *AntPanic) {
