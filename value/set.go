@@ -19,17 +19,7 @@ func (s *Set) Has(x Value) bool { return s.m.Has(x) }
 
 // Add inserts x and reports whether it was new. A member already there keeps its position.
 func (s *Set) Add(x Value) bool {
-	s.m.mu.Lock()
-	defer s.m.mu.Unlock()
-	i, h := s.m.find(x)
-	if i >= 0 {
-		return false
-	}
-	s.m.seq++
-	s.m.entries = append(s.m.entries, mapEntry{key: x, value: Void, seq: s.m.seq})
-	s.m.index[h] = append(s.m.index[h], len(s.m.entries)-1)
-	s.m.live++
-	return true
+	return s.m.insert(x, Void, false)
 }
 
 // Remove deletes x and reports whether it was a member.

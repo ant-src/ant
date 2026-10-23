@@ -7,19 +7,24 @@ import (
 
 // Map is a hash map keyed by == that keeps insertion order (section 4). Reads hold its lock
 // shared and mutations hold it exclusively. Entries carry a sequence number in insertion order,
-// which a for loop uses as its cursor, so compaction never disturbs an iteration.
+// which a for loop uses as its cursor, so compaction never disturbs an iteration. Keys are hashed
+// and compared with no lock held, since a key may contain the map itself and hashing or comparing
+// it reads the map; ver counts the changes to the entries' positions, so a mutation can tell that
+// the entry it found is still where it was.
 type Map struct {
 	mu      sync.RWMutex
 	entries []mapEntry
 	index   map[uint64][]int
 	live    int
 	seq     uint64
+	ver     uint64
 }
 
 type mapEntry struct {
 	key   Value
 	value Value
 	seq   uint64
+	hash  uint64 // the key's hash when it was inserted
 	dead  bool
 }
 
@@ -35,26 +40,46 @@ func (m *Map) Len() int {
 	return m.live
 }
 
-func (m *Map) find(k Value) (int, uint64) {
-	h := Hash(k)
+// find returns the index of the entry whose key is == k, or -1, with k's hash and the version
+// of the map it read. It must be called with no lock held; the caller locks the map and checks
+// that ver is unchanged before it uses the index, and calls find again otherwise.
+func (m *Map) find(k Value) (i int, h uint64, ver uint64) {
+	h = Hash(k)
+	m.mu.RLock()
+	ver = m.ver
+	var cands []int
+	var keys []Value
 	for _, i := range m.index[h] {
-		e := &m.entries[i]
-		if !e.dead && Equal(e.key, k) {
-			return i, h
+		if e := &m.entries[i]; !e.dead {
+			cands = append(cands, i)
+			keys = append(keys, e.key)
 		}
 	}
-	return -1, h
+	m.mu.RUnlock()
+	for j, key := range keys {
+		if Equal(key, k) {
+			return cands[j], h, ver
+		}
+	}
+	return -1, h, ver
 }
 
 // Get returns the value stored under k.
 func (m *Map) Get(k Value) (Value, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	i, _ := m.find(k)
-	if i < 0 {
-		return nil, false
+	for {
+		i, _, ver := m.find(k)
+		m.mu.RLock()
+		if m.ver != ver {
+			m.mu.RUnlock()
+			continue
+		}
+		var v Value
+		if i >= 0 {
+			v = m.entries[i].value
+		}
+		m.mu.RUnlock()
+		return v, i >= 0
 	}
-	return m.entries[i].value, true
 }
 
 // Has reports whether k is a key.
@@ -65,35 +90,58 @@ func (m *Map) Has(k Value) bool {
 
 // Set inserts or replaces the value under k. A replaced entry keeps its position.
 func (m *Map) Set(k, v Value) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	i, h := m.find(k)
-	if i >= 0 {
-		m.entries[i].value = v
-		return
+	m.insert(k, v, true)
+}
+
+// insert adds k with the value v and reports whether it was new; an existing entry gets v when
+// replace is set and is left alone otherwise.
+func (m *Map) insert(k, v Value, replace bool) bool {
+	for {
+		i, h, ver := m.find(k)
+		m.mu.Lock()
+		if m.ver != ver {
+			m.mu.Unlock()
+			continue
+		}
+		defer m.mu.Unlock()
+		if i >= 0 {
+			if replace {
+				m.entries[i].value = v
+			}
+			return false
+		}
+		m.seq++
+		m.ver++
+		m.entries = append(m.entries, mapEntry{key: k, value: v, seq: m.seq, hash: h})
+		m.index[h] = append(m.index[h], len(m.entries)-1)
+		m.live++
+		return true
 	}
-	m.seq++
-	m.entries = append(m.entries, mapEntry{key: k, value: v, seq: m.seq})
-	m.index[h] = append(m.index[h], len(m.entries)-1)
-	m.live++
 }
 
 // Remove deletes the entry under k and returns its value.
 func (m *Map) Remove(k Value) (Value, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	i, _ := m.find(k)
-	if i < 0 {
-		return nil, false
+	for {
+		i, _, ver := m.find(k)
+		m.mu.Lock()
+		if m.ver != ver {
+			m.mu.Unlock()
+			continue
+		}
+		defer m.mu.Unlock()
+		if i < 0 {
+			return nil, false
+		}
+		v := m.entries[i].value
+		m.entries[i].dead = true
+		m.entries[i].value = nil
+		m.live--
+		m.ver++
+		if m.live*2 < len(m.entries) && len(m.entries) > 8 {
+			m.compact()
+		}
+		return v, true
 	}
-	v := m.entries[i].value
-	m.entries[i].dead = true
-	m.entries[i].value = nil
-	m.live--
-	if m.live*2 < len(m.entries) && len(m.entries) > 8 {
-		m.compact()
-	}
-	return v, true
 }
 
 func (m *Map) compact() {
@@ -103,8 +151,7 @@ func (m *Map) compact() {
 		if e.dead {
 			continue
 		}
-		h := Hash(e.key)
-		index[h] = append(index[h], len(entries))
+		index[e.hash] = append(index[e.hash], len(entries))
 		entries = append(entries, e)
 	}
 	m.entries, m.index = entries, index

@@ -1,0 +1,19 @@
+// spec: 12 Values; 4 Arrays, maps, and sets
+// A key that contains the map or set it is stored in is hashed without deadlocking on the
+// container's own lock.
+type Box = { m: Map[Box, int] }
+type Bag = { s: Set[Bag] }
+
+func main(): void {
+  var b = Box{ m: Map{} }
+  b.m[b] = 1
+  print(Map.size(b.m))
+  var bag = Bag{ s: Set.of([]) }
+  print(Set.add(bag.s, bag))
+  print(Set.size(bag.s))
+}
+
+// expect
+// out: 1
+// out: true
+// out: 1
