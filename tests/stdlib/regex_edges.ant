@@ -1,8 +1,9 @@
 // spec: 2 Literals; 11 Regex; stdlib Encoding
 // The edges: of two groups with one name, the first that took part fills named; a POSIX name
 // inside a class ends neither the class nor the literal; split of an empty string is [""]
-// whatever the pattern; a compiled source with a line break, or with nothing in it, renders as
-// a literal that reads back to an equal pattern; base64 padding is at most two = at the end.
+// whatever the pattern; a compiled source with a line break, escaped or not, or with nothing in
+// it, renders as a literal that reads back to an equal pattern; base64 padding is at most two =
+// at the end.
 Regex.find(/(?<n>a)|(?<n>b)/, "b")            // => Regex.Match{ text: "b", start: 0, end: 1, groups: ["b", null, "b"], named: Map{ "n": "b" } }
 Regex.test(/[[:alpha:]/]/, "/")               // => true
 Regex.split(Result.unwrap(Regex.compile("")), "") // => [""]
@@ -10,6 +11,8 @@ Regex.split(/x*/, "")                         // => [""]
 Regex.split(/a*/, "baaab")                    // => ["b", "b"]
 var nl = Result.unwrap(Regex.compile("a\nb"))
 [nl == /a\nb/, Regex.source(nl) == "a\\nb", Regex.test(nl, "a\nb")] // => [true, true, true]
+var escnl = Result.unwrap(Regex.compile("a\\\nb"))
+[escnl == /a\nb/, Regex.source(escnl) == "a\\nb", Regex.test(escnl, "a\nb")] // => [true, true, true]
 var empty = Result.unwrap(Regex.compile(""))
 [empty == /(?:)/, Regex.source(empty) == "(?:)"] // => [true, true]
 Encoding.fromBase64("aGk=")                   // => Ok{ value: [104, 105] }
