@@ -27,6 +27,11 @@ func assignable(s, t Type, depth int) bool {
 		}
 		return true
 	}
+	// A type parameter value is known only to be assignable to its bound, a union bound
+	// included, so the bound is tried before the members of a union target.
+	if p, ok := s.(Param); ok && p.Decl.Bound != nil && assignable(p.Decl.Bound, t, depth+1) {
+		return true
+	}
 	if tu, ok := t.(Union); ok {
 		for _, m := range tu.Members {
 			if assignable(s, m, depth+1) {
@@ -72,10 +77,6 @@ func assignable(s, t Type, depth int) bool {
 	case Param:
 		// Only the parameter itself (handled by Equal) or never.
 		return false
-	}
-	// A type parameter value is known only to be assignable to its bound.
-	if p, ok := s.(Param); ok && p.Decl.Bound != nil {
-		return assignable(p.Decl.Bound, t, depth+1)
 	}
 	return false
 }

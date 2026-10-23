@@ -1,9 +1,9 @@
 // spec: 4 Generics
 // Section 4: inside a generic body T is known only through its bound: an operator applies when
-// it applies to every member, the fields of a record bound are usable, a bounded T may be tested
-// against a member of its bound, and an unbounded T is opaque except for == and map keys; a
-// solution must satisfy the bound; a type parameter a primitive body does not mention gives
-// distinct static types over one tag.
+// it applies to every member, T is assignable to its bound, a union bound included, the fields
+// of a record bound are usable, a bounded T may be tested against a member of its bound, and an
+// unbounded T is opaque except for == and map keys; a solution must satisfy the bound; a type
+// parameter a primitive body does not mention gives distinct static types over one tag.
 type Id[T] = string
 type User = {}
 type Account = {}
@@ -19,6 +19,9 @@ func isStr[T](x: T): bool { x is string } // ERR: is
 func rename[T: { name: string }](x: T): T { x.name = "n"; x }
 func ageOf[T: { name: string }](x: T): int { x.age } // ERR: has no field age
 func bigger[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+func widen[T: Ordered](x: T): Ordered { x }
+func widenNull[T: Ordered](x: T): Ordered | null { x }
+func narrowBack[T: Ordered](x: Ordered): T { x } // ERR: cannot use Ordered where T is expected
 
 type Named = { name: string }
 
@@ -29,6 +32,8 @@ func main(): void {
   print(keyed("k"))
   print(show(1) + show("s"))
   print(rename(Named{ name: "x" }))
+  print(widen(1))
+  print(widenNull("s"))
   print(bigger("a", 1)) // ERR: cannot use int where string is expected
   print(bigger(true, false)) // ERR: T would be bool
   var o: Ordered = 1
