@@ -16,6 +16,13 @@ func init() {
 				if !value.KindOf(v).IsNumber() {
 					g.Panic("Math.abs needs a number, got %s", value.Describe(v))
 				}
+				// a float's absolute value clears its sign bit, so -0.0 gives 0.0
+				switch x := v.(type) {
+				case float64:
+					return math.Abs(x)
+				case float32:
+					return float32(math.Abs(float64(x)))
+				}
 				neg, err := value.Compare("<", v, zeroOf(v))
 				if err != nil {
 					g.Panic("Math.abs: %s", err)

@@ -24,6 +24,8 @@ Math.min(int8(3), int8(-3))                   // => -3
 Math.abs(-2.5)                                // => 2.5
 Math.abs(int8(-127))                          // => 127
 Math.abs(-0.0) == 0.0                         // => true
+Math.abs(-0.0)                                // => 0.0
+Math.abs(float32(-0.0))                       // => 0.0
 Math.PI > 3.14 && Math.PI < 3.15 && Math.E > 2.71 && Math.E < 2.72 // => true
 Math.minInt                                   // => -9223372036854775808
 Math.maxInt                                   // => 9223372036854775807
