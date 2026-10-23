@@ -112,7 +112,15 @@ func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
 		if !ok {
 			g.panicf(ast.Pos{}, "no func main")
 		}
-		g.callValue(main, nil, nil, ast.Pos{})
+		// The call has no site, so main's declaration stands in for it, for a panic of the call
+		// itself such as a parameter left without an argument.
+		var at ast.Pos
+		for _, d := range prog.Root.File.Decls {
+			if fd, ok := d.(*ast.FuncDecl); ok && fd.Owner == "" && fd.Name == "main" {
+				at = fd.Pos
+			}
+		}
+		g.callValue(main, nil, nil, at)
 	}()
 	return in.wait()
 }

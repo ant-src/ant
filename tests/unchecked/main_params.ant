@@ -1,0 +1,10 @@
+// spec: 10; 12 Runtime panics
+// panics: call
+// main takes no parameters (section 10); one that declares a parameter is called without an
+// argument for it, and the panic names main's declaration, since the call has no site.
+func main(n: int): void { print(n) }
+
+// expect
+// exit: 1
+// err: main needs an argument for n
+// err: main_params.ant:5:1)
