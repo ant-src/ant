@@ -31,7 +31,7 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isConv {
 				return c.conversion(ent, x, sc)
 			}
-			return c.applySig(s, x, sc, expected, true)
+			return c.applySig(s, x, sc, expected)
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {
 				return c.construct(ent.decl, x, sc, expected)
@@ -161,7 +161,7 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 
 // applySig checks a call of a declared function, solving its type parameters (section 4,
 // Inference) and matching positional and named arguments to its parameters.
-func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, named bool) types.Type {
+func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type) types.Type {
 	slots, ok := c.argSlots(s, x)
 	if !ok {
 		c.synthArgs(x.Args, sc)
