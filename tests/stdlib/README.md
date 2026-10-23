@@ -16,7 +16,9 @@ String.lastIndexOf(s, "ñ")          // => 3
 
 The files are for functions that map arguments to a result. A behavior with effects stays a
 program under `../run/`: files, sockets, standard input and output, goroutines, `select`, and
-anything that differs between runs, such as `Time.now` or `Math.random`.
+anything that differs between runs, such as `Time.now` or `Math.random`. A file here has no `go`
+block, no `select`, and no call that waits: no `Time.sleep`, `Chan.send`, `Chan.receive`,
+`Context.wait`, `WaitGroup.wait`, `Mutex.lock` or the like.
 
 ## Files
 
@@ -31,13 +33,21 @@ The file is read as the REPL reads what is typed: one input at a time, an input 
 or as many lines as it takes to close an open brace, bracket, string, or template. Each input is
 a setup or a case.
 
-- **A case** is an expression whose last line ends in a comment that starts with `=>`. The text
-  after `=>`, with the spaces around it trimmed, is what the case expects.
+- **A case** is an expression whose last line contains `// =>`. The text after the last `// =>`
+  on that line, with the spaces around it trimmed, is what the case expects. The harness finds it
+  in the text, not in the parse, so an expected value cannot itself contain `// =>`; a `// =>`
+  inside a string earlier on the line is harmless, since only the last one counts.
 - **A setup** is any other input: a declaration, an import, a statement, or a comment line. It
   runs for its effect on the inputs after it, and it fails the file if it panics.
 
-A `=>` comment on a declaration or a statement, or on an expression of type `void`, is an error
-in the file. Blank lines and comment lines are skipped.
+A `// =>` on a declaration or a statement, or on an expression of type `void`, is an error in the
+file. The checker decides the type, so the error names the line. Blank lines and comment lines
+are skipped.
+
+The file is also a program (see below), so it follows a program's rules where the REPL's are
+looser: a name is declared once, imports come before everything else, and a function or type is
+declared before the first input that uses it. Since setup binds names once, a value that changes
+from case to case is a `var` that setup assigns again, not a second declaration.
 
 ## Expectations
 
@@ -53,7 +63,14 @@ Map.fromEntries([Entry{ key: "a", value: 1 }])   // => Map{ "a": 1 }
 ```
 
 `=> panic: text` expects the case to raise a panic whose message equals `text`. A case that
-expects a value fails if it panics, and a case that expects a panic fails if it returns.
+expects a value fails if it panics, and a case that expects a panic fails if it returns. A
+message that quotes the host's own wording, such as the `parse "::"` above from Go's URL parser,
+is matched as it is; a change to it is a change to the library's messages and updates the case.
+
+The rendering is the value's and not its type's: `int8` 2 and `int` 2 both render as `2`. The
+type of each case is already fixed by the call's signature, which the checker holds the file to,
+so a case does not repeat it. An expression whose type cannot be inferred alone, such as `[]` or
+`Map{}`, is bound in a setup `var` with its type and the case names the variable.
 
 The inputs after a panic still run, and they see everything the earlier inputs bound.
 
@@ -61,12 +78,13 @@ The inputs after a panic still run, and they see everything the earlier inputs b
 
 The harness gives each file a fresh session (`ant.NewSession`), with empty standard input and no
 arguments, and evaluates the inputs in order. A file that writes to standard output or standard
-error fails: output is tested under `../run/`. Each file runs under the suite's context, and
-files run in parallel.
+error fails, since output is tested under `../run/`; the report a session writes for a panic
+does not count, as the harness takes the panic from the error `Eval` returns. Each file runs
+under the suite's context, and files run in parallel.
 
 Before it runs, the file is checked as a program. Declarations and imports stay at the top level,
-and every other input goes into `main` in order, each case as `var _ = <expression>`.
-`ant check` must report nothing. A panic is a value panic that a checked program can reach, so
+in the order they appear, and every other input goes into `main` in order, each case as
+`var _ = <expression>`. `ant check` must report nothing. A panic is a value panic that a checked program can reach, so
 it belongs here. A kind panic belongs under `../unchecked/`.
 
 ## Failures
@@ -86,9 +104,12 @@ TestStdlib` runs all the files, and `-run TestStdlib/string` runs one.
 ## Coverage
 
 The files are part of the corpus, so `TestSpecCoverage`, `TestLibraryCoverage` and
-`TestPanicCoverage` count them as they count programs. A case expecting a panic from a function
-of chapter 11 that panics on a value covers that function without a `// panics:` line. A row of
-the chapter 12 table, such as `int-overflow`, still needs one.
+`TestPanicCoverage` count them as they count programs. A case expecting a panic covers the
+function of its outermost call, when that function is one of chapter 11 or of `stdlib.md` that
+panics on a value, and covers the `library-value` row of the chapter 12 table with it. So
+`Array.map(xs, { String.repeat(x, -1) })` covers `Array.map` and not `String.repeat`; a case
+that means `String.repeat` calls it outermost. Any other row of the table, such as
+`int-overflow`, still needs a `// panics:` line.
 
 ## Where a test goes
 
