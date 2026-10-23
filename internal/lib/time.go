@@ -289,7 +289,7 @@ func init() {
 			}),
 			fn("Time.sleep", "d, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				d := spanArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				g.Instance().Flush()
 				if ctx.Err() == nil && d > 0 {
 					timer := time.NewTimer(d)
@@ -307,7 +307,7 @@ func init() {
 				if d <= 0 {
 					g.Panic("Time.ticker needs a period above zero, got %s", value.Render(a[0]))
 				}
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				ticks := value.NewChan(1)
 				// As Go's ticker: a beat counted from the call, one tick held, a tick that
 				// finds it full dropped; the goroutine and its timer end with the context,

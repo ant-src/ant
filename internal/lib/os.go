@@ -15,8 +15,6 @@ import (
 // OutputTag is Os.Output: { status: int, stdout: string, stderr: string }.
 var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr"})
 
-// given reports whether an optional argument was passed and is not null.
-func given(v value.Value) bool { return v != nil && v != value.Null }
 
 // execProcess is Os.exec: no shell, the outputs captured, Err only when the child could not be
 // started or run to its end, a nonzero exit as Ok with its status.
@@ -29,7 +27,7 @@ func execProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			args = append(args, stringArg(g, who, v))
 		}
 	}
-	ctx := waitContext(g, optionalContext(g, who, a[5]))
+	ctx := waitContext(g, who, a[5])
 	cmd := exec.CommandContext(ctx, program, args...)
 	cmd.WaitDelay = time.Second // a child that ignores the kill does not hold the run
 	cmd.Env = in.Environ()      // the run's environment, which a host may have replaced

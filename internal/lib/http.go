@@ -65,7 +65,7 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	if err != nil {
 		return errResult(err)
 	}
-	ctx := waitContext(g, optionalContext(g, who, c))
+	ctx := waitContext(g, who, c)
 	if wait > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeoutCause(ctx, wait, value.ErrTimeout)
@@ -98,14 +98,6 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, string(data)}))
 }
 
-// failed is the Err of a request that got no response: the context's reason when a bound
-// ended it, the Go error otherwise.
-func failed(ctx context.Context, err error) value.Value {
-	if ctx.Err() != nil {
-		return gaveUp(ctx)
-	}
-	return errResult(err)
-}
 
 func optionalString(g *interp.Goroutine, who string, v value.Value) string {
 	if !given(v) {
@@ -123,7 +115,7 @@ var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method"
 func serve(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	l := listenerArg(g, who, a[0])
 	handler := funcArg(g, who, a[1])
-	ctx := waitContext(g, optionalContext(g, who, a[2]))
+	ctx := waitContext(g, who, a[2])
 	srv := &http.Server{
 		ReadHeaderTimeout: 10 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

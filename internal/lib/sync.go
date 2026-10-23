@@ -146,7 +146,7 @@ func init() {
 			}),
 			fn("WaitGroup.wait", "wg, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				w := wgArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				g.Instance().Flush()
 				if ctx.Err() == nil {
 					select {

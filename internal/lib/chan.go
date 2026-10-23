@@ -28,7 +28,7 @@ func init() {
 			}),
 			fn("Channel.send", "c, v, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := chanArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[2]))
+				ctx := waitContext(g, who, a[2])
 				g.Instance().Flush()
 				sent, err := c.Send(ctx, a[1])
 				g.AfterWait()
@@ -39,7 +39,7 @@ func init() {
 			}),
 			fn("Channel.receive", "c, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := chanArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				g.Instance().Flush()
 				v, ok, _ := c.Receive(ctx)
 				g.AfterWait()
@@ -62,7 +62,7 @@ func init() {
 			}),
 			fn("Channel.values", "c, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := chanArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
 					for {
 						g.Instance().Flush()

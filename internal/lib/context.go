@@ -17,27 +17,29 @@ func contextArg(g *interp.Goroutine, who string, v value.Value) *value.Context {
 	return typedArg[*value.Context](g, who, "a Context", v)
 }
 
-// optionalContext reads a trailing ctx argument: nil when omitted or null.
-func optionalContext(g *interp.Goroutine, who string, v value.Value) *value.Context {
+// waitContext reads a blocking call's trailing ctx argument as the Go context the call selects
+// on: the given context, which descends from the run's, or the run's own when the argument is
+// omitted or null.
+func waitContext(g *interp.Goroutine, who string, v value.Value) context.Context {
 	if !given(v) {
-		return nil
-	}
-	return contextArg(g, who, v)
-}
-
-// waitContext is the Go context a blocking call selects on: the given context, which descends
-// from the run's, or the run's own when none was given.
-func waitContext(g *interp.Goroutine, c *value.Context) context.Context {
-	if c == nil {
 		return g.Context()
 	}
-	return c.Ctx
+	return contextArg(g, who, v).Ctx
 }
 
 // gaveUp is the Err a blocking call returns when its context ended it: the reason as the
 // message.
 func gaveUp(ctx context.Context) value.Value {
 	return value.Err(value.ErrorValue(value.ReasonOf(ctx)))
+}
+
+// failed is the Err of a blocking call that failed: the context's reason when the context
+// ended it, the Go error otherwise.
+func failed(ctx context.Context, err error) value.Value {
+	if ctx.Err() != nil {
+		return gaveUp(ctx)
+	}
+	return errResult(err)
 }
 
 // goDuration converts a Time.Duration to a Go duration by the rules of stdlib.md: hours and

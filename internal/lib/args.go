@@ -9,6 +9,9 @@ import (
 // Argument checks: every library function panics when an argument has a kind it does not take
 // (section 12, the library row).
 
+// given reports whether an optional argument was passed and is not null.
+func given(v value.Value) bool { return v != nil && v != value.Null }
+
 // typedArg takes an argument of the Go type T, which the panic message calls what, as in
 // "a Mutex".
 func typedArg[T value.Value](g *interp.Goroutine, who, what string, v value.Value) T {

@@ -138,7 +138,7 @@ func init() {
 			}),
 			fn("Net.accept", "l, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				l := listenerArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				g.Instance().Flush()
 				c, err := l.accept(g.Context().Done(), ctx)
 				g.AfterWait()
@@ -164,16 +164,13 @@ func init() {
 				return value.Void
 			}),
 			fn("Net.dial", "addr, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				g.Instance().Flush()
 				var d net.Dialer
 				c, err := d.DialContext(ctx, "tcp", stringArg(g, who, a[0]))
 				g.AfterWait()
 				if err != nil {
-					if ctx.Err() != nil {
-						return gaveUp(ctx)
-					}
-					return errResult(err)
+					return failed(ctx, err)
 				}
 				return value.Ok(connHandle(c))
 			}),

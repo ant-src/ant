@@ -414,13 +414,13 @@ func init() {
 			}),
 			fn("File.readLine", "f, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				defer g.AfterWait()
 				return h.read(ctx, h.readLine)
 			}),
 			fn("File.readAll", "f, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])
-				ctx := waitContext(g, optionalContext(g, who, a[1]))
+				ctx := waitContext(g, who, a[1])
 				defer g.AfterWait()
 				return h.read(ctx, h.readAll)
 			}),
@@ -450,7 +450,7 @@ func init() {
 			fn("File.pipe", "src, dst, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				src := handleArg(g, who, a[0])
 				dst := handleArg(g, who, a[1])
-				ctx := waitContext(g, optionalContext(g, who, a[2]))
+				ctx := waitContext(g, who, a[2])
 				if src == dst {
 					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
 				}
