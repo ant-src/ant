@@ -1,0 +1,99 @@
+// spec: stdlib Time
+
+// From time_values.
+// Time values (stdlib.md): instants, zones, the plain types and zoned date-times as Temporal
+// has them: construction and parsing, RFC 9557 rendering, fields, conversions between the
+// types, gaps and overlaps resolved by disambiguation, equality by value and compare by
+// instant, with the examples of Temporal's documentation.
+func describe(t: Time.Dated): string {
+  if t is Time.PlainDate { `date ${t}` }
+  else if t is Time.ZonedDateTime { `zoned in ${Time.zoneId(Time.zoneOf(t))}` }
+  else { `date-time on ${Time.toPlainDate(t)}` }
+}
+var ny = Result.unwrap(Time.zone("America/New_York"))
+ny                                            // => America/New_York
+Time.zoneId(Result.unwrap(Time.zone("europe/stockholm"))) // => "Europe/Stockholm"
+Time.zone("Mars/Olympus") is Err              // => true
+Time.zone("") is Err                          // => true
+Time.zone("Asia/Calcutta") == Time.zone("Asia/Kolkata") // => true
+Time.zone("Europe/Stockholm") == Time.zone("Europe/Berlin") // => false
+Result.unwrap(Time.zone("US/Eastern")) == ny  // => true
+Time.zoneId(Result.unwrap(Time.zone("+0530"))) // => "+05:30"
+Time.utc                                      // => UTC
+Time.zoneId(Time.localZone()) != ""           // => true
+var i = Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z"))
+i                                             // => 2026-10-22T14:03:05.5Z
+Time.epochMillis(i)                           // => 1792677785500
+Time.epochNanos(i)                            // => 1792677785500000000
+Time.fromEpochMillis(1792677785500) == Time.fromEpochNanos(1792677785500000000) // => true
+Time.fromEpochMillis(0)                       // => 1970-01-01T00:00:00Z
+Result.unwrap(Time.parseInstant("2026-10-22T16:03:05.5+02:00[Europe/Stockholm]")) == i // => true
+Time.parseInstant("2026-10-22T14:03:05") is Err // => true
+var z = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York]"))
+z                                             // => 2024-11-03T01:00:00-04:00[America/New_York]
+Time.offset(z)                                // => "-04:00"
+Time.offsetSeconds(z)                         // => -14400
+Time.hoursInDay(z)                            // => 25.0
+Time.zoneOf(z) == ny                          // => true
+Time.toInstant(z)                             // => 2024-11-03T05:00:00Z
+Time.inZone(Time.toInstant(z), Time.utc)      // => 2024-11-03T05:00:00+00:00[UTC]
+Time.withZone(z, Result.unwrap(Time.zone("Asia/Tokyo"))) // => 2024-11-03T14:00:00+09:00[Asia/Tokyo]
+Time.toPlainDateTime(z)                       // => 2024-11-03T01:00:00
+Time.toPlainDate(z)                           // => 2024-11-03
+Time.toPlainTime(z)                           // => 01:00:00
+Time.startOfDay(z)                            // => 2024-11-03T00:00:00-04:00[America/New_York]
+Time.parseZoned("2024-11-03T01:05:00[America/New_York]") // => Ok{ value: 2024-11-03T01:05:00-04:00[America/New_York] }
+Time.parseZoned("2024-11-03T01:05:00[America/New_York]", Time.Later{}) // => Ok{ value: 2024-11-03T01:05:00-05:00[America/New_York] }
+Time.parseZoned("2024-03-10T02:05:00[America/New_York]") // => Ok{ value: 2024-03-10T03:05:00-04:00[America/New_York] }
+Time.parseZoned("2019-12-23T12:00:00-02:00[America/Sao_Paulo]") is Err // => true
+Time.parseZoned("2026-10-22T16:03:05+02:00") is Err // => true
+var gap = Result.unwrap(Time.parsePlainDateTime("2024-03-10T02:30:00"))
+Time.toZoned(gap, ny)                         // => 2024-03-10T03:30:00-04:00[America/New_York]
+Time.toZoned(gap, ny, Time.Earlier{})         // => 2024-03-10T01:30:00-05:00[America/New_York]
+Time.toZoned(gap, ny, disambiguation: Time.Later{}) // => 2024-03-10T03:30:00-04:00[America/New_York]
+Array.length(Time.possibleInstants(gap, ny))  // => 0
+var overlap = Result.unwrap(Time.parsePlainDateTime("2024-11-03T01:30:00"))
+Time.possibleInstants(overlap, ny)            // => [2024-11-03T05:30:00Z, 2024-11-03T06:30:00Z]
+Time.toZoned(overlap, ny, Time.Compatible{})  // => 2024-11-03T01:30:00-04:00[America/New_York]
+Time.toZoned(overlap, ny, Time.Later{})       // => 2024-11-03T01:30:00-05:00[America/New_York]
+Time.hoursInDay(Time.toZoned(gap, ny))        // => 23.0
+Time.hoursInDay(Result.unwrap(Time.parseZoned("2024-10-06T12:00[Australia/Lord_Howe]"))) // => 23.5
+var d = Time.plainDate(2026, 10, 22)
+d                                             // => 2026-10-22
+[Time.year(d), Time.month(d), Time.day(d), Time.dayOfWeek(d), Time.dayOfYear(d),
+  Time.weekOfYear(d), Time.yearOfWeek(d), Time.daysInMonth(d), Time.daysInYear(d)] // => [2026, 10, 22, 4, 295, 43, 2026, 31, 365]
+Time.inLeapYear(d)                            // => false
+Time.yearOfWeek(Time.plainDate(2021, 1, 1))   // => 2020
+var t = Time.plainTime(14, 3, 5, 123, 456, 789)
+t                                             // => 14:03:05.123456789
+[Time.hour(t), Time.minute(t), Time.second(t), Time.millisecond(t), Time.microsecond(t), Time.nanosecond(t)] // => [14, 3, 5, 123, 456, 789]
+Time.plainTime()                              // => 00:00:00
+Time.plainTime(9, second: 30)                 // => 09:00:30
+var dt = Time.plainDateTime(d, t)
+dt                                            // => 2026-10-22T14:03:05.123456789
+Time.year(dt) + Time.hour(dt)                 // => 2040
+Time.year(z)                                  // => 2024
+Time.hour(z)                                  // => 1
+Time.parsePlainDate("2024-11-03T01:00:00-04:00[America/New_York]") // => Ok{ value: 2024-11-03 }
+Time.parsePlainDate("2024-02-30") is Err      // => true
+Time.parsePlainTime("14:03:05.123")           // => Ok{ value: 14:03:05.123 }
+Time.parsePlainDateTime("2024-11-03T01:00:00Z") is Err // => true
+Time.plainDate(-100000, 1, 1)                 // => -100000-01-01
+var a = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Kolkata]"))
+var b = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Calcutta]"))
+var c = Result.unwrap(Time.parseZoned("2021-07-01T07:04:56+00:00[UTC]"))
+a == b                                        // => true
+a == c                                        // => false
+d == Time.plainDate(2026, 10, 22) && t == Time.plainTime(14, 3, 5, 123, 456, 789) && dt == Time.plainDateTime(d, t) // => true
+Time.compare(a, c)                            // => 0
+Time.compare(Time.plainDate(2024, 2, 29), d)  // => -1
+Time.compare(t, Time.plainTime(14))           // => 1
+var seen: Map[Time.Instant, string] = Map{}
+seen[Time.toInstant(a)] = "a"
+seen[Time.toInstant(c)]                       // => "a"
+Json.stringify([d, t, a])                     // => "[\"2026-10-22\",\"14:03:05.123456789\",\"2021-07-01T12:34:56+05:30[Asia/Kolkata]\"]"
+describe(d)                                   // => "date 2026-10-22"
+describe(z)                                   // => "zoned in America/New_York"
+describe(dt)                                  // => "date-time on 2026-10-22"
+Time.epochMillis(Time.now()) > 1700000000000  // => true
+Time.year(Time.nowIn(Time.utc)) >= 2026       // => true

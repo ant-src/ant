@@ -1,0 +1,26 @@
+// spec: 11 Iter
+
+// From iter_edges.
+// Every Iter function returns a new sequence without running the source; toArray and for run
+// it; a sequence may run more than once; take 0 and an empty range yield nothing.
+var seen: Array[int] = []
+var s = Iter.map(Iter.fromArray([1, 2, 3]), { Array.push(seen, x); x * 10 })
+seen                                          // => []
+Iter.toArray(s)                               // => [10, 20, 30]
+seen                                          // => [1, 2, 3]
+Iter.toArray(s)                               // => [10, 20, 30]
+seen                                          // => [1, 2, 3, 1, 2, 3]
+Iter.toArray(Iter.take(Iter.range(0, 100), 0)) // => []
+Iter.toArray(Iter.filter(Iter.range(0, 10), { x % 3 == 0 })) // => [0, 3, 6, 9]
+Iter.toArray(Iter.range(5, 5))                // => []
+Iter.toArray(Iter.take(Iter.range(0, 3), 10)) // => [0, 1, 2]
+var taken = Iter.range(0, 1000) | Iter.map({ x * x }) | Iter.filter({ x % 2 == 0 }) | Iter.take(3) | Iter.toArray()
+taken                                         // => [0, 4, 16]
+Iter.toArray(Iter.take(Iter.fromArray(["a", "b", "c"]), 2)) // => ["a", "b"]
+var tested: Array[int] = []
+var lazy = Iter.filter(Iter.range(0, 5), { Array.push(tested, x); x > 2 })
+tested                                        // => []
+var first: int | null = null
+for v in lazy { first = v; break }
+first                                         // => 3
+tested                                        // => [0, 1, 2, 3]

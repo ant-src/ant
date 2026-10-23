@@ -1,0 +1,60 @@
+// spec: 11 Regex
+
+// From regex_lib.
+// The Regex namespace: compile builds the value a literal would, normalized and with its flags
+// sorted, and returns Err on bad syntax or flags; a Match carries code point indices, the
+// groups with null for one that took no part, and the named groups; findAll skips an empty
+// match that abuts the one before; replace expands $1 and ${name} and takes a name as long as
+// it can; replaceFirst touches the first match only; replaceWith inserts what f returns as
+// written; split gives the pieces between matches; escape makes text match literally.
+var p = Result.unwrap(Regex.compile("(\\d+)-(?<name>[a-z]+)", "i"))
+p                                             // => /(\d+)-(?<name>[a-z]+)/i
+p == /(\d+)-(?<name>[a-z]+)/i                 // => true
+Result.unwrap(Regex.compile("a/b")) == /a\/b/ // => true
+Regex.compile("a/b")                          // => Ok{ value: /a\/b/ }
+Regex.compile("")                             // => Ok{ value: /(?:)/ }
+Regex.compile("a", "si")                      // => Ok{ value: /a/is }
+Regex.compile("(")                            // => Err{ error: Error{ message: "invalid regular expression: missing closing ): `(`" } }
+Regex.compile("a", "g")                       // => Err{ error: Error{ message: "there is no g flag: Regex.findAll and Regex.replace work on every match" } }
+Regex.compile("a", "ii")                      // => Err{ error: Error{ message: "the flag i is repeated" } }
+Regex.test(/^añ/, "añb")                      // => true
+Regex.test(/^b/, "añb")                       // => false
+Regex.find(/ñ(b)/, "añb")                     // => Regex.Match{ text: "ñb", start: 1, end: 3, groups: ["ñb", "b"], named: Map{} }
+Regex.find(/x/, "añb")                        // => null
+var m = Regex.find(/(?<year>\d{4})-(?<month>\d{2})/, "on 2026-10-22") ?? panic("no match")
+m.text                                        // => "2026-10"
+m.start                                       // => 3
+m.end                                         // => 10
+m.groups                                      // => ["2026-10", "2026", "10"]
+m.named                                       // => Map{ "year": "2026", "month": "10" }
+String.slice("on 2026-10-22", m.start, m.end) == m.text // => true
+Regex.find(/(a)|(b)/, "b")                    // => Regex.Match{ text: "b", start: 0, end: 1, groups: ["b", null, "b"], named: Map{} }
+Array.map(Regex.findAll(/ñ/, "ñañaña"), { x.start }) // => [0, 2, 4]
+Array.map(Regex.findAll(/a*/, "baaab"), { x.text }) // => ["", "aaa", ""]
+Regex.findAll(/x/, "abc")                     // => []
+Regex.replace(/(\w+)@(\w+)/, "a@b c@d", "${2}@$1") // => "b@a d@c"
+Regex.replace(/(?<user>\w+)@/, "a@b", "${user}!") // => "a!b"
+Regex.replace(/a/, "aaa", "$1x") == ""        // => true
+Regex.replace(/a/, "aaa", "${1}x")            // => "xxx"
+Regex.replace(/a/, "aaa", "$$")               // => "$$$"
+Regex.replace(/ñ/, "añb", "n")                // => "anb"
+Regex.replaceFirst(/a/, "aaa", "b")           // => "baa"
+Regex.replaceFirst(/(a)/, "xax", "[$1]")      // => "x[a]x"
+Regex.replaceFirst(/z/, "aaa", "b")           // => "aaa"
+Regex.replaceWith(/\d+/, "a1b22c", { `<${x.text}:${x.start}>` }) // => "a<1:1>b<22:3>c"
+Regex.replaceWith(/a/, "aa", { "$0" })        // => "$0$0"
+Regex.replaceWith(/ñ/, "añbñ", { String.toUpper(x.text) + String.from(x.end) }) // => "aÑ2bÑ4"
+Regex.split(/,\s*/, "a, b,c")                 // => ["a", "b", "c"]
+Regex.split(/x/, "abc")                       // => ["abc"]
+Regex.split(/x/, "")                          // => [""]
+Regex.split(/ñ/, "añb")                       // => ["a", "b"]
+Regex.escape("a.b*c")                         // => "a\\.b\\*c"
+Regex.test(Result.unwrap(Regex.compile(Regex.escape("a.b"))), "axb") // => false
+Regex.test(Result.unwrap(Regex.compile(Regex.escape("a.b"))), "a.b") // => true
+Regex.source(/a\/b/i)                         // => "a/b"
+Regex.flags(/a/smi)                           // => "ims"
+Regex.flags(/a/)                              // => ""
+Regex.source(Result.unwrap(Regex.compile(""))) // => "(?:)"
+var keyed: Map[Regex.Pattern, string] = Map{}
+keyed[Result.unwrap(Regex.compile("k"))] = "v"
+keyed[/k/]                                    // => "v"

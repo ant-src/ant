@@ -1,0 +1,37 @@
+// spec: stdlib Crypto; stdlib Encoding; 12 Runtime panics
+
+// From crypto_lib.
+// Crypto against the known vectors: the FIPS 180-4 digests of "abc" and of nothing, RFC 2202
+// and RFC 4231 HMAC cases, equal in constant time with different lengths unequal, random
+// bytes of the asked length, and a version 4 UUID in its form.
+func hex(bytes: Array[byte]): string { Encoding.toHex(bytes) }
+var abc = String.toBytes("abc")
+hex(Crypto.sha256(abc))                       // => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+hex(Crypto.sha512(abc))                       // => "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
+hex(Crypto.sha1(abc))                         // => "a9993e364706816aba3e25717850c26c9cd0d89d"
+hex(Crypto.md5(abc))                          // => "900150983cd24fb0d6963f7d28e17f72"
+hex(Crypto.sha256(String.toBytes("")))        // => "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+Array.length(Crypto.sha512(abc))              // => 64
+var key = String.toBytes("Jefe")
+var data = String.toBytes("what do ya want for nothing?")
+hex(Crypto.hmacSha1(key, data))               // => "effcdf6ae5eb2fa2d27416d5f184df9c259a7c79"
+hex(Crypto.hmacSha256(key, data))             // => "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+hex(Crypto.hmacSha512(key, data))             // => "164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737"
+hex(Crypto.hmacSha256(Array.filled(20, byte(11)), String.toBytes("Hi There"))) // => "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+Crypto.equal(Crypto.sha256(abc), Crypto.sha256(String.toBytes("abc"))) // => true
+Crypto.equal(Crypto.sha256(abc), Crypto.sha1(abc)) // => false
+Crypto.equal(abc, String.toBytes("abd"))      // => false
+Crypto.equal([], [])                          // => true
+Array.length(Crypto.randomBytes(16))          // => 16
+Crypto.randomBytes(0)                         // => []
+Crypto.randomBytes(8) == Crypto.randomBytes(8) // => false
+var id = Crypto.uuid()
+String.length(id)                             // => 36
+Regex.test(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/, id) // => true
+Crypto.uuid() == Crypto.uuid()                // => false
+Crypto.sha256(String.toBytes("abc")) | Encoding.toHex() // => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+
+// From panic_random_bytes_negative.
+// A negative count of random bytes is a panic, as a negative count is for Array.filled.
+Array.length(Crypto.randomBytes(4))           // => 4
+Crypto.randomBytes(-1)                        // => panic: Crypto.randomBytes needs a count of at least 0, got -1

@@ -1,0 +1,32 @@
+// spec: stdlib Csv; 12 Runtime panics
+
+// From csv_lib.
+// Csv: parse reads rows of any width with quoted fields, doubled quotes, \r\n line ends and
+// a quoted field across lines, drops a blank line, and is Err on a bare or unclosed quote;
+// stringify quotes what needs it and ends every row with \n; both take another separator.
+var text = "name,age\n\"Doe, Jane\",42\n\"say \"\"hi\"\"\",7\r\nx\n"
+Csv.parse(text)                               // => Ok{ value: [["name", "age"], ["Doe, Jane", "42"], ["say \"hi\"", "7"], ["x"]] }
+Csv.parse("")                                 // => Ok{ value: [] }
+Csv.parse("a;b\n", ";")                       // => Ok{ value: [["a", "b"]] }
+Csv.parse("a\tb", "\t")                       // => Ok{ value: [["a", "b"]] }
+Csv.parse("a,\"b\nc\",d")                     // => Ok{ value: [["a", "b\nc", "d"]] }
+Csv.parse("a,b\n\nc,d\n")                     // => Ok{ value: [["a", "b"], ["c", "d"]] }
+Result.isOk(Csv.parse("a,\"b"))               // => false
+Result.isOk(Csv.parse("a,b\"c"))              // => false
+Csv.stringify([["name", "age"], ["Doe, Jane", "42"], ["say \"hi\"", "7"], [" lead", "a\nb"]]) // => "name,age\n\"Doe, Jane\",42\n\"say \"\"hi\"\"\",7\n\" lead\",\"a\nb\"\n"
+Csv.stringify([["a", "b;c"]], ";")            // => "a;\"b;c\"\n"
+var none: Array[Array[string]] = []
+Csv.stringify(none)                           // => ""
+Csv.stringify([["ñ", ""]])                    // => "ñ,\n"
+Csv.parse(Csv.stringify([["x,y", "z"]]))      // => Ok{ value: [["x,y", "z"]] }
+
+// From panic_csv_sep.
+// A separator that is not one character, or is a quote, a line break, U+0000 or U+FFFD, is a
+// panic: it is part of the program, not of the data.
+Csv.parse("a;b", ";")                         // => Ok{ value: [["a", "b"]] }
+Csv.parse("a,b", "ab")                        // => panic: Csv.parse needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "ab"
+
+// From panic_csv_stringify_sep.
+// stringify applies the same separator rule as parse, before any row is written.
+Csv.stringify([["a", "b"]], "|")              // => "a|b\n"
+Csv.stringify([["a", "b"]], "\n")             // => panic: Csv.stringify needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "\n"

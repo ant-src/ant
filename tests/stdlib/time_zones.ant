@@ -1,0 +1,8 @@
+// spec: stdlib Time
+
+// From time_zones_differ.
+// A difference in days between zoned date-times in different zones is a panic.
+var a = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York]"))
+var b = Result.unwrap(Time.parseZoned("2024-11-04T01:00:00-05:00[America/Lima]"))
+Time.until(a, b, Time.Hour{})                 // => PT25H
+Time.until(a, b, Time.Day{})                  // => panic: Time.until: America/New_York and America/Lima are different zones; a difference in days or larger needs one zone

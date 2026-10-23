@@ -1,0 +1,40 @@
+// spec: 11 Map
+
+// From map_lib.
+// Map (section 11): every function, insertion order throughout, a stored null told from a
+// missing key by Map.has, and Record.same.
+type P = { x: int }
+var m = Map{ b: 2, a: 1 }
+Map.size(m)                                   // => 2
+Map.isEmpty(m)                                // => false
+var empty: Map[string, int] = Map{}
+Map.isEmpty(empty)                            // => true
+Map.has(m, "a")                               // => true
+Map.has(m, "z")                               // => false
+Map.get(m, "a")                               // => 1
+Map.get(m, "z")                               // => null
+Map.set(m, "c", 3)
+Map.set(m, "a", 10)
+m                                             // => Map{ "b": 2, "a": 10, "c": 3 }
+Map.remove(m, "b")                            // => 2
+Map.remove(m, "b")                            // => null
+m                                             // => Map{ "a": 10, "c": 3 }
+Map.keys(m)                                   // => ["a", "c"]
+Map.values(m)                                 // => [10, 3]
+Map.entries(m)                                // => [Entry{ key: "a", value: 10 }, Entry{ key: "c", value: 3 }]
+Map.fromEntries([Entry{ key: "x", value: 1 }, Entry{ key: "y", value: 2 }, Entry{ key: "x", value: 3 }]) // => Map{ "x": 3, "y": 2 }
+Map.map(m, { x.value * 2 })                   // => Map{ "a": 20, "c": 6 }
+Map.filter(m, { x.key == "c" })               // => Map{ "c": 3 }
+Map.merge(Map{ x: 1, y: 2 }, Map{ z: 3, x: 9 }) // => Map{ "x": 9, "y": 2, "z": 3 }
+var n = m
+Map.same(m, n)                                // => true
+Map.same(m, Map.merge(m, empty))              // => false
+var stored: Map[string, int | null] = Map{ k: null }
+Map.has(stored, "k")                          // => true
+stored["k"] == null                           // => true
+Map.has(stored, "missing")                    // => false
+var p = P{ x: 1 }
+var q = p
+Record.same(p, q)                             // => true
+Record.same(p, P{ x: 1 })                     // => false
+p == P{ x: 1 }                                // => true

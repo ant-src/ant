@@ -1,0 +1,27 @@
+// spec: 11 Math and Bits
+
+// From bits_edges.
+// Bits at its documented edges: the operations within each kind's width, shiftRight arithmetic
+// for signed and logical for unsigned kinds, shiftLeft dropping the bits that leave the width,
+// popCount of negatives, and wrapping arithmetic in two's complement.
+Bits.and(12, 10)                              // => 8
+Bits.or(12, 10)                               // => 14
+Bits.xor(12, 10)                              // => 6
+Bits.not(0)                                   // => -1
+Bits.not(uint8(0))                            // => 255
+Bits.and(int8(-1), int8(5))                   // => 5
+Bits.shiftRight(-8, 1)                        // => -4
+Bits.shiftRight(uint8(128), 1)                // => 64
+Bits.shiftRight(int8(-128), 1)                // => -64
+Bits.shiftLeft(uint8(129), 1)                 // => 2
+Bits.shiftLeft(1, 62)                         // => 4611686018427387904
+Bits.shiftLeft(int8(64), 1)                   // => -128
+Bits.shiftLeft(uint16(1), 15)                 // => 32768
+Bits.popCount(255)                            // => 8
+Bits.popCount(-1)                             // => 64
+Bits.popCount(uint8(255))                     // => 8
+Bits.wrapAdd(int8(127), int8(1))              // => -128
+Bits.wrapSub(uint8(0), uint8(1))              // => 255
+Bits.wrapMul(int8(64), int8(4))               // => 0
+Bits.wrapAdd(Math.maxInt, 1) == Math.minInt   // => true
+Bits.xor(uint64(1), uint64(3))                // => 2

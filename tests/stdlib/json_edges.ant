@@ -1,0 +1,24 @@
+// spec: stdlib Json
+
+// From json_edges.
+// Json at its edges: escapes, numbers that are not integers, duplicate keys, nesting,
+// surrounding white space, malformed text as Err, and stringify of each kind and of a round
+// trip.
+Json.parse(`"\\u00e9\\n"`)                    // => Ok{ value: "é\n" }
+Json.parse("1e30") | Result.map({ if x is float64 { Math.toInt(x) } else { -1 } }) // => Ok{ value: null }
+Json.parse("-0") | Result.map({ x == 0.0 })   // => Ok{ value: true }
+Json.parse(`{"a": 1, "a": 2}`)                // => Ok{ value: Map{ "a": 2.0 } }
+Json.parse("[[[[1]]]]")                       // => Ok{ value: [[[[1.0]]]] }
+Json.parse("  true  ")                        // => Ok{ value: true }
+Json.parse("nul") is Err                      // => true
+Json.parse("[1,]") is Err                     // => true
+Json.parse(`{"a": [1, {"b": null}]}`)         // => Ok{ value: Map{ "a": [1.0, Map{ "b": null }] } }
+Json.stringify(1.5)                           // => "1.5"
+Json.stringify("é\n\"\\")                     // => "\"é\\n\\\"\\\\\""
+Json.stringify(Map{ b: [true, null] })        // => "{\"b\":[true,null]}"
+Json.stringify([1, "x"])                      // => "[1,\"x\"]"
+Json.stringify(null)                          // => "null"
+var roundTrip = Json.parse(Json.stringify(Map{ k: [1.5, "s", null, true] }))
+roundTrip                                     // => Ok{ value: Map{ "k": [1.5, "s", null, true] } }
+Json.stringify(Json.parse("{}") | Result.unwrapOr(null)) // => "{}"
+Json.stringify(Json.parse("[]") | Result.unwrapOr(null)) // => "[]"

@@ -1,0 +1,53 @@
+// spec: 11 Map; 12 Values
+
+// From map_edges.
+// Each Map function at its documented edges: fromEntries keeps the first insertion's position
+// and the last value, map and filter keep the source order, merge appends the keys m lacks and
+// lets n win, has tells a stored null from a missing key, remove returns the removed value, and
+// same is identity.
+var m = Map.fromEntries([Entry{ key: "a", value: 1 }, Entry{ key: "b", value: 2 }, Entry{ key: "a", value: 3 }])
+m                                             // => Map{ "a": 3, "b": 2 }
+Map.map(m, { x.value * 10 })                  // => Map{ "a": 30, "b": 20 }
+Map.filter(m, { x.key != "a" })               // => Map{ "b": 2 }
+Map.merge(Map{ a: 1, b: 2 }, Map{ c: 3, a: 9 }) // => Map{ "a": 9, "b": 2, "c": 3 }
+var stored: Map[string, int | null] = Map{ k: null }
+Map.has(stored, "k")                          // => true
+Map.has(stored, "z")                          // => false
+stored["k"] == null && stored["z"] == null    // => true
+var r = Map{ a: 1 }
+Map.remove(r, "a")                            // => 1
+Map.remove(r, "a")                            // => null
+Map.keys(m)                                   // => ["a", "b"]
+Map.values(m)                                 // => [3, 2]
+Map.entries(m)                                // => [Entry{ key: "a", value: 3 }, Entry{ key: "b", value: 2 }]
+Map.size(m)                                   // => 2
+Map.isEmpty(m)                                // => false
+var none: Map[string, int] = Map{}
+Map.isEmpty(none)                             // => true
+Map.set(m, "c", 4)
+m["d"] = 5
+m                                             // => Map{ "a": 3, "b": 2, "c": 4, "d": 5 }
+Map.get(m, "c")                               // => 4
+Map.get(m, "zz")                              // => null
+var keyed: Map[Array[int], string] = Map{}
+keyed[[1, 2]] = "pair"
+keyed[[1, 2]]                                 // => "pair"
+Map.has(keyed, [1, 2])                        // => true
+Map.same(m, m) && !Map.same(m, Map.merge(m, none)) // => true
+Map.map(Map{ x: "a" }, { `${x.key}=${x.value}` }) // => Map{ "x": "x=a" }
+
+// From hash_cycles.
+// A map key's hash depends on a bounded prefix of its structure, so hashing terminates on a
+// cyclic value and agrees with ==: a cyclic record finds itself as a key, and a second cycle of
+// the same shape is the same key (section 12).
+type Node = { value: int, next: Node | null }
+var a = Node{ value: 1, next: null }
+a.next = a
+var b = Node{ value: 1, next: null }
+b.next = b
+var keys: Map[Node, string] = Map{}
+Map.set(keys, a, "a")
+Map.get(keys, a)                              // => "a"
+Map.get(keys, b)                              // => "a"
+a == b                                        // => true
+Map.size(keys)                                // => 1

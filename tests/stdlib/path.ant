@@ -1,0 +1,20 @@
+// spec: stdlib Path
+
+// From path_lib.
+// Path (stdlib.md): pure functions over paths in the host's convention, each a function of
+// Go's path/filepath.
+Path.join(["a", "b", "../c", "d.ant"])        // => "a/c/d.ant"
+Path.join([])                                 // => ""
+Path.base("/x/y/z.ant")                       // => "z.ant"
+Path.base("")                                 // => "."
+Path.dir("/x/y/z.ant")                        // => "/x/y"
+Path.dir("z.ant")                             // => "."
+Path.ext("main.ant")                          // => ".ant"
+Path.ext("README")                            // => ""
+Path.clean("a//b/./c/..")                     // => "a/b"
+Path.isAbs("/x")                              // => true
+Path.isAbs("x")                               // => false
+Path.abs("x") | Result.map({ Path.isAbs(x) }) // => Ok{ value: true }
+Path.rel("/a/b", "/a/b/c/d")                  // => Ok{ value: "c/d" }
+Path.rel("/a/b", "/a/c")                      // => Ok{ value: "../c" }
+Path.rel("a", "/b") is Err                    // => true

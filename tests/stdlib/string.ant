@@ -12,7 +12,7 @@ String.slice(s, 1, 4)                         // => "éll"
 String.slice("añb", 1, 3)                     // => "ñb"
 String.slice("añb", 0, 0)                     // => ""
 String.slice("héllo", 3, 2)                   // => panic: String.slice: the range 3..2 is not within 0..5
-String.chars("a😀b")                          // => ["a", "😀", "b"]
+String.chars("a😀b")                           // => ["a", "😀", "b"]
 
 // Searching: indexOf and lastIndexOf in code points, null when absent.
 String.indexOf(s, "l")                        // => 2
@@ -51,7 +51,7 @@ c.before + " " + c.after                      // => "host 8080"
 
 // fields splits on runs of white space; lines on \n and \r\n, without an empty last line.
 String.fields("  a \t b\n c  ")               // => ["a", "b", "c"]
-String.fields("   ")                         // => []
+String.fields("   ")                          // => []
 String.lines("a\r\nb\n")                      // => ["a", "b"]
 String.lines("a\nb")                          // => ["a", "b"]
 String.lines("\n")                            // => [""]
@@ -100,14 +100,14 @@ String.isUpper("AÑ")                          // => true
 String.isUpper("Añ")                          // => false
 String.isLower("añ")                          // => true
 String.isLower("a1")                          // => false
-Array.map(String.chars("a1 B"), { [String.isLetter(x), String.isDigit(x), String.isSpace(x), String.isUpper(x)] })   // => [[true, false, false, false], [false, true, false, false], [false, false, true, false], [true, false, false, true]]
+Array.map(String.chars("a1 B"), { [String.isLetter(x), String.isDigit(x), String.isSpace(x), String.isUpper(x)] }) // => [[true, false, false, false], [false, true, false, false], [false, false, true, false], [true, false, false, true]]
 
 // Bytes and code points; invalid input gives null.
 String.toBytes("é")                           // => [195, 169]
 String.toBytes("añ")                          // => [97, 195, 177]
 String.fromBytes([byte(195), byte(169)])      // => "é"
 String.fromBytes([byte(255)])                 // => null
-String.toCodePoints("a😀")                    // => [97, 128512]
+String.toCodePoints("a😀")                     // => [97, 128512]
 String.toCodePoints("añ")                     // => [97, 241]
 String.fromCodePoints([72, 105])              // => "Hi"
 String.fromCodePoints([55296])                // => null

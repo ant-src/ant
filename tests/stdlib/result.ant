@@ -1,0 +1,35 @@
+// spec: 11 Result and Record; 12 Runtime panics
+
+// From result_edges.
+// Each Result function on both cases, all stopping at the first Err or giving Ok of every
+// value, and Record.same as identity against == as structure.
+type P = { n: int }
+var ok: Result[int, Error] = Result.ok(2)
+var err: Result[int, Error] = Result.err(Error{ message: "bad" })
+var second: Result[int, Error] = Result.err(Error{ message: "second" })
+Result.isOk(ok)                               // => true
+Result.isOk(err)                              // => false
+Result.map(ok, { x * 2 })                     // => Ok{ value: 4 }
+Result.map(err, { x * 2 })                    // => Err{ error: Error{ message: "bad" } }
+Result.mapErr(ok, { x.message })              // => Ok{ value: 2 }
+Result.mapErr(err, { x.message })             // => Err{ error: "bad" }
+Result.unwrapOr(ok, 0)                        // => 2
+Result.unwrapOr(err, 0)                       // => 0
+Result.unwrap(ok)                             // => 2
+Result.all([ok, ok])                          // => Ok{ value: [2, 2] }
+Result.all([ok, err, second])                 // => Err{ error: Error{ message: "bad" } }
+var none: Array[Result[int, Error]] = []
+Result.all(none)                              // => Ok{ value: [] }
+var p = P{ n: 1 }
+var q = P{ n: 1 }
+Record.same(p, p)                             // => true
+Record.same(p, q)                             // => false
+p == q                                        // => true
+var typed: Result[string, int] = Result.err(404)
+typed                                         // => Err{ error: 404 }
+Result.map(typed, { String.length(x) })       // => Err{ error: 404 }
+
+// From panic_unwrap.
+// Result.unwrap on an Err panics (section 11).
+var r: Result[int, string] = Result.err("boom")
+Result.unwrap(r)                              // => panic: Result.unwrap on an Err: "boom"

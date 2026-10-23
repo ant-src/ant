@@ -1,0 +1,31 @@
+// spec: stdlib Url
+
+// From url_lib.
+// Url: parse divides a reference into its parts, opaque included, with the path decoded and
+// the query raw; stringify assembles them again, an IPv6 host in brackets; escape and
+// unescape handle one query value; parseQuery keeps keys in order of first appearance and a
+// repeated key's values together, and stringifyQuery writes the map back in its order.
+var u = Result.unwrap(Url.parse("https://alice:s3cret@example.com:8443/a%20b/c?q=ant&tag=a&tag=b#top"))
+u                                             // => Url.Parts{ scheme: "https", opaque: "", user: "alice:s3cret", host: "example.com", port: "8443", path: "/a b/c", query: "q=ant&tag=a&tag=b", fragment: "top" }
+Url.stringify(u)                              // => "https://alice:s3cret@example.com:8443/a%20b/c?q=ant&tag=a&tag=b#top"
+Url.parse("mailto:alice@example.com")         // => Ok{ value: Url.Parts{ scheme: "mailto", opaque: "alice@example.com", user: "", host: "", port: "", path: "", query: "", fragment: "" } }
+Url.stringify(Result.unwrap(Url.parse("mailto:alice@example.com"))) // => "mailto:alice@example.com"
+Url.parse("/relative/path?x=1")               // => Ok{ value: Url.Parts{ scheme: "", opaque: "", user: "", host: "", port: "", path: "/relative/path", query: "x=1", fragment: "" } }
+Url.parse("http://[::1]:80/")                 // => Ok{ value: Url.Parts{ scheme: "http", opaque: "", user: "", host: "::1", port: "80", path: "/", query: "", fragment: "" } }
+Url.stringify(Result.unwrap(Url.parse("http://[::1]:80/"))) // => "http://[::1]:80/"
+Result.isOk(Url.parse("http://exa mple.com/")) // => false
+Url.parse("%zz")                              // => Err{ error: Error{ message: "parse \"%zz\": invalid URL escape \"%zz\"" } }
+var p = Result.unwrap(Url.parse("http://example.com/x"))
+var q = Url.Parts{ ...p, path: "/y", query: Url.stringifyQuery(Map{ "q": ["a b"] }) }
+Url.stringify(q)                              // => "http://example.com/y?q=a+b"
+Url.escape("a b&c=d/é")                       // => "a+b%26c%3Dd%2F%C3%A9"
+Url.unescape("a+b%26c")                       // => Ok{ value: "a b&c" }
+Url.unescape("%zz")                           // => Err{ error: Error{ message: "invalid URL escape \"%zz\"" } }
+Url.parseQuery("tag=a&q=ant&tag=b&empty=&flag") // => Ok{ value: Map{ "tag": ["a", "b"], "q": ["ant"], "empty": [""], "flag": [""] } }
+Url.parseQuery("")                            // => Ok{ value: Map{} }
+Result.isOk(Url.parseQuery("a=%zz"))          // => false
+var params = Result.unwrap(Url.parseQuery("tag=a&q=ant&tag=b"))
+Url.stringifyQuery(params)                    // => "tag=a&tag=b&q=ant"
+Url.stringifyQuery(Map{ "k": ["v 1", "v&2"], "z": [] }) // => "k=v+1&k=v%262"
+var none: Map[string, Array[string]] = Map{}
+Url.stringifyQuery(none)                      // => ""

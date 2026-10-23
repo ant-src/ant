@@ -1,0 +1,91 @@
+// spec: stdlib Time
+
+// From time_arith.
+// Time arithmetic (stdlib.md): durations kept as given, calendar and exact units added
+// differently, differences counted from their start, rounding by Temporal's modes, totals and
+// balancing relative to a point, and the transitions of a zone, with the examples of
+// Temporal's documentation.
+var d = Time.duration(hours: 1, minutes: 90)
+d                                             // => PT1H90M
+Time.part(d, Time.Minute{})                   // => 90
+[Time.sign(d), Time.sign(Time.negate(d)), Time.sign(Time.duration())] // => [1, -1, 0]
+Time.negate(d)                                // => -PT1H90M
+Time.abs(Time.negate(d)) == d                 // => true
+Time.duration(milliseconds: 1500)             // => PT1.5S
+Time.parseDuration("P1Y2M3DT4H5M6.5S")        // => Ok{ value: P1Y2M3DT4H5M6.5S }
+Time.parseDuration("PT1.5H")                  // => Ok{ value: PT1H30M }
+Time.parseDuration("P1H") is Err              // => true
+Time.roundDuration(d, largestUnit: Time.Hour{}) // => PT2H30M
+Time.roundDuration(Time.duration(minutes: 80, seconds: 90), largestUnit: Time.Hour{}) // => PT1H21M30S
+Time.roundDuration(Time.duration(hours: 1, minutes: 30, seconds: 15), Time.Minute{}) // => PT1H30M
+Time.roundDuration(Time.duration(hours: 1, minutes: 17), Time.Minute{}, increment: 15) // => PT1H15M
+Time.roundDuration(Time.duration(days: 1, hours: 1, minutes: 30), Time.Hour{}, Time.Hour{}, mode: Time.Floor{}) // => PT25H
+Time.roundDuration(Time.duration(days: 370), largestUnit: Time.Year{}, relativeTo: Time.plainDate(2019, 1, 1)) // => P1Y5D
+Time.roundDuration(Time.duration(days: 370), largestUnit: Time.Year{}, relativeTo: Time.plainDate(2020, 1, 1)) // => P1Y4D
+var la = Result.unwrap(Time.parseZoned("2020-03-08T00:00:00-08:00[America/Los_Angeles]"))
+Time.roundDuration(Time.duration(hours: 48), largestUnit: Time.Day{}) // => P2D
+Time.roundDuration(Time.duration(hours: 48), largestUnit: Time.Day{}, relativeTo: la) // => P2DT1H
+Time.addDuration(Time.duration(hours: 26, minutes: 45), Time.duration(minutes: 30)) // => PT27H15M
+Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25)) // => P2DT1H
+Time.total(Time.duration(hours: 1, minutes: 30), Time.Minute{}) // => 90.0
+Time.total(Time.duration(hours: 1, minutes: 30), Time.Hour{}) // => 1.5
+Time.total(Time.duration(months: 1), Time.Day{}, Time.plainDate(2021, 1, 1)) // => 31.0
+Time.total(Time.duration(days: 45), Time.Month{}, relativeTo: Time.plainDate(2021, 1, 1)) // => 1.5
+Time.compareDuration(Time.duration(hours: 1), Time.duration(minutes: 60)) // => 0
+Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30), Time.plainDate(2021, 1, 1)) // => 1
+Time.compareDuration(Time.duration(days: 1), Time.duration(hours: 24), la) // => -1
+var start = Result.unwrap(Time.parseZoned("2021-11-01T12:34:56-04:00[America/New_York]"))
+Time.add(start, Time.duration(1, 2, 3, 4, 5, 6, 7, 8)) // => 2023-01-26T17:41:03.008-05:00[America/New_York]
+var before = Result.unwrap(Time.parseZoned("2024-11-02T01:00:00-04:00[America/New_York]"))
+Time.add(before, Time.duration(days: 1))      // => 2024-11-03T01:00:00-04:00[America/New_York]
+Time.add(Time.add(before, Time.duration(days: 1)), Time.duration(hours: 1)) // => 2024-11-03T01:00:00-05:00[America/New_York]
+Time.subtract(before, Time.duration(days: 1)) // => 2024-11-01T01:00:00-04:00[America/New_York]
+Time.add(Time.plainDate(2024, 8, 31), Time.duration(months: 1)) // => 2024-09-30
+Time.add(Time.plainTime(23), Time.duration(hours: 2)) // => 01:00:00
+Time.add(Result.unwrap(Time.parsePlainDateTime("2026-10-22T23:00")), Time.duration(hours: 2)) // => 2026-10-23T01:00:00
+Time.add(Time.fromEpochMillis(0), Time.duration(seconds: 90)) // => 1970-01-01T00:01:30Z
+var a = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York]"))
+var b = Result.unwrap(Time.parseZoned("2024-11-04T01:00:00-05:00[America/New_York]"))
+Time.until(a, b)                              // => PT25H
+Time.until(a, b, Time.Day{})                  // => P1D
+Time.since(b, a, Time.Day{})                  // => P1D
+Time.until(b, a, Time.Day{})                  // => -P1D
+var lima = Result.unwrap(Time.parseZoned("2024-11-04T01:00:00-05:00[America/Lima]"))
+Time.until(a, lima)                           // => PT25H
+Time.until(Time.withZone(a, Time.zoneOf(lima)), lima, Time.Day{}) // => P1DT1H
+var mar31 = Time.plainDate(2024, 3, 31)
+var feb29 = Time.plainDate(2024, 2, 29)
+Time.since(mar31, feb29, Time.Month{})        // => P1M
+Time.until(feb29, mar31, Time.Month{})        // => P1M2D
+Time.until(Time.plainDate(2023, 1, 31), Time.plainDate(2023, 2, 28), Time.Month{}) // => P28D
+Time.until(Time.plainDate(2024, 2, 29), Time.plainDate(2025, 2, 28), Time.Year{}) // => P11M30D
+Time.until(Time.plainDate(2022, 1, 1), Time.plainDate(2022, 1, 28)) // => P27D
+Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(5400000)) // => PT5400S
+Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(5400000), Time.Hour{}) // => PT1H30M
+Time.until(Time.plainTime(23), Time.plainTime(1)) // => -PT22H
+var dt = Result.unwrap(Time.parsePlainDateTime("2021-07-01T12:34:56.123456789"))
+Time.round(dt, Time.Millisecond{})            // => 2021-07-01T12:34:56.123
+Time.round(dt, Time.Minute{}, 30)             // => 2021-07-01T12:30:00
+Time.round(dt, Time.Day{}, mode: Time.Ceil{}) // => 2021-07-02T00:00:00
+Time.round(Result.unwrap(Time.parseZoned("2024-03-10T01:00:00-05:00[America/New_York]")), Time.Hour{}, 2) // => 2024-03-10T03:00:00-04:00[America/New_York]
+Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Second{}) // => 2026-10-22T14:03:06Z
+Time.round(Time.plainTime(10, 44, 30), Time.Hour{}, mode: Time.HalfEven{}) // => 11:00:00
+Time.with(before, day: 3)                     // => 2024-11-03T01:00:00-04:00[America/New_York]
+Time.with(Result.unwrap(Time.parseZoned("2024-11-04T01:05:00-05:00[America/New_York]")), day: 3) // => 2024-11-03T01:05:00-05:00[America/New_York]
+Time.round(Result.unwrap(Time.parseZoned("2024-11-03T12:00:00-05:00[America/New_York]")), Time.Day{}) // => 2024-11-04T00:00:00-05:00[America/New_York]
+Time.with(Time.plainDate(2024, 1, 31), month: 2) // => 2024-02-29
+Time.with(Time.plainDate(2024, 1, 31), month: 13) // => 2024-12-31
+Time.with(Time.plainTime(1), hour: 25, nanosecond: 7) // => 23:00:00.000000007
+Time.with(dt, year: 2020, second: 0, millisecond: 0, microsecond: 0, nanosecond: 0) // => 2020-07-01T12:34:00
+var jan = Result.unwrap(Time.parseZoned("2024-01-01T00:00:00-05:00[America/New_York]"))
+Time.nextTransition(jan)                      // => 2024-03-10T03:00:00-04:00[America/New_York]
+Time.previousTransition(jan)                  // => 2023-11-05T01:00:00-05:00[America/New_York]
+Time.nextTransition(Time.inZone(Time.toInstant(jan), Time.utc)) // => null
+Time.previousTransition(Time.inZone(Time.toInstant(jan), Time.utc)) // => null
+Time.until(dt, Time.add(dt, Time.duration(hours: 30)), Time.Day{}) // => P1DT6H
+Time.compare(dt, Time.add(dt, Time.duration(nanoseconds: 1))) // => -1
+Time.total(Time.duration(hours: 36), Time.Day{}, relativeTo: dt) // => 1.5
+Time.epochNanos(a)                            // => 1730610000000000000
+Json.stringify(d)                             // => "\"PT1H90M\""
+var maybe: Time.Duration | null = d
+maybe is Time.Duration                        // => true

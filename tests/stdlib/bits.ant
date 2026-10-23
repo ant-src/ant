@@ -1,0 +1,45 @@
+// spec: 11 Math and Bits; 12 Runtime panics
+// panics: shift
+
+// From bits_lib.
+// Bits (section 11): bitwise operations and wrapping arithmetic, each within its kind's width;
+// shiftRight is arithmetic for signed kinds and logical for unsigned ones.
+Bits.and(12, 10)                              // => 8
+Bits.or(12, 10)                               // => 14
+Bits.xor(12, 10)                              // => 6
+Bits.not(0)                                   // => -1
+Bits.not(byte(0))                             // => 255
+Bits.shiftLeft(1, 10)                         // => 1024
+Bits.shiftLeft(byte(1), 7)                    // => 128
+Bits.shiftLeft(byte(255), 1)                  // => 254
+Bits.shiftRight(-16, 2)                       // => -4
+Bits.shiftRight(byte(255), 4)                 // => 15
+Bits.shiftRight(int8(-128), 7)                // => -1
+Bits.popCount(255)                            // => 8
+Bits.popCount(byte(255))                      // => 8
+Bits.popCount(-1)                             // => 64
+Bits.wrapAdd(Math.maxInt, 1)                  // => -9223372036854775808
+Bits.wrapSub(byte(0), byte(1))                // => 255
+Bits.wrapMul(byte(16), byte(16))              // => 0
+Bits.wrapAdd(int8(127), int8(1))              // => -128
+
+// From panic_rotate_left_negative.
+// A negative rotation count is a panic, as it is for the shifts.
+Bits.rotateLeft(byte(1), 1)                   // => 2
+Bits.rotateLeft(byte(1), -1)                  // => panic: Bits.rotateLeft needs a count of at least 0, got -1
+
+// From panic_rotate_right_negative.
+// A negative rotation count is a panic, as it is for the shifts.
+Bits.rotateRight(byte(1), 1)                  // => 128
+Bits.rotateRight(byte(1), -1)                 // => panic: Bits.rotateRight needs a count of at least 0, got -1
+
+// From panic_shift_right.
+// Bits.shiftRight with a count at or beyond the operand width panics (section 11).
+Bits.shiftRight(int8(-128), 7)                // => -1
+Bits.shiftRight(int8(-128), 8)                // => panic: Bits.shiftRight needs a count from 0 up to but excluding 8, got 8
+
+// From panic_shift.
+// A shift count outside the operand's width panics (section 11).
+var n = 64
+Bits.shiftLeft(1, 63) != 0                    // => true
+Bits.shiftLeft(1, n)                          // => panic: Bits.shiftLeft needs a count from 0 up to but excluding 64, got 64

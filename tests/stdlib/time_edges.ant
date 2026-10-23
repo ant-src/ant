@@ -1,0 +1,78 @@
+// spec: 12 Runtime panics; stdlib Time
+
+// From time_add_duration_months.
+// addDuration sums exact units and days, balancing up to the larger of the largest units, and
+// is a panic on years, months or weeks, whose length it cannot know.
+Time.addDuration(Time.duration(minutes: 90), Time.duration(minutes: 30)) // => PT120M
+Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25)) // => P2DT1H
+Time.addDuration(Time.duration(months: 1), Time.duration(hours: 1)) // => panic: Time.addDuration: years, months and weeks cannot be added without a starting point; add each to a date
+
+// From time_bad_date.
+// A date that is not there is a panic, as a constructor rejects what with constrains.
+Time.plainDate(2024, 2, 29)                   // => 2024-02-29
+Time.plainDate(2026, 2, 30)                   // => panic: Time.plainDate: no such date: 2026-02-30
+
+// From time_bad_time.
+// A time field out of range is a panic.
+Time.plainTime(23, 59, 59, 999, 999, 999)     // => 23:59:59.999999999
+Time.plainTime(25)                            // => panic: Time.plainTime: hour out of range: 25
+
+// From time_compare_duration_relative.
+// compareDuration orders by length, and is a panic on years, months or weeks without a
+// relativeTo point to measure them from.
+Time.compareDuration(Time.duration(hours: 1), Time.duration(minutes: 90)) // => -1
+Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30), relativeTo: Time.plainDate(2026, 2, 1)) // => -1
+Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30)) // => panic: Time.compareDuration: years, months or weeks need a relativeTo point to compare
+
+// From time_instant_days.
+// A day added to an instant is a panic: an instant has no calendar.
+Time.add(Time.fromEpochMillis(0), Time.duration(hours: 24)) // => 1970-01-02T00:00:00Z
+Time.add(Time.fromEpochMillis(0), Time.duration(days: 1)) // => panic: Time.add: an instant has no calendar; days cannot be added to it
+
+// From time_millis_range.
+// fromEpochMillis is a panic beyond 100 million days from the epoch.
+Time.fromEpochMillis(8640000000000000)        // => +275760-09-13T00:00:00Z
+Time.fromEpochMillis(8640000000000001)        // => panic: Time.fromEpochMillis: outside the range of time values
+
+// From time_mixed_signs.
+// A duration with fields of both signs is a panic.
+Time.duration(hours: -1, minutes: -30)        // => -PT1H30M
+Time.duration(hours: 1, minutes: -1)          // => panic: Time.duration: a duration's fields must all have one sign
+
+// From time_nanos_range.
+// epochNanos is a panic outside 1677 to 2262, where the nanoseconds do not fit an int.
+var last = Result.unwrap(Time.parseInstant("2262-04-11T23:47:16.854775807Z"))
+Time.epochNanos(last)                         // => 9223372036854775807
+var far = Result.unwrap(Time.parseInstant("2300-01-01T00:00:00Z"))
+Time.epochNanos(far)                          // => panic: Time.epochNanos: the nanoseconds do not fit an int; the instant is outside 1677 to 2262
+
+// From time_round_calendar.
+// Rounding a date-time to a calendar unit is a panic, as is an increment that does not fit.
+var dt = Result.unwrap(Time.parsePlainDateTime("2021-07-01T12:34:56"))
+Time.round(dt, Time.Hour{}, 6)                // => 2021-07-01T12:00:00
+Time.round(dt, Time.Month{})                  // => panic: Time.round: months cannot be rounded to
+
+// From time_round_duration_no_unit.
+// roundDuration balances to largestUnit or rounds to smallestUnit, and with neither given has
+// nothing to do, which is a panic.
+Time.roundDuration(Time.duration(minutes: 90), largestUnit: Time.Hour{}) // => PT1H30M
+Time.roundDuration(Time.duration(minutes: 90)) // => panic: Time.roundDuration: roundDuration needs a smallest or a largest unit
+
+// From time_since_unit.
+// since takes the units its type has and is a panic on one it lacks, as until is: a
+// PlainTime has no days.
+var a = Time.plainTime(10, 30)
+var b = Time.plainTime(9, 0)
+Time.since(a, b)                              // => PT1H30M
+Time.since(a, b, Time.Day{})                  // => panic: Time.since: a time has no days
+
+// From time_total_relative.
+// A total of months without a relativeTo point is a panic.
+Time.total(Time.duration(days: 2), Time.Hour{}) // => 48.0
+Time.total(Time.duration(months: 1), Time.Day{}) // => panic: Time.total: a total with months needs a relativeTo point
+
+// From time_with_field.
+// with constrains a field the type has and is a panic on a field it lacks: a PlainDate has
+// no hour.
+Time.with(Time.plainDate(2026, 1, 31), month: 2) // => 2026-02-28
+Time.with(Time.plainDate(2026, 1, 31), hour: 1) // => panic: Time.with: a date has no time fields
