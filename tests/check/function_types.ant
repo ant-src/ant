@@ -1,7 +1,8 @@
 // spec: 4 Function types; 4 Assignability
 // Section 4: a function with defaults is assignable to a type listing its required parameters
 // plus a prefix of the optional ones; parameters are contravariant and results covariant; a
-// void result admits only void. A target that keeps a default needs a source that has it too.
+// void result admits only void. A target that keeps a default needs a source that has it too,
+// and a lambda never has one.
 type Circle = { radius: float64 }
 type Rect = { width: float64 }
 type Shape = Circle | Rect
@@ -10,6 +11,7 @@ func connect(host: string, port: int = 443, tls: bool = true): string { `${host}
 func makeCircle(): Circle { Circle{ radius: 1.0 } }
 func anyArea(s: Shape): float64 { if s is Circle { s.radius } else { s.width } }
 func circleArea(c: Circle): float64 { c.radius }
+func port(n: int = 443): int { n }
 func plain(host: string, port: int, tls: bool): string { `${host}:${port}:${tls}` }
 
 func main(): void {
@@ -33,4 +35,7 @@ func main(): void {
   cb2()
   print(cb4(1))
   print(conns[0]("a"))
+  var ports = [port]
+  ports[0] = { x + 1 } // ERR: cannot use func(int): int where func(int = ...): int is expected
+  print(ports[0]())
 }

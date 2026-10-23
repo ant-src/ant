@@ -845,7 +845,12 @@ func (c *Checker) checkLambda(x *ast.Lambda, sc *scope, expected types.Type) typ
 		c.lambdaBodyAnyway(x, sc)
 		return types.Invalid{}
 	}
-	return c.lambda(x, sc, ft)
+	t := c.lambda(x, sc, ft)
+	if ft.Required < len(ft.Params) {
+		// A lambda has no default, so a call that leaves x out would find it unbound.
+		c.errorf(x.Pos, "cannot use %s where %s is expected", types.String(t), types.String(expected))
+	}
+	return t
 }
 
 // lambda checks a lambda against the function type it must have. When the expected return
