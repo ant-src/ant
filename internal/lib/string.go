@@ -65,7 +65,7 @@ func pad(g *interp.Goroutine, who string, a []value.Value, left bool) value.Valu
 // classTest is String.isDigit and the others: true when every code point of s satisfies f,
 // and false on the empty string.
 func classTest(name string, f func(rune) bool) *interp.Builtin {
-	return fn(name, "s", func(g *interp.Goroutine, a []value.Value) value.Value {
+	return fn(name, "s", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		s := stringArg(g, name, a[0])
 		if s == "" {
 			return false
@@ -132,23 +132,23 @@ func init() {
 	register("String", func() value.Value {
 		return namespace("String",
 			constant("Cut", CutTag),
-			fn("String.length", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return int64(utf8.RuneCountInString(stringArg(g, "String.length", a[0])))
+			fn("String.length", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return int64(utf8.RuneCountInString(stringArg(g, who, a[0])))
 			}),
-			fn("String.isEmpty", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return stringArg(g, "String.isEmpty", a[0]) == ""
+			fn("String.isEmpty", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return stringArg(g, who, a[0]) == ""
 			}),
-			fn("String.slice", "s, from, to", func(g *interp.Goroutine, a []value.Value) value.Value {
-				rs := []rune(stringArg(g, "String.slice", a[0]))
-				from, to := intArg(g, "String.slice", a[1]), intArg(g, "String.slice", a[2])
-				sliceBounds(g, "String.slice", from, to, len(rs))
+			fn("String.slice", "s, from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				rs := []rune(stringArg(g, who, a[0]))
+				from, to := intArg(g, who, a[1]), intArg(g, who, a[2])
+				sliceBounds(g, who, from, to, len(rs))
 				return string(rs[from:to])
 			}),
-			fn("String.concat", "parts", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.Join(stringsArg(g, "String.concat", a[0]), "")
+			fn("String.concat", "parts", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.Join(stringsArg(g, who, a[0]), "")
 			}),
-			fn("String.split", "s, sep", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s, sep := stringArg(g, "String.split", a[0]), stringArg(g, "String.split", a[1])
+			fn("String.split", "s, sep", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s, sep := stringArg(g, who, a[0]), stringArg(g, who, a[1])
 				if sep == "" {
 					g.Panic("String.split needs a separator that is not empty")
 				}
@@ -159,130 +159,130 @@ func init() {
 				}
 				return value.NewArray(out)
 			}),
-			fn("String.join", "parts, sep", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.Join(stringsArg(g, "String.join", a[0]), stringArg(g, "String.join", a[1]))
+			fn("String.join", "parts, sep", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.Join(stringsArg(g, who, a[0]), stringArg(g, who, a[1]))
 			}),
-			fn("String.repeat", "s, n", func(g *interp.Goroutine, a []value.Value) value.Value {
-				n := intArg(g, "String.repeat", a[1])
+			fn("String.repeat", "s, n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				n := intArg(g, who, a[1])
 				if n < 0 {
 					g.Panic("String.repeat needs a count of at least 0, got %d", n)
 				}
-				boundCount(g, "String.repeat", "count", n)
-				return strings.Repeat(stringArg(g, "String.repeat", a[0]), int(n))
+				boundCount(g, who, "count", n)
+				return strings.Repeat(stringArg(g, who, a[0]), int(n))
 			}),
-			fn("String.trim", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.TrimFunc(stringArg(g, "String.trim", a[0]), unicode.IsSpace)
+			fn("String.trim", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.TrimFunc(stringArg(g, who, a[0]), unicode.IsSpace)
 			}),
-			fn("String.trimStart", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.TrimLeftFunc(stringArg(g, "String.trimStart", a[0]), unicode.IsSpace)
+			fn("String.trimStart", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.TrimLeftFunc(stringArg(g, who, a[0]), unicode.IsSpace)
 			}),
-			fn("String.trimEnd", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.TrimRightFunc(stringArg(g, "String.trimEnd", a[0]), unicode.IsSpace)
+			fn("String.trimEnd", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.TrimRightFunc(stringArg(g, who, a[0]), unicode.IsSpace)
 			}),
-			fn("String.trimPrefix", "s, prefix", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.TrimPrefix(stringArg(g, "String.trimPrefix", a[0]), stringArg(g, "String.trimPrefix", a[1]))
+			fn("String.trimPrefix", "s, prefix", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.TrimPrefix(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 			}),
-			fn("String.trimSuffix", "s, suffix", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.TrimSuffix(stringArg(g, "String.trimSuffix", a[0]), stringArg(g, "String.trimSuffix", a[1]))
+			fn("String.trimSuffix", "s, suffix", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.TrimSuffix(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 			}),
-			fn("String.padStart", "s, width, pad?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return pad(g, "String.padStart", a, true)
+			fn("String.padStart", "s, width, pad?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return pad(g, who, a, true)
 			}),
-			fn("String.padEnd", "s, width, pad?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return pad(g, "String.padEnd", a, false)
+			fn("String.padEnd", "s, width, pad?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return pad(g, who, a, false)
 			}),
-			fn("String.contains", "s, t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.Contains(stringArg(g, "String.contains", a[0]), stringArg(g, "String.contains", a[1]))
+			fn("String.contains", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.Contains(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 			}),
-			fn("String.startsWith", "s, t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.HasPrefix(stringArg(g, "String.startsWith", a[0]), stringArg(g, "String.startsWith", a[1]))
+			fn("String.startsWith", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.HasPrefix(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 			}),
-			fn("String.endsWith", "s, t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.HasSuffix(stringArg(g, "String.endsWith", a[0]), stringArg(g, "String.endsWith", a[1]))
+			fn("String.endsWith", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.HasSuffix(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 			}),
-			fn("String.indexOf", "s, t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s := stringArg(g, "String.indexOf", a[0])
-				i := strings.Index(s, stringArg(g, "String.indexOf", a[1]))
+			fn("String.indexOf", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s := stringArg(g, who, a[0])
+				i := strings.Index(s, stringArg(g, who, a[1]))
 				if i < 0 {
 					return value.Null
 				}
 				return int64(utf8.RuneCountInString(s[:i]))
 			}),
-			fn("String.lastIndexOf", "s, t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s := stringArg(g, "String.lastIndexOf", a[0])
-				return runeIndex(s, strings.LastIndex(s, stringArg(g, "String.lastIndexOf", a[1])))
+			fn("String.lastIndexOf", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s := stringArg(g, who, a[0])
+				return runeIndex(s, strings.LastIndex(s, stringArg(g, who, a[1])))
 			}),
-			fn("String.count", "s, t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				t := stringArg(g, "String.count", a[1])
+			fn("String.count", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				t := stringArg(g, who, a[1])
 				if t == "" {
 					g.Panic("String.count needs a substring that is not empty")
 				}
-				return int64(strings.Count(stringArg(g, "String.count", a[0]), t))
+				return int64(strings.Count(stringArg(g, who, a[0]), t))
 			}),
-			fn("String.replace", "s, old, new", func(g *interp.Goroutine, a []value.Value) value.Value {
-				old := stringArg(g, "String.replace", a[1])
+			fn("String.replace", "s, old, new", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				old := stringArg(g, who, a[1])
 				if old == "" {
 					g.Panic("String.replace needs a pattern that is not empty")
 				}
-				return strings.ReplaceAll(stringArg(g, "String.replace", a[0]), old, stringArg(g, "String.replace", a[2]))
+				return strings.ReplaceAll(stringArg(g, who, a[0]), old, stringArg(g, who, a[2]))
 			}),
-			fn("String.replaceFirst", "s, old, new", func(g *interp.Goroutine, a []value.Value) value.Value {
-				old := stringArg(g, "String.replaceFirst", a[1])
+			fn("String.replaceFirst", "s, old, new", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				old := stringArg(g, who, a[1])
 				if old == "" {
 					g.Panic("String.replaceFirst needs a pattern that is not empty")
 				}
-				return strings.Replace(stringArg(g, "String.replaceFirst", a[0]), old, stringArg(g, "String.replaceFirst", a[2]), 1)
+				return strings.Replace(stringArg(g, who, a[0]), old, stringArg(g, who, a[2]), 1)
 			}),
-			fn("String.cut", "s, sep", func(g *interp.Goroutine, a []value.Value) value.Value {
-				sep := stringArg(g, "String.cut", a[1])
+			fn("String.cut", "s, sep", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				sep := stringArg(g, who, a[1])
 				if sep == "" {
 					g.Panic("String.cut needs a separator that is not empty")
 				}
-				before, after, found := strings.Cut(stringArg(g, "String.cut", a[0]), sep)
+				before, after, found := strings.Cut(stringArg(g, who, a[0]), sep)
 				if !found {
 					return value.Null
 				}
 				return value.NewRecord(CutTag, []value.Value{before, after})
 			}),
-			fn("String.fields", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				fields := strings.Fields(stringArg(g, "String.fields", a[0]))
+			fn("String.fields", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				fields := strings.Fields(stringArg(g, who, a[0]))
 				out := make([]value.Value, len(fields))
 				for i, f := range fields {
 					out[i] = f
 				}
 				return value.NewArray(out)
 			}),
-			fn("String.lines", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return value.NewArray(lines(stringArg(g, "String.lines", a[0])))
+			fn("String.lines", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return value.NewArray(lines(stringArg(g, who, a[0])))
 			}),
-			fn("String.toUpper", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.ToUpper(stringArg(g, "String.toUpper", a[0]))
+			fn("String.toUpper", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.ToUpper(stringArg(g, who, a[0]))
 			}),
-			fn("String.toLower", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return strings.ToLower(stringArg(g, "String.toLower", a[0]))
+			fn("String.toLower", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return strings.ToLower(stringArg(g, who, a[0]))
 			}),
 			classTest("String.isDigit", unicode.IsDigit),
 			classTest("String.isLetter", unicode.IsLetter),
 			classTest("String.isSpace", unicode.IsSpace),
 			classTest("String.isUpper", unicode.IsUpper),
 			classTest("String.isLower", unicode.IsLower),
-			fn("String.chars", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("String.chars", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var out []value.Value
-				for _, r := range stringArg(g, "String.chars", a[0]) {
+				for _, r := range stringArg(g, who, a[0]) {
 					out = append(out, string(r))
 				}
 				return value.NewArray(out)
 			}),
-			fn("String.toBytes", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s := stringArg(g, "String.toBytes", a[0])
+			fn("String.toBytes", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s := stringArg(g, who, a[0])
 				out := make([]value.Value, len(s))
 				for i := 0; i < len(s); i++ {
 					out[i] = uint8(s[i])
 				}
 				return value.NewArray(out)
 			}),
-			fn("String.fromBytes", "bytes", func(g *interp.Goroutine, a []value.Value) value.Value {
-				vals := arrayArg(g, "String.fromBytes", a[0]).Values()
+			fn("String.fromBytes", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				vals := arrayArg(g, who, a[0]).Values()
 				b := make([]byte, len(vals))
 				for i, v := range vals {
 					x, ok := v.(uint8)
@@ -296,16 +296,16 @@ func init() {
 				}
 				return string(b)
 			}),
-			fn("String.toCodePoints", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("String.toCodePoints", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var out []value.Value
-				for _, r := range stringArg(g, "String.toCodePoints", a[0]) {
+				for _, r := range stringArg(g, who, a[0]) {
 					out = append(out, int64(r))
 				}
 				return value.NewArray(out)
 			}),
-			fn("String.fromCodePoints", "points", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("String.fromCodePoints", "points", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var sb strings.Builder
-				for _, v := range arrayArg(g, "String.fromCodePoints", a[0]).Values() {
+				for _, v := range arrayArg(g, who, a[0]).Values() {
 					p, ok := v.(int64)
 					if !ok {
 						g.Panic("String.fromCodePoints needs an array of ints, got an element of kind %s", value.Describe(v))
@@ -317,9 +317,9 @@ func init() {
 				}
 				return sb.String()
 			}),
-			fn("String.toInt", "s, base?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s := stringArg(g, "String.toInt", a[0])
-				base := baseArg(g, "String.toInt", a[1])
+			fn("String.toInt", "s, base?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s := stringArg(g, who, a[0])
+				base := baseArg(g, who, a[1])
 				if !digitsOf(s, base) {
 					return value.Null
 				}
@@ -329,8 +329,8 @@ func init() {
 				}
 				return n
 			}),
-			fn("String.toFloat", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s := stringArg(g, "String.toFloat", a[0])
+			fn("String.toFloat", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s := stringArg(g, who, a[0])
 				if s == "" || strings.ContainsAny(s, "_xXpP") || strings.ContainsAny(strings.ToLower(s), "in") {
 					return value.Null
 				}
@@ -340,8 +340,8 @@ func init() {
 				}
 				return f
 			}),
-			fn("String.fromInt", "x, base?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				base := baseArg(g, "String.fromInt", a[1])
+			fn("String.fromInt", "x, base?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				base := baseArg(g, who, a[1])
 				switch x := a[0].(type) {
 				case int64:
 					return strconv.FormatInt(x, base)
@@ -363,9 +363,9 @@ func init() {
 				g.Panic("String.fromInt needs an integer, got %s", value.Describe(a[0]))
 				return nil
 			}),
-			fn("String.fromFloat", "x, digits", func(g *interp.Goroutine, a []value.Value) value.Value {
-				x := floatArg(g, "String.fromFloat", a[0])
-				digits := intArg(g, "String.fromFloat", a[1])
+			fn("String.fromFloat", "x, digits", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x := floatArg(g, who, a[0])
+				digits := intArg(g, who, a[1])
 				if digits < 0 {
 					g.Panic("String.fromFloat needs a count of digits of at least 0, got %d", digits)
 				}
@@ -374,7 +374,7 @@ func init() {
 				}
 				return strconv.FormatFloat(x, 'f', int(digits), 64)
 			}),
-			fn("String.from", "value", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("String.from", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return value.Render(a[0])
 			}),
 		)

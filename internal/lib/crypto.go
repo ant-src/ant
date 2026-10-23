@@ -17,7 +17,7 @@ import (
 
 // digest is a Crypto function that hashes one byte array.
 func digest(name string, h func() hash.Hash) *interp.Builtin {
-	return fn(name, "bytes", func(g *interp.Goroutine, a []value.Value) value.Value {
+	return fn(name, "bytes", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		d := h()
 		d.Write(bytesArg(g, name, a[0]))
 		return bytesValue(d.Sum(nil))
@@ -26,7 +26,7 @@ func digest(name string, h func() hash.Hash) *interp.Builtin {
 
 // mac is a Crypto function that computes an HMAC of a message under a key.
 func mac(name string, h func() hash.Hash) *interp.Builtin {
-	return fn(name, "key, message", func(g *interp.Goroutine, a []value.Value) value.Value {
+	return fn(name, "key, message", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		m := hmac.New(h, bytesArg(g, name, a[0]))
 		m.Write(bytesArg(g, name, a[1]))
 		return bytesValue(m.Sum(nil))
@@ -43,22 +43,22 @@ func init() {
 			mac("Crypto.hmacSha1", sha1.New),
 			mac("Crypto.hmacSha256", sha256.New),
 			mac("Crypto.hmacSha512", sha512.New),
-			fn("Crypto.equal", "a, b", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return subtle.ConstantTimeCompare(bytesArg(g, "Crypto.equal", a[0]), bytesArg(g, "Crypto.equal", a[1])) == 1
+			fn("Crypto.equal", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return subtle.ConstantTimeCompare(bytesArg(g, who, a[0]), bytesArg(g, who, a[1])) == 1
 			}),
-			fn("Crypto.randomBytes", "n", func(g *interp.Goroutine, a []value.Value) value.Value {
-				n := intArg(g, "Crypto.randomBytes", a[0])
+			fn("Crypto.randomBytes", "n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				n := intArg(g, who, a[0])
 				if n < 0 {
 					g.Panic("Crypto.randomBytes needs a count of at least 0, got %d", n)
 				}
-				boundCount(g, "Crypto.randomBytes", "count", n)
+				boundCount(g, who, "count", n)
 				b := make([]byte, n)
 				if _, err := rand.Read(b); err != nil {
 					g.Panic("Crypto.randomBytes: %s", err)
 				}
 				return bytesValue(b)
 			}),
-			fn("Crypto.uuid", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Crypto.uuid", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var b [16]byte
 				if _, err := rand.Read(b[:]); err != nil {
 					g.Panic("Crypto.uuid: %s", err)

@@ -21,8 +21,8 @@ func init() {
 	register("Json", func() value.Value {
 		return namespace("Json",
 			constant("Value", value.NewTag("Json.Value", value.AliasTag, nil)),
-			fn("Json.parse", "text", func(g *interp.Goroutine, a []value.Value) value.Value {
-				dec := json.NewDecoder(strings.NewReader(stringArg(g, "Json.parse", a[0])))
+			fn("Json.parse", "text", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				dec := json.NewDecoder(strings.NewReader(stringArg(g, who, a[0])))
 				v, err := parseJSON(dec)
 				if err != nil {
 					return value.Err(value.ErrorValue(parseError(err)))
@@ -32,7 +32,7 @@ func init() {
 				}
 				return value.Ok(v)
 			}),
-			fn("Json.stringify", "value", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Json.stringify", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var sb strings.Builder
 				if !stringify(&sb, a[0], nil) {
 					g.Panic("Json.stringify: cyclic value")

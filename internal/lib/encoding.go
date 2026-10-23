@@ -30,29 +30,29 @@ func base64Alphabet(g *interp.Goroutine, who string, url value.Value) *base64.En
 func init() {
 	register("Encoding", func() value.Value {
 		return namespace("Encoding",
-			fn("Encoding.toBase64", "bytes, url?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				enc := base64Alphabet(g, "Encoding.toBase64", a[1]).WithPadding(base64.StdPadding)
-				return enc.EncodeToString(bytesArg(g, "Encoding.toBase64", a[0]))
+			fn("Encoding.toBase64", "bytes, url?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				enc := base64Alphabet(g, who, a[1]).WithPadding(base64.StdPadding)
+				return enc.EncodeToString(bytesArg(g, who, a[0]))
 			}),
-			fn("Encoding.fromBase64", "s, url?", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Encoding.fromBase64", "s, url?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				// Line breaks are ignored and the padding may be present or absent: the text is
 				// decoded without it, by the raw form of the alphabet.
-				s := strings.NewReplacer("\r", "", "\n", "").Replace(stringArg(g, "Encoding.fromBase64", a[0]))
+				s := strings.NewReplacer("\r", "", "\n", "").Replace(stringArg(g, who, a[0]))
 				trimmed := strings.TrimRight(s, "=")
 				if pad := len(s) - len(trimmed); pad > 2 || pad > 0 && len(s)%4 != 0 {
 					return errResult(errors.New("illegal base64 padding"))
 				}
-				data, err := base64Alphabet(g, "Encoding.fromBase64", a[1]).DecodeString(trimmed)
+				data, err := base64Alphabet(g, who, a[1]).DecodeString(trimmed)
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(bytesValue(data))
 			}),
-			fn("Encoding.toHex", "bytes", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return hex.EncodeToString(bytesArg(g, "Encoding.toHex", a[0]))
+			fn("Encoding.toHex", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return hex.EncodeToString(bytesArg(g, who, a[0]))
 			}),
-			fn("Encoding.fromHex", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				text := stringArg(g, "Encoding.fromHex", a[0])
+			fn("Encoding.fromHex", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				text := stringArg(g, who, a[0])
 				data, err := hex.DecodeString(text)
 				if _, bad := err.(hex.InvalidByteError); bad {
 					// Go names the offending byte; name the character it begins instead, so a

@@ -73,8 +73,7 @@ func spanArg(g *interp.Goroutine, who string, v value.Value) time.Duration {
 func init() {
 	register("Context", func() value.Value {
 		return syncTag("Context",
-			fn("Context.new", "timeout?, parent?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Context.new"
+			fn("Context.new", "timeout?, parent?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var timeout time.Duration
 				if given(a[0]) {
 					d, err := goDuration(durationArg(g, who, a[0]))
@@ -89,31 +88,31 @@ func init() {
 				}
 				return value.NewContext(parent, timeout)
 			}),
-			fn("Context.cancel", "ctx", func(g *interp.Goroutine, a []value.Value) value.Value {
-				contextArg(g, "Context.cancel", a[0]).Cancel(value.ErrCancelled)
+			fn("Context.cancel", "ctx", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				contextArg(g, who, a[0]).Cancel(value.ErrCancelled)
 				return value.Void
 			}),
-			fn("Context.isDone", "ctx", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return contextArg(g, "Context.isDone", a[0]).Done()
+			fn("Context.isDone", "ctx", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return contextArg(g, who, a[0]).Done()
 			}),
-			fn("Context.reason", "ctx", func(g *interp.Goroutine, a []value.Value) value.Value {
-				reason := contextArg(g, "Context.reason", a[0]).Reason()
+			fn("Context.reason", "ctx", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				reason := contextArg(g, who, a[0]).Reason()
 				if reason == "" {
 					return value.Null
 				}
 				return reason
 			}),
-			fn("Context.deadline", "ctx", func(g *interp.Goroutine, a []value.Value) value.Value {
-				t, ok := contextArg(g, "Context.deadline", a[0]).Ctx.Deadline()
+			fn("Context.deadline", "ctx", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				t, ok := contextArg(g, who, a[0]).Ctx.Deadline()
 				if !ok {
 					return value.Null
 				}
 				deadline, err := temporal.NewInstant(t.Unix(), int64(t.Nanosecond()))
-				must(g, "Context.deadline", err)
+				must(g, who, err)
 				return deadline
 			}),
-			fn("Context.wait", "ctx", func(g *interp.Goroutine, a []value.Value) value.Value {
-				c := contextArg(g, "Context.wait", a[0])
+			fn("Context.wait", "ctx", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				c := contextArg(g, who, a[0])
 				g.Instance().Flush()
 				<-c.Ctx.Done()
 				g.AfterWait()

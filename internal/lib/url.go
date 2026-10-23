@@ -77,8 +77,8 @@ func init() {
 	register("Url", func() value.Value {
 		return namespace("Url",
 			constant("Parts", PartsTag),
-			fn("Url.parse", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				u, err := url.Parse(stringArg(g, "Url.parse", a[0]))
+			fn("Url.parse", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				u, err := url.Parse(stringArg(g, who, a[0]))
 				if err == nil && !(utf8.ValidString(u.Path) && utf8.ValidString(u.Fragment)) {
 					err = errNotUTF8
 				}
@@ -87,25 +87,25 @@ func init() {
 				}
 				return value.Ok(partsRecord(u))
 			}),
-			fn("Url.stringify", "parts", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return partsURL(g, "Url.stringify", a[0]).String()
+			fn("Url.stringify", "parts", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return partsURL(g, who, a[0]).String()
 			}),
-			fn("Url.escape", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return url.QueryEscape(stringArg(g, "Url.escape", a[0]))
+			fn("Url.escape", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return url.QueryEscape(stringArg(g, who, a[0]))
 			}),
-			fn("Url.unescape", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s, err := queryUnescape(stringArg(g, "Url.unescape", a[0]))
+			fn("Url.unescape", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s, err := queryUnescape(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(s)
 			}),
-			fn("Url.parseQuery", "query", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Url.parseQuery", "query", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				// url.ParseQuery gives a Go map, which has no order, so the pairs are read here:
 				// split at &, each at the first =, both sides unescaped, keys in order of first
 				// appearance and a repeated key's values in order.
 				m := value.NewMap()
-				for _, pair := range strings.Split(stringArg(g, "Url.parseQuery", a[0]), "&") {
+				for _, pair := range strings.Split(stringArg(g, who, a[0]), "&") {
 					if pair == "" {
 						continue
 					}
@@ -126,11 +126,11 @@ func init() {
 				}
 				return value.Ok(m)
 			}),
-			fn("Url.stringifyQuery", "params", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Url.stringifyQuery", "params", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var sb strings.Builder
-				for _, e := range mapArg(g, "Url.stringifyQuery", a[0]).Entries() {
-					k := url.QueryEscape(stringArg(g, "Url.stringifyQuery", e.Key))
-					for _, v := range stringsArg(g, "Url.stringifyQuery", e.Value) {
+				for _, e := range mapArg(g, who, a[0]).Entries() {
+					k := url.QueryEscape(stringArg(g, who, e.Key))
+					for _, v := range stringsArg(g, who, e.Value) {
 						if sb.Len() > 0 {
 							sb.WriteByte('&')
 						}

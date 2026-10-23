@@ -307,8 +307,8 @@ func init() {
 		return namespace("File",
 			constant("Handle", value.NewTag("File.Handle", value.SyncTag, nil)),
 			constant("Info", InfoTag),
-			fn("File.stat", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				fi, err := os.Stat(stringArg(g, "File.stat", a[0]))
+			fn("File.stat", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				fi, err := os.Stat(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
@@ -318,24 +318,24 @@ func init() {
 				}
 				return value.Ok(value.NewRecord(InfoTag, []value.Value{fi.Name(), fi.Size(), fi.IsDir(), modified}))
 			}),
-			fn("File.mkdir", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return okVoid(os.MkdirAll(stringArg(g, "File.mkdir", a[0]), 0o755))
+			fn("File.mkdir", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return okVoid(os.MkdirAll(stringArg(g, who, a[0]), 0o755))
 			}),
-			fn("File.removeAll", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return okVoid(os.RemoveAll(stringArg(g, "File.removeAll", a[0])))
+			fn("File.removeAll", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return okVoid(os.RemoveAll(stringArg(g, who, a[0])))
 			}),
-			fn("File.rename", "from, to", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return okVoid(os.Rename(stringArg(g, "File.rename", a[0]), stringArg(g, "File.rename", a[1])))
+			fn("File.rename", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return okVoid(os.Rename(stringArg(g, who, a[0]), stringArg(g, who, a[1])))
 			}),
-			fn("File.tempDir", "prefix", func(g *interp.Goroutine, a []value.Value) value.Value {
-				dir, err := os.MkdirTemp("", stringArg(g, "File.tempDir", a[0]))
+			fn("File.tempDir", "prefix", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				dir, err := os.MkdirTemp("", stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(dir)
 			}),
-			fn("File.walk", "dir", func(g *interp.Goroutine, a []value.Value) value.Value {
-				dir := stringArg(g, "File.walk", a[0])
+			fn("File.walk", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				dir := stringArg(g, who, a[0])
 				if fi, err := os.Stat(dir); err != nil {
 					return errResult(err)
 				} else if !fi.IsDir() {
@@ -367,53 +367,53 @@ func init() {
 				}
 				return value.Ok(value.NewArray(files))
 			}),
-			fn("File.append", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				f, err := os.OpenFile(stringArg(g, "File.append", a[0]), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+			fn("File.append", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				f, err := os.OpenFile(stringArg(g, who, a[0]), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(newHandle(f, nil, f))
 			}),
-			fn("File.read", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				data, err := os.ReadFile(stringArg(g, "File.read", a[0]))
+			fn("File.read", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				data, err := os.ReadFile(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(string(data))
 			}),
-			fn("File.readBytes", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				data, err := os.ReadFile(stringArg(g, "File.readBytes", a[0]))
+			fn("File.readBytes", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				data, err := os.ReadFile(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(bytesValue(data))
 			}),
-			fn("File.write", "path, text", func(g *interp.Goroutine, a []value.Value) value.Value {
-				err := os.WriteFile(stringArg(g, "File.write", a[0]), []byte(stringArg(g, "File.write", a[1])), 0o644)
+			fn("File.write", "path, text", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				err := os.WriteFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), 0o644)
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(value.Void)
 			}),
-			fn("File.writeBytes", "path, bytes", func(g *interp.Goroutine, a []value.Value) value.Value {
-				err := os.WriteFile(stringArg(g, "File.writeBytes", a[0]), bytesArg(g, "File.writeBytes", a[1]), 0o644)
+			fn("File.writeBytes", "path, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				err := os.WriteFile(stringArg(g, who, a[0]), bytesArg(g, who, a[1]), 0o644)
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(value.Void)
 			}),
-			fn("File.exists", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				_, err := os.Stat(stringArg(g, "File.exists", a[0]))
+			fn("File.exists", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				_, err := os.Stat(stringArg(g, who, a[0]))
 				return err == nil
 			}),
-			fn("File.remove", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				if err := os.Remove(stringArg(g, "File.remove", a[0])); err != nil {
+			fn("File.remove", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if err := os.Remove(stringArg(g, who, a[0])); err != nil {
 					return errResult(err)
 				}
 				return value.Ok(value.Void)
 			}),
-			fn("File.list", "dir", func(g *interp.Goroutine, a []value.Value) value.Value {
-				entries, err := os.ReadDir(stringArg(g, "File.list", a[0]))
+			fn("File.list", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				entries, err := os.ReadDir(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
@@ -423,42 +423,42 @@ func init() {
 				}
 				return value.Ok(value.NewArray(names))
 			}),
-			fn("File.open", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				f, err := os.Open(stringArg(g, "File.open", a[0]))
+			fn("File.open", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				f, err := os.Open(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(newHandle(f, f, nil))
 			}),
-			fn("File.create", "path", func(g *interp.Goroutine, a []value.Value) value.Value {
-				f, err := os.Create(stringArg(g, "File.create", a[0]))
+			fn("File.create", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				f, err := os.Create(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(newHandle(f, nil, f))
 			}),
-			fn("File.readLine", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "File.readLine", a[0])
-				ctx := waitContext(g, optionalContext(g, "File.readLine", a[1]))
+			fn("File.readLine", "f, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				ctx := waitContext(g, optionalContext(g, who, a[1]))
 				defer g.AfterWait()
 				return h.read(ctx, h.readLine)
 			}),
-			fn("File.readAll", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "File.readAll", a[0])
-				ctx := waitContext(g, optionalContext(g, "File.readAll", a[1]))
+			fn("File.readAll", "f, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				ctx := waitContext(g, optionalContext(g, who, a[1]))
 				defer g.AfterWait()
 				return h.read(ctx, h.readAll)
 			}),
-			fn("File.writeLine", "f, line", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "File.writeLine", a[0])
-				return h.write(stringArg(g, "File.writeLine", a[1]) + "\n")
+			fn("File.writeLine", "f, line", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				return h.write(stringArg(g, who, a[1]) + "\n")
 			}),
-			fn("File.writeText", "f, text", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "File.writeText", a[0])
-				return h.write(stringArg(g, "File.writeText", a[1]))
+			fn("File.writeText", "f, text", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				return h.write(stringArg(g, who, a[1]))
 			}),
-			fn("File.flush", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "File.flush", a[0])
+			fn("File.flush", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
 				h.writes.Lock()
 				defer h.writes.Unlock()
 				if h.isClosed() {
@@ -472,10 +472,10 @@ func init() {
 				}
 				return value.Ok(value.Void)
 			}),
-			fn("File.pipe", "src, dst, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				src := handleArg(g, "File.pipe", a[0])
-				dst := handleArg(g, "File.pipe", a[1])
-				ctx := waitContext(g, optionalContext(g, "File.pipe", a[2]))
+			fn("File.pipe", "src, dst, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				src := handleArg(g, who, a[0])
+				dst := handleArg(g, who, a[1])
+				ctx := waitContext(g, optionalContext(g, who, a[2]))
 				if src == dst {
 					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
 				}
@@ -502,8 +502,8 @@ func init() {
 					return dst.flushed(err)
 				})
 			}),
-			fn("File.close", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "File.close", a[0])
+			fn("File.close", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
 				if h.std {
 					if h.w != nil {
 						h.writes.Lock()

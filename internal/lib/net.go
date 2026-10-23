@@ -130,19 +130,19 @@ func init() {
 	register("Net", func() value.Value {
 		return namespace("Net",
 			constant("Listener", value.NewTag("Net.Listener", value.SyncTag, nil)),
-			fn("Net.listen", "addr", func(g *interp.Goroutine, a []value.Value) value.Value {
-				l, err := net.Listen("tcp", stringArg(g, "Net.listen", a[0]))
+			fn("Net.listen", "addr", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				l, err := net.Listen("tcp", stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(&Listener{l: l.(*net.TCPListener)})
 			}),
-			fn("Net.address", "l", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return listenerArg(g, "Net.address", a[0]).l.Addr().String()
+			fn("Net.address", "l", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return listenerArg(g, who, a[0]).l.Addr().String()
 			}),
-			fn("Net.accept", "l, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				l := listenerArg(g, "Net.accept", a[0])
-				ctx := waitContext(g, optionalContext(g, "Net.accept", a[1]))
+			fn("Net.accept", "l, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				l := listenerArg(g, who, a[0])
+				ctx := waitContext(g, optionalContext(g, who, a[1]))
 				g.Instance().Flush()
 				c, err := l.accept(g.Context().Done(), ctx)
 				g.AfterWait()
@@ -157,8 +157,8 @@ func init() {
 				}
 				return value.Ok(connHandle(c))
 			}),
-			fn("Net.close", "l", func(g *interp.Goroutine, a []value.Value) value.Value {
-				l := listenerArg(g, "Net.close", a[0])
+			fn("Net.close", "l", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				l := listenerArg(g, who, a[0])
 				l.mu.Lock()
 				defer l.mu.Unlock()
 				if !l.closed {
@@ -167,11 +167,11 @@ func init() {
 				}
 				return value.Void
 			}),
-			fn("Net.dial", "addr, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				ctx := waitContext(g, optionalContext(g, "Net.dial", a[1]))
+			fn("Net.dial", "addr, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				ctx := waitContext(g, optionalContext(g, who, a[1]))
 				g.Instance().Flush()
 				var d net.Dialer
-				c, err := d.DialContext(ctx, "tcp", stringArg(g, "Net.dial", a[0]))
+				c, err := d.DialContext(ctx, "tcp", stringArg(g, who, a[0]))
 				g.AfterWait()
 				if err != nil {
 					if ctx.Err() != nil {
@@ -181,8 +181,8 @@ func init() {
 				}
 				return value.Ok(connHandle(c))
 			}),
-			fn("Net.peer", "f", func(g *interp.Goroutine, a []value.Value) value.Value {
-				h := handleArg(g, "Net.peer", a[0])
+			fn("Net.peer", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
 				if !h.conn {
 					return value.Null
 				}

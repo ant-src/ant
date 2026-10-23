@@ -64,14 +64,14 @@ func pairBits(g *interp.Goroutine, who string, a, b value.Value) (uint64, uint64
 }
 
 func binaryBits(name string, op func(x, y uint64) uint64) *interp.Builtin {
-	return fn(name, "a, b", func(g *interp.Goroutine, a []value.Value) value.Value {
+	return fn(name, "a, b", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		x, y, k := pairBits(g, name, a[0], a[1])
 		return fromBits(k, op(x, y))
 	})
 }
 
 func shift(name string, right bool) *interp.Builtin {
-	return fn(name, "a, n", func(g *interp.Goroutine, a []value.Value) value.Value {
+	return fn(name, "a, n", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		x, k := intBits(g, name, a[0])
 		n := intArg(g, name, a[1])
 		width := int64(k.Bits())
@@ -101,7 +101,7 @@ func widthMask(k value.Kind) uint64 {
 // rotate is Bits.rotateLeft and Bits.rotateRight: by n modulo the width, so a count at or
 // beyond the width wraps; a negative count panics as the shifts do.
 func rotate(name string, right bool) *interp.Builtin {
-	return fn(name, "a, n", func(g *interp.Goroutine, a []value.Value) value.Value {
+	return fn(name, "a, n", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		x, k := intBits(g, name, a[0])
 		n := intArg(g, name, a[1])
 		if n < 0 {
@@ -126,24 +126,24 @@ func init() {
 			binaryBits("Bits.and", func(x, y uint64) uint64 { return x & y }),
 			binaryBits("Bits.or", func(x, y uint64) uint64 { return x | y }),
 			binaryBits("Bits.xor", func(x, y uint64) uint64 { return x ^ y }),
-			fn("Bits.not", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
-				x, k := intBits(g, "Bits.not", a[0])
+			fn("Bits.not", "a", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x, k := intBits(g, who, a[0])
 				return fromBits(k, ^x)
 			}),
 			shift("Bits.shiftLeft", false),
 			shift("Bits.shiftRight", true),
 			rotate("Bits.rotateLeft", false),
 			rotate("Bits.rotateRight", true),
-			fn("Bits.popCount", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
-				x, k := intBits(g, "Bits.popCount", a[0])
+			fn("Bits.popCount", "a", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x, k := intBits(g, who, a[0])
 				return int64(bits.OnesCount64(x & widthMask(k)))
 			}),
-			fn("Bits.leadingZeros", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
-				x, k := intBits(g, "Bits.leadingZeros", a[0])
+			fn("Bits.leadingZeros", "a", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x, k := intBits(g, who, a[0])
 				return int64(bits.LeadingZeros64(x&widthMask(k)) - (64 - k.Bits()))
 			}),
-			fn("Bits.trailingZeros", "a", func(g *interp.Goroutine, a []value.Value) value.Value {
-				x, k := intBits(g, "Bits.trailingZeros", a[0])
+			fn("Bits.trailingZeros", "a", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x, k := intBits(g, who, a[0])
 				if x&widthMask(k) == 0 {
 					return int64(k.Bits())
 				}

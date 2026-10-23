@@ -120,8 +120,7 @@ var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method"
 // serve is Http.serve: an http.Server on the listener until ctx is done, then a shutdown that
 // waits up to five seconds for the requests in flight. Each request's handler runs on an Ant
 // goroutine of its own; a panic there is reported as any goroutine's is and answered with 500.
-func serve(g *interp.Goroutine, a []value.Value) value.Value {
-	const who = "Http.serve"
+func serve(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	l := listenerArg(g, who, a[0])
 	handler := funcArg(g, who, a[1])
 	ctx := waitContext(g, optionalContext(g, who, a[2]))
@@ -210,16 +209,13 @@ func init() {
 	register("Http", func() value.Value {
 		return namespace("Http",
 			constant("Response", ResponseTag),
-			fn("Http.request", "method, url, body?, headers?, timeout?, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Http.request"
+			fn("Http.request", "method, url, body?, headers?, timeout?, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return request(g, who, stringArg(g, who, a[0]), stringArg(g, who, a[1]), optionalString(g, who, a[2]), a[3], a[4], a[5])
 			}),
-			fn("Http.get", "url, headers?, timeout?, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Http.get"
+			fn("Http.get", "url, headers?, timeout?, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return request(g, who, "GET", stringArg(g, who, a[0]), "", a[1], a[2], a[3])
 			}),
-			fn("Http.post", "url, body, headers?, timeout?, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Http.post"
+			fn("Http.post", "url, body, headers?, timeout?, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return request(g, who, "POST", stringArg(g, who, a[0]), stringArg(g, who, a[1]), a[2], a[3], a[4])
 			}),
 			constant("Request", RequestTag),

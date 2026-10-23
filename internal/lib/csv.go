@@ -44,9 +44,9 @@ func csvField(sb *strings.Builder, field string, sep rune) {
 func init() {
 	register("Csv", func() value.Value {
 		return namespace("Csv",
-			fn("Csv.parse", "text, sep?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				text := stringArg(g, "Csv.parse", a[0])
-				sep := separator(g, "Csv.parse", a[1])
+			fn("Csv.parse", "text, sep?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				text := stringArg(g, who, a[0])
+				sep := separator(g, who, a[1])
 				r := csv.NewReader(strings.NewReader(text))
 				r.Comma = sep
 				r.FieldsPerRecord = -1
@@ -64,12 +64,12 @@ func init() {
 				}
 				return value.Ok(value.NewArray(rows))
 			}),
-			fn("Csv.stringify", "rows, sep?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				rows := arrayArg(g, "Csv.stringify", a[0]).Values()
-				sep := separator(g, "Csv.stringify", a[1])
+			fn("Csv.stringify", "rows, sep?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				rows := arrayArg(g, who, a[0]).Values()
+				sep := separator(g, who, a[1])
 				var sb strings.Builder
 				for _, row := range rows {
-					for i, field := range stringsArg(g, "Csv.stringify", row) {
+					for i, field := range stringsArg(g, who, row) {
 						if i > 0 {
 							sb.WriteRune(sep)
 						}

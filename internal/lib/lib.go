@@ -13,8 +13,8 @@ import (
 // fn declares a builtin. params is its parameter list, comma separated; a name ending in ? is
 // optional, which only trailing parameters can be, and the builtin receives nil for it when
 // the call omits it. The prelude declares the same parameters with their defaults, and a test
-// keeps the two in step.
-func fn(name, params string, impl func(g *interp.Goroutine, args []value.Value) value.Value) *interp.Builtin {
+// keeps the two in step. impl receives the builtin's name as who, for its panic messages.
+func fn(name, params string, impl func(g *interp.Goroutine, who string, args []value.Value) value.Value) *interp.Builtin {
 	var ps []string
 	optional := 0
 	if params != "" {
@@ -29,7 +29,8 @@ func fn(name, params string, impl func(g *interp.Goroutine, args []value.Value) 
 			ps = append(ps, p)
 		}
 	}
-	return &interp.Builtin{Name: name, Params: ps, Optional: optional, Fn: impl}
+	call := func(g *interp.Goroutine, args []value.Value) value.Value { return impl(g, name, args) }
+	return &interp.Builtin{Name: name, Params: ps, Optional: optional, Fn: call}
 }
 
 // entry is one field of a namespace: a function or a constant.
@@ -78,11 +79,11 @@ var (
 func Prelude() map[string]value.Value {
 	once.Do(func() {
 		table = map[string]value.Value{}
-		table["print"] = fn("print", "value", func(g *interp.Goroutine, args []value.Value) value.Value {
+		table["print"] = fn("print", "value", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 			g.Instance().Print(value.Render(args[0]))
 			return value.Void
 		})
-		table["panic"] = fn("panic", "message", func(g *interp.Goroutine, args []value.Value) value.Value {
+		table["panic"] = fn("panic", "message", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 			msg, ok := args[0].(string)
 			if !ok {
 				g.Panic("panic needs a string message, got %s", value.Describe(args[0]))
@@ -92,7 +93,7 @@ func Prelude() map[string]value.Value {
 		})
 		for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {
 			kind, _ := value.KindByName(name)
-			table[name] = fn(name, "x", func(g *interp.Goroutine, args []value.Value) value.Value {
+			table[name] = fn(name, "x", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 				v, err := value.Convert(kind, args[0])
 				if err != nil {
 					g.Panic("%s", err)

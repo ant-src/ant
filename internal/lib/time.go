@@ -267,29 +267,29 @@ func init() {
 			constant("Later", enumTag("Later")),
 			constant("utc", temporal.UTC),
 
-			fn("Time.zone", "id", func(g *interp.Goroutine, a []value.Value) value.Value {
-				z, err := temporal.LoadZone(stringArg(g, "Time.zone", a[0]))
+			fn("Time.zone", "id", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				z, err := temporal.LoadZone(stringArg(g, who, a[0]))
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(z)
 			}),
-			fn("Time.localZone", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Time.localZone", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return temporal.LocalZone()
 			}),
-			fn("Time.zoneId", "z", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeArg[*temporal.Zone](g, "Time.zoneId", a[0]).ID()
+			fn("Time.zoneId", "z", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeArg[*temporal.Zone](g, who, a[0]).ID()
 			}),
 
-			fn("Time.now", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Time.now", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return temporal.Now()
 			}),
-			fn("Time.nowIn", "z", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return temporal.Now().InZone(timeArg[*temporal.Zone](g, "Time.nowIn", a[0]))
+			fn("Time.nowIn", "z", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return temporal.Now().InZone(timeArg[*temporal.Zone](g, who, a[0]))
 			}),
-			fn("Time.sleep", "d, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				d := spanArg(g, "Time.sleep", a[0])
-				ctx := waitContext(g, optionalContext(g, "Time.sleep", a[1]))
+			fn("Time.sleep", "d, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				d := spanArg(g, who, a[0])
+				ctx := waitContext(g, optionalContext(g, who, a[1]))
 				g.Instance().Flush()
 				if ctx.Err() == nil && d > 0 {
 					timer := time.NewTimer(d)
@@ -302,12 +302,12 @@ func init() {
 				g.AfterWait()
 				return value.Void
 			}),
-			fn("Time.ticker", "d, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				d := spanArg(g, "Time.ticker", a[0])
+			fn("Time.ticker", "d, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				d := spanArg(g, who, a[0])
 				if d <= 0 {
 					g.Panic("Time.ticker needs a period above zero, got %s", value.Render(a[0]))
 				}
-				ctx := waitContext(g, optionalContext(g, "Time.ticker", a[1]))
+				ctx := waitContext(g, optionalContext(g, who, a[1]))
 				ticks := value.NewChan(1)
 				// As Go's ticker: a beat counted from the call, one tick held, a tick that
 				// finds it full dropped; the goroutine and its timer end with the context,
@@ -329,48 +329,44 @@ func init() {
 				}()
 				return ticks
 			}),
-			fn("Time.monotonic", "", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Time.monotonic", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return time.Since(origin).Milliseconds()
 			}),
-			fn("Time.fromEpochMillis", "ms", func(g *interp.Goroutine, a []value.Value) value.Value {
-				i, err := temporal.FromEpochMillis(intArg(g, "Time.fromEpochMillis", a[0]))
-				must(g, "Time.fromEpochMillis", err)
+			fn("Time.fromEpochMillis", "ms", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				i, err := temporal.FromEpochMillis(intArg(g, who, a[0]))
+				must(g, who, err)
 				return i
 			}),
-			fn("Time.fromEpochNanos", "ns", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return temporal.FromEpochNanos(intArg(g, "Time.fromEpochNanos", a[0]))
+			fn("Time.fromEpochNanos", "ns", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return temporal.FromEpochNanos(intArg(g, who, a[0]))
 			}),
-			fn("Time.epochMillis", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return instantArg(g, "Time.epochMillis", a[0]).EpochMillis()
+			fn("Time.epochMillis", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return instantArg(g, who, a[0]).EpochMillis()
 			}),
-			fn("Time.epochNanos", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				ns, err := instantArg(g, "Time.epochNanos", a[0]).EpochNanos()
+			fn("Time.epochNanos", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				ns, err := instantArg(g, who, a[0]).EpochNanos()
 				if err != nil {
 					g.Panic("Time.epochNanos: the nanoseconds do not fit an int; the instant is outside 1677 to 2262")
 				}
 				return ns
 			}),
 
-			fn("Time.plainDate", "year, month, day", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.plainDate"
+			fn("Time.plainDate", "year, month, day", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				d, err := temporal.NewPlainDate(int(intArg(g, who, a[0])), int(intArg(g, who, a[1])), int(intArg(g, who, a[2])))
 				must(g, who, err)
 				return d
 			}),
-			fn("Time.plainTime", "hour?, minute?, second?, millisecond?, microsecond?, nanosecond?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.plainTime"
+			fn("Time.plainTime", "hour?, minute?, second?, millisecond?, microsecond?, nanosecond?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				t, err := temporal.NewPlainTime(optInt(g, who, a[0]), optInt(g, who, a[1]), optInt(g, who, a[2]),
 					optInt(g, who, a[3]), optInt(g, who, a[4]), optInt(g, who, a[5]))
 				must(g, who, err)
 				return t
 			}),
-			fn("Time.plainDateTime", "date, time", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.plainDateTime"
+			fn("Time.plainDateTime", "date, time", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return temporal.NewPlainDateTime(timeArg[temporal.PlainDate](g, who, a[0]), timeArg[temporal.PlainTime](g, who, a[1]))
 			}),
 
-			fn("Time.duration", "years?, months?, weeks?, days?, hours?, minutes?, seconds?, milliseconds?, microseconds?, nanoseconds?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.duration"
+			fn("Time.duration", "years?, months?, weeks?, days?, hours?, minutes?, seconds?, milliseconds?, microseconds?, nanoseconds?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var f [10]int64
 				for i := range f {
 					if a[i] != nil {
@@ -381,42 +377,37 @@ func init() {
 				must(g, who, err)
 				return d
 			}),
-			fn("Time.parseDuration", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeResult(temporal.ParseDuration(stringArg(g, "Time.parseDuration", a[0])))
+			fn("Time.parseDuration", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeResult(temporal.ParseDuration(stringArg(g, who, a[0])))
 			}),
-			fn("Time.parseInstant", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeResult(temporal.ParseInstant(stringArg(g, "Time.parseInstant", a[0])))
+			fn("Time.parseInstant", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeResult(temporal.ParseInstant(stringArg(g, who, a[0])))
 			}),
-			fn("Time.parseZoned", "s, disambiguation?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.parseZoned"
+			fn("Time.parseZoned", "s, disambiguation?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return timeResult(temporal.ParseZoned(stringArg(g, who, a[0]), disambiguationArg(g, who, a[1])))
 			}),
-			fn("Time.parsePlainDate", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeResult(temporal.ParsePlainDate(stringArg(g, "Time.parsePlainDate", a[0])))
+			fn("Time.parsePlainDate", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeResult(temporal.ParsePlainDate(stringArg(g, who, a[0])))
 			}),
-			fn("Time.parsePlainTime", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeResult(temporal.ParsePlainTime(stringArg(g, "Time.parsePlainTime", a[0])))
+			fn("Time.parsePlainTime", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeResult(temporal.ParsePlainTime(stringArg(g, who, a[0])))
 			}),
-			fn("Time.parsePlainDateTime", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeResult(temporal.ParsePlainDateTime(stringArg(g, "Time.parsePlainDateTime", a[0])))
+			fn("Time.parsePlainDateTime", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeResult(temporal.ParsePlainDateTime(stringArg(g, who, a[0])))
 			}),
 
-			fn("Time.inZone", "t, z", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.inZone"
+			fn("Time.inZone", "t, z", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return timeArg[temporal.Instant](g, who, a[0]).InZone(timeArg[*temporal.Zone](g, who, a[1]))
 			}),
-			fn("Time.withZone", "t, z", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.withZone"
+			fn("Time.withZone", "t, z", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return timeArg[temporal.ZonedDateTime](g, who, a[0]).WithZone(timeArg[*temporal.Zone](g, who, a[1]))
 			}),
-			fn("Time.toZoned", "t, z, disambiguation?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.toZoned"
+			fn("Time.toZoned", "t, z, disambiguation?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				z, err := temporal.ToZoned(timeArg[temporal.PlainDateTime](g, who, a[0]), timeArg[*temporal.Zone](g, who, a[1]), disambiguationArg(g, who, a[2]))
 				must(g, who, err)
 				return z
 			}),
-			fn("Time.possibleInstants", "t, z", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.possibleInstants"
+			fn("Time.possibleInstants", "t, z", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				ps, err := temporal.PossibleInstants(timeArg[temporal.PlainDateTime](g, who, a[0]), timeArg[*temporal.Zone](g, who, a[1]))
 				must(g, who, err)
 				out := make([]value.Value, len(ps))
@@ -425,56 +416,53 @@ func init() {
 				}
 				return value.NewArray(out)
 			}),
-			fn("Time.toInstant", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeArg[temporal.ZonedDateTime](g, "Time.toInstant", a[0]).Instant()
+			fn("Time.toInstant", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeArg[temporal.ZonedDateTime](g, who, a[0]).Instant()
 			}),
-			fn("Time.toPlainDate", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return wallArg(g, "Time.toPlainDate", a[0]).Date()
+			fn("Time.toPlainDate", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return wallArg(g, who, a[0]).Date()
 			}),
-			fn("Time.toPlainTime", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return wallArg(g, "Time.toPlainTime", a[0]).Clock()
+			fn("Time.toPlainTime", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return wallArg(g, who, a[0]).Clock()
 			}),
-			fn("Time.toPlainDateTime", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeArg[temporal.ZonedDateTime](g, "Time.toPlainDateTime", a[0]).PlainDateTime()
+			fn("Time.toPlainDateTime", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeArg[temporal.ZonedDateTime](g, who, a[0]).PlainDateTime()
 			}),
-			fn("Time.startOfDay", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.startOfDay"
+			fn("Time.startOfDay", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				z, err := timeArg[temporal.ZonedDateTime](g, who, a[0]).StartOfDay()
 				must(g, who, err)
 				return z
 			}),
-			fn("Time.zoneOf", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeArg[temporal.ZonedDateTime](g, "Time.zoneOf", a[0]).Zone()
+			fn("Time.zoneOf", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeArg[temporal.ZonedDateTime](g, who, a[0]).Zone()
 			}),
-			fn("Time.offset", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return timeArg[temporal.ZonedDateTime](g, "Time.offset", a[0]).Offset()
+			fn("Time.offset", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return timeArg[temporal.ZonedDateTime](g, who, a[0]).Offset()
 			}),
-			fn("Time.offsetSeconds", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return int64(timeArg[temporal.ZonedDateTime](g, "Time.offsetSeconds", a[0]).OffsetSeconds())
+			fn("Time.offsetSeconds", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return int64(timeArg[temporal.ZonedDateTime](g, who, a[0]).OffsetSeconds())
 			}),
-			fn("Time.hoursInDay", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.hoursInDay"
+			fn("Time.hoursInDay", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h, err := timeArg[temporal.ZonedDateTime](g, who, a[0]).HoursInDay()
 				must(g, who, err)
 				return h
 			}),
-			fn("Time.compare", "a, b", func(g *interp.Goroutine, a []value.Value) value.Value {
+			fn("Time.compare", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return int64(compareTime(g, a[0], a[1]))
 			}),
-			fn("Time.nextTransition", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				if n, ok := timeArg[temporal.ZonedDateTime](g, "Time.nextTransition", a[0]).NextTransition(); ok {
+			fn("Time.nextTransition", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if n, ok := timeArg[temporal.ZonedDateTime](g, who, a[0]).NextTransition(); ok {
 					return n
 				}
 				return value.Null
 			}),
-			fn("Time.previousTransition", "t", func(g *interp.Goroutine, a []value.Value) value.Value {
-				if p, ok := timeArg[temporal.ZonedDateTime](g, "Time.previousTransition", a[0]).PreviousTransition(); ok {
+			fn("Time.previousTransition", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if p, ok := timeArg[temporal.ZonedDateTime](g, who, a[0]).PreviousTransition(); ok {
 					return p
 				}
 				return value.Null
 			}),
-			fn("Time.with", "t, year?, month?, day?, hour?, minute?, second?, millisecond?, microsecond?, nanosecond?, disambiguation?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.with"
+			fn("Time.with", "t, year?, month?, day?, hour?, minute?, second?, millisecond?, microsecond?, nanosecond?, disambiguation?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				f := temporal.Fields{
 					Year: optIntPtr(g, who, a[1]), Month: optIntPtr(g, who, a[2]), Day: optIntPtr(g, who, a[3]),
 					Hour: optIntPtr(g, who, a[4]), Minute: optIntPtr(g, who, a[5]), Second: optIntPtr(g, who, a[6]),
@@ -497,28 +485,25 @@ func init() {
 				must(g, who, err)
 				return out
 			}),
-			fn("Time.add", "t, d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return addPoint(g, "Time.add", a[0], durationArg(g, "Time.add", a[1]))
+			fn("Time.add", "t, d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return addPoint(g, who, a[0], durationArg(g, who, a[1]))
 			}),
-			fn("Time.subtract", "t, d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				d, err := durationArg(g, "Time.subtract", a[1]).Negate()
-				must(g, "Time.subtract", err)
-				return addPoint(g, "Time.subtract", a[0], d)
+			fn("Time.subtract", "t, d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				d, err := durationArg(g, who, a[1]).Negate()
+				must(g, who, err)
+				return addPoint(g, who, a[0], d)
 			}),
-			fn("Time.until", "from, to, largestUnit?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.until"
+			fn("Time.until", "from, to, largestUnit?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				largest, _ := unitArg(g, who, a[2], defaultLargest(a[0]))
 				return untilPoint(g, who, a[0], a[1], largest)
 			}),
-			fn("Time.since", "t, other, largestUnit?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.since"
+			fn("Time.since", "t, other, largestUnit?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				largest, _ := unitArg(g, who, a[2], defaultLargest(a[0]))
 				d, err := untilPoint(g, who, a[0], a[1], largest).Negate()
 				must(g, who, err)
 				return d
 			}),
-			fn("Time.round", "t, smallestUnit, increment?, mode?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.round"
+			fn("Time.round", "t, smallestUnit, increment?, mode?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				unit, _ := unitArg(g, who, a[1], -1)
 				inc := optInc(g, who, a[2])
 				mode := modeArg(g, who, a[3])
@@ -539,45 +524,40 @@ func init() {
 				must(g, who, err)
 				return out
 			}),
-			fn("Time.part", "d, unit", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.part"
+			fn("Time.part", "d, unit", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				unit, _ := unitArg(g, who, a[1], -1)
 				return durationArg(g, who, a[0]).Part(unit)
 			}),
-			fn("Time.sign", "d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return int64(durationArg(g, "Time.sign", a[0]).Sign())
+			fn("Time.sign", "d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return int64(durationArg(g, who, a[0]).Sign())
 			}),
-			fn("Time.negate", "d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				d, err := durationArg(g, "Time.negate", a[0]).Negate()
-				must(g, "Time.negate", err)
+			fn("Time.negate", "d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				d, err := durationArg(g, who, a[0]).Negate()
+				must(g, who, err)
 				return d
 			}),
-			fn("Time.abs", "d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				d, err := durationArg(g, "Time.abs", a[0]).Abs()
-				must(g, "Time.abs", err)
+			fn("Time.abs", "d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				d, err := durationArg(g, who, a[0]).Abs()
+				must(g, who, err)
 				return d
 			}),
-			fn("Time.addDuration", "a, b", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.addDuration"
+			fn("Time.addDuration", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				d, err := temporal.AddDurations(durationArg(g, who, a[0]), durationArg(g, who, a[1]))
 				must(g, who, err)
 				return d
 			}),
-			fn("Time.compareDuration", "a, b, relativeTo?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.compareDuration"
+			fn("Time.compareDuration", "a, b, relativeTo?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c, err := temporal.CompareDurations(durationArg(g, who, a[0]), durationArg(g, who, a[1]), relativeArg(g, who, a[2]))
 				must(g, who, err)
 				return int64(c)
 			}),
-			fn("Time.total", "d, unit, relativeTo?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.total"
+			fn("Time.total", "d, unit, relativeTo?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				unit, _ := unitArg(g, who, a[1], -1)
 				f, err := durationArg(g, who, a[0]).Total(unit, relativeArg(g, who, a[2]))
 				must(g, who, err)
 				return f
 			}),
-			fn("Time.roundDuration", "d, smallestUnit?, largestUnit?, increment?, mode?, relativeTo?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				const who = "Time.roundDuration"
+			fn("Time.roundDuration", "d, smallestUnit?, largestUnit?, increment?, mode?, relativeTo?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				smallest, hasSmallest := unitArg(g, who, a[1], -1)
 				largest, hasLargest := unitArg(g, who, a[2], -1)
 				d, err := durationArg(g, who, a[0]).Round(smallest, hasSmallest, largest, hasLargest, optInc(g, who, a[3]), modeArg(g, who, a[4]), relativeArg(g, who, a[5]))
@@ -606,7 +586,7 @@ func init() {
 		for _, name := range []string{"year", "month", "day", "dayOfWeek", "dayOfYear", "weekOfYear", "yearOfWeek", "daysInMonth", "daysInYear", "inLeapYear"} {
 			field := dated[name]
 			who := "Time." + name
-			entries = append(entries, fn(who, "t", func(g *interp.Goroutine, a []value.Value) value.Value {
+			entries = append(entries, fn(who, "t", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 				return field(datedArg(g, who, a[0]).Date())
 			}))
 		}
@@ -621,7 +601,7 @@ func init() {
 		for _, name := range []string{"hour", "minute", "second", "millisecond", "microsecond", "nanosecond"} {
 			field := timed[name]
 			who := "Time." + name
-			entries = append(entries, fn(who, "t", func(g *interp.Goroutine, a []value.Value) value.Value {
+			entries = append(entries, fn(who, "t", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 				return field(timedArg(g, who, a[0]).Clock())
 			}))
 		}
