@@ -284,6 +284,9 @@ func TestNesting(t *testing.T) {
 	if _, err := Parse("t", "var x = "+deep("(", ")", 900), Program); err != nil {
 		t.Errorf("900 levels: %v", err)
 	}
+	if _, err := Parse("t", "var x = 1"+strings.Repeat(" + 1", 900), Program); err != nil {
+		t.Errorf("900 links: %v", err)
+	}
 	cases := []string{
 		"var x = " + deep("(", ")", 1100),
 		"var x = " + deep("[", "]", 1100),
@@ -291,6 +294,14 @@ func TestNesting(t *testing.T) {
 		"var x: " + strings.Repeat("Array[", 1100) + "int" + strings.Repeat("]", 1100) + " = 1",
 		"func f(): void " + strings.Repeat("{", 1100) + strings.Repeat("}", 1100),
 		"var s = " + strings.Repeat("`${", 1100) + "1" + strings.Repeat("}`", 1100),
+		"var x = 1" + strings.Repeat(" + 1", 1100),
+		"var x = a" + strings.Repeat(" ?? a", 1100),
+		"var x = a" + strings.Repeat(" < a", 1100),
+		"var x = a" + strings.Repeat(" | f()", 1100),
+		"var x = f" + strings.Repeat("()", 1100),
+		"var x = a" + strings.Repeat(".b", 1100),
+		"var x = a" + strings.Repeat("[0]", 1100),
+		"var x = a is b" + strings.Repeat(".c", 1100),
 		"var " + strings.Repeat("[", 1100) + "a" + strings.Repeat("]", 1100) + " = xs",
 		"var " + strings.Repeat("{ a: ", 1100) + "b" + strings.Repeat(" }", 1100) + " = r",
 		"func f() { for " + strings.Repeat("[", 1100) + "a" + strings.Repeat("]", 1100) + " in xs {} }",

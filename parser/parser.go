@@ -91,6 +91,16 @@ func (p *parser) nest() {
 
 func (p *parser) unnest() { p.depth-- }
 
+// link counts one more node of a left-nested chain such as a + b + c or f()()(), which the passes
+// after the parser recurse through as deeply as through parentheses. unlink releases the links a
+// function counted when it returns.
+func (p *parser) link(n *int) {
+	p.nest()
+	*n++
+}
+
+func (p *parser) unlink(n *int) { p.depth -= *n }
+
 func (p *parser) recover(err *error) {
 	if r := recover(); r != nil {
 		if e, ok := r.(*Error); ok {
@@ -724,8 +734,11 @@ func isPlace(e ast.Expr) bool {
 }
 
 func (p *parser) pipe() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	left := p.pipeOperand()
 	for p.at("|") {
+		p.link(&links)
 		bar := p.next()
 		right := p.postfix()
 		call, ok := right.(*ast.Call)
@@ -740,9 +753,12 @@ func (p *parser) pipe() ast.Expr {
 }
 
 func (p *parser) pipeOperand() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	left := p.equality()
 	if p.at("??") {
 		for p.at("??") {
+			p.link(&links)
 			t := p.next()
 			left = &ast.Binary{Pos: pos(t), Op: "??", X: left, Y: p.equality()}
 		}
@@ -754,6 +770,7 @@ func (p *parser) pipeOperand() ast.Expr {
 	if p.at("&&") || p.at("||") {
 		left = p.andTail(left)
 		for p.at("||") {
+			p.link(&links)
 			t := p.next()
 			right := p.andTail(p.equality())
 			left = &ast.Binary{Pos: pos(t), Op: "||", X: left, Y: right}
@@ -766,7 +783,10 @@ func (p *parser) pipeOperand() ast.Expr {
 }
 
 func (p *parser) andTail(left ast.Expr) ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	for p.at("&&") {
+		p.link(&links)
 		t := p.next()
 		left = &ast.Binary{Pos: pos(t), Op: "&&", X: left, Y: p.equality()}
 	}
@@ -774,8 +794,11 @@ func (p *parser) andTail(left ast.Expr) ast.Expr {
 }
 
 func (p *parser) equality() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	left := p.comparison()
 	for p.at("==") || p.at("!=") {
+		p.link(&links)
 		t := p.next()
 		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.comparison()}
 	}
@@ -790,6 +813,8 @@ var kindNames = map[string]bool{
 }
 
 func (p *parser) comparison() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	left := p.additive()
 	for {
 		t := p.peek()
@@ -805,6 +830,7 @@ func (p *parser) comparison() ast.Expr {
 		default:
 			return left
 		}
+		p.link(&links)
 	}
 }
 
@@ -820,7 +846,10 @@ func (p *parser) isTarget() (string, ast.Expr) {
 	p.next()
 	var e ast.Expr = &ast.Ident{Pos: pos(t), Name: t.Text}
 	single := true
+	links := 0
+	defer p.unlink(&links)
 	for p.at(".") {
+		p.link(&links)
 		d := p.next()
 		name := p.expectIdent("a type name")
 		e = &ast.Field{Pos: pos(d), X: e, Name: name.Text}
@@ -833,8 +862,11 @@ func (p *parser) isTarget() (string, ast.Expr) {
 }
 
 func (p *parser) additive() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	left := p.multiplicative()
 	for p.at("+") || p.at("-") {
+		p.link(&links)
 		t := p.next()
 		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.multiplicative()}
 	}
@@ -842,8 +874,11 @@ func (p *parser) additive() ast.Expr {
 }
 
 func (p *parser) multiplicative() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	left := p.unary()
 	for p.at("*") || p.at("/") || p.at("%") {
+		p.link(&links)
 		t := p.next()
 		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.unary()}
 	}
@@ -862,6 +897,8 @@ func (p *parser) unary() ast.Expr {
 }
 
 func (p *parser) postfix() ast.Expr {
+	links := 0
+	defer p.unlink(&links)
 	node := p.primary()
 	_, isPath := node.(*ast.Ident)
 	for {
@@ -909,6 +946,7 @@ func (p *parser) postfix() ast.Expr {
 		default:
 			return node
 		}
+		p.link(&links)
 	}
 }
 
