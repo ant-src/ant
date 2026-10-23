@@ -5,4 +5,4 @@ func main(): void { for x in 5 { print(x) } }
 
 // expect
 // exit: 1
-// err: for needs an array, a map, a string, or a function, got int
+// err: for needs an array, a map, a set, a string, or a function, got int

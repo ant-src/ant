@@ -33,3 +33,5 @@ func main(): void {
   s.radius = 1.0 // ERR: cannot assign a field through the union
   print(area(s))
 }
+type Sets = Set[int] | Set[string] // ERR: a union may contain each discriminator at most once
+type SetOrArray = Set[int] | Array[int]

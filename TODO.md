@@ -1,6 +1,6 @@
 # Work still to do
 
-Nine gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
+Ten gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
 (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## `len`
@@ -82,38 +82,6 @@ println[T](value: T): void                       // String.from(value) and a new
 - Whether a standard-error pair (`eprint`, `eprintln`) joins them, or `File.writeLine(Os.stderr(),
   msg)` is enough.
 - Whether `println` flushes at each newline, or output is flushed only before a read and at exit.
-
-## Set
-
-**Today:** there is no set type. Programs use `Map[T, bool]` and `Map.has`, which works but says
-the wrong thing and renders as a map.
-
-**Sketch:** a built-in `Set[T]`, keyed by `==` and kept in insertion order like `Map[K, V]`
-(section 4), so a record or an array can be a member.
-
-```
-Set.new[T](): Set[T]
-Set.of[T](xs: Array[T]): Set[T]                    // later duplicates are dropped
-Set.size[T](s: Set[T]): int
-Set.isEmpty[T](s: Set[T]): bool
-Set.has[T](s: Set[T], x: T): bool
-Set.add[T](s: Set[T], x: T): bool                  // mutates; true when x was new
-Set.remove[T](s: Set[T], x: T): bool               // mutates; true when x was there
-Set.values[T](s: Set[T]): Array[T]                 // insertion order
-Set.union[T](a: Set[T], b: Set[T]): Set[T]
-Set.intersect[T](a: Set[T], b: Set[T]): Set[T]
-Set.difference[T](a: Set[T], b: Set[T]): Set[T]
-Set.isSubset[T](a: Set[T], b: Set[T]): bool
-Set.same[T](a: Set[T], b: Set[T]): bool            // identity, as Map.same
-```
-
-**Open questions:**
-- Is there a literal, such as `Set{ 1, 2 }`? It fits beside `Map{ ... }`, but a bare word inside
-  braces already means a name.
-- How it renders, how `==` compares two sets (by members, ignoring order?), and whether `for x in s`
-  works.
-- What `Json.encode` does with one: an array is the obvious answer.
-- Whether the mutation-after-insert rule for map keys carries over word for word.
 
 ## Seeded random
 

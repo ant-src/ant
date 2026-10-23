@@ -1,4 +1,4 @@
-// spec: 4 Arrays and maps
+// spec: 4 Arrays, maps, and sets
 // Spread copies an array; a map literal's bare word is a string key, a parenthesized name is a
 // variable, any other expression is a key, and a bare word alone is shorthand; a map keeps
 // insertion order, replacing keeps the position, removing and reinserting goes to the end; a

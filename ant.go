@@ -33,6 +33,7 @@
 //	null, void                  value.Null, value.Void
 //	Array[T]                    *value.Array  (value.NewArray, Values, Get, Set, Push)
 //	Map[K, V]                   *value.Map    (value.NewMap, Get, Set, Keys, Entries)
+//	Set[T]                      *value.Set    (value.NewSet, Has, Add, Remove, Values)
 //	a record                    *value.Record (value.NewRecord with its *value.Tag, Field, SetField)
 //	a named primitive type      *value.Tagged (Tag and Payload)
 //	Result[T, E], Error         records built by value.Ok, value.Err, and value.ErrorValue
