@@ -1,0 +1,14 @@
+// spec: fmt 4.9 Template strings
+type Point = { x: int }
+
+func main() {
+  var a = 1
+  var b = 2
+  var xs = [1]
+  print(`total: ${ a+b } items, first ${Array.map(xs,{x*2})[0]}`)
+  print(`kept   as   written ${Point{x:1}}   `)
+  print(`a ${ `inner ${ a } ` } b`)
+  print(`multi
+    line ${a +
+          b} text`)
+}

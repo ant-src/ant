@@ -1,0 +1,33 @@
+// spec: fmt 4.7 Spacing
+import "./lib/geo.ant" { Point, distance: dist }
+
+type P = { x: int, f: func(int): int }
+type U = A | B
+type A = {}
+type B = {}
+type Box[T] = { value: T }
+
+func max[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+
+func Box.map[T, U](b: Box[T], f: func(T): U): Box[U] { Box{ value: f(b.value) } }
+
+func main() {
+  var p = Point{ x: 1.0, y: 0.0 }
+  var xs = [1, 2, 3]
+  var ys = [0, ...xs]
+  var q = p.x
+  var r = p?.y
+  var o: Array[int] | null = null
+  var first = o?.[0]
+  var neg = -xs[0] - -1
+  var done = !true
+  var t = try Result.ok(1)
+  var m = Map{ "a": 1 }
+  var f = func(a: int): int { a * 2 }
+  var g: func(int): int = { x * 2 }
+  var is_a = p is Point && q >= r
+  var z = o ?? []
+  xs[0] += 1
+  for x in xs { print(x) }
+  print(p, xs, ys, q, first, neg, done, t, m, f(1), g(2), is_a, dist(p, p), max(1, 2), z)
+}

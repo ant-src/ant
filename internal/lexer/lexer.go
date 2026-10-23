@@ -25,8 +25,8 @@ type lexer struct {
 	line    int
 	col     int
 	toks    []token.Token
-	nesting int  // template interpolations entered, bounded by maxNesting
-	noRegex bool // read / as the operator always, for the differential test of the operand rule
+	nesting int             // template interpolations entered, bounded by maxNesting
+	noRegex bool            // read / as the operator always, for the differential test of the operand rule
 	lines   []int           // the byte offset at which each line starts
 	layout  bool            // keep the comments, for the formatter
 	comment []token.Comment // the comments kept in layout mode, in source order

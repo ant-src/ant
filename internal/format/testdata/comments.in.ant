@@ -1,0 +1,21 @@
+// spec: fmt 4.8 Comments
+func main() {
+var xs = [3, 1, 2]
+      // a comment on its own line takes the next line's level
+Array.length( xs )  // => 3
+Array.reverse(xs)      // => [2, 1, 3]
+Array.sum(xs) // => 6
+
+  var long = Array.map(xs, { x * 1000 })      // a lone comment: one space
+  print(long)
+  if long == xs { // a run ends where the indentation changes
+    print(1)      // so these two are not aligned
+  }
+  /* a block
+       comment keeps
+    its other lines */
+  print(xs, /* inline */ long)    
+  /**/ print("empty")
+  // the last thing in a block
+}
+// the end of the file

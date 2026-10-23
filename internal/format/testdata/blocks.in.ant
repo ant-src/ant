@@ -1,0 +1,19 @@
+// spec: fmt 4.3 Statements and blocks
+func counter(): func(): int {
+var n = 0;
+  func() { n += 1; n }
+}
+
+func main() {
+    var a = 1; var b = 2;;
+  if a < b {print(a)} else {  }
+  var f = Array.map([1], {x*2})
+  Array.forEach(f, {
+      print(x); print(x) })
+  var g = { // keeps the block broken
+  1 }
+  print(a); // the semicolon goes
+  var pat = func(): Regex.Pattern { print(a); /x/ ; }
+  var pat2 = func(): Regex.Pattern {
+    print(a); /y/ }
+}

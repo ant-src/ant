@@ -1,0 +1,19 @@
+// spec: fmt 4.4 Lists
+// A comma goes before the comment that follows its item, whichever side the author put it.
+func f(a: int, b: int): int { a + b }
+
+func main() {
+  print(f(
+    1, // one
+    2,
+  ))
+  print(f(
+    1, // one
+    2, // two
+  ))
+  print(f(1, /* inline */ 2))
+  print(f( // after the bracket
+    1,
+    2,
+  ))
+}

@@ -1,0 +1,31 @@
+// spec: fmt 4.4 Lists
+type Account = { id: string, balance: int }
+
+func connect(host: string, port: int = 443, tls: bool = true): void {}
+
+func main() {
+  var accounts = Map{ ada: Account{ id: "ada", balance: 100 },
+    bob: Account{ id: "bob", balance: 20 } }
+  connect("example.com",
+          tls: false)
+  connect( "a" , 1 , )
+  var xs = [
+    1, 2,
+    3]
+  var lock = RwMutex.new()
+  RwMutex.withWrite(lock, {
+    print(xs)
+  })
+  var i = xs[
+    0
+  ]
+  var p = (
+    i + 1
+  )
+  var [first,
+    ...rest] = xs
+  var none = [
+    // nothing yet
+  ]
+  print(accounts, i, p, first, rest, none, Array.map(xs, { x + 1 }), Map{}, [], [ ])
+}

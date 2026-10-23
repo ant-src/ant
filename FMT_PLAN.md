@@ -63,8 +63,9 @@ mechanical check: lex the input and the output, drop the layout tokens, compare.
   holds its `if` instead (4.6).
 - Spacing is one function `space(prev, cur token, ctx) int`, written as the table in 4.7, in the
   same order, so the code and the spec can be read side by side.
-- Comments: own-line comments take the indent of the next code line in the same bracket, trailing
-  comments keep their source column, counted in code points, or fall back to one space (4.8). A
+- Comments: own-line comments take the indent of the next code line in the same bracket; trailing
+  comments are written one space after their code and aligned afterwards in runs of consecutive
+  lines of one indentation, counted in code points (4.8). A
   comma is always printed before a trailing comment, never after it (4.4), and a `;` followed only
   by a comment is dropped (4.3).
 - Templates: text pieces are copied from the source byte for byte; interpolation tokens go through
@@ -133,9 +134,10 @@ must satisfy them.
   (inside lists, after continuation tokens) or turns `;` into one between statements. The token
   property in step 4 and the fuzz target catch any slip, because a newline that changed meaning
   would change the parsed tree.
-- **Trailing-comment columns.** Keeping the source column is simple and keeps the corpus's aligned
-  `// =>` columns, but a reindented block can leave its comments ragged. Accept that in the first
-  version; revisit only if it shows up in real code.
+- **Trailing-comment columns.** Keeping the author's column, the first design, left comments ragged
+  as soon as the code moved, and deriving it from neighbours was not idempotent. Runs aligned to
+  their longest line, as gofmt does, depend only on the code; a long line in a run pushes the run
+  right, so a blank line is how an author splits one.
 - **Templates.** Interpolations are formatted but never reindented, so a multi-line interpolation
   inside a multi-line template keeps its author's indentation. Reindenting it would mean deciding
   how the code relates to the string's own lines, and a template's text must not change.

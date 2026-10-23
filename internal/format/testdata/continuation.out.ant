@@ -1,0 +1,26 @@
+// spec: fmt 4.5 Continuation lines
+type User = { age: int, name: string }
+
+func main() {
+  var users: Array[User] = []
+  var names = users
+    | Array.filter({ x.age >= 18 })
+    | Array.map({ x.name })
+    | Array.sort()
+  var subtotal = 1
+  var total = subtotal +
+    2 +
+    3
+  var count = 2
+  var r = (total
+    / count)
+  print(names, Array.map([1], {
+    x +
+      1
+  }), r)
+  var paid = users
+    | Array.filter({
+      x.age > 1
+    })
+  print(paid)
+}

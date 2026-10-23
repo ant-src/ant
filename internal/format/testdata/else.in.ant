@@ -1,0 +1,23 @@
+// spec: fmt 4.6 else
+type NoAccount = { id: string }
+type Insufficient = { id: string, short: int }
+
+func explain(e: NoAccount | Insufficient): string {
+  if e is NoAccount { `no account named ${e.id}` }
+      else if e is Insufficient { `${e.id} is short by ${e.short}` }
+  else { "unknown" }
+}
+
+func main() {
+  var n = 1
+  var label = if n < 0 {
+    "negative"
+  }   else   {
+    "positive"
+  }
+  var c = Context.background()
+  select {
+    Context.wait(c) { print(1) }
+        else { print(label) }
+  }
+}
