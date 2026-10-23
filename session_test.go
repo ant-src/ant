@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ant-src/ant"
 	"github.com/ant-src/ant/value"
@@ -92,5 +93,19 @@ func TestSession(t *testing.T) {
 		if ant.Incomplete(src) {
 			t.Errorf("%q should not be incomplete", src)
 		}
+	}
+}
+
+// TestSessionContext checks that a session's context ends an input that never waits.
+func TestSessionContext(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	s, err := ant.NewSession(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval("var n = 0\nwhile true { n += 1 }"); err == nil {
+		t.Fatal("an endless loop returned without an error")
 	}
 }

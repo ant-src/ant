@@ -17,9 +17,14 @@ type Session struct {
 	Fields *ast.ModuleScope
 }
 
-// NewSession creates a session whose module starts empty.
+// NewSession creates a session whose module starts empty. When ctx is done the session's
+// goroutines stop at their next check, as a run's do, since no wait watches it for them.
 func NewSession(ctx context.Context, cfg Config) *Session {
 	in := New(ctx, &loader.Program{}, cfg)
+	go func() {
+		<-in.ctx.Done()
+		in.done.Store(true)
+	}()
 	return &Session{in: in, known: map[string]*module{}, Fields: &ast.ModuleScope{Index: map[string]int{}}}
 }
 
