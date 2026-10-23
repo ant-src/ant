@@ -14,11 +14,7 @@ import (
 // give up when a context is done.
 
 func contextArg(g *interp.Goroutine, who string, v value.Value) *value.Context {
-	c, ok := v.(*value.Context)
-	if !ok {
-		g.Panic("%s needs a Context, got %s", who, value.Describe(v))
-	}
-	return c
+	return typedArg[*value.Context](g, who, "a Context", v)
 }
 
 // optionalContext reads a trailing ctx argument: nil when omitted or null.

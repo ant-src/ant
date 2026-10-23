@@ -84,11 +84,7 @@ func (l *Listener) markClosed() {
 func (l *Listener) SyncName() string { return "Net.Listener" }
 
 func listenerArg(g *interp.Goroutine, who string, v value.Value) *Listener {
-	l, ok := v.(*Listener)
-	if !ok {
-		g.Panic("%s needs a Net.Listener, got %s", who, value.Describe(v))
-	}
-	return l
+	return typedArg[*Listener](g, who, "a Net.Listener", v)
 }
 
 // connHandle wraps a connection as a handle: buffered both ways, writes flushed, reads ended

@@ -13,11 +13,7 @@ import (
 var MatchTag = value.NewTag("Regex.Match", value.RecordTag, []string{"text", "start", "end", "groups", "named"})
 
 func regexArg(g *interp.Goroutine, who string, v value.Value) *value.Regex {
-	p, ok := v.(*value.Regex)
-	if !ok {
-		g.Panic("%s needs a Regex.Pattern, got %s", who, value.Describe(v))
-	}
-	return p
+	return typedArg[*value.Regex](g, who, "a Regex.Pattern", v)
 }
 
 func stringResult(g *interp.Goroutine, who string, v value.Value) string {

@@ -9,36 +9,30 @@ import (
 // Argument checks: every library function panics when an argument has a kind it does not take
 // (section 12, the library row).
 
-func arrayArg(g *interp.Goroutine, who string, v value.Value) *value.Array {
-	a, ok := v.(*value.Array)
+// typedArg takes an argument of the Go type T, which the panic message calls what, as in
+// "a Mutex".
+func typedArg[T value.Value](g *interp.Goroutine, who, what string, v value.Value) T {
+	t, ok := v.(T)
 	if !ok {
-		g.Panic("%s needs an array, got %s", who, value.Describe(v))
+		g.Panic("%s needs %s, got %s", who, what, value.Describe(v))
 	}
-	return a
+	return t
+}
+
+func arrayArg(g *interp.Goroutine, who string, v value.Value) *value.Array {
+	return typedArg[*value.Array](g, who, "an array", v)
 }
 
 func mapArg(g *interp.Goroutine, who string, v value.Value) *value.Map {
-	m, ok := v.(*value.Map)
-	if !ok {
-		g.Panic("%s needs a map, got %s", who, value.Describe(v))
-	}
-	return m
+	return typedArg[*value.Map](g, who, "a map", v)
 }
 
 func setArg(g *interp.Goroutine, who string, v value.Value) *value.Set {
-	s, ok := v.(*value.Set)
-	if !ok {
-		g.Panic("%s needs a set, got %s", who, value.Describe(v))
-	}
-	return s
+	return typedArg[*value.Set](g, who, "a set", v)
 }
 
 func stringArg(g *interp.Goroutine, who string, v value.Value) string {
-	s, ok := v.(string)
-	if !ok {
-		g.Panic("%s needs a string, got %s", who, value.Describe(v))
-	}
-	return s
+	return typedArg[string](g, who, "a string", v)
 }
 
 // maxCount bounds a count that sizes an allocation: a count above it is an Ant panic, the "a
@@ -54,19 +48,11 @@ func boundCount(g *interp.Goroutine, who, what string, n int64) {
 }
 
 func intArg(g *interp.Goroutine, who string, v value.Value) int64 {
-	i, ok := v.(int64)
-	if !ok {
-		g.Panic("%s needs an int, got %s", who, value.Describe(v))
-	}
-	return i
+	return typedArg[int64](g, who, "an int", v)
 }
 
 func floatArg(g *interp.Goroutine, who string, v value.Value) float64 {
-	f, ok := v.(float64)
-	if !ok {
-		g.Panic("%s needs a float64, got %s", who, value.Describe(v))
-	}
-	return f
+	return typedArg[float64](g, who, "a float64", v)
 }
 
 func funcArg(g *interp.Goroutine, who string, v value.Value) value.Value {

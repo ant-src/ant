@@ -272,11 +272,7 @@ func (p *pump) Read(b []byte) (int, error) {
 func (h *Handle) SyncName() string { return "File.Handle" }
 
 func handleArg(g *interp.Goroutine, who string, v value.Value) *Handle {
-	h, ok := v.(*Handle)
-	if !ok {
-		g.Panic("%s needs a File.Handle, got %s", who, value.Describe(v))
-	}
-	return h
+	return typedArg[*Handle](g, who, "a File.Handle", v)
 }
 
 func errResult(err error) value.Value { return value.Err(value.ErrorValue(err.Error())) }

@@ -9,51 +9,27 @@ import (
 // stdout first, so output is not held back while the program waits.
 
 func mutexArg(g *interp.Goroutine, who string, v value.Value) *value.Mutex {
-	m, ok := v.(*value.Mutex)
-	if !ok {
-		g.Panic("%s needs a Mutex, got %s", who, value.Describe(v))
-	}
-	return m
+	return typedArg[*value.Mutex](g, who, "a Mutex", v)
 }
 
 func rwArg(g *interp.Goroutine, who string, v value.Value) *value.RwMutex {
-	m, ok := v.(*value.RwMutex)
-	if !ok {
-		g.Panic("%s needs an RwMutex, got %s", who, value.Describe(v))
-	}
-	return m
+	return typedArg[*value.RwMutex](g, who, "an RwMutex", v)
 }
 
 func wgArg(g *interp.Goroutine, who string, v value.Value) *value.WaitGroup {
-	w, ok := v.(*value.WaitGroup)
-	if !ok {
-		g.Panic("%s needs a WaitGroup, got %s", who, value.Describe(v))
-	}
-	return w
+	return typedArg[*value.WaitGroup](g, who, "a WaitGroup", v)
 }
 
 func onceArg(g *interp.Goroutine, who string, v value.Value) *value.Once {
-	o, ok := v.(*value.Once)
-	if !ok {
-		g.Panic("%s needs a Once, got %s", who, value.Describe(v))
-	}
-	return o
+	return typedArg[*value.Once](g, who, "a Once", v)
 }
 
 func condArg(g *interp.Goroutine, who string, v value.Value) *value.Cond {
-	c, ok := v.(*value.Cond)
-	if !ok {
-		g.Panic("%s needs a Cond, got %s", who, value.Describe(v))
-	}
-	return c
+	return typedArg[*value.Cond](g, who, "a Cond", v)
 }
 
 func atomicArg(g *interp.Goroutine, who string, v value.Value) *value.Atomic {
-	a, ok := v.(*value.Atomic)
-	if !ok {
-		g.Panic("%s needs an Atomic, got %s", who, value.Describe(v))
-	}
-	return a
+	return typedArg[*value.Atomic](g, who, "an Atomic", v)
 }
 
 func lock(g *interp.Goroutine, m *value.Mutex) {

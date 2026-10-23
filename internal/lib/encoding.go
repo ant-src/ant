@@ -12,11 +12,7 @@ import (
 )
 
 func boolArg(g *interp.Goroutine, who string, v value.Value) bool {
-	b, ok := v.(bool)
-	if !ok {
-		g.Panic("%s needs a bool, got %s", who, value.Describe(v))
-	}
-	return b
+	return typedArg[bool](g, who, "a bool", v)
 }
 
 // base64Alphabet picks the standard or the URL-safe alphabet from an optional url argument.

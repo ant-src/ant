@@ -9,11 +9,7 @@ import (
 // over channels is the interpreter's, in internal/interp/select.go.
 
 func chanArg(g *interp.Goroutine, who string, v value.Value) *value.Chan {
-	c, ok := v.(*value.Chan)
-	if !ok {
-		g.Panic("%s needs a Channel, got %s", who, value.Describe(v))
-	}
-	return c
+	return typedArg[*value.Chan](g, who, "a Channel", v)
 }
 
 func init() {
