@@ -337,15 +337,21 @@ func init() {
 				} else if !fi.IsDir() {
 					return errResult(errors.New(dir + " is not a directory"))
 				}
+				// The links below dir are not followed, but dir itself is: walked as given, a link
+				// to a directory would be reported as one file, ".".
+				root, err := filepath.EvalSymlinks(dir)
+				if err != nil {
+					return errResult(err)
+				}
 				var files []value.Value
-				err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+				err = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 					if err != nil {
 						return err
 					}
 					if d.IsDir() {
 						return nil
 					}
-					rel, err := filepath.Rel(dir, p)
+					rel, err := filepath.Rel(root, p)
 					if err != nil {
 						return err
 					}

@@ -1,7 +1,7 @@
 // spec: stdlib File
 // Files and directories (stdlib.md): stat, mkdir with its parents, append, walk in lexical
-// order with relative paths, rename, tempDir and removeAll, in a temporary directory given as
-// the first argument.
+// order with relative paths, of a directory given through a symbolic link too, rename, tempDir
+// and removeAll, in a temporary directory given as the first argument.
 func main(): void {
   var dir = Os.args()[0]
   print(File.mkdir(`${dir}/a/b`))
@@ -23,6 +23,8 @@ func main(): void {
   print(File.walk(`${dir}/a/one.txt`) is Err)
   print(File.rename(`${dir}/a/one.txt`, `${dir}/a/b/moved.txt`))
   print(File.walk(`${dir}/a`))
+  var linked = Os.exec("ln", ["-s", `${dir}/a`, `${dir}/link`])
+  print(File.walk(`${dir}/link`))
   var tmp = Result.unwrap(File.tempDir("ant-"))
   print(String.contains(Path.base(tmp), "ant-"))
   print(File.removeAll(tmp))
@@ -52,6 +54,7 @@ func main(): void {
 // out: Ok{ value: ["b/two.txt", "one.txt"] }
 // out: true
 // out: Ok{ value: void }
+// out: Ok{ value: ["b/moved.txt", "b/two.txt"] }
 // out: Ok{ value: ["b/moved.txt", "b/two.txt"] }
 // out: true
 // out: Ok{ value: void }
