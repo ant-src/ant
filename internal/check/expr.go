@@ -111,6 +111,7 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 			return types.Invalid{}
 		}
 	}
+	c.checkBounds(s, subst, e.Position())
 	inst, err := types.Subst(s.fn, subst)
 	if err != nil {
 		c.errorf(e.Position(), "%s", err)
