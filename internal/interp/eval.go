@@ -80,6 +80,9 @@ func (g *Goroutine) evalDeferBlock(b *ast.Block, env *Env) (v value.Value, c ctl
 		}
 		for i := len(frame.list) - 1; i >= 0; i-- {
 			if p := g.runDeferred(frame.list[i]); p != nil {
+				if _, exiting := p.(*exitSignal); exiting {
+					panic(p) // Os.exit in a deferred block runs none of the rest
+				}
 				r = p
 			}
 		}

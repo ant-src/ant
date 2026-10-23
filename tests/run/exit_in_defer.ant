@@ -1,0 +1,15 @@
+// spec: stdlib Os
+// Os.exit ends the process at once, so an exit inside a deferred block runs none of the deferred
+// blocks still waiting, in its own block or an outer one.
+func main(): void {
+  defer { print("never: registered before the exit") }
+  if true {
+    defer { print("never: an outer block's") }
+    defer { Os.exit(4) }
+    print("body")
+  }
+}
+
+// expect
+// out: body
+// exit: 4
