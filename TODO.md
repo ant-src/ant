@@ -81,7 +81,7 @@ println[T](value: T): void                       // String.from(value) and a new
   `T`, that needs a second signature or `println("")`.
 - Whether a standard-error pair (`eprint`, `eprintln`) joins them, or `File.writeLine(Os.stderr(),
   msg)` is enough.
-- Whether output is flushed at each newline, or only at exit and before a read as now.
+- Whether `println` flushes at each newline, or output is flushed only before a read and at exit.
 
 ## Set
 

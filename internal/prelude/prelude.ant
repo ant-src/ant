@@ -97,6 +97,21 @@ func Map.filter[K, V](m: Map[K, V], f: func(Entry[K, V]): bool): Map[K, V]
 func Map.merge[K, V](m: Map[K, V], n: Map[K, V]): Map[K, V]
 func Map.same[K, V](m: Map[K, V], n: Map[K, V]): bool
 
+// Set
+
+func Set.of[T](xs: Array[T]): Set[T]
+func Set.size[T](s: Set[T]): int
+func Set.isEmpty[T](s: Set[T]): bool
+func Set.has[T](s: Set[T], x: T): bool
+func Set.add[T](s: Set[T], x: T): bool
+func Set.remove[T](s: Set[T], x: T): bool
+func Set.values[T](s: Set[T]): Array[T]
+func Set.union[T](a: Set[T], b: Set[T]): Set[T]
+func Set.intersect[T](a: Set[T], b: Set[T]): Set[T]
+func Set.difference[T](a: Set[T], b: Set[T]): Set[T]
+func Set.isSubset[T](a: Set[T], b: Set[T]): bool
+func Set.same[T](a: Set[T], b: Set[T]): bool
+
 // String
 
 type String.Cut = { before: string, after: string }
