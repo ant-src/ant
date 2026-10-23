@@ -983,6 +983,7 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 		}
 	} else {
 		fn.returns = append(fn.returns, errRec)
+		fn.tries = append(fn.tries, x)
 	}
 	return okT
 }

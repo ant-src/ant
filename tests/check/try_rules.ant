@@ -1,6 +1,7 @@
 // spec: 8 try; 9 Synchronization; 5 is
 // Section 8: try directly inside a defer block is an error, a nullable Result needs ?? first, a
-// type parameter is never a Result; section 9: is does not accept a sync type.
+// type parameter is never a Result, and a function or lambda whose return type is inferred must
+// still come out a Result; section 9: is does not accept a sync type.
 func parse(s: string): Result[int, Error] { Result.ok(1) }
 
 func generic[T](x: T): T { try x } // ERR: try needs a Result
@@ -16,7 +17,17 @@ func nullable(r: Result[int, Error] | null): Result[int, Error] {
   Result.ok(n + m)
 }
 
+func inferred() { var n = try parse("1"); n } // ERR: try needs an enclosing function that returns a Result, but inferred returns int | Err[Error]
+
+func inferredOk(): Result[int, Error] {
+  var rs = Array.map(["1"], { var n = try parse(x); Ok{ value: n } })
+  var ns = Array.map(["1"], { try parse(x) }) // ERR: try needs an enclosing function that returns a Result, but lambda returns int | Err[Error]
+  Result.ok(Array.length(rs) + Array.length(ns))
+}
+
 func main(): void {
+  print(inferred())
+  print(inferredOk())
   var lock: Mutex | null = Mutex.new()
   print(lock is Mutex) // ERR: is
   if lock != null { Mutex.lock(lock); Mutex.unlock(lock) }

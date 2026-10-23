@@ -856,9 +856,12 @@ type fnCtx struct {
 	name     string
 	declared types.Type
 	returns  []types.Type
-	fi       *funcInfo
-	initVar  *varInfo
-	loops    []*loopCtx
+	// tries holds the try expressions of a body whose return type is inferred, which must
+	// come out a Result (section 8).
+	tries   []*ast.Unary
+	fi      *funcInfo
+	initVar *varInfo
+	loops   []*loopCtx
 }
 
 type loopCtx struct {
@@ -948,6 +951,11 @@ func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 	if err != nil {
 		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}
+	}
+	if _, _, isResult := resultParts(u); !isResult && !types.IsInvalid(u) {
+		for _, x := range ctx.tries {
+			c.errorf(x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
+		}
 	}
 	return u
 }
