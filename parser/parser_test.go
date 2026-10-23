@@ -132,6 +132,8 @@ func TestSyntaxErrors(t *testing.T) {
 		{"spread in map", "var m = Map{ ...other }", "no meaning in a map literal", Program},
 		{"keyword shorthand map", "var m = Map{ type }", "needs ':'", Program},
 		{"keyword shorthand destructure", "var { type } = e", "cannot be bound", Program},
+		{"reserved shorthand destructure", "var { class } = e", "'class' is a reserved word and cannot be bound", Program},
+		{"reserved shorthand map", "var m = Map{ class }", "'class' is a reserved word: as a key", Program},
 		{"record string key", `var p = Point{ "x": 1 }`, "must be a name", Program},
 		{"type in block", "func f() { type T = int }", "only allowed at the top level", Program},
 		{"export in block", "func f() { export var x = 1 }", "only allowed at the top level", Program},

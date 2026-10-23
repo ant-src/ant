@@ -187,6 +187,14 @@ func (p *parser) expectIdent(what string) token.Token {
 	return t
 }
 
+// wordKind names the list a keyword or reserved word comes from, for an error message.
+func wordKind(t token.Token) string {
+	if t.Kind == token.Reserved {
+		return "a reserved word"
+	}
+	return "a keyword"
+}
+
 // expectName accepts a field name: an identifier, a keyword, or a reserved word (section 2).
 func (p *parser) expectName(what string) token.Token {
 	t := p.peek()
@@ -1304,7 +1312,7 @@ func (p *parser) destructure() ast.Target {
 			f.Target = p.target()
 		} else {
 			if w.Kind != token.Ident {
-				p.fail(w.Pos, "'%s' is a keyword and cannot be bound: write { %s: name }", w.Text, w.Text)
+				p.fail(w.Pos, "'%s' is %s and cannot be bound: write { %s: name }", w.Text, wordKind(w), w.Text)
 			}
 			f.Target = &ast.NameTarget{Pos: pos(w), Name: w.Text}
 		}
@@ -1376,7 +1384,7 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 		case w.Kind == token.Keyword || w.Kind == token.Reserved:
 			p.next()
 			if !p.at(":") {
-				p.fail(w.Pos, "'%s' is a keyword: as a key it needs ':'", w.Text)
+				p.fail(w.Pos, "'%s' is %s: as a key it needs ':'", w.Text, wordKind(w))
 			}
 			p.next()
 			v := p.expression()
