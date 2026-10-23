@@ -15,7 +15,6 @@ import (
 // OutputTag is Os.Output: { status: int, stdout: string, stderr: string }.
 var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr"})
 
-
 // execProcess is Os.exec: no shell, the outputs captured, Err only when the child could not be
 // started or run to its end, a nonzero exit as Ok with its status.
 func execProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {

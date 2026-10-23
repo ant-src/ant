@@ -98,7 +98,6 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, string(data)}))
 }
 
-
 func optionalString(g *interp.Goroutine, who string, v value.Value) string {
 	if !given(v) {
 		return ""

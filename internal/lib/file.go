@@ -20,7 +20,6 @@ import (
 // InfoTag is File.Info: { name: string, size: int, isDir: bool, modified: Time.Instant }.
 var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "modified"})
 
-
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
 // deadliner is what a connection has and a regular file lacks: a read deadline, which a context
@@ -265,7 +264,6 @@ func (h *Handle) SyncName() string { return "File.Handle" }
 func handleArg(g *interp.Goroutine, who string, v value.Value) *Handle {
 	return typedArg[*Handle](g, who, "a File.Handle", v)
 }
-
 
 func bytesArg(g *interp.Goroutine, who string, v value.Value) []byte {
 	vals := arrayArg(g, who, v).Values()
