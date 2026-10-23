@@ -265,8 +265,16 @@ func equal(a, b Type, depth int) bool {
 		if !ok || len(x.Fields) != len(y.Fields) {
 			return false
 		}
-		for i := range x.Fields {
-			if x.Fields[i].Name != y.Fields[i].Name || !equal(x.Fields[i].Type, y.Fields[i].Type, depth+1) {
+		// Field order is not part of an anonymous record's shape.
+		for _, f := range x.Fields {
+			found := false
+			for _, g := range y.Fields {
+				if g.Name == f.Name {
+					found = equal(f.Type, g.Type, depth+1)
+					break
+				}
+			}
+			if !found {
 				return false
 			}
 		}

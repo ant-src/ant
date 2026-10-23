@@ -1,11 +1,13 @@
 // spec: 4 Assignability; 7
 // Section 4: the assignability rules one by one: same type only for primitives, union members,
 // never and void and null, anonymous record width with exact field types, invariant type
-// arguments, no top type; and T | null | null is T | null.
+// arguments, no top type; and T | null | null is T | null. Field order is not part of an
+// anonymous record type's shape, so the same fields in another order are the same type.
 type Circle = { radius: float64 }
 type Rect = { width: float64 }
 type Shape = Circle | Rect
 type Person = { name: string, age: int }
+func named(): { name: string, age: int } { Person{ name: "a", age: 1 } }
 
 func main(): void {
   var a: int = int8(1) // ERR: cannot use int8 where int is expected
@@ -27,6 +29,8 @@ func main(): void {
   var y: int | null = x
   var z: Shape = Circle{ radius: 1.0 }
   var w: Shape | null = z
+  var people: Array[{ name: string, age: int }] = [named()]
+  var reordered: Array[{ age: int, name: string }] = people
   print(a + n)
   print(b)
   print(d)
@@ -40,4 +44,5 @@ func main(): void {
   print(q)
   print(y)
   print(w)
+  print(reordered)
 }
