@@ -1,6 +1,8 @@
 package check
 
 import (
+	"maps"
+
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
@@ -539,7 +541,18 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 	}
 	given := map[string]bool{}
 	spreadUnknown := false // a spread whose fields cannot be known supplies no field
-	for _, en := range x.Entries {
+	// A later entry wins (section 12), so a spread's field that a named entry after it gives
+	// again does not constrain the literal's type.
+	later := make([]map[string]bool, len(x.Entries))
+	names := map[string]bool{}
+	for i := len(x.Entries) - 1; i >= 0; i-- {
+		later[i] = names
+		if x.Entries[i].Spread == nil {
+			names = maps.Clone(names)
+			names[x.Entries[i].Name] = true
+		}
+	}
+	for i, en := range x.Entries {
 		if en.Spread != nil {
 			st := c.synth(en.Spread, sc)
 			n, ok := types.Expand(st).(types.Named)
@@ -556,7 +569,9 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 					c.errorf(en.Pos, "%s has no field %s, which the spread of %s would copy", decl.Name, f.Name, types.String(st))
 					continue
 				}
-				c.matchField(decl.Fields[idx].Type, f.Type, subst, unsolved, en.Pos, f.Name)
+				if !later[i][f.Name] {
+					c.matchField(decl.Fields[idx].Type, f.Type, subst, unsolved, en.Pos, f.Name)
+				}
 				given[f.Name] = true
 			}
 			continue
