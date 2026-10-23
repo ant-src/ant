@@ -322,12 +322,18 @@ func (c *Checker) entityPath(e ast.Expr, sc *scope) *entity {
 			return nil
 		}
 		m, ok := base.members[x.Name]
-		if !ok {
+		if !ok || c.foreignPrivate(m) {
 			return nil
 		}
 		return m
 	}
 	return nil
+}
+
+// foreignPrivate reports a function declared without export on a type of another module,
+// which is a private field of that module (section 10).
+func (c *Checker) foreignPrivate(m *entity) bool {
+	return m.kind == entFunc && !m.exported && m.fn != nil && m.fn.mod != c.mod
 }
 
 // moduleMember reports a member of an imported module, or the reason it is not visible.
@@ -360,6 +366,10 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 					break
 				}
 				c.errorf(x.Pos, "%s has no member %s", base.name, x.Name)
+				return types.Invalid{}
+			}
+			if c.foreignPrivate(m) {
+				c.errorf(x.Pos, "%s.%s is not exported", base.name, x.Name)
 				return types.Invalid{}
 			}
 			return c.entityValue(m, x.Pos, sc)

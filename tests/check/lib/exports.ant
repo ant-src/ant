@@ -4,3 +4,6 @@ export func distance(a: Point, b: Point): float64 { a.x - b.x }
 export var counter = 0
 func hidden(): int { 1 }
 type Secret = {}
+export func Point.norm(p: Point): float64 { p.x }
+func Point.secret(p: Point): float64 { p.y }
+export func usesSecret(p: Point): float64 { Point.secret(p) }
