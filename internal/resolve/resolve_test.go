@@ -27,6 +27,7 @@ func TestScopeErrors(t *testing.T) {
 		{"shadow prelude loop", "func f() { for Array in xs { Array } }", "Array is a prelude name"},
 		{"shadow prelude type param", "func f[int](x: int): int { x }", "int is a prelude name"},
 		{"shadow prelude type decl param", "type P[string] = { a: string }", "string is a prelude name"},
+		{"type param twice", "func f[T, T](x: T): T { x }", "T is already declared"},
 		{"shadow import", "import \"./a.ant\" { thing }\nvar thing = 1", "thing is already bound by an import"},
 		{"two imports", "import \"./a.ant\" { thing }\nimport \"./b.ant\" { thing }", "thing is already bound by an import"},
 		{"import prelude name", "import \"./a.ant\" { print }", "print is a prelude name"},

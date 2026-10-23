@@ -246,12 +246,17 @@ func (r *resolver) declareModule(f *ast.File) {
 }
 
 // typeParams enforces on type parameters the rule that a prelude name is never shadowed, so
-// that int means one thing in every scope (section 10).
+// that int means one thing in every scope (section 10), and that a list names each once.
 func (r *resolver) typeParams(tps []ast.TypeParam) {
+	seen := map[string]bool{}
 	for _, tp := range tps {
-		if r.isPrelude(tp.Name) {
+		switch {
+		case r.isPrelude(tp.Name):
 			r.errorf(tp.Pos, "%s is a prelude name and cannot be redeclared", tp.Name)
+		case seen[tp.Name]:
+			r.errorf(tp.Pos, "%s is already declared in this scope", tp.Name)
 		}
+		seen[tp.Name] = true
 	}
 }
 
