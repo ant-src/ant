@@ -1017,6 +1017,8 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 			return types.Array{}
 		case "Map":
 			return types.Map{}
+		case "Set":
+			return types.Set{}
 		}
 		return types.Prim{Kind: builtinKinds[x.Kind]}
 	}
@@ -1085,7 +1087,7 @@ func (c *Checker) alwaysTrue(declared, target types.Type, pos ast.Pos) bool {
 	return true
 }
 
-// targetName names the target of an is test: a kind word for func, Array and Map, which carry
+// targetName names the target of an is test: a kind word for func, Array, Map and Set, which carry
 // no type arguments there, and the type otherwise.
 func targetName(target types.Type) string {
 	switch target.(type) {
@@ -1095,6 +1097,8 @@ func targetName(target types.Type) string {
 		return "Array"
 	case types.Map:
 		return "Map"
+	case types.Set:
+		return "Set"
 	}
 	return types.String(target)
 }
@@ -1121,6 +1125,9 @@ func matchesTarget(m, target types.Type) bool {
 		return ok
 	case types.Map:
 		_, ok := types.Expand(m).(types.Map)
+		return ok
+	case types.Set:
+		_, ok := types.Expand(m).(types.Set)
 		return ok
 	}
 	return false

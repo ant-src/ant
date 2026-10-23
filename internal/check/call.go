@@ -460,6 +460,9 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 	case types.Map:
 		a, ok := types.Expand(actual).(types.Map)
 		return ok && c.unify(pt.Key, a.Key, subst) && c.unify(pt.Val, a.Val, subst)
+	case types.Set:
+		a, ok := types.Expand(actual).(types.Set)
+		return ok && c.unify(pt.Elem, a.Elem, subst)
 	case types.Func:
 		a, ok := types.Expand(actual).(types.Func)
 		if !ok || len(a.Params) < pt.Required || len(a.Params) > len(pt.Params) && len(pt.Params) < a.Required {
@@ -577,6 +580,8 @@ func discriminatorOf(t types.Type) (string, string, bool) {
 		return "array", "", true
 	case types.Map:
 		return "map", "", true
+	case types.Set:
+		return "set", "", true
 	case types.Func:
 		return "func", "", true
 	case types.Named:
@@ -686,6 +691,8 @@ func bindInvalid(pattern types.Type, subst map[*types.ParamDecl]types.Type) {
 	case types.Map:
 		bindInvalid(x.Key, subst)
 		bindInvalid(x.Val, subst)
+	case types.Set:
+		bindInvalid(x.Elem, subst)
 	case types.Func:
 		for _, p := range x.Params {
 			bindInvalid(p, subst)

@@ -86,6 +86,8 @@ func discriminator(t Type) (key, describe string, ok bool) {
 		return "array", "an array", true
 	case Map:
 		return "map", "a map", true
+	case Set:
+		return "set", "a set", true
 	case Func:
 		return "func", "a function", true
 	case Named:

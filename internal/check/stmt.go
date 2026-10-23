@@ -568,8 +568,8 @@ func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	return types.Void{}
 }
 
-// elementType is what a for binds from an iterable: an array's element, a map's Entry, a
-// string's code point, or a sequence's element.
+// elementType is what a for binds from an iterable: an array's element, a map's Entry, a set's
+// member, a string's code point, or a sequence's element.
 func (c *Checker) elementType(it types.Type, pos ast.Pos) types.Type {
 	switch x := types.Expand(it).(type) {
 	case types.Invalid:
@@ -578,6 +578,8 @@ func (c *Checker) elementType(it types.Type, pos ast.Pos) types.Type {
 		return x.Elem
 	case types.Map:
 		return types.Named{Decl: c.prelude["Entry"].decl, Args: []types.Type{x.Key, x.Val}}
+	case types.Set:
+		return x.Elem
 	case types.Prim:
 		if x.Kind.String() == "string" {
 			return types.StringType
@@ -589,7 +591,7 @@ func (c *Checker) elementType(it types.Type, pos ast.Pos) types.Type {
 			}
 		}
 	}
-	c.errorf(pos, "for needs an array, a map, a string, or a sequence, got %s", types.String(it))
+	c.errorf(pos, "for needs an array, a map, a set, a string, or a sequence, got %s", types.String(it))
 	return types.Invalid{}
 }
 

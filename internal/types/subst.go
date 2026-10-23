@@ -32,6 +32,12 @@ func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 			return nil, err
 		}
 		return Map{Key: k, Val: v}, nil
+	case Set:
+		e, err := subst(x.Elem, m)
+		if err != nil {
+			return nil, err
+		}
+		return Set{Elem: e}, nil
 	case Func:
 		ps := make([]Type, len(x.Params))
 		for i, p := range x.Params {
@@ -101,6 +107,8 @@ func mentions(t Type, pred func(Param) bool) bool {
 		return mentions(x.Elem, pred)
 	case Map:
 		return mentions(x.Key, pred) || mentions(x.Val, pred)
+	case Set:
+		return mentions(x.Elem, pred)
 	case Func:
 		for _, p := range x.Params {
 			if mentions(p, pred) {

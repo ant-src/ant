@@ -1,5 +1,5 @@
 // Package types is the checker's type language (section 4): primitives, null, void, never,
-// arrays, maps, functions, anonymous records, named types, type parameters, and unions.
+// arrays, maps, sets, functions, anonymous records, named types, type parameters, and unions.
 package types
 
 import (
@@ -38,6 +38,11 @@ type Array struct {
 // Map is Map[K, V].
 type Map struct {
 	Key, Val Type
+}
+
+// Set is Set[T].
+type Set struct {
+	Elem Type
 }
 
 // Func is a function type. Required is the number of parameters without defaults; a
@@ -118,6 +123,7 @@ func (Never) isType()   {}
 func (Invalid) isType() {}
 func (Array) isType()   {}
 func (Map) isType()     {}
+func (Set) isType()     {}
 func (Func) isType()    {}
 func (Record) isType()  {}
 func (Named) isType()   {}
@@ -240,6 +246,9 @@ func equal(a, b Type, depth int) bool {
 	case Map:
 		y, ok := b.(Map)
 		return ok && equal(x.Key, y.Key, depth+1) && equal(x.Val, y.Val, depth+1)
+	case Set:
+		y, ok := b.(Set)
+		return ok && equal(x.Elem, y.Elem, depth+1)
 	case Func:
 		y, ok := b.(Func)
 		if !ok || len(x.Params) != len(y.Params) || x.Required != y.Required {
@@ -332,6 +341,10 @@ func write(sb *strings.Builder, t Type, depth int) {
 		write(sb, x.Key, depth+1)
 		sb.WriteString(", ")
 		write(sb, x.Val, depth+1)
+		sb.WriteString("]")
+	case Set:
+		sb.WriteString("Set[")
+		write(sb, x.Elem, depth+1)
 		sb.WriteString("]")
 	case Func:
 		sb.WriteString("func(")

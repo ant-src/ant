@@ -674,6 +674,12 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 				return types.Invalid{}
 			}
 			return types.Map{Key: c.resolveType(x.Args[0], sc), Val: c.resolveType(x.Args[1], sc)}
+		case "Set":
+			if len(x.Args) != 1 {
+				c.errorf(x.Pos, "Set takes one type argument")
+				return types.Invalid{}
+			}
+			return types.Set{Elem: c.resolveType(x.Args[0], sc)}
 		}
 		if k, ok := builtinKinds[name]; ok {
 			if len(x.Args) > 0 {
