@@ -1,0 +1,9 @@
+// spec: 12 Runtime panics
+// panics: call
+// A constructor given an argument of another kind names its base kind with the right article.
+type Count = int
+func main(): void { print(Count("3")) }
+
+// expect
+// exit: 1
+// err: Count needs an int, got string

@@ -478,7 +478,7 @@ func (g *Goroutine) callValue(fn value.Value, args []value.Value, names []string
 			g.panicf(pos, "the constructor %s takes exactly one positional argument", f.Tag.Name)
 		}
 		if value.KindOf(args[0]) != f.Tag.Base {
-			g.panicf(pos, "%s needs a %s, got %s", f.Tag.Name, f.Tag.Base, value.Describe(args[0]))
+			g.panicf(pos, "%s needs %s, got %s", f.Tag.Name, withArticle(f.Tag.Base.String()), value.Describe(args[0]))
 		}
 		return &value.Tagged{Tag: f.Tag, Payload: args[0]}
 	}
@@ -1122,6 +1122,14 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
 	active = false
 	return value.Void, ctlNone
+}
+
+// withArticle puts "a" or "an" before a kind name: "an int", "a string".
+func withArticle(name string) string {
+	if strings.ContainsRune("aeiou", rune(name[0])) {
+		return "an " + name
+	}
+	return "a " + name
 }
 
 func plural(n int, noun string) string {
