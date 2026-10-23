@@ -1,6 +1,6 @@
 # Work still to do
 
-Seven gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
+Eight gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
 (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## `len`
@@ -28,6 +28,34 @@ len(x): int    // x is an Array[T], a Map[K, V], a string, or a Channel[T]
   helper or leaves `len(x) == 0`.
 - Whether `len` on a string is linear, as counting UTF-8 code points is, or the runtime caches it.
 - Whether to keep `Array.length` and the others at all, now that one name does the job.
+
+## `min` and `max`
+
+**Today:** `Array.min` and `Array.max` take an array and return `T | null`, and `Math` has no
+two-argument form. Picking the larger of two values means `Array.max([a, b]) ?? a` or writing the
+`max` that section 4 uses as its generics example.
+
+**Sketch:** two prelude functions over `Ordered`, with at least two arguments so the result is never
+`null`.
+
+```
+min[T: Ordered](a: T, b: T, ...rest: T): T
+max[T: Ordered](a: T, b: T, ...rest: T): T
+```
+
+- `max(1, 2.0)` is a compile error, as in the section 4 example: both arguments are one `T`.
+- NaN behaves as it does in `Array.min` and `Array.max`: any NaN argument gives NaN.
+- A tie returns the first argument, as `Array.minBy` returns the first element with the least key.
+
+**Open questions:**
+- The language has no variadic parameters. Either they arrive with this, or `min` and `max` take
+  exactly two arguments and longer lists go through `Array.min`.
+- Section 4 defines its own `max` in an example. Whether a module may shadow a prelude name, and
+  the example changes to another name if not.
+- Whether named primitives such as `Meters` are accepted and keep their tag, as arithmetic on them
+  does (section 4), or must be unwrapped first, as library functions require.
+- Whether `-0.0` and `0.0` are ordered, as Go's `min` and `max` order them, or tie.
+- Whether a `clamp(x, lo, hi)` joins them.
 
 ## Set
 
