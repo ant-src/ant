@@ -1,6 +1,4 @@
 // spec: stdlib Time
-
-// From time_values.
 // Time values (stdlib.md): instants, zones, the plain types and zoned date-times as Temporal
 // has them: construction and parsing, RFC 9557 rendering, fields, conversions between the
 // types, gaps and overlaps resolved by disambiguation, equality by value and compare by

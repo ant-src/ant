@@ -1,6 +1,4 @@
 // spec: 11 Math and Bits
-
-// From bits_edges.
 // Bits at its documented edges: the operations within each kind's width, shiftRight arithmetic
 // for signed and logical for unsigned kinds, shiftLeft dropping the bits that leave the width,
 // popCount of negatives, and wrapping arithmetic in two's complement.

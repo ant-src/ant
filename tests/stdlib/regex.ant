@@ -1,6 +1,4 @@
 // spec: 11 Regex
-
-// From regex_lib.
 // The Regex namespace: compile builds the value a literal would, normalized and with its flags
 // sorted, and returns Err on bad syntax or flags; a Match carries code point indices, the
 // groups with null for one that took no part, and the named groups; findAll skips an empty

@@ -1,6 +1,4 @@
 // spec: 11 Math and Bits
-
-// From math_edges.
 // Math at its documented edges: round is half away from zero, floor, ceil and trunc on
 // negatives, toInt is int(x) without the panic, pow, sqrt of a negative is NaN, min and max on
 // strings and sized integers, abs on floats, and the constants.

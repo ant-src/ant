@@ -1,6 +1,4 @@
 // spec: 11 Math and Bits; 12 Runtime panics
-
-// From math_lib.
 // Math (section 11): every function and constant; round is half away from zero; toInt is int
 // without the panic.
 Math.abs(-5)                                  // => 5
@@ -31,23 +29,67 @@ Math.maxInt                                   // => 9223372036854775807
 Math.maxInt == 9223372036854775807            // => true
 Math.random() >= 0.0 && Math.random() < 1.0   // => true
 
-// From panic_abs_min.
 // Math.abs of the most negative integer panics (section 11).
 Math.abs(Math.minInt + 1)                     // => 9223372036854775807
 Math.abs(Math.minInt)                         // => panic: Math.abs: integer overflow
 
-// From panic_clamp_bounds.
 // clamp with lo above hi is a panic: there is no value within the range.
 Math.clamp(5, 1, 3)                           // => 3
 Math.clamp(5, 3, 1)                           // => panic: Math.clamp needs lo <= hi, got 3 and 1
 
-// From panic_clamp_nan.
 // A NaN bound in Math.clamp panics, since NaN compares as neither above nor below anything and
 // the bound would hold nothing.
 Math.clamp(5, 1, 3)                           // => 3
 Math.clamp(0.5, Math.NaN, 1.0)                // => panic: Math.clamp needs bounds that are not NaN, got NaN and 1.0
 
-// From panic_random_int_range.
 // randomInt with to at or below from is a panic: the range is empty.
 Math.randomInt(3, 4)                          // => 3
 Math.randomInt(3, 3)                          // => panic: Math.randomInt needs from < to, got 3 and 3
+
+// More Math functions: logarithms and exp, the trigonometry in radians, hypot and
+// cbrt, the NaN and finiteness tests, clamp on any Ordered type with NaN passing through,
+// randomInt in its half-open range, and the float constants. The float functions follow IEEE
+// 754 and never panic.
+Math.log(Math.E)                              // => 1.0
+Math.log(1.0)                                 // => 0.0
+Math.log(0.0)                                 // => -Infinity
+Math.log(-1.0)                                // => NaN
+Math.log2(8.0)                                // => 3.0
+Math.log10(1000.0)                            // => 3.0
+Math.exp(0.0)                                 // => 1.0
+Math.exp(1.0) == Math.E                       // => true
+Math.sin(0.0)                                 // => 0.0
+Math.cos(0.0)                                 // => 1.0
+Math.tan(0.0)                                 // => 0.0
+Math.round(Math.asin(1.0) * 1000.0)           // => 1571.0
+Math.acos(1.0)                                // => 0.0
+Math.atan(0.0)                                // => 0.0
+Math.round(Math.atan2(1.0, 1.0) * 1000000.0)  // => 785398.0
+Math.round(Math.atan2(0.0, -1.0) * 1000000.0) // => 3141593.0
+Math.hypot(3.0, 4.0)                          // => 5.0
+Math.hypot(Math.maxFloat64, Math.maxFloat64) == Math.Infinity // => true
+Math.cbrt(27.0)                               // => 3.0
+Math.cbrt(-8.0)                               // => -2.0
+Math.isNaN(0.0 / 0.0)                         // => true
+Math.isNaN(Math.NaN)                          // => true
+Math.isNaN(1.0)                               // => false
+Math.isFinite(1.0)                            // => true
+Math.isFinite(1.0 / 0.0)                      // => false
+Math.isFinite(-Math.Infinity)                 // => false
+Math.isFinite(Math.NaN)                       // => false
+Math.clamp(5, 1, 3)                           // => 3
+Math.clamp(-5, 1, 3)                          // => 1
+Math.clamp(2, 1, 3)                           // => 2
+Math.clamp(2, 2, 2)                           // => 2
+Math.clamp(2.5, 1.0, 2.0)                     // => 2.0
+Math.clamp("m", "a", "f")                     // => "f"
+Math.clamp(Math.NaN, 1.0, 2.0)                // => NaN
+Math.clamp(byte(200), byte(0), byte(100))     // => 100
+Math.randomInt(5, 6)                          // => 5
+Array.every(Array.range(0, 200), { var r = Math.randomInt(-2, 2); r >= -2 && r < 2 }) // => true
+Math.randomInt(Math.minInt, Math.maxInt) >= Math.minInt // => true
+Math.NaN                                      // => NaN
+Math.Infinity                                 // => Infinity
+-Math.Infinity                                // => -Infinity
+Math.maxFloat64                               // => 1.7976931348623157e+308
+Math.maxFloat64 * 2.0                         // => Infinity

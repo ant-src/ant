@@ -1,6 +1,4 @@
 // spec: stdlib Url
-
-// From url_lib.
 // Url: parse divides a reference into its parts, opaque included, with the path decoded and
 // the query raw; stringify assembles them again, an IPv6 host in brackets; escape and
 // unescape handle one query value; parseQuery keeps keys in order of first appearance and a

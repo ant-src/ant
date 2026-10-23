@@ -1,6 +1,4 @@
 // spec: stdlib Json
-
-// From json_edges.
 // Json at its edges: escapes, numbers that are not integers, duplicate keys, nesting,
 // surrounding white space, malformed text as Err, and stringify of each kind and of a round
 // trip.

@@ -1,6 +1,4 @@
 // spec: stdlib Crypto; stdlib Encoding; 12 Runtime panics
-
-// From crypto_lib.
 // Crypto against the known vectors: the FIPS 180-4 digests of "abc" and of nothing, RFC 2202
 // and RFC 4231 HMAC cases, equal in constant time with different lengths unequal, random
 // bytes of the asked length, and a version 4 UUID in its form.
@@ -31,7 +29,6 @@ Regex.test(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
 Crypto.uuid() == Crypto.uuid()                // => false
 Crypto.sha256(String.toBytes("abc")) | Encoding.toHex() // => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 
-// From panic_random_bytes_negative.
 // A negative count of random bytes is a panic, as a negative count is for Array.filled.
 Array.length(Crypto.randomBytes(4))           // => 4
 Crypto.randomBytes(-1)                        // => panic: Crypto.randomBytes needs a count of at least 0, got -1

@@ -1,6 +1,4 @@
 // spec: stdlib Encoding
-
-// From encoding_lib.
 // Encoding: base64 in the standard and the URL-safe alphabet, padded on the way out and with
 // the padding optional and line breaks ignored on the way in; hex in lower case out and either
 // case in; Err on a character outside the alphabet or an odd length.

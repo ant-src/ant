@@ -1,6 +1,4 @@
 // spec: stdlib Json; 12 Runtime panics
-
-// From json_lib.
 // Json (stdlib.md): parse gives Json.Value trees, numbers as float64, objects as maps in
 // document order; a decoder narrows with is; stringify renders records as objects without
 // their tag.
@@ -33,7 +31,6 @@ Json.stringify(1.0 / 0.0)                     // => "null"
 var round = Json.parse(Json.stringify(Map{ x: [1.5, "s"] }))
 round                                         // => Ok{ value: Map{ "x": [1.5, "s"] } }
 
-// From json_cycle.
 // Json.stringify on a cyclic value panics: a value already being written has no JSON form, unlike
 // String.from, which renders it as ... (SPEC-FEEDBACK.md).
 type Node = { value: int, next: Node | null }

@@ -1,6 +1,4 @@
 // spec: stdlib Time
-
-// From time_arith.
 // Time arithmetic (stdlib.md): durations kept as given, calendar and exact units added
 // differently, differences counted from their start, rounding by Temporal's modes, totals and
 // balancing relative to a point, and the transitions of a zone, with the examples of

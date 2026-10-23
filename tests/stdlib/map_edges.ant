@@ -1,6 +1,4 @@
 // spec: 11 Map; 12 Values
-
-// From map_edges.
 // Each Map function at its documented edges: fromEntries keeps the first insertion's position
 // and the last value, map and filter keep the source order, merge appends the keys m lacks and
 // lets n win, has tells a stored null from a missing key, remove returns the removed value, and
@@ -36,7 +34,6 @@ Map.has(keyed, [1, 2])                        // => true
 Map.same(m, m) && !Map.same(m, Map.merge(m, none)) // => true
 Map.map(Map{ x: "a" }, { `${x.key}=${x.value}` }) // => Map{ "x": "x=a" }
 
-// From hash_cycles.
 // A map key's hash depends on a bounded prefix of its structure, so hashing terminates on a
 // cyclic value and agrees with ==: a cyclic record finds itself as a key, and a second cycle of
 // the same shape is the same key (section 12).

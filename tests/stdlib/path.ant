@@ -1,6 +1,4 @@
 // spec: stdlib Path
-
-// From path_lib.
 // Path (stdlib.md): pure functions over paths in the host's convention, each a function of
 // Go's path/filepath.
 Path.join(["a", "b", "../c", "d.ant"])        // => "a/c/d.ant"

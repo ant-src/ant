@@ -1,6 +1,4 @@
 // spec: 11 Result and Record; 12 Runtime panics
-
-// From result_edges.
 // Each Result function on both cases, all stopping at the first Err or giving Ok of every
 // value, and Record.same as identity against == as structure.
 type P = { n: int }
@@ -29,7 +27,6 @@ var typed: Result[string, int] = Result.err(404)
 typed                                         // => Err{ error: 404 }
 Result.map(typed, { String.length(x) })       // => Err{ error: 404 }
 
-// From panic_unwrap.
 // Result.unwrap on an Err panics (section 11).
 var r: Result[int, string] = Result.err("boom")
 Result.unwrap(r)                              // => panic: Result.unwrap on an Err: "boom"

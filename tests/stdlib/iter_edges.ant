@@ -1,6 +1,4 @@
 // spec: 11 Iter
-
-// From iter_edges.
 // Every Iter function returns a new sequence without running the source; toArray and for run
 // it; a sequence may run more than once; take 0 and an empty range yield nothing.
 var seen: Array[int] = []

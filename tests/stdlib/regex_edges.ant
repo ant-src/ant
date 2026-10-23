@@ -1,6 +1,4 @@
 // spec: 2 Literals; 11 Regex; stdlib Encoding
-
-// From regex_edges.
 // The edges: of two groups with one name, the first that took part fills named; a POSIX name
 // inside a class ends neither the class nor the literal; split of an empty string is [""]
 // whatever the pattern; a compiled source with a line break, or with nothing in it, renders as

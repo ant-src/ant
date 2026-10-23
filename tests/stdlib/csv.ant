@@ -1,6 +1,4 @@
 // spec: stdlib Csv; 12 Runtime panics
-
-// From csv_lib.
 // Csv: parse reads rows of any width with quoted fields, doubled quotes, \r\n line ends and
 // a quoted field across lines, drops a blank line, and is Err on a bare or unclosed quote;
 // stringify quotes what needs it and ends every row with \n; both take another separator.
@@ -20,13 +18,14 @@ Csv.stringify(none)                           // => ""
 Csv.stringify([["ñ", ""]])                    // => "ñ,\n"
 Csv.parse(Csv.stringify([["x,y", "z"]]))      // => Ok{ value: [["x,y", "z"]] }
 
-// From panic_csv_sep.
 // A separator that is not one character, or is a quote, a line break, U+0000 or U+FFFD, is a
 // panic: it is part of the program, not of the data.
 Csv.parse("a;b", ";")                         // => Ok{ value: [["a", "b"]] }
 Csv.parse("a,b", "ab")                        // => panic: Csv.parse needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "ab"
+Csv.parse("a,b", "\"")                        // => panic: Csv.parse needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "\""
+Csv.parse("a,b", "\n")                        // => panic: Csv.parse needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "\n"
+Csv.parse("a,b", "\u{0}")                     // => panic: Csv.parse needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "\x00"
 
-// From panic_csv_stringify_sep.
 // stringify applies the same separator rule as parse, before any row is written.
 Csv.stringify([["a", "b"]], "|")              // => "a|b\n"
 Csv.stringify([["a", "b"]], "\n")             // => panic: Csv.stringify needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "\n"

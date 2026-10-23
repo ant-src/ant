@@ -1,6 +1,4 @@
 // spec: 11 Array
-
-// From array_edges.
 // Each Array function at its documented edges: get and pop give null, ranges are half-open
 // and may be empty, concat, reverse and sort return new arrays, contains and indexOf compare
 // with ==, sorts are stable, sortWith puts a before b when cmp is negative, filled repeats one
