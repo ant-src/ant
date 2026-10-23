@@ -1,15 +1,5 @@
 # Ant
 
-A Go implementation of [Ant](https://github.com/ant-src/spec): a tree-walking interpreter, a
-type checker, and a REPL, usable as a command and as a Go module.
-
-The interpreter implements section 12 of the specification and the whole standard library, from
-`Array` and `String` to `Regex` with its `/.../flags` literal, `Time` after Temporal, channels,
-contexts and a `select` for goroutines that wait, `Http` as a client and a server, `Net`, `Csv`,
-`Encoding`, `Url` and `Crypto`; the checker implements the rules of sections 4 through 10.
-Programs under `tests/run` are the acceptance suite for `ant run`, programs under `tests/check`
-for `ant check`.
-
 ## Example
 
 ```ts
@@ -59,38 +49,34 @@ func main(): void {
 }
 ```
 
-## Command
+## Install
 
-```
+```sh
 go install github.com/ant-src/ant/cmd/ant@latest
-
-ant run main.ant [args...]    # run a program; exit 0, 1 on a panic, 2 when it cannot load, 130 on an interrupt
-ant check main.ant            # type-check it and every module it imports; exit 1 on errors
-ant                           # a REPL: each input is a declaration or an expression
 ```
 
-In the REPL a declaration accumulates, a name may be declared again, an import stays in force,
-and an input continues on the next line while a brace, bracket, string, or template is open.
+Type-check and run:
 
-## Library
+```sh
+ant check main.ant
+ant run main.ant
+```
+
+## API
+
+Ant can be used as a lib too: 
 
 ```go
-prog, err := ant.Load("main.ant")             // or ant.WithSource / ant.WithFS for sources in memory
-if err != nil { ... }                         // *ant.LoadError: syntax error, missing module, cycle
-err = prog.Run(ctx, ant.WithArgs(args))       // nil, *ant.PanicError, or *ant.ExitError
-diags := prog.Check()                         // []ant.Diagnostic
+prog, err := ant.Load("main.ant")
+diags := prog.Check()
+err = prog.Run(ctx, ant.WithArgs(args))
 ```
-
-`WithStdin`, `WithStdout`, `WithStderr`, `WithArgs` and `WithEnv` give a run its streams, its
-arguments and its environment; `Os.stdin()` and the other streams read and write them.
-
-To call Ant from Go, start an instance instead of running main:
 
 ```go
 in, err := prog.Start(ctx)
 defer in.Close()
 scale, _ := in.Func("scale")
-result, err := scale.Call(point, 2.0)         // an Ant panic comes back as *ant.PanicError
+result, err := scale.Call(point, 2.0)
 ```
 
 To call Go from Ant, give the program a namespace declared in Ant notation:
@@ -108,15 +94,10 @@ built on:
 
 ```go
 s, err := ant.NewSession(ctx, ant.WithStdout(os.Stdout))
-v, err := s.Eval("var x = 2")                 // void
-v, err = s.Eval("x * 21")                     // 42, a value.Value
+v, err := s.Eval("var x = 2")
+v, err = s.Eval("x * 21")
 ```
-
-Values cross the boundary as `value.Value`: `int64`, `float64`, `string`, `bool`, `value.Null`
-and `value.Void` for the primitives, and `*value.Array`, `*value.Map`, `*value.Record` and
-`*value.Tagged` for the rest. The package documentation lists the mapping; `example_test.go` has
-complete examples.
 
 ## License
 
-MIT
+[MIT](LICENSE)
