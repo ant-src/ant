@@ -26,7 +26,7 @@ func main(): void {
     WaitGroup.add(wg2, 1)
     go {
       defer { WaitGroup.done(wg2) }
-      Once.do(once, { Time.sleep(20); Atomic.store(ready, true) })
+      Once.do(once, { Time.sleep(Time.duration(milliseconds: 20)); Atomic.store(ready, true) })
       if !Atomic.load(ready) { _ = Atomic.add(incomplete, 1) }
     }
   }
@@ -58,7 +58,7 @@ func main(): void {
       _ = Atomic.add(woke, 1)
     }
   }
-  Time.sleep(10)
+  Time.sleep(Time.duration(milliseconds: 10))
   Mutex.withLock(lock2, { flag.v = true; Cond.broadcast(c) })
   WaitGroup.wait(wg4)
   print(Atomic.load(woke))

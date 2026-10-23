@@ -57,7 +57,7 @@ func main(): void {
 	t.Run("never asked", func(t *testing.T) {
 		out, err := runWithInterrupts(t, `
 func main(): void {
-  Time.sleep(5000)
+  Time.sleep(Time.duration(seconds: 5))
   print("slept")
 }
 `, 50*time.Millisecond)
@@ -72,7 +72,7 @@ func main(): void {
 		out, err := runWithInterrupts(t, `
 func main(): void {
   var stop = Os.interrupt()
-  Time.sleep(5000)
+  Time.sleep(Time.duration(seconds: 5))
   print(Context.isDone(stop))
 }
 `, 50*time.Millisecond, 100*time.Millisecond)

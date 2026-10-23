@@ -15,7 +15,7 @@ func main(): void {
   var events: Chan[Event] = Chan.new()
   go { for i in Array.range(1, 4) { Chan.send(events, Tick{ n: i }) } }
   go { Chan.send(events, Said{ text: "hello" }) }
-  go { Time.sleep(30); Chan.send(events, Quit{}) }
+  go { Time.sleep(Time.duration(milliseconds: 30)); Chan.send(events, Quit{}) }
   var ticks = 0
   var said = ""
   for event in Chan.values(events) {
@@ -26,8 +26,8 @@ func main(): void {
   print(`${ticks} ${said}`)
   var ctx = Context.new()
   var race: Chan[string] = Chan.new()
-  go { Time.sleep(200, ctx); Chan.send(race, "slow", ctx) }
-  go { Time.sleep(10, ctx); Chan.send(race, "fast", ctx) }
+  go { Time.sleep(Time.duration(milliseconds: 200), ctx); Chan.send(race, "slow", ctx) }
+  go { Time.sleep(Time.duration(milliseconds: 10), ctx); Chan.send(race, "fast", ctx) }
   print(Chan.receive(race))
   Context.cancel(ctx)
   print(Context.reason(ctx))
@@ -54,7 +54,7 @@ func main(): void {
   var beats = 0
   while !Context.isDone(stop) {
     beats += 1
-    Time.sleep(10, stop)
+    Time.sleep(Time.duration(milliseconds: 10), stop)
   }
   print(beats >= 3)
 }

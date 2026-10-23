@@ -17,7 +17,7 @@ func main(): void {
   WaitGroup.add(wg, 1)
   var before = Time.monotonic()
   WaitGroup.wait(wg, ctx)
-  Time.sleep(5000, ctx)
+  Time.sleep(Time.duration(seconds: 5), ctx)
   print(Time.monotonic() - before < 1000)
   var x = Chan.send(c, 1)
   var later: Array[int] = []

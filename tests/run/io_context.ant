@@ -7,7 +7,7 @@ func main(): void {
   var base = Os.args()[0]
   print(Http.get(`${base}/slow`, ctx: Context.new(Time.duration(milliseconds: 100))))
   var ctx = Context.new()
-  go { Time.sleep(50); Context.cancel(ctx) }
+  go { Time.sleep(Time.duration(milliseconds: 50)); Context.cancel(ctx) }
   print(Http.get(`${base}/slow`, ctx: ctx))
   var early = Context.new()
   Context.cancel(early)

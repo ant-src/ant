@@ -29,7 +29,7 @@ func main(): void {
   Chan.send(vals, 1); Chan.send(vals, 2); Chan.send(vals, 3)
   var stop = Context.new()
   var seen: Array[int] = []
-  go { Time.sleep(20); Context.cancel(stop) }
+  go { Time.sleep(Time.duration(milliseconds: 20)); Context.cancel(stop) }
   for v in Chan.values(vals, stop) { Array.push(seen, v) }
   print(seen)
   print(Context.isDone(stop))

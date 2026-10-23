@@ -3,7 +3,7 @@
 func main(): void {
   print(Time.epochMillis(Time.now()) > 1600000000000)
   var t0 = Time.monotonic()
-  Time.sleep(5)
+  Time.sleep(Time.duration(milliseconds: 5))
   print(Time.monotonic() - t0 >= 5)
   print(Os.env("PATH") != null)
   print(Os.env("ANT_UNSET_VARIABLE_93F1") == null)

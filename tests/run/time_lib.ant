@@ -8,12 +8,12 @@ func main(): void {
   WaitGroup.add(wg, 2)
   go {
     defer { WaitGroup.done(wg) }
-    Time.sleep(60)
+    Time.sleep(Time.duration(milliseconds: 60))
     Atomic.store(order, Atomic.load(order) + "slow ")
   }
   go {
     defer { WaitGroup.done(wg) }
-    Time.sleep(5)
+    Time.sleep(Time.duration(milliseconds: 5))
     Atomic.store(order, Atomic.load(order) + "fast ")
   }
   WaitGroup.wait(wg)

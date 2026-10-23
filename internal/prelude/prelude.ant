@@ -389,8 +389,8 @@ func Time.zoneId(z: Time.Zone): string
 
 func Time.now(): Time.Instant
 func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
-func Time.sleep(ms: int, ctx: Context | null = null): void
-func Time.ticker(ms: int, ctx: Context | null = null): Chan[Time.Instant]
+func Time.sleep(d: Time.Duration, ctx: Context | null = null): void
+func Time.ticker(d: Time.Duration, ctx: Context | null = null): Chan[Time.Instant]
 func Time.monotonic(): int
 func Time.fromEpochMillis(ms: int): Time.Instant
 func Time.fromEpochNanos(ns: int): Time.Instant

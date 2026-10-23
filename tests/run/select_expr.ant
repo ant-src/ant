@@ -60,13 +60,13 @@ func main(): void {
   print(stopped)
   var slept: Outcome = select {
     var n = Chan.receive(nums) { Num{ n: n ?? -1 } }
-    Time.sleep(20) { Nothing{} }
+    Time.sleep(Time.duration(milliseconds: 20)) { Nothing{} }
   }
   print(slept)
   var wg = WaitGroup.new()
   WaitGroup.add(wg, 1)
   go {
-    Time.sleep(10)
+    Time.sleep(Time.duration(milliseconds: 10))
     WaitGroup.done(wg)
   }
   var joined: Outcome = select {

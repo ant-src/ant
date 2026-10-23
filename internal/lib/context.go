@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"errors"
-	"math"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -50,19 +49,25 @@ func gaveUp(ctx context.Context) value.Value {
 // length, and a zero or negative duration are errors; a duration beyond Go's range is taken as
 // that range.
 func goDuration(d temporal.Duration) (time.Duration, error) {
-	if d.Years != 0 || d.Months != 0 || d.Weeks != 0 {
+	exact, ok := d.Exact()
+	if !ok {
 		return 0, errors.New("the timeout has years, months or weeks, which have no fixed length")
 	}
 	if d.Sign() <= 0 {
 		return 0, errors.New("the timeout is zero or negative")
 	}
-	seconds := float64(d.Days)*86400 + float64(d.Hours)*3600 + float64(d.Minutes)*60 + float64(d.Seconds) +
-		float64(d.Milliseconds)/1e3 + float64(d.Microseconds)/1e6 + float64(d.Nanoseconds)/1e9
-	ns := seconds * 1e9
-	if ns >= math.MaxInt64 {
-		return time.Duration(math.MaxInt64), nil
+	return exact, nil
+}
+
+// spanArg reads the Time.Duration a sleep or a ticker takes, by goDuration's rules except that
+// years, months or weeks are a panic, since Time is computation, and a zero or negative span is
+// returned for the caller to judge.
+func spanArg(g *interp.Goroutine, who string, v value.Value) time.Duration {
+	d, ok := durationArg(g, who, v).Exact()
+	if !ok {
+		g.Panic("%s needs a duration without years, months or weeks, which have no fixed length", who)
 	}
-	return time.Duration(ns), nil
+	return d
 }
 
 func init() {

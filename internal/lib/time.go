@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"math"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -288,15 +287,12 @@ func init() {
 			fn("Time.nowIn", "z", func(g *interp.Goroutine, a []value.Value) value.Value {
 				return temporal.Now().InZone(timeArg[*temporal.Zone](g, "Time.nowIn", a[0]))
 			}),
-			fn("Time.sleep", "ms, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				ms := intArg(g, "Time.sleep", a[0])
-				if ms > math.MaxInt64/int64(time.Millisecond) {
-					ms = math.MaxInt64 / int64(time.Millisecond) // 292 years: past any run
-				}
+			fn("Time.sleep", "d, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
+				d := spanArg(g, "Time.sleep", a[0])
 				ctx := waitContext(g, optionalContext(g, "Time.sleep", a[1]))
 				g.Instance().Flush()
-				if ctx.Err() == nil {
-					timer := time.NewTimer(time.Duration(ms) * time.Millisecond)
+				if ctx.Err() == nil && d > 0 {
+					timer := time.NewTimer(d)
 					defer timer.Stop()
 					select {
 					case <-timer.C:
@@ -306,20 +302,17 @@ func init() {
 				g.AfterWait()
 				return value.Void
 			}),
-			fn("Time.ticker", "ms, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
-				ms := intArg(g, "Time.ticker", a[0])
-				if ms <= 0 {
-					g.Panic("Time.ticker needs a period above 0, got %d", ms)
-				}
-				if ms > math.MaxInt64/int64(time.Millisecond) {
-					ms = math.MaxInt64 / int64(time.Millisecond)
+			fn("Time.ticker", "d, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
+				d := spanArg(g, "Time.ticker", a[0])
+				if d <= 0 {
+					g.Panic("Time.ticker needs a period above zero, got %s", value.Render(a[0]))
 				}
 				ctx := waitContext(g, optionalContext(g, "Time.ticker", a[1]))
 				ticks := value.NewChan(1)
 				// As Go's ticker: a beat counted from the call, one tick held, a tick that
 				// finds it full dropped; the goroutine and its timer end with the context,
 				// which is the run's when none was given.
-				t := time.NewTicker(time.Duration(ms) * time.Millisecond)
+				t := time.NewTicker(d)
 				go func() {
 					defer t.Stop()
 					for {

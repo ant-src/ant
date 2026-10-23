@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -304,16 +305,22 @@ var panicRows = [][]string{
 // pendingPanics lists the panic keys no test program triggers yet.
 var pendingPanics = []string{}
 
-// TestBoundedSleeps checks the corpus's rule that every wait has a bound: a Time.sleep with a
-// literal count above a second and no context would hold the suite, so none is allowed under
-// tests/run. A sleep with a context is bounded by it, whatever its count.
+// TestBoundedSleeps checks the corpus's rule that every wait has a bound: a Time.sleep of a
+// literal duration above a second and no context would hold the suite, so none is allowed under
+// tests/run. A sleep with a context is bounded by it, whatever its duration.
 func TestBoundedSleeps(t *testing.T) {
-	long := regexp.MustCompile(`Time\.sleep\((\d+)\)`)
+	long := regexp.MustCompile(`Time\.sleep\(Time\.duration\((\w+): (\d+)\)\)`)
+	ms := map[string]int64{"milliseconds": 1, "seconds": 1000, "minutes": 60000, "hours": 3600000, "days": 86400000}
 	programs, _ := corpus(t)
 	for _, p := range programs {
 		for _, m := range long.FindAllStringSubmatch(p.src, -1) {
-			if len(m[1]) > 4 || len(m[1]) == 4 && m[1] > "1000" {
-				t.Errorf("%s: Time.sleep(%s) without a context would hold the suite; bound it with a context", p.path, m[1])
+			unit, exact := ms[m[1]]
+			if !exact {
+				continue // years, months or weeks: the sleep panics rather than waits
+			}
+			n, err := strconv.ParseInt(m[2], 10, 64)
+			if err != nil || n > 1000/unit {
+				t.Errorf("%s: %s without a context would hold the suite; bound it with a context", p.path, m[0])
 			}
 		}
 	}

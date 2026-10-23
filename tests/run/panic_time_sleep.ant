@@ -1,0 +1,16 @@
+// spec: stdlib Time; 12 Runtime panics
+// panics: Time.sleep
+// A sleep takes a span of fixed length: hours and smaller exact, a day 24 hours, a zero or
+// negative span at once; years, months or weeks are a ◆, as they are in Context.new.
+func main(): void {
+  Time.sleep(Time.duration(milliseconds: 5))
+  Time.sleep(Time.duration(seconds: -3))
+  Time.sleep(Time.duration())
+  print("slept")
+  Time.sleep(Time.duration(months: 1))
+}
+
+// expect
+// exit: 1
+// out: slept
+// err: Time.sleep needs a duration without years, months or weeks

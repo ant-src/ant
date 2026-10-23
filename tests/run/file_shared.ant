@@ -41,7 +41,7 @@ func main(): void {
     var r = File.readLine(c2)
     Chan.send(ended, r is Err)
   }
-  Time.sleep(50)
+  Time.sleep(Time.duration(milliseconds: 50))
   File.close(c2)
   print(`read ended: ${Chan.receive(ended) ?? false}`)
   print(File.readLine(c2))

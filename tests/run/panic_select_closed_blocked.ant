@@ -16,7 +16,7 @@ func main(): void {
   var c: Chan[int] = Chan.new(1)
   x = Chan.send(c, 1)
   go {
-    Time.sleep(20)
+    Time.sleep(Time.duration(milliseconds: 20))
     Chan.close(c)
   }
   select {

@@ -6,9 +6,9 @@ func main(): void {
   go {
     var s = Result.unwrap(Net.accept(l))
     var x = File.writeText(s, "hel")
-    Time.sleep(300)
+    Time.sleep(Time.duration(milliseconds: 300))
     x = File.writeText(s, "lo\nsecond\nabc")
-    Time.sleep(300)
+    Time.sleep(Time.duration(milliseconds: 300))
     x = File.writeText(s, "def")
     File.close(s)
   }

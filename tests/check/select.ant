@@ -12,7 +12,7 @@ type Event = Line | Closed | Tick
 func events(lines: Chan[string], ctx: Context): Event {
   select {
     var line = Chan.receive(lines) { if line == null { Closed{} } else { Line{ text: line } } }
-    Time.sleep(1000) { Tick{} }
+    Time.sleep(Time.duration(seconds: 1)) { Tick{} }
     Context.wait(ctx) { Closed{} }
   }
 }

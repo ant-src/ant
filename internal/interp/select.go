@@ -1,11 +1,11 @@
 package interp
 
 import (
-	"math"
 	"reflect"
 	"time"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/temporal"
 	"github.com/ant-src/ant/value"
 )
 
@@ -21,7 +21,7 @@ var selectHeadParams = map[string][]string{
 	"Chan.send":      {"c", "v"},
 	"Context.wait":   {"ctx"},
 	"WaitGroup.wait": {"wg"},
-	"Time.sleep":     {"ms"},
+	"Time.sleep":     {"d"},
 }
 
 // selectHeadName is the head's function: the parser checked it is a two-part path of one of
@@ -89,14 +89,15 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 			}
 			recv(wg.Zero(), selectOwner{clause: i})
 		case "Time.sleep":
-			ms, ok := args[0].(int64)
+			span, ok := args[0].(temporal.Duration)
 			if !ok {
-				g.panicf(pos, "Time.sleep needs an int, got %s", value.Describe(args[0]))
+				g.panicf(pos, "Time.sleep needs a Time.Duration, got %s", value.Describe(args[0]))
 			}
-			if ms > math.MaxInt64/int64(time.Millisecond) {
-				ms = math.MaxInt64 / int64(time.Millisecond)
+			d, exact := span.Exact()
+			if !exact {
+				g.panicf(pos, "Time.sleep needs a duration without years, months or weeks, which have no fixed length")
 			}
-			t := time.NewTimer(time.Duration(ms) * time.Millisecond)
+			t := time.NewTimer(max(d, 0))
 			timers = append(timers, t)
 			recv(t.C, selectOwner{clause: i})
 		}

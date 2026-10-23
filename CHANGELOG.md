@@ -97,3 +97,6 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
 - `Time.ticker(ms, ctx)`, Go's ticker: a `Chan[Time.Instant]` that gets the time every period,
   holds one tick and drops the rest while the reader is behind, and stops with its context, so a
   `select` reads a beat beside its other channels.
+- Every wait in the library takes a `Time.Duration`: `Time.sleep` and `Time.ticker`, and a
+  `Time.sleep` head of `select`, as `Context.new` and `Http.request` already did, with the same
+  reading of a span and years, months or weeks a panic. `Time.monotonic` stays milliseconds.

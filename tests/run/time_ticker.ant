@@ -3,7 +3,7 @@
 // gets one tick, not a burst; the ticker stops with its context.
 func main(): void {
   var ctx = Context.new()
-  var ticks = Time.ticker(20, ctx)
+  var ticks = Time.ticker(Time.duration(milliseconds: 20), ctx)
   var work: Chan[string] = Chan.new()
   go {
     for w in ["a", "b", "c"] { var x = Chan.send(work, w) }
@@ -20,10 +20,10 @@ func main(): void {
   }
   print(got)
   print(beats)
-  Time.sleep(100)
+  Time.sleep(Time.duration(milliseconds: 100))
   print(Chan.length(ticks))
   Context.cancel(ctx)
-  Time.sleep(50)
+  Time.sleep(Time.duration(milliseconds: 50))
   var left = Chan.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
   print(Chan.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
 }

@@ -29,7 +29,7 @@ func main(): void {
   print(Context.reason(kid))
   var sleeper = Context.new(Time.duration(milliseconds: 20))
   before = Time.monotonic()
-  Time.sleep(10000, sleeper)
+  Time.sleep(Time.duration(seconds: 10), sleeper)
   print(Time.monotonic() - before < 5000)
   print(Context.isDone(sleeper))
   var wg = WaitGroup.new()
@@ -48,10 +48,10 @@ func main(): void {
     defer { WaitGroup.done(done) }
     while !Context.isDone(stop) {
       Atomic.add(ticks, 1)
-      Time.sleep(5, stop)
+      Time.sleep(Time.duration(milliseconds: 5), stop)
     }
   }
-  Time.sleep(30)
+  Time.sleep(Time.duration(milliseconds: 30))
   Context.cancel(stop)
   WaitGroup.wait(done)
   print(Atomic.load(ticks) > 0)
