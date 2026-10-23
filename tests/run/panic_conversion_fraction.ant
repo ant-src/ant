@@ -8,4 +8,4 @@ func main(): void {
 
 // expect
 // exit: 1
-// err: 2.5 out of range for int
+// err: 2.5 has a fraction, so it does not convert to int

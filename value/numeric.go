@@ -617,10 +617,14 @@ func uintToInt(to Kind, x uint64) (Value, error) {
 	return intToInt(to, int64(x))
 }
 
-// floatToInt requires an integral value in range; NaN and infinities are out of range.
+// floatToInt requires an integral value in range; NaN and infinities are out of range, and a
+// fraction is reported as one.
 func floatToInt(to Kind, f float64) (Value, error) {
-	if math.IsNaN(f) || math.IsInf(f, 0) || f != math.Trunc(f) {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
 		return nil, rangeError(to, f)
+	}
+	if f != math.Trunc(f) {
+		return nil, fmt.Errorf("%s has a fraction, so it does not convert to %s", Render(f), to)
 	}
 	// Bounds as floats: lo inclusive, hi exclusive, both exactly representable.
 	var lo, hi float64
