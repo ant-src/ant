@@ -248,6 +248,11 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		trial := map[*types.ParamDecl]types.Type{}
 		if c.unify(s.fn.Return, expected, trial) {
 			for p, t := range trial {
+				if !boundFits(p, t) {
+					// An expected union such as Time.Dated is no solution for a bounded T,
+					// which stands for one member; the arguments solve it instead.
+					continue
+				}
 				subst[p] = t
 				delete(unsolved, p)
 			}
@@ -384,35 +389,38 @@ func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, pos
 			continue
 		}
 		t := subst[p]
-		if types.IsInvalid(t) {
+		if types.IsInvalid(t) || boundFits(p, t) {
 			continue
 		}
-		if tp, ok := t.(types.Param); ok && tp.Decl.Bound != nil && types.Assignable(tp.Decl.Bound, p.Bound) {
-			// A bounded parameter stands for one member of its bound, so it satisfies any bound
-			// that contains its own (section 4, Generics).
-			continue
-		}
-		members := types.Members(p.Bound)
-		if len(members) > 1 {
-			single := false
-			for _, m := range members {
-				if types.Equal(m, t) {
-					single = true
-					break
-				}
-			}
-			if !single {
-				if fields := types.FieldsOf(p.Bound); fields != nil && types.Assignable(t, p.Bound) {
-					continue
-				}
-				c.errorf(pos, "%s would be %s, which is not a single member of its bound %s; narrow first", p.Name, types.String(t), types.String(p.Bound))
-			}
-			continue
-		}
-		if !types.Assignable(t, p.Bound) {
+		if len(types.Members(p.Bound)) > 1 {
+			c.errorf(pos, "%s would be %s, which is not a single member of its bound %s; narrow first", p.Name, types.String(t), types.String(p.Bound))
+		} else {
 			c.errorf(pos, "%s would be %s, which is not assignable to its bound %s", p.Name, types.String(t), types.String(p.Bound))
 		}
 	}
+}
+
+// boundFits reports whether t is a solution the bound of p admits: a single member of a union
+// bound, or a type assignable to any other bound (section 4, Generics).
+func boundFits(p *types.ParamDecl, t types.Type) bool {
+	if p.Bound == nil {
+		return true
+	}
+	if tp, ok := t.(types.Param); ok && tp.Decl.Bound != nil && types.Assignable(tp.Decl.Bound, p.Bound) {
+		// A bounded parameter stands for one member of its bound, so it satisfies any bound
+		// that contains its own (section 4, Generics).
+		return true
+	}
+	members := types.Members(p.Bound)
+	if len(members) > 1 {
+		for _, m := range members {
+			if types.Equal(m, t) {
+				return true
+			}
+		}
+		return types.FieldsOf(p.Bound) != nil && types.Assignable(t, p.Bound)
+	}
+	return types.Assignable(t, p.Bound)
 }
 
 // unify matches a pattern that may mention type parameters against an actual type, binding

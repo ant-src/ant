@@ -1,0 +1,27 @@
+// spec: 4 Generics; 4 Inference; stdlib Time
+// An expected type that is a union is no solution for a parameter bounded by a union, which
+// stands for one member: the arguments solve it, and the result widens to the expected type. This
+// is the bump example of stdlib.md, where each branch of the if expects Time.Dated.
+func bump(t: Time.Dated): Time.Dated {
+  var day = Time.duration(days: 1)
+  if t is Time.ZonedDateTime { Time.add(t, day) }
+  else if t is Time.PlainDate { Time.add(t, day) }
+  else { Time.add(t, day) }
+}
+
+func max[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+
+func main(): void {
+  print(bump(Time.plainDate(2026, 2, 28)))
+  print(bump(Time.plainDateTime(Time.plainDate(2026, 12, 31), Time.plainTime(23, 0))))
+  var n: int | string = max(1, 2)
+  var m: Ordered = max("a", "b")
+  print(n)
+  print(m)
+}
+
+// expect
+// out: 2026-03-01
+// out: 2027-01-01T23:00:00
+// out: 2
+// out: b
