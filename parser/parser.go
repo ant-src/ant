@@ -42,11 +42,25 @@ func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	toks, lerr := lexer.Lex(src)
 	if lerr != nil {
 		le := lerr.(*lexer.Error)
-		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg, Incomplete: strings.HasPrefix(le.Msg, "unterminated")}
+		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg, Incomplete: incompleteLex(src, le)}
 	}
 	p := &parser{mode: mode, toks: toks}
 	defer p.recover(&err)
 	return p.file(path), nil
+}
+
+// incompleteLex reports whether a lexer error means the source ended too early: an open
+// template string or block comment, which may span lines, or a plain string or regular
+// expression open on the last line. Those stay on one line, so a line break ends them in an
+// error instead.
+func incompleteLex(src string, le *lexer.Error) bool {
+	if !strings.HasPrefix(le.Msg, "unterminated") {
+		return false
+	}
+	if le.Msg == "unterminated string" || le.Msg == "unterminated regular expression" {
+		return le.Pos.Line == strings.Count(src, "\n")+1
+	}
+	return true
 }
 
 // ParseExpr parses a single expression, in spec mode.
