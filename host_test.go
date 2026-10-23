@@ -282,3 +282,24 @@ func main(): void {}
 		}
 	}
 }
+
+// TestStartContext checks that the context given to Start ends a call that never waits, as a
+// session's context ends such an input.
+func TestStartContext(t *testing.T) {
+	src := "func spin(): int {\n  var n = 0\n  while true { n += 1 }\n  n\n}\nfunc main(): void {}\n"
+	prog, err := ant.Load("spin.ant", ant.WithSource("spin.ant", src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	in, err := prog.Start(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	spin, _ := in.Func("spin")
+	if _, err := spin.Call(); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("an endless call ended with %v, want the context's error", err)
+	}
+}

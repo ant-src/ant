@@ -13,6 +13,11 @@ import (
 // runs functions with Call and ends the instance with Close.
 func Start(ctx context.Context, prog *loader.Program, cfg Config) (*Instance, error) {
 	in := New(ctx, prog, cfg)
+	// As a session does: the context's end sets the flag, so a call that never waits stops too.
+	go func() {
+		<-in.ctx.Done()
+		in.done.Store(true)
+	}()
 	g := in.newGoroutine(true)
 	if err := in.runOn(g, func() { in.initModules(g) }); err != nil {
 		in.Close()
