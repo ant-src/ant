@@ -90,9 +90,9 @@ type printer struct {
 	prefix   map[int]bool // the offsets of the - and ! the parser read as prefix
 	comments []token.Comment
 	out      strings.Builder
-	indent   int   // the indentation level of the line being written
-	pending  bool  // the line's indentation is not written yet
-	lastEnd  int   // the source offset after the last thing printed
+	indent   int      // the indentation level of the line being written
+	pending  bool     // the line's indentation is not written yet
+	lastEnd  int      // the source offset after the last thing printed
 	trails   [][2]int // the output spans of the one-line comments written after code on a line
 }
 
