@@ -94,3 +94,6 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   line break or nothing in it reads back equal; strict base64 padding; a NaN bound in
   `Math.clamp` is a panic. The checker holds a generic function's own type parameters rigid, so
   a lambda inside it cannot pass with a body of another type.
+- `Time.ticker(ms, ctx)`, Go's ticker: a `Chan[Time.Instant]` that gets the time every period,
+  holds one tick and drops the rest while the reader is behind, and stops with its context, so a
+  `select` reads a beat beside its other channels.

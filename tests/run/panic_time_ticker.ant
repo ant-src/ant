@@ -1,0 +1,15 @@
+// spec: stdlib Time; 12 Runtime panics
+// panics: Time.ticker
+// A ticker needs a period above zero, as Go's does.
+func main(): void {
+  var ctx = Context.new()
+  var ticks = Time.ticker(10, ctx)
+  print(Chan.receive(ticks) != null)
+  Context.cancel(ctx)
+  var none = Time.ticker(0)
+}
+
+// expect
+// exit: 1
+// out: true
+// err: Time.ticker needs a period above 0, got 0

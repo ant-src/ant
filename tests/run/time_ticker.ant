@@ -1,0 +1,35 @@
+// spec: stdlib Time; 5 select; 9 Waiting
+// Time.ticker: the time every period, read by a select beside a channel of work; a slow reader
+// gets one tick, not a burst; the ticker stops with its context.
+func main(): void {
+  var ctx = Context.new()
+  var ticks = Time.ticker(20, ctx)
+  var work: Chan[string] = Chan.new()
+  go {
+    for w in ["a", "b", "c"] { var x = Chan.send(work, w) }
+  }
+  var got: Array[string] = []
+  var beats = 0
+  while beats < 3 {
+    select {
+      var w = Chan.receive(work) { Array.push(got, w ?? "") }
+      var at = Chan.receive(ticks) {
+        if at != null && Time.compare(at, Time.fromEpochMillis(0)) > 0 { beats += 1 }
+      }
+    }
+  }
+  print(got)
+  print(beats)
+  Time.sleep(100)
+  print(Chan.length(ticks))
+  Context.cancel(ctx)
+  Time.sleep(50)
+  var left = Chan.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
+  print(Chan.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
+}
+
+// expect
+// out: ["a", "b", "c"]
+// out: 3
+// out: 1
+// out: null

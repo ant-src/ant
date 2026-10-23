@@ -306,6 +306,36 @@ func init() {
 				g.AfterWait()
 				return value.Void
 			}),
+			fn("Time.ticker", "ms, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
+				ms := intArg(g, "Time.ticker", a[0])
+				if ms <= 0 {
+					g.Panic("Time.ticker needs a period above 0, got %d", ms)
+				}
+				if ms > math.MaxInt64/int64(time.Millisecond) {
+					ms = math.MaxInt64 / int64(time.Millisecond)
+				}
+				ctx := waitContext(g, optionalContext(g, "Time.ticker", a[1]))
+				ticks := value.NewChan(1)
+				// As Go's ticker: a beat counted from the call, one tick held, a tick that
+				// finds it full dropped; the goroutine and its timer end with the context,
+				// which is the run's when none was given.
+				t := time.NewTicker(time.Duration(ms) * time.Millisecond)
+				go func() {
+					defer t.Stop()
+					for {
+						select {
+						case <-t.C:
+							select {
+							case ticks.Raw() <- temporal.Now():
+							default:
+							}
+						case <-ctx.Done():
+							return
+						}
+					}
+				}()
+				return ticks
+			}),
 			fn("Time.monotonic", "", func(g *interp.Goroutine, a []value.Value) value.Value {
 				return time.Since(origin).Milliseconds()
 			}),
