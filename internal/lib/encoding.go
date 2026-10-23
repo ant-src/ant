@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -51,7 +52,18 @@ func init() {
 				return hex.EncodeToString(bytesArg(g, "Encoding.toHex", a[0]))
 			}),
 			fn("Encoding.fromHex", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				data, err := hex.DecodeString(stringArg(g, "Encoding.fromHex", a[0]))
+				text := stringArg(g, "Encoding.fromHex", a[0])
+				data, err := hex.DecodeString(text)
+				if _, bad := err.(hex.InvalidByteError); bad {
+					// Go names the offending byte; name the character it begins instead, so a
+					// non-ASCII character reads as itself.
+					for _, r := range text {
+						if !strings.ContainsRune("0123456789abcdefABCDEF", r) {
+							err = fmt.Errorf("encoding/hex: invalid byte: %#U", r)
+							break
+						}
+					}
+				}
 				if err != nil {
 					return errResult(err)
 				}

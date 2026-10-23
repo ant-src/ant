@@ -21,3 +21,4 @@ Encoding.fromHex("6869")                      // => Ok{ value: [104, 105] }
 Encoding.fromHex("6A6B") == Encoding.fromHex("6a6b") // => true
 Result.isOk(Encoding.fromHex("abc"))          // => false
 Encoding.fromHex("zz")                        // => Err{ error: Error{ message: "encoding/hex: invalid byte: U+007A 'z'" } }
+Encoding.fromHex("0ñ")                        // => Err{ error: Error{ message: "encoding/hex: invalid byte: U+00F1 'ñ'" } }
