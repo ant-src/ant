@@ -133,7 +133,7 @@ func serve(g *interp.Goroutine, a []value.Value) value.Value {
 	}
 	g.Instance().Flush()
 	done := make(chan error, 1)
-	go func() { done <- srv.Serve(l.l) }()
+	go func() { done <- srv.Serve(newServeListener(l, g.Context().Done())) }()
 	select {
 	case err := <-done:
 		g.AfterWait()

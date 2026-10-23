@@ -48,6 +48,31 @@ func (l *Listener) pump(done <-chan struct{}) {
 	}
 }
 
+// serveListener is the listener as Http.serve's server sees it: connections come from the
+// pump, so a server on a listener that Net.accept has used does not race the pump for them.
+// Close ends a pending Accept even when the pump has already stopped.
+type serveListener struct {
+	l      *Listener
+	done   <-chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func newServeListener(l *Listener, done <-chan struct{}) serveListener {
+	ctx, cancel := context.WithCancel(context.Background())
+	return serveListener{l, done, ctx, cancel}
+}
+
+func (s serveListener) Accept() (net.Conn, error) { return s.l.accept(s.done, s.ctx) }
+
+func (s serveListener) Close() error {
+	s.cancel()
+	s.l.markClosed()
+	return s.l.l.Close()
+}
+
+func (s serveListener) Addr() net.Addr { return s.l.l.Addr() }
+
 func (l *Listener) markClosed() {
 	l.mu.Lock()
 	defer l.mu.Unlock()

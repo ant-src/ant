@@ -1,0 +1,27 @@
+// spec: stdlib Http; stdlib Net
+// Http.serve answers every request that arrives on its listener, also one that Net.accept was
+// used on before, and the listener is closed once serve returns.
+func handle(req: Http.Request): Http.Response {
+  Http.Response{ status: 200, headers: Map{}, body: "ok" }
+}
+
+func main(): void {
+  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+  print(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
+  var stop = Context.new()
+  var served: Channel[Result[void, Error]] = Channel.new(1)
+  go { Channel.send(served, Http.serve(l, handle, stop)) }
+  var t = Time.duration(seconds: 5)
+  print(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
+  print(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
+  Context.cancel(stop)
+  print(Channel.receive(served))
+  print(Net.accept(l))
+}
+
+// expect
+// out: Err{ error: Error{ message: "timeout" } }
+// out: ok
+// out: ok
+// out: Ok{ value: void }
+// out: Err{ error: Error{ message: "the listener is closed" } }
