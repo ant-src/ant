@@ -2,9 +2,11 @@ package repl
 
 import (
 	"context"
+	"io"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestRun feeds a scripted session through the loop: declarations and expressions across
@@ -59,5 +61,30 @@ func TestRunExit(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "1\n") || strings.Contains(out.String(), "2\n") {
 		t.Errorf("stdout: %q", out.String())
+	}
+}
+
+// TestRunInterrupted: an interrupt ends the loop with status 130, at the prompt or during an
+// input, rather than leaving a session whose every later input is cancelled.
+func TestRunInterrupted(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	pr, pw := io.Pipe()
+	defer pw.Close()
+	done := make(chan int)
+	var out, errOut strings.Builder
+	go func() { done <- Run(ctx, pr, &out, &errOut) }()
+	io.WriteString(pw, "var c: Channel[int] = Channel.new()\nChannel.receive(c)\n")
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	select {
+	case status := <-done:
+		if status != 130 {
+			t.Errorf("status %d, want 130", status)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the loop did not end")
+	}
+	if errOut.String() != "" {
+		t.Errorf("stderr: %q", errOut.String())
 	}
 }

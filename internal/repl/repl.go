@@ -13,7 +13,8 @@ import (
 )
 
 // Run reads inputs from stdin until it ends, evaluating each on one session, printing every
-// non-void result with String.from, and reporting errors on stderr. It returns the exit status.
+// non-void result with String.from, and reporting errors on stderr. It returns the exit status:
+// 130 when ctx ends first, which is an interrupt, as it ends a run.
 func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 	// The REPL owns standard input, so a program's Os.stdin() is at end of file.
 	s, err := ant.NewSession(ctx, ant.WithStdin(strings.NewReader("")), ant.WithStdout(stdout),
@@ -23,8 +24,21 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 	defer s.Close()
-	in := bufio.NewScanner(stdin)
-	in.Buffer(make([]byte, 1024*1024), 1024*1024)
+	// The lines come from a reader of their own, so an interrupt at the prompt ends the loop
+	// without waiting for another line.
+	lines := make(chan string)
+	go func() {
+		defer close(lines)
+		in := bufio.NewScanner(stdin)
+		in.Buffer(make([]byte, 1024*1024), 1024*1024)
+		for in.Scan() {
+			select {
+			case lines <- in.Text():
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	var pending strings.Builder
 	prompt := func() {
 		if pending.Len() == 0 {
@@ -34,8 +48,20 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 	}
 	prompt()
-	for in.Scan() {
-		line := in.Text()
+	for {
+		var line string
+		var ok bool
+		select {
+		case line, ok = <-lines:
+		case <-ctx.Done():
+		}
+		if ctx.Err() != nil {
+			fmt.Fprintln(stdout)
+			return 130
+		}
+		if !ok {
+			break
+		}
 		pending.WriteString(line)
 		pending.WriteString("\n")
 		src := pending.String()
@@ -50,6 +76,10 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		pending.Reset()
 		v, err := s.Eval(src)
+		if ctx.Err() != nil {
+			fmt.Fprintln(stdout)
+			return 130
+		}
 		switch err.(type) {
 		case nil:
 			if v != value.Void {
