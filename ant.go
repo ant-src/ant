@@ -126,19 +126,19 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 	return func(c *config) { c.env = lookup }
 }
 
-// WithEnvironment gives the run its whole environment: what Os.env and Os.environ see, and
-// what a child of Os.exec inherits when it is given no env of its own.
 // WithInterrupts delivers interrupts to a run, one per value the host sends on c. The first goes
 // to the context Os.interrupt returns, when the program has called it and the context is not
 // done, so the program can drain and exit; otherwise, and for a program that never called it,
-// an interrupt cancels the run, as cancelling the context given to Run does. The ant command
-// sends one per Ctrl-C or SIGTERM.
+// an interrupt ends the run, and Run returns ErrInterrupted. The ant command sends one per
+// Ctrl-C or SIGTERM.
 func WithInterrupts(c <-chan struct{}) Option { return func(cfg *config) { cfg.interrupts = c } }
 
 // ErrInterrupted is what Run returns when an interrupt ended the run: one the program had not
 // asked for, or the second. ExitStatus gives it 130, as a shell gives a process a signal ended.
 var ErrInterrupted = interp.ErrInterrupted
 
+// WithEnvironment gives the run its whole environment: what Os.env and Os.environ see, and
+// what a child of Os.exec inherits when it is given no env of its own.
 func WithEnvironment(vars map[string]string) Option {
 	return func(c *config) {
 		c.env = func(name string) (string, bool) { v, ok := vars[name]; return v, ok }

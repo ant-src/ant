@@ -55,8 +55,8 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
 
 - The waiting (Plan 6). A `Context` is done once, by a call, a deadline or its parent, and
   every blocking library call takes one as its last parameter and gives up with its reason:
-  `Chan` and `Select`, `WaitGroup.wait`, `Time.sleep`, `Http.request`, `Os.exec`, the `File`
-  reads, `Net`, and `Http.serve`. `WaitGroup` is rebuilt on a channel closed at zero.
+  `Chan`, `WaitGroup.wait`, `Time.sleep`, `Http.request`, `Os.exec`, the `File` reads, `Net`,
+  and `Http.serve`. `WaitGroup` is rebuilt on a channel closed at zero.
 - `Chan[T]`, a channel as a sync object: `new`, `send`, `receive`, `close`, `isClosed`,
   `length` and `values` for `for`. Section 9's Waiting gives the mailbox, the first of several,
   the pool, the future and the ticker.
@@ -76,3 +76,21 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   blocks return, break and continue like any other, so a state machine is a loop around a
   `select`. A `select` is an expression typed like an `if`. The `Select` namespace of Plan 6 is
   gone.
+
+- The review (Plan 8). A handle's reads, writes and close lock apart, so a reader and a writer
+  share a connection and a close from a third goroutine ends a read in progress; a read ended by
+  its context keeps what it consumed for the next read, standard input stays open and the late
+  line arrives whole, and `File.pipe` flushes what it copied. A timeout context unregisters
+  from the run when its deadline passes; a blocking call with a done context gives up at once;
+  `Context.deadline` is right past 2262; a count above 2^31 − 1 is a panic row; a channel keeps
+  a closed signal beside a channel of values that is never closed, so a close under a blocked
+  sender is race-free; a goroutine whose wait the run's end released runs nothing more; the
+  host's deadline reads `cancelled`; an interrupt that ends the run is `ErrInterrupted` and
+  exit 130. `Http.request` follows no redirect and refuses an empty method, `Host` is among a
+  handler's headers, the status bound is 200 to 599, `serve` closes what the drain left and the
+  listener with it, acceptors with their own contexts do not disturb each other, and a userinfo
+  whose escape does not decode is kept. Regex: the first participating group fills a duplicate
+  name, a POSIX name inside a class, `split` of an empty string, and a compiled source with a
+  line break or nothing in it reads back equal; strict base64 padding; a NaN bound in
+  `Math.clamp` is a panic. The checker holds a generic function's own type parameters rigid, so
+  a lambda inside it cannot pass with a body of another type.

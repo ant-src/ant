@@ -221,3 +221,9 @@ checked, and of those around it, as rigid, and `unify` takes a rigid parameter f
 it is, so a lambda inside a generic function whose body has another type is the error it should
 have been, and a body of the parameter's own value is fine; `tests/check/generic_rigid.ant`
 covers both, the generated test and the examples pass, and section 4 says it in a sentence.
+
+Phase 61 was done on 2026-10-23: `WithEnvironment` has its documentation back and
+`WithInterrupts` its own, the Plan 6 entry of the CHANGELOG no longer names the namespace and a
+Plan 8 entry lists the fixes, the README's exit line has 130, and the status here. The suite is
+green under `-race`, the gate stands at 91.0% overall with every package above 84%, and the
+pending lists are empty. Plan 8 is done.
