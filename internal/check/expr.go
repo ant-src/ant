@@ -684,11 +684,7 @@ func (c *Checker) matchField(want, got types.Type, subst map[*types.ParamDecl]ty
 		c.errorf(pos, "cannot use %s for the field %s of type %s", types.String(got), name, types.String(w))
 		return
 	}
-	for p := range unsolved {
-		if _, ok := subst[p]; ok {
-			delete(unsolved, p)
-		}
-	}
+	pruneSolved(unsolved, subst)
 }
 
 func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {

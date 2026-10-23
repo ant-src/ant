@@ -162,52 +162,7 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 // applySig checks a call of a declared function, solving its type parameters (section 4,
 // Inference) and matching positional and named arguments to its parameters.
 func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, named bool) types.Type {
-	n := len(s.fn.Params)
-	// map arguments to parameters
-	slots := make([]*ast.Arg, n)
-	ok := true
-	positional := 0
-	for i := range x.Args {
-		a := &x.Args[i]
-		if a.Name == "" {
-			if positional >= n {
-				c.errorf(a.Pos, "%s takes %s, got more", s.fullName(), plural(n, "argument"))
-				ok = false
-				break
-			}
-			slots[positional] = a
-			positional++
-			continue
-		}
-		idx := -1
-		for j, name := range s.fn.Names {
-			if name == a.Name {
-				idx = j
-				break
-			}
-		}
-		if idx < 0 {
-			c.errorf(a.Pos, "%s has no parameter %s", s.fullName(), a.Name)
-			ok = false
-			continue
-		}
-		if slots[idx] != nil {
-			c.errorf(a.Pos, "the parameter %s is given twice", a.Name)
-			ok = false
-			continue
-		}
-		slots[idx] = a
-	}
-	if !ok {
-		c.synthArgs(x.Args, sc)
-		return c.resultOf(s, nil, x.Pos)
-	}
-	for i := range slots {
-		if slots[i] == nil && !(i < len(s.defaults) && s.defaults[i]) {
-			c.errorf(x.Pos, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
-			ok = false
-		}
-	}
+	slots, ok := c.argSlots(s, x)
 	if !ok {
 		c.synthArgs(x.Args, sc)
 		return c.resultOf(s, nil, x.Pos)
@@ -259,11 +214,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				want, _ := types.Subst(pt, subst)
 				c.errorf(a.Pos, "cannot use %s where %s is expected", types.String(got), types.String(want))
 			}
-			for p := range unsolved {
-				if _, done := subst[p]; done {
-					delete(unsolved, p)
-				}
-			}
+			pruneSolved(unsolved, subst)
 			synthesized = append(synthesized, pending{i, got})
 			continue
 		}
@@ -278,42 +229,8 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		if a == nil {
 			continue
 		}
-		lam, isLambda := a.Value.(*ast.Lambda)
-		if !isLambda {
-			continue
-		}
-		pt, err := types.Subst(s.fn.Params[i], subst)
-		if err != nil {
-			c.errorf(a.Pos, "%s", err)
-			continue
-		}
-		ft, isFunc := types.Expand(pt).(types.Func)
-		if !isFunc {
-			c.errorf(a.Pos, "a lambda needs an expected function type, but %s is expected", types.String(pt))
-			c.lambdaBodyAnyway(lam, sc)
-			continue
-		}
-		if types.Mentions(ft, unsolved) && anyParamMentions(ft.Params, unsolved) {
-			c.errorf(a.Pos, "the lambda's parameter type %s is not fixed yet; pass the other arguments first or annotate", types.String(ft.Params[0]))
-			c.lambdaBodyAnyway(lam, sc)
-			continue
-		}
-		if len(ft.Params) > 1 {
-			c.errorf(a.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
-			c.lambdaBodyAnyway(lam, sc)
-			continue
-		}
-		got := c.lambda(lam, sc, ft)
-		if g, isF := got.(types.Func); isF {
-			if !c.unify(ft.Return, g.Return, subst) {
-				want, _ := types.Subst(ft.Return, subst)
-				c.errorf(a.Pos, "the lambda returns %s where %s is expected", types.String(g.Return), types.String(want))
-			}
-			for p := range unsolved {
-				if _, done := subst[p]; done {
-					delete(unsolved, p)
-				}
-			}
+		if lam, isLambda := a.Value.(*ast.Lambda); isLambda {
+			c.lambdaArg(a, lam, s.fn.Params[i], sc, subst, unsolved)
 		}
 	}
 	for _, p := range s.tparams {
@@ -323,6 +240,8 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 	}
 	c.checkBounds(s, subst, x.Pos)
+	// An argument synthesized while its parameter's type was open is checked against the
+	// solved type.
 	for _, pe := range synthesized {
 		want, err := types.Subst(s.fn.Params[pe.i], subst)
 		if err != nil {
@@ -334,6 +253,100 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 	}
 	return c.resultOf(s, subst, x.Pos)
+}
+
+// argSlots matches a call's positional and named arguments to the function's parameters, one
+// slot per parameter and nil where a default applies. It reports an extra, unknown, repeated
+// or missing argument, and then the second result is false.
+func (c *Checker) argSlots(s *sig, x *ast.Call) ([]*ast.Arg, bool) {
+	n := len(s.fn.Params)
+	slots := make([]*ast.Arg, n)
+	ok := true
+	positional := 0
+	for i := range x.Args {
+		a := &x.Args[i]
+		if a.Name == "" {
+			if positional >= n {
+				c.errorf(a.Pos, "%s takes %s, got more", s.fullName(), plural(n, "argument"))
+				ok = false
+				break
+			}
+			slots[positional] = a
+			positional++
+			continue
+		}
+		idx := -1
+		for j, name := range s.fn.Names {
+			if name == a.Name {
+				idx = j
+				break
+			}
+		}
+		if idx < 0 {
+			c.errorf(a.Pos, "%s has no parameter %s", s.fullName(), a.Name)
+			ok = false
+			continue
+		}
+		if slots[idx] != nil {
+			c.errorf(a.Pos, "the parameter %s is given twice", a.Name)
+			ok = false
+			continue
+		}
+		slots[idx] = a
+	}
+	if !ok {
+		return nil, false
+	}
+	for i := range slots {
+		if slots[i] == nil && !(i < len(s.defaults) && s.defaults[i]) {
+			c.errorf(x.Pos, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
+			ok = false
+		}
+	}
+	return slots, ok
+}
+
+// lambdaArg checks a lambda argument against its parameter's type pt, once the other arguments
+// have solved what they can, and solves more type parameters from what the lambda returns.
+func (c *Checker) lambdaArg(a *ast.Arg, lam *ast.Lambda, pt types.Type, sc *scope, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool) {
+	pt, err := types.Subst(pt, subst)
+	if err != nil {
+		c.errorf(a.Pos, "%s", err)
+		return
+	}
+	ft, isFunc := types.Expand(pt).(types.Func)
+	if !isFunc {
+		c.errorf(a.Pos, "a lambda needs an expected function type, but %s is expected", types.String(pt))
+		c.lambdaBodyAnyway(lam, sc)
+		return
+	}
+	if types.Mentions(ft, unsolved) && anyParamMentions(ft.Params, unsolved) {
+		c.errorf(a.Pos, "the lambda's parameter type %s is not fixed yet; pass the other arguments first or annotate", types.String(ft.Params[0]))
+		c.lambdaBodyAnyway(lam, sc)
+		return
+	}
+	if len(ft.Params) > 1 {
+		c.errorf(a.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
+		c.lambdaBodyAnyway(lam, sc)
+		return
+	}
+	got := c.lambda(lam, sc, ft)
+	if g, isF := got.(types.Func); isF {
+		if !c.unify(ft.Return, g.Return, subst) {
+			want, _ := types.Subst(ft.Return, subst)
+			c.errorf(a.Pos, "the lambda returns %s where %s is expected", types.String(g.Return), types.String(want))
+		}
+		pruneSolved(unsolved, subst)
+	}
+}
+
+// pruneSolved removes from unsolved the type parameters subst now solves.
+func pruneSolved(unsolved map[*types.ParamDecl]bool, subst map[*types.ParamDecl]types.Type) {
+	for p := range unsolved {
+		if _, done := subst[p]; done {
+			delete(unsolved, p)
+		}
+	}
 }
 
 func anyParamMentions(ps []types.Type, set map[*types.ParamDecl]bool) bool {
