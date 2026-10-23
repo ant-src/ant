@@ -64,8 +64,9 @@ func assignable(s, t Type, depth int) bool {
 		if !ok {
 			return false
 		}
-		// y, the value, may have defaults: it must accept the parameters t lists.
-		if len(x.Params) < y.Required || len(x.Params) > len(y.Params) {
+		// y, the value, may have defaults: it must accept every argument count t allows, down to
+		// the parameters t requires.
+		if x.Required < y.Required || len(x.Params) > len(y.Params) {
 			return false
 		}
 		for i := range x.Params {

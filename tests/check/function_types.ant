@@ -1,7 +1,7 @@
 // spec: 4 Function types; 4 Assignability
 // Section 4: a function with defaults is assignable to a type listing its required parameters
 // plus a prefix of the optional ones; parameters are contravariant and results covariant; a
-// void result admits only void.
+// void result admits only void. A target that keeps a default needs a source that has it too.
 type Circle = { radius: float64 }
 type Rect = { width: float64 }
 type Shape = Circle | Rect
@@ -10,6 +10,7 @@ func connect(host: string, port: int = 443, tls: bool = true): string { `${host}
 func makeCircle(): Circle { Circle{ radius: 1.0 } }
 func anyArea(s: Shape): float64 { if s is Circle { s.radius } else { s.width } }
 func circleArea(c: Circle): float64 { c.radius }
+func plain(host: string, port: int, tls: bool): string { `${host}:${port}:${tls}` }
 
 func main(): void {
   var f1: func(string): string = connect
@@ -24,9 +25,12 @@ func main(): void {
   var cb2: func(): void = { _ = 1 }
   var cb3: func(): void = func(): int { 1 } // ERR: cannot use func(): int where func(): void is expected
   var cb4: func(int): int = { x }
+  var conns = [connect]
+  conns[0] = plain // ERR: cannot use func(string, int, bool): string where func(string, int = ..., bool = ...): string is expected
   print(f1("a") + f2("a", 1) + f3("a", 1, false))
   print(h())
   print(k(Circle{ radius: 2.0 }))
   cb2()
   print(cb4(1))
+  print(conns[0]("a"))
 }
