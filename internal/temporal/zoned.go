@@ -147,7 +147,32 @@ func ToZoned(dt PlainDateTime, z *Zone, d Disambiguation) (ZonedDateTime, error)
 // StartOfDay is the first instant of the value's date in its zone, which is not midnight on
 // a day whose midnight falls in a gap.
 func (z ZonedDateTime) StartOfDay() (ZonedDateTime, error) {
-	return ToZoned(PlainDateTime{date: z.Date()}, z.zone, Compatible)
+	return startOfDate(z.Date(), z.zone)
+}
+
+// startOfDate is the first instant of a date in a zone: midnight, or when midnight falls in a
+// gap, the transition that ends it, as Temporal's GetStartOfDay has it. A gap may start before
+// midnight, as Toronto's did at 23:30 in 1919, so moving midnight by the gap's length is late.
+func startOfDate(d PlainDate, z *Zone) (ZonedDateTime, error) {
+	midnight := PlainDateTime{date: d}
+	ps, err := PossibleInstants(midnight, z)
+	if err != nil {
+		return ZonedDateTime{}, err
+	}
+	if len(ps) > 0 {
+		return ZonedDateTime{ps[0], z}, nil
+	}
+	// Midnight read at the offset after the gap is an instant before the transition.
+	sec, _ := midnight.asUTC()
+	after, _ := NewInstant(sec+secondsPerDay, 0)
+	early, err := NewInstant(sec-int64(z.offsetAt(after)), 0)
+	if err != nil {
+		return ZonedDateTime{}, err
+	}
+	if t, ok := early.InZone(z).NextTransition(); ok {
+		return t, nil
+	}
+	return ToZoned(midnight, z, Compatible)
 }
 
 // HoursInDay is the length of the value's date in its zone: 24, 23 or 25 around a
@@ -158,7 +183,7 @@ func (z ZonedDateTime) HoursInDay() (float64, error) {
 		return 0, err
 	}
 	next := dateFromDays(z.Date().days() + 1)
-	tomorrow, err := ToZoned(PlainDateTime{date: next}, z.zone, Compatible)
+	tomorrow, err := startOfDate(next, z.zone)
 	if err != nil {
 		return 0, err
 	}

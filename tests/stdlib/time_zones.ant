@@ -4,3 +4,12 @@ var a = Result.unwrap(Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_Yor
 var b = Result.unwrap(Time.parseZoned("2024-11-04T01:00:00-05:00[America/Lima]"))
 Time.until(a, b, Time.Hour{})                 // => PT25H
 Time.until(a, b, Time.Day{})                  // => panic: Time.until: America/New_York and America/Lima are different zones; a difference in days or larger needs one zone
+
+// A day starts at its first instant: Toronto's clocks went from 23:30 to 00:30 on 1919-03-31,
+// so the day starts at 00:30, not at midnight moved by the hour of the gap, and both days
+// around the change are 23.5 hours long.
+var toronto = Result.unwrap(Time.parseZoned("1919-03-31T12:00:00-04:00[America/Toronto]"))
+Time.startOfDay(toronto)                      // => 1919-03-31T00:30:00-04:00[America/Toronto]
+Time.hoursInDay(toronto)                      // => 23.5
+Time.hoursInDay(Time.subtract(toronto, Time.duration(days: 1))) // => 23.5
+Time.round(Time.subtract(toronto, Time.duration(hours: 13)), Time.Day{}) // => 1919-03-31T00:30:00-04:00[America/Toronto]

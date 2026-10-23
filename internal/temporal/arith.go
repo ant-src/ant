@@ -511,7 +511,7 @@ func (z ZonedDateTime) Round(unit Unit, inc int64, mode RoundingMode) (ZonedDate
 		if err != nil {
 			return ZonedDateTime{}, err
 		}
-		end, err := ToZoned(PlainDateTime{date: next}, z.zone, Compatible)
+		end, err := startOfDate(next, z.zone)
 		if err != nil {
 			return ZonedDateTime{}, err
 		}
