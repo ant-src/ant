@@ -1155,6 +1155,15 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 		return types.Prim{Kind: builtinKinds[x.Kind]}
 	}
 	ent := c.entityPath(x.Path, sc)
+	if ent == nil {
+		// a private or missing member of an imported module says so
+		if f, ok := x.Path.(*ast.Field); ok {
+			if base := c.entityPath(f.X, sc); base != nil && base.kind == entModule {
+				c.moduleMember(base, f.Name, f.Pos)
+				return nil
+			}
+		}
+	}
 	if ent == nil || ent.kind != entType {
 		c.errorf(x.Pos, "the right side of is must be a type")
 		return nil

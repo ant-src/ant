@@ -19,6 +19,7 @@ func main(a: int): int { // ERR: main takes no parameters ;; main returns void, 
   print(Point.secret(o)) // ERR: Point.secret is not exported
   print(o | Geometry.Point.secret()) // ERR: Point.secret is not exported
   var f = Point.secret // ERR: Point.secret is not exported
+  print(o is Geometry.Secret) // ERR: Secret is not exported by Geometry
   print(distance(Point{ x: 1.0, y: 2.0 }, Geometry.Point{ x: 0.0, y: 0.0 }))
   print(counter + Geometry.counter)
   1
