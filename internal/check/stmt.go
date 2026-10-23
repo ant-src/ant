@@ -87,7 +87,15 @@ func walkAssigned(n ast.Node, visit func(string)) {
 		walkAssigned(x.Init, visit)
 	case *ast.Assign:
 		assignedNames(x.Target, visit)
+		walkAssigned(x.Target, visit) // the places' own sub-expressions, as m[(u = null)]
 		walkAssigned(x.Value, visit)
+	case *ast.AssignArray:
+		for _, e := range x.Elems {
+			walkAssigned(e, visit)
+		}
+		if x.Rest != nil {
+			walkAssigned(x.Rest, visit)
+		}
 	case *ast.If:
 		walkAssigned(x.Cond, visit)
 		walkAssigned(x.Then, visit)

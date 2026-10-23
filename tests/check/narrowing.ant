@@ -1,7 +1,8 @@
 // spec: 7 Narrowing
 // Section 7: a narrowing lasts until the next assignment, an assignment anywhere in a loop body
-// cancels it from the loop head on, a while with a break does not narrow after it, a top-level
-// var never narrows, and the else branch gets the complement.
+// cancels it from the loop head on, even inside the place of another assignment, a while with a
+// break does not narrow after it, a top-level var never narrows, and the else branch gets the
+// complement.
 type Config = { name: string }
 
 var attempts = 0
@@ -44,5 +45,16 @@ func main(): void {
   if u != null {
     var inner = func(): int { u + 1 }
     print(inner() + keep())
+  }
+}
+
+func inPlace(c: Config | null): void {
+  if c == null { return }
+  var seen: Map[void, int] = Map{}
+  var k = 0
+  while k < 2 {
+    k += 1
+    print(c.name) // ERR: Config | null has no field name
+    seen[(c = null)] = k
   }
 }
