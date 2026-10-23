@@ -52,7 +52,7 @@ Random.pick[T](r: Random, xs: Array[T]): T | null  // null for an empty array
 
 **Open questions:**
 - The spec has to name the generator (PCG, SplitMix64, xoshiro) and how `int` and `shuffle` draw
-  from it. Otherwise the same seed gives different sequences in the interpreter and in `antc`.
+  from it. Otherwise the same seed gives different sequences under `ant run` and `ant build`.
 - Whether two goroutines sharing one `Random` race (a data race like any shared mutation,
   section 9) or take turns behind a lock.
 - Whether `Random.new()` with no seed exists, seeded from the operating system.
@@ -146,9 +146,8 @@ Flag.rest(p: Flag.Parsed): Array[string]           // the positional arguments
 
 ## Native code through Go
 
-**Today:** `ant run` walks the tree, which keeps the interpreter simple but slow. The fast path is
-`antc`, the C compiler on the spec repository's `antc` branch. It is a second runtime that has to
-match this one, written again in C.
+**Today:** `ant run` walks the tree, which keeps the interpreter simple but slow, and there is no
+faster way to run a program.
 
 **Sketch:** an `ant build main.ant -o main` command. It checks the program, generates a Go package
 from the checked tree, and runs `go build` on it. The output is one static binary. The generated
@@ -175,7 +174,5 @@ scheduler.
   deciding how far typed code reaches is most of the speed.
 - Parity: every program in `tests/run` must give the same output, stderr and exit status under
   `ant run` and `ant build`, so the corpus harness runs both.
-- What becomes of `antc`: replaced by this, kept for platforms without Go, or kept as the
-  reference for speed.
 - Debugging: positions in panics must point at the `.ant` source, not the generated Go. Go's
   `//line` directives can do this.
