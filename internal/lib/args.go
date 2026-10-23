@@ -25,6 +25,14 @@ func mapArg(g *interp.Goroutine, who string, v value.Value) *value.Map {
 	return m
 }
 
+func setArg(g *interp.Goroutine, who string, v value.Value) *value.Set {
+	s, ok := v.(*value.Set)
+	if !ok {
+		g.Panic("%s needs a set, got %s", who, value.Describe(v))
+	}
+	return s
+}
+
 func stringArg(g *interp.Goroutine, who string, v value.Value) string {
 	s, ok := v.(string)
 	if !ok {

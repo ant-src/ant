@@ -3,7 +3,7 @@
 // equality, hashing, rendering, arithmetic, and conversions.
 //
 // A Value is a Go interface value holding one of: the ten numeric Go types int8 … uint64,
-// float32, float64; bool; string; the sentinels Null and Void; *Array; *Map; *Record; *Tagged;
+// float32, float64; bool; string; the sentinels Null and Void; *Array; *Map; *Set; *Record; *Tagged;
 // a Callable (functions, defined by the interpreter, and *Constructor); *Tag; or a sync object.
 //
 // Every slot that two goroutines can reach, a record field, an array element, a module
@@ -52,6 +52,7 @@ const (
 	KindVoid
 	KindArray
 	KindMap
+	KindSet
 	KindRecord
 	KindTagged
 	KindFunc
@@ -65,7 +66,7 @@ var kindNames = [...]string{
 	KindInvalid: "invalid", KindInt8: "int8", KindInt16: "int16", KindInt32: "int32",
 	KindInt64: "int", KindUint8: "byte", KindUint16: "uint16", KindUint32: "uint32",
 	KindUint64: "uint64", KindFloat32: "float32", KindFloat64: "float64", KindBool: "bool",
-	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map",
+	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map", KindSet: "set",
 	KindRecord: "record", KindTagged: "tagged primitive", KindFunc: "func", KindTag: "type",
 	KindSync: "sync object", KindTime: "time value", KindRegex: "regular expression",
 }
@@ -137,6 +138,8 @@ func KindByName(name string) (Kind, bool) {
 		return KindArray, true
 	case "Map":
 		return KindMap, true
+	case "Set":
+		return KindSet, true
 	case "func":
 		return KindFunc, true
 	}
@@ -178,6 +181,8 @@ func KindOf(v Value) Kind {
 		return KindArray
 	case *Map:
 		return KindMap
+	case *Set:
+		return KindSet
 	case *Record:
 		return KindRecord
 	case *Tagged:

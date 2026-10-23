@@ -146,13 +146,19 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 			}
 		}
 		sb.WriteByte('}')
-	case *value.Array:
+	case *value.Array, *value.Set:
 		if onStack(stack, x) {
 			return false
 		}
 		stack = append(stack, x)
+		var xs []value.Value
+		if a, ok := x.(*value.Array); ok {
+			xs = a.Values()
+		} else {
+			xs = x.(*value.Set).Values()
+		}
 		sb.WriteByte('[')
-		for i, e := range x.Values() {
+		for i, e := range xs {
 			if i > 0 {
 				sb.WriteByte(',')
 			}

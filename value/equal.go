@@ -137,6 +137,33 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 			}
 		}
 		return true
+	case *Set:
+		y, ok := b.(*Set)
+		if !ok {
+			return false
+		}
+		if x == y {
+			return true
+		}
+		if visiting == nil {
+			visiting = map[pair]bool{}
+		}
+		p := pair{x, y}
+		if visiting[p] {
+			return true
+		}
+		visiting[p] = true
+		defer delete(visiting, p)
+		xs := x.Values()
+		if len(xs) != y.Len() {
+			return false
+		}
+		for _, e := range xs {
+			if !y.Has(e) {
+				return false
+			}
+		}
+		return true
 	case *Tag:
 		y, ok := b.(*Tag)
 		return ok && x == y
@@ -237,6 +264,8 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 	case *Map:
 		// Insertion order is not part of equality, so only the size contributes.
 		writeUint(h, uint64(x.Len()))
+	case *Set:
+		writeUint(h, uint64(x.Len())) // likewise
 	case *Tag:
 		writeUint(h, uint64(uintptr(tagID(x))))
 	case Time:

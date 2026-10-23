@@ -35,12 +35,13 @@ len(x): int    // x is an Array[T], a Map[K, V], a string, or a Channel[T]
 two-argument form. Picking the larger of two values means `Array.max([a, b]) ?? a` or writing the
 `max` that section 4 uses as its generics example.
 
-**Sketch:** two prelude functions over `Ordered`, with at least two arguments so the result is never
-`null`.
+**Sketch:** two prelude functions over `Ordered` that take exactly two arguments, so the result is
+never `null`. Longer lists stay with `Array.min` and `Array.max`, since there are no variadic
+parameters (section 6).
 
 ```
-min[T: Ordered](a: T, b: T, ...rest: T): T
-max[T: Ordered](a: T, b: T, ...rest: T): T
+min[T: Ordered](a: T, b: T): T
+max[T: Ordered](a: T, b: T): T
 ```
 
 - `max(1, 2.0)` is a compile error, as in the section 4 example: both arguments are one `T`.
@@ -48,8 +49,6 @@ max[T: Ordered](a: T, b: T, ...rest: T): T
 - A tie returns the first argument, as `Array.minBy` returns the first element with the least key.
 
 **Open questions:**
-- The language has no variadic parameters. Either they arrive with this, or `min` and `max` take
-  exactly two arguments and longer lists go through `Array.min`.
 - Section 4 defines its own `max` in an example. Whether a module may shadow a prelude name, and
   the example changes to another name if not.
 - Whether named primitives such as `Meters` are accepted and keep their tag, as arithmetic on them

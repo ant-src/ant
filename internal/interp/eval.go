@@ -1038,6 +1038,19 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 				return rv, rc
 			}
 		}
+	case *value.Set:
+		var cursor uint64
+		for {
+			g.check()
+			v, seq, ok := x.Next(cursor)
+			if !ok {
+				break
+			}
+			cursor = seq
+			if rv, rc, stop := run(v); stop {
+				return rv, rc
+			}
+		}
 	case string:
 		for _, r := range x {
 			g.check()
@@ -1048,7 +1061,7 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	case value.Callable:
 		return g.forSeq(e, x, run)
 	default:
-		g.panicf(e.Iter.Position(), "for needs an array, a map, a string, or a function, got %s", value.Describe(iter))
+		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, or a function, got %s", value.Describe(iter))
 	}
 	return value.Void, ctlNone
 }

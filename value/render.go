@@ -116,6 +116,20 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 			render(sb, e.Value, false, stack)
 		}
 		sb.WriteString(" }")
+	case *Set:
+		if onStack(stack, x) {
+			sb.WriteString("Set.of([...])")
+			return
+		}
+		stack = append(stack, x)
+		sb.WriteString("Set.of([")
+		for i, e := range x.Values() {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			render(sb, e, false, stack)
+		}
+		sb.WriteString("])")
 	case *Constructor:
 		sb.WriteString(x.Tag.Name)
 	case *Tag:
