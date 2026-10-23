@@ -80,6 +80,9 @@ type Checker struct {
 	mod  *moduleInfo
 	fn   *fnCtx
 	flow flow
+	// rigid holds the type parameters of the function being checked and of those around it:
+	// each stands for a type the caller chooses, so a call inside the body cannot bind it.
+	rigid map[*types.ParamDecl]bool
 }
 
 func (c *Checker) errorf(pos ast.Pos, format string, args ...any) {
@@ -865,12 +868,13 @@ func (c *Checker) checkFunc(fi *funcInfo) {
 		return
 	}
 	fi.state = 1
-	savedMod, savedFn, savedFlow := c.mod, c.fn, c.flow
+	savedMod, savedFn, savedFlow, savedRigid := c.mod, c.fn, c.flow, c.rigid
 	c.mod = fi.mod
 	s := fi.sig
 	ctx := &fnCtx{kind: "func", name: s.fullName(), declared: s.fn.Return, fi: fi}
 	c.fn = ctx
 	c.flow = flow{}
+	c.rigid = withRigid(savedRigid, fi.tparams)
 	sc := &scope{names: map[string]*local{}, tparams: fi.tparams}
 	c.declareParams(fi.decl.Params, s, sc, ctx)
 	if fi.decl.Body != nil {
@@ -882,7 +886,22 @@ func (c *Checker) checkFunc(fi *funcInfo) {
 		s.inferring = false
 	}
 	fi.state = 2
-	c.mod, c.fn, c.flow = savedMod, savedFn, savedFlow
+	c.mod, c.fn, c.flow, c.rigid = savedMod, savedFn, savedFlow, savedRigid
+}
+
+// withRigid is rigid with a function's own type parameters added.
+func withRigid(rigid map[*types.ParamDecl]bool, own map[string]*types.ParamDecl) map[*types.ParamDecl]bool {
+	if len(own) == 0 {
+		return rigid
+	}
+	out := make(map[*types.ParamDecl]bool, len(rigid)+len(own))
+	for p := range rigid {
+		out[p] = true
+	}
+	for _, p := range own {
+		out[p] = true
+	}
+	return out
 }
 
 // declareParams binds parameters as locals and checks their defaults.

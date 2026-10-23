@@ -215,3 +215,9 @@ reads as `\n`, that `query` is written as it is, that a negative sleep sleeps no
 and that `\10` and up are octal escapes. A corpus program covers each edge and one the NaN
 bound. One run of the suite under `-race` failed once in `net_lib.ant` under full load and not
 in fifteen runs after, so it is noted here and not chased.
+
+Phase 60 was done on 2026-10-23: the checker keeps the type parameters of the function being
+checked, and of those around it, as rigid, and `unify` takes a rigid parameter for the fixed type
+it is, so a lambda inside a generic function whose body has another type is the error it should
+have been, and a body of the parameter's own value is fine; `tests/check/generic_rigid.ant`
+covers both, the generated test and the examples pass, and section 4 says it in a sentence.

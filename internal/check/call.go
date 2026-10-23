@@ -425,6 +425,10 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 		return true
 	}
 	if p, ok := pattern.(types.Param); ok {
+		if c.rigid[p.Decl] {
+			// the enclosing function's parameter: a type the caller chooses, fixed here
+			return types.Equal(pattern, actual) || types.Assignable(actual, pattern)
+		}
 		if bound, done := subst[p.Decl]; done {
 			if types.IsNever(bound) {
 				// bound by a never argument: any other argument fixes it for real
