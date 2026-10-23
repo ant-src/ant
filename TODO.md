@@ -1,6 +1,6 @@
 # Work still to do
 
-Five gaps in the language and library. Each one is a sketch, not a decision: the spec
+Six gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
 (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Set
@@ -143,3 +143,39 @@ Flag.rest(p: Flag.Parsed): Array[string]           // the positional arguments
 - Subcommands such as `tool serve --addr :80`.
 - What `--help` prints, and whether a parse error exits with status 2 as Go's `flag` does or is
   left to the program.
+
+## Native code through Go
+
+**Today:** `ant run` walks the tree, which keeps the interpreter simple but slow. The fast path is
+`antc`, the C compiler on the spec repository's `antc` branch. It is a second runtime that has to
+match this one, written again in C.
+
+**Sketch:** an `ant build main.ant -o main` command. It checks the program, generates a Go package
+from the checked tree, and runs `go build` on it. The output is one static binary. The generated
+code links against the runtime the interpreter already uses (`value`, `internal/lib`, `temporal`),
+so the library is written once, and Go supplies goroutines, the garbage collector and the
+scheduler.
+
+- Records become Go structs. Named primitives become defined types. A union becomes an interface,
+  or a tagged struct where the members are few and small.
+- Functions become Go functions. Closures become Go closures. Generic functions become Go
+  generics, or `value.Value` where Go's generics cannot express them, such as a constraint over a
+  union.
+- `go`, `Chan`, `select`, `defer` and `panic` map onto their Go counterparts. `select` needs
+  `reflect.Select` only when the number of heads isn't fixed.
+- A ◆ becomes a Go panic carrying the same message, and the `ant` exit status and stderr format
+  stay the same.
+
+**Open questions:**
+- The runtime packages are `internal`, so the generated code has to build inside the `ant` module,
+  in a temporary directory with a `replace`, or the runtime must move to public packages with a
+  stable API.
+- Whether a Go toolchain on the build machine is acceptable, or `ant build` ships one.
+- Where typed Go code and `value.Value` meet: crossing at every library call costs boxing, and
+  deciding how far typed code reaches is most of the speed.
+- Parity: every program in `tests/run` must give the same output, stderr and exit status under
+  `ant run` and `ant build`, so the corpus harness runs both.
+- What becomes of `antc`: replaced by this, kept for platforms without Go, or kept as the
+  reference for speed.
+- Debugging: positions in panics must point at the `.ant` source, not the generated Go. Go's
+  `//line` directives can do this.
