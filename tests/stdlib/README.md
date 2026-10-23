@@ -107,8 +107,9 @@ The files are part of the corpus, so `TestSpecCoverage`, `TestLibraryCoverage` a
 `TestPanicCoverage` count them as they count programs. A case expecting a panic covers the
 function of its outermost call, when that function is one of chapter 11 or of `stdlib.md` that
 panics on a value, and covers the `library-value` row of the chapter 12 table with it. So
-`Array.map(xs, { String.repeat(x, -1) })` covers `Array.map` and not `String.repeat`; a case
-that means `String.repeat` calls it outermost. Any other row of the table, such as
+`Array.map(xs, { String.repeat(x, -1) })` covers neither: `Array.map` does not panic on a value,
+and `String.repeat` is not the outermost call. A case that means `String.repeat` calls it
+outermost. Any other row of the table, such as
 `int-overflow`, still needs a `// panics:` line.
 
 ## Where a test goes
