@@ -19,6 +19,11 @@ Url.stringify(q)                              // => "http://example.com/y?q=a+b"
 Url.escape("a b&c=d/é")                       // => "a+b%26c%3Dd%2F%C3%A9"
 Url.unescape("a+b%26c")                       // => Ok{ value: "a b&c" }
 Url.unescape("%zz")                           // => Err{ error: Error{ message: "invalid URL escape \"%zz\"" } }
+Url.unescape("%ff")                           // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.unescape("%e2%82%ac")                     // => Ok{ value: "€" }
+Url.parseQuery("q=%c3")                       // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("/a%ff")                            // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("/a#%ff")                           // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
 Url.parseQuery("tag=a&q=ant&tag=b&empty=&flag") // => Ok{ value: Map{ "tag": ["a", "b"], "q": ["ant"], "empty": [""], "flag": [""] } }
 Url.parseQuery("")                            // => Ok{ value: Map{} }
 Result.isOk(Url.parseQuery("a=%zz"))          // => false

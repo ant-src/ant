@@ -1,8 +1,10 @@
 package lib
 
 import (
+	"errors"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
@@ -10,6 +12,20 @@ import (
 
 // PartsTag is Url.Parts: a reference as RFC 3986 divides it.
 var PartsTag = value.NewTag("Url.Parts", value.RecordTag, []string{"scheme", "opaque", "user", "host", "port", "path", "query", "fragment"})
+
+// errNotUTF8 is the error of a %XX sequence that decodes to bytes that are not UTF-8, which no
+// string can hold (section 11, String).
+var errNotUTF8 = errors.New("the %XX escapes do not decode to UTF-8 text")
+
+// queryUnescape decodes one query key or value as url.QueryUnescape does, and is an error when
+// the escapes decode to bytes that are not UTF-8.
+func queryUnescape(s string) (string, error) {
+	s, err := url.QueryUnescape(s)
+	if err == nil && !utf8.ValidString(s) {
+		err = errNotUTF8
+	}
+	return s, err
+}
 
 // partsRecord builds a Url.Parts from a parsed URL.
 func partsRecord(u *url.URL) value.Value {
@@ -63,6 +79,9 @@ func init() {
 			constant("Parts", PartsTag),
 			fn("Url.parse", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
 				u, err := url.Parse(stringArg(g, "Url.parse", a[0]))
+				if err == nil && !(utf8.ValidString(u.Path) && utf8.ValidString(u.Fragment)) {
+					err = errNotUTF8
+				}
 				if err != nil {
 					return errResult(err)
 				}
@@ -75,7 +94,7 @@ func init() {
 				return url.QueryEscape(stringArg(g, "Url.escape", a[0]))
 			}),
 			fn("Url.unescape", "s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				s, err := url.QueryUnescape(stringArg(g, "Url.unescape", a[0]))
+				s, err := queryUnescape(stringArg(g, "Url.unescape", a[0]))
 				if err != nil {
 					return errResult(err)
 				}
@@ -91,11 +110,11 @@ func init() {
 						continue
 					}
 					k, v, _ := strings.Cut(pair, "=")
-					k, err := url.QueryUnescape(k)
+					k, err := queryUnescape(k)
 					if err != nil {
 						return errResult(err)
 					}
-					v, err = url.QueryUnescape(v)
+					v, err = queryUnescape(v)
 					if err != nil {
 						return errResult(err)
 					}
