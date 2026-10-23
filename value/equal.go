@@ -123,7 +123,7 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 			return false
 		}
 		for _, e := range xs {
-			v, ok := y.Get(e.Key)
+			v, ok := lookup(y, e.Key, visiting)
 			if !ok || !equal(e.Value, v, visiting) {
 				return false
 			}
@@ -148,7 +148,7 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 			return false
 		}
 		for _, e := range xs {
-			if !y.Has(e) {
+			if _, ok := lookup(&y.m, e, visiting); !ok {
 				return false
 			}
 		}
@@ -168,6 +168,17 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		return ok && x.Source == y.Source && x.Flags == y.Flags
 	}
 	return false
+}
+
+// lookup finds the value under k in m, matching keys with the pairs already under comparison,
+// so that keys which contain the maps being compared do not restart the comparison forever.
+func lookup(m *Map, k Value, visiting map[pair]bool) (Value, bool) {
+	for _, e := range m.bucket(Hash(k)) {
+		if equal(e.Key, k, visiting) {
+			return e.Value, true
+		}
+	}
+	return nil, false
 }
 
 var seed = maphash.MakeSeed()

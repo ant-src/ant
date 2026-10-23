@@ -64,6 +64,19 @@ func (m *Map) find(k Value) (i int, h uint64, ver uint64) {
 	return -1, h, ver
 }
 
+// bucket copies out the live entries filed under the hash h, for == to match keys itself.
+func (m *Map) bucket(h uint64) []KeyValue {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var out []KeyValue
+	for _, i := range m.index[h] {
+		if e := &m.entries[i]; !e.dead {
+			out = append(out, KeyValue{e.key, e.value})
+		}
+	}
+	return out
+}
+
 // Get returns the value stored under k.
 func (m *Map) Get(k Value) (Value, bool) {
 	for {

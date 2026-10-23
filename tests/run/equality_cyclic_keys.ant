@@ -1,0 +1,37 @@
+// spec: 4 Records; 12 Expressions
+// == on maps and sets whose keys contain the maps or sets themselves terminates: a key lookup
+// inside the comparison counts the pairs already under comparison as equal. The keys are nested
+// beyond the hashed prefix, so equal keys meet in one bucket and == reads the containers.
+type Key = { next: Key | null, m: Map[Key, int] | null, s: Set[Key] | null }
+
+func deep(m: Map[Key, int] | null, s: Set[Key] | null): Key {
+  var leaf = Key{ next: null, m: m, s: s }
+  Key{ next: Key{ next: Key{ next: leaf, m: null, s: null }, m: null, s: null }, m: null, s: null }
+}
+
+func main(): void {
+  var m: Map[Key, int] = Map{}
+  m[deep(m, null)] = 1
+  m[deep(m, null)] = 2
+  print(m[deep(m, null)])
+  print(Map.size(m))
+  var m2: Map[Key, int] = Map{}
+  m2[deep(m2, null)] = 2
+  print(m == m2)
+  var s: Set[Key] = Set.of([])
+  print(Set.add(s, deep(null, s)))
+  print(Set.add(s, deep(null, s)))
+  print(Set.size(s))
+  var s2: Set[Key] = Set.of([])
+  _ = Set.add(s2, deep(null, s2))
+  print(s == s2)
+}
+
+// expect
+// out: 2
+// out: 1
+// out: true
+// out: true
+// out: false
+// out: 1
+// out: true
