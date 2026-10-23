@@ -64,18 +64,23 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stdout)
 			return 130
 		}
-		if !ok {
+		// at the end of input an unfinished input is evaluated as it is, so its error is
+		// reported rather than the input dropped
+		eof := !ok
+		if eof && pending.Len() == 0 {
 			break
 		}
-		pending.WriteString(line)
-		pending.WriteString("\n")
+		if !eof {
+			pending.WriteString(line)
+			pending.WriteString("\n")
+		}
 		src := pending.String()
 		if strings.TrimSpace(src) == "" {
 			pending.Reset()
 			prompt()
 			continue
 		}
-		if ant.Incomplete(src) {
+		if !eof && ant.Incomplete(src) {
 			prompt()
 			continue
 		}
@@ -96,6 +101,9 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 			return ant.ExitStatus(err)
 		default:
 			fmt.Fprintln(stderr, err)
+		}
+		if eof {
+			break
 		}
 		prompt()
 	}

@@ -101,3 +101,15 @@ func TestRunLongLine(t *testing.T) {
 		t.Errorf("stdout %q, stderr %q", got, errOut.String())
 	}
 }
+
+// TestRunUnfinishedAtEnd checks that an input the end of stdin leaves unfinished is reported,
+// not dropped.
+func TestRunUnfinishedAtEnd(t *testing.T) {
+	var out, errOut strings.Builder
+	if status := Run(context.Background(), strings.NewReader("1\nfunc f() {\n  1\n"), &out, &errOut); status != 0 {
+		t.Errorf("status %d", status)
+	}
+	if !strings.Contains(errOut.String(), "<input>:3:1:") {
+		t.Errorf("stderr lacks the syntax error: %q", errOut.String())
+	}
+}
