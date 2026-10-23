@@ -93,7 +93,7 @@ type printer struct {
 	indent   int   // the indentation level of the line being written
 	pending  bool  // the line's indentation is not written yet
 	lastEnd  int   // the source offset after the last thing printed
-	trails   []int // the output offsets of the one-line comments that end a line of code
+	trails   [][2]int // the output spans of the one-line comments written after code on a line
 }
 
 // ---- building the tree
@@ -176,7 +176,7 @@ func (p *printer) ownLine(c *token.Comment) bool {
 // split cuts a group's elements into units at the separators: newlines and semicolons in a
 // block, commas in a list. A comment that starts a unit on the line where the unit before it
 // ended belongs to that unit, or, at the start, after the opening bracket; in a block, only when
-// it ends the line, since a; /* c */ b leads b with it.
+// no code follows it on the line, since a; /* c */ b leads b with it.
 func (p *printer) split(g *group) (afterOpen []elem, units []unit) {
 	var cur unit
 	prevEnd := g.open.End // the end of the last element that is not a separator
@@ -192,7 +192,16 @@ func (p *printer) split(g *group) (afterOpen []elem, units []unit) {
 		}
 		cur = unit{}
 	}
-	for _, e := range g.elems {
+	// codeFollows reports whether the element after i, past any comments, is code on its line.
+	codeFollows := func(i int) bool {
+		for _, e := range g.elems[i+1:] {
+			if e.com == nil {
+				return !sep(e) && p.newlines(g.elems[i].end(), e.off()) == 0
+			}
+		}
+		return false
+	}
+	for i, e := range g.elems {
 		if sep(e) {
 			flush()
 			continue
@@ -204,7 +213,7 @@ func (p *printer) split(g *group) (afterOpen []elem, units []unit) {
 			switch {
 			case len(cur.lead) > 0 || p.ownLine(e.com) || !sameLine:
 				cur.lead = append(cur.lead, e)
-			case len(units) > 0 && g.role.Block && !p.endsLine(e.com):
+			case len(units) > 0 && g.role.Block && codeFollows(i):
 				cur.lead = append(cur.lead, e)
 			case len(units) > 0 && g.role.Block:
 				units[len(units)-1].body = append(units[len(units)-1].body, e)
@@ -327,7 +336,13 @@ func (p *printer) comment(c *token.Comment) {
 	for i := range lines {
 		lines[i] = strings.TrimRight(lines[i], " \t\r")
 	}
+	out := p.out.String()
+	afterCode := !p.pending && strings.TrimSpace(out[strings.LastIndexByte(out, '\n')+1:]) != ""
+	start := p.out.Len()
 	p.write(strings.Join(lines, "\n"))
+	if afterCode && len(lines) == 1 {
+		p.trails = append(p.trails, [2]int{start, p.out.Len()})
+	}
 	p.lastEnd = c.End
 }
 
@@ -335,29 +350,28 @@ func (p *printer) comment(c *token.Comment) {
 // to the column of its run afterwards.
 func (p *printer) trailing(c *token.Comment) {
 	p.write(" ")
-	if !strings.Contains(c.Text, "\n") {
-		p.trails = append(p.trails, p.out.Len())
-	}
 	p.comment(c)
 }
 
 // align lines up the trailing comments of each run of consecutive lines that have the same
 // indentation and each end in one: every comment of the run starts one space after the longest
-// code in it, counted in code points (fmt.md 4.8). A run of one keeps its single space.
-func align(out string, trails []int) string {
+// code in it, counted in code points (fmt.md 4.8). A run of one keeps its single space. Which
+// comments end their lines is decided on the output, not the source, so that formatting the
+// output aligns the same comments again.
+func align(out string, trails [][2]int) string {
 	if len(trails) == 0 {
 		return out
 	}
 	lines := strings.SplitAfter(out, "\n")
 	at := map[int]int{} // line index to the comment's byte offset in that line
 	line, start := 0, 0
-	for _, off := range trails {
-		for start+len(lines[line]) <= off {
+	for _, span := range trails {
+		for start+len(lines[line]) <= span[0] {
 			start += len(lines[line])
 			line++
 		}
-		if _, ok := at[line]; !ok {
-			at[line] = off - start
+		if strings.TrimSpace(lines[line][span[1]-start:]) == "" {
+			at[line] = span[0] - start
 		}
 	}
 	indent := func(s string) int { return len(s) - len(strings.TrimLeft(s, " ")) }
@@ -531,20 +545,25 @@ func (p *printer) group(g *group) {
 
 // keepSemicolons ends each statement that comes before one starting with a regular expression
 // literal with a ;, before its trailing comments. Without it the / would follow an operand
-// across the line break and read as division (section 2).
+// across the line break and read as division (section 2). Units that hold only comments are
+// skipped, since the ; must be the last token before the /.
 func keepSemicolons(units []unit) {
 	for i := 1; i < len(units); i++ {
 		if b := units[i].body; len(b) == 0 || b[0].tok == nil || b[0].tok.Kind != token.Regex {
 			continue
 		}
-		prev := &units[i-1]
-		n := len(prev.body)
-		for n > 0 && prev.body[n-1].com != nil {
-			n--
+		j, n := i-1, 0
+		for ; j >= 0; j-- {
+			for n = len(units[j].body); n > 0 && units[j].body[n-1].com != nil; n-- {
+			}
+			if n > 0 {
+				break
+			}
 		}
-		if n == 0 {
+		if j < 0 {
 			continue
 		}
+		prev := &units[j]
 		end := prev.body[n-1].end()
 		semi := elem{tok: &token.Token{Kind: token.Op, Text: ";", Off: end, End: end}}
 		prev.body = append(prev.body[:n:n], append([]elem{semi}, prev.body[n:]...)...)
