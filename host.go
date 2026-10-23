@@ -149,7 +149,8 @@ type Instance struct {
 func (p *Program) Start(ctx context.Context, opts ...Option) (*Instance, error) {
 	cfg := p.cfg.with(opts)
 	in, err := interp.Start(ctx, p.prog, interp.Config{
-		Prelude: p.prelude, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args, Env: cfg.env,
+		Prelude: p.prelude, Stdin: cfg.stdin, Stdout: cfg.stdout, Stderr: cfg.stderr, Args: cfg.args,
+		Env: cfg.env, Environ: cfg.environ,
 	})
 	if err != nil {
 		return nil, convertRunError(err)

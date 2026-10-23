@@ -261,3 +261,24 @@ func TestWithEnvironment(t *testing.T) {
 		t.Errorf("output %q, want %q", out.String(), want)
 	}
 }
+
+// TestStartOptions: a started instance takes the same standard input and environment as a run.
+func TestStartOptions(t *testing.T) {
+	prog := loadSrc(t, `
+func input(): string { Result.unwrap(File.readAll(Os.stdin())) }
+func vars(): bool { Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH") }
+func main(): void {}
+`)
+	in, err := prog.Start(context.Background(), ant.WithStdin(strings.NewReader("typed")),
+		ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	for name, want := range map[string]value.Value{"input": "typed", "vars": true} {
+		f, _ := in.Func(name)
+		if got, err := f.Call(); err != nil || got != want {
+			t.Errorf("%s() = %v, %v; want %v", name, got, err, want)
+		}
+	}
+}
