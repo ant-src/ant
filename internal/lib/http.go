@@ -39,6 +39,10 @@ func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) 
 		if !ok {
 			g.Panic("%s needs string header values, got %s", who, value.Describe(e.Value))
 		}
+		if http.CanonicalHeaderKey(k) == "Host" {
+			req.Host = val // which Go sends from the request, ignoring a Host in the headers
+			continue
+		}
 		req.Header.Set(k, val)
 	}
 }
