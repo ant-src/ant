@@ -1,6 +1,6 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: Chan.new; library-value
-// A negative capacity is a ◆ panic; zero is a rendezvous.
+// A negative capacity is a panic; zero is a rendezvous.
 func main(): void {
   var ok: Chan[int] = Chan.new(0)
   print(Chan.length(ok))

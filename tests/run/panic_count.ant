@@ -1,6 +1,6 @@
 // spec: 12 Runtime panics
 // panics: count
-// A count above 2^31 − 1 is a ◆, since the runtime could not hold the result: String.repeat
+// A count above 2^31 − 1 panics, since the runtime could not hold the result: String.repeat
 // here, and the same row for padStart, padEnd, Crypto.randomBytes and Chan.new.
 func main(): void {
   print(String.length(String.repeat("ab", 3)))

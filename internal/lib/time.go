@@ -220,7 +220,7 @@ func timeResult(v value.Time, err error) value.Value {
 	return value.Ok(v)
 }
 
-// must panics on an error, for the ◆ of a value that cannot be.
+// must panics on an error, for a value that cannot be, such as a date that does not exist.
 func must(g *interp.Goroutine, who string, err error) {
 	if err != nil {
 		g.Panic("%s: %v", who, err)

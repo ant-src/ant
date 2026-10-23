@@ -8,7 +8,7 @@ the panic it must raise.
 String.count("aaaa", "aa")          // => 2
 String.cut("kvw", "=")              // => null
 String.lines("a\r\nb\n")            // => ["a", "b"]
-String.repeat("x", -1)              // => ◆ String.repeat needs a count of at least 0, got -1
+String.repeat("x", -1)              // => panic: String.repeat needs a count of at least 0, got -1
 
 var s = "añbñc"
 String.lastIndexOf(s, "ñ")          // => 3
@@ -52,7 +52,7 @@ Url.parse("::")                     // => Err{ error: Error{ message: "parse \":
 Map.fromEntries([Entry{ key: "a", value: 1 }])   // => Map{ "a": 1 }
 ```
 
-`=> ◆ text` expects the case to raise a ◆ panic whose message equals `text`. A case that
+`=> panic: text` expects the case to raise a panic whose message equals `text`. A case that
 expects a value fails if it panics, and a case that expects a panic fails if it returns.
 
 The inputs after a panic still run, and they see everything the earlier inputs bound.
@@ -66,7 +66,7 @@ files run in parallel.
 
 Before it runs, the file is checked as a program. Declarations and imports stay at the top level,
 and every other input goes into `main` in order, each case as `var _ = <expression>`.
-`ant check` must report nothing. A ◆ panic is a value panic that a checked program can reach, so
+`ant check` must report nothing. A panic is a value panic that a checked program can reach, so
 it belongs here. A kind panic belongs under `../unchecked/`.
 
 ## Failures
@@ -86,12 +86,12 @@ TestStdlib` runs all the files, and `-run TestStdlib/string` runs one.
 ## Coverage
 
 The files are part of the corpus, so `TestSpecCoverage`, `TestLibraryCoverage` and
-`TestPanicCoverage` count them as they count programs. A case expecting `◆` on a call of a ◆
-function of chapter 11 covers that function without a `// panics:` line. A row of the chapter 12
-table, such as `int-overflow`, still needs one.
+`TestPanicCoverage` count them as they count programs. A case expecting a panic from a function
+of chapter 11 that panics on a value covers that function without a `// panics:` line. A row of
+the chapter 12 table, such as `int-overflow`, still needs one.
 
 ## Where a test goes
 
-- A library function's result for given arguments, or its ◆: a case here, in its namespace's file.
+- A library function's result for given arguments, or its panic: a case here, in its namespace's file.
 - A library function's effect, output, or timing: a program under `../run/`.
 - A bug in a library function: the case that shows it, added before the fix.

@@ -20,8 +20,8 @@ import (
 // it proves, in the form "// spec: 4 Unions; 10; stdlib Json": a chapter number followed by a
 // subsection heading, a chapter number alone for the chapter's own text, or "stdlib" and a
 // namespace of stdlib.md. A program that triggers a runtime panic also carries
-// "// panics: <key>" naming a row of the chapter 12 table (see panicRows) or a ◆ function of
-// chapter 11 or of stdlib.md, such as "Array.slice" or "Time.plainDate".
+// "// panics: <key>" naming a row of the chapter 12 table (see panicRows) or a function of
+// chapter 11 or of stdlib.md whose comment says it panics on a value, such as "Array.slice" or "Time.plainDate".
 //
 // Programs under a directory named lib are modules the tests import, not tests, and carry no
 // tags.
@@ -272,33 +272,33 @@ func TestLibraryCoverage(t *testing.T) {
 }
 
 // panicRows maps each row of the chapter 12 panics table, in order, to the keys a program
-// names in its "// panics:" tag. A row with a kind part and a ◆ value part has one key for
-// each.
+// names in its "// panics:" tag. A row with both a checker cause and a run-time cause has one
+// key for each.
 var panicRows = [][]string{
 	{"arith-kind"},                           // + - * / %, comparisons, unary -: kinds or tags differ
 	{"bool-kind"},                            // ! && || if while: not a bool
-	{"int-overflow"},                         // ◆ integer + - *, compound assignment, Array.sum
-	{"div-zero"},                             // ◆ integer / %
-	{"shift"},                                // ◆ Bits.shiftLeft, Bits.shiftRight
-	{"conversion"},                           // ◆ numeric conversion
+	{"int-overflow"},                         // integer + - *, compound assignment, Array.sum
+	{"div-zero"},                             // integer / %
+	{"shift"},                                // Bits.shiftLeft, Bits.shiftRight
+	{"conversion"},                           // numeric conversion
 	{"string-bool"},                          // string, bool on the wrong kind
 	{"field"},                                // a.b, a.b = v
-	{"index", "index-range"},                 // a[i], a[i] = v: not a container; ◆ out of range
+	{"index", "index-range"},                 // a[i], a[i] = v: not a container; out of range
 	{"call"},                                 // call: arity, names, non-function, constructor
 	{"record-literal"},                       // record literal
 	{"array-literal"},                        // array literal
 	{"is"},                                   // is: right side is not a tag or constructor
-	{"for", "for-yield"},                     // for: not iterable; ◆ yield after false
-	{"destructuring", "destructuring-short"}, // destructuring: wrong kind; ◆ too few elements
+	{"for", "for-yield"},                     // for: not iterable; yield after false
+	{"destructuring", "destructuring-short"}, // destructuring: wrong kind; too few elements
 	{"variable"},                             // no scope binds the name
 	{"underscore"},                           // _ read
-	{"library-kind", "library-value"},        // library function: wrong kind; ◆ documented case
-	{"var-init"},                             // ◆ var read before its initializer has run
-	{"panic"},                                // ◆ panic
-	{"depth"},                                // ◆ call depth
-	{"count"},                                // ◆ a count above 2^31 − 1
+	{"library-kind", "library-value"},        // library function: wrong kind; documented case
+	{"var-init"},                             // var read before its initializer has run
+	{"panic"},                                // panic
+	{"depth"},                                // call depth
+	{"count"},                                // a count above 2^31 − 1
 	{"try"},                                  // try on a non-Result
-	{"select-closed"},                        // ◆ select: a send clause chosen on a closed channel
+	{"select-closed"},                        // select: a send clause chosen on a closed channel
 	{"never"},                                // ??, ?., ==, != never panic
 }
 
@@ -326,19 +326,22 @@ func TestBoundedSleeps(t *testing.T) {
 	}
 }
 
-// panicFunctions returns the ◆ functions of a specification file's code blocks, in order: the
-// signatures whose comment carries ◆ and whose name has an owner. In ant-lang.md only chapter 11
+// panicFunctions returns the functions of a specification file's code blocks that panic on a
+// value, in order: the signatures whose comment says "panics if", "panics on" or "panics as", and
+// whose name has an owner. In ant-lang.md only chapter 11
 // is read, so that the conversions (int8 and "the other nine") stay the table's conversion row; in
 // stdlib.md every block is. A signature wrapped over several lines continues on lines that start
-// with white space, as Time.with does, and its ◆ may sit on any of them, so the lines of a
+// with white space, as Time.with does, and its panic case may sit on any of them, so the lines of a
 // signature are joined before its name is read.
+var panicComment = regexp.MustCompile(`//.*\bpanics (if|on|as)\b`)
+
 func panicFunctions(t *testing.T, file string) []string {
 	t.Helper()
 	var names []string
 	known := make(map[string]bool)
 	signature := ""
 	flush := func() {
-		if strings.Contains(signature, "◆") {
+		if panicComment.MatchString(signature) {
 			name := signature
 			if i := strings.IndexAny(name, "[("); i >= 0 {
 				name = name[:i]
@@ -382,8 +385,8 @@ func panicFunctions(t *testing.T, file string) []string {
 	return names
 }
 
-// TestPanicCoverage checks that every row of the chapter 12 panics table and every ◆ function
-// of chapter 11 and of stdlib.md has a program that triggers it.
+// TestPanicCoverage checks that every row of the chapter 12 panics table and every function
+// that panics on a value in chapter 11 and of stdlib.md has a program that triggers it.
 func TestPanicCoverage(t *testing.T) {
 	lines := readSpec(t, "ant-lang.md")
 	var required []string
@@ -391,7 +394,7 @@ func TestPanicCoverage(t *testing.T) {
 	for _, file := range []string{"ant-lang.md", "stdlib.md"} {
 		names := panicFunctions(t, file)
 		if len(names) == 0 {
-			t.Fatalf("no ◆ functions found in %s", file)
+			t.Fatalf("no functions that panic on a value found in %s", file)
 		}
 		for _, name := range names {
 			if !known[name] {
@@ -432,7 +435,7 @@ func TestPanicCoverage(t *testing.T) {
 	for _, p := range programs {
 		for _, k := range p.panics {
 			if !known[k] {
-				t.Errorf("%s: panic key %q is neither a table row nor a ◆ function", p.path, k)
+				t.Errorf("%s: panic key %q is neither a table row nor a function that panics on a value", p.path, k)
 				continue
 			}
 			covered[k] = true

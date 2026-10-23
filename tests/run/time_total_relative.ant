@@ -1,6 +1,6 @@
 // spec: stdlib Time
 // panics: Time.total; library-value
-// A total of months without a relativeTo point is a ◆ panic.
+// A total of months without a relativeTo point is a panic.
 func main(): void {
   print(Time.total(Time.duration(days: 2), Time.Hour{}))
   print(Time.total(Time.duration(months: 1), Time.Day{}))

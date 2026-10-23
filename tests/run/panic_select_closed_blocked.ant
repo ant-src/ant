@@ -1,6 +1,6 @@
 // spec: 5 select; 12 Runtime panics
 // panics: select-closed
-// A channel closed while a select's send clause waits ends the select with the ◆, as it ends a
+// A channel closed while a select's send clause waits ends the select with a panic, as it ends a
 // send; a receive clause on a closed channel takes what was buffered before it binds null.
 func main(): void {
   var d: Chan[int] = Chan.new(1)

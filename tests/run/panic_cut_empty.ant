@@ -1,6 +1,6 @@
 // spec: 11 String; 12 Runtime panics
 // panics: String.cut; library-value
-// Cutting at the empty separator is a ◆ panic, as splitting on it is.
+// Cutting at the empty separator is a panic, as splitting on it is.
 func main(): void {
   print(String.cut("a=b", "="))
   print(String.cut("a=b", ""))

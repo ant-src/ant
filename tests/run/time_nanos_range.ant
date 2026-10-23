@@ -1,6 +1,6 @@
 // spec: stdlib Time
 // panics: Time.epochNanos; library-value
-// epochNanos is a ◆ panic outside 1677 to 2262, where the nanoseconds do not fit an int.
+// epochNanos is a panic outside 1677 to 2262, where the nanoseconds do not fit an int.
 func main(): void {
   var last = Result.unwrap(Time.parseInstant("2262-04-11T23:47:16.854775807Z"))
   print(Time.epochNanos(last))

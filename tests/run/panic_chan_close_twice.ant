@@ -1,6 +1,6 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: Chan.close; library-value
-// Closing a closed channel is a ◆ panic.
+// Closing a closed channel is a panic.
 func main(): void {
   var c: Chan[int] = Chan.new()
   Chan.close(c)

@@ -1,6 +1,6 @@
 // spec: 11 Math and Bits; 12 Runtime panics
 // panics: Math.clamp; library-value
-// clamp with lo above hi is a ◆ panic: there is no value within the range.
+// clamp with lo above hi is a panic: there is no value within the range.
 func main(): void {
   print(Math.clamp(5, 1, 3))
   print(Math.clamp(5, 3, 1))

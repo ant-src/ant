@@ -121,7 +121,7 @@ func asPanic(err error, pe **ant.PanicError) bool {
 	return ok
 }
 
-// allowedPanic reports whether a panic message belongs to a ◆ row: arithmetic overflow, a zero
+// allowedPanic reports whether a panic message belongs to a panic a checked program can reach: arithmetic overflow, a zero
 // divisor, or an index out of range, which a checked program may reach.
 func allowedPanic(msg string) bool {
 	for _, s := range []string{"overflow", "zero", "out of range", "does not fit", "fewer"} {

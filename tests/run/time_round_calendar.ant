@@ -1,6 +1,6 @@
 // spec: stdlib Time
 // panics: Time.round; library-value
-// Rounding a date-time to a calendar unit is a ◆ panic, as is an increment that does not fit.
+// Rounding a date-time to a calendar unit is a panic, as is an increment that does not fit.
 func main(): void {
   var dt = Result.unwrap(Time.parsePlainDateTime("2021-07-01T12:34:56"))
   print(Time.round(dt, Time.Hour{}, 6))

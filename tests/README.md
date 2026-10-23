@@ -11,7 +11,7 @@ TestSpecCoverage` prints the matrix of headings against the number of programs n
 | `run/` | the program's output, exit status and standard error match its trailer, and `ant check` reports nothing |
 | `unchecked/` | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out |
 | `check/` | `ant check` reports exactly the errors the inline markers name, and nothing else |
-| `stdlib/` | each line's library call returns the value or raises the ◆ its `// =>` comment names; see `stdlib/README.md` |
+| `stdlib/` | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md` |
 | `../examples/` | real programs, run like `run/` |
 
 Files under a directory named `lib` are modules the programs import, not tests.
@@ -70,7 +70,7 @@ use.
 ## Where to add a test
 
 - A rule the checker enforces: `check/`, in the file for its chapter.
-- A library function's result for given arguments, or its ◆: a line in `stdlib/`.
+- A library function's result for given arguments, or its panic: a line in `stdlib/`.
 - A behavior with observable output: `run/`.
 - A kind panic the checker rejects: `unchecked/`, one program per panic.
 - A panic that a checked program can reach: `run/`, with `// exit: 1` and an `// err:` line.

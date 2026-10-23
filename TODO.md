@@ -45,7 +45,7 @@ operating system. A simulation, a shuffled test fixture or a game cannot be repl
 ```
 Random.new(seed: int): Random
 Random.float(r: Random): float64                   // uniform in [0, 1)
-Random.int(r: Random, from: int, to: int): int     // from inclusive, to exclusive; ◆ to <= from
+Random.int(r: Random, from: int, to: int): int     // from inclusive, to exclusive; panics if to <= from
 Random.shuffle[T](r: Random, xs: Array[T]): void   // mutates, in place
 Random.pick[T](r: Random, xs: Array[T]): T | null  // null for an empty array
 ```
@@ -136,7 +136,7 @@ Flag.rest(p: Flag.Parsed): Array[string]           // the positional arguments
 
 **Open questions:**
 - Getting a typed result without reflection. Lookups by name check nothing until the program runs,
-  and a misspelled name would be a ◆. A record of defaults the parser fills in would be checked,
+  and a misspelled name would be a run-time panic. A record of defaults the parser fills in would be checked,
   but needs a way to iterate a record's fields.
 - The syntax accepted: `--name=value`, `--name value`, `-n`, grouped short flags, `--` to stop, and
   `--no-verbose`.
@@ -162,7 +162,7 @@ scheduler.
   union.
 - `go`, `Chan`, `select`, `defer` and `panic` map onto their Go counterparts. `select` needs
   `reflect.Select` only when the number of heads isn't fixed.
-- A ◆ becomes a Go panic carrying the same message, and the `ant` exit status and stderr format
+- An Ant panic becomes a Go panic carrying the same message, and the `ant` exit status and stderr format
   stay the same.
 
 **Open questions:**

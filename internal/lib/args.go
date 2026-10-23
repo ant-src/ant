@@ -33,8 +33,9 @@ func stringArg(g *interp.Goroutine, who string, v value.Value) string {
 	return s
 }
 
-// maxCount bounds a count that sizes an allocation: a count above it is a ◆ of section 12's
-// table, since the runtime could not hold the result and a Go panic is not an Ant panic.
+// maxCount bounds a count that sizes an allocation: a count above it is an Ant panic, the "a
+// count" row of section 12's table, since the runtime could not hold the result and a Go panic
+// is not an Ant panic.
 const maxCount = math.MaxInt32
 
 // boundCount panics when n, a count of what, is above maxCount.

@@ -1,6 +1,6 @@
 // spec: 11 String; 12 Runtime panics
 // panics: String.padEnd; library-value
-// An empty pad is a ◆ panic, on the right as on the left.
+// An empty pad is a panic, on the right as on the left.
 func main(): void {
   print(String.padEnd("7", 3, "0"))
   print(String.padEnd("7", 3, ""))

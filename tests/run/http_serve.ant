@@ -4,7 +4,7 @@
 // Http.request: the handler sees the method, the decoded path, the raw query, the headers and
 // the body, and its response goes back with its status, its headers and Content-Length; a
 // handler that panics answers 500 and is reported as a goroutine's panic; a status outside
-// 200 to 599 is the ◆, which takes the same path; cancelling the context stops the server and
+// 200 to 599 panics, and the panic takes the same path; cancelling the context stops the server and
 // serve returns Ok.
 func handle(req: Http.Request): Http.Response {
   if req.path == "/boom" { panic("boom") }

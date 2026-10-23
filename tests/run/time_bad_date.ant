@@ -1,6 +1,6 @@
 // spec: stdlib Time
 // panics: Time.plainDate; library-value
-// A date that is not there is a ◆ panic, as a constructor rejects what with constrains.
+// A date that is not there is a panic, as a constructor rejects what with constrains.
 func main(): void {
   print(Time.plainDate(2024, 2, 29))
   print(Time.plainDate(2026, 2, 30))

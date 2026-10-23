@@ -1,6 +1,6 @@
 // spec: 11 Math and Bits; 12 Runtime panics
 // panics: Bits.rotateRight; library-value
-// A negative rotation count is a ◆ panic, as it is for the shifts.
+// A negative rotation count is a panic, as it is for the shifts.
 func main(): void {
   print(Bits.rotateRight(byte(1), 1))
   print(Bits.rotateRight(byte(1), -1))

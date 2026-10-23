@@ -1,6 +1,6 @@
 // spec: 11 String; 12 Runtime panics
 // panics: String.fromInt; library-value
-// A base outside 2 to 36 is a ◆ panic, as for String.toInt.
+// A base outside 2 to 36 is a panic, as for String.toInt.
 func main(): void {
   print(String.fromInt(11, 2))
   print(String.fromInt(11, 1))

@@ -12,7 +12,7 @@ import (
 
 // separator reads the optional sep argument, a comma when omitted, and panics unless it is one
 // code point other than a quote, a line break, U+0000 or U+FFFD, the rule of Go's reader and
-// writer. The separator is part of the program, not of the data, so the check is a ◆ panic.
+// writer. The separator is part of the program, not of the data, so the check is a panic.
 func separator(g *interp.Goroutine, who string, v value.Value) rune {
 	if !given(v) {
 		return ','

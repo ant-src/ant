@@ -1,6 +1,6 @@
 // spec: stdlib Time
 // panics: Time.plainTime; library-value
-// A time field out of range is a ◆ panic.
+// A time field out of range is a panic.
 func main(): void {
   print(Time.plainTime(23, 59, 59, 999, 999, 999))
   print(Time.plainTime(25))

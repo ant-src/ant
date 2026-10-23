@@ -1,6 +1,6 @@
 // spec: 11 Math and Bits; 12 Runtime panics
 // panics: Math.clamp
-// A NaN bound in Math.clamp is a ◆, since NaN compares as neither above nor below anything and
+// A NaN bound in Math.clamp panics, since NaN compares as neither above nor below anything and
 // the bound would hold nothing.
 func main(): void {
   print(Math.clamp(5, 1, 3))

@@ -1,7 +1,7 @@
 // spec: 11 Array; 12 Runtime panics
 // panics: Array.insert; library-value
 // insert takes an index from 0 up to and including the length, where it appends; beyond that
-// is a ◆ panic, as is a negative index.
+// is a panic, as is a negative index.
 func main(): void {
   var xs = [1, 2]
   Array.insert(xs, 2, 3)

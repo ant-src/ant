@@ -1,6 +1,6 @@
 // spec: stdlib Crypto; 12 Runtime panics
 // panics: Crypto.randomBytes; library-value
-// A negative count of random bytes is a ◆ panic, as a negative count is for Array.filled.
+// A negative count of random bytes is a panic, as a negative count is for Array.filled.
 func main(): void {
   print(Array.length(Crypto.randomBytes(4)))
   print(Crypto.randomBytes(-1))

@@ -1,6 +1,6 @@
 // spec: 11 String; 12 Runtime panics
 // panics: String.fromFloat; library-value
-// A negative count of digits is a ◆ panic.
+// A negative count of digits is a panic.
 func main(): void {
   print(String.fromFloat(2.0, 0))
   print(String.fromFloat(2.0, -1))

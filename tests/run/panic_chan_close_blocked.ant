@@ -1,6 +1,6 @@
 // spec: 9 Waiting; 11 Synchronization
 // panics: Chan.send
-// A channel closed while a send waits ends the send with the ◆ of a send on a closed channel,
+// A channel closed while a send waits ends the send with the panic of a send on a closed channel,
 // and a receive after a close takes what was buffered before it answers null.
 func main(): void {
   var d: Chan[int] = Chan.new(2)
