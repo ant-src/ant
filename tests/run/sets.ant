@@ -1,0 +1,48 @@
+// spec: 4 Arrays, maps, and sets; 5 Loops; 12 Expressions
+// A set holds each == value once and keeps insertion order; a record or an array is a member;
+// two sets are == by members in any order, so a set is a map key; for visits the members in
+// order and sees one added during the loop; is Set tests the kind; a set renders as the Set.of
+// call that builds it; Json.stringify writes an array; a set may contain itself.
+type P = { x: int }
+
+func main(): void {
+  var seen: Set[string] = Set.of([])
+  for line in ["b", "a", "b", "c", "a"] {
+    if Set.add(seen, line) { print(line) }
+  }
+  print(seen)
+  print(Set.of([P{ x: 1 }, P{ x: 1 }]))
+  print(Set.of([1, 2]) == Set.of([2, 1]))
+  print(Set.of([1, 2]) == Set.of([1]))
+  var byGroup: Map[Set[int], string] = Map{}
+  byGroup[Set.of([1, 2])] = "pair"
+  print(byGroup[Set.of([2, 1])])
+  var grow = Set.of([1])
+  for n in grow {
+    if n < 3 { _ = Set.add(grow, n + 1) }
+    print(n)
+  }
+  var v: Set[int] | Array[int] = grow
+  if v is Set { print(Set.size(v)) } else { print(Array.length(v)) }
+  print(`members: ${Set.of(["x", "y"])}`)
+  print(Json.stringify(Set.of([P{ x: 1 }, P{ x: 2 }])))
+  var nest: Set[Array[int]] = Set.of([[1], [1], [2]])
+  print(Set.size(nest))
+}
+
+// expect
+// out: b
+// out: a
+// out: c
+// out: Set.of(["b", "a", "c"])
+// out: Set.of([P{ x: 1 }])
+// out: true
+// out: false
+// out: pair
+// out: 1
+// out: 2
+// out: 3
+// out: 3
+// out: members: Set.of(["x", "y"])
+// out: [{"x":1},{"x":2}]
+// out: 2

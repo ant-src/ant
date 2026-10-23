@@ -1,0 +1,17 @@
+// spec: 4 Arrays, maps, and sets
+// Section 4: a set has no indexing, takes one type argument, is invariant in its element type,
+// and is tested by is only in a union.
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Shape = Circle | Rect
+type Pairs = Set[int, int] // ERR: Set takes one type argument
+
+func main(): void {
+  var s = Set.of([1, 2])
+  var first = s[0] // ERR: Set[int] cannot be indexed
+  var circles = Set.of([Circle{ radius: 1.0 }])
+  var shapes: Set[Shape] = circles // ERR: cannot use Set[Circle] where Set[Shape] is expected
+  var always = s is Set // ERR: the test is always true
+  var wrong = Set.add(s, "x") // ERR: string
+  for n in s { var m: string = n } // ERR: cannot use int where string is expected
+}

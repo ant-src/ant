@@ -1,0 +1,36 @@
+// spec: 11 Set
+// Set (section 11): every function, insertion order throughout, adding a member already there
+// keeps its position, removing and adding again goes to the end, and add and remove say whether
+// they changed the set.
+type P = { x: int }
+var s = Set.of([3, 1, 3, 2])
+s                                             // => Set.of([3, 1, 2])
+Set.size(s)                                   // => 3
+Set.isEmpty(s)                                // => false
+var none: Set[string] = Set.of([])
+none                                          // => Set.of([])
+Set.isEmpty(none)                             // => true
+Set.size(none)                                // => 0
+Set.has(s, 1)                                 // => true
+Set.has(s, 7)                                 // => false
+Set.add(s, 4)                                 // => true
+Set.add(s, 3)                                 // => false
+s                                             // => Set.of([3, 1, 2, 4])
+Set.remove(s, 3)                              // => true
+Set.remove(s, 3)                              // => false
+Set.add(s, 3)                                 // => true
+s                                             // => Set.of([1, 2, 4, 3])
+Set.values(s)                                 // => [1, 2, 4, 3]
+Set.union(Set.of([1, 2]), Set.of([3, 1, 4]))  // => Set.of([1, 2, 3, 4])
+Set.intersect(Set.of([1, 2, 3]), Set.of([3, 1])) // => Set.of([1, 3])
+Set.difference(Set.of([1, 2, 3]), Set.of([3, 1])) // => Set.of([2])
+Set.isSubset(Set.of([1, 3]), Set.of([3, 2, 1])) // => true
+Set.isSubset(Set.of([1, 5]), Set.of([3, 2, 1])) // => false
+Set.isSubset(none, Set.of(["a"]))             // => true
+var t = s
+Set.same(s, t)                                // => true
+Set.same(s, Set.union(s, Set.of([])))         // => false
+Set.union(s, Set.of([])) == s                 // => true
+Set.of([P{ x: 1 }, P{ x: 1 }, P{ x: 2 }])     // => Set.of([P{ x: 1 }, P{ x: 2 }])
+Set.has(Set.of([[1, 2]]), [1, 2])             // => true
+Set.of(["a"])                                 // => Set.of(["a"])
