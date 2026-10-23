@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
@@ -13,11 +12,46 @@ import (
 // The Net namespace (stdlib.md): TCP listeners and connections, a connection being a
 // File.Handle whose writes flush and whose reads a context can end through the deadline.
 
-// Listener is a listening TCP socket: Net.Listener.
+// Listener is a listening TCP socket: Net.Listener. Connections are accepted by a pump, one
+// goroutine started at the first Net.accept, which hands each over conns to the next caller,
+// so a caller selects on its own context and disturbs no other; a connection accepted while no
+// caller waits is held for the next one.
 type Listener struct {
 	mu     sync.Mutex
 	l      *net.TCPListener
 	closed bool
+	err    error // what ended the pump, read once conns is closed
+	once   sync.Once
+	conns  chan net.Conn
+}
+
+var errListenerClosed = value.ErrorValue("the listener is closed")
+
+// pump accepts until the listener fails, which a close causes, then records the error and
+// closes conns; a connection it holds when the run ends is closed.
+func (l *Listener) pump(done <-chan struct{}) {
+	for {
+		c, err := l.l.Accept()
+		if err != nil {
+			l.mu.Lock()
+			l.err = err
+			l.mu.Unlock()
+			close(l.conns)
+			return
+		}
+		select {
+		case l.conns <- c:
+		case <-done:
+			c.Close()
+			return
+		}
+	}
+}
+
+func (l *Listener) markClosed() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.closed = true
 }
 
 // SyncName names the listener for rendering.
@@ -39,32 +73,26 @@ func connHandle(c net.Conn) *Handle {
 	return h
 }
 
-// accept waits for the next connection, or gives up when ctx is done by setting the listener's
-// deadline to now, as a read does.
-func (l *Listener) accept(ctx context.Context) (net.Conn, error) {
+// accept waits for the next connection from the pump, or gives up when ctx is done.
+func (l *Listener) accept(done <-chan struct{}, ctx context.Context) (net.Conn, error) {
+	l.once.Do(func() {
+		l.conns = make(chan net.Conn)
+		go l.pump(done)
+	})
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	stop := make(chan struct{})
-	watcher := make(chan struct{})
-	go func() {
-		defer close(watcher)
-		select {
-		case <-ctx.Done():
-			l.l.SetDeadline(time.Now())
-		case <-stop:
+	select {
+	case c, ok := <-l.conns:
+		if !ok {
+			l.mu.Lock()
+			defer l.mu.Unlock()
+			return nil, l.err
 		}
-	}()
-	c, err := l.l.Accept()
-	close(stop)
-	<-watcher
-	if ctx.Err() != nil {
-		l.l.SetDeadline(time.Time{})
-		if err != nil {
-			return nil, ctx.Err()
-		}
+		return c, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	return c, err
 }
 
 func init() {
@@ -85,13 +113,14 @@ func init() {
 				l := listenerArg(g, "Net.accept", a[0])
 				ctx := waitContext(g, optionalContext(g, "Net.accept", a[1]))
 				g.Instance().Flush()
-				c, err := l.accept(ctx)
+				c, err := l.accept(g.Context().Done(), ctx)
+				g.AfterWait()
 				if err != nil {
 					if ctx.Err() != nil {
 						return gaveUp(ctx)
 					}
 					if l.isClosed() {
-						return value.Err(value.ErrorValue("the listener is closed"))
+						return value.Err(errListenerClosed)
 					}
 					return errResult(err)
 				}
@@ -112,6 +141,7 @@ func init() {
 				g.Instance().Flush()
 				var d net.Dialer
 				c, err := d.DialContext(ctx, "tcp", stringArg(g, "Net.dial", a[0]))
+				g.AfterWait()
 				if err != nil {
 					if ctx.Err() != nil {
 						return gaveUp(ctx)

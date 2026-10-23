@@ -33,8 +33,13 @@ func partsURL(g *interp.Goroutine, who string, v value.Value) *url.URL {
 	u := &url.URL{Scheme: field("scheme"), Opaque: field("opaque"), Path: field("path"), RawQuery: field("query"), Fragment: field("fragment")}
 	if user := field("user"); user != "" {
 		name, pass, hasPass := strings.Cut(user, ":")
-		name, _ = url.PathUnescape(name)
-		pass, _ = url.PathUnescape(pass)
+		// An escape that does not decode stays as written, and is escaped as a whole.
+		if n, err := url.PathUnescape(name); err == nil {
+			name = n
+		}
+		if p, err := url.PathUnescape(pass); err == nil {
+			pass = p
+		}
 		if hasPass {
 			u.User = url.UserPassword(name, pass)
 		} else {

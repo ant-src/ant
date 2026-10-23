@@ -192,3 +192,14 @@ window; Go's deadline error, which only the host's context can carry, reads `can
 relay records that it ended the run, `Run` returns `ErrInterrupted`, and the command exits 130
 in silence. `stdlib.md` says so of `Os.interrupt`, with the self-cancelled context. Four corpus
 programs and the interrupt test's assertion cover it; the suite is green under `-race`.
+
+Phase 58 was done on 2026-10-23: `Http.request` sends through a client of its own that follows no
+redirect, so a 3xx is the response with its `Location`; an empty method is `Err`; `Host` is in a
+handler's headers; the status bound is 200 to 599, since a status below 200 is an interim
+response; after the drain `serve` closes what is left open and marks the listener closed; a
+listener accepts through a pump, one goroutine from the first `Net.accept`, so acceptors with
+contexts of their own do not disturb each other and a connection accepted while no one waits is
+held for the next; `Url.stringify` keeps a userinfo whose escape does not decode, escaped as a
+whole. `stdlib.md` says so under Http and Net. Two corpus programs cover the redirect, the
+empty method, the host header, the closed listener and the two acceptors; the reviewer's
+shutdown probe shows the late client cut at five seconds; the suite is green under `-race`.

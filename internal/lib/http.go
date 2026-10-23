@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -42,11 +43,20 @@ func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) 
 	}
 }
 
+// client sends one request and follows no redirect, so a 3xx is the response, as stdlib.md
+// says of any status.
+var client = &http.Client{
+	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+}
+
 // request is Http.request and, with the method filled in, Http.get and Http.post: one request
 // under the run's context, the given context and the timeout, the whole response read. A
 // response of any status is Ok; a failure to get one is Err, with the context's reason, or
 // "timeout", when a bound ended it.
 func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c value.Value) value.Value {
+	if method == "" {
+		return errResult(errors.New("the method is empty"))
+	}
 	wait, err := timeout(g, who, limit)
 	if err != nil {
 		return errResult(err)
@@ -67,7 +77,7 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	}
 	headers(g, who, hdrs, req)
 	g.Instance().Flush()
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	g.AfterWait()
 	if err != nil {
 		return failed(ctx, err)
@@ -128,9 +138,14 @@ func serve(g *interp.Goroutine, a []value.Value) value.Value {
 		}
 		return errResult(err)
 	case <-ctx.Done():
+		// The shutdown closes the listener and waits for the requests in flight; past the
+		// five seconds, Close ends their connections. Either way the listener is closed now.
 		stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		srv.Shutdown(stop)
+		if err := srv.Shutdown(stop); err != nil {
+			srv.Close()
+		}
+		l.markClosed()
 		<-done
 		g.AfterWait()
 		return value.Ok(value.Void)
@@ -146,6 +161,7 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		return
 	}
 	headers := value.NewMap()
+	headers.Set("Host", r.Host) // which Go keeps apart from the other headers
 	for k, vs := range r.Header {
 		headers.Set(k, strings.Join(vs, ", "))
 	}
@@ -158,8 +174,8 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 			ng.Panic("Http.serve: the handler must return an Http.Response")
 		}
 		status, _ := resp.Field("status")
-		if n, ok := status.(int64); !ok || n < 100 || n > 599 {
-			ng.Panic("Http.serve: the response status %s is outside 100 to 599", value.Render(status))
+		if n, ok := status.(int64); !ok || n < 200 || n > 599 {
+			ng.Panic("Http.serve: the response status %s is outside 200 to 599", value.Render(status))
 		}
 		result <- resp
 	})

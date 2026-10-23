@@ -1,0 +1,39 @@
+// spec: stdlib Http
+// Http.request sends one request: a redirect comes back as the response it is, with its status
+// and Location, for a GET and for a POST alike; an empty method is Err; a handler sees Host
+// among the headers; and once serve has returned on its context, the listener is closed.
+func handle(r: Http.Request): Http.Response {
+  if r.path == "/old" {
+    Http.Response{ status: 302, headers: Map{ Location: "/new" }, body: "" }
+  } else {
+    Http.Response{ status: 200, headers: Map{}, body: `${r.method} ${r.path} ${r.headers["Host"] ?? "no host"}` }
+  }
+}
+
+func main(): void {
+  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+  var ctx = Context.new()
+  var served: Chan[bool] = Chan.new(1)
+  go {
+    var r = Http.serve(l, handle, ctx)
+    Chan.send(served, r is Ok)
+  }
+  var base = `http://${Net.address(l)}`
+  var got = Result.unwrap(Http.get(`${base}/old`))
+  print([got.status, got.headers["Location"] ?? ""])
+  var posted = Result.unwrap(Http.post(`${base}/old`, "payload"))
+  print(posted.status)
+  print(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
+  print(Http.request("", `${base}/new`))
+  Context.cancel(ctx)
+  print(Chan.receive(served))
+  print(Net.accept(l))
+}
+
+// expect
+// out: [302, "/new"]
+// out: 302
+// out: true
+// out: Err{ error: Error{ message: "the method is empty" } }
+// out: true
+// out: Err{ error: Error{ message: "the listener is closed" } }
