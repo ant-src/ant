@@ -18,8 +18,9 @@ import (
 //
 // Every test program starts with a tag line naming the heading or headings of the specification
 // it proves, in the form "// spec: 4 Unions; 10; stdlib Json": a chapter number followed by a
-// subsection heading, a chapter number alone for the chapter's own text, or "stdlib" and a
-// namespace of stdlib.md. A program that triggers a runtime panic also carries
+// subsection heading, a chapter number alone for the chapter's own text, "stdlib" and a
+// namespace of stdlib.md, or "fmt" and a subsection of fmt.md, such as "fmt 4.4 Lists", which
+// the formatter's golden files in internal/format/testdata carry. A program that triggers a runtime panic also carries
 // "// panics: <key>" naming a row of the chapter 12 table (see panicRows) or a function of
 // chapter 11 or of stdlib.md whose comment says it panics on a value, such as "Array.slice" or "Time.plainDate".
 //
@@ -77,6 +78,47 @@ func specHeadings(t *testing.T) []string {
 		}
 	}
 	return keys
+}
+
+// fmtHeadings returns the tag keys of the subsections of fmt.md, "fmt 4.4 Lists", with backticks
+// removed. Only its layout rules, section 4, have subsections; the command, the guarantees, and
+// what is kept or not done are tested in cmd/ant and by the formatter's corpus properties.
+func fmtHeadings(t *testing.T) []string {
+	t.Helper()
+	var keys []string
+	for _, line := range readSpec(t, "fmt.md") {
+		if m := sectionLine.FindStringSubmatch(line); m != nil {
+			keys = append(keys, "fmt "+strings.ReplaceAll(m[1], "`", ""))
+		}
+	}
+	return keys
+}
+
+// fmtGolden returns the inputs of the formatter's golden tests with their tags.
+func fmtGolden(t *testing.T) []program {
+	t.Helper()
+	paths, err := filepath.Glob(filepath.Join("..", "internal", "format", "testdata", "*.in.ant"))
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("no golden files: %v", err)
+	}
+	var programs []program
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := program{path: path, src: string(data)}
+		for _, line := range strings.Split(p.src, "\n") {
+			if rest, ok := strings.CutPrefix(line, "// spec:"); ok {
+				p.spec = append(p.spec, splitTags(rest)...)
+			}
+		}
+		if len(p.spec) == 0 {
+			t.Errorf("%s: no \"// spec:\" tag", path)
+		}
+		programs = append(programs, p)
+	}
+	return programs
 }
 
 // program is a test program with its tags.
@@ -187,12 +229,13 @@ var pendingSpec = []string{}
 // TestSpecCoverage checks that every tag names a heading of the specification and that every
 // heading has a tag. Under -v it prints the matrix.
 func TestSpecCoverage(t *testing.T) {
-	headings := specHeadings(t)
+	headings := append(specHeadings(t), fmtHeadings(t)...)
 	known := make(map[string]bool, len(headings))
 	for _, h := range headings {
 		known[h] = true
 	}
 	programs, _ := corpus(t)
+	programs = append(programs, fmtGolden(t)...)
 	count := make(map[string]int)
 	for _, p := range programs {
 		for _, tag := range p.spec {
@@ -201,7 +244,7 @@ func TestSpecCoverage(t *testing.T) {
 				continue
 			}
 			count[tag]++
-			if chapter, _, ok := strings.Cut(tag, " "); ok && chapter != "stdlib" {
+			if chapter, _, ok := strings.Cut(tag, " "); ok && chapter != "stdlib" && chapter != "fmt" {
 				count[chapter]++
 			}
 		}

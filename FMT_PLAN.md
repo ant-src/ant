@@ -71,8 +71,8 @@ mechanical check: lex the input and the output, drop the layout tokens, compare.
 - Templates: text pieces are copied from the source byte for byte; interpolation tokens go through
   the same spacing function, with source newlines kept and not reindented (4.9).
 - Golden tests in `internal/format/testdata`: pairs `name.in.ant` / `name.out.ant`, one per rule
-  and example of `fmt.md`, each starting with a `// spec: fmt 4.4` tag naming the section it
-  proves.
+  and example of `fmt.md`, each starting with a `// spec: fmt 4.4 Lists` tag naming the section
+  it proves.
   The harness also formats every `.out.ant` and requires it unchanged.
 
 ### 4. Properties over the whole corpus
@@ -106,7 +106,7 @@ must satisfy them.
 
 ### 6. Spec coverage
 
-- `tests/spec_test.go` learns a third tag form, `// spec: fmt 4.4`, beside `stdlib Json`, that
+- `tests/spec_test.go` learns a third tag form, `// spec: fmt 4.4 Lists`, beside `stdlib Json`, that
   names a section of `spec/fmt.md`, and its scan learns `internal/format/testdata`.
   `TestSpecCoverage` fails when a subsection of `fmt.md` section 4 has no golden test, as it does
   for `ant-lang.md` headings today. Sections 1, 2, 3, and 5 are exempt: section 1 is tested in

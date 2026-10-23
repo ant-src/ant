@@ -27,8 +27,9 @@ A program starts with a tag line naming the headings of the specification it pro
 ```
 
 A tag is a chapter number followed by a subsection heading copied from the spec (backticks
-removed), a chapter number alone for the chapter's own text, or `stdlib` and a namespace of
-`stdlib.md`. Several tags are separated by `;`. A program that triggers a runtime panic also
+removed), a chapter number alone for the chapter's own text, `stdlib` and a namespace of
+`stdlib.md`, or `fmt` and a subsection of `fmt.md`, such as `fmt 4.4 Lists`, which the
+formatter's golden files in `internal/format/testdata` carry. Several tags are separated by `;`. A program that triggers a runtime panic also
 carries a `// panics:` line naming a row of the chapter 12 table by its key (see `panicRows` in
 `spec_test.go`) or a function of chapter 11 whose comment says it panics on a value:
 
