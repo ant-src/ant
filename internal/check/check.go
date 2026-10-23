@@ -880,6 +880,8 @@ type local struct {
 	ctx     *fnCtx
 	pos     ast.Pos
 	pending bool
+	// unset marks a parameter with a default while the defaults up to its own are checked.
+	unset bool
 	stated  bool
 }
 
@@ -933,11 +935,25 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 			sc.names[p.Name] = l
 		}
 	}
+	// Defaults run in parameter order after the arguments (section 6), so a default may not
+	// read its own parameter or a later one that has a default: when that one is omitted too,
+	// it is not set yet.
+	saved := c.fn
+	c.fn = ctx
+	for _, p := range params {
+		if p.Default != nil && p.Name != "_" {
+			sc.names[p.Name].unset = true
+		}
+	}
 	for i, p := range params {
 		if p.Default != nil {
 			c.check(p.Default, sc, s.fn.Params[i])
+			if p.Name != "_" {
+				sc.names[p.Name].unset = false
+			}
 		}
 	}
+	c.fn = saved
 }
 
 // inferBody checks a function body against its declared return type, or infers one from the

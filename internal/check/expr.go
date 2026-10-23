@@ -241,6 +241,10 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 	}
 	l, ent := c.lookup(sc, x.Name)
 	if l != nil {
+		if l.unset && l.ctx == c.fn {
+			c.errorf(x.Pos, "%s is a parameter whose default has not run yet; a default may read only the parameters before it and those without a default", x.Name)
+			return types.Invalid{}
+		}
 		if l.pending {
 			if l.ctx == c.fn {
 				c.errorf(x.Pos, "%s is read in its own initializer", x.Name)

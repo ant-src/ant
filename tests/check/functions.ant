@@ -1,8 +1,14 @@
 // spec: 6 Calling; 6 Anonymous functions
 // Section 6: parameters are annotated; a lambda needs an expected function type with at most
 // one parameter; a recursive or exported function states its return type; named arguments
-// apply only to declared functions; there are no methods.
+// apply only to declared functions; there are no methods; defaults run in parameter order, so a
+// default reads only earlier parameters and those without a default.
 type Point = { x: float64, y: float64 }
+
+func early(a: int = b, b: int = 1): int { a } // ERR: b is a parameter whose default has not run yet
+func self(a: int = a): int { a } // ERR: a is a parameter whose default has not run yet
+func required(a: int = b, b: int): int { a }
+func ordered(a: int = 1, b: int = a + 1, later: func(): int = { c }, c: int = 3): int { b + later() }
 
 func Point.distance(a: Point, b: Point): float64 { a.x - b.x + a.y - b.y }
 
@@ -34,4 +40,6 @@ func main(): void {
   print(early())
   var g: func(int): int = func(a: int, b: int): int { a + b } // ERR: cannot use func(int, int): int where func(int): int is expected
   print(ok(1))
+  print(required(b: 2) + ordered())
+  var lit = func(a: int = b, b: int = 2): int { a } // ERR: b is a parameter whose default has not run yet
 }
