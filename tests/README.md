@@ -11,6 +11,7 @@ TestSpecCoverage` prints the matrix of headings against the number of programs n
 | `run/` | the program's output, exit status and standard error match its trailer, and `ant check` reports nothing |
 | `unchecked/` | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out |
 | `check/` | `ant check` reports exactly the errors the inline markers name, and nothing else |
+| `stdlib/` | each line's library call returns the value or raises the ◆ its `// =>` comment names; see `stdlib/README.md` |
 | `../examples/` | real programs, run like `run/` |
 
 Files under a directory named `lib` are modules the programs import, not tests.
@@ -29,7 +30,7 @@ A tag is a chapter number followed by a subsection heading copied from the spec 
 removed), a chapter number alone for the chapter's own text, or `stdlib` and a namespace of
 `stdlib.md`. Several tags are separated by `;`. A program that triggers a runtime panic also
 carries a `// panics:` line naming a row of the chapter 12 table by its key (see `panicRows` in
-`spec_test.go`) or a ◆ function of chapter 11:
+`spec_test.go`) or a function of chapter 11 whose comment says it panics on a value:
 
 ```
 // panics: index-range
@@ -69,8 +70,9 @@ use.
 ## Where to add a test
 
 - A rule the checker enforces: `check/`, in the file for its chapter.
+- A library function's result for given arguments, or its ◆: a line in `stdlib/`.
 - A behavior with observable output: `run/`.
 - A kind panic the checker rejects: `unchecked/`, one program per panic.
-- A ◆ panic that a checked program can reach: `run/`, with `// exit: 1` and an `// err:` line.
+- A panic that a checked program can reach: `run/`, with `// exit: 1` and an `// err:` line.
 - A bug found by an example or a fuzzer: the smallest program under `run/` or `check/` that shows
   it, added before the fix.
