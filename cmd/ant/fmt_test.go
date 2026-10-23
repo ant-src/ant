@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -169,6 +170,31 @@ func TestFmtNamedFile(t *testing.T) {
 	}
 	if status, out, _ := fmtRun([]string{"--check", dir}, ""); status != 0 || out != "" {
 		t.Errorf("a link in the walk was followed: status %d, stdout %q", status, out)
+	}
+	// A directory named through a link is walked, and its files are named under the link.
+	linked := filepath.Join(dir, "linked")
+	if err := os.Symlink(other, linked); err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(linked, "x.ant") + "\n"
+	if status, out, errOut := fmtRun([]string{"--check", linked}, ""); status != 1 || out != want {
+		t.Errorf("a linked directory: status %d, stdout %q, want %q; stderr %q", status, out, want, errOut)
+	}
+	if status, _, _ := fmtRun([]string{linked}, ""); status != 0 || read(t, filepath.Join(other, "x.ant")) != formatted {
+		t.Errorf("a linked directory was not formatted: status %d", status)
+	}
+}
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("disk full") }
+
+// TestFmtStdoutError checks that ant fmt - exits 2 when the formatted source cannot be written.
+func TestFmtStdoutError(t *testing.T) {
+	var errOut strings.Builder
+	status := run([]string{"fmt", "-"}, strings.NewReader(unformatted), failingWriter{}, &errOut)
+	if status != 2 || !strings.Contains(errOut.String(), "disk full") {
+		t.Errorf("status %d, stderr %q", status, errOut.String())
 	}
 }
 

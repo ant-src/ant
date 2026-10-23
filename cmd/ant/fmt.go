@@ -91,24 +91,37 @@ func (f *formatter) stdin(r io.Reader) {
 			f.unformatted("<stdin>")
 		}
 	default:
-		f.stdout.Write(out)
+		if _, err := f.stdout.Write(out); err != nil {
+			f.fail(err)
+		}
 	}
 }
 
 // dir formats the .ant files under root in lexical order, skipping entries whose names start
-// with a dot and not following symbolic links.
+// with a dot and not following symbolic links. A root that is itself a link is walked through
+// its target, which WalkDir would not enter, and its files are named under root as given.
 func (f *formatter) dir(root string) {
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		switch {
-		case err != nil:
+	target, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		f.fail(err)
+		return
+	}
+	err = filepath.WalkDir(target, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
 			f.fail(err)
 			return nil
-		case path != root && strings.HasPrefix(d.Name(), "."):
+		}
+		rel, err := filepath.Rel(target, path)
+		if err != nil {
+			return err
+		}
+		switch name := filepath.Join(root, rel); {
+		case rel != "." && strings.HasPrefix(d.Name(), "."):
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
-		case d.Type().IsRegular() && strings.HasSuffix(path, ".ant"):
-			f.file(path)
+		case d.Type().IsRegular() && strings.HasSuffix(name, ".ant"):
+			f.file(name)
 		}
 		return nil
 	})
