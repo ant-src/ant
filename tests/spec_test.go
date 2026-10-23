@@ -441,6 +441,14 @@ func TestPanicCoverage(t *testing.T) {
 			covered[k] = true
 		}
 	}
+	// A table case expecting a panic covers its outermost call's function and the
+	// library-value row (stdlib/README.md).
+	for _, name := range tablePanicCases(t) {
+		if strings.Contains(name, ".") && known[name] {
+			covered[name] = true
+			covered["library-value"] = true
+		}
+	}
 	checkPending(t, "panic", required, covered, pendingPanics)
 }
 

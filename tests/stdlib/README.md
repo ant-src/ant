@@ -40,9 +40,9 @@ a setup or a case.
 - **A setup** is any other input: a declaration, an import, a statement, or a comment line. It
   runs for its effect on the inputs after it, and it fails the file if it panics.
 
-A `// =>` on a declaration or a statement, or on an expression of type `void`, is an error in the
-file. The checker decides the type, so the error names the line. Blank lines and comment lines
-are skipped.
+A `// =>` on a declaration or a statement is an error in the file, and so is one on an
+expression of type `void`, which the harness finds when the case returns no value. Blank lines
+and comment lines are skipped.
 
 The file is also a program (see below), so it follows a program's rules where the REPL's are
 looser: a name is declared once, imports come before everything else, and a function or type is

@@ -1,0 +1,119 @@
+// spec: 11 String; 12 Runtime panics
+// panics: count
+// String (section 11): lengths, indices and slices count code points, not bytes.
+
+// Length and slices.
+var s = "héllo wörld"
+String.length(s)                              // => 11
+String.length("añb")                          // => 3
+String.isEmpty("")                            // => true
+String.isEmpty(" ")                           // => false
+String.slice(s, 1, 4)                         // => "éll"
+String.slice("añb", 1, 3)                     // => "ñb"
+String.slice("añb", 0, 0)                     // => ""
+String.slice("héllo", 3, 2)                   // => panic: String.slice: the range 3..2 is not within 0..5
+String.chars("a😀b")                          // => ["a", "😀", "b"]
+
+// Searching: indexOf and lastIndexOf in code points, null when absent.
+String.indexOf(s, "l")                        // => 2
+String.indexOf(s, "ö")                        // => 7
+String.indexOf(s, "zz")                       // => null
+String.lastIndexOf("añbñc", "ñ")              // => 3
+String.lastIndexOf("abc", "z")                // => null
+String.lastIndexOf("abc", "")                 // => 3
+String.contains(s, "wör")                     // => true
+String.contains("hello", "z")                 // => false
+String.startsWith(s, "hé")                    // => true
+String.endsWith(s, "rld")                     // => true
+String.endsWith("hello", "he")                // => false
+
+// count does not overlap, and needs a substring.
+String.count("cheese", "e")                   // => 3
+String.count("aaaa", "aa")                    // => 2
+String.count("abc", "z")                      // => 0
+String.count("banana", "")                    // => panic: String.count needs a substring that is not empty
+
+// Splitting keeps empty pieces; joining and concatenating.
+String.split("a,b,,c,", ",")                  // => ["a", "b", "", "c", ""]
+String.split("abc", "abc")                    // => ["", ""]
+String.split("abc", "x")                      // => ["abc"]
+String.split("ab", "")                        // => panic: String.split needs a separator that is not empty
+String.join(["x", "y"], ", ")                 // => "x, y"
+String.join([], "-")                          // => ""
+String.concat(["a", "b", "c"])                // => "abc"
+
+// cut splits around the first separator.
+String.cut("k=v=w", "=")                      // => String.Cut{ before: "k", after: "v=w" }
+String.cut("kvw", "=")                        // => null
+String.cut("a=b", "")                         // => panic: String.cut needs a separator that is not empty
+var c = String.cut("host:8080", ":") ?? String.Cut{ before: "", after: "" }
+c.before + " " + c.after                      // => "host 8080"
+
+// fields splits on runs of white space; lines on \n and \r\n, without an empty last line.
+String.fields("  a \t b\n c  ")               // => ["a", "b", "c"]
+String.fields("   ")                         // => []
+String.lines("a\r\nb\n")                      // => ["a", "b"]
+String.lines("a\nb")                          // => ["a", "b"]
+String.lines("\n")                            // => [""]
+String.lines("")                              // => []
+String.lines("a\r")                           // => ["a\r"]
+String.lines("\n\n")                          // => ["", ""]
+
+// Repeating; a count above 2^31 − 1 is the count row of the panics table.
+String.repeat("ab", 3)                        // => "ababab"
+String.repeat("ab", 0)                        // => ""
+String.repeat("ab", -1)                       // => panic: String.repeat needs a count of at least 0, got -1
+String.repeat("ab", 2147483648)               // => panic: String.repeat needs a count of at most 2147483647, got 2147483648
+
+// Trimming removes Unicode white space; the prefix and suffix forms remove one copy.
+String.trim("\u{2003} \t x y \n\u{00A0}")     // => "x y"
+String.trimStart("  x  ")                     // => "x  "
+String.trimEnd("  x  ")                       // => "  x"
+String.trimPrefix("prefix-x", "prefix-")      // => "x"
+String.trimPrefix("x", "prefix-")             // => "x"
+String.trimPrefix("aab", "a")                 // => "ab"
+String.trimSuffix("x.ant", ".ant")            // => "x"
+String.trimSuffix("x.ant", ".go")             // => "x.ant"
+
+// Replacing every copy or the first; the pattern cannot be empty.
+String.replace("a-b-c", "-", "+")             // => "a+b+c"
+String.replace("aaa", "a", "bb")              // => "bbbbbb"
+String.replace("ab", "", "-")                 // => panic: String.replace needs a pattern that is not empty
+String.replaceFirst("a-b-c", "-", "+")        // => "a+b-c"
+String.replaceFirst("abc", "z", "+")          // => "abc"
+String.replaceFirst("a-b", "", "+")           // => panic: String.replaceFirst needs a pattern that is not empty
+
+// Case.
+String.toUpper("héllo")                       // => "HÉLLO"
+String.toLower("ÀB")                          // => "àb"
+
+// The class tests hold for every code point, and fail on the empty string.
+String.isDigit("123")                         // => true
+String.isDigit("١٢٣")                         // => true
+String.isDigit("12a")                         // => false
+String.isDigit("")                            // => false
+String.isLetter("añB")                        // => true
+String.isLetter("a1")                         // => false
+String.isSpace(" \t\n\u{00A0}")               // => true
+String.isSpace("a")                           // => false
+String.isUpper("AÑ")                          // => true
+String.isUpper("Añ")                          // => false
+String.isLower("añ")                          // => true
+String.isLower("a1")                          // => false
+Array.map(String.chars("a1 B"), { [String.isLetter(x), String.isDigit(x), String.isSpace(x), String.isUpper(x)] })   // => [[true, false, false, false], [false, true, false, false], [false, false, true, false], [true, false, false, true]]
+
+// Bytes and code points; invalid input gives null.
+String.toBytes("é")                           // => [195, 169]
+String.toBytes("añ")                          // => [97, 195, 177]
+String.fromBytes([byte(195), byte(169)])      // => "é"
+String.fromBytes([byte(255)])                 // => null
+String.toCodePoints("a😀")                    // => [97, 128512]
+String.toCodePoints("añ")                     // => [97, 241]
+String.fromCodePoints([72, 105])              // => "Hi"
+String.fromCodePoints([55296])                // => null
+String.fromCodePoints([1114112])              // => null
+
+// String.from is the rendering print uses.
+String.from(42)                               // => "42"
+String.from("plain")                          // => "plain"
+String.from([1, "a"])                         // => "[1, \"a\"]"

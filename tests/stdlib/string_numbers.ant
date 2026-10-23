@@ -1,0 +1,81 @@
+// spec: 11 String; 12 Runtime panics
+// Numbers to text and back, and padding.
+
+// fromInt writes the digits of a base from 2 to 36: an unsigned value as the number it is, and
+// the most negative int with its sign.
+String.fromInt(255)                           // => "255"
+String.fromInt(255, 16)                       // => "ff"
+String.fromInt(255, 2)                        // => "11111111"
+String.fromInt(11, 2)                         // => "1011"
+String.fromInt(-255, 16)                      // => "-ff"
+String.fromInt(35, 36)                        // => "z"
+String.fromInt(Math.minInt, 2)                // => "-1000000000000000000000000000000000000000000000000000000000000000"
+String.fromInt(Math.minInt, 10)               // => "-9223372036854775808"
+String.fromInt(Math.minInt, 36)               // => "-1y2p0ij32e8e8"
+String.fromInt(Bits.not(uint64(0)))           // => "18446744073709551615"
+String.fromInt(Bits.not(uint64(0)), 16)       // => "ffffffffffffffff"
+String.fromInt(int8(-128), 2)                 // => "-10000000"
+String.fromInt(byte(7), 2)                    // => "111"
+String.fromInt(11, 1)                         // => panic: String.fromInt needs a base from 2 to 36, got 1
+
+// fromFloat is fixed point, half to even on a tie, and renders NaN and the infinities as
+// String.from does.
+String.fromFloat(3.14159, 2)                  // => "3.14"
+String.fromFloat(2.0, 0)                      // => "2"
+String.fromFloat(2.5, 0)                      // => "2"
+String.fromFloat(3.5, 0)                      // => "4"
+String.fromFloat(-1.5, 0)                     // => "-2"
+String.fromFloat(1.0, 3)                      // => "1.000"
+String.fromFloat(1e21, 0)                     // => "1000000000000000000000"
+String.fromFloat(0.0 / 0.0, 2)                // => "NaN"
+String.fromFloat(1.0 / 0.0, 2)                // => "Infinity"
+String.fromFloat(-1.0 / 0.0, 2)               // => "-Infinity"
+String.fromFloat(2.0, -1)                     // => panic: String.fromFloat needs a count of digits of at least 0, got -1
+
+// toInt reads an optional sign and the digits of a base, in either letter case, and nothing else.
+String.toInt("42")                            // => 42
+String.toInt("+5")                            // => 5
+String.toInt("-5")                            // => -5
+String.toInt(" 5")                            // => null
+String.toInt("5.0")                           // => null
+String.toInt("x")                             // => null
+String.toInt("")                              // => null
+String.toInt("1_0")                           // => null
+String.toInt("99999999999999999999")          // => null
+String.toInt("ff", 16)                        // => 255
+String.toInt("FF", 16)                        // => 255
+String.toInt("-ff", 16)                       // => -255
+String.toInt("0xff", 16)                      // => null
+String.toInt("101", 2)                        // => 5
+String.toInt("2", 2)                          // => null
+String.toInt("z", 36)                         // => 35
+String.toInt("Z", 36)                         // => 35
+String.toInt("11", 36)                        // => 37
+String.toInt("ffffffffffffffff", 16)          // => null
+String.toInt("7fffffffffffffff", 16)          // => 9223372036854775807
+String.toInt("-8000000000000000", 16)         // => -9223372036854775808
+String.toInt("", 16)                          // => null
+String.toInt("-", 16)                         // => null
+String.toInt("1_0", 16)                       // => null
+String.toInt(" 1", 16)                        // => null
+String.toInt("11", 37)                        // => panic: String.toInt needs a base from 2 to 36, got 37
+
+// toFloat.
+String.toFloat("2.5")                         // => 2.5
+String.toFloat("-2.5")                        // => -2.5
+String.toFloat("1e3")                         // => 1000.0
+String.toFloat("1")                           // => 1.0
+String.toFloat("abc")                         // => null
+
+// The pads count code points, and cut a longer pad to what is missing.
+String.padStart("7", 3, "0")                  // => "007"
+String.padStart("7", 4, "ab")                 // => "aba7"
+String.padStart("abc", 2)                     // => "abc"
+String.padStart("ab", 2, "x")                 // => "ab"
+String.padStart("ñ", 3)                       // => "  ñ"
+String.padStart("7", 3, "")                   // => panic: String.padStart needs a pad that is not empty
+String.padEnd("7", 3, "0")                    // => "700"
+String.padEnd("7", 4, "ab")                   // => "7aba"
+String.padEnd("ñ", 3)                         // => "ñ  "
+String.padEnd("7", 3, "")                     // => panic: String.padEnd needs a pad that is not empty
+`${String.fromFloat(1234.5678, 2)} ${String.padStart(String.fromInt(255, 16), 8, "0")}`   // => "1234.57 000000ff"
