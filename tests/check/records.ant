@@ -31,4 +31,7 @@ func main(): void {
   var strs: Box[string] = Box{ ...ints, value: "a" }
   var early: Box[string] = Box{ value: "a", ...ints } // ERR: cannot use int for the field value of type string
   print(strs.value + Box{ ...ints, value: "b" }.value)
+  var both: Box[string] = Box{ ...ints, ...strs }
+  var backwards: Box[string] = Box{ ...strs, ...ints } // ERR: cannot use int for the field value of type string
+  print(both.value + Box{ ...ints, ...strs }.value)
 }

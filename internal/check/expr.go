@@ -541,17 +541,33 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 	}
 	given := map[string]bool{}
 	spreadUnknown := false // a spread whose fields cannot be known supplies no field
-	// A later entry wins (section 12), so a spread's field that a named entry after it gives
-	// again does not constrain the literal's type.
+	// A later entry wins (section 12), so a spread's field that an entry after it gives again
+	// does not constrain the literal's type. Named entries are known up front; the fields of a
+	// later spread only once it is checked, so a field a later spread may give is matched
+	// after the loop, when the last spread to give it is known.
 	later := make([]map[string]bool, len(x.Entries))
+	laterSpread := make([]bool, len(x.Entries))
 	names := map[string]bool{}
+	spreadAfter := false
 	for i := len(x.Entries) - 1; i >= 0; i-- {
 		later[i] = names
+		laterSpread[i] = spreadAfter
 		if x.Entries[i].Spread == nil {
 			names = maps.Clone(names)
 			names[x.Entries[i].Name] = true
+		} else {
+			spreadAfter = true
 		}
 	}
+	type spreadField struct {
+		entry int
+		want  types.Type
+		got   types.Type
+		pos   ast.Pos
+		name  string
+	}
+	var deferred []spreadField
+	lastSpread := map[string]int{}
 	for i, en := range x.Entries {
 		if en.Spread != nil {
 			st := c.synth(en.Spread, sc)
@@ -569,7 +585,12 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 					c.errorf(en.Pos, "%s has no field %s, which the spread of %s would copy", decl.Name, f.Name, types.String(st))
 					continue
 				}
-				if !later[i][f.Name] {
+				lastSpread[f.Name] = i
+				switch {
+				case later[i][f.Name]:
+				case laterSpread[i]:
+					deferred = append(deferred, spreadField{i, decl.Fields[idx].Type, f.Type, en.Pos, f.Name})
+				default:
 					c.matchField(decl.Fields[idx].Type, f.Type, subst, unsolved, en.Pos, f.Name)
 				}
 				given[f.Name] = true
@@ -595,6 +616,11 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 			c.check(en.Value, sc, w)
 		}
 		given[en.Name] = true
+	}
+	for _, d := range deferred {
+		if lastSpread[d.name] == d.entry {
+			c.matchField(d.want, d.got, subst, unsolved, d.pos, d.name)
+		}
 	}
 	for _, f := range decl.Fields {
 		if !given[f.Name] && !spreadUnknown {
