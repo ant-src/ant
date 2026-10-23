@@ -14,6 +14,10 @@ func NewPlainDate(year, month, day int) (PlainDate, error) {
 		return PlainDate{}, fmt.Errorf("no such date: %s-%02d-%02d", formatYear(int64(year)), month, day)
 	}
 	d := PlainDate{year, month, day}
+	// The year is bounded first, since the day count of a huge one overflows into the range.
+	if year < -999_999 || year > 999_999 {
+		return PlainDate{}, ErrRange
+	}
 	if days := d.days(); days < -maxDays-1 || days > maxDays+1 {
 		return PlainDate{}, ErrRange
 	}

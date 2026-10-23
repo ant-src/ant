@@ -63,3 +63,6 @@ Time.total(Time.duration(months: 1), Time.Day{}) // => panic: Time.total: a tota
 // no hour.
 Time.with(Time.plainDate(2026, 1, 31), month: 2) // => 2026-02-28
 Time.with(Time.plainDate(2026, 1, 31), hour: 1) // => panic: Time.with: a date has no time fields
+
+// A year so large that its day count overflows is a panic, not a date.
+Time.plainDate(3989932118587117601, 3, 1)     // => panic: Time.plainDate: outside the range of time values

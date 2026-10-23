@@ -273,6 +273,10 @@ func TestCivil(t *testing.T) {
 	if _, err := NewPlainDate(300000, 1, 1); err == nil {
 		t.Error("year 300000 accepted")
 	}
+	// A year whose day count overflows int64 back into the range.
+	if d, err := NewPlainDate(3989932118587117601, 3, 1); err == nil {
+		t.Errorf("year 3989932118587117601 accepted: %v", d)
+	}
 	for _, days := range []int64{-maxDays, -719468, -1, 0, 1, 59, 60, 365, 11016, maxDays} {
 		if got := dateFromDays(days).days(); got != days {
 			t.Errorf("day %d round-trips to %d", days, got)
