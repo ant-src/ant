@@ -29,8 +29,8 @@ func main(): void {
   t = Suspended{ reason: "x" }
   var r: Result[void, TransferError] = Result.err(NotFound{ id: 1 })
   var bad = Result.err(NotFound{ id: 1 }) // ERR: cannot infer the type parameter T of Result.err
-  var e = Map{} // ERR: cannot infer
-  var two: func(int, int): int = { x } // ERR: a lambda has at most one parameter
+  var e = Map{}                           // ERR: cannot infer
+  var two: func(int, int): int = { x }    // ERR: a lambda has at most one parameter
   var ys = Array.map([1], { String.from(x) })
   var z: int = ys[0] // ERR: cannot use string where int is expected
   var c = true

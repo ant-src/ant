@@ -26,7 +26,9 @@ func main(): void {
   print(Context.isDone(bounded))
   print(Channel.isClosed(empty))
   var vals: Channel[int] = Channel.new(3)
-  Channel.send(vals, 1); Channel.send(vals, 2); Channel.send(vals, 3)
+  Channel.send(vals, 1)
+  Channel.send(vals, 2)
+  Channel.send(vals, 3)
   var stop = Context.new()
   var seen: Array[int] = []
   go { Time.sleep(Time.duration(milliseconds: 20)); Context.cancel(stop) }

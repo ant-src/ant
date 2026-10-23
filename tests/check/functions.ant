@@ -6,7 +6,7 @@
 type Point = { x: float64, y: float64 }
 
 func early(a: int = b, b: int = 1): int { a } // ERR: b is a parameter whose default has not run yet
-func self(a: int = a): int { a } // ERR: a is a parameter whose default has not run yet
+func self(a: int = a): int { a }              // ERR: a is a parameter whose default has not run yet
 func required(a: int = b, b: int): int { a }
 func ordered(a: int = 1, b: int = a + 1, later: func(): int = { c }, c: int = 3): int { b + later() }
 
@@ -30,8 +30,8 @@ func main(): void {
   print(dist(a: p, b: p)) // ERR: a call through a function value is positional
   print(dist(p, p))
   var once = Once.new()
-  Once.do(once, { print(x) }) // ERR: x is not defined
-  print(Point.distance(p)) // ERR: Point.distance needs an argument for b
+  Once.do(once, { print(x) })    // ERR: x is not defined
+  print(Point.distance(p))       // ERR: Point.distance needs an argument for b
   print(Point.distance(p, p, p)) // ERR: Point.distance takes 2 arguments
   print(Point.distance(p, c: p)) // ERR: Point.distance has no parameter c
   var early = func(): int {

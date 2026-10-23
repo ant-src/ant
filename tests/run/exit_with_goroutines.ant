@@ -3,7 +3,7 @@
 // cannot keep main from running; and the program exits when main returns, whatever other
 // goroutines are doing.
 func main(): void {
-  var started: void = go { while true { } }
+  var started: void = go { while true {} }
   print(started)
   var spins = Atomic.new(0)
   go { while true { _ = Atomic.add(spins, 1) } }

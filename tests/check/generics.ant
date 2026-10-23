@@ -31,7 +31,7 @@ func main(): void {
   var widened: Array[Shape] = [...circles]
   var f: func(Circle): float64 = anyArea
   var g: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
-  var r = Result.ok(1) // ERR: cannot infer the type parameter E of Result.ok
+  var r = Result.ok(1)                     // ERR: cannot infer the type parameter E of Result.ok
   var ok: Result[int, Error] = Result.ok(1)
   print(Array.sum(xs) ?? 0)
   print(Array.sort(shapes)) // ERR: T would be Shape, which is not a single member of its bound Ordered

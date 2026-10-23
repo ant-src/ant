@@ -11,9 +11,9 @@ var origin = Point{ x: 0, y: 0 }
 func main(): void {
   var three = if true { var t = 1; t + 2 } else { 0 }
   print(three)
-  var nothing: void = if true { var t = 1 } else { }
+  var nothing: void = if true { var t = 1 } else {}
   print(nothing)
-  var assigned: void = if true { three = 4 } else { }
+  var assigned: void = if true { three = 4 } else {}
   print(assigned)
   print(three)
   var empty: void = if true {} else {}
@@ -32,7 +32,9 @@ func main(): void {
   if Array.isEmpty(xs) { print("no") } else { print("after a call") }
   if u.name == "ada" { print("after a path") }
   if 2 > 1 { print("after a literal") }
-  var a = 1; var b = 2; print(a + b)
+  var a = 1
+  var b = 2
+  print(a + b)
   var seq: func(): int = {
     var inner = 10
     inner * 2

@@ -13,13 +13,13 @@ func main(): void {
   print(ints(1, 2))
   var mapped: Array[string] = Array.map(["a"], String.toUpper)
   print(mapped)
-  var bare = Array.length // ERR: Array.length is generic; call it
-  var wrong: func(int): int = Array.length // ERR: cannot use Array.length where func(int): int is expected
+  var bare = Array.length                                 // ERR: Array.length is generic; call it
+  var wrong: func(int): int = Array.length                // ERR: cannot use Array.length where func(int): int is expected
   var sums: Array[int] = Array.map([[1], [2]], Array.sum) // ERR: cannot use func(Array[int]): int | null where func(Array[int]): int is expected
   var strs: func(string, string): string = bigger
   print(strs("a", "b"))
-  var bools: func(bool, bool): bool = bigger // ERR: T would be bool, which is not a single member of its bound Ordered
-  print(apply(bigger)) // ERR: T would be bool, which is not a single member of its bound Ordered
+  var bools: func(bool, bool): bool = bigger      // ERR: T would be bool, which is not a single member of its bound Ordered
+  print(apply(bigger))                            // ERR: T would be bool, which is not a single member of its bound Ordered
   var nums: func(Number, Number): Number = bigger // ERR: T would be Number
   print(bare)
 }

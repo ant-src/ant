@@ -16,7 +16,7 @@ func main(): void {
   var q = null ?? /e/
   print(q)
   print(pick())
-  print(`${ /f/ } and ${ /g/i }`)
+  print(`${/f/} and ${/g/i}`)
   print((/=/))
   print(/[/]/)
   print(/a\/b/)

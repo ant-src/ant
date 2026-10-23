@@ -50,7 +50,7 @@ func main(): void {
   var flag = Atomic.new(false)
   var payload = Cell{ v: 0 }
   go { payload.v = 7; Atomic.store(flag, true) }
-  while !Atomic.load(flag) { }
+  while !Atomic.load(flag) {}
   print(`atomic: ${payload.v}`)
 }
 

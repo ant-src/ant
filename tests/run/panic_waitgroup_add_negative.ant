@@ -2,7 +2,10 @@
 // panics: WaitGroup.add; library-value
 // WaitGroup.add that would take the counter below zero panics (section 11).
 func main(): void {
-  var wg = WaitGroup.new(); WaitGroup.add(wg, 2); WaitGroup.add(wg, -2); print("balanced")
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 2)
+  WaitGroup.add(wg, -2)
+  print("balanced")
   WaitGroup.add(wg, -1)
 }
 

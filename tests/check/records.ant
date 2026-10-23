@@ -15,11 +15,11 @@ func copy(n: { name: string }): Named { Named{ ...n } } // ERR: a spread needs a
 func main(): void {
   var p = Point{ x: 1.0, y: 2.0 }
   print(Point{ x: 1.0, y: 2.0, z: 3.0 }) // ERR: Point has no field z
-  print(UserId{ value: "x" }) // ERR: UserId is not a record type
-  print(Alias{}) // ERR: Alias is not a record type
-  for e in p { print(e) } // ERR: for needs an array, a map, a set, a string, or a sequence, got Point
-  p.z = 1.0 // ERR: Point has no field z
-  print(p.z) // ERR: Point has no field z
+  print(UserId{ value: "x" })            // ERR: UserId is not a record type
+  print(Alias{})                         // ERR: Alias is not a record type
+  for e in p { print(e) }                // ERR: for needs an array, a map, a set, a string, or a sequence, got Point
+  p.z = 1.0                              // ERR: Point has no field z
+  print(p.z)                             // ERR: Point has no field z
   var x = 1.0
   print(Point{ x, y }) // ERR: y is not defined
   var a: { name: string } = Named{ name: "a" }

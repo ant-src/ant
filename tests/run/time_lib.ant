@@ -17,13 +17,13 @@ func main(): void {
     Atomic.store(order, Atomic.load(order) + "fast ")
   }
   WaitGroup.wait(wg)
-  print(Atomic.load(order))
+  print(String.trimEnd(Atomic.load(order)))
   var elapsed = Time.monotonic() - start
   print(elapsed >= 60)
   print(Time.epochMillis(Time.now()) > 1600000000000)
 }
 
 // expect
-// out: fast slow 
+// out: fast slow
 // out: true
 // out: true

@@ -20,9 +20,9 @@ func events(lines: Channel[string], ctx: Context): Event {
 func wrong(lines: Channel[string], out: Channel[int], ctx: Context): int {
   var n: int = select {
     var line = Channel.receive(lines) { line } // ERR: cannot use string | null where int is expected
-    var done = Context.wait(ctx) { 0 } // ERR: Context.wait returns void, so there is nothing to bind to done
-    Channel.receive(lines, ctx) { 1 } // ERR: a select clause's head takes no context
-    var sent = Channel.send(out, "x") { 2 } // ERR: cannot use string where int is expected
+    var done = Context.wait(ctx) { 0 }         // ERR: Context.wait returns void, so there is nothing to bind to done
+    Channel.receive(lines, ctx) { 1 }          // ERR: a select clause's head takes no context
+    var sent = Channel.send(out, "x") { 2 }    // ERR: cannot use string where int is expected
   }
   n
 }

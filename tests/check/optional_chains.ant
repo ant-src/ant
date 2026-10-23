@@ -14,8 +14,8 @@ func main(): void {
   var s: string | null = a?.b.f()
   var e: string | null = a?.n?.d.e
   var v = a?.b.c
-  var w: int = v // ERR: cannot use int | null where int is expected
-  print(a?.n.c) // ERR: In | null has no field c: narrow the value first
+  var w: int = v  // ERR: cannot use int | null where int is expected
+  print(a?.n.c)   // ERR: In | null has no field c: narrow the value first
   print((a?.b).c) // ERR: In | null has no field c: narrow the value first
-  print(a?.b?.c) // ERR: ?. needs a nullable left side, got In
+  print(a?.b?.c)  // ERR: ?. needs a nullable left side, got In
 }

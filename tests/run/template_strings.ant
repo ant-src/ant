@@ -7,7 +7,7 @@ func main(): void {
   var count = 3
   print(`total: ${count} items`)
   print(`${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}`)
-  print(`nested: ${ `inner ${count}` }`)
+  print(`nested: ${`inner ${count}`}`)
   print(`multi
 line`)
   print(`escapes: \` \${not} \\ \u{41}`)

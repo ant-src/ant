@@ -2,7 +2,9 @@
 // panics: Cond.wait; library-value
 // Cond.wait when the mutex is not locked panics (section 11).
 func main(): void {
-  var lock = Mutex.new(); var c = Cond.new(lock); print("waiting unlocked")
+  var lock = Mutex.new()
+  var c = Cond.new(lock)
+  print("waiting unlocked")
   Cond.wait(c)
 }
 

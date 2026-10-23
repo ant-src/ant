@@ -15,20 +15,20 @@ func greet(n: { name: string }): string { `hi ${n.name}` }
 func main(): void {
   var user = Person{ name: "ada", age: 36 }
   print(greet(user))
-  var n: Named = user // ERR: cannot use Person where Named is expected
+  var n: Named = user                         // ERR: cannot use Person where Named is expected
   print(greet(Named{ name: "ada", age: 36 })) // ERR: Named has no field age
-  print(Person{ name: "bob" }) // ERR: Person literal is missing the field age
+  print(Person{ name: "bob" })                // ERR: Person literal is missing the field age
   var p = Point{ x: 1.0, y: 2.0 }
   print(p["x"]) // ERR: a record has no dynamic access
   var id = UserId("u-1")
   var other: AccountId = id // ERR: cannot use UserId where AccountId is expected
-  var raw: string = id // ERR: cannot use UserId where string is expected
-  var bad: UserId = "u-1" // ERR: cannot use string where UserId is expected
+  var raw: string = id      // ERR: cannot use UserId where string is expected
+  var bad: UserId = "u-1"   // ERR: cannot use string where UserId is expected
   var d = Meters(3.0) * Meters(2.0)
   var e = Meters(3.0) * 2.0 // ERR: * needs both operands of one type, got Meters and float64
-  print(String.length(id)) // ERR: cannot use UserId where string is expected
-  print(Point) // ERR: Point is a type, not a value
-  print(Alias) // ERR: Alias is a type, not a value
+  print(String.length(id))  // ERR: cannot use UserId where string is expected
+  print(Point)              // ERR: Point is a type, not a value
+  print(Alias)              // ERR: Alias is a type, not a value
   var q: Alias = 1
   var w: Point = Point{ x: 1.0, y: "2" } // ERR: cannot use string where float64 is expected
   print(user.name)
@@ -37,5 +37,5 @@ func main(): void {
   print(int8(user)) // ERR: int8 converts a number or a named primitive type over a number, got Person
   var count = Meters(1.0)
   print(float64(count) + 1.0)
-  print(int(count)) 
+  print(int(count))
 }

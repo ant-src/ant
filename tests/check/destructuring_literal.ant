@@ -3,7 +3,7 @@
 // element type of the literal, the union of its elements' types.
 func main(): void {
   var [n, s] = [1, "t"]
-  var i: int = n // ERR: cannot use int | string where int is expected
+  var i: int = n    // ERR: cannot use int | string where int is expected
   var t: string = s // ERR: cannot use int | string where string is expected
   var u: int | string = n
   print(u)

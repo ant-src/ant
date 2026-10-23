@@ -21,8 +21,8 @@ func main(): void {
   var n: int = panic("never")
   var t: any = 1 // ERR: unknown type any
   var circles: Map[string, Circle] = Map{ a: Circle{ radius: 1.0 } }
-  var shapes: Map[string, Shape] = circles // ERR: cannot use Map[string, Circle] where Map[string, Shape] is expected
-  var widened: Map[string, Shape] = Map.merge(Map{}, circles) // ERR: cannot use Map[string, Circle] where Map[string, Shape] is expected
+  var shapes: Map[string, Shape] = circles                     // ERR: cannot use Map[string, Circle] where Map[string, Shape] is expected
+  var widened: Map[string, Shape] = Map.merge(Map{}, circles)  // ERR: cannot use Map[string, Circle] where Map[string, Shape] is expected
   var p: { name: string | null } = Person{ name: "a", age: 1 } // ERR: cannot use Person where { name: string | null } is expected
   var q: { name: string } = Person{ name: "a", age: 1 }
   var x: int | null | null = null

@@ -49,7 +49,7 @@ func main(): void {
   for ch in "añ😀" { print(String.length(ch)) }
   var none: Array[int] = []
   for _ in none { print("never") }
-  var w: void = for x in [1] { }
+  var w: void = for x in [1] {}
   print(w)
   var taken: Array[int] = []
   for x in Iter.range(0, 1000) { if x > 2 { break }; Array.push(taken, x) }

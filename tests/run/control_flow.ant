@@ -51,7 +51,7 @@ func main(): void {
   }
   print(firstNegative([1, 2]))
   print(findInSeq())
-  var r = while false { }
+  var r = while false {}
   print(r)
   var ys = [1, 2, 3]
   for y in ys { if y == 1 { ys[2] = 30 }; print(y) }

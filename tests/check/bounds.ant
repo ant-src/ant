@@ -34,7 +34,7 @@ func main(): void {
   print(rename(Named{ name: "x" }))
   print(widen(1))
   print(widenNull("s"))
-  print(bigger("a", 1)) // ERR: cannot use int where string is expected
+  print(bigger("a", 1))      // ERR: cannot use int where string is expected
   print(bigger(true, false)) // ERR: T would be bool
   var o: Ordered = 1
   print(bigger(o, o)) // ERR: T would be Ordered
