@@ -11,6 +11,7 @@ var later = 1
 func main(a: int): int { // ERR: main takes no parameters ;; main returns void, not int
   counter = 2 // ERR: cannot assign to the imported variable counter
   Geometry.counter = 3 // ERR: imports are read-only
+  [Geometry.counter] = [4] // ERR: cannot assign to Geometry.counter: imports are read-only
   var s: Geometry.Secret = Geometry.Secret{} // ERR: Secret is not exported by Geometry ;; Secret is not exported by Geometry
   print(Geometry.hidden()) // ERR: hidden is not exported by Geometry
   var o = Point{ x: 1.0, y: 2.0 }

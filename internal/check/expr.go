@@ -1422,7 +1422,16 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 			c.errorf(t.Pos, "cannot assign to %s", t.Name)
 		}
 	case *ast.Field:
+		// the rules of a plain field assignment: no import, no union
+		if base := c.entityPath(t.X, sc); base != nil && base.kind == entModule {
+			c.errorf(t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
+			return
+		}
 		recv := c.synth(t.X, sc)
+		if _, isUnion := types.Expand(recv).(types.Union); isUnion {
+			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
+			return
+		}
 		c.expect(t.Pos, v, c.fieldOf(recv, t.Name, t.Pos))
 	case *ast.Index:
 		recv := c.synth(t.X, sc)

@@ -1,10 +1,12 @@
-// spec: 3; 5 Destructuring; 4 Assignability
+// spec: 3; 5 Destructuring; 4 Assignability; 4 Tagged unions
 // Section 3: an assignment target is a variable, a field, an element, or an array
 // destructuring of such places, and the right side must be assignable to each; a compound
 // assignment needs an operator that applies to the target's type; an imported or top-level
 // var is assignable in its own module; the elements of a heterogeneous literal have the union
-// type, so a destructuring assignment from one is an error (SPEC-FEEDBACK.md).
+// type, so a destructuring assignment from one is an error (SPEC-FEEDBACK.md); section 4 Tagged
+// unions: a field is never assigned through a union, by a destructuring either.
 type Point = { x: int, y: int }
+type Label = { x: string }
 
 var count = 0
 
@@ -29,6 +31,8 @@ func main(): void {
   [n, s] = [1, "t"] // ERR: cannot use int | string where int is expected ;; cannot use int | string where string is expected
   [p.x, xs[1], ...xs] = [3, 4, 5]
   [n, ...s] = [1, 2] // ERR: cannot use Array[int] where string is expected
+  var either: Point | Label = Label{ x: "l" }
+  [either.x] = [1] // ERR: cannot assign a field through the union Point | Label; narrow first
   p = Point{ x: 0, y: 0 }
   _ = n
   bump()
