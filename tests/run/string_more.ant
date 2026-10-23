@@ -1,5 +1,5 @@
 // spec: 11 String
-// The String functions Plan 5 added: lastIndexOf in code points, one-sided trims, a prefix or
+// More String functions: lastIndexOf in code points, one-sided trims, a prefix or
 // suffix removed once, count without overlap, replaceFirst, cut around the first separator,
 // fields on runs of white space, lines on \n and \r\n without an empty final line, and the
 // class tests, which hold for every code point and fail on the empty string.

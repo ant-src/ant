@@ -1,5 +1,5 @@
 // spec: 11 Math and Bits
-// The Bits functions Plan 5 added: the rotations within each kind's width, by a count modulo
+// More Bits functions: the rotations within each kind's width, by a count modulo
 // the width, and the zero counts, which are the width for zero and count the two's complement
 // bits of a negative value.
 func main(): void {

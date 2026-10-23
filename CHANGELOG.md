@@ -29,7 +29,7 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
 - The coverage gate runs `go test` itself with `-run`, and three more examples: a task runner
   over `Os.exec`, a filter over standard input, and an agenda across zones.
 
-- The everyday library (Plan 5). A regular expression literal `/.../flags` with RE2 inside: a
+- The everyday library. A regular expression literal `/.../flags` with RE2 inside: a
   `/` begins one unless the token before it is an operand, so every existing program keeps its
   meaning, which a differential fuzz test checks; a pattern is a value compared by source and
   flags, rendered as a literal that reads back. A `Regex` namespace: `compile`, `test`, `find`,
@@ -53,7 +53,7 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
 - The panic gate reads `stdlib.md` as well as chapter 11, and two more examples: a log summary
   with patterns and padding, and a signed webhook delivery.
 
-- The waiting (Plan 6). A `Context` is done once, by a call, a deadline or its parent, and
+- The waiting. A `Context` is done once, by a call, a deadline or its parent, and
   every blocking library call takes one as its last parameter and gives up with its reason:
   `Chan`, `WaitGroup.wait`, `Time.sleep`, `Http.request`, `Os.exec`, the `File` reads, `Net`,
   and `Http.serve`. `WaitGroup` is rebuilt on a channel closed at zero.
@@ -69,15 +69,15 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
   its signals. Three more examples: a worker pool with a deadline, a socket echo server, and a
   JSON API that drains on an interrupt.
 
-- `select` (Plan 7), a keyword: a clause is one of five blocking calls, `Chan.receive`,
+- `select`, a keyword: a clause is one of five blocking calls, `Chan.receive`,
   `Chan.send`, `Context.wait`, `WaitGroup.wait` or `Time.sleep`, written as the call and not
   performed, with a block each, `var x =` binding the result and `else` for nothing ready. The
   heads' operands evaluate once before the wait, one ready head is chosen at random, and the
   blocks return, break and continue like any other, so a state machine is a loop around a
-  `select`. A `select` is an expression typed like an `if`. The `Select` namespace of Plan 6 is
+  `select`. A `select` is an expression typed like an `if`. The `Select` namespace of the waiting is
   gone.
 
-- The review (Plan 8). A handle's reads, writes and close lock apart, so a reader and a writer
+- A review of the above. A handle's reads, writes and close lock apart, so a reader and a writer
   share a connection and a close from a third goroutine ends a read in progress; a read ended by
   its context keeps what it consumed for the next read, standard input stays open and the late
   line arrives whole, and `File.pipe` flushes what it copied. A timeout context unregisters

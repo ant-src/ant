@@ -1,5 +1,5 @@
 // spec: 11 Math and Bits
-// The Math functions Plan 5 added: logarithms and exp, the trigonometry in radians, hypot and
+// More Math functions: logarithms and exp, the trigonometry in radians, hypot and
 // cbrt, the NaN and finiteness tests, clamp on any Ordered type with NaN passing through,
 // randomInt in its half-open range, and the float constants. The float functions follow IEEE
 // 754 and never panic.

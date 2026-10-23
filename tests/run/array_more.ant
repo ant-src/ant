@@ -1,5 +1,5 @@
 // spec: 11 Array
-// The Array functions Plan 5 added: first and last; insert and removeAt in the middle; flatMap;
+// More Array functions: first and last; insert and removeAt in the middle; flatMap;
 // the index and last forms of find; countWhere; lastIndexOf; min and max with null on an empty
 // array and NaN when one is in it; minBy and maxBy taking the first of equal keys; unique and
 // uniqueBy keeping the first of each; chunk with a shorter last chunk; and groupBy in
