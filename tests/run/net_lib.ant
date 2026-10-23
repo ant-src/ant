@@ -36,7 +36,9 @@ func main(): void {
   Net.close(listener)
   print(Net.accept(listener))
   Net.close(listener)
-  print(Result.isOk(Net.dial(address, Context.new(Time.duration(seconds: 5)))))
+  // A dial to the closed listener's port could reach another program that took it since, so
+  // the failing dial is one to an address without a port.
+  print(Result.isOk(Net.dial("127.0.0.1", Context.new(Time.duration(seconds: 5)))))
   print(Result.isOk(Net.listen("256.256.256.256:1")))
 }
 
