@@ -829,9 +829,9 @@ func (g *Goroutine) assign(e *ast.Assign, env *Env) (value.Value, ctl) {
 		}
 		g.setIndex(recv, idx, v, t.Pos)
 	case *ast.AssignArray:
-		places, c := g.places(t, env)
+		places, cv, c := g.places(t, env)
 		if c != ctlNone {
-			return nil, c
+			return cv, c
 		}
 		v, c := g.eval(e.Value, env)
 		if c != ctlNone {
@@ -878,58 +878,59 @@ type place struct {
 }
 
 // places evaluates the sub-expressions of every position, left to right, before the right
-// side is evaluated.
-func (g *Goroutine) places(t *ast.AssignArray, env *Env) (place, ctl) {
+// side is evaluated. When one transfers control, as a try does, the second result is the value
+// it carries.
+func (g *Goroutine) places(t *ast.AssignArray, env *Env) (place, value.Value, ctl) {
 	p := place{pos: t.Pos}
 	for _, el := range t.Elems {
 		switch x := el.(type) {
 		case *ast.AssignArray:
-			np, c := g.places(x, env)
+			np, v, c := g.places(x, env)
 			if c != ctlNone {
-				return p, c
+				return p, v, c
 			}
 			p.nested = append(p.nested, np)
 		default:
-			st, c := g.placeOf(x.(ast.Expr), env)
+			st, v, c := g.placeOf(x.(ast.Expr), env)
 			if c != ctlNone {
-				return p, c
+				return p, v, c
 			}
 			p.nested = append(p.nested, place{store: st})
 		}
 	}
 	if t.Rest != nil {
-		st, c := g.placeOf(t.Rest, env)
+		st, v, c := g.placeOf(t.Rest, env)
 		if c != ctlNone {
-			return p, c
+			return p, v, c
 		}
 		p.rest = st
 	}
-	return p, ctlNone
+	return p, nil, ctlNone
 }
 
-func (g *Goroutine) placeOf(e ast.Expr, env *Env) (func(value.Value), ctl) {
+func (g *Goroutine) placeOf(e ast.Expr, env *Env) (func(value.Value), value.Value, ctl) {
 	switch x := e.(type) {
 	case *ast.Ident:
-		return func(v value.Value) { g.assignIdent(x, v, env) }, ctlNone
+		return func(v value.Value) { g.assignIdent(x, v, env) }, nil, ctlNone
 	case *ast.Field:
 		recv, c := g.eval(x.X, env)
 		if c != ctlNone {
-			return nil, c
+			return nil, recv, c
 		}
-		return func(v value.Value) { g.setField(recv, x.Name, v, x.Pos) }, ctlNone
+		return func(v value.Value) { g.setField(recv, x.Name, v, x.Pos) }, nil, ctlNone
 	case *ast.Index:
 		recv, c := g.eval(x.X, env)
 		if c != ctlNone {
-			return nil, c
+			return nil, recv, c
 		}
 		idx, c := g.eval(x.Index, env)
 		if c != ctlNone {
-			return nil, c
+			return nil, idx, c
 		}
-		return func(v value.Value) { g.setIndex(recv, idx, v, x.Pos) }, ctlNone
+		return func(v value.Value) { g.setIndex(recv, idx, v, x.Pos) }, nil, ctlNone
 	}
 	g.panicf(e.Position(), "internal error: not a place")
-	return nil, ctlNone
+	return nil, nil, ctlNone
 }
 
 func (g *Goroutine) storePlaces(p place, v value.Value) {

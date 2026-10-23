@@ -1,0 +1,22 @@
+// spec: 8 try; 5 Destructuring
+// A try in a target of a destructuring assignment returns the Err from the function before the
+// right side runs, and the call yields that Err.
+func idx(ok: bool): Result[int, string] {
+  if ok { Result.ok(0) } else { Result.err("no index") }
+}
+func store(xs: Array[int], ok: bool): Result[int, string] {
+  var b = 0
+  [xs[try idx(ok)], b] = [7, 8]
+  Result.ok(b)
+}
+func main(): void {
+  var xs = [1, 2]
+  print(store(xs, true))
+  print(xs)
+  print(store(xs, false))
+}
+
+// expect
+// out: Ok{ value: 8 }
+// out: [7, 2]
+// out: Err{ error: "no index" }
