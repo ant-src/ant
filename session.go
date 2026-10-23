@@ -59,11 +59,12 @@ func (s *Session) Eval(src string) (value.Value, error) {
 		return nil, &LoadError{Diagnostics: convert(diags)}
 	}
 	v, err := s.s.Eval(prog)
-	if err != nil {
-		return nil, convertRunError(err)
-	}
+	// the imports stay in force even when the input fails, as its other declarations do
 	for _, imp := range prog.Root.File.Imports[len(s.importDecls):] {
 		s.remember(imp)
+	}
+	if err != nil {
+		return nil, convertRunError(err)
 	}
 	return v, nil
 }

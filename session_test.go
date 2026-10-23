@@ -152,3 +152,21 @@ go { for i in Iter.range(0, 100000) { add() }; Channel.send(done, true) }`); err
 		t.Errorf("n = %v, %v; want 100000", v, err)
 	}
 }
+
+// TestSessionImportInFailedInput checks that an import stays in force when the rest of its
+// input panics, as the input's declarations do.
+func TestSessionImportInFailedInput(t *testing.T) {
+	var errOut strings.Builder
+	s, err := ant.NewSession(context.Background(), ant.WithStderr(&errOut),
+		ant.WithSource("lib.ant", "export var counter = 0\nexport func bump(): int { counter += 1; counter }"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval("import \"lib.ant\" L\nvar a = L.bump()\npanic(\"boom\")"); err == nil {
+		t.Fatal("expected a panic error")
+	}
+	if v, err := s.Eval("L.bump()"); err != nil || v != int64(2) {
+		t.Errorf("L.bump() = %v, %v", v, err)
+	}
+}
