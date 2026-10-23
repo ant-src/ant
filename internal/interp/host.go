@@ -55,7 +55,13 @@ func (in *Instance) runOn(g *Goroutine, f func()) (err error) {
 // Call calls an Ant function value with positional arguments, on the calling Go goroutine.
 func (in *Instance) Call(fn value.Value, args ...value.Value) (v value.Value, err error) {
 	g := in.newGoroutine(false)
-	err = in.runOn(g, func() { v = g.callValue(fn, args, nil, ast.Pos{}) })
+	// The call has no site, so the function's body stands in for it, for a panic of the call
+	// itself such as a parameter left without an argument.
+	var at ast.Pos
+	if f, ok := fn.(*Func); ok && f.Body != nil {
+		at = f.Body.Pos
+	}
+	err = in.runOn(g, func() { v = g.callValue(fn, args, nil, at) })
 	return v, err
 }
 

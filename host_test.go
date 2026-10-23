@@ -303,3 +303,26 @@ func TestStartContext(t *testing.T) {
 		t.Fatalf("an endless call ended with %v, want the context's error", err)
 	}
 }
+
+// TestCallSite: a panic of the call itself, such as a missing argument, names the function's
+// position instead of 0:0.
+func TestCallSite(t *testing.T) {
+	prog, err := ant.Load("id.ant", ant.WithSource("id.ant", "func main(): void {}\n\nfunc id(x: int): int { x }\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	in, err := prog.Start(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	id, _ := in.Func("id")
+	_, err = id.Call()
+	var p *ant.PanicError
+	if !errors.As(err, &p) || len(p.Trace) == 0 {
+		t.Fatalf("id() ended with %v, want a panic with a trace", err)
+	}
+	if f := p.Trace[0]; f.Pos.Line != 3 {
+		t.Errorf("the call's frame is at %d:%d, want line 3", f.Pos.Line, f.Pos.Col)
+	}
+}
