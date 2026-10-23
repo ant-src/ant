@@ -66,11 +66,12 @@ type loader struct {
 	modules []*Module
 	state   map[string]int // 1: in progress, 2: done
 	index   map[string]*Module
+	files   map[string]os.FileInfo // each module file read from the OS, by key
 }
 
 // Load loads the module at root and everything it imports.
 func Load(root string, cfg Config) (*Program, []Diagnostic) {
-	l := &loader{cfg: cfg, state: map[string]int{}, index: map[string]*Module{}}
+	l := &loader{cfg: cfg, state: map[string]int{}, index: map[string]*Module{}, files: map[string]os.FileInfo{}}
 	key, display := l.canonical(root, "")
 	m := l.visit(key, display, root, root, Diagnostic{}, true)
 	if len(l.diags) > 0 {
@@ -110,6 +111,16 @@ func (l *loader) canonical(raw, importer string) (key, display string) {
 	}
 	if real, err := filepath.EvalSymlinks(abs); err == nil {
 		abs = real
+	}
+	// A spelling the path cannot settle, another case on a case-insensitive file system or a
+	// hard link, still names a file already seen.
+	if info, err := os.Stat(abs); err == nil {
+		for key, seen := range l.files {
+			if os.SameFile(seen, info) {
+				return key, joined
+			}
+		}
+		l.files[abs] = info
 	}
 	return abs, joined
 }

@@ -1,6 +1,8 @@
 package loader
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -63,5 +65,28 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("diagnostic %q, want one containing %q", diags[0].String(), c.want)
 			}
 		})
+	}
+}
+
+// TestSameFile: two spellings of one file that the path does not settle, here a hard link, are
+// one module.
+func TestSameFile(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, src string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("lib.ant", "export var n = 0")
+	if err := os.Link(filepath.Join(dir, "lib.ant"), filepath.Join(dir, "alias.ant")); err != nil {
+		t.Skip(err)
+	}
+	write("main.ant", "import \"./lib.ant\" A\nimport \"./alias.ant\" B\nfunc main() {}")
+	prog, diags := Load(filepath.Join(dir, "main.ant"), Config{RequireMain: true})
+	if len(diags) > 0 {
+		t.Fatal(diags[0])
+	}
+	if len(prog.Modules) != 2 {
+		t.Errorf("%d modules, want 2", len(prog.Modules))
 	}
 }
