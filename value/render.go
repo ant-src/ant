@@ -82,7 +82,7 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		sb.WriteString(" }")
 	case *Array:
 		if onStack(stack, x) {
-			sb.WriteString("[...]")
+			sb.WriteString("...")
 			return
 		}
 		stack = append(stack, x)
@@ -97,7 +97,7 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		sb.WriteByte(']')
 	case *Map:
 		if onStack(stack, x) {
-			sb.WriteString("Map{...}")
+			sb.WriteString("...")
 			return
 		}
 		stack = append(stack, x)
@@ -118,7 +118,7 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		sb.WriteString(" }")
 	case *Set:
 		if onStack(stack, x) {
-			sb.WriteString("Set.of([...])")
+			sb.WriteString("...")
 			return
 		}
 		stack = append(stack, x)

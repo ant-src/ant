@@ -3,6 +3,9 @@
 // rendering terminates; a value rendered twice side by side is not a cycle.
 type Node = { value: int, next: Node | null }
 type Cell = { items: Array[Cell] }
+type Nest = Array[Nest]
+type Dict = Map[string, Dict]
+type Bag = Set[Bag]
 
 func main(): void {
   var a = Node{ value: 1, next: null }
@@ -14,6 +17,15 @@ func main(): void {
   Array.push(c.items, c)
   print(c)
   print([c, c])
+  var n: Nest = []
+  Array.push(n, n)
+  print(n)
+  var d: Dict = Map{}
+  d["self"] = d
+  print(d)
+  var g: Bag = Set.of([])
+  Set.add(g, g)
+  print(g)
 }
 
 // expect
@@ -21,3 +33,6 @@ func main(): void {
 // out: Node{ value: 2, next: Node{ value: 3, next: null } }
 // out: Cell{ items: [...] }
 // out: [Cell{ items: [...] }, Cell{ items: [...] }]
+// out: [...]
+// out: Map{ "self": ... }
+// out: Set.of([...])
