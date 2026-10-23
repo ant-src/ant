@@ -20,12 +20,6 @@ import (
 // InfoTag is File.Info: { name: string, size: int, isDir: bool, modified: Time.Instant }.
 var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "modified"})
 
-func okVoid(err error) value.Value {
-	if err != nil {
-		return errResult(err)
-	}
-	return value.Ok(value.Void)
-}
 
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
@@ -206,10 +200,7 @@ func (h *Handle) flushed(err error) value.Value {
 			err = ferr
 		}
 	}
-	if err != nil {
-		return errResult(err)
-	}
-	return value.Ok(value.Void)
+	return okVoid(err)
 }
 
 // pump reads standard input on a goroutine of its own, since no deadline and no close ends a
@@ -275,7 +266,6 @@ func handleArg(g *interp.Goroutine, who string, v value.Value) *Handle {
 	return typedArg[*Handle](g, who, "a File.Handle", v)
 }
 
-func errResult(err error) value.Value { return value.Err(value.ErrorValue(err.Error())) }
 
 func bytesArg(g *interp.Goroutine, who string, v value.Value) []byte {
 	vals := arrayArg(g, who, v).Values()
@@ -385,28 +375,17 @@ func init() {
 				return value.Ok(bytesValue(data))
 			}),
 			fn("File.write", "path, text", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				err := os.WriteFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), 0o644)
-				if err != nil {
-					return errResult(err)
-				}
-				return value.Ok(value.Void)
+				return okVoid(os.WriteFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), 0o644))
 			}),
 			fn("File.writeBytes", "path, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				err := os.WriteFile(stringArg(g, who, a[0]), bytesArg(g, who, a[1]), 0o644)
-				if err != nil {
-					return errResult(err)
-				}
-				return value.Ok(value.Void)
+				return okVoid(os.WriteFile(stringArg(g, who, a[0]), bytesArg(g, who, a[1]), 0o644))
 			}),
 			fn("File.exists", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				_, err := os.Stat(stringArg(g, who, a[0]))
 				return err == nil
 			}),
 			fn("File.remove", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				if err := os.Remove(stringArg(g, who, a[0])); err != nil {
-					return errResult(err)
-				}
-				return value.Ok(value.Void)
+				return okVoid(os.Remove(stringArg(g, who, a[0])))
 			}),
 			fn("File.list", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				entries, err := os.ReadDir(stringArg(g, who, a[0]))

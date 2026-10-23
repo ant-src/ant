@@ -14,6 +14,17 @@ func result(g *interp.Goroutine, who string, v value.Value) *value.Record {
 	return r
 }
 
+// errResult is the Err of a Go error, with its message.
+func errResult(err error) value.Value { return value.Err(value.ErrorValue(err.Error())) }
+
+// okVoid is Ok(void), or the Err of err when there is one.
+func okVoid(err error) value.Value {
+	if err != nil {
+		return errResult(err)
+	}
+	return value.Ok(value.Void)
+}
+
 func resultFuncs() []*interp.Builtin {
 	return []*interp.Builtin{
 		fn("Result.ok", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value { return value.Ok(a[0]) }),
