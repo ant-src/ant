@@ -990,6 +990,17 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 		}
 		return nonNull
 	}
+	if expected != nil {
+		// As the branches of an if: each side is held to the expected type where it is
+		// written, the right one by its check above, so the union is not reported again.
+		if !types.IsInvalid(l) {
+			c.expect(x.X.Position(), nonNull, expected)
+		}
+		if types.IsInvalid(expected) {
+			return types.Invalid{}
+		}
+		return expected
+	}
 	u, err := types.MakeUnion([]types.Type{nonNull, r})
 	if err != nil {
 		c.errorf(x.Pos, "the sides of ?? do not form a valid type: %s", err)

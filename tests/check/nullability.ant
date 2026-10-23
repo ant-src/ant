@@ -38,4 +38,8 @@ func main(): void {
   print(w + 1)
   var missing = Map{ a: 1 }["b"] ?? panic("unreachable")
   print(missing + 1)
+  var label = find(2)?.name
+  var shown: string = label ?? 0 // ERR: cannot use int where string is expected
+  var both: string = Map{ a: 1 }["c"] ?? 0 // ERR: cannot use int where string is expected ;; cannot use int where string is expected
+  print(shown + both)
 }
