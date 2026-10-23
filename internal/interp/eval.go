@@ -3,6 +3,7 @@ package interp
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/value"
@@ -22,7 +23,7 @@ const (
 // the active flag of one run of the loop, not its node, so when a body re-enters the same loop,
 // as a recursive call does, each run catches only its own return.
 type loopUnwind struct {
-	loop *bool
+	loop *atomic.Bool
 	v    value.Value
 }
 
@@ -1097,16 +1098,18 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
-	active := true
+	// active is atomic, since a sequence may call yield from goroutines of its own.
+	var active atomic.Bool
+	active.Store(true)
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
-		if !active {
+		if !active.Load() {
 			g2.Panic("yield called after the sequence ended")
 		}
 		v, c, stop := run(g2, args[0])
 		if !stop {
 			return true
 		}
-		active = false
+		active.Store(false)
 		if c == ctlReturn {
 			if g2 != g {
 				// The loop's function is on another goroutine's stack, out of reach.
@@ -1126,7 +1129,7 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		}
 	}()
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
-	active = false
+	active.Store(false)
 	return value.Void, ctlNone
 }
 

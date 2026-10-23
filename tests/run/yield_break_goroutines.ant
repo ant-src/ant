@@ -1,0 +1,22 @@
+// spec: 12 Expressions
+// A break in a for body ends a sequence whose goroutines call yield concurrently: the call that
+// ran the break returns false, and a later call from any of them panics in that goroutine.
+func fanOut(yield: func(int): bool): void {
+  var wg = WaitGroup.new()
+  for i in Iter.range(0, 4) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for j in Iter.range(0, 50) { if !yield(j) { return } }
+    }
+  }
+  WaitGroup.wait(wg)
+}
+
+func main(): void {
+  for v in fanOut { if v == 10 { break } }
+  print("done")
+}
+
+// expect
+// out: done
