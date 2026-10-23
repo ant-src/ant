@@ -42,12 +42,43 @@ func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.P
 func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	toks, lerr := lexer.Lex(src)
 	if lerr != nil {
-		le := lerr.(*lexer.Error)
-		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg, Incomplete: incompleteLex(src, le)}
+		return nil, lexError(src, lerr)
 	}
 	p := &parser{mode: mode, toks: toks}
 	defer p.recover(&err)
 	return p.file(path), nil
+}
+
+func lexError(src string, err error) *Error {
+	le := err.(*lexer.Error)
+	return &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg, Incomplete: incompleteLex(src, le)}
+}
+
+// Layout is what the formatter needs beyond the tree: the tokens with their spans, the
+// comments, and the role of every opening bracket, keyed by its byte offset.
+type Layout struct {
+	Tokens   []token.Token
+	Comments []token.Comment
+	Roles    map[int]Role
+}
+
+// Role is what an opening bracket is, as the parser decided while parsing it.
+type Role struct {
+	Block bool // a block or a lambda body, in which newlines separate statements
+	Typed bool // the { of a record or map literal, directly after its type
+	Comma bool // a list that allows a comma after its last item
+}
+
+// ParseLayout parses one module, as Parse does in Program mode, and also returns its Layout.
+func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
+	toks, comments, lerr := lexer.LexLayout(src)
+	if lerr != nil {
+		return nil, nil, lexError(src, lerr)
+	}
+	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}}
+	p := &parser{mode: Program, toks: toks, roles: l.Roles}
+	defer p.recover(&err)
+	return p.file(path), l, nil
 }
 
 // incompleteLex reports whether a lexer error means the source ended too early: an open
@@ -85,12 +116,20 @@ type parser struct {
 	mode     Mode
 	toks     []token.Token
 	i        int
-	nl       int        // > 0: newlines are ignored (inside a list)
-	header   bool       // inside an if, while, or for header: Path { is not a literal
-	boundary string     // "", "func", "lambda", "go", or "defer"
-	loops    int        // loops entered inside the current boundary
-	curBlock *ast.Block // the innermost block whose statements are being parsed
-	depth    int        // nesting of expressions, types, and blocks, bounded by maxNesting
+	nl       int          // > 0: newlines are ignored (inside a list)
+	header   bool         // inside an if, while, or for header: Path { is not a literal
+	boundary string       // "", "func", "lambda", "go", or "defer"
+	loops    int          // loops entered inside the current boundary
+	curBlock *ast.Block   // the innermost block whose statements are being parsed
+	depth    int          // nesting of expressions, types, and blocks, bounded by maxNesting
+	roles    map[int]Role // filled for ParseLayout, nil otherwise
+}
+
+// mark records the role of the opening bracket t, for ParseLayout.
+func (p *parser) mark(t token.Token, r Role) {
+	if p.roles != nil {
+		p.roles[t.Off] = r
+	}
 }
 
 // maxNesting bounds the nesting of expressions, types, blocks and destructurings, so that no input
@@ -274,6 +313,7 @@ func (p *parser) leave(s nesting) { p.nl, p.header, p.curBlock = s.nl, s.header,
 // list parses comma-separated items up to and including close, after the opening token. A
 // trailing comma is allowed, and newlines inside are ignored.
 func (p *parser) list(close string, item func()) {
+	p.mark(p.toks[p.i-1], Role{Comma: true})
 	saved := p.enterList()
 	for !p.at(close) {
 		item()
@@ -533,6 +573,7 @@ func (p *parser) typeTerm() ast.Type {
 		return p.funcType()
 	case t.Is("("):
 		p.next()
+		p.mark(t, Role{})
 		saved := p.enterList()
 		inner := p.parseType()
 		p.expect(")")
@@ -594,6 +635,7 @@ func (p *parser) block() *ast.Block {
 	p.nest()
 	defer p.unnest()
 	t := p.expect("{")
+	p.mark(t, Role{Block: true})
 	b := &ast.Block{Pos: pos(t)}
 	saved := p.enterBlock(b)
 	b.Stmts = p.statements()
@@ -915,7 +957,7 @@ func (p *parser) postfix() ast.Expr {
 
 // index parses [ expression ].
 func (p *parser) index() ast.Expr {
-	p.expect("[")
+	p.mark(p.expect("["), Role{})
 	saved := p.enterList()
 	idx := p.expression()
 	p.expect("]")
@@ -1056,6 +1098,7 @@ func (p *parser) primary() ast.Expr {
 			return p.arrayLit()
 		case "(":
 			p.next()
+			p.mark(t, Role{})
 			saved := p.enterList()
 			e := p.expression()
 			p.expect(")")
@@ -1088,7 +1131,7 @@ func (p *parser) template(t token.Token) *ast.Template {
 			n.Parts = append(n.Parts, ast.TemplatePart{Text: part.Text})
 			continue
 		}
-		sub := &parser{mode: p.mode, toks: part.Tokens, nl: 1, boundary: p.boundary, loops: p.loops, curBlock: p.curBlock}
+		sub := &parser{mode: p.mode, toks: part.Tokens, nl: 1, boundary: p.boundary, loops: p.loops, curBlock: p.curBlock, roles: p.roles}
 		e := sub.expression()
 		if !sub.atKind(token.EOF) {
 			sub.fail(sub.peek().Pos, "unexpected %s in a template expression", sub.peek())
@@ -1177,6 +1220,7 @@ func (p *parser) selectExpr() *ast.Select {
 	t := p.expect("select")
 	s := &ast.Select{Pos: pos(t)}
 	open := p.expect("{")
+	p.mark(open, Role{Block: true})
 	saved := p.enterBlock(p.curBlock)
 	heads, hasElse := 0, false
 	p.skipTerms()
@@ -1293,6 +1337,7 @@ func (p *parser) arrayDestructure() *ast.ArrayTarget {
 			p.next()
 			n := p.expectIdent("a rest name")
 			at.Rest = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+			p.mark(t, Role{}) // no comma after the rest
 			if !p.at("]") {
 				p.fail(p.peek().Pos, "the rest must be the last position of a destructuring")
 			}
@@ -1368,6 +1413,7 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			entries = append(entries, ast.MapEntry{Pos: pos(w), Key: k, Value: p.expression()})
 		}
 	})
+	p.mark(t, Role{Typed: true, Comma: true})
 	if isMap {
 		return &ast.MapLit{Pos: pos(t), Entries: entries}
 	}
@@ -1393,6 +1439,7 @@ func (p *parser) arrayLit() *ast.ArrayLit {
 
 func (p *parser) lambda() *ast.Lambda {
 	t := p.expect("{")
+	p.mark(t, Role{Block: true})
 	b := &ast.Block{Pos: pos(t)}
 	savedN := p.enterBlock(b)
 	savedB := p.enterBoundary("lambda")
