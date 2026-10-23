@@ -731,7 +731,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	n := types.Named{Decl: decl, Args: args}
 	if decl.Kind == types.AliasDecl && len(args) > 0 {
 		// Substituting arguments forms unions under the same rules, at the use.
-		if _, err := types.Subst(decl.Body, bindingsOf(decl.Params, args)); err != nil {
+		if _, err := types.Subst(decl.Body, types.Bindings(decl.Params, args)); err != nil {
 			c.errorf(x.Pos, "%s: %s", types.String(n), err)
 			return types.Invalid{}
 		}
@@ -739,7 +739,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	if decl.Kind == types.RecordDecl && len(args) > 0 {
 		// The same holds for a field type, as A | B in { v: A | B }.
 		for _, f := range decl.Fields {
-			if _, err := types.Subst(f.Type, bindingsOf(decl.Params, args)); err != nil {
+			if _, err := types.Subst(f.Type, types.Bindings(decl.Params, args)); err != nil {
 				c.errorf(x.Pos, "%s: %s", types.String(n), err)
 				return types.Invalid{}
 			}
@@ -748,15 +748,6 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	return n
 }
 
-func bindingsOf(params []*types.ParamDecl, args []types.Type) map[*types.ParamDecl]types.Type {
-	m := make(map[*types.ParamDecl]types.Type, len(params))
-	for i, p := range params {
-		if i < len(args) {
-			m[p] = args[i]
-		}
-	}
-	return m
-}
 
 // lookupEntity finds a module-level or prelude name.
 func (c *Checker) lookupEntity(name string) *entity {

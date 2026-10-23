@@ -156,7 +156,7 @@ func Expand(t Type) Type {
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
 			return t
 		}
-		body, err := Subst(n.Decl.Body, bindings(n.Decl.Params, n.Args))
+		body, err := Subst(n.Decl.Body, Bindings(n.Decl.Params, n.Args))
 		if err != nil {
 			return Invalid{}
 		}
@@ -165,7 +165,9 @@ func Expand(t Type) Type {
 	return Invalid{}
 }
 
-func bindings(params []*ParamDecl, args []Type) map[*ParamDecl]Type {
+// Bindings pairs type parameters with their arguments; a parameter past the arguments is left
+// out.
+func Bindings(params []*ParamDecl, args []Type) map[*ParamDecl]Type {
 	m := make(map[*ParamDecl]Type, len(params))
 	for i, p := range params {
 		if i < len(args) {
@@ -177,7 +179,7 @@ func bindings(params []*ParamDecl, args []Type) map[*ParamDecl]Type {
 
 // Fields returns the fields of a named record type with its arguments substituted.
 func (n Named) FieldsOf() []Field {
-	m := bindings(n.Decl.Params, n.Args)
+	m := Bindings(n.Decl.Params, n.Args)
 	out := make([]Field, len(n.Decl.Fields))
 	for i, f := range n.Decl.Fields {
 		t, err := Subst(f.Type, m)
@@ -412,6 +414,23 @@ func Members(t Type) []Type {
 		return u.Members
 	}
 	return []Type{t}
+}
+
+// MemberOf returns the first member of t, or t itself when it is no union, that expands to a T.
+func MemberOf[T Type](t Type) (T, bool) {
+	for _, m := range Members(t) {
+		if x, ok := Expand(m).(T); ok {
+			return x, true
+		}
+	}
+	var zero T
+	return zero, false
+}
+
+// Nullable is t | null.
+func Nullable(t Type) Type {
+	u, _ := MakeUnion([]Type{t, Null{}})
+	return u
 }
 
 // Includes reports whether t is a union that has a member equal to m, or is m itself.

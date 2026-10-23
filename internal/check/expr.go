@@ -38,26 +38,12 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	case *ast.Lambda:
 		return c.checkLambda(x, sc, expected)
 	case *ast.ArrayLit:
-		if a, ok := types.Expand(expected).(types.Array); ok {
+		if a, ok := types.MemberOf[types.Array](expected); ok {
 			t = c.checkArrayLit(x, sc, a.Elem)
-		} else if u, ok := types.Expand(expected).(types.Union); ok {
-			for _, m := range u.Members {
-				if a, ok := types.Expand(m).(types.Array); ok {
-					t = c.checkArrayLit(x, sc, a.Elem)
-					break
-				}
-			}
 		}
 	case *ast.MapLit:
-		if m, ok := types.Expand(expected).(types.Map); ok {
+		if m, ok := types.MemberOf[types.Map](expected); ok {
 			t = c.checkMapLit(x, sc, m)
-		} else if u, ok := types.Expand(expected).(types.Union); ok {
-			for _, mem := range u.Members {
-				if m, ok := types.Expand(mem).(types.Map); ok {
-					t = c.checkMapLit(x, sc, m)
-					break
-				}
-			}
 		}
 	case *ast.RecordLit:
 		t = c.recordLit(x, sc, expected)
@@ -433,8 +419,7 @@ func (c *Checker) endLink(x ast.Expr, grouped bool, inner types.Type, short bool
 	if !grouped {
 		c.shorted[x] = inner
 	}
-	u, _ := types.MakeUnion([]types.Type{inner, types.Null{}})
-	return u
+	return types.Nullable(inner)
 }
 
 // fieldOf is the type of a field read through a type: a record, named or anonymous, or a
@@ -498,7 +483,7 @@ func fieldUnionErr(recv types.Type, name string) error {
 	}
 	for _, f := range n.Decl.Fields {
 		if f.Name == name {
-			_, err := types.Subst(f.Type, bindingsOf(n.Decl.Params, n.Args))
+			_, err := types.Subst(f.Type, types.Bindings(n.Decl.Params, n.Args))
 			return err
 		}
 	}
@@ -525,8 +510,7 @@ func (c *Checker) indexOf(recv types.Type, x *ast.Index, sc *scope) types.Type {
 		return r.Elem
 	case types.Map:
 		c.check(x.Index, sc, r.Key)
-		u, _ := types.MakeUnion([]types.Type{r.Val, types.Null{}})
-		return u
+		return types.Nullable(r.Val)
 	case types.Invalid:
 		c.synth(x.Index, sc)
 		return types.Invalid{}
@@ -573,7 +557,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 	if expected != nil {
 		for _, m := range types.Members(expected) {
 			if n, ok := types.Expand(m).(types.Named); ok && n.Decl == decl {
-				subst = bindingsOf(decl.Params, n.Args)
+				subst = types.Bindings(decl.Params, n.Args)
 				break
 			}
 		}
@@ -821,15 +805,7 @@ func (c *Checker) checkMapLit(x *ast.MapLit, sc *scope, m types.Map) types.Type 
 // ---- functions
 
 func (c *Checker) checkLambda(x *ast.Lambda, sc *scope, expected types.Type) types.Type {
-	var ft types.Func
-	found := false
-	for _, m := range types.Members(expected) {
-		if f, ok := types.Expand(m).(types.Func); ok {
-			ft = f
-			found = true
-			break
-		}
-	}
+	ft, found := types.MemberOf[types.Func](expected)
 	if !found {
 		if !types.IsInvalid(expected) {
 			c.errorf(x.Pos, "a lambda needs an expected function type, but %s is expected", types.String(expected))
