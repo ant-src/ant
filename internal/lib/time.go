@@ -501,7 +501,9 @@ func init() {
 				return addPoint(g, "Time.add", a[0], durationArg(g, "Time.add", a[1]))
 			}),
 			fn("Time.subtract", "t, d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return addPoint(g, "Time.subtract", a[0], durationArg(g, "Time.subtract", a[1]).Negate())
+				d, err := durationArg(g, "Time.subtract", a[1]).Negate()
+				must(g, "Time.subtract", err)
+				return addPoint(g, "Time.subtract", a[0], d)
 			}),
 			fn("Time.until", "from, to, largestUnit?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Time.until"
@@ -511,7 +513,9 @@ func init() {
 			fn("Time.since", "t, other, largestUnit?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Time.since"
 				largest, _ := unitArg(g, who, a[2], defaultLargest(a[0]))
-				return untilPoint(g, who, a[0], a[1], largest).Negate()
+				d, err := untilPoint(g, who, a[0], a[1], largest).Negate()
+				must(g, who, err)
+				return d
 			}),
 			fn("Time.round", "t, smallestUnit, increment?, mode?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Time.round"
@@ -544,10 +548,14 @@ func init() {
 				return int64(durationArg(g, "Time.sign", a[0]).Sign())
 			}),
 			fn("Time.negate", "d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return durationArg(g, "Time.negate", a[0]).Negate()
+				d, err := durationArg(g, "Time.negate", a[0]).Negate()
+				must(g, "Time.negate", err)
+				return d
 			}),
 			fn("Time.abs", "d", func(g *interp.Goroutine, a []value.Value) value.Value {
-				return durationArg(g, "Time.abs", a[0]).Abs()
+				d, err := durationArg(g, "Time.abs", a[0]).Abs()
+				must(g, "Time.abs", err)
+				return d
 			}),
 			fn("Time.addDuration", "a, b", func(g *interp.Goroutine, a []value.Value) value.Value {
 				const who = "Time.addDuration"

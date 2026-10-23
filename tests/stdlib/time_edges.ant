@@ -66,3 +66,11 @@ Time.with(Time.plainDate(2026, 1, 31), hour: 1) // => panic: Time.with: a date h
 
 // A year so large that its day count overflows is a panic, not a date.
 Time.plainDate(3989932118587117601, 3, 1)     // => panic: Time.plainDate: outside the range of time values
+
+// -2^63 nanoseconds is a duration, but its negation has no int to hold the field: negate,
+// abs and subtract, which negates, are a panic rather than a wrapped sign.
+var least = Time.duration(nanoseconds: -9223372036854775807 - 1)
+least                                         // => -PT9223372036.854775808S
+Time.negate(least)                            // => panic: Time.negate: the negated duration has a field that does not fit an int
+Time.abs(least)                               // => panic: Time.abs: the negated duration has a field that does not fit an int
+Time.subtract(Time.fromEpochMillis(0), least) // => panic: Time.subtract: the negated duration has a field that does not fit an int

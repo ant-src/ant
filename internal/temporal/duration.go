@@ -3,6 +3,7 @@ package temporal
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -112,17 +113,23 @@ func (d Duration) Sign() int {
 	return 0
 }
 
-// Negate flips every field.
-func (d Duration) Negate() Duration {
-	return Duration{-d.Years, -d.Months, -d.Weeks, -d.Days, -d.Hours, -d.Minutes, -d.Seconds, -d.Milliseconds, -d.Microseconds, -d.Nanoseconds}
+// Negate flips every field; a field of -2^63, which a subsecond field may hold, has no
+// positive counterpart that fits an int, and is an error.
+func (d Duration) Negate() (Duration, error) {
+	for _, f := range d.fields() {
+		if f == math.MinInt64 {
+			return Duration{}, errors.New("the negated duration has a field that does not fit an int")
+		}
+	}
+	return Duration{-d.Years, -d.Months, -d.Weeks, -d.Days, -d.Hours, -d.Minutes, -d.Seconds, -d.Milliseconds, -d.Microseconds, -d.Nanoseconds}, nil
 }
 
-// Abs makes every field non-negative.
-func (d Duration) Abs() Duration {
+// Abs makes every field non-negative, an error where Negate is.
+func (d Duration) Abs() (Duration, error) {
 	if d.Sign() < 0 {
 		return d.Negate()
 	}
-	return d
+	return d, nil
 }
 
 // Part is the field of a unit, as given.

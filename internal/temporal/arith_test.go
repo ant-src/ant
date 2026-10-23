@@ -1,6 +1,7 @@
 package temporal
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -55,7 +56,8 @@ func TestAdd(t *testing.T) {
 	check(t, "a day across the overlap", r, err, "2024-11-03T01:00:00-04:00[America/New_York]")
 	r, err = zdt(t, "2024-11-03T01:00:00-04:00[America/New_York]").Add(dur(t, "PT1H"))
 	check(t, "an hour across the overlap", r, err, "2024-11-03T01:00:00-05:00[America/New_York]")
-	r, err = zdt(t, "2024-11-03T01:00:00-04:00[America/New_York]").Add(dur(t, "P1D").Negate())
+	back, _ := dur(t, "P1D").Negate()
+	r, err = zdt(t, "2024-11-03T01:00:00-04:00[America/New_York]").Add(back)
 	check(t, "a day back", r, err, "2024-11-02T01:00:00-04:00[America/New_York]")
 
 	d, err := date(t, "2024-08-31").Add(dur(t, "P1M"))
@@ -294,8 +296,16 @@ func TestDurationText(t *testing.T) {
 		t.Error("the largest time part", err)
 	}
 	a, b := dur(t, "PT90M"), dur(t, "PT1H30M")
-	if a.Key() == b.Key() || a.Sign() != 1 || a.Negate().Sign() != -1 || a.Negate().Abs() != a || a.Part(Minute) != 90 {
+	neg, _ := a.Negate()
+	abs, _ := neg.Abs()
+	if a.Key() == b.Key() || a.Sign() != 1 || neg.Sign() != -1 || abs != a || a.Part(Minute) != 90 {
 		t.Error("key, sign, negate, abs, part")
+	}
+	// -2^63 nanoseconds is a duration whose negation has no field to hold it.
+	if least, err := NewDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, math.MinInt64); err != nil {
+		t.Error("-2^63 nanoseconds", err)
+	} else if n, err := least.Negate(); err == nil {
+		t.Errorf("-2^63 nanoseconds negated to %v", n)
 	}
 	if (Duration{}).Sign() != 0 || (Duration{}).defaultLargestUnit() != Nanosecond {
 		t.Error("the zero duration")
@@ -640,7 +650,9 @@ func TestArithmeticErrors(t *testing.T) {
 	if n, ok := first.NextTransition(); !ok || n.Date().Year != 1883 {
 		t.Errorf("the first transition: %v %v", n, ok)
 	}
-	if d, err := NewDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, -5); err != nil || d.Abs().Nanoseconds != 5 {
+	if d, err := NewDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, -5); err != nil {
+		t.Error("-5 nanoseconds", err)
+	} else if abs, err := d.Abs(); err != nil || abs.Nanoseconds != 5 {
 		t.Error("abs of a negative duration")
 	}
 	if (dateDur{}).sign() != 0 || (internalDur{time: zeroTime}).sign() != 0 || (internalDur{date: dateDur{days: -1}, time: zeroTime}).sign() != -1 {
