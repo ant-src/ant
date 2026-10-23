@@ -166,10 +166,10 @@ func (p *parser) expectIdent(what string) token.Token {
 	t := p.peek()
 	if t.Kind != token.Ident {
 		if t.Kind == token.Reserved {
-			p.fail(t.Pos, "'%s' is a reserved word and cannot be a %s", t.Text, what)
+			p.fail(t.Pos, "'%s' is a reserved word and cannot be %s", t.Text, what)
 		}
 		if t.Kind == token.Keyword {
-			p.fail(t.Pos, "'%s' is a keyword and cannot be a %s", t.Text, what)
+			p.fail(t.Pos, "'%s' is a keyword and cannot be %s", t.Text, what)
 		}
 		p.fail(t.Pos, "expected %s, got %s", what, t)
 	}

@@ -107,6 +107,8 @@ func TestSyntaxErrors(t *testing.T) {
 		{"non-ascii identifier", "var ñ = 1", "unexpected character", Program},
 		{"reserved word", "var let = 1", "cannot be a variable name", Program},
 		{"keyword variable", "var type = 1", "cannot be a variable name", Program},
+		{"reserved parameter", "func f(class: int) {}", "'class' is a reserved word and cannot be a parameter name", Program},
+		{"keyword type name", "type if = int", "'if' is a keyword and cannot be a type name", Program},
 		{"js function", "function f() {}", "'function' is a reserved word", Program},
 		{"js let", "func main() { let x = 1 }", "'let' is a reserved word", Program},
 		{"break without loop", "func f() { break }", "'break' outside a loop", Program},
