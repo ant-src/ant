@@ -1,7 +1,33 @@
 # Work still to do
 
-Six gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
+Seven gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the spec
 (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
+
+## `len`
+
+**Today:** each namespace spells the size of a value its own way: `Array.length`, `String.length`,
+`Map.size` and `Channel.length`, and the `Set` sketch below adds `Set.size`. A generic helper has
+no single name to call, and a reader has to remember which word each type uses.
+
+**Sketch:** a prelude function `len`, built into the checker like the twelve conversion names, that
+takes any value with a size. The namespace functions stay.
+
+```
+len(x): int    // x is an Array[T], a Map[K, V], a string, or a Channel[T]
+```
+
+- An array counts its elements, a map its entries, a string its code points (as `String.length`),
+  and a channel the values buffered now (as `Channel.length`).
+- Any other argument is a compile error, and a kind panic in the interpreter.
+
+**Open questions:**
+- Whether a named primitive over `string` is accepted and unwrapped, as the conversions do, while
+  `String.length(id)` needs `string(id)` (section 4).
+- Whether `len` is a reserved name or an ordinary prelude name a module can shadow.
+- Whether it covers `Set[T]` once that lands, and whether the library adds a matching `isEmpty`
+  helper or leaves `len(x) == 0`.
+- Whether `len` on a string is linear, as counting UTF-8 code points is, or the runtime caches it.
+- Whether to keep `Array.length` and the others at all, now that one name does the job.
 
 ## Set
 
