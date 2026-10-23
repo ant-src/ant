@@ -71,6 +71,13 @@ ant check main.ant
 ant run main.ant
 ```
 
+Format, or check the layout in CI:
+
+```sh
+ant fmt .
+ant fmt --check .
+```
+
 ## API
 
 Ant can be used as a lib too: 

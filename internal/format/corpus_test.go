@@ -53,6 +53,24 @@ func TestCorpusProperties(t *testing.T) {
 	}
 }
 
+// TestFormatted fails on any module of the repository that ant fmt would change, which is how
+// continuous integration runs ant fmt --check (fmt.md section 1). Run ant fmt over the corpus
+// directories to fix it.
+func TestFormatted(t *testing.T) {
+	for _, path := range corpus(t) {
+		src, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := parser.Parse(path, string(src), parser.Program); err != nil {
+			continue
+		}
+		if out, err := Source(path, src); err != nil || string(out) != string(src) {
+			t.Errorf("%s is not formatted; run ant fmt on it", strings.TrimPrefix(path, "../../"))
+		}
+	}
+}
+
 // checkProperties formats src and checks the output: the same tokens and the same tree, the
 // same comments, idempotence, and the layout rules every file obeys.
 func checkProperties(t *testing.T, path, src string) {
