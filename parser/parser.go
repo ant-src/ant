@@ -4,6 +4,7 @@ package parser
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -130,6 +131,15 @@ func (p *parser) fail(pos token.Pos, format string, args ...any) {
 	panic(&Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...), Incomplete: incomplete})
 }
 
+// failAt reports an error at t, unless t is a reserved word: then the error says so, since the
+// word is the likelier mistake than whatever was expected in its place.
+func (p *parser) failAt(t token.Token, format string, args ...any) {
+	if t.Kind == token.Reserved {
+		p.fail(t.Pos, "'%s' is a reserved word", t.Text)
+	}
+	p.fail(t.Pos, format, args...)
+}
+
 func pos(t token.Token) ast.Pos { return ast.Pos{Line: t.Pos.Line, Col: t.Pos.Col} }
 
 // ---- tokens
@@ -166,20 +176,12 @@ func (p *parser) next() token.Token {
 
 func (p *parser) at(text string) bool      { return p.peek().Is(text) }
 func (p *parser) atKind(k token.Kind) bool { return p.peek().Kind == k }
-func (p *parser) unexpected(t token.Token) {
-	if t.Kind == token.Reserved {
-		p.fail(t.Pos, "'%s' is a reserved word", t.Text)
-	}
-	p.fail(t.Pos, "unexpected %s", t)
-}
+func (p *parser) unexpected(t token.Token) { p.failAt(t, "unexpected %s", t) }
 
 func (p *parser) expect(text string) token.Token {
 	t := p.peek()
 	if !t.Is(text) {
-		if t.Kind == token.Reserved {
-			p.fail(t.Pos, "'%s' is a reserved word", t.Text)
-		}
-		p.fail(t.Pos, "expected '%s', got %s", text, t)
+		p.failAt(t, "expected '%s', got %s", text, t)
 	}
 	p.i++
 	return t
@@ -238,10 +240,7 @@ func (p *parser) expectTerm() {
 		return
 	}
 	if p.skipTerms() == 0 {
-		if t.Kind == token.Reserved {
-			p.fail(t.Pos, "'%s' is a reserved word", t.Text)
-		}
-		p.fail(t.Pos, "expected a newline or ';' before %s", t)
+		p.failAt(t, "expected a newline or ';' before %s", t)
 	}
 }
 
@@ -271,6 +270,20 @@ func (p *parser) enterBlock(b *ast.Block) nesting {
 }
 
 func (p *parser) leave(s nesting) { p.nl, p.header, p.curBlock = s.nl, s.header, s.block }
+
+// list parses comma-separated items up to and including close, after the opening token. A
+// trailing comma is allowed, and newlines inside are ignored.
+func (p *parser) list(close string, item func()) {
+	saved := p.enterList()
+	for !p.at(close) {
+		item()
+		if !p.at(close) {
+			p.expect(",")
+		}
+	}
+	p.expect(close)
+	p.leave(saved)
+}
 
 type boundary struct {
 	kind  string
@@ -312,10 +325,7 @@ func (p *parser) file(path string) *ast.File {
 			}
 		default:
 			if p.mode != Spec && p.mode != Session {
-				if t.Kind == token.Reserved {
-					p.fail(t.Pos, "'%s' is a reserved word", t.Text)
-				}
-				p.fail(t.Pos, "expected a declaration, got %s", t)
+				p.failAt(t, "expected a declaration, got %s", t)
 			}
 			f.Stmts = append(f.Stmts, p.statement())
 		}
@@ -338,8 +348,7 @@ func (p *parser) importDecl() *ast.Import {
 		return imp
 	}
 	p.expect("{")
-	saved := p.enterList()
-	for !p.at("}") {
+	p.list("}", func() {
 		name := p.expectIdent("an export name")
 		item := ast.ImportName{Pos: pos(name), Name: name.Text, Alias: name.Text}
 		if p.at(":") {
@@ -347,12 +356,7 @@ func (p *parser) importDecl() *ast.Import {
 			item.Alias = p.expectIdent("a local name").Text
 		}
 		imp.Names = append(imp.Names, item)
-		if !p.at("}") {
-			p.expect(",")
-		}
-	}
-	p.expect("}")
-	p.leave(saved)
+	})
 	return imp
 }
 
@@ -462,9 +466,8 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 
 func (p *parser) typeParams() []ast.TypeParam {
 	p.expect("[")
-	saved := p.enterList()
 	var params []ast.TypeParam
-	for !p.at("]") {
+	p.list("]", func() {
 		n := p.expectIdent("a type parameter")
 		tp := ast.TypeParam{Pos: pos(n), Name: n.Text}
 		if p.at(":") {
@@ -472,26 +475,17 @@ func (p *parser) typeParams() []ast.TypeParam {
 			tp.Bound = p.parseType()
 		}
 		params = append(params, tp)
-		if !p.at("]") {
-			p.expect(",")
-		}
-	}
-	p.expect("]")
-	p.leave(saved)
+	})
 	return params
 }
 
 func (p *parser) signature() ([]ast.Param, ast.Type) {
 	p.expect("(")
-	saved := p.enterList()
 	var params []ast.Param
-	for !p.at(")") {
+	p.list(")", func() {
 		if p.mode == Spec && p.at("...") {
 			p.next()
-			if !p.at(")") {
-				p.expect(",")
-			}
-			continue
+			return
 		}
 		n := p.expectIdent("a parameter name")
 		p.expect(":")
@@ -501,12 +495,7 @@ func (p *parser) signature() ([]ast.Param, ast.Type) {
 			prm.Default = p.expression()
 		}
 		params = append(params, prm)
-		if !p.at(")") {
-			p.expect(",")
-		}
-	}
-	p.expect(")")
-	p.leave(saved)
+	})
 	var ret ast.Type
 	if p.at(":") {
 		p.next()
@@ -558,48 +547,30 @@ func (p *parser) typeTerm() ast.Type {
 		}
 		if p.at("[") {
 			p.next()
-			saved := p.enterList()
-			for !p.at("]") {
-				tn.Args = append(tn.Args, p.parseType())
-				if !p.at("]") {
-					p.expect(",")
-				}
-			}
-			p.expect("]")
-			p.leave(saved)
+			p.list("]", func() { tn.Args = append(tn.Args, p.parseType()) })
 		}
 		return tn
 	}
-	if t.Kind == token.Reserved {
-		p.fail(t.Pos, "'%s' is a reserved word", t.Text)
-	}
-	p.fail(t.Pos, "expected a type, got %s", t)
+	p.failAt(t, "expected a type, got %s", t)
 	return nil
 }
 
 func (p *parser) recordType() *ast.RecordType {
 	t := p.expect("{")
-	saved := p.enterList()
 	rt := &ast.RecordType{Pos: pos(t)}
-	for !p.at("}") {
+	p.list("}", func() {
 		n := p.expectName("a field name")
 		p.expect(":")
 		rt.Fields = append(rt.Fields, ast.FieldType{Pos: pos(n), Name: n.Text, Type: p.parseType()})
-		if !p.at("}") {
-			p.expect(",")
-		}
-	}
-	p.expect("}")
-	p.leave(saved)
+	})
 	return rt
 }
 
 func (p *parser) funcType() *ast.FuncType {
 	t := p.expect("func")
 	p.expect("(")
-	saved := p.enterList()
 	ft := &ast.FuncType{Pos: pos(t)}
-	for !p.at(")") {
+	p.list(")", func() {
 		typ := p.parseType()
 		prm := ast.FuncTypeParam{Type: typ}
 		if p.at(":") {
@@ -611,12 +582,7 @@ func (p *parser) funcType() *ast.FuncType {
 			prm = ast.FuncTypeParam{Name: tn.Path[0], Type: p.parseType()}
 		}
 		ft.Params = append(ft.Params, prm)
-		if !p.at(")") {
-			p.expect(",")
-		}
-	}
-	p.expect(")")
-	p.leave(saved)
+	})
 	p.expect(":")
 	ft.Return = p.parseType()
 	return ft
@@ -815,14 +781,18 @@ func (p *parser) andTail(left ast.Expr) ast.Expr {
 	return left
 }
 
-func (p *parser) equality() ast.Expr {
+func (p *parser) equality() ast.Expr { return p.binaryLeft(p.comparison, "==", "!=") }
+
+// binaryLeft parses a left-associative level: operands from next, joined by any of ops. Each
+// link of the chain counts toward the nesting limit, as a nested expression does.
+func (p *parser) binaryLeft(next func() ast.Expr, ops ...string) ast.Expr {
 	links := 0
 	defer p.unlink(&links)
-	left := p.comparison()
-	for p.at("==") || p.at("!=") {
+	left := next()
+	for slices.ContainsFunc(ops, p.at) {
 		p.link(&links)
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.comparison()}
+		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: next()}
 	}
 	return left
 }
@@ -883,29 +853,9 @@ func (p *parser) isTarget() (string, ast.Expr) {
 	return "", e
 }
 
-func (p *parser) additive() ast.Expr {
-	links := 0
-	defer p.unlink(&links)
-	left := p.multiplicative()
-	for p.at("+") || p.at("-") {
-		p.link(&links)
-		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.multiplicative()}
-	}
-	return left
-}
+func (p *parser) additive() ast.Expr { return p.binaryLeft(p.multiplicative, "+", "-") }
 
-func (p *parser) multiplicative() ast.Expr {
-	links := 0
-	defer p.unlink(&links)
-	left := p.unary()
-	for p.at("*") || p.at("/") || p.at("%") {
-		p.link(&links)
-		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.unary()}
-	}
-	return left
-}
+func (p *parser) multiplicative() ast.Expr { return p.binaryLeft(p.unary, "*", "/", "%") }
 
 func (p *parser) unary() ast.Expr {
 	t := p.peek()
@@ -941,12 +891,8 @@ func (p *parser) postfix() ast.Expr {
 			isPath = false
 			switch {
 			case p.at("["):
-				lb := p.next()
-				saved := p.enterList()
-				idx := p.expression()
-				p.expect("]")
-				p.leave(saved)
-				node = &ast.Index{Pos: pos(lb), X: node, Index: idx, Optional: true}
+				lb := p.peek()
+				node = &ast.Index{Pos: pos(lb), X: node, Index: p.index(), Optional: true}
 			case p.at("("):
 				lp := p.peek()
 				node = &ast.Call{Pos: pos(lp), Fn: node, Args: p.callArgs(), Optional: true}
@@ -955,13 +901,8 @@ func (p *parser) postfix() ast.Expr {
 				node = &ast.Field{Pos: pos(t), X: node, Name: name.Text, Optional: true}
 			}
 		case "[":
-			p.next()
 			isPath = false
-			saved := p.enterList()
-			idx := p.expression()
-			p.expect("]")
-			p.leave(saved)
-			node = &ast.Index{Pos: pos(t), X: node, Index: idx}
+			node = &ast.Index{Pos: pos(t), X: node, Index: p.index()}
 		case "(":
 			isPath = false
 			node = &ast.Call{Pos: pos(t), Fn: node, Args: p.callArgs()}
@@ -972,18 +913,24 @@ func (p *parser) postfix() ast.Expr {
 	}
 }
 
+// index parses [ expression ].
+func (p *parser) index() ast.Expr {
+	p.expect("[")
+	saved := p.enterList()
+	idx := p.expression()
+	p.expect("]")
+	p.leave(saved)
+	return idx
+}
+
 func (p *parser) callArgs() []ast.Arg {
 	p.expect("(")
-	saved := p.enterList()
 	var args []ast.Arg
 	named := false
-	for !p.at(")") {
+	p.list(")", func() {
 		if p.mode == Spec && p.at("...") && (p.peekAfter().Is(")") || p.peekAfter().Is(",")) {
 			p.next()
-			if !p.at(")") {
-				p.expect(",")
-			}
-			continue
+			return
 		}
 		start := p.peek()
 		e := p.expression()
@@ -997,12 +944,7 @@ func (p *parser) callArgs() []ast.Arg {
 			}
 			args = append(args, ast.Arg{Pos: pos(start), Value: e})
 		}
-		if !p.at(")") {
-			p.expect(",")
-		}
-	}
-	p.expect(")")
-	p.leave(saved)
+	})
 	return args
 }
 
@@ -1324,9 +1266,8 @@ func (p *parser) destructure() ast.Target {
 		return p.arrayDestructure()
 	}
 	t := p.expect("{")
-	saved := p.enterList()
 	rt := &ast.RecordTarget{Pos: pos(t)}
-	for !p.at("}") {
+	p.list("}", func() {
 		w := p.peek()
 		name := p.expectName("a field name")
 		f := ast.RecordTargetField{Pos: pos(w), Name: name.Text}
@@ -1340,20 +1281,14 @@ func (p *parser) destructure() ast.Target {
 			f.Target = &ast.NameTarget{Pos: pos(w), Name: w.Text}
 		}
 		rt.Fields = append(rt.Fields, f)
-		if !p.at("}") {
-			p.expect(",")
-		}
-	}
-	p.expect("}")
-	p.leave(saved)
+	})
 	return rt
 }
 
 func (p *parser) arrayDestructure() *ast.ArrayTarget {
 	t := p.expect("[")
-	saved := p.enterList()
 	at := &ast.ArrayTarget{Pos: pos(t)}
-	for !p.at("]") {
+	p.list("]", func() {
 		if p.at("...") {
 			p.next()
 			n := p.expectIdent("a rest name")
@@ -1361,15 +1296,10 @@ func (p *parser) arrayDestructure() *ast.ArrayTarget {
 			if !p.at("]") {
 				p.fail(p.peek().Pos, "the rest must be the last position of a destructuring")
 			}
-			break
+			return
 		}
 		at.Elems = append(at.Elems, p.target())
-		if !p.at("]") {
-			p.expect(",")
-		}
-	}
-	p.expect("]")
-	p.leave(saved)
+	})
 	return at
 }
 
@@ -1386,12 +1316,11 @@ func (p *parser) target() ast.Target {
 // braceLit parses the entries of a record or map literal after its head.
 func (p *parser) braceLit(head ast.Expr) ast.Expr {
 	t := p.expect("{")
-	saved := p.enterList()
 	id, _ := head.(*ast.Ident)
 	isMap := id != nil && id.Name == "Map"
 	var rec []ast.RecordEntry
 	var entries []ast.MapEntry
-	for !p.at("}") {
+	p.list("}", func() {
 		w := p.peek()
 		after := p.peekAfter()
 		switch {
@@ -1438,12 +1367,7 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			p.expect(":")
 			entries = append(entries, ast.MapEntry{Pos: pos(w), Key: k, Value: p.expression()})
 		}
-		if !p.at("}") {
-			p.expect(",")
-		}
-	}
-	p.expect("}")
-	p.leave(saved)
+	})
 	if isMap {
 		return &ast.MapLit{Pos: pos(t), Entries: entries}
 	}
@@ -1452,27 +1376,18 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 
 func (p *parser) arrayLit() *ast.ArrayLit {
 	t := p.expect("[")
-	saved := p.enterList()
 	lit := &ast.ArrayLit{Pos: pos(t)}
-	for !p.at("]") {
-		if p.at("...") {
-			p.next()
-			if p.mode == Spec && (p.at("]") || p.at(",")) {
-				if !p.at("]") {
-					p.expect(",")
-				}
-				continue
-			}
-			lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression(), Spread: true})
-		} else {
+	p.list("]", func() {
+		if !p.at("...") {
 			lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression()})
+			return
 		}
-		if !p.at("]") {
-			p.expect(",")
+		p.next()
+		if p.mode == Spec && (p.at("]") || p.at(",")) {
+			return
 		}
-	}
-	p.expect("]")
-	p.leave(saved)
+		lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression(), Spread: true})
+	})
 	return lit
 }
 
