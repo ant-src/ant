@@ -291,6 +291,9 @@ func TestNesting(t *testing.T) {
 		"var x: " + strings.Repeat("Array[", 1100) + "int" + strings.Repeat("]", 1100) + " = 1",
 		"func f(): void " + strings.Repeat("{", 1100) + strings.Repeat("}", 1100),
 		"var s = " + strings.Repeat("`${", 1100) + "1" + strings.Repeat("}`", 1100),
+		"var " + strings.Repeat("[", 1100) + "a" + strings.Repeat("]", 1100) + " = xs",
+		"var " + strings.Repeat("{ a: ", 1100) + "b" + strings.Repeat(" }", 1100) + " = r",
+		"func f() { for " + strings.Repeat("[", 1100) + "a" + strings.Repeat("]", 1100) + " in xs {} }",
 	}
 	for _, src := range cases {
 		_, err := Parse("t", src, Program)

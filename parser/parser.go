@@ -78,8 +78,8 @@ type parser struct {
 	depth    int        // nesting of expressions, types, and blocks, bounded by maxNesting
 }
 
-// maxNesting bounds the nesting of expressions, types and blocks, so that no input can overflow
-// the Go stack in the parser or in the passes that walk the tree after it.
+// maxNesting bounds the nesting of expressions, types, blocks and destructurings, so that no input
+// can overflow the Go stack in the parser or in the passes that walk the tree after it.
 const maxNesting = 1000
 
 func (p *parser) nest() {
@@ -1247,6 +1247,8 @@ func (p *parser) forExpr() *ast.For {
 // ---- destructuring
 
 func (p *parser) destructure() ast.Target {
+	p.nest()
+	defer p.unnest()
 	if p.at("[") {
 		return p.arrayDestructure()
 	}
