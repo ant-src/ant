@@ -551,11 +551,29 @@ func (z ZonedDateTime) NextTransition() (ZonedDateTime, bool) {
 		return ZonedDateTime{}, false
 	}
 	t := z.inst.goTime(z.zone)
+	checked := t
 	for {
-		_, end := t.ZoneBounds()
+		start, end := t.ZoneBounds()
+		if start.After(checked) {
+			// A start the last bounds did not end at: test it as a candidate too.
+			if i, ok := instantOfGo(start); ok {
+				before, _ := NewInstant(i.sec, int64(i.nsec)-1)
+				if z.zone.offsetAt(i) != z.zone.offsetAt(before) {
+					return ZonedDateTime{i, z.zone}, true
+				}
+			}
+		}
 		if end.IsZero() {
 			return ZonedDateTime{}, false
 		}
+		if !end.After(t) {
+			// Beyond its table Go computes a zone's rule a year at a time, and in the last day
+			// of a leap year it reports bounds that end before t; step past that day.
+			checked = t
+			t = t.Add(24 * time.Hour)
+			continue
+		}
+		checked = end
 		i, ok := instantOfGo(end)
 		if !ok {
 			return ZonedDateTime{}, false

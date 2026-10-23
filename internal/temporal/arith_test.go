@@ -457,6 +457,14 @@ func TestTransitions(t *testing.T) {
 	if n, ok := far.NextTransition(); !ok || !strings.HasPrefix(n.String(), "2100-11-07T01:00:00-05:00") {
 		t.Errorf("a transition from the rule beyond the table: %v %v", n, ok)
 	}
+	// Go's bounds lag a day at the end of a leap year beyond the table; the search steps over.
+	autumn := zdt(t, "2040-10-28T03:00:00+02:00[Europe/Vilnius]")
+	if n, ok := autumn.NextTransition(); !ok || n.String() != "2041-03-31T04:00:00+03:00[Europe/Vilnius]" {
+		t.Errorf("a transition after a leap year's autumn: %v %v", n, ok)
+	}
+	if p, ok := zdt(t, "2041-01-01T12:00:00+02:00[Europe/Vilnius]").PreviousTransition(); !ok || p.String() != "2040-10-28T03:00:00+02:00[Europe/Vilnius]" {
+		t.Errorf("a transition before a leap year's end: %v %v", p, ok)
+	}
 }
 
 func TestRoundingModes(t *testing.T) {
