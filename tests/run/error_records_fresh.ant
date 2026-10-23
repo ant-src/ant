@@ -1,0 +1,40 @@
+// spec: stdlib File; stdlib Net
+// Each Err a handle or a listener gives back holds its own Error record. Fields are mutable, so
+// changing the message of one Err leaves the next one alone.
+func readTwice(f: File.Handle): void {
+  var first = File.readLine(f)
+  if first is Err { first.error.message = "changed" }
+  var second = File.readLine(f)
+  if second is Err { print(second.error.message) }
+}
+
+func writeTwice(f: File.Handle): void {
+  var first = File.writeLine(f, "x")
+  if first is Err { first.error.message = "changed" }
+  var second = File.writeLine(f, "x")
+  if second is Err { print(second.error.message) }
+}
+
+func main(): void {
+  var dir = Result.unwrap(File.tempDir("ant-fresh"))
+  var path = Path.join([dir, "a.txt"])
+  var w = Result.unwrap(File.create(path))
+  readTwice(w)
+  File.close(w)
+  var r = Result.unwrap(File.open(path))
+  writeTwice(r)
+  File.close(r)
+
+  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+  Net.close(l)
+  var first = Net.accept(l)
+  if first is Err { first.error.message = "changed" }
+  var second = Net.accept(l)
+  if second is Err { print(second.error.message) }
+  var gone = File.removeAll(dir)
+}
+
+// expect
+// out: the file is not open for reading
+// out: the file is not open for writing
+// out: the listener is closed

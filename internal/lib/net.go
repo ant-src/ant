@@ -25,7 +25,8 @@ type Listener struct {
 	conns  chan net.Conn
 }
 
-var errListenerClosed = value.ErrorValue("the listener is closed")
+// errListenerClosed is the message of the Err a closed listener gives back.
+const errListenerClosed = "the listener is closed"
 
 // pump accepts until the listener fails, which a close causes, then records the error and
 // closes conns; a connection it holds when the run ends is closed.
@@ -150,7 +151,7 @@ func init() {
 						return gaveUp(ctx)
 					}
 					if l.isClosed() {
-						return value.Err(errListenerClosed)
+						return value.Err(value.ErrorValue(errListenerClosed))
 					}
 					return errResult(err)
 				}

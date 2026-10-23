@@ -138,7 +138,7 @@ func serve(g *interp.Goroutine, a []value.Value) value.Value {
 	case err := <-done:
 		g.AfterWait()
 		if l.isClosed() {
-			return value.Err(value.ErrorValue("the listener is closed"))
+			return value.Err(value.ErrorValue(errListenerClosed))
 		}
 		return errResult(err)
 	case <-ctx.Done():

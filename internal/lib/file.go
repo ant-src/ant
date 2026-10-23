@@ -74,8 +74,12 @@ func (h *Handle) isClosed() bool {
 	return h.closed
 }
 
-var errNotReadable = value.ErrorValue("the file is not open for reading")
-var errNotWritable = value.ErrorValue("the file is not open for writing")
+// The messages of the Errs a handle gives back. Each Err gets its own Error record, since
+// records are mutable and a program may change the one it receives.
+const (
+	errNotReadable = "the file is not open for reading"
+	errNotWritable = "the file is not open for writing"
+)
 
 // read runs f, which reads from h.r into h.pending and answers from there, holding the read
 // slot, and gives up with the context's reason when ctx is done, whether while waiting for the
@@ -85,7 +89,7 @@ var errNotWritable = value.ErrorValue("the file is not open for writing")
 // in h.pending for the next read, so nothing is lost and the handle stays open.
 func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
 	if h.r == nil {
-		return value.Err(errNotReadable)
+		return value.Err(value.ErrorValue(errNotReadable))
 	}
 	select {
 	case h.reads <- struct{}{}:
@@ -94,7 +98,7 @@ func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
 	}
 	defer func() { <-h.reads }()
 	if h.isClosed() {
-		return value.Err(errNotReadable)
+		return value.Err(value.ErrorValue(errNotReadable))
 	}
 	if ctx.Err() != nil {
 		return gaveUp(ctx)
@@ -181,12 +185,12 @@ func (h *Handle) readAll() value.Value {
 // write writes s under the write mutex and flushes a stream or a connection.
 func (h *Handle) write(s string) value.Value {
 	if h.w == nil {
-		return value.Err(errNotWritable)
+		return value.Err(value.ErrorValue(errNotWritable))
 	}
 	h.writes.Lock()
 	defer h.writes.Unlock()
 	if h.isClosed() {
-		return value.Err(errNotWritable)
+		return value.Err(value.ErrorValue(errNotWritable))
 	}
 	_, err := h.w.WriteString(s)
 	return h.flushed(err)
