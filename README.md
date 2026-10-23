@@ -2,7 +2,7 @@
 
 ## Features
 
-- **Batteries included.** HTTP server and client, JSON, CSV, crypto, files, processes.
+- **HTTP server and client**, JSON, CSV, crypto, files, processes.
 - **Errors as values.** `Result` plus `try` to bail out early.
 - **Pipes.** `list | Array.map({ x * 2 })` and lambdas.
 - **Real concurrency.** `go { ... }`, channels, `select`, and contexts with deadlines.
