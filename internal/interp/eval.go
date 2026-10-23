@@ -18,9 +18,11 @@ const (
 	ctlContinue
 )
 
-// loopUnwind carries a return out of a for body that a sequence function is running.
+// loopUnwind carries a return out of a for body that a sequence function is running. loop is
+// the active flag of one run of the loop, not its node, so when a body re-enters the same loop,
+// as a recursive call does, each run catches only its own return.
 type loopUnwind struct {
-	loop *ast.For
+	loop *bool
 	v    value.Value
 }
 
@@ -1081,13 +1083,13 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 		}
 		active = false
 		if c == ctlReturn {
-			panic(&loopUnwind{loop: e, v: v})
+			panic(&loopUnwind{loop: &active, v: v})
 		}
 		return false
 	}}
 	defer func() {
 		if r := recover(); r != nil {
-			if u, ok := r.(*loopUnwind); ok && u.loop == e {
+			if u, ok := r.(*loopUnwind); ok && u.loop == &active {
 				rv, rc = u.v, ctlReturn
 				return
 			}

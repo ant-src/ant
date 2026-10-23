@@ -1,0 +1,30 @@
+// spec: 5 Loops; 12 Expressions
+// A return in a for body over a sequence leaves the run of the loop it was written in, even when a
+// body re-enters the same loop through recursion and the outer run's yield is called from inside
+// the inner run.
+var saved: func(int): bool = func(q: int): bool { true }
+func outer(yield: func(int): bool): void {
+  saved = yield
+  _ = yield(1)
+}
+func inner(yield: func(int): bool): void {
+  _ = saved(2)
+}
+func walk(n: int): int {
+  var seq = if n == 0 { outer } else { inner }
+  for v in seq {
+    if v == 2 { return 200 }
+    if n == 0 {
+      var got = walk(1)
+      print(`inner walk returned ${got}`)
+      return 100
+    }
+  }
+  5
+}
+func main(): void {
+  print(walk(0))
+}
+
+// expect
+// out: 200
