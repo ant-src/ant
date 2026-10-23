@@ -89,6 +89,11 @@ func (l *Listener) accept(done <-chan struct{}, ctx context.Context) (net.Conn, 
 			defer l.mu.Unlock()
 			return nil, l.err
 		}
+		if l.isClosed() {
+			// A connection the pump held from before the close is not handed out after it.
+			c.Close()
+			return nil, net.ErrClosed
+		}
 		return c, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
