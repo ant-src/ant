@@ -1280,7 +1280,6 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 // ---- assignment
 
 func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
-	op := x.Op[:len(x.Op)-1]
 	switch t := x.Target.(type) {
 	case *ast.Ident:
 		if t.Name == "_" {
@@ -1294,9 +1293,7 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 				v := c.check(x.Value, sc, l.typ)
 				c.narrowLocal(l, v)
 			} else {
-				cur := c.typeOfLocal(l)
-				v := c.synth(x.Value, sc)
-				c.sameOperands(cur, v, op, op == "+", x.Pos)
+				c.assignValue(x, sc, c.typeOfLocal(l))
 			}
 		case ent == nil:
 			c.errorf(t.Pos, "%s is not defined", t.Name)
@@ -1305,64 +1302,67 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 			if ent.v.mod != c.mod {
 				c.errorf(t.Pos, "cannot assign to the imported variable %s", t.Name)
 			}
-			vt := c.varType(ent.v, t.Pos, c.fn != nil && c.fn.kind == "init")
-			if x.Op == "=" {
-				c.check(x.Value, sc, vt)
-			} else {
-				c.sameOperands(vt, c.synth(x.Value, sc), op, op == "+", x.Pos)
-			}
+			c.assignValue(x, sc, c.varType(ent.v, t.Pos, c.fn != nil && c.fn.kind == "init"))
 		default:
 			c.errorf(t.Pos, "cannot assign to %s", t.Name)
 			c.synth(x.Value, sc)
 		}
-	case *ast.Field:
-		if base := c.entityPath(t.X, sc); base != nil && base.kind == entModule {
-			c.errorf(t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
-			c.synth(x.Value, sc)
-			return types.Void{}
-		}
-		recv := c.synth(t.X, sc)
-		if _, isUnion := types.Expand(recv).(types.Union); isUnion {
-			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
-			c.synth(x.Value, sc)
-			return types.Void{}
-		}
-		ft := c.fieldOf(recv, t.Name, t.Pos)
-		if x.Op == "=" {
-			c.check(x.Value, sc, ft)
+	case *ast.Field, *ast.Index:
+		if pt := c.placeType(t.(ast.Expr), sc); pt != nil {
+			c.assignValue(x, sc, pt)
 		} else {
-			c.sameOperands(ft, c.synth(x.Value, sc), op, op == "+", x.Pos)
-		}
-	case *ast.Index:
-		recv := c.synth(t.X, sc)
-		switch r := types.Expand(recv).(type) {
-		case types.Array:
-			c.check(t.Index, sc, types.IntType)
-			if x.Op == "=" {
-				c.check(x.Value, sc, r.Elem)
-			} else {
-				c.sameOperands(r.Elem, c.synth(x.Value, sc), op, op == "+", x.Pos)
-			}
-		case types.Map:
-			c.check(t.Index, sc, r.Key)
-			if x.Op == "=" {
-				c.check(x.Value, sc, r.Val)
-			} else {
-				c.sameOperands(r.Val, c.synth(x.Value, sc), op, op == "+", x.Pos)
-			}
-		case types.Invalid:
-			c.synth(t.Index, sc)
 			c.synth(x.Value, sc)
-		default:
-			c.synth(t.Index, sc)
-			c.synth(x.Value, sc)
-			c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
 		}
 	case *ast.AssignArray:
 		v := c.synth(x.Value, sc)
 		c.assignArray(t, v, sc)
 	}
 	return types.Void{}
+}
+
+// assignValue checks the right side of x against target, the type its place stores: as an
+// expected type for =, and as the other operand of a compound assignment.
+func (c *Checker) assignValue(x *ast.Assign, sc *scope, target types.Type) {
+	if x.Op == "=" {
+		c.check(x.Value, sc, target)
+		return
+	}
+	op := x.Op[:len(x.Op)-1] // "+=" -> "+"
+	c.sameOperands(target, c.synth(x.Value, sc), op, op == "+", x.Pos)
+}
+
+// placeType checks the receiver and index of a field or index place and returns the type the
+// place stores, or nil after reporting why it cannot be assigned: an import or a union
+// receiver, or a receiver that cannot be indexed.
+func (c *Checker) placeType(p ast.Expr, sc *scope) types.Type {
+	switch t := p.(type) {
+	case *ast.Field:
+		if base := c.entityPath(t.X, sc); base != nil && base.kind == entModule {
+			c.errorf(t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
+			return nil
+		}
+		recv := c.synth(t.X, sc)
+		if _, isUnion := types.Expand(recv).(types.Union); isUnion {
+			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
+			return nil
+		}
+		return c.fieldOf(recv, t.Name, t.Pos)
+	case *ast.Index:
+		recv := c.synth(t.X, sc)
+		switch r := types.Expand(recv).(type) {
+		case types.Array:
+			c.check(t.Index, sc, types.IntType)
+			return r.Elem
+		case types.Map:
+			c.check(t.Index, sc, r.Key)
+			return r.Val
+		}
+		c.synth(t.Index, sc)
+		if !types.IsInvalid(recv) {
+			c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
+		}
+	}
+	return nil
 }
 
 func (c *Checker) assignArray(t *ast.AssignArray, v types.Type, sc *scope) {
@@ -1406,32 +1406,10 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 		default:
 			c.errorf(t.Pos, "cannot assign to %s", t.Name)
 		}
-	case *ast.Field:
-		// the rules of a plain field assignment: no import, no union
-		if base := c.entityPath(t.X, sc); base != nil && base.kind == entModule {
-			c.errorf(t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
-			return
-		}
-		recv := c.synth(t.X, sc)
-		if _, isUnion := types.Expand(recv).(types.Union); isUnion {
-			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
-			return
-		}
-		c.expect(t.Pos, v, c.fieldOf(recv, t.Name, t.Pos))
-	case *ast.Index:
-		recv := c.synth(t.X, sc)
-		switch r := types.Expand(recv).(type) {
-		case types.Array:
-			c.check(t.Index, sc, types.IntType)
-			c.expect(t.Pos, v, r.Elem)
-		case types.Map:
-			c.check(t.Index, sc, r.Key)
-			c.expect(t.Pos, v, r.Val)
-		default:
-			c.synth(t.Index, sc)
-			if !types.IsInvalid(recv) {
-				c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
-			}
+	case *ast.Field, *ast.Index:
+		// the rules of a plain field or index assignment: no import, no union
+		if pt := c.placeType(t, sc); pt != nil {
+			c.expect(t.Position(), v, pt)
 		}
 	}
 }
