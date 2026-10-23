@@ -139,6 +139,7 @@ func TestSyntaxErrors(t *testing.T) {
 		{"import after declaration", "var x = 1\nimport \"./a.ant\" A", "imports must come before", Program},
 		{"top-level expression", "print(1)", "expected a declaration", Program},
 		{"two statements one line", "func f() { a b }", "expected a newline or ';'", Program},
+		{"leading or", "func f() { var t = a\n  || b }", "unexpected '||'", Program},
 		{"else alone", "func f() { else { 1 } }", "unexpected 'else'", Program},
 		{"header missing brace", "func f() { if a b }", "expected '{' after the if header", Program},
 		{"header literal", "func f() { if u == User{ name: \"a\" } { 1 } }", "must be parenthesized", Program},

@@ -160,7 +160,7 @@ func (l *lexer) nextLineContinues() bool {
 			i += 2 + j + 2
 		default:
 			rest := src[i:]
-			if strings.HasPrefix(rest, "...") {
+			if strings.HasPrefix(rest, "...") || strings.HasPrefix(rest, "||") {
 				return false
 			}
 			if strings.HasPrefix(rest, ".") || strings.HasPrefix(rest, "?.") || strings.HasPrefix(rest, "|") {
