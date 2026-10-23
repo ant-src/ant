@@ -1,0 +1,21 @@
+// spec: 7; 12 Expressions
+// A ?. that meets null skips the rest of its postfix chain, so the links after it read the value
+// as it is when nothing was null and the chain's type is that link's type or null. A nullable
+// field later in the chain still needs its own ?., a ?. on a value that cannot be null there is
+// dead code, and parentheses end the chain.
+type Deep = { e: string }
+type In = { c: int, xs: Array[int], f: func(): string, d: Deep }
+type P = { b: In, n: In | null }
+
+func main(): void {
+  var a: P | null = null
+  var c: int | null = a?.b.c
+  var i: int | null = a?.b.xs[0]
+  var s: string | null = a?.b.f()
+  var e: string | null = a?.n?.d.e
+  var v = a?.b.c
+  var w: int = v // ERR: cannot use int | null where int is expected
+  print(a?.n.c) // ERR: In | null has no field c: narrow the value first
+  print((a?.b).c) // ERR: In | null has no field c: narrow the value first
+  print(a?.b?.c) // ERR: ?. needs a nullable left side, got In
+}

@@ -36,7 +36,7 @@ type Config struct {
 
 // Program checks every module of prog and returns the errors sorted by position.
 func Program(prog *loader.Program, cfg Config) []Diagnostic {
-	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}}
+	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}}
 	c.loadPrelude(cfg)
 	c.mods = make([]*moduleInfo, len(prog.Modules))
 	for _, m := range prog.Modules {
@@ -83,6 +83,9 @@ type Checker struct {
 	// rigid holds the type parameters of the function being checked and of those around it:
 	// each stands for a type the caller chooses, so a call inside the body cannot bind it.
 	rigid map[*types.ParamDecl]bool
+	// shorted holds, for each postfix link of a chain that a ?. may skip, the link's type when
+	// nothing was null; the links after it in the chain read that type (see chainRecv).
+	shorted map[ast.Expr]types.Type
 }
 
 func (c *Checker) errorf(pos ast.Pos, format string, args ...any) {

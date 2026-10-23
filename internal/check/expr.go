@@ -399,17 +399,41 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 			return c.entityValue(m, x.Pos, sc)
 		}
 	}
-	recv := c.synth(x.X, sc)
+	recv, short := c.chainRecv(x.X, sc)
 	if x.Optional {
 		if !types.Includes(recv, types.Null{}) {
 			c.errorf(x.Pos, "?. needs a nullable left side, got %s", types.String(recv))
 			return types.Invalid{}
 		}
 		inner := c.fieldOf(types.Without(recv, types.Null{}), x.Name, x.Pos)
-		u, _ := types.MakeUnion([]types.Type{inner, types.Null{}})
-		return u
+		return c.endLink(x, x.Grouped, inner, true)
 	}
-	return c.fieldOf(recv, x.Name, x.Pos)
+	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos), short)
+}
+
+// chainRecv synthesizes the left side of a postfix link. When that side is a link a ?. earlier
+// in the same chain may skip, a null there skips this link too (section 12), so the link reads
+// the type the left side has when nothing was null, and the second result reports that the
+// chain's null joins this link's type.
+func (c *Checker) chainRecv(e ast.Expr, sc *scope) (types.Type, bool) {
+	t := c.synth(e, sc)
+	if inner, ok := c.shorted[e]; ok {
+		return inner, true
+	}
+	return t, false
+}
+
+// endLink gives a postfix link its type: inner, or inner | null when a ?. in its chain may
+// skip it. Parentheses end the chain, so a grouped link passes on only the union.
+func (c *Checker) endLink(x ast.Expr, grouped bool, inner types.Type, short bool) types.Type {
+	if !short {
+		return inner
+	}
+	if !grouped {
+		c.shorted[x] = inner
+	}
+	u, _ := types.MakeUnion([]types.Type{inner, types.Null{}})
+	return u
 }
 
 // fieldOf is the type of a field read through a type: a record, named or anonymous, or a
@@ -481,17 +505,16 @@ func fieldUnionErr(recv types.Type, name string) error {
 }
 
 func (c *Checker) index(x *ast.Index, sc *scope) types.Type {
-	recv := c.synth(x.X, sc)
+	recv, short := c.chainRecv(x.X, sc)
 	if x.Optional {
 		if !types.Includes(recv, types.Null{}) {
 			c.errorf(x.Pos, "?.[ needs a nullable left side, got %s", types.String(recv))
 			return types.Invalid{}
 		}
 		inner := c.indexOf(types.Without(recv, types.Null{}), x, sc)
-		u, _ := types.MakeUnion([]types.Type{inner, types.Null{}})
-		return u
+		return c.endLink(x, x.Grouped, inner, true)
 	}
-	return c.indexOf(recv, x, sc)
+	return c.endLink(x, x.Grouped, c.indexOf(recv, x, sc), short)
 }
 
 func (c *Checker) indexOf(recv types.Type, x *ast.Index, sc *scope) types.Type {

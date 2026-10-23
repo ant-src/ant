@@ -10,13 +10,12 @@ import (
 // named arguments; a constructor call; or a call through a function value.
 func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 	if x.Optional {
-		fn := c.synth(x.Fn, sc)
+		fn, _ := c.chainRecv(x.Fn, sc)
 		if !types.Includes(fn, types.Null{}) {
 			c.errorf(x.Pos, "?.( needs a nullable left side, got %s", types.String(fn))
 		}
 		inner := c.callValue(types.Without(fn, types.Null{}), x, sc)
-		u, _ := types.MakeUnion([]types.Type{inner, types.Null{}})
-		return u
+		return c.endLink(x, x.Grouped, inner, true)
 	}
 	ent := c.entityPath(x.Fn, sc)
 	if ent != nil {
@@ -44,8 +43,8 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			return types.Invalid{}
 		}
 	}
-	fn := c.synth(x.Fn, sc)
-	return c.callValue(fn, x, sc)
+	fn, short := c.chainRecv(x.Fn, sc)
+	return c.endLink(x, x.Grouped, c.callValue(fn, x, sc), short)
 }
 
 func (c *Checker) synthArgs(args []ast.Arg, sc *scope) {
