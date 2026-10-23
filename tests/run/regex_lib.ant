@@ -105,5 +105,5 @@ func main(): void {
 // out: a/b
 // out: ims
 // out:
-// out:
+// out: (?:)
 // out: v

@@ -203,3 +203,15 @@ held for the next; `Url.stringify` keeps a userinfo whose escape does not decode
 whole. `stdlib.md` says so under Http and Net. Two corpus programs cover the redirect, the
 empty method, the host header, the closed listener and the two acceptors; the reviewer's
 shutdown probe shows the late client cut at five seconds; the suite is green under `-race`.
+
+Phase 59 was done on 2026-10-23: of two groups with one name the first that took part fills
+`named`; the lexer reads a POSIX name inside a class; `Regex.split` of an empty string is `[""]`
+whatever the pattern; the normalized source writes a line break as `\n` or `\r` and an empty
+source as `(?:)`, so a compiled pattern renders as a literal that reads back to an equal
+pattern; `Encoding.fromBase64` takes at most two `=` and only at the end; a NaN bound in
+`Math.clamp` is a ◆. The spec says those, and says that a line break inside a quoted CSV field
+reads as `\n`, that `query` is written as it is, that a negative sleep sleeps nothing, that
+`Os.exec` kills the child and not what it started, that `\/` inside `\Q...\E` is two characters,
+and that `\10` and up are octal escapes. A corpus program covers each edge and one the NaN
+bound. One run of the suite under `-race` failed once in `net_lib.ant` under full load and not
+in fifteen runs after, so it is noted here and not chased.

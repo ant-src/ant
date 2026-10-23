@@ -1,0 +1,33 @@
+// spec: 2 Literals; 11 Regex; stdlib Encoding
+// The edges: of two groups with one name, the first that took part fills named; a POSIX name
+// inside a class ends neither the class nor the literal; split of an empty string is [""]
+// whatever the pattern; a compiled source with a line break, or with nothing in it, renders as
+// a literal that reads back to an equal pattern; base64 padding is at most two = at the end.
+func main(): void {
+  print(Regex.find(/(?<n>a)|(?<n>b)/, "b"))
+  print(Regex.test(/[[:alpha:]/]/, "/"))
+  print(Regex.split(Result.unwrap(Regex.compile("")), ""))
+  print(Regex.split(/x*/, ""))
+  print(Regex.split(/a*/, "baaab"))
+  var nl = Result.unwrap(Regex.compile("a\nb"))
+  print([nl == /a\nb/, Regex.source(nl) == "a\\nb", Regex.test(nl, "a\nb")])
+  var empty = Result.unwrap(Regex.compile(""))
+  print([empty == /(?:)/, Regex.source(empty) == "(?:)"])
+  print(Encoding.fromBase64("aGk="))
+  print(Encoding.fromBase64("aGk"))
+  print(Encoding.fromBase64("aGk==") is Err)
+  print(Encoding.fromBase64("====") is Err)
+}
+
+// expect
+// out: Regex.Match{ text: "b", start: 0, end: 1, groups: ["b", null, "b"], named: Map{ "n": "b" } }
+// out: true
+// out: [""]
+// out: [""]
+// out: ["b", "b"]
+// out: [true, true, true]
+// out: [true, true]
+// out: Ok{ value: [104, 105] }
+// out: Ok{ value: [104, 105] }
+// out: true
+// out: true

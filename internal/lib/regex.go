@@ -58,7 +58,11 @@ func match(p *value.Regex, s string, loc []int, cursor *codePoints) value.Value 
 	named := value.NewMap()
 	for i, name := range p.Re.SubexpNames() {
 		if name != "" {
-			named.Set(name, groups[i])
+			// Of several groups with one name, the first that took part fills the entry, as
+			// Go's own $name expansion reads it.
+			if cur, ok := named.Get(name); !ok || cur == value.Null {
+				named.Set(name, groups[i])
+			}
 		}
 	}
 	start := cursor.at(loc[0])
@@ -130,7 +134,11 @@ func init() {
 				return sb.String()
 			}),
 			fn("Regex.split", "p, s", func(g *interp.Goroutine, a []value.Value) value.Value {
-				pieces := regexArg(g, "Regex.split", a[0]).Re.Split(stringArg(g, "Regex.split", a[1]), -1)
+				p, s := regexArg(g, "Regex.split", a[0]), stringArg(g, "Regex.split", a[1])
+				if s == "" {
+					return value.NewArray([]value.Value{""}) // whatever the pattern, as the spec says
+				}
+				pieces := p.Re.Split(s, -1)
 				out := make([]value.Value, len(pieces))
 				for i, piece := range pieces {
 					out[i] = piece

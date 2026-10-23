@@ -1,0 +1,13 @@
+// spec: 11 Math and Bits; 12 Runtime panics
+// panics: Math.clamp
+// A NaN bound in Math.clamp is a ◆, since NaN compares as neither above nor below anything and
+// the bound would hold nothing.
+func main(): void {
+  print(Math.clamp(5, 1, 3))
+  print(Math.clamp(0.5, Math.NaN, 1.0))
+}
+
+// expect
+// exit: 1
+// out: 3
+// err: Math.clamp needs bounds that are not NaN

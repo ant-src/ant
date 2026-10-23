@@ -92,6 +92,11 @@ func init() {
 			}),
 			fn("Math.clamp", "x, lo, hi", func(g *interp.Goroutine, a []value.Value) value.Value {
 				x, lo, hi := a[0], a[1], a[2]
+				for _, b := range []value.Value{lo, hi} {
+					if f, ok := b.(float64); ok && math.IsNaN(f) {
+						g.Panic("Math.clamp needs bounds that are not NaN, got %s and %s", value.Render(lo), value.Render(hi))
+					}
+				}
 				if less(g, "Math.clamp", hi, lo) {
 					g.Panic("Math.clamp needs lo <= hi, got %s and %s", value.Render(lo), value.Render(hi))
 				}

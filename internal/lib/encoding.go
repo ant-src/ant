@@ -3,6 +3,7 @@ package lib
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"strings"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -36,8 +37,11 @@ func init() {
 				// Line breaks are ignored and the padding may be present or absent: the text is
 				// decoded without it, by the raw form of the alphabet.
 				s := strings.NewReplacer("\r", "", "\n", "").Replace(stringArg(g, "Encoding.fromBase64", a[0]))
-				s = strings.TrimRight(s, "=")
-				data, err := base64Alphabet(g, "Encoding.fromBase64", a[1]).DecodeString(s)
+				trimmed := strings.TrimRight(s, "=")
+				if pad := len(s) - len(trimmed); pad > 2 || pad > 0 && len(s)%4 != 0 {
+					return errResult(errors.New("illegal base64 padding"))
+				}
+				data, err := base64Alphabet(g, "Encoding.fromBase64", a[1]).DecodeString(trimmed)
 				if err != nil {
 					return errResult(err)
 				}

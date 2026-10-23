@@ -247,6 +247,17 @@ func (l *lexer) regex() {
 			l.advance(2)
 			continue
 		case c == '[':
+			if inClass && l.peek(1) == ':' {
+				// A POSIX name such as [:alpha:], whose ] does not end the class.
+				l.advance(2)
+				for l.peek(0) != 0 && l.peek(0) != '\n' && !(l.peek(0) == ':' && l.peek(1) == ']') {
+					l.advance(1)
+				}
+				if l.peek(0) == ':' {
+					l.advance(2)
+				}
+				continue
+			}
 			inClass = true
 		case c == ']':
 			inClass = false

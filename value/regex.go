@@ -49,23 +49,37 @@ func RegexFlags(flags string) (string, error) {
 }
 
 // NormalizeRegexSource removes the backslash before a / in source, since RE2 reads \/ and /
-// alike and a literal needs the backslash only to keep the / from ending it. Every other
-// escape, \\ included, is kept as written.
+// alike and a literal needs the backslash only to keep the / from ending it; writes a line
+// break as \n or \r and an empty source as (?:), which RE2 reads the same, so that a pattern
+// renders as a literal that reads back to a pattern == to it. Every other escape, \\ included,
+// is kept as written.
 func NormalizeRegexSource(source string) string {
-	if !strings.Contains(source, `\/`) {
+	if source == "" {
+		return "(?:)"
+	}
+	if !strings.ContainsAny(source, "\\\n\r") {
 		return source
 	}
 	var sb strings.Builder
 	for i := 0; i < len(source); i++ {
-		if source[i] == '\\' && i+1 < len(source) {
-			if source[i+1] != '/' {
-				sb.WriteByte('\\')
+		switch source[i] {
+		case '\\':
+			if i+1 < len(source) {
+				if source[i+1] != '/' {
+					sb.WriteByte('\\')
+				}
+				sb.WriteByte(source[i+1])
+				i++
+				continue
 			}
-			sb.WriteByte(source[i+1])
-			i++
-			continue
+			sb.WriteByte('\\')
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\r':
+			sb.WriteString(`\r`)
+		default:
+			sb.WriteByte(source[i])
 		}
-		sb.WriteByte(source[i])
 	}
 	return sb.String()
 }
