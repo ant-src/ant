@@ -1,5 +1,14 @@
 # Ant
 
+## Features
+
+- **Batteries included.** HTTP server and client, JSON, CSV, crypto, files, processes.
+- **Errors as values.** `Result` plus `try` to bail out early.
+- **Pipes.** `list | Array.map({ x * 2 })` and lambdas.
+- **Real concurrency.** `go { ... }`, channels, `select`, and contexts with deadlines.
+- **Time done right.** Time zones, dates, and durations modeled after JavaScript's Temporal.
+- **Union types.** `type Shape = Circle | Square`, then `if s is Circle { s.radius }`.
+
 ## Example
 
 ```ts
