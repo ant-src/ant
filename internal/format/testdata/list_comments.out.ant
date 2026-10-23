@@ -16,4 +16,9 @@ func main() {
     1,
     2,
   ))
+  print(f(
+    /* leads the first item */ 1,
+    2,
+  ))
+  print(f(/* flat */ 1, 2))
 }

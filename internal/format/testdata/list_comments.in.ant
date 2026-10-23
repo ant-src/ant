@@ -12,4 +12,7 @@ func main() {
   print(f(1, /* inline */ 2))
   print(f( // after the bracket
     1, 2))
+  print(f(/* leads the first item */ 1,
+    2))
+  print(f(/* flat */ 1, 2))
 }

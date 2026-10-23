@@ -121,17 +121,27 @@ func checkProperties(t *testing.T, path, src string) {
 	}
 }
 
-// verbatim reports whether the byte at off lies inside a template string or a block comment,
-// whose text is kept as written (fmt.md 4.8, 4.9).
+// verbatim reports whether the byte at off lies inside the text of a template string or inside
+// a block comment, which are kept as written (fmt.md 4.8, 4.9). The code of an interpolation is
+// not.
 func verbatim(src string, off int) bool {
 	toks, comments, err := lexer.LexLayout(src)
 	if err != nil {
 		return false
 	}
-	for _, t := range toks {
-		if t.Kind == token.Template && t.Off < off && off < t.End {
-			return true
+	var inText func([]token.Token) bool
+	inText = func(toks []token.Token) bool {
+		for _, t := range toks {
+			for _, part := range t.Parts {
+				if part.Tokens == nil && part.Off <= off && off < part.End || inText(part.Tokens) {
+					return true
+				}
+			}
 		}
+		return false
+	}
+	if inText(toks) {
+		return true
 	}
 	for _, c := range comments {
 		if c.Off < off && off < c.End {

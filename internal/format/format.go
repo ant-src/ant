@@ -4,6 +4,8 @@
 package format
 
 import (
+	"slices"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -99,12 +101,9 @@ type printer struct {
 // build merges the tokens and the comments between from and to into one sequence, nested by
 // brackets. The top level behaves as a block.
 func (p *printer) build(toks []token.Token, from, to int) *group {
-	var coms []token.Comment
-	for i := range p.comments {
-		if c := p.comments[i]; c.Off >= from && c.End <= to {
-			coms = append(coms, c)
-		}
-	}
+	lo := sort.Search(len(p.comments), func(i int) bool { return p.comments[i].Off >= from })
+	hi := sort.Search(len(p.comments), func(i int) bool { return p.comments[i].Off >= to })
+	coms := p.comments[lo:hi]
 	root := &group{role: parser.Role{Block: true}}
 	stack := []*group{root}
 	add := func(e elem) {
@@ -218,7 +217,8 @@ func (p *printer) ownLine(c *token.Comment) bool {
 
 // split cuts a group's elements into units at the separators: newlines and semicolons in a
 // block, commas in a list. A comment that starts a unit on the line where the unit before it
-// ended belongs to that unit, or, at the start, after the opening bracket.
+// ended belongs to that unit, or, at the start, after the opening bracket; in a block, only when
+// it ends the line, since a; /* c */ b leads b with it.
 func (p *printer) split(g *group) (afterOpen []elem, units []unit) {
 	var cur unit
 	prevEnd := g.open.End // the end of the last element that is not a separator
@@ -245,6 +245,8 @@ func (p *printer) split(g *group) (afterOpen []elem, units []unit) {
 		case e.com != nil && len(cur.body) == 0:
 			switch {
 			case len(cur.lead) > 0 || p.ownLine(e.com) || !sameLine:
+				cur.lead = append(cur.lead, e)
+			case len(units) > 0 && g.role.Block && !p.endsLine(e.com):
 				cur.lead = append(cur.lead, e)
 			case len(units) > 0 && g.role.Block:
 				units[len(units)-1].body = append(units[len(units)-1].body, e)
@@ -488,7 +490,7 @@ func (p *printer) seq(es []elem, base int) {
 			switch {
 			case p.newlines(prev.end(), e.off()) > 0:
 				indent := base + 1
-				if e.is("else") {
+				if beforeElse(es[i:]) {
 					indent = ifIndent
 				}
 				p.newline(indent, p.blankBefore(e.off()))
@@ -517,6 +519,14 @@ func (p *printer) seq(es []elem, base int) {
 	}
 }
 
+// beforeElse reports whether es starts with an else, after any comments, which take its level.
+func beforeElse(es []elem) bool {
+	for len(es) > 0 && es[0].com != nil {
+		es = es[1:]
+	}
+	return len(es) > 0 && es[0].is("else")
+}
+
 func (p *printer) group(g *group) {
 	p.token(g.open)
 	afterOpen, units := p.split(g)
@@ -524,7 +534,12 @@ func (p *printer) group(g *group) {
 	if !p.broken(g, afterOpen, units) {
 		p.flat(g, afterOpen, units)
 	} else {
-		for _, c := range afterOpen {
+		for i, c := range afterOpen {
+			if !p.endsLine(c.com) && len(units) > 0 {
+				// It shares its line with the first unit, which it leads.
+				units[0].lead = append(slices.Clone(afterOpen[i:]), units[0].lead...)
+				break
+			}
 			p.trailing(c.com)
 		}
 		last := -1
@@ -597,6 +612,10 @@ func (p *printer) flat(g *group, afterOpen []elem, units []unit) {
 		if i > 0 {
 			p.write(" ")
 		}
+		for _, c := range u.lead {
+			p.comment(c.com)
+			p.write(" ")
+		}
 		p.seq(u.body, p.indent)
 		if i < len(units)-1 {
 			p.write(sep)
@@ -659,12 +678,23 @@ func (p *printer) template(t token.Token) {
 		g := p.build(part.Tokens, part.Off, part.End)
 		end := p.inline(g.elems, part.Off+2)
 		if close := part.End - 1; p.newlines(end, close) > 0 {
-			p.write(p.src[end:close])
+			p.write(breaks(p.src[end:close]))
 		}
 		p.write("}")
 		at = part.End
 	}
 	p.write(p.src[at:t.End])
+}
+
+// breaks is the whitespace between two tokens of an interpolation that holds a line break, as
+// written, except that no line ends in spaces, tabs, or a \r (4.1): only the text of a template
+// is kept byte for byte.
+func breaks(gap string) string {
+	lines := strings.Split(gap, "\n")
+	for i := range lines[:len(lines)-1] {
+		lines[i] = strings.TrimRight(lines[i], " \t\r")
+	}
+	return strings.Join(lines, "\n")
 }
 
 // inline writes the elements of an interpolation, token by token, and returns the source offset
@@ -676,7 +706,7 @@ func (p *printer) inline(es []elem, from int) int {
 	gap := func(off int, cur *token.Token) {
 		switch {
 		case p.newlines(prevEnd, off) > 0:
-			p.write(p.src[prevEnd:off])
+			p.write(breaks(p.src[prevEnd:off]))
 		case prevEnd == from:
 		case prev == nil || cur == nil:
 			p.write(" ")

@@ -17,6 +17,7 @@ func main() {
     1
   }
   print(a) // the semicolon goes
+  var h = func(): int { print(a); /* leads the next statement */ 1 }
   var pat = func(): Regex.Pattern { print(a); /x/ }
   var pat2 = func(): Regex.Pattern {
     print(a);

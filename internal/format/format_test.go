@@ -56,6 +56,8 @@ func TestBytes(t *testing.T) {
 		{"tab in a string stays", "func main() {\n\tprint(\"a\tb\", /a\tb/)\n}\n", "func main() {\n  print(\"a\tb\", /a\tb/)\n}\n"},
 		{"no final newline", "func main() {}", "func main() {}\n"},
 		{"an int keeps its space before a dot", "func main() { print(0 .x, 1.5 .y) }\n", "func main() { print(0 .x, 1.5.y) }\n"},
+		{"no trailing spaces in an interpolation", "func main() {\n  print(`a ${x +   \n    y} b`)\n}\n", "func main() {\n  print(`a ${x +\n    y} b`)\n}\n"},
+		{"crlf in an interpolation goes", "func main() {\r\n  print(`a ${x +\r\n    y}`)\r\n}\r\n", "func main() {\n  print(`a ${x +\n    y}`)\n}\n"},
 		{"trailing spaces", "func main() {   \n  print(1)   \n}   \n", "func main() {\n  print(1)\n}\n"},
 	} {
 		got, err := Source("t.ant", []byte(c.src))
