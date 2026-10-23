@@ -17,11 +17,11 @@ import (
 
 // selectHeadParams names each head's parameters, for a named argument in a head.
 var selectHeadParams = map[string][]string{
-	"Chan.receive":   {"c"},
-	"Chan.send":      {"c", "v"},
-	"Context.wait":   {"ctx"},
-	"WaitGroup.wait": {"wg"},
-	"Time.sleep":     {"d"},
+	"Channel.receive": {"c"},
+	"Channel.send":    {"c", "v"},
+	"Context.wait":    {"ctx"},
+	"WaitGroup.wait":  {"wg"},
+	"Time.sleep":      {"d"},
 }
 
 // selectHeadName is the head's function: the parser checked it is a two-part path of one of
@@ -64,11 +64,11 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 		}
 		pos := c.Head.Position()
 		switch name {
-		case "Chan.receive":
+		case "Channel.receive":
 			ch := g.selectChan(pos, args[0])
 			recv(ch.Raw(), selectOwner{clause: i})
 			recv(ch.Closed(), selectOwner{clause: i, closed: true})
-		case "Chan.send":
+		case "Channel.send":
 			// A channel closed already has only its signal, so the send is never buffered
 			// after the close; one closed during the wait ends the blocked send the same way.
 			ch := g.selectChan(pos, args[0])
@@ -117,10 +117,10 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 	var result value.Value = value.Void
 	if c.Head != nil {
 		switch selectHeadName(c.Head) {
-		case "Chan.receive":
+		case "Channel.receive":
 			switch {
 			case owner.closed:
-				// The closed signal: what is buffered comes first, then null, as Chan.receive.
+				// The closed signal: what is buffered comes first, then null, as Channel.receive.
 				if v, got := cases[chosen-1].Chan.TryRecv(); got {
 					result = v.Interface().(value.Value)
 				} else {
@@ -131,7 +131,7 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 			default:
 				result = value.Null
 			}
-		case "Chan.send":
+		case "Channel.send":
 			if owner.closed {
 				g.panicf(e.Pos, "select: a send clause was chosen on a closed channel")
 			}
@@ -194,7 +194,7 @@ func describeParams(params []string) string {
 func (g *Goroutine) selectChan(pos ast.Pos, v value.Value) *value.Chan {
 	c, ok := v.(*value.Chan)
 	if !ok {
-		g.panicf(pos, "a select clause needs a Chan, got %s", value.Describe(v))
+		g.panicf(pos, "a select clause needs a Channel, got %s", value.Describe(v))
 	}
 	return c
 }

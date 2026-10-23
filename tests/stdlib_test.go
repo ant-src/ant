@@ -77,7 +77,7 @@ var caseMarker = regexp.MustCompile(`//\s*=>`)
 // forbidden names what a library table may not reach: the namespaces of effects, and the
 // functions that wait (stdlib/README.md).
 var forbidden = map[string]bool{
-	"Chan": true, "File": true, "Http": true, "Net": true, "Os": true,
+	"Channel": true, "File": true, "Http": true, "Net": true, "Os": true,
 	"Time.sleep": true, "Time.ticker": true, "Context.wait": true, "WaitGroup.wait": true,
 	"Mutex.lock": true, "Mutex.withLock": true, "Cond.wait": true,
 	"RwMutex.readLock": true, "RwMutex.writeLock": true, "RwMutex.withRead": true, "RwMutex.withWrite": true,

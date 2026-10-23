@@ -285,14 +285,14 @@ func Context.reason(ctx: Context): string | null
 func Context.deadline(ctx: Context): Time.Instant | null
 func Context.wait(ctx: Context): void
 
-type Chan[T]
-func Chan.new[T](capacity: int = 0): Chan[T]
-func Chan.send[T](c: Chan[T], v: T, ctx: Context | null = null): bool
-func Chan.receive[T](c: Chan[T], ctx: Context | null = null): T | null
-func Chan.close[T](c: Chan[T]): void
-func Chan.isClosed[T](c: Chan[T]): bool
-func Chan.length[T](c: Chan[T]): int
-func Chan.values[T](c: Chan[T], ctx: Context | null = null): Seq[T]
+type Channel[T]
+func Channel.new[T](capacity: int = 0): Channel[T]
+func Channel.send[T](c: Channel[T], v: T, ctx: Context | null = null): bool
+func Channel.receive[T](c: Channel[T], ctx: Context | null = null): T | null
+func Channel.close[T](c: Channel[T]): void
+func Channel.isClosed[T](c: Channel[T]): bool
+func Channel.length[T](c: Channel[T]): int
+func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 
 // File
 
@@ -390,7 +390,7 @@ func Time.zoneId(z: Time.Zone): string
 func Time.now(): Time.Instant
 func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
 func Time.sleep(d: Time.Duration, ctx: Context | null = null): void
-func Time.ticker(d: Time.Duration, ctx: Context | null = null): Chan[Time.Instant]
+func Time.ticker(d: Time.Duration, ctx: Context | null = null): Channel[Time.Instant]
 func Time.monotonic(): int
 func Time.fromEpochMillis(ms: int): Time.Instant
 func Time.fromEpochNanos(ns: int): Time.Instant

@@ -13,10 +13,10 @@ func handle(r: Http.Request): Http.Response {
 func main(): void {
   var l = Result.unwrap(Net.listen("127.0.0.1:0"))
   var ctx = Context.new()
-  var served: Chan[bool] = Chan.new(1)
+  var served: Channel[bool] = Channel.new(1)
   go {
     var r = Http.serve(l, handle, ctx)
-    Chan.send(served, r is Ok)
+    Channel.send(served, r is Ok)
   }
   var base = `http://${Net.address(l)}`
   var got = Result.unwrap(Http.get(`${base}/old`))
@@ -26,7 +26,7 @@ func main(): void {
   print(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
   print(Http.request("", `${base}/new`))
   Context.cancel(ctx)
-  print(Chan.receive(served))
+  print(Channel.receive(served))
   print(Net.accept(l))
 }
 

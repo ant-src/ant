@@ -9,7 +9,7 @@ import (
 // ErrClosed is the error of a send on a closed channel, or of a second close.
 var ErrClosed = errors.New("the channel is closed")
 
-// Chan is a Chan[T] of section 9: a Go channel of values beside a closed signal, a second
+// Chan is a Channel[T] of section 9: a Go channel of values beside a closed signal, a second
 // channel closed under the mutex. The channel of values is never closed, so a sender blocked in
 // it is ended by the signal, not by the runtime's panic for a send on a closed channel, which
 // the race detector would report as a race; a receiver that sees the signal drains what is
@@ -27,8 +27,8 @@ func NewChan(capacity int) *Chan {
 	return &Chan{ch: make(chan Value, capacity), closed: make(chan struct{})}
 }
 
-// SyncName returns "Chan".
-func (c *Chan) SyncName() string { return "Chan" }
+// SyncName returns "Channel".
+func (c *Chan) SyncName() string { return "Channel" }
 
 // Send delivers v to a receiver or buffers it, unless ctx is done first, which reports false;
 // a context done already gives up at once. It is ErrClosed on a closed channel, including one

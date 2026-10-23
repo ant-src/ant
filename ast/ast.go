@@ -355,7 +355,7 @@ type (
 		Clauses []*SelectClause
 	}
 	// SelectClause is one clause of a select. Head is the call that names the wait, one of
-	// Chan.receive, Chan.send, Context.wait, WaitGroup.wait and Time.sleep, which the parser
+	// Channel.receive, Channel.send, Context.wait, WaitGroup.wait and Time.sleep, which the parser
 	// checks, and nil for else. Target binds the head's result when the clause has var x =.
 	// Scope is the body's scope with that binding, filled by the resolver, nil when it declares
 	// nothing.

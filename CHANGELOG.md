@@ -100,3 +100,5 @@ and the `github.com/ant-src/ant` module with `Load`, `Run`, `Check`, `Start`, `F
 - Every wait in the library takes a `Time.Duration`: `Time.sleep` and `Time.ticker`, and a
   `Time.sleep` head of `select`, as `Context.new` and `Http.request` already did, with the same
   reading of a span and years, months or weeks a panic. `Time.monotonic` stays milliseconds.
+- `Chan` is now `Channel`: the type `Channel[T]`, the namespace, the `select` heads and the
+  panic messages. Ant spells its names in full, and `Chan` was the one abbreviation.

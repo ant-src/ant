@@ -160,7 +160,7 @@ scheduler.
 - Functions become Go functions. Closures become Go closures. Generic functions become Go
   generics, or `value.Value` where Go's generics cannot express them, such as a constraint over a
   union.
-- `go`, `Chan`, `select`, `defer` and `panic` map onto their Go counterparts. `select` needs
+- `go`, `Channel`, `select`, `defer` and `panic` map onto their Go counterparts. `select` needs
   `reflect.Select` only when the number of heads isn't fixed.
 - An Ant panic becomes a Go panic carrying the same message, and the `ant` exit status and stderr format
   stay the same.

@@ -1,6 +1,6 @@
 // spec: 5 select
 func main(): void {
-  var c: Chan[int] = Chan.new()
+  var c: Channel[int] = Channel.new()
   select {}
 }
 

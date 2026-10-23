@@ -17,8 +17,8 @@ func main(): void {
   var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
   var base = `http://${Net.address(listener)}`
   var stop = Context.new()
-  var served: Chan[Result[void, Error]] = Chan.new(1)
-  go { Chan.send(served, Http.serve(listener, handle, stop)) }
+  var served: Channel[Result[void, Error]] = Channel.new(1)
+  go { Channel.send(served, Http.serve(listener, handle, stop)) }
   var r = Result.unwrap(Http.request("PUT", `${base}/items/a%20b?x=1&y=2`, "payload", Map{ "X-Token": "t" }, Time.duration(seconds: 5)))
   print(r.status)
   print(r.body)
@@ -30,7 +30,7 @@ func main(): void {
   var bad = Result.unwrap(Http.get(`${base}/bad`, timeout: Time.duration(seconds: 5)))
   print(bad.status)
   Context.cancel(stop)
-  print(Chan.receive(served))
+  print(Channel.receive(served))
   print(Result.isOk(Http.get(`${base}/items`, timeout: Time.duration(seconds: 2))))
 }
 

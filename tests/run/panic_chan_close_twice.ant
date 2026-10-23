@@ -1,14 +1,14 @@
 // spec: 11 Synchronization; 12 Runtime panics
-// panics: Chan.close; library-value
+// panics: Channel.close; library-value
 // Closing a closed channel is a panic.
 func main(): void {
-  var c: Chan[int] = Chan.new()
-  Chan.close(c)
-  print(Chan.isClosed(c))
-  Chan.close(c)
+  var c: Channel[int] = Channel.new()
+  Channel.close(c)
+  print(Channel.isClosed(c))
+  Channel.close(c)
 }
 
 // expect
 // exit: 1
 // out: true
-// err: Chan.close: the channel is closed already
+// err: Channel.close: the channel is closed already

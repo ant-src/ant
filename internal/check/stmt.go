@@ -456,7 +456,7 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 // selectHeadArity is the argument count each head of a select takes. A head gives no context,
 // which is a clause of its own, so an argument beyond these is an error (section 5).
 var selectHeadArity = map[string]int{
-	"Chan.receive": 1, "Chan.send": 2, "Context.wait": 1, "WaitGroup.wait": 1, "Time.sleep": 1,
+	"Channel.receive": 1, "Channel.send": 2, "Context.wait": 1, "WaitGroup.wait": 1, "Time.sleep": 1,
 }
 
 // selectHeadName is the head's function, as the parser checked it: a two-part path.

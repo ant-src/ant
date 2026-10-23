@@ -5,23 +5,23 @@
 func main(): void {
   var ctx = Context.new()
   Context.cancel(ctx)
-  var c: Chan[int] = Chan.new(1)
+  var c: Channel[int] = Channel.new(1)
   var sends = 0
   var gets = 0
   for i in Iter.range(0, 200) {
-    if Chan.send(c, i, ctx) { sends += 1 }
-    if Chan.receive(c, ctx) != null { gets += 1 }
+    if Channel.send(c, i, ctx) { sends += 1 }
+    if Channel.receive(c, ctx) != null { gets += 1 }
   }
-  print([sends, gets, Chan.length(c)])
+  print([sends, gets, Channel.length(c)])
   var wg = WaitGroup.new()
   WaitGroup.add(wg, 1)
   var before = Time.monotonic()
   WaitGroup.wait(wg, ctx)
   Time.sleep(Time.duration(seconds: 5), ctx)
   print(Time.monotonic() - before < 1000)
-  var x = Chan.send(c, 1)
+  var x = Channel.send(c, 1)
   var later: Array[int] = []
-  for v in Chan.values(c, ctx) { Array.push(later, v) }
+  for v in Channel.values(c, ctx) { Array.push(later, v) }
   print(later)
   var far = Context.new(Time.duration(days: 100000))
   var deadline = Context.deadline(far)

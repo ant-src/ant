@@ -1149,13 +1149,13 @@ func (p *parser) ifExpr() *ast.If {
 // selectHeads are the five blocking calls a select clause may wait on, by namespace and
 // function; no declaration may shadow a prelude name, so the path is the function.
 var selectHeads = map[string]map[string]bool{
-	"Chan":      {"receive": true, "send": true},
+	"Channel":   {"receive": true, "send": true},
 	"Context":   {"wait": true},
 	"WaitGroup": {"wait": true},
 	"Time":      {"sleep": true},
 }
 
-const selectHeadNames = "Chan.receive, Chan.send, Context.wait, WaitGroup.wait or Time.sleep"
+const selectHeadNames = "Channel.receive, Channel.send, Context.wait, WaitGroup.wait or Time.sleep"
 
 // selectExpr parses select { clauses }: each clause a head, one of the five blocking calls
 // written and not performed, with an optional var x = binding and a block, or else and a block,

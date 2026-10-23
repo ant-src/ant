@@ -22,7 +22,7 @@ func seedCorpus(f *testing.F) {
 	f.Add("func f() {")
 	f.Add(strings.Repeat("(", 50) + "1" + strings.Repeat(")", 50))
 	f.Add("x |> f(_) |> g(1, _)")
-	f.Add("func f() { select { var v = Chan.receive(c) { v }\n Chan.send(d, 1) { }\n else { 0 } } }")
+	f.Add("func f() { select { var v = Channel.receive(c) { v }\n Channel.send(d, 1) { }\n else { 0 } } }")
 	f.Add("func f() { while true { select { Context.wait(ctx) { return }\n Time.sleep(10) { break } } } }")
 }
 

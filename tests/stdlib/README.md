@@ -20,7 +20,7 @@ any case whose value differs between runs. A call that does differ may still be 
 what the case computes from it does not, as in `Crypto.uuid() == Crypto.uuid() // => false`.
 
 The harness holds a file to this. It rejects a `go` block, a `select`, any name in the
-namespaces `Chan`, `File`, `Http`, `Net` and `Os`, and the functions that wait: `Time.sleep`,
+namespaces `Channel`, `File`, `Http`, `Net` and `Os`, and the functions that wait: `Time.sleep`,
 `Time.ticker`, `Context.wait`, `WaitGroup.wait`, `Mutex.lock`, `Mutex.withLock`, `Cond.wait`,
 `RwMutex.readLock`, `RwMutex.writeLock`, `RwMutex.withRead` and `RwMutex.withWrite`. It looks
 at the parsed input, so the words inside a string or a comment do not count.

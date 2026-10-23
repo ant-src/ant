@@ -41,12 +41,12 @@ func main(): void {
     defer { WaitGroup.done(done) }
     serve(listener, stop)
   }
-  var replies: Chan[Array[string]] = Chan.new(3)
+  var replies: Channel[Array[string]] = Channel.new(3)
   for name in ["ann", "bo", "cy"] {
-    go { Chan.send(replies, client(address, name, ["hello", "bye"])) }
+    go { Channel.send(replies, client(address, name, ["hello", "bye"])) }
   }
   var all: Array[string] = []
-  for i in Array.range(0, 3) { all = Array.concat(all, Chan.receive(replies) ?? []) }
+  for i in Array.range(0, 3) { all = Array.concat(all, Channel.receive(replies) ?? []) }
   print(Array.sort(all))
   Context.cancel(stop)
   WaitGroup.wait(done)

@@ -1,24 +1,24 @@
 // spec: 9 Waiting; 11 Synchronization
-// panics: Chan.send
+// panics: Channel.send
 // A channel closed while a send waits ends the send with the panic of a send on a closed channel,
 // and a receive after a close takes what was buffered before it answers null.
 func main(): void {
-  var d: Chan[int] = Chan.new(2)
-  var x = Chan.send(d, 1)
-  x = Chan.send(d, 2)
-  Chan.close(d)
-  print([Chan.receive(d), Chan.receive(d), Chan.receive(d)])
-  var c: Chan[int] = Chan.new(1)
-  x = Chan.send(c, 1)
+  var d: Channel[int] = Channel.new(2)
+  var x = Channel.send(d, 1)
+  x = Channel.send(d, 2)
+  Channel.close(d)
+  print([Channel.receive(d), Channel.receive(d), Channel.receive(d)])
+  var c: Channel[int] = Channel.new(1)
+  x = Channel.send(c, 1)
   go {
     Time.sleep(Time.duration(milliseconds: 20))
-    Chan.close(c)
+    Channel.close(c)
   }
-  x = Chan.send(c, 2)
+  x = Channel.send(c, 2)
   print("unreachable")
 }
 
 // expect
 // exit: 1
 // out: [1, 2, null]
-// err: Chan.send: the channel is closed
+// err: Channel.send: the channel is closed

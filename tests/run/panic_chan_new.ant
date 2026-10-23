@@ -1,14 +1,14 @@
 // spec: 11 Synchronization; 12 Runtime panics
-// panics: Chan.new; library-value
+// panics: Channel.new; library-value
 // A negative capacity is a panic; zero is a rendezvous.
 func main(): void {
-  var ok: Chan[int] = Chan.new(0)
-  print(Chan.length(ok))
-  var bad: Chan[int] = Chan.new(-1)
-  print(Chan.length(bad))
+  var ok: Channel[int] = Channel.new(0)
+  print(Channel.length(ok))
+  var bad: Channel[int] = Channel.new(-1)
+  print(Channel.length(bad))
 }
 
 // expect
 // exit: 1
 // out: 0
-// err: Chan.new needs a capacity of at least 0, got -1
+// err: Channel.new needs a capacity of at least 0, got -1

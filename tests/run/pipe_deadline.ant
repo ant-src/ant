@@ -3,16 +3,16 @@
 // ended the copy.
 func main(): void {
   var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var done: Chan[bool] = Chan.new()
+  var done: Channel[bool] = Channel.new()
   go {
     var s = Result.unwrap(Net.accept(l))
     var x = File.writeLine(s, "arrived before the deadline")
-    Chan.receive(done)
+    Channel.receive(done)
     File.close(s)
   }
   var c = Result.unwrap(Net.dial(Net.address(l)))
   print(File.pipe(c, Os.stdout(), Context.new(Time.duration(milliseconds: 100))))
-  var sent = Chan.send(done, true)
+  var sent = Channel.send(done, true)
 }
 
 // expect

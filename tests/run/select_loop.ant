@@ -4,16 +4,16 @@
 // context, a closed channel, and an interrupt each end the loop their own way.
 type Session = { pending: Array[string], interrupted: bool, flushed: int }
 
-func generating(s: Session, ctx: Context, speech: Chan[void], messages: Chan[string], interrupts: Chan[int]): string {
+func generating(s: Session, ctx: Context, speech: Channel[void], messages: Channel[string], interrupts: Channel[int]): string {
   while true {
     select {
       Context.wait(ctx) { return "cancelled" }
-      Chan.receive(speech) { s.flushed += 1 }
-      var message = Chan.receive(messages) {
+      Channel.receive(speech) { s.flushed += 1 }
+      var message = Channel.receive(messages) {
         if message == null { break }
         Array.push(s.pending, message)
       }
-      var offset = Chan.receive(interrupts) {
+      var offset = Channel.receive(interrupts) {
         if offset != null { s.interrupted = true }
         return `interrupted at ${offset ?? -1}`
       }
@@ -25,20 +25,20 @@ func generating(s: Session, ctx: Context, speech: Chan[void], messages: Chan[str
 func main(): void {
   var s = Session{ pending: [], interrupted: false, flushed: 0 }
   var ctx = Context.new()
-  var speech: Chan[void] = Chan.new()
-  var messages: Chan[string] = Chan.new()
-  var interrupts: Chan[int] = Chan.new()
+  var speech: Channel[void] = Channel.new()
+  var messages: Channel[string] = Channel.new()
+  var interrupts: Channel[int] = Channel.new()
   go {
-    Chan.send(speech, void)
-    Chan.send(messages, "hello")
-    Chan.send(messages, "again")
-    Chan.send(interrupts, 42)
+    Channel.send(speech, void)
+    Channel.send(messages, "hello")
+    Channel.send(messages, "again")
+    Channel.send(interrupts, 42)
   }
   print(generating(s, ctx, speech, messages, interrupts))
   print(s)
-  go { Chan.close(messages) }
+  go { Channel.close(messages) }
   print(generating(s, ctx, speech, messages, interrupts))
-  var quiet: Chan[string] = Chan.new()
+  var quiet: Channel[string] = Channel.new()
   Context.cancel(ctx)
   print(generating(s, ctx, speech, quiet, interrupts))
 }

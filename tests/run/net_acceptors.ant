@@ -3,20 +3,20 @@
 // up with its reason and the other, undisturbed, gets the connection that arrives later.
 func main(): void {
   var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var results: Chan[string] = Chan.new()
+  var results: Channel[string] = Channel.new()
   go {
     var r = Net.accept(l, Context.new(Time.duration(milliseconds: 50)))
     var text = if r is Ok { "connection" } else { r.error.message }
-    Chan.send(results, `short: ${text}`)
+    Channel.send(results, `short: ${text}`)
   }
   go {
     var r = Net.accept(l, Context.new(Time.duration(seconds: 5)))
     var text = if r is Ok { "connection" } else { r.error.message }
-    Chan.send(results, `long: ${text}`)
+    Channel.send(results, `long: ${text}`)
   }
-  print(Chan.receive(results))
+  print(Channel.receive(results))
   var c = Result.unwrap(Net.dial(Net.address(l)))
-  print(Chan.receive(results))
+  print(Channel.receive(results))
   File.close(c)
   Net.close(l)
   print(Net.accept(l))

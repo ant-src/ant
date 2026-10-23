@@ -3,13 +3,13 @@
 // every one counted; then a hundred receivers blocked on an empty channel, all released by one
 // cancel, each seeing null with the context done.
 func main(): void {
-  var c: Chan[int] = Chan.new()
+  var c: Channel[int] = Channel.new()
   var senders = WaitGroup.new()
   for s in Array.range(0, 100) {
     WaitGroup.add(senders, 1)
     go {
       defer { WaitGroup.done(senders) }
-      for i in Array.range(0, 100) { Chan.send(c, 1) }
+      for i in Array.range(0, 100) { Channel.send(c, 1) }
     }
   }
   var total = Atomic.new(0)
@@ -18,14 +18,14 @@ func main(): void {
     WaitGroup.add(receivers, 1)
     go {
       defer { WaitGroup.done(receivers) }
-      for v in Chan.values(c) { Atomic.add(total, v) }
+      for v in Channel.values(c) { Atomic.add(total, v) }
     }
   }
   WaitGroup.wait(senders)
-  Chan.close(c)
+  Channel.close(c)
   WaitGroup.wait(receivers)
   print(Atomic.load(total))
-  var idle: Chan[int] = Chan.new()
+  var idle: Channel[int] = Channel.new()
   var ctx = Context.new()
   var blocked = WaitGroup.new()
   var gaveUp = Atomic.new(0)
@@ -33,7 +33,7 @@ func main(): void {
     WaitGroup.add(blocked, 1)
     go {
       defer { WaitGroup.done(blocked) }
-      if Chan.receive(idle, ctx) == null && Context.isDone(ctx) { Atomic.add(gaveUp, 1) }
+      if Channel.receive(idle, ctx) == null && Context.isDone(ctx) { Atomic.add(gaveUp, 1) }
     }
   }
   Time.sleep(Time.duration(milliseconds: 20))

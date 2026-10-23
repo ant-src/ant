@@ -4,16 +4,16 @@
 func main(): void {
   var ctx = Context.new()
   var ticks = Time.ticker(Time.duration(milliseconds: 20), ctx)
-  var work: Chan[string] = Chan.new()
+  var work: Channel[string] = Channel.new()
   go {
-    for w in ["a", "b", "c"] { var x = Chan.send(work, w) }
+    for w in ["a", "b", "c"] { var x = Channel.send(work, w) }
   }
   var got: Array[string] = []
   var beats = 0
   while beats < 3 {
     select {
-      var w = Chan.receive(work) { Array.push(got, w ?? "") }
-      var at = Chan.receive(ticks) {
+      var w = Channel.receive(work) { Array.push(got, w ?? "") }
+      var at = Channel.receive(ticks) {
         if at != null && Time.compare(at, Time.fromEpochMillis(0)) > 0 { beats += 1 }
       }
     }
@@ -21,11 +21,11 @@ func main(): void {
   print(got)
   print(beats)
   Time.sleep(Time.duration(milliseconds: 100))
-  print(Chan.length(ticks))
+  print(Channel.length(ticks))
   Context.cancel(ctx)
   Time.sleep(Time.duration(milliseconds: 50))
-  var left = Chan.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
-  print(Chan.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
+  var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
+  print(Channel.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
 }
 
 // expect
