@@ -211,9 +211,11 @@ func (r *resolver) declareModule(f *ast.File) {
 			if d.Owner == "" {
 				r.declare(r.module, d.Name, d.Pos)
 			}
+			r.typeParams(d.TypeParams)
 		case *ast.TypeDecl:
 			r.declare(r.module, d.Name, d.Pos)
 			types[d.Name] = d
+			r.typeParams(d.TypeParams)
 		}
 	}
 	for _, d := range f.Decls {
@@ -239,6 +241,16 @@ func (r *resolver) declareModule(f *ast.File) {
 					r.errorf(fd.Pos, "%s.%s shares its name with a field of %s", fd.Owner, fd.Name, fd.Owner)
 				}
 			}
+		}
+	}
+}
+
+// typeParams enforces on type parameters the rule that a prelude name is never shadowed, so
+// that int means one thing in every scope (section 10).
+func (r *resolver) typeParams(tps []ast.TypeParam) {
+	for _, tp := range tps {
+		if r.isPrelude(tp.Name) {
+			r.errorf(tp.Pos, "%s is a prelude name and cannot be redeclared", tp.Name)
 		}
 	}
 }
