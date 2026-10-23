@@ -29,11 +29,16 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 	lines := make(chan string)
 	go func() {
 		defer close(lines)
-		in := bufio.NewScanner(stdin)
-		in.Buffer(make([]byte, 1024*1024), 1024*1024)
-		for in.Scan() {
+		// a reader, not a scanner, so a line of any length is read whole
+		in := bufio.NewReader(stdin)
+		for {
+			line, err := in.ReadString('\n')
+			if line == "" && err != nil {
+				return
+			}
+			line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
 			select {
-			case lines <- in.Text():
+			case lines <- line:
 			case <-ctx.Done():
 				return
 			}

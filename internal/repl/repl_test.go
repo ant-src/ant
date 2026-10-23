@@ -88,3 +88,16 @@ func TestRunInterrupted(t *testing.T) {
 		t.Errorf("stderr: %q", errOut.String())
 	}
 }
+
+// TestRunLongLine checks that a line longer than any fixed buffer is read whole, and the
+// inputs after it still run.
+func TestRunLongLine(t *testing.T) {
+	input := `var s = "` + strings.Repeat("a", 2<<20) + "\"\nString.length(s)\n7"
+	var out, errOut strings.Builder
+	if status := Run(context.Background(), strings.NewReader(input), &out, &errOut); status != 0 {
+		t.Errorf("status %d", status)
+	}
+	if got := out.String(); !strings.Contains(got, "2097152\n") || !strings.Contains(got, "7\n") {
+		t.Errorf("stdout %q, stderr %q", got, errOut.String())
+	}
+}
