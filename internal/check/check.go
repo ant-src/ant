@@ -487,7 +487,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo, mi *moduleInfo) {
 }
 
 // checkAliasCycle reports an alias that reaches itself without passing through a record,
-// array, map, or function.
+// array, map, set, or function.
 func (c *Checker) checkAliasCycle(ti *typeInfo) {
 	if ti.t.Kind != types.AliasDecl {
 		return
@@ -518,7 +518,7 @@ func (c *Checker) checkAliasCycle(ti *typeInfo) {
 		return false
 	}
 	if walk(ti.t.Body) {
-		c.errorf(ti.decl.Pos, "type %s refers to itself without passing through a record, array, map, or function", ti.decl.Name)
+		c.errorf(ti.decl.Pos, "type %s refers to itself without passing through a record, array, map, set, or function", ti.decl.Name)
 		ti.t.Body = types.Invalid{}
 	}
 }
