@@ -11,7 +11,9 @@ import (
 
 // A select (section 5) waits on several heads at once: a receive or a send on a channel, a
 // context's Done, the channel a WaitGroup closes at zero, or a timer. Each is a Go channel, so
-// one reflect.Select chooses among them, atomically, as Go's select does.
+// one reflect.Select chooses among them, atomically, as Go's select does. A channel clause is
+// two cases, the operation and the channel's closed signal, since a value.Chan never closes its
+// channel of values.
 
 // selectHeadParams names each head's parameters, for a named argument in a head.
 var selectHeadParams = map[string][]string{
@@ -29,15 +31,30 @@ func selectHeadName(head *ast.Call) string {
 	return f.X.(*ast.Ident).Name + "." + f.Name
 }
 
+// selectOwner says what a case of the reflect.Select stands for: a clause's operation, a
+// clause's closed signal, or the run's context.
+type selectOwner struct {
+	clause int // -1 for the run's context
+	closed bool
+}
+
 // selectExpr evaluates a select (section 12): the heads' operands in order, then one
 // reflect.Select over the heads, an else, and the run's context; the chosen head's result is
 // bound and its block evaluated, whose value is the select's.
 func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
-	cases := make([]reflect.SelectCase, 0, len(e.Clauses)+1)
+	var cases []reflect.SelectCase
+	var owners []selectOwner
 	var timers []*time.Timer
-	for _, c := range e.Clauses {
+	add := func(sc reflect.SelectCase, owner selectOwner) {
+		cases = append(cases, sc)
+		owners = append(owners, owner)
+	}
+	recv := func(ch any, owner selectOwner) {
+		add(reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}, owner)
+	}
+	for i, c := range e.Clauses {
 		if c.Head == nil {
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectDefault})
+			add(reflect.SelectCase{Dir: reflect.SelectDefault}, selectOwner{clause: i})
 			continue
 		}
 		name := selectHeadName(c.Head)
@@ -48,21 +65,29 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 		pos := c.Head.Position()
 		switch name {
 		case "Chan.receive":
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(g.selectChan(pos, args[0]).Raw())})
+			ch := g.selectChan(pos, args[0])
+			recv(ch.Raw(), selectOwner{clause: i})
+			recv(ch.Closed(), selectOwner{clause: i, closed: true})
 		case "Chan.send":
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(g.selectChan(pos, args[0]).Raw()), Send: reflect.ValueOf(args[1])})
+			// A channel closed already has only its signal, so the send is never buffered
+			// after the close; one closed during the wait ends the blocked send the same way.
+			ch := g.selectChan(pos, args[0])
+			if !ch.IsClosed() {
+				add(reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(ch.Raw()), Send: reflect.ValueOf(args[1])}, selectOwner{clause: i})
+			}
+			recv(ch.Closed(), selectOwner{clause: i, closed: true})
 		case "Context.wait":
 			ctx, ok := args[0].(*value.Context)
 			if !ok {
 				g.panicf(pos, "Context.wait needs a Context, got %s", value.Describe(args[0]))
 			}
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ctx.Ctx.Done())})
+			recv(ctx.Ctx.Done(), selectOwner{clause: i})
 		case "WaitGroup.wait":
 			wg, ok := args[0].(*value.WaitGroup)
 			if !ok {
 				g.panicf(pos, "WaitGroup.wait needs a WaitGroup, got %s", value.Describe(args[0]))
 			}
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(wg.Zero())})
+			recv(wg.Zero(), selectOwner{clause: i})
 		case "Time.sleep":
 			ms, ok := args[0].(int64)
 			if !ok {
@@ -73,33 +98,42 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 			}
 			t := time.NewTimer(time.Duration(ms) * time.Millisecond)
 			timers = append(timers, t)
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(t.C)})
+			recv(t.C, selectOwner{clause: i})
 		}
 	}
-	cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(g.in.ctx.Done())})
+	recv(g.in.ctx.Done(), selectOwner{clause: -1})
 	g.in.Flush()
-	chosen, recv, ok, closed := doSelect(cases)
+	chosen, got, ok := reflect.Select(cases)
 	for _, t := range timers {
 		t.Stop()
 	}
-	if closed {
-		g.panicf(e.Pos, "select: a send clause was chosen on a closed channel")
-	}
-	if chosen == len(e.Clauses) {
-		g.check() // the run is cancelled: the goroutine ends here or at its next check
+	g.AfterWait() // the run's end, whichever case was chosen beside it
+	owner := owners[chosen]
+	if owner.clause < 0 {
 		return value.Void, ctlNone
 	}
-	c := e.Clauses[chosen]
+	c := e.Clauses[owner.clause]
 	var result value.Value = value.Void
 	if c.Head != nil {
 		switch selectHeadName(c.Head) {
 		case "Chan.receive":
-			if ok {
-				result = recv.Interface().(value.Value)
-			} else {
+			switch {
+			case owner.closed:
+				// The closed signal: what is buffered comes first, then null, as Chan.receive.
+				if v, got := cases[chosen-1].Chan.TryRecv(); got {
+					result = v.Interface().(value.Value)
+				} else {
+					result = value.Null
+				}
+			case ok:
+				result = got.Interface().(value.Value)
+			default:
 				result = value.Null
 			}
 		case "Chan.send":
+			if owner.closed {
+				g.panicf(e.Pos, "select: a send clause was chosen on a closed channel")
+			}
 			result = true
 		}
 	}
@@ -136,7 +170,7 @@ func (g *Goroutine) selectArgs(head *ast.Call, name string, env *Env) ([]value.V
 			return []value.Value{v}, c
 		}
 		if i < 0 || i >= len(params) {
-			g.panicf(a.Value.Position(), "%s takes %d arguments in a select clause", name, len(params))
+			g.panicf(a.Value.Position(), "%s takes %s in a select clause, not %s", name, describeParams(params), a.Name)
 		}
 		args[i] = v
 	}
@@ -148,26 +182,18 @@ func (g *Goroutine) selectArgs(head *ast.Call, name string, env *Env) ([]value.V
 	return args, ctlNone
 }
 
+// describeParams names a head's parameters: "c" or "c and v".
+func describeParams(params []string) string {
+	if len(params) == 1 {
+		return params[0]
+	}
+	return params[0] + " and " + params[1]
+}
+
 func (g *Goroutine) selectChan(pos ast.Pos, v value.Value) *value.Chan {
 	c, ok := v.(*value.Chan)
 	if !ok {
 		g.panicf(pos, "a select clause needs a Chan, got %s", value.Describe(v))
 	}
 	return c
-}
-
-// doSelect runs reflect.Select and reports a send chosen on a closed channel instead of the
-// runtime's panic.
-func doSelect(cases []reflect.SelectCase) (chosen int, recv reflect.Value, ok bool, closed bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, isErr := r.(error); isErr && e.Error() == "send on closed channel" {
-				closed = true
-				return
-			}
-			panic(r)
-		}
-	}()
-	chosen, recv, ok = reflect.Select(cases)
-	return
 }

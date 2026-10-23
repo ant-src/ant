@@ -135,6 +135,10 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 // sends one per Ctrl-C or SIGTERM.
 func WithInterrupts(c <-chan struct{}) Option { return func(cfg *config) { cfg.interrupts = c } }
 
+// ErrInterrupted is what Run returns when an interrupt ended the run: one the program had not
+// asked for, or the second. ExitStatus gives it 130, as a shell gives a process a signal ended.
+var ErrInterrupted = interp.ErrInterrupted
+
 func WithEnvironment(vars map[string]string) Option {
 	return func(c *config) {
 		c.env = func(name string) (string, bool) { v, ok := vars[name]; return v, ok }

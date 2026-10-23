@@ -103,12 +103,15 @@ func init() {
 				if !ok {
 					return value.Null
 				}
-				return temporal.FromEpochNanos(t.UnixNano())
+				deadline, err := temporal.NewInstant(t.Unix(), int64(t.Nanosecond()))
+				must(g, "Context.deadline", err)
+				return deadline
 			}),
 			fn("Context.wait", "ctx", func(g *interp.Goroutine, a []value.Value) value.Value {
 				c := contextArg(g, "Context.wait", a[0])
 				g.Instance().Flush()
 				<-c.Ctx.Done()
+				g.AfterWait()
 				return value.Void
 			}),
 		)

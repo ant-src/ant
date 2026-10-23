@@ -6,6 +6,7 @@ package interp
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -62,20 +63,21 @@ func (e *ExitError) Error() string { return fmt.Sprintf("exit status %d", e.Stat
 
 // Instance is one run of a program.
 type Instance struct {
-	prog    *loader.Program
-	cfg     Config
-	modules []*module
-	out     *bufio.Writer
-	outMu   sync.Mutex
-	errMu   sync.Mutex
-	keep    map[string]any
-	keepMu  sync.Mutex
-	done    atomic.Bool
-	result  chan error
-	once    sync.Once
-	ctx     context.Context
-	cancel  context.CancelFunc
-	active  sync.WaitGroup
+	prog        *loader.Program
+	cfg         Config
+	modules     []*module
+	out         *bufio.Writer
+	outMu       sync.Mutex
+	errMu       sync.Mutex
+	keep        map[string]any
+	keepMu      sync.Mutex
+	done        atomic.Bool
+	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
+	result      chan error
+	once        sync.Once
+	ctx         context.Context
+	cancel      context.CancelFunc
+	active      sync.WaitGroup
 	// interrupt is the context Os.interrupt returns, made at the first call.
 	interruptMu sync.Mutex
 	interrupt   *value.Context
@@ -92,6 +94,10 @@ type exitSignal struct {
 }
 
 type cancelSignal struct{}
+
+// ErrInterrupted is the error Run returns when an interrupt from Config.Interrupts ended the
+// run: one the program had not asked for, or the second.
+var ErrInterrupted = errors.New("interrupted")
 
 // Run executes prog: initializes the modules in order and calls main.
 func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
@@ -148,6 +154,7 @@ func (in *Instance) relayInterrupts(interrupts <-chan struct{}) {
 			} else {
 				// As Close does: the flag first, so a goroutine whose wait the cancellation
 				// ends finds it at its very next check and runs nothing more.
+				in.interrupted.Store(true)
 				in.done.Store(true)
 				in.cancel()
 			}
@@ -177,6 +184,9 @@ func (in *Instance) wait() error {
 	case err = <-in.result:
 	case <-in.ctx.Done():
 		err = in.ctx.Err()
+		if in.interrupted.Load() {
+			err = ErrInterrupted
+		}
 	}
 	in.done.Store(true)
 	in.cancel()
@@ -391,6 +401,15 @@ func (g *Goroutine) trace(pos ast.Pos) []Frame {
 // check is the cancellation check at calls and loop back-edges.
 func (g *Goroutine) check() {
 	if g.in.done.Load() {
+		panic(&cancelSignal{})
+	}
+}
+
+// AfterWait ends the goroutine when the run's own context is done: a wait the run's end
+// released runs nothing more, whichever path ended the run and whether or not the flag is set
+// yet. Every blocking call calls it as it returns.
+func (g *Goroutine) AfterWait() {
+	if g.in.ctx.Err() != nil {
 		panic(&cancelSignal{})
 	}
 }

@@ -3,6 +3,7 @@ package value
 import (
 	"context"
 	"errors"
+	"math"
 	"sync"
 	"time"
 )
@@ -143,8 +144,11 @@ func (w *WaitGroup) SyncName() string { return "WaitGroup" }
 func (w *WaitGroup) Add(n int64) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.n+n < 0 {
+	if w.n+n < 0 && n < 0 {
 		return errors.New("WaitGroup counter would go negative")
+	}
+	if n > 0 && w.n > math.MaxInt64-n {
+		return errors.New("WaitGroup counter would overflow")
 	}
 	if w.n == 0 && n > 0 {
 		w.zero = make(chan struct{})
@@ -198,13 +202,16 @@ type Context struct {
 }
 
 // NewContext makes a child of parent that is done when parent is, when timeout passes if it is
-// positive, or when Cancel is called.
+// positive, or when Cancel is called. The timeout layer sits on the parent and the cancel layer
+// on it, so that the deadline passing cancels both and unregisters both from the parent; the
+// other way round the outer layer would stay in the parent until Cancel, which a program that
+// lets its timeouts expire never calls.
 func NewContext(parent context.Context, timeout time.Duration) *Context {
 	c := &Context{}
-	c.Ctx, c.cancel = context.WithCancelCause(parent)
 	if timeout > 0 {
-		c.Ctx, c.stop = context.WithTimeoutCause(c.Ctx, timeout, ErrTimeout)
+		parent, c.stop = context.WithTimeoutCause(parent, timeout, ErrTimeout)
 	}
+	c.Ctx, c.cancel = context.WithCancelCause(parent)
 	return c
 }
 
@@ -226,13 +233,15 @@ func (c *Context) Done() bool { return c.Ctx.Err() != nil }
 // a parent's reason, and cancelled for the host ending the run.
 func (c *Context) Reason() string { return ReasonOf(c.Ctx) }
 
-// ReasonOf names why a Go context is done, as Reason does, for the run's own context too.
+// ReasonOf names why a Go context is done, as Reason does, for the run's own context too. A
+// program's timeout carries ErrTimeout as its cause, so Go's own deadline error can only be the
+// host's context expiring, which is the host ending the run: cancelled, as section 9 says.
 func ReasonOf(ctx context.Context) string {
 	cause := context.Cause(ctx)
 	switch {
 	case cause == nil:
 		return ""
-	case errors.Is(cause, ErrTimeout), errors.Is(cause, context.DeadlineExceeded):
+	case errors.Is(cause, ErrTimeout):
 		return "timeout"
 	case errors.Is(cause, ErrInterrupt):
 		return "interrupt"

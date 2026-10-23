@@ -27,6 +27,7 @@ func init() {
 				if capacity < 0 {
 					g.Panic("Chan.new needs a capacity of at least 0, got %d", capacity)
 				}
+				boundCount(g, "Chan.new", "capacity", capacity)
 				return value.NewChan(int(capacity))
 			}),
 			fn("Chan.send", "c, v, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
@@ -34,6 +35,7 @@ func init() {
 				ctx := waitContext(g, optionalContext(g, "Chan.send", a[2]))
 				g.Instance().Flush()
 				sent, err := c.Send(ctx, a[1])
+				g.AfterWait()
 				if err != nil {
 					g.Panic("Chan.send: %s", err)
 				}
@@ -44,6 +46,7 @@ func init() {
 				ctx := waitContext(g, optionalContext(g, "Chan.receive", a[1]))
 				g.Instance().Flush()
 				v, ok, _ := c.Receive(ctx)
+				g.AfterWait()
 				if !ok {
 					return value.Null
 				}
@@ -68,6 +71,7 @@ func init() {
 					for {
 						g.Instance().Flush()
 						v, ok, _ := c.Receive(ctx)
+						g.AfterWait()
 						if !ok || !push(v) {
 							return
 						}

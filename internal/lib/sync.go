@@ -172,10 +172,13 @@ func init() {
 				w := wgArg(g, "WaitGroup.wait", a[0])
 				ctx := waitContext(g, optionalContext(g, "WaitGroup.wait", a[1]))
 				g.Instance().Flush()
-				select {
-				case <-w.Zero():
-				case <-ctx.Done():
+				if ctx.Err() == nil {
+					select {
+					case <-w.Zero():
+					case <-ctx.Done():
+					}
 				}
+				g.AfterWait()
 				return value.Void
 			}),
 		)

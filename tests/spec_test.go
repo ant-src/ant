@@ -295,6 +295,7 @@ var panicRows = [][]string{
 	{"var-init"},                             // ◆ var read before its initializer has run
 	{"panic"},                                // ◆ panic
 	{"depth"},                                // ◆ call depth
+	{"count"},                                // ◆ a count above 2^31 − 1
 	{"try"},                                  // try on a non-Result
 	{"select-closed"},                        // ◆ select: a send clause chosen on a closed channel
 	{"never"},                                // ??, ?., ==, != never panic

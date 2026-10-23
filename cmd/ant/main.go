@@ -5,14 +5,16 @@
 //	ant                          start a REPL
 //
 // Exit status: 0 when main returns or the check passes, 1 when the main goroutine panics or the
-// check finds errors, 2 when the program cannot be loaded or the usage is wrong. Os.exit sets
-// its own status.
+// check finds errors, 2 when the program cannot be loaded or the usage is wrong, 130 when an
+// interrupt the program did not ask for ends the run, with nothing printed, as a shell does.
+// Os.exit sets its own status.
 package main
 
 import (
 	_ "time/tzdata" // the zone database, for hosts that have none
 
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -63,11 +65,16 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}()
 		err = prog.Run(context.Background(), ant.WithStdin(stdin), ant.WithStdout(stdout), ant.WithStderr(stderr),
 			ant.WithArgs(args[2:]), ant.WithInterrupts(interrupts))
-		switch err.(type) {
-		case nil, *ant.PanicError, *ant.ExitError:
-			// A panic has already been reported by the runtime; an exit says nothing.
+		switch {
+		case err == nil, errors.Is(err, ant.ErrInterrupted):
+			// An interrupt that ends the run says nothing, as a shell says nothing.
 		default:
-			fmt.Fprintln(stderr, err)
+			var pe *ant.PanicError
+			var ee *ant.ExitError
+			if !errors.As(err, &pe) && !errors.As(err, &ee) {
+				// A panic has already been reported by the runtime; an exit says nothing.
+				fmt.Fprintln(stderr, err)
+			}
 		}
 		return ant.ExitStatus(err)
 	case "check":

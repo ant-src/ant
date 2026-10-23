@@ -68,6 +68,7 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	headers(g, who, hdrs, req)
 	g.Instance().Flush()
 	resp, err := http.DefaultClient.Do(req)
+	g.AfterWait()
 	if err != nil {
 		return failed(ctx, err)
 	}
@@ -121,6 +122,7 @@ func serve(g *interp.Goroutine, a []value.Value) value.Value {
 	go func() { done <- srv.Serve(l.l) }()
 	select {
 	case err := <-done:
+		g.AfterWait()
 		if l.isClosed() {
 			return value.Err(value.ErrorValue("the listener is closed"))
 		}
@@ -130,6 +132,7 @@ func serve(g *interp.Goroutine, a []value.Value) value.Value {
 		defer cancel()
 		srv.Shutdown(stop)
 		<-done
+		g.AfterWait()
 		return value.Ok(value.Void)
 	}
 }

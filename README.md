@@ -64,7 +64,7 @@ func main(): void {
 ```
 go install github.com/ant-src/ant/cmd/ant@latest
 
-ant run main.ant [args...]    # run a program; exit 0, 1 on a panic, 2 when it cannot load
+ant run main.ant [args...]    # run a program; exit 0, 1 on a panic, 2 when it cannot load, 130 on an interrupt
 ant check main.ant            # type-check it and every module it imports; exit 1 on errors
 ant                           # a REPL: each input is a declaration or an expression
 ```

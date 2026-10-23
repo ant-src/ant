@@ -3,6 +3,7 @@ package lib
 import (
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
+	"math"
 )
 
 // Argument checks: every library function panics when an argument has a kind it does not take
@@ -30,6 +31,17 @@ func stringArg(g *interp.Goroutine, who string, v value.Value) string {
 		g.Panic("%s needs a string, got %s", who, value.Describe(v))
 	}
 	return s
+}
+
+// maxCount bounds a count that sizes an allocation: a count above it is a ◆ of section 12's
+// table, since the runtime could not hold the result and a Go panic is not an Ant panic.
+const maxCount = math.MaxInt32
+
+// boundCount panics when n, a count of what, is above maxCount.
+func boundCount(g *interp.Goroutine, who, what string, n int64) {
+	if n > maxCount {
+		g.Panic("%s needs a %s of at most %d, got %d", who, what, maxCount, n)
+	}
 }
 
 func intArg(g *interp.Goroutine, who string, v value.Value) int64 {

@@ -177,3 +177,18 @@ late line arrives whole; `File.pipe` writes the pending text first and flushes t
 whatever ended the copy. `stdlib.md` says so under File. Three corpus programs and a Go test
 with a late standard input cover the reader and writer, the kept partial line, the pipe under a
 deadline and the resumed read; the suite is green under `-race`.
+
+Phase 57 was done on 2026-10-23: `Context.new` builds the timeout layer on the parent and the
+cancel layer on it, so an expired deadline unregisters both, which a Go probe of ten thousand
+expired contexts confirms; `Chan.send`, `Chan.receive`, `Chan.values`, `WaitGroup.wait` and
+`Time.sleep` look at their context before they wait; `Context.deadline` builds its instant from
+seconds and nanoseconds, checked by a Go test since the harness bounds every run; a count above
+2^31 − 1 is the table's new row, with `boundCount` on the five functions; a channel keeps a
+closed signal beside a channel of values that is never closed, so a send blocked under a close
+ends on the signal and a receive drains the buffer before `null`, in `Chan` and in the `select`
+keyword alike, and the race detector is quiet; `AfterWait` ends a goroutine whose wait the run's
+own context released, called by every blocking call, so neither path of the run's end has a
+window; Go's deadline error, which only the host's context can carry, reads `cancelled`; the
+relay records that it ended the run, `Run` returns `ErrInterrupted`, and the command exits 130
+in silence. `stdlib.md` says so of `Os.interrupt`, with the self-cancelled context. Four corpus
+programs and the interrupt test's assertion cover it; the suite is green under `-race`.

@@ -51,6 +51,7 @@ func execProcess(g *interp.Goroutine, a []value.Value) value.Value {
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	in.Flush() // what the program printed precedes what it prints from the child
 	err := cmd.Run()
+	g.AfterWait()
 	status := 0
 	if err != nil {
 		if ctx.Err() != nil {

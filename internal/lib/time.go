@@ -295,12 +295,15 @@ func init() {
 				}
 				ctx := waitContext(g, optionalContext(g, "Time.sleep", a[1]))
 				g.Instance().Flush()
-				timer := time.NewTimer(time.Duration(ms) * time.Millisecond)
-				defer timer.Stop()
-				select {
-				case <-timer.C:
-				case <-ctx.Done():
+				if ctx.Err() == nil {
+					timer := time.NewTimer(time.Duration(ms) * time.Millisecond)
+					defer timer.Stop()
+					select {
+					case <-timer.C:
+					case <-ctx.Done():
+					}
 				}
+				g.AfterWait()
 				return value.Void
 			}),
 			fn("Time.monotonic", "", func(g *interp.Goroutine, a []value.Value) value.Value {

@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -62,6 +63,9 @@ func main(): void {
 `, 50*time.Millisecond)
 		if err == nil || strings.Contains(out, "slept") {
 			t.Fatalf("the first interrupt should have ended the run: err %v, printed %q", err, out)
+		}
+		if !errors.Is(err, ant.ErrInterrupted) || ant.ExitStatus(err) != 130 {
+			t.Fatalf("an interrupt that ends the run is ErrInterrupted with status 130, got %v (%d)", err, ant.ExitStatus(err))
 		}
 	})
 	t.Run("ignored", func(t *testing.T) {

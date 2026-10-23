@@ -85,6 +85,8 @@ func ExitStatus(err error) int {
 		return 1
 	case errors.As(err, &ee):
 		return ee.Status
+	case errors.Is(err, ErrInterrupted):
+		return 130
 	default:
 		return 1
 	}

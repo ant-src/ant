@@ -39,6 +39,7 @@ func baseArg(g *interp.Goroutine, who string, v value.Value) int {
 func pad(g *interp.Goroutine, who string, a []value.Value, left bool) value.Value {
 	s := stringArg(g, who, a[0])
 	width := intArg(g, who, a[1])
+	boundCount(g, who, "width", width)
 	p := " "
 	if given(a[2]) {
 		p = stringArg(g, who, a[2])
@@ -166,6 +167,7 @@ func init() {
 				if n < 0 {
 					g.Panic("String.repeat needs a count of at least 0, got %d", n)
 				}
+				boundCount(g, "String.repeat", "count", n)
 				return strings.Repeat(stringArg(g, "String.repeat", a[0]), int(n))
 			}),
 			fn("String.trim", "s", func(g *interp.Goroutine, a []value.Value) value.Value {

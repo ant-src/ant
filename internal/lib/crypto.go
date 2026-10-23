@@ -51,6 +51,7 @@ func init() {
 				if n < 0 {
 					g.Panic("Crypto.randomBytes needs a count of at least 0, got %d", n)
 				}
+				boundCount(g, "Crypto.randomBytes", "count", n)
 				b := make([]byte, n)
 				if _, err := rand.Read(b); err != nil {
 					g.Panic("Crypto.randomBytes: %s", err)

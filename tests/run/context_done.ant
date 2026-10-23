@@ -1,0 +1,36 @@
+// spec: 9 Waiting; 11 Synchronization
+// A blocking call with a context that is done already gives up at once, never the coin Go's
+// select would toss between a ready operation and a done context; a deadline is an instant
+// ahead (the far one is checked by a Go test, since the harness bounds every run).
+func main(): void {
+  var ctx = Context.new()
+  Context.cancel(ctx)
+  var c: Chan[int] = Chan.new(1)
+  var sends = 0
+  var gets = 0
+  for i in Iter.range(0, 200) {
+    if Chan.send(c, i, ctx) { sends += 1 }
+    if Chan.receive(c, ctx) != null { gets += 1 }
+  }
+  print([sends, gets, Chan.length(c)])
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  var before = Time.monotonic()
+  WaitGroup.wait(wg, ctx)
+  Time.sleep(5000, ctx)
+  print(Time.monotonic() - before < 1000)
+  var x = Chan.send(c, 1)
+  var later: Array[int] = []
+  for v in Chan.values(c, ctx) { Array.push(later, v) }
+  print(later)
+  var far = Context.new(Time.duration(days: 100000))
+  var deadline = Context.deadline(far)
+  print(deadline != null && Time.compare(deadline, Time.now()) > 0)
+  Context.cancel(far)
+}
+
+// expect
+// out: [0, 0, 0]
+// out: true
+// out: []
+// out: true

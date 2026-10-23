@@ -430,11 +430,13 @@ func init() {
 			fn("File.readLine", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.readLine", a[0])
 				ctx := waitContext(g, optionalContext(g, "File.readLine", a[1]))
+				defer g.AfterWait()
 				return h.read(ctx, h.readLine)
 			}),
 			fn("File.readAll", "f, ctx?", func(g *interp.Goroutine, a []value.Value) value.Value {
 				h := handleArg(g, "File.readAll", a[0])
 				ctx := waitContext(g, optionalContext(g, "File.readAll", a[1]))
+				defer g.AfterWait()
 				return h.read(ctx, h.readAll)
 			}),
 			fn("File.writeLine", "f, line", func(g *interp.Goroutine, a []value.Value) value.Value {
@@ -475,6 +477,7 @@ func init() {
 				}
 				// The source's read slot, then the destination's write mutex: a pipe the other
 				// way takes the other two, so the two cannot deadlock.
+				defer g.AfterWait()
 				return src.read(ctx, func() value.Value {
 					dst.writes.Lock()
 					defer dst.writes.Unlock()
