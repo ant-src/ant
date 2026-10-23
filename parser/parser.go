@@ -1456,14 +1456,13 @@ func (p *parser) arrayLit() *ast.ArrayLit {
 	lit := &ast.ArrayLit{Pos: pos(t)}
 	for !p.at("]") {
 		if p.at("...") {
-			d := p.next()
+			p.next()
 			if p.mode == Spec && (p.at("]") || p.at(",")) {
 				if !p.at("]") {
 					p.expect(",")
 				}
 				continue
 			}
-			_ = d
 			lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression(), Spread: true})
 		} else {
 			lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression()})

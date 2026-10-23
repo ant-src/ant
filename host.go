@@ -87,7 +87,7 @@ func (ns Namespace) build() (value.Value, *ast.File, error) {
 			seen[d.Name] = true
 		case *ast.TypeDecl:
 			fields = append(fields, d.Name)
-			vals = append(vals, lib.TypeValue(d))
+			vals = append(vals, interp.TypeValue(d))
 		default:
 			return nil, nil, fmt.Errorf("namespace %s: only func and type declarations are allowed", ns.Name)
 		}

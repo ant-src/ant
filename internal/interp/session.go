@@ -97,7 +97,7 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 	s.mod.grow.Unlock()
 	g := s.in.newGoroutine(true)
 	var result value.Value = value.Void
-	err := s.in.runOn(g, func() {
+	err := s.in.runOn(func() {
 		for _, m := range fresh {
 			s.in.initModule(g, m)
 		}

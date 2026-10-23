@@ -19,16 +19,16 @@ func Start(ctx context.Context, prog *loader.Program, cfg Config) (*Instance, er
 		in.done.Store(true)
 	}()
 	g := in.newGoroutine(true)
-	if err := in.runOn(g, func() { in.initModules(g) }); err != nil {
+	if err := in.runOn(func() { in.initModules(g) }); err != nil {
 		in.Close()
 		return nil, err
 	}
 	return in, nil
 }
 
-// runOn runs f on the calling Go goroutine as the Ant goroutine g, converting what ends it
-// into an error: an Ant panic is reported and returned as a *PanicError.
-func (in *Instance) runOn(g *Goroutine, f func()) (err error) {
+// runOn runs f on the calling Go goroutine, converting what ends it into an error: an Ant
+// panic is reported and returned as a *PanicError.
+func (in *Instance) runOn(f func()) (err error) {
 	in.active.Add(1)
 	defer in.active.Done()
 	defer func() {
@@ -61,7 +61,7 @@ func (in *Instance) Call(fn value.Value, args ...value.Value) (v value.Value, er
 	if f, ok := fn.(*Func); ok && f.Body != nil {
 		at = f.Body.Pos
 	}
-	err = in.runOn(g, func() { v = g.callValue(fn, args, nil, at) })
+	err = in.runOn(func() { v = g.callValue(fn, args, nil, at) })
 	return v, err
 }
 

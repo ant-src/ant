@@ -56,9 +56,8 @@ func (m *module) importAt(i int) importRef {
 }
 
 type importRef struct {
-	rec   *value.Record
-	field int // -1 for a namespace import
-	name  string
+	rec       *value.Record
+	namespace bool // the import binds the whole module to one name, rather than destructuring it
 }
 
 // setupModules creates every module record with its tags and functions, so that all names
@@ -83,50 +82,45 @@ func newModule(lm *loader.Module) *module {
 
 // linkModule resolves a module's imports and binds its types and functions.
 func (in *Instance) linkModule(m *module, lookup func(int) *module) {
-	{
-		f := m.m.File
-		m.imports = nil
-		for _, imp := range f.Imports {
-			target := lookup(imp.Module)
-			if imp.Namespace != "" {
-				m.imports = append(m.imports, importRef{rec: target.rec, field: -1, name: imp.Namespace})
-				continue
-			}
-			m.imports = append(m.imports, importRef{rec: target.rec, field: -2})
+	f := m.m.File
+	m.imports = nil
+	for _, imp := range f.Imports {
+		target := lookup(imp.Module)
+		if imp.Namespace != "" {
+			m.imports = append(m.imports, importRef{rec: target.rec, namespace: true})
+			continue
 		}
-		for _, d := range f.Decls {
-			switch d := d.(type) {
-			case *ast.TypeDecl:
-				v := in.typeValue(d)
-				m.rec.SetField(d.Name, v)
-				switch x := v.(type) {
-				case *value.Tag:
-					m.tags[d.Name] = x
-				case *value.Constructor:
-					m.tags[d.Name] = x.Tag
-				}
-			}
-		}
-		for _, d := range f.Decls {
-			fd, ok := d.(*ast.FuncDecl)
-			if !ok {
-				continue
-			}
-			fn := &Func{Name: fd.Name, Params: fd.Params, Body: fd.Body, Scope: fd.Scope, Env: m.root}
-			if fd.Owner == "" {
-				m.rec.SetField(fd.Name, fn)
-				continue
-			}
-			fn.Name = fd.Owner + "." + fd.Name
-			if tag := m.tags[fd.Owner]; tag != nil { // nil only for a session type never bound
-				tag.SetFunc(fd.Name, fn)
+		m.imports = append(m.imports, importRef{rec: target.rec})
+	}
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.TypeDecl:
+			v := TypeValue(d)
+			m.rec.SetField(d.Name, v)
+			switch x := v.(type) {
+			case *value.Tag:
+				m.tags[d.Name] = x
+			case *value.Constructor:
+				m.tags[d.Name] = x.Tag
 			}
 		}
 	}
+	for _, d := range f.Decls {
+		fd, ok := d.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		fn := &Func{Name: fd.Name, Params: fd.Params, Body: fd.Body, Scope: fd.Scope, Env: m.root}
+		if fd.Owner == "" {
+			m.rec.SetField(fd.Name, fn)
+			continue
+		}
+		fn.Name = fd.Owner + "." + fd.Name
+		if tag := m.tags[fd.Owner]; tag != nil { // nil only for a session type never bound
+			tag.SetFunc(fd.Name, fn)
+		}
+	}
 }
-
-// typeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.
-func (in *Instance) typeValue(d *ast.TypeDecl) value.Value { return TypeValue(d) }
 
 // TypeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.
 func TypeValue(d *ast.TypeDecl) value.Value {
@@ -170,7 +164,7 @@ func (in *Instance) initModule(g *Goroutine, m *module) {
 // importValue reads an imported name: the module record for a namespace, or a field.
 func (g *Goroutine) importValue(env *Env, ref ast.Ref, pos ast.Pos) value.Value {
 	ir := env.mod.importAt(ref.Index)
-	if ir.field == -1 {
+	if ir.namespace {
 		return ir.rec
 	}
 	v, ok := ir.rec.Field(ref.Name)

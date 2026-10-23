@@ -346,9 +346,6 @@ func (in *Instance) Exit(status int) {
 	panic(&exitSignal{status: status})
 }
 
-// Cancelled reports whether the run is over or its context is done.
-func (in *Instance) Cancelled() bool { return in.done.Load() }
-
 // ---- goroutines
 
 // Goroutine is the per-goroutine interpreter state: its call stack and depth.
@@ -373,10 +370,7 @@ func (g *Goroutine) Instance() *Instance { return g.in }
 
 // Spawn runs body on a new Ant goroutine, as a go block does: a panic in it is reported and
 // ends it alone, and the run's grace period waits for it.
-func (g *Goroutine) Spawn(body func(*Goroutine)) { g.spawn(body) }
-
-// spawn runs body on a new goroutine.
-func (g *Goroutine) spawn(body func(*Goroutine)) {
+func (g *Goroutine) Spawn(body func(*Goroutine)) {
 	ng := g.in.newGoroutine(false)
 	g.in.active.Add(1)
 	go func() {

@@ -231,7 +231,7 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 	case *ast.Go:
 		body, scope := e.Body, e.Scope
 		path, pos := env.mod.path, e.Pos
-		g.spawn(func(ng *Goroutine) {
+		g.Spawn(func(ng *Goroutine) {
 			// the block is the goroutine's root frame, so its panics report a position
 			ng.push("go block", path, pos)
 			defer ng.pop()
@@ -306,7 +306,7 @@ func (g *Goroutine) assignIdent(e *ast.Ident, v value.Value, env *Env) {
 		env.mod.set(e.Ref.Index, v)
 	case ast.RefImport:
 		ir := env.mod.importAt(e.Ref.Index)
-		if ir.field == -1 {
+		if ir.namespace {
 			g.panicf(e.Pos, "cannot assign to the namespace %s", e.Name)
 		}
 		if !ir.rec.SetField(e.Ref.Name, v) {

@@ -373,13 +373,12 @@ func (r *resolver) block(b *ast.Block, parent *scope) {
 	r.stmts(b.Stmts, s)
 }
 
-func (r *resolver) body(kind string, b *ast.Block, parent *scope, fs *ast.FuncScope) *scope {
+func (r *resolver) body(kind string, b *ast.Block, parent *scope, fs *ast.FuncScope) {
 	s := r.push(&scope{parent: parent, boundary: true, fn: true, fnScope: fs})
 	if kind == "lambda" {
 		s.xBinding = r.declare(s, "x", b.Pos)
 	}
 	r.stmts(b.Stmts, s)
-	return s
 }
 
 func (r *resolver) expr(e ast.Expr, s *scope) {

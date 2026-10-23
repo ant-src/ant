@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
@@ -121,6 +120,3 @@ func Prelude() map[string]value.Value {
 var namespaces = map[string]func() value.Value{}
 
 func register(name string, build func() value.Value) { namespaces[name] = build }
-
-// TypeValue builds what a type declaration binds, for host namespaces.
-func TypeValue(d *ast.TypeDecl) value.Value { return interp.TypeValue(d) }

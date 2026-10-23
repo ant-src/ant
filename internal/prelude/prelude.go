@@ -22,6 +22,3 @@ func Decls() (*ast.File, error) {
 	once.Do(func() { file, err = parser.Parse("prelude.ant", source, parser.Declarations) })
 	return file, err
 }
-
-// Source is the prelude's text.
-func Source() string { return source }
