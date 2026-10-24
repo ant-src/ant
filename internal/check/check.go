@@ -871,7 +871,8 @@ type fnCtx struct {
 }
 
 type loopCtx struct {
-	hasBreak bool
+	// breaks holds the state at each break, which the state after the loop joins.
+	breaks []flow
 }
 
 // local is a local variable or parameter. pending marks a var whose initializer is being

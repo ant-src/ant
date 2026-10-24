@@ -58,3 +58,23 @@ func inPlace(c: Config | null): void {
     seen[(c = null)] = k
   }
 }
+
+// A break leaves the loop with the state at the break, not with the complement of the condition
+// or the state at the end of the body.
+func breakState(done: bool): int {
+  var x: int | null = null
+  while x == null {
+    if done { break }
+    x = 1
+  }
+  x + 1 // ERR: got int | null and int
+}
+
+func breakStateFor(done: bool): int {
+  var y: int | null = 1
+  for i in [1] {
+    y = 2
+    if done { y = null; break }
+  }
+  y + 1 // ERR: got int | null and int
+}

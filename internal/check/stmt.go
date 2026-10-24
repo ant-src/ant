@@ -60,7 +60,8 @@ func (c *Checker) narrowLocal(l *local, t types.Type) {
 
 func (c *Checker) markBreak() {
 	if c.fn != nil && len(c.fn.loops) > 0 {
-		c.fn.loops[len(c.fn.loops)-1].hasBreak = true
+		loop := c.fn.loops[len(c.fn.loops)-1]
+		loop.breaks = append(loop.breaks, c.flow.copy())
 	}
 }
 
@@ -546,14 +547,12 @@ func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
 	wt, wf := c.cond(x.Cond, sc)
 	c.flow = wt
 	c.synthBlock(x.Body, sc)
-	afterBody := c.flow
 	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
-	if loop.hasBreak {
-		c.flow = joinFlows(wf, afterBody)
-	} else {
-		c.flow = wf
+	c.flow = wf
+	for _, b := range loop.breaks {
+		c.flow = joinFlows(c.flow, b)
 	}
-	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && !loop.hasBreak {
+	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && len(loop.breaks) == 0 {
 		return types.Never{}
 	}
 	return types.Void{}
@@ -571,6 +570,9 @@ func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	c.synthBlock(x.Body, inner)
 	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
 	c.flow = joinFlows(before, c.flow)
+	for _, b := range loop.breaks {
+		c.flow = joinFlows(c.flow, b)
+	}
 	return types.Void{}
 }
 
