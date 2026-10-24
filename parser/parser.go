@@ -40,11 +40,11 @@ func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.P
 
 // Parse parses one module. path only labels the result.
 func Parse(path, src string, mode Mode) (f *ast.File, err error) {
-	toks, lerr := lexer.Lex(src)
+	toks, comments, lerr := lexer.LexLayout(src)
 	if lerr != nil {
 		return nil, lexError(src, lerr)
 	}
-	p := &parser{mode: mode, toks: toks}
+	p := &parser{mode: mode, src: src, toks: toks, comments: comments}
 	defer p.recover(&err)
 	return p.file(path), nil
 }
@@ -78,7 +78,7 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 		return nil, nil, lexError(src, lerr)
 	}
 	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
-	p := &parser{mode: Program, toks: toks, roles: l.Roles, prefix: l.Prefix}
+	p := &parser{mode: Program, src: src, toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
 	defer p.recover(&err)
 	return p.file(path), l, nil
 }
@@ -104,7 +104,7 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 		le := lerr.(*lexer.Error)
 		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg}
 	}
-	p := &parser{mode: Spec, toks: toks}
+	p := &parser{mode: Spec, src: src, toks: toks}
 	defer p.recover(&err)
 	e = p.expression()
 	p.skipTerms()
@@ -116,16 +116,19 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 
 type parser struct {
 	mode     Mode
+	src      string
 	toks     []token.Token
 	i        int
-	nl       int          // > 0: newlines are ignored (inside a list)
-	header   bool         // inside an if, while, or for header: Path { is not a literal
-	boundary string       // "", "func", "lambda", "go", or "defer"
-	loops    int          // loops entered inside the current boundary
-	curBlock *ast.Block   // the innermost block whose statements are being parsed
-	depth    int          // nesting of expressions, types, and blocks, bounded by maxNesting
-	roles    map[int]Role // filled for ParseLayout, nil otherwise
-	prefix   map[int]bool // likewise
+	comments []token.Comment // for doc comments
+	ci       int             // comments before ci end before the declaration being parsed
+	nl       int             // > 0: newlines are ignored (inside a list)
+	header   bool            // inside an if, while, or for header: Path { is not a literal
+	boundary string          // "", "func", "lambda", "go", or "defer"
+	loops    int             // loops entered inside the current boundary
+	curBlock *ast.Block      // the innermost block whose statements are being parsed
+	depth    int             // nesting of expressions, types, and blocks, bounded by maxNesting
+	roles    map[int]Role    // filled for ParseLayout, nil otherwise
+	prefix   map[int]bool    // likewise
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -358,10 +361,21 @@ func (p *parser) file(path string) *ast.File {
 		case t.Is("import"):
 			p.fail(t.Pos, "imports must come before declarations")
 		case t.Is("export"), t.Is("func"), t.Is("type"):
+			doc := p.doc(t)
 			d := p.declaration()
+			switch d := d.(type) {
+			case *ast.VarDecl:
+				d.Doc = doc
+			case *ast.FuncDecl:
+				d.Doc = doc
+			case *ast.TypeDecl:
+				d.Doc = doc
+			}
 			f.Decls = append(f.Decls, d)
 		case t.Is("var"):
+			doc := p.doc(t)
 			d := p.varDecl()
+			d.Doc = doc
 			f.Decls = append(f.Decls, d)
 			if p.mode == Spec || p.mode == Session {
 				f.Stmts = append(f.Stmts, d)
@@ -444,6 +458,7 @@ func (p *parser) varDecl() *ast.VarDecl {
 			d.Target = &ast.NameTarget{Pos: pos(m), Name: m.Text}
 			p.expect(":")
 			d.Type = p.parseType()
+			d.Sig = p.since(t)
 			return d
 		}
 		if p.at(":") {
@@ -457,6 +472,7 @@ func (p *parser) varDecl() *ast.VarDecl {
 		}
 		p.fail(n.Pos, "expected a name or a destructuring after var, got %s", n)
 	}
+	d.Sig = p.since(t)
 	p.expect("=")
 	d.Init = p.expression()
 	return d
@@ -478,6 +494,7 @@ func (p *parser) funcDecl() *ast.FuncDecl {
 		d.TypeParams = p.typeParams()
 	}
 	d.Params, d.Return = p.signature()
+	d.Sig = p.since(t)
 	if p.mode == Declarations && !p.at("{") {
 		return d
 	}
@@ -500,11 +517,48 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 		d.TypeParams = p.typeParams()
 	}
 	if p.mode == Declarations && !p.at("=") {
+		d.Sig = p.since(t)
 		return d // an opaque type
 	}
 	p.expect("=")
 	d.Body = p.parseType()
+	d.Sig = p.since(t)
 	return d
+}
+
+// since is the source from t to the end of the last token read.
+func (p *parser) since(t token.Token) string { return p.src[t.Off:p.toks[p.i-1].End] }
+
+// doc is the doc comment of the declaration that starts at t (section 2): the run of line
+// comments, each alone on its line, on the lines directly above t.
+func (p *parser) doc(t token.Token) string {
+	for p.ci < len(p.comments) && p.comments[p.ci].End <= t.Off {
+		p.ci++
+	}
+	var lines []string
+	end := t.Off
+	for k := p.ci - 1; k >= 0; k-- {
+		c := p.comments[k]
+		if !strings.HasPrefix(c.Text, "//") || !oneLineBreak(p.src[c.End:end]) || !lineStart(p.src, c.Off) {
+			break
+		}
+		line := strings.TrimRight(c.Text[2:], " \t\r")
+		lines = append(lines, strings.TrimPrefix(line, " "))
+		end = c.Off
+	}
+	slices.Reverse(lines)
+	return strings.Join(lines, "\n")
+}
+
+// oneLineBreak reports whether s is blank apart from exactly one line break.
+func oneLineBreak(s string) bool {
+	return strings.Trim(s, " \t\r\n") == "" && strings.Count(s, "\n") == 1
+}
+
+// lineStart reports whether only spaces and tabs come before off on its line.
+func lineStart(src string, off int) bool {
+	i := strings.LastIndexByte(src[:off], '\n')
+	return strings.Trim(src[i+1:off], " \t") == ""
 }
 
 func (p *parser) typeParams() []ast.TypeParam {

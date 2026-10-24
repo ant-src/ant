@@ -86,6 +86,8 @@ type VarDecl struct {
 	Target Target
 	Type   Type // nil when inferred; only with a NameTarget
 	Init   Expr
+	Doc    string // the doc comment (section 2) of a top-level var, or ""
+	Sig    string // the source from var through the type, as written, without the initializer
 }
 
 // FuncDecl is a named function, or a function declared on a type when Owner is set.
@@ -98,6 +100,8 @@ type FuncDecl struct {
 	Params     []Param
 	Return     Type   // nil when inferred
 	Body       *Block // nil only in declarations mode
+	Doc        string // the doc comment (section 2), or ""
+	Sig        string // the source from func through the result type, as written
 	// Scope is filled by the resolver.
 	Scope *FuncScope
 }
@@ -111,6 +115,8 @@ type TypeDecl struct {
 	Name       string
 	TypeParams []TypeParam
 	Body       Type
+	Doc        string // the doc comment (section 2), or ""
+	Sig        string // the whole declaration from type on, as written
 }
 
 // TypeParam is a type parameter with an optional bound.

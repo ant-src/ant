@@ -316,3 +316,67 @@ func TestNesting(t *testing.T) {
 		}
 	}
 }
+
+// TestDocComments attaches doc comments by the rule of section 2.
+func TestDocComments(t *testing.T) {
+	src := `// Package text before a blank line documents nothing.
+
+// Point is a position.
+//
+//     Point{ x: 1.0 }
+export type Point = {
+  x: float64,
+}
+
+var a = 1 // trailing, not a doc
+func f(): int { 1 }
+
+/* block */
+// only the line comment after the block
+func g(x: int) { x }
+
+// Origin is where the axes meet.
+var origin: Point = Point{ x: 0.0 }
+
+//no space
+//   kept indent
+func Point.norm(p: Point): float64 { p.x }
+
+// inside
+func h() {
+  // a comment inside h
+}
+func k() {}
+`
+	f, err := Parse("t.ant", src, Program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct{ doc, sig string }{
+		{"Point is a position.\n\n    Point{ x: 1.0 }", "type Point = {\n  x: float64,\n}"},
+		{"", "var a"},
+		{"", "func f(): int"},
+		{"only the line comment after the block", "func g(x: int)"},
+		{"Origin is where the axes meet.", "var origin: Point"},
+		{"no space\n  kept indent", "func Point.norm(p: Point): float64"},
+		{"inside", "func h()"},
+		{"", "func k()"},
+	}
+	if len(f.Decls) != len(want) {
+		t.Fatalf("got %d declarations", len(f.Decls))
+	}
+	for i, d := range f.Decls {
+		var doc, sig string
+		switch d := d.(type) {
+		case *ast.VarDecl:
+			doc, sig = d.Doc, d.Sig
+		case *ast.FuncDecl:
+			doc, sig = d.Doc, d.Sig
+		case *ast.TypeDecl:
+			doc, sig = d.Doc, d.Sig
+		}
+		if doc != want[i].doc || sig != want[i].sig {
+			t.Errorf("declaration %d: doc %q sig %q, want %q %q", i, doc, sig, want[i].doc, want[i].sig)
+		}
+	}
+}
