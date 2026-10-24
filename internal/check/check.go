@@ -798,7 +798,7 @@ func (c *Checker) checkMain(mi *moduleInfo) {
 	if len(s.fn.Params) > 0 {
 		c.errorf(ent.pos, "main takes no parameters")
 	}
-	if s.fn.Return != nil && !types.Equal(s.fn.Return, types.Void{}) {
+	if s.fn.Return != nil && !types.IsInvalid(s.fn.Return) && !types.Equal(s.fn.Return, types.Void{}) {
 		c.errorf(ent.pos, "main returns void, not %s", types.String(s.fn.Return))
 	}
 }
@@ -903,7 +903,9 @@ func (c *Checker) checkFunc(fi *funcInfo) {
 	ctx := &fnCtx{kind: "func", name: s.fullName(), declared: s.fn.Return, fi: fi}
 	c.fn = ctx
 	c.flow = flow{}
-	c.rigid = withRigid(savedRigid, fi.tparams)
+	// A declared function is top level, so only its own type parameters are rigid in it, even
+	// when its return type is inferred on demand from inside another generic function's body.
+	c.rigid = withRigid(nil, fi.tparams)
 	sc := &scope{names: map[string]*local{}, tparams: fi.tparams}
 	c.declareParams(fi.decl.Params, s, sc, ctx)
 	if fi.decl.Body != nil {

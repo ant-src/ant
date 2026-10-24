@@ -22,3 +22,12 @@ func main(): void {
   println(fineToo(true))
   println(fixed(2))
 }
+
+// A function whose return type is inferred on demand from inside a generic body has none of that
+// body's type parameters in scope, whichever order the two are declared in.
+func wrapDeep[T](x: T, depth: int): Array[T] {
+  if depth > 0 { countDeep() }
+  [x]
+}
+
+func countDeep() { println(len(wrapDeep(1, 0))) }

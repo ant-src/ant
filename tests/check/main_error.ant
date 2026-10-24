@@ -1,0 +1,6 @@
+// spec: 10
+// Section 10: main returns void. A main whose last expression has an error of its own gets that
+// error only, not a second one about its return type.
+func main() {
+  println(missing) // ERR: missing is not defined
+}
