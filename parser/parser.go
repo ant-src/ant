@@ -285,6 +285,10 @@ func (p *parser) expectTerm() {
 		return
 	}
 	if p.skipTerms() == 0 {
+		if t.Is(":") && p.i >= 2 && p.toks[p.i-2].Is("{") && (p.toks[p.i-1].Kind == token.Ident || p.toks[p.i-1].Kind == token.String) {
+			// { name: value } reads as a block or lambda; the author meant a literal without a head.
+			p.failAt(t, "a record or map literal names its type, as in Point{ x: 1 } or Map{ \"a\": 1 }")
+		}
 		p.failAt(t, "expected a newline or ';' before %s", t)
 	}
 }
