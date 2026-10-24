@@ -20,7 +20,7 @@ func apply(f: func(int, int): int): int { f(1, 2) }
 
 // A lambda of arity zero has no x, and an outer x does not show through: at run time its x is void.
 func outerX(x: int): void {
-  var noArg: func(): int = { x + 1 } // ERR: x is not defined
+  var noArg: func(): int = { x + 1 }     // ERR: x is not defined
   var noArgSet: func(): void = { x = 3 } // ERR: x is not defined
   var oneArg: func(int): int = { x + 1 }
 }
