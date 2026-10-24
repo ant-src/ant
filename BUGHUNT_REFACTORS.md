@@ -50,9 +50,9 @@ have prevented a bug fixed on this branch, noted as "(bug: ...)".
 - **`value/numeric.go`.** `Binary` and `Compare` repeat the same 10-way type switch. A generic
   helper per kind would roughly halve them.
 - **Recursive walks.** `value/equal.go`, `value/render.go` and `lib/json.go` stringify all
-  recurse once per level of nesting (see question 9 in BUGHUNT_QUESTIONS.md). An explicit stack
-  would remove the depth limit. The `ancestors` set in `json.go` and the map in `render.go` could
-  then share one type.
+  recurse once per level of nesting and hop to a fresh goroutine every 4096 levels
+  (`value.Nested`; see question 9 in BUGHUNT_QUESTIONS.md). An explicit stack would make that
+  unnecessary. The `ancestors` set in `json.go` and the map in `render.go` could share one type.
 - **`runOnce` and `g.Catch`.** Now that `Once.Do` completes in a `defer`, `runOnce` could use a
   plain `defer`/`recover` that stores any `*AntPanic` instead of `g.Catch`.
 

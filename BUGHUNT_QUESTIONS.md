@@ -50,17 +50,15 @@ whose fix is a design choice. Probe programs that show each one are in the sessi
    midnight through `disambiguation`, which on a DST gap day gives
    `2024-09-07T23:00-04:00`, the previous day. Should this be `Err`, as "each where its type needs
    it" suggests, or the start of the day, as in Temporal?
-9. **`==` on very deep values overflows the Go stack** and kills the process, at about 1M levels
-   (a linked list built in a loop). `Array.contains`, `Set` and map lookups go through the same
-   path. Section 12 says `==` never panics, and section 9 says the interpreter never crashes. The
-   options:
-   - An iterative comparison with an explicit worklist. This is non-trivial because map lookups
-     need nested comparisons that may fail without affecting the outer one.
-   - A depth bound that panics.
-   - Accept the limit and document it.
-
-   `String.from` and `Json.stringify` are recursive too and overflow at a similar depth. I made
-   them linear-time; they were quadratic.
+9. **Very deep values (fixed, confirm the approach).** `==`, `String.from` and `Json.stringify`
+   overflowed the Go stack, a fatal crash, on a value nested about a million deep, such as a
+   linked list built in a loop. Section 12 says `==` never panics, and section 9 says the
+   interpreter never crashes.
+   - Fix: the walks stay recursive, but every 4096 levels they continue on a fresh goroutine and
+     wait for it (`value.Nested`), so no single Go stack overflows.
+   - Cost: memory proportional to depth, about 1 KB per level, and a goroutine per 4096 levels.
+   - Alternative: an iterative walk with an explicit stack. That is harder for `==` because map
+     lookups nest comparisons that may fail without affecting the outer one.
 10. **The `Iter` functions silently ignore `yield` calls after `false`**, while `for` panics on
     them. The spec names only `for`.
 11. **An unchecked top-level `var x = try f()` that meets an `Err`.** The checker rejects it. At

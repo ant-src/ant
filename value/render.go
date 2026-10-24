@@ -36,7 +36,14 @@ func render(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
 		}
 		stack[v] = true
 		defer delete(stack, v)
+		Nested(len(stack), func() { renderBody(sb, v, top, stack) })
+		return
 	}
+	renderBody(sb, v, top, stack)
+}
+
+// renderBody renders v once render has entered it.
+func renderBody(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
 	switch x := v.(type) {
 	case int64, int8, int16, int32:
 		sb.WriteString(strconv.FormatInt(toInt64(v), 10))

@@ -117,6 +117,17 @@ func parseFrom(dec *json.Decoder, tok json.Token) (value.Value, error) {
 // stringify writes v as JSON. It returns why v has no JSON form, a cycle or Bytes, or "" when it
 // has one.
 func stringify(sb *strings.Builder, v value.Value, stack ancestors) string {
+	switch v.(type) {
+	case *value.Record, *value.Array, *value.Set, *value.Map:
+		var msg string
+		value.Nested(len(stack)+1, func() { msg = stringifyBody(sb, v, stack) })
+		return msg
+	}
+	return stringifyBody(sb, v, stack)
+}
+
+// stringifyBody is stringify on the goroutine value.Nested chose.
+func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))

@@ -34,7 +34,9 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		}
 		visiting[p] = true
 		defer delete(visiting, p)
-		return equalContainer(a, b, visiting)
+		var eq bool
+		Nested(len(visiting), func() { eq = equalContainer(a, b, visiting) })
+		return eq
 	case Callable, Sync:
 		return a == b
 	case Time:
