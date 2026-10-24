@@ -1,7 +1,8 @@
 // spec: stdlib File; stdlib Json; stdlib Os; 5 Destructuring; 8 Result; 8 try; 6 Calling
-// A to-do list kept in a JSON file: subcommands add, done, remove, list and clear, each a run of
-// the program with the file's directory as the first argument. Here main scripts a session and
-// then runs whatever further arguments it was given, exiting with the last command's status.
+//! A to-do list kept in a JSON file: subcommands add, done, remove, list and clear, each a run of
+//! the program with the file's directory as the first argument. Here main scripts a session and
+//! then runs whatever further arguments it was given, exiting with the last command's status.
+
 type Task = { id: int, title: string, done: bool }
 
 func decodeTask(v: Json.Value, path: string): Result[Task, Error] {

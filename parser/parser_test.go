@@ -75,6 +75,11 @@ func TestSyntaxErrors(t *testing.T) {
 		mode            Mode
 	}{
 		{"float leading dot", "var x = .5", "digit before the point", Program},
+		{"module doc after code", "var x = 1\n//! late", "before the first import or declaration", Program},
+		{"module doc in a body", "func f() {\n  //! inside\n}", "before the first import or declaration", Program},
+		{"module doc after a blank line", "//! a\n\n//! b\nvar x = 1", "must be consecutive", Program},
+		{"module doc after a comment", "//! a\n// b\n//! c\nvar x = 1", "must be consecutive", Program},
+		{"module doc not alone", "/* c */ //! a\nvar x = 1", "alone on its line", Program},
 		{"regex unterminated", "var r = /abc", "unterminated regular expression", Program},
 		{"regex newline", "var r = /ab\ncd/", "unterminated regular expression", Program},
 		{"regex unknown flag", "var r = /a/x", "unknown flag", Program},
@@ -383,5 +388,28 @@ var a2 = 1; var b2 = 2
 		if doc != want[i].doc || sig != want[i].sig {
 			t.Errorf("declaration %d: doc %q sig %q, want %q %q", i, doc, sig, want[i].doc, want[i].sig)
 		}
+	}
+}
+
+// TestModuleDoc reads the //! lines before the first import as the module doc (section 2), with
+// other comments around them, and keeps them out of the first declaration's doc.
+func TestModuleDoc(t *testing.T) {
+	src := "// Copyright.\n\n//! Geometry computes distances.\n//!\n//!     code\n// Point is a point.\nexport type Point = { x: int }\n"
+	f, err := Parse("t.ant", src, Program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "Geometry computes distances.\n\n    code"; f.Doc != want {
+		t.Errorf("module doc %q, want %q", f.Doc, want)
+	}
+	if d := f.Decls[0].(*ast.TypeDecl); d.Doc != "Point is a point." {
+		t.Errorf("declaration doc %q", d.Doc)
+	}
+	f, err = Parse("t.ant", "//! Only a doc.\nvar x = 1\n", Program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Doc != "Only a doc." || f.Decls[0].(*ast.VarDecl).Doc != "" {
+		t.Errorf("module doc %q, declaration doc %q", f.Doc, f.Decls[0].(*ast.VarDecl).Doc)
 	}
 }

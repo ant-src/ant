@@ -1,9 +1,10 @@
 // spec: 11 Regex; 11 Array; 11 String; stdlib Os; stdlib File
-// A summary of an access log in the common log format, read from standard input: each line
-// is matched against a pattern with named groups, the hits are grouped by status, and a table
-// reports each status's count, its share to two decimals, and the mean response size, padded
-// into columns. Try:
-//   ant run examples/logstat.ant < access.log
+//! A summary of an access log in the common log format, read from standard input: each line
+//! is matched against a pattern with named groups, the hits are grouped by status, and a table
+//! reports each status's count, its share to two decimals, and the mean response size, padded
+//! into columns. Try:
+//!   ant run examples/logstat.ant < access.log
+
 type Hit = { status: string, bytes: int }
 
 var line = /^(\S+) \S+ \S+ \[[^\]]*\] "(?<method>[A-Z]+) (?<path>\S+)[^"]*" (?<status>\d{3}) (?<bytes>\d+|-)$/

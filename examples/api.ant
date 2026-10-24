@@ -1,10 +1,11 @@
 // spec: stdlib Http; stdlib Net; stdlib Json; stdlib Os; 9 Waiting
-// A small HTTP API: GET /health, GET /items, and POST /items with a JSON body, the items kept
-// in an array under a mutex, served until Ctrl-C, when the server drains and the program says
-// why it stopped. With the port 0 the program takes a free port, runs its own client against
-// it, and stops itself, which is how the corpus runs it. Try:
-//   ant run examples/api.ant 8080
-//   curl -X POST localhost:8080/items -d '{"name": "ant"}'
+//! A small HTTP API: GET /health, GET /items, and POST /items with a JSON body, the items kept
+//! in an array under a mutex, served until Ctrl-C, when the server drains and the program says
+//! why it stopped. With the port 0 the program takes a free port, runs its own client against
+//! it, and stops itself, which is how the corpus runs it. Try:
+//!   ant run examples/api.ant 8080
+//!   curl -X POST localhost:8080/items -d '{"name": "ant"}'
+
 type Item = { id: int, name: string }
 
 var items: Array[Item] = []

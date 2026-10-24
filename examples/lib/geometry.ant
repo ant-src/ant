@@ -1,4 +1,5 @@
-// Vectors and points, imported by the shapes modules. Not a test itself.
+//! Vectors and points, imported by the shapes modules. Not a test itself.
+
 export type Point = { x: float64, y: float64 }
 
 export var origin = Point{ x: 0.0, y: 0.0 }

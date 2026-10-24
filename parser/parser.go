@@ -354,6 +354,7 @@ func (p *parser) leaveBoundary(s boundary) { p.boundary, p.loops = s.kind, s.loo
 func (p *parser) file(path string) *ast.File {
 	f := &ast.File{Path: path}
 	p.skipTerms()
+	f.Doc = p.moduleDoc(p.peek())
 	for p.at("import") {
 		f.Imports = append(f.Imports, p.importDecl())
 		p.expectTerm()
@@ -543,7 +544,7 @@ func (p *parser) doc(t token.Token) string {
 	end := t.Off
 	for k := p.ci - 1; k >= 0; k-- {
 		c := p.comments[k]
-		if !strings.HasPrefix(c.Text, "//") || !oneLineBreak(p.src[c.End:end]) || !lineStart(p.src, c.Off) {
+		if !strings.HasPrefix(c.Text, "//") || strings.HasPrefix(c.Text, "//!") || !oneLineBreak(p.src[c.End:end]) || !lineStart(p.src, c.Off) {
 			break
 		}
 		line := strings.TrimRight(c.Text[2:], " \t\r")
@@ -551,6 +552,30 @@ func (p *parser) doc(t token.Token) string {
 		end = c.Off
 	}
 	slices.Reverse(lines)
+	return strings.Join(lines, "\n")
+}
+
+// moduleDoc is the module doc (section 2): the //! lines, which must all come before first, the
+// module's first token, alone on their lines and on consecutive lines.
+func (p *parser) moduleDoc(first token.Token) string {
+	var lines []string
+	last := -1 // the index in p.comments of the previous //! line
+	for k, c := range p.comments {
+		if !strings.HasPrefix(c.Text, "//!") {
+			continue
+		}
+		switch {
+		case c.Off >= first.Off:
+			p.fail(c.Pos, "a //! module doc line must come before the first import or declaration")
+		case !lineStart(p.src, c.Off):
+			p.fail(c.Pos, "a //! module doc line must be alone on its line")
+		case last >= 0 && (k != last+1 || !oneLineBreak(p.src[p.comments[last].End:c.Off])):
+			p.fail(c.Pos, "the //! module doc lines must be consecutive, with no blank line or other comment between")
+		}
+		line := strings.TrimRight(c.Text[3:], " \t\r")
+		lines = append(lines, strings.TrimPrefix(line, " "))
+		last = k
+	}
 	return strings.Join(lines, "\n")
 }
 

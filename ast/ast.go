@@ -45,6 +45,7 @@ type Target interface {
 // File is a parsed module.
 type File struct {
 	Path    string
+	Doc     string // the module doc, from the //! lines before the first import (section 2), or ""
 	Imports []*Import
 	Decls   []Decl
 	// Stmts holds top-level statements, which only the spec and session modes allow.

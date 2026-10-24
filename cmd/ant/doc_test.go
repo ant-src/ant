@@ -6,7 +6,13 @@ import (
 	"testing"
 )
 
-const geometry = `// Point is a position on the plane.
+const geometry = `// Copyright 2026. MIT license.
+
+//! Geometry computes distances on the plane.
+//!
+//!     Point.norm(Point{ x: 3.0, y: 4.0 })   // 5.0
+
+// Point is a position on the plane.
 export type Point = { x: float64, y: float64 }
 
 // Point.norm returns the distance from p to the origin.
@@ -20,8 +26,8 @@ func hidden() {}
 `
 
 func TestDocCommand(t *testing.T) {
-	dir := tree(t, map[string]string{"geometry.ant": geometry, "bad.ant": syntaxError})
-	mod, bad := filepath.Join(dir, "geometry.ant"), filepath.Join(dir, "bad.ant")
+	dir := tree(t, map[string]string{"geometry.ant": geometry, "bad.ant": syntaxError, "empty.ant": "func main() {}\n"})
+	mod, bad, empty := filepath.Join(dir, "geometry.ant"), filepath.Join(dir, "bad.ant"), filepath.Join(dir, "empty.ant")
 	// The prelude's docs change as they are written, so a case on the prelude checks how its
 	// output starts, and a case on a module checks all of it.
 	cases := []struct {
@@ -36,7 +42,9 @@ func TestDocCommand(t *testing.T) {
 		{"constant", []string{"Math.PI"}, 0, "var Math.PI: float64\n\n    Math.PI "},
 		{"namespace doc", []string{"array"}, 0, "Array\n\n    Array holds "},
 		{"unknown", []string{"Array.nope"}, 1, ""},
-		{"module", []string{mod}, 0, "type Point = { x: float64, y: float64 }\nfunc Point.norm(p: Point): float64\n"},
+		{"module", []string{mod}, 0, "    Geometry computes distances on the plane.\n\n        Point.norm(Point{ x: 3.0, y: 4.0 })   // 5.0\n\n" +
+			"type Point = { x: float64, y: float64 }\nfunc Point.norm(p: Point): float64\n"},
+		{"module without docs or exports", []string{empty}, 1, ""},
 		{"module name", []string{mod, "point.norm"}, 0, "func Point.norm(p: Point): float64\n\n" +
 			"    Point.norm returns the distance from p to the origin.\n\n        Point.norm(Point{ x: 3.0, y: 4.0 })   // 5.0\n"},
 		{"module type", []string{mod, "Point"}, 0, "type Point = { x: float64, y: float64 }\n\n" +

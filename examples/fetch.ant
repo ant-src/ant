@@ -1,7 +1,8 @@
 // spec: stdlib Http; stdlib Json; 8 try; 8 Result; 11 Map
-// An HTTP client against the test server whose base URL is the first argument: a plain GET, a
-// status the caller must check, a POST that echoes its body and a header, JSON over the wire in
-// both directions, and the failures, which are all Err values and never panics.
+//! An HTTP client against the test server whose base URL is the first argument: a plain GET, a
+//! status the caller must check, a POST that echoes its body and a header, JSON over the wire in
+//! both directions, and the failures, which are all Err values and never panics.
+
 func getJson(url: string): Result[Json.Value, Error] {
   var r = try Http.get(url)
   if r.status != 200 { return Result.err(Error{ message: `status ${r.status}` }) }

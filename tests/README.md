@@ -14,7 +14,9 @@ TestSpecCoverage` prints the matrix of headings against the number of programs n
 | `stdlib/` | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md` |
 | `../examples/` | real programs, run like `run/` |
 
-Files under a directory named `lib` are modules the programs import, not tests.
+Files under a directory named `lib` are modules the programs import, not tests. An example
+program, and a module under `lib`, says what it does in `//!` lines, its module doc (section 2 of
+the specification), so `ant doc` prints it.
 
 ## Tags
 

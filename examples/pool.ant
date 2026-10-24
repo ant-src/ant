@@ -1,9 +1,10 @@
 // spec: 9 Waiting; stdlib Http
-// A worker pool: the paths go down a channel to three workers, each request bounded by one
-// context with a deadline, and the results come back up another channel, in whatever order
-// they finish, to be sorted. The first argument is the server to fetch from; the corpus's test
-// server answers /hello, /status/N, and /slow, which never answers in time. Try:
-//   ant run examples/pool.ant http://localhost:8080
+//! A worker pool: the paths go down a channel to three workers, each request bounded by one
+//! context with a deadline, and the results come back up another channel, in whatever order
+//! they finish, to be sorted. The first argument is the server to fetch from; the corpus's test
+//! server answers /hello, /status/N, and /slow, which never answers in time. Try:
+//!   ant run examples/pool.ant http://localhost:8080
+
 type Fetched = { url: string, status: int | null, error: string | null }
 
 func fetch(url: string, ctx: Context): Fetched {

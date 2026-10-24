@@ -1,7 +1,8 @@
 // spec: stdlib File; stdlib Os; 9 Goroutines; 9 Synchronization; 9 Sharing results; 11 Map; 11 Array
-// A word counter: one goroutine per file, each counting into its own map, merged under a mutex,
-// then ranked with a comparator. The files are written first into the directory given as the
-// only argument, and a missing file is an Err, not a panic.
+//! A word counter: one goroutine per file, each counting into its own map, merged under a mutex,
+//! then ranked with a comparator. The files are written first into the directory given as the
+//! only argument, and a missing file is an Err, not a panic.
+
 func words(text: string): Array[string] {
   var out: Array[string] = []
   var current = ""

@@ -1,8 +1,9 @@
 // spec: stdlib Os; stdlib Json; stdlib Time; stdlib File
-// A task runner: a JSON array of tasks arrives on standard input, each a name, a program and
-// its arguments; each is run in order without a shell, how long it took goes to standard
-// error, what it did to standard output, and the status is 1 when any failed. Try:
-//   echo '[{"name": "version", "program": "go", "args": ["version"]}]' | ant run examples/runner.ant
+//! A task runner: a JSON array of tasks arrives on standard input, each a name, a program and
+//! its arguments; each is run in order without a shell, how long it took goes to standard
+//! error, what it did to standard output, and the status is 1 when any failed. Try:
+//!   echo '[{"name": "version", "program": "go", "args": ["version"]}]' | ant run examples/runner.ant
+
 type Task = { name: string, program: string, args: Array[string] }
 
 func field(object: Map[string, Json.Value], name: string): Result[Json.Value, Error] {

@@ -1,10 +1,11 @@
 // spec: stdlib Time; stdlib Json; stdlib Os; stdlib File; 11 Array
-// An agenda across zones: meetings arrive on standard input as JSON, each a wall-clock time
-// with its zone. Each is placed in its zone, shown in the reader's zone with its weekday and
-// the days until it, and they are sorted by the moment they happen. The reader's zone and
-// today's date are the arguments. A daylight-saving change in a meeting's zone between two
-// meetings at the same wall-clock time moves one of them an hour on the reader's clock. Try:
-//   ant run examples/agenda.ant Europe/Stockholm 2024-10-30 < meetings.json
+//! An agenda across zones: meetings arrive on standard input as JSON, each a wall-clock time
+//! with its zone. Each is placed in its zone, shown in the reader's zone with its weekday and
+//! the days until it, and they are sorted by the moment they happen. The reader's zone and
+//! today's date are the arguments. A daylight-saving change in a meeting's zone between two
+//! meetings at the same wall-clock time moves one of them an hour on the reader's clock. Try:
+//!   ant run examples/agenda.ant Europe/Stockholm 2024-10-30 < meetings.json
+
 type Meeting = { title: string, when: Time.ZonedDateTime }
 
 var weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

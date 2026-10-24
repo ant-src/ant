@@ -12,7 +12,8 @@ import (
 )
 
 // docCommand is ant doc (spec/doc.md section 1): it prints a declaration of the prelude or of a
-// module with its doc comment, or the signatures a namespace, a type, or a module holds.
+// module with its doc comment, a module's doc, or the signatures a namespace, a type, or a module
+// holds.
 func docCommand(args []string, stdout, stderr io.Writer) int {
 	var decls []ast.Decl
 	var name string
@@ -42,9 +43,15 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 			}
 		}
 		if len(args) == 1 {
-			if len(decls) == 0 {
-				fmt.Fprintf(stderr, "ant doc: %s exports nothing\n", args[0])
+			if f.Doc == "" && len(decls) == 0 {
+				fmt.Fprintf(stderr, "ant doc: %s has no doc and exports nothing\n", args[0])
 				return 1
+			}
+			if f.Doc != "" {
+				printIndented(stdout, f.Doc)
+				if len(decls) > 0 {
+					fmt.Fprintln(stdout)
+				}
 			}
 			for _, d := range decls {
 				fmt.Fprintln(stdout, sig(d))
@@ -97,12 +104,17 @@ func printDoc(w io.Writer, sig, doc string) {
 	fmt.Fprintln(w, sig)
 	if doc != "" {
 		fmt.Fprintln(w)
-		for line := range strings.SplitSeq(doc, "\n") {
-			if line != "" {
-				line = "    " + line
-			}
-			fmt.Fprintln(w, line)
+		printIndented(w, doc)
+	}
+}
+
+// printIndented prints a doc with every non-empty line indented by four spaces.
+func printIndented(w io.Writer, doc string) {
+	for line := range strings.SplitSeq(doc, "\n") {
+		if line != "" {
+			line = "    " + line
 		}
+		fmt.Fprintln(w, line)
 	}
 }
 

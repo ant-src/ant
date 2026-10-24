@@ -1,8 +1,9 @@
 // spec: 9 Sharing results; 9 Synchronization; 9 Data races; 9 Visibility; 11 Synchronization
-// A bank with a thousand goroutines moving money between ten accounts under a read-write lock,
-// auditing the total under read locks while transfers hold the write lock, loading a rate table
-// once for everyone, and electing a leader with one compare-and-swap. Every transfer is designed
-// to succeed, so the final state does not depend on scheduling.
+//! A bank with a thousand goroutines moving money between ten accounts under a read-write lock,
+//! auditing the total under read locks while transfers hold the write lock, loading a rate table
+//! once for everyone, and electing a leader with one compare-and-swap. Every transfer is designed
+//! to succeed, so the final state does not depend on scheduling.
+
 type Account = { id: int, balance: int }
 type Bank = { accounts: Array[Account], lock: RwMutex, transfers: Atomic[int], audits: Atomic[int], mismatches: Atomic[int] }
 

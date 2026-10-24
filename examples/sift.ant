@@ -1,7 +1,8 @@
 // spec: stdlib Os; stdlib File; 11 String; 11 Array
-// A filter in the manner of grep: it keeps the lines of standard input that contain every
-// argument, in any letter case, numbers them, and reports the count on standard error. Try:
-//   ant run examples/sift.ant time zone < ../spec/stdlib.md
+//! A filter in the manner of grep: it keeps the lines of standard input that contain every
+//! argument, in any letter case, numbers them, and reports the count on standard error. Try:
+//!   ant run examples/sift.ant time zone < ../spec/stdlib.md
+
 func keeps(line: string, needles: Array[string]): bool {
   var lower = String.toLower(line)
   Array.every(needles, { String.contains(lower, x) })

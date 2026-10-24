@@ -1,4 +1,5 @@
-// Shapes as a tagged union over the geometry module's points. Not a test itself.
+//! Shapes as a tagged union over the geometry module's points. Not a test itself.
+
 import "../geometry.ant" { Point, distance, make }
 
 export type Circle = { center: Point, radius: float64 }

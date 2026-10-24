@@ -1,6 +1,7 @@
 // spec: 4 Tagged unions; 4 Type declarations; 6 Functions on types; 8 try; 5 is
-// A calculator: a tokenizer, a recursive-descent parser into a tagged union of records, and an
-// evaluator over an environment. Every error is a Result, and try threads them up.
+//! A calculator: a tokenizer, a recursive-descent parser into a tagged union of records, and an
+//! evaluator over an environment. Every error is a Result, and try threads them up.
+
 type Num = { value: float64 }
 type Ident = { name: string }
 type Punct = { text: string }

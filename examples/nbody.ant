@@ -1,7 +1,8 @@
 // spec: 4 Records; 4 Primitives; 5 Loops; 11 Math and Bits; 11 Array
-// The n-body benchmark: five bodies under gravity, advanced with a symplectic Euler step. Records
-// are mutable through a reference, floats are float64 throughout, and the energy before and
-// after a thousand steps matches the reference values of the benchmark to nine places.
+//! The n-body benchmark: five bodies under gravity, advanced with a symplectic Euler step. Records
+//! are mutable through a reference, floats are float64 throughout, and the energy before and
+//! after a thousand steps matches the reference values of the benchmark to nine places.
+
 type Body = { x: float64, y: float64, z: float64, vx: float64, vy: float64, vz: float64, mass: float64 }
 
 var PI = 3.141592653589793

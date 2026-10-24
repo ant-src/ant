@@ -1,8 +1,9 @@
 // spec: 10; 6 Functions on types; 4 Tagged unions; 11 Array
-// A program over two modules: geometry exports points, a live counter and a constructor; the
-// shapes module imports it by a relative path and exports a tagged union with functions on it.
-// The program imports both, once by name and once as a namespace, and sees the same live
-// counter through either.
+//! A program over two modules: geometry exports points, a live counter and a constructor; the
+//! shapes module imports it by a relative path and exports a tagged union with functions on it.
+//! The program imports both, once by name and once as a namespace, and sees the same live
+//! counter through either.
+
 import "./lib/geometry.ant" Geometry
 import "./lib/geometry.ant" { Point, origin, make }
 import "./lib/shapes/shapes.ant" { Shape, Circle, Rect, Triangle, unitSquare }

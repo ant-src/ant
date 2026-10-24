@@ -1,7 +1,8 @@
 // spec: stdlib Json; 8 try; 8 Result; 7 Narrowing; 5 is
-// A configuration decoder, the way stdlib.md describes one: Json.parse gives a Json.Value tree,
-// a function per record type narrows it with is, and try propagates the first error, which
-// carries the path of the offending value such as $.servers[1].port.
+//! A configuration decoder, the way stdlib.md describes one: Json.parse gives a Json.Value tree,
+//! a function per record type narrows it with is, and try propagates the first error, which
+//! carries the path of the offending value such as $.servers[1].port.
+
 type Server = { host: string, port: int, tls: bool }
 type Config = { name: string, servers: Array[Server], limits: Map[string, int] }
 

@@ -1,8 +1,9 @@
 // spec: stdlib Http; stdlib Crypto; stdlib Encoding; stdlib Json; stdlib Time
-// A webhook delivery: a JSON payload is signed with an HMAC, sent with PUT, headers and a
-// timeout, and the body the server echoes is verified against the signature, over the bytes as
-// they arrived, before it is read back as text. The first argument is the server, which the corpus's test server plays. Try:
-//   ant run examples/webhook.ant http://localhost:8080
+//! A webhook delivery: a JSON payload is signed with an HMAC, sent with PUT, headers and a
+//! timeout, and the body the server echoes is verified against the signature, over the bytes as
+//! they arrived, before it is read back as text. The first argument is the server, which the corpus's test server plays. Try:
+//!   ant run examples/webhook.ant http://localhost:8080
+
 type Event = { id: string, kind: string, amount: float64 }
 
 var secret = String.toBytes("shared-secret")

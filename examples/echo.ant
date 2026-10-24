@@ -1,9 +1,10 @@
 // spec: stdlib Net; stdlib File; 9 Waiting
-// A line server over a socket: every connection is served on its own goroutine, each line
-// answered in upper case until the client closes, and the whole thing stopped through one
-// context. The program takes a free port, talks to its own server with three clients at once,
-// and stops it. Try:
-//   ant run examples/echo.ant
+//! A line server over a socket: every connection is served on its own goroutine, each line
+//! answered in upper case until the client closes, and the whole thing stopped through one
+//! context. The program takes a free port, talks to its own server with three clients at once,
+//! and stops it. Try:
+//!   ant run examples/echo.ant
+
 func session(c: File.Handle, stop: Context): void {
   defer { File.close(c) }
   var next = Result.unwrapOr(File.readLine(c, stop), null)
