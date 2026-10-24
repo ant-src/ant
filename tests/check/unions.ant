@@ -22,7 +22,15 @@ func pick(c: bool): Array[int] | Array[string] { // ERR: a union may contain eac
   if c { [1] } else { ["a"] }
 }
 
+// Inference that forms an invalid union through an alias is caught at the call, as writing it is.
+func either[A, B](a: A, b: B): Either[A, B] { b }
+type Wrapped[A, B] = Array[Either[A, B]]
+func wrapped[A, B](a: A, b: B): Wrapped[A, B] { [b] }
+
 func main(): void {
+  var inferred = either([1], ["s"]) // ERR: Array[int] and Array[string] are both an array
+  var nested = wrapped([1], ["s"])  // ERR: Array[int] and Array[string] are both an array
+  println(either(1, "s"))
   var e: Either[Box[int], Box[string]] = Box{ value: 1 } // ERR: Either[Box[int], Box[string]]
   var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 1.0, height: 2.0 }]
   println(Array.length(shapes))

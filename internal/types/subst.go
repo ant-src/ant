@@ -6,10 +6,17 @@ func Subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 	if len(m) == 0 {
 		return t, nil
 	}
-	return subst(t, m)
+	return (&substituter{m: m}).subst(t)
 }
 
-func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
+// substituter carries the bindings and the aliases whose bodies are being validated.
+type substituter struct {
+	m    map[*ParamDecl]Type
+	seen map[*Decl]bool
+}
+
+func (s *substituter) subst(t Type) (Type, error) {
+	m := s.m
 	switch x := t.(type) {
 	case Param:
 		if b, ok := m[x.Decl]; ok {
@@ -17,23 +24,23 @@ func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 		}
 		return t, nil
 	case Array:
-		e, err := subst(x.Elem, m)
+		e, err := s.subst(x.Elem)
 		if err != nil {
 			return nil, err
 		}
 		return Array{Elem: e}, nil
 	case Map:
-		k, err := subst(x.Key, m)
+		k, err := s.subst(x.Key)
 		if err != nil {
 			return nil, err
 		}
-		v, err := subst(x.Val, m)
+		v, err := s.subst(x.Val)
 		if err != nil {
 			return nil, err
 		}
 		return Map{Key: k, Val: v}, nil
 	case Set:
-		e, err := subst(x.Elem, m)
+		e, err := s.subst(x.Elem)
 		if err != nil {
 			return nil, err
 		}
@@ -41,13 +48,13 @@ func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 	case Func:
 		ps := make([]Type, len(x.Params))
 		for i, p := range x.Params {
-			q, err := subst(p, m)
+			q, err := s.subst(p)
 			if err != nil {
 				return nil, err
 			}
 			ps[i] = q
 		}
-		r, err := subst(x.Return, m)
+		r, err := s.subst(x.Return)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +62,7 @@ func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 	case Record:
 		fs := make([]Field, len(x.Fields))
 		for i, f := range x.Fields {
-			ft, err := subst(f.Type, m)
+			ft, err := s.subst(f.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -68,17 +75,30 @@ func subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 		}
 		args := make([]Type, len(x.Args))
 		for i, a := range x.Args {
-			b, err := subst(a, m)
+			b, err := s.subst(a)
 			if err != nil {
 				return nil, err
 			}
 			args[i] = b
 		}
+		if x.Decl.Kind == AliasDecl && x.Decl.Body != nil && !s.seen[x.Decl] {
+			// The arguments may form an invalid union inside the alias's body, as
+			// Either[Box[int], Box[string]] does; an alias that reaches itself is checked once.
+			if s.seen == nil {
+				s.seen = map[*Decl]bool{}
+			}
+			s.seen[x.Decl] = true
+			_, err := (&substituter{m: Bindings(x.Decl.Params, args), seen: s.seen}).subst(x.Decl.Body)
+			delete(s.seen, x.Decl)
+			if err != nil {
+				return nil, err
+			}
+		}
 		return Named{Decl: x.Decl, Args: args}, nil
 	case Union:
 		ms := make([]Type, len(x.Members))
 		for i, mem := range x.Members {
-			n, err := subst(mem, m)
+			n, err := s.subst(mem)
 			if err != nil {
 				return nil, err
 			}
