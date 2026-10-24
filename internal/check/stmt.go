@@ -432,9 +432,9 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 	}
 	afterElse := c.flow
 	switch {
-	case types.IsNever(thenT) && types.IsNever(elseT):
-		c.flow = afterThen
 	case types.IsNever(thenT):
+		// When both end in never, what follows is dead; the false path of a complete chain
+		// has its local narrowed to never, which takes any type there.
 		c.flow = afterElse
 	case types.IsNever(elseT):
 		c.flow = afterThen

@@ -78,3 +78,13 @@ func breakStateFor(done: bool): int {
   }
   y + 1 // ERR: got int | null and int
 }
+
+// After a complete chain of tests whose branches all return, the local is never, which takes
+// any type.
+type Left = {}
+type Right = {}
+func afterChain(s: Left | Right): int {
+  if s is Left { return 1 }
+  if s is Right { return 2 }
+  s
+}
