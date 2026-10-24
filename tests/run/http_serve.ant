@@ -2,12 +2,17 @@
 // panics: Http.serve; library-value
 // Http.serve on a listener taken on a free port, run on a goroutine and talked to with
 // Http.request: the handler sees the method, the decoded path, the raw query, the headers and
-// the body, and its response goes back with its status, its headers and Content-Length; a
+// the body, and its response goes back as given, with its status, its headers and Content-Length
+// and no Content-Type of its own, to a client that asks for no compression; a
 // handler that panics answers 500 and is reported as a goroutine's panic; a status outside
 // 200 to 599 panics, and the panic takes the same path; cancelling the context stops the server and
 // serve returns Ok.
 func handle(req: Http.Request): Http.Reply {
   if req.path == "/boom" { panic("boom") }
+  if req.path == "/plain" {
+    // the client adds no Accept-Encoding, and the server no Content-Type
+    return Http.Reply{ status: 200, headers: Map{ "Content-Encoding": "x-test" }, body: req.headers["Accept-Encoding"] ?? "none" }
+  }
   if req.path == "/bad" { return Http.Reply{ status: 999, headers: Map{}, body: "" } }
   var body = `${req.method} ${req.path} ${req.query} ${req.headers["X-Token"] ?? "-"} ${req.body}`
   Http.Reply{ status: 201, headers: Map{ "X-Served": "yes" }, body }
@@ -24,6 +29,8 @@ func main(): void {
   println(r.body)
   println(r.headers["X-Served"])
   println(r.headers["Content-Length"])
+  var plain = Result.unwrap(Http.get(`${base}/plain`, timeout: Time.duration(seconds: 5)))
+  println(`${plain.body} ${plain.headers["Content-Type"] ?? "untyped"} ${plain.headers["Content-Encoding"] ?? "-"}`)
   var boom = Result.unwrap(Http.get(`${base}/boom`, timeout: Time.duration(seconds: 5)))
   println(boom.status)
   println(boom.body == "")
@@ -39,6 +46,7 @@ func main(): void {
 // out: PUT /items/a b x=1&y=2 t payload
 // out: yes
 // out: 32
+// out: none untyped x-test
 // out: 500
 // out: true
 // out: 500

@@ -54,8 +54,17 @@ func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) 
 
 // client sends one request and follows no redirect, so a 3xx is the response, as stdlib.md
 // says of any status.
+// Its transport asks for no compression and decodes none, so the request carries only the
+// headers the program gave and the response's body and headers are as received.
 var client = &http.Client{
 	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	Transport:     plainTransport(),
+}
+
+func plainTransport() http.RoundTripper {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.DisableCompression = true
+	return t
 }
 
 // request is Http.request and, with the method filled in, Http.get and Http.post: one request
@@ -202,6 +211,9 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 				w.Header().Set(k, v)
 			}
 		}
+	}
+	if _, set := w.Header()["Content-Type"]; !set {
+		w.Header()["Content-Type"] = nil // sent as given: no type sniffed from the body
 	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(answer.body)))
 	w.WriteHeader(int(status.(int64)))
