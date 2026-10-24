@@ -311,6 +311,9 @@ func init() {
 			}),
 			fn("Array.range", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				from, to := intArg(g, who, a[0]), intArg(g, who, a[1])
+				if to > from && uint64(to)-uint64(from) > maxCount {
+					g.Panic("%s needs a range of at most %d elements, got %d", who, maxCount, uint64(to)-uint64(from))
+				}
 				var out []value.Value
 				for i := from; i < to; i++ {
 					out = append(out, i)
@@ -322,6 +325,7 @@ func init() {
 				if n < 0 {
 					g.Panic("Array.filled needs a count of at least 0, got %d", n)
 				}
+				boundCount(g, who, "count", n)
 				out := make([]value.Value, n)
 				for i := range out {
 					out[i] = a[1]

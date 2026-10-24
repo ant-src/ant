@@ -28,6 +28,7 @@ String.fromFloat(-1.5, 0)                     // => "-2"
 String.fromFloat(1.0, 3)                      // => "1.000"
 String.fromFloat(1e21, 0)                     // => "1000000000000000000000"
 String.fromFloat(0.0 / 0.0, 2)                // => "NaN"
+String.fromFloat(1.0, 2147483648)             // => panic: String.fromFloat needs a count of digits of at most 2147483647, got 2147483648
 String.fromFloat(1.0 / 0.0, 2)                // => "Infinity"
 String.fromFloat(-1.0 / 0.0, 2)               // => "-Infinity"
 String.fromFloat(2.0, -1)                     // => panic: String.fromFloat needs a count of digits of at least 0, got -1

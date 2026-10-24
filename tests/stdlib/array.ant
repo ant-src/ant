@@ -55,9 +55,14 @@ Array.contains([[1, 2]], [1, 2])              // => true
 Array.chunk([1, 2, 3], 1)                     // => [[1], [2], [3]]
 Array.chunk([1, 2, 3], 0)                     // => panic: Array.chunk needs a size of at least 1, got 0
 
-// Array.filled with a negative count panics (section 11).
+// Array.filled with a negative count panics, and so do Array.filled and Array.range with a count
+// above 2^31 - 1 (section 11; section 12, a count).
 Array.filled(2, 7)                            // => [7, 7]
 Array.filled(-1, 7)                           // => panic: Array.filled needs a count of at least 0, got -1
+Array.filled(2147483648, 7)                   // => panic: Array.filled needs a count of at most 2147483647, got 2147483648
+Array.range(Math.maxInt - 2, Math.maxInt)     // => [9223372036854775805, 9223372036854775806]
+Array.range(0, 2147483648)                    // => panic: Array.range needs a range of at most 2147483647 elements, got 2147483648
+Array.range(Math.minInt, Math.maxInt)         // => panic: Array.range needs a range of at most 2147483647 elements, got 18446744073709551615
 
 // insert takes an index from 0 up to and including the length, where it appends; beyond that
 // is a panic, as is a negative index.

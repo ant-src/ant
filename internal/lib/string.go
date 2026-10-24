@@ -497,6 +497,7 @@ func init() {
 				if digits < 0 {
 					g.Panic("String.fromFloat needs a count of digits of at least 0, got %d", digits)
 				}
+				boundCount(g, who, "count of digits", digits)
 				if math.IsNaN(x) || math.IsInf(x, 0) {
 					return value.Render(x)
 				}
