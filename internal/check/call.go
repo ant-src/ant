@@ -247,7 +247,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type) 
 	}
 	if expected != nil && types.Mentions(s.fn.Return, unsolved) {
 		trial := map[*types.ParamDecl]types.Type{}
-		if c.unify(s.fn.Return, expected, trial) {
+		if c.unify(s.fn.Return, expectedPart(s.fn.Return, expected), trial) {
 			for p, t := range trial {
 				if !boundFits(p, t) {
 					// An expected union such as Time.Dated is no solution for a bounded T,
@@ -622,6 +622,40 @@ func (c *Checker) unifyUnion(pt types.Union, actual types.Type, subst map[*types
 		return true
 	}
 	return c.unify(params[0], rest, subst)
+}
+
+// expectedPart is the part of an expected union that a generic result can be: the members that
+// share a discriminator with one of the result's. The result need only be assignable to the
+// expected type, so Result[T, E] solves against Result[int, E1] | null by leaving null out. A
+// result with a type parameter member could be any member, so it gets the whole union.
+func expectedPart(result, expected types.Type) types.Type {
+	ems := types.Members(expected)
+	if len(ems) < 2 {
+		return expected
+	}
+	rms := types.Members(result)
+	for _, r := range rms {
+		if _, ok := r.(types.Param); ok {
+			return expected
+		}
+	}
+	var keep []types.Type
+	for _, e := range ems {
+		for _, r := range rms {
+			if sameDiscriminator(r, e) {
+				keep = append(keep, e)
+				break
+			}
+		}
+	}
+	if len(keep) == 0 || len(keep) == len(ems) {
+		return expected
+	}
+	u, err := types.MakeUnion(keep)
+	if err != nil {
+		return expected
+	}
+	return u
 }
 
 func sameDiscriminator(a, b types.Type) bool {

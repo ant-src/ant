@@ -1,0 +1,23 @@
+// spec: 4 Inference; 8 Result
+// A generic result solves its type parameters from the part of a wider expected union it can be:
+// Result.ok and Result.err fill a Result[int, Problem] | null, and the null takes no part.
+type Problem = { code: int }
+
+func lookup(found: bool): Result[int, Problem] | null {
+  if found { Result.ok(1) } else { null }
+}
+
+func main(): void {
+  var ok: Result[int, Problem] | null = Result.ok(1)
+  var failed: Result[int, Problem] | null = Result.err(Problem{ code: 7 })
+  println(ok)
+  println(failed)
+  println(lookup(true))
+  println(lookup(false))
+}
+
+// expect
+// out: Ok{ value: 1 }
+// out: Err{ error: Problem{ code: 7 } }
+// out: Ok{ value: 1 }
+// out: null
