@@ -2,14 +2,20 @@ package lib
 
 import (
 	"math/bits"
+	"sync"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
 
 // Random is the seeded generator of section 11: xoshiro256** over four words, seeded by
-// SplitMix64. Every value it gives is fixed by the spec, so no step here may change.
-type Random struct{ s [4]uint64 }
+// SplitMix64. Every value it gives is fixed by the spec, so no step here may change. Goroutines
+// that share one race (section 9), so mu keeps the state whole: each operation, a whole shuffle
+// included, is one step that a racing one comes before or after.
+type Random struct {
+	mu sync.Mutex
+	s  [4]uint64
+}
 
 // SyncName names the generator for rendering.
 func (r *Random) SyncName() string { return "Random" }
@@ -27,7 +33,7 @@ func newRandom(seed int64) *Random {
 	return r
 }
 
-// next is one draw.
+// next is one draw. It and below run with mu held.
 func (r *Random) next() uint64 {
 	s := &r.s
 	out := bits.RotateLeft64(s[1]*5, 7) * 9
@@ -53,9 +59,18 @@ func (r *Random) below(n uint64) uint64 {
 
 var randomJump = [4]uint64{0x180ec6d33cfd0aba, 0xd5a61266f0c9392c, 0xa9582618e03fc9aa, 0x39abdc4529b1661c}
 
+// draw runs f with mu held.
+func (r *Random) draw(f func()) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	f()
+}
+
 // fork returns a generator with r's state and moves r 2^128 draws ahead.
 func (r *Random) fork() *Random {
-	child := &Random{r.s}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	child := &Random{s: r.s}
 	var t [4]uint64
 	for _, j := range randomJump {
 		for b := 0; b < 64; b++ {
@@ -87,29 +102,45 @@ func init() {
 					g.Panic("Random.int needs from < to, got %d and %d", from, to)
 				}
 				// The span may exceed the int range, so it is taken as a uint64.
-				return int64(uint64(from) + r.below(uint64(to)-uint64(from)))
+				var d uint64
+				r.draw(func() { d = r.below(uint64(to) - uint64(from)) })
+				return int64(uint64(from) + d)
 			}),
 			fn("Random.float", "r", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return float64(randomArg(g, who, a[0]).next()>>11) * 0x1p-53
+				r := randomArg(g, who, a[0])
+				var d uint64
+				r.draw(func() { d = r.next() })
+				return float64(d>>11) * 0x1p-53
 			}),
 			fn("Random.bool", "r", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return randomArg(g, who, a[0]).next()>>63 == 1
+				r := randomArg(g, who, a[0])
+				var d uint64
+				r.draw(func() { d = r.next() })
+				return d>>63 == 1
 			}),
 			fn("Random.pick", "r, xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				r, xs := randomArg(g, who, a[0]), arrayArg(g, who, a[1])
-				vals := xs.Values()
-				if len(vals) == 0 {
+				n := xs.Len()
+				if n == 0 {
 					return value.Null
 				}
-				return vals[r.below(uint64(len(vals)))]
+				var i uint64
+				r.draw(func() { i = r.below(uint64(n)) })
+				// A racing pop may have shortened xs since Len; the read then gives null.
+				if v, ok := xs.Get(int(i)); ok {
+					return v
+				}
+				return value.Null
 			}),
 			fn("Random.shuffle", "r, xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				r, xs := randomArg(g, who, a[0]), arrayArg(g, who, a[1])
 				vals := xs.Values()
-				for i := len(vals) - 1; i > 0; i-- {
-					j := r.below(uint64(i + 1))
-					vals[i], vals[j] = vals[j], vals[i]
-				}
+				r.draw(func() {
+					for i := len(vals) - 1; i > 0; i-- {
+						j := r.below(uint64(i + 1))
+						vals[i], vals[j] = vals[j], vals[i]
+					}
+				})
 				for i, v := range vals {
 					xs.Set(i, v)
 				}

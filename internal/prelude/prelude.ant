@@ -806,9 +806,9 @@ func Random.bool(r: Random): bool
 func Random.pick[T](r: Random, xs: Array[T]): T | null
 // Random.shuffle reorders xs in place into a uniformly random permutation.
 func Random.shuffle[T](r: Random, xs: Array[T]): void
-// Random.fork returns a generator with r's state, and moves r 2^128 draws ahead, so the two give
-// different values for as long as any program runs. The new generator goes on with the values r
-// would have given.
+// Random.fork returns a generator with r's state, and moves r 2^128 draws ahead, so neither
+// sequence reaches the other's in any run. The new generator goes on with the values r would have
+// given.
 func Random.fork(r: Random): Random
 
 // Result

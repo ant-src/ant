@@ -1,0 +1,43 @@
+// spec: 9 Data races; 11 Random
+// Goroutines that share one generator without a lock race (section 11), and a racy program
+// still keeps memory safe: every draw is some value in range. Random.fork gives each goroutine
+// its own generator, whose values do not depend on the others.
+func main(): void {
+  var shared = Random.new(1)
+  var bad = Atomic.new(0)
+  var wg = WaitGroup.new()
+  for i in Iter.range(0, 8) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for j in Iter.range(0, 200) {
+        var n = Random.int(shared, 0, 10)
+        if n < 0 || n >= 10 { _ = Atomic.add(bad, 1) }
+        var xs = [1, 2, 3]
+        Random.shuffle(shared, xs)
+        if Array.sum(xs) != 6 { _ = Atomic.add(bad, 1) }
+      }
+    }
+  }
+  WaitGroup.wait(wg)
+  println(`shared: ${Atomic.load(bad)} bad`)
+  var root = Random.new(42)
+  var streams = Array.map(Array.range(0, 4), { Random.fork(root) })
+  var firsts: Array[int] = [0, 0, 0, 0]
+  var wg2 = WaitGroup.new()
+  for k in Iter.range(0, 4) {
+    WaitGroup.add(wg2, 1)
+    go {
+      defer { WaitGroup.done(wg2) }
+      firsts[k] = Random.int(streams[k], 0, 1000000)
+    }
+  }
+  WaitGroup.wait(wg2)
+  var again = Random.new(42)
+  var expected = Array.map(Array.range(0, 4), { Random.int(Random.fork(again), 0, 1000000) })
+  println(firsts == expected)
+}
+
+// expect
+// out: shared: 0 bad
+// out: true
