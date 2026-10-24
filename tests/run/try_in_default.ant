@@ -1,0 +1,19 @@
+// spec: 8 try; 12 Expressions
+// A parameter's default evaluates in the callee's scope, so a try there that meets an Err
+// returns it from the callee, whose body does not run.
+func bad(): Result[int, Error] { Result.err(Error{ message: "no default" }) }
+
+func plus(a: int = try bad()): Result[int, Error] {
+  println("body runs")
+  Result.ok(a + 100)
+}
+
+func main(): void {
+  println(plus())
+  println(plus(1))
+}
+
+// expect
+// out: Err{ error: Error{ message: "no default" } }
+// out: body runs
+// out: Ok{ value: 101 }

@@ -562,7 +562,10 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			if p.Default == nil {
 				g.panicf(pos, "%s needs an argument for %s", f.FuncName(), p.Name)
 			}
-			v, _ := g.eval(p.Default, env)
+			v, c := g.eval(p.Default, env)
+			if c == ctlReturn {
+				return v // a try in the default returned the Err from the callee
+			}
 			setParam(env, p, v)
 		}
 	}
