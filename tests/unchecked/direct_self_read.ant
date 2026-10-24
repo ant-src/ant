@@ -3,7 +3,7 @@
 // A var read directly in its own initializer panics, since the slot exists but is unbound (section 3).
 func main(): void {
   var x = x + 1
-  print(x)
+  println(x)
 }
 
 // expect

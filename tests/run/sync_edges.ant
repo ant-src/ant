@@ -11,13 +11,13 @@ func main(): void {
   go { defer { WaitGroup.done(wg) }; Mutex.withLock(lock, { panic("inside lock") }) }
   WaitGroup.wait(wg)
   Mutex.lock(lock)
-  print("locked after panic")
+  println("locked after panic")
   Mutex.unlock(lock)
   var rw = RwMutex.new()
   WaitGroup.add(wg, 1)
   go { defer { WaitGroup.done(wg) }; RwMutex.withWrite(rw, { panic("inside write") }) }
   WaitGroup.wait(wg)
-  print(RwMutex.withRead(rw, { "read after panic" }))
+  println(RwMutex.withRead(rw, { "read after panic" }))
   var once = Once.new()
   var ready = Atomic.new(false)
   var incomplete = Atomic.new(0)
@@ -31,18 +31,18 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg2)
-  print(`incomplete: ${Atomic.load(incomplete)}`)
+  println(`incomplete: ${Atomic.load(incomplete)}`)
   var calls = Atomic.new(0)
   var v = Once.value({ _ = Atomic.add(calls, 1); "cached" })
-  print(v() + v())
-  print(Atomic.load(calls))
+  println(v() + v())
+  println(Atomic.load(calls))
   var wg3 = WaitGroup.new()
   WaitGroup.add(wg3, 2)
   var done = Atomic.new(0)
   go { _ = Atomic.add(done, 1); WaitGroup.done(wg3) }
   go { _ = Atomic.add(done, 1); WaitGroup.done(wg3) }
   WaitGroup.wait(wg3)
-  print(Atomic.load(done))
+  println(Atomic.load(done))
   var lock2 = Mutex.new()
   var c = Cond.new(lock2)
   var flag = Flag{ v: false }
@@ -61,14 +61,14 @@ func main(): void {
   Time.sleep(Time.duration(milliseconds: 10))
   Mutex.withLock(lock2, { flag.v = true; Cond.broadcast(c) })
   WaitGroup.wait(wg4)
-  print(Atomic.load(woke))
+  println(Atomic.load(woke))
   var a = Atomic.new([1, 2])
-  print(Atomic.compareAndSwap(a, [1, 2], [3]))
-  print(Atomic.load(a))
+  println(Atomic.compareAndSwap(a, [1, 2], [3]))
+  println(Atomic.load(a))
   var n = Atomic.new(1.5)
-  print(Atomic.add(n, 1.0))
+  println(Atomic.add(n, 1.0))
   Atomic.store(n, 0.0)
-  print(Atomic.load(n))
+  println(Atomic.load(n))
 }
 
 // expect

@@ -52,9 +52,9 @@ func main(): void {
   ]
   for t in transfers {
     var result = transfer(accounts, t)
-    if result is Err { print(explain(result.error)) }
+    if result is Err { println(explain(result.error)) }
   }
-  print(Map.values(accounts) | Array.map({ `${x.id}: ${x.balance}` }))
+  println(Map.values(accounts) | Array.map({ `${x.id}: ${x.balance}` }))
 }
 ```
 

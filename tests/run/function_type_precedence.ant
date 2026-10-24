@@ -11,9 +11,9 @@ func describe(v: ThunkOrMeters): string {
 
 func main(): void {
   var t: Thunk = func(): int | Meters { Meters(7) }
-  print(t() is Meters)
-  print(describe(Meters(3)))
-  print(describe(func(): int { 4 }))
+  println(t() is Meters)
+  println(describe(Meters(3)))
+  println(describe(func(): int { 4 }))
 }
 
 // expect

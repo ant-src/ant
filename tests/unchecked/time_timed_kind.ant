@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // A field of a time on a value with no time panics.
-func main(): void { print(Time.hour(Time.plainDate(2026, 10, 22))) }
+func main(): void { println(Time.hour(Time.plainDate(2026, 10, 22))) }
 
 // expect
 // exit: 1

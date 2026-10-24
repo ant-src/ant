@@ -7,25 +7,25 @@ type UserId = string
 func size[T: string | Array[int]](x: T): int { len(x) }
 
 func main(): void {
-  print(len([1, 2, 3]))
-  print(len(Array.filled(0, 1)))
-  print(len(Map{ "a": 1, "b": 2 }))
-  print(len(Set.of([1, 2, 2])))
-  print(len("héllo"))
-  print(len(""))
+  println(len([1, 2, 3]))
+  println(len(Array.filled(0, 1)))
+  println(len(Map{ "a": 1, "b": 2 }))
+  println(len(Set.of([1, 2, 2])))
+  println(len("héllo"))
+  println(len(""))
   var c: Channel[int] = Channel.new(4)
   Channel.send(c, 1)
   Channel.send(c, 2)
-  print(len(c))
-  print(len(UserId("u-1")))
+  println(len(c))
+  println(len(UserId("u-1")))
   var u: string | Array[int] = [7]
-  print(len(u))
-  print(size("ab"))
-  print(Array.map(["a", "bcd"], len))
+  println(len(u))
+  println(size("ab"))
+  println(Array.map(["a", "bcd"], len))
   var f: func(string): int = len
-  print(f("xyz"))
+  println(f("xyz"))
   var xs = [1, 2]
-  print(len(xs) == Array.length(xs))
+  println(len(xs) == Array.length(xs))
 }
 
 // expect

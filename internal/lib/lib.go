@@ -84,6 +84,14 @@ func Prelude() map[string]value.Value {
 			g.Instance().Print(value.Render(args[0]))
 			return value.Void
 		})
+		table["println"] = fn("println", "value?", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
+			if args[0] == nil { // println() with no argument, not println(null)
+				g.Instance().Print("\n")
+				return value.Void
+			}
+			g.Instance().Print(value.Render(args[0]) + "\n")
+			return value.Void
+		})
 		table["panic"] = fn("panic", "message", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 			msg, ok := args[0].(string)
 			if !ok {

@@ -11,7 +11,7 @@ func main(): void {
     File.close(s)
   }
   var c = Result.unwrap(Net.dial(Net.address(l)))
-  print(File.pipe(c, Os.stdout(), Context.new(Time.duration(milliseconds: 100))))
+  println(File.pipe(c, Os.stdout(), Context.new(Time.duration(milliseconds: 100))))
   var sent = Channel.send(done, true)
 }
 

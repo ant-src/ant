@@ -6,5 +6,5 @@ func main(): void {
   var i: int = n    // ERR: cannot use int | string where int is expected
   var t: string = s // ERR: cannot use int | string where string is expected
   var u: int | string = n
-  print(u)
+  println(u)
 }

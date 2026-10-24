@@ -4,7 +4,7 @@
 func down(n: int): int { down(n + 1) }
 
 func main(): void {
-  print(down(0))
+  println(down(0))
 }
 
 // expect

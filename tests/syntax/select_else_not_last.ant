@@ -2,8 +2,8 @@
 func main(): void {
   var c: Channel[int] = Channel.new()
   select {
-    else { print("idle") }
-    Channel.receive(c) { print("got") }
+    else { println("idle") }
+    Channel.receive(c) { println("got") }
   }
 }
 

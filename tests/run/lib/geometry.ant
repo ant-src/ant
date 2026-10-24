@@ -22,4 +22,4 @@ export func bump(): void { counter += 1 }
 
 var hidden = announce()
 
-func announce(): int { print("geometry init"); 1 }
+func announce(): int { println("geometry init"); 1 }

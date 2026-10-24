@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: library-kind
 // A numeric conversion of a non-number panics (section 12).
-func main(): void { print(int("1")) }
+func main(): void { println(int("1")) }
 
 // expect
 // exit: 1

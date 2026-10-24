@@ -8,22 +8,22 @@ func counter(): func(): int {
 
 func main(): void {
   var next = counter()
-  print(next())
-  print(next())
+  println(next())
+  println(next())
   var other = counter()
-  print(other())
+  println(other())
   var fs: Array[func(): int] = []
   for i in [1, 2, 3] {
     var k = i * 10
     fs = [...fs, func(): int { k + i }]
   }
-  print(fs[0]())
-  print(fs[2]())
+  println(fs[0]())
+  println(fs[2]())
   var early: func(int): int = { if x > 0 { return 1 }; 0 }
-  print(early(5))
-  print(early(-5))
+  println(early(5))
+  println(early(-5))
   var make = func(step: int): func(int): int { { x + step } }
-  print(make(3)(4))
+  println(make(3)(4))
 }
 
 // expect

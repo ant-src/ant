@@ -284,11 +284,10 @@ func (in *Instance) report(p *AntPanic) {
 	in.errMu.Unlock()
 }
 
-// Print writes a line to the run's stdout.
+// Print writes s to the run's stdout.
 func (in *Instance) Print(s string) {
 	in.outMu.Lock()
 	in.out.WriteString(s)
-	in.out.WriteByte('\n')
 	in.outMu.Unlock()
 }
 
@@ -314,8 +313,8 @@ type eofReader struct{}
 
 func (eofReader) Read([]byte) (int, error) { return 0, io.EOF }
 
-// Stdout returns a writer into the buffer print writes to, locked per write, so that what a
-// program writes through it and what it prints come out in program order.
+// Stdout returns a writer into the buffer print and println write to, locked per write, so that
+// what a program writes through it and what it prints come out in program order.
 func (in *Instance) Stdout() io.Writer { return stdoutWriter{in} }
 
 type stdoutWriter struct{ in *Instance }

@@ -10,33 +10,33 @@ func isPattern(v: Regex.Pattern | string): bool { v is Regex.Pattern }
 
 func main(): void {
   var p = /a+/
-  print(p)
-  print(/b/i)
-  print([/c/, /d/])
+  println(p)
+  println(/b/i)
+  println([/c/, /d/])
   var q = null ?? /e/
-  print(q)
-  print(pick())
-  print(`${/f/} and ${/g/i}`)
-  print((/=/))
-  print(/[/]/)
-  print(/a\/b/)
-  print(/a/si)
-  print(/^(\d{4})-(\d{2})$/)
-  print(/\bant\b/i)
+  println(q)
+  println(pick())
+  println(`${/f/} and ${/g/i}`)
+  println((/=/))
+  println(/[/]/)
+  println(/a\/b/)
+  println(/a/si)
+  println(/^(\d{4})-(\d{2})$/)
+  println(/\bant\b/i)
   var m: Map[Regex.Pattern, int] = Map{}
   m[/k/] = 1
-  print(m[/k/])
-  print(/a/i == /a/i)
-  print(/a/si == /a/is)
-  print(/a/ == /b/)
-  print(/a/ == /a/i)
-  print(/a\/b/ == /a\/b/)
-  print(isPattern(/z/))
-  print(isPattern("z"))
-  print(Json.stringify(/a+/i))
-  print(Json.stringify([/a\/b/]))
+  println(m[/k/])
+  println(/a/i == /a/i)
+  println(/a/si == /a/is)
+  println(/a/ == /b/)
+  println(/a/ == /a/i)
+  println(/a\/b/ == /a\/b/)
+  println(isPattern(/z/))
+  println(isPattern("z"))
+  println(Json.stringify(/a+/i))
+  println(Json.stringify([/a\/b/]))
   for i in Array.range(0, 2) {
-    print(/loop/)
+    println(/loop/)
   }
 }
 

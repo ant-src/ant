@@ -4,7 +4,7 @@
 func main(): void {
   var a = byte(1)
   var b = byte(2)
-  print(a - b)
+  println(a - b)
 }
 
 // expect

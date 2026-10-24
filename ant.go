@@ -120,7 +120,7 @@ func WithSource(path, src string) Option {
 // WithStdin sets what Os.stdin reads. The default is os.Stdin.
 func WithStdin(r io.Reader) Option { return func(c *config) { c.stdin = r } }
 
-// WithStdout sets where print and Os.stdout write. The default is os.Stdout.
+// WithStdout sets where print, println and Os.stdout write. The default is os.Stdout.
 func WithStdout(w io.Writer) Option { return func(c *config) { c.stdout = w } }
 
 // WithStderr sets where panic reports are written. The default is os.Stderr.

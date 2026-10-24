@@ -21,25 +21,25 @@ func apply(f: func(int, int): int): int { f(1, 2) }
 func main(): void {
   var double = { x * 2 } // ERR: a lambda needs an expected function type
   var ok: func(int): int = { x * 2 }
-  print(apply({ x })) // ERR: a lambda has at most one parameter
-  print(apply(func(a: int, b: int): int { a + b }))
+  println(apply({ x })) // ERR: a lambda has at most one parameter
+  println(apply(func(a: int, b: int): int { a + b }))
   var p = Point{ x: 1.0, y: 2.0 }
-  print(p.distance(p)) // ERR: Point has no field distance
-  print(Point.distance(a: p, b: p))
+  println(p.distance(p)) // ERR: Point has no field distance
+  println(Point.distance(a: p, b: p))
   var dist = Point.distance
-  print(dist(a: p, b: p)) // ERR: a call through a function value is positional
-  print(dist(p, p))
+  println(dist(a: p, b: p)) // ERR: a call through a function value is positional
+  println(dist(p, p))
   var once = Once.new()
-  Once.do(once, { print(x) })    // ERR: x is not defined
-  print(Point.distance(p))       // ERR: Point.distance needs an argument for b
-  print(Point.distance(p, p, p)) // ERR: Point.distance takes 2 arguments
-  print(Point.distance(p, c: p)) // ERR: Point.distance has no parameter c
+  Once.do(once, { println(x) })    // ERR: x is not defined
+  println(Point.distance(p))       // ERR: Point.distance needs an argument for b
+  println(Point.distance(p, p, p)) // ERR: Point.distance takes 2 arguments
+  println(Point.distance(p, c: p)) // ERR: Point.distance has no parameter c
   var early = func(): int {
     return // ERR: cannot use void where int is expected
   }
-  print(early())
+  println(early())
   var g: func(int): int = func(a: int, b: int): int { a + b } // ERR: cannot use func(int, int): int where func(int): int is expected
-  print(ok(1))
-  print(required(b: 2) + ordered())
+  println(ok(1))
+  println(required(b: 2) + ordered())
   var lit = func(a: int = b, b: int = 2): int { a } // ERR: b is a parameter whose default has not run yet
 }

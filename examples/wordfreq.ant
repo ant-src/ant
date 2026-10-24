@@ -40,7 +40,7 @@ func main(): void {
     "empty.txt": "",
   }
   for { key, value } in samples {
-    if File.write(`${dir}/${key}`, value) is Err { print(`cannot write ${key}`) }
+    if File.write(`${dir}/${key}`, value) is Err { println(`cannot write ${key}`) }
   }
   var totals: Map[string, int] = Map{}
   var files = 0
@@ -58,15 +58,15 @@ func main(): void {
           for { key, value } in counts { totals[key] = (totals[key] ?? 0) + value }
         })
       } else {
-        Mutex.withLock(lock, { print(`skipped ${name}`) })
+        Mutex.withLock(lock, { println(`skipped ${name}`) })
       }
     }
   }
   WaitGroup.wait(wg)
   var ranked = Array.sortWith(Map.entries(totals), byCountThenWord)
-  for e in Array.slice(ranked, 0, 6) { print(`${e.key}: ${e.value}`) }
-  print(`${files} files, ${Map.size(totals)} distinct words, ${Array.sum(Map.values(totals)) ?? 0} in all`)
-  print(words("Don't stop-me now!"))
+  for e in Array.slice(ranked, 0, 6) { println(`${e.key}: ${e.value}`) }
+  println(`${files} files, ${Map.size(totals)} distinct words, ${Array.sum(Map.values(totals)) ?? 0} in all`)
+  println(words("Don't stop-me now!"))
 }
 
 // expect

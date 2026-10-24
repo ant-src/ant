@@ -7,12 +7,12 @@ func load(): string { calls += 1; "config" }
 
 func main(): void {
   var config = Once.value(load)
-  print(config())
-  print(config())
-  print(calls)
+  println(config())
+  println(config())
+  println(calls)
   var once = Once.new()
-  Once.do(once, { print("first") })
-  Once.do(once, { print("second") })
+  Once.do(once, { println("first") })
+  Once.do(once, { println("second") })
   var wg = WaitGroup.new()
   var shared = Once.new()
   var hits = Atomic.new(0)
@@ -24,8 +24,8 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg)
-  print(Atomic.load(hits))
-  print("done")
+  println(Atomic.load(hits))
+  println("done")
 }
 
 // expect

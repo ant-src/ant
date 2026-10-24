@@ -26,28 +26,28 @@ func sum(a: string, b: string): Result[int, ParseError] {
 func outer(): Result[int, Error] {
   var inner: Result[Result[int, Error], Error] = Result.ok(Result.ok(1))
   var r = try inner
-  print(r)
+  println(r)
   r
 }
 
 func main(): void {
-  print(sum("12", "30"))
+  println(sum("12", "30"))
   var bad = sum("1x", "3")
   if bad is Err {
     var e = bad.error
-    if e is BadDigit { print(`bad digit at ${e.at}`) } else { print("empty") }
+    if e is BadDigit { println(`bad digit at ${e.at}`) } else { println("empty") }
   }
-  print(Result.isOk(sum("", "1")))
-  print(Result.unwrapOr(sum("a", "1"), -1))
-  print(Result.map(sum("1", "1"), { x * 100 }))
-  print(Result.all([parseDigits("1"), parseDigits("2")]))
-  print(Result.all([parseDigits("1"), parseDigits("x")]))
-  print(Result.mapErr(sum("", ""), { "widened" }))
-  print(outer())
+  println(Result.isOk(sum("", "1")))
+  println(Result.unwrapOr(sum("a", "1"), -1))
+  println(Result.map(sum("1", "1"), { x * 100 }))
+  println(Result.all([parseDigits("1"), parseDigits("2")]))
+  println(Result.all([parseDigits("1"), parseDigits("x")]))
+  println(Result.mapErr(sum("", ""), { "widened" }))
+  println(outer())
   var one: Result[int, Error] = Result.ok(1)
-  print(Ok{ value: 1 } == one)
-  print(Err{ error: Error{ message: "m" } })
-  print(Result.unwrap(parseDigits("77")))
+  println(Ok{ value: 1 } == one)
+  println(Err{ error: Error{ message: "m" } })
+  println(Result.unwrap(parseDigits("77")))
 }
 
 // expect

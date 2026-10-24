@@ -164,7 +164,7 @@ func main(): void {
     "z + 1",
     "1 2",
     "1.5.2",
-  ] { print(calculate(src, env)) }
+  ] { println(calculate(src, env)) }
 }
 
 // expect

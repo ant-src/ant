@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: call
 // A named argument to a lambda panics (section 12).
-func main(): void { var f: func(int): int = { x }; print(f(x: 1)) }
+func main(): void { var f: func(int): int = { x }; println(f(x: 1)) }
 
 // expect
 // exit: 1

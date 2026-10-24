@@ -2,7 +2,7 @@
 // panics: arith-kind
 // Unary - needs a number (section 12).
 func main(): void {
-  print(-"s")
+  println(-"s")
 }
 
 // expect

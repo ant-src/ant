@@ -6,7 +6,7 @@ func main(): void {
   Time.sleep(Time.duration(milliseconds: 5))
   Time.sleep(Time.duration(seconds: -3))
   Time.sleep(Time.duration())
-  print("slept")
+  println("slept")
   Time.sleep(Time.duration(months: 1))
 }
 

@@ -2,7 +2,7 @@
 // A panic inside a deferred block replaces the one in progress; the remaining deferred blocks
 // still run (section 12).
 func main(): void {
-  defer { print("outer") }
+  defer { println("outer") }
   defer { panic("second") }
   panic("first")
 }

@@ -10,22 +10,22 @@ type Bag = Set[Bag]
 func main(): void {
   var a = Node{ value: 1, next: null }
   a.next = a
-  print(a)
+  println(a)
   var b = Node{ value: 2, next: Node{ value: 3, next: null } }
-  print(b)
+  println(b)
   var c = Cell{ items: [] }
   Array.push(c.items, c)
-  print(c)
-  print([c, c])
+  println(c)
+  println([c, c])
   var n: Nest = []
   Array.push(n, n)
-  print(n)
+  println(n)
   var d: Dict = Map{}
   d["self"] = d
-  print(d)
+  println(d)
   var g: Bag = Set.of([])
   Set.add(g, g)
-  print(g)
+  println(g)
 }
 
 // expect

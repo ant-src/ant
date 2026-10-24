@@ -3,7 +3,7 @@
 // A lambda given two arguments panics (section 12).
 func main(): void {
   var f: func(int): int = { x }
-  print(f(1, 2))
+  println(f(1, 2))
 }
 
 // expect

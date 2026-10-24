@@ -24,7 +24,7 @@ func loadSrc(t *testing.T, src string, opts ...ant.Option) *ant.Program {
 }
 
 func TestWithEnv(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { print(Os.env("GREETING")); print(Os.env("MISSING")) }`)
+	prog := loadSrc(t, `func main(): void { println(Os.env("GREETING")); println(Os.env("MISSING")) }`)
 	var out strings.Builder
 	lookup := func(name string) (string, bool) {
 		if name == "GREETING" {
@@ -99,7 +99,7 @@ func main(): void {}
 }
 
 func TestWithoutNamespaces(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { print(File.exists("x")) }`, ant.WithoutNamespaces("File"))
+	prog := loadSrc(t, `func main(): void { println(File.exists("x")) }`, ant.WithoutNamespaces("File"))
 	if diags := prog.Check(); len(diags) == 0 || !strings.Contains(diags[0].Message, "File") {
 		t.Errorf("check: %v", diags)
 	}
@@ -177,9 +177,9 @@ func TestNamespaceDefaults(t *testing.T) {
 		},
 	}
 	prog := loadSrc(t, `func main(): void {
-  print(Greet.hello("ada"))
-  print(Greet.hello("ada", "yo"))
-  print(Greet.hello("ada", punct: "?"))
+  println(Greet.hello("ada"))
+  println(Greet.hello("ada", "yo"))
+  println(Greet.hello("ada", punct: "?"))
 }`, ant.WithNamespace(greet))
 	if diags := prog.Check(); len(diags) != 0 {
 		t.Errorf("check: %v", diags)
@@ -196,7 +196,7 @@ func TestNamespaceDefaults(t *testing.T) {
 // TestWithStdin: Os.stdin reads what the option gives, and a read blocked on input that never
 // comes ends when the run is cancelled.
 func TestWithStdin(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { print(File.readAll(Os.stdin())) }`)
+	prog := loadSrc(t, `func main(): void { println(File.readAll(Os.stdin())) }`)
 	var out strings.Builder
 	if err := prog.Run(context.Background(), ant.WithStdin(strings.NewReader("a\nb\n")), ant.WithStdout(&out)); err != nil {
 		t.Fatal(err)
@@ -217,7 +217,7 @@ func TestWithStdin(t *testing.T) {
 
 // TestExecCancelled: cancelling the run kills the child, and Run returns promptly.
 func TestExecCancelled(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { print(Os.exec("sleep", ["30"])) }`)
+	prog := loadSrc(t, `func main(): void { println(Os.exec("sleep", ["30"])) }`)
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
@@ -237,7 +237,7 @@ func TestHostTimeNamespace(t *testing.T) {
 			"stamp": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil },
 		},
 	}
-	prog := loadSrc(t, `func main(): void { var s = Time.stamp(); print(s is Time.Stamp) }`, ant.WithNamespace(ns), ant.WithoutNamespaces("Time"))
+	prog := loadSrc(t, `func main(): void { var s = Time.stamp(); println(s is Time.Stamp) }`, ant.WithNamespace(ns), ant.WithoutNamespaces("Time"))
 	diags := prog.Check()
 	if len(diags) != 1 || !strings.Contains(diags[0].Message, "is cannot test Time.Stamp") {
 		t.Errorf("check: %v", diags)
@@ -247,10 +247,10 @@ func TestHostTimeNamespace(t *testing.T) {
 // TestWithEnvironment: the whole environment, for Os.env, Os.environ and a child of Os.exec.
 func TestWithEnvironment(t *testing.T) {
 	prog := loadSrc(t, `func main(): void {
-  print(Os.env("ANT_ONLY"))
-  print(Os.env("PATH"))
-  print(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
-  print(Os.exec("/usr/bin/env"))
+  println(Os.env("ANT_ONLY"))
+  println(Os.env("PATH"))
+  println(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
+  println(Os.exec("/usr/bin/env"))
 }`)
 	var out strings.Builder
 	err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))

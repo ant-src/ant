@@ -4,7 +4,7 @@
 func main(): void {
   var one = [1]
   var [a, b] = one
-  print(a + b)
+  println(a + b)
 }
 
 // expect

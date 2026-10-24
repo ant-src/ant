@@ -114,11 +114,11 @@ func nine(x: float64): float64 { Math.round(x * 1000000000.0) / 1000000000.0 }
 func main(): void {
   var bs = bodies()
   offsetMomentum(bs)
-  print(nine(energy(bs)))
+  println(nine(energy(bs)))
   for _ in Iter.range(0, 1000) { advance(bs, 0.01) }
-  print(nine(energy(bs)))
+  println(nine(energy(bs)))
   var sun = bs[0]
-  print(`sun moved to ${nine(sun.x)}, ${nine(sun.y)}, ${nine(sun.z)}`)
+  println(`sun moved to ${nine(sun.x)}, ${nine(sun.y)}, ${nine(sun.z)}`)
 }
 
 // expect

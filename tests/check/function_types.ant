@@ -29,13 +29,13 @@ func main(): void {
   var cb4: func(int): int = { x }
   var conns = [connect]
   conns[0] = plain // ERR: cannot use func(string, int, bool): string where func(string, int = ..., bool = ...): string is expected
-  print(f1("a") + f2("a", 1) + f3("a", 1, false))
-  print(h())
-  print(k(Circle{ radius: 2.0 }))
+  println(f1("a") + f2("a", 1) + f3("a", 1, false))
+  println(h())
+  println(k(Circle{ radius: 2.0 }))
   cb2()
-  print(cb4(1))
-  print(conns[0]("a"))
+  println(cb4(1))
+  println(conns[0]("a"))
   var ports = [port]
   ports[0] = { x + 1 } // ERR: cannot use func(int): int where func(int = ...): int is expected
-  print(ports[0]())
+  println(ports[0]())
 }

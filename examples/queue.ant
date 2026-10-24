@@ -66,8 +66,8 @@ func main(): void {
   WaitGroup.wait(producers)
   Queue.close(q)
   WaitGroup.wait(consumers)
-  print(`took ${Atomic.load(taken)} items, sum ${Atomic.load(sum)}, largest ${Atomic.load(largest)}`)
-  print(`queue drained: ${Array.isEmpty(q.items)}`)
+  println(`took ${Atomic.load(taken)} items, sum ${Atomic.load(sum)}, largest ${Atomic.load(largest)}`)
+  println(`queue drained: ${Array.isEmpty(q.items)}`)
   var workers = WaitGroup.new()
   var finished = Atomic.new(0)
   for id in Iter.range(0, 3) {
@@ -79,7 +79,7 @@ func main(): void {
     }
   }
   WaitGroup.wait(workers)
-  print(`${Atomic.load(finished)} of 3 workers finished`)
+  println(`${Atomic.load(finished)} of 3 workers finished`)
 }
 
 // expect

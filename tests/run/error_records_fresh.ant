@@ -5,14 +5,14 @@ func readTwice(f: File.Handle): void {
   var first = File.readLine(f)
   if first is Err { first.error.message = "changed" }
   var second = File.readLine(f)
-  if second is Err { print(second.error.message) }
+  if second is Err { println(second.error.message) }
 }
 
 func writeTwice(f: File.Handle): void {
   var first = File.writeLine(f, "x")
   if first is Err { first.error.message = "changed" }
   var second = File.writeLine(f, "x")
-  if second is Err { print(second.error.message) }
+  if second is Err { println(second.error.message) }
 }
 
 func main(): void {
@@ -30,7 +30,7 @@ func main(): void {
   var first = Net.accept(l)
   if first is Err { first.error.message = "changed" }
   var second = Net.accept(l)
-  if second is Err { print(second.error.message) }
+  if second is Err { println(second.error.message) }
   var gone = File.removeAll(dir)
 }
 

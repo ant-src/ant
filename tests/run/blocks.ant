@@ -10,36 +10,36 @@ var origin = Point{ x: 0, y: 0 }
 
 func main(): void {
   var three = if true { var t = 1; t + 2 } else { 0 }
-  print(three)
+  println(three)
   var nothing: void = if true { var t = 1 } else {}
-  print(nothing)
+  println(nothing)
   var assigned: void = if true { three = 4 } else {}
-  print(assigned)
-  print(three)
+  println(assigned)
+  println(three)
   var empty: void = if true {} else {}
-  print(empty)
+  println(empty)
   var noop: func(): void = {}
-  print(noop())
+  println(noop())
   var chosen = if three > 1 { Point{ x: 1, y: 0 } } else { origin }
-  print(chosen)
+  println(chosen)
   var u = User{ name: "ada" }
-  if u == (User{ name: "ada" }) { print("same user") }
-  if (Map{ a: 1 })["a"] == 1 { print("map in header") }
+  if u == (User{ name: "ada" }) { println("same user") }
+  if (Map{ a: 1 })["a"] == 1 { println("map in header") }
   var fs: Array[func(int): int] = [{ x + 1 }, { x * 2 }]
-  print(fs[0](1) + fs[1](1))
+  println(fs[0](1) + fs[1](1))
   var xs = [1, 2]
-  if xs[0] == 1 { print("after an index") }
-  if Array.isEmpty(xs) { print("no") } else { print("after a call") }
-  if u.name == "ada" { print("after a path") }
-  if 2 > 1 { print("after a literal") }
+  if xs[0] == 1 { println("after an index") }
+  if Array.isEmpty(xs) { println("no") } else { println("after a call") }
+  if u.name == "ada" { println("after a path") }
+  if 2 > 1 { println("after a literal") }
   var a = 1
   var b = 2
-  print(a + b)
+  println(a + b)
   var seq: func(): int = {
     var inner = 10
     inner * 2
   }
-  print(seq())
+  println(seq())
 }
 
 // expect

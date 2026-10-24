@@ -8,26 +8,26 @@ type P = { x: int }
 func main(): void {
   var seen: Set[string] = Set.of([])
   for line in ["b", "a", "b", "c", "a"] {
-    if Set.add(seen, line) { print(line) }
+    if Set.add(seen, line) { println(line) }
   }
-  print(seen)
-  print(Set.of([P{ x: 1 }, P{ x: 1 }]))
-  print(Set.of([1, 2]) == Set.of([2, 1]))
-  print(Set.of([1, 2]) == Set.of([1]))
+  println(seen)
+  println(Set.of([P{ x: 1 }, P{ x: 1 }]))
+  println(Set.of([1, 2]) == Set.of([2, 1]))
+  println(Set.of([1, 2]) == Set.of([1]))
   var byGroup: Map[Set[int], string] = Map{}
   byGroup[Set.of([1, 2])] = "pair"
-  print(byGroup[Set.of([2, 1])])
+  println(byGroup[Set.of([2, 1])])
   var grow = Set.of([1])
   for n in grow {
     if n < 3 { _ = Set.add(grow, n + 1) }
-    print(n)
+    println(n)
   }
   var v: Set[int] | Array[int] = grow
-  if v is Set { print(Set.size(v)) } else { print(Array.length(v)) }
-  print(`members: ${Set.of(["x", "y"])}`)
-  print(Json.stringify(Set.of([P{ x: 1 }, P{ x: 2 }])))
+  if v is Set { println(Set.size(v)) } else { println(Array.length(v)) }
+  println(`members: ${Set.of(["x", "y"])}`)
+  println(Json.stringify(Set.of([P{ x: 1 }, P{ x: 2 }])))
   var nest: Set[Array[int]] = Set.of([[1], [1], [2]])
-  print(Set.size(nest))
+  println(Set.size(nest))
 }
 
 // expect

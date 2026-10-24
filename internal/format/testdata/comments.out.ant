@@ -7,15 +7,15 @@ func main() {
   Array.sum(xs)     // => 6
 
   var long = Array.map(xs, { x * 1000 }) // a lone comment: one space
-  print(long)
+  println(long)
   if long == xs { // a run ends where the indentation changes
-    print(1) // so these two are not aligned
+    println(1) // so these two are not aligned
   }
   /* a block
        comment keeps
     its other lines */
-  print(xs, /* inline */ long)
-  /**/ print("empty")
+  println(xs, /* inline */ long)
+  /**/ println("empty")
   // the last thing in a block
 }
 // the end of the file

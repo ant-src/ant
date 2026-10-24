@@ -5,21 +5,21 @@ func main(): void {
   var dir = Os.args()[0]
   var path = `${dir}/log.txt`
   var out = Result.unwrap(File.create(path))
-  print(File.writeText(out, "a"))
-  print(File.read(path))
-  print(File.flush(out))
-  print(File.read(path))
-  print(File.writeText(out, "b\n"))
+  println(File.writeText(out, "a"))
+  println(File.read(path))
+  println(File.flush(out))
+  println(File.read(path))
+  println(File.writeText(out, "b\n"))
   File.close(out)
   var input = Result.unwrap(File.open(path))
-  print(File.readLine(input))
-  print(File.readAll(input))
-  print(File.readAll(input))
-  print(File.flush(input))
-  print(File.writeText(input, "x") is Err)
+  println(File.readLine(input))
+  println(File.readAll(input))
+  println(File.readAll(input))
+  println(File.flush(input))
+  println(File.writeText(input, "x") is Err)
   File.close(input)
-  print(File.readAll(input) is Err)
-  print(File.flush(input) is Err)
+  println(File.readAll(input) is Err)
+  println(File.flush(input) is Err)
 }
 
 // expect

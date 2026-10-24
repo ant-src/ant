@@ -3,8 +3,8 @@
 // Integer division by zero panics; float division by zero does not (section 12).
 func main(): void {
   var zero = 0
-  print(1.0 / 0.0)
-  print(1 / zero)
+  println(1.0 / 0.0)
+  println(1 / zero)
 }
 
 // expect

@@ -18,14 +18,14 @@ func main(): void {
       }
     }
   }
-  print(got)
-  print(beats)
+  println(got)
+  println(beats)
   Time.sleep(Time.duration(milliseconds: 100))
-  print(Channel.length(ticks))
+  println(Channel.length(ticks))
   Context.cancel(ctx)
   Time.sleep(Time.duration(milliseconds: 50))
   var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
-  print(Channel.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
+  println(Channel.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
 }
 
 // expect

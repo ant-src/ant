@@ -1,34 +1,7 @@
 # Work still to do
 
-Seven gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Six gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
-
-## `println`
-
-**Today:** `print` always ends with a newline. Writing without one, such as a prompt or a progress
-dot, means `File.writeText(Os.stdout(), String.from(x))`, which returns a `Result` and takes only a
-string.
-
-**Sketch:** split the two, as Go and Rust do. `print` writes the value with no newline, and the new
-`println` adds one.
-
-```
-print[T](value: T): void                         // String.from(value) to standard output
-println[T](value: T): void                       // String.from(value) and a newline
-```
-
-- Both write to the buffer `Os.stdout()` shares (stdlib, Os), so they interleave with it in program
-  order, and a read of standard input flushes them first.
-
-**Open questions:**
-- This changes what `print` means in every existing program: 245 `.ant` files in the repository
-  call it, along with the spec's examples and the `// expect` corpus. The other way round, keeping
-  `print` and adding a newline-free name such as `write`, breaks nothing.
-- Whether `println()` with no argument prints an empty line. Without default arguments for a generic
-  `T`, that needs a second signature or `println("")`.
-- Whether a standard-error pair (`eprint`, `eprintln`) joins them, or `File.writeLine(Os.stderr(),
-  msg)` is enough.
-- Whether `println` flushes at each newline, or output is flushed only before a read and at exit.
 
 ## Unicode
 

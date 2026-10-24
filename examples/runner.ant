@@ -46,14 +46,14 @@ func run(t: Task): bool {
     var output = result.value
     var lines = if output.stdout == "" { 0 } else { Array.length(String.split(String.trim(output.stdout), "\n")) }
     if output.status == 0 {
-      print(`${t.name}: ok, ${plural(lines, "line")} of output`)
+      println(`${t.name}: ok, ${plural(lines, "line")} of output`)
       true
     } else {
-      print(`${t.name}: failed with status ${output.status}`)
+      println(`${t.name}: failed with status ${output.status}`)
       false
     }
   } else {
-    print(`${t.name}: could not start`)
+    println(`${t.name}: could not start`)
     false
   }
 }
@@ -61,9 +61,9 @@ func run(t: Task): bool {
 func tasks(parsed: Result[Json.Value, Error]): Array[Json.Value] {
   if parsed is Ok {
     var list = parsed.value
-    if list is Array { list } else { print("the task list must be an array"); Os.exit(2) }
+    if list is Array { list } else { println("the task list must be an array"); Os.exit(2) }
   } else {
-    print(`bad task list: ${parsed.error.message}`)
+    println(`bad task list: ${parsed.error.message}`)
     Os.exit(2)
   }
 }
@@ -76,11 +76,11 @@ func main(): void {
     if t is Ok {
       if !run(t.value) { failed += 1 }
     } else {
-      print(`skipped: ${t.error.message}`)
+      println(`skipped: ${t.error.message}`)
       failed += 1
     }
   }
-  print(`${Array.length(items) - failed} of ${plural(Array.length(items), "task")} succeeded`)
+  println(`${Array.length(items) - failed} of ${plural(Array.length(items), "task")} succeeded`)
   if failed > 0 { Os.exit(1) }
 }
 

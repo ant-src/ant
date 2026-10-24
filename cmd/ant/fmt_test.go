@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	formatted   = "func main() {\n  print(1)\n}\n"
-	unformatted = "func main() {\nprint( 1 );\n}"
-	syntaxError = "func main() {\n  print(\n}\n"
+	formatted   = "func main() {\n  println(1)\n}\n"
+	unformatted = "func main() {\nprintln( 1 );\n}"
+	syntaxError = "func main() {\n  println(\n}\n"
 )
 
 // tree writes files under a fresh directory and returns it.

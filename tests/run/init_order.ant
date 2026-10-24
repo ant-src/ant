@@ -6,16 +6,16 @@ var b = a + 1
 var c: Later = Later{ n: b }
 var d = describe(c)
 
-func compute(): int { print("init a"); 41 }
+func compute(): int { println("init a"); 41 }
 
 type Later = { n: int }
 
 func describe(l: Later): string { `later ${l.n}` }
 
 func main(): void {
-  print(b)
-  print(c)
-  print(d)
+  println(b)
+  println(c)
+  println(d)
 }
 
 // expect

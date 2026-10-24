@@ -20,7 +20,7 @@ func main(): void {
       received += 1
       total += item
     }
-    print(`received ${received} items, total ${total}`)
+    println(`received ${received} items, total ${total}`)
   }
   for i in Iter.range(1, 6) {
     Mutex.lock(lock)
@@ -31,7 +31,7 @@ func main(): void {
   WaitGroup.wait(wg)
   var c = Cond.new(lock)
   Cond.broadcast(c)
-  print("done")
+  println("done")
 }
 
 // expect

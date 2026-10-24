@@ -14,7 +14,7 @@ import (
 func Example_run() {
 	src := `
 func main(): void {
-  for name in Os.args() { print(` + "`hello, ${name}`" + `) }
+  for name in Os.args() { println(` + "`hello, ${name}`" + `) }
 }
 `
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src))
@@ -90,8 +90,8 @@ func Kv.set(key: string, v: string): void
 	src := `
 func main(): void {
   Kv.set("greeting", "hi")
-  print(Kv.get("greeting") ?? "missing")
-  print(Kv.get("other") ?? "missing")
+  println(Kv.get("greeting") ?? "missing")
+  println(Kv.get("other") ?? "missing")
 }
 `
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src), ant.WithNamespace(kv), ant.WithoutNamespaces("File", "Http"))

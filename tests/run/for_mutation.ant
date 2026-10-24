@@ -8,24 +8,24 @@ func main(): void {
   for x in xs {
     if x == 1 { Array.push(xs, 4) }
     if x == 2 { _ = Array.pop(xs) }
-    print(x)
+    println(x)
   }
-  print(xs)
+  println(xs)
   var m = Map{ a: 1, b: 2, c: 3, d: 4 }
   for { key, value } in m {
     if key == "a" { m["e"] = 5; _ = Map.remove(m, "c") }
     if key == "b" { _ = Map.remove(m, "a"); m["a"] = 10 }
-    print(`${key}=${value}`)
+    println(`${key}=${value}`)
   }
-  print(m)
+  println(m)
   var count = 0
   var grow = Map{ x: 0 }
   for { key, value } in grow {
     count += 1
     if count < 5 { grow[`${key}${count}`] = count }
   }
-  print(count)
-  print(Map.size(grow))
+  println(count)
+  println(Map.size(grow))
 }
 
 // expect

@@ -13,11 +13,11 @@ func main(): void {
     File.close(s)
   }
   var c = Result.unwrap(Net.dial(Net.address(l)))
-  print(File.readLine(c, Context.new(Time.duration(milliseconds: 50))))
-  print(File.readLine(c))
-  print(File.readLine(c))
-  print(File.readAll(c, Context.new(Time.duration(milliseconds: 50))))
-  print(File.readAll(c))
+  println(File.readLine(c, Context.new(Time.duration(milliseconds: 50))))
+  println(File.readLine(c))
+  println(File.readLine(c))
+  println(File.readAll(c, Context.new(Time.duration(milliseconds: 50))))
+  println(File.readAll(c))
 }
 
 // expect

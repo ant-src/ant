@@ -33,20 +33,20 @@ func byMoment(a: Meeting, b: Meeting): int { Time.compare(a.when, b.when) }
 
 func zoneOrExit(id: string): Time.Zone {
   var z = Time.zone(id)
-  if z is Ok { z.value } else { print(`unknown zone: ${id}`); Os.exit(2) }
+  if z is Ok { z.value } else { println(`unknown zone: ${id}`); Os.exit(2) }
 }
 
 func dateOrExit(s: string): Time.PlainDate {
   var d = Time.parsePlainDate(s)
-  if d is Ok { d.value } else { print(`not a date: ${s}`); Os.exit(2) }
+  if d is Ok { d.value } else { println(`not a date: ${s}`); Os.exit(2) }
 }
 
 func listOrExit(parsed: Result[Json.Value, Error]): Array[Json.Value] {
   if parsed is Ok {
     var v = parsed.value
-    if v is Array { v } else { print("the meetings must be an array"); Os.exit(2) }
+    if v is Array { v } else { println("the meetings must be an array"); Os.exit(2) }
   } else {
-    print(`bad input: ${parsed.error.message}`)
+    println(`bad input: ${parsed.error.message}`)
     Os.exit(2)
   }
 }
@@ -54,7 +54,7 @@ func listOrExit(parsed: Result[Json.Value, Error]): Array[Json.Value] {
 func main(): void {
   var args = Os.args()
   if Array.length(args) != 2 {
-    print("usage: ant run examples/agenda.ant <zone> <today> < meetings.json")
+    println("usage: ant run examples/agenda.ant <zone> <today> < meetings.json")
     Os.exit(2)
   }
   var reader = zoneOrExit(args[0])
@@ -70,7 +70,7 @@ func main(): void {
     var local = Time.withZone(m.when, reader)
     var days = Time.part(Time.until(today, local, Time.Day{}), Time.Day{})
     var from = `${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}`
-    print(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
+    println(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
   }
 }
 

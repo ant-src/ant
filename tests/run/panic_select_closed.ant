@@ -4,10 +4,10 @@
 func main(): void {
   var c: Channel[int] = Channel.new(1)
   var first: string = select { Channel.send(c, 1) { "sent" } }
-  print(first)
+  println(first)
   Channel.close(c)
   var second: string = select { Channel.send(c, 2) { "sent" } }
-  print(second)
+  println(second)
 }
 
 // expect

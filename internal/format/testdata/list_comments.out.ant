@@ -3,22 +3,22 @@
 func f(a: int, b: int): int { a + b }
 
 func main() {
-  print(f(
+  println(f(
     1, // one
     2,
   ))
-  print(f(
+  println(f(
     1, // one
     2, // two
   ))
-  print(f(1, /* inline */ 2))
-  print(f( // after the bracket
+  println(f(1, /* inline */ 2))
+  println(f( // after the bracket
     1,
     2,
   ))
-  print(f(
+  println(f(
     /* leads the first item */ 1,
     2,
   ))
-  print(f(/* flat */ 1, 2))
+  println(f(/* flat */ 1, 2))
 }

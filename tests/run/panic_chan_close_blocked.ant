@@ -7,7 +7,7 @@ func main(): void {
   var x = Channel.send(d, 1)
   x = Channel.send(d, 2)
   Channel.close(d)
-  print([Channel.receive(d), Channel.receive(d), Channel.receive(d)])
+  println([Channel.receive(d), Channel.receive(d), Channel.receive(d)])
   var c: Channel[int] = Channel.new(1)
   x = Channel.send(c, 1)
   go {
@@ -15,7 +15,7 @@ func main(): void {
     Channel.close(c)
   }
   x = Channel.send(c, 2)
-  print("unreachable")
+  println("unreachable")
 }
 
 // expect

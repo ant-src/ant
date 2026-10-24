@@ -7,10 +7,10 @@ type Bag = { s: Set[Bag] }
 func main(): void {
   var b = Box{ m: Map{} }
   b.m[b] = 1
-  print(Map.size(b.m))
+  println(Map.size(b.m))
   var bag = Bag{ s: Set.of([]) }
-  print(Set.add(bag.s, bag))
-  print(Set.size(bag.s))
+  println(Set.add(bag.s, bag))
+  println(Set.size(bag.s))
 }
 
 // expect

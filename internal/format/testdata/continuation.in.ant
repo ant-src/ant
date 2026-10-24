@@ -14,11 +14,11 @@ func main() {
   var count = 2
   var r = (total
         / count)
-  print(names, Array.map([1], { x +
+  println(names, Array.map([1], { x +
   1 }), r)
   var paid = users
     | Array.filter({
     x.age > 1
     })
-  print(paid)
+  println(paid)
 }

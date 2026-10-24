@@ -11,11 +11,11 @@ func main(): void {
   WaitGroup.add(wg, 1)
   go {
     defer { WaitGroup.done(wg) }
-    print(value())
+    println(value())
   }
   WaitGroup.wait(wg)
-  print(attempts)
-  print(value())
+  println(attempts)
+  println(value())
 }
 
 // expect

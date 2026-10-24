@@ -8,22 +8,22 @@ type Empty = {}
 type Pair = { first: Point, second: Array[int] }
 
 func main(): void {
-  print([1, 2, 3])
-  print([[1], [], [2, 3]])
-  print(Map{ a: 1, b: 2 })
-  print(Map{ 1: "one", 2: "two" })
+  println([1, 2, 3])
+  println([[1], [], [2, 3]])
+  println(Map{ a: 1, b: 2 })
+  println(Map{ 1: "one", 2: "two" })
   var byPoint: Map[Point, string] = Map{}
   byPoint[Point{ x: 0.0, y: 0.0 }] = "origin"
-  print(byPoint)
-  print(Point{ x: 1.0, y: 2.0 })
-  print(Point{ y: 2.0, x: 1.0 })
-  print(Pair{ first: Point{ x: 0.5, y: 0.0 }, second: [7] })
+  println(byPoint)
+  println(Point{ x: 1.0, y: 2.0 })
+  println(Point{ y: 2.0, x: 1.0 })
+  println(Pair{ first: Point{ x: 0.5, y: 0.0 }, second: [7] })
   var empty: Array[int] = []
-  print(empty)
+  println(empty)
   var emptyMap: Map[string, int] = Map{}
-  print(emptyMap)
-  print(Empty{})
-  print([Empty{}, Empty{}])
+  println(emptyMap)
+  println(Empty{})
+  println([Empty{}, Empty{}])
 }
 
 // expect

@@ -57,7 +57,7 @@ func TestGenerated(t *testing.T) {
 	for i := 0; i < cases; i++ {
 		typ := g.pickType()
 		expr := g.gen(typ, 3)
-		prog := genDecls + "\nfunc main(): void {\n  var x: " + typ.String() + " = " + expr + "\n  print(x)\n}\n"
+		prog := genDecls + "\nfunc main(): void {\n  var x: " + typ.String() + " = " + expr + "\n  println(x)\n}\n"
 		fail := func(format string, args ...any) {
 			t.Helper()
 			t.Fatalf("case %d (ANT_SEED=%d):\n%s\n%s", i, seed, fmt.Sprintf(format, args...), prog)

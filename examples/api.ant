@@ -46,17 +46,17 @@ func main(): void {
   var stop = Context.new(parent: Os.interrupt())
   var served: Channel[Result[void, Error]] = Channel.new(1)
   go { Channel.send(served, Http.serve(listener, handle, stop)) }
-  print(`serving on port ${port}`)
+  println(`serving on port ${port}`)
   if port == "0" {
-    print(Result.unwrap(Http.get(`${base}/health`)).body)
-    print(Result.unwrap(Http.post(`${base}/items`, "{\"name\": \"ant\"}")).body)
-    print(Result.unwrap(Http.post(`${base}/items`, "{\"name\": 7}")).status)
-    print(Result.unwrap(Http.post(`${base}/items`, "not json")).status)
-    print(Result.unwrap(Http.get(`${base}/items`)).body)
-    print(Result.unwrap(Http.get(`${base}/nowhere`)).status)
+    println(Result.unwrap(Http.get(`${base}/health`)).body)
+    println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": \"ant\"}")).body)
+    println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": 7}")).status)
+    println(Result.unwrap(Http.post(`${base}/items`, "not json")).status)
+    println(Result.unwrap(Http.get(`${base}/items`)).body)
+    println(Result.unwrap(Http.get(`${base}/nowhere`)).status)
     Context.cancel(stop)
   }
-  print(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
+  println(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
 }
 
 // expect

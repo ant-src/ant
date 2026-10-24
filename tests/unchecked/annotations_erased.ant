@@ -5,9 +5,9 @@ func double(n: string): int { n * 2 }
 
 func main(): void {
   var x: string = 21
-  print(double(x))
+  println(double(x))
   var y: Array[bool] = Map{ a: 1 }
-  print(y["a"])
+  println(y["a"])
 }
 
 // expect

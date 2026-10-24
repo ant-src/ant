@@ -3,7 +3,7 @@
 // A local read through a call made from its own initializer panics (sections 3, 12).
 func main(): void {
   var later: int = (func(): int { later })()
-  print(later)
+  println(later)
 }
 
 // expect

@@ -7,8 +7,8 @@ type P = { b: In }
 
 func main(): void {
   var a: P | null = null
-  print(a?.b.c)
-  print((a?.b).c)
+  println(a?.b.c)
+  println((a?.b).c)
 }
 
 // expect

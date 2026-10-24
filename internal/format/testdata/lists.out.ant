@@ -20,7 +20,7 @@ func main() {
   ]
   var lock = RwMutex.new()
   RwMutex.withWrite(lock, {
-    print(xs)
+    println(xs)
   })
   var i = xs[
     0
@@ -35,5 +35,5 @@ func main() {
   var none = [
     // nothing yet
   ]
-  print(accounts, i, p, first, rest, none, Array.map(xs, { x + 1 }), Map{}, [], [])
+  println(accounts, i, p, first, rest, none, Array.map(xs, { x + 1 }), Map{}, [], [])
 }

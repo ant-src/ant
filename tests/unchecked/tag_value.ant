@@ -8,12 +8,12 @@ func Point.origin(): Point { Point{ x: 0 } }
 
 func main(): void {
   var t = Point
-  print(t == Point)
-  print(t.origin())
+  println(t == Point)
+  println(t.origin())
   var p = Point{ x: 1 }
-  print(p is t)
-  print(1 is t)
-  print(t)
+  println(p is t)
+  println(1 is t)
+  println(t)
 }
 
 // expect

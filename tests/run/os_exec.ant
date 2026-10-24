@@ -5,18 +5,18 @@
 // reports them, run in a temporary directory given as the first argument.
 func main(): void {
   var version = Result.unwrap(Os.exec("go", ["version"]))
-  print(version.status)
-  print(String.startsWith(version.stdout, "go version"))
-  print(version.stderr == "")
+  println(version.status)
+  println(String.startsWith(version.stdout, "go version"))
+  println(version.stderr == "")
   var bad = Result.unwrap(Os.exec("go", ["nonsense"]))
-  print(bad.status)
-  print(bad.stdout == "")
-  print(String.contains(bad.stderr, "nonsense"))
-  print(Os.exec("ant-no-such-program-xyz") is Err)
-  print(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
-  print(Result.unwrap(Os.exec("sh", ["-c", "kill -9 $$"])).status)
-  print(Map.has(Os.environ(), "PATH"))
-  print(Os.cwd() is Ok)
+  println(bad.status)
+  println(bad.stdout == "")
+  println(String.contains(bad.stderr, "nonsense"))
+  println(Os.exec("ant-no-such-program-xyz") is Err)
+  println(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
+  println(Result.unwrap(Os.exec("sh", ["-c", "kill -9 $$"])).status)
+  println(Map.has(Os.environ(), "PATH"))
+  println(Os.cwd() is Ok)
 
   var dir = Os.args()[0]
   var parts = String.split(dir, "/")
@@ -25,14 +25,14 @@ func main(): void {
     "func main() {\n\twd, _ := os.Getwd()\n\tline, _ := bufio.NewReader(os.Stdin).ReadString('\\n')\n" +
     "\tfmt.Print(filepath.Base(wd) == os.Args[1], \" \", os.Getenv(\"ANT_EXEC_TEST\"), \" \", strings.TrimSpace(line))\n" +
     "\tfmt.Fprintln(os.Stderr, \"warned\")\n}\n"
-  print(File.write(`${dir}/echo.go`, src))
+  println(File.write(`${dir}/echo.go`, src))
   var env = Os.environ()
   env["ANT_EXEC_TEST"] = "seen"
   var out = Result.unwrap(Os.exec("go", ["run", "echo.go", base], dir: dir, env: env, stdin: "typed\n"))
-  print(out.status)
-  print(out.stdout)
-  print(String.contains(out.stderr, "warned"))
-  print(out)
+  println(out.status)
+  println(out.stdout)
+  println(String.contains(out.stderr, "warned"))
+  println(out)
 }
 
 // expect

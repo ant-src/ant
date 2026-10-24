@@ -3,6 +3,6 @@ import "./geometry.ant" { Point }
 
 var ready = announce()
 
-func announce(): int { print("shapes init"); 1 }
+func announce(): int { println("shapes init"); 1 }
 
 export func unit(): Point { Point{ x: 1.0, y: 0.0 } }

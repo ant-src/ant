@@ -5,7 +5,7 @@ func main(): void {
   var c: Channel[int] = Channel.new(1)
   Channel.send(c, 1)
   Channel.close(c)
-  print(Channel.receive(c))
+  println(Channel.receive(c))
   var sent = Channel.send(c, 2)
 }
 

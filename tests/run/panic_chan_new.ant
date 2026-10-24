@@ -3,9 +3,9 @@
 // A negative capacity is a panic; zero is a rendezvous.
 func main(): void {
   var ok: Channel[int] = Channel.new(0)
-  print(Channel.length(ok))
+  println(Channel.length(ok))
   var bad: Channel[int] = Channel.new(-1)
-  print(Channel.length(bad))
+  println(Channel.length(bad))
 }
 
 // expect

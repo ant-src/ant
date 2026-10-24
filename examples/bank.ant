@@ -60,11 +60,11 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg)
-  print(`transfers: ${Atomic.load(bank.transfers)}`)
-  print(`audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}`)
-  print(`total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}`)
-  print(`rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}`)
-  print(Bank.transfer(bank, 0, 1, 5000))
+  println(`transfers: ${Atomic.load(bank.transfers)}`)
+  println(`audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}`)
+  println(`total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}`)
+  println(`rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}`)
+  println(Bank.transfer(bank, 0, 1, 5000))
 }
 
 // expect

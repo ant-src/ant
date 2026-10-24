@@ -21,7 +21,7 @@ func main(): void {
     number += 1
     if keeps(line, needles) {
       kept += 1
-      print(`${number}: ${line}`)
+      println(`${number}: ${line}`)
     }
     line = Result.unwrap(File.readLine(input))
   }

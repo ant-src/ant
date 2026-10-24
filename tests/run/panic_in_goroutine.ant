@@ -6,11 +6,11 @@ func main(): void {
   WaitGroup.add(wg, 1)
   go {
     defer { WaitGroup.done(wg) }
-    defer { print("worker defer") }
+    defer { println("worker defer") }
     panic("worker failed")
   }
   WaitGroup.wait(wg)
-  print("main continues")
+  println("main continues")
 }
 
 // expect

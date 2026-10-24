@@ -5,12 +5,12 @@
    spanning lines */
 func main(): void { // trailing comment
   var x = 1 /* inline */ + 2
-  print(x) // prints 3
+  println(x) // prints 3
   /* block comments do not nest: /* this does not open another */
-  print("after the comment")
-  print("// not a comment")
-  print(`/* not a comment either */`)
-  /**/ print("empty comment")
+  println("after the comment")
+  println("// not a comment")
+  println(`/* not a comment either */`)
+  /**/ println("empty comment")
 }
 
 // expect

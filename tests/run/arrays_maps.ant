@@ -8,44 +8,44 @@ type Point = { x: int, y: int }
 func main(): void {
   var xs: Array[int] = [1, 2, 3]
   var more = [...xs, 4]
-  print(more)
-  print(xs)
+  println(more)
+  println(xs)
   var name = "ada"
   var ages = Map{ ada: 36, linus: 54 }
-  print(ages)
+  println(ages)
   var keyed = Map{ (name): 1, 7: "seven" }
-  print(keyed)
-  print(Map{ name })
-  print(Map.keys(Map{ for: 1, type: 2, if: 3 }))
+  println(keyed)
+  println(Map{ name })
+  println(Map.keys(Map{ for: 1, type: 2, if: 3 }))
   var empty: Map[string, int] = Map{}
-  print(Map.size(empty))
+  println(Map.size(empty))
   var m = Map{ a: 1, b: 2, c: 3 }
   m["b"] = 20
-  print(Map.keys(m))
+  println(Map.keys(m))
   _ = Map.remove(m, "a")
   m["a"] = 100
-  print(m)
+  println(m)
   var byPoint: Map[Point, string] = Map{}
   byPoint[Point{ x: 1, y: 2 }] = "p"
-  print(byPoint[Point{ x: 1, y: 2 }])
-  print(byPoint[Point{ x: 2, y: 1 }])
+  println(byPoint[Point{ x: 1, y: 2 }])
+  println(byPoint[Point{ x: 2, y: 1 }])
   var byList: Map[Array[int], int] = Map{}
   byList[[1, 2]] = 3
-  print(byList[[1, 2]])
+  println(byList[[1, 2]])
   var key = Point{ x: 0, y: 0 }
   var tricky: Map[Point, int] = Map{}
   tricky[key] = 1
   key.x = 9
-  print(Map.size(tricky))
+  println(Map.size(tricky))
   Array.push(xs, 4)
   xs[0] = 10
-  print(xs)
-  print(Array.length(xs))
+  println(xs)
+  println(Array.length(xs))
   var nested = [[1], [2, 3]]
-  print(nested[1][0])
+  println(nested[1][0])
   var grid: Array[Array[int]] = Array.filled(2, Array.filled(2, 0))
   grid[0][0] = 1
-  print(grid)
+  println(grid)
 }
 
 // expect

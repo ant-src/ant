@@ -2,9 +2,9 @@
 // panics: panic
 // panic stops the program with its message (section 8).
 func main(): void {
-  print("start")
+  println("start")
   panic("something impossible happened")
-  print("never")
+  println("never")
 }
 
 // expect

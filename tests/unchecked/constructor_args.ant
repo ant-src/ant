@@ -2,7 +2,7 @@
 // panics: call
 // A constructor takes exactly one positional argument of its base kind (section 12).
 type UserId = string
-func main(): void { print(UserId(1)) }
+func main(): void { println(UserId(1)) }
 
 // expect
 // exit: 1

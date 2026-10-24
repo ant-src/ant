@@ -12,12 +12,12 @@ func bump(t: Time.Dated): Time.Dated {
 func max[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
 
 func main(): void {
-  print(bump(Time.plainDate(2026, 2, 28)))
-  print(bump(Time.plainDateTime(Time.plainDate(2026, 12, 31), Time.plainTime(23, 0))))
+  println(bump(Time.plainDate(2026, 2, 28)))
+  println(bump(Time.plainDateTime(Time.plainDate(2026, 12, 31), Time.plainTime(23, 0))))
   var n: int | string = max(1, 2)
   var m: Ordered = max("a", "b")
-  print(n)
-  print(m)
+  println(n)
+  println(m)
 }
 
 // expect

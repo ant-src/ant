@@ -16,14 +16,14 @@ func walk(n: int): int {
     if v == 2 { return 200 }
     if n == 0 {
       var got = walk(1)
-      print(`inner walk returned ${got}`)
+      println(`inner walk returned ${got}`)
       return 100
     }
   }
   5
 }
 func main(): void {
-  print(walk(0))
+  println(walk(0))
 }
 
 // expect

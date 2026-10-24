@@ -4,7 +4,7 @@
 func main(): void {
   var c: Channel[int] = Channel.new()
   Channel.close(c)
-  print(Channel.isClosed(c))
+  println(Channel.isClosed(c))
   Channel.close(c)
 }
 

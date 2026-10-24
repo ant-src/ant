@@ -24,9 +24,9 @@ func main(): void {
   }
   for word in ["a", "b", "c"] {
     var x = File.writeLine(c, word)
-    print(Channel.receive(replies))
+    println(Channel.receive(replies))
   }
-  print(Channel.receive(replies))
+  println(Channel.receive(replies))
 
   var l2 = Result.unwrap(Net.listen("127.0.0.1:0"))
   var done: Channel[bool] = Channel.new()
@@ -43,8 +43,8 @@ func main(): void {
   }
   Time.sleep(Time.duration(milliseconds: 50))
   File.close(c2)
-  print(`read ended: ${Channel.receive(ended) ?? false}`)
-  print(File.readLine(c2))
+  println(`read ended: ${Channel.receive(ended) ?? false}`)
+  println(File.readLine(c2))
   var sent = Channel.send(done, true)
 }
 

@@ -6,15 +6,15 @@ var n = 0;
 
 func main() {
     var a = 1; var b = 2;;
-  if a < b {print(a)} else {  }
+  if a < b {println(a)} else {  }
   var f = Array.map([1], {x*2})
   Array.forEach(f, {
-      print(x); print(x) })
+      println(x); println(x) })
   var g = { // keeps the block broken
   1 }
-  print(a); // the semicolon goes
-  var h = func(): int { print(a); /* leads the next statement */ 1 }
-  var pat = func(): Regex.Pattern { print(a); /x/ ; }
+  println(a); // the semicolon goes
+  var h = func(): int { println(a); /* leads the next statement */ 1 }
+  var pat = func(): Regex.Pattern { println(a); /x/ ; }
   var pat2 = func(): Regex.Pattern {
-    print(a); /y/ }
+    println(a); /y/ }
 }

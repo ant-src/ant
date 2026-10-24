@@ -3,8 +3,8 @@
 // Integer overflow panics (section 12).
 func main(): void {
   var big = 9223372036854775807
-  print("before")
-  print(big + 1)
+  println("before")
+  println(big + 1)
 }
 
 // expect

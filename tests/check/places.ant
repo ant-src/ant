@@ -36,5 +36,5 @@ func main(): void {
   p = Point{ x: 0, y: 0 }
   _ = n
   bump()
-  print(`${p} ${xs} ${m} ${s} ${n} ${count}`)
+  println(`${p} ${xs} ${m} ${s} ${n} ${count}`)
 }

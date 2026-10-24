@@ -2,7 +2,7 @@
 func main(): void {
   var c: Channel[int] = Channel.new()
   select {
-    else { print("idle") }
+    else { println("idle") }
   }
 }
 

@@ -5,15 +5,15 @@ type Point = { x: int, y: int }
 
 func main(): void {
   var count = 3
-  print(`total: ${count} items`)
-  print(`${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}`)
-  print(`nested: ${`inner ${count}`}`)
-  print(`multi
+  println(`total: ${count} items`)
+  println(`${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}`)
+  println(`nested: ${`inner ${count}`}`)
+  println(`multi
 line`)
-  print(`escapes: \` \${not} \\ \u{41}`)
-  print(`$ alone and ${count}$`)
+  println(`escapes: \` \${not} \\ \u{41}`)
+  println(`$ alone and ${count}$`)
   var f: func(int): string = { `${x * 2}` }
-  print(f(21))
+  println(f(21))
 }
 
 // expect

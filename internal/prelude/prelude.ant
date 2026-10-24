@@ -15,6 +15,8 @@ type Number = Integer | float32 | float64
 type Ordered = Number | string
 
 func print[T](value: T): void
+// println() with no argument is built into the checker; it writes only the newline.
+func println[T](value: T): void
 func panic(message: string): never
 
 // The twelve conversion names are built into the checker; these give their shape. Each also

@@ -12,19 +12,19 @@ func main(): void {
   var d = Time.plainDate(2026, 10, 22)
   var i = Time.now()
   var some: Time.Instant | Time.PlainDate | null = d
-  print(some is Time.PlainDate)
-  print(some is Time.Dated) // ERR: is an alias and has no run-time identity
-  print(d < d)              // ERR: < applies to a single numeric kind
-  print(Time.year(some))    // ERR: cannot use Time.Instant | Time.PlainDate | null where Time.Dated is expected
+  println(some is Time.PlainDate)
+  println(some is Time.Dated) // ERR: is an alias and has no run-time identity
+  println(d < d)              // ERR: < applies to a single numeric kind
+  println(Time.year(some))    // ERR: cannot use Time.Instant | Time.PlainDate | null where Time.Dated is expected
   var mixed: Time.Dated = d
-  print(Time.year(mixed))
-  print(Time.compare(mixed, mixed))                          // ERR: not a single member of its bound
-  print(Time.round(d, Time.Day{}))                           // ERR: not a single member of its bound Time.Instant | Time.Timed
-  print(Time.with(i, year: 2020))                            // ERR: not a single member of its bound Time.Wall
-  print(Time.add(mixed, Time.duration(days: 1)))             // ERR: not a single member of its bound Time.Point
-  print(Time.until(d, i))                                    // ERR: cannot use Time.Instant where Time.PlainDate is expected
-  print(Time.round(i, Time.Hour{}, mode: Time.Compatible{})) // ERR: cannot use Time.Compatible where Time.RoundingMode is expected
+  println(Time.year(mixed))
+  println(Time.compare(mixed, mixed))                          // ERR: not a single member of its bound
+  println(Time.round(d, Time.Day{}))                           // ERR: not a single member of its bound Time.Instant | Time.Timed
+  println(Time.with(i, year: 2020))                            // ERR: not a single member of its bound Time.Wall
+  println(Time.add(mixed, Time.duration(days: 1)))             // ERR: not a single member of its bound Time.Point
+  println(Time.until(d, i))                                    // ERR: cannot use Time.Instant where Time.PlainDate is expected
+  println(Time.round(i, Time.Hour{}, mode: Time.Compatible{})) // ERR: cannot use Time.Compatible where Time.RoundingMode is expected
   var shared: Mutex | Time.Instant = i
-  print(shared is Time.Instant)
-  print(describe(d))
+  println(shared is Time.Instant)
+  println(describe(d))
 }

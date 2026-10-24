@@ -5,23 +5,23 @@
 // way out do.
 func numbers(): Seq[int] {
   func(yield: func(int): bool): void {
-    defer { print("sequence unwound") }
+    defer { println("sequence unwound") }
     var i = 0
     while i < 10 {
-      if !yield(i) { print("stopped"); return }
+      if !yield(i) { println("stopped"); return }
       i += 1
     }
-    print("exhausted")
+    println("exhausted")
   }
 }
 
 func main(): void {
-  defer { print("main unwound") }
+  defer { println("main unwound") }
   for n in numbers() {
     if n == 2 { panic(`boom at ${n}`) }
-    print(n)
+    println(n)
   }
-  print("not reached")
+  println("not reached")
 }
 
 // expect

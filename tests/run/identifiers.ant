@@ -9,29 +9,29 @@ func main(): void {
   var value = 1
   var Value = 2
   var VALUE = 3
-  print(value + Value + VALUE)
+  println(value + Value + VALUE)
   var _ = value
   _ = value + 1
   var event = Event{ type: "click", class: 3 }
-  print(event.type)
-  print(event.class)
+  println(event.type)
+  println(event.class)
   var { type: kind, class: level } = event
-  print(`${kind} ${level}`)
+  println(`${kind} ${level}`)
   var byClass = Map{ class: "a", if: "b" }
-  print(byClass["class"])
-  print(byClass["if"])
+  println(byClass["class"])
+  println(byClass["if"])
   var nullKey = Map{ null: 1 }
-  print(Map.keys(nullKey))
-  print(nullKey["null"])
+  println(Map.keys(nullKey))
+  println(nullKey["null"])
   var maybe: Event | null = event
-  print(maybe?.type)
+  println(maybe?.type)
   var length: func(Array[int]): int = Array.length
-  print(length([1, 2]))
+  println(length([1, 2]))
   var _private = 1
   var x_1 = 2
   var __ = 3
   var camelCase9 = 4
-  print(_private + x_1 + __ + camelCase9)
+  println(_private + x_1 + __ + camelCase9)
 }
 
 // expect

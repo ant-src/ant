@@ -20,8 +20,8 @@ func main() {
   else { 2 }
   var c = Context.background()
   select {
-    Context.wait(c) { print(1) }
+    Context.wait(c) { println(1) }
     // and in a select
-    else { print(label, k) }
+    else { println(label, k) }
   }
 }

@@ -21,10 +21,10 @@ func main(): void {
   var base = Os.args()[0]
   var results = fetchAll([`${base}/hello`, `${base}/status/404`, "http://127.0.0.1:1/", `${base}/status/500`])
   for r in results {
-    if r is Ok { print(r.value.status) } else { print("error") }
+    if r is Ok { println(r.value.status) } else { println("error") }
   }
   var first = results[0]
-  if first is Ok { print(first.value.body) }
+  if first is Ok { println(first.value.body) }
 }
 
 // expect

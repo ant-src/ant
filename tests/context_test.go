@@ -17,7 +17,7 @@ func TestFarDeadline(t *testing.T) {
 func main(): void {
   var far = Context.new(Time.duration(days: 100000))
   var deadline = Context.deadline(far)
-  print(deadline != null && Time.compare(deadline, Time.fromEpochMillis(4102444800000)) > 0)
+  println(deadline != null && Time.compare(deadline, Time.fromEpochMillis(4102444800000)) > 0)
   Context.cancel(far)
 }
 `), ant.WithFS(fstest.MapFS{}))

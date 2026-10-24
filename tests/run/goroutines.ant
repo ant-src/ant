@@ -13,7 +13,7 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg)
-  print(results)
+  println(results)
   var counter = 0
   var lock = Mutex.new()
   var wg2 = WaitGroup.new()
@@ -25,7 +25,7 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg2)
-  print(counter)
+  println(counter)
   var total = Atomic.new(0)
   var wg3 = WaitGroup.new()
   for k in [1, 2, 3] {
@@ -36,7 +36,7 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg3)
-  print(Atomic.load(total))
+  println(Atomic.load(total))
   var slots: Array[string | null] = Array.filled(1, null)
   var wg4 = WaitGroup.new()
   WaitGroup.add(wg4, 1)
@@ -46,7 +46,7 @@ func main(): void {
   }
   WaitGroup.wait(wg4)
   var snapshot = slots[0]
-  if snapshot != null { print(String.toUpper(snapshot)) }
+  if snapshot != null { println(String.toUpper(snapshot)) }
   var latest: Atomic[string | null] = Atomic.new(null)
   var wg5 = WaitGroup.new()
   WaitGroup.add(wg5, 1)
@@ -55,10 +55,10 @@ func main(): void {
     Atomic.store(latest, "stored")
   }
   WaitGroup.wait(wg5)
-  print(Atomic.load(latest))
+  println(Atomic.load(latest))
   Mutex.lock(lock)
   Mutex.unlock(lock)
-  print(Mutex.withLock(lock, { 7 }))
+  println(Mutex.withLock(lock, { 7 }))
 }
 
 // expect

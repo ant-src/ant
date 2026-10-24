@@ -15,7 +15,7 @@ func fanOut(yield: func(int): bool): void {
 
 func main(): void {
   for v in fanOut { if v == 10 { break } }
-  print("done")
+  println("done")
 }
 
 // expect

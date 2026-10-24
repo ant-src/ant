@@ -34,13 +34,13 @@ func main(): void {
     Channel.send(messages, "again")
     Channel.send(interrupts, 42)
   }
-  print(generating(s, ctx, speech, messages, interrupts))
-  print(s)
+  println(generating(s, ctx, speech, messages, interrupts))
+  println(s)
   go { Channel.close(messages) }
-  print(generating(s, ctx, speech, messages, interrupts))
+  println(generating(s, ctx, speech, messages, interrupts))
   var quiet: Channel[string] = Channel.new()
   Context.cancel(ctx)
-  print(generating(s, ctx, speech, quiet, interrupts))
+  println(generating(s, ctx, speech, quiet, interrupts))
 }
 
 // expect

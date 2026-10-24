@@ -5,7 +5,7 @@ func main(): void {
   var wg = WaitGroup.new()
   WaitGroup.add(wg, 2)
   WaitGroup.add(wg, -2)
-  print("balanced")
+  println("balanced")
   WaitGroup.add(wg, -1)
 }
 

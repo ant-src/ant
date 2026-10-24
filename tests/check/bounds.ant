@@ -26,19 +26,19 @@ func narrowBack[T: Ordered](x: Ordered): T { x } // ERR: cannot use Ordered wher
 type Named = { name: string }
 
 func main(): void {
-  print(plus(1, 2) + plus(3, 4))
-  print(plus("a", "b"))
-  print(same(1, 1) && same("a", "a"))
-  print(keyed("k"))
-  print(show(1) + show("s"))
-  print(rename(Named{ name: "x" }))
-  print(widen(1))
-  print(widenNull("s"))
-  print(bigger("a", 1))      // ERR: cannot use int where string is expected
-  print(bigger(true, false)) // ERR: T would be bool
+  println(plus(1, 2) + plus(3, 4))
+  println(plus("a", "b"))
+  println(same(1, 1) && same("a", "a"))
+  println(keyed("k"))
+  println(show(1) + show("s"))
+  println(rename(Named{ name: "x" }))
+  println(widen(1))
+  println(widenNull("s"))
+  println(bigger("a", 1))      // ERR: cannot use int where string is expected
+  println(bigger(true, false)) // ERR: T would be bool
   var o: Ordered = 1
-  print(bigger(o, o)) // ERR: T would be Ordered
+  println(bigger(o, o)) // ERR: T would be Ordered
   var u: Id[User] = Id("u")
   var a: Id[Account] = u // ERR: cannot use Id[User] where Id[Account] is expected
-  print(string(u))
+  println(string(u))
 }

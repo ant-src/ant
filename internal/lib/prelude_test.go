@@ -66,6 +66,9 @@ func TestPreludeMatchesLibrary(t *testing.T) {
 			for i := len(d.Params) - 1; i >= 0 && d.Params[i].Default != nil; i-- {
 				optional++
 			}
+			if d.Owner == "" && d.Name == "println" {
+				optional = 1 // the checker, not a default, lets println() omit its value
+			}
 			if b.Optional != optional {
 				t.Errorf("%s.%s: %d optional parameters implemented, %d declared with defaults", d.Owner, d.Name, b.Optional, optional)
 			}

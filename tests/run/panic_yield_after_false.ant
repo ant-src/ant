@@ -4,12 +4,12 @@
 func bad(yield: func(int): bool): void {
   _ = yield(1)
   _ = yield(2)
-  print("not reached")
+  println("not reached")
 }
 
 func main(): void {
   for v in bad {
-    print(v)
+    println(v)
     break
   }
 }

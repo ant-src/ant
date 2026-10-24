@@ -13,14 +13,14 @@ func main(a: int): int { // ERR: main takes no parameters ;; main returns void, 
   Geometry.counter = 3                       // ERR: imports are read-only
   [Geometry.counter] = [4]                   // ERR: cannot assign to Geometry.counter: imports are read-only
   var s: Geometry.Secret = Geometry.Secret{} // ERR: Secret is not exported by Geometry ;; Secret is not exported by Geometry
-  print(Geometry.hidden())                   // ERR: hidden is not exported by Geometry
+  println(Geometry.hidden())                 // ERR: hidden is not exported by Geometry
   var o = Point{ x: 1.0, y: 2.0 }
-  print(Point.norm(o) + Geometry.Point.norm(o) + Geometry.usesSecret(o))
-  print(Point.secret(o))             // ERR: Point.secret is not exported
-  print(o | Geometry.Point.secret()) // ERR: Point.secret is not exported
-  var f = Point.secret               // ERR: Point.secret is not exported
-  print(o is Geometry.Secret)        // ERR: Secret is not exported by Geometry
-  print(distance(Point{ x: 1.0, y: 2.0 }, Geometry.Point{ x: 0.0, y: 0.0 }))
-  print(counter + Geometry.counter)
+  println(Point.norm(o) + Geometry.Point.norm(o) + Geometry.usesSecret(o))
+  println(Point.secret(o))             // ERR: Point.secret is not exported
+  println(o | Geometry.Point.secret()) // ERR: Point.secret is not exported
+  var f = Point.secret                 // ERR: Point.secret is not exported
+  println(o is Geometry.Secret)        // ERR: Secret is not exported by Geometry
+  println(distance(Point{ x: 1.0, y: 2.0 }, Geometry.Point{ x: 0.0, y: 0.0 }))
+  println(counter + Geometry.counter)
   1
 }

@@ -38,21 +38,21 @@ func untilNull(xs: Array[int | null]): Array[int] {
 }
 
 func main(): void {
-  print(describe(null, 1))
-  print(describe(5, 1))
-  print(describeShort(null))
-  print(describeShort(5))
-  print(firstPositive([-1, 0, 3, 4]))
-  print(parse(Map{ "1": 1, "2": 2 }, "1x2"))
-  print(untilNull([1, 2, null, 4]))
+  println(describe(null, 1))
+  println(describe(5, 1))
+  println(describeShort(null))
+  println(describeShort(5))
+  println(firstPositive([-1, 0, 3, 4]))
+  println(parse(Map{ "1": 1, "2": 2 }, "1x2"))
+  println(untilNull([1, 2, null, 4]))
   var inner: func(int): int = { if x > 0 { return x * 2 }; -1 }
-  print(inner(3))
-  print(inner(-3))
+  println(inner(3))
+  println(inner(-3))
   var n: int = if true { 1 } else { return }
-  print(n)
+  println(n)
   var fallback: int | null = null
   var chosen: int = fallback ?? panic("unreachable")
-  print(chosen)
+  println(chosen)
 }
 
 // expect

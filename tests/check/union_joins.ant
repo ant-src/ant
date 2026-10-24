@@ -38,18 +38,18 @@ func main(): void {
   var mixed = pick(1, "a", true)
   var boxes = pick(Box{ value: 1 }, Box{ value: "s" }, false) // ERR: the result of pick: a union may contain each discriminator at most once
   var m = mix(Box{ value: 1 }, Box{ value: "s" })
-  print(m.a.value + 1)
+  println(m.a.value + 1)
   var either = m.either  // ERR: reading either through Mix[Box[int], Box[string]]
   var { either: e2 } = m // ERR: reading either through Mix[Box[int], Box[string]]
-  print(mix(1, "s").either)
-  print(same + 1)
-  print(mixed)
+  println(mix(1, "s").either)
+  println(same + 1)
+  println(mixed)
   var e: Either[Box[int], { value: string }] = Box{ value: 1 } // ERR: anonymous record type
   var f: Fine[int] = NotFound{}
   var r: R[int, string] = Result.ok(1)
   var o: OneOfEach = null
-  print(f)
-  print(r)
-  print(o)
-  print(area(Tri{ base: 1.0 }))
+  println(f)
+  println(r)
+  println(o)
+  println(area(Tri{ base: 1.0 }))
 }

@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: destructuring
 // An array destructuring that meets a non-array panics (section 12).
-func main(): void { var [a] = "s"; print(a) }
+func main(): void { var [a] = "s"; println(a) }
 
 // expect
 // exit: 1

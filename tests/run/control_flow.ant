@@ -6,10 +6,10 @@ func evens(limit: int): Seq[int] {
   func(yield: func(int): bool): void {
     var i = 0
     while i < limit {
-      if !yield(i) { print("stopped"); return }
+      if !yield(i) { println("stopped"); return }
       i += 2
     }
-    print("exhausted")
+    println("exhausted")
   }
 }
 
@@ -27,34 +27,34 @@ func findInSeq(): int {
 
 func main(): void {
   var label = if 5 < 0 { "negative" } else if 5 == 0 { "zero" } else { "positive" }
-  print(label)
+  println(label)
   var n = 0
   while n < 10 {
     n += 1
     if n % 2 == 0 { continue }
     if n > 7 { break }
-    print(n)
+    println(n)
   }
-  print(n)
-  for ch in "añb" { print(ch) }
-  for { key, value } in (Map{ a: 1, b: 2 }) { print(`${key}=${value}`) }
-  for e in (Map{ c: 3 }) { print(e) }
-  for v in evens(6) { print(v) }
+  println(n)
+  for ch in "añb" { println(ch) }
+  for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}=${value}`) }
+  for e in (Map{ c: 3 }) { println(e) }
+  for v in evens(6) { println(v) }
   for v in evens(100) {
     if v == 4 { break }
-    print(v)
+    println(v)
   }
   for v in evens(100) {
     if v == 2 { continue }
-    if v == 6 { print("returning"); print(firstNegative([1, -2, 3])); break }
-    print(v)
+    if v == 6 { println("returning"); println(firstNegative([1, -2, 3])); break }
+    println(v)
   }
-  print(firstNegative([1, 2]))
-  print(findInSeq())
+  println(firstNegative([1, 2]))
+  println(findInSeq())
   var r = while false {}
-  print(r)
+  println(r)
   var ys = [1, 2, 3]
-  for y in ys { if y == 1 { ys[2] = 30 }; print(y) }
+  for y in ys { if y == 1 { ys[2] = 30 }; println(y) }
 }
 
 // expect

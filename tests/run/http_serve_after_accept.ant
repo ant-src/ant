@@ -7,16 +7,16 @@ func handle(req: Http.Request): Http.Response {
 
 func main(): void {
   var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  print(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
+  println(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
   var stop = Context.new()
   var served: Channel[Result[void, Error]] = Channel.new(1)
   go { Channel.send(served, Http.serve(l, handle, stop)) }
   var t = Time.duration(seconds: 5)
-  print(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
-  print(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
+  println(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
+  println(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
   Context.cancel(stop)
-  print(Channel.receive(served))
-  print(Net.accept(l))
+  println(Channel.receive(served))
+  println(Net.accept(l))
 }
 
 // expect

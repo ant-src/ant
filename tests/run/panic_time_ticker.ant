@@ -4,7 +4,7 @@
 func main(): void {
   var ctx = Context.new()
   var ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
-  print(Channel.receive(ticks) != null)
+  println(Channel.receive(ticks) != null)
   Context.cancel(ctx)
   var none = Time.ticker(Time.duration())
 }

@@ -6,34 +6,34 @@ type Line = { from: Point, to: Point }
 
 func main(): void {
   var { x, y } = Point{ x: 1, y: 2 }
-  print(x + y)
+  println(x + y)
   var { from: { x: fx }, to: { y: ty } } = Line{ from: Point{ x: 5, y: 6 }, to: Point{ x: 7, y: 8 } }
-  print(fx * ty)
+  println(fx * ty)
   var [a, b, ...rest] = [1, 2, 3, 4]
-  print(a)
-  print(b)
-  print(rest)
+  println(a)
+  println(b)
+  println(rest)
   var [c, _, d] = [9, 8, 7]
-  print(c + d)
+  println(c + d)
   [a, b] = [b, a]
-  print(`${a} ${b}`)
+  println(`${a} ${b}`)
   var [[p], [q]] = [[10], [20]]
-  print(p + q)
+  println(p + q)
   var [first] = [1, 2, 3]
-  print(first)
+  println(first)
   var xs = [0, 0]
   [xs[0], xs[1]] = [4, 5]
-  print(xs)
+  println(xs)
   var [...all] = [6, 7]
-  print(all)
+  println(all)
   var pt = Point{ x: 0, y: 0 }
   [pt.x, pt.y, ...xs] = [1, 2, 3, 4]
-  print(pt)
-  print(xs)
+  println(pt)
+  println(xs)
   [[pt.x], [pt.y]] = [[5], [6]]
-  print(pt)
-  for { x: px, y: py } in [Point{ x: 1, y: 1 }, Point{ x: 2, y: 3 }] { print(px * py) }
-  for [m, n] in [[1, 2], [3, 4]] { print(m + n) }
+  println(pt)
+  for { x: px, y: py } in [Point{ x: 1, y: 1 }, Point{ x: 2, y: 3 }] { println(px * py) }
+  for [m, n] in [[1, 2], [3, 4]] { println(m + n) }
 }
 
 // expect

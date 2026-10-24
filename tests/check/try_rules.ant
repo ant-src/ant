@@ -26,10 +26,10 @@ func inferredOk(): Result[int, Error] {
 }
 
 func main(): void {
-  print(inferred())
-  print(inferredOk())
+  println(inferred())
+  println(inferredOk())
   var lock: Mutex | null = Mutex.new()
-  print(lock is Mutex) // ERR: is
+  println(lock is Mutex) // ERR: is
   if lock != null { Mutex.lock(lock); Mutex.unlock(lock) }
-  print(nullable(null))
+  println(nullable(null))
 }

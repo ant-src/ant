@@ -1,5 +1,5 @@
 // spec: 5 if
-func main(): void { else { print(1) } }
+func main(): void { else { println(1) } }
 
 // expect
 // exit: 2

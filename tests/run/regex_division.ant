@@ -8,27 +8,27 @@ func main(): void {
   var a = 12
   var b = 3
   var c = 2
-  print(a / b / c)
-  print(half(8) / 2)
+  println(a / b / c)
+  println(half(8) / 2)
   var xs = [8]
-  print(xs[0] / 2)
-  print(if a > 0 { 8 } else { 6 } / 2)
+  println(xs[0] / 2)
+  println(if a > 0 { 8 } else { 6 } / 2)
   var y = 9
   y /= 3
-  print(y)
+  println(y)
   var r = (a
     / b)
-  print(r)
+  println(r)
   var ys = [a
     / b, 1]
-  print(ys)
+  println(ys)
   var total = 10
   var count = 4
-  print(total
+  println(total
     / count)
-  print(1.0 / 4.0)
-  print(true /* a comment, not a pattern */ == true)
-  print(8 // nor this
+  println(1.0 / 4.0)
+  println(true /* a comment, not a pattern */ == true)
+  println(8 // nor this
     / 2)
 }
 

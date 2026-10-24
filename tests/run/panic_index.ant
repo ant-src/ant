@@ -4,8 +4,8 @@
 func main(): void {
   var xs = [1, 2]
   var i = 5
-  print(xs[1])
-  print(xs[i])
+  println(xs[1])
+  println(xs[i])
 }
 
 // expect

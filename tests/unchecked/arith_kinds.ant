@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; 4 Checking and running
 // panics: arith-kind
 // + on operands of different kinds panics (section 12).
-func main(): void { print(1 + 2.0) }
+func main(): void { println(1 + 2.0) }
 
 // expect
 // exit: 1

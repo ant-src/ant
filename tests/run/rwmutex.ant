@@ -16,14 +16,14 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg)
-  print(data["n"])
+  println(data["n"])
   RwMutex.readLock(rw)
   RwMutex.readLock(rw)
   RwMutex.readUnlock(rw)
   RwMutex.readUnlock(rw)
   RwMutex.writeLock(rw)
   RwMutex.writeUnlock(rw)
-  print(RwMutex.withRead(rw, { "read" }))
+  println(RwMutex.withRead(rw, { "read" }))
 }
 
 // expect

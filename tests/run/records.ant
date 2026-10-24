@@ -12,28 +12,28 @@ func main(): void {
   var x = 1.0
   var y = 2.0
   var p = Point{ x, y }
-  print(p)
+  println(p)
   var q = p
   q.x = 5.0
-  print(p.x)
-  print(p == Point{ x: 5.0, y: 2.0 })
+  println(p.x)
+  println(p == Point{ x: 5.0, y: 2.0 })
   var v = Vec{ ...p }
-  print(v)
+  println(v)
   var moved = Point{ ...p, x: 0.0 }
-  print(moved)
-  print(p == q)
+  println(moved)
+  println(p == q)
   var user = Person{ name: "ada", age: 36 }
-  print(greet(user))
-  print(greet(Named{ name: "bob" }))
+  println(greet(user))
+  println(greet(Named{ name: "bob" }))
   var m: Map[Point, string] = Map{}
   m[Point{ x: 1.0, y: 1.0 }] = "one"
-  print(m[Point{ x: 1.0, y: 1.0 }])
-  print(m[Point{ x: 1.0, y: 2.0 }])
+  println(m[Point{ x: 1.0, y: 1.0 }])
+  println(m[Point{ x: 1.0, y: 2.0 }])
   user.age += 1
-  print(user)
+  println(user)
   var people = [user, Person{ name: "bob", age: 1 }]
   people[1].age = 2
-  print(people)
+  println(people)
 }
 
 // expect

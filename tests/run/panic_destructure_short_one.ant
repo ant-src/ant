@@ -4,7 +4,7 @@
 func main(): void {
   var none: Array[int] = []
   var [a, ...rest] = none
-  print(a)
+  println(a)
 }
 
 // expect

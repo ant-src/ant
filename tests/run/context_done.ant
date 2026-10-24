@@ -12,20 +12,20 @@ func main(): void {
     if Channel.send(c, i, ctx) { sends += 1 }
     if Channel.receive(c, ctx) != null { gets += 1 }
   }
-  print([sends, gets, Channel.length(c)])
+  println([sends, gets, Channel.length(c)])
   var wg = WaitGroup.new()
   WaitGroup.add(wg, 1)
   var before = Time.monotonic()
   WaitGroup.wait(wg, ctx)
   Time.sleep(Time.duration(seconds: 5), ctx)
-  print(Time.monotonic() - before < 1000)
+  println(Time.monotonic() - before < 1000)
   var x = Channel.send(c, 1)
   var later: Array[int] = []
   for v in Channel.values(c, ctx) { Array.push(later, v) }
-  print(later)
+  println(later)
   var far = Context.new(Time.duration(days: 100000))
   var deadline = Context.deadline(far)
-  print(deadline != null && Time.compare(deadline, Time.now()) > 0)
+  println(deadline != null && Time.compare(deadline, Time.now()) > 0)
   Context.cancel(far)
 }
 

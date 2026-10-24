@@ -3,20 +3,20 @@
 // an Err, and in reverse order of registration when it succeeds.
 func copy(src: string, dst: string): Result[void, Error] {
   var input = try File.open(src)
-  defer { print("closing input"); File.close(input) }
+  defer { println("closing input"); File.close(input) }
   var output = try File.create(dst)
-  defer { print("closing output"); File.close(output) }
+  defer { println("closing output"); File.close(output) }
   File.pipe(input, output)
 }
 
 func main(): void {
   var dir = Os.args()[0]
-  print(File.write(`${dir}/a.txt`, "payload\n"))
-  print(copy(`${dir}/a.txt`, `${dir}/b.txt`))
-  print(File.read(`${dir}/b.txt`))
-  print(copy(`${dir}/missing.txt`, `${dir}/c.txt`) is Err)
-  print(File.exists(`${dir}/c.txt`))
-  print(copy(`${dir}/a.txt`, `${dir}/nodir/c.txt`) is Err)
+  println(File.write(`${dir}/a.txt`, "payload\n"))
+  println(copy(`${dir}/a.txt`, `${dir}/b.txt`))
+  println(File.read(`${dir}/b.txt`))
+  println(copy(`${dir}/missing.txt`, `${dir}/c.txt`) is Err)
+  println(File.exists(`${dir}/c.txt`))
+  println(copy(`${dir}/a.txt`, `${dir}/nodir/c.txt`) is Err)
 }
 
 // expect

@@ -22,25 +22,25 @@ func wrong(s: Shape): float64 {
 
 func main(): void {
   var count = 0
-  if count = 5 { print("x") } // ERR: cannot use void where bool is expected
-  if count { print("x") }     // ERR: cannot use int where bool is expected
-  print(1 + 2.0)              // ERR: + needs both operands of one type, got int and float64
-  print("a" + 1)              // ERR: + needs both operands of one type, got string and int
-  print(!1)                   // ERR: cannot use int where bool is expected
-  print(true && 1)            // ERR: cannot use int where bool is expected
+  if count = 5 { println("x") } // ERR: cannot use void where bool is expected
+  if count { println("x") }     // ERR: cannot use int where bool is expected
+  println(1 + 2.0)              // ERR: + needs both operands of one type, got int and float64
+  println("a" + 1)              // ERR: + needs both operands of one type, got string and int
+  println(!1)                   // ERR: cannot use int where bool is expected
+  println(true && 1)            // ERR: cannot use int where bool is expected
   var n: Number = 1
   var m: Number = 2
-  print(n > m) // ERR: > applies to
+  println(n > m) // ERR: > applies to
   var id: Id = 1
-  print(id is Id) // ERR: Id is an alias and has no run-time identity
+  println(id is Id) // ERR: Id is an alias and has no run-time identity
   var b = byte(7)
-  print(b is byte)    // ERR: the test is always true
-  print(id is bool)   // ERR: Id is never a bool
-  print(count == "x") // ERR: int and string cannot be compared
+  println(b is byte)    // ERR: the test is always true
+  println(id is bool)   // ERR: Id is never a bool
+  println(count == "x") // ERR: int and string cannot be compared
   var s: Shape = Empty{}
-  print(area(s))
-  print(wrong(s))
-  print(_) // ERR: _ is write-only
+  println(area(s))
+  println(wrong(s))
+  println(_) // ERR: _ is write-only
   var label = if count > 0 { "positive" } else { null }
-  print(label)
+  println(label)
 }

@@ -34,6 +34,9 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isLen {
 				return c.length(x, sc)
 			}
+			if ent.isPrintln && len(x.Args) == 0 {
+				return types.Void{}
+			}
 			return c.applySig(s, x, sc, expected)
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {

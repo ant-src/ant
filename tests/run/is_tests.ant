@@ -27,27 +27,27 @@ func describe(v: int | string | null | Array[int] | Map[string, int] | (func(): 
 }
 
 func main(): void {
-  print(area(Circle{ radius: 2.0 }))
-  print(area(Rect{ width: 2.0, height: 3.5 }))
-  print(area(Empty{}))
-  print(describe(5))
-  print(describe("s"))
-  print(describe(null))
-  print(describe([1, 2]))
-  print(describe(Map{ a: 1 }))
-  print(describe(func(): int { 9 }))
-  print(describe(Meters(1.5)))
-  print(describe(2.5))
-  print(describe(true))
-  print(describe(void))
+  println(area(Circle{ radius: 2.0 }))
+  println(area(Rect{ width: 2.0, height: 3.5 }))
+  println(area(Empty{}))
+  println(describe(5))
+  println(describe("s"))
+  println(describe(null))
+  println(describe([1, 2]))
+  println(describe(Map{ a: 1 }))
+  println(describe(func(): int { 9 }))
+  println(describe(Meters(1.5)))
+  println(describe(2.5))
+  println(describe(true))
+  println(describe(void))
   var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Empty{}, Rect{ width: 1.0, height: 1.0 }]
   var circles = 0
   for s in shapes { if s is Circle { circles += 1 } }
-  print(circles)
-  print(!(shapes[1] is Circle))
+  println(circles)
+  println(!(shapes[1] is Circle))
   var b: byte | int = byte(7)
-  print(b is byte)
-  print(b is int)
+  println(b is byte)
+  println(b is int)
 }
 
 // expect

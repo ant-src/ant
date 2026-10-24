@@ -24,7 +24,7 @@ func TestRun(t *testing.T) {
 		"",
 		"   ",
 		"var y = ",
-		"print(\"side\")",
+		"println(\"side\")",
 		"y)",
 		"panic(\"boom\")",
 		"x",
@@ -55,7 +55,7 @@ func TestRun(t *testing.T) {
 
 func TestRunExit(t *testing.T) {
 	var out, errOut strings.Builder
-	status := Run(context.Background(), strings.NewReader("print(1)\nOs.exit(3)\nprint(2)\n"), &out, &errOut)
+	status := Run(context.Background(), strings.NewReader("println(1)\nOs.exit(3)\nprintln(2)\n"), &out, &errOut)
 	if status != 3 {
 		t.Errorf("status %d, want 3", status)
 	}

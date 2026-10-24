@@ -11,9 +11,9 @@ func store(xs: Array[int], ok: bool): Result[int, string] {
 }
 func main(): void {
   var xs = [1, 2]
-  print(store(xs, true))
-  print(xs)
-  print(store(xs, false))
+  println(store(xs, true))
+  println(xs)
+  println(store(xs, false))
 }
 
 // expect

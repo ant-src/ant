@@ -29,7 +29,7 @@ func main(): void {
     panic("in a goroutine")
   }
   WaitGroup.wait(wg)
-  print(outer())
+  println(outer())
 }
 `
 	prog, err := ant.Load("report.ant", ant.WithSource("report.ant", src), ant.WithFS(fstest.MapFS{}))

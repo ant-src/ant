@@ -47,18 +47,18 @@ func TestBytes(t *testing.T) {
 	for _, c := range []struct{ name, src, want string }{
 		{"empty", "", ""},
 		{"only blank lines", "\n\n\n", ""},
-		{"crlf", "func main() {\r\n  print(1)\r\n}\r\n", "func main() {\n  print(1)\n}\n"},
-		{"crlf in a template stays", "func main() {\r\n  print(`a\r\nb`)\r\n}\r\n", "func main() {\n  print(`a\r\nb`)\n}\n"},
+		{"crlf", "func main() {\r\n  println(1)\r\n}\r\n", "func main() {\n  println(1)\n}\n"},
+		{"crlf in a template stays", "func main() {\r\n  println(`a\r\nb`)\r\n}\r\n", "func main() {\n  println(`a\r\nb`)\n}\n"},
 		{"crlf in a comment goes", "/* a\r\n b */\r\nfunc main() {}\r\n", "/* a\n b */\nfunc main() {}\n"},
-		{"lone cr is a space", "func main() {\r print(1)\r}\n", "func main() { print(1) }\n"},
+		{"lone cr is a space", "func main() {\r println(1)\r}\n", "func main() { println(1) }\n"},
 		{"lone cr in a comment stays", "// a\rb\nfunc main() {}\n", "// a\rb\nfunc main() {}\n"},
-		{"tabs", "func main() {\n\tvar x =\t1\n\tprint(x)\t// c\n}\n", "func main() {\n  var x = 1\n  print(x) // c\n}\n"},
-		{"tab in a string stays", "func main() {\n\tprint(\"a\tb\", /a\tb/)\n}\n", "func main() {\n  print(\"a\tb\", /a\tb/)\n}\n"},
+		{"tabs", "func main() {\n\tvar x =\t1\n\tprintln(x)\t// c\n}\n", "func main() {\n  var x = 1\n  println(x) // c\n}\n"},
+		{"tab in a string stays", "func main() {\n\tprintln(\"a\tb\", /a\tb/)\n}\n", "func main() {\n  println(\"a\tb\", /a\tb/)\n}\n"},
 		{"no final newline", "func main() {}", "func main() {}\n"},
-		{"an int keeps its space before a dot", "func main() { print(0 .x, 1.5 .y) }\n", "func main() { print(0 .x, 1.5.y) }\n"},
-		{"no trailing spaces in an interpolation", "func main() {\n  print(`a ${x +   \n    y} b`)\n}\n", "func main() {\n  print(`a ${x +\n    y} b`)\n}\n"},
-		{"crlf in an interpolation goes", "func main() {\r\n  print(`a ${x +\r\n    y}`)\r\n}\r\n", "func main() {\n  print(`a ${x +\n    y}`)\n}\n"},
-		{"trailing spaces", "func main() {   \n  print(1)   \n}   \n", "func main() {\n  print(1)\n}\n"},
+		{"an int keeps its space before a dot", "func main() { println(0 .x, 1.5 .y) }\n", "func main() { println(0 .x, 1.5.y) }\n"},
+		{"no trailing spaces in an interpolation", "func main() {\n  println(`a ${x +   \n    y} b`)\n}\n", "func main() {\n  println(`a ${x +\n    y} b`)\n}\n"},
+		{"crlf in an interpolation goes", "func main() {\r\n  println(`a ${x +\r\n    y}`)\r\n}\r\n", "func main() {\n  println(`a ${x +\n    y}`)\n}\n"},
+		{"trailing spaces", "func main() {   \n  println(1)   \n}   \n", "func main() {\n  println(1)\n}\n"},
 	} {
 		got, err := Source("t.ant", []byte(c.src))
 		if err != nil {
@@ -74,14 +74,14 @@ func TestBytes(t *testing.T) {
 // TestSyntaxError checks that a source that does not parse gives the parser's error and no
 // output.
 func TestSyntaxError(t *testing.T) {
-	out, err := Source("t.ant", []byte("func main() {\n  print(\n}\n"))
+	out, err := Source("t.ant", []byte("func main() {\n  println(\n}\n"))
 	if err == nil || out != nil {
 		t.Fatalf("out %q, err %v", out, err)
 	}
 	if !strings.HasPrefix(err.Error(), "3:1: ") {
 		t.Errorf("error %q", err)
 	}
-	if _, err := Source("t.ant", []byte("print(1)\n")); err == nil {
+	if _, err := Source("t.ant", []byte("println(1)\n")); err == nil {
 		t.Error("a top-level statement formatted; fmt.md section 1 says it is a syntax error")
 	}
 }

@@ -2,7 +2,7 @@
 // panics: record-literal
 // A spread of a non-record in a record literal panics (section 12).
 type P = { x: int }
-func main(): void { print(P{ ...1 }) }
+func main(): void { println(P{ ...1 }) }
 
 // expect
 // exit: 1

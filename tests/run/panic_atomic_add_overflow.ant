@@ -3,8 +3,8 @@
 // Atomic.add panics on overflow and leaves the value untouched (section 11).
 func main(): void {
   var a = Atomic.new(int8(126))
-  print(Atomic.add(a, int8(1)))
-  print(Atomic.add(a, int8(1)))
+  println(Atomic.add(a, int8(1)))
+  println(Atomic.add(a, int8(1)))
 }
 
 // expect

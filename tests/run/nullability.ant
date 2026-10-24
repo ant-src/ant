@@ -16,26 +16,26 @@ func find(users: Array[User], name: string): User | null {
 func main(): void {
   var users = [User{ name: "ada", address: Address{ city: "london" } }, User{ name: "bob", address: null }]
   var ada = find(users, "ada")
-  print(ada?.address?.city)
-  print(find(users, "bob")?.address?.city)
-  print(find(users, "zed")?.name ?? "anonymous")
+  println(ada?.address?.city)
+  println(find(users, "bob")?.address?.city)
+  println(find(users, "zed")?.name ?? "anonymous")
   var m = Map{ a: 1 }
-  print(m["missing"] ?? -1)
-  print(m["a"] ?? -1)
+  println(m["missing"] ?? -1)
+  println(m["a"] ?? -1)
   var f: (func(int): int) | null = null
-  print(f?.(3))
+  println(f?.(3))
   var ys: Array[int] | null = null
-  print(ys?.[0])
+  println(ys?.[0])
   var v: int | null = null
-  print(v ?? bump())
+  println(v ?? bump())
   var w: int | null = 9
-  print(w ?? bump())
-  print(count)
+  println(w ?? bump())
+  println(count)
   var u = find(users, "ada")
-  if u != null { print(u.name) }
+  if u != null { println(u.name) }
   var c = u?.address
-  if c == null { print("no address") } else { print(c.city ?? "no city") }
-  print(null == null)
+  if c == null { println("no address") } else { println(c.city ?? "no city") }
+  println(null == null)
 }
 
 // expect

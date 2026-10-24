@@ -33,7 +33,7 @@ func main(): void {
   for f in Iter.toArray(Channel.values(results)) | Array.sortBy({ x.url }) {
     var status = f.status
     var outcome = if status != null { String.from(status) } else { f.error ?? "?" }
-    print(`${String.padEnd(String.trimPrefix(f.url, base), 12)} ${outcome}`)
+    println(`${String.padEnd(String.trimPrefix(f.url, base), 12)} ${outcome}`)
   }
 }
 

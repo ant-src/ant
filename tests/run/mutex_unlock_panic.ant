@@ -5,7 +5,7 @@ func main(): void {
   var m = Mutex.new()
   Mutex.lock(m)
   Mutex.unlock(m)
-  print("unlocked once")
+  println("unlocked once")
   Mutex.unlock(m)
 }
 

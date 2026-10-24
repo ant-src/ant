@@ -26,21 +26,21 @@ func Shape.largest(shapes: Array[Shape]): Shape | null {
 
 func main(): void {
   var points = [Point{ x: 3.0, y: 4.0 }, Point.origin()]
-  print(Array.map(points, Point.norm))
-  print(Point.distance(b: Point.origin(), a: Point{ x: 0.0, y: 2.0 }))
+  println(Array.map(points, Point.norm))
+  println(Point.distance(b: Point.origin(), a: Point{ x: 0.0, y: 2.0 }))
   var dist = Point.distance
-  print(dist(points[0], points[1]))
-  print(Count.double(Count(21)))
-  print(Id.show(7) + Id.show("x"))
-  print(Shape.largest([Circle{ radius: 1.0 }, Square{ side: 2.0 }]))
-  print(Shape.largest([]))
+  println(dist(points[0], points[1]))
+  println(Count.double(Count(21)))
+  println(Id.show(7) + Id.show("x"))
+  println(Shape.largest([Circle{ radius: 1.0 }, Square{ side: 2.0 }]))
+  println(Shape.largest([]))
   var n = 1
   var read = func(): int { n }
   n = 2
-  print(read())
+  println(read())
   var ops: Map[string, func(int, int): int] = Map{ add: func(a: int, b: int): int { a + b }, mul: func(a: int, b: int): int { a * b } }
-  print((ops["add"] ?? panic("none"))(2, 3))
-  print((ops["mul"] ?? panic("none"))(2, 3))
+  println((ops["add"] ?? panic("none"))(2, 3))
+  println((ops["mul"] ?? panic("none"))(2, 3))
 }
 
 // expect

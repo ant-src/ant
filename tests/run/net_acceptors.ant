@@ -14,12 +14,12 @@ func main(): void {
     var text = if r is Ok { "connection" } else { r.error.message }
     Channel.send(results, `long: ${text}`)
   }
-  print(Channel.receive(results))
+  println(Channel.receive(results))
   var c = Result.unwrap(Net.dial(Net.address(l)))
-  print(Channel.receive(results))
+  println(Channel.receive(results))
   File.close(c)
   Net.close(l)
-  print(Net.accept(l))
+  println(Net.accept(l))
 }
 
 // expect

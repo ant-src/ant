@@ -21,22 +21,22 @@ func nested(): Result[Result[int, Error], Error] { Result.ok(Result.ok(5)) }
 
 func inner(): Result[int, Error] {
   var r = try nested()
-  print(r)
+  println(r)
   r
 }
 
 func main(): void {
-  print(parseAll(["1", "2", "3"]))
-  print(parseAll(["1", "x", "3"]))
-  print(firstDoubled(["21"]))
-  print(firstDoubled(["no"]))
-  print(inner())
+  println(parseAll(["1", "2", "3"]))
+  println(parseAll(["1", "x", "3"]))
+  println(firstDoubled(["21"]))
+  println(firstDoubled(["no"]))
+  println(inner())
   var one: Result[int, Error] = Result.ok(1)
-  print(Ok{ value: 1 } == one)
+  println(Ok{ value: 1 } == one)
   var failed: Result[int, Error] = Result.err(Error{ message: "m" })
-  print(Err{ error: Error{ message: "m" } } == failed)
+  println(Err{ error: Error{ message: "m" } } == failed)
   var e: Result[int, Error] = Result.err(Error{ message: "e" })
-  print(Result.mapErr(e, { Error{ message: `wrapped: ${x.message}` } }))
+  println(Result.mapErr(e, { Error{ message: `wrapped: ${x.message}` } }))
 }
 
 // expect

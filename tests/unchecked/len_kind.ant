@@ -3,7 +3,7 @@
 // len on a value without a size panics (section 12); a named primitive is unwrapped first.
 type Count = int
 
-func main(): void { print(len(Count(3))) }
+func main(): void { println(len(Count(3))) }
 
 // expect
 // exit: 1

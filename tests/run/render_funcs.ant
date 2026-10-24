@@ -6,18 +6,18 @@ type UserId = string
 func helper(): int { 1 }
 
 func main(): void {
-  print(helper)
-  print(func(a: int): int { a })
+  println(helper)
+  println(func(a: int): int { a })
   var double: func(int): int = { x * 2 }
-  print(double)
-  print(UserId)
-  print([double, double])
-  print(Mutex.new())
-  print(RwMutex.new())
-  print(WaitGroup.new())
-  print(Once.new())
-  print(Cond.new(Mutex.new()))
-  print(Atomic.new(0))
+  println(double)
+  println(UserId)
+  println([double, double])
+  println(Mutex.new())
+  println(RwMutex.new())
+  println(WaitGroup.new())
+  println(Once.new())
+  println(Cond.new(Mutex.new()))
+  println(Atomic.new(0))
 }
 
 // expect

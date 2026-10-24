@@ -43,8 +43,8 @@ func TestInterrupts(t *testing.T) {
 func main(): void {
   var stop = Os.interrupt()
   Context.wait(stop)
-  print(Context.reason(stop) ?? "none")
-  print("drained")
+  println(Context.reason(stop) ?? "none")
+  println("drained")
 }
 `, 50*time.Millisecond)
 		if err != nil {
@@ -58,7 +58,7 @@ func main(): void {
 		out, err := runWithInterrupts(t, `
 func main(): void {
   Time.sleep(Time.duration(seconds: 5))
-  print("slept")
+  println("slept")
 }
 `, 50*time.Millisecond)
 		if err == nil || strings.Contains(out, "slept") {
@@ -73,7 +73,7 @@ func main(): void {
 func main(): void {
   var stop = Os.interrupt()
   Time.sleep(Time.duration(seconds: 5))
-  print(Context.isDone(stop))
+  println(Context.isDone(stop))
 }
 `, 50*time.Millisecond, 100*time.Millisecond)
 		if err == nil || strings.Contains(out, "true") {

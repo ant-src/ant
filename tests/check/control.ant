@@ -24,23 +24,23 @@ func main(): void {
   var n: int = if c { 1 }                     // ERR: an if without else has type void
   var label: string = if c { "a" } else { 1 } // ERR: cannot use int where string is expected
   var either = if c { 1 } else { "s" }
-  print(either is int)
+  println(either is int)
   var s: Shape = Circle{ radius: 1.0 }
-  if s is Circle { print("c") } else if s is Rect { print("r") } else { print("never") } // ERR: this else cannot run
+  if s is Circle { println("c") } else if s is Rect { println("r") } else { println("never") } // ERR: this else cannot run
   var b: { value: int } = Box{ value: 1 }
-  if b is Box { print(b.value + 1) }
+  if b is Box { println(b.value + 1) }
   var e: {} = Box{ value: 1 }
-  print(e is Box) // ERR: does not determine the type parameter T
+  println(e is Box) // ERR: does not determine the type parameter T
   var p = Point{ x: 1, y: 2 }
-  print(p is Point)             // ERR: the test is always true
+  println(p is Point)           // ERR: the test is always true
   var f = { x * 2 }             // ERR: a lambda needs an expected function type
   var zero: func(): int = { x } // ERR: x is not defined
   var g = connect
-  print(g(host: "a"))                                         // ERR: named arguments apply only to a declared function
-  print(connect("a", port: 1, tls: false))                    // ERR: no parameter tls
-  print(p.norm())                                             // ERR: Point has no field norm
+  println(g(host: "a"))                                       // ERR: named arguments apply only to a declared function
+  println(connect("a", port: 1, tls: false))                  // ERR: no parameter tls
+  println(p.norm())                                           // ERR: Point has no field norm
   var h: func(int): int = func(a: int, b: int): int { a + b } // ERR: cannot use func(int, int): int where func(int): int is expected
-  print(h(1) + loops() + breaks() + fact(1))
+  println(h(1) + loops() + breaks() + fact(1))
   var twice: func(Array[int]): Array[int] = { Array.map(x, { x + 1 }) }
-  print(twice([1]))
+  println(twice([1]))
 }

@@ -1,7 +1,7 @@
 // spec: 5 Blocks
 func main(): void {
   if true
-  { print(1) }
+  { println(1) }
 }
 
 // expect

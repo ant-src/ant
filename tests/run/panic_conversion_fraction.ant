@@ -3,7 +3,7 @@
 // A conversion from a float to an integer kind must be exact (section 12).
 func main(): void {
   var f = 2.5
-  print(int(f))
+  println(int(f))
 }
 
 // expect

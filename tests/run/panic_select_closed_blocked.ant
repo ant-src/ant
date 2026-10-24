@@ -12,7 +12,7 @@ func main(): void {
       var v = Channel.receive(d) { Array.push(got, v) }
     }
   }
-  print(got)
+  println(got)
   var c: Channel[int] = Channel.new(1)
   x = Channel.send(c, 1)
   go {
@@ -20,7 +20,7 @@ func main(): void {
     Channel.close(c)
   }
   select {
-    Channel.send(c, 2) { print("unreachable") }
+    Channel.send(c, 2) { println("unreachable") }
   }
 }
 

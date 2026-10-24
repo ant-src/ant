@@ -36,8 +36,8 @@ func main(): void {
     var kept = [v]
     defer { _ = Atomic.add(total, kept[0]) }
   }
-  print(Atomic.load(total))
-  print(first())
+  println(Atomic.load(total))
+  println(first())
 }
 
 // expect

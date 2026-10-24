@@ -41,10 +41,10 @@ func TestStdinReadResumes(t *testing.T) {
 	t.Run("readLine", func(t *testing.T) {
 		out := runWithLateStdin(t, `
 func main(): void {
-  print(File.readLine(Os.stdin(), Context.new(Time.duration(milliseconds: 50))))
-  print(File.readLine(Os.stdin()))
-  print(File.readLine(Os.stdin()))
-  print(File.readLine(Os.stdin()))
+  println(File.readLine(Os.stdin(), Context.new(Time.duration(milliseconds: 50))))
+  println(File.readLine(Os.stdin()))
+  println(File.readLine(Os.stdin()))
+  println(File.readLine(Os.stdin()))
 }
 `, "hello\nworld\n", 200*time.Millisecond)
 		want := "Err{ error: Error{ message: \"timeout\" } }\nOk{ value: \"hello\" }\nOk{ value: \"world\" }\nOk{ value: null }\n"
@@ -55,9 +55,9 @@ func main(): void {
 	t.Run("pipe", func(t *testing.T) {
 		out := runWithLateStdin(t, `
 func main(): void {
-  print(File.pipe(Os.stdin(), Os.stdout(), Context.new(Time.duration(milliseconds: 50))))
-  print(File.readLine(Os.stdin()))
-  print(File.readAll(Os.stdin()))
+  println(File.pipe(Os.stdin(), Os.stdout(), Context.new(Time.duration(milliseconds: 50))))
+  println(File.readLine(Os.stdin()))
+  println(File.readAll(Os.stdin()))
 }
 `, "late\nrest\n", 200*time.Millisecond)
 		want := "Err{ error: Error{ message: \"timeout\" } }\nOk{ value: \"late\" }\nOk{ value: \"rest\\n\" }\n"

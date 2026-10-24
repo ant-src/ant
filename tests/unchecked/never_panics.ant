@@ -3,19 +3,19 @@
 // ??, ?., == and != never panic themselves: values of different kinds are simply unequal, and
 // ?? and ?. look only for null; on a non-null left side the plain rule applies.
 func main(): void {
-  print(1 == "1")
-  print(1 == 1.0)
-  print(1 != true)
-  print([1] == Map{ a: 1 })
-  print(null == void)
+  println(1 == "1")
+  println(1 == 1.0)
+  println(1 != true)
+  println([1] == Map{ a: 1 })
+  println(null == void)
   var x = 5
-  print(x ?? "fallback")
+  println(x ?? "fallback")
   var n = null
-  print(n ?? "fallback")
-  print(n?.field)
-  print(n?.[0])
-  print(n?.())
-  print("done")
+  println(n ?? "fallback")
+  println(n?.field)
+  println(n?.[0])
+  println(n?.())
+  println("done")
 }
 
 // expect

@@ -19,24 +19,24 @@ func clamp(value: int, low: int, high: int): int {
 func apply(g: func(int): int, v: int): int { g(v) }
 
 func main(): void {
-  print(f(b: 5))
-  print(log)
-  print(f())
-  print(log)
-  print(f(2, 3))
-  print(connect("example.com"))
-  print(connect("example.com", 8080))
-  print(connect("example.com", tls: false))
-  print(connect(port: 80, host: "example.com"))
-  print(clamp(15, 0, 10))
-  print(clamp(-5, 0, 10))
-  print(clamp(5, 0, 10))
-  print(apply({ x * 2 }, 21))
-  print(apply(func(v: int): int { v - 1 }, 1))
+  println(f(b: 5))
+  println(log)
+  println(f())
+  println(log)
+  println(f(2, 3))
+  println(connect("example.com"))
+  println(connect("example.com", 8080))
+  println(connect("example.com", tls: false))
+  println(connect(port: 80, host: "example.com"))
+  println(clamp(15, 0, 10))
+  println(clamp(-5, 0, 10))
+  println(clamp(5, 0, 10))
+  println(apply({ x * 2 }, 21))
+  println(apply(func(v: int): int { v - 1 }, 1))
   var zero: func(): int = { 7 }
-  print(zero())
-  print(5 | clamp(0, 3))
-  print({ x + 1 } | apply(10))
+  println(zero())
+  println(5 | clamp(0, 3))
+  println({ x + 1 } | apply(10))
 }
 
 // expect

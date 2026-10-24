@@ -13,18 +13,18 @@ func main(): void {
   var m: Map[Key, int] = Map{}
   m[deep(m, null)] = 1
   m[deep(m, null)] = 2
-  print(m[deep(m, null)])
-  print(Map.size(m))
+  println(m[deep(m, null)])
+  println(Map.size(m))
   var m2: Map[Key, int] = Map{}
   m2[deep(m2, null)] = 2
-  print(m == m2)
+  println(m == m2)
   var s: Set[Key] = Set.of([])
-  print(Set.add(s, deep(null, s)))
-  print(Set.add(s, deep(null, s)))
-  print(Set.size(s))
+  println(Set.add(s, deep(null, s)))
+  println(Set.add(s, deep(null, s)))
+  println(Set.size(s))
   var s2: Set[Key] = Set.of([])
   _ = Set.add(s2, deep(null, s2))
-  print(s == s2)
+  println(s == s2)
 }
 
 // expect

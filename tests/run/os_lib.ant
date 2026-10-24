@@ -2,12 +2,12 @@
 // Os (stdlib.md): env of a variable that is not set is null, and exit ends the program with the
 // given status without running deferred blocks.
 func main(): void {
-  print(Os.env("ANT_SURELY_UNSET_VARIABLE_7F3A"))
-  print(Array.length(Os.args()))
-  defer { print("never, since exit does not unwind") }
-  print("exiting")
+  println(Os.env("ANT_SURELY_UNSET_VARIABLE_7F3A"))
+  println(Array.length(Os.args()))
+  defer { println("never, since exit does not unwind") }
+  println("exiting")
   Os.exit(3)
-  print("not reached")
+  println("not reached")
 }
 
 // expect

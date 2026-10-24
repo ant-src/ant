@@ -28,6 +28,6 @@ func main() {
   var is_a = p is Point && q >= r
   var z = o ?? []
   xs[0] += 1
-  for x in xs { print(x) }
-  print(p, xs, ys, q, first, neg, done, t, m, f(1), g(2), is_a, dist(p, p), max(1, 2), z)
+  for x in xs { println(x) }
+  println(p, xs, ys, q, first, neg, done, t, m, f(1), g(2), is_a, dist(p, p), max(1, 2), z)
 }

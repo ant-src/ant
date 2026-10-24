@@ -5,14 +5,14 @@
 var top = "module"
 
 func shadow(): void {
-  print(top)
+  println(top)
   var top = "function"
-  print(top)
+  println(top)
   if true {
     var top = "block"
-    print(top)
+    println(top)
   }
-  print(top)
+  println(top)
 }
 
 func main(): void {
@@ -20,11 +20,11 @@ func main(): void {
   var n = 1
   var get = func(): int { n }
   n = 2
-  print(get())
+  println(get())
   var fact: func(int): int = func(k: int): int { if k <= 1 { 1 } else { k * fact(k - 1) } }
-  print(fact(5))
+  println(fact(5))
   var fs = [func(): int { 10 }, func(): int { 20 }]
-  print(fs[1]())
+  println(fs[1]())
 }
 
 // expect

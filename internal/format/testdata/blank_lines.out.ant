@@ -8,7 +8,7 @@ func main() {
 
   var b = 2
 
-  print([
+  println([
     a,
 
     b,

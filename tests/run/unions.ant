@@ -26,28 +26,28 @@ func parse(s: string): int | string {
 func positive(): func(int): int | null { { if x > 0 { x } else { null } } }
 
 func main(): void {
-  print(describe(A{ id: 1, name: "a" }))
-  print(describe(B{ id: "x", name: "b" }))
+  println(describe(A{ id: 1, name: "a" }))
+  println(describe(B{ id: "x", name: "b" }))
   var u: A | B = B{ id: "x", name: "b" }
   var id = u.id
-  print(id is string)
-  print(onlyEmpty(Empty{}))
+  println(id is string)
+  println(onlyEmpty(Empty{}))
   var st: Status = Pending{}
-  print(st is Pending)
-  print(st is Empty)
-  print(maybeLock(Mutex.new()))
-  print(maybeLock(null))
-  print(parse("12"))
-  print(parse("x"))
+  println(st is Pending)
+  println(st is Empty)
+  println(maybeLock(Mutex.new()))
+  println(maybeLock(null))
+  println(parse("12"))
+  println(parse("x"))
   var f = positive()
-  print(f(1))
-  print(f(-1))
+  println(f(1))
+  println(f(-1))
   var h: Handler = { `request ${x}` }
-  print(h(7))
+  println(h(7))
   var n: int | float64 = 2.5
-  print(n is float64)
+  println(n is float64)
   var nested: int | string | null = null
-  print(nested == null)
+  println(nested == null)
 }
 
 // expect

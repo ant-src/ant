@@ -71,8 +71,8 @@ func run(path: string, argv: Array[string]): int {
   var command = Array.get(argv, 0) ?? "list"
   var args = Array.slice(argv, 1, Array.length(argv))
   var outcome = execute(path, command, args)
-  if outcome is Ok { print(outcome.value); 0 }
-  else { print(`error: ${outcome.error.message}`); 1 }
+  if outcome is Ok { println(outcome.value); 0 }
+  else { println(`error: ${outcome.error.message}`); 1 }
 }
 
 func main(): void {
@@ -95,10 +95,10 @@ func main(): void {
   ]
   var status = 0
   for argv in script {
-    print(`$ todo ${String.join(argv, " ")}`)
+    println(`$ todo ${String.join(argv, " ")}`)
     status = run(path, argv)
   }
-  print(Result.unwrapOr(File.read(path), "no file"))
+  println(Result.unwrapOr(File.read(path), "no file"))
   if !Array.isEmpty(rest) { status = run(path, rest) }
   if status != 0 { Os.exit(status) }
 }

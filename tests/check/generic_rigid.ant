@@ -18,7 +18,7 @@ func fineToo[T](a: T): T { apply(a, { x }) }
 func fixed(a: int): Array[int] { wrap(a, { [1] }) }
 
 func main(): void {
-  print(fine("s"))
-  print(fineToo(true))
-  print(fixed(2))
+  println(fine("s"))
+  println(fineToo(true))
+  println(fixed(2))
 }

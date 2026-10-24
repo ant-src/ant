@@ -30,7 +30,7 @@ func TestStdlibHarness(t *testing.T) {
 		{"lock as a value", "var lock = Mutex.withLock", "Mutex.withLock"},
 		{"go in a string", `String.length("go {")  // => 4`, ""},
 		{"import", `import "../run/lib/geometry.ant" G`, "cannot import"},
-		{"output", `print("hi")`, "writes nothing"},
+		{"output", `println("hi")`, "writes nothing"},
 		{"redeclared", "var s = 1\nvar s = 2", "already declared"},
 		{"type error at its line", "var s = 1\n\nString.count(1, \"a\")  // => 0", "selftest.ant:3: cannot use int"},
 		{"a second comment", `String.repeat("x", 2)  // note // => "xx"`, ""},

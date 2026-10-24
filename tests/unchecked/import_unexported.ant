@@ -4,8 +4,8 @@
 import "../run/lib/geometry.ant" { hidden, sqrt }
 
 func main(): void {
-  print(hidden)
-  print(sqrt(16.0))
+  println(hidden)
+  println(sqrt(16.0))
 }
 
 // expect

@@ -117,7 +117,7 @@ func TestSyntaxErrors(t *testing.T) {
 		{"return at top level", "return 1", "'return' outside a function", Session},
 		{"return value in defer", "func f() { defer { return 1 } }", "'return' takes no value in a defer block", Program},
 		{"return value in go", "func f() { go { return 1 } }", "'return' takes no value in a go block", Program},
-		{"return value in go template", "func f() { go { print(`${return 1}`) } }", "'return' takes no value in a go block", Program},
+		{"return value in go template", "func f() { go { println(`${return 1}`) } }", "'return' takes no value in a go block", Program},
 		{"chained assignment", "func f() { a = b = 1 }", "assignment cannot be chained", Program},
 		{"assign to call", "func f() { g() = 1 }", "left side of '='", Program},
 		{"compound destructure", "func f() { [a, b] += [1, 2] }", "allows only '='", Program},
@@ -139,7 +139,7 @@ func TestSyntaxErrors(t *testing.T) {
 		{"export in block", "func f() { export var x = 1 }", "only allowed at the top level", Program},
 		{"named func in block", "func f() { func g() {} }", "only allowed at the top level", Program},
 		{"import after declaration", "var x = 1\nimport \"./a.ant\" A", "imports must come before", Program},
-		{"top-level expression", "print(1)", "expected a declaration", Program},
+		{"top-level expression", "println(1)", "expected a declaration", Program},
 		{"two statements one line", "func f() { a b }", "expected a newline or ';'", Program},
 		{"leading or", "func f() { var t = a\n  || b }", "unexpected '||'", Program},
 		{"else alone", "func f() { else { 1 } }", "unexpected 'else'", Program},
@@ -247,7 +247,7 @@ func TestAST(t *testing.T) {
 		{"func f() {\n  defer { close() }\n  1\n}", "(file (func f() { (defer { (call close) }); 1 }))"},
 		{"func f() {\n  a /* comment\n  spanning */ + b\n}", "(file (func f() { (+ a b) }))"},
 		{"func f(): string {\n  `value: ${s ?? return \"missing\"}`\n}", "(file (func f():string { (template \"value: \" (?? s (return \"missing\"))) }))"},
-		{"func f() {\n  for x in xs {\n    print(`${x ?? continue}`)\n  }\n}", "(file (func f() { (for x xs { (call print (template (?? x (continue)))) }) }))"},
+		{"func f() {\n  for x in xs {\n    println(`${x ?? continue}`)\n  }\n}", "(file (func f() { (for x xs { (call println (template (?? x (continue)))) }) }))"},
 	}
 	for _, c := range files {
 		f, err := Parse("test", c.src, Program)

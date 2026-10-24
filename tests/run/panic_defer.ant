@@ -2,16 +2,16 @@
 // A panic unwinds every block, running deferred blocks in reverse order, then the program exits
 // with status 1 and the message on standard error (sections 8, 12).
 func work(): void {
-  defer { print("defer 1") }
-  defer { print("defer 2") }
-  print("working")
+  defer { println("defer 1") }
+  defer { println("defer 2") }
+  println("working")
   panic("boom")
 }
 
 func main(): void {
-  defer { print("main defer") }
+  defer { println("main defer") }
   work()
-  print("unreachable")
+  println("unreachable")
 }
 
 // expect

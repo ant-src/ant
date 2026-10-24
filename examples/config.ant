@@ -75,10 +75,10 @@ func report(text: string): void {
   var loaded = load(text)
   if loaded is Ok {
     var c = loaded.value
-    print(`${c.name}: ${Array.length(c.servers)} servers, limits ${c.limits}`)
-    for s in c.servers { print(`  ${s.host}:${s.port}${if s.tls { " (tls)" } else { "" }}`) }
+    println(`${c.name}: ${Array.length(c.servers)} servers, limits ${c.limits}`)
+    for s in c.servers { println(`  ${s.host}:${s.port}${if s.tls { " (tls)" } else { "" }}`) }
   } else {
-    print(`error: ${loaded.error.message}`)
+    println(`error: ${loaded.error.message}`)
   }
 }
 
@@ -101,7 +101,7 @@ func main(): void {
   report(`{ "name": "limits", "servers": [], "limits": { "rps": true } }`)
   report(`[1, 2, 3]`)
   report(`{ "name": "broken"`)
-  print(Json.stringify(Server{ host: "h", port: 1, tls: false }))
+  println(Json.stringify(Server{ host: "h", port: 1, tls: false }))
 }
 
 // expect

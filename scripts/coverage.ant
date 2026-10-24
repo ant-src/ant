@@ -15,7 +15,7 @@ var modulePath = "github.com/ant-src/ant"
 
 // fail prints the message and exits with status 2, the status of a bad invocation.
 func fail(message: string): never {
-  print(message)
+  println(message)
   Os.exit(2)
 }
 
@@ -114,7 +114,7 @@ func main(): void {
       mark = `  BELOW ${min}%`
       below = true
     }
-    print(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)
+    println(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)
   }
   for pkg in Array.sort(Map.keys(statements)) {
     report(pkg, percent(covered[pkg] ?? 0, statements[pkg] ?? 0), packageMin)

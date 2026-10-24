@@ -24,7 +24,7 @@ func main(): void {
   WaitGroup.wait(senders)
   Channel.close(c)
   WaitGroup.wait(receivers)
-  print(Atomic.load(total))
+  println(Atomic.load(total))
   var idle: Channel[int] = Channel.new()
   var ctx = Context.new()
   var blocked = WaitGroup.new()
@@ -39,7 +39,7 @@ func main(): void {
   Time.sleep(Time.duration(milliseconds: 20))
   Context.cancel(ctx)
   WaitGroup.wait(blocked, Context.new(Time.duration(seconds: 5)))
-  print(Atomic.load(gaveUp))
+  println(Atomic.load(gaveUp))
 }
 
 // expect

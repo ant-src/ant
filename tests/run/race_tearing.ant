@@ -23,7 +23,7 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg)
-  print(Atomic.load(bad))
+  println(Atomic.load(bad))
   var xs: Array[int] = []
   var m: Map[string, int] = Map{}
   var wg2 = WaitGroup.new()
@@ -44,8 +44,8 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg2)
-  print(Array.length(xs) <= 300 && Map.size(m) <= 20)
-  print("memory safe")
+  println(Array.length(xs) <= 300 && Map.size(m) <= 20)
+  println("memory safe")
 }
 
 // expect

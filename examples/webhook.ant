@@ -17,16 +17,16 @@ func main(): void {
   var headers = Map{ "Content-Type": "application/json", "X-Signature": sign(body) }
   var response = Http.request("PUT", `${base}/echo`, body, headers, Time.duration(seconds: 5))
   var r = if response is Ok { response.value } else {
-    print(`delivery failed: ${response.error.message}`)
+    println(`delivery failed: ${response.error.message}`)
     Os.exit(1)
   }
-  print(`${r.status} ${r.headers["X-Method"] ?? "?"}`)
+  println(`${r.status} ${r.headers["X-Method"] ?? "?"}`)
   var verified = Crypto.equal(String.toBytes(sign(r.body)), String.toBytes(headers["X-Signature"] ?? ""))
-  print(`signature ${if verified { "verified" } else { "rejected" }}`)
+  println(`signature ${if verified { "verified" } else { "rejected" }}`)
   var echoed = Result.unwrap(Json.parse(r.body))
   if echoed is Map {
     var amount = echoed["amount"]
-    if amount is float64 { print(`amount ${String.fromFloat(amount, 2)}`) }
+    if amount is float64 { println(`amount ${String.fromFloat(amount, 2)}`) }
   }
 }
 

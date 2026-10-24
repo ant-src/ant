@@ -4,7 +4,7 @@
 func main(): void {
   var lock = Mutex.new()
   var c = Cond.new(lock)
-  print("waiting unlocked")
+  println("waiting unlocked")
   Cond.wait(c)
 }
 

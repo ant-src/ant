@@ -12,11 +12,11 @@ func main(): void {
   var served: Channel[Result[void, Error]] = Channel.new(1)
   go { Channel.send(served, Http.serve(listener, handle, stop)) }
   var t = Time.duration(seconds: 5)
-  print(Result.unwrap(Http.get(base, Map{ "Host": "example.test" }, t)).body)
-  print(Result.unwrap(Http.get(base, Map{ "host": "other.test:8080" }, t)).body)
-  print(Result.unwrap(Http.get(base, timeout: t)).body == Net.address(listener))
+  println(Result.unwrap(Http.get(base, Map{ "Host": "example.test" }, t)).body)
+  println(Result.unwrap(Http.get(base, Map{ "host": "other.test:8080" }, t)).body)
+  println(Result.unwrap(Http.get(base, timeout: t)).body == Net.address(listener))
   Context.cancel(stop)
-  print(Channel.receive(served))
+  println(Channel.receive(served))
 }
 
 // expect

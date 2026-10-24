@@ -27,9 +27,9 @@ func main(): void {
     }
   }
   WaitGroup.wait(wg)
-  print(Array.length(xs) >= 0)
-  print(Map.size(m) <= 50)
-  print("done")
+  println(Array.length(xs) >= 0)
+  println(Map.size(m) <= 50)
+  println("done")
 }
 
 // expect

@@ -3,7 +3,7 @@
 // program stops before main with exit status 2 (section 10).
 import "./lib/cycle_a.ant" A
 
-func main(): void { print("never") }
+func main(): void { println("never") }
 
 // expect
 // exit: 2

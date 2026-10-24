@@ -49,7 +49,7 @@ func TestSession(t *testing.T) {
 	if v := eval("x"); v != "again" {
 		t.Errorf("redeclared x = %v", v)
 	}
-	eval(`print("hello")`)
+	eval(`println("hello")`)
 	if !strings.Contains(out.String(), "hello\n") {
 		t.Errorf("stdout: %q", out.String())
 	}

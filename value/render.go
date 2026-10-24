@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Render is String.from (section 11): the rendering print and template strings use.
+// Render is String.from (section 11): the rendering print, println and template strings use.
 func Render(v Value) string {
 	var sb strings.Builder
 	render(&sb, v, true, nil)

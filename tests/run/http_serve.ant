@@ -20,18 +20,18 @@ func main(): void {
   var served: Channel[Result[void, Error]] = Channel.new(1)
   go { Channel.send(served, Http.serve(listener, handle, stop)) }
   var r = Result.unwrap(Http.request("PUT", `${base}/items/a%20b?x=1&y=2`, "payload", Map{ "X-Token": "t" }, Time.duration(seconds: 5)))
-  print(r.status)
-  print(r.body)
-  print(r.headers["X-Served"])
-  print(r.headers["Content-Length"])
+  println(r.status)
+  println(r.body)
+  println(r.headers["X-Served"])
+  println(r.headers["Content-Length"])
   var boom = Result.unwrap(Http.get(`${base}/boom`, timeout: Time.duration(seconds: 5)))
-  print(boom.status)
-  print(boom.body == "")
+  println(boom.status)
+  println(boom.body == "")
   var bad = Result.unwrap(Http.get(`${base}/bad`, timeout: Time.duration(seconds: 5)))
-  print(bad.status)
+  println(bad.status)
   Context.cancel(stop)
-  print(Channel.receive(served))
-  print(Result.isOk(Http.get(`${base}/items`, timeout: Time.duration(seconds: 2))))
+  println(Channel.receive(served))
+  println(Result.isOk(Http.get(`${base}/items`, timeout: Time.duration(seconds: 2))))
 }
 
 // expect

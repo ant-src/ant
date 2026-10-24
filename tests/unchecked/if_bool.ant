@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: bool-kind
 // An if condition that is not a bool panics (section 12).
-func main(): void { if 1 { print("x") } }
+func main(): void { if 1 { println("x") } }
 
 // expect
 // exit: 1

@@ -23,15 +23,15 @@ func main(): void {
     if hit != null { Array.push(hits, hit) } else { unparsed += 1 }
   }
   var total = Array.length(hits)
-  print(`${total} requests, ${unparsed} unparsed`)
-  print(String.padEnd("status", 8) + String.padStart("count", 6) + String.padStart("share", 8) + String.padStart("mean", 8))
+  println(`${total} requests, ${unparsed} unparsed`)
+  println(String.padEnd("status", 8) + String.padStart("count", 6) + String.padStart("share", 8) + String.padStart("mean", 8))
   var groups = Array.groupBy(hits, { x.status })
   for status in Array.sort(Map.keys(groups)) {
     var group: Array[Hit] = groups[status] ?? []
     var count = Array.length(group)
     var share = 100.0 * float64(count) / float64(total)
     var mean = float64(Array.sum(Array.map(group, { x.bytes })) ?? 0) / float64(count)
-    print(String.padEnd(status, 8) + String.padStart(String.fromInt(count), 6)
+    println(String.padEnd(status, 8) + String.padStart(String.fromInt(count), 6)
       + String.padStart(String.fromFloat(share, 2) + "%", 8) + String.padStart(String.fromFloat(mean, 1), 8))
   }
 }

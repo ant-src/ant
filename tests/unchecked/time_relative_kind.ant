@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // A relativeTo that is no time value panics.
-func main(): void { print(Time.total(Time.duration(months: 1), Time.Day{}, "2021")) }
+func main(): void { println(Time.total(Time.duration(months: 1), Time.Day{}, "2021")) }
 
 // expect
 // exit: 1

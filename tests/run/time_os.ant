@@ -1,13 +1,13 @@
 // spec: stdlib Time; stdlib Os
 // Time.now is an instant, sleep takes milliseconds and monotonic measures them; Os.env reads a set variable and gives null for an unset one.
 func main(): void {
-  print(Time.epochMillis(Time.now()) > 1600000000000)
+  println(Time.epochMillis(Time.now()) > 1600000000000)
   var t0 = Time.monotonic()
   Time.sleep(Time.duration(milliseconds: 5))
-  print(Time.monotonic() - t0 >= 5)
-  print(Os.env("PATH") != null)
-  print(Os.env("ANT_UNSET_VARIABLE_93F1") == null)
-  print(Array.length(Os.args()))
+  println(Time.monotonic() - t0 >= 5)
+  println(Os.env("PATH") != null)
+  println(Os.env("ANT_UNSET_VARIABLE_93F1") == null)
+  println(Array.length(Os.args()))
 }
 
 // expect

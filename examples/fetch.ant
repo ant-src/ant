@@ -22,29 +22,29 @@ func main(): void {
   var hello = Http.get(`${base}/hello`)
   if hello is Ok {
     var r = hello.value
-    print(`${r.status} ${r.headers["Content-Type"]} ${r.body}`)
+    println(`${r.status} ${r.headers["Content-Type"]} ${r.body}`)
   }
   var missing = Result.unwrap(Http.get(`${base}/status/404`))
-  print(`status ${missing.status}, body ${missing.body}`)
-  print(getJson(`${base}/status/500`))
-  print(getJson(`${base}/hello`) is Err)
+  println(`status ${missing.status}, body ${missing.body}`)
+  println(getJson(`${base}/status/500`))
+  println(getJson(`${base}/hello`) is Err)
   var payload: Json.Value = Map{ "n": 1.0, "tags": ["a", "b"], "nested": Map{ "ok": true } }
   var reply = postJson(`${base}/echo`, payload, "secret")
   if reply is Ok {
     var v = reply.value
     if v is Map {
-      print(v["n"])
-      print(v["tags"])
+      println(v["n"])
+      println(v["tags"])
       var nested = v["nested"]
-      if nested is Map { print(nested["ok"]) }
+      if nested is Map { println(nested["ok"]) }
     }
-    print(Json.stringify(v) == Json.stringify(payload))
+    println(Json.stringify(v) == Json.stringify(payload))
   } else {
-    print(reply.error.message)
+    println(reply.error.message)
   }
-  print(Http.get("http://127.0.0.1:1/") is Err)
-  print(Http.post("::nope", "", Map{}) is Err)
-  print(Result.unwrapOr(Result.map(Http.get(`${base}/nowhere`), { x.status }), -1))
+  println(Http.get("http://127.0.0.1:1/") is Err)
+  println(Http.post("::nope", "", Map{}) is Err)
+  println(Result.unwrapOr(Result.map(Http.get(`${base}/nowhere`), { x.status }), -1))
 }
 
 // expect

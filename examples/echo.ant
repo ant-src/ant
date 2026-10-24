@@ -47,11 +47,11 @@ func main(): void {
   }
   var all: Array[string] = []
   for i in Array.range(0, 3) { all = Array.concat(all, Channel.receive(replies) ?? []) }
-  print(Array.sort(all))
+  println(Array.sort(all))
   Context.cancel(stop)
   WaitGroup.wait(done)
   Net.close(listener)
-  print("stopped")
+  println("stopped")
 }
 
 // expect

@@ -5,7 +5,7 @@ func main(): void {
   var rw = RwMutex.new()
   RwMutex.readLock(rw)
   RwMutex.readUnlock(rw)
-  print("balanced")
+  println("balanced")
   RwMutex.readUnlock(rw)
 }
 

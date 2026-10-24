@@ -14,24 +14,24 @@ func copy(n: { name: string }): Named { Named{ ...n } } // ERR: a spread needs a
 
 func main(): void {
   var p = Point{ x: 1.0, y: 2.0 }
-  print(Point{ x: 1.0, y: 2.0, z: 3.0 }) // ERR: Point has no field z
-  print(UserId{ value: "x" })            // ERR: UserId is not a record type
-  print(Alias{})                         // ERR: Alias is not a record type
-  for e in p { print(e) }                // ERR: for needs an array, a map, a set, a string, or a sequence, got Point
-  p.z = 1.0                              // ERR: Point has no field z
-  print(p.z)                             // ERR: Point has no field z
+  println(Point{ x: 1.0, y: 2.0, z: 3.0 }) // ERR: Point has no field z
+  println(UserId{ value: "x" })            // ERR: UserId is not a record type
+  println(Alias{})                         // ERR: Alias is not a record type
+  for e in p { println(e) }                // ERR: for needs an array, a map, a set, a string, or a sequence, got Point
+  p.z = 1.0                                // ERR: Point has no field z
+  println(p.z)                             // ERR: Point has no field z
   var x = 1.0
-  print(Point{ x, y }) // ERR: y is not defined
+  println(Point{ x, y }) // ERR: y is not defined
   var a: { name: string } = Named{ name: "a" }
   var b: { name: string } = Named{ name: "a" }
-  print(a == b)
-  print(Point{ ...p })
-  print(Named{ ...p }) // ERR: Named literal is missing the field name ;; Named has no field x ;; Named has no field y
+  println(a == b)
+  println(Point{ ...p })
+  println(Named{ ...p }) // ERR: Named literal is missing the field name ;; Named has no field x ;; Named has no field y
   var ints = Box{ value: 1 }
   var strs: Box[string] = Box{ ...ints, value: "a" }
   var early: Box[string] = Box{ value: "a", ...ints } // ERR: cannot use int for the field value of type string
-  print(strs.value + Box{ ...ints, value: "b" }.value)
+  println(strs.value + Box{ ...ints, value: "b" }.value)
   var both: Box[string] = Box{ ...ints, ...strs }
   var backwards: Box[string] = Box{ ...strs, ...ints } // ERR: cannot use int for the field value of type string
-  print(both.value + Box{ ...ints, ...strs }.value)
+  println(both.value + Box{ ...ints, ...strs }.value)
 }

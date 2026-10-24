@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // An option that is not a value of its enumeration panics.
-func main(): void { print(Time.parseZoned("2026-10-22T00:00[UTC]", 1)) }
+func main(): void { println(Time.parseZoned("2026-10-22T00:00[UTC]", 1)) }
 
 // expect
 // exit: 1

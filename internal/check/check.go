@@ -129,6 +129,8 @@ type entity struct {
 	isConv     bool
 	// isLen marks len, which takes any value with a size.
 	isLen bool
+	// isPrintln marks println, which may also be called with no argument.
+	isPrintln bool
 }
 
 // sig is a function's signature: its type parameters and function type, in which the
@@ -225,6 +227,9 @@ func (c *Checker) loadPrelude(cfg Config) {
 	}
 	if e, ok := c.prelude["len"]; ok {
 		e.isLen = true
+	}
+	if e, ok := c.prelude["println"]; ok {
+		e.isPrintln = true
 	}
 }
 

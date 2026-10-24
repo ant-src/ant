@@ -3,7 +3,7 @@ func main(): void {
   var c: Channel[int] = Channel.new()
   select {
     Channel.receive(c)
-    { print("got") }
+    { println("got") }
   }
 }
 

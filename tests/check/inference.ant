@@ -40,10 +40,10 @@ func main(): void {
   var i: Id = 1
   var j: int | string = i
   var k: Id = j
-  print(s)
-  print(t)
-  print(r)
-  print(m + z)
-  print(k)
-  print(later + earlier + selfish + count())
+  println(s)
+  println(t)
+  println(r)
+  println(m + z)
+  println(k)
+  println(later + earlier + selfish + count())
 }

@@ -20,14 +20,14 @@ func main(): void {
   }
   var base = `http://${Net.address(l)}`
   var got = Result.unwrap(Http.get(`${base}/old`))
-  print([got.status, got.headers["Location"] ?? ""])
+  println([got.status, got.headers["Location"] ?? ""])
   var posted = Result.unwrap(Http.post(`${base}/old`, "payload"))
-  print(posted.status)
-  print(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
-  print(Http.request("", `${base}/new`))
+  println(posted.status)
+  println(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
+  println(Http.request("", `${base}/new`))
   Context.cancel(ctx)
-  print(Channel.receive(served))
-  print(Net.accept(l))
+  println(Channel.receive(served))
+  println(Net.accept(l))
 }
 
 // expect
