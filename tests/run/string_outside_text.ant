@@ -1,0 +1,51 @@
+// spec: 11 String; stdlib File; stdlib Os
+// Every string holds only scalar values: text read from outside is decoded as UTF-8, each maximal
+// subpart of an ill-formed sequence replaced by U+FFFD, while the bytes stay as they were.
+func main(): void {
+  var path = `${Os.args()[0]}/bad.txt`
+  // Unicode's table 3-8, then a line of two stray bytes and a truncated euro sign.
+  var bytes = [0x61, 0xF1, 0x80, 0x80, 0xE1, 0x80, 0xC2, 0x62, 0x80, 0x63, 0x80, 0xBF, 0x64, 0x0A, 0xFF, 0xFE, 0x0A, 0xE2, 0x82]
+  println(File.writeBytes(path, Array.map(bytes, byte)))
+
+  var text = Result.unwrap(File.read(path))
+  println(text)
+  println(String.length(text))
+  println(String.count(text, "\u{FFFD}"))
+  println(Array.length(String.toBytes(text)))
+
+  var f = Result.unwrap(File.open(path))
+  var line = Result.unwrap(File.readLine(f))
+  while line != null {
+    println(`${String.from([line])} ${Array.length(String.toBytes(line))}`)
+    line = Result.unwrap(File.readLine(f))
+  }
+  File.close(f)
+
+  var g = Result.unwrap(File.open(path))
+  println(Result.unwrap(File.readAll(g)) == text)
+  File.close(g)
+
+  println(Array.length(Result.unwrap(File.readBytes(path))))
+  println(String.fromBytes(Result.unwrap(File.readBytes(path))))
+
+  // A child's output is outside text too.
+  var out = Result.unwrap(Os.exec("printf", ["a\\377b"]))
+  println(`${String.from([out.stdout])} ${Array.length(String.toBytes(out.stdout))}`)
+}
+
+// expect
+// out: Ok{ value: void }
+// out: a���b�c��d
+// out: ��
+// out: �
+// out: 15
+// out: 9
+// out: 33
+// out: ["a���b�c��d"] 22
+// out: ["��"] 6
+// out: ["�"] 3
+// out: true
+// out: 19
+// out: null
+// out: ["a�b"] 5
+// args: $TMP

@@ -93,9 +93,9 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	}
 	out := value.NewMap()
 	for k, vs := range resp.Header {
-		out.Set(k, strings.Join(vs, ", "))
+		out.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
 	}
-	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, string(data)}))
+	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, value.Text(string(data))}))
 }
 
 func optionalString(g *interp.Goroutine, who string, v value.Value) string {
@@ -155,11 +155,11 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		return
 	}
 	headers := value.NewMap()
-	headers.Set("Host", r.Host) // which Go keeps apart from the other headers
+	headers.Set("Host", value.Text(r.Host)) // which Go keeps apart from the other headers
 	for k, vs := range r.Header {
-		headers.Set(k, strings.Join(vs, ", "))
+		headers.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
 	}
-	req := value.NewRecord(RequestTag, []value.Value{r.Method, r.URL.Path, r.URL.RawQuery, headers, string(body), r.RemoteAddr})
+	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, value.Text(string(body)), r.RemoteAddr})
 	result := make(chan *value.Record, 1)
 	g.Spawn(func(ng *interp.Goroutine) {
 		defer close(result)

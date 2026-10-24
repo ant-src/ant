@@ -59,7 +59,7 @@ func execProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 		}
 		status = exit.ExitCode()
 	}
-	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(status), stdout.String(), stderr.String()}))
+	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(status), value.Text(stdout.String()), value.Text(stderr.String())}))
 }
 
 func init() {
@@ -70,7 +70,7 @@ func init() {
 				args := g.Instance().Args()
 				out := make([]value.Value, len(args))
 				for i, s := range args {
-					out[i] = s
+					out[i] = value.Text(s)
 				}
 				return value.NewArray(out)
 			}),
@@ -79,13 +79,13 @@ func init() {
 				if !ok {
 					return value.Null
 				}
-				return v
+				return value.Text(v)
 			}),
 			fn("Os.environ", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				m := value.NewMap()
 				for _, kv := range g.Instance().Environ() {
 					k, v, _ := strings.Cut(kv, "=")
-					m.Set(k, v)
+					m.Set(value.Text(k), value.Text(v))
 				}
 				return m
 			}),
@@ -94,7 +94,7 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(dir)
+				return value.Ok(value.Text(dir))
 			}),
 			fn("Os.exit", "status", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				g.Instance().Exit(int(intArg(g, who, a[0])))

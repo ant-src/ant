@@ -144,7 +144,7 @@ func (h *Handle) readLine() value.Value {
 		if i := strings.IndexByte(h.pending, '\n'); i >= 0 {
 			line := strings.TrimSuffix(h.pending[:i], "\r")
 			h.pending = h.pending[i+1:]
-			return value.Ok(line)
+			return value.Ok(value.Text(line))
 		}
 		s, err := h.r.ReadString('\n')
 		h.pending += s
@@ -157,7 +157,7 @@ func (h *Handle) readLine() value.Value {
 			}
 			line := h.pending
 			h.pending = ""
-			return value.Ok(line)
+			return value.Ok(value.Text(line))
 		}
 		return errResult(err)
 	}
@@ -172,7 +172,7 @@ func (h *Handle) readAll() value.Value {
 	}
 	text := h.pending
 	h.pending = ""
-	return value.Ok(text)
+	return value.Ok(value.Text(text))
 }
 
 // write writes s under the write mutex and flushes a stream or a connection.
@@ -300,7 +300,7 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(value.NewRecord(InfoTag, []value.Value{fi.Name(), fi.Size(), fi.IsDir(), modified}))
+				return value.Ok(value.NewRecord(InfoTag, []value.Value{value.Text(fi.Name()), fi.Size(), fi.IsDir(), modified}))
 			}),
 			fn("File.mkdir", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(os.MkdirAll(stringArg(g, who, a[0]), 0o755))
@@ -316,7 +316,7 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(dir)
+				return value.Ok(value.Text(dir))
 			}),
 			fn("File.walk", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				dir := stringArg(g, who, a[0])
@@ -343,7 +343,7 @@ func init() {
 					if err != nil {
 						return err
 					}
-					files = append(files, rel)
+					files = append(files, value.Text(rel))
 					return nil
 				})
 				if err != nil {
@@ -363,7 +363,7 @@ func init() {
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(string(data))
+				return value.Ok(value.Text(string(data)))
 			}),
 			fn("File.readBytes", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				data, err := os.ReadFile(stringArg(g, who, a[0]))
@@ -392,7 +392,7 @@ func init() {
 				}
 				names := make([]value.Value, len(entries))
 				for i, e := range entries {
-					names[i] = e.Name()
+					names[i] = value.Text(e.Name())
 				}
 				return value.Ok(value.NewArray(names))
 			}),
