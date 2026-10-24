@@ -34,7 +34,7 @@ func init() {
 			}),
 			fn("Json.stringify", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var sb strings.Builder
-				if msg := stringify(&sb, a[0], nil); msg != "" {
+				if msg := stringify(&sb, a[0], ancestors{}); msg != "" {
 					g.Panic("Json.stringify: %s", msg)
 				}
 				return sb.String()
@@ -116,7 +116,7 @@ func parseFrom(dec *json.Decoder, tok json.Token) (value.Value, error) {
 
 // stringify writes v as JSON. It returns why v has no JSON form, a cycle or Bytes, or "" when it
 // has one.
-func stringify(sb *strings.Builder, v value.Value, stack []any) string {
+func stringify(sb *strings.Builder, v value.Value, stack ancestors) string {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))
@@ -131,10 +131,10 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 	case *value.Tagged:
 		return stringify(sb, x.Payload, stack)
 	case *value.Record:
-		if onStack(stack, x) {
+		if !stack.enter(x) {
 			return "cyclic value"
 		}
-		stack = append(stack, x)
+		defer stack.leave(x)
 		sb.WriteByte('{')
 		for i, name := range x.Tag.Fields {
 			if i > 0 {
@@ -148,10 +148,10 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 		}
 		sb.WriteByte('}')
 	case *value.Array, *value.Set:
-		if onStack(stack, x) {
+		if !stack.enter(x) {
 			return "cyclic value"
 		}
-		stack = append(stack, x)
+		defer stack.leave(x)
 		var xs []value.Value
 		if a, ok := x.(*value.Array); ok {
 			xs = a.Values()
@@ -169,10 +169,10 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 		}
 		sb.WriteByte(']')
 	case *value.Map:
-		if onStack(stack, x) {
+		if !stack.enter(x) {
 			return "cyclic value"
 		}
-		stack = append(stack, x)
+		defer stack.leave(x)
 		sb.WriteByte('{')
 		for i, e := range x.Entries() {
 			if i > 0 {
@@ -182,7 +182,7 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 			if t, ok := key.(*value.Tagged); ok {
 				key = t.Payload // a named primitive key, without its tag as a value is written
 			}
-			if holdsBytes(key, nil) {
+			if holdsBytes(key, ancestors{}) {
 				return bytesNoJSON
 			}
 			if s, ok := key.(string); ok {
@@ -214,7 +214,7 @@ const bytesNoJSON = "Bytes has no JSON form; write Encoding.toBase64 of it"
 // holdsBytes reports whether v is Bytes or contains them, for a map key, which stringify writes
 // through value.Render rather than taking apart. stack holds the containers being searched, so a
 // cyclic key terminates.
-func holdsBytes(v value.Value, stack []any) bool {
+func holdsBytes(v value.Value, stack ancestors) bool {
 	var parts []value.Value
 	switch x := v.(type) {
 	case value.Bytes:
@@ -236,10 +236,10 @@ func holdsBytes(v value.Value, stack []any) bool {
 	default:
 		return false
 	}
-	if onStack(stack, v) {
+	if !stack.enter(v) {
 		return false
 	}
-	stack = append(stack, v)
+	defer stack.leave(v)
 	for _, p := range parts {
 		if holdsBytes(p, stack) {
 			return true
@@ -248,14 +248,20 @@ func holdsBytes(v value.Value, stack []any) bool {
 	return false
 }
 
-func onStack(stack []any, v any) bool {
-	for _, s := range stack {
-		if s == v {
-			return true
-		}
+// ancestors holds the containers being walked, the enclosing ones of the value at hand, as a
+// set so that a deep value is walked in linear time.
+type ancestors map[any]bool
+
+// enter adds v, or reports false when v is already being walked: a cycle.
+func (a ancestors) enter(v any) bool {
+	if a[v] {
+		return false
 	}
-	return false
+	a[v] = true
+	return true
 }
+
+func (a ancestors) leave(v any) { delete(a, v) }
 
 func writeFloat(sb *strings.Builder, f float64, bits int) {
 	if math.IsNaN(f) || math.IsInf(f, 0) {

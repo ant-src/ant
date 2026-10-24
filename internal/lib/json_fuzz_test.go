@@ -23,7 +23,7 @@ func FuzzJSON(f *testing.F) {
 			return
 		}
 		var sb strings.Builder
-		if stringify(&sb, v, nil) != "" {
+		if stringify(&sb, v, ancestors{}) != "" {
 			t.Fatal("a decoded value cannot be cyclic")
 		}
 		again, err := parseJSON(json.NewDecoder(strings.NewReader(sb.String())))

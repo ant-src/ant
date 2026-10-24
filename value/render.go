@@ -21,15 +21,21 @@ func RenderQuoted(v Value) string {
 	return sb.String()
 }
 
-func render(sb *strings.Builder, v Value, top bool, stack []any) {
+// stack holds the containers being rendered, the enclosing ones of v, as a set so that a deep
+// value renders in linear time.
+func render(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
 	switch v.(type) {
 	case *Record, *Array, *Map, *Set:
 		// A container inside itself renders as ... at the inner occurrence.
-		if onStack(stack, v) {
+		if stack[v] {
 			sb.WriteString("...")
 			return
 		}
-		stack = append(stack, v)
+		if stack == nil {
+			stack = map[any]bool{}
+		}
+		stack[v] = true
+		defer delete(stack, v)
 	}
 	switch x := v.(type) {
 	case int64, int8, int16, int32:
@@ -127,15 +133,6 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 	default:
 		sb.WriteString("<invalid>")
 	}
-}
-
-func onStack(stack []any, v any) bool {
-	for _, s := range stack {
-		if s == v {
-			return true
-		}
-	}
-	return false
 }
 
 // FormatFloat renders a float as section 11 says: the shortest decimal that reads back to the
