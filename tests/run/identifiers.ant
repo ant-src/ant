@@ -5,6 +5,9 @@
 // identifiers whose values can be bound.
 type Event = { type: string, class: int }
 
+// A parameter named _ discards its argument and leaves the others where they are.
+func third(a: int, _: int, b: int = 7): int { a * 100 + b }
+
 func main(): void {
   var value = 1
   var Value = 2
@@ -32,6 +35,10 @@ func main(): void {
   var __ = 3
   var camelCase9 = 4
   println(_private + x_1 + __ + camelCase9)
+  println(third(1, 2))
+  println(third(1, 2, 3))
+  var ignore = func(_: int): int { 1 }
+  println(ignore(5))
 }
 
 // expect
@@ -46,3 +53,6 @@ func main(): void {
 // out: click
 // out: 2
 // out: 10
+// out: 107
+// out: 103
+// out: 1

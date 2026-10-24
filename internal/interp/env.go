@@ -56,6 +56,13 @@ func (e *Env) set(slot ast.Slot, v value.Value) {
 	e.plain[slot.Index] = v
 }
 
+// setParam binds a parameter; a parameter named _ binds nothing and has no slot.
+func setParam(e *Env, p *ast.Param, v value.Value) {
+	if p.Name != "_" {
+		e.set(p.Slot, v)
+	}
+}
+
 // ---- functions
 
 // Func is a declared or anonymous function, or a lambda, with the environment it captured.

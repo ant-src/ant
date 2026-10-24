@@ -534,7 +534,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
 		}
 		for i := 0; i < np; i++ {
-			env.set(f.Params[i].Slot, args[i])
+			setParam(env, &f.Params[i], args[i])
 			filled[i] = true
 		}
 		for i := np; i < len(args); i++ {
@@ -551,7 +551,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			if filled[idx] {
 				g.panicf(pos, "the parameter %s is given twice", names[i])
 			}
-			env.set(f.Params[idx].Slot, args[i])
+			setParam(env, &f.Params[idx], args[i])
 			filled[idx] = true
 		}
 		for i := range f.Params {
@@ -563,7 +563,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 				g.panicf(pos, "%s needs an argument for %s", f.FuncName(), p.Name)
 			}
 			v, _ := g.eval(p.Default, env)
-			env.set(p.Slot, v)
+			setParam(env, p, v)
 		}
 	}
 	v, _ := g.evalBlock(f.Body, env)
