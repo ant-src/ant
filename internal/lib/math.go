@@ -37,12 +37,18 @@ func init() {
 				return r
 			}),
 			fn("Math.min", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if isNaN(a[1]) {
+					return a[1] // NaN when either is NaN, whichever comes first
+				}
 				if less(g, who, a[1], a[0]) {
 					return a[1]
 				}
 				return a[0]
 			}),
 			fn("Math.max", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if isNaN(a[1]) {
+					return a[1] // NaN when either is NaN, whichever comes first
+				}
 				if less(g, who, a[0], a[1]) {
 					return a[1]
 				}
