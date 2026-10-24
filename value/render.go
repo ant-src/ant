@@ -4,6 +4,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 // Render is String.from (section 11): the rendering print, println and template strings use.
@@ -162,6 +163,9 @@ func FormatFloat(f float64, bits int) string {
 	return s
 }
 
+// quote writes s as a string literal: every code point that String.isPrint rejects, such as a
+// control character, a non-breaking space, or a zero-width joiner, as an escape, so the rendering
+// shows every code point there is (section 11, String).
 func quote(sb *strings.Builder, s string) {
 	sb.WriteByte('"')
 	for _, r := range s {
@@ -177,7 +181,7 @@ func quote(sb *strings.Builder, s string) {
 		case '\r':
 			sb.WriteString(`\r`)
 		default:
-			if r < 0x20 || r == 0x7f {
+			if !unicode.IsPrint(r) {
 				sb.WriteString(`\u{`)
 				sb.WriteString(strconv.FormatInt(int64(r), 16))
 				sb.WriteByte('}')

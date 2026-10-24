@@ -131,3 +131,12 @@ String.fromCodePoint(-1)                      // => null
 String.fromCodePoint(String.codePoint("a") + 1)   // => "b"
 
 String.unicodeVersion                         // => "17.0.0"
+
+// Inside quotes, String.from escapes every code point that isPrint rejects, in lower-case
+// hexadecimal without leading zeros; at the top level a string is itself.
+["👨‍👩‍👧"]                                     // => ["👨\u{200d}👩\u{200d}👧"]
+String.from(["\u{7F}"]) == "[\"\\u{7f}\"]"    // => true
+["a\u{A0}b", "\u{202E}evil", "\u{FEFF}", "\u{85}"]   // => ["a\u{a0}b", "\u{202e}evil", "\u{feff}", "\u{85}"]
+["e\u{301}", "tab\there", "\u{378}"]          // => ["é", "tab\there", "\u{378}"]
+String.from("a\u{A0}b") == "a\u{A0}b"         // => true
+Map{ "\u{200B}": 1 }                          // => Map{ "\u{200b}": 1 }
