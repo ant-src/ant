@@ -36,7 +36,7 @@ func print[T](value: T): void
 // println writes String.from(value) and a newline to standard output. println() with no argument
 // writes only the newline.
 func println[T](value: T): void
-// panic stops the current goroutine with message, running its deferred calls on the way out. A
+// panic stops the current goroutine with message, running its deferred blocks on the way out. A
 // panic in the main goroutine ends the program with exit status 1.
 func panic(message: string): never
 
@@ -86,9 +86,9 @@ func string(x: string): string
 // bool returns the bool x holds: x is a bool or a named primitive over bool, which it unwraps.
 func bool(x: bool): bool
 
-// len returns the size of x: an array's elements, a map's entries, a set's members, a string's
-// code points, the bytes of Bytes, or the values a channel buffers now. x may also be a named
-// primitive over string, which it unwraps.
+// len returns the size of x: an array's elements, a map's entries, a set's members, a string's code
+// points, the bytes of Bytes, or the values a channel buffers now. x may also be a named primitive
+// over string, which it unwraps.
 func len[T](x: T): int
 
 // Array
@@ -307,9 +307,9 @@ type String.Cut = { before: string, after: string }
 func String.length(s: string): int
 // String.isEmpty reports whether s is "".
 func String.isEmpty(s: string): bool
-// String.slice returns the code points of s from index from up to but excluding index to.
-// It panics if from > to, or if either is outside 0 ..= String.length(s). A code point range can
-// cut through a grapheme; see [String.graphemes].
+// String.slice returns the code points of s from index from up to but excluding index to. It panics
+// if from > to, or if either is outside 0 ..= String.length(s). A code point range can cut through
+// a grapheme; see [String.graphemes].
 func String.slice(s: string, from: int, to: int): string
 // String.concat returns the strings in parts joined with nothing between them.
 func String.concat(parts: Array[string]): string
@@ -413,27 +413,27 @@ func String.isLetter(s: string): bool
 // String.isNumber reports whether every code point of s is a number (N): Nd, Nl such as Ⅻ, or No
 // such as ½. It is false on "".
 func String.isNumber(s: string): bool
-// String.isSpace reports whether every code point of s has the White_Space property. It is false
-// on "".
+// String.isSpace reports whether every code point of s has the White_Space property. It is false on
+// "".
 func String.isSpace(s: string): bool
-// String.isUpper reports whether every code point of s is an upper-case letter (Lu). It is false
-// on "".
+// String.isUpper reports whether every code point of s is an upper-case letter (Lu). It is false on
+// "".
 func String.isUpper(s: string): bool
-// String.isLower reports whether every code point of s is a lower-case letter (Ll). It is false
-// on "".
+// String.isLower reports whether every code point of s is a lower-case letter (Ll). It is false on
+// "".
 func String.isLower(s: string): bool
 // String.isPunct reports whether every code point of s is punctuation (P). It is false on "".
 func String.isPunct(s: string): bool
 // String.isSymbol reports whether every code point of s is a symbol (S). It is false on "".
 func String.isSymbol(s: string): bool
-// String.isMark reports whether every code point of s is a mark (M), such as a combining accent.
-// It is false on "".
+// String.isMark reports whether every code point of s is a mark (M), such as a combining accent. It
+// is false on "".
 func String.isMark(s: string): bool
 // String.isControl reports whether every code point of s is a control character (Cc). It is false
 // on "".
 func String.isControl(s: string): bool
-// String.isGraphic reports whether every code point of s is in L, M, N, P, S, or Zs. It is false
-// on "".
+// String.isGraphic reports whether every code point of s is in L, M, N, P, S, or Zs. It is false on
+// "".
 func String.isGraphic(s: string): bool
 // String.isPrint reports whether every code point of s is in L, M, N, P, or S, or is the space
 // U+0020. It is false on "".
@@ -490,8 +490,8 @@ func String.fromInt[T: Integer](x: T, base: int = 10): string
 //
 //     String.fromFloat(0.125, 2)   // "0.12"
 func String.fromFloat(x: float64, digits: int): string
-// String.from renders any value as text, in the format print, println, and template strings use.
-// A string renders as itself at the top level and quoted with escapes inside a container; a float
+// String.from renders any value as text, in the format print, println, and template strings use. A
+// string renders as itself at the top level and quoted with escapes inside a container; a float
 // renders as the shortest decimal that reads back to it, with .0 when integral.
 //
 //     String.from(["a", "b"])   // "[\"a\", \"b\"]"
@@ -598,8 +598,8 @@ func Iter.toArray[T](s: Seq[T]): Array[T]
 
 // Math and Bits
 
-// Math.abs returns the absolute value of x.
-// It panics on the most negative value of an integer type, whose absolute value does not fit.
+// Math.abs returns the absolute value of x. It panics on the most negative value of an integer
+// type, whose absolute value does not fit.
 func Math.abs[T: Number](x: T): T
 // Math.min returns the smaller of a and b.
 func Math.min[T: Ordered](a: T, b: T): T
@@ -607,8 +607,7 @@ func Math.min[T: Ordered](a: T, b: T): T
 func Math.max[T: Ordered](a: T, b: T): T
 // Math.pow returns x raised to the power y.
 func Math.pow(x: float64, y: float64): float64
-// Math.sqrt returns the square root of x.
-// It is NaN for a negative x.
+// Math.sqrt returns the square root of x. It is NaN for a negative x.
 func Math.sqrt(x: float64): float64
 // Math.floor returns the greatest whole number not above x.
 func Math.floor(x: float64): float64
@@ -619,20 +618,18 @@ func Math.ceil(x: float64): float64
 //     Math.round(2.5)    // 3.0
 //     Math.round(-2.5)   // -3.0
 func Math.round(x: float64): float64
-// Math.trunc returns x with its fraction dropped, rounding toward zero.
-// int(Math.trunc(x)) is the explicit truncating conversion to int.
+// Math.trunc returns x with its fraction dropped, rounding toward zero. int(Math.trunc(x)) is the
+// explicit truncating conversion to int.
 //
 //     Math.trunc(-2.7)   // -2.0
 func Math.trunc(x: float64): float64
 // Math.toInt returns x as an int, or null if x has a fraction, is out of range, or is NaN or an
-// infinity.
-// It is int(x) without the panic.
+// infinity. It is int(x) without the panic.
 //
 //     Math.toInt(2.0)   // 2
 //     Math.toInt(2.5)   // null
 func Math.toInt(x: float64): int | null
-// Math.log returns the natural logarithm of x.
-// It is -Infinity for 0.0 and NaN for a negative x.
+// Math.log returns the natural logarithm of x. It is -Infinity for 0.0 and NaN for a negative x.
 func Math.log(x: float64): float64
 // Math.log2 returns the base-2 logarithm of x.
 func Math.log2(x: float64): float64
@@ -652,8 +649,8 @@ func Math.asin(x: float64): float64
 func Math.acos(x: float64): float64
 // Math.atan returns the arctangent of x, in radians.
 func Math.atan(x: float64): float64
-// Math.atan2 returns the angle of the point (x, y), in radians from -PI to PI inclusive.
-// Note the argument order: y comes first.
+// Math.atan2 returns the angle of the point (x, y), in radians from -PI to PI inclusive. Note the
+// argument order: y comes first.
 func Math.atan2(y: float64, x: float64): float64
 // Math.hypot returns the square root of x² + y², without overflow in the intermediate steps.
 func Math.hypot(x: float64, y: float64): float64
@@ -663,30 +660,27 @@ func Math.cbrt(x: float64): float64
 func Math.isNaN(x: float64): bool
 // Math.isFinite reports whether x is neither NaN nor an infinity.
 func Math.isFinite(x: float64): bool
-// Math.clamp returns x held within lo ..= hi.
-// It panics if lo > hi or a bound is NaN; a NaN x gives NaN.
+// Math.clamp returns x held within lo ..= hi. It panics if lo > hi or a bound is NaN; a NaN x gives
+// NaN.
 //
 //     Math.clamp(15, 0, 10)   // 10
 func Math.clamp[T: Ordered](x: T, lo: T, hi: T): T
-// Math.random returns a uniformly random number in [0, 1).
-// The sequence cannot be seeded.
+// Math.random returns a uniformly random number in [0, 1). The sequence cannot be seeded.
 func Math.random(): float64
-// Math.randomInt returns a uniformly random int from from, inclusive, to to, exclusive.
-// It draws from the same unseeded sequence as [Math.random]. It panics if to <= from.
+// Math.randomInt returns a uniformly random int from from, inclusive, to to, exclusive. It draws
+// from the same unseeded sequence as [Math.random]. It panics if to <= from.
 func Math.randomInt(from: int, to: int): int
 // Math.PI is π, the ratio of a circle's circumference to its diameter.
 var Math.PI: float64
 // Math.E is e, the base of the natural logarithm.
 var Math.E: float64
-// Math.NaN is the IEEE 754 not-a-number value.
-// Test for it with [Math.isNaN].
+// Math.NaN is the IEEE 754 not-a-number value. Test for it with [Math.isNaN].
 var Math.NaN: float64
 // Math.Infinity is positive infinity; -Math.Infinity is negative infinity.
 var Math.Infinity: float64
 // Math.maxFloat64 is the largest finite float64.
 var Math.maxFloat64: float64
-// Math.minInt is the smallest int, -2^63.
-// It cannot be written as a literal.
+// Math.minInt is the smallest int, -2^63. It cannot be written as a literal.
 var Math.minInt: int
 // Math.maxInt is the largest int, 2^63 - 1.
 var Math.maxInt: int
@@ -702,37 +696,34 @@ func Bits.xor[T: Integer](a: T, b: T): T
 //     Bits.not(uint8(0))   // 255
 //     Bits.not(0)          // -1
 func Bits.not[T: Integer](a: T): T
-// Bits.shiftLeft returns a shifted left by n bits, filling with zeros.
-// It panics if n < 0 or n is at least the bit width of T.
+// Bits.shiftLeft returns a shifted left by n bits, filling with zeros. It panics if n < 0 or n is
+// at least the bit width of T.
 func Bits.shiftLeft[T: Integer](a: T, n: int): T
-// Bits.shiftRight returns a shifted right by n bits.
-// The shift is arithmetic for a signed type and logical for an unsigned one. It panics if n < 0 or
-// n is at least the bit width of T.
+// Bits.shiftRight returns a shifted right by n bits. The shift is arithmetic for a signed type and
+// logical for an unsigned one. It panics if n < 0 or n is at least the bit width of T.
 //
 //     Bits.shiftRight(int8(-8), 1)     // -4
 //     Bits.shiftRight(uint8(248), 1)   // 124
 func Bits.shiftRight[T: Integer](a: T, n: int): T
-// Bits.rotateLeft returns a rotated left by n bits.
-// The count is taken modulo the bit width of T, so n may exceed it. It panics if n < 0.
+// Bits.rotateLeft returns a rotated left by n bits. The count is taken modulo the bit width of T,
+// so n may exceed it. It panics if n < 0.
 //
 //     Bits.rotateLeft(uint8(129), 1)   // 3
 //     Bits.rotateLeft(uint8(1), 9)     // 2
 func Bits.rotateLeft[T: Integer](a: T, n: int): T
-// Bits.rotateRight returns a rotated right by n bits.
-// The count is taken modulo the bit width of T, so n may exceed it. It panics if n < 0.
+// Bits.rotateRight returns a rotated right by n bits. The count is taken modulo the bit width of T,
+// so n may exceed it. It panics if n < 0.
 func Bits.rotateRight[T: Integer](a: T, n: int): T
 // Bits.popCount returns the number of one bits in a.
 func Bits.popCount[T: Integer](a: T): int
 // Bits.leadingZeros returns the number of zero bits above the highest one bit of a, counted at the
-// bit width of T over its two's complement bits.
-// It is the full width for 0.
+// bit width of T over its two's complement bits. It is the full width for 0.
 //
 //     Bits.leadingZeros(uint8(1))   // 7
 //     Bits.leadingZeros(int8(-1))   // 0
 func Bits.leadingZeros[T: Integer](a: T): int
 // Bits.trailingZeros returns the number of zero bits below the lowest one bit of a, over its two's
-// complement bits.
-// It is the bit width of T for 0.
+// complement bits. It is the bit width of T for 0.
 func Bits.trailingZeros[T: Integer](a: T): int
 // Bits.wrapAdd returns a + b, wrapping around in two's complement instead of panicking on overflow.
 //
@@ -759,11 +750,9 @@ func Result.isOk[T, E](r: Result[T, E]): bool
 // an Err.
 func Result.map[T, U, E](r: Result[T, E], f: func(T): U): Result[U, E]
 // Result.mapErr returns r with f applied to its error if r is an Err, and r's value unchanged if it
-// is an Ok.
-// With an identity function, as in Result.mapErr(r, { x }), it widens the error type.
+// is an Ok. With an identity function, as in Result.mapErr(r, { x }), it widens the error type.
 func Result.mapErr[T, E, F](r: Result[T, E], f: func(E): F): Result[T, F]
-// Result.unwrap returns the value of r.
-// It panics if r is an Err.
+// Result.unwrap returns the value of r. It panics if r is an Err.
 func Result.unwrap[T, E](r: Result[T, E]): T
 // Result.unwrapOr returns the value of r, or fallback if r is an Err.
 func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
@@ -773,8 +762,8 @@ func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
 //     Result.all([Result.ok(1), Result.err("no"), Result.err("later")])   // Err{ error: "no" }
 func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
 
-// Record.same reports whether a and b are the same record, not merely equal ones.
-// The bound {} admits any record type.
+// Record.same reports whether a and b are the same record, not merely equal ones. The bound {}
+// admits any record type.
 //
 //     Record.same(p, p)               // true
 //     Record.same(p, Point{ ...p })   // false
@@ -782,19 +771,16 @@ func Record.same[T: {}](a: T, b: T): bool
 
 // Synchronization
 
-// Mutex is a mutual-exclusion lock, held by at most one goroutine at a time.
-// Mutexes compare by identity.
+// Mutex is a mutual-exclusion lock, held by at most one goroutine at a time. Mutexes compare by
+// identity.
 type Mutex
 // Mutex.new returns a new, unlocked mutex.
 func Mutex.new(): Mutex
-// Mutex.lock locks m, blocking until it is available.
-// It takes no context.
+// Mutex.lock locks m, blocking until it is available. It takes no context.
 func Mutex.lock(m: Mutex): void
-// Mutex.unlock unlocks m.
-// It panics if m is not locked.
+// Mutex.unlock unlocks m. It panics if m is not locked.
 func Mutex.unlock(m: Mutex): void
-// Mutex.withLock locks m, runs f, unlocks m, and returns f's result.
-// It unlocks m even if f panics.
+// Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics.
 func Mutex.withLock[T](m: Mutex, f: func(): T): T
 
 // RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing.
@@ -804,19 +790,17 @@ type RwMutex
 func RwMutex.new(): RwMutex
 // RwMutex.readLock locks m for reading, blocking while it is locked for writing.
 func RwMutex.readLock(m: RwMutex): void
-// RwMutex.readUnlock releases one read lock on m.
-// It panics if m is not read-locked.
+// RwMutex.readUnlock releases one read lock on m. It panics if m is not read-locked.
 func RwMutex.readUnlock(m: RwMutex): void
 // RwMutex.writeLock locks m for writing, blocking until no other goroutine holds it.
 func RwMutex.writeLock(m: RwMutex): void
-// RwMutex.writeUnlock releases the write lock on m.
-// It panics if m is not write-locked.
+// RwMutex.writeUnlock releases the write lock on m. It panics if m is not write-locked.
 func RwMutex.writeUnlock(m: RwMutex): void
-// RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result.
-// It releases the lock even if f panics.
+// RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result. It releases the
+// lock even if f panics.
 func RwMutex.withRead[T](m: RwMutex, f: func(): T): T
-// RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result.
-// It releases the lock even if f panics.
+// RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result. It releases
+// the lock even if f panics.
 func RwMutex.withWrite[T](m: RwMutex, f: func(): T): T
 
 // WaitGroup is a counter that lets a goroutine wait until a group of others has finished.
@@ -824,28 +808,25 @@ func RwMutex.withWrite[T](m: RwMutex, f: func(): T): T
 type WaitGroup
 // WaitGroup.new returns a new wait group with its counter at zero.
 func WaitGroup.new(): WaitGroup
-// WaitGroup.add adds n, which may be negative, to the counter of wg.
-// It panics if the counter would go negative or past [Math.maxInt].
+// WaitGroup.add adds n, which may be negative, to the counter of wg. It panics if the counter would
+// go negative or past [Math.maxInt].
 func WaitGroup.add(wg: WaitGroup, n: int): void
-// WaitGroup.done decrements the counter of wg by one.
-// It panics if the counter is already zero.
+// WaitGroup.done decrements the counter of wg by one. It panics if the counter is already zero.
 func WaitGroup.done(wg: WaitGroup): void
-// WaitGroup.wait blocks until the counter of wg is zero, or until ctx is done.
-// When ctx ends the wait it returns early; [Context.isDone] tells the two apart.
+// WaitGroup.wait blocks until the counter of wg is zero, or until ctx is done. When ctx ends the
+// wait it returns early; [Context.isDone] tells the two apart.
 func WaitGroup.wait(wg: WaitGroup, ctx: Context | null = null): void
 
-// Once runs a function exactly once, however many goroutines ask.
-// Onces compare by identity.
+// Once runs a function exactly once, however many goroutines ask. Onces compare by identity.
 type Once
 // Once.new returns a new Once that has not run yet.
 func Once.new(): Once
 // Once.do runs f on the first call for once and discards its value; later calls wait for that run
-// to finish and do nothing.
-// If f panics, once is complete and every call, waiting or later, panics with the same message.
+// to finish and do nothing. If f panics, once is complete and every call, waiting or later, panics
+// with the same message.
 func Once.do[T](once: Once, f: func(): T): void
-// Once.value returns a function that runs f on its first call and returns the cached value on
-// every call.
-// If f panics, every call, waiting or later, panics with the same message.
+// Once.value returns a function that runs f on its first call and returns the cached value on every
+// call. If f panics, every call, waiting or later, panics with the same message.
 func Once.value[T](f: func(): T): func(): T
 
 // Cond is a condition variable: goroutines wait on it, under its mutex, until another signals.
@@ -854,16 +835,15 @@ type Cond
 // Cond.new returns a new condition variable over m.
 func Cond.new(m: Mutex): Cond
 // Cond.wait releases the mutex of c, waits until signalled, and reacquires the mutex before
-// returning.
-// It panics if the mutex is not locked. It takes no context.
+// returning. It panics if the mutex is not locked. It takes no context.
 func Cond.wait(c: Cond): void
 // Cond.signal wakes one goroutine waiting on c, if any.
 func Cond.signal(c: Cond): void
 // Cond.broadcast wakes every goroutine waiting on c.
 func Cond.broadcast(c: Cond): void
 
-// Atomic is a cell holding one value of T, read and written atomically.
-// All operations on all Atomic cells form one total order. Atomics compare by identity.
+// Atomic is a cell holding one value of T, read and written atomically. All operations on all
+// Atomic cells form one total order. Atomics compare by identity.
 type Atomic[T]
 // Atomic.new returns a new atomic cell holding v.
 func Atomic.new[T](v: T): Atomic[T]
@@ -871,30 +851,27 @@ func Atomic.new[T](v: T): Atomic[T]
 func Atomic.load[T](a: Atomic[T]): T
 // Atomic.store sets the value in a to v.
 func Atomic.store[T](a: Atomic[T], v: T): void
-// Atomic.add adds d to the value in a and returns the new value.
-// It panics on overflow.
+// Atomic.add adds d to the value in a and returns the new value. It panics on overflow.
 func Atomic.add[T: Number](a: Atomic[T], d: T): T
-// Atomic.compareAndSwap sets the value in a to v if it equals expected, and reports whether it
-// did.
+// Atomic.compareAndSwap sets the value in a to v if it equals expected, and reports whether it did.
 // It compares with ==.
 func Atomic.compareAndSwap[T](a: Atomic[T], expected: T, v: T): bool
 
-// Context bounds a wait with a deadline or ends it with a cancellation.
-// A context becomes done once: when it is cancelled, when its deadline passes, or when its parent
-// is done. Every blocking library call takes one as its last parameter. Contexts compare by
-// identity.
+// Context bounds a wait with a deadline or ends it with a cancellation. A context becomes done
+// once: when it is cancelled, when its deadline passes, or when its parent is done. Every blocking
+// library call takes one as its last parameter. Contexts compare by identity.
 type Context
 // Context.new returns a new context that is a child of parent, or of the run when parent is null.
 // With a timeout it is done once the timeout passes; a child of a done parent is done at once with
 // the parent's reason. It panics if timeout has years, months, or weeks, or is not positive.
 func Context.new(timeout: Time.Duration | null = null, parent: Context | null = null): Context
-// Context.cancel makes ctx done now, with the reason "cancelled".
-// It does nothing if ctx is already done.
+// Context.cancel makes ctx done now, with the reason "cancelled". It does nothing if ctx is already
+// done.
 func Context.cancel(ctx: Context): void
 // Context.isDone reports whether ctx is done.
 func Context.isDone(ctx: Context): bool
-// Context.reason returns why ctx is done, or null while it is not.
-// The reason is "cancelled", "timeout", "interrupt", or the parent's reason.
+// Context.reason returns why ctx is done, or null while it is not. The reason is "cancelled",
+// "timeout", "interrupt", or the parent's reason.
 func Context.reason(ctx: Context): string | null
 // Context.deadline returns the earliest deadline of ctx and its parents, or null if none has one.
 func Context.deadline(ctx: Context): Time.Instant | null
@@ -904,22 +881,21 @@ func Context.wait(ctx: Context): void
 // Channel carries values of T from goroutine to goroutine, blocking the side that is ahead.
 // Channels compare by identity.
 type Channel[T]
-// Channel.new returns a new open channel that buffers up to capacity values.
-// A capacity of 0, the default, makes a rendezvous channel, whose send waits for a receiver. It
-// panics if capacity < 0 or is above 2^31 - 1.
+// Channel.new returns a new open channel that buffers up to capacity values. A capacity of 0, the
+// default, makes a rendezvous channel, whose send waits for a receiver. It panics if capacity < 0
+// or is above 2^31 - 1.
 //
 //     var jobs: Channel[Job] = Channel.new()
 func Channel.new[T](capacity: int = 0): Channel[T]
-// Channel.send sends v on c, blocking until a receiver takes it or the buffer has room.
-// It returns true once v is taken or buffered, and false if ctx is done first. It panics if c is
-// closed.
+// Channel.send sends v on c, blocking until a receiver takes it or the buffer has room. It returns
+// true once v is taken or buffered, and false if ctx is done first. It panics if c is closed.
 func Channel.send[T](c: Channel[T], v: T, ctx: Context | null = null): bool
-// Channel.receive takes the next value from c, blocking until one is available.
-// It returns null when c is closed and drained, or when ctx is done first; [Context.isDone] tells
-// the two apart. When T includes null, a null value looks like the end, so wrap such values.
+// Channel.receive takes the next value from c, blocking until one is available. It returns null
+// when c is closed and drained, or when ctx is done first; [Context.isDone] tells the two apart.
+// When T includes null, a null value looks like the end, so wrap such values.
 func Channel.receive[T](c: Channel[T], ctx: Context | null = null): T | null
-// Channel.close closes c: receivers drain what is buffered and then get null.
-// It panics if c is already closed.
+// Channel.close closes c: receivers drain what is buffered and then get null. It panics if c is
+// already closed.
 func Channel.close[T](c: Channel[T]): void
 // Channel.isClosed reports whether c has been closed.
 func Channel.isClosed[T](c: Channel[T]): bool
@@ -931,8 +907,8 @@ func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 
 // File
 
-// File.Handle is an opaque handle to an open file, a standard stream, or a network connection.
-// The reads of a handle share one buffer, so a program can read lines and then bytes from it. One
+// File.Handle is an opaque handle to an open file, a standard stream, or a network connection. The
+// reads of a handle share one buffer, so a program can read lines and then bytes from it. One
 // goroutine may read a handle while another writes it.
 type File.Handle
 // File.Info describes the file at a path, as [File.stat] reports it. modified is the time of the
@@ -989,13 +965,13 @@ func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): 
 func File.close(f: File.Handle): void
 // File.readAll reads the rest of f as text. Bytes that are not valid UTF-8 become U+FFFD.
 func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Error]
-// File.readChunk reads at least 1 and at most max bytes from f, returning as soon as there are
-// any. It returns null at end of file and is Err when max is below 1. It is the read for a stream
-// whose pieces have no fixed size.
+// File.readChunk reads at least 1 and at most max bytes from f, returning as soon as there are any.
+// It returns null at end of file and is Err when max is below 1. It is the read for a stream whose
+// pieces have no fixed size.
 func File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Result[Bytes | null, Error]
-// File.readExactly reads exactly n bytes from f, waiting until all of them have arrived. It
-// returns null at end of file, is Err with the message "unexpected end of file" when the input
-// ends partway, and is Err when n is below 0; an n of 0 gives empty Bytes.
+// File.readExactly reads exactly n bytes from f, waiting until all of them have arrived. It returns
+// null at end of file, is Err with the message "unexpected end of file" when the input ends
+// partway, and is Err when n is below 0; an n of 0 gives empty Bytes.
 func File.readExactly(f: File.Handle, n: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.writeChunk writes bytes to f as they are.
 func File.writeChunk(f: File.Handle, bytes: Bytes): Result[void, Error]
@@ -1040,29 +1016,29 @@ func Path.rel(base: string, target: string): Result[string, Error]
 
 // Http
 
-// Http.Response is the response to a client request. Its body is there twice: as received in
-// bytes, and as text in body, with bytes that are not valid UTF-8 as U+FFFD. The headers hold one
-// string per name, a repeated header joined with ", ".
+// Http.Response is the response to a client request. Its body is there twice: as received in bytes,
+// and as text in body, with bytes that are not valid UTF-8 as U+FFFD. The headers hold one string
+// per name, a repeated header joined with ", ".
 type Http.Response = { status: int, headers: Map[string, string], body: string, bytes: Bytes }
 // Http.Reply is what an [Http.serve] handler returns to answer a request. body is sent as given, a
-// string as its UTF-8 and Bytes as they are, with Content-Length set from it; a status outside
-// 200 to 599 panics.
+// string as its UTF-8 and Bytes as they are, with Content-Length set from it; a status outside 200
+// to 599 panics.
 type Http.Reply = { status: int, headers: Map[string, string], body: string | Bytes }
-// Http.Request is a request that [Http.serve] passes to its handler. path is decoded, query is
-// raw for [Url.parseQuery], and remote is the client's "ip:port". The body is there twice, as in
+// Http.Request is a request that [Http.serve] passes to its handler. path is decoded, query is raw
+// for [Url.parseQuery], and remote is the client's "ip:port". The body is there twice, as in
 // [Http.Response], and the headers hold one string per name, Host among them.
 type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], body: string, bytes: Bytes, remote: string }
 // Http.request sends one request with method, body, and headers to url and reads the whole
-// response. A response of any status is Ok, and no redirect is followed; Err means no response:
-// a malformed url, an empty method, no connection, the timeout ("timeout"), or ctx done.
-// timeout bounds the whole call, must be positive with no years, months, or weeks, and is no
-// deadline when null; when both timeout and ctx are given, the earlier wins.
+// response. A response of any status is Ok, and no redirect is followed; Err means no response: a
+// malformed url, an empty method, no connection, the timeout ("timeout"), or ctx done. timeout
+// bounds the whole call and is no deadline when null; one that is not positive or has years,
+// months, or weeks is Err; when both timeout and ctx are given, the earlier wins.
 func Http.request(method: string, url: string, body: string | Bytes = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 // Http.get sends a GET request to url and reads the whole response. It is [Http.request] with the
 // method "GET" and an empty body.
 func Http.get(url: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
-// Http.post sends body to url in a POST request and reads the whole response. It is
-// [Http.request] with the method "POST".
+// Http.post sends body to url in a POST request and reads the whole response. It is [Http.request]
+// with the method "POST".
 func Http.post(url: string, body: string | Bytes, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 // Http.serve answers every request that arrives on l by calling handler on a goroutine of its own.
 // It returns Ok once ctx is done and the requests in flight have finished, waiting at most five
@@ -1185,8 +1161,8 @@ func Time.localZone(): Time.Zone
 // Time.zoneId returns the identifier of z: its name as the database spells it, or its offset as
 // ±HH:MM.
 //
-//     Time.zoneId(Result.unwrap(Time.zone("asia/calcutta")))   // Asia/Calcutta
-//     Time.zoneId(Result.unwrap(Time.zone("+0530")))           // +05:30
+//     Time.zoneId(Result.unwrap(Time.zone("asia/calcutta")))   // "Asia/Calcutta"
+//     Time.zoneId(Result.unwrap(Time.zone("+0530")))           // "+05:30"
 func Time.zoneId(z: Time.Zone): string
 
 // Time.now returns the current instant.
@@ -1195,18 +1171,18 @@ func Time.now(): Time.Instant
 func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
 // Time.sleep blocks the calling goroutine for d, or until ctx is done when ctx is not null. Hours
 // and smaller are exact and a day is 24 hours; a zero or negative d returns at once, and a span
-// beyond about 292 years is taken as that. Panics if d has years, months or weeks.
+// beyond about 292 years is taken as that. It panics if d has years, months or weeks.
 func Time.sleep(d: Time.Duration, ctx: Context | null = null): void
 // Time.ticker returns a channel that receives the current instant every d, counted from the call.
 // It holds one tick and drops a tick that finds it full, so a slow reader gets one tick, not a
-// burst. It stops when ctx is done, or when the run ends if ctx is null, and is never closed.
-// Panics if d is zero or negative or has years, months or weeks.
+// burst. It stops when ctx is done, or when the run ends if ctx is null, and is never closed. It
+// panics if d is zero or negative or has years, months or weeks.
 func Time.ticker(d: Time.Duration, ctx: Context | null = null): Channel[Time.Instant]
 // Time.monotonic returns milliseconds from an arbitrary origin, for measuring elapsed time. Only
 // the difference of two readings means anything.
 func Time.monotonic(): int
 // Time.fromEpochMillis returns the instant ms milliseconds after the Unix epoch, or before it when
-// ms is negative. Panics if the result is beyond the range of an instant, 100 million days each
+// ms is negative. It panics if the result is beyond the range of an instant, 100 million days each
 // way.
 func Time.fromEpochMillis(ms: int): Time.Instant
 // Time.fromEpochNanos returns the instant ns nanoseconds after the Unix epoch, or before it when ns
@@ -1217,21 +1193,21 @@ func Time.fromEpochNanos(ns: int): Time.Instant
 //
 //     Time.epochMillis(Time.fromEpochNanos(-1))   // -1
 func Time.epochMillis(t: Time.Instant | Time.ZonedDateTime): int
-// Time.epochNanos returns the nanoseconds from the Unix epoch to t. Panics if t is outside
+// Time.epochNanos returns the nanoseconds from the Unix epoch to t. It panics if t is outside
 // 1677-09-21 to 2262-04-11, beyond which the count does not fit in an int.
 func Time.epochNanos(t: Time.Instant | Time.ZonedDateTime): int
 
-// Time.plainDate returns the date with the given year, month and day. Panics if there is no such
+// Time.plainDate returns the date with the given year, month and day. It panics if there is no such
 // date, such as month 13 or February 30; check input from the world against [Time.daysInMonth]
 // first, or hand its text to [Time.parsePlainDate].
 func Time.plainDate(year: int, month: int, day: int): Time.PlainDate
-// Time.plainTime returns the time of day with the given fields, each 0 when omitted. Panics if a
+// Time.plainTime returns the time of day with the given fields, each 0 when omitted. It panics if a
 // field is out of range, such as hour 24 or minute 60.
 func Time.plainTime(hour: int = 0, minute: int = 0, second: int = 0, millisecond: int = 0, microsecond: int = 0, nanosecond: int = 0): Time.PlainTime
 // Time.plainDateTime returns the wall-clock date and time made of date and time.
 func Time.plainDateTime(date: Time.PlainDate, time: Time.PlainTime): Time.PlainDateTime
-// Time.duration returns a duration with the given fields, each 0 when omitted and kept as given.
-// Panics if the fields have mixed signs, if years, months, weeks or days reach 2^32 in magnitude,
+// Time.duration returns a duration with the given fields, each 0 when omitted and kept as given. It
+// panics if the fields have mixed signs, if years, months, weeks or days reach 2^32 in magnitude,
 // or if the time part, days counted as 24 hours, reaches 2^53 seconds.
 //
 //     Time.duration(hours: 1, minutes: 30, milliseconds: 500)   // PT1H30M0.5S
@@ -1370,27 +1346,27 @@ func Time.with[T: Time.Wall](t: T, year: int | null = null, month: int | null = 
 // constrained, then weeks and days, and hours and smaller after; on a ZonedDateTime the calendar
 // result is placed in the zone by Time.Compatible before the exact part moves the instant. A
 // PlainDate takes the exact part as whole 24-hour days and a PlainTime ignores the calendar part
-// and wraps around the clock. Panics if t is an Instant and d has years, months, weeks or days.
+// and wraps around the clock. It panics if t is an Instant and d has years, months, weeks or days.
 //
 //     Time.plainDate(2024, 1, 31) | Time.add(Time.duration(months: 1))   // 2024-02-29
 //     Time.plainTime(23, 30) | Time.add(Time.duration(hours: 2))         // 01:30:00
 func Time.add[T: Time.Point](t: T, d: Time.Duration): T
-// Time.subtract returns t moved back by d, which is Time.add(t, Time.negate(d)). Panics as
+// Time.subtract returns t moved back by d, which is Time.add(t, Time.negate(d)). It panics as
 // [Time.add] does.
 func Time.subtract[T: Time.Point](t: T, d: Time.Duration): T
 // Time.until returns the duration from from to to, negative when to is earlier, balanced up to
 // largestUnit. That defaults to Time.Second for an Instant, Time.Hour for a ZonedDateTime or a
 // PlainTime, and Time.Day otherwise; months count from from, one passing when the day of the month
-// reaches that of from, and days between ZonedDateTimes in one zone are the zone's real days.
-// Panics on a unit above Hour for an Instant or a PlainTime or below Day for a PlainDate, and on
+// reaches that of from, and days between ZonedDateTimes in one zone are the zone's real days. It
+// panics on a unit above Hour for an Instant or a PlainTime or below Day for a PlainDate, and on
 // Day or larger between ZonedDateTimes in different zones.
 //
 //     var jan31 = Time.plainDate(2026, 1, 31)
 //     Time.until(jan31, Time.plainDate(2026, 2, 28), largestUnit: Time.Month{})   // P28D
 func Time.until[T: Time.Point](from: T, to: T, largestUnit: Time.Unit | null = null): Time.Duration
-// Time.since returns the duration from other to t, counted from t. It is
-// Time.negate(Time.until(t, other)), and for calendar units can differ from Time.until(other, t),
-// whose anchor is other. Panics as [Time.until] does.
+// Time.since returns the duration from other to t, counted from t. It is Time.negate(Time.until(t,
+// other)), and for calendar units can differ from Time.until(other, t), whose anchor is other. It
+// panics as [Time.until] does.
 //
 //     var feb29 = Time.plainDate(2024, 2, 29)
 //     var mar31 = Time.plainDate(2024, 3, 31)
@@ -1400,9 +1376,9 @@ func Time.since[T: Time.Point](t: T, other: T, largestUnit: Time.Unit | null = n
 // Time.round rounds t to a multiple of increment of smallestUnit by mode, by default to the nearest
 // with a tie away from zero. It rounds the time since the start of the day, or since the epoch for
 // an Instant; a ZonedDateTime rounded to Day picks the start of its day or the next by how much of
-// the real day has passed. Panics on Year, Month or Week, on Day for an Instant or a PlainTime, and
-// unless increment divides the next larger unit (24, 60 or 1000) and is smaller than it, or is 1
-// for Day.
+// the real day has passed. It panics on Year, Month or Week, on Day for an Instant or a PlainTime,
+// and unless increment divides the next larger unit (24, 60 or 1000) and is smaller than it, or is
+// 1 for Day.
 //
 //     Time.round(Time.plainTime(14, 37), Time.Minute{}, increment: 15)   // 14:30:00
 func Time.round[T: Time.Instant | Time.Timed](t: T, smallestUnit: Time.Unit, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}): T
@@ -1422,15 +1398,15 @@ func Time.negate(d: Time.Duration): Time.Duration
 // Time.abs returns d with its sign made positive, or d itself when it is zero.
 func Time.abs(d: Time.Duration): Time.Duration
 // Time.addDuration returns the sum of a and b, with days as 24 hours, balanced up to the larger of
-// their largest units. Panics if either has years, months or weeks.
+// their largest units. It panics if either has years, months or weeks.
 //
 //     Time.addDuration(Time.duration(minutes: 90), Time.duration(minutes: 30))   // PT120M
 //     Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25))         // P2DT1H
 func Time.addDuration(a: Time.Duration, b: Time.Duration): Time.Duration
 // Time.compareDuration returns -1, 0 or 1 as a is shorter than, as long as or longer than b. Years,
 // months and weeks are measured from relativeTo, and a day is 24 hours unless relativeTo is a
-// ZonedDateTime, whose days have their daylight-saving hours. Panics if either has years, months or
-// weeks and relativeTo is null.
+// ZonedDateTime, whose days have their daylight-saving hours. It panics if either has years, months
+// or weeks and relativeTo is null.
 //
 //     var month = Time.duration(months: 1)
 //     var feb = Time.plainDate(2026, 2, 1)
@@ -1438,8 +1414,8 @@ func Time.addDuration(a: Time.Duration, b: Time.Duration): Time.Duration
 func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.Dated | null = null): int
 // Time.total returns the length of d in unit, with a fraction: PT1H30M in hours is 1.5. Years,
 // months and weeks are measured from relativeTo, a PlainDateTime counting as its date, and a day is
-// 24 hours unless relativeTo is a ZonedDateTime. Panics on years, months or weeks, in d or as unit,
-// when relativeTo is null.
+// 24 hours unless relativeTo is a ZonedDateTime. It panics on years, months or weeks, in d or as
+// unit, when relativeTo is null.
 //
 //     var feb = Time.plainDate(2026, 2, 1)
 //     Time.total(Time.duration(months: 1), Time.Day{}, relativeTo: feb)   // 28.0
@@ -1448,7 +1424,7 @@ func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null
 // rounds it to a multiple of increment of smallestUnit by mode, dropping the smaller fields.
 // largestUnit defaults to the larger of the largest nonzero unit of d and smallestUnit; years,
 // months and weeks need relativeTo, as in [Time.total]. increment follows [Time.round] for a time
-// unit, and may be any for a day or calendar unit when largestUnit is smallestUnit. Panics if
+// unit, and may be any for a day or calendar unit when largestUnit is smallestUnit. It panics if
 // neither unit is given, on years, months or weeks without relativeTo, and on an increment that
 // breaks those rules.
 //
@@ -1472,18 +1448,18 @@ func Net.accept(l: Net.Listener, ctx: Context | null = null): Result[File.Handle
 // Net.close closes l, so pending and later [Net.accept] calls are Err. Closing it again does
 // nothing.
 func Net.close(l: Net.Listener): void
-// Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read
-// and written with the File functions, and every write to it is flushed.
+// Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and
+// written with the File functions, and every write to it is flushed.
 func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Error]
-// Net.peer returns the address of the other end of the connection f, as "ip:port". It is null
-// when f is a file or a standard stream.
+// Net.peer returns the address of the other end of the connection f, as "ip:port". It is null when
+// f is a file or a standard stream.
 func Net.peer(f: File.Handle): string | null
 
 // Os
 
-// Os.Output is what [Os.exec] captures from a child process that ran to its end. status is its
-// exit status, -1 when a signal ended it; each output is kept as bytes in stdoutBytes and
-// stderrBytes and as text in stdout and stderr.
+// Os.Output is what [Os.exec] captures from a child process that ran to its end. status is its exit
+// status, -1 when a signal ended it; each output is kept as bytes in stdoutBytes and stderrBytes
+// and as text in stdout and stderr.
 type Os.Output = { status: int, stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
 // Os.args returns the arguments after the program path: ant run main.ant a b gives ["a", "b"].
 func Os.args(): Array[string]
@@ -1497,9 +1473,9 @@ func Os.cwd(): Result[string, Error]
 func Os.exit(status: int): never
 // Os.exec runs program with args, with no shell between, waits for it to exit, and captures its
 // output. program is looked up in PATH when it has no path separator; the child runs in dir and
-// with env as its whole environment when they are given, and reads stdin. A nonzero exit is Ok
-// with its status; Err means the child could not be started or run to its end, and when ctx is
-// done the child is killed and the result is Err with ctx's reason.
+// with env as its whole environment when they are given, and reads stdin. A nonzero exit is Ok with
+// its status; Err means the child could not be started or run to its end, and when ctx is done the
+// child is killed and the result is Err with ctx's reason.
 func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string | Bytes = "",
         ctx: Context | null = null): Result[Os.Output, Error]
 // Os.stdin returns the program's standard input. A read of it flushes standard output first, so a
@@ -1510,8 +1486,8 @@ func Os.stdin(): File.Handle
 // called, the first interrupt no longer ends the run; a second does, as does the first after the
 // program cancels the context itself.
 func Os.interrupt(): Context
-// Os.stdout returns the program's standard output. print and println write to the same buffer,
-// so their output interleaves in program order.
+// Os.stdout returns the program's standard output. print and println write to the same buffer, so
+// their output interleaves in program order.
 func Os.stdout(): File.Handle
 // Os.stderr returns the program's standard error.
 func Os.stderr(): File.Handle
@@ -1526,8 +1502,8 @@ type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[strin
 //     Json.parse("{\"a\": [1, 2.5]}")   // Ok{ value: Map{ "a": [1.0, 2.5] } }
 func Json.parse(text: string): Result[Json.Value, Error]
 // Json.stringify returns the compact JSON text of value. Records become objects without their tag,
-// sets arrays, time values strings, and NaN and the infinities null. Panics with "cyclic value" on
-// a value that contains itself, and panics on Bytes, which a program writes with
+// sets arrays, time values strings, and NaN and the infinities null. It panics with "cyclic value"
+// on a value that contains itself, and panics on Bytes, which a program writes with
 // [Encoding.toBase64] instead.
 //
 //     Json.stringify(Map{ "a": [1, 2] })   // "{\"a\":[1,2]}"
@@ -1537,14 +1513,14 @@ func Json.stringify[T](value: T): string
 
 // Csv.parse parses text as RFC 4180 CSV with sep between fields. Each row keeps as many fields as
 // written, nothing is trimmed, and empty lines are dropped; it is Err, naming the line, on a quote
-// inside an unquoted field or a quoted field that never closes. Panics if sep is not one code
+// inside an unquoted field or a quoted field that never closes. It panics if sep is not one code
 // point other than ", \r, \n, U+0000, and U+FFFD.
 //
 //     Csv.parse("a,\"b,c\"\n1,2\n")   // Ok{ value: [["a", "b,c"], ["1", "2"]] }
 func Csv.parse(text: string, sep: string = ","): Result[Array[Array[string]], Error]
 // Csv.stringify writes rows as CSV with sep between fields, a line per row ending in \n. A field is
-// quoted when it holds sep, a quote, or a line break, or begins with white space. Panics if sep is
-// not a separator [Csv.parse] accepts.
+// quoted when it holds sep, a quote, or a line break, or begins with white space. It panics if sep
+// is not a separator [Csv.parse] accepts.
 //
 //     Csv.stringify([["a", "b,c"], ["1", "2"]])   // "a,\"b,c\"\n1,2\n"
 func Csv.stringify(rows: Array[Array[string]], sep: string = ","): string
@@ -1597,9 +1573,9 @@ func Url.escape(s: string): string
 //
 //     Url.unescape("a+b%26c")   // Ok{ value: "a b&c" }
 func Url.unescape(s: string): Result[string, Error]
-// Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as
-// [Url.unescape] does. Keys are in order of first appearance, each with its values in order, and a
-// key without = has the value "". It is Err where [Url.unescape] is.
+// Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as [Url.unescape]
+// does. Keys are in order of first appearance, each with its values in order, and a key without =
+// has the value "". It is Err where [Url.unescape] is.
 //
 //     Url.parseQuery("tag=a&tag=b&q")   // Ok{ value: Map{ "tag": ["a", "b"], "q": [""] } }
 func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
@@ -1635,8 +1611,8 @@ func Crypto.hmacSha512(key: Bytes, message: Bytes): Bytes
 // and not on their contents. It is for checking a received signature against a computed one;
 // sequences of different lengths are unequal.
 func Crypto.equal(a: Bytes, b: Bytes): bool
-// Crypto.randomBytes returns n bytes from the operating system's secure source of randomness.
-// Panics if n < 0 or n is above 2^31 - 1.
+// Crypto.randomBytes returns n bytes from the operating system's secure source of randomness. It
+// panics if n < 0 or n is above 2^31 - 1.
 func Crypto.randomBytes(n: int): Bytes
 // Crypto.uuid returns a random version 4 UUID, in lower case with hyphens.
 func Crypto.uuid(): string

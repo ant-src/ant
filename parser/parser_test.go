@@ -347,6 +347,9 @@ func h() {
   // a comment inside h
 }
 func k() {}
+
+// only a
+var a2 = 1; var b2 = 2
 `
 	f, err := Parse("t.ant", src, Program)
 	if err != nil {
@@ -361,6 +364,8 @@ func k() {}
 		{"no space\n  kept indent", "func Point.norm(p: Point): float64"},
 		{"inside", "func h()"},
 		{"", "func k()"},
+		{"only a", "var a2"},
+		{"", "var b2"},
 	}
 	if len(f.Decls) != len(want) {
 		t.Fatalf("got %d declarations", len(f.Decls))
