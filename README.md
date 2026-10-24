@@ -1,4 +1,4 @@
-# Ant: JavaScript done right, with static types and Go’s concurrency.
+# Ant: static types, goroutines, and nothing left undefined.
 
 ## Examples
 
