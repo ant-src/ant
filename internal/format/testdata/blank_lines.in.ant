@@ -25,4 +25,18 @@ func main() {
 
 }
 
+// A line that held only a dropped ; or , is not a blank line.
+func separators(a: int, b: int): void {
+  var x = 1
+  ;
+  var y = 2
+  separators(
+    a
+    ,
+    b
+  )
+}
 
+// a comment kept from documenting by a ;
+;
+func after(): void {}

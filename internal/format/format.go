@@ -90,10 +90,12 @@ type printer struct {
 	prefix   map[int]bool // the offsets of the - and ! the parser read as prefix
 	comments []token.Comment
 	out      strings.Builder
-	indent   int      // the indentation level of the line being written
-	pending  bool     // the line's indentation is not written yet
-	lastEnd  int      // the source offset after the last thing printed
-	trails   [][2]int // the output spans of the one-line comments written after code on a line
+	indent   int  // the indentation level of the line being written
+	pending  bool // the line's indentation is not written yet
+	lastEnd  int  // the source offset after the last thing printed
+	// afterComment says the last thing printed was a comment
+	afterComment bool
+	trails       [][2]int // the output spans of the one-line comments written after code on a line
 }
 
 // ---- building the tree
@@ -319,7 +321,25 @@ func (p *printer) trim() {
 }
 
 // blankBefore reports whether the author left a blank line before the offset.
-func (p *printer) blankBefore(off int) bool { return p.newlines(p.lastEnd, off) >= 2 }
+// blankBefore reports whether the author left a blank line between the last thing printed and
+// off. A line that held only a ; or a , the printer drops is not blank, so none is added in
+// its place, except after a comment: there the line kept the comment from documenting what
+// follows it, and a blank line keeps it so (fmt 4.8).
+func (p *printer) blankBefore(off int) bool {
+	if p.newlines(p.lastEnd, off) < 2 {
+		return false
+	}
+	if p.afterComment {
+		return true
+	}
+	lines := strings.Split(p.src[p.lastEnd:off], "\n")
+	for _, l := range lines[1 : len(lines)-1] {
+		if strings.Trim(l, " \t\r") == "" {
+			return true
+		}
+	}
+	return false
+}
 
 func (p *printer) token(t token.Token) {
 	switch {
@@ -331,6 +351,7 @@ func (p *printer) token(t token.Token) {
 		p.write(p.src[t.Off:t.End])
 	}
 	p.lastEnd = t.End
+	p.afterComment = false
 }
 
 // comment writes a comment's text with the spaces and tabs at the end of each line removed.
@@ -347,6 +368,7 @@ func (p *printer) comment(c *token.Comment) {
 		p.trails = append(p.trails, [2]int{start, p.out.Len()})
 	}
 	p.lastEnd = c.End
+	p.afterComment = true
 }
 
 // trailing writes a comment that ends a line of code, one space after the code; align moves it
