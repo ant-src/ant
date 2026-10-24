@@ -46,8 +46,9 @@ func unlock(g *interp.Goroutine, who string, m *value.Mutex) {
 	}
 }
 
-// runOnce runs f under the once, sharing a panic in f with every caller.
-func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.Value)) {
+// runOnce runs f under the once, sharing a panic in f with every caller. It reports whether f
+// returned, which it did not when a return unwound through it.
+func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.Value)) bool {
 	err := o.Do(func() error {
 		var v value.Value
 		if p := g.Catch(func() { v = g.Call(f) }); p != nil {
@@ -59,6 +60,7 @@ func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.
 	if p, ok := err.(*interp.AntPanic); ok {
 		g.Repanic(p)
 	}
+	return err == nil
 }
 
 func syncTag(name string, funcs ...*interp.Builtin) *value.Tag {
@@ -173,7 +175,9 @@ func init() {
 				o := value.NewOnce()
 				var cached value.Value
 				return fn(who, "", func(g *interp.Goroutine, _ string, _ []value.Value) value.Value {
-					runOnce(g, o, f, func(v value.Value) { cached = v })
+					if !runOnce(g, o, f, func(v value.Value) { cached = v }) {
+						g.Panic("%s: the function was left by a return before it gave a value", who)
+					}
 					return cached
 				})
 			}),

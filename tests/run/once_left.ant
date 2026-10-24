@@ -1,0 +1,38 @@
+// spec: 11 Synchronization; 5 Loops
+// panics: Once.value; library-value
+// A return from a for body that unwinds through the function given to Once.do completes the once,
+// so a later call returns at once instead of waiting forever; a Once.value whose function was
+// left that way has no value to give, and a later call panics.
+var once = Once.new()
+var yieldOut: func(int): bool = { true }
+var get = Once.value({
+  yieldOut(1)
+  7
+})
+func seq(yield: func(int): bool): void { Once.do(once, { yield(1) }) }
+func seqV(yield: func(int): bool): void {
+  yieldOut = yield
+  println(get())
+}
+func first(): int {
+  for x in seq { return x }
+  0
+}
+func firstV(): int {
+  for x in seqV { return x }
+  0
+}
+func main(): void {
+  println(first())
+  Once.do(once, { println("second do") })
+  println("done")
+  println(firstV())
+  println(get())
+}
+
+// expect
+// out: 1
+// out: done
+// out: 1
+// exit: 1
+// err: Once.value: the function was left by a return before it gave a value

@@ -285,14 +285,23 @@ func (o *Once) Do(f func() error) error {
 	}
 	o.state = 1
 	o.mu.Unlock()
-	err := f()
-	o.mu.Lock()
-	o.state = 2
-	o.err = err
-	o.cond.Broadcast()
-	o.mu.Unlock()
+	err := ErrOnceLeft
+	defer func() {
+		// f may leave by a Go panic that is not an error, as a return from a for body does
+		// when it unwinds through a yield inside f; the once is done all the same.
+		o.mu.Lock()
+		o.state = 2
+		o.err = err
+		o.cond.Broadcast()
+		o.mu.Unlock()
+	}()
+	err = f()
 	return err
 }
+
+// ErrOnceLeft is what later calls of a Once get when its function was left without returning,
+// by a return that unwound through it.
+var ErrOnceLeft = errors.New("the function of the Once was left without returning a value")
 
 // Cond is a condition variable over a Mutex.
 type Cond struct {
