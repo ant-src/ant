@@ -28,12 +28,13 @@ type loopUnwind struct {
 	v    value.Value
 }
 
-// evalValue evaluates an expression that cannot transfer control, such as a top-level
-// initializer.
+// evalValue evaluates a top-level initializer. The parser rules out return, break and continue
+// there, but not try, which the checker rejects; unchecked, a try that meets an Err has no
+// function to return it from.
 func (g *Goroutine) evalValue(e ast.Expr, env *Env) value.Value {
 	v, c := g.eval(e, env)
 	if c != ctlNone {
-		g.panicf(e.Position(), "internal error: control left an initializer")
+		g.panicf(e.Position(), "try met %s in a top-level initializer, which has no function to return it from", value.Render(v))
 	}
 	return v
 }

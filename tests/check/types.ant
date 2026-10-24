@@ -39,3 +39,6 @@ func main(): void {
   println(float64(count) + 1.0)
   println(int(count))
 }
+
+type Holder[T] = { item: T }
+type TooMany = Holder[int, string] // ERR: Holder takes 1 type argument, got 2

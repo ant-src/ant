@@ -735,7 +735,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	}
 	decl := ent.decl
 	if len(x.Args) != len(decl.Params) {
-		c.errorf(x.Pos, "%s takes %d type arguments, got %d", decl.Name, len(decl.Params), len(x.Args))
+		c.errorf(x.Pos, "%s takes %s, got %d", decl.Name, plural(len(decl.Params), "type argument"), len(x.Args))
 		return types.Invalid{}
 	}
 	var args []types.Type

@@ -170,8 +170,11 @@ func (g *Goroutine) selectArgs(head *ast.Call, name string, env *Env) ([]value.V
 		if c != ctlNone {
 			return []value.Value{v}, c
 		}
-		if i < 0 || i >= len(params) {
+		if i < 0 {
 			g.panicf(a.Value.Position(), "%s takes %s in a select clause, not %s", name, describeParams(params), a.Name)
+		}
+		if i >= len(params) {
+			g.panicf(a.Value.Position(), "%s takes %s in a select clause, got %d", name, describeParams(params), next)
 		}
 		args[i] = v
 	}
