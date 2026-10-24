@@ -18,6 +18,7 @@ Time.plainTime(25)                            // => panic: Time.plainTime: hour 
 Time.compareDuration(Time.duration(hours: 1), Time.duration(minutes: 90)) // => -1
 Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30), relativeTo: Time.plainDate(2026, 2, 1)) // => -1
 Time.compareDuration(Time.duration(months: 1), Time.duration(days: 30)) // => panic: Time.compareDuration: years, months or weeks need a relativeTo point to compare
+Time.compareDuration(Time.duration(years: 1), Time.duration(years: 1)) // => panic: Time.compareDuration: years, months or weeks need a relativeTo point to compare
 
 // A day added to an instant is a panic: an instant has no calendar.
 Time.add(Time.fromEpochMillis(0), Time.duration(hours: 24)) // => 1970-01-02T00:00:00Z
