@@ -84,6 +84,9 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 	if t := convValue(ent, f); t != nil {
 		return t
 	}
+	if t := c.lenValue(ent, f, e.Position()); t != nil {
+		return t
+	}
 	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil

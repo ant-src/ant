@@ -34,6 +34,10 @@ func byte[T: Number](x: T): byte
 func string(x: string): string
 func bool(x: bool): bool
 
+// len is built into the checker too: x is an array, a map, a set, a string, or a channel, or a
+// named primitive over string, which it unwraps.
+func len[T](x: T): int
+
 // Array
 
 func Array.length[T](xs: Array[T]): int

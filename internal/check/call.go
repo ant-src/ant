@@ -31,6 +31,9 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isConv {
 				return c.conversion(ent, x, sc)
 			}
+			if ent.isLen {
+				return c.length(x, sc)
+			}
 			return c.applySig(s, x, sc, expected)
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {
@@ -157,6 +160,60 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 		}
 	}
 	return result
+}
+
+// length checks len: one positional argument that has a size (section 11, Prelude).
+func (c *Checker) length(x *ast.Call, sc *scope) types.Type {
+	if len(x.Args) != 1 || x.Args[0].Name != "" {
+		c.errorf(x.Pos, "len takes exactly one positional argument")
+		c.synthArgs(x.Args, sc)
+		return types.IntType
+	}
+	t := c.synth(x.Args[0].Value, sc)
+	if !c.sized(t) {
+		c.errorf(x.Pos, "len needs an array, a map, a set, a string, or a channel, got %s", types.String(t))
+	}
+	return types.IntType
+}
+
+// sized reports whether len takes a value of type t: an array, a map, a set, a string, a
+// channel, a named primitive over string, or a union or bounded type parameter of these.
+func (c *Checker) sized(t types.Type) bool {
+	switch x := types.Expand(t).(type) {
+	case types.Invalid, types.Array, types.Map, types.Set:
+		return true
+	case types.Prim:
+		return x.Kind == value.KindString
+	case types.Named:
+		if x.Decl.Kind == types.PrimitiveDecl {
+			return x.Decl.Base == value.KindString
+		}
+		ch, ok := c.prelude["Channel"]
+		return ok && x.Decl == ch.decl
+	case types.Union:
+		for _, m := range x.Members {
+			if !c.sized(m) {
+				return false
+			}
+		}
+		return true
+	case types.Param:
+		return x.Decl.Bound != nil && c.sized(x.Decl.Bound)
+	}
+	return false
+}
+
+// lenValue types len used as a value from the function type expected: its one parameter must
+// be a type len takes. It returns nil when ent is not len.
+func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
+	if !ent.isLen {
+		return nil
+	}
+	if len(f.Params) != 1 || !c.sized(f.Params[0]) {
+		c.errorf(pos, "cannot use len where %s is expected", types.String(f))
+		return types.Invalid{}
+	}
+	return types.Func{Params: []types.Type{f.Params[0]}, Return: types.IntType, Required: 1}
 }
 
 // applySig checks a call of a declared function, solving its type parameters (section 4,
@@ -731,6 +788,12 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 	}
 	if t := convValue(ent, pf); t != nil {
 		return t
+	}
+	if ent.isLen {
+		if len(pf.Params) == 1 && types.Mentions(pf.Params[0], unsolved) {
+			return nil
+		}
+		return c.lenValue(ent, pf, e.Position())
 	}
 	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {

@@ -325,6 +325,7 @@ var panicRows = [][]string{
 	{"shift"},                                // Bits.shiftLeft, Bits.shiftRight
 	{"conversion"},                           // numeric conversion
 	{"string-bool"},                          // string, bool on the wrong kind
+	{"len"},                                  // len on a value without a size
 	{"field"},                                // a.b, a.b = v
 	{"index", "index-range"},                 // a[i], a[i] = v: not a container; out of range
 	{"call"},                                 // call: arity, names, non-function, constructor

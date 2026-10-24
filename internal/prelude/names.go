@@ -4,7 +4,7 @@ package prelude
 // Names are the prelude's bindings: the functions, the conversion names, the types, and the
 // namespaces. No declaration in any scope may shadow one (section 10).
 var Names = []string{
-	"print", "panic",
+	"print", "panic", "len",
 	"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64",
 	"float32", "float64", "int", "byte", "string", "bool",
 	"never", "Integer", "Number", "Ordered", "Seq", "Entry", "Indexed",

@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics; 11 Prelude
+// panics: len
+// len on a value without a size panics (section 12); a named primitive is unwrapped first.
+type Count = int
+
+func main(): void { print(len(Count(3))) }
+
+// expect
+// exit: 1
+// err: len needs an array, a map, a set, a string, or a channel, got

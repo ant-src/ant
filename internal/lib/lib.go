@@ -5,6 +5,7 @@ package lib
 import (
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
@@ -89,6 +90,26 @@ func Prelude() map[string]value.Value {
 				g.Panic("panic needs a string message, got %s", value.Describe(args[0]))
 			}
 			g.Panic("%s", msg)
+			return nil
+		})
+		table["len"] = fn("len", "x", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
+			v := args[0]
+			if t, ok := v.(*value.Tagged); ok {
+				v = t.Payload
+			}
+			switch x := v.(type) {
+			case *value.Array:
+				return int64(x.Len())
+			case *value.Map:
+				return int64(x.Len())
+			case *value.Set:
+				return int64(x.Len())
+			case string:
+				return int64(utf8.RuneCountInString(x))
+			case *value.Chan:
+				return int64(x.Len())
+			}
+			g.Panic("len needs an array, a map, a set, a string, or a channel, got %s", value.Describe(args[0]))
 			return nil
 		})
 		for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {

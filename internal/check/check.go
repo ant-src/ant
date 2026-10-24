@@ -127,6 +127,8 @@ type entity struct {
 	// conversion marks the twelve conversion functions, which also unwrap named primitives.
 	conversion value.Kind
 	isConv     bool
+	// isLen marks len, which takes any value with a size.
+	isLen bool
 }
 
 // sig is a function's signature: its type parameters and function type, in which the
@@ -220,6 +222,9 @@ func (c *Checker) loadPrelude(cfg Config) {
 			e.isConv = true
 			e.conversion = builtinKinds[name]
 		}
+	}
+	if e, ok := c.prelude["len"]; ok {
+		e.isLen = true
 	}
 }
 
