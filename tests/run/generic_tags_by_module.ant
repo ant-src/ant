@@ -1,0 +1,18 @@
+// spec: 10; 4 Inference
+// Types and values import alike, and a type export is its tag: two modules that each declare a
+// Point with the same fields declare two types, so inference matches a union member by its
+// declaration and solves T to the other Point.
+import "./lib/geometry.ant" { Point: GeoPoint }
+import "./lib/points.ant" { Point: PlainPoint }
+
+func which[T](v: GeoPoint | T): string {
+  if v is GeoPoint { "geometry" } else { "other" }
+}
+
+func main(): void {
+  println(which(PlainPoint{ x: 1.0, y: 2.0 }))
+}
+
+// expect
+// out: geometry init
+// out: other

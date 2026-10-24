@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/ant-src/ant/ast"
@@ -646,7 +647,8 @@ func discriminatorOf(t types.Type) (string, bool) {
 	case types.Func:
 		return "func", true
 	case types.Named:
-		return "tag:" + x.Decl.Name + strconv.Itoa(len(x.Decl.Fields)), true
+		// by declaration: two modules may each declare a Point
+		return fmt.Sprintf("tag:%p", x.Decl), true
 	case types.Record:
 		return "record", true
 	}
