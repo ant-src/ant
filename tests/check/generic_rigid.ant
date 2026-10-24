@@ -6,11 +6,11 @@ func wrap[T](x: T, f: func(T): Array[T]): Array[T] { f(x) }
 func apply[T](x: T, f: func(T): T): T { f(x) }
 
 func wrong[T](a: T): Array[T] {
-  wrap(a, { [1] }) // ERR: the lambda returns Array[int] where Array[T] is expected
+  wrap(a, { [1] }) // ERR: cannot use int where T is expected
 }
 
 func wrongToo[T](a: T): T {
-  apply(a, { "oops" }) // ERR: the lambda returns string where T is expected
+  apply(a, { "oops" }) // ERR: cannot use string where T is expected
 }
 
 func fine[T](a: T): Array[T] { wrap(a, { [x] }) }
@@ -31,3 +31,13 @@ func wrapDeep[T](x: T, depth: int): Array[T] {
 }
 
 func countDeep() { println(len(wrapDeep(1, 0))) }
+
+// A lambda whose expected result mentions only the enclosing function's own type parameter is
+// checked against that result, which is a fixed type there.
+func makeOk[T](v: T): func(): Result[T, Error] {
+  { Result.ok(v) }
+}
+
+func makeEmpty[T](v: T): func(): Array[T] {
+  { [] }
+}

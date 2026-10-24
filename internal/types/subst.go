@@ -114,6 +114,11 @@ func Mentions(t Type, set map[*ParamDecl]bool) bool {
 	return mentions(t, func(p Param) bool { return set[p.Decl] })
 }
 
+// MentionsOther reports whether t mentions a type parameter outside the set.
+func MentionsOther(t Type, set map[*ParamDecl]bool) bool {
+	return mentions(t, func(p Param) bool { return !set[p.Decl] })
+}
+
 // HasParam reports whether t mentions any type parameter at all.
 func HasParam(t Type) bool {
 	return mentions(t, func(Param) bool { return true })
