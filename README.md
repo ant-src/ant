@@ -9,53 +9,70 @@
 - **Time done right.** Time zones, dates, and durations modeled after JavaScript's Temporal.
 - **Union types.** `type Shape = Circle | Square`, then `if s is Circle { s.radius }`.
 
-## Example
+## Examples
 
 ```ts
-type Account = { id: string, balance: int }
-type Transfer = { from: string, to: string, amount: int }
+var result = [5, 2, 8, 1]
+  | Array.filter({ x > 2 })
+  | Array.map({ x * 10 })
+  | Array.sort()
+println(result) // [50, 80]
+```
 
-type NoAccount = { id: string }
-type Insufficient = { id: string, short: int }
-type TransferError = NoAccount | Insufficient
+```ts
+var messages: Channel[string] = Channel.new()
+go { Channel.send(messages, "Hello from another goroutine!") }
+println(Channel.receive(messages))
+```
 
-func withdraw(accounts: Map[string, Account], id: string, amount: int): Result[void, TransferError] {
-  var account = accounts[id] ?? return Result.err(NoAccount{ id })
-  if account.balance < amount {
-    return Result.err(Insufficient{ id, short: amount - account.balance })
-  }
-  account.balance -= amount
-  Result.ok(void)
+```ts
+func loadConfig(path: string): Result[Json.Value, Error] {
+  var text = try File.read(path)
+  Json.parse(text)
 }
+```
 
-func transfer(accounts: Map[string, Account], t: Transfer): Result[void, TransferError] {
-  var target = accounts[t.to] ?? return Result.err(NoAccount{ id: t.to })
-  try withdraw(accounts, t.from, t.amount)
-  target.balance += t.amount
-  Result.ok(void)
+```ts
+func serve(): Result[void, Error] {
+  var listener = try Net.listen(":8080")
+  var reply = Http.Response{ status: 200, headers: Map{}, body: "Hello!" }
+  Http.serve(listener, { reply })
 }
+```
 
-func explain(e: TransferError): string {
-  if e is NoAccount { `no account named ${e.id}` }
-  else if e is Insufficient { `${e.id} is short by ${e.short}` }
+```ts
+type Ready = { url: string }
+type Pending = {}
+func status(job: Ready | Pending): string {
+  if job is Ready { job.url } else { "pending" }
 }
+```
 
-func main(): void {
-  var accounts = Map{
-    ada: Account{ id: "ada", balance: 100 },
-    bob: Account{ id: "bob", balance: 20 },
-  }
-  var transfers = [
-    Transfer{ from: "ada", to: "bob", amount: 30 },
-    Transfer{ from: "bob", to: "ada", amount: 500 },
-    Transfer{ from: "ada", to: "eve", amount: 1 },
-  ]
-  for t in transfers {
-    var result = transfer(accounts, t)
-    if result is Err { println(explain(result.error)) }
-  }
-  println(Map.values(accounts) | Array.map({ `${x.id}: ${x.balance}` }))
+```ts
+func firstLine(path: string): Result[string | null, Error] {
+  var file = try File.open(path)
+  defer { File.close(file) }
+  File.readLine(file)
 }
+```
+
+```ts
+var messages: Channel[string] = Channel.new()
+select {
+  var message = Channel.receive(messages) { println(message) }
+  Time.sleep(Time.duration(seconds: 1)) { println("Timeout") }
+}
+```
+
+```ts
+var date = Time.plainDate(2024, 8, 31)
+var next = Time.add(date, Time.duration(months: 1))
+println(next) // 2024-09-30
+```
+
+```ts
+println(String.graphemes("🇨🇭🇩🇪")) // ["🇨🇭", "🇩🇪"]
+println(len(String.graphemes("👨‍👩‍👧"))) // 1
 ```
 
 ## Install
