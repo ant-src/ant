@@ -702,7 +702,8 @@ func Math.isFinite(x: float64): bool
 //
 //     Math.clamp(15, 0, 10)   // 10
 func Math.clamp[T: Ordered](x: T, lo: T, hi: T): T
-// Math.random returns a uniformly random number in [0, 1). The sequence cannot be seeded.
+// Math.random returns a uniformly random number in [0, 1). The sequence cannot be seeded; a
+// [Random] generator is the seeded form.
 func Math.random(): float64
 // Math.randomInt returns a uniformly random int from from, inclusive, to to, exclusive. It draws
 // from the same unseeded sequence as [Math.random]. It panics if to <= from.
@@ -779,6 +780,36 @@ func Bits.wrapSub[T: Integer](a: T, b: T): T
 //
 //     Bits.wrapMul(int8(64), int8(2))   // -128
 func Bits.wrapMul[T: Integer](a: T, b: T): T
+
+// Random
+
+// Random is a seeded generator of pseudo-random numbers. The same seed gives the same values in the
+// same order on every implementation of Ant, so a simulation, a test, or a game can be run again
+// exactly. Every function but [Random.new] draws from the generator and changes it, so goroutines
+// that share one without a lock race; [Random.fork] gives each its own. Generators compare by
+// identity. None is fit for keys or tokens, which take [Crypto.randomBytes].
+type Random
+// Random.new returns a generator seeded with seed.
+//
+//     var r = Random.new(42)
+//     Random.int(r, 0, 100)   // 22
+func Random.new(seed: int): Random
+// Random.int returns a uniformly random int from from, inclusive, to to, exclusive. It panics if
+// to <= from.
+func Random.int(r: Random, from: int, to: int): int
+// Random.float returns a uniformly random number in [0, 1).
+func Random.float(r: Random): float64
+// Random.bool returns true or false, each half the time.
+func Random.bool(r: Random): bool
+// Random.pick returns a uniformly random element of xs, or null if xs is empty, in which case it
+// draws nothing.
+func Random.pick[T](r: Random, xs: Array[T]): T | null
+// Random.shuffle reorders xs in place into a uniformly random permutation.
+func Random.shuffle[T](r: Random, xs: Array[T]): void
+// Random.fork returns a generator with r's state, and moves r 2^128 draws ahead, so the two give
+// different values for as long as any program runs. The new generator goes on with the values r
+// would have given.
+func Random.fork(r: Random): Random
 
 // Result
 

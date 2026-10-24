@@ -1,0 +1,57 @@
+// spec: 11 Random; 12 Runtime panics
+// Random (section 11): the values are fixed to the bit, so these are the values every
+// implementation gives, computed apart from this one.
+var r = Random.new(42)
+Array.map(Array.range(0, 5), { Random.int(r, 0, 100) })      // => [22, 33, 33, 56, 50]
+Random.float(Random.new(42))                                 // => 0.08386297105988216
+var xs = Array.range(1, 11)
+Random.shuffle(Random.new(42), xs)
+xs                                                           // => [6, 8, 10, 4, 3, 1, 5, 9, 2, 7]
+
+// Seeds at the edges of int, and ranges that need a full 64-bit draw.
+var zero = Random.new(0)
+Array.map(Array.range(0, 5), { Random.int(zero, 0, 100) })   // => [52, 42, 96, 44, 89]
+var neg = Random.new(-1)
+Array.map(Array.range(0, 5), { Random.int(neg, -5, 5) })     // => [3, 0, -3, -3, 4]
+var lo = Random.new(Math.minInt)
+Random.int(lo, Math.minInt, Math.maxInt)                     // => 5772482892184262851
+Random.int(lo, Math.minInt, Math.maxInt)                     // => -469382119497855646
+var hi = Random.new(Math.maxInt)
+Random.int(hi, 0, 4294967297)                                // => 2693003419
+Random.int(hi, 0, 4294967297)                                // => 3503940808
+
+// bool is the top bit of a draw; float is its top 53 bits.
+var b = Random.new(7)
+Array.map(Array.range(0, 8), { Random.bool(b) })             // => [true, false, true, true, true, true, false, false]
+var f = Random.new(5)
+Random.float(f)                                              // => 0.2884112281702357
+Random.float(f)                                              // => 0.6020823331320106
+
+// A one-value range still draws once, so the next value is the second draw's.
+var one = Random.new(9)
+Random.int(one, 5, 6)                                        // => 5
+Random.int(one, 0, 100)                                      // => 23
+
+// pick is an index drawn as int draws it; an empty array gives null and draws nothing.
+var p = Random.new(7)
+Array.map(Array.range(0, 5), { Random.pick(p, ["a", "b", "c", "d"]) }) // => ["c", "c", "c", "a", "a"]
+var none: Array[string] = []
+var q = Random.new(42)
+Random.pick(q, none)                                         // => null
+Random.int(q, 0, 100)                                        // => 22
+
+// fork: the child goes on with the parent's values, and the parent jumps ahead.
+var parent = Random.new(3)
+var child = Random.fork(parent)
+Array.map(Array.range(0, 3), { Random.int(child, 0, 100) })  // => [64, 81, 10]
+Array.map(Array.range(0, 3), { Random.int(parent, 0, 100) }) // => [73, 76, 52]
+
+// A generator is a reference: compared by identity, rendered by its type's name.
+var g = Random.new(1)
+g == g                                                       // => true
+Random.new(1) == Random.new(1)                               // => false
+g                                                            // => Random
+
+// An empty range is a panic.
+Random.int(g, 3, 3)                                          // => panic: Random.int needs from < to, got 3 and 3
+Random.int(g, 3, 2)                                          // => panic: Random.int needs from < to, got 3 and 2
