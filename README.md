@@ -95,6 +95,14 @@ ant fmt .
 ant fmt --check .
 ```
 
+Read the docs of the standard library, or of a module's exports:
+
+```sh
+ant doc Array.map
+ant doc Time
+ant doc geometry.ant distance
+```
+
 ## API
 
 Ant can be used as a lib too: 
