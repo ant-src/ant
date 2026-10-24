@@ -1,0 +1,34 @@
+// spec: 9 Data races; 5 Loops
+// A sequence that calls yield from goroutines of its own runs the loop body on each of them; the
+// runs write the loop function's variables one at a time, so a variable of a union type always
+// holds one whole value of its type and the interpreter never crashes.
+type Box = { a: int }
+
+func spread(yield: func(int): bool): void {
+  var wg = WaitGroup.new()
+  for w in Iter.range(0, 8) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for i in Iter.range(0, 5000) { yield(w * 1000000 + i) }
+    }
+  }
+  WaitGroup.wait(wg)
+}
+
+func main(): void {
+  var v: int | string | Box | Array[int] = 0
+  var runs = 0
+  var whole = 0
+  for x in spread {
+    runs += 1
+    if x % 4 == 0 { v = "text" } else if x % 4 == 1 { v = x } else if x % 4 == 2 { v = Box{ a: x } } else { v = [x, x] }
+    if v is string { whole += 1 } else if v is Box { whole += 1 } else if v is Array { whole += 1 } else if v is int { whole += 1 }
+  }
+  println(runs)
+  println(whole)
+}
+
+// expect
+// out: 40000
+// out: 40000

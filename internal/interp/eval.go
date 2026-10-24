@@ -3,6 +3,7 @@ package interp
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/ant-src/ant/ast"
@@ -1099,10 +1100,26 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
-	// active is atomic, since a sequence may call yield from goroutines of its own.
+	// active is atomic, since a sequence may call yield from goroutines of its own. The body's
+	// runs are serialized by body, which a yield inside the body on the same goroutine does not
+	// take again: the body writes the loop function's plain slots, which two goroutines must not
+	// write at once (section 9, Data races), and the loop waits for a run in progress before it
+	// goes on past the loop.
 	var active atomic.Bool
 	active.Store(true)
+	var body sync.Mutex
+	var owner atomic.Pointer[Goroutine]
+	enter := func(g2 *Goroutine) (leave func()) {
+		if owner.Load() == g2 {
+			return func() {}
+		}
+		body.Lock()
+		owner.Store(g2)
+		return func() { owner.Store(nil); body.Unlock() }
+	}
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
+		leave := enter(g2)
+		defer leave()
 		if !active.Load() {
 			g2.Panic("yield called after the sequence ended")
 		}
@@ -1130,7 +1147,9 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		}
 	}()
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
+	leave := enter(g)
 	active.Store(false)
+	leave()
 	return value.Void, ctlNone
 }
 
