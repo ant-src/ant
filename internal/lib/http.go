@@ -112,13 +112,6 @@ func optionalBody(g *interp.Goroutine, who string, v value.Value) string {
 	return textOrBytes(g, who, v)
 }
 
-func optionalString(g *interp.Goroutine, who string, v value.Value) string {
-	if !given(v) {
-		return ""
-	}
-	return stringArg(g, who, v)
-}
-
 // RequestTag is Http.Request: what a handler of Http.serve receives, the body as text and as
 // received.
 var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method", "path", "query", "headers", "body", "bytes", "remote"})
@@ -162,7 +155,7 @@ func serve(g *interp.Goroutine, who string, a []value.Value) value.Value {
 }
 
 // serveRequest answers one request: the Http.Request record goes to the handler on a new Ant
-// goroutine, and its Http.Response is written back, or 500 when the handler panicked.
+// goroutine, and its Http.Reply is written back, or 500 when the handler panicked.
 func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -176,7 +169,11 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		headers.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
 	}
 	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, text, raw, r.RemoteAddr})
-	result := make(chan *value.Record, 1)
+	type reply struct {
+		resp *value.Record
+		body string // the Reply's body, a string or Bytes, as the bytes to send
+	}
+	result := make(chan reply, 1)
 	g.Spawn(func(ng *interp.Goroutine) {
 		defer close(result)
 		resp, ok := ng.Call(handler, req).(*value.Record)
@@ -187,16 +184,16 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		if n, ok := status.(int64); !ok || n < 200 || n > 599 {
 			ng.Panic("Http.serve: the response status %s is outside 200 to 599", value.Render(status))
 		}
-		result <- resp
+		body, _ := resp.Field("body")
+		result <- reply{resp, textOrBytes(ng, "Http.serve", body)}
 	})
-	resp, ok := <-result
+	answer, ok := <-result
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	status, _ := resp.Field("status")
-	hdrs, _ := resp.Field("headers")
-	reply, _ := resp.Field("body")
+	status, _ := answer.resp.Field("status")
+	hdrs, _ := answer.resp.Field("headers")
 	if m, ok := hdrs.(*value.Map); ok {
 		for _, e := range m.Entries() {
 			k, kok := e.Key.(string)
@@ -206,16 +203,9 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 			}
 		}
 	}
-	out := ""
-	switch x := reply.(type) {
-	case string:
-		out = x
-	case value.Bytes:
-		out = string(x)
-	}
-	w.Header().Set("Content-Length", strconv.Itoa(len(out)))
+	w.Header().Set("Content-Length", strconv.Itoa(len(answer.body)))
 	w.WriteHeader(int(status.(int64)))
-	io.WriteString(w, out)
+	io.WriteString(w, answer.body)
 }
 
 func init() {

@@ -63,3 +63,7 @@ String.toBytes("\u{89}")                      // => Bytes(c2 89)
 Json.stringify(Map{ "data": png })            // => panic: Json.stringify: Bytes has no JSON form; write Encoding.toBase64 of it
 Json.stringify(Map{ "data": Encoding.toBase64(png) }) // => "{\"data\":\"iVBORw0KGgo=\"}"
 Json.stringify(Map{ String.toBytes("k"): 1 }) // => panic: Json.stringify: Bytes has no JSON form; write Encoding.toBase64 of it
+type Key = { id: Bytes }
+Json.stringify(Map{ [String.toBytes("k")]: 1 }) // => panic: Json.stringify: Bytes has no JSON form; write Encoding.toBase64 of it
+Json.stringify(Map{ Key{ id: String.toBytes("k") }: 1 }) // => panic: Json.stringify: Bytes has no JSON form; write Encoding.toBase64 of it
+Json.stringify(Map{ [1, 2]: true })           // => "{\"[1, 2]\":true}"

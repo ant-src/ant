@@ -182,7 +182,7 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 			if t, ok := key.(*value.Tagged); ok {
 				key = t.Payload // a named primitive key, without its tag as a value is written
 			}
-			if _, ok := key.(value.Bytes); ok {
+			if holdsBytes(key, nil) {
 				return bytesNoJSON
 			}
 			if s, ok := key.(string); ok {
@@ -210,6 +210,43 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 
 // bytesNoJSON is why Json.stringify panics on Bytes: JSON has no form for them (stdlib.md, Json).
 const bytesNoJSON = "Bytes has no JSON form; write Encoding.toBase64 of it"
+
+// holdsBytes reports whether v is Bytes or contains them, for a map key, which stringify writes
+// through value.Render rather than taking apart. stack holds the containers being searched, so a
+// cyclic key terminates.
+func holdsBytes(v value.Value, stack []any) bool {
+	var parts []value.Value
+	switch x := v.(type) {
+	case value.Bytes:
+		return true
+	case *value.Tagged:
+		return holdsBytes(x.Payload, stack)
+	case *value.Array:
+		parts = x.Values()
+	case *value.Set:
+		parts = x.Values()
+	case *value.Record:
+		for i := 0; i < x.Len(); i++ {
+			parts = append(parts, x.Get(i))
+		}
+	case *value.Map:
+		for _, e := range x.Entries() {
+			parts = append(parts, e.Key, e.Value)
+		}
+	default:
+		return false
+	}
+	if onStack(stack, v) {
+		return false
+	}
+	stack = append(stack, v)
+	for _, p := range parts {
+		if holdsBytes(p, stack) {
+			return true
+		}
+	}
+	return false
+}
 
 func onStack(stack []any, v any) bool {
 	for _, s := range stack {

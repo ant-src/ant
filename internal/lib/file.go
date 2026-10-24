@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +41,7 @@ type Handle struct {
 	reads   chan struct{}    // the read slot, taken with the caller's context; nil when the handle does not read
 	r       *bufio.Reader    // the input; a read consumes it into pending
 	pending string           // what a read consumed before its context ended it, for the next read
+	scratch []byte           // what File.readChunk reads into when nothing is buffered; held by the read slot
 	dl      deadliner        // a connection's read deadline; nil for a file, whose reads never wait
 	pump    *pump            // standard input, read on a goroutine so a terminal cannot hold a cancelled run
 	in      *interp.Instance // standard input: a read flushes stdout first
@@ -176,9 +179,10 @@ func (h *Handle) readAll() value.Value {
 	return value.Ok(value.Text(text))
 }
 
-// readChunk is File.readChunk's read: what pending holds, else one read of the input, 1 to max
-// bytes either way; null at the end of the input. The buffer is at most chunkCap, and a read
-// that fills less than half of it is copied out, so a short chunk does not hold a long buffer.
+// readChunk is File.readChunk's read: what pending holds, else what the input has buffered, else
+// one read of the input into the handle's scratch buffer, 1 to max bytes each way; null at the
+// end of the input. A chunk is allocated at the size it has, so a socket read with a large max
+// that gets a short message allocates the message, not max.
 func (h *Handle) readChunk(max int) value.Value {
 	if h.pending != "" {
 		n := min(max, len(h.pending))
@@ -186,14 +190,19 @@ func (h *Handle) readChunk(max int) value.Value {
 		h.pending = h.pending[n:]
 		return value.Ok(value.Bytes(out))
 	}
-	buf := make([]byte, min(max, chunkCap))
+	if n := h.r.Buffered(); n > 0 {
+		buf := make([]byte, min(max, n))
+		h.r.Read(buf) // a buffered read returns all it is asked for, without an error
+		return value.Ok(bytesValue(buf))
+	}
+	if cap(h.scratch) < min(max, scratchCap) {
+		h.scratch = make([]byte, min(max, scratchCap))
+	}
 	for {
-		n, err := h.r.Read(buf)
+		n, err := h.r.Read(h.scratch[:min(max, cap(h.scratch))])
 		switch {
-		case n > 0 && n < len(buf)/2:
-			return value.Ok(value.Bytes(buf[:n]))
 		case n > 0:
-			return value.Ok(bytesValue(buf[:n]))
+			return value.Ok(value.Bytes(h.scratch[:n]))
 		case err == io.EOF:
 			return value.Ok(value.Null)
 		case err != nil:
@@ -202,13 +211,14 @@ func (h *Handle) readChunk(max int) value.Value {
 	}
 }
 
-// chunkCap bounds what one File.readChunk allocates, whatever max it is given.
-const chunkCap = 1 << 20
+// scratchCap bounds the buffer a File.readChunk reads into when nothing is buffered, so one read
+// returns at most that much, whatever max it is given.
+const scratchCap = 64 << 10
 
-// readExactly is File.readExactly's read: n bytes, gathered in pending as they arrive, so a read
-// the context ended keeps what it had; null when the input is already at its end, and an Err
-// that keeps the bytes for the next read when it ends partway. The buffer grows with what
-// arrives, not with n, which may come from the other end.
+// readExactly is File.readExactly's read: n bytes, gathered as they arrive. The buffer grows with
+// what arrives rather than with n, which may come from the other end; a read that ends early,
+// because the context ended it or the input did, leaves what it gathered in pending for the next
+// read. null when the input is already at its end, and an Err when it ends partway.
 func (h *Handle) readExactly(n int) value.Value {
 	if len(h.pending) >= n {
 		out := h.pending[:n]
@@ -219,10 +229,13 @@ func (h *Handle) readExactly(n int) value.Value {
 	h.pending = ""
 	for len(buf) < n {
 		if len(buf) == cap(buf) {
-			buf = append(buf, make([]byte, min(n-len(buf), max(len(buf), 4096)))...)[:len(buf)]
+			buf = slices.Grow(buf, min(n-len(buf), max(len(buf), 4096)))
 		}
 		k, err := h.r.Read(buf[len(buf):min(n, cap(buf))])
 		buf = buf[:len(buf)+k]
+		if len(buf) == n {
+			break // a reader may return the last bytes with io.EOF; they are all here
+		}
 		if err != nil {
 			h.pending = string(buf)
 			if err != io.EOF {
@@ -471,7 +484,7 @@ func init() {
 					return value.Err(value.ErrorValue(fmt.Sprintf("the most to read is %d; it must be at least 1", max)))
 				}
 				defer g.AfterWait()
-				return h.read(ctx, func() value.Value { return h.readChunk(int(min(max, chunkCap))) })
+				return h.read(ctx, func() value.Value { return h.readChunk(int(min(max, scratchCap))) })
 			}),
 			fn("File.readExactly", "f, n, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])
@@ -481,7 +494,7 @@ func init() {
 					return value.Err(value.ErrorValue(fmt.Sprintf("the count to read is %d; it must be at least 0", n)))
 				}
 				defer g.AfterWait()
-				return h.read(ctx, func() value.Value { return h.readExactly(int(n)) })
+				return h.read(ctx, func() value.Value { return h.readExactly(int(min(n, math.MaxInt))) })
 			}),
 			fn("File.writeChunk", "f, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])

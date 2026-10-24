@@ -1132,7 +1132,7 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 		case "Set":
 			return types.Set{}
 		case "Bytes":
-			return types.Named{Decl: c.prelude["Bytes"].decl}
+			return types.Named{Decl: c.bytes}
 		}
 		return types.Prim{Kind: builtinKinds[x.Kind]}
 	}

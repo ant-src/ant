@@ -9,11 +9,7 @@ import (
 )
 
 func bytesArg(g *interp.Goroutine, who string, v value.Value) value.Bytes {
-	b, ok := v.(value.Bytes)
-	if !ok {
-		g.Panic("%s needs Bytes, got %s", who, value.Describe(v))
-	}
-	return b
+	return typedArg[value.Bytes](g, who, "Bytes", v)
 }
 
 // view is b as a byte slice without copying it, for a callee that only reads it: a hash, an
@@ -22,9 +18,13 @@ func view(b value.Bytes) []byte {
 	return unsafe.Slice(unsafe.StringData(string(b)), len(b))
 }
 
-// bytesValue makes Bytes of b without copying it, so b must not change afterwards: pass only a
-// slice nothing else holds, such as what a read or a hash returned.
+// bytesValue makes Bytes of b, sharing b's array when it is nearly full and copying when more
+// than an eighth of it would be held unused, as io.ReadAll and append leave it. b must not change
+// afterwards: pass only a slice nothing else holds, such as what a read or a hash returned.
 func bytesValue(b []byte) value.Bytes {
+	if cap(b)-len(b) > len(b)/8 {
+		return value.Bytes(b)
+	}
 	return value.Bytes(unsafe.String(unsafe.SliceData(b), len(b)))
 }
 
@@ -47,35 +47,6 @@ func received(b []byte) (text, raw value.Value) {
 	return value.Text(string(bs)), bs
 }
 
-// byteOf is an integer of any kind as a byte, or false when it is outside 0 ..= 255.
-func byteOf(v value.Value) (byte, bool) {
-	var n int64
-	switch x := v.(type) {
-	case int64:
-		n = x
-	case int8:
-		n = int64(x)
-	case int16:
-		n = int64(x)
-	case int32:
-		n = int64(x)
-	case uint8:
-		return x, true
-	case uint16:
-		n = int64(x)
-	case uint32:
-		n = int64(x)
-	case uint64:
-		if x > 255 {
-			return 0, false
-		}
-		n = int64(x)
-	default:
-		return 0, false
-	}
-	return byte(n), n >= 0 && n <= 255
-}
-
 func init() {
 	register("Bytes", func() value.Value {
 		return namespace("Bytes",
@@ -89,9 +60,15 @@ func init() {
 				return b[from:to]
 			}),
 			fn("Bytes.concat", "parts", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				parts := arrayArg(g, who, a[0]).Values()
+				size := 0
+				for _, v := range parts {
+					size += len(bytesArg(g, who, v))
+				}
 				var sb strings.Builder
-				for _, v := range arrayArg(g, who, a[0]).Values() {
-					sb.WriteString(string(bytesArg(g, who, v)))
+				sb.Grow(size)
+				for _, v := range parts {
+					sb.WriteString(string(v.(value.Bytes)))
 				}
 				return value.Bytes(sb.String())
 			}),
@@ -111,14 +88,14 @@ func init() {
 				vals := arrayArg(g, who, a[0]).Values()
 				out := make([]byte, len(vals))
 				for i, v := range vals {
-					b, ok := byteOf(v)
-					if !ok {
-						if value.KindOf(v).IsInteger() {
-							g.Panic("%s needs integers from 0 to 255, got %s at index %d", who, value.Render(v), i)
-						}
+					if !value.KindOf(v).IsInteger() {
 						g.Panic("%s needs an array of integers, got an element of kind %s", who, value.Describe(v))
 					}
-					out[i] = b
+					b, err := value.Convert(value.KindUint8, v)
+					if err != nil {
+						g.Panic("%s needs integers from 0 to 255, got %s at index %d", who, value.Render(v), i)
+					}
+					out[i] = b.(uint8)
 				}
 				return bytesValue(out)
 			}),

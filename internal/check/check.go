@@ -71,6 +71,9 @@ type Checker struct {
 	seen    map[string]bool
 	mods    []*moduleInfo
 	prelude map[string]*entity
+	// bytes is the declaration of Bytes, built in like string: len, for, indexing and is take
+	// it whether or not the host removed the namespace of its functions.
+	bytes *types.Decl
 
 	// the context of the function or initializer being checked
 	mod  *moduleInfo
@@ -213,8 +216,13 @@ func (c *Checker) loadPrelude(cfg Config) {
 		panic("prelude: " + err.Error())
 	}
 	c.declareFile(f, "")
+	c.bytes = c.prelude["Bytes"].decl
 	for _, name := range cfg.Removed {
 		delete(c.prelude, name)
+	}
+	if _, ok := c.prelude["Bytes"]; !ok {
+		// The functions go with the namespace; the type stays, as string stays without String.
+		c.prelude["Bytes"] = &entity{name: "Bytes", kind: entType, decl: c.bytes, exported: true}
 	}
 	for _, ns := range cfg.Namespaces {
 		c.declareFile(ns.Decls, ns.Name)

@@ -29,6 +29,7 @@
 //	int8 … int32, uint8 … uint64, byte   the Go integer type of that width (byte is uint8)
 //	float32, float64            float32, float64
 //	string                      string
+//	Bytes                       value.Bytes   (a string type of its own; never decoded)
 //	bool                        bool
 //	null, void                  value.Null, value.Void
 //	Array[T]                    *value.Array  (value.NewArray, Values, Get, Set, Push)

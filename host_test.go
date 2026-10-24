@@ -428,3 +428,29 @@ func size(b: Bytes): int { len(b) }
 		t.Errorf("size(Bytes) = %v, %v; want 3", v, err)
 	}
 }
+
+// TestWithoutBytesNamespace: removing the Bytes namespace removes its functions and keeps the
+// type, which is built in: is, len, for, b[i] and annotations still check and run.
+func TestWithoutBytesNamespace(t *testing.T) {
+	prog := loadSrc(t, `func main(): void {
+  var b: Bytes = String.toBytes("ab")
+  var u: string | Bytes = b
+  var total = 0
+  for x in b { total = total + int(x) }
+  println([u is Bytes, len(b) == 2, int(b[1]) == 98, total == 195])
+}`, ant.WithoutNamespaces("Bytes"))
+	if diags := prog.Check(); len(diags) != 0 {
+		t.Fatalf("check: %v", diags)
+	}
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&out)); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != "[true, true, true, true]\n" {
+		t.Errorf("stdout %q", out.String())
+	}
+	gone := loadSrc(t, `func main(): void { println(Bytes.length(String.toBytes("a"))) }`, ant.WithoutNamespaces("Bytes"))
+	if diags := gone.Check(); len(diags) != 1 || !strings.Contains(diags[0].Message, "length") {
+		t.Errorf("check: %v", diags)
+	}
+}

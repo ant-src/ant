@@ -836,6 +836,5 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 // isBytes reports whether t is the prelude's Bytes, which len, for and indexing take (section 11).
 func (c *Checker) isBytes(t types.Type) bool {
 	n, ok := types.Expand(t).(types.Named)
-	b, found := c.prelude["Bytes"]
-	return ok && found && n.Decl == b.decl
+	return ok && n.Decl == c.bytes
 }

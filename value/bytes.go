@@ -11,6 +11,7 @@ type Bytes string
 // digits per byte.
 func renderBytes(sb *strings.Builder, b Bytes) {
 	const digits = "0123456789abcdef"
+	sb.Grow(len("Bytes()") + 3*len(b))
 	sb.WriteString("Bytes(")
 	for i := 0; i < len(b); i++ {
 		if i > 0 {
