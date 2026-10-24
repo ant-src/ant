@@ -1,29 +1,7 @@
 # Work still to do
 
-Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Four gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
-
-## Seeded random
-
-**Today:** `Math.random` and `Math.randomInt` cannot be seeded, and `Crypto.randomBytes` reads the
-operating system. A simulation, a shuffled test fixture or a game cannot be replayed.
-
-**Sketch:** a `Random` value made from a seed. `Math.random` stays as it is.
-
-```
-Random.new(seed: int): Random
-Random.float(r: Random): float64                   // uniform in [0, 1)
-Random.int(r: Random, from: int, to: int): int     // from inclusive, to exclusive; panics if to <= from
-Random.shuffle[T](r: Random, xs: Array[T]): void   // mutates, in place
-Random.pick[T](r: Random, xs: Array[T]): T | null  // null for an empty array
-```
-
-**Open questions:**
-- The spec has to name the generator (PCG, SplitMix64, xoshiro) and how `int` and `shuffle` draw
-  from it. Otherwise the same seed gives different sequences under `ant run` and `ant build`.
-- Whether two goroutines sharing one `Random` race (a data race like any shared mutation,
-  section 9) or take turns behind a lock.
-- Whether `Random.new()` with no seed exists, seeded from the operating system.
 
 ## Error wrapping
 
