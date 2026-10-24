@@ -1,0 +1,133 @@
+// spec: 11 String
+// String (section 11): Unicode without a character type. Case, folding, normalization, the
+// class tests, categories and scripts, graphemes, and code points one at a time.
+
+// toUpper and toLower take the full mappings, which can change the length.
+String.toUpper("straße")                      // => "STRASSE"
+String.toUpper("ß")                           // => "SS"
+String.toUpper("ﬁsh")                         // => "FISH"
+String.toLower("ΣΟΦΟΣ")                       // => "σοφος"
+String.concat(Array.map(String.chars("ΣΟΦΟΣ"), String.toLower))   // => "σοφοσ"
+String.toLower("İ") == "i\u{307}"             // => true
+String.length(String.toLower("İstanbul"))     // => 9
+String.toUpper("ǆ")                           // => "Ǆ"
+String.toUpper("")                            // => ""
+
+// foldCase is the key without case; equalFold compares through it and does not normalize.
+String.foldCase("Straße")                     // => "strasse"
+String.foldCase("STRASSE")                    // => "strasse"
+String.foldCase("ΣΟΦΟΣ")                      // => "σοφοσ"
+String.foldCase("\u{212A}")                   // => "k"
+String.equalFold("Straße", "STRASSE")         // => true
+String.equalFold("ant", "ANT")                // => true
+String.equalFold("ant", "ants")               // => false
+String.equalFold("José", "jose\u{301}")       // => false
+String.equalFold(String.normalize("José", "NFC"), String.normalize("jose\u{301}", "NFC"))   // => true
+
+// normalize: the four forms of UAX #15.
+"\u{E9}" == "e\u{301}"                        // => false
+String.normalize("e\u{301}", "NFC") == "\u{E9}"   // => true
+String.normalize("\u{E9}", "NFD") == "e\u{301}"   // => true
+String.length(String.normalize("\u{E9}", "NFD"))  // => 2
+String.normalize("ﬁ", "NFC")                  // => "ﬁ"
+String.normalize("ﬁ", "NFKC")                 // => "fi"
+String.normalize("ﬁ\u{E9}", "NFKD") == "fie\u{301}"   // => true
+String.normalize("", "NFC")                   // => ""
+String.normalize("a", "nfc")                  // => panic: String.normalize needs the form NFC, NFD, NFKC or NFKD, got "nfc"
+String.concat(Array.filter(String.chars(String.normalize("Crème Brûlée", "NFD")), { !String.isMark(x) }))   // => "Creme Brulee"
+
+// The class tests: every code point, false on "".
+String.isDigit("٣")                           // => true
+String.toInt("٣")                             // => null
+String.isNumber("½Ⅻ7")                        // => true
+String.isNumber("")                           // => false
+String.isDigit("½")                           // => false
+String.isLetter("größe")                      // => true
+String.isSpace("\u{A0}\t\n")                  // => true
+String.isSpace("\u{200B}")                    // => false
+String.isUpper("ÀB")                          // => true
+String.isLower("àb")                          // => true
+String.isPunct("!?¿_")                        // => true
+String.isPunct("+")                           // => false
+String.isSymbol("+€→😀")                      // => true
+String.isMark("\u{301}\u{94D}")               // => true
+String.isMark("e\u{301}")                     // => false
+String.isControl("\t\u{7F}\u{85}")            // => true
+String.isControl("\u{200D}")                  // => false
+String.isGraphic("a \u{A0}")                  // => true
+String.isGraphic("\u{200D}")                  // => false
+String.isPrint("a b")                         // => true
+String.isPrint("a\u{A0}b")                    // => false
+String.isPrint("e\u{301}")                    // => true
+String.isPrint("")                            // => false
+
+// category and inScript ask about one code point.
+String.category("A")                          // => "Lu"
+String.category("é")                          // => "Ll"
+String.category("ǅ")                          // => "Lt"
+String.category("٣")                          // => "Nd"
+String.category("Ⅻ")                          // => "Nl"
+String.category("½")                          // => "No"
+String.category("\u{301}")                    // => "Mn"
+String.category("_")                          // => "Pc"
+String.category("€")                          // => "Sc"
+String.category(" ")                          // => "Zs"
+String.category("\u{2028}")                   // => "Zl"
+String.category("\t")                         // => "Cc"
+String.category("\u{200D}")                   // => "Cf"
+String.category("\u{E000}")                   // => "Co"
+String.category("\u{378}")                    // => "Cn"
+String.category("ab")                         // => panic: String.category needs a string of one code point, got "ab"
+String.category("")                           // => panic: String.category needs a string of one code point, got ""
+String.category("e\u{301}")                   // => panic: String.category needs a string of one code point, got "é"
+String.inScript("a", "Latin")                 // => true
+String.inScript("а", "Latin")                 // => false
+String.inScript("а", "Cyrillic")              // => true
+String.inScript("中", "Han")                  // => true
+String.inScript(".", "Common")                // => true
+String.inScript("7", "Common")                // => true
+String.inScript("ー", "Common")               // => true
+String.inScript("ー", "Katakana")             // => false
+String.inScript("\u{301}", "Inherited")       // => true
+String.inScript("𐌀", "Old_Italic")           // => true
+String.inScript("a", "latin")                 // => panic: String.inScript needs the name of a script, got "latin"
+String.inScript("a", "Latn")                  // => panic: String.inScript needs the name of a script, got "Latn"
+String.inScript("ab", "Latin")                // => panic: String.inScript needs a string of one code point, got "ab"
+
+func mixesScripts(host: string): bool {
+  var latin = false
+  var cyrillic = false
+  for c in host {
+    if String.inScript(c, "Latin") { latin = true }
+    if String.inScript(c, "Cyrillic") { cyrillic = true }
+  }
+  latin && cyrillic
+}
+mixesScripts("pаypal.com")                    // => true
+mixesScripts("paypal.com")                    // => false
+
+// graphemes: what a reader sees as one character.
+Array.length(String.graphemes("👨‍👩‍👧e\u{301}"))   // => 2
+String.graphemes("👨‍👩‍👧e\u{301}")[1] == "e\u{301}"   // => true
+String.length(String.graphemes("👨‍👩‍👧e\u{301}")[0])   // => 5
+String.graphemes("🇨🇭🇩🇪")                     // => ["🇨🇭", "🇩🇪"]
+String.join(Array.reverse(String.graphemes("🇨🇭")), "")   // => "🇨🇭"
+String.join(Array.reverse(String.chars("🇨🇭")), "") == "🇨🇭"   // => false
+Array.length(String.graphemes("क्षि"))         // => 1
+Array.length(String.graphemes("नमस्ते"))       // => 3
+String.graphemes("a\r\nb")                    // => ["a", "\r\n", "b"]
+String.graphemes("")                          // => []
+
+// codePoint and fromCodePoint: one code point and its scalar value.
+String.codePoint("A")                         // => 65
+String.codePoint("€")                         // => 8364
+String.codePoint("🐜")                        // => 128028
+String.codePoint("ab")                        // => panic: String.codePoint needs a string of one code point, got "ab"
+String.fromCodePoint(65)                      // => "A"
+String.fromCodePoint(0x1F41C)                 // => "🐜"
+String.fromCodePoint(0xD800)                  // => null
+String.fromCodePoint(0x110000)                // => null
+String.fromCodePoint(-1)                      // => null
+String.fromCodePoint(String.codePoint("a") + 1)   // => "b"
+
+String.unicodeVersion                         // => "17.0.0"

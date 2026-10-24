@@ -7,6 +7,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	"golang.org/x/text/unicode/norm"
+
+	"github.com/ant-src/ant/internal/grapheme"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
@@ -77,6 +82,31 @@ func classTest(name string, f func(rune) bool) *interp.Builtin {
 		}
 		return true
 	})
+}
+
+// normForms are the four normalization forms of UAX #15 that String.normalize takes.
+var normForms = map[string]norm.Form{"NFC": norm.NFC, "NFD": norm.NFD, "NFKC": norm.NFKC, "NFKD": norm.NFKD}
+
+// categories are the two-letter general categories String.category returns, other than Cn,
+// which is every code point none of them holds.
+var categories = []string{
+	"Lu", "Ll", "Lt", "Lm", "Lo", "Mn", "Mc", "Me", "Nd", "Nl", "No", "Pc", "Pd", "Ps", "Pe", "Pi",
+	"Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Co", "Cs",
+}
+
+// oneCodePoint reads a string argument of exactly one code point, and panics on any other.
+func oneCodePoint(g *interp.Goroutine, who string, v value.Value) rune {
+	s := stringArg(g, who, v)
+	r, size := utf8.DecodeRuneInString(s)
+	if s == "" || size != len(s) {
+		g.Panic("%s needs a string of one code point, got %s", who, value.RenderQuoted(s))
+	}
+	return r
+}
+
+// isScalar reports whether n is a Unicode scalar value: at most 10FFFF and not a surrogate.
+func isScalar(n int64) bool {
+	return n >= 0 && n <= unicode.MaxRune && (n < 0xD800 || n > 0xDFFF)
 }
 
 // lines splits s at every \n, drops a \r just before one, and omits an empty final piece.
@@ -256,20 +286,68 @@ func init() {
 				return value.NewArray(lines(stringArg(g, who, a[0])))
 			}),
 			fn("String.toUpper", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return strings.ToUpper(stringArg(g, who, a[0]))
+				return cases.Upper(language.Und).String(stringArg(g, who, a[0]))
 			}),
 			fn("String.toLower", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return strings.ToLower(stringArg(g, who, a[0]))
+				return cases.Lower(language.Und).String(stringArg(g, who, a[0]))
+			}),
+			fn("String.foldCase", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return cases.Fold().String(stringArg(g, who, a[0]))
+			}),
+			fn("String.equalFold", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x, y := stringArg(g, who, a[0]), stringArg(g, who, a[1])
+				return cases.Fold().String(x) == cases.Fold().String(y)
+			}),
+			fn("String.normalize", "s, form", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s, name := stringArg(g, who, a[0]), stringArg(g, who, a[1])
+				form, ok := normForms[name]
+				if !ok {
+					g.Panic("String.normalize needs the form NFC, NFD, NFKC or NFKD, got %q", name)
+				}
+				return form.String(s)
 			}),
 			classTest("String.isDigit", unicode.IsDigit),
 			classTest("String.isLetter", unicode.IsLetter),
+			classTest("String.isNumber", unicode.IsNumber),
 			classTest("String.isSpace", unicode.IsSpace),
 			classTest("String.isUpper", unicode.IsUpper),
 			classTest("String.isLower", unicode.IsLower),
+			classTest("String.isPunct", unicode.IsPunct),
+			classTest("String.isSymbol", unicode.IsSymbol),
+			classTest("String.isMark", unicode.IsMark),
+			classTest("String.isControl", unicode.IsControl),
+			classTest("String.isGraphic", unicode.IsGraphic),
+			classTest("String.isPrint", unicode.IsPrint),
+			fn("String.category", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				r := oneCodePoint(g, who, a[0])
+				for _, c := range categories {
+					if unicode.Is(unicode.Categories[c], r) {
+						return c
+					}
+				}
+				return "Cn"
+			}),
+			fn("String.inScript", "c, script", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				r := oneCodePoint(g, who, a[0])
+				name := stringArg(g, who, a[1])
+				table, ok := unicode.Scripts[name]
+				if !ok {
+					g.Panic("String.inScript needs the name of a script, got %q", name)
+				}
+				return unicode.Is(table, r)
+			}),
 			fn("String.chars", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var out []value.Value
 				for _, r := range stringArg(g, who, a[0]) {
 					out = append(out, string(r))
+				}
+				return value.NewArray(out)
+			}),
+			fn("String.graphemes", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				clusters := grapheme.Split(stringArg(g, who, a[0]))
+				out := make([]value.Value, len(clusters))
+				for i, c := range clusters {
+					out[i] = c
 				}
 				return value.NewArray(out)
 			}),
@@ -296,6 +374,16 @@ func init() {
 				}
 				return string(b)
 			}),
+			fn("String.codePoint", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return int64(oneCodePoint(g, who, a[0]))
+			}),
+			fn("String.fromCodePoint", "n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				n := intArg(g, who, a[0])
+				if !isScalar(n) {
+					return value.Null
+				}
+				return string(rune(n))
+			}),
 			fn("String.toCodePoints", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var out []value.Value
 				for _, r := range stringArg(g, who, a[0]) {
@@ -310,7 +398,7 @@ func init() {
 					if !ok {
 						g.Panic("String.fromCodePoints needs an array of ints, got an element of kind %s", value.Describe(v))
 					}
-					if p < 0 || p > unicode.MaxRune || (p >= 0xD800 && p <= 0xDFFF) {
+					if !isScalar(p) {
 						return value.Null
 					}
 					sb.WriteRune(rune(p))
@@ -377,6 +465,7 @@ func init() {
 			fn("String.from", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return value.Render(a[0])
 			}),
+			constant("unicodeVersion", unicode.Version),
 		)
 	})
 }

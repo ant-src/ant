@@ -149,14 +149,29 @@ func String.fields(s: string): Array[string]
 func String.lines(s: string): Array[string]
 func String.toUpper(s: string): string
 func String.toLower(s: string): string
+func String.foldCase(s: string): string
+func String.equalFold(a: string, b: string): bool
+func String.normalize(s: string, form: string): string
 func String.isDigit(s: string): bool
 func String.isLetter(s: string): bool
+func String.isNumber(s: string): bool
 func String.isSpace(s: string): bool
 func String.isUpper(s: string): bool
 func String.isLower(s: string): bool
+func String.isPunct(s: string): bool
+func String.isSymbol(s: string): bool
+func String.isMark(s: string): bool
+func String.isControl(s: string): bool
+func String.isGraphic(s: string): bool
+func String.isPrint(s: string): bool
+func String.category(c: string): string
+func String.inScript(c: string, script: string): bool
 func String.chars(s: string): Array[string]
+func String.graphemes(s: string): Array[string]
 func String.toBytes(s: string): Array[byte]
 func String.fromBytes(bytes: Array[byte]): string | null
+func String.codePoint(c: string): int
+func String.fromCodePoint(n: int): string | null
 func String.toCodePoints(s: string): Array[int]
 func String.fromCodePoints(points: Array[int]): string | null
 func String.toInt(s: string, base: int = 10): int | null
@@ -164,6 +179,7 @@ func String.toFloat(s: string): float64 | null
 func String.fromInt[T: Integer](x: T, base: int = 10): string
 func String.fromFloat(x: float64, digits: int): string
 func String.from[T](value: T): string
+var String.unicodeVersion: string
 
 // Regex
 
