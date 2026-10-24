@@ -41,6 +41,7 @@ func main(): void {
   println(area(s))
   println(wrong(s))
   println(_) // ERR: _ is write-only
+  _ += 1     // ERR: _ is write-only
   var label = if count > 0 { "positive" } else { null }
   println(label)
 }

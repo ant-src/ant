@@ -1303,6 +1303,10 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 	switch t := x.Target.(type) {
 	case *ast.Ident:
 		if t.Name == "_" {
+			if x.Op != "=" {
+				// a compound assignment reads its target
+				c.errorf(t.Pos, "_ is write-only and cannot be read")
+			}
 			c.synth(x.Value, sc)
 			return types.Void{}
 		}
