@@ -56,7 +56,7 @@ func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.
 		}
 		keep(v)
 		return nil
-	})
+	}, g.Instance().Flush)
 	if p, ok := err.(*interp.AntPanic); ok {
 		g.Repanic(p)
 	}

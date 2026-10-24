@@ -269,14 +269,18 @@ func NewOnce() *Once {
 func (o *Once) SyncName() string { return "Once" }
 
 // Do runs f the first time it is called; later and concurrent calls wait for that run and
-// return the error it returned, which is how a panic in f is shared.
-func (o *Once) Do(f func() error) error {
+// return the error it returned, which is how a panic in f is shared. A call that has to wait
+// calls waiting first.
+func (o *Once) Do(f func() error, waiting func()) error {
 	o.mu.Lock()
 	switch o.state {
 	case 2:
 		o.mu.Unlock()
 		return o.err
 	case 1:
+		o.mu.Unlock()
+		waiting()
+		o.mu.Lock()
 		for o.state != 2 {
 			o.cond.Wait()
 		}

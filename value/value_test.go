@@ -4,6 +4,7 @@ import (
 	"math"
 	"sync"
 	"testing"
+	"time"
 )
 
 type testFunc struct{ name string }
@@ -407,10 +408,20 @@ func TestSlotAndSync(t *testing.T) {
 	o := NewOnce()
 	n := 0
 	for i := 0; i < 3; i++ {
-		o.Do(func() error { n++; return nil })
+		o.Do(func() error { n++; return nil }, func() { t.Error("waited with no run in progress") })
 	}
 	if n != 1 {
 		t.Errorf("once ran %d times", n)
+	}
+	// a call that comes while the run is in progress calls waiting before it waits
+	slow, started, release := NewOnce(), make(chan bool), make(chan bool)
+	go slow.Do(func() error { started <- true; <-release; return nil }, func() {})
+	<-started
+	waited := false
+	go func() { time.Sleep(10 * time.Millisecond); release <- true }()
+	slow.Do(func() error { t.Error("ran twice"); return nil }, func() { waited = true })
+	if !waited {
+		t.Error("a waiting call did not call waiting")
 	}
 	c := NewCond(m)
 	if err := c.Wait(); err == nil {
