@@ -16,6 +16,7 @@ import (
 func docCommand(args []string, stdout, stderr io.Writer) int {
 	var decls []ast.Decl
 	var name string
+	inPrelude := false
 	switch {
 	case len(args) == 1 && !strings.HasSuffix(args[0], ".ant"):
 		f, err := prelude.Decls()
@@ -23,7 +24,7 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, err)
 			return 2
 		}
-		decls, name = f.Decls, args[0]
+		decls, name, inPrelude = f.Decls, args[0], true
 	case (len(args) == 1 || len(args) == 2) && strings.HasSuffix(args[0], ".ant"):
 		src, err := os.ReadFile(args[0])
 		if err != nil {
@@ -61,7 +62,13 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 		o, n := declName(d)
 		if dotted && strings.EqualFold(o, owner) && strings.EqualFold(n, member) ||
 			!dotted && o == "" && strings.EqualFold(n, name) {
-			printDoc(stdout, d)
+			printDoc(stdout, sig(d), docOf(d))
+			found = true
+		}
+	}
+	if !dotted && !found && inPrelude {
+		if ns, doc := prelude.NamespaceDoc(name); doc != "" {
+			printDoc(stdout, ns, doc)
 			found = true
 		}
 	}
@@ -85,10 +92,10 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// printDoc prints a declaration's signature and, indented, its doc comment.
-func printDoc(w io.Writer, d ast.Decl) {
-	fmt.Fprintln(w, sig(d))
-	if doc := docOf(d); doc != "" {
+// printDoc prints a declaration's signature, or a namespace's name, and, indented, its doc.
+func printDoc(w io.Writer, sig, doc string) {
+	fmt.Fprintln(w, sig)
+	if doc != "" {
 		fmt.Fprintln(w)
 		for line := range strings.SplitSeq(doc, "\n") {
 			if line != "" {

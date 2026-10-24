@@ -66,6 +66,16 @@ String.toFloat("-2.5")                        // => -2.5
 String.toFloat("1e3")                         // => 1000.0
 String.toFloat("1")                           // => 1.0
 String.toFloat("abc")                         // => null
+String.toFloat(".5")                          // => 0.5
+String.toFloat("5.")                          // => 5.0
+String.toFloat("+1e+3")                       // => 1000.0
+String.toFloat("1e-400")                      // => 0.0
+String.toFloat("1e400")                       // => null
+String.toFloat("Infinity")                    // => null
+String.toFloat("NaN")                         // => null
+String.toFloat(" 1")                          // => null
+String.toFloat("1_000")                       // => null
+String.toFloat("0x10")                        // => null
 
 // The pads count code points, and cut a longer pad to what is missing.
 String.padStart("7", 3, "0")                  // => "007"

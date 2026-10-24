@@ -13,6 +13,7 @@ func evens(limit: int, log: Array[string]): Seq[int] {
 }
 Iter.toArray(Iter.range(0, 5))                // => [0, 1, 2, 3, 4]
 Iter.toArray(Iter.range(3, 3))                // => []
+Iter.toArray(Iter.range(3, 1))                // => []
 var s = Iter.fromArray([1, 2, 3])
 Iter.toArray(s)                               // => [1, 2, 3]
 Iter.toArray(s)                               // => [1, 2, 3]

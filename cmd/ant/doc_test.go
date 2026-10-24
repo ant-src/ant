@@ -34,6 +34,7 @@ func TestDocCommand(t *testing.T) {
 		{"any case", []string{"array.LENGTH"}, 0, "func Array.length[T](xs: Array[T]): int\n\n    Array.length "},
 		{"namespace", []string{"Mutex"}, 0, "type Mutex\n\n    Mutex "},
 		{"constant", []string{"Math.PI"}, 0, "var Math.PI: float64\n\n    Math.PI "},
+		{"namespace doc", []string{"array"}, 0, "Array\n\n    Array holds "},
 		{"unknown", []string{"Array.nope"}, 1, ""},
 		{"module", []string{mod}, 0, "type Point = { x: float64, y: float64 }\nfunc Point.norm(p: Point): float64\n"},
 		{"module name", []string{mod, "point.norm"}, 0, "func Point.norm(p: Point): float64\n\n" +

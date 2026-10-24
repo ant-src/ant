@@ -16,3 +16,6 @@ Path.abs("x") | Result.map({ Path.isAbs(x) }) // => Ok{ value: true }
 Path.rel("/a/b", "/a/b/c/d")                  // => Ok{ value: "c/d" }
 Path.rel("/a/b", "/a/c")                      // => Ok{ value: "../c" }
 Path.rel("a", "/b") is Err                    // => true
+Path.rel("/a", "b") is Err                    // => true
+Path.rel("../a", "b")                         // => Err{ error: Error{ message: "no relative path leads from ../a to b" } }
+Path.rel("../a", "../b")                      // => Ok{ value: "../b" }

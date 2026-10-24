@@ -3,7 +3,8 @@
 // binds the same names to Go implementations; a test keeps the two in step. Parsed in declarations
 // mode: a func has no body, a type may be opaque, and var Name.CONSTANT: T declares a namespace
 // constant. println with no argument, the twelve conversions, and len are built into the checker;
-// their declarations here give their shape and their docs.
+// their declarations here give their shape and their docs. A section label that names a namespace,
+// followed by an empty comment line and a paragraph, as in "// Array", holds the namespace's doc.
 
 // Ok is the success case of a [Result], holding its value.
 type Ok[T] = { value: T }
@@ -92,6 +93,11 @@ func bool(x: bool): bool
 func len[T](x: T): int
 
 // Array
+//
+// Array holds the functions of the built-in array type Array[T], dense and growable. xs[i] reads
+// and xs[i] = v writes, both panicking when i is out of range; indices are ints from 0, and ranges
+// are half-open, from inclusive and to exclusive. A function whose doc says it mutates xs changes
+// it in place; every other returns a new array.
 
 // Array.length returns the number of elements in xs.
 func Array.length[T](xs: Array[T]): int
@@ -175,10 +181,11 @@ func Array.minBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
 func Array.maxBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
 // Array.sort returns a new array holding the elements of xs in ascending order. The sort is stable.
 func Array.sort[T: Ordered](xs: Array[T]): Array[T]
-// Array.sortBy returns a new array holding the elements of xs in ascending order of key.
+// Array.sortBy returns a new array holding the elements of xs in ascending order of key. The sort
+// is stable.
 func Array.sortBy[T, K: Ordered](xs: Array[T], key: func(T): K): Array[T]
 // Array.sortWith returns a new array holding the elements of xs ordered by cmp. cmp(a, b) < 0 puts
-// a before b.
+// a before b, and the sort is stable.
 //
 //     Array.sortWith([3, 1, 2], func(a: int, b: int) { b - a })   // [3, 2, 1]
 func Array.sortWith[T](xs: Array[T], cmp: func(T, T): int): Array[T]
@@ -224,6 +231,10 @@ func Array.sum[T: Number](xs: Array[T]): T | null
 func Array.same[T](xs: Array[T], ys: Array[T]): bool
 
 // Map
+//
+// Map holds the functions of the built-in map type Map[K, V], a hash map keyed by == that keeps
+// insertion order. m[k] reads V | null and m[k] = v inserts or replaces; a function that builds a
+// map from another keeps its order.
 
 // Map.size returns the number of entries in m.
 func Map.size[K, V](m: Map[K, V]): int
@@ -266,6 +277,9 @@ func Map.merge[K, V](m: Map[K, V], n: Map[K, V]): Map[K, V]
 func Map.same[K, V](m: Map[K, V], n: Map[K, V]): bool
 
 // Set
+//
+// Set holds the functions of the built-in set type Set[T], a hash set keyed by == that keeps
+// insertion order. There is no literal: the empty set is Set.of([]).
 
 // Set.of returns a new set holding the first of each == value in xs, in order. Set.of([]) is the
 // empty set, its element type coming from the expected type.
@@ -297,6 +311,10 @@ func Set.isSubset[T](a: Set[T], b: Set[T]): bool
 func Set.same[T](a: Set[T], b: Set[T]): bool
 
 // String
+//
+// String holds the functions of string, an immutable sequence of Unicode code points stored as
+// UTF-8. Lengths, indices, and slices count code points, and a character is a string of one code
+// point; [String.graphemes] gives what a reader sees as characters.
 
 // String.Cut is the two sides of a string around a separator, as [String.cut] returns them.
 type String.Cut = { before: string, after: string }
@@ -473,12 +491,20 @@ func String.toCodePoints(s: string): Array[int]
 func String.fromCodePoints(points: Array[int]): string | null
 // String.toInt parses s as an integer in base, or returns null when it is not one. s is digits of
 // base with an optional sign and no prefix; only 0 to 9 and the letters a to z, in either case,
-// count as digits. base defaults to 10, and it panics if base is outside 2 ..= 36.
+// count as digits. A number that does not fit an int is null too. base defaults to 10, and it
+// panics if base is outside 2 ..= 36.
 //
 //     String.toInt("-FF", 16)   // -255
 //     String.toInt("0x10")      // null
 func String.toInt(s: string, base: int = 10): int | null
-// String.toFloat parses s as a floating-point number, or returns null when it is not one.
+// String.toFloat parses s as a decimal number, or returns null when it is not one. s is ASCII
+// digits with an optional sign, fraction after ., and exponent after e or E; the result is rounded
+// to the nearest float64, and a value beyond its range is null. White space, _, a prefix such as
+// 0x, and Infinity and NaN are not numbers.
+//
+//     String.toFloat(".5")         // 0.5
+//     String.toFloat("1e+3")       // 1000.0
+//     String.toFloat("Infinity")   // null
 func String.toFloat(s: string): float64 | null
 // String.fromInt returns x written in base, with lower-case digits and a - in front when negative.
 // base defaults to 10, and it panics if base is outside 2 ..= 36.
@@ -527,6 +553,10 @@ func Bytes.fromArray[T: Integer](xs: Array[T]): Bytes
 func Bytes.toArray(b: Bytes): Array[byte]
 
 // Regex
+//
+// Regex holds the functions of regular expressions, written as a literal /.../flags or compiled
+// from data with [Regex.compile]. The syntax is RE2, so a match takes time linear in the input;
+// indices into the searched string count code points.
 
 // Regex.Pattern is a compiled regular expression, from a literal /.../flags or [Regex.compile]. It
 // is immutable and compares by its normalized source and flags, so it serves as a map key.
@@ -579,8 +609,12 @@ func Regex.source(p: Regex.Pattern): string
 func Regex.flags(p: Regex.Pattern): string
 
 // Iter
+//
+// Iter holds the functions of lazy sequences, Seq[T]. Each returns a new sequence without running
+// its source; [Iter.toArray] and for run one.
 
-// Iter.range returns the sequence of integers from from, inclusive, up to to, exclusive.
+// Iter.range returns the sequence of integers from from, inclusive, up to to, exclusive. It is
+// empty when to <= from.
 func Iter.range(from: int, to: int): Seq[int]
 // Iter.fromArray returns a sequence of the elements of xs, in order.
 func Iter.fromArray[T](xs: Array[T]): Seq[T]
@@ -596,7 +630,10 @@ func Iter.take[T](s: Seq[T], n: int): Seq[T]
 // Iter.toArray runs s and returns its elements as an array.
 func Iter.toArray[T](s: Seq[T]): Array[T]
 
-// Math and Bits
+// Math
+//
+// Math holds numeric functions and constants. The functions over float64 follow IEEE 754 and never
+// panic, so a result outside a function's domain is NaN.
 
 // Math.abs returns the absolute value of x. It panics on the most negative value of an integer
 // type, whose absolute value does not fit.
@@ -685,6 +722,11 @@ var Math.minInt: int
 // Math.maxInt is the largest int, 2^63 - 1.
 var Math.maxInt: int
 
+// Bits
+//
+// Bits holds the bitwise operations and wrapping arithmetic over the integer types, which have no
+// operators for them.
+
 // Bits.and returns the bitwise AND of a and b.
 func Bits.and[T: Integer](a: T, b: T): T
 // Bits.or returns the bitwise OR of a and b.
@@ -738,7 +780,7 @@ func Bits.wrapSub[T: Integer](a: T, b: T): T
 //     Bits.wrapMul(int8(64), int8(2))   // -128
 func Bits.wrapMul[T: Integer](a: T, b: T): T
 
-// Result and Record
+// Result
 
 // Result.ok returns an Ok carrying value; Result.ok(v) is the same value as Ok{ value: v }.
 func Result.ok[T, E](value: T): Result[T, E]
@@ -761,6 +803,10 @@ func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
 //     Result.all([Result.ok(1), Result.ok(2)])                            // Ok{ value: [1, 2] }
 //     Result.all([Result.ok(1), Result.err("no"), Result.err("later")])   // Err{ error: "no" }
 func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
+
+// Record
+//
+// Record holds the functions of record values.
 
 // Record.same reports whether a and b are the same record, not merely equal ones. The bound {}
 // admits any record type.
@@ -792,7 +838,7 @@ func RwMutex.new(): RwMutex
 func RwMutex.readLock(m: RwMutex): void
 // RwMutex.readUnlock releases one read lock on m. It panics if m is not read-locked.
 func RwMutex.readUnlock(m: RwMutex): void
-// RwMutex.writeLock locks m for writing, blocking until no other goroutine holds it.
+// RwMutex.writeLock locks m for writing, blocking while any reader or writer holds it.
 func RwMutex.writeLock(m: RwMutex): void
 // RwMutex.writeUnlock releases the write lock on m. It panics if m is not write-locked.
 func RwMutex.writeUnlock(m: RwMutex): void
@@ -906,6 +952,10 @@ func Channel.length[T](c: Channel[T]): int
 func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 
 // File
+//
+// File holds the functions of the file system and of handles: open files, the standard streams, and
+// network connections. Every operation that can fail returns a Result with an Error; a read that
+// waits takes a context.
 
 // File.Handle is an opaque handle to an open file, a standard stream, or a network connection. The
 // reads of a handle share one buffer, so a program can read lines and then bytes from it. One
@@ -925,6 +975,7 @@ func File.removeAll(path: string): Result[void, Error]
 // File.rename renames or moves the file or directory at from to the path to.
 func File.rename(from: string, to: string): Result[void, Error]
 // File.tempDir creates a fresh directory under the host's temporary directory and returns its path.
+// The directory is named prefix followed by a random suffix.
 func File.tempDir(prefix: string): Result[string, Error]
 // File.walk returns every file below dir, at any depth, as paths relative to dir. It lists files
 // and not directories, does not follow symbolic links, and returns the paths in lexical order.
@@ -936,24 +987,26 @@ func File.append(path: string): Result[File.Handle, Error]
 func File.read(path: string): Result[string, Error]
 // File.readBytes reads the whole file at path as bytes, unchanged.
 func File.readBytes(path: string): Result[Bytes, Error]
-// File.write writes text as UTF-8 to the file at path.
+// File.write writes text as UTF-8 to the file at path, creating the file or replacing what it held.
 func File.write(path: string, text: string): Result[void, Error]
-// File.writeBytes writes bytes as they are to the file at path.
+// File.writeBytes writes bytes as they are to the file at path, creating the file or replacing what
+// it held.
 func File.writeBytes(path: string, bytes: Bytes): Result[void, Error]
-// File.exists reports whether path exists.
+// File.exists reports whether anything exists at path, a directory included.
 func File.exists(path: string): bool
 // File.remove removes the file or empty directory at path. It is Err on a directory that has
 // entries; [File.removeAll] removes a whole tree.
 func File.remove(path: string): Result[void, Error]
-// File.list returns the names of the entries directly in dir. Unlike [File.walk] it does not
-// descend, and it returns names rather than paths.
+// File.list returns the names of the entries directly in dir, in lexical order. Unlike [File.walk]
+// it does not descend, and it returns names rather than paths.
 func File.list(dir: string): Result[Array[string], Error]
 // File.open opens the file at path for reading. Close it with [File.close].
 func File.open(path: string): Result[File.Handle, Error]
 // File.create opens the file at path for writing, creating it or truncating what it held.
 func File.create(path: string): Result[File.Handle, Error]
-// File.readLine reads the next line from f, as text, and returns null at end of file. When ctx is
-// done first it is Err with ctx's reason, and what it had read stays for the next read of f.
+// File.readLine reads the next line from f as text, without its \n or \r\n, and returns null at end
+// of file. When ctx is done first it is Err with ctx's reason, and what it had read stays for the
+// next read of f.
 func File.readLine(f: File.Handle, ctx: Context | null = null): Result[string | null, Error]
 // File.writeLine writes line and a newline to f.
 func File.writeLine(f: File.Handle, line: string): Result[void, Error]
@@ -971,7 +1024,8 @@ func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Er
 func File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.readExactly reads exactly n bytes from f, waiting until all of them have arrived. It returns
 // null at end of file, is Err with the message "unexpected end of file" when the input ends
-// partway, and is Err when n is below 0; an n of 0 gives empty Bytes.
+// partway, and is Err when n is below 0. An n of 0 gives empty Bytes without reading, at the end of
+// the file too.
 func File.readExactly(f: File.Handle, n: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.writeChunk writes bytes to f as they are.
 func File.writeChunk(f: File.Handle, bytes: Bytes): Result[void, Error]
@@ -982,6 +1036,9 @@ func File.writeText(f: File.Handle, text: string): Result[void, Error]
 func File.flush(f: File.Handle): Result[void, Error]
 
 // Path
+//
+// Path holds pure functions over paths in the host's convention: / on Unix, \ and drive letters on
+// Windows. They work on the text and never touch the file system, except [Path.abs].
 
 // Path.join joins parts with the path separator and cleans the result.
 //
@@ -1009,12 +1066,17 @@ func Path.clean(p: string): string
 func Path.isAbs(p: string): bool
 // Path.abs returns p as an absolute path, resolved against the working directory.
 func Path.abs(p: string): Result[string, Error]
-// Path.rel returns target as a path relative to base.
+// Path.rel returns target as a path relative to base, working on the cleaned text. It is Err when
+// no relative path leads there: when one path is absolute and the other is not, when they are on
+// different Windows volumes, or when base climbs out with .. further than target does.
 //
 //     Path.rel("/a/b", "/a/c/d")   // Ok{ value: "../c/d" }
 func Path.rel(base: string, target: string): Result[string, Error]
 
 // Http
+//
+// Http holds an HTTP client and server. A request reads the whole response, and a server calls a
+// handler for each request on a goroutine of its own.
 
 // Http.Response is the response to a client request. Its body is there twice: as received in bytes,
 // and as text in body, with bytes that are not valid UTF-8 as U+FFFD. The headers hold one string
@@ -1047,8 +1109,12 @@ func Http.post(url: string, body: string | Bytes, headers: Map[string, string] =
 // outside 200 to 599 panics in the handler's goroutine.
 func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: Context | null = null): Result[void, Error]
 
-// Time (stdlib.md): the types are opaque and carry a tag in is tests; the options are
-// enumerations of empty records.
+// Time
+//
+// Time holds dates, times, zones, and durations, after JavaScript's Temporal: exact time and
+// wall-clock time are different types, a zone is named and carried, and nothing assumes UTC or the
+// host's zone. The time types are opaque, immutable, and compared by value. Unlike the other I/O
+// namespaces, Time is computation and panics on an argument that cannot be.
 
 // Time.Zone is a time zone: a zone of the IANA database, such as Europe/Stockholm, or a fixed
 // offset, such as +05:30. Two named zones are equal when they are aliases of one zone, two offset
@@ -1148,7 +1214,8 @@ type Time.HalfEven = {}
 // Time.HalfExpand.
 type Time.RoundingMode = Time.Ceil | Time.Floor | Time.Expand | Time.Trunc | Time.HalfCeil | Time.HalfFloor | Time.HalfExpand | Time.HalfTrunc | Time.HalfEven
 
-// Time.utc is the UTC zone, whose offset is +00:00 at every instant.
+// Time.utc is the named zone UTC, whose offset is +00:00 at every instant. Being named, it is not
+// == to the offset zone Time.zone("+00:00").
 var Time.utc: Time.Zone
 // Time.zone returns the zone named by id, a name of the IANA database in any letter case or a fixed
 // offset. An alias such as Asia/Calcutta is accepted, and an offset may be written ±HH:MM, ±HHMM or
@@ -1433,6 +1500,9 @@ func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null
 func Time.roundDuration(d: Time.Duration, smallestUnit: Time.Unit | null = null, largestUnit: Time.Unit | null = null, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}, relativeTo: Time.Dated | null = null): Time.Duration
 
 // Net
+//
+// Net holds TCP listeners and connections. A connection is a File.Handle, read and written with the
+// File functions.
 
 // Net.Listener is an opaque listening TCP socket, made by [Net.listen].
 type Net.Listener
@@ -1456,6 +1526,9 @@ func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Err
 func Net.peer(f: File.Handle): string | null
 
 // Os
+//
+// Os holds the process: its arguments, environment, standard streams, exit, interrupts, and child
+// processes.
 
 // Os.Output is what [Os.exec] captures from a child process that ran to its end. status is its exit
 // status, -1 when a signal ended it; each output is kept as bytes in stdoutBytes and stderrBytes
@@ -1493,6 +1566,8 @@ func Os.stdout(): File.Handle
 func Os.stderr(): File.Handle
 
 // Json
+//
+// Json converts between JSON text and values.
 
 // Json.Value is a JSON value: null, a boolean, a number, a string, an array, or an object. Every
 // number is a float64; [Math.toInt] converts one to an int when it is whole and in range.
@@ -1510,6 +1585,8 @@ func Json.parse(text: string): Result[Json.Value, Error]
 func Json.stringify[T](value: T): string
 
 // Csv
+//
+// Csv converts between CSV text, as RFC 4180 describes it, and rows of fields.
 
 // Csv.parse parses text as RFC 4180 CSV with sep between fields. Each row keeps as many fields as
 // written, nothing is trimmed, and empty lines are dropped; it is Err, naming the line, on a quote
@@ -1526,6 +1603,8 @@ func Csv.parse(text: string, sep: string = ","): Result[Array[Array[string]], Er
 func Csv.stringify(rows: Array[Array[string]], sep: string = ","): string
 
 // Encoding
+//
+// Encoding converts bytes to and from text in base64 and hex.
 
 // Encoding.toBase64 encodes bytes as padded base64 in the standard alphabet, with + and /, or when
 // url is true in the URL-safe one, with - and _.
@@ -1548,6 +1627,8 @@ func Encoding.toHex(bytes: Bytes): string
 func Encoding.fromHex(s: string): Result[Bytes, Error]
 
 // Url
+//
+// Url divides URLs into parts and escapes and parses query strings.
 
 // Url.Parts is a URL reference divided as RFC 3986 does, with each absent part "". scheme is in
 // lower case without its colon, opaque is what follows "scheme:" when that is not "//", as in a
@@ -1586,6 +1667,8 @@ func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
 func Url.stringifyQuery(params: Map[string, Array[string]]): string
 
 // Crypto
+//
+// Crypto holds cryptographic hashes, HMACs, a constant-time comparison, and secure randomness.
 
 // Crypto.sha256 returns the 32-byte SHA-256 digest of bytes.
 //

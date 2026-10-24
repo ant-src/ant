@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -40,9 +41,11 @@ func init() {
 				return value.Ok(p)
 			}),
 			fn("Path.rel", "base, target", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				p, err := filepath.Rel(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
+				base, target := stringArg(g, who, a[0]), stringArg(g, who, a[1])
+				p, err := filepath.Rel(base, target)
 				if err != nil {
-					return errResult(err)
+					// Go's message names its own function; this one names the paths.
+					return errResult(fmt.Errorf("no relative path leads from %s to %s", base, target))
 				}
 				return value.Ok(p)
 			}),

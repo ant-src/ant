@@ -59,3 +59,37 @@ func TestPreludeDocs(t *testing.T) {
 		}
 	}
 }
+
+// TestNamespaceDocs requires every namespace without a type of its own name, such as Array or
+// Time, to have a doc that starts with its name, and no namespace to have two.
+func TestNamespaceDocs(t *testing.T) {
+	f, err := Decls()
+	if err != nil {
+		t.Fatal(err)
+	}
+	types, owners := map[string]bool{}, map[string]bool{}
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.TypeDecl:
+			if d.Owner == "" {
+				types[d.Name] = true
+			} else {
+				owners[d.Owner] = true
+			}
+		case *ast.FuncDecl:
+			owners[d.Owner] = true
+		case *ast.VarDecl:
+			owners[d.Owner] = true
+		}
+	}
+	for ns := range owners {
+		_, doc := NamespaceDoc(ns)
+		switch {
+		case ns == "":
+		case types[ns] && doc != "":
+			t.Errorf("%s has a type, whose doc is the namespace's; its section label must not have one", ns)
+		case !types[ns] && !strings.HasPrefix(doc, ns+" "):
+			t.Errorf("namespace %s: the doc under its section label must start with %q, got %q", ns, ns+" ", doc)
+		}
+	}
+}
