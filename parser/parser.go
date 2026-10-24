@@ -1220,11 +1220,15 @@ func (p *parser) template(t token.Token) *ast.Template {
 			n.Parts = append(n.Parts, ast.TemplatePart{Text: part.Text})
 			continue
 		}
-		sub := &parser{mode: p.mode, toks: part.Tokens, nl: 1, boundary: p.boundary, loops: p.loops, curBlock: p.curBlock, roles: p.roles, prefix: p.prefix}
-		e := sub.expression()
-		if !sub.atKind(token.EOF) {
-			sub.fail(sub.peek().Pos, "unexpected %s in a template expression", sub.peek())
+		// The interpolation is parsed by this parser on its own tokens, so it keeps the source,
+		// the nesting depth, and everything else of the enclosing expression.
+		toks, i, nl, header := p.toks, p.i, p.nl, p.header
+		p.toks, p.i, p.nl, p.header = part.Tokens, 0, 1, false
+		e := p.expression()
+		if !p.atKind(token.EOF) {
+			p.fail(p.peek().Pos, "unexpected %s in a template expression", p.peek())
 		}
+		p.toks, p.i, p.nl, p.header = toks, i, nl, header
 		n.Parts = append(n.Parts, ast.TemplatePart{Expr: e})
 	}
 	return n

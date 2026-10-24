@@ -301,6 +301,8 @@ func TestNesting(t *testing.T) {
 		"var x: " + strings.Repeat("Array[", 1100) + "int" + strings.Repeat("]", 1100) + " = 1",
 		"func f(): void " + strings.Repeat("{", 1100) + strings.Repeat("}", 1100),
 		"var s = " + strings.Repeat("`${", 1100) + "1" + strings.Repeat("}`", 1100),
+		// the depth carries into an interpolation instead of starting again at zero
+		"var s = " + strings.Repeat("`${"+strings.Repeat("(", 600), 2) + "1" + strings.Repeat(strings.Repeat(")", 600)+"}`", 2),
 		"var x = if a { 1 }" + strings.Repeat(" else if a { 1 }", 1100),
 		"var x = 1" + strings.Repeat(" + 1", 1100),
 		"var x = a" + strings.Repeat(" ?? a", 1100),

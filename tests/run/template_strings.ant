@@ -14,6 +14,7 @@ line`)
   println(`$ alone and ${count}$`)
   var f: func(int): string = { `${x * 2}` }
   println(f(21))
+  println(`a var inside: ${func(): int { var a = 1; a + 1 }()}`)
 }
 
 // expect
@@ -25,3 +26,4 @@ line`)
 // out: escapes: ` ${not} \ A
 // out: $ alone and 3$
 // out: 42
+// out: a var inside: 2
