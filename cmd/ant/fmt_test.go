@@ -93,6 +93,29 @@ func TestFmtInPlace(t *testing.T) {
 	}
 }
 
+// TestFmtReadOnly checks that a file the user may not write is not replaced: it could not be
+// written, which exits 2, and the other files are still formatted.
+func TestFmtReadOnly(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes any file")
+	}
+	dir := tree(t, map[string]string{"a.ant": unformatted, "b.ant": unformatted})
+	ro := filepath.Join(dir, "a.ant")
+	if err := os.Chmod(ro, 0o444); err != nil {
+		t.Fatal(err)
+	}
+	status, _, errOut := fmtRun([]string{ro, filepath.Join(dir, "b.ant")}, "")
+	if status != 2 || !strings.Contains(errOut, "a.ant") {
+		t.Errorf("status %d, stderr %q", status, errOut)
+	}
+	if got := read(t, ro); got != unformatted {
+		t.Errorf("the read-only file changed:\n%s", got)
+	}
+	if got := read(t, filepath.Join(dir, "b.ant")); got != formatted {
+		t.Errorf("b.ant:\n%s", got)
+	}
+}
+
 // TestFmtUnchangedNotWritten checks that a formatted file is not written at all.
 func TestFmtUnchangedNotWritten(t *testing.T) {
 	dir := tree(t, map[string]string{"a.ant": formatted})

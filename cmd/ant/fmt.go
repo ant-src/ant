@@ -160,6 +160,12 @@ func replace(path string, contents []byte) error {
 	if err != nil {
 		return err
 	}
+	// The rename would replace a file the user may not write, so ask for write access first.
+	w, err := os.OpenFile(target, os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	w.Close()
 	tmp, err := os.CreateTemp(filepath.Dir(target), ".ant-fmt-*")
 	if err != nil {
 		return err
