@@ -789,11 +789,12 @@ func Bits.wrapMul[T: Integer](a: T, b: T): T
 // that share one without a lock race; [Random.fork] gives each its own. Generators compare by
 // identity. None is fit for keys or tokens, which take [Crypto.randomBytes].
 type Random
-// Random.new returns a generator seeded with seed.
+// Random.new returns a generator seeded with seed. Without a seed, or with null, it is seeded from
+// the host's secure source, as [Crypto.randomBytes] is, and its values differ from run to run.
 //
 //     var r = Random.new(42)
 //     Random.int(r, 0, 100)   // 22
-func Random.new(seed: int): Random
+func Random.new(seed: int | null = null): Random
 // Random.int returns a uniformly random int from from, inclusive, to to, exclusive. It panics if
 // to <= from.
 func Random.int(r: Random, from: int, to: int): int

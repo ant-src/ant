@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"math/bits"
 	"sync"
 
@@ -29,6 +31,19 @@ func newRandom(seed int64) *Random {
 		z = (z ^ z>>30) * 0xBF58476D1CE4E5B9
 		z = (z ^ z>>27) * 0x94D049BB133111EB
 		r.s[i] = z ^ z>>31
+	}
+	return r
+}
+
+// hostRandom fills the words from the host's secure source, again in the case that all are zero.
+func hostRandom() *Random {
+	r := &Random{}
+	for r.s == [4]uint64{} {
+		var b [32]byte
+		rand.Read(b[:]) // never returns an error: crypto/rand ends the program instead
+		for i := range r.s {
+			r.s[i] = binary.LittleEndian.Uint64(b[8*i:])
+		}
 	}
 	return r
 }
@@ -93,7 +108,10 @@ func randomArg(g *interp.Goroutine, who string, v value.Value) *Random {
 func init() {
 	register("Random", func() value.Value {
 		return syncTag("Random",
-			fn("Random.new", "seed", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			fn("Random.new", "seed?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if !given(a[0]) {
+					return hostRandom()
+				}
 				return newRandom(intArg(g, who, a[0]))
 			}),
 			fn("Random.int", "r, from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {

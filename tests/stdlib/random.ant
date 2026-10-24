@@ -52,6 +52,14 @@ g == g                                                       // => true
 Random.new(1) == Random.new(1)                               // => false
 g                                                            // => Random
 
+// Without a seed, or with null, the host's secure source seeds it, so two such generators differ;
+// a named seed is the same as a positional one.
+Random.int(Random.new(), Math.minInt, Math.maxInt) == Random.int(Random.new(), Math.minInt, Math.maxInt) // => false
+Random.int(Random.new(null), Math.minInt, Math.maxInt) == Random.int(Random.new(null), Math.minInt, Math.maxInt) // => false
+var u = Random.new()
+Array.every(Array.range(0, 200), { var v = Random.float(u); v >= 0.0 && v < 1.0 }) // => true
+Random.int(Random.new(seed: 42), 0, 100)                     // => 22
+
 // An empty range is a panic.
 Random.int(g, 3, 3)                                          // => panic: Random.int needs from < to, got 3 and 3
 Random.int(g, 3, 2)                                          // => panic: Random.int needs from < to, got 3 and 2
