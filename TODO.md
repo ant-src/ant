@@ -1,56 +1,7 @@
 # Work still to do
 
-Six gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
-
-## Unicode
-
-**Today:** `String` has the string-wide checks (`isDigit`, `isLetter`, `isSpace`, `isUpper`,
-`isLower`), case mapping, and `toCodePoints` / `fromCodePoints`. Go's `unicode` and `unicode/utf8`
-packages cover more than that: they test a single code point, name its category and script, fold
-case, and measure and validate UTF-8. Ant has none of these, so a lexer, a slug function or a
-case-insensitive comparison has to hand-roll tables.
-
-**Sketch:** a `Unicode` namespace over single code points, given as the `int` scalar values
-`String.toCodePoints` returns, plus a few `String` additions for the whole-string forms.
-
-```
-Unicode.isLetter(c: int): bool                     // likewise isDigit, isNumber, isSpace, isUpper,
-                                                   // isLower, isTitle, isPunct, isSymbol, isMark,
-                                                   // isControl, isGraphic, isPrint
-Unicode.category(c: int): string                   // the two-letter general category, such as "Lu"
-Unicode.inScript(c: int, script: string): bool     // "Latin", "Han", "Cyrillic", ...
-Unicode.toUpper(c: int): int
-Unicode.toLower(c: int): int
-Unicode.toTitle(c: int): int
-Unicode.simpleFold(c: int): int                    // the next code point in its case-fold orbit
-Unicode.isScalar(c: int): bool                     // 0 ..= 0x10FFFF and not a surrogate
-Unicode.utf8Length(c: int): int                    // 1 to 4
-Unicode.version(): string                          // the Unicode version the tables follow
-
-String.equalFold(a: string, b: string): bool       // equal under simple case folding, as Go's EqualFold
-String.toTitle(s: string): string
-String.byteLength(s: string): int                  // UTF-8 bytes, without String.toBytes
-String.isValidUtf8(bytes: Array[byte]): bool
-String.normalize(s: string, form: string): string  // "NFC", "NFD", "NFKC" or "NFKD"; panics on another form
-```
-
-- Every function that takes a code point, except `isScalar`, panics on an `int` that is not a scalar
-  value.
-- The tables are the Unicode version Go's `unicode` package ships, so `ant run` and `ant build` agree.
-
-**Open questions:**
-- Whether a code point gets its own type, such as a named primitive `Rune` over `int32` (section
-  4), so an ordinary `int` or a byte cannot be passed by mistake. `String.toCodePoints` and `for`
-  over a string would then need to change too.
-- Whether categories and scripts are strings, which a typo turns into a run-time panic, or tagged
-  unions the checker can see.
-- Normalization is not in Go's standard library (`golang.org/x/text/unicode/norm`), nor are
-  grapheme clusters and display width. Which of them belong in the library, given the tables they
-  carry.
-- Whether the existing `String.is...` checks keep their "every code point, false on `""`" meaning or
-  are defined through `Unicode`, and whether `String.toUpper` maps one code point to one, as Go's
-  does, or applies the full mappings that turn `ß` into `SS`.
 
 ## Seeded random
 

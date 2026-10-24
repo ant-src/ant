@@ -20,3 +20,9 @@ var roundTrip = Json.parse(Json.stringify(Map{ k: [1.5, "s", null, true] }))
 roundTrip                                     // => Ok{ value: Map{ "k": [1.5, "s", null, true] } }
 Json.stringify(Json.parse("{}") | Result.unwrapOr(null)) // => "{}"
 Json.stringify(Json.parse("[]") | Result.unwrapOr(null)) // => "[]"
+
+// A \u escape of a surrogate pair is the one code point it encodes; a lone surrogate escape,
+// which encodes no text, becomes U+FFFD.
+Json.parse("\"\\ud83d\\udc1c\"")              // => Ok{ value: "🐜" }
+Result.unwrap(Json.parse("\"\\ud800x\"")) == "\u{FFFD}x"   // => true
+Result.unwrap(Json.parse("\"\\udc1c\\ud83d\"")) == "\u{FFFD}\u{FFFD}"   // => true
