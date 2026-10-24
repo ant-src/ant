@@ -100,7 +100,7 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 		return nil
 	}
 	subst := map[*types.ParamDecl]types.Type{}
-	if !c.unify(s.fn, f, subst) {
+	if !c.unifyFuncValue(s, f, subst) {
 		c.errorf(e.Position(), "cannot use %s where %s is expected", s.fullName(), types.String(expected))
 		return types.Invalid{}
 	}
@@ -117,6 +117,31 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 		return types.Invalid{}
 	}
 	return inst
+}
+
+// unifyFuncValue solves a generic function's type parameters from the expected function type:
+// from its parameters first, then from its result for those still unsolved, since the result
+// need only be assignable to the expected one, which the caller checks. ident as a
+// func(Circle): Shape is ident at Circle.
+func (c *Checker) unifyFuncValue(s *sig, f types.Func, subst map[*types.ParamDecl]types.Type) bool {
+	if len(s.fn.Params) != len(f.Params) {
+		return c.unify(s.fn, f, subst)
+	}
+	for i, p := range s.fn.Params {
+		if !c.unify(p, f.Params[i], subst) {
+			return false
+		}
+	}
+	unsolved := map[*types.ParamDecl]bool{}
+	for _, p := range s.tparams {
+		if _, ok := subst[p]; !ok {
+			unsolved[p] = true
+		}
+	}
+	if !types.Mentions(s.fn.Return, unsolved) {
+		return true
+	}
+	return c.unify(s.fn.Return, f.Return, subst)
 }
 
 // convValue types a conversion used as a value where a function from a named primitive is

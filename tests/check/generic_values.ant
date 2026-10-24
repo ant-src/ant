@@ -23,3 +23,18 @@ func main(): void {
   var nums: func(Number, Number): Number = bigger // ERR: T would be Number
   println(bare)
 }
+
+// The parameters fix the type parameters, and the result need only be assignable to the
+// expected result, so ident serves as a func(Circle): Shape.
+type Circle = { r: int }
+type Square = { side: int }
+type Shape = Circle | Square
+func ident[T](x: T): T { x }
+
+func covariant(): void {
+  var widen: func(Circle): Shape = ident
+  var nullable: func(int): int | null = ident
+  var wrong: func(int): string = ident // ERR: cannot use func(int): int where func(int): string is expected
+  println(widen(Circle{ r: 1 }))
+  println(nullable(2))
+}
