@@ -224,7 +224,7 @@ func init() {
 			extremeBy("Array.maxBy", false),
 			fn("Array.sort", "xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				vals := arrayArg(g, who, a[0]).Values()
-				sort.SliceStable(vals, func(i, j int) bool { return less(g, who, vals[i], vals[j]) })
+				sort.SliceStable(vals, func(i, j int) bool { return sortLess(g, who, vals[i], vals[j]) })
 				return value.NewArray(vals)
 			}),
 			fn("Array.sortBy", "xs, key", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
@@ -238,7 +238,7 @@ func init() {
 				for i := range idx {
 					idx[i] = i
 				}
-				sort.SliceStable(idx, func(i, j int) bool { return less(g, who, keys[idx[i]], keys[idx[j]]) })
+				sort.SliceStable(idx, func(i, j int) bool { return sortLess(g, who, keys[idx[i]], keys[idx[j]]) })
 				out := make([]value.Value, len(vals))
 				for i, k := range idx {
 					out[i] = vals[k]
@@ -364,8 +364,11 @@ func init() {
 	})
 }
 
-// isNaN reports whether v is a float NaN.
+// isNaN reports whether v is a float NaN, tagged or not.
 func isNaN(v value.Value) bool {
+	if t, ok := v.(*value.Tagged); ok {
+		v = t.Payload
+	}
 	switch x := v.(type) {
 	case float64:
 		return math.IsNaN(x)

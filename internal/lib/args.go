@@ -105,6 +105,15 @@ func less(g *interp.Goroutine, who string, a, b value.Value) bool {
 	return r
 }
 
+// sortLess is less with NaN after every number, so that a sort has a total order to follow.
+func sortLess(g *interp.Goroutine, who string, a, b value.Value) bool {
+	an, bn := isNaN(a), isNaN(b)
+	if an || bn {
+		return !an && bn
+	}
+	return less(g, who, a, b)
+}
+
 // sliceBounds checks a half-open range against a length.
 func sliceBounds(g *interp.Goroutine, who string, from, to int64, length int) {
 	if from < 0 || to > int64(length) || from > to {
