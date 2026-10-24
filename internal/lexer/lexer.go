@@ -80,14 +80,14 @@ func (l *lexer) fail(pos token.Pos, format string, args ...any) {
 	panic(&Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
-// invalidUTF8 fails at the first byte of src that does not begin a UTF-8 sequence, since a source
+// invalidUTF8 fails at the first byte of src where no UTF-8 sequence is, since a source
 // file is UTF-8 text (section 2) and a string literal must not carry other bytes into a program.
 func (l *lexer) invalidUTF8() {
 	for i := 0; i < len(l.src); {
 		r, size := utf8.DecodeRuneInString(l.src[i:])
 		if r == utf8.RuneError && size == 1 {
 			l.advance(i)
-			l.fail(l.here(), "the source is not UTF-8 text: the byte 0x%02X begins no character", l.src[i])
+			l.fail(l.here(), "the source is not UTF-8 text at the byte 0x%02X", l.src[i])
 		}
 		i += size
 	}

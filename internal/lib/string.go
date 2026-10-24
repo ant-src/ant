@@ -2,8 +2,11 @@ package lib
 
 import (
 	"math"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -95,15 +98,46 @@ var categories = []string{
 	"Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Co",
 }
 
-// scriptOf returns the name of the script that holds r, or "" for none: the script Unicode
-// calls Unknown, which Go's unicode.Scripts does not list.
-func scriptOf(r rune) string {
-	for name, table := range unicode.Scripts {
-		if unicode.Is(table, r) {
-			return name
+// scripted lists, in order and merged, the runs of code points that some script of
+// unicode.Scripts holds. A code point outside all of them is in the script Unicode calls
+// Unknown, which unicode.Scripts does not list.
+var scripted = sync.OnceValue(func() [][2]rune {
+	var runs [][2]rune
+	add := func(lo, hi, stride rune) {
+		if stride == 1 {
+			runs = append(runs, [2]rune{lo, hi})
+			return
+		}
+		for r := lo; r <= hi; r += stride {
+			runs = append(runs, [2]rune{r, r})
 		}
 	}
-	return ""
+	for _, table := range unicode.Scripts {
+		for _, r := range table.R16 {
+			add(rune(r.Lo), rune(r.Hi), rune(r.Stride))
+		}
+		for _, r := range table.R32 {
+			add(rune(r.Lo), rune(r.Hi), rune(r.Stride))
+		}
+	}
+	slices.SortFunc(runs, func(a, b [2]rune) int { return int(a[0] - b[0]) })
+	merged := runs[:1]
+	for _, run := range runs[1:] {
+		last := &merged[len(merged)-1]
+		if run[0] <= last[1]+1 {
+			last[1] = max(last[1], run[1])
+		} else {
+			merged = append(merged, run)
+		}
+	}
+	return merged
+})
+
+// inSomeScript reports whether a script of unicode.Scripts holds r.
+func inSomeScript(r rune) bool {
+	runs := scripted()
+	i := sort.Search(len(runs), func(i int) bool { return runs[i][1] >= r })
+	return i < len(runs) && runs[i][0] <= r
 }
 
 // oneCodePoint reads a string argument of exactly one code point, and panics on any other.
@@ -308,13 +342,14 @@ func init() {
 			}),
 			fn("String.equalFold", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				x, y := stringArg(g, who, a[0]), stringArg(g, who, a[1])
-				return cases.Fold().String(x) == cases.Fold().String(y)
+				fold := cases.Fold() // String resets it, so one serves both sides
+				return fold.String(x) == fold.String(y)
 			}),
 			fn("String.normalize", "s, form", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				s, name := stringArg(g, who, a[0]), stringArg(g, who, a[1])
 				form, ok := normForms[name]
 				if !ok {
-					g.Panic("String.normalize needs the form NFC, NFD, NFKC or NFKD, got %q", name)
+					g.Panic("String.normalize needs the form NFC, NFD, NFKC or NFKD, got %s", value.RenderQuoted(name))
 				}
 				return form.String(s)
 			}),
@@ -343,11 +378,11 @@ func init() {
 				r := oneCodePoint(g, who, a[0])
 				name := stringArg(g, who, a[1])
 				if name == "Unknown" {
-					return scriptOf(r) == ""
+					return !inSomeScript(r)
 				}
 				table, ok := unicode.Scripts[name]
 				if !ok {
-					g.Panic("String.inScript needs the name of a script, got %q", name)
+					g.Panic("String.inScript needs the name of a script, got %s", value.RenderQuoted(name))
 				}
 				return unicode.Is(table, r)
 			}),

@@ -6,10 +6,7 @@ package grapheme
 
 //go:generate go run gen.go -version 17.0.0
 
-import (
-	"sort"
-	"unicode/utf8"
-)
+import "unicode/utf8"
 
 // span is a run of code points with the same properties: the Grapheme_Cluster_Break value in the
 // low four bits, Extended_Pictographic in bit 4, and the Indic_Conjunct_Break value in bits 5 and 6.
@@ -56,9 +53,17 @@ func lookup(r rune) props {
 	if r < 0x7F && r >= 0x20 {
 		return 0
 	}
-	i := sort.Search(len(ranges), func(i int) bool { return ranges[i].hi >= r })
-	if i < len(ranges) && ranges[i].lo <= r {
-		return props(ranges[i].props)
+	lo, hi := 0, len(ranges)
+	for lo < hi {
+		m := int(uint(lo+hi) >> 1)
+		switch {
+		case r < ranges[m].lo:
+			hi = m
+		case r > ranges[m].hi:
+			lo = m + 1
+		default:
+			return props(ranges[m].props)
+		}
 	}
 	return 0
 }

@@ -6,9 +6,9 @@ import "testing"
 // so no string literal carries such bytes into a program.
 func TestInvalidUTF8(t *testing.T) {
 	for _, tc := range []struct{ src, want string }{
-		{"var s = \"a\xffb\"", "1:11: the source is not UTF-8 text: the byte 0xFF begins no character"},
-		{"var s = 1\n// größe \xe2\x82\n", "2:12: the source is not UTF-8 text: the byte 0xE2 begins no character"},
-		{"\xed\xa0\x80", "1:1: the source is not UTF-8 text: the byte 0xED begins no character"},
+		{"var s = \"a\xffb\"", "1:11: the source is not UTF-8 text at the byte 0xFF"},
+		{"var s = 1\n// größe \xe2\x82\n", "2:12: the source is not UTF-8 text at the byte 0xE2"},
+		{"\xed\xa0\x80", "1:1: the source is not UTF-8 text at the byte 0xED"},
 	} {
 		_, err := Lex(tc.src)
 		if err == nil || err.Error() != tc.want {
