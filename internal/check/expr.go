@@ -20,6 +20,14 @@ func (c *Checker) lookup(sc *scope, name string) (*local, *entity) {
 	return nil, c.lookupEntity(name)
 }
 
+// hiddenX reports the x of a lambda of arity zero, which is not in scope.
+func (c *Checker) hiddenX(l *local, pos ast.Pos) bool {
+	if l.hidden {
+		c.errorf(pos, "x is not defined: a lambda that takes no argument has no x")
+	}
+	return l.hidden
+}
+
 // typeOfLocal is a local's current type: narrowed in the flow, else declared.
 func (c *Checker) typeOfLocal(l *local) types.Type {
 	if t, ok := c.flow[l]; ok {
@@ -227,6 +235,9 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 	}
 	l, ent := c.lookup(sc, x.Name)
 	if l != nil {
+		if c.hiddenX(l, x.Pos) {
+			return types.Invalid{}
+		}
 		if l.unset && l.ctx == c.fn {
 			c.errorf(x.Pos, "%s is a parameter whose default has not run yet; a default may read only the parameters before it and those without a default", x.Name)
 			return types.Invalid{}
@@ -843,6 +854,9 @@ func (c *Checker) lambda(x *ast.Lambda, sc *scope, ft types.Func) types.Type {
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	if len(ft.Params) == 1 {
 		inner.names["x"] = &local{name: "x", typ: ft.Params[0], slot: x.Scope.X, ctx: ctx, pos: x.Pos}
+	} else {
+		// At run time x is bound to void, so it must not reach an outer x either.
+		inner.names["x"] = &local{name: "x", typ: types.Invalid{}, slot: x.Scope.X, ctx: ctx, pos: x.Pos, hidden: true}
 	}
 	ret := c.withNested(ctx, func() types.Type { return c.inferBody(x.Body, inner, ctx) })
 	return types.Func{Params: ft.Params, Return: ret, Required: len(ft.Params)}
@@ -1294,6 +1308,8 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 		}
 		l, ent := c.lookup(sc, t.Name)
 		switch {
+		case l != nil && c.hiddenX(l, t.Pos):
+			c.synth(x.Value, sc)
 		case l != nil:
 			if x.Op == "=" {
 				v := c.check(x.Value, sc, l.typ)
@@ -1403,6 +1419,7 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 		}
 		l, ent := c.lookup(sc, t.Name)
 		switch {
+		case l != nil && c.hiddenX(l, t.Pos):
 		case l != nil:
 			c.expect(t.Pos, v, l.typ)
 			c.narrowLocal(l, v)

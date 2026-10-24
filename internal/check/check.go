@@ -886,6 +886,8 @@ type local struct {
 	// unset marks a parameter with a default while the defaults up to its own are checked.
 	unset  bool
 	stated bool
+	// hidden marks the x of a lambda of arity zero, which is not in scope (section 6).
+	hidden bool
 }
 
 // checkFunc checks a declared function's body, inferring its return type when it has none.
