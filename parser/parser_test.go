@@ -415,3 +415,16 @@ func TestModuleDoc(t *testing.T) {
 		t.Errorf("module doc %q, declaration doc %q", f.Doc, f.Decls[0].(*ast.VarDecl).Doc)
 	}
 }
+
+// TestRestComma rejects a comma after the rest position of a destructuring assignment, as it is
+// rejected in a var, while an array literal ending in a spread may take one.
+func TestRestComma(t *testing.T) {
+	for _, src := range []string{"func f() { [a, ...b,] = xs }", "func f() { var [a, ...b,] = xs }"} {
+		if _, err := Parse("t", src, Program); err == nil || !strings.Contains(err.Error(), "rest") {
+			t.Errorf("%s: got %v, want an error about the rest", src, err)
+		}
+	}
+	if _, err := Parse("t", "func f() { var c = [a, ...b,] }", Program); err != nil {
+		t.Errorf("a spread with a trailing comma: %v", err)
+	}
+}

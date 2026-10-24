@@ -24,6 +24,8 @@ func main() {
   )
   var [first,
     ...rest] = xs
+  [first,
+    ...rest] = xs
   var none = [
     // nothing yet
   ]

@@ -32,6 +32,10 @@ func main() {
     first,
     ...rest
   ] = xs
+  [
+    first,
+    ...rest
+  ] = xs
   var none = [
     // nothing yet
   ]
