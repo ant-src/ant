@@ -102,6 +102,10 @@ func (l *lexer) peek(k int) byte {
 	return 0
 }
 
+// atEnd reports whether the input ends k bytes ahead. A NUL byte is a character like any other,
+// so the 0 peek returns past the end cannot stand for the end.
+func (l *lexer) atEnd(k int) bool { return l.pos+k >= len(l.src) }
+
 func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) }
 
 func (l *lexer) advance(n int) {
@@ -294,10 +298,10 @@ func (l *lexer) regex() {
 	for {
 		c := l.peek(0)
 		switch {
-		case c == 0 || c == '\n':
+		case l.atEnd(0) || c == '\n':
 			l.fail(pos, "unterminated regular expression")
 		case c == '\\':
-			if n := l.peek(1); n == 0 || n == '\n' {
+			if l.atEnd(1) || l.peek(1) == '\n' {
 				l.fail(pos, "unterminated regular expression")
 			}
 			l.advance(2)
@@ -306,7 +310,7 @@ func (l *lexer) regex() {
 			if inClass && l.peek(1) == ':' {
 				// A POSIX name such as [:alpha:], whose ] does not end the class.
 				l.advance(2)
-				for l.peek(0) != 0 && l.peek(0) != '\n' && !(l.peek(0) == ':' && l.peek(1) == ']') {
+				for !l.atEnd(0) && l.peek(0) != '\n' && !(l.peek(0) == ':' && l.peek(1) == ']') {
 					l.advance(1)
 				}
 				if l.peek(0) == ':' {
@@ -498,7 +502,7 @@ func (l *lexer) escape() string {
 		l.advance(1)
 		return string(rune(v))
 	}
-	if c == 0 {
+	if l.atEnd(0) {
 		l.fail(pos, "unterminated string")
 	}
 	l.fail(pos, "bad escape '\\%c'", c)
@@ -512,7 +516,7 @@ func (l *lexer) string() {
 	for {
 		c := l.peek(0)
 		switch {
-		case c == 0 || c == '\n':
+		case l.atEnd(0) || c == '\n':
 			l.fail(pos, "unterminated string")
 		case c == '"':
 			l.advance(1)
@@ -542,7 +546,7 @@ func (l *lexer) template() {
 	for {
 		c := l.peek(0)
 		switch {
-		case c == 0:
+		case l.atEnd(0):
 			l.fail(pos, "unterminated template string")
 		case c == '`':
 			flush()

@@ -22,3 +22,18 @@ func TestInvalidUTF8(t *testing.T) {
 		t.Errorf("Lex rejected UTF-8: %v", err)
 	}
 }
+
+// TestNUL checks that U+0000, which is UTF-8 text, is a character inside a string, a template
+// and a pattern, not the end of the input.
+func TestNUL(t *testing.T) {
+	for _, src := range []string{"var s = \"a\x00b\"", "var s = `a\x00b`", "var p = /a\x00b/"} {
+		if _, err := Lex(src); err != nil {
+			t.Errorf("Lex(%+q): %v", src, err)
+		}
+	}
+	for _, src := range []string{"var s = \"a", "var s = `a", "var p = /a", "var p = /a\\"} {
+		if _, err := Lex(src); err == nil {
+			t.Errorf("Lex(%+q) accepted an unterminated literal", src)
+		}
+	}
+}
