@@ -64,6 +64,9 @@ func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
 			panic(r)
 		}
 	}()
+	if !utf8.ValidString(l.src) {
+		l.invalidUTF8()
+	}
 	for l.scan(l.toplevel) {
 	}
 	if len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind != token.Newline {
@@ -75,6 +78,19 @@ func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
 
 func (l *lexer) fail(pos token.Pos, format string, args ...any) {
 	panic(&Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+}
+
+// invalidUTF8 fails at the first byte of src that does not begin a UTF-8 sequence, since a source
+// file is UTF-8 text (section 2) and a string literal must not carry other bytes into a program.
+func (l *lexer) invalidUTF8() {
+	for i := 0; i < len(l.src); {
+		r, size := utf8.DecodeRuneInString(l.src[i:])
+		if r == utf8.RuneError && size == 1 {
+			l.advance(i)
+			l.fail(l.here(), "the source is not UTF-8 text: the byte 0x%02X begins no character", l.src[i])
+		}
+		i += size
+	}
 }
 
 func (l *lexer) here() token.Pos { return token.Pos{Line: l.line, Col: l.col} }

@@ -32,3 +32,5 @@ Url.stringifyQuery(params)                    // => "tag=a&tag=b&q=ant"
 Url.stringifyQuery(Map{ "k": ["v 1", "v&2"], "z": [] }) // => "k=v+1&k=v%262"
 var none: Map[string, Array[string]] = Map{}
 Url.stringifyQuery(none)                      // => ""
+Url.parse("http://a%FFb/x")                   // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("http://a%C3%A9b/x") is Ok          // => true

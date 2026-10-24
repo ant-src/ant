@@ -88,10 +88,22 @@ func classTest(name string, f func(rune) bool) *interp.Builtin {
 var normForms = map[string]norm.Form{"NFC": norm.NFC, "NFD": norm.NFD, "NFKC": norm.NFKC, "NFKD": norm.NFKD}
 
 // categories are the two-letter general categories String.category returns, other than Cn,
-// which is every code point none of them holds.
+// which is every code point none of them holds. Cs is not among them: a string holds no
+// surrogate.
 var categories = []string{
 	"Lu", "Ll", "Lt", "Lm", "Lo", "Mn", "Mc", "Me", "Nd", "Nl", "No", "Pc", "Pd", "Ps", "Pe", "Pi",
-	"Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Co", "Cs",
+	"Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Co",
+}
+
+// scriptOf returns the name of the script that holds r, or "" for none: the script Unicode
+// calls Unknown, which Go's unicode.Scripts does not list.
+func scriptOf(r rune) string {
+	for name, table := range unicode.Scripts {
+		if unicode.Is(table, r) {
+			return name
+		}
+	}
+	return ""
 }
 
 // oneCodePoint reads a string argument of exactly one code point, and panics on any other.
@@ -330,6 +342,9 @@ func init() {
 			fn("String.inScript", "c, script", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				r := oneCodePoint(g, who, a[0])
 				name := stringArg(g, who, a[1])
+				if name == "Unknown" {
+					return scriptOf(r) == ""
+				}
 				table, ok := unicode.Scripts[name]
 				if !ok {
 					g.Panic("String.inScript needs the name of a script, got %q", name)

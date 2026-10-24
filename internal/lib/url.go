@@ -79,7 +79,7 @@ func init() {
 			constant("Parts", PartsTag),
 			fn("Url.parse", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				u, err := url.Parse(stringArg(g, who, a[0]))
-				if err == nil && !(utf8.ValidString(u.Path) && utf8.ValidString(u.Fragment)) {
+				if err == nil && !(utf8.ValidString(u.Host) && utf8.ValidString(u.Path) && utf8.ValidString(u.Fragment)) {
 					err = errNotUTF8
 				}
 				if err != nil {

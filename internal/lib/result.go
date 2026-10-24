@@ -14,8 +14,8 @@ func result(g *interp.Goroutine, who string, v value.Value) *value.Record {
 	return r
 }
 
-// errResult is the Err of a Go error, with its message.
-func errResult(err error) value.Value { return value.Err(value.ErrorValue(err.Error())) }
+// errResult is the Err of a Go error, with its message, which may quote outside text.
+func errResult(err error) value.Value { return value.Err(value.ErrorValue(value.Text(err.Error()))) }
 
 // okVoid is Ok(void), or the Err of err when there is one.
 func okVoid(err error) value.Value {
