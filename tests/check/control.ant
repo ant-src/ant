@@ -32,9 +32,12 @@ func main(): void {
   var e: {} = Box{ value: 1 }
   println(e is Box) // ERR: does not determine the type parameter T
   var p = Point{ x: 1, y: 2 }
-  println(p is Point)           // ERR: the test is always true
-  var f = { x * 2 }             // ERR: a lambda needs an expected function type
-  var zero: func(): int = { x } // ERR: x is not defined
+  println(p is Point)          // ERR: the test is always true
+  if p is Point { println(p) } // ERR: the test is always true
+  var count = 1
+  while count is int { count += 1 } // ERR: the test is always true
+  var f = { x * 2 }                 // ERR: a lambda needs an expected function type
+  var zero: func(): int = { x }     // ERR: x is not defined
   var g = connect
   println(g(host: "a"))                                       // ERR: named arguments apply only to a declared function
   println(connect("a", port: 1, tls: false))                  // ERR: no parameter tls

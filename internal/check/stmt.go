@@ -219,7 +219,7 @@ func (c *Checker) cond(e ast.Expr, sc *scope) (whenTrue, whenFalse flow) {
 			if l, _ := c.lookup(sc, id.Name); l != nil {
 				t := c.typeOfLocal(l)
 				target := c.isTarget(x, sc)
-				if target == nil || types.IsInvalid(t) {
+				if target == nil || types.IsInvalid(t) || c.alwaysTrue(l.typ, target, x.Pos) {
 					return c.flow.copy(), c.flow.copy()
 				}
 				wt, wf, ok := c.narrowTo(t, target, x.Pos)
