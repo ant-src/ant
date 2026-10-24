@@ -264,6 +264,9 @@ func (p *printer) broken(g *group, afterOpen []elem, units []unit) bool {
 		}
 		return p.newlines(prev, g.close.Off) > 0
 	}
+	if len(units) == 0 && len(afterOpen) > 0 {
+		return true // an empty list that holds a comment (fmt 4.4)
+	}
 	prev := g.open.End
 	for _, e := range afterOpen {
 		prev = e.end()
@@ -511,6 +514,12 @@ func (p *printer) group(g *group) {
 				// It shares its line with the first unit, which it leads.
 				units[0].lead = append(slices.Clone(afterOpen[i:]), units[0].lead...)
 				break
+			}
+			if !p.endsLine(c.com) {
+				// The list holds only comments; this one takes the place of an item.
+				p.newline(line+1, false)
+				p.comment(c.com)
+				continue
 			}
 			p.trailing(c.com)
 		}

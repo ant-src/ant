@@ -15,4 +15,8 @@ func main() {
   println(f(/* leads the first item */ 1,
     2))
   println(f(/* flat */ 1, 2))
+  // an empty list that holds a comment is broken, and the comment takes the place of an item
+  println(f(/* none */))
+  var none = [/* not yet */]
+  var empty = Map{ /* later */ }
 }
