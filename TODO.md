@@ -1,34 +1,7 @@
 # Work still to do
 
-Eight gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Seven gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
-
-## `min` and `max`
-
-**Today:** `Array.min` and `Array.max` take an array and return `T | null`, and `Math` has no
-two-argument form. Picking the larger of two values means `Array.max([a, b]) ?? a` or writing the
-`max` that section 4 uses as its generics example.
-
-**Sketch:** two prelude functions over `Ordered` that take exactly two arguments, so the result is
-never `null`. Longer lists stay with `Array.min` and `Array.max`, since there are no variadic
-parameters (section 6).
-
-```
-min[T: Ordered](a: T, b: T): T
-max[T: Ordered](a: T, b: T): T
-```
-
-- `max(1, 2.0)` is a compile error, as in the section 4 example: both arguments are one `T`.
-- NaN behaves as it does in `Array.min` and `Array.max`: any NaN argument gives NaN.
-- A tie returns the first argument, as `Array.minBy` returns the first element with the least key.
-
-**Open questions:**
-- Section 4 defines its own `max` in an example. Whether a module may shadow a prelude name, and
-  the example changes to another name if not.
-- Whether named primitives such as `Meters` are accepted and keep their tag, as arithmetic on them
-  does (section 4), or must be unwrapped first, as library functions require.
-- Whether `-0.0` and `0.0` are ordered, as Go's `min` and `max` order them, or tie.
-- Whether a `clamp(x, lo, hi)` joins them.
 
 ## `println`
 
