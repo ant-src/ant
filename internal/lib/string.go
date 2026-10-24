@@ -338,12 +338,10 @@ func init() {
 				return cases.Lower(language.Und).String(stringArg(g, who, a[0]))
 			}),
 			fn("String.foldCase", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return cases.Fold().String(stringArg(g, who, a[0]))
+				return foldCase(stringArg(g, who, a[0]))
 			}),
 			fn("String.equalFold", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				x, y := stringArg(g, who, a[0]), stringArg(g, who, a[1])
-				fold := cases.Fold() // String resets it, so one serves both sides
-				return fold.String(x) == fold.String(y)
+				return foldCase(stringArg(g, who, a[0])) == foldCase(stringArg(g, who, a[1]))
 			}),
 			fn("String.normalize", "s, form", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				s, name := stringArg(g, who, a[0]), stringArg(g, who, a[1])
@@ -509,4 +507,19 @@ func init() {
 			constant("unicodeVersion", unicode.Version),
 		)
 	})
+}
+
+// foldCase is the full case folding of CaseFolding.txt. x/text/cases folds Cherokee to its lower
+// case, where CaseFolding.txt folds it to the upper case (U+13A0..U+13F5), which it keeps for
+// stability; this maps the lower-case letters back to those.
+func foldCase(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= 0xAB70 && r <= 0xABBF:
+			return r - 0xAB70 + 0x13A0
+		case r >= 0x13F8 && r <= 0x13FD:
+			return r - 8
+		}
+		return r
+	}, cases.Fold().String(s))
 }

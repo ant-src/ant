@@ -17,6 +17,10 @@ String.toUpper("")                            // => ""
 String.foldCase("Straße")                     // => "strasse"
 String.foldCase("STRASSE")                    // => "strasse"
 String.foldCase("ΣΟΦΟΣ")                      // => "σοφοσ"
+// Cherokee folds to its upper case, as CaseFolding.txt has it, so folding is idempotent.
+String.toCodePoints(String.foldCase("\u{ab70}\u{13f8}")) // => [5024, 5104]
+String.toCodePoints(String.foldCase("\u{13a0}\u{13f0}")) // => [5024, 5104]
+String.equalFold("\u{ab70}", "\u{13a0}")       // => true
 String.foldCase("\u{212A}")                   // => "k"
 String.equalFold("Straße", "STRASSE")         // => true
 String.equalFold("ant", "ANT")                // => true
