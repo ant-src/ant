@@ -1,4 +1,4 @@
-# Ant: static types, goroutines, and nothing left undefined.
+# Ant: static types, goroutines, and nothing left undefined
 
 ## Examples
 
