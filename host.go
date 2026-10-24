@@ -24,7 +24,8 @@ type Runtime interface {
 
 // A HostFunc is a Go function Ant code can call. It receives its arguments positionally, in
 // the order its signature lists them. An error it returns becomes an Ant panic with the
-// error's message; a nil result is void.
+// error's message; a nil result is void. Every string in the result that is not UTF-8 is
+// decoded as value.Text does, in place, since an Ant string holds only scalar values.
 type HostFunc func(rt Runtime, args []value.Value) (value.Value, error)
 
 // Namespace is a set of host functions and types that Ant code reaches as Name.function, the
@@ -110,7 +111,7 @@ func hostBuiltin(impl HostFunc) func(*interp.Goroutine, []value.Value) value.Val
 		if v == nil {
 			return value.Void
 		}
-		return v
+		return value.TextIn(v) // text from the host is outside text (section 11, String)
 	}
 }
 
@@ -181,7 +182,11 @@ type Func struct {
 
 // Call calls the function with positional arguments. An Ant panic comes back as a
 // *PanicError, after being reported to the instance's stderr; Os.exit as an *ExitError.
+// Strings in the arguments that are not UTF-8 are decoded as value.Text does, in place.
 func (f *Func) Call(args ...value.Value) (value.Value, error) {
+	for i, a := range args {
+		args[i] = value.TextIn(a) // text from the host is outside text (section 11, String)
+	}
 	v, err := f.in.Call(f.v, args...)
 	if err != nil {
 		return nil, convertRunError(err)

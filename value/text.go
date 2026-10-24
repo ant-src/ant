@@ -62,3 +62,91 @@ func maximalSubpart(s string) int {
 	}
 	return n
 }
+
+// TextIn returns v with Text applied to every string in it: v itself, the elements of arrays, the
+// keys and values of maps, the members of sets, the fields of records, and the payloads of tagged
+// primitives. Containers change in place, keeping their order; a map or a set whose keys become
+// equal keeps the last. It is how a value a Go host hands to a program becomes one that holds only
+// scalar values.
+func TextIn(v Value) Value {
+	out, _ := textIn(v, map[any]bool{})
+	return out
+}
+
+// textIn is TextIn, reporting whether anything changed; seen holds the containers visited, so a
+// cyclic value terminates.
+func textIn(v Value, seen map[any]bool) (Value, bool) {
+	switch x := v.(type) {
+	case string:
+		if utf8.ValidString(x) {
+			return x, false
+		}
+		return Text(x), true
+	case *Tagged:
+		if p, changed := textIn(x.Payload, seen); changed {
+			return &Tagged{Tag: x.Tag, Payload: p}, true
+		}
+	case *Array:
+		if seen[x] {
+			return x, false
+		}
+		seen[x] = true
+		for i, e := range x.Values() {
+			if n, changed := textIn(e, seen); changed {
+				x.Set(i, n)
+			}
+		}
+	case *Record:
+		if seen[x] {
+			return x, false
+		}
+		seen[x] = true
+		for i := 0; i < x.Len(); i++ {
+			if n, changed := textIn(x.Get(i), seen); changed {
+				x.Set(i, n)
+			}
+		}
+	case *Map:
+		if seen[x] {
+			return x, false
+		}
+		seen[x] = true
+		entries := x.Entries()
+		dirty := false
+		for i, e := range entries {
+			k, kc := textIn(e.Key, seen)
+			val, vc := textIn(e.Value, seen)
+			entries[i] = KeyValue{Key: k, Value: val}
+			dirty = dirty || kc || vc
+		}
+		if dirty {
+			for _, k := range x.Keys() {
+				x.Remove(k)
+			}
+			for _, e := range entries {
+				x.Set(e.Key, e.Value)
+			}
+		}
+	case *Set:
+		if seen[x] {
+			return x, false
+		}
+		seen[x] = true
+		members := x.Values()
+		dirty := false
+		for i, m := range members {
+			n, changed := textIn(m, seen)
+			members[i] = n
+			dirty = dirty || changed
+		}
+		if dirty {
+			for _, m := range x.Values() {
+				x.Remove(m)
+			}
+			for _, m := range members {
+				x.Add(m)
+			}
+		}
+	}
+	return v, false
+}

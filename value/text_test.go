@@ -110,3 +110,54 @@ func FuzzText(f *testing.F) {
 		}
 	})
 }
+
+func TestTextIn(t *testing.T) {
+	if got := TextIn("a\xffb"); got != "a�b" {
+		t.Errorf("TextIn of a string = %+q", got)
+	}
+	if got := TextIn(int64(7)); got != int64(7) {
+		t.Errorf("TextIn of an int = %v", got)
+	}
+
+	tag := NewTag("Row", RecordTag, []string{"name", "tags"})
+	tags := NewArray([]Value{"ok", "x\xff"})
+	row := NewRecord(tag, []Value{"caf\xe9", tags})
+	if TextIn(row) != row {
+		t.Fatal("TextIn replaced a record instead of changing it in place")
+	}
+	if got := Render(row); got != `Row{ name: "caf`+"�"+`", tags: ["ok", "x`+"�"+`"] }` {
+		t.Errorf("record: %s", got)
+	}
+
+	m := NewMap()
+	m.Set("a", "1")
+	m.Set("k\xff", "2")
+	m.Set("k\xfe", "3")
+	m.Set("z", "v\xff")
+	TextIn(m)
+	if got := Render(m); got != `Map{ "a": "1", "k`+"�"+`": "3", "z": "v`+"�"+`" }` {
+		t.Errorf("map: %s", got)
+	}
+
+	s := NewSet()
+	s.Add("p\xff")
+	s.Add("q")
+	TextIn(s)
+	if !s.Has("p�") || !s.Has("q") || s.Len() != 2 {
+		t.Errorf("set: %s", Render(s))
+	}
+
+	id := NewTag("Id", RecordTag, nil)
+	tagged := &Tagged{Tag: id, Payload: "u\xff"}
+	if got, ok := TextIn(tagged).(*Tagged); !ok || got.Payload != "u�" || got.Tag != id {
+		t.Errorf("tagged: %v", got)
+	}
+
+	cycle := NewArray([]Value{"c\xff"})
+	cycle.Set(0, NewArray([]Value{cycle, "d\xff"}))
+	TextIn(cycle) // terminates
+	inner := cycle.Values()[0].(*Array).Values()
+	if inner[1] != "d�" {
+		t.Errorf("cycle: %+q", inner[1])
+	}
+}

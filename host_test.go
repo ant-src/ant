@@ -346,3 +346,51 @@ func TestStartInterrupts(t *testing.T) {
 		t.Fatalf("an interrupted call ended with %v, want ErrInterrupted", err)
 	}
 }
+
+// TestHostTextIsDecoded checks that a string a host hands to a program, in a host function's
+// result or in a call's arguments, holds only scalar values, as outside text does
+// (section 11, String): each ill-formed sequence becomes U+FFFD.
+func TestHostTextIsDecoded(t *testing.T) {
+	db := ant.Namespace{
+		Name:       "Db",
+		Signatures: "func Db.row(): Map[string, Array[string]]\n",
+		Funcs: map[string]ant.HostFunc{
+			"row": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				m := value.NewMap()
+				m.Set("caf\xe9", value.NewArray([]value.Value{"ok", "\xff\xfe"}))
+				return m, nil
+			},
+		},
+	}
+	prog := loadSrc(t, `
+func bytes(s: string): int { Array.length(String.toBytes(s)) }
+func show(s: string): string { String.from([s, bytes(s)]) }
+func main(): void {
+  for { key, value } in Db.row() {
+    println(show(key))
+    for v in value { println(show(v)) }
+  }
+}
+`, ant.WithNamespace(db))
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&out)); err != nil {
+		t.Fatal(err)
+	}
+	want := "[\"caf�\", 6]\n[\"ok\", 2]\n[\"��\", 6]\n"
+	if out.String() != want {
+		t.Errorf("stdout %q, want %q", out.String(), want)
+	}
+
+	in, err := loadSrc(t, `
+func bytes(s: string): int { Array.length(String.toBytes(s)) }
+func main(): void {}
+`).Start(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	f, _ := in.Func("bytes")
+	if v, err := f.Call("a\xffb"); err != nil || v != int64(5) {
+		t.Errorf("bytes(\"a\\xffb\") = %v, %v; want 5", v, err)
+	}
+}
