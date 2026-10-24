@@ -517,6 +517,11 @@ func (c *Checker) indexOf(recv types.Type, x *ast.Index, sc *scope) types.Type {
 	case types.Invalid:
 		c.synth(x.Index, sc)
 		return types.Invalid{}
+	case types.Named:
+		if c.isBytes(r) {
+			c.check(x.Index, sc, types.IntType)
+			return types.ByteType
+		}
 	}
 	c.synth(x.Index, sc)
 	if types.FieldsOf(recv) != nil {
@@ -1126,6 +1131,8 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 			return types.Map{}
 		case "Set":
 			return types.Set{}
+		case "Bytes":
+			return types.Named{Decl: c.prelude["Bytes"].decl}
 		}
 		return types.Prim{Kind: builtinKinds[x.Kind]}
 	}
@@ -1357,7 +1364,9 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) types.Type {
 			return r.Val
 		}
 		c.synth(t.Index, sc)
-		if !types.IsInvalid(recv) {
+		if c.isBytes(recv) {
+			c.errorf(t.Pos, "Bytes is immutable, so a byte cannot be assigned; build an Array[byte] and convert it with Bytes.fromArray")
+		} else if !types.IsInvalid(recv) {
 			c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
 		}
 	}

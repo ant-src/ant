@@ -9,7 +9,7 @@ func main(): void {
   println(a + 1)
   println(b + byte(1))
   println(Array.map([72, 105], byte))
-  println(String.fromBytes(Array.map([72, 105], byte)))
+  println(String.fromBytes(Bytes.fromArray(Array.map([72, 105], byte))))
   println(float32(16777217))
   println(float64(9007199254740993))
   println(float32(0.1) == float32(0.1) && float64(float32(0.1)) != 0.1)

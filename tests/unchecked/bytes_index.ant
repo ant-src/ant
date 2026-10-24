@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics
+// panics: index-range
+// An index of Bytes that is not an int panics, as one of an array does (section 12).
+func main(): void { println(String.toBytes("a")["0"]) }
+
+// expect
+// exit: 1
+// err: an index of Bytes must be an int, got string

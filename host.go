@@ -25,7 +25,8 @@ type Runtime interface {
 // A HostFunc is a Go function Ant code can call. It receives its arguments positionally, in
 // the order its signature lists them. An error it returns becomes an Ant panic with the
 // error's message; a nil result is void. Every string in the result that is not UTF-8 is
-// decoded as value.Text does, in place, since an Ant string holds only scalar values.
+// decoded as value.Text does, in place, since an Ant string holds only scalar values; binary
+// data travels as value.Bytes, which is kept as it is.
 type HostFunc func(rt Runtime, args []value.Value) (value.Value, error)
 
 // Namespace is a set of host functions and types that Ant code reaches as Name.function, the

@@ -60,6 +60,7 @@ const (
 	KindSync
 	KindTime
 	KindRegex
+	KindBytes
 )
 
 var kindNames = [...]string{
@@ -68,7 +69,7 @@ var kindNames = [...]string{
 	KindUint64: "uint64", KindFloat32: "float32", KindFloat64: "float64", KindBool: "bool",
 	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map", KindSet: "set",
 	KindRecord: "record", KindTagged: "tagged primitive", KindFunc: "func", KindTag: "type",
-	KindSync: "sync object", KindTime: "time value", KindRegex: "regular expression",
+	KindSync: "sync object", KindTime: "time value", KindRegex: "regular expression", KindBytes: "Bytes",
 }
 
 func (k Kind) String() string { return kindNames[k] }
@@ -142,6 +143,8 @@ func KindByName(name string) (Kind, bool) {
 		return KindSet, true
 	case "func":
 		return KindFunc, true
+	case "Bytes":
+		return KindBytes, true
 	}
 	return KindInvalid, false
 }
@@ -197,6 +200,8 @@ func KindOf(v Value) Kind {
 		return KindTime
 	case *Regex:
 		return KindRegex
+	case Bytes:
+		return KindBytes
 	}
 	return KindInvalid
 }

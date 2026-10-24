@@ -1,0 +1,121 @@
+// spec: stdlib File; stdlib Http; stdlib Os; 11 Bytes
+// Binary data through every outside source: readChunk and readExactly on a file and on a
+// connection, sharing one buffer with readLine; writeChunk; an HTTP body sent, received and
+// replied as Bytes beside its text; a child's input and output as Bytes.
+
+// A frame is a length in two bytes, big-endian, then that many bytes.
+func frame(payload: Bytes): Bytes {
+  var n = len(payload)
+  Bytes.concat([Bytes.fromArray([n / 256, n % 256]), payload])
+}
+
+func readFrame(f: File.Handle): Bytes | null {
+  var head = Result.unwrap(File.readExactly(f, 2))
+  if head == null { return null }
+  Result.unwrap(File.readExactly(f, int(head[0]) * 256 + int(head[1])))
+}
+
+func main(): void {
+  var dir = Os.args()[0]
+  var path = `${dir}/data.bin`
+
+  // A header line, then binary that is not UTF-8.
+  var w = Result.unwrap(File.create(path))
+  println(File.writeText(w, "SIZE 6\n"))
+  println(File.writeChunk(w, Bytes.fromArray([0xff, 0x00, 0xfe, 0x01, 0x02, 0x03])))
+  File.close(w)
+
+  var f = Result.unwrap(File.open(path))
+  println(File.readLine(f))
+  println(File.readExactly(f, 3))
+  println(File.readChunk(f, 100))
+  println(File.readChunk(f, 100))
+  println(File.readExactly(f, 4))
+  File.close(f)
+
+  var g = Result.unwrap(File.open(path))
+  println(File.readExactly(g, 0))
+  println(File.readChunk(g, 4))
+  println(File.readExactly(g, 100))
+  println(File.readChunk(g, 100))
+  println(File.readChunk(g, 0))
+  println(File.readExactly(g, -1))
+  File.close(g)
+  println(File.readBytes(path) | Result.map({ Bytes.slice(x, 7, 13) }))
+
+  // A length from the other end allocates only what arrives.
+  var h = Result.unwrap(File.open(path))
+  println(File.readExactly(h, 1099511627776))
+  println(File.readChunk(h, 1099511627776) | Result.map({ len(x ?? String.toBytes("")) }))
+  File.close(h)
+
+  // Frames over a connection: the echo server answers each with its SHA-1.
+  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+  go {
+    var conn = Result.unwrap(Net.accept(l))
+    var body = readFrame(conn)
+    while body != null {
+      Result.unwrap(File.writeChunk(conn, frame(Crypto.sha1(body))))
+      body = readFrame(conn)
+    }
+    File.close(conn)
+  }
+  var c = Result.unwrap(Net.dial(Net.address(l)))
+  for msg in [String.toBytes("ping"), Crypto.randomBytes(300)] {
+    Result.unwrap(File.writeChunk(c, frame(msg)))
+    println(readFrame(c) == Crypto.sha1(msg))
+  }
+  File.close(c)
+  Net.close(l)
+
+  // HTTP: binary out, binary back, and the text beside it.
+  var server = Result.unwrap(Net.listen("127.0.0.1:0"))
+  var stop = Context.new()
+  go {
+    Http.serve(server, { Http.Reply{ status: 200, headers: Map{}, body: Bytes.concat([Crypto.sha256(x.bytes), x.bytes]) } }, stop)
+  }
+  var base = `http://${Net.address(server)}`
+  var sent = Bytes.fromArray([0x7b, 0xff, 0x7d])
+  var r = Result.unwrap(Http.post(base, sent))
+  println(Bytes.slice(r.bytes, 0, 32) == Crypto.sha256(sent))
+  println(Bytes.endsWith(r.bytes, sent))
+  println(String.endsWith(r.body, "{\u{FFFD}}"))
+  var text = Result.unwrap(Http.request("PUT", base, "é"))
+  println(Bytes.slice(text.bytes, 32, len(text.bytes)))
+  Context.cancel(stop)
+
+  // A child reads Bytes and writes them.
+  var out = Result.unwrap(Os.exec("wc", ["-c"], stdin: Bytes.fromArray([0xde, 0xad, 0x00])))
+  println(String.trim(out.stdout))
+  var cat = Result.unwrap(Os.exec("cat", stdin: Bytes.fromArray([0x61, 0xff])))
+  println(cat.stdoutBytes)
+  println([cat.stdout])
+}
+
+// expect
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: "SIZE 6" }
+// out: Ok{ value: Bytes(ff 00 fe) }
+// out: Ok{ value: Bytes(01 02 03) }
+// out: Ok{ value: null }
+// out: Ok{ value: null }
+// out: Ok{ value: Bytes() }
+// out: Ok{ value: Bytes(53 49 5a 45) }
+// out: Err{ error: Error{ message: "unexpected end of file" } }
+// out: Ok{ value: Bytes(20 36 0a ff 00 fe 01 02 03) }
+// out: Err{ error: Error{ message: "the most to read is 0; it must be at least 1" } }
+// out: Err{ error: Error{ message: "the count to read is -1; it must be at least 0" } }
+// out: Ok{ value: Bytes(ff 00 fe 01 02 03) }
+// out: Err{ error: Error{ message: "unexpected end of file" } }
+// out: Ok{ value: 13 }
+// out: true
+// out: true
+// out: true
+// out: true
+// out: true
+// out: Bytes(c3 a9)
+// out: 3
+// out: Bytes(61 ff)
+// out: ["a�"]
+// args: $TMP

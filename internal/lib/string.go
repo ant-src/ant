@@ -402,27 +402,17 @@ func init() {
 				return value.NewArray(out)
 			}),
 			fn("String.toBytes", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				s := stringArg(g, who, a[0])
-				out := make([]value.Value, len(s))
-				for i := 0; i < len(s); i++ {
-					out[i] = uint8(s[i])
-				}
-				return value.NewArray(out)
+				return value.Bytes(stringArg(g, who, a[0]))
 			}),
 			fn("String.fromBytes", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				vals := arrayArg(g, who, a[0]).Values()
-				b := make([]byte, len(vals))
-				for i, v := range vals {
-					x, ok := v.(uint8)
-					if !ok {
-						g.Panic("String.fromBytes needs an array of bytes, got an element of kind %s", value.Describe(v))
-					}
-					b[i] = x
-				}
-				if !utf8.Valid(b) {
+				b := bytesArg(g, who, a[0])
+				if !utf8.ValidString(string(b)) {
 					return value.Null
 				}
 				return string(b)
+			}),
+			fn("String.fromBytesLossy", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return value.Text(string(bytesArg(g, who, a[0])))
 			}),
 			fn("String.codePoint", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return int64(oneCodePoint(g, who, a[0]))

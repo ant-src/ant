@@ -114,10 +114,12 @@ func Prelude() map[string]value.Value {
 				return int64(x.Len())
 			case string:
 				return int64(utf8.RuneCountInString(x))
+			case value.Bytes:
+				return int64(len(x))
 			case *value.Chan:
 				return int64(x.Len())
 			}
-			g.Panic("len needs an array, a map, a set, a string, or a channel, got %s", value.Describe(args[0]))
+			g.Panic("len needs an array, a map, a set, a string, Bytes, or a channel, got %s", value.Describe(args[0]))
 			return nil
 		})
 		for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {

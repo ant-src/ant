@@ -1,6 +1,6 @@
 # Work still to do
 
-Six gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Seeded random
@@ -144,49 +144,3 @@ scheduler.
   `ant run` and `ant build`, so the corpus harness runs both.
 - Debugging: positions in panics must point at the `.ant` source, not the generated Go. Go's
   `//line` directives can do this.
-
-## Binary data
-
-**Today:** a `string` holds only scalar values, so text from outside a program is decoded with
-U+FFFD (section 11, String), and bytes that are not UTF-8 do not survive it. The only byte-level
-I/O is `File.readBytes` and `File.writeBytes`, which take a path. An HTTP body, the output of
-`Os.exec`, and what a socket, standard input or an open file gives are strings, in both
-directions: `Http.request` sends a `string` body, and a `File.Handle` has `writeLine` and
-`writeText` but nothing for bytes. Before outside text was decoded, a PNG download survived in a
-string by accident, and `String.toBytes` recovered it; now it is lost.
-
-`Array[byte]` is also no carrier for bulk data. Every element is a slot of its own, so reading a
-10 MB file with `File.readBytes` peaks at about 430 MB of memory, against about 90 MB for
-`File.read` of the same file.
-
-**Sketch:** a compact immutable `Bytes` type, stored as Go's `[]byte`, with byte forms of the I/O
-that has only text forms today.
-
-```
-Bytes.length(b: Bytes): int
-Bytes.get(b: Bytes, i: int): byte                  // panics outside 0 ..= length - 1
-Bytes.slice(b: Bytes, from: int, to: int): Bytes
-Bytes.concat(parts: Array[Bytes]): Bytes
-Bytes.fromArray(xs: Array[byte]): Bytes
-Bytes.toArray(b: Bytes): Array[byte]
-String.toUtf8(s: string): Bytes
-String.fromUtf8(b: Bytes): string | null           // null on invalid UTF-8; decoding with U+FFFD is another function
-
-File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Result[Bytes | null, Error]   // null at end of file
-File.writeChunk(f: File.Handle, b: Bytes): Result[void, Error]
-```
-
-- `Http.Response` and `Http.Request` gain the body as `Bytes`, and `Http.request` takes one.
-- `Os.Output` gains `stdout` and `stderr` as `Bytes`, and `Os.exec` takes standard input.
-- `Crypto` and `Encoding`, which take `Array[byte]` today, move to `Bytes`.
-
-**Open questions:**
-- Whether `Bytes` replaces `Array[byte]` across the library, which is a breaking change to
-  `String.toBytes`, `File.readBytes`, `Crypto` and `Encoding`, or lives beside it.
-- Whether a body is `string` and `Bytes` side by side, which holds two copies, a union the
-  program narrows, or a choice the call makes, such as `Http.request(..., binary: true)`.
-- Whether `Bytes` is mutable. Immutable shares safely across goroutines (section 9) and slices
-  without copying, while a buffer that grows needs a builder.
-- How `String.from`, `==`, map keys, and `Json.stringify` treat `Bytes`: a hex rendering such as
-  `Bytes(0x89504e47)`, equality by content, and base64 or an error in JSON.
-- What ant.js maps it to: `Uint8Array` fits, with `TextDecoder` for `fromUtf8`.

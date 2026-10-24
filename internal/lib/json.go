@@ -34,8 +34,8 @@ func init() {
 			}),
 			fn("Json.stringify", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var sb strings.Builder
-				if !stringify(&sb, a[0], nil) {
-					g.Panic("Json.stringify: cyclic value")
+				if msg := stringify(&sb, a[0], nil); msg != "" {
+					g.Panic("Json.stringify: %s", msg)
 				}
 				return sb.String()
 			}),
@@ -114,8 +114,9 @@ func parseFrom(dec *json.Decoder, tok json.Token) (value.Value, error) {
 	return nil, fmt.Errorf("unexpected JSON token %v", tok)
 }
 
-// stringify writes v as JSON. It returns false on a cyclic value, which has no JSON form.
-func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
+// stringify writes v as JSON. It returns why v has no JSON form, a cycle or Bytes, or "" when it
+// has one.
+func stringify(sb *strings.Builder, v value.Value, stack []any) string {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))
@@ -131,7 +132,7 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 		return stringify(sb, x.Payload, stack)
 	case *value.Record:
 		if onStack(stack, x) {
-			return false
+			return "cyclic value"
 		}
 		stack = append(stack, x)
 		sb.WriteByte('{')
@@ -141,14 +142,14 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 			}
 			writeJSONString(sb, name)
 			sb.WriteByte(':')
-			if !stringify(sb, x.Get(i), stack) {
-				return false
+			if msg := stringify(sb, x.Get(i), stack); msg != "" {
+				return msg
 			}
 		}
 		sb.WriteByte('}')
 	case *value.Array, *value.Set:
 		if onStack(stack, x) {
-			return false
+			return "cyclic value"
 		}
 		stack = append(stack, x)
 		var xs []value.Value
@@ -162,14 +163,14 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 			if i > 0 {
 				sb.WriteByte(',')
 			}
-			if !stringify(sb, e, stack) {
-				return false
+			if msg := stringify(sb, e, stack); msg != "" {
+				return msg
 			}
 		}
 		sb.WriteByte(']')
 	case *value.Map:
 		if onStack(stack, x) {
-			return false
+			return "cyclic value"
 		}
 		stack = append(stack, x)
 		sb.WriteByte('{')
@@ -181,17 +182,22 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 			if t, ok := key.(*value.Tagged); ok {
 				key = t.Payload // a named primitive key, without its tag as a value is written
 			}
+			if _, ok := key.(value.Bytes); ok {
+				return bytesNoJSON
+			}
 			if s, ok := key.(string); ok {
 				writeJSONString(sb, s)
 			} else {
 				writeJSONString(sb, value.Render(key))
 			}
 			sb.WriteByte(':')
-			if !stringify(sb, e.Value, stack) {
-				return false
+			if msg := stringify(sb, e.Value, stack); msg != "" {
+				return msg
 			}
 		}
 		sb.WriteByte('}')
+	case value.Bytes:
+		return bytesNoJSON
 	case value.Time:
 		writeJSONString(sb, x.String())
 	case *value.Regex:
@@ -199,8 +205,11 @@ func stringify(sb *strings.Builder, v value.Value, stack []any) bool {
 	default:
 		sb.WriteString("null")
 	}
-	return true
+	return ""
 }
+
+// bytesNoJSON is why Json.stringify panics on Bytes: JSON has no form for them (stdlib.md, Json).
+const bytesNoJSON = "Bytes has no JSON form; write Encoding.toBase64 of it"
 
 func onStack(stack []any, v any) bool {
 	for _, s := range stack {

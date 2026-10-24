@@ -250,14 +250,14 @@ func TestWithEnvironment(t *testing.T) {
   println(Os.env("ANT_ONLY"))
   println(Os.env("PATH"))
   println(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
-  println(Os.exec("/usr/bin/env"))
+  println(Os.exec("/usr/bin/env") | Result.map({ x.stdout }))
 }`)
 	var out strings.Builder
 	err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "yes\nnull\ntrue\nOk{ value: Os.Output{ status: 0, stdout: \"ANT_ONLY=yes\\n\", stderr: \"\" } }\n"; out.String() != want {
+	if want := "yes\nnull\ntrue\nOk{ value: \"ANT_ONLY=yes\\n\" }\n"; out.String() != want {
 		t.Errorf("output %q, want %q", out.String(), want)
 	}
 }
@@ -363,7 +363,7 @@ func TestHostTextIsDecoded(t *testing.T) {
 		},
 	}
 	prog := loadSrc(t, `
-func bytes(s: string): int { Array.length(String.toBytes(s)) }
+func bytes(s: string): int { len(String.toBytes(s)) }
 func show(s: string): string { String.from([s, bytes(s)]) }
 func main(): void {
   for { key, value } in Db.row() {
@@ -382,7 +382,7 @@ func main(): void {
 	}
 
 	in, err := loadSrc(t, `
-func bytes(s: string): int { Array.length(String.toBytes(s)) }
+func bytes(s: string): int { len(String.toBytes(s)) }
 func main(): void {}
 `).Start(context.Background())
 	if err != nil {
@@ -392,5 +392,39 @@ func main(): void {}
 	f, _ := in.Func("bytes")
 	if v, err := f.Call("a\xffb"); err != nil || v != int64(5) {
 		t.Errorf("bytes(\"a\\xffb\") = %v, %v; want 5", v, err)
+	}
+}
+
+// TestHostBytesAreKept: Bytes from a host, in a result or an argument, reach the program as they
+// are, since only strings are outside text.
+func TestHostBytesAreKept(t *testing.T) {
+	blob := ant.Namespace{
+		Name:       "Blob",
+		Signatures: "func Blob.raw(): Array[Bytes]\n",
+		Funcs: map[string]ant.HostFunc{
+			"raw": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				return value.NewArray([]value.Value{value.Bytes("\xff\xfe"), "\xff"}), nil
+			},
+		},
+	}
+	prog := loadSrc(t, `
+func main(): void { println(Blob.raw()) }
+func size(b: Bytes): int { len(b) }
+`, ant.WithNamespace(blob))
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&out)); err != nil {
+		t.Fatal(err)
+	}
+	if want := "[Bytes(ff fe), \"�\"]\n"; out.String() != want {
+		t.Errorf("stdout %q, want %q", out.String(), want)
+	}
+	in, err := prog.Start(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	f, _ := in.Func("size")
+	if v, err := f.Call(value.Bytes("\xff\xfe\xfd")); err != nil || v != int64(3) {
+		t.Errorf("size(Bytes) = %v, %v; want 3", v, err)
 	}
 }

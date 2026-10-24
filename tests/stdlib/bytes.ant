@@ -1,0 +1,65 @@
+// spec: 11 Bytes; 4 Primitives; 5 Loops; 12 Values; 12 Expressions; 12 Runtime panics; stdlib Json
+// Bytes: immutable and compact, == by content and so a map key, len, for over each byte,
+// read-only b[i], is Bytes, the hexadecimal rendering, the namespace, and no JSON form.
+var png = Bytes.fromArray([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+png                                           // => Bytes(89 50 4e 47 0d 0a 1a 0a)
+[png, String.toBytes("")]                     // => [Bytes(89 50 4e 47 0d 0a 1a 0a), Bytes()]
+`magic ${Bytes.slice(png, 1, 4)}`             // => "magic Bytes(50 4e 47)"
+
+// len, b[i], and for.
+len(png)                                      // => 8
+Bytes.length(png)                             // => 8
+png[0]                                        // => 137
+png[0] == byte(0x89)                          // => true
+png[8]                                        // => panic: index 8 out of range for Bytes of length 8
+png[-1]                                       // => panic: index -1 out of range for Bytes of length 8
+Array.map(Array.filter([String.toBytes("ab"), png], { len(x) < 3 }), len) // => [2]
+func sum(b: Bytes): int {
+  var total = 0
+  for x in b { total = total + int(x) }
+  total
+}
+sum(String.toBytes("AB"))                     // => 131
+sum(String.toBytes(""))                       // => 0
+
+// == by content, so Bytes are map keys and set members.
+String.toBytes("ant") == String.toBytes("ant")    // => true
+String.toBytes("ant") == String.toBytes("ants")   // => false
+String.toBytes("é") == Bytes.fromArray([0xc3, 0xa9]) // => true
+var seen = Map{ String.toBytes("k"): 1 }
+seen[Bytes.fromArray([0x6b])]                 // => 1
+Set.of([String.toBytes("a"), String.toBytes("a"), String.toBytes("b")]) // => Set.of([Bytes(61), Bytes(62)])
+
+// is tests the kind, so string | Bytes narrows either way.
+func describe(body: string | Bytes): string {
+  if body is Bytes { `${len(body)} bytes` } else { `text: ${body}` }
+}
+describe(png)                                 // => "8 bytes"
+describe("ok")                                // => "text: ok"
+
+// The namespace.
+Bytes.slice(png, 1, 4)                        // => Bytes(50 4e 47)
+Bytes.slice(png, 8, 8)                        // => Bytes()
+Bytes.slice(png, 2, 9)                        // => panic: Bytes.slice: the range 2..9 is not within 0..8
+Bytes.concat([png, String.toBytes("!")])      // => Bytes(89 50 4e 47 0d 0a 1a 0a 21)
+Bytes.concat([])                              // => Bytes()
+var request = String.toBytes("GET / HTTP/1.1\r\nHost: a\r\n\r\nbody")
+Bytes.indexOf(request, String.toBytes("\r\n\r\n")) // => 23
+Bytes.indexOf(request, String.toBytes("POST")) // => null
+Bytes.indexOf(request, String.toBytes(""))    // => 0
+Bytes.startsWith(png, Bytes.fromArray([0x89, 0x50])) // => true
+Bytes.startsWith(png, request)                // => false
+Bytes.endsWith(request, String.toBytes("body")) // => true
+Bytes.endsWith(request, png)                  // => false
+Bytes.fromArray([byte(1), byte(255)])         // => Bytes(01 ff)
+Bytes.fromArray([int8(-1)])                   // => panic: Bytes.fromArray needs integers from 0 to 255, got -1 at index 0
+Bytes.fromArray([1, 256])                     // => panic: Bytes.fromArray needs integers from 0 to 255, got 256 at index 1
+Bytes.toArray(String.toBytes("AB"))           // => [65, 66]
+
+// A string escape is a code point, not a byte.
+String.toBytes("\u{89}")                      // => Bytes(c2 89)
+
+// JSON has no form for Bytes; a program encodes them itself.
+Json.stringify(Map{ "data": png })            // => panic: Json.stringify: Bytes has no JSON form; write Encoding.toBase64 of it
+Json.stringify(Map{ "data": Encoding.toBase64(png) }) // => "{\"data\":\"iVBORw0KGgo=\"}"
+Json.stringify(Map{ String.toBytes("k"): 1 }) // => panic: Json.stringify: Bytes has no JSON form; write Encoding.toBase64 of it

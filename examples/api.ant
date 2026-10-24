@@ -10,11 +10,11 @@ type Item = { id: int, name: string }
 var items: Array[Item] = []
 var lock = Mutex.new()
 
-func json(status: int, body: string): Http.Response {
-  Http.Response{ status, headers: Map{ "Content-Type": "application/json" }, body }
+func json(status: int, body: string): Http.Reply {
+  Http.Reply{ status, headers: Map{ "Content-Type": "application/json" }, body }
 }
 
-func handle(req: Http.Request): Http.Response {
+func handle(req: Http.Request): Http.Reply {
   if req.method == "GET" && req.path == "/health" { return json(200, "{\"ok\": true}") }
   if req.method == "GET" && req.path == "/items" {
     return json(200, Mutex.withLock(lock, { Json.stringify(items) }))

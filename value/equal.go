@@ -16,7 +16,7 @@ type pair struct{ a, b any }
 func equal(a, b Value, visiting map[pair]bool) bool {
 	switch x := a.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64, float64, float32, string, bool,
-		nullType, voidType, *Tag:
+		nullType, voidType, *Tag, Bytes:
 		// Interface comparison checks the dynamic type first, so float32 never equals float64,
 		// and it compares floats by value, so NaN is unequal to itself and -0.0 equals 0.0.
 		return a == b
@@ -150,6 +150,8 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 		writeUint(h, uint64(math.Float32bits(x)))
 	case string:
 		h.WriteString(x)
+	case Bytes:
+		h.WriteString(string(x))
 	case bool:
 		if x {
 			h.WriteByte(1)

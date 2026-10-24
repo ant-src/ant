@@ -17,7 +17,7 @@ func main(): void {
   println(Point{ x: 1.0, y: 2.0, z: 3.0 }) // ERR: Point has no field z
   println(UserId{ value: "x" })            // ERR: UserId is not a record type
   println(Alias{})                         // ERR: Alias is not a record type
-  for e in p { println(e) }                // ERR: for needs an array, a map, a set, a string, or a sequence, got Point
+  for e in p { println(e) }                // ERR: for needs an array, a map, a set, a string, Bytes, or a sequence, got Point
   p.z = 1.0                                // ERR: Point has no field z
   println(p.z)                             // ERR: Point has no field z
   var x = 1.0

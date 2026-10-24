@@ -12,8 +12,9 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// OutputTag is Os.Output: { status: int, stdout: string, stderr: string }.
-var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr"})
+// OutputTag is Os.Output: { status: int, stdout: string, stderr: string, stdoutBytes: Bytes,
+// stderrBytes: Bytes }, each output as text and as the child wrote it.
+var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr", "stdoutBytes", "stderrBytes"})
 
 // execProcess is Os.exec: no shell, the outputs captured, Err only when the child could not be
 // started or run to its end, a nonzero exit as Ok with its status.
@@ -41,7 +42,7 @@ func execProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 		cmd.Env = env
 	}
 	if given(a[4]) {
-		cmd.Stdin = strings.NewReader(stringArg(g, who, a[4]))
+		cmd.Stdin = strings.NewReader(textOrBytes(g, who, a[4]))
 	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -59,7 +60,9 @@ func execProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 		}
 		status = exit.ExitCode()
 	}
-	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(status), value.Text(stdout.String()), value.Text(stderr.String())}))
+	outText, outBytes := received(stdout.Bytes())
+	errText, errBytes := received(stderr.Bytes())
+	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(status), outText, errText, outBytes, errBytes}))
 }
 
 func init() {

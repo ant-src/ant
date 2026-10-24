@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -175,6 +176,67 @@ func (h *Handle) readAll() value.Value {
 	return value.Ok(value.Text(text))
 }
 
+// readChunk is File.readChunk's read: what pending holds, else one read of the input, 1 to max
+// bytes either way; null at the end of the input. The buffer is at most chunkCap, and a read
+// that fills less than half of it is copied out, so a short chunk does not hold a long buffer.
+func (h *Handle) readChunk(max int) value.Value {
+	if h.pending != "" {
+		n := min(max, len(h.pending))
+		out := h.pending[:n]
+		h.pending = h.pending[n:]
+		return value.Ok(value.Bytes(out))
+	}
+	buf := make([]byte, min(max, chunkCap))
+	for {
+		n, err := h.r.Read(buf)
+		switch {
+		case n > 0 && n < len(buf)/2:
+			return value.Ok(value.Bytes(buf[:n]))
+		case n > 0:
+			return value.Ok(bytesValue(buf[:n]))
+		case err == io.EOF:
+			return value.Ok(value.Null)
+		case err != nil:
+			return errResult(err)
+		}
+	}
+}
+
+// chunkCap bounds what one File.readChunk allocates, whatever max it is given.
+const chunkCap = 1 << 20
+
+// readExactly is File.readExactly's read: n bytes, gathered in pending as they arrive, so a read
+// the context ended keeps what it had; null when the input is already at its end, and an Err
+// that keeps the bytes for the next read when it ends partway. The buffer grows with what
+// arrives, not with n, which may come from the other end.
+func (h *Handle) readExactly(n int) value.Value {
+	if len(h.pending) >= n {
+		out := h.pending[:n]
+		h.pending = h.pending[n:]
+		return value.Ok(value.Bytes(out))
+	}
+	buf := []byte(h.pending)
+	h.pending = ""
+	for len(buf) < n {
+		if len(buf) == cap(buf) {
+			buf = append(buf, make([]byte, min(n-len(buf), max(len(buf), 4096)))...)[:len(buf)]
+		}
+		k, err := h.r.Read(buf[len(buf):min(n, cap(buf))])
+		buf = buf[:len(buf)+k]
+		if err != nil {
+			h.pending = string(buf)
+			if err != io.EOF {
+				return errResult(err)
+			}
+			if len(buf) == 0 {
+				return value.Ok(value.Null)
+			}
+			return value.Err(value.ErrorValue("unexpected end of file"))
+		}
+	}
+	return value.Ok(bytesValue(buf))
+}
+
 // write writes s under the write mutex and flushes a stream or a connection.
 func (h *Handle) write(s string) value.Value {
 	if h.w == nil {
@@ -263,27 +325,6 @@ func (h *Handle) SyncName() string { return "File.Handle" }
 
 func handleArg(g *interp.Goroutine, who string, v value.Value) *Handle {
 	return typedArg[*Handle](g, who, "a File.Handle", v)
-}
-
-func bytesArg(g *interp.Goroutine, who string, v value.Value) []byte {
-	vals := arrayArg(g, who, v).Values()
-	out := make([]byte, len(vals))
-	for i, x := range vals {
-		b, ok := x.(uint8)
-		if !ok {
-			g.Panic("%s needs an array of bytes, got an element of kind %s", who, value.Describe(x))
-		}
-		out[i] = b
-	}
-	return out
-}
-
-func bytesValue(b []byte) value.Value {
-	out := make([]value.Value, len(b))
-	for i, x := range b {
-		out[i] = uint8(x)
-	}
-	return value.NewArray(out)
 }
 
 func init() {
@@ -376,7 +417,7 @@ func init() {
 				return okVoid(os.WriteFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), 0o644))
 			}),
 			fn("File.writeBytes", "path, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(os.WriteFile(stringArg(g, who, a[0]), bytesArg(g, who, a[1]), 0o644))
+				return okVoid(os.WriteFile(stringArg(g, who, a[0]), view(bytesArg(g, who, a[1])), 0o644))
 			}),
 			fn("File.exists", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				_, err := os.Stat(stringArg(g, who, a[0]))
@@ -421,6 +462,30 @@ func init() {
 				ctx := waitContext(g, who, a[1])
 				defer g.AfterWait()
 				return h.read(ctx, h.readAll)
+			}),
+			fn("File.readChunk", "f, max, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				max := intArg(g, who, a[1])
+				ctx := waitContext(g, who, a[2])
+				if max < 1 {
+					return value.Err(value.ErrorValue(fmt.Sprintf("the most to read is %d; it must be at least 1", max)))
+				}
+				defer g.AfterWait()
+				return h.read(ctx, func() value.Value { return h.readChunk(int(min(max, chunkCap))) })
+			}),
+			fn("File.readExactly", "f, n, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				n := intArg(g, who, a[1])
+				ctx := waitContext(g, who, a[2])
+				if n < 0 {
+					return value.Err(value.ErrorValue(fmt.Sprintf("the count to read is %d; it must be at least 0", n)))
+				}
+				defer g.AfterWait()
+				return h.read(ctx, func() value.Value { return h.readExactly(int(n)) })
+			}),
+			fn("File.writeChunk", "f, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				h := handleArg(g, who, a[0])
+				return h.write(string(bytesArg(g, who, a[1])))
 			}),
 			fn("File.writeLine", "f, line", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])

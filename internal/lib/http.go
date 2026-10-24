@@ -13,8 +13,13 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// ResponseTag is Http.Response: { status: int, headers: Map[string, string], body: string }.
-var ResponseTag = value.NewTag("Http.Response", value.RecordTag, []string{"status", "headers", "body"})
+// ResponseTag is Http.Response: { status: int, headers: Map[string, string], body: string,
+// bytes: Bytes }, the body as text and as received.
+var ResponseTag = value.NewTag("Http.Response", value.RecordTag, []string{"status", "headers", "body", "bytes"})
+
+// ReplyTag is Http.Reply: what a handler of Http.serve returns, with a body that is a string or
+// Bytes.
+var ReplyTag = value.NewTag("Http.Reply", value.RecordTag, []string{"status", "headers", "body"})
 
 // timeout converts an optional Time.Duration to a Go duration by goDuration's rules; zero means
 // no deadline, and an invalid duration is the Err of the request.
@@ -95,7 +100,16 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	for k, vs := range resp.Header {
 		out.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
 	}
-	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, value.Text(string(data))}))
+	text, raw := received(data)
+	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, text, raw}))
+}
+
+// optionalBody is a body of Http.request, a string or Bytes, or none.
+func optionalBody(g *interp.Goroutine, who string, v value.Value) string {
+	if !given(v) {
+		return ""
+	}
+	return textOrBytes(g, who, v)
 }
 
 func optionalString(g *interp.Goroutine, who string, v value.Value) string {
@@ -105,8 +119,9 @@ func optionalString(g *interp.Goroutine, who string, v value.Value) string {
 	return stringArg(g, who, v)
 }
 
-// RequestTag is Http.Request: what a handler of Http.serve receives.
-var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method", "path", "query", "headers", "body", "remote"})
+// RequestTag is Http.Request: what a handler of Http.serve receives, the body as text and as
+// received.
+var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method", "path", "query", "headers", "body", "bytes", "remote"})
 
 // serve is Http.serve: an http.Server on the listener until ctx is done, then a shutdown that
 // waits up to five seconds for the requests in flight. Each request's handler runs on an Ant
@@ -154,18 +169,19 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	text, raw := received(body)
 	headers := value.NewMap()
 	headers.Set("Host", value.Text(r.Host)) // which Go keeps apart from the other headers
 	for k, vs := range r.Header {
 		headers.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
 	}
-	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, value.Text(string(body)), r.RemoteAddr})
+	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, text, raw, r.RemoteAddr})
 	result := make(chan *value.Record, 1)
 	g.Spawn(func(ng *interp.Goroutine) {
 		defer close(result)
 		resp, ok := ng.Call(handler, req).(*value.Record)
-		if !ok || resp.Tag != ResponseTag {
-			ng.Panic("Http.serve: the handler must return an Http.Response")
+		if !ok || resp.Tag != ReplyTag {
+			ng.Panic("Http.serve: the handler must return an Http.Reply")
 		}
 		status, _ := resp.Field("status")
 		if n, ok := status.(int64); !ok || n < 200 || n > 599 {
@@ -180,7 +196,7 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 	}
 	status, _ := resp.Field("status")
 	hdrs, _ := resp.Field("headers")
-	text, _ := resp.Field("body")
+	reply, _ := resp.Field("body")
 	if m, ok := hdrs.(*value.Map); ok {
 		for _, e := range m.Entries() {
 			k, kok := e.Key.(string)
@@ -190,7 +206,13 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 			}
 		}
 	}
-	out, _ := text.(string)
+	out := ""
+	switch x := reply.(type) {
+	case string:
+		out = x
+	case value.Bytes:
+		out = string(x)
+	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(out)))
 	w.WriteHeader(int(status.(int64)))
 	io.WriteString(w, out)
@@ -201,15 +223,16 @@ func init() {
 		return namespace("Http",
 			constant("Response", ResponseTag),
 			fn("Http.request", "method, url, body?, headers?, timeout?, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return request(g, who, stringArg(g, who, a[0]), stringArg(g, who, a[1]), optionalString(g, who, a[2]), a[3], a[4], a[5])
+				return request(g, who, stringArg(g, who, a[0]), stringArg(g, who, a[1]), optionalBody(g, who, a[2]), a[3], a[4], a[5])
 			}),
 			fn("Http.get", "url, headers?, timeout?, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return request(g, who, "GET", stringArg(g, who, a[0]), "", a[1], a[2], a[3])
 			}),
 			fn("Http.post", "url, body, headers?, timeout?, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return request(g, who, "POST", stringArg(g, who, a[0]), stringArg(g, who, a[1]), a[2], a[3], a[4])
+				return request(g, who, "POST", stringArg(g, who, a[0]), textOrBytes(g, who, a[1]), a[2], a[3], a[4])
 			}),
 			constant("Request", RequestTag),
+			constant("Reply", ReplyTag),
 			fn("Http.serve", "l, handler, ctx?", serve),
 		)
 	})

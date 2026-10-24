@@ -2,11 +2,11 @@
 // Http.request sends one request: a redirect comes back as the response it is, with its status
 // and Location, for a GET and for a POST alike; an empty method is Err; a handler sees Host
 // among the headers; and once serve has returned on its context, the listener is closed.
-func handle(r: Http.Request): Http.Response {
+func handle(r: Http.Request): Http.Reply {
   if r.path == "/old" {
-    Http.Response{ status: 302, headers: Map{ Location: "/new" }, body: "" }
+    Http.Reply{ status: 302, headers: Map{ Location: "/new" }, body: "" }
   } else {
-    Http.Response{ status: 200, headers: Map{}, body: `${r.method} ${r.path} ${r.headers["Host"] ?? "no host"}` }
+    Http.Reply{ status: 200, headers: Map{}, body: `${r.method} ${r.path} ${r.headers["Host"] ?? "no host"}` }
   }
 }
 

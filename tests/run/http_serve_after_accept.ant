@@ -1,8 +1,8 @@
 // spec: stdlib Http; stdlib Net
 // Http.serve answers every request that arrives on its listener, also one that Net.accept was
 // used on before, and the listener is closed once serve returns.
-func handle(req: Http.Request): Http.Response {
-  Http.Response{ status: 200, headers: Map{}, body: "ok" }
+func handle(req: Http.Request): Http.Reply {
+  Http.Reply{ status: 200, headers: Map{}, body: "ok" }
 }
 
 func main(): void {

@@ -455,8 +455,17 @@ func (g *Goroutine) index(recv, idx value.Value, pos ast.Pos) value.Value {
 			return value.Null
 		}
 		return v
+	case value.Bytes:
+		i, ok := idx.(int64)
+		if !ok {
+			g.panicf(pos, "an index of Bytes must be an int, got %s", value.Describe(idx))
+		}
+		if i < 0 || i >= int64(len(x)) {
+			g.panicf(pos, "index %d out of range for Bytes of length %d", i, len(x))
+		}
+		return x[i]
 	}
-	g.panicf(pos, "%s is not an array or a map, so it cannot be indexed", value.Describe(recv))
+	g.panicf(pos, "%s is not an array, a map, or Bytes, so it cannot be indexed", value.Describe(recv))
 	return nil
 }
 
@@ -849,6 +858,8 @@ func (g *Goroutine) setIndex(recv, idx, v value.Value, pos ast.Pos) {
 		}
 	case *value.Map:
 		x.Set(idx, v)
+	case value.Bytes:
+		g.panicf(pos, "Bytes is immutable, so a byte cannot be assigned")
 	default:
 		g.panicf(pos, "%s is not an array or a map, so it cannot be indexed", value.Describe(recv))
 	}
@@ -1062,6 +1073,13 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 				return rv, rc
 			}
 		}
+	case value.Bytes:
+		for i := 0; i < len(x); i++ {
+			g.check()
+			if rv, rc, stop := run(x[i]); stop {
+				return rv, rc
+			}
+		}
 	case string:
 		for _, r := range x {
 			g.check()
@@ -1072,7 +1090,7 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	case value.Callable:
 		return g.forSeq(e, x, runOn)
 	default:
-		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, or a function, got %s", value.Describe(iter))
+		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, Bytes, or a function, got %s", value.Describe(iter))
 	}
 	return value.Void, ctlNone
 }

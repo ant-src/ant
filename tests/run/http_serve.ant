@@ -6,11 +6,11 @@
 // handler that panics answers 500 and is reported as a goroutine's panic; a status outside
 // 200 to 599 panics, and the panic takes the same path; cancelling the context stops the server and
 // serve returns Ok.
-func handle(req: Http.Request): Http.Response {
+func handle(req: Http.Request): Http.Reply {
   if req.path == "/boom" { panic("boom") }
-  if req.path == "/bad" { return Http.Response{ status: 999, headers: Map{}, body: "" } }
+  if req.path == "/bad" { return Http.Reply{ status: 999, headers: Map{}, body: "" } }
   var body = `${req.method} ${req.path} ${req.query} ${req.headers["X-Token"] ?? "-"} ${req.body}`
-  Http.Response{ status: 201, headers: Map{ "X-Served": "yes" }, body }
+  Http.Reply{ status: 201, headers: Map{ "X-Served": "yes" }, body }
 }
 
 func main(): void {

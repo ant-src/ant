@@ -52,4 +52,4 @@ func main(): void {
 // out: 0
 // out: true seen typed
 // out: true
-// out: Os.Output{ status: 0, stdout: "true seen typed", stderr: "warned\n" }
+// out: Os.Output{ status: 0, stdout: "true seen typed", stderr: "warned\n", stdoutBytes: Bytes(74 72 75 65 20 73 65 65 6e 20 74 79 70 65 64), stderrBytes: Bytes(77 61 72 6e 65 64 0a) }

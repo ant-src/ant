@@ -5,10 +5,10 @@
 type Count = int
 type Label = string
 
-func bad[T](x: T): int { len(x) } // ERR: len needs an array, a map, a set, a string, or a channel, got T
+func bad[T](x: T): int { len(x) } // ERR: len needs an array, a map, a set, a string, Bytes, or a channel, got T
 
 func main(): void {
-  println(len(3))        // ERR: len needs an array, a map, a set, a string, or a channel, got int
+  println(len(3))        // ERR: len needs an array, a map, a set, a string, Bytes, or a channel, got int
   println(len(Count(1))) // ERR: got Count
   println(len(Label("a")))
   var u: string | int = 1

@@ -28,7 +28,7 @@ func init() {
 		return namespace("Encoding",
 			fn("Encoding.toBase64", "bytes, url?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				enc := base64Alphabet(g, who, a[1]).WithPadding(base64.StdPadding)
-				return enc.EncodeToString(bytesArg(g, who, a[0]))
+				return enc.EncodeToString(view(bytesArg(g, who, a[0])))
 			}),
 			fn("Encoding.fromBase64", "s, url?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				// Line breaks are ignored and the padding may be present or absent: the text is
@@ -45,7 +45,7 @@ func init() {
 				return value.Ok(bytesValue(data))
 			}),
 			fn("Encoding.toHex", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return hex.EncodeToString(bytesArg(g, who, a[0]))
+				return hex.EncodeToString(view(bytesArg(g, who, a[0])))
 			}),
 			fn("Encoding.fromHex", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				text := stringArg(g, who, a[0])

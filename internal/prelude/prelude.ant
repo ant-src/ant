@@ -168,8 +168,9 @@ func String.category(c: string): string
 func String.inScript(c: string, script: string): bool
 func String.chars(s: string): Array[string]
 func String.graphemes(s: string): Array[string]
-func String.toBytes(s: string): Array[byte]
-func String.fromBytes(bytes: Array[byte]): string | null
+func String.toBytes(s: string): Bytes
+func String.fromBytes(bytes: Bytes): string | null
+func String.fromBytesLossy(bytes: Bytes): string
 func String.codePoint(c: string): int
 func String.fromCodePoint(n: int): string | null
 func String.toCodePoints(s: string): Array[int]
@@ -180,6 +181,16 @@ func String.fromInt[T: Integer](x: T, base: int = 10): string
 func String.fromFloat(x: float64, digits: int): string
 func String.from[T](value: T): string
 var String.unicodeVersion: string
+
+type Bytes
+func Bytes.length(b: Bytes): int
+func Bytes.slice(b: Bytes, from: int, to: int): Bytes
+func Bytes.concat(parts: Array[Bytes]): Bytes
+func Bytes.indexOf(b: Bytes, sub: Bytes): int | null
+func Bytes.startsWith(b: Bytes, prefix: Bytes): bool
+func Bytes.endsWith(b: Bytes, suffix: Bytes): bool
+func Bytes.fromArray[T: Integer](xs: Array[T]): Bytes
+func Bytes.toArray(b: Bytes): Array[byte]
 
 // Regex
 
@@ -343,9 +354,9 @@ func File.tempDir(prefix: string): Result[string, Error]
 func File.walk(dir: string): Result[Array[string], Error]
 func File.append(path: string): Result[File.Handle, Error]
 func File.read(path: string): Result[string, Error]
-func File.readBytes(path: string): Result[Array[byte], Error]
+func File.readBytes(path: string): Result[Bytes, Error]
 func File.write(path: string, text: string): Result[void, Error]
-func File.writeBytes(path: string, bytes: Array[byte]): Result[void, Error]
+func File.writeBytes(path: string, bytes: Bytes): Result[void, Error]
 func File.exists(path: string): bool
 func File.remove(path: string): Result[void, Error]
 func File.list(dir: string): Result[Array[string], Error]
@@ -356,6 +367,9 @@ func File.writeLine(f: File.Handle, line: string): Result[void, Error]
 func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): Result[void, Error]
 func File.close(f: File.Handle): void
 func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Error]
+func File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Result[Bytes | null, Error]
+func File.readExactly(f: File.Handle, n: int, ctx: Context | null = null): Result[Bytes | null, Error]
+func File.writeChunk(f: File.Handle, bytes: Bytes): Result[void, Error]
 func File.writeText(f: File.Handle, text: string): Result[void, Error]
 func File.flush(f: File.Handle): Result[void, Error]
 
@@ -372,12 +386,13 @@ func Path.rel(base: string, target: string): Result[string, Error]
 
 // Http
 
-type Http.Response = { status: int, headers: Map[string, string], body: string }
-type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], body: string, remote: string }
-func Http.request(method: string, url: string, body: string = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
+type Http.Response = { status: int, headers: Map[string, string], body: string, bytes: Bytes }
+type Http.Reply = { status: int, headers: Map[string, string], body: string | Bytes }
+type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], body: string, bytes: Bytes, remote: string }
+func Http.request(method: string, url: string, body: string | Bytes = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 func Http.get(url: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
-func Http.post(url: string, body: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
-func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Response, ctx: Context | null = null): Result[void, Error]
+func Http.post(url: string, body: string | Bytes, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
+func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: Context | null = null): Result[void, Error]
 
 // Time (stdlib.md): the types are opaque and carry a tag is tests; the options are
 // enumerations of empty records.
@@ -506,13 +521,13 @@ func Net.peer(f: File.Handle): string | null
 
 // Os
 
-type Os.Output = { status: int, stdout: string, stderr: string }
+type Os.Output = { status: int, stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
 func Os.args(): Array[string]
 func Os.env(name: string): string | null
 func Os.environ(): Map[string, string]
 func Os.cwd(): Result[string, Error]
 func Os.exit(status: int): never
-func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string = "",
+func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string | Bytes = "",
         ctx: Context | null = null): Result[Os.Output, Error]
 func Os.stdin(): File.Handle
 func Os.interrupt(): Context
@@ -532,10 +547,10 @@ func Csv.stringify(rows: Array[Array[string]], sep: string = ","): string
 
 // Encoding
 
-func Encoding.toBase64(bytes: Array[byte], url: bool = false): string
-func Encoding.fromBase64(s: string, url: bool = false): Result[Array[byte], Error]
-func Encoding.toHex(bytes: Array[byte]): string
-func Encoding.fromHex(s: string): Result[Array[byte], Error]
+func Encoding.toBase64(bytes: Bytes, url: bool = false): string
+func Encoding.fromBase64(s: string, url: bool = false): Result[Bytes, Error]
+func Encoding.toHex(bytes: Bytes): string
+func Encoding.fromHex(s: string): Result[Bytes, Error]
 
 // Url
 
@@ -550,13 +565,13 @@ func Url.stringifyQuery(params: Map[string, Array[string]]): string
 
 // Crypto
 
-func Crypto.sha256(bytes: Array[byte]): Array[byte]
-func Crypto.sha512(bytes: Array[byte]): Array[byte]
-func Crypto.sha1(bytes: Array[byte]): Array[byte]
-func Crypto.md5(bytes: Array[byte]): Array[byte]
-func Crypto.hmacSha1(key: Array[byte], message: Array[byte]): Array[byte]
-func Crypto.hmacSha256(key: Array[byte], message: Array[byte]): Array[byte]
-func Crypto.hmacSha512(key: Array[byte], message: Array[byte]): Array[byte]
-func Crypto.equal(a: Array[byte], b: Array[byte]): bool
-func Crypto.randomBytes(n: int): Array[byte]
+func Crypto.sha256(bytes: Bytes): Bytes
+func Crypto.sha512(bytes: Bytes): Bytes
+func Crypto.sha1(bytes: Bytes): Bytes
+func Crypto.md5(bytes: Bytes): Bytes
+func Crypto.hmacSha1(key: Bytes, message: Bytes): Bytes
+func Crypto.hmacSha256(key: Bytes, message: Bytes): Bytes
+func Crypto.hmacSha512(key: Bytes, message: Bytes): Bytes
+func Crypto.equal(a: Bytes, b: Bytes): bool
+func Crypto.randomBytes(n: int): Bytes
 func Crypto.uuid(): string

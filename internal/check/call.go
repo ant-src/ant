@@ -174,12 +174,12 @@ func (c *Checker) length(x *ast.Call, sc *scope) types.Type {
 	}
 	t := c.synth(x.Args[0].Value, sc)
 	if !c.sized(t) {
-		c.errorf(x.Pos, "len needs an array, a map, a set, a string, or a channel, got %s", types.String(t))
+		c.errorf(x.Pos, "len needs an array, a map, a set, a string, Bytes, or a channel, got %s", types.String(t))
 	}
 	return types.IntType
 }
 
-// sized reports whether len takes a value of type t: an array, a map, a set, a string, a
+// sized reports whether len takes a value of type t: an array, a map, a set, a string, Bytes, a
 // channel, a named primitive over string, or a union or bounded type parameter of these.
 func (c *Checker) sized(t types.Type) bool {
 	switch x := types.Expand(t).(type) {
@@ -188,6 +188,9 @@ func (c *Checker) sized(t types.Type) bool {
 	case types.Prim:
 		return x.Kind == value.KindString
 	case types.Named:
+		if c.isBytes(x) {
+			return true
+		}
 		if x.Decl.Kind == types.PrimitiveDecl {
 			return x.Decl.Base == value.KindString
 		}
@@ -828,4 +831,11 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 		return nil
 	}
 	return inst
+}
+
+// isBytes reports whether t is the prelude's Bytes, which len, for and indexing take (section 11).
+func (c *Checker) isBytes(t types.Type) bool {
+	n, ok := types.Expand(t).(types.Named)
+	b, found := c.prelude["Bytes"]
+	return ok && found && n.Decl == b.decl
 }

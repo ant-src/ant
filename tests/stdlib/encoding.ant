@@ -5,19 +5,19 @@
 var bytes = String.toBytes("hi there")
 Encoding.toBase64(bytes)                      // => "aGkgdGhlcmU="
 Encoding.toBase64(String.toBytes(""))         // => ""
-Encoding.toBase64([byte(251), byte(255)])     // => "+/8="
-Encoding.toBase64([byte(251), byte(255)], url: true) // => "-_8="
-Encoding.fromBase64("aGkgdGhlcmU=")           // => Ok{ value: [104, 105, 32, 116, 104, 101, 114, 101] }
-Encoding.fromBase64("aGkgdGhlcmU")            // => Ok{ value: [104, 105, 32, 116, 104, 101, 114, 101] }
-Encoding.fromBase64("aGkg\ndGhlcmU=\n")       // => Ok{ value: [104, 105, 32, 116, 104, 101, 114, 101] }
-Encoding.fromBase64("-_8=", url: true)        // => Ok{ value: [251, 255] }
-Encoding.fromBase64("+/8=")                   // => Ok{ value: [251, 255] }
+Encoding.toBase64(Bytes.fromArray([251, 255])) // => "+/8="
+Encoding.toBase64(Bytes.fromArray([251, 255]), url: true) // => "-_8="
+Encoding.fromBase64("aGkgdGhlcmU=")           // => Ok{ value: Bytes(68 69 20 74 68 65 72 65) }
+Encoding.fromBase64("aGkgdGhlcmU")            // => Ok{ value: Bytes(68 69 20 74 68 65 72 65) }
+Encoding.fromBase64("aGkg\ndGhlcmU=\n")       // => Ok{ value: Bytes(68 69 20 74 68 65 72 65) }
+Encoding.fromBase64("-_8=", url: true)        // => Ok{ value: Bytes(fb ff) }
+Encoding.fromBase64("+/8=")                   // => Ok{ value: Bytes(fb ff) }
 Encoding.fromBase64("-_8=")                   // => Err{ error: Error{ message: "illegal base64 data at input byte 0" } }
 Result.isOk(Encoding.fromBase64("a"))         // => false
 Encoding.fromBase64("aGkgdGhlcmU=") | Result.map(String.fromBytes) // => Ok{ value: "hi there" }
 Encoding.toHex(bytes)                         // => "6869207468657265"
-Encoding.toHex([])                            // => ""
-Encoding.fromHex("6869")                      // => Ok{ value: [104, 105] }
+Encoding.toHex(String.toBytes(""))            // => ""
+Encoding.fromHex("6869")                      // => Ok{ value: Bytes(68 69) }
 Encoding.fromHex("6A6B") == Encoding.fromHex("6a6b") // => true
 Result.isOk(Encoding.fromHex("abc"))          // => false
 Encoding.fromHex("zz")                        // => Err{ error: Error{ message: "encoding/hex: invalid byte: U+007A 'z'" } }

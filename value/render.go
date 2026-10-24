@@ -40,6 +40,8 @@ func render(sb *strings.Builder, v Value, top bool, stack []any) {
 		sb.WriteString(FormatFloat(x, 64))
 	case float32:
 		sb.WriteString(FormatFloat(float64(x), 32))
+	case Bytes:
+		renderBytes(sb, x)
 	case string:
 		if top {
 			sb.WriteString(x)

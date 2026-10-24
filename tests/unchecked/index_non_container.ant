@@ -5,4 +5,4 @@ func main(): void { println("abc"[0]) }
 
 // expect
 // exit: 1
-// err: string is not an array or a map
+// err: string is not an array, a map, or Bytes

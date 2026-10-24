@@ -103,10 +103,11 @@ String.isLower("a1")                          // => false
 Array.map(String.chars("a1 B"), { [String.isLetter(x), String.isDigit(x), String.isSpace(x), String.isUpper(x)] }) // => [[true, false, false, false], [false, true, false, false], [false, false, true, false], [true, false, false, true]]
 
 // Bytes and code points; invalid input gives null.
-String.toBytes("é")                           // => [195, 169]
-String.toBytes("añ")                          // => [97, 195, 177]
-String.fromBytes([byte(195), byte(169)])      // => "é"
-String.fromBytes([byte(255)])                 // => null
+String.toBytes("é")                           // => Bytes(c3 a9)
+String.toBytes("añ")                          // => Bytes(61 c3 b1)
+String.fromBytes(Bytes.fromArray([195, 169]))  // => "é"
+String.fromBytes(Bytes.fromArray([255]))       // => null
+String.fromBytesLossy(Bytes.fromArray([0x61, 0xff, 0xfe, 0xe2, 0x82])) == "a\u{FFFD}\u{FFFD}\u{FFFD}" // => true
 String.toCodePoints("a😀")                     // => [97, 128512]
 String.toCodePoints("añ")                     // => [97, 241]
 String.fromCodePoints([72, 105])              // => "Hi"

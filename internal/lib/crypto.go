@@ -19,7 +19,7 @@ import (
 func digest(name string, h func() hash.Hash) *interp.Builtin {
 	return fn(name, "bytes", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		d := h()
-		d.Write(bytesArg(g, name, a[0]))
+		d.Write(view(bytesArg(g, name, a[0])))
 		return bytesValue(d.Sum(nil))
 	})
 }
@@ -27,8 +27,8 @@ func digest(name string, h func() hash.Hash) *interp.Builtin {
 // mac is a Crypto function that computes an HMAC of a message under a key.
 func mac(name string, h func() hash.Hash) *interp.Builtin {
 	return fn(name, "key, message", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
-		m := hmac.New(h, bytesArg(g, name, a[0]))
-		m.Write(bytesArg(g, name, a[1]))
+		m := hmac.New(h, view(bytesArg(g, name, a[0])))
+		m.Write(view(bytesArg(g, name, a[1])))
 		return bytesValue(m.Sum(nil))
 	})
 }
@@ -44,7 +44,7 @@ func init() {
 			mac("Crypto.hmacSha256", sha256.New),
 			mac("Crypto.hmacSha512", sha512.New),
 			fn("Crypto.equal", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return subtle.ConstantTimeCompare(bytesArg(g, who, a[0]), bytesArg(g, who, a[1])) == 1
+				return subtle.ConstantTimeCompare(view(bytesArg(g, who, a[0])), view(bytesArg(g, who, a[1]))) == 1
 			}),
 			fn("Crypto.randomBytes", "n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				n := intArg(g, who, a[0])

@@ -35,7 +35,7 @@ func loadConfig(path: string): Result[Json.Value, Error] {
 ```ts
 func serve(): Result[void, Error] {
   var listener = try Net.listen(":8080")
-  var reply = Http.Response{ status: 200, headers: Map{}, body: "Hello!" }
+  var reply = Http.Reply{ status: 200, headers: Map{}, body: "Hello!" }
   Http.serve(listener, { reply })
 }
 ```

@@ -843,7 +843,7 @@ func (p *parser) binaryLeft(next func() ast.Expr, ops ...string) ast.Expr {
 }
 
 var kindNames = map[string]bool{
-	"bool": true, "string": true, "Array": true, "Map": true, "Set": true,
+	"bool": true, "string": true, "Bytes": true, "Array": true, "Map": true, "Set": true,
 	"int8": true, "int16": true, "int32": true, "int64": true,
 	"uint8": true, "uint16": true, "uint32": true, "uint64": true,
 	"float32": true, "float64": true, "int": true, "byte": true,

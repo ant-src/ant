@@ -46,7 +46,7 @@ func main(): void {
 // out: true
 // out: Err{ error: Error{ message: "timeout" } }
 // out: true
-// out: Ok{ value: Os.Output{ status: 0, stdout: "", stderr: "" } }
+// out: Ok{ value: Os.Output{ status: 0, stdout: "", stderr: "", stdoutBytes: Bytes(), stderrBytes: Bytes() } }
 // out: Err{ error: Error{ message: "cancelled" } }
 // out: Ok{ value: "one" }
 // out: Err{ error: Error{ message: "cancelled" } }
