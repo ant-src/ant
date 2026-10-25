@@ -22,26 +22,24 @@ func generating(s: Session, ctx: Context, speech: Channel[void], messages: Chann
   "closed"
 }
 
-func main(): void {
-  var s = Session{ pending: [], interrupted: false, flushed: 0 }
-  var ctx = Context.new()
-  var speech: Channel[void] = Channel.new()
-  var messages: Channel[string] = Channel.new()
-  var interrupts: Channel[int] = Channel.new()
-  go {
-    Channel.send(speech, void)
-    Channel.send(messages, "hello")
-    Channel.send(messages, "again")
-    Channel.send(interrupts, 42)
-  }
-  println(generating(s, ctx, speech, messages, interrupts))
-  println(s)
-  go { Channel.close(messages) }
-  println(generating(s, ctx, speech, messages, interrupts))
-  var quiet: Channel[string] = Channel.new()
-  Context.cancel(ctx)
-  println(generating(s, ctx, speech, quiet, interrupts))
+var s = Session{ pending: [], interrupted: false, flushed: 0 }
+var ctx = Context.new()
+var speech: Channel[void] = Channel.new()
+var messages: Channel[string] = Channel.new()
+var interrupts: Channel[int] = Channel.new()
+go {
+  Channel.send(speech, void)
+  Channel.send(messages, "hello")
+  Channel.send(messages, "again")
+  Channel.send(interrupts, 42)
 }
+println(generating(s, ctx, speech, messages, interrupts))
+println(s)
+go { Channel.close(messages) }
+println(generating(s, ctx, speech, messages, interrupts))
+var quiet: Channel[string] = Channel.new()
+Context.cancel(ctx)
+println(generating(s, ctx, speech, quiet, interrupts))
 
 // expect
 // out: interrupted at 42

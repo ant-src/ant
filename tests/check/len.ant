@@ -7,19 +7,17 @@ type Label = string
 
 func bad[T](x: T): int { len(x) } // ERR: len needs an array, a map, a set, a string, Bytes, or a channel, got T
 
-func main(): void {
-  println(len(3))        // ERR: len needs an array, a map, a set, a string, Bytes, or a channel, got int
-  println(len(Count(1))) // ERR: got Count
-  println(len(Label("a")))
-  var u: string | int = 1
-  println(len(u))             // ERR: got string | int
-  println(len())              // ERR: len takes exactly one positional argument
-  println(len("a", "b"))      // ERR: len takes exactly one positional argument
-  println(len(x: "a"))        // ERR: len takes exactly one positional argument
-  var f: func(int): int = len // ERR: cannot use len where func(int): int is expected
-  var g: func(Array[bool]): int = len
-  var n: string = len("a") // ERR: cannot use int where string is expected
-  println(f)
-  println(g)
-  println(n)
-}
+println(len(3))        // ERR: len needs an array, a map, a set, a string, Bytes, or a channel, got int
+println(len(Count(1))) // ERR: got Count
+println(len(Label("a")))
+var u: string | int = 1
+println(len(u))             // ERR: got string | int
+println(len())              // ERR: len takes exactly one positional argument
+println(len("a", "b"))      // ERR: len takes exactly one positional argument
+println(len(x: "a"))        // ERR: len takes exactly one positional argument
+var f: func(int): int = len // ERR: cannot use len where func(int): int is expected
+var g: func(Array[bool]): int = len
+var n: string = len("a") // ERR: cannot use int where string is expected
+println(f)
+println(g)
+println(n)

@@ -9,12 +9,10 @@ func store(xs: Array[int], ok: bool): Result[int, string] {
   [xs[try idx(ok)], b] = [7, 8]
   Result.ok(b)
 }
-func main(): void {
-  var xs = [1, 2]
-  println(store(xs, true))
-  println(xs)
-  println(store(xs, false))
-}
+var xs = [1, 2]
+println(store(xs, true))
+println(xs)
+println(store(xs, false))
 
 // expect
 // out: Ok{ value: 8 }

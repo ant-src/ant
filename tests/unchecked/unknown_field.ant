@@ -2,7 +2,7 @@
 // panics: record-literal
 // A record literal naming a field the tag does not list panics (section 12).
 type P = { x: int }
-func main(): void { println(P{ x: 1, y: 2 }) }
+println(P{ x: 1, y: 2 })
 
 // expect
 // exit: 1

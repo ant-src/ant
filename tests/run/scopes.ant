@@ -15,17 +15,15 @@ func shadow(): void {
   println(top)
 }
 
-func main(): void {
-  shadow()
-  var n = 1
-  var get = func(): int { n }
-  n = 2
-  println(get())
-  var fact: func(int): int = func(k: int): int { if k <= 1 { 1 } else { k * fact(k - 1) } }
-  println(fact(5))
-  var fs = [func(): int { 10 }, func(): int { 20 }]
-  println(fs[1]())
-}
+shadow()
+var n = 1
+var get = func(): int { n }
+n = 2
+println(get())
+var fact: func(int): int = func(k: int): int { if k <= 1 { 1 } else { k * fact(k - 1) } }
+println(fact(5))
+var fs = [func(): int { 10 }, func(): int { 20 }]
+println(fs[1]())
 
 // expect
 // out: module

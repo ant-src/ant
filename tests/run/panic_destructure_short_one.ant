@@ -1,11 +1,9 @@
 // spec: 12 Runtime panics; 5 Destructuring
 // panics: destructuring-short
 // A pattern with one fixed position names one element when the array is empty (section 5).
-func main(): void {
-  var none: Array[int] = []
-  var [a, ...rest] = none
-  println(a)
-}
+var none: Array[int] = []
+var [a, ...rest] = none
+println(a)
 
 // expect
 // exit: 1

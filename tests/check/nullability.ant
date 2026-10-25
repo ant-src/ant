@@ -6,40 +6,38 @@ type User = { name: string, address: Address | null }
 
 func find(id: int): User | null { if id == 1 { User{ name: "ada", address: null } } else { null } }
 
-func main(): void {
-  var s: string = null // ERR: cannot use null where string is expected
-  var user = find(1)
-  println(user.name) // ERR: narrow the value first
-  println(user?.name ?? "anonymous")
-  if user != null { println(user.name) }
-  var name = "x"
-  println(name?.length)                                                  // ERR: ?. needs a nullable left side
-  println(name ?? "y")                                                   // ERR: ?? needs a nullable left side
-  if user != null && user.address != null { println(user.address.city) } // ERR: narrow the value first
-  if user != null {
-    var address = user.address
-    if address != null { println(address.city) }
-  }
-  var hit: User | null = null
-  go { hit = find(1) }
-  if hit != null { println(hit.name) } // ERR: narrow the value first
-  var lock = Mutex.new()
-  var u = find(2)
-  if u != null {
-    Mutex.withLock(lock, { println(u.name) })
-  }
-  var reassigned = find(1)
-  if reassigned != null {
-    Mutex.withLock(lock, { println(reassigned.name) }) // ERR: narrow the value first
-  }
-  reassigned = null
-  var v: int | null = 1
-  var w = v ?? return
-  println(w + 1)
-  var missing = Map{ a: 1 }["b"] ?? panic("unreachable")
-  println(missing + 1)
-  var label = find(2)?.name
-  var shown: string = label ?? 0           // ERR: cannot use int where string is expected
-  var both: string = Map{ a: 1 }["c"] ?? 0 // ERR: cannot use int where string is expected ;; cannot use int where string is expected
-  println(shown + both)
+var s: string = null // ERR: cannot use null where string is expected
+var user = find(1)
+println(user.name) // ERR: narrow the value first
+println(user?.name ?? "anonymous")
+if user != null { println(user.name) }
+var name = "x"
+println(name?.length)                                                  // ERR: ?. needs a nullable left side
+println(name ?? "y")                                                   // ERR: ?? needs a nullable left side
+if user != null && user.address != null { println(user.address.city) } // ERR: narrow the value first
+if user != null {
+  var address = user.address
+  if address != null { println(address.city) }
 }
+var hit: User | null = null
+go { hit = find(1) }
+if hit != null { println(hit.name) } // ERR: narrow the value first
+var lock = Mutex.new()
+var u = find(2)
+if u != null {
+  Mutex.withLock(lock, { println(u.name) })
+}
+var reassigned = find(1)
+if reassigned != null {
+  Mutex.withLock(lock, { println(reassigned.name) }) // ERR: narrow the value first
+}
+reassigned = null
+var v: int | null = 1
+var w = v ?? return
+println(w + 1)
+var missing = Map{ a: 1 }["b"] ?? panic("unreachable")
+println(missing + 1)
+var label = find(2)?.name
+var shown: string = label ?? 0           // ERR: cannot use int where string is expected
+var both: string = Map{ a: 1 }["c"] ?? 0 // ERR: cannot use int where string is expected ;; cannot use int where string is expected
+println(shown + both)

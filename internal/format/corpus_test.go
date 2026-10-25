@@ -15,7 +15,9 @@ import (
 )
 
 // corpusDirs hold the modules of the repository: every file in them parses as a module.
-// tests/syntax does not parse by design, and tests/stdlib holds top-level statements.
+// tests/syntax does not parse by design, and tests/stdlib holds tables the harness reads one
+// input per line, where a line may start with a regular expression literal that the whole file
+// would read as a division (fmt.md section 4.3).
 var corpusDirs = []string{"../../examples", "../../tests/run", "../../tests/unchecked", "../../tests/check"}
 
 func corpus(t *testing.T) []string {

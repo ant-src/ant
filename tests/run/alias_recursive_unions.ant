@@ -28,19 +28,17 @@ func depth(n: Nested[string]): int {
   deepest + 1
 }
 
-func main(): void {
-  var n: Nested[string] = [1, [2, [3]], []]
-  var t: Tree[int] = [Box{ value: 1 }, [Box{ value: 2 }, [Box{ value: 3 }]]]
-  var c: Config[int] = Map{ "debug": true, "net": Map{ "ipv6": false } }
-  var d: Deep[int] = [Box{ value: 1 }, Map{ "k": [Box{ value: 2 }] }]
-  var s: Same[string] = n
-  println(n)
-  println(depth(n))
-  println(sum(t))
-  println(c)
-  println(d)
-  println(s == n)
-}
+var n: Nested[string] = [1, [2, [3]], []]
+var t: Tree[int] = [Box{ value: 1 }, [Box{ value: 2 }, [Box{ value: 3 }]]]
+var c: Config[int] = Map{ "debug": true, "net": Map{ "ipv6": false } }
+var d: Deep[int] = [Box{ value: 1 }, Map{ "k": [Box{ value: 2 }] }]
+var s: Same[string] = n
+println(n)
+println(depth(n))
+println(sum(t))
+println(c)
+println(d)
+println(s == n)
 
 // expect
 // out: [1, [2, [3]], []]

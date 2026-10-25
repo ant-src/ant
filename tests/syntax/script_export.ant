@@ -1,0 +1,9 @@
+// spec: 10 Scripts
+// A script cannot export, since it cannot be imported: the first statement makes the module a
+// script and is reported.
+export func double(n: int): int { n * 2 }
+println(double(2))
+
+// expect
+// exit: 2
+// err: 5:1: a module with exports cannot have top-level statements

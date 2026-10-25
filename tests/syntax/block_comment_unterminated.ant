@@ -1,6 +1,5 @@
 // spec: 2 Comments
 /* open
-func main(): void {}
 
 // expect
 // exit: 2

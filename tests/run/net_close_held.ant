@@ -1,15 +1,13 @@
 // spec: stdlib Net
 // Net.close makes pending and later accepts return Err, a connection that arrived while no
 // accept waited included: it is not handed out after the close.
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  println(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
-  var c = Result.unwrap(Net.dial(Net.address(l)))
-  Time.sleep(Time.duration(milliseconds: 50))
-  Net.close(l)
-  println(Net.accept(l))
-  File.close(c)
-}
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+println(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
+var c = Result.unwrap(Net.dial(Net.address(l)))
+Time.sleep(Time.duration(milliseconds: 50))
+Net.close(l)
+println(Net.accept(l))
+File.close(c)
 
 // expect
 // out: Err{ error: Error{ message: "timeout" } }

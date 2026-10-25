@@ -1,32 +1,30 @@
 // spec: stdlib Time; 5 select; 9 Waiting
 // Time.ticker: the time every period, read by a select beside a channel of work; a slow reader
 // gets one tick, not a burst; the ticker stops with its context.
-func main(): void {
-  var ctx = Context.new()
-  var ticks = Time.ticker(Time.duration(milliseconds: 20), ctx)
-  var work: Channel[string] = Channel.new()
-  go {
-    for w in ["a", "b", "c"] { var x = Channel.send(work, w) }
-  }
-  var got: Array[string] = []
-  var beats = 0
-  while beats < 3 {
-    select {
-      var w = Channel.receive(work) { Array.push(got, w ?? "") }
-      var at = Channel.receive(ticks) {
-        if at != null && Time.compare(at, Time.fromEpochMillis(0)) > 0 { beats += 1 }
-      }
+var ctx = Context.new()
+var ticks = Time.ticker(Time.duration(milliseconds: 20), ctx)
+var work: Channel[string] = Channel.new()
+go {
+  for w in ["a", "b", "c"] { var x = Channel.send(work, w) }
+}
+var got: Array[string] = []
+var beats = 0
+while beats < 3 {
+  select {
+    var w = Channel.receive(work) { Array.push(got, w ?? "") }
+    var at = Channel.receive(ticks) {
+      if at != null && Time.compare(at, Time.fromEpochMillis(0)) > 0 { beats += 1 }
     }
   }
-  println(got)
-  println(beats)
-  Time.sleep(Time.duration(milliseconds: 100))
-  println(Channel.length(ticks))
-  Context.cancel(ctx)
-  Time.sleep(Time.duration(milliseconds: 50))
-  var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
-  println(Channel.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
 }
+println(got)
+println(beats)
+Time.sleep(Time.duration(milliseconds: 100))
+println(Channel.length(ticks))
+Context.cancel(ctx)
+Time.sleep(Time.duration(milliseconds: 50))
+var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
+println(Channel.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
 
 // expect
 // out: ["a", "b", "c"]

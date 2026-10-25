@@ -8,39 +8,37 @@ type User = { name: string }
 
 var origin = Point{ x: 0, y: 0 }
 
-func main(): void {
-  var three = if true { var t = 1; t + 2 } else { 0 }
-  println(three)
-  var nothing: void = if true { var t = 1 } else {}
-  println(nothing)
-  var assigned: void = if true { three = 4 } else {}
-  println(assigned)
-  println(three)
-  var empty: void = if true {} else {}
-  println(empty)
-  var noop: func(): void = {}
-  println(noop())
-  var chosen = if three > 1 { Point{ x: 1, y: 0 } } else { origin }
-  println(chosen)
-  var u = User{ name: "ada" }
-  if u == (User{ name: "ada" }) { println("same user") }
-  if (Map{ a: 1 })["a"] == 1 { println("map in header") }
-  var fs: Array[func(int): int] = [{ x + 1 }, { x * 2 }]
-  println(fs[0](1) + fs[1](1))
-  var xs = [1, 2]
-  if xs[0] == 1 { println("after an index") }
-  if Array.isEmpty(xs) { println("no") } else { println("after a call") }
-  if u.name == "ada" { println("after a path") }
-  if 2 > 1 { println("after a literal") }
-  var a = 1
-  var b = 2
-  println(a + b)
-  var seq: func(): int = {
-    var inner = 10
-    inner * 2
-  }
-  println(seq())
+var three = if true { var t = 1; t + 2 } else { 0 }
+println(three)
+var nothing: void = if true { var t = 1 } else {}
+println(nothing)
+var assigned: void = if true { three = 4 } else {}
+println(assigned)
+println(three)
+var empty: void = if true {} else {}
+println(empty)
+var noop: func(): void = {}
+println(noop())
+var chosen = if three > 1 { Point{ x: 1, y: 0 } } else { origin }
+println(chosen)
+var u = User{ name: "ada" }
+if u == (User{ name: "ada" }) { println("same user") }
+if (Map{ a: 1 })["a"] == 1 { println("map in header") }
+var fs: Array[func(int): int] = [{ x + 1 }, { x * 2 }]
+println(fs[0](1) + fs[1](1))
+var xs = [1, 2]
+if xs[0] == 1 { println("after an index") }
+if Array.isEmpty(xs) { println("no") } else { println("after a call") }
+if u.name == "ada" { println("after a path") }
+if 2 > 1 { println("after a literal") }
+var a = 1
+var b = 2
+println(a + b)
+var seq: func(): int = {
+  var inner = 10
+  inner * 2
 }
+println(seq())
 
 // expect
 // out: 3

@@ -2,7 +2,7 @@
 // panics: arith-kind
 // An operator on a tagged value and a plain one panics (section 12).
 type Meters = float64
-func main(): void { println(Meters(1.0) * 2.0) }
+println(Meters(1.0) * 2.0)
 
 // expect
 // exit: 1

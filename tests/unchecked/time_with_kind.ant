@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // An instant has no fields to replace.
-func main(): void { println(Time.with(Time.fromEpochMillis(0), year: 2020)) }
+println(Time.with(Time.fromEpochMillis(0), year: 2020))
 
 // expect
 // exit: 1

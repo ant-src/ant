@@ -1,24 +1,22 @@
 // spec: stdlib File
 // A read ended by its context keeps what it consumed: the line that arrives late is read whole
 // by the next read, and readAll returns what it had together with the rest.
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  go {
-    var s = Result.unwrap(Net.accept(l))
-    var x = File.writeText(s, "hel")
-    Time.sleep(Time.duration(milliseconds: 300))
-    x = File.writeText(s, "lo\nsecond\nabc")
-    Time.sleep(Time.duration(milliseconds: 300))
-    x = File.writeText(s, "def")
-    File.close(s)
-  }
-  var c = Result.unwrap(Net.dial(Net.address(l)))
-  println(File.readLine(c, Context.new(Time.duration(milliseconds: 50))))
-  println(File.readLine(c))
-  println(File.readLine(c))
-  println(File.readAll(c, Context.new(Time.duration(milliseconds: 50))))
-  println(File.readAll(c))
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+go {
+  var s = Result.unwrap(Net.accept(l))
+  var x = File.writeText(s, "hel")
+  Time.sleep(Time.duration(milliseconds: 300))
+  x = File.writeText(s, "lo\nsecond\nabc")
+  Time.sleep(Time.duration(milliseconds: 300))
+  x = File.writeText(s, "def")
+  File.close(s)
 }
+var c = Result.unwrap(Net.dial(Net.address(l)))
+println(File.readLine(c, Context.new(Time.duration(milliseconds: 50))))
+println(File.readLine(c))
+println(File.readLine(c))
+println(File.readAll(c, Context.new(Time.duration(milliseconds: 50))))
+println(File.readAll(c))
 
 // expect
 // out: Err{ error: Error{ message: "timeout" } }

@@ -1,7 +1,7 @@
 // spec: 5 if; 5 Blocks
 // A record literal in an if header must be parenthesized: its brace would begin the body.
 type User = { name: string }
-func main(): void { var u = User{ name: "a" }; if u == User{ name: "a" } { println(1) } }
+var u = User{ name: "a" }; if u == User{ name: "a" } { println(1) }
 
 // expect
 // exit: 2

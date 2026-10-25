@@ -1,0 +1,3 @@
+//! A script, which another module cannot import.
+func helper(): int { 1 }
+println(helper())

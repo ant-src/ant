@@ -5,28 +5,26 @@ var calls = 0
 
 func load(): string { calls += 1; "config" }
 
-func main(): void {
-  var config = Once.value(load)
-  println(config())
-  println(config())
-  println(calls)
-  var once = Once.new()
-  Once.do(once, { println("first") })
-  Once.do(once, { println("second") })
-  var wg = WaitGroup.new()
-  var shared = Once.new()
-  var hits = Atomic.new(0)
-  for _ in Iter.range(0, 20) {
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      Once.do(shared, { _ = Atomic.add(hits, 1) })
-    }
+var config = Once.value(load)
+println(config())
+println(config())
+println(calls)
+var once = Once.new()
+Once.do(once, { println("first") })
+Once.do(once, { println("second") })
+var wg = WaitGroup.new()
+var shared = Once.new()
+var hits = Atomic.new(0)
+for _ in Iter.range(0, 20) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    Once.do(shared, { _ = Atomic.add(hits, 1) })
   }
-  WaitGroup.wait(wg)
-  println(Atomic.load(hits))
-  println("done")
 }
+WaitGroup.wait(wg)
+println(Atomic.load(hits))
+println("done")
 
 // expect
 // out: config

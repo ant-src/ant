@@ -322,7 +322,7 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 	switch ent.kind {
 	case entVar:
-		return c.varType(ent.v, pos, c.fn != nil && c.fn.kind == "init")
+		return c.varType(ent.v, pos, c.fn != nil && (c.fn.kind == "init" || c.fn.kind == "script"))
 	case entConst:
 		return ent.typ
 	case entFunc:
@@ -1152,6 +1152,9 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 		return okT
 	}
 	errRec := types.Named{Decl: c.prelude["Err"].decl, Args: []types.Type{errT}}
+	if fn.kind == "script" {
+		return okT // a script may return any Err (section 10, Scripts)
+	}
 	if fn.declared != nil {
 		_, declaredErr, isResult := resultParts(types.Without(fn.declared, types.Null{}))
 		if !isResult || !types.Assignable(errT, declaredErr) {
@@ -1410,7 +1413,7 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 			if ent.v.mod != c.mod {
 				c.errorf(t.Pos, "cannot assign to the imported variable %s", t.Name)
 			}
-			c.assignValue(x, sc, c.varType(ent.v, t.Pos, c.fn != nil && c.fn.kind == "init"))
+			c.assignValue(x, sc, c.varType(ent.v, t.Pos, c.fn != nil && (c.fn.kind == "init" || c.fn.kind == "script")))
 		default:
 			c.errorf(t.Pos, "cannot assign to %s", t.Name)
 			c.synth(x.Value, sc)

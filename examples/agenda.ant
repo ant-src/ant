@@ -52,27 +52,25 @@ func listOrExit(parsed: Result[Json.Value, Error]): Array[Json.Value] {
   }
 }
 
-func main(): void {
-  var args = Os.args()
-  if Array.length(args) != 2 {
-    println("usage: ant run examples/agenda.ant <zone> <today> < meetings.json")
-    Os.exit(2)
-  }
-  var reader = zoneOrExit(args[0])
-  var today = Time.toZoned(Time.plainDateTime(dateOrExit(args[1]), Time.plainTime()), reader)
-  var items = listOrExit(Json.parse(Result.unwrap(File.readAll(Os.stdin()))))
-  var meetings: Array[Meeting] = []
-  for item in items {
-    var m = meeting(item)
-    if m is Ok { Array.push(meetings, m.value) }
-    else { File.writeLine(Os.stderr(), `skipped: ${m.error.message}`) }
-  }
-  for m in Array.sortWith(meetings, byMoment) {
-    var local = Time.withZone(m.when, reader)
-    var days = Time.part(Time.until(today, local, Time.Day{}), Time.Day{})
-    var from = `${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}`
-    println(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
-  }
+var args = Os.args()
+if Array.length(args) != 2 {
+  println("usage: ant run examples/agenda.ant <zone> <today> < meetings.json")
+  Os.exit(2)
+}
+var reader = zoneOrExit(args[0])
+var today = Time.toZoned(Time.plainDateTime(dateOrExit(args[1]), Time.plainTime()), reader)
+var items = listOrExit(Json.parse(Result.unwrap(File.readAll(Os.stdin()))))
+var meetings: Array[Meeting] = []
+for item in items {
+  var m = meeting(item)
+  if m is Ok { Array.push(meetings, m.value) }
+  else { File.writeLine(Os.stderr(), `skipped: ${m.error.message}`) }
+}
+for m in Array.sortWith(meetings, byMoment) {
+  var local = Time.withZone(m.when, reader)
+  var days = Time.part(Time.until(today, local, Time.Day{}), Time.Day{})
+  var from = `${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}`
+  println(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
 }
 
 // expect

@@ -1,0 +1,11 @@
+// spec: 10 Scripts; 8 try
+//! try in a script returns the Err from the script body: its deferred blocks run, String.from of
+//! the error goes to standard error, and the program exits 1.
+defer { println("closing") }
+var text = try File.read("/no/such/dir/notes.txt")
+println(text)
+
+// expect
+// out: closing
+// exit: 1
+// err: Error{ message: "open /no/such/dir/notes.txt: no such file or directory" }

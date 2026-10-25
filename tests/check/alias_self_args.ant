@@ -21,11 +21,9 @@ type Pairs = Wrap[Box[int], Box[string]] // ERR: Wrap[Box[int], Box[string]]: a 
 type Wrap[A, B] = Array[Either[A, B]]
 type Either[A, B] = A | B
 
-func main(): void {
-  var n: Nest[int] = [[Box{ value: 1 }]]
-  var e: Even[int] = [Map{ "a": Box{ value: 2 } }]
-  var c: Chain[int] = Chain{ next: null }
-  println(n)
-  println(e)
-  println(c)
-}
+var n: Nest[int] = [[Box{ value: 1 }]]
+var e: Even[int] = [Map{ "a": Box{ value: 2 } }]
+var c: Chain[int] = Chain{ next: null }
+println(n)
+println(e)
+println(c)

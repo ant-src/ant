@@ -7,15 +7,13 @@ type Deep = { e: string }
 type In = { c: int, xs: Array[int], f: func(): string, d: Deep }
 type P = { b: In, n: In | null }
 
-func main(): void {
-  var a: P | null = null
-  var c: int | null = a?.b.c
-  var i: int | null = a?.b.xs[0]
-  var s: string | null = a?.b.f()
-  var e: string | null = a?.n?.d.e
-  var v = a?.b.c
-  var w: int = v    // ERR: cannot use int | null where int is expected
-  println(a?.n.c)   // ERR: In | null has no field c: narrow the value first
-  println((a?.b).c) // ERR: In | null has no field c: narrow the value first
-  println(a?.b?.c)  // ERR: ?. needs a nullable left side, got In
-}
+var a: P | null = null
+var c: int | null = a?.b.c
+var i: int | null = a?.b.xs[0]
+var s: string | null = a?.b.f()
+var e: string | null = a?.n?.d.e
+var v = a?.b.c
+var w: int = v    // ERR: cannot use int | null where int is expected
+println(a?.n.c)   // ERR: In | null has no field c: narrow the value first
+println((a?.b).c) // ERR: In | null has no field c: narrow the value first
+println(a?.b?.c)  // ERR: ?. needs a nullable left side, got In

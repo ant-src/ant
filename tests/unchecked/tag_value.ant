@@ -6,15 +6,13 @@ type Point = { x: int }
 
 func Point.origin(): Point { Point{ x: 0 } }
 
-func main(): void {
-  var t = Point
-  println(t == Point)
-  println(t.origin())
-  var p = Point{ x: 1 }
-  println(p is t)
-  println(1 is t)
-  println(t)
-}
+var t = Point
+println(t == Point)
+println(t.origin())
+var p = Point{ x: 1 }
+println(p is t)
+println(1 is t)
+println(t)
 
 // expect
 // out: true

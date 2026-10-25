@@ -32,14 +32,12 @@ func plain(): int {
   n
 }
 
-func main(): void {
-  var r = parse("")
-  if r is Ok { println(r.value) } else { println(r.error) }
-  var n = try 1                                          // ERR: try needs a Result, got int
-  go { var m = try parse("1") }                          // ERR: try needs an enclosing function that returns a Result
-  var wide: Result[int, ParseError | Error] = parse("1") // ERR: cannot use Result[int, ParseError] where Result[int, ParseError | Error] is expected
-  var mapped: Result[int, ParseError | Error] = Result.mapErr(parse("1"), { x })
-  println(mapped)
-  println(Result.unwrap(parse("1")))
-  println(both("x"))
-}
+var r = parse("")
+if r is Ok { println(r.value) } else { println(r.error) }
+var n = try 1                                          // ERR: try needs a Result, got int
+go { var m = try parse("1") }                          // ERR: try needs an enclosing function that returns a Result
+var wide: Result[int, ParseError | Error] = parse("1") // ERR: cannot use Result[int, ParseError] where Result[int, ParseError | Error] is expected
+var mapped: Result[int, ParseError | Error] = Result.mapErr(parse("1"), { x })
+println(mapped)
+println(Result.unwrap(parse("1")))
+println(both("x"))

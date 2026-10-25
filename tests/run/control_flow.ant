@@ -25,37 +25,35 @@ func findInSeq(): int {
   -1
 }
 
-func main(): void {
-  var label = if 5 < 0 { "negative" } else if 5 == 0 { "zero" } else { "positive" }
-  println(label)
-  var n = 0
-  while n < 10 {
-    n += 1
-    if n % 2 == 0 { continue }
-    if n > 7 { break }
-    println(n)
-  }
+var label = if 5 < 0 { "negative" } else if 5 == 0 { "zero" } else { "positive" }
+println(label)
+var n = 0
+while n < 10 {
+  n += 1
+  if n % 2 == 0 { continue }
+  if n > 7 { break }
   println(n)
-  for ch in "añb" { println(ch) }
-  for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}=${value}`) }
-  for e in (Map{ c: 3 }) { println(e) }
-  for v in evens(6) { println(v) }
-  for v in evens(100) {
-    if v == 4 { break }
-    println(v)
-  }
-  for v in evens(100) {
-    if v == 2 { continue }
-    if v == 6 { println("returning"); println(firstNegative([1, -2, 3])); break }
-    println(v)
-  }
-  println(firstNegative([1, 2]))
-  println(findInSeq())
-  var r = while false {}
-  println(r)
-  var ys = [1, 2, 3]
-  for y in ys { if y == 1 { ys[2] = 30 }; println(y) }
 }
+println(n)
+for ch in "añb" { println(ch) }
+for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}=${value}`) }
+for e in (Map{ c: 3 }) { println(e) }
+for v in evens(6) { println(v) }
+for v in evens(100) {
+  if v == 4 { break }
+  println(v)
+}
+for v in evens(100) {
+  if v == 2 { continue }
+  if v == 6 { println("returning"); println(firstNegative([1, -2, 3])); break }
+  println(v)
+}
+println(firstNegative([1, 2]))
+println(findInSeq())
+var r = while false {}
+println(r)
+var ys = [1, 2, 3]
+for y in ys { if y == 1 { ys[2] = 30 }; println(y) }
 
 // expect
 // out: positive

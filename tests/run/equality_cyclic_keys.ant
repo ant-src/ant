@@ -9,23 +9,21 @@ func deep(m: Map[Key, int] | null, s: Set[Key] | null): Key {
   Key{ next: Key{ next: Key{ next: leaf, m: null, s: null }, m: null, s: null }, m: null, s: null }
 }
 
-func main(): void {
-  var m: Map[Key, int] = Map{}
-  m[deep(m, null)] = 1
-  m[deep(m, null)] = 2
-  println(m[deep(m, null)])
-  println(Map.size(m))
-  var m2: Map[Key, int] = Map{}
-  m2[deep(m2, null)] = 2
-  println(m == m2)
-  var s: Set[Key] = Set.of([])
-  println(Set.add(s, deep(null, s)))
-  println(Set.add(s, deep(null, s)))
-  println(Set.size(s))
-  var s2: Set[Key] = Set.of([])
-  _ = Set.add(s2, deep(null, s2))
-  println(s == s2)
-}
+var m: Map[Key, int] = Map{}
+m[deep(m, null)] = 1
+m[deep(m, null)] = 2
+println(m[deep(m, null)])
+println(Map.size(m))
+var m2: Map[Key, int] = Map{}
+m2[deep(m2, null)] = 2
+println(m == m2)
+var s: Set[Key] = Set.of([])
+println(Set.add(s, deep(null, s)))
+println(Set.add(s, deep(null, s)))
+println(Set.size(s))
+var s2: Set[Key] = Set.of([])
+_ = Set.add(s2, deep(null, s2))
+println(s == s2)
 
 // expect
 // out: 2

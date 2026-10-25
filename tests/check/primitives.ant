@@ -8,29 +8,27 @@ type Label = string
 func fails(): never { panic("always") }
 func notNever(): never { 1 } // ERR: cannot use int where never is expected
 
-func main(): void {
-  var a: int8 = 1      // ERR: cannot use int where int8 is expected
-  var f: float64 = 1   // ERR: cannot use int where float64 is expected
-  var i: int = 1.0     // ERR: cannot use float64 where int is expected
-  var v: void = 1      // ERR: cannot use int where void is expected
-  var n: never = 1     // ERR: cannot use int where never is expected
-  println(string(1))   // ERR: string converts
-  println(bool("x"))   // ERR: bool converts
-  println(int8(true))  // ERR: int8 converts a number
-  println(1 + int8(1)) // ERR: + needs both operands of one type, got int and int8
-  var u: uint8 = byte(1)
-  var l: int64 = 1
-  var w: int = l + 1
-  println(u)
-  println(w)
-  println(Array.map(["a"], byte)) // ERR: T would be string
-  println(Array.map([1.5], int))
-  println(Array.map([Count(1)], int))
-  println(Array.map([Count(1)], float64))
-  println(Array.map([Label("a")], string))
-  var unwrap: func(Count): int = int
-  println(unwrap(Count(2)))
-  var wrongKind: func(Label): int = int  // ERR: T would be Label
-  println(Array.map([Count(1)], string)) // ERR: cannot infer the type parameter U ;; cannot use func(string): string where func(Count): U is expected ;; cannot use func(string): string where func(Count): ? is expected
-  println(fails())
-}
+var a: int8 = 1      // ERR: cannot use int where int8 is expected
+var f: float64 = 1   // ERR: cannot use int where float64 is expected
+var i: int = 1.0     // ERR: cannot use float64 where int is expected
+var v: void = 1      // ERR: cannot use int where void is expected
+var n: never = 1     // ERR: cannot use int where never is expected
+println(string(1))   // ERR: string converts
+println(bool("x"))   // ERR: bool converts
+println(int8(true))  // ERR: int8 converts a number
+println(1 + int8(1)) // ERR: + needs both operands of one type, got int and int8
+var u: uint8 = byte(1)
+var l: int64 = 1
+var w: int = l + 1
+println(u)
+println(w)
+println(Array.map(["a"], byte)) // ERR: T would be string
+println(Array.map([1.5], int))
+println(Array.map([Count(1)], int))
+println(Array.map([Count(1)], float64))
+println(Array.map([Label("a")], string))
+var unwrap: func(Count): int = int
+println(unwrap(Count(2)))
+var wrongKind: func(Label): int = int  // ERR: T would be Label
+println(Array.map([Count(1)], string)) // ERR: cannot infer the type parameter U ;; cannot use func(string): string where func(Count): U is expected ;; cannot use func(string): string where func(Count): ? is expected
+println(fails())

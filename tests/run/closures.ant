@@ -6,25 +6,23 @@ func counter(): func(): int {
   func() { n += 1; n }
 }
 
-func main(): void {
-  var next = counter()
-  println(next())
-  println(next())
-  var other = counter()
-  println(other())
-  var fs: Array[func(): int] = []
-  for i in [1, 2, 3] {
-    var k = i * 10
-    fs = [...fs, func(): int { k + i }]
-  }
-  println(fs[0]())
-  println(fs[2]())
-  var early: func(int): int = { if x > 0 { return 1 }; 0 }
-  println(early(5))
-  println(early(-5))
-  var make = func(step: int): func(int): int { { x + step } }
-  println(make(3)(4))
+var next = counter()
+println(next())
+println(next())
+var other = counter()
+println(other())
+var fs: Array[func(): int] = []
+for i in [1, 2, 3] {
+  var k = i * 10
+  fs = [...fs, func(): int { k + i }]
 }
+println(fs[0]())
+println(fs[2]())
+var early: func(int): int = { if x > 0 { return 1 }; 0 }
+println(early(5))
+println(early(-5))
+var make = func(step: int): func(int): int { { x + step } }
+println(make(3)(4))
 
 // expect
 // out: 1

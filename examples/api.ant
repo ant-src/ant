@@ -40,25 +40,23 @@ func handle(req: Http.Request): Http.Reply {
   json(404, "{\"error\": \"no such route\"}")
 }
 
-func main(): void {
-  var port = Array.get(Os.args(), 0) ?? "8080"
-  var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
-  var base = `http://${Net.address(listener)}`
-  var stop = Context.new(parent: Os.interrupt())
-  var served: Channel[Result[void, Error]] = Channel.new(1)
-  go { Channel.send(served, Http.serve(listener, handle, stop)) }
-  println(`serving on port ${port}`)
-  if port == "0" {
-    println(Result.unwrap(Http.get(`${base}/health`)).body)
-    println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": \"ant\"}")).body)
-    println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": 7}")).status)
-    println(Result.unwrap(Http.post(`${base}/items`, "not json")).status)
-    println(Result.unwrap(Http.get(`${base}/items`)).body)
-    println(Result.unwrap(Http.get(`${base}/nowhere`)).status)
-    Context.cancel(stop)
-  }
-  println(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
+var port = Array.get(Os.args(), 0) ?? "8080"
+var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
+var base = `http://${Net.address(listener)}`
+var stop = Context.new(parent: Os.interrupt())
+var served: Channel[Result[void, Error]] = Channel.new(1)
+go { Channel.send(served, Http.serve(listener, handle, stop)) }
+println(`serving on port ${port}`)
+if port == "0" {
+  println(Result.unwrap(Http.get(`${base}/health`)).body)
+  println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": \"ant\"}")).body)
+  println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": 7}")).status)
+  println(Result.unwrap(Http.post(`${base}/items`, "not json")).status)
+  println(Result.unwrap(Http.get(`${base}/items`)).body)
+  println(Result.unwrap(Http.get(`${base}/nowhere`)).status)
+  Context.cancel(stop)
 }
+println(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
 
 // expect
 // args: 0

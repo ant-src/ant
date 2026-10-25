@@ -1,11 +1,9 @@
 // spec: 12 Deferred blocks and panics; 8 defer
 // A panic inside a deferred block replaces the one in progress; the remaining deferred blocks
 // still run (section 12).
-func main(): void {
-  defer { println("outer") }
-  defer { panic("second") }
-  panic("first")
-}
+defer { println("outer") }
+defer { panic("second") }
+panic("first")
 
 // expect
 // out: outer

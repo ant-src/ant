@@ -30,25 +30,23 @@ func outer(): Result[int, Error] {
   r
 }
 
-func main(): void {
-  println(sum("12", "30"))
-  var bad = sum("1x", "3")
-  if bad is Err {
-    var e = bad.error
-    if e is BadDigit { println(`bad digit at ${e.at}`) } else { println("empty") }
-  }
-  println(Result.isOk(sum("", "1")))
-  println(Result.unwrapOr(sum("a", "1"), -1))
-  println(Result.map(sum("1", "1"), { x * 100 }))
-  println(Result.all([parseDigits("1"), parseDigits("2")]))
-  println(Result.all([parseDigits("1"), parseDigits("x")]))
-  println(Result.mapErr(sum("", ""), { "widened" }))
-  println(outer())
-  var one: Result[int, Error] = Result.ok(1)
-  println(Ok{ value: 1 } == one)
-  println(Err{ error: Error{ message: "m" } })
-  println(Result.unwrap(parseDigits("77")))
+println(sum("12", "30"))
+var bad = sum("1x", "3")
+if bad is Err {
+  var e = bad.error
+  if e is BadDigit { println(`bad digit at ${e.at}`) } else { println("empty") }
 }
+println(Result.isOk(sum("", "1")))
+println(Result.unwrapOr(sum("a", "1"), -1))
+println(Result.map(sum("1", "1"), { x * 100 }))
+println(Result.all([parseDigits("1"), parseDigits("2")]))
+println(Result.all([parseDigits("1"), parseDigits("x")]))
+println(Result.mapErr(sum("", ""), { "widened" }))
+println(outer())
+var one: Result[int, Error] = Result.ok(1)
+println(Ok{ value: 1 } == one)
+println(Err{ error: Error{ message: "m" } })
+println(Result.unwrap(parseDigits("77")))
 
 // expect
 // out: Ok{ value: 42 }

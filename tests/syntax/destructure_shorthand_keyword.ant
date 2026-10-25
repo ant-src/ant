@@ -1,6 +1,6 @@
 // spec: 2 Identifiers and keywords
 type E = { type: string }
-func main(): void { var { type } = E{ type: "t" } }
+var { type } = E{ type: "t" }
 
 // expect
 // exit: 2

@@ -1,7 +1,7 @@
 // spec: 5 return, break, continue
-return 1
-func main(): void {}
+// Only a script has a body to return from: a library's top-level initializer has none.
+var x = return 1
 
 // expect
 // exit: 2
-// err: expected a declaration
+// err: 'return' outside a function

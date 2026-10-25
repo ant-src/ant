@@ -62,6 +62,15 @@ type PanicError struct {
 
 func (e *PanicError) Error() string { return "panic: " + e.Message }
 
+// ResultError is returned by Run when the script returned an Err, through try or return
+// (section 10). Message is String.from of the Err's error field, which the runtime has already
+// written to the run's stderr writer, with a newline. The ant command exits with status 1.
+type ResultError struct {
+	Message string
+}
+
+func (e *ResultError) Error() string { return e.Message }
+
 // ExitError is returned by Run when the program called Os.exit.
 type ExitError struct {
 	Status int
@@ -70,18 +79,19 @@ type ExitError struct {
 func (e *ExitError) Error() string { return fmt.Sprintf("exit status %d", e.Status) }
 
 // ExitStatus maps the error returned by Load or Run to the exit status the ant command uses:
-// 0 for nil, 2 for a LoadError, 1 for a PanicError, the status of an ExitError, and 1 for any
-// other error.
+// 0 for nil, 2 for a LoadError, 1 for a PanicError or a ResultError, the status of an
+// ExitError, and 1 for any other error.
 func ExitStatus(err error) int {
 	var le *LoadError
 	var pe *PanicError
 	var ee *ExitError
+	var re *ResultError
 	switch {
 	case err == nil:
 		return 0
 	case errors.As(err, &le):
 		return 2
-	case errors.As(err, &pe):
+	case errors.As(err, &pe), errors.As(err, &re):
 		return 1
 	case errors.As(err, &ee):
 		return ee.Status

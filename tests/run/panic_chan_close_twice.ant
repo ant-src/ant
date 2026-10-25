@@ -1,12 +1,10 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: Channel.close; library-value
 // Closing a closed channel is a panic.
-func main(): void {
-  var c: Channel[int] = Channel.new()
-  Channel.close(c)
-  println(Channel.isClosed(c))
-  Channel.close(c)
-}
+var c: Channel[int] = Channel.new()
+Channel.close(c)
+println(Channel.isClosed(c))
+Channel.close(c)
 
 // expect
 // exit: 1

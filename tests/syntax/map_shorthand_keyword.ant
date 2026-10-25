@@ -1,5 +1,5 @@
 // spec: 2 Identifiers and keywords
-func main(): void { var m = Map{ type } }
+var m = Map{ type }
 
 // expect
 // exit: 2

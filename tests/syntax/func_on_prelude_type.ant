@@ -1,6 +1,5 @@
 // spec: 6 Functions on types
 func Array.first(xs: Array[int]): int { xs[0] }
-func main(): void {}
 
 // expect
 // exit: 2

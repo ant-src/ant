@@ -7,24 +7,22 @@ type Point = { x: float64, y: float64 }
 type Empty = {}
 type Pair = { first: Point, second: Array[int] }
 
-func main(): void {
-  println([1, 2, 3])
-  println([[1], [], [2, 3]])
-  println(Map{ a: 1, b: 2 })
-  println(Map{ 1: "one", 2: "two" })
-  var byPoint: Map[Point, string] = Map{}
-  byPoint[Point{ x: 0.0, y: 0.0 }] = "origin"
-  println(byPoint)
-  println(Point{ x: 1.0, y: 2.0 })
-  println(Point{ y: 2.0, x: 1.0 })
-  println(Pair{ first: Point{ x: 0.5, y: 0.0 }, second: [7] })
-  var empty: Array[int] = []
-  println(empty)
-  var emptyMap: Map[string, int] = Map{}
-  println(emptyMap)
-  println(Empty{})
-  println([Empty{}, Empty{}])
-}
+println([1, 2, 3])
+println([[1], [], [2, 3]])
+println(Map{ a: 1, b: 2 })
+println(Map{ 1: "one", 2: "two" })
+var byPoint: Map[Point, string] = Map{}
+byPoint[Point{ x: 0.0, y: 0.0 }] = "origin"
+println(byPoint)
+println(Point{ x: 1.0, y: 2.0 })
+println(Point{ y: 2.0, x: 1.0 })
+println(Pair{ first: Point{ x: 0.5, y: 0.0 }, second: [7] })
+var empty: Array[int] = []
+println(empty)
+var emptyMap: Map[string, int] = Map{}
+println(emptyMap)
+println(Empty{})
+println([Empty{}, Empty{}])
 
 // expect
 // out: [1, 2, 3]

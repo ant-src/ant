@@ -1,11 +1,9 @@
 // spec: 2 Literals
 // A pattern cannot start a line that follows an operand: the / is division there, as it was
 // before the literal existed, and a line that starts with division is a syntax error.
-func main(): void {
-  var x = 1
-  /a/
-  println(x)
-}
+var x = 1
+/a/
+println(x)
 
 // expect
 // exit: 2

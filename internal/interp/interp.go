@@ -29,7 +29,7 @@ type Config struct {
 	Args    []string
 	Env     func(name string) (string, bool)
 	Environ func() []string // every variable as name=value; nil is the process's environment
-	// Grace is how long Run waits, after main returns, for the other goroutines to finish.
+	// Grace is how long Run waits, after the script ends, for the other goroutines to finish.
 	// They are told to stop at once; the wait only lets reports in progress complete. Zero
 	// means the default of 100 milliseconds.
 	Grace time.Duration
@@ -53,6 +53,14 @@ type PanicError struct {
 }
 
 func (e *PanicError) Error() string { return "panic: " + e.Message }
+
+// ResultError is an Err the script returned (section 10, Scripts). Message is String.from of
+// its error field, which the run has written to standard error.
+type ResultError struct {
+	Message string
+}
+
+func (e *ResultError) Error() string { return e.Message }
 
 // ExitError is Os.exit.
 type ExitError struct {
@@ -94,13 +102,19 @@ type exitSignal struct {
 	status int
 }
 
+// resultSignal carries an Err the script returned out of the main goroutine, after its
+// deferred blocks have run.
+type resultSignal struct {
+	err value.Value
+}
+
 type cancelSignal struct{}
 
 // ErrInterrupted is the error Run returns when an interrupt from Config.Interrupts ended the
 // run: one the program had not asked for, or the second.
 var ErrInterrupted = errors.New("interrupted")
 
-// Run executes prog: initializes the modules in order and calls main.
+// Run executes prog: initializes the modules in order, the script last, which runs its body.
 func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
 	in := New(ctx, prog, cfg)
 	g := in.newGoroutine(true)
@@ -109,19 +123,6 @@ func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
 		defer in.active.Done()
 		defer in.recoverRoot(g)
 		in.initModules(g)
-		main, ok := in.modules[prog.Root.Index].rec.Field("main")
-		if !ok {
-			g.panicf(ast.Pos{}, "no func main")
-		}
-		// The call has no site, so main's declaration stands in for it, for a panic of the call
-		// itself such as a parameter left without an argument.
-		var at ast.Pos
-		for _, d := range prog.Root.File.Decls {
-			if fd, ok := d.(*ast.FuncDecl); ok && fd.Owner == "" && fd.Name == "main" {
-				at = fd.Pos
-			}
-		}
-		g.callValue(main, nil, nil, at)
 	}()
 	return in.wait()
 }
@@ -187,7 +188,7 @@ func (in *Instance) Interrupt() *value.Context {
 	return in.interrupt
 }
 
-// wait blocks until main returns, a goroutine calls Os.exit, or the context is cancelled, then
+// wait blocks until the script ends, a goroutine calls Os.exit, or the context is cancelled, then
 // stops the run: every goroutine finds the flag at its next check, blocking calls see the
 // cancelled context, and a report in progress gets the grace period to finish.
 func (in *Instance) wait() error {
@@ -261,6 +262,13 @@ func (in *Instance) endErr(r any) error {
 		return &PanicError{Message: x.Message, Trace: x.Trace}
 	case *exitSignal:
 		return &ExitError{Status: x.status}
+	case *resultSignal:
+		msg := value.Render(x.err)
+		in.Flush()
+		in.errMu.Lock()
+		io.WriteString(in.cfg.Stderr, msg+"\n")
+		in.errMu.Unlock()
+		return &ResultError{Message: msg}
 	case *cancelSignal:
 		return in.stopErr()
 	case *loopUnwind:

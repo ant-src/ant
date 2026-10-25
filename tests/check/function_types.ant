@@ -14,28 +14,26 @@ func circleArea(c: Circle): float64 { c.radius }
 func port(n: int = 443): int { n }
 func plain(host: string, port: int, tls: bool): string { `${host}:${port}:${tls}` }
 
-func main(): void {
-  var f1: func(string): string = connect
-  var f2: func(string, int): string = connect
-  var f3: func(string, int, bool): string = connect
-  var f4: func(string, bool): string = connect // ERR: cannot use func(string, int = ..., bool = ...): string where func(string, bool): string is expected
-  var f5: func(): string = connect             // ERR: cannot use func(string, int = ..., bool = ...): string where func(): string is expected
-  var h: func(): Shape = makeCircle
-  var k: func(Circle): float64 = anyArea
-  var m: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
-  var cb: func(): void = { 1 }             // ERR: cannot use int where void is expected
-  var cb2: func(): void = { _ = 1 }
-  var cb3: func(): void = func(): int { 1 } // ERR: cannot use func(): int where func(): void is expected
-  var cb4: func(int): int = { x }
-  var conns = [connect]
-  conns[0] = plain // ERR: cannot use func(string, int, bool): string where func(string, int = ..., bool = ...): string is expected
-  println(f1("a") + f2("a", 1) + f3("a", 1, false))
-  println(h())
-  println(k(Circle{ radius: 2.0 }))
-  cb2()
-  println(cb4(1))
-  println(conns[0]("a"))
-  var ports = [port]
-  ports[0] = { x + 1 } // ERR: cannot use func(int): int where func(int = ...): int is expected
-  println(ports[0]())
-}
+var f1: func(string): string = connect
+var f2: func(string, int): string = connect
+var f3: func(string, int, bool): string = connect
+var f4: func(string, bool): string = connect // ERR: cannot use func(string, int = ..., bool = ...): string where func(string, bool): string is expected
+var f5: func(): string = connect             // ERR: cannot use func(string, int = ..., bool = ...): string where func(): string is expected
+var h: func(): Shape = makeCircle
+var k: func(Circle): float64 = anyArea
+var m: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
+var cb: func(): void = { 1 }             // ERR: cannot use int where void is expected
+var cb2: func(): void = { _ = 1 }
+var cb3: func(): void = func(): int { 1 } // ERR: cannot use func(): int where func(): void is expected
+var cb4: func(int): int = { x }
+var conns = [connect]
+conns[0] = plain // ERR: cannot use func(string, int, bool): string where func(string, int = ..., bool = ...): string is expected
+println(f1("a") + f2("a", 1) + f3("a", 1, false))
+println(h())
+println(k(Circle{ radius: 2.0 }))
+cb2()
+println(cb4(1))
+println(conns[0]("a"))
+var ports = [port]
+ports[0] = { x + 1 } // ERR: cannot use func(int): int where func(int = ...): int is expected
+println(ports[0]())

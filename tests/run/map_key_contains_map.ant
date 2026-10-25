@@ -4,14 +4,12 @@
 type Box = { m: Map[Box, int] }
 type Bag = { s: Set[Bag] }
 
-func main(): void {
-  var b = Box{ m: Map{} }
-  b.m[b] = 1
-  println(Map.size(b.m))
-  var bag = Bag{ s: Set.of([]) }
-  println(Set.add(bag.s, bag))
-  println(Set.size(bag.s))
-}
+var b = Box{ m: Map{} }
+b.m[b] = 1
+println(Map.size(b.m))
+var bag = Bag{ s: Set.of([]) }
+println(Set.add(bag.s, bag))
+println(Set.size(bag.s))
 
 // expect
 // out: 1

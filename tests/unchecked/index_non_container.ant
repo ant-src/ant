@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: index
 // Indexing a value that is neither an array nor a map panics (section 12).
-func main(): void { println("abc"[0]) }
+println("abc"[0])
 
 // expect
 // exit: 1

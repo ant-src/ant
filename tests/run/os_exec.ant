@@ -3,37 +3,35 @@
 // nonzero exit is Ok with its status, and a program that cannot start is Err. The suite runs
 // under go test, so go is on the path, and dir, env and stdin reach a small Go program that
 // reports them, run in a temporary directory given as the first argument.
-func main(): void {
-  var version = Result.unwrap(Os.exec("go", ["version"]))
-  println(version.status)
-  println(String.startsWith(version.stdout, "go version"))
-  println(version.stderr == "")
-  var bad = Result.unwrap(Os.exec("go", ["nonsense"]))
-  println(bad.status)
-  println(bad.stdout == "")
-  println(String.contains(bad.stderr, "nonsense"))
-  println(Os.exec("ant-no-such-program-xyz") is Err)
-  println(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
-  println(Result.unwrap(Os.exec("sh", ["-c", "kill -9 $$"])).status)
-  println(Map.has(Os.environ(), "PATH"))
-  println(Os.cwd() is Ok)
+var version = Result.unwrap(Os.exec("go", ["version"]))
+println(version.status)
+println(String.startsWith(version.stdout, "go version"))
+println(version.stderr == "")
+var bad = Result.unwrap(Os.exec("go", ["nonsense"]))
+println(bad.status)
+println(bad.stdout == "")
+println(String.contains(bad.stderr, "nonsense"))
+println(Os.exec("ant-no-such-program-xyz") is Err)
+println(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
+println(Result.unwrap(Os.exec("sh", ["-c", "kill -9 $$"])).status)
+println(Map.has(Os.environ(), "PATH"))
+println(Os.cwd() is Ok)
 
-  var dir = Os.args()[0]
-  var parts = String.split(dir, "/")
-  var base = parts[Array.length(parts) - 1]
-  var src = "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"path/filepath\"\n\t\"strings\"\n)\n\n" +
-    "func main() {\n\twd, _ := os.Getwd()\n\tline, _ := bufio.NewReader(os.Stdin).ReadString('\\n')\n" +
-    "\tfmt.Print(filepath.Base(wd) == os.Args[1], \" \", os.Getenv(\"ANT_EXEC_TEST\"), \" \", strings.TrimSpace(line))\n" +
-    "\tfmt.Fprintln(os.Stderr, \"warned\")\n}\n"
-  println(File.write(`${dir}/echo.go`, src))
-  var env = Os.environ()
-  env["ANT_EXEC_TEST"] = "seen"
-  var out = Result.unwrap(Os.exec("go", ["run", "echo.go", base], dir: dir, env: env, stdin: "typed\n"))
-  println(out.status)
-  println(out.stdout)
-  println(String.contains(out.stderr, "warned"))
-  println(out)
-}
+var dir = Os.args()[0]
+var parts = String.split(dir, "/")
+var base = parts[Array.length(parts) - 1]
+var src = "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"path/filepath\"\n\t\"strings\"\n)\n\n" +
+  "func main() {\n\twd, _ := os.Getwd()\n\tline, _ := bufio.NewReader(os.Stdin).ReadString('\\n')\n" +
+  "\tfmt.Print(filepath.Base(wd) == os.Args[1], \" \", os.Getenv(\"ANT_EXEC_TEST\"), \" \", strings.TrimSpace(line))\n" +
+  "\tfmt.Fprintln(os.Stderr, \"warned\")\n}\n"
+println(File.write(`${dir}/echo.go`, src))
+var env = Os.environ()
+env["ANT_EXEC_TEST"] = "seen"
+var out = Result.unwrap(Os.exec("go", ["run", "echo.go", base], dir: dir, env: env, stdin: "typed\n"))
+println(out.status)
+println(out.stdout)
+println(String.contains(out.stderr, "warned"))
+println(out)
 
 // expect
 // args: $TMP

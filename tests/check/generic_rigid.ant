@@ -17,11 +17,9 @@ func fine[T](a: T): Array[T] { wrap(a, { [x] }) }
 func fineToo[T](a: T): T { apply(a, { x }) }
 func fixed(a: int): Array[int] { wrap(a, { [1] }) }
 
-func main(): void {
-  println(fine("s"))
-  println(fineToo(true))
-  println(fixed(2))
-}
+println(fine("s"))
+println(fineToo(true))
+println(fixed(2))
 
 // A function whose return type is inferred on demand from inside a generic body has none of that
 // body's type parameters in scope, whichever order the two are declared in.

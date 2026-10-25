@@ -1,26 +1,22 @@
 // spec: 10
 // Section 10: only exports are visible, including the functions on an exported type; imports are
-// read-only; a top-level initializer may refer only to the variables above it; main takes no
-// parameters and returns void.
+// read-only; and a top-level initializer or statement may refer only to the variables above it.
 import "./lib/exports.ant" { Point, distance, counter, hidden } // ERR: hidden is not exported
 import "./lib/exports.ant" Geometry
 
 var early = later + 1 // ERR: later is declared later in the module
 var later = 1
 
-func main(a: int): int { // ERR: main takes no parameters ;; main returns void, not int
-  counter = 2                                // ERR: cannot assign to the imported variable counter
-  Geometry.counter = 3                       // ERR: imports are read-only
-  [Geometry.counter] = [4]                   // ERR: cannot assign to Geometry.counter: imports are read-only
-  var s: Geometry.Secret = Geometry.Secret{} // ERR: Secret is not exported by Geometry ;; Secret is not exported by Geometry
-  println(Geometry.hidden())                 // ERR: hidden is not exported by Geometry
-  var o = Point{ x: 1.0, y: 2.0 }
-  println(Point.norm(o) + Geometry.Point.norm(o) + Geometry.usesSecret(o))
-  println(Point.secret(o))             // ERR: Point.secret is not exported
-  println(o | Geometry.Point.secret()) // ERR: Point.secret is not exported
-  var f = Point.secret                 // ERR: Point.secret is not exported
-  println(o is Geometry.Secret)        // ERR: Secret is not exported by Geometry
-  println(distance(Point{ x: 1.0, y: 2.0 }, Geometry.Point{ x: 0.0, y: 0.0 }))
-  println(counter + Geometry.counter)
-  1
-}
+counter = 2                                // ERR: cannot assign to the imported variable counter
+Geometry.counter = 3                       // ERR: imports are read-only
+[Geometry.counter] = [4]                   // ERR: cannot assign to Geometry.counter: imports are read-only
+var s: Geometry.Secret = Geometry.Secret{} // ERR: Secret is not exported by Geometry ;; Secret is not exported by Geometry
+println(Geometry.hidden())                 // ERR: hidden is not exported by Geometry
+var o = Point{ x: 1.0, y: 2.0 }
+println(Point.norm(o) + Geometry.Point.norm(o) + Geometry.usesSecret(o))
+println(Point.secret(o))             // ERR: Point.secret is not exported
+println(o | Geometry.Point.secret()) // ERR: Point.secret is not exported
+var f = Point.secret                 // ERR: Point.secret is not exported
+println(o is Geometry.Secret)        // ERR: Secret is not exported by Geometry
+println(distance(Point{ x: 1.0, y: 2.0 }, Geometry.Point{ x: 0.0, y: 0.0 }))
+println(counter + Geometry.counter)

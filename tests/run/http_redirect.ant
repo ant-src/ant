@@ -10,25 +10,23 @@ func handle(r: Http.Request): Http.Reply {
   }
 }
 
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var ctx = Context.new()
-  var served: Channel[bool] = Channel.new(1)
-  go {
-    var r = Http.serve(l, handle, ctx)
-    Channel.send(served, r is Ok)
-  }
-  var base = `http://${Net.address(l)}`
-  var got = Result.unwrap(Http.get(`${base}/old`))
-  println([got.status, got.headers["Location"] ?? ""])
-  var posted = Result.unwrap(Http.post(`${base}/old`, "payload"))
-  println(posted.status)
-  println(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
-  println(Http.request("", `${base}/new`))
-  Context.cancel(ctx)
-  println(Channel.receive(served))
-  println(Net.accept(l))
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+var ctx = Context.new()
+var served: Channel[bool] = Channel.new(1)
+go {
+  var r = Http.serve(l, handle, ctx)
+  Channel.send(served, r is Ok)
 }
+var base = `http://${Net.address(l)}`
+var got = Result.unwrap(Http.get(`${base}/old`))
+println([got.status, got.headers["Location"] ?? ""])
+var posted = Result.unwrap(Http.post(`${base}/old`, "payload"))
+println(posted.status)
+println(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
+println(Http.request("", `${base}/new`))
+Context.cancel(ctx)
+println(Channel.receive(served))
+println(Net.accept(l))
 
 // expect
 // out: [302, "/new"]

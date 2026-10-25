@@ -1,5 +1,5 @@
 // spec: 6
-func main(): void { func g(): int { 1 } }
+if true { func g(): int { 1 } }
 
 // expect
 // exit: 2

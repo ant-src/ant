@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: arith-kind
 // A comparison across kinds panics (section 12).
-func main(): void { println("a" < 1) }
+println("a" < 1)
 
 // expect
 // exit: 1

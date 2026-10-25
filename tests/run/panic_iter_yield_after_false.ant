@@ -8,9 +8,7 @@ func bad(yield: func(int): bool): void {
   println("not reached")
 }
 
-func main(): void {
-  println(Iter.toArray(Iter.take(bad, 1)))
-}
+println(Iter.toArray(Iter.take(bad, 1)))
 
 // expect
 // exit: 1

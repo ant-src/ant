@@ -1,9 +1,7 @@
 // spec: 4 Records
 // A brace in argument position begins a lambda, so a literal without its type head is a syntax
 // error that says to name the type.
-func main(): void {
-  var m = Map.fromEntries([{ key: "a", value: 1 }])
-}
+var m = Map.fromEntries([{ key: "a", value: 1 }])
 
 // expect
 // exit: 2

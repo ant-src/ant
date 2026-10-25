@@ -83,8 +83,7 @@ func report(text: string): void {
   }
 }
 
-func main(): void {
-  report(`{
+report(`{
     "name": "api",
     "servers": [
       { "host": "a.example", "port": 443, "tls": true },
@@ -92,18 +91,17 @@ func main(): void {
     ],
     "limits": { "rps": 100, "burst": 250 }
   }`)
-  report(`{ "name": "bare", "servers": [] }`)
-  report(`{ "name": "oops", "servers": [ { "host": "a", "port": 80 }, { "host": "b", "port": "81" } ] }`)
-  report(`{ "name": "frac", "servers": [ { "host": "a", "port": 80.5 } ] }`)
-  report(`{ "name": "range", "servers": [ { "host": "a", "port": 70000 } ] }`)
-  report(`{ "name": "nohost", "servers": [ { "port": 1 } ] }`)
-  report(`{ "name": 7, "servers": [] }`)
-  report(`{ "servers": [] }`)
-  report(`{ "name": "limits", "servers": [], "limits": { "rps": true } }`)
-  report(`[1, 2, 3]`)
-  report(`{ "name": "broken"`)
-  println(Json.stringify(Server{ host: "h", port: 1, tls: false }))
-}
+report(`{ "name": "bare", "servers": [] }`)
+report(`{ "name": "oops", "servers": [ { "host": "a", "port": 80 }, { "host": "b", "port": "81" } ] }`)
+report(`{ "name": "frac", "servers": [ { "host": "a", "port": 80.5 } ] }`)
+report(`{ "name": "range", "servers": [ { "host": "a", "port": 70000 } ] }`)
+report(`{ "name": "nohost", "servers": [ { "port": 1 } ] }`)
+report(`{ "name": 7, "servers": [] }`)
+report(`{ "servers": [] }`)
+report(`{ "name": "limits", "servers": [], "limits": { "rps": true } }`)
+report(`[1, 2, 3]`)
+report(`{ "name": "broken"`)
+println(Json.stringify(Server{ host: "h", port: 1, tls: false }))
 
 // expect
 // out: api: 2 servers, limits Map{ "rps": 100, "burst": 250 }

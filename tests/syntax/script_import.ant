@@ -1,0 +1,9 @@
+// spec: 10 Scripts
+// Importing a script is an error at the import, which names the statement that made the
+// imported module a script.
+import "./lib/tool.ant" Tool
+
+// expect
+// exit: 2
+// err: 4:1: cannot import "./lib/tool.ant": it is a script, made one by the statement at
+// err: tool.ant:3:1

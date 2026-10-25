@@ -10,28 +10,26 @@ func pick(label: string): func(int): int { log = log + label; { x } }
 
 type P = { a: int, b: int }
 
-func main(): void {
-  var r = t("l", 1) + t("r", 2)
-  var xs = [t("x", 0), 0]
-  xs[t("i", 0)] = t("v", 5)
-  var p = P{ a: t("a", 1), b: t("b", 2) }
-  _ = pick("f")(t("g", 1))
-  println(log)
-  println(r + xs[0] + p.a + p.b)
-  var q = P{ a: 1, b: 2, ...P{ a: 9, b: 9 }, a: 3 }
-  println(q)
-  var m = Map{ k: 1, k: 2 }
-  println(m["k"])
-  log = ""
-  println(t("1", 0) == 0 && t("2", 0) == 1 && t("3", 0) == 0)
-  println(t("4", 0) == 0 || t("5", 0) == 0)
-  println(log)
-  var n: int | null = null
-  println(n ?? t("6", 7))
-  var nine: int | null = 9
-  println(nine ?? t("7", 8))
-  println(log)
-}
+var r = t("l", 1) + t("r", 2)
+var xs = [t("x", 0), 0]
+xs[t("i", 0)] = t("v", 5)
+var p = P{ a: t("a", 1), b: t("b", 2) }
+_ = pick("f")(t("g", 1))
+println(log)
+println(r + xs[0] + p.a + p.b)
+var q = P{ a: 1, b: 2, ...P{ a: 9, b: 9 }, a: 3 }
+println(q)
+var m = Map{ k: 1, k: 2 }
+println(m["k"])
+log = ""
+println(t("1", 0) == 0 && t("2", 0) == 1 && t("3", 0) == 0)
+println(t("4", 0) == 0 || t("5", 0) == 0)
+println(log)
+var n: int | null = null
+println(n ?? t("6", 7))
+var nine: int | null = 9
+println(nine ?? t("7", 8))
+println(log)
 
 // expect
 // out: lrxivabfg

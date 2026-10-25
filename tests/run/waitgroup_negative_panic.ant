@@ -1,13 +1,11 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: WaitGroup.done; library-value
 // A WaitGroup counter that would go negative panics (section 11).
-func main(): void {
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  WaitGroup.done(wg)
-  println("balanced")
-  WaitGroup.done(wg)
-}
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+WaitGroup.done(wg)
+println("balanced")
+WaitGroup.done(wg)
 
 // expect
 // out: balanced

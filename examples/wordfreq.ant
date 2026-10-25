@@ -32,43 +32,41 @@ func byCountThenWord(a: Entry[string, int], b: Entry[string, int]): int {
   else { 0 }
 }
 
-func main(): void {
-  var dir = Os.args()[0]
-  var samples = Map{
-    "fox.txt": "The quick brown fox jumps over the lazy dog. The dog sleeps; the fox doesn't.",
-    "rain.txt": "The rain in Spain stays mainly in the plain. In the plain the rain is plain.",
-    "song.txt": "Row, row, row your boat gently down the stream. The stream, the stream!",
-    "empty.txt": "",
-  }
-  for { key, value } in samples {
-    if File.write(`${dir}/${key}`, value) is Err { println(`cannot write ${key}`) }
-  }
-  var totals: Map[string, int] = Map{}
-  var files = 0
-  var lock = Mutex.new()
-  var wg = WaitGroup.new()
-  for name in Array.concat(Map.keys(samples), ["missing.txt"]) {
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      var counted = countFile(`${dir}/${name}`)
-      if counted is Ok {
-        var counts = counted.value
-        Mutex.withLock(lock, {
-          files += 1
-          for { key, value } in counts { totals[key] = (totals[key] ?? 0) + value }
-        })
-      } else {
-        Mutex.withLock(lock, { println(`skipped ${name}`) })
-      }
+var dir = Os.args()[0]
+var samples = Map{
+  "fox.txt": "The quick brown fox jumps over the lazy dog. The dog sleeps; the fox doesn't.",
+  "rain.txt": "The rain in Spain stays mainly in the plain. In the plain the rain is plain.",
+  "song.txt": "Row, row, row your boat gently down the stream. The stream, the stream!",
+  "empty.txt": "",
+}
+for { key, value } in samples {
+  if File.write(`${dir}/${key}`, value) is Err { println(`cannot write ${key}`) }
+}
+var totals: Map[string, int] = Map{}
+var files = 0
+var lock = Mutex.new()
+var wg = WaitGroup.new()
+for name in Array.concat(Map.keys(samples), ["missing.txt"]) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    var counted = countFile(`${dir}/${name}`)
+    if counted is Ok {
+      var counts = counted.value
+      Mutex.withLock(lock, {
+        files += 1
+        for { key, value } in counts { totals[key] = (totals[key] ?? 0) + value }
+      })
+    } else {
+      Mutex.withLock(lock, { println(`skipped ${name}`) })
     }
   }
-  WaitGroup.wait(wg)
-  var ranked = Array.sortWith(Map.entries(totals), byCountThenWord)
-  for e in Array.slice(ranked, 0, 6) { println(`${e.key}: ${e.value}`) }
-  println(`${files} files, ${Map.size(totals)} distinct words, ${Array.sum(Map.values(totals)) ?? 0} in all`)
-  println(words("Don't stop-me now!"))
 }
+WaitGroup.wait(wg)
+var ranked = Array.sortWith(Map.entries(totals), byCountThenWord)
+for e in Array.slice(ranked, 0, 6) { println(`${e.key}: ${e.value}`) }
+println(`${files} files, ${Map.size(totals)} distinct words, ${Array.sum(Map.values(totals)) ?? 0} in all`)
+println(words("Don't stop-me now!"))
 
 // expect
 // out: skipped missing.txt

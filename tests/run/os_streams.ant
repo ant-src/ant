@@ -2,23 +2,21 @@
 // The standard streams as handles (stdlib.md): input from the harness's stdin trailer, output
 // through the same buffer as print, so the two interleave in program order, and errors on
 // standard error. Os.stdin() is one handle per run, and close does nothing to a stream.
-func main(): void {
-  var input = Os.stdin()
-  var out = Os.stdout()
-  println(File.writeText(out, "name? "))
-  var name = File.readLine(input)
-  println(name)
-  println(File.writeLine(out, `hello, ${Result.unwrap(name) ?? "nobody"}`))
-  println(File.flush(out))
-  println(File.writeLine(Os.stderr(), "to stderr"))
-  println(File.readAll(input))
-  println(File.readLine(input))
-  File.close(input)
-  println(File.readLine(input))
-  println(Os.stdin() == input)
-  println(File.pipe(input, input) is Err)
-  println(input)
-}
+var input = Os.stdin()
+var out = Os.stdout()
+println(File.writeText(out, "name? "))
+var name = File.readLine(input)
+println(name)
+println(File.writeLine(out, `hello, ${Result.unwrap(name) ?? "nobody"}`))
+println(File.flush(out))
+println(File.writeLine(Os.stderr(), "to stderr"))
+println(File.readAll(input))
+println(File.readLine(input))
+File.close(input)
+println(File.readLine(input))
+println(Os.stdin() == input)
+println(File.pipe(input, input) is Err)
+println(input)
 
 // expect
 // stdin: ada

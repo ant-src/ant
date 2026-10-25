@@ -15,83 +15,81 @@ func readFrame(f: File.Handle): Bytes | null {
   Result.unwrap(File.readExactly(f, int(head[0]) * 256 + int(head[1])))
 }
 
-func main(): void {
-  var dir = Os.args()[0]
-  var path = `${dir}/data.bin`
+var dir = Os.args()[0]
+var path = `${dir}/data.bin`
 
-  // A header line, then binary that is not UTF-8.
-  var w = Result.unwrap(File.create(path))
-  println(File.writeText(w, "SIZE 6\n"))
-  println(File.writeChunk(w, Bytes.fromArray([0xff, 0x00, 0xfe, 0x01, 0x02, 0x03])))
-  File.close(w)
+// A header line, then binary that is not UTF-8.
+var w = Result.unwrap(File.create(path))
+println(File.writeText(w, "SIZE 6\n"))
+println(File.writeChunk(w, Bytes.fromArray([0xff, 0x00, 0xfe, 0x01, 0x02, 0x03])))
+File.close(w)
 
-  var f = Result.unwrap(File.open(path))
-  println(File.readLine(f))
-  println(File.readExactly(f, 3))
-  println(File.readChunk(f, 100))
-  println(File.readChunk(f, 100))
-  println(File.readExactly(f, 4))
-  File.close(f)
+var f = Result.unwrap(File.open(path))
+println(File.readLine(f))
+println(File.readExactly(f, 3))
+println(File.readChunk(f, 100))
+println(File.readChunk(f, 100))
+println(File.readExactly(f, 4))
+File.close(f)
 
-  var g = Result.unwrap(File.open(path))
-  println(File.readExactly(g, 0))
-  println(File.readChunk(g, 4))
-  // A file that ends partway through readExactly's bytes: they are discarded with the Err.
-  println(File.readExactly(g, 100))
-  println(File.readChunk(g, 100))
-  println(File.readChunk(g, 0))
-  println(File.readExactly(g, -1))
-  File.close(g)
-  println(File.readBytes(path) | Result.map({ Bytes.slice(x, 7, 13) }))
+var g = Result.unwrap(File.open(path))
+println(File.readExactly(g, 0))
+println(File.readChunk(g, 4))
+// A file that ends partway through readExactly's bytes: they are discarded with the Err.
+println(File.readExactly(g, 100))
+println(File.readChunk(g, 100))
+println(File.readChunk(g, 0))
+println(File.readExactly(g, -1))
+File.close(g)
+println(File.readBytes(path) | Result.map({ Bytes.slice(x, 7, 13) }))
 
-  // A length from the other end allocates only what arrives, and an early end discards it.
-  var h = Result.unwrap(File.open(path))
-  println(File.readExactly(h, 1099511627776))
-  println(File.readChunk(h, 1099511627776) | Result.map({ len(x ?? String.toBytes("")) }))
-  File.close(h)
+// A length from the other end allocates only what arrives, and an early end discards it.
+var h = Result.unwrap(File.open(path))
+println(File.readExactly(h, 1099511627776))
+println(File.readChunk(h, 1099511627776) | Result.map({ len(x ?? String.toBytes("")) }))
+File.close(h)
 
-  // Frames over a connection: the echo server answers each with its SHA-1.
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  go {
-    var conn = Result.unwrap(Net.accept(l))
-    var body = readFrame(conn)
-    while body != null {
-      Result.unwrap(File.writeChunk(conn, frame(Crypto.sha1(body))))
-      body = readFrame(conn)
-    }
-    File.close(conn)
+// Frames over a connection: the echo server answers each with its SHA-1.
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+go {
+  var conn = Result.unwrap(Net.accept(l))
+  var body = readFrame(conn)
+  while body != null {
+    Result.unwrap(File.writeChunk(conn, frame(Crypto.sha1(body))))
+    body = readFrame(conn)
   }
-  var c = Result.unwrap(Net.dial(Net.address(l)))
-  for msg in [String.toBytes("ping"), Crypto.randomBytes(300)] {
-    Result.unwrap(File.writeChunk(c, frame(msg)))
-    println(readFrame(c) == Crypto.sha1(msg))
-  }
-  File.close(c)
-  Net.close(l)
-
-  // HTTP: binary out, binary back, and the text beside it.
-  var server = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var stop = Context.new()
-  go {
-    Http.serve(server, { Http.Reply{ status: 200, headers: Map{}, body: Bytes.concat([Crypto.sha256(x.bytes), x.bytes]) } }, stop)
-  }
-  var base = `http://${Net.address(server)}`
-  var sent = Bytes.fromArray([0x7b, 0xff, 0x7d])
-  var r = Result.unwrap(Http.post(base, sent))
-  println(Bytes.slice(r.bytes, 0, 32) == Crypto.sha256(sent))
-  println(Bytes.endsWith(r.bytes, sent))
-  println(String.endsWith(r.body, "{\u{FFFD}}"))
-  var text = Result.unwrap(Http.request("PUT", base, "é"))
-  println(Bytes.slice(text.bytes, 32, len(text.bytes)))
-  Context.cancel(stop)
-
-  // A child reads Bytes and writes them.
-  var out = Result.unwrap(Os.exec("wc", ["-c"], stdin: Bytes.fromArray([0xde, 0xad, 0x00])))
-  println(String.trim(out.stdout))
-  var cat = Result.unwrap(Os.exec("cat", stdin: Bytes.fromArray([0x61, 0xff])))
-  println(cat.stdoutBytes)
-  println([cat.stdout])
+  File.close(conn)
 }
+var c = Result.unwrap(Net.dial(Net.address(l)))
+for msg in [String.toBytes("ping"), Crypto.randomBytes(300)] {
+  Result.unwrap(File.writeChunk(c, frame(msg)))
+  println(readFrame(c) == Crypto.sha1(msg))
+}
+File.close(c)
+Net.close(l)
+
+// HTTP: binary out, binary back, and the text beside it.
+var server = Result.unwrap(Net.listen("127.0.0.1:0"))
+var stop = Context.new()
+go {
+  Http.serve(server, { Http.Reply{ status: 200, headers: Map{}, body: Bytes.concat([Crypto.sha256(x.bytes), x.bytes]) } }, stop)
+}
+var base = `http://${Net.address(server)}`
+var sent = Bytes.fromArray([0x7b, 0xff, 0x7d])
+var r = Result.unwrap(Http.post(base, sent))
+println(Bytes.slice(r.bytes, 0, 32) == Crypto.sha256(sent))
+println(Bytes.endsWith(r.bytes, sent))
+println(String.endsWith(r.body, "{\u{FFFD}}"))
+var text = Result.unwrap(Http.request("PUT", base, "é"))
+println(Bytes.slice(text.bytes, 32, len(text.bytes)))
+Context.cancel(stop)
+
+// A child reads Bytes and writes them.
+var out = Result.unwrap(Os.exec("wc", ["-c"], stdin: Bytes.fromArray([0xde, 0xad, 0x00])))
+println(String.trim(out.stdout))
+var cat = Result.unwrap(Os.exec("cat", stdin: Bytes.fromArray([0x61, 0xff])))
+println(cat.stdoutBytes)
+println([cat.stdout])
 
 // expect
 // out: Ok{ value: void }

@@ -37,8 +37,6 @@ type Config struct {
 	Sources map[string]string
 	// Mode is the parser mode for the root module; imports always parse as programs.
 	Mode parser.Mode
-	// RequireMain rejects a root module without func main.
-	RequireMain bool
 	// Extra names the prelude binds in this program, beyond the standard ones.
 	Extra []string
 	// Session, when set, makes the root an input of a session: its fields accumulate in this
@@ -196,9 +194,6 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	for _, e := range resolve.Resolve(f, opts) {
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
 	}
-	if root && l.cfg.RequireMain && !hasMain(f) {
-		l.diags = append(l.diags, Diagnostic{Path: display, Msg: "no func main in the module"})
-	}
 	l.state[key] = 1
 	m := &Module{Path: key, File: f}
 	for _, imp := range f.Imports {
@@ -206,6 +201,13 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		child := l.visit(childKey, childDisplay, path.Join(path.Dir(raw), imp.Path), imp.Path, Diagnostic{Path: display, Pos: imp.Pos}, false)
 		if child != nil {
 			imp.Module = child.Index
+			if child.File.Script {
+				// Reported at the import, naming the statement that made the module a script,
+				// since that statement is the likelier mistake (section 10, Scripts).
+				l.diags = append(l.diags, Diagnostic{Path: display, Pos: imp.Pos, Msg: fmt.Sprintf(
+					"cannot import %q: it is a script, made one by the statement at %s:%d:%d, and a script cannot be imported",
+					imp.Path, childDisplay, child.File.FirstStmt.Line, child.File.FirstStmt.Col)})
+			}
 		}
 	}
 	l.state[key] = 2
@@ -213,13 +215,4 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	l.modules = append(l.modules, m)
 	l.index[key] = m
 	return m
-}
-
-func hasMain(f *ast.File) bool {
-	for _, d := range f.Decls {
-		if fd, ok := d.(*ast.FuncDecl); ok && fd.Owner == "" && fd.Name == "main" {
-			return true
-		}
-	}
-	return false
 }

@@ -25,30 +25,28 @@ func parse(s: string): int | string {
 
 func positive(): func(int): int | null { { if x > 0 { x } else { null } } }
 
-func main(): void {
-  println(describe(A{ id: 1, name: "a" }))
-  println(describe(B{ id: "x", name: "b" }))
-  var u: A | B = B{ id: "x", name: "b" }
-  var id = u.id
-  println(id is string)
-  println(onlyEmpty(Empty{}))
-  var st: Status = Pending{}
-  println(st is Pending)
-  println(st is Empty)
-  println(maybeLock(Mutex.new()))
-  println(maybeLock(null))
-  println(parse("12"))
-  println(parse("x"))
-  var f = positive()
-  println(f(1))
-  println(f(-1))
-  var h: Handler = { `request ${x}` }
-  println(h(7))
-  var n: int | float64 = 2.5
-  println(n is float64)
-  var nested: int | string | null = null
-  println(nested == null)
-}
+println(describe(A{ id: 1, name: "a" }))
+println(describe(B{ id: "x", name: "b" }))
+var u: A | B = B{ id: "x", name: "b" }
+var id = u.id
+println(id is string)
+println(onlyEmpty(Empty{}))
+var st: Status = Pending{}
+println(st is Pending)
+println(st is Empty)
+println(maybeLock(Mutex.new()))
+println(maybeLock(null))
+println(parse("12"))
+println(parse("x"))
+var f = positive()
+println(f(1))
+println(f(-1))
+var h: Handler = { `request ${x}` }
+println(h(7))
+var n: int | float64 = 2.5
+println(n is float64)
+var nested: int | string | null = null
+println(nested == null)
 
 // expect
 // out: 1 a

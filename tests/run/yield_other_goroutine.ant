@@ -30,15 +30,13 @@ func first(): int {
   0
 }
 
-func main(): void {
-  var total = Atomic.new(0)
-  for v in fanOut {
-    var kept = [v]
-    defer { _ = Atomic.add(total, kept[0]) }
-  }
-  println(Atomic.load(total))
-  println(first())
+var total = Atomic.new(0)
+for v in fanOut {
+  var kept = [v]
+  defer { _ = Atomic.add(total, kept[0]) }
 }
+println(Atomic.load(total))
+println(first())
 
 // expect
 // out: 31125

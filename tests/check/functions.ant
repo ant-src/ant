@@ -25,7 +25,7 @@ func outerX(x: int): void {
   var oneArg: func(int): int = { x + 1 }
 }
 
-func main(): void {
+func uses(): void {
   var double = { x * 2 } // ERR: a lambda needs an expected function type
   var ok: func(int): int = { x * 2 }
   println(apply({ x })) // ERR: a lambda has at most one parameter

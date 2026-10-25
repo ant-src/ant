@@ -5,11 +5,9 @@
 type In = { c: int }
 type P = { b: In }
 
-func main(): void {
-  var a: P | null = null
-  println(a?.b.c)
-  println((a?.b).c)
-}
+var a: P | null = null
+println(a?.b.c)
+println((a?.b).c)
 
 // expect
 // out: null

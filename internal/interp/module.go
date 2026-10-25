@@ -160,6 +160,11 @@ func (in *Instance) initModules(g *Goroutine) {
 
 func (in *Instance) initModule(g *Goroutine, m *module) {
 	g.stack = append(g.stack, Frame{Function: "module " + m.m.File.Path, Path: m.m.File.Path})
+	if m.m.File.Script {
+		in.runScript(g, m)
+		g.stack = g.stack[:len(g.stack)-1]
+		return
+	}
 	for _, d := range m.m.File.Decls {
 		vd, ok := d.(*ast.VarDecl)
 		if !ok {
@@ -169,6 +174,21 @@ func (in *Instance) initModule(g *Goroutine, m *module) {
 		g.bind(vd.Target, v, m.root)
 	}
 	g.stack = g.stack[:len(g.stack)-1]
+}
+
+// runScript runs a script's body: its top-level var initializers and statements in source
+// order, in the module scope, as the body of a function only the runtime calls. Its deferred
+// blocks run when it ends, and an Err it returns ends the program (section 10, Scripts); any
+// other result, and the value of its last expression, are discarded.
+func (in *Instance) runScript(g *Goroutine, m *module) {
+	body := &ast.Block{Stmts: m.m.File.Stmts, HasDefer: true}
+	v, c := g.evalBlock(body, m.root)
+	if c != ctlReturn {
+		return
+	}
+	if rec, ok := v.(*value.Record); ok && rec.Tag == value.ErrTag {
+		panic(&resultSignal{err: rec.Get(0)})
+	}
 }
 
 // importValue reads an imported name: the module record for a namespace, or a field.

@@ -70,55 +70,53 @@ func padLeft(s: string, width: int): string {
   String.repeat(" ", Math.max(0, width - String.length(s))) + s
 }
 
-func main(): void {
-  var args = Os.args()
-  var run = (Array.get(args, 0) ?? "") == "-run"
-  if run { args = Array.slice(args, 1, Array.length(args)) }
-  var profile = Array.get(args, 0) ??
-    fail("usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]")
-  var overallMin = threshold(Array.get(args, 1), 90)
-  var packageMin = threshold(Array.get(args, 2), 80)
-  if run { runTests(profile) }
+var args = Os.args()
+var run = (Array.get(args, 0) ?? "") == "-run"
+if run { args = Array.slice(args, 1, Array.length(args)) }
+var profile = Array.get(args, 0) ??
+  fail("usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]")
+var overallMin = threshold(Array.get(args, 1), 90)
+var packageMin = threshold(Array.get(args, 2), 80)
+if run { runTests(profile) }
 
-  var statements: Map[string, int] = Map{}   // per package, each block once
-  var covered: Map[string, int] = Map{}      // per package, each block once when some run hit it
-  var seen: Map[string, bool] = Map{}
-  var hit: Map[string, bool] = Map{}
-  var all = 0
-  var allHit = 0
-  for line in String.split(readFile(profile), "\n") {
-    if line != "" && !String.startsWith(line, "mode:") {
-      var fields = String.split(line, " ")
-      if Array.length(fields) != 3 { fail(`malformed profile line: ${line}`) }
-      var block = fields[0]
-      var n = String.toInt(fields[1]) ?? fail(`malformed profile line: ${line}`)
-      var count = String.toInt(fields[2]) ?? fail(`malformed profile line: ${line}`)
-      var pkg = packageOf(block)
-      if !Map.has(seen, block) {
-        seen[block] = true
-        statements[pkg] = (statements[pkg] ?? 0) + n
-        all += n
-      }
-      if count > 0 && !Map.has(hit, block) {
-        hit[block] = true
-        covered[pkg] = (covered[pkg] ?? 0) + n
-        allHit += n
-      }
+var statements: Map[string, int] = Map{} // per package, each block once
+var covered: Map[string, int] = Map{}    // per package, each block once when some run hit it
+var seen: Map[string, bool] = Map{}
+var hit: Map[string, bool] = Map{}
+var all = 0
+var allHit = 0
+for line in String.split(readFile(profile), "\n") {
+  if line != "" && !String.startsWith(line, "mode:") {
+    var fields = String.split(line, " ")
+    if Array.length(fields) != 3 { fail(`malformed profile line: ${line}`) }
+    var block = fields[0]
+    var n = String.toInt(fields[1]) ?? fail(`malformed profile line: ${line}`)
+    var count = String.toInt(fields[2]) ?? fail(`malformed profile line: ${line}`)
+    var pkg = packageOf(block)
+    if !Map.has(seen, block) {
+      seen[block] = true
+      statements[pkg] = (statements[pkg] ?? 0) + n
+      all += n
+    }
+    if count > 0 && !Map.has(hit, block) {
+      hit[block] = true
+      covered[pkg] = (covered[pkg] ?? 0) + n
+      allHit += n
     }
   }
-
-  var below = false
-  var report = func(name: string, pct: float64, min: int): void {
-    var mark = ""
-    if pct + 0.05 < float64(min) {
-      mark = `  BELOW ${min}%`
-      below = true
-    }
-    println(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)
-  }
-  for pkg in Array.sort(Map.keys(statements)) {
-    report(pkg, percent(covered[pkg] ?? 0, statements[pkg] ?? 0), packageMin)
-  }
-  report("total", percent(allHit, all), overallMin)
-  if below { Os.exit(1) }
 }
+
+var below = false
+var report = func(name: string, pct: float64, min: int): void {
+  var mark = ""
+  if pct + 0.05 < float64(min) {
+    mark = `  BELOW ${min}%`
+    below = true
+  }
+  println(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)
+}
+for pkg in Array.sort(Map.keys(statements)) {
+  report(pkg, percent(covered[pkg] ?? 0, statements[pkg] ?? 0), packageMin)
+}
+report("total", percent(allHit, all), overallMin)
+if below { Os.exit(1) }

@@ -2,8 +2,8 @@
 //
 // Load parses a program and every module it imports into an immutable Program, which can be run
 // any number of times, concurrently. Program.Run executes it with the options given and returns
-// nil when main returns, a *PanicError when the main goroutine panics, or an *ExitError when the
-// program calls Os.exit. Program.Check runs the type checker and returns its diagnostics.
+// nil when the script ends, a *ResultError when it returns an Err, a *PanicError when the main
+// goroutine panics, or an *ExitError when the program calls Os.exit. Program.Check runs the type checker and returns its diagnostics.
 //
 // The library reads sources through an fs.FS, writes only to the writers it is given, takes its
 // standard input, arguments and environment from options, and never exits the process. An
@@ -13,7 +13,8 @@
 //
 // # Calling across the boundary
 //
-// Program.Start initializes a program without calling main and returns an Instance; its Func
+// Program.Start initializes a program and returns an Instance, so a host loads a library, whose
+// initialization runs no statements, and calls into it: its Func
 // method finds a top-level function, which Func.Call calls with positional arguments, and its
 // Value method reads a top-level var or a type's tag. WithNamespace gives a program a set of Go
 // functions that Ant code reaches as Name.function, declared in Ant notation so the checker
@@ -172,8 +173,8 @@ type Program struct {
 }
 
 // Load parses the module at path and every module it imports. It returns a *LoadError when a
-// module has a syntax error, cannot be found, takes part in an import cycle, or when the root
-// module does not declare main.
+// module has a syntax error, cannot be found, takes part in an import cycle, or is a script that
+// another module imports.
 func Load(path string, opts ...Option) (*Program, error) {
 	cfg := defaultConfig().with(opts)
 	table, extra, nsDecls, err := cfg.prelude()
@@ -181,7 +182,7 @@ func Load(path string, opts ...Option) (*Program, error) {
 		return nil, &LoadError{Diagnostics: []Diagnostic{{Message: err.Error()}}}
 	}
 	prog, diags := loader.Load(path, loader.Config{
-		FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, RequireMain: true, Extra: extra,
+		FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, Extra: extra,
 	})
 	if len(diags) > 0 {
 		return nil, &LoadError{Diagnostics: convert(diags)}
@@ -197,8 +198,9 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 	return out
 }
 
-// Run executes the program: it initializes every module in dependency order, then calls main.
-// It returns nil when main returns, a *PanicError when the main goroutine panics, an *ExitError
+// Run executes the program: it initializes every module in dependency order, the root last, which
+// for a script runs its body. It returns nil when the script ends, a *ResultError when it returns
+// an Err, a *PanicError when the main goroutine panics, an *ExitError
 // when the program calls Os.exit, and ctx.Err() when the context is cancelled first.
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	return convertRunError(interp.Run(ctx, p.prog, p.cfg.with(opts).run(p.prelude)))

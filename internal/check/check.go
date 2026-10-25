@@ -50,7 +50,6 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 	for _, m := range prog.Modules {
 		c.checkModule(c.mods[m.Index])
 	}
-	c.checkMain(c.mods[prog.Root.Index])
 	sort.SliceStable(c.diags, func(i, j int) bool {
 		a, b := c.diags[i], c.diags[j]
 		if a.Path != b.Path {
@@ -171,6 +170,9 @@ type moduleInfo struct {
 	vars    []*varInfo
 	funcs   []*funcInfo
 	types   []*typeInfo
+	// script is the state of a script's body (section 10): 0 not checked, 1 in progress, 2
+	// done.
+	script int
 }
 
 type typeInfo struct {
@@ -198,6 +200,9 @@ type varInfo struct {
 	typ   types.Type
 	index int
 	group *varGroup
+	// reached is set for a script's var once the check of the script body has passed its
+	// declaration, after which the body sees it as a local.
+	reached bool
 }
 
 // varGroup ties the names a top-level destructuring binds to one initializer.
@@ -1045,6 +1050,9 @@ func (c *Checker) lookupEntity(name string) *entity {
 // checkModule checks a module's initializers and function bodies.
 func (c *Checker) checkModule(mi *moduleInfo) {
 	c.mod = mi
+	if mi.m.File.Script {
+		c.checkScript(mi)
+	}
 	for _, v := range mi.vars {
 		c.varType(v, ast.Pos{}, false)
 	}
@@ -1053,18 +1061,79 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 	}
 }
 
-func (c *Checker) checkMain(mi *moduleInfo) {
+// checkScript checks a script's body: its top-level var initializers and statements in source
+// order, as the body of a function only the runtime calls (section 10, Scripts). The script's
+// vars are its locals, so they narrow like locals; its functions, nested bodies declared
+// without a position, see them at their declared types, through the module's entities.
+func (c *Checker) checkScript(mi *moduleInfo) {
+	if mi.script != 0 {
+		return
+	}
+	mi.script = 1
+	savedMod, savedFn, savedFlow, savedRigid := c.mod, c.fn, c.flow, c.rigid
 	c.mod = mi
-	ent, ok := mi.names["main"]
-	if !ok || ent.kind != entFunc || ent.fn == nil {
-		return // the loader reported it
+	c.fn = &fnCtx{kind: "script", name: "the script"}
+	c.flow = flow{}
+	c.rigid = nil
+	sc := &scope{names: map[string]*local{}}
+	for _, s := range mi.m.File.Stmts {
+		switch st := s.(type) {
+		case *ast.VarDecl:
+			c.scriptVar(st, sc)
+		case ast.Expr:
+			c.synth(st, sc)
+		}
 	}
-	s := ent.fn.sig
-	if len(s.fn.Params) > 0 {
-		c.errorf(ent.pos, "main takes no parameters")
+	mi.script = 2
+	c.mod, c.fn, c.flow, c.rigid = savedMod, savedFn, savedFlow, savedRigid
+}
+
+// scriptVar checks a script's top-level var as a local of the script body, and gives the
+// module's entity the type it declares, for the script's functions.
+func (c *Checker) scriptVar(d *ast.VarDecl, sc *scope) {
+	c.varDecl(d, sc)
+	for _, nt := range targetNames(d.Target) {
+		ent := c.mod.names[nt.Name]
+		if ent == nil || ent.kind != entVar || ent.v.decl != d {
+			continue
+		}
+		if ent.v.typ == nil {
+			if l := sc.names[nt.Name]; l != nil {
+				ent.v.typ = l.typ
+			}
+		}
+		ent.v.reached = true
 	}
-	if s.fn.Return != nil && !types.IsInvalid(s.fn.Return) && !types.Equal(s.fn.Return, types.Void{}) {
-		c.errorf(ent.pos, "main returns void, not %s", types.String(s.fn.Return))
+}
+
+// scriptResult checks what a script body returns: void or an Err (section 10, Scripts). A call
+// such as Result.err(e) takes its Ok type from the void the script stands for.
+func (c *Checker) scriptResult(e ast.Expr, sc *scope) {
+	var t types.Type
+	if call, ok := e.(*ast.Call); ok {
+		okT := types.Named{Decl: c.prelude["Ok"].decl, Args: []types.Type{types.Void{}}}
+		errT := types.Named{Decl: c.prelude["Err"].decl, Args: []types.Type{types.Invalid{}}}
+		t = c.call(call, sc, types.Union{Members: []types.Type{okT, errT}})
+	} else {
+		t = c.synth(e, sc)
+	}
+	if types.IsInvalid(t) || types.IsNever(t) {
+		return
+	}
+	for _, m := range types.Members(t) {
+		switch x := types.Expand(m).(type) {
+		case types.Void, types.Never:
+			continue
+		case types.Named:
+			if x.Decl == c.prelude["Err"].decl {
+				continue
+			}
+			if x.Decl == c.prelude["Ok"].decl && len(x.Args) == 1 && types.Equal(x.Args[0], types.Void{}) {
+				continue // Result[void, E], which is void or an Err
+			}
+		}
+		c.errorf(e.Position(), "a script returns void or an Err, not %s", c.typeNames(t)[0])
+		return
 	}
 }
 
@@ -1072,8 +1141,19 @@ func (c *Checker) checkMain(mi *moduleInfo) {
 // direct says the use is in a top-level initializer outside any nested body, where only the
 // variables above may be referred to (section 10).
 func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
+	if direct && c.fn != nil && c.fn.kind == "script" && c.fn.initVar == nil && v.mod == c.mod && !v.reached {
+		c.errorf(pos, "%s is declared later in the module; a top-level initializer or statement may refer only to the variables above it", v.name)
+		return types.Invalid{}
+	}
+	if v.typ == nil && v.mod.m.File.Script && v.mod.script == 0 {
+		// A script's vars take their types from the body, which a function may need first.
+		c.checkScript(v.mod)
+		if v.typ != nil {
+			return v.typ
+		}
+	}
 	if direct && c.fn != nil && c.fn.initVar != nil && c.fn.initVar.mod == v.mod && v.index >= c.fn.initVar.index {
-		c.errorf(pos, "%s is declared later in the module; a top-level initializer may refer only to the variables above it", v.name)
+		c.errorf(pos, "%s is declared later in the module; a top-level initializer or statement may refer only to the variables above it", v.name)
 		return types.Invalid{}
 	}
 	if v.typ != nil {
@@ -1095,6 +1175,11 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 	savedMod, savedFn, savedFlow := c.mod, c.fn, c.flow
 	c.mod = v.mod
 	c.fn = &fnCtx{kind: "init", initVar: v, name: "initializer of " + v.name}
+	if v.mod.m.File.Script {
+		// The script body is in progress and has not reached v, which a function needs now:
+		// its initializer is checked out of order, where try still returns from the script.
+		c.fn.kind = "script"
+	}
 	c.flow = flow{}
 	sc := &scope{names: map[string]*local{}}
 	d := g.decl

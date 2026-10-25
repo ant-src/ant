@@ -19,14 +19,12 @@ func inferred(s: string) {
   if n > 3 { null } else { Ok{ value: n } }
 }
 
-func main(): void {
-  println(lookup("skip"))
-  println(lookup(""))
-  println(lookup("ab"))
-  println(inferred(""))
-  println(inferred("abcd"))
-  println(inferred("a"))
-}
+println(lookup("skip"))
+println(lookup(""))
+println(lookup("ab"))
+println(inferred(""))
+println(inferred("abcd"))
+println(inferred("a"))
 
 // expect
 // out: null

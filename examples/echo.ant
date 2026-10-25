@@ -32,28 +32,26 @@ func client(address: string, name: string, lines: Array[string]): Array[string] 
   })
 }
 
-func main(): void {
-  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var address = Net.address(listener)
-  var stop = Context.new()
-  var done = WaitGroup.new()
-  WaitGroup.add(done, 1)
-  go {
-    defer { WaitGroup.done(done) }
-    serve(listener, stop)
-  }
-  var replies: Channel[Array[string]] = Channel.new(3)
-  for name in ["ann", "bo", "cy"] {
-    go { Channel.send(replies, client(address, name, ["hello", "bye"])) }
-  }
-  var all: Array[string] = []
-  for i in Array.range(0, 3) { all = Array.concat(all, Channel.receive(replies) ?? []) }
-  println(Array.sort(all))
-  Context.cancel(stop)
-  WaitGroup.wait(done)
-  Net.close(listener)
-  println("stopped")
+var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+var address = Net.address(listener)
+var stop = Context.new()
+var done = WaitGroup.new()
+WaitGroup.add(done, 1)
+go {
+  defer { WaitGroup.done(done) }
+  serve(listener, stop)
 }
+var replies: Channel[Array[string]] = Channel.new(3)
+for name in ["ann", "bo", "cy"] {
+  go { Channel.send(replies, client(address, name, ["hello", "bye"])) }
+}
+var all: Array[string] = []
+for i in Array.range(0, 3) { all = Array.concat(all, Channel.receive(replies) ?? []) }
+println(Array.sort(all))
+Context.cancel(stop)
+WaitGroup.wait(done)
+Net.close(listener)
+println("stopped")
 
 // expect
 // out: ["ANN: BYE", "ANN: HELLO", "BO: BYE", "BO: HELLO", "CY: BYE", "CY: HELLO"]

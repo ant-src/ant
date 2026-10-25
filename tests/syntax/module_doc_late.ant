@@ -1,7 +1,7 @@
 // spec: 2 Comments
 // A //! module doc line after the first declaration is a syntax error: a module's doc comes before
 // its code.
-func main(): void {}
+func f(): void {}
 
 //! Too late to document the module.
 

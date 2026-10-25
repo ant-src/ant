@@ -1,12 +1,10 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: Channel.new; library-value
 // A negative capacity is a panic; zero is a rendezvous.
-func main(): void {
-  var ok: Channel[int] = Channel.new(0)
-  println(Channel.length(ok))
-  var bad: Channel[int] = Channel.new(-1)
-  println(Channel.length(bad))
-}
+var ok: Channel[int] = Channel.new(0)
+println(Channel.length(ok))
+var bad: Channel[int] = Channel.new(-1)
+println(Channel.length(bad))
 
 // expect
 // exit: 1

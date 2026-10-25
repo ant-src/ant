@@ -4,33 +4,31 @@
 // timeout in days converts at 24 hours, one with months or weeks, zero or negative is Err
 // before anything is sent, and one beyond the host's range is taken as that range; an
 // invalid method is Err.
-func main(): void {
-  var base = Os.args()[0]
-  var put = Result.unwrap(Http.request("PUT", `${base}/echo`, "data", Map{ "X-Token": "t" }))
-  println(put.status)
-  println(put.body)
-  println(put.headers["X-Method"])
-  println(put.headers["X-Token"])
-  var del = Result.unwrap(Http.request("DELETE", `${base}/echo`))
-  println(del.headers["X-Method"])
-  println(del.body == "")
-  var got = Result.unwrap(Http.get(`${base}/echo`, Map{ "X-Token": "g" }, Time.duration(seconds: 5)))
-  println(got.headers["X-Token"])
-  println(got.headers["X-Method"])
-  var posted = Result.unwrap(Http.post(`${base}/echo`, "p"))
-  println(posted.body)
-  println(posted.headers["X-Method"])
-  println(Http.request("PUT", `${base}/slow`, timeout: Time.duration(milliseconds: 200)))
-  println(Http.get(`${base}/slow`, timeout: Time.duration(milliseconds: 100)))
-  println(Result.isOk(Http.get(`${base}/hello`, timeout: Time.duration(days: 1))))
-  println(Http.get(`${base}/hello`, timeout: Time.duration(months: 1)))
-  println(Http.get(`${base}/hello`, timeout: Time.duration(weeks: 1)))
-  println(Http.get(`${base}/hello`, timeout: Time.duration()))
-  println(Http.get(`${base}/hello`, timeout: Time.duration(seconds: -1)))
-  println(Result.isOk(Http.get(`${base}/hello`, timeout: Time.duration(days: 4294967295))))
-  println(Result.isOk(Http.request("BAD METHOD", `${base}/hello`)))
-  println(Result.isOk(Http.request("GET", "http://127.0.0.1:1/unreachable", timeout: Time.duration(seconds: 5))))
-}
+var base = Os.args()[0]
+var put = Result.unwrap(Http.request("PUT", `${base}/echo`, "data", Map{ "X-Token": "t" }))
+println(put.status)
+println(put.body)
+println(put.headers["X-Method"])
+println(put.headers["X-Token"])
+var del = Result.unwrap(Http.request("DELETE", `${base}/echo`))
+println(del.headers["X-Method"])
+println(del.body == "")
+var got = Result.unwrap(Http.get(`${base}/echo`, Map{ "X-Token": "g" }, Time.duration(seconds: 5)))
+println(got.headers["X-Token"])
+println(got.headers["X-Method"])
+var posted = Result.unwrap(Http.post(`${base}/echo`, "p"))
+println(posted.body)
+println(posted.headers["X-Method"])
+println(Http.request("PUT", `${base}/slow`, timeout: Time.duration(milliseconds: 200)))
+println(Http.get(`${base}/slow`, timeout: Time.duration(milliseconds: 100)))
+println(Result.isOk(Http.get(`${base}/hello`, timeout: Time.duration(days: 1))))
+println(Http.get(`${base}/hello`, timeout: Time.duration(months: 1)))
+println(Http.get(`${base}/hello`, timeout: Time.duration(weeks: 1)))
+println(Http.get(`${base}/hello`, timeout: Time.duration()))
+println(Http.get(`${base}/hello`, timeout: Time.duration(seconds: -1)))
+println(Result.isOk(Http.get(`${base}/hello`, timeout: Time.duration(days: 4294967295))))
+println(Result.isOk(Http.request("BAD METHOD", `${base}/hello`)))
+println(Result.isOk(Http.request("GET", "http://127.0.0.1:1/unreachable", timeout: Time.duration(seconds: 5))))
 
 // expect
 // args: $HTTP

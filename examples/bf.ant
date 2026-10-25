@@ -49,22 +49,20 @@ func run(p: Program, input: string): string {
   String.fromCodePoints(out) ?? "<not text>"
 }
 
-func main(): void {
-  var hello = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
-  var programs = [
-    hello,
-    "++++++++[>++++++++<-]>+.+.+.",
-    ",[.,]",
-    "-.",
-    "+++[>+++[>+++<-]<-]>>++++++.",
-    "[[]",
-    "]",
-  ]
-  for src in programs {
-    var compiled = compile(src)
-    if compiled is Err { println(`error: ${compiled.error.message}`) }
-    else { println(String.from(run(compiled.value, "ant"))) }
-  }
+var hello = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+var programs = [
+  hello,
+  "++++++++[>++++++++<-]>+.+.+.",
+  ",[.,]",
+  "-.",
+  "+++[>+++[>+++<-]<-]>>++++++.",
+  "[[]",
+  "]",
+]
+for src in programs {
+  var compiled = compile(src)
+  if compiled is Err { println(`error: ${compiled.error.message}`) }
+  else { println(String.from(run(compiled.value, "ant"))) }
 }
 
 // expect

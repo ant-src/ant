@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // A unit that is not a value of Time.Unit panics.
-func main(): void { println(Time.part(Time.duration(), "minute")) }
+println(Time.part(Time.duration(), "minute"))
 
 // expect
 // exit: 1

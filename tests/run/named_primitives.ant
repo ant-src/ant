@@ -6,37 +6,35 @@ type AccountId = string
 type Meters = float64
 type Count = int
 
-func main(): void {
-  var id = UserId("u-1")
-  println(string(id))
-  println(id == UserId("u-1"))
-  println(id == UserId("u-2"))
-  var v: UserId | string = id
-  println(v is UserId)
-  var plain: UserId | string = "plain"
-  println(plain is UserId)
-  println(plain is string)
-  var w: UserId | AccountId = AccountId("a-1")
-  println(w is AccountId)
-  println(w is UserId)
-  var d = Meters(3.0) * Meters(2.0)
-  println(d)
-  println(Meters(1.0) < Meters(2.0))
-  println(float64(d) + 1.0)
-  var m: Map[UserId, int] = Map{}
-  m[UserId("k")] = 1
-  println(m[UserId("k")])
-  println(m[UserId("x")])
-  var f: (func(string): UserId) | string = UserId
-  println(f is func)
-  var make = UserId
-  println(make("z"))
-  var c = Count(2) + Count(3)
-  println(c)
-  println(int(c) * 2)
-  println(-Meters(1.5))
-  println(Count(7) % Count(4))
-}
+var id = UserId("u-1")
+println(string(id))
+println(id == UserId("u-1"))
+println(id == UserId("u-2"))
+var v: UserId | string = id
+println(v is UserId)
+var plain: UserId | string = "plain"
+println(plain is UserId)
+println(plain is string)
+var w: UserId | AccountId = AccountId("a-1")
+println(w is AccountId)
+println(w is UserId)
+var d = Meters(3.0) * Meters(2.0)
+println(d)
+println(Meters(1.0) < Meters(2.0))
+println(float64(d) + 1.0)
+var m: Map[UserId, int] = Map{}
+m[UserId("k")] = 1
+println(m[UserId("k")])
+println(m[UserId("x")])
+var f: (func(string): UserId) | string = UserId
+println(f is func)
+var make = UserId
+println(make("z"))
+var c = Count(2) + Count(3)
+println(c)
+println(int(c) * 2)
+println(-Meters(1.5))
+println(Count(7) % Count(4))
 
 // expect
 // out: u-1

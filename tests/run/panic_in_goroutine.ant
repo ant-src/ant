@@ -1,17 +1,15 @@
 // spec: 9 Panics in goroutines; 12 Goroutines
 // A panic in a goroutine ends that goroutine after its deferred blocks run, is reported, and
 // nothing else happens: the program continues and exits normally (section 9).
-func main(): void {
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  go {
-    defer { WaitGroup.done(wg) }
-    defer { println("worker defer") }
-    panic("worker failed")
-  }
-  WaitGroup.wait(wg)
-  println("main continues")
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+go {
+  defer { WaitGroup.done(wg) }
+  defer { println("worker defer") }
+  panic("worker failed")
 }
+WaitGroup.wait(wg)
+println("main continues")
 
 // expect
 // out: worker defer

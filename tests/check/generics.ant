@@ -18,22 +18,20 @@ func anyArea(s: Shape): float64 { if s is Circle { s.radius } else { s.width } }
 
 type Named = { name: string }
 
-func main(): void {
-  var xs = Array.map([1, 2, 3], { x * 2 })
-  var ys: Array[string] = []
-  var zs = [] // ERR: cannot infer the element type of an empty array
-  println(swap(Pair{ first: 1, second: "a" }))
-  println(bigger(1, 2))
-  println(bigger(1, 2.0)) // ERR: cannot use float64 where int is expected
-  println(names([Named{ name: "a" }]))
-  var circles = [Circle{ radius: 1.0 }]
-  var shapes: Array[Shape] = circles // ERR: cannot use Array[Circle] where Array[Shape] is expected
-  var widened: Array[Shape] = [...circles]
-  var f: func(Circle): float64 = anyArea
-  var g: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
-  var r = Result.ok(1)                     // ERR: cannot infer the type parameter E of Result.ok
-  var ok: Result[int, Error] = Result.ok(1)
-  println(Array.sum(xs) ?? 0)
-  println(Array.sort(shapes)) // ERR: T would be Shape, which is not a single member of its bound Ordered
-  println(Array.sortBy(shapes, { anyArea(x) }))
-}
+var xs = Array.map([1, 2, 3], { x * 2 })
+var ys: Array[string] = []
+var zs = [] // ERR: cannot infer the element type of an empty array
+println(swap(Pair{ first: 1, second: "a" }))
+println(bigger(1, 2))
+println(bigger(1, 2.0)) // ERR: cannot use float64 where int is expected
+println(names([Named{ name: "a" }]))
+var circles = [Circle{ radius: 1.0 }]
+var shapes: Array[Shape] = circles // ERR: cannot use Array[Circle] where Array[Shape] is expected
+var widened: Array[Shape] = [...circles]
+var f: func(Circle): float64 = anyArea
+var g: func(Shape): float64 = circleArea // ERR: cannot use func(Circle): float64 where func(Shape): float64 is expected
+var r = Result.ok(1)                     // ERR: cannot infer the type parameter E of Result.ok
+var ok: Result[int, Error] = Result.ok(1)
+println(Array.sum(xs) ?? 0)
+println(Array.sort(shapes)) // ERR: T would be Shape, which is not a single member of its bound Ordered
+println(Array.sortBy(shapes, { anyArea(x) }))

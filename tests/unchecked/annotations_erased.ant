@@ -3,12 +3,10 @@
 // are consistent at run time, since every runtime rule is defined on values.
 func double(n: string): int { n * 2 }
 
-func main(): void {
-  var x: string = 21
-  println(double(x))
-  var y: Array[bool] = Map{ a: 1 }
-  println(y["a"])
-}
+var x: string = 21
+println(double(x))
+var y: Array[bool] = Map{ a: 1 }
+println(y["a"])
 
 // expect
 // out: 42

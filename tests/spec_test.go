@@ -337,7 +337,7 @@ var panicRows = [][]string{
 	{"variable"},                             // no scope binds the name
 	{"underscore"},                           // _ read
 	{"library-kind", "library-value"},        // library function: wrong kind; documented case
-	{"var-init"},                             // var read before its initializer has run
+	{"var-init"},                             // var read or assigned before its initializer has run
 	{"panic"},                                // panic
 	{"depth"},                                // call depth
 	{"count"},                                // a count above 2^31 − 1

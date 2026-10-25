@@ -15,14 +15,12 @@ func numbers(): Seq[int] {
   }
 }
 
-func main(): void {
-  defer { println("main unwound") }
-  for n in numbers() {
-    if n == 2 { panic(`boom at ${n}`) }
-    println(n)
-  }
-  println("not reached")
+defer { println("main unwound") }
+for n in numbers() {
+  if n == 2 { panic(`boom at ${n}`) }
+  println(n)
 }
+println("not reached")
 
 // expect
 // out: 0

@@ -8,43 +8,41 @@ type P = { x: int }
 var base = 1
 var derived = base + 1
 
-func main(): void {
-  var count = 0
-  count = count + 1
-  count += 2
-  count -= 1
-  count *= 10
-  count /= 4
-  count %= 3
-  println(count)
-  var p = P{ x: 1 }
-  p.x = 5
-  p.x += 1
-  println(p.x)
-  var xs = [1, 2, 3]
-  xs[0] = 10
-  xs[1] *= 3
-  println(xs)
-  var a = 0
-  var b = 0
-  [a, b] = [7, 8]
-  println(a + b)
-  [a, b] = [b, a]
-  println(`${a} ${b}`)
-  var shadow = "outer"
-  if true {
-    var shadow = "inner"
-    println(shadow)
-  }
+var count = 0
+count = count + 1
+count += 2
+count -= 1
+count *= 10
+count /= 4
+count %= 3
+println(count)
+var p = P{ x: 1 }
+p.x = 5
+p.x += 1
+println(p.x)
+var xs = [1, 2, 3]
+xs[0] = 10
+xs[1] *= 3
+println(xs)
+var a = 0
+var b = 0
+[a, b] = [7, 8]
+println(a + b)
+[a, b] = [b, a]
+println(`${a} ${b}`)
+var shadow = "outer"
+if true {
+  var shadow = "inner"
   println(shadow)
-  var fact = func(n: int): int { if n < 2 { 1 } else { n * fact(n - 1) } }
-  println(fact(5))
-  var typed: string = "ant"
-  println(typed)
-  println(derived)
-  var chosen = if count > 1 { "yes" } else { "no" }
-  println(chosen)
 }
+println(shadow)
+var fact = func(n: int): int { if n < 2 { 1 } else { n * fact(n - 1) } }
+println(fact(5))
+var typed: string = "ant"
+println(typed)
+println(derived)
+var chosen = if count > 1 { "yes" } else { "no" }
+println(chosen)
 
 // expect
 // out: 2

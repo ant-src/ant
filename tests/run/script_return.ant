@@ -1,0 +1,17 @@
+// spec: 10 Scripts; 5 return, break, continue
+//! return leaves a script early with status 0, after its deferred blocks, and ?? return with an
+//! Err ends it with status 1 and the error alone on standard error, without a stack trace.
+defer { println("done") }
+var args = Os.args()
+if len(args) == 0 {
+  println("usage: script_return NAME")
+  return
+}
+var name = Array.get(args, 1) ?? return Result.err(`no second argument after ${args[0]}`)
+println(name)
+
+// expect
+// args: first
+// out: done
+// exit: 1
+// err: no second argument after first

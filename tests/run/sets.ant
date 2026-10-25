@@ -5,30 +5,28 @@
 // call that builds it; Json.stringify writes an array; a set may contain itself.
 type P = { x: int }
 
-func main(): void {
-  var seen: Set[string] = Set.of([])
-  for line in ["b", "a", "b", "c", "a"] {
-    if Set.add(seen, line) { println(line) }
-  }
-  println(seen)
-  println(Set.of([P{ x: 1 }, P{ x: 1 }]))
-  println(Set.of([1, 2]) == Set.of([2, 1]))
-  println(Set.of([1, 2]) == Set.of([1]))
-  var byGroup: Map[Set[int], string] = Map{}
-  byGroup[Set.of([1, 2])] = "pair"
-  println(byGroup[Set.of([2, 1])])
-  var grow = Set.of([1])
-  for n in grow {
-    if n < 3 { _ = Set.add(grow, n + 1) }
-    println(n)
-  }
-  var v: Set[int] | Array[int] = grow
-  if v is Set { println(Set.size(v)) } else { println(Array.length(v)) }
-  println(`members: ${Set.of(["x", "y"])}`)
-  println(Json.stringify(Set.of([P{ x: 1 }, P{ x: 2 }])))
-  var nest: Set[Array[int]] = Set.of([[1], [1], [2]])
-  println(Set.size(nest))
+var seen: Set[string] = Set.of([])
+for line in ["b", "a", "b", "c", "a"] {
+  if Set.add(seen, line) { println(line) }
 }
+println(seen)
+println(Set.of([P{ x: 1 }, P{ x: 1 }]))
+println(Set.of([1, 2]) == Set.of([2, 1]))
+println(Set.of([1, 2]) == Set.of([1]))
+var byGroup: Map[Set[int], string] = Map{}
+byGroup[Set.of([1, 2])] = "pair"
+println(byGroup[Set.of([2, 1])])
+var grow = Set.of([1])
+for n in grow {
+  if n < 3 { _ = Set.add(grow, n + 1) }
+  println(n)
+}
+var v: Set[int] | Array[int] = grow
+if v is Set { println(Set.size(v)) } else { println(Array.length(v)) }
+println(`members: ${Set.of(["x", "y"])}`)
+println(Json.stringify(Set.of([P{ x: 1 }, P{ x: 2 }])))
+var nest: Set[Array[int]] = Set.of([[1], [1], [2]])
+println(Set.size(nest))
 
 // expect
 // out: b

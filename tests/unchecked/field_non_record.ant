@@ -1,7 +1,8 @@
 // spec: 12 Runtime panics
 // panics: field
 // Reading a field of a non-record panics (section 12).
-func main(): void { var n = 1; println(n.x) }
+var n = 1
+println(n.x)
 
 // expect
 // exit: 1

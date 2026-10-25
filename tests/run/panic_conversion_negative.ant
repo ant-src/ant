@@ -1,10 +1,8 @@
 // spec: 12 Runtime panics; 4 Primitives
 // panics: conversion
 // A negative integer converted to an unsigned kind panics, as a value out of range (section 12).
-func main(): void {
-  println(uint8(0))
-  println(uint8(-1))
-}
+println(uint8(0))
+println(uint8(-1))
 
 // expect
 // out: 0

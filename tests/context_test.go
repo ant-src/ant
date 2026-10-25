@@ -14,12 +14,10 @@ import (
 // would be the earlier one.
 func TestFarDeadline(t *testing.T) {
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", `
-func main(): void {
-  var far = Context.new(Time.duration(days: 100000))
-  var deadline = Context.deadline(far)
-  println(deadline != null && Time.compare(deadline, Time.fromEpochMillis(4102444800000)) > 0)
-  Context.cancel(far)
-}
+var far = Context.new(Time.duration(days: 100000))
+var deadline = Context.deadline(far)
+println(deadline != null && Time.compare(deadline, Time.fromEpochMillis(4102444800000)) > 0)
+Context.cancel(far)
 `), ant.WithFS(fstest.MapFS{}))
 	if err != nil {
 		t.Fatal(err)

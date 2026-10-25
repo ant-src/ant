@@ -1,13 +1,11 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: RwMutex.writeUnlock; library-value
 // RwMutex.writeUnlock when not write-locked panics (section 11).
-func main(): void {
-  var rw = RwMutex.new()
-  RwMutex.writeLock(rw)
-  RwMutex.writeUnlock(rw)
-  println("balanced")
-  RwMutex.writeUnlock(rw)
-}
+var rw = RwMutex.new()
+RwMutex.writeLock(rw)
+RwMutex.writeUnlock(rw)
+println("balanced")
+RwMutex.writeUnlock(rw)
 
 // expect
 // out: balanced

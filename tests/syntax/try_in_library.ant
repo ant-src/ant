@@ -1,0 +1,7 @@
+// spec: 10 Scripts; 8 try
+// A library has no script body, so try in its top-level initializer has nothing to return from.
+var text = try File.read("notes.txt")
+
+// expect
+// exit: 2
+// err: 3:12: 'try' outside a function

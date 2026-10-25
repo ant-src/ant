@@ -1,17 +1,15 @@
 // spec: 6 Calling; 11 Prelude
 // Named arguments apply to a library function as to any declared function, taken from the
 // parameter names of its signature, positional before named.
-func main(): void {
-  var xs = [1, 2, 3, 4]
-  println(Array.slice(xs, from: 1, to: 3))
-  println(Array.slice(xs, to: 2, from: 0))
-  println(Math.max(a: 1, b: 2))
-  println(String.replace("a-b", old: "-", new: "+"))
-  println(String.repeat(n: 2, s: "ab"))
-  println(Array.filled(n: 2, v: "x"))
-  println(xs | Array.slice(from: 2, to: 4))
-  println(Iter.toArray(Iter.range(to: 3, from: 0)))
-}
+var xs = [1, 2, 3, 4]
+println(Array.slice(xs, from: 1, to: 3))
+println(Array.slice(xs, to: 2, from: 0))
+println(Math.max(a: 1, b: 2))
+println(String.replace("a-b", old: "-", new: "+"))
+println(String.repeat(n: 2, s: "ab"))
+println(Array.filled(n: 2, v: "x"))
+println(xs | Array.slice(from: 2, to: 4))
+println(Iter.toArray(Iter.range(to: 3, from: 0)))
 
 // expect
 // out: [2, 3]

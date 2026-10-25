@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // The epoch of a value that is no instant panics.
-func main(): void { println(Time.epochMillis(1)) }
+println(Time.epochMillis(1))
 
 // expect
 // exit: 1

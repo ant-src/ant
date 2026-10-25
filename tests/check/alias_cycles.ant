@@ -17,13 +17,11 @@ type Forest = Array[Tree] | null
 type Bag = Set[Bag] | Map[string, Bag] | null
 type Pair[T] = { first: T, second: Pair[T] | null }
 
-func main(): void {
-  var t = Tree{ value: 1, children: [] }
-  var f: Forest = [t]
-  var p = Pair{ first: 1, second: null }
-  println(t)
-  println(f)
-  println(p)
-  var e: Early = "e"
-  println(e)
-}
+var t = Tree{ value: 1, children: [] }
+var f: Forest = [t]
+var p = Pair{ first: 1, second: null }
+println(t)
+println(f)
+println(p)
+var e: Early = "e"
+println(e)

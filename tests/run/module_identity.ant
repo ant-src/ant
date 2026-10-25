@@ -4,14 +4,12 @@
 import "./lib/geometry.ant" { counter, bump }
 import "./lib/../lib/geometry.ant" Geometry
 
-func main(): void {
-  bump()
-  println(counter)
-  println(Geometry.counter)
-  Geometry.bump()
-  println(counter)
-  println(Geometry.distance(Geometry.Point{ x: 0.0, y: 0.0 }, Geometry.Point{ x: 3.0, y: 4.0 }))
-}
+bump()
+println(counter)
+println(Geometry.counter)
+Geometry.bump()
+println(counter)
+println(Geometry.distance(Geometry.Point{ x: 0.0, y: 0.0 }, Geometry.Point{ x: 3.0, y: 4.0 }))
 
 // expect
 // out: geometry init

@@ -37,51 +37,49 @@ func Queue.close(q: Queue): void {
   })
 }
 
-func main(): void {
-  var q = Queue.new(4)
-  var producers = WaitGroup.new()
-  for p in Iter.range(0, 3) {
-    WaitGroup.add(producers, 1)
-    go {
-      defer { WaitGroup.done(producers) }
-      for k in Iter.range(1, 21) { Queue.put(q, p * 100 + k) }
-    }
+var q = Queue.new(4)
+var producers = WaitGroup.new()
+for p in Iter.range(0, 3) {
+  WaitGroup.add(producers, 1)
+  go {
+    defer { WaitGroup.done(producers) }
+    for k in Iter.range(1, 21) { Queue.put(q, p * 100 + k) }
   }
-  var consumers = WaitGroup.new()
-  var taken = Atomic.new(0)
-  var sum = Atomic.new(0)
-  var largest = Atomic.new(0)
-  for _ in Iter.range(0, 2) {
-    WaitGroup.add(consumers, 1)
-    go {
-      defer { WaitGroup.done(consumers) }
-      while true {
-        var v = Queue.take(q) ?? break
-        _ = Atomic.add(taken, 1)
-        _ = Atomic.add(sum, v)
-        var seen = Atomic.load(largest)
-        while v > seen && !Atomic.compareAndSwap(largest, seen, v) { seen = Atomic.load(largest) }
-      }
-    }
-  }
-  WaitGroup.wait(producers)
-  Queue.close(q)
-  WaitGroup.wait(consumers)
-  println(`took ${Atomic.load(taken)} items, sum ${Atomic.load(sum)}, largest ${Atomic.load(largest)}`)
-  println(`queue drained: ${Array.isEmpty(q.items)}`)
-  var workers = WaitGroup.new()
-  var finished = Atomic.new(0)
-  for id in Iter.range(0, 3) {
-    WaitGroup.add(workers, 1)
-    go {
-      defer { WaitGroup.done(workers) }
-      if id == 1 { panic(`worker ${id} failed`) }
-      _ = Atomic.add(finished, 1)
-    }
-  }
-  WaitGroup.wait(workers)
-  println(`${Atomic.load(finished)} of 3 workers finished`)
 }
+var consumers = WaitGroup.new()
+var taken = Atomic.new(0)
+var sum = Atomic.new(0)
+var largest = Atomic.new(0)
+for _ in Iter.range(0, 2) {
+  WaitGroup.add(consumers, 1)
+  go {
+    defer { WaitGroup.done(consumers) }
+    while true {
+      var v = Queue.take(q) ?? break
+      _ = Atomic.add(taken, 1)
+      _ = Atomic.add(sum, v)
+      var seen = Atomic.load(largest)
+      while v > seen && !Atomic.compareAndSwap(largest, seen, v) { seen = Atomic.load(largest) }
+    }
+  }
+}
+WaitGroup.wait(producers)
+Queue.close(q)
+WaitGroup.wait(consumers)
+println(`took ${Atomic.load(taken)} items, sum ${Atomic.load(sum)}, largest ${Atomic.load(largest)}`)
+println(`queue drained: ${Array.isEmpty(q.items)}`)
+var workers = WaitGroup.new()
+var finished = Atomic.new(0)
+for id in Iter.range(0, 3) {
+  WaitGroup.add(workers, 1)
+  go {
+    defer { WaitGroup.done(workers) }
+    if id == 1 { panic(`worker ${id} failed`) }
+    _ = Atomic.add(finished, 1)
+  }
+}
+WaitGroup.wait(workers)
+println(`${Atomic.load(finished)} of 3 workers finished`)
 
 // expect
 // out: took 60 items, sum 6630, largest 220

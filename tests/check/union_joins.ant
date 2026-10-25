@@ -33,23 +33,21 @@ func mix[A, B](a: A, b: B): Mix[A, B] { Mix{ a, b, either: a } }
 func written(m: Mix[Box[int], Box[string]]): void {} // ERR: Mix[Box[int], Box[string]]: a union may contain each discriminator at most once
 func pick[A, B](a: A, b: B, first: bool): A | B { if first { a } else { b } }
 
-func main(): void {
-  var same = pick(1, 2, true)
-  var mixed = pick(1, "a", true)
-  var boxes = pick(Box{ value: 1 }, Box{ value: "s" }, false) // ERR: the result of pick: a union may contain each discriminator at most once
-  var m = mix(Box{ value: 1 }, Box{ value: "s" })
-  println(m.a.value + 1)
-  var either = m.either  // ERR: reading either through Mix[Box[int], Box[string]]
-  var { either: e2 } = m // ERR: reading either through Mix[Box[int], Box[string]]
-  println(mix(1, "s").either)
-  println(same + 1)
-  println(mixed)
-  var e: Either[Box[int], { value: string }] = Box{ value: 1 } // ERR: anonymous record type
-  var f: Fine[int] = NotFound{}
-  var r: R[int, string] = Result.ok(1)
-  var o: OneOfEach = null
-  println(f)
-  println(r)
-  println(o)
-  println(area(Tri{ base: 1.0 }))
-}
+var same = pick(1, 2, true)
+var mixed = pick(1, "a", true)
+var boxes = pick(Box{ value: 1 }, Box{ value: "s" }, false) // ERR: the result of pick: a union may contain each discriminator at most once
+var m = mix(Box{ value: 1 }, Box{ value: "s" })
+println(m.a.value + 1)
+var either = m.either  // ERR: reading either through Mix[Box[int], Box[string]]
+var { either: e2 } = m // ERR: reading either through Mix[Box[int], Box[string]]
+println(mix(1, "s").either)
+println(same + 1)
+println(mixed)
+var e: Either[Box[int], { value: string }] = Box{ value: 1 } // ERR: anonymous record type
+var f: Fine[int] = NotFound{}
+var r: R[int, string] = Result.ok(1)
+var o: OneOfEach = null
+println(f)
+println(r)
+println(o)
+println(area(Tri{ base: 1.0 }))

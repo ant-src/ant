@@ -5,20 +5,18 @@ type UserId = string
 
 func helper(): int { 1 }
 
-func main(): void {
-  println(helper)
-  println(func(a: int): int { a })
-  var double: func(int): int = { x * 2 }
-  println(double)
-  println(UserId)
-  println([double, double])
-  println(Mutex.new())
-  println(RwMutex.new())
-  println(WaitGroup.new())
-  println(Once.new())
-  println(Cond.new(Mutex.new()))
-  println(Atomic.new(0))
-}
+println(helper)
+println(func(a: int): int { a })
+var double: func(int): int = { x * 2 }
+println(double)
+println(UserId)
+println([double, double])
+println(Mutex.new())
+println(RwMutex.new())
+println(WaitGroup.new())
+println(Once.new())
+println(Cond.new(Mutex.new()))
+println(Atomic.new(0))
 
 // expect
 // out: func

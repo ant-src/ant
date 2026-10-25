@@ -1,0 +1,13 @@
+// spec: 12 Runtime panics; 10
+// panics: var-init
+// Assigning a top-level var through a call before its initializer has run panics, as reading it
+// does (section 10).
+func reset(): void { total = 0 }
+
+reset()
+var total = 1
+println(total)
+
+// expect
+// exit: 1
+// err: total is assigned before its initializer has run

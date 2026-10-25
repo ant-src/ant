@@ -2,7 +2,7 @@
 // panics: try
 // try on a value that is not a Result panics (section 12).
 func f(): Result[int, string] { Result.ok(try 1) }
-func main(): void { println(f()) }
+println(f())
 
 // expect
 // exit: 1

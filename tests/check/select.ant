@@ -48,10 +48,8 @@ func loop(lines: Channel[string], ctx: Context): int {
   count
 }
 
-func main(): void {
-  var lines: Channel[string] = Channel.new()
-  var ctx = Context.new()
-  println(events(lines, ctx))
-  println(union(lines))
-  println(loop(lines, ctx))
-}
+var lines: Channel[string] = Channel.new()
+var ctx = Context.new()
+println(events(lines, ctx))
+println(union(lines))
+println(loop(lines, ctx))

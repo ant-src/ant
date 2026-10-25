@@ -8,19 +8,17 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 200, headers: Map{ "X-A": "1", "X-B": "2" }, body: "ok" }
 }
 
-func main(): void {
-  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var base = `http://${Net.address(listener)}`
-  var stop = Context.new()
-  var served: Channel[Result[void, Error]] = Channel.new(1)
-  go { Channel.send(served, Http.serve(listener, handle, stop)) }
-  var twice = Result.unwrap(Http.get(`${base}/twice`, timeout: Time.duration(seconds: 5)))
-  println(twice.status)
-  var once = Result.unwrap(Http.get(`${base}/once`, timeout: Time.duration(seconds: 5)))
-  println(`${once.status} ${once.headers["X-A"] ?? "-"} ${once.headers["X-B"] ?? "-"} ${once.body}`)
-  Context.cancel(stop)
-  println(Channel.receive(served))
-}
+var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+var base = `http://${Net.address(listener)}`
+var stop = Context.new()
+var served: Channel[Result[void, Error]] = Channel.new(1)
+go { Channel.send(served, Http.serve(listener, handle, stop)) }
+var twice = Result.unwrap(Http.get(`${base}/twice`, timeout: Time.duration(seconds: 5)))
+println(twice.status)
+var once = Result.unwrap(Http.get(`${base}/once`, timeout: Time.duration(seconds: 5)))
+println(`${once.status} ${once.headers["X-A"] ?? "-"} ${once.headers["X-B"] ?? "-"} ${once.body}`)
+Context.cancel(stop)
+println(Channel.receive(served))
 
 // expect
 // out: 500

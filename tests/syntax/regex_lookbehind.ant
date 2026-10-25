@@ -1,6 +1,5 @@
 // spec: 2 Literals
 var r = /(?<=a)/
-func main(): void {}
 
 // expect
 // exit: 2

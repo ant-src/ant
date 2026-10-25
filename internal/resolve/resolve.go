@@ -85,14 +85,17 @@ type resolver struct {
 	module    *scope
 	fields    *ast.ModuleScope
 	session   bool
-	extra     map[string]bool
+	// script is set for a script, whose top-level vars are locals of its body for narrowing, so
+	// their assignments are tracked as a local's are (section 7).
+	script bool
+	extra  map[string]bool
 }
 
 func (r *resolver) isPrelude(name string) bool { return prelude.IsName(name) || r.extra[name] }
 
 // Resolve annotates f and returns the scope errors it finds.
 func Resolve(f *ast.File, opts Options) []*Error {
-	r := &resolver{session: opts.Session, extra: map[string]bool{}}
+	r := &resolver{session: opts.Session, script: f.Script, extra: map[string]bool{}}
 	for _, n := range opts.Extra {
 		r.extra[n] = true
 	}
@@ -562,7 +565,7 @@ func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
 	crossed := false
 	for sc := s; sc != nil; sc = sc.parent {
 		if b, ok := sc.names[id.Name]; ok {
-			if b.module || b.imp >= 0 {
+			if b.imp >= 0 || b.module && !r.script {
 				return
 			}
 			b.reassigned = true
@@ -634,7 +637,7 @@ func slotOf(b *binding) ast.Slot {
 	case b.discard:
 		return ast.Slot{Discard: true}
 	case b.module:
-		return ast.Slot{Index: b.index, Module: true}
+		return ast.Slot{Index: b.index, Module: true, Reassigned: b.reassigned, AssignedNested: b.assignedNested}
 	}
 	return ast.Slot{Index: b.index, Shared: b.shared, Reassigned: b.reassigned, AssignedNested: b.assignedNested}
 }

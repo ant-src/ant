@@ -6,22 +6,20 @@ func takesByte(x: byte): byte { x }
 
 type Blob = Bytes // an alias: Bytes is not a primitive, so there is no constructor
 
-func main(): void {
-  var b = String.toBytes("ab")
-  var n: int = len(b)
-  var first: byte = b[0]
-  var wrong: int = b[0] // ERR: cannot use byte where int is expected
-  println(b["0"])       // ERR: cannot use string where int is expected
-  for x in b { println(takesByte(x)) }
-  b[0] = byte(1)  // ERR: Bytes is immutable, so a byte cannot be assigned
-  b[0] += byte(1) // ERR: Bytes is immutable, so a byte cannot be assigned
-  var sizes: Array[int] = Array.map([b], len)
-  var body: string | Bytes = b
-  if body is Bytes { println(Bytes.length(body)) } else { println(String.length(body)) }
-  var text: string | int = 1
-  if text is Bytes { println(text) } // ERR: string | int is never a Bytes
-  println(b < b)                     // ERR: <
-  var blob: Blob = b
-  println(Blob(b)) // ERR: Blob is a type, not a function
-  println([n, int(first), wrong, sizes[0], len(blob)])
-}
+var b = String.toBytes("ab")
+var n: int = len(b)
+var first: byte = b[0]
+var wrong: int = b[0] // ERR: cannot use byte where int is expected
+println(b["0"])       // ERR: cannot use string where int is expected
+for x in b { println(takesByte(x)) }
+b[0] = byte(1)  // ERR: Bytes is immutable, so a byte cannot be assigned
+b[0] += byte(1) // ERR: Bytes is immutable, so a byte cannot be assigned
+var sizes: Array[int] = Array.map([b], len)
+var body: string | Bytes = b
+if body is Bytes { println(Bytes.length(body)) } else { println(String.length(body)) }
+var text: string | int = 1
+if text is Bytes { println(text) } // ERR: string | int is never a Bytes
+println(b < b)                     // ERR: <
+var blob: Blob = b
+println(Blob(b)) // ERR: Blob is a type, not a function
+println([n, int(first), wrong, sizes[0], len(blob)])

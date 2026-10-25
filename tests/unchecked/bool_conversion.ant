@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: string-bool
 // bool on a non-bool panics (section 12).
-func main(): void { println(bool("true")) }
+println(bool("true"))
 
 // expect
 // exit: 1

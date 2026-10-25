@@ -24,7 +24,7 @@ func loadSrc(t *testing.T, src string, opts ...ant.Option) *ant.Program {
 }
 
 func TestWithEnv(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { println(Os.env("GREETING")); println(Os.env("MISSING")) }`)
+	prog := loadSrc(t, `println(Os.env("GREETING")); println(Os.env("MISSING"))`)
 	var out strings.Builder
 	lookup := func(name string) (string, bool) {
 		if name == "GREETING" {
@@ -48,7 +48,6 @@ func add(n: int): int { total += n; total }
 func apply(f: func(int): int, n: int): int { f(n) }
 func fails(): void { panic("nope") }
 func leaves(): void { Os.exit(4) }
-func main(): void {}
 `, ant.WithStderr(&strings.Builder{}))
 	in, err := prog.Start(context.Background())
 	if err != nil {
@@ -99,7 +98,7 @@ func main(): void {}
 }
 
 func TestWithoutNamespaces(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { println(File.exists("x")) }`, ant.WithoutNamespaces("File"))
+	prog := loadSrc(t, `println(File.exists("x"))`, ant.WithoutNamespaces("File"))
 	if diags := prog.Check(); len(diags) == 0 || !strings.Contains(diags[0].Message, "File") {
 		t.Errorf("check: %v", diags)
 	}
@@ -111,7 +110,7 @@ func TestWithoutNamespaces(t *testing.T) {
 }
 
 func TestErrorsAndStatuses(t *testing.T) {
-	_, err := ant.Load("main.ant", ant.WithSource("main.ant", "func main(): void { var x = }"), ant.WithFS(fstest.MapFS{}))
+	_, err := ant.Load("main.ant", ant.WithSource("main.ant", "var x ="), ant.WithFS(fstest.MapFS{}))
 	var le *ant.LoadError
 	if !errors.As(err, &le) || !strings.Contains(le.Error(), "main.ant:1:") || ant.ExitStatus(err) != 2 {
 		t.Errorf("load error: %v", err)
@@ -176,11 +175,9 @@ func TestNamespaceDefaults(t *testing.T) {
 			},
 		},
 	}
-	prog := loadSrc(t, `func main(): void {
-  println(Greet.hello("ada"))
-  println(Greet.hello("ada", "yo"))
-  println(Greet.hello("ada", punct: "?"))
-}`, ant.WithNamespace(greet))
+	prog := loadSrc(t, `println(Greet.hello("ada"))
+println(Greet.hello("ada", "yo"))
+println(Greet.hello("ada", punct: "?"))`, ant.WithNamespace(greet))
 	if diags := prog.Check(); len(diags) != 0 {
 		t.Errorf("check: %v", diags)
 	}
@@ -196,7 +193,7 @@ func TestNamespaceDefaults(t *testing.T) {
 // TestWithStdin: Os.stdin reads what the option gives, and a read blocked on input that never
 // comes ends when the run is cancelled.
 func TestWithStdin(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { println(File.readAll(Os.stdin())) }`)
+	prog := loadSrc(t, `println(File.readAll(Os.stdin()))`)
 	var out strings.Builder
 	if err := prog.Run(context.Background(), ant.WithStdin(strings.NewReader("a\nb\n")), ant.WithStdout(&out)); err != nil {
 		t.Fatal(err)
@@ -217,7 +214,7 @@ func TestWithStdin(t *testing.T) {
 
 // TestExecCancelled: cancelling the run kills the child, and Run returns promptly.
 func TestExecCancelled(t *testing.T) {
-	prog := loadSrc(t, `func main(): void { println(Os.exec("sleep", ["30"])) }`)
+	prog := loadSrc(t, `println(Os.exec("sleep", ["30"]))`)
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
@@ -237,7 +234,7 @@ func TestHostTimeNamespace(t *testing.T) {
 			"stamp": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil },
 		},
 	}
-	prog := loadSrc(t, `func main(): void { var s = Time.stamp(); println(s is Time.Stamp) }`, ant.WithNamespace(ns), ant.WithoutNamespaces("Time"))
+	prog := loadSrc(t, `var s = Time.stamp(); println(s is Time.Stamp)`, ant.WithNamespace(ns), ant.WithoutNamespaces("Time"))
 	diags := prog.Check()
 	if len(diags) != 1 || !strings.Contains(diags[0].Message, "is cannot test Time.Stamp") {
 		t.Errorf("check: %v", diags)
@@ -246,12 +243,10 @@ func TestHostTimeNamespace(t *testing.T) {
 
 // TestWithEnvironment: the whole environment, for Os.env, Os.environ and a child of Os.exec.
 func TestWithEnvironment(t *testing.T) {
-	prog := loadSrc(t, `func main(): void {
-  println(Os.env("ANT_ONLY"))
-  println(Os.env("PATH"))
-  println(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
-  println(Os.exec("/usr/bin/env") | Result.map({ x.stdout }))
-}`)
+	prog := loadSrc(t, `println(Os.env("ANT_ONLY"))
+println(Os.env("PATH"))
+println(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
+println(Os.exec("/usr/bin/env") | Result.map({ x.stdout }))`)
 	var out strings.Builder
 	err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))
 	if err != nil {
@@ -267,7 +262,6 @@ func TestStartOptions(t *testing.T) {
 	prog := loadSrc(t, `
 func input(): string { Result.unwrap(File.readAll(Os.stdin())) }
 func vars(): bool { Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH") }
-func main(): void {}
 `)
 	in, err := prog.Start(context.Background(), ant.WithStdin(strings.NewReader("typed")),
 		ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))
@@ -286,7 +280,7 @@ func main(): void {}
 // TestStartContext checks that the context given to Start ends a call that never waits, as a
 // session's context ends such an input.
 func TestStartContext(t *testing.T) {
-	src := "func spin(): int {\n  var n = 0\n  while true { n += 1 }\n  n\n}\nfunc main(): void {}\n"
+	src := "func spin(): int {\n  var n = 0\n  while true { n += 1 }\n  n\n}\n"
 	prog, err := ant.Load("spin.ant", ant.WithSource("spin.ant", src))
 	if err != nil {
 		t.Fatal(err)
@@ -307,7 +301,7 @@ func TestStartContext(t *testing.T) {
 // TestCallSite: a panic of the call itself, such as a missing argument, names the function's
 // position instead of 0:0.
 func TestCallSite(t *testing.T) {
-	prog, err := ant.Load("id.ant", ant.WithSource("id.ant", "func main(): void {}\n\nfunc id(x: int): int { x }\n"))
+	prog, err := ant.Load("id.ant", ant.WithSource("id.ant", "func id(x: int): int { x }\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,15 +316,15 @@ func TestCallSite(t *testing.T) {
 	if !errors.As(err, &p) || len(p.Trace) == 0 {
 		t.Fatalf("id() ended with %v, want a panic with a trace", err)
 	}
-	if f := p.Trace[0]; f.Pos.Line != 3 {
-		t.Errorf("the call's frame is at %d:%d, want line 3", f.Pos.Line, f.Pos.Col)
+	if f := p.Trace[0]; f.Pos.Line != 1 {
+		t.Errorf("the call's frame is at %d:%d, want line 1", f.Pos.Line, f.Pos.Col)
 	}
 }
 
 // TestStartInterrupts: an instance honors WithInterrupts as a run does. An interrupt the
 // program never asked for ends the instance, and the call in progress returns ErrInterrupted.
 func TestStartInterrupts(t *testing.T) {
-	src := "func spin(): int {\n  var n = 0\n  while true { n += 1 }\n  n\n}\nfunc main(): void {}\n"
+	src := "func spin(): int {\n  var n = 0\n  while true { n += 1 }\n  n\n}\n"
 	interrupts := make(chan struct{}, 1)
 	// The deadline only bounds the test: without the interrupt the call would never end.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -365,11 +359,9 @@ func TestHostTextIsDecoded(t *testing.T) {
 	prog := loadSrc(t, `
 func bytes(s: string): int { len(String.toBytes(s)) }
 func show(s: string): string { String.from([s, bytes(s)]) }
-func main(): void {
-  for { key, value } in Db.row() {
-    println(show(key))
-    for v in value { println(show(v)) }
-  }
+for { key, value } in Db.row() {
+  println(show(key))
+  for v in value { println(show(v)) }
 }
 `, ant.WithNamespace(db))
 	var out strings.Builder
@@ -383,7 +375,6 @@ func main(): void {
 
 	in, err := loadSrc(t, `
 func bytes(s: string): int { len(String.toBytes(s)) }
-func main(): void {}
 `).Start(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -408,7 +399,7 @@ func TestHostBytesAreKept(t *testing.T) {
 		},
 	}
 	prog := loadSrc(t, `
-func main(): void { println(Blob.raw()) }
+println(Blob.raw())
 func size(b: Bytes): int { len(b) }
 `, ant.WithNamespace(blob))
 	var out strings.Builder
@@ -432,13 +423,11 @@ func size(b: Bytes): int { len(b) }
 // TestWithoutBytesNamespace: removing the Bytes namespace removes its functions and keeps the
 // type, which is built in: is, len, for, b[i] and annotations still check and run.
 func TestWithoutBytesNamespace(t *testing.T) {
-	prog := loadSrc(t, `func main(): void {
-  var b: Bytes = String.toBytes("ab")
-  var u: string | Bytes = b
-  var total = 0
-  for x in b { total = total + int(x) }
-  println([u is Bytes, len(b) == 2, int(b[1]) == 98, total == 195])
-}`, ant.WithoutNamespaces("Bytes"))
+	prog := loadSrc(t, `var b: Bytes = String.toBytes("ab")
+var u: string | Bytes = b
+var total = 0
+for x in b { total = total + int(x) }
+println([u is Bytes, len(b) == 2, int(b[1]) == 98, total == 195])`, ant.WithoutNamespaces("Bytes"))
 	if diags := prog.Check(); len(diags) != 0 {
 		t.Fatalf("check: %v", diags)
 	}
@@ -449,7 +438,7 @@ func TestWithoutBytesNamespace(t *testing.T) {
 	if out.String() != "[true, true, true, true]\n" {
 		t.Errorf("stdout %q", out.String())
 	}
-	gone := loadSrc(t, `func main(): void { println(Bytes.length(String.toBytes("a"))) }`, ant.WithoutNamespaces("Bytes"))
+	gone := loadSrc(t, `println(Bytes.length(String.toBytes("a")))`, ant.WithoutNamespaces("Bytes"))
 	if diags := gone.Check(); len(diags) != 1 || !strings.Contains(diags[0].Message, "length") {
 		t.Errorf("check: %v", diags)
 	}
@@ -458,7 +447,7 @@ func TestWithoutBytesNamespace(t *testing.T) {
 // TestArityPanicFrames: a call given the wrong arguments panics at the call site, in the caller,
 // with no frame of the callee it never entered.
 func TestArityPanicFrames(t *testing.T) {
-	src := "func f(a: int): int { a }\n\nfunc main(): void { println(f(1, 2)) }\n"
+	src := "func f(a: int): int { a }\n\nprintln(f(1, 2))\n"
 	prog, err := ant.Load("arity.ant", ant.WithSource("arity.ant", src))
 	if err != nil {
 		t.Fatal(err)
@@ -468,7 +457,7 @@ func TestArityPanicFrames(t *testing.T) {
 	if !errors.As(err, &p) {
 		t.Fatalf("the run ended with %v, want a panic", err)
 	}
-	if len(p.Trace) != 1 || p.Trace[0].Function != "main" || p.Trace[0].Pos.Line != 3 || p.Trace[0].Pos.Col != 30 {
-		t.Errorf("trace %+v, want the one frame of main at the call, 3:30", p.Trace)
+	if len(p.Trace) != 1 || p.Trace[0].Function != "module arity.ant" || p.Trace[0].Pos.Line != 3 || p.Trace[0].Pos.Col != 10 {
+		t.Errorf("trace %+v, want the one frame of the script at the call, 3:10", p.Trace)
 	}
 }

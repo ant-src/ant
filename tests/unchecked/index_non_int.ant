@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: index-range
 // An array index that is not an int panics (section 12).
-func main(): void { println([1][0.0]) }
+println([1][0.0])
 
 // expect
 // exit: 1

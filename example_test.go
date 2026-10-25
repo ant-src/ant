@@ -13,9 +13,7 @@ import (
 // Running a program from a string, with its output captured.
 func Example_run() {
 	src := `
-func main(): void {
-  for name in Os.args() { println(` + "`hello, ${name}`" + `) }
-}
+for name in Os.args() { println(` + "`hello, ${name}`" + `) }
 `
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src))
 	if err != nil {
@@ -38,8 +36,6 @@ func Example_call() {
 type Point = { x: float64, y: float64 }
 
 func scale(p: Point, k: float64): Point { Point{ x: p.x * k, y: p.y * k } }
-
-func main(): void {}
 `
 	prog, err := ant.Load("geometry.ant", ant.WithSource("geometry.ant", src))
 	if err != nil {
@@ -88,11 +84,9 @@ func Kv.set(key: string, v: string): void
 		},
 	}
 	src := `
-func main(): void {
-  Kv.set("greeting", "hi")
-  println(Kv.get("greeting") ?? "missing")
-  println(Kv.get("other") ?? "missing")
-}
+Kv.set("greeting", "hi")
+println(Kv.get("greeting") ?? "missing")
+println(Kv.get("other") ?? "missing")
 `
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src), ant.WithNamespace(kv), ant.WithoutNamespaces("File", "Http"))
 	if err != nil {

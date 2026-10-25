@@ -3,44 +3,42 @@
 // from it, lines exchanged both ways with writes that flush, the peer of each end, a read on
 // a connection that a context ends, an accept that a context ends, a dial that fails, and a
 // closed listener whose accept is Err.
-func main(): void {
-  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var address = Net.address(listener)
-  println(String.startsWith(address, "127.0.0.1:"))
-  var served = WaitGroup.new()
-  WaitGroup.add(served, 1)
-  go {
-    defer { WaitGroup.done(served) }
-    var conn = Result.unwrap(Net.accept(listener))
-    var line = Result.unwrap(File.readLine(conn))
-    while line != null {
-      Result.unwrap(File.writeLine(conn, `echo: ${line}`))
-      line = Result.unwrap(File.readLine(conn))
-    }
-    File.close(conn)
+var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+var address = Net.address(listener)
+println(String.startsWith(address, "127.0.0.1:"))
+var served = WaitGroup.new()
+WaitGroup.add(served, 1)
+go {
+  defer { WaitGroup.done(served) }
+  var conn = Result.unwrap(Net.accept(listener))
+  var line = Result.unwrap(File.readLine(conn))
+  while line != null {
+    Result.unwrap(File.writeLine(conn, `echo: ${line}`))
+    line = Result.unwrap(File.readLine(conn))
   }
-  var client = Result.unwrap(Net.dial(address, Context.new(Time.duration(seconds: 5))))
-  println(Net.peer(client) == address)
-  println(Net.peer(Os.stdout()))
-  Result.unwrap(File.writeLine(client, "hello"))
-  println(File.readLine(client))
-  Result.unwrap(File.writeText(client, "wor"))
-  Result.unwrap(File.writeLine(client, "ld"))
-  println(File.readLine(client))
-  println(File.readLine(client, Context.new(Time.duration(milliseconds: 50))))
-  Result.unwrap(File.writeLine(client, "still here"))
-  println(File.readLine(client))
-  File.close(client)
-  WaitGroup.wait(served)
-  println(Net.accept(listener, Context.new(Time.duration(milliseconds: 50))))
-  Net.close(listener)
-  println(Net.accept(listener))
-  Net.close(listener)
-  // A dial to the closed listener's port could reach another program that took it since, so
-  // the failing dial is one to an address without a port.
-  println(Result.isOk(Net.dial("127.0.0.1", Context.new(Time.duration(seconds: 5)))))
-  println(Result.isOk(Net.listen("256.256.256.256:1")))
+  File.close(conn)
 }
+var client = Result.unwrap(Net.dial(address, Context.new(Time.duration(seconds: 5))))
+println(Net.peer(client) == address)
+println(Net.peer(Os.stdout()))
+Result.unwrap(File.writeLine(client, "hello"))
+println(File.readLine(client))
+Result.unwrap(File.writeText(client, "wor"))
+Result.unwrap(File.writeLine(client, "ld"))
+println(File.readLine(client))
+println(File.readLine(client, Context.new(Time.duration(milliseconds: 50))))
+Result.unwrap(File.writeLine(client, "still here"))
+println(File.readLine(client))
+File.close(client)
+WaitGroup.wait(served)
+println(Net.accept(listener, Context.new(Time.duration(milliseconds: 50))))
+Net.close(listener)
+println(Net.accept(listener))
+Net.close(listener)
+// A dial to the closed listener's port could reach another program that took it since, so
+// the failing dial is one to an address without a port.
+println(Result.isOk(Net.dial("127.0.0.1", Context.new(Time.duration(seconds: 5)))))
+println(Result.isOk(Net.listen("256.256.256.256:1")))
 
 // expect
 // out: true

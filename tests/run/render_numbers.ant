@@ -2,25 +2,23 @@
 // String.from on numbers (section 11): integers render in decimal; floats as the shortest
 // decimal that reads back to the same value, with .0 added when integral, and as NaN, Infinity,
 // or -Infinity.
-func main(): void {
-  println(42)
-  println(-7)
-  println(0)
-  println(int8(-128))
-  println(uint8(255))
-  println(3.5)
-  println(2.0)
-  println(-0.5)
-  println(0.1 + 0.2)
-  println(1.0 / 3.0)
-  println(float32(0.1))
-  println(1.0 / 0.0)
-  println(-1.0 / 0.0)
-  println(0.0 / 0.0)
-  println(100.0)
-  println(1e3)
-  println(2.5e-3)
-}
+println(42)
+println(-7)
+println(0)
+println(int8(-128))
+println(uint8(255))
+println(3.5)
+println(2.0)
+println(-0.5)
+println(0.1 + 0.2)
+println(1.0 / 3.0)
+println(float32(0.1))
+println(1.0 / 0.0)
+println(-1.0 / 0.0)
+println(0.0 / 0.0)
+println(100.0)
+println(1e3)
+println(2.5e-3)
 
 // expect
 // out: 42

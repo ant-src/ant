@@ -1,38 +1,36 @@
 // spec: 9 Synchronization; 11 Synchronization
 // Cond: a producer and a consumer hand items over through a shared array under a mutex
 // (sections 9, 11).
-func main(): void {
-  var lock = Mutex.new()
-  var ready = Cond.new(lock)
-  var queue: Array[int] = []
-  var done = Atomic.new(false)
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  go {
-    defer { WaitGroup.done(wg) }
-    var received = 0
-    var total = 0
-    while received < 5 {
-      Mutex.lock(lock)
-      while Array.isEmpty(queue) { Cond.wait(ready) }
-      var item = Array.pop(queue) ?? -1
-      Mutex.unlock(lock)
-      received += 1
-      total += item
-    }
-    println(`received ${received} items, total ${total}`)
-  }
-  for i in Iter.range(1, 6) {
+var lock = Mutex.new()
+var ready = Cond.new(lock)
+var queue: Array[int] = []
+var done = Atomic.new(false)
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+go {
+  defer { WaitGroup.done(wg) }
+  var received = 0
+  var total = 0
+  while received < 5 {
     Mutex.lock(lock)
-    Array.push(queue, i)
-    Cond.signal(ready)
+    while Array.isEmpty(queue) { Cond.wait(ready) }
+    var item = Array.pop(queue) ?? -1
     Mutex.unlock(lock)
+    received += 1
+    total += item
   }
-  WaitGroup.wait(wg)
-  var c = Cond.new(lock)
-  Cond.broadcast(c)
-  println("done")
+  println(`received ${received} items, total ${total}`)
 }
+for i in Iter.range(1, 6) {
+  Mutex.lock(lock)
+  Array.push(queue, i)
+  Cond.signal(ready)
+  Mutex.unlock(lock)
+}
+WaitGroup.wait(wg)
+var c = Cond.new(lock)
+Cond.broadcast(c)
+println("done")
 
 // expect
 // out: received 5 items, total 15

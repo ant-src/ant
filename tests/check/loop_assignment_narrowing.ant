@@ -25,7 +25,5 @@ func shadowed(n: int): void {
   }
 }
 
-func main(): void {
-  assigned(1)
-  shadowed(1)
-}
+assigned(1)
+shadowed(1)

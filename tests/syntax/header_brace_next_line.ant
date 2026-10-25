@@ -1,8 +1,6 @@
 // spec: 5 Blocks
-func main(): void {
-  if true
-  { println(1) }
-}
+if true
+{ println(1) }
 
 // expect
 // exit: 2

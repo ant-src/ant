@@ -3,15 +3,14 @@
 // neither is seen inside a string or a template.
 /* a block comment
    spanning lines */
-func main(): void { // trailing comment
-  var x = 1 /* inline */ + 2
-  println(x) // prints 3
-  /* block comments do not nest: /* this does not open another */
-  println("after the comment")
-  println("// not a comment")
-  println(`/* not a comment either */`)
-  /**/ println("empty comment")
-}
+// trailing comment
+var x = 1 /* inline */ + 2
+println(x) // prints 3
+/* block comments do not nest: /* this does not open another */
+println("after the comment")
+println("// not a comment")
+println(`/* not a comment either */`)
+/**/ println("empty comment")
 
 // expect
 // out: 3

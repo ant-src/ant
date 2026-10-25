@@ -8,11 +8,9 @@ func work(): void {
   panic("boom")
 }
 
-func main(): void {
-  defer { println("main defer") }
-  work()
-  println("unreachable")
-}
+defer { println("main defer") }
+work()
+println("unreachable")
 
 // expect
 // out: working

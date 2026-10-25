@@ -2,7 +2,7 @@
 // panics: record-literal
 // A record literal leaving a field without a value panics (section 12).
 type P = { x: int, y: int }
-func main(): void { println(P{ x: 1 }) }
+println(P{ x: 1 })
 
 // expect
 // exit: 1

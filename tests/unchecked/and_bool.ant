@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; 4 Checking and running
 // panics: bool-kind
 // && on a non-bool panics (section 12).
-func main(): void { println(1 && true) }
+println(1 && true)
 
 // expect
 // exit: 1

@@ -1,5 +1,5 @@
 // spec: 5 return, break, continue
-func main(): void { go { return 1 } }
+go { return 1 }
 
 // expect
 // exit: 2

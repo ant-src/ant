@@ -8,26 +8,24 @@ func keeps(line: string, needles: Array[string]): bool {
   Array.every(needles, { String.contains(lower, x) })
 }
 
-func main(): void {
-  var needles = Array.map(Os.args(), { String.toLower(x) })
-  if Array.length(needles) == 0 {
-    File.writeLine(Os.stderr(), "usage: ant run examples/sift.ant word... < file")
-    Os.exit(2)
-  }
-  var input = Os.stdin()
-  var number = 0
-  var kept = 0
-  var line = Result.unwrap(File.readLine(input))
-  while line != null {
-    number += 1
-    if keeps(line, needles) {
-      kept += 1
-      println(`${number}: ${line}`)
-    }
-    line = Result.unwrap(File.readLine(input))
-  }
-  if File.writeLine(Os.stderr(), `${kept} of ${number} lines`) is Err { Os.exit(1) }
+var needles = Array.map(Os.args(), { String.toLower(x) })
+if Array.length(needles) == 0 {
+  File.writeLine(Os.stderr(), "usage: ant run examples/sift.ant word... < file")
+  Os.exit(2)
 }
+var input = Os.stdin()
+var number = 0
+var kept = 0
+var line = Result.unwrap(File.readLine(input))
+while line != null {
+  number += 1
+  if keeps(line, needles) {
+    kept += 1
+    println(`${number}: ${line}`)
+  }
+  line = Result.unwrap(File.readLine(input))
+}
+if File.writeLine(Os.stderr(), `${kept} of ${number} lines`) is Err { Os.exit(1) }
 
 // expect
 // args: ant time

@@ -1,5 +1,5 @@
 // spec: 5 Destructuring
-func main(): void { var a = 0; var b = 0; [a, b] += [1, 2] }
+var a = 0; var b = 0; [a, b] += [1, 2]
 
 // expect
 // exit: 2

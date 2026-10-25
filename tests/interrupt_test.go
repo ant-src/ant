@@ -40,12 +40,10 @@ func runWithInterrupts(t *testing.T, src string, delays ...time.Duration) (strin
 func TestInterrupts(t *testing.T) {
 	t.Run("delivered", func(t *testing.T) {
 		out, err := runWithInterrupts(t, `
-func main(): void {
-  var stop = Os.interrupt()
-  Context.wait(stop)
-  println(Context.reason(stop) ?? "none")
-  println("drained")
-}
+var stop = Os.interrupt()
+Context.wait(stop)
+println(Context.reason(stop) ?? "none")
+println("drained")
 `, 50*time.Millisecond)
 		if err != nil {
 			t.Fatalf("the run ended with %v; the first interrupt should have gone to the program", err)
@@ -56,10 +54,8 @@ func main(): void {
 	})
 	t.Run("never asked", func(t *testing.T) {
 		out, err := runWithInterrupts(t, `
-func main(): void {
-  Time.sleep(Time.duration(seconds: 5))
-  println("slept")
-}
+Time.sleep(Time.duration(seconds: 5))
+println("slept")
 `, 50*time.Millisecond)
 		if err == nil || strings.Contains(out, "slept") {
 			t.Fatalf("the first interrupt should have ended the run: err %v, printed %q", err, out)
@@ -70,11 +66,9 @@ func main(): void {
 	})
 	t.Run("ignored", func(t *testing.T) {
 		out, err := runWithInterrupts(t, `
-func main(): void {
-  var stop = Os.interrupt()
-  Time.sleep(Time.duration(seconds: 5))
-  println(Context.isDone(stop))
-}
+var stop = Os.interrupt()
+Time.sleep(Time.duration(seconds: 5))
+println(Context.isDone(stop))
 `, 50*time.Millisecond, 100*time.Millisecond)
 		if err == nil || strings.Contains(out, "true") {
 			t.Fatalf("the second interrupt should have ended the run: err %v, printed %q", err, out)

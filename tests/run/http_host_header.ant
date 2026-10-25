@@ -6,21 +6,19 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 200, headers: Map{}, body: req.headers["Host"] ?? "no host" }
 }
 
-func main(): void {
-  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var base = `http://${Net.address(listener)}`
-  var stop = Context.new()
-  var served: Channel[Result[void, Error]] = Channel.new(1)
-  go { Channel.send(served, Http.serve(listener, handle, stop)) }
-  var t = Time.duration(seconds: 5)
-  println(Result.unwrap(Http.get(base, Map{ "Host": "example.test" }, t)).body)
-  println(Result.unwrap(Http.get(base, Map{ "host": "other.test:8080" }, t)).body)
-  println(Result.unwrap(Http.get(base, timeout: t)).body == Net.address(listener))
-  println(Http.get(base, Map{ "Accept": "text/plain", "accept": "text/html" }, t))
-  println(Http.get(base, Map{ "Host": "a.test", "HOST": "b.test" }, t))
-  Context.cancel(stop)
-  println(Channel.receive(served))
-}
+var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+var base = `http://${Net.address(listener)}`
+var stop = Context.new()
+var served: Channel[Result[void, Error]] = Channel.new(1)
+go { Channel.send(served, Http.serve(listener, handle, stop)) }
+var t = Time.duration(seconds: 5)
+println(Result.unwrap(Http.get(base, Map{ "Host": "example.test" }, t)).body)
+println(Result.unwrap(Http.get(base, Map{ "host": "other.test:8080" }, t)).body)
+println(Result.unwrap(Http.get(base, timeout: t)).body == Net.address(listener))
+println(Http.get(base, Map{ "Accept": "text/plain", "accept": "text/html" }, t))
+println(Http.get(base, Map{ "Host": "a.test", "HOST": "b.test" }, t))
+Context.cancel(stop)
+println(Channel.receive(served))
 
 // expect
 // out: example.test

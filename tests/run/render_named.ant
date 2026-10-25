@@ -5,14 +5,12 @@ type UserId = string
 type Meters = float64
 type Flag = bool
 
-func main(): void {
-  println(UserId("u-1"))
-  println(Meters(2.5))
-  println(Meters(3.0))
-  println(Flag(true))
-  println([UserId("a"), UserId("b")])
-  println(Map{ k: UserId("q") })
-}
+println(UserId("u-1"))
+println(Meters(2.5))
+println(Meters(3.0))
+println(Flag(true))
+println([UserId("a"), UserId("b")])
+println(Map{ k: UserId("q") })
 
 // expect
 // out: UserId("u-1")

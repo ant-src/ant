@@ -10,43 +10,41 @@ func serve(l: Net.Listener): void {
   File.close(c)
 }
 
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  go { serve(l) }
-  var c = Result.unwrap(Net.dial(Net.address(l)))
-  var replies: Channel[string | null] = Channel.new()
-  go {
-    while true {
-      var line = Result.unwrap(File.readLine(c))
-      Channel.send(replies, line)
-      if line == null { break }
-    }
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+go { serve(l) }
+var c = Result.unwrap(Net.dial(Net.address(l)))
+var replies: Channel[string | null] = Channel.new()
+go {
+  while true {
+    var line = Result.unwrap(File.readLine(c))
+    Channel.send(replies, line)
+    if line == null { break }
   }
-  for word in ["a", "b", "c"] {
-    var x = File.writeLine(c, word)
-    println(Channel.receive(replies))
-  }
-  println(Channel.receive(replies))
-
-  var l2 = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var done: Channel[bool] = Channel.new()
-  go {
-    var s = Result.unwrap(Net.accept(l2))
-    Channel.receive(done)
-    File.close(s)
-  }
-  var c2 = Result.unwrap(Net.dial(Net.address(l2)))
-  var ended: Channel[bool] = Channel.new()
-  go {
-    var r = File.readLine(c2)
-    Channel.send(ended, r is Err)
-  }
-  Time.sleep(Time.duration(milliseconds: 50))
-  File.close(c2)
-  println(`read ended: ${Channel.receive(ended) ?? false}`)
-  println(File.readLine(c2))
-  var sent = Channel.send(done, true)
 }
+for word in ["a", "b", "c"] {
+  var x = File.writeLine(c, word)
+  println(Channel.receive(replies))
+}
+println(Channel.receive(replies))
+
+var l2 = Result.unwrap(Net.listen("127.0.0.1:0"))
+var done: Channel[bool] = Channel.new()
+go {
+  var s = Result.unwrap(Net.accept(l2))
+  Channel.receive(done)
+  File.close(s)
+}
+var c2 = Result.unwrap(Net.dial(Net.address(l2)))
+var ended: Channel[bool] = Channel.new()
+go {
+  var r = File.readLine(c2)
+  Channel.send(ended, r is Err)
+}
+Time.sleep(Time.duration(milliseconds: 50))
+File.close(c2)
+println(`read ended: ${Channel.receive(ended) ?? false}`)
+println(File.readLine(c2))
+var sent = Channel.send(done, true)
 
 // expect
 // out: echo a

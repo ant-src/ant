@@ -14,26 +14,24 @@ func describe(s: Shape): string {
 
 func round(x: float64): float64 { Math.round(x * 1000.0) / 1000.0 }
 
-func main(): void {
-  var shapes: Array[Shape] = [
-    Circle{ center: origin, radius: 1.0 },
-    Rect{ corner: make(1.0, 1.0), width: 3.0, height: 2.0 },
-    Triangle{ a: origin, b: make(4.0, 0.0), c: make(0.0, 3.0) },
-    unitSquare(),
-  ]
-  for s in shapes { println(describe(s)) }
-  var largest = Array.reduce(shapes, shapes[0], func(best: Shape, s: Shape): Shape { if Shape.area(s) > Shape.area(best) { s } else { best } })
-  println(`largest: ${Shape.name(largest)}`)
-  var byArea = Array.sortBy(shapes, { Shape.area(x) })
-  println(Array.map(byArea, Shape.name))
-  println(`points made: ${Geometry.created} ${Geometry.created == Geometry.created}`)
-  var p = Point.add(make(1.0, 2.0), Point.scale(Geometry.origin, 5.0))
-  println(p)
-  println(Geometry.distance(p, origin))
-  println(`points made: ${Geometry.created}`)
-  var circles = Array.filter(shapes, { x is Circle })
-  println(Array.length(circles))
-}
+var shapes: Array[Shape] = [
+  Circle{ center: origin, radius: 1.0 },
+  Rect{ corner: make(1.0, 1.0), width: 3.0, height: 2.0 },
+  Triangle{ a: origin, b: make(4.0, 0.0), c: make(0.0, 3.0) },
+  unitSquare(),
+]
+for s in shapes { println(describe(s)) }
+var largest = Array.reduce(shapes, shapes[0], func(best: Shape, s: Shape): Shape { if Shape.area(s) > Shape.area(best) { s } else { best } })
+println(`largest: ${Shape.name(largest)}`)
+var byArea = Array.sortBy(shapes, { Shape.area(x) })
+println(Array.map(byArea, Shape.name))
+println(`points made: ${Geometry.created} ${Geometry.created == Geometry.created}`)
+var p = Point.add(make(1.0, 2.0), Point.scale(Geometry.origin, 5.0))
+println(p)
+println(Geometry.distance(p, origin))
+println(`points made: ${Geometry.created}`)
+var circles = Array.filter(shapes, { x is Circle })
+println(Array.length(circles))
 
 // expect
 // out: circle: area 3.142, perimeter 6.283

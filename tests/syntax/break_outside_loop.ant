@@ -1,5 +1,5 @@
 // spec: 5 return, break, continue
-func main(): void { break }
+break
 
 // expect
 // exit: 2

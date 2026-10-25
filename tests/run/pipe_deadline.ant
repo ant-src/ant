@@ -1,19 +1,17 @@
 // spec: stdlib File
 // A pipe ended by its context delivers what it copied: the destination is flushed whatever
 // ended the copy.
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var done: Channel[bool] = Channel.new()
-  go {
-    var s = Result.unwrap(Net.accept(l))
-    var x = File.writeLine(s, "arrived before the deadline")
-    Channel.receive(done)
-    File.close(s)
-  }
-  var c = Result.unwrap(Net.dial(Net.address(l)))
-  println(File.pipe(c, Os.stdout(), Context.new(Time.duration(milliseconds: 100))))
-  var sent = Channel.send(done, true)
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+var done: Channel[bool] = Channel.new()
+go {
+  var s = Result.unwrap(Net.accept(l))
+  var x = File.writeLine(s, "arrived before the deadline")
+  Channel.receive(done)
+  File.close(s)
 }
+var c = Result.unwrap(Net.dial(Net.address(l)))
+println(File.pipe(c, Os.stdout(), Context.new(Time.duration(milliseconds: 100))))
+var sent = Channel.send(done, true)
 
 // expect
 // out: arrived before the deadline

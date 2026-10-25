@@ -1,9 +1,7 @@
 // spec: 5 select
-func main(): void {
-  var c: Channel[int] = Channel.new()
-  select {
-    else { println("idle") }
-  }
+var c: Channel[int] = Channel.new()
+select {
+  else { println("idle") }
 }
 
 // expect

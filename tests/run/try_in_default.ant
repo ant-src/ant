@@ -8,10 +8,8 @@ func plus(a: int = try bad()): Result[int, Error] {
   Result.ok(a + 100)
 }
 
-func main(): void {
-  println(plus())
-  println(plus(1))
-}
+println(plus())
+println(plus(1))
 
 // expect
 // out: Err{ error: Error{ message: "no default" } }

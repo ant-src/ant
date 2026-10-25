@@ -1,11 +1,9 @@
 // spec: 12 Runtime panics
 // panics: int-overflow
 // Integer overflow panics (section 12).
-func main(): void {
-  var big = 9223372036854775807
-  println("before")
-  println(big + 1)
-}
+var big = 9223372036854775807
+println("before")
+println(big + 1)
 
 // expect
 // out: before

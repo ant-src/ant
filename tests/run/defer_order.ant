@@ -9,37 +9,35 @@ func f(): int {
   return x
 }
 
-func main(): void {
-  println(f())
-  for i in [1, 2] {
-    defer { println(`end of iteration ${i}`) }
-    if i == 1 { continue }
-    println(`body ${i}`)
-  }
-  if true {
-    defer { println("block done") }
-    println("in block")
-  }
-  println("after block")
-  var g = func(): int {
-    defer { return }
-    5
-  }
-  println(g())
-  var h = func(): int {
-    defer { println("first registered") }
-    defer { println("last registered") }
-    1
-  }
-  println(h())
-  var n = 0
-  while n < 3 {
-    n += 1
-    defer { println(`loop ${n}`) }
-    if n == 2 { break }
-  }
-  println("done")
+println(f())
+for i in [1, 2] {
+  defer { println(`end of iteration ${i}`) }
+  if i == 1 { continue }
+  println(`body ${i}`)
 }
+if true {
+  defer { println("block done") }
+  println("in block")
+}
+println("after block")
+var g = func(): int {
+  defer { return }
+  5
+}
+println(g())
+var h = func(): int {
+  defer { println("first registered") }
+  defer { println("last registered") }
+  1
+}
+println(h())
+var n = 0
+while n < 3 {
+  n += 1
+  defer { println(`loop ${n}`) }
+  if n == 2 { break }
+}
+println("done")
 
 // expect
 // out: deferred sees 2

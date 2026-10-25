@@ -149,24 +149,22 @@ func calculate(src: string, env: Map[string, float64]): string {
   `${format(parsed.value)} => ${result.value}`
 }
 
-func main(): void {
-  var env = Map{ x: 2.0, y: 0.5, pi: 3.14159 }
-  for src in [
-    "1 + 2 * 3",
-    "(1 + 2) * 3",
-    "x * 2 + y",
-    "-x * -(y + 1)",
-    "10 / 4",
-    "pi * x * x",
-    "1 / (x - 2)",
-    "1 +",
-    "2 * (3",
-    "3 $ 4",
-    "z + 1",
-    "1 2",
-    "1.5.2",
-  ] { println(calculate(src, env)) }
-}
+var env = Map{ x: 2.0, y: 0.5, pi: 3.14159 }
+for src in [
+  "1 + 2 * 3",
+  "(1 + 2) * 3",
+  "x * 2 + y",
+  "-x * -(y + 1)",
+  "10 / 4",
+  "pi * x * x",
+  "1 / (x - 2)",
+  "1 +",
+  "2 * (3",
+  "3 $ 4",
+  "z + 1",
+  "1 2",
+  "1.5.2",
+] { println(calculate(src, env)) }
 
 // expect
 // out: (1.0 + (2.0 * 3.0)) => 7.0

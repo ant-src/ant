@@ -9,12 +9,12 @@ import (
 
 func load(t *testing.T, sources map[string]string) (*Program, []Diagnostic) {
 	t.Helper()
-	return Load("main.ant", Config{Sources: sources, RequireMain: true})
+	return Load("main.ant", Config{Sources: sources})
 }
 
 func TestOrderAndImports(t *testing.T) {
 	prog, diags := load(t, map[string]string{
-		"main.ant":         "import \"./lib/shapes.ant\" { unit }\nimport \"./lib/geometry.ant\" G\nfunc main() {}",
+		"main.ant":         "import \"./lib/shapes.ant\" { unit }\nimport \"./lib/geometry.ant\" G",
 		"lib/shapes.ant":   "import \"./geometry.ant\" { Point }\nexport func unit(): Point { Point{} }",
 		"lib/geometry.ant": "export type Point = {}",
 	})
@@ -41,16 +41,17 @@ func TestErrors(t *testing.T) {
 		sources map[string]string
 		want    string
 	}{
-		{"missing module", map[string]string{"main.ant": "import \"./x.ant\" { a }\nfunc main() {}"}, `cannot find module "./x.ant"`},
+		{"missing module", map[string]string{"main.ant": "import \"./x.ant\" { a }"}, `cannot find module "./x.ant"`},
 		{"cycle", map[string]string{
-			"main.ant": "import \"./a.ant\" A\nfunc main() {}",
+			"main.ant": "import \"./a.ant\" A",
 			"a.ant":    "import \"./b.ant\" B",
 			"b.ant":    "import \"./a.ant\" A",
 		}, "import cycle through a.ant"},
-		{"self cycle", map[string]string{"main.ant": "import \"./main.ant\" M\nfunc main() {}"}, "import cycle"},
-		{"missing main", map[string]string{"main.ant": "func helper() {}"}, "no func main"},
+		{"self cycle", map[string]string{"main.ant": "import \"./main.ant\" M"}, "import cycle"},
+		{"script import", map[string]string{"main.ant": "import \"./tool.ant\" T", "tool.ant": "func f() {}\nf()"},
+			`cannot import "./tool.ant": it is a script, made one by the statement at tool.ant:2:1`},
 		{"syntax error in import", map[string]string{
-			"main.ant": "import \"./a.ant\" A\nfunc main() {}",
+			"main.ant": "import \"./a.ant\" A",
 			"a.ant":    "var x = = 1",
 		}, "a.ant:1:9"},
 		{"unreadable root", map[string]string{}, "cannot read the module"},
@@ -81,8 +82,8 @@ func TestSameFile(t *testing.T) {
 	if err := os.Link(filepath.Join(dir, "lib.ant"), filepath.Join(dir, "alias.ant")); err != nil {
 		t.Skip(err)
 	}
-	write("main.ant", "import \"./lib.ant\" A\nimport \"./alias.ant\" B\nfunc main() {}")
-	prog, diags := Load(filepath.Join(dir, "main.ant"), Config{RequireMain: true})
+	write("main.ant", "import \"./lib.ant\" A\nimport \"./alias.ant\" B")
+	prog, diags := Load(filepath.Join(dir, "main.ant"), Config{})
 	if len(diags) > 0 {
 		t.Fatal(diags[0])
 	}

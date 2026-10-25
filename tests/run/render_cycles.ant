@@ -7,26 +7,24 @@ type Nest = Array[Nest]
 type Dict = Map[string, Dict]
 type Bag = Set[Bag]
 
-func main(): void {
-  var a = Node{ value: 1, next: null }
-  a.next = a
-  println(a)
-  var b = Node{ value: 2, next: Node{ value: 3, next: null } }
-  println(b)
-  var c = Cell{ items: [] }
-  Array.push(c.items, c)
-  println(c)
-  println([c, c])
-  var n: Nest = []
-  Array.push(n, n)
-  println(n)
-  var d: Dict = Map{}
-  d["self"] = d
-  println(d)
-  var g: Bag = Set.of([])
-  Set.add(g, g)
-  println(g)
-}
+var a = Node{ value: 1, next: null }
+a.next = a
+println(a)
+var b = Node{ value: 2, next: Node{ value: 3, next: null } }
+println(b)
+var c = Cell{ items: [] }
+Array.push(c.items, c)
+println(c)
+println([c, c])
+var n: Nest = []
+Array.push(n, n)
+println(n)
+var d: Dict = Map{}
+d["self"] = d
+println(d)
+var g: Bag = Set.of([])
+Set.add(g, g)
+println(g)
 
 // expect
 // out: Node{ value: 1, next: ... }

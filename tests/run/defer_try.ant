@@ -9,15 +9,13 @@ func copy(src: string, dst: string): Result[void, Error] {
   File.pipe(input, output)
 }
 
-func main(): void {
-  var dir = Os.args()[0]
-  println(File.write(`${dir}/a.txt`, "payload\n"))
-  println(copy(`${dir}/a.txt`, `${dir}/b.txt`))
-  println(File.read(`${dir}/b.txt`))
-  println(copy(`${dir}/missing.txt`, `${dir}/c.txt`) is Err)
-  println(File.exists(`${dir}/c.txt`))
-  println(copy(`${dir}/a.txt`, `${dir}/nodir/c.txt`) is Err)
-}
+var dir = Os.args()[0]
+println(File.write(`${dir}/a.txt`, "payload\n"))
+println(copy(`${dir}/a.txt`, `${dir}/b.txt`))
+println(File.read(`${dir}/b.txt`))
+println(copy(`${dir}/missing.txt`, `${dir}/c.txt`) is Err)
+println(File.exists(`${dir}/c.txt`))
+println(copy(`${dir}/a.txt`, `${dir}/nodir/c.txt`) is Err)
 
 // expect
 // out: Ok{ value: void }

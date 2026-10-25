@@ -9,12 +9,10 @@ func describe(v: ThunkOrMeters): string {
   if v is Meters { `meters ${int(v)}` } else { `thunk ${v()}` }
 }
 
-func main(): void {
-  var t: Thunk = func(): int | Meters { Meters(7) }
-  println(t() is Meters)
-  println(describe(Meters(3)))
-  println(describe(func(): int { 4 }))
-}
+var t: Thunk = func(): int | Meters { Meters(7) }
+println(t() is Meters)
+println(describe(Meters(3)))
+println(describe(func(): int { 4 }))
 
 // expect
 // out: true

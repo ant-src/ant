@@ -5,32 +5,30 @@ type Guarded = { lock: Mutex, count: int }
 
 func bump(g: Guarded): void { Mutex.withLock(g.lock, { g.count += 1 }) }
 
-func main(): void {
-  var a = Mutex.new()
-  var b = a
-  println(a == b)
-  println(a == Mutex.new())
-  println(a != Mutex.new())
-  var g = Guarded{ lock: a, count: 0 }
-  bump(g)
-  bump(g)
-  println(g.count)
-  var locks = [Mutex.new(), Mutex.new()]
-  var rw = RwMutex.new()
-  println(Array.length(locks))
-  var byName = Map{ main: WaitGroup.new() }
-  var wg = byName["main"] ?? panic("missing")
-  WaitGroup.add(wg, 1)
-  go { defer { WaitGroup.done(wg) }; bump(g) }
-  WaitGroup.wait(wg)
-  println(g.count)
-  var once = Once.new()
-  var c = Cond.new(a)
-  var at = Atomic.new([1])
-  println(Atomic.load(at))
-  println(once == once && c == c)
-  println(`${a} ${once} ${c} ${wg} ${rw} ${at}`)
-}
+var a = Mutex.new()
+var b = a
+println(a == b)
+println(a == Mutex.new())
+println(a != Mutex.new())
+var g = Guarded{ lock: a, count: 0 }
+bump(g)
+bump(g)
+println(g.count)
+var locks = [Mutex.new(), Mutex.new()]
+var rw = RwMutex.new()
+println(Array.length(locks))
+var byName = Map{ main: WaitGroup.new() }
+var wg = byName["main"] ?? panic("missing")
+WaitGroup.add(wg, 1)
+go { defer { WaitGroup.done(wg) }; bump(g) }
+WaitGroup.wait(wg)
+println(g.count)
+var once = Once.new()
+var c = Cond.new(a)
+var at = Atomic.new([1])
+println(Atomic.load(at))
+println(once == once && c == c)
+println(`${a} ${once} ${c} ${wg} ${rw} ${at}`)
 
 // expect
 // out: true

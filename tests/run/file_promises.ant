@@ -3,28 +3,26 @@
 // replaces what it held, exists is true for a directory, readLine drops \n and \r\n, readExactly
 // of 0 gives empty Bytes at the end of the file too, list is in lexical order, and tempDir names
 // the directory after its prefix.
-func main(): void {
-  var dir = Os.args()[0]
-  var path = `${dir}/lines.txt`
-  println(File.write(path, "first\r\nsecond\nthird"))
-  var input = Result.unwrap(File.open(path))
-  println(File.readLine(input))
-  println(File.readLine(input))
-  println(File.readLine(input))
-  println(File.readLine(input))
-  println(File.readExactly(input, 0))
-  File.close(input)
-  println(File.write(path, "x"))
-  println(File.read(path))
-  println(File.exists(dir))
-  File.write(`${dir}/c`, "")
-  File.write(`${dir}/a`, "")
-  File.mkdir(`${dir}/b`)
-  println(File.list(dir))
-  var temp = Result.unwrap(File.tempDir("antdoc"))
-  File.removeAll(temp)
-  println(String.startsWith(Path.base(temp), "antdoc"))
-}
+var dir = Os.args()[0]
+var path = `${dir}/lines.txt`
+println(File.write(path, "first\r\nsecond\nthird"))
+var input = Result.unwrap(File.open(path))
+println(File.readLine(input))
+println(File.readLine(input))
+println(File.readLine(input))
+println(File.readLine(input))
+println(File.readExactly(input, 0))
+File.close(input)
+println(File.write(path, "x"))
+println(File.read(path))
+println(File.exists(dir))
+File.write(`${dir}/c`, "")
+File.write(`${dir}/a`, "")
+File.mkdir(`${dir}/b`)
+println(File.list(dir))
+var temp = Result.unwrap(File.tempDir("antdoc"))
+File.removeAll(temp)
+println(String.startsWith(Path.base(temp), "antdoc"))
 
 // expect
 // args: $TMP

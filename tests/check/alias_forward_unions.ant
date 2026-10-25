@@ -12,7 +12,5 @@ type First = Second | int
 type Second = Third | string
 type Third = First | float64 // ERR: type Third refers to itself without passing through a record, array, map, set, or function
 
-func main(): void {
-  var f: Fine = 1
-  println(f)
-}
+var f: Fine = 1
+println(f)

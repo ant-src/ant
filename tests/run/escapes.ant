@@ -3,36 +3,34 @@
 // several lines with lambdas and record literals inside ${...}, and the literal forms of numbers.
 type P = { x: int }
 
-func main(): void {
-  println("tab:\t|")
-  println("quote:\" backslash:\\")
-  println("backtick:\` dollar:\$")
-  println("line\nbreak")
-  println("a\rb" == "a" + "\r" + "b")
-  println("\u{41}\u{e9}\u{1F600}")
-  println(String.length("\u{1F600}\u{10FFFF}"))
-  println("\u{10FFFF}" == "\u{10ffff}")
-  println(`backtick: \` dollar: \$ brace: \${x}`)
-  println(`doubled: ${Array.map([1, 2], { x * 2 })} point: ${P{ x: 5 }.x} nested: ${`in ${1 + 1}`}`)
-  println(`multi
+println("tab:\t|")
+println("quote:\" backslash:\\")
+println("backtick:\` dollar:\$")
+println("line\nbreak")
+println("a\rb" == "a" + "\r" + "b")
+println("\u{41}\u{e9}\u{1F600}")
+println(String.length("\u{1F600}\u{10FFFF}"))
+println("\u{10FFFF}" == "\u{10ffff}")
+println(`backtick: \` dollar: \$ brace: \${x}`)
+println(`doubled: ${Array.map([1, 2], { x * 2 })} point: ${P{ x: 5 }.x} nested: ${`in ${1 + 1}`}`)
+println(`multi
 line template`)
-  println(1_000 + 0x10 + 0b11)
-  println(0xff == 255 && 0b1 == 1 && 0x1 == 1)
-  println(1e3)
-  println(2.5e-3)
-  println(1.5e2)
-  println(0.5 + 0.25)
-  println(0 + 0x0F + 0b0)
-  println(0e-400 == 0.0 && 5e-324 > 0.0)
-  var big: int = 9_223_372_036_854_775_807
-  println(big)
-  println(Math.minInt)
-  println(byte(255))
-  println(float32(1.5))
-  println(true && !false)
-  var nothing: int | null = null
-  println(nothing)
-}
+println(1_000 + 0x10 + 0b11)
+println(0xff == 255 && 0b1 == 1 && 0x1 == 1)
+println(1e3)
+println(2.5e-3)
+println(1.5e2)
+println(0.5 + 0.25)
+println(0 + 0x0F + 0b0)
+println(0e-400 == 0.0 && 5e-324 > 0.0)
+var big: int = 9_223_372_036_854_775_807
+println(big)
+println(Math.minInt)
+println(byte(255))
+println(float32(1.5))
+println(true && !false)
+var nothing: int | null = null
+println(nothing)
 
 // expect
 // out: tab:	|

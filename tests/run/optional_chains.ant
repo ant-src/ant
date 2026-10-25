@@ -4,18 +4,16 @@ type Deep = { e: string }
 type In = { c: int, xs: Array[int], f: func(): string, d: Deep }
 type P = { b: In, n: In | null }
 
-func main(): void {
-  var a: P | null = null
-  println(a?.b.c)
-  println(a?.b.xs[0])
-  println(a?.b.f())
-  println(a?.n?.d.e)
-  var p: P | null = P{ b: In{ c: 1, xs: [5], f: func(): string { "f" }, d: Deep{ e: "e" } }, n: null }
-  println(p?.b.c)
-  println(p?.b.xs[0])
-  println(p?.b.f())
-  println(p?.n?.d.e)
-}
+var a: P | null = null
+println(a?.b.c)
+println(a?.b.xs[0])
+println(a?.b.f())
+println(a?.n?.d.e)
+var p: P | null = P{ b: In{ c: 1, xs: [5], f: func(): string { "f" }, d: Deep{ e: "e" } }, n: null }
+println(p?.b.c)
+println(p?.b.xs[0])
+println(p?.b.f())
+println(p?.n?.d.e)
 
 // expect
 // out: null

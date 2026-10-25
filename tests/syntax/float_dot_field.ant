@@ -1,9 +1,7 @@
 // spec: 2 Literals
 // A digit followed by a point always begins a float, so 1.x is a literal error, not a field
 // access on 1.
-func main(): void {
-  var x = 1.x
-}
+var x = 1.x
 
 // expect
 // exit: 2

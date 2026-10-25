@@ -11,8 +11,6 @@ func copied[T: Ordered](x: T): T {
   if x is int { println(x + 1); original } else { original }
 }
 
-func main(): void {
-  println(narrowed(1))
-  println(copied(1))
-  println(copied("a"))
-}
+println(narrowed(1))
+println(copied(1))
+println(copied("a"))

@@ -11,53 +11,51 @@ type Event = Tick | Said | Quit
 type Job = { id: int, x: int }
 type Done = { id: int, square: int }
 
-func main(): void {
-  var events: Channel[Event] = Channel.new()
-  go { for i in Array.range(1, 4) { Channel.send(events, Tick{ n: i }) } }
-  go { Channel.send(events, Said{ text: "hello" }) }
-  go { Time.sleep(Time.duration(milliseconds: 30)); Channel.send(events, Quit{}) }
-  var ticks = 0
-  var said = ""
-  for event in Channel.values(events) {
-    if event is Tick { ticks += event.n }
-    else if event is Said { said = event.text }
-    else if event is Quit { break }
-  }
-  println(`${ticks} ${said}`)
-  var ctx = Context.new()
-  var race: Channel[string] = Channel.new()
-  go { Time.sleep(Time.duration(milliseconds: 200), ctx); Channel.send(race, "slow", ctx) }
-  go { Time.sleep(Time.duration(milliseconds: 10), ctx); Channel.send(race, "fast", ctx) }
-  println(Channel.receive(race))
-  Context.cancel(ctx)
-  println(Context.reason(ctx))
-  var jobs: Channel[Job] = Channel.new()
-  var results: Channel[Done] = Channel.new(10)
-  var wg = WaitGroup.new()
-  for w in Array.range(0, 3) {
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      for job in Channel.values(jobs) { Channel.send(results, Done{ id: job.id, square: job.x * job.x }) }
-    }
-  }
-  for i in Array.range(0, 10) { Channel.send(jobs, Job{ id: i, x: i }) }
-  Channel.close(jobs)
-  WaitGroup.wait(wg)
-  Channel.close(results)
-  var squares = Iter.toArray(Channel.values(results)) | Array.sortBy({ x.id }) | Array.map({ x.square })
-  println(squares)
-  var future: Channel[int] = Channel.new(1)
-  go { Channel.send(future, 21 * 2) }
-  println(Channel.receive(future))
-  var stop = Context.new(Time.duration(milliseconds: 35))
-  var beats = 0
-  while !Context.isDone(stop) {
-    beats += 1
-    Time.sleep(Time.duration(milliseconds: 10), stop)
-  }
-  println(beats >= 3)
+var events: Channel[Event] = Channel.new()
+go { for i in Array.range(1, 4) { Channel.send(events, Tick{ n: i }) } }
+go { Channel.send(events, Said{ text: "hello" }) }
+go { Time.sleep(Time.duration(milliseconds: 30)); Channel.send(events, Quit{}) }
+var ticks = 0
+var said = ""
+for event in Channel.values(events) {
+  if event is Tick { ticks += event.n }
+  else if event is Said { said = event.text }
+  else if event is Quit { break }
 }
+println(`${ticks} ${said}`)
+var ctx = Context.new()
+var race: Channel[string] = Channel.new()
+go { Time.sleep(Time.duration(milliseconds: 200), ctx); Channel.send(race, "slow", ctx) }
+go { Time.sleep(Time.duration(milliseconds: 10), ctx); Channel.send(race, "fast", ctx) }
+println(Channel.receive(race))
+Context.cancel(ctx)
+println(Context.reason(ctx))
+var jobs: Channel[Job] = Channel.new()
+var results: Channel[Done] = Channel.new(10)
+var wg = WaitGroup.new()
+for w in Array.range(0, 3) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    for job in Channel.values(jobs) { Channel.send(results, Done{ id: job.id, square: job.x * job.x }) }
+  }
+}
+for i in Array.range(0, 10) { Channel.send(jobs, Job{ id: i, x: i }) }
+Channel.close(jobs)
+WaitGroup.wait(wg)
+Channel.close(results)
+var squares = Iter.toArray(Channel.values(results)) | Array.sortBy({ x.id }) | Array.map({ x.square })
+println(squares)
+var future: Channel[int] = Channel.new(1)
+go { Channel.send(future, 21 * 2) }
+println(Channel.receive(future))
+var stop = Context.new(Time.duration(milliseconds: 35))
+var beats = 0
+while !Context.isDone(stop) {
+  beats += 1
+  Time.sleep(Time.duration(milliseconds: 10), stop)
+}
+println(beats >= 3)
 
 // expect
 // out: 6 hello

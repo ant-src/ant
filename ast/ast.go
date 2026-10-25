@@ -48,8 +48,13 @@ type File struct {
 	Doc     string // the module doc, from the //! lines before the first import (section 2), or ""
 	Imports []*Import
 	Decls   []Decl
-	// Stmts holds top-level statements, which only the spec and session modes allow.
+	// Stmts holds the top-level var declarations and statements in source order: a script's
+	// body (section 10), or a session input's or a spec example's statements.
 	Stmts []Stmt
+	// Script is set for a program module with a statement at the top level; FirstStmt is where
+	// the first one starts.
+	Script    bool
+	FirstStmt Pos
 	// Scope is filled by the resolver: the module record's fields.
 	Scope *ModuleScope
 }

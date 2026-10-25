@@ -1,6 +1,5 @@
 // spec: 2 Literals
 var s = "\q"
-func main(): void {}
 
 // expect
 // exit: 2

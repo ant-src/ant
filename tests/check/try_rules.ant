@@ -28,12 +28,10 @@ func inferredOk(): Result[int, Error] {
   Result.ok(Array.length(rs) + Array.length(ns))
 }
 
-func main(): void {
-  println(inferred())
-  println(inferredOk())
-  println(notResult("1"))
-  var lock: Mutex | null = Mutex.new()
-  println(lock is Mutex) // ERR: is
-  if lock != null { Mutex.lock(lock); Mutex.unlock(lock) }
-  println(nullable(null))
-}
+println(inferred())
+println(inferredOk())
+println(notResult("1"))
+var lock: Mutex | null = Mutex.new()
+println(lock is Mutex) // ERR: is
+if lock != null { Mutex.lock(lock); Mutex.unlock(lock) }
+println(nullable(null))

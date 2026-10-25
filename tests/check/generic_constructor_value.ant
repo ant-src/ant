@@ -5,14 +5,12 @@
 type Id[T] = string
 type User = {}
 
-func main(): void {
-  var loose = Array.map(["a"], Id) // ERR: cannot infer the type parameter T of Id
-  var ids: Array[Id[User]] = Array.map(["a"], Id)
-  var f = Id // ERR: cannot infer the type parameter T of Id
-  var g: func(string): Id[User] = Id
-  var one: Id[User] = g("b")
-  println(loose)
-  println(ids)
-  println(f)
-  println(one == ids[0])
-}
+var loose = Array.map(["a"], Id) // ERR: cannot infer the type parameter T of Id
+var ids: Array[Id[User]] = Array.map(["a"], Id)
+var f = Id // ERR: cannot infer the type parameter T of Id
+var g: func(string): Id[User] = Id
+var one: Id[User] = g("b")
+println(loose)
+println(ids)
+println(f)
+println(one == ids[0])

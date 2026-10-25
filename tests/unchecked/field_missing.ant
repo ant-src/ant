@@ -2,7 +2,7 @@
 // panics: field
 // Reading a field a record does not have panics (section 12).
 type P = { x: int }
-func main(): void { println(P{ x: 1 }.y) }
+println(P{ x: 1 }.y)
 
 // expect
 // exit: 1

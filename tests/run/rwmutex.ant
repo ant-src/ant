@@ -1,30 +1,28 @@
 // spec: 9 Synchronization; 11 Synchronization
 // RwMutex: many readers at once, writers alone; the with forms release even on a panic
 // (sections 9, 11).
-func main(): void {
-  var rw = RwMutex.new()
-  var data = Map{ n: 0 }
-  var wg = WaitGroup.new()
-  for _ in Iter.range(0, 10) {
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      for _ in Iter.range(0, 10) {
-        RwMutex.withWrite(rw, { data["n"] = (data["n"] ?? 0) + 1 })
-        _ = RwMutex.withRead(rw, { data["n"] })
-      }
+var rw = RwMutex.new()
+var data = Map{ n: 0 }
+var wg = WaitGroup.new()
+for _ in Iter.range(0, 10) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    for _ in Iter.range(0, 10) {
+      RwMutex.withWrite(rw, { data["n"] = (data["n"] ?? 0) + 1 })
+      _ = RwMutex.withRead(rw, { data["n"] })
     }
   }
-  WaitGroup.wait(wg)
-  println(data["n"])
-  RwMutex.readLock(rw)
-  RwMutex.readLock(rw)
-  RwMutex.readUnlock(rw)
-  RwMutex.readUnlock(rw)
-  RwMutex.writeLock(rw)
-  RwMutex.writeUnlock(rw)
-  println(RwMutex.withRead(rw, { "read" }))
 }
+WaitGroup.wait(wg)
+println(data["n"])
+RwMutex.readLock(rw)
+RwMutex.readLock(rw)
+RwMutex.readUnlock(rw)
+RwMutex.readUnlock(rw)
+RwMutex.writeLock(rw)
+RwMutex.writeUnlock(rw)
+println(RwMutex.withRead(rw, { "read" }))
 
 // expect
 // out: 100

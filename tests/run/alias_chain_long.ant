@@ -202,12 +202,10 @@ type A197 = A196
 type A198 = A197
 type A199 = A198
 
-func main(): void {
-  var x: A199 = 1
-  var y: A199 = "two"
-  println(x)
-  println(y)
-}
+var x: A199 = 1
+var y: A199 = "two"
+println(x)
+println(y)
 
 // expect
 // out: 1

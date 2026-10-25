@@ -23,70 +23,68 @@ func noting(order: Array[string], name: string, c: Channel[int]): Channel[int] {
   c
 }
 
-func main(): void {
-  var nums: Channel[int] = Channel.new(1)
-  var words: Channel[string] = Channel.new(1)
-  Channel.send(words, "hi")
-  println(next(nums, words))
-  Channel.send(nums, 7)
-  println(next(nums, words))
-  var idle: Outcome = select {
-    var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
-    else { Nothing{} }
-  }
-  println(idle)
-  Channel.send(nums, 8)
-  Channel.send(words, "yo")
-  var first = next(nums, words)
-  println(Channel.length(nums) + Channel.length(words))
-  println(first is Num || first is Word)
-  var second = next(nums, words)
-  println(Channel.length(nums) + Channel.length(words))
-  println(second is Num || second is Word)
-  Channel.close(words)
-  println(next(nums, words))
-  var out: Channel[int] = Channel.new(1)
-  var sent: Outcome = select {
-    var ok = Channel.send(out, 42) { Sent{} }
-    var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
-  }
-  println(sent)
-  println(Channel.receive(out))
-  var ctx = Context.new(Time.duration(milliseconds: 20))
-  var stopped: Outcome = select {
-    var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
-    Context.wait(ctx) { Closed{} }
-  }
-  println(stopped)
-  var slept: Outcome = select {
-    var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
-    Time.sleep(Time.duration(milliseconds: 20)) { Nothing{} }
-  }
-  println(slept)
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  go {
-    Time.sleep(Time.duration(milliseconds: 10))
-    WaitGroup.done(wg)
-  }
-  var joined: Outcome = select {
-    var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
-    WaitGroup.wait(wg) { Sent{} }
-  }
-  println(joined)
-  Channel.send(nums, 1)
-  select {
-    var n = Channel.receive(nums) { println(`took ${n ?? 0}`) }
-    else { println("nothing") }
-  }
-  var order: Array[string] = []
-  select {
-    var a = Channel.receive(noting(order, "a", nums)) { println(a) }
-    var b = Channel.receive(noting(order, "b", nums)) { println(b) }
-    else { println("nothing ready") }
-  }
-  println(order)
+var nums: Channel[int] = Channel.new(1)
+var words: Channel[string] = Channel.new(1)
+Channel.send(words, "hi")
+println(next(nums, words))
+Channel.send(nums, 7)
+println(next(nums, words))
+var idle: Outcome = select {
+  var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
+  else { Nothing{} }
 }
+println(idle)
+Channel.send(nums, 8)
+Channel.send(words, "yo")
+var first = next(nums, words)
+println(Channel.length(nums) + Channel.length(words))
+println(first is Num || first is Word)
+var second = next(nums, words)
+println(Channel.length(nums) + Channel.length(words))
+println(second is Num || second is Word)
+Channel.close(words)
+println(next(nums, words))
+var out: Channel[int] = Channel.new(1)
+var sent: Outcome = select {
+  var ok = Channel.send(out, 42) { Sent{} }
+  var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
+}
+println(sent)
+println(Channel.receive(out))
+var ctx = Context.new(Time.duration(milliseconds: 20))
+var stopped: Outcome = select {
+  var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
+  Context.wait(ctx) { Closed{} }
+}
+println(stopped)
+var slept: Outcome = select {
+  var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
+  Time.sleep(Time.duration(milliseconds: 20)) { Nothing{} }
+}
+println(slept)
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+go {
+  Time.sleep(Time.duration(milliseconds: 10))
+  WaitGroup.done(wg)
+}
+var joined: Outcome = select {
+  var n = Channel.receive(nums) { Num{ n: n ?? -1 } }
+  WaitGroup.wait(wg) { Sent{} }
+}
+println(joined)
+Channel.send(nums, 1)
+select {
+  var n = Channel.receive(nums) { println(`took ${n ?? 0}`) }
+  else { println("nothing") }
+}
+var order: Array[string] = []
+select {
+  var a = Channel.receive(noting(order, "a", nums)) { println(a) }
+  var b = Channel.receive(noting(order, "b", nums)) { println(b) }
+  else { println("nothing ready") }
+}
+println(order)
 
 // expect
 // out: Word{ w: "hi" }

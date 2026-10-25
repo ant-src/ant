@@ -1,11 +1,9 @@
 // spec: 8 panic; 12 Runtime panics
 // panics: panic
 // panic stops the program with its message (section 8).
-func main(): void {
-  println("start")
-  panic("something impossible happened")
-  println("never")
-}
+println("start")
+panic("something impossible happened")
+println("never")
 
 // expect
 // out: start

@@ -1,6 +1,5 @@
 // spec: 2 Literals
 var r = /\u0041/
-func main(): void {}
 
 // expect
 // exit: 2

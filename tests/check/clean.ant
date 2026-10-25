@@ -73,74 +73,72 @@ func loadConfig(path: string): Result[Json.Value, Error] {
 }
 func label(s: string | null): string { `value: ${s ?? return "missing"}` }
 
-func main(): void {
-  var p = Point{ x: 1.0, y: 2.0 }
-  var moved = Point{ ...p, x: 0.0 }
-  var v = Vec{ ...p }
-  println(`${moved} ${v} ${Point.norm(p)}`)
-  var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }, Empty{}]
-  println(Array.map(shapes, Shape.area))
-  println(Array.filter(shapes, { x is Circle }))
-  var s: Shape = shapes[0]
-  if s is Circle && s.radius > 0.5 { println(s.radius) }
-  println(describe(1) + describe("a"))
-  var id = UserId("u-1")
-  println(string(id) == "u-1" && id == UserId("u-1"))
-  var byUser: Map[UserId, int] = Map{}
-  byUser[id] = 1
-  println(byUser[id] ?? 0)
-  var ids = Array.map(["a", "b"], UserId)
-  println(ids)
-  var box = Box{ value: 2 } | Box.map({ x * 10 })
-  println(box.value)
-  var tree = Tree{ value: 1, children: [Tree{ value: 2, children: [] }] }
-  println(Tree.size(tree))
-  println(swap(Pair{ first: 1, second: "a" }).first)
-  println(max(1, 2) + Math.max(3, 4))
-  println(max("a", "b"))
-  var next = counter()
-  println(next() + next())
-  for n in evens(6) { println(n) }
-  println(Iter.range(0, 1000) | Iter.filter({ x % 7 == 0 }) | Iter.take(5) | Iter.toArray())
-  println(connect("example.com") + connect("example.com", tls: false) + connect(port: 80, host: "h"))
-  println(clamp(5, 0, 3))
-  var names = ["b", "a"]
-    | Array.filter({ String.length(x) > 0 })
-    | Array.map({ x + "!" })
-    | Array.sort()
-  println(names)
-  var { x, y } = p
-  var [first, ...rest] = [1, 2, 3]
-  println(x + y + float64(first + Array.length(rest)))
-  var status: Status = Active{}
-  status = Suspended{ reason: "x" }
-  if status is Suspended { println(status.reason) }
-  var isAdult: Predicate[int] = { x >= 18 }
-  println(isAdult(20))
-  var config = Once.value({ Map{ name: "cfg" } })
-  println(config()["name"] ?? "")
-  println(label(null) + label("v"))
-  var cache: Atomic[Point | null] = Atomic.new(null)
-  Atomic.store(cache, p)
-  var snapshot = Atomic.load(cache)
-  if snapshot != null { println(snapshot.x) }
-  var total = 0
-  for i in Iter.range(0, 3) { total += i }
-  while total > 0 { total -= 1 }
-  println(total)
-  var m: Map[string, Array[int]] = Map{ a: [], b: [1] }
-  println(Map.keys(m))
-  println(Json.stringify([1, "two", null]))
-  var lengths: Array[int] = Array.map(Map.values(m), { Array.length(x) })
-  println(lengths)
-  var r = loadConfig("nope")
-  if r is Err { println(r.error.message) }
-  var f = fetchAll([])
-  println(Array.length(f))
-  var n: int | null = 1
-  if n == null { println("none") } else { println(n + 1) }
-  var scores: Array[int] = []
-  Array.push(scores, 1)
-  var ratio = float64(7) / 2.0
-  println(ratio)
-}
+var p = Point{ x: 1.0, y: 2.0 }
+var moved = Point{ ...p, x: 0.0 }
+var v = Vec{ ...p }
+println(`${moved} ${v} ${Point.norm(p)}`)
+var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }, Empty{}]
+println(Array.map(shapes, Shape.area))
+println(Array.filter(shapes, { x is Circle }))
+var s: Shape = shapes[0]
+if s is Circle && s.radius > 0.5 { println(s.radius) }
+println(describe(1) + describe("a"))
+var id = UserId("u-1")
+println(string(id) == "u-1" && id == UserId("u-1"))
+var byUser: Map[UserId, int] = Map{}
+byUser[id] = 1
+println(byUser[id] ?? 0)
+var ids = Array.map(["a", "b"], UserId)
+println(ids)
+var box = Box{ value: 2 } | Box.map({ x * 10 })
+println(box.value)
+var tree = Tree{ value: 1, children: [Tree{ value: 2, children: [] }] }
+println(Tree.size(tree))
+println(swap(Pair{ first: 1, second: "a" }).first)
+println(max(1, 2) + Math.max(3, 4))
+println(max("a", "b"))
+var next = counter()
+println(next() + next())
+for n in evens(6) { println(n) }
+println(Iter.range(0, 1000) | Iter.filter({ x % 7 == 0 }) | Iter.take(5) | Iter.toArray())
+println(connect("example.com") + connect("example.com", tls: false) + connect(port: 80, host: "h"))
+println(clamp(5, 0, 3))
+var names = ["b", "a"]
+  | Array.filter({ String.length(x) > 0 })
+  | Array.map({ x + "!" })
+  | Array.sort()
+println(names)
+var { x, y } = p
+var [first, ...rest] = [1, 2, 3]
+println(x + y + float64(first + Array.length(rest)))
+var status: Status = Active{}
+status = Suspended{ reason: "x" }
+if status is Suspended { println(status.reason) }
+var isAdult: Predicate[int] = { x >= 18 }
+println(isAdult(20))
+var config = Once.value({ Map{ name: "cfg" } })
+println(config()["name"] ?? "")
+println(label(null) + label("v"))
+var cache: Atomic[Point | null] = Atomic.new(null)
+Atomic.store(cache, p)
+var snapshot = Atomic.load(cache)
+if snapshot != null { println(snapshot.x) }
+var total = 0
+for i in Iter.range(0, 3) { total += i }
+while total > 0 { total -= 1 }
+println(total)
+var m: Map[string, Array[int]] = Map{ a: [], b: [1] }
+println(Map.keys(m))
+println(Json.stringify([1, "two", null]))
+var lengths: Array[int] = Array.map(Map.values(m), { Array.length(x) })
+println(lengths)
+var r = loadConfig("nope")
+if r is Err { println(r.error.message) }
+var f = fetchAll([])
+println(Array.length(f))
+var n: int | null = 1
+if n == null { println("none") } else { println(n + 1) }
+var scores: Array[int] = []
+Array.push(scores, 1)
+var ratio = float64(7) / 2.0
+println(ratio)

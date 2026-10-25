@@ -1,11 +1,9 @@
 // spec: 12 Runtime panics
 // panics: index-range
 // An array element store out of range panics (section 12).
-func main(): void {
-  var xs = [1, 2]
-  var i = -1
-  xs[i] = 3
-}
+var xs = [1, 2]
+var i = -1
+xs[i] = 3
 
 // expect
 // exit: 1

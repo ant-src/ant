@@ -5,7 +5,7 @@ func f(): void {
   return
     | println()
 }
-func main(): void { f() }
+f()
 
 // expect
 // exit: 2

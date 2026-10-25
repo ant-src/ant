@@ -1,5 +1,5 @@
 // spec: 5 Operators
-func main(): void { println(1 === 1) }
+println(1 === 1)
 
 // expect
 // exit: 2

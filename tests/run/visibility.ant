@@ -4,55 +4,53 @@
 // call's return, and an Atomic store to a load that observes it.
 type Cell = { v: int }
 
-func main(): void {
-  var bad = Atomic.new(0)
-  var wg = WaitGroup.new()
-  for i in Iter.range(0, 200) {
-    var cell = Cell{ v: 0 }
-    cell.v = i
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      if cell.v != i { _ = Atomic.add(bad, 1) }
-    }
+var bad = Atomic.new(0)
+var wg = WaitGroup.new()
+for i in Iter.range(0, 200) {
+  var cell = Cell{ v: 0 }
+  cell.v = i
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    if cell.v != i { _ = Atomic.add(bad, 1) }
   }
-  WaitGroup.wait(wg)
-  println(`go: ${Atomic.load(bad)} stale`)
-  var lock = Mutex.new()
-  var shared = Cell{ v: 0 }
-  var wg2 = WaitGroup.new()
-  for _ in Iter.range(0, 200) {
-    WaitGroup.add(wg2, 1)
-    go { defer { WaitGroup.done(wg2) }; Mutex.withLock(lock, { shared.v += 1 }) }
-  }
-  WaitGroup.wait(wg2)
-  println(`mutex: ${shared.v}`)
-  var results: Array[int] = Array.filled(200, -1)
-  var wg3 = WaitGroup.new()
-  for i in Iter.range(0, 200) {
-    WaitGroup.add(wg3, 1)
-    go { defer { WaitGroup.done(wg3) }; results[i] = i * i }
-  }
-  WaitGroup.wait(wg3)
-  println(`waitgroup: ${Array.every(Array.entries(results), { x.value == x.index * x.index })}`)
-  var loads = Atomic.new(0)
-  var config = Once.value({ _ = Atomic.add(loads, 1); Cell{ v: 42 } })
-  var wg4 = WaitGroup.new()
-  for _ in Iter.range(0, 200) {
-    WaitGroup.add(wg4, 1)
-    go {
-      defer { WaitGroup.done(wg4) }
-      if config().v != 42 { _ = Atomic.add(bad, 1) }
-    }
-  }
-  WaitGroup.wait(wg4)
-  println(`once: ${Atomic.load(loads)} load, ${Atomic.load(bad)} stale`)
-  var flag = Atomic.new(false)
-  var payload = Cell{ v: 0 }
-  go { payload.v = 7; Atomic.store(flag, true) }
-  while !Atomic.load(flag) {}
-  println(`atomic: ${payload.v}`)
 }
+WaitGroup.wait(wg)
+println(`go: ${Atomic.load(bad)} stale`)
+var lock = Mutex.new()
+var shared = Cell{ v: 0 }
+var wg2 = WaitGroup.new()
+for _ in Iter.range(0, 200) {
+  WaitGroup.add(wg2, 1)
+  go { defer { WaitGroup.done(wg2) }; Mutex.withLock(lock, { shared.v += 1 }) }
+}
+WaitGroup.wait(wg2)
+println(`mutex: ${shared.v}`)
+var results: Array[int] = Array.filled(200, -1)
+var wg3 = WaitGroup.new()
+for i in Iter.range(0, 200) {
+  WaitGroup.add(wg3, 1)
+  go { defer { WaitGroup.done(wg3) }; results[i] = i * i }
+}
+WaitGroup.wait(wg3)
+println(`waitgroup: ${Array.every(Array.entries(results), { x.value == x.index * x.index })}`)
+var loads = Atomic.new(0)
+var config = Once.value({ _ = Atomic.add(loads, 1); Cell{ v: 42 } })
+var wg4 = WaitGroup.new()
+for _ in Iter.range(0, 200) {
+  WaitGroup.add(wg4, 1)
+  go {
+    defer { WaitGroup.done(wg4) }
+    if config().v != 42 { _ = Atomic.add(bad, 1) }
+  }
+}
+WaitGroup.wait(wg4)
+println(`once: ${Atomic.load(loads)} load, ${Atomic.load(bad)} stale`)
+var flag = Atomic.new(false)
+var payload = Cell{ v: 0 }
+go { payload.v = 7; Atomic.store(flag, true) }
+while !Atomic.load(flag) {}
+println(`atomic: ${payload.v}`)
 
 // expect
 // out: go: 0 stale

@@ -1,9 +1,7 @@
 // spec: 12 Expressions; 6 Anonymous functions
 // At run time a lambda accepts zero or one argument and binds x to void when none is given.
-func main(): void {
-  var f: func(int): int = { x }
-  println(f())
-}
+var f: func(int): int = { x }
+println(f())
 
 // expect
 // out: void

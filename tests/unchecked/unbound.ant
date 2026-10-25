@@ -1,10 +1,8 @@
 // spec: 12 Runtime panics; 12 Names and scopes
 // panics: variable
 // A name no scope binds panics when it is reached, not before (section 4).
-func main(): void {
-  println("reached")
-  println(nothing)
-}
+println("reached")
+println(nothing)
 
 // expect
 // out: reached

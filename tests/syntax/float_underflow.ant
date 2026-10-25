@@ -1,6 +1,5 @@
 // spec: 2 Literals
 var x = 1e-400
-func main(): void {}
 
 // expect
 // exit: 2

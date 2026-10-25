@@ -2,21 +2,19 @@
 // panics: never
 // ??, ?., == and != never panic themselves: values of different kinds are simply unequal, and
 // ?? and ?. look only for null; on a non-null left side the plain rule applies.
-func main(): void {
-  println(1 == "1")
-  println(1 == 1.0)
-  println(1 != true)
-  println([1] == Map{ a: 1 })
-  println(null == void)
-  var x = 5
-  println(x ?? "fallback")
-  var n = null
-  println(n ?? "fallback")
-  println(n?.field)
-  println(n?.[0])
-  println(n?.())
-  println("done")
-}
+println(1 == "1")
+println(1 == 1.0)
+println(1 != true)
+println([1] == Map{ a: 1 })
+println(null == void)
+var x = 5
+println(x ?? "fallback")
+var n = null
+println(n ?? "fallback")
+println(n?.field)
+println(n?.[0])
+println(n?.())
+println("done")
 
 // expect
 // out: false

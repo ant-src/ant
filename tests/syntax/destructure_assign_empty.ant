@@ -1,8 +1,6 @@
 // spec: 5 Destructuring
-func main(): void {
-  [] = [1]
-}
+[] = [1]
 
 // expect
 // exit: 2
-// err: 3:6: an array destructuring binds at least one position
+// err: 2:4: an array destructuring binds at least one position

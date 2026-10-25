@@ -39,34 +39,32 @@ var rates = Once.value(func(): Map[string, int] {
   Map{ fee: 0 }
 })
 
-func main(): void {
-  var bank = Bank.new(10, 1000)
-  var expected = Bank.total(bank)
-  var leader = Atomic.new(false)
-  var leaders = Atomic.new(0)
-  var wg = WaitGroup.new()
-  for g in Iter.range(0, 1000) {
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      if Atomic.compareAndSwap(leader, false, true) { _ = Atomic.add(leaders, 1) }
-      var fee = rates()["fee"] ?? 0
-      var own = g % 10
-      var next = (g + 1) % 10
-      for _ in Iter.range(0, 2) {
-        if !Bank.transfer(bank, own, next, 1 + fee) { panic("a transfer failed") }
-        Bank.audit(bank, expected)
-        if !Bank.transfer(bank, next, own, 1 + fee) { panic("a transfer back failed") }
-      }
+var bank = Bank.new(10, 1000)
+var expected = Bank.total(bank)
+var leader = Atomic.new(false)
+var leaders = Atomic.new(0)
+var wg = WaitGroup.new()
+for g in Iter.range(0, 1000) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    if Atomic.compareAndSwap(leader, false, true) { _ = Atomic.add(leaders, 1) }
+    var fee = rates()["fee"] ?? 0
+    var own = g % 10
+    var next = (g + 1) % 10
+    for _ in Iter.range(0, 2) {
+      if !Bank.transfer(bank, own, next, 1 + fee) { panic("a transfer failed") }
+      Bank.audit(bank, expected)
+      if !Bank.transfer(bank, next, own, 1 + fee) { panic("a transfer back failed") }
     }
   }
-  WaitGroup.wait(wg)
-  println(`transfers: ${Atomic.load(bank.transfers)}`)
-  println(`audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}`)
-  println(`total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}`)
-  println(`rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}`)
-  println(Bank.transfer(bank, 0, 1, 5000))
 }
+WaitGroup.wait(wg)
+println(`transfers: ${Atomic.load(bank.transfers)}`)
+println(`audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}`)
+println(`total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}`)
+println(`rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}`)
+println(Bank.transfer(bank, 0, 1, 5000))
 
 // expect
 // out: transfers: 4000

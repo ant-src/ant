@@ -12,11 +12,9 @@ type Later = { n: int }
 
 func describe(l: Later): string { `later ${l.n}` }
 
-func main(): void {
-  println(b)
-  println(c)
-  println(d)
-}
+println(b)
+println(c)
+println(d)
 
 // expect
 // out: init a

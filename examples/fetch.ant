@@ -18,35 +18,33 @@ func postJson(url: string, payload: Json.Value, token: string): Result[Json.Valu
   Json.parse(r.body)
 }
 
-func main(): void {
-  var base = Os.args()[0]
-  var hello = Http.get(`${base}/hello`)
-  if hello is Ok {
-    var r = hello.value
-    println(`${r.status} ${r.headers["Content-Type"]} ${r.body}`)
-  }
-  var missing = Result.unwrap(Http.get(`${base}/status/404`))
-  println(`status ${missing.status}, body ${missing.body}`)
-  println(getJson(`${base}/status/500`))
-  println(getJson(`${base}/hello`) is Err)
-  var payload: Json.Value = Map{ "n": 1.0, "tags": ["a", "b"], "nested": Map{ "ok": true } }
-  var reply = postJson(`${base}/echo`, payload, "secret")
-  if reply is Ok {
-    var v = reply.value
-    if v is Map {
-      println(v["n"])
-      println(v["tags"])
-      var nested = v["nested"]
-      if nested is Map { println(nested["ok"]) }
-    }
-    println(Json.stringify(v) == Json.stringify(payload))
-  } else {
-    println(reply.error.message)
-  }
-  println(Http.get("http://127.0.0.1:1/") is Err)
-  println(Http.post("::nope", "", Map{}) is Err)
-  println(Result.unwrapOr(Result.map(Http.get(`${base}/nowhere`), { x.status }), -1))
+var base = Os.args()[0]
+var hello = Http.get(`${base}/hello`)
+if hello is Ok {
+  var r = hello.value
+  println(`${r.status} ${r.headers["Content-Type"]} ${r.body}`)
 }
+var missing = Result.unwrap(Http.get(`${base}/status/404`))
+println(`status ${missing.status}, body ${missing.body}`)
+println(getJson(`${base}/status/500`))
+println(getJson(`${base}/hello`) is Err)
+var payload: Json.Value = Map{ "n": 1.0, "tags": ["a", "b"], "nested": Map{ "ok": true } }
+var reply = postJson(`${base}/echo`, payload, "secret")
+if reply is Ok {
+  var v = reply.value
+  if v is Map {
+    println(v["n"])
+    println(v["tags"])
+    var nested = v["nested"]
+    if nested is Map { println(nested["ok"]) }
+  }
+  println(Json.stringify(v) == Json.stringify(payload))
+} else {
+  println(reply.error.message)
+}
+println(Http.get("http://127.0.0.1:1/") is Err)
+println(Http.post("::nope", "", Map{}) is Err)
+println(Result.unwrapOr(Result.map(Http.get(`${base}/nowhere`), { x.status }), -1))
 
 // expect
 // out: 200 text/plain hello

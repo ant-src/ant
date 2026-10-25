@@ -6,8 +6,8 @@
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
 //	ant                          start a REPL
 //
-// Exit status: 0 when main returns or the check passes, 1 when the main goroutine panics or the
-// check finds errors, 2 when the program cannot be loaded or the usage is wrong, 130 when an
+// Exit status: 0 when the script ends or the check passes, 1 when the script returns an Err, the
+// main goroutine panics, or the check finds errors, 2 when the program cannot be loaded or the usage is wrong, 130 when an
 // interrupt the program did not ask for ends the run, with nothing printed, as a shell does.
 // Os.exit sets its own status. ant fmt exits 1 when --check finds a file to change and 2 when a
 // file cannot be read, parsed, or written. ant doc exits 1 when there is no such declaration.
@@ -76,8 +76,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		default:
 			var pe *ant.PanicError
 			var ee *ant.ExitError
-			if !errors.As(err, &pe) && !errors.As(err, &ee) {
-				// A panic has already been reported by the runtime; an exit says nothing.
+			var re *ant.ResultError
+			if !errors.As(err, &pe) && !errors.As(err, &ee) && !errors.As(err, &re) {
+				// A panic or a returned Err has already been reported by the runtime; an exit
+				// says nothing.
 				fmt.Fprintln(stderr, err)
 			}
 		}

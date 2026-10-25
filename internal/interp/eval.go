@@ -307,8 +307,16 @@ func (g *Goroutine) ident(e *ast.Ident, env *Env) value.Value {
 func (g *Goroutine) assignIdent(e *ast.Ident, v value.Value, env *Env) {
 	switch e.Ref.Kind {
 	case ast.RefLocal:
-		env.up(e.Ref.Depth).set(ast.Slot{Index: e.Ref.Index, Shared: e.Ref.Shared}, v)
+		target := env.up(e.Ref.Depth)
+		slot := ast.Slot{Index: e.Ref.Index, Shared: e.Ref.Shared}
+		if target.get(slot) == value.Uninitialized {
+			g.panicf(e.Pos, "%s is assigned before its initializer has run", e.Name)
+		}
+		target.set(slot, v)
 	case ast.RefModule:
+		if env.mod.get(e.Ref.Index) == value.Uninitialized {
+			g.panicf(e.Pos, "%s is assigned before its initializer has run", e.Name)
+		}
 		env.mod.set(e.Ref.Index, v)
 	case ast.RefImport:
 		ir := env.mod.importAt(e.Ref.Index)
@@ -514,7 +522,7 @@ func (g *Goroutine) pop() { g.stack = g.stack[:len(g.stack)-1] }
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
 	// The arguments are matched to parameters before the frame is pushed, so that an arity
 	// panic is reported at the call site, in the caller, with no frame of the callee. A call
-	// with no caller, main or a host's call, has only the callee's frame to name.
+	// with no caller, a host's call, has only the callee's frame to name.
 	root := len(g.stack) == 0
 	if root {
 		g.push(f.FuncName(), f.Env.mod.path, pos)

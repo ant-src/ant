@@ -15,26 +15,24 @@ func parse(text: string): Hit | null {
   Hit{ status: m.named["status"] ?? "", bytes }
 }
 
-func main(): void {
-  var hits: Array[Hit] = []
-  var unparsed = 0
-  var text = Result.unwrap(File.readAll(Os.stdin()))
-  for raw in String.lines(text) {
-    var hit = parse(raw)
-    if hit != null { Array.push(hits, hit) } else { unparsed += 1 }
-  }
-  var total = Array.length(hits)
-  println(`${total} requests, ${unparsed} unparsed`)
-  println(String.padEnd("status", 8) + String.padStart("count", 6) + String.padStart("share", 8) + String.padStart("mean", 8))
-  var groups = Array.groupBy(hits, { x.status })
-  for status in Array.sort(Map.keys(groups)) {
-    var group: Array[Hit] = groups[status] ?? []
-    var count = Array.length(group)
-    var share = 100.0 * float64(count) / float64(total)
-    var mean = float64(Array.sum(Array.map(group, { x.bytes })) ?? 0) / float64(count)
-    println(String.padEnd(status, 8) + String.padStart(String.fromInt(count), 6)
-      + String.padStart(String.fromFloat(share, 2) + "%", 8) + String.padStart(String.fromFloat(mean, 1), 8))
-  }
+var hits: Array[Hit] = []
+var unparsed = 0
+var text = Result.unwrap(File.readAll(Os.stdin()))
+for raw in String.lines(text) {
+  var hit = parse(raw)
+  if hit != null { Array.push(hits, hit) } else { unparsed += 1 }
+}
+var total = Array.length(hits)
+println(`${total} requests, ${unparsed} unparsed`)
+println(String.padEnd("status", 8) + String.padStart("count", 6) + String.padStart("share", 8) + String.padStart("mean", 8))
+var groups = Array.groupBy(hits, { x.status })
+for status in Array.sort(Map.keys(groups)) {
+  var group: Array[Hit] = groups[status] ?? []
+  var count = Array.length(group)
+  var share = 100.0 * float64(count) / float64(total)
+  var mean = float64(Array.sum(Array.map(group, { x.bytes })) ?? 0) / float64(count)
+  println(String.padEnd(status, 8) + String.padStart(String.fromInt(count), 6)
+    + String.padStart(String.fromFloat(share, 2) + "%", 8) + String.padStart(String.fromFloat(mean, 1), 8))
 }
 
 // expect

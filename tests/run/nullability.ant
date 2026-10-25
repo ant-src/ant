@@ -13,30 +13,28 @@ func find(users: Array[User], name: string): User | null {
   null
 }
 
-func main(): void {
-  var users = [User{ name: "ada", address: Address{ city: "london" } }, User{ name: "bob", address: null }]
-  var ada = find(users, "ada")
-  println(ada?.address?.city)
-  println(find(users, "bob")?.address?.city)
-  println(find(users, "zed")?.name ?? "anonymous")
-  var m = Map{ a: 1 }
-  println(m["missing"] ?? -1)
-  println(m["a"] ?? -1)
-  var f: (func(int): int) | null = null
-  println(f?.(3))
-  var ys: Array[int] | null = null
-  println(ys?.[0])
-  var v: int | null = null
-  println(v ?? bump())
-  var w: int | null = 9
-  println(w ?? bump())
-  println(count)
-  var u = find(users, "ada")
-  if u != null { println(u.name) }
-  var c = u?.address
-  if c == null { println("no address") } else { println(c.city ?? "no city") }
-  println(null == null)
-}
+var users = [User{ name: "ada", address: Address{ city: "london" } }, User{ name: "bob", address: null }]
+var ada = find(users, "ada")
+println(ada?.address?.city)
+println(find(users, "bob")?.address?.city)
+println(find(users, "zed")?.name ?? "anonymous")
+var m = Map{ a: 1 }
+println(m["missing"] ?? -1)
+println(m["a"] ?? -1)
+var f: (func(int): int) | null = null
+println(f?.(3))
+var ys: Array[int] | null = null
+println(ys?.[0])
+var v: int | null = null
+println(v ?? bump())
+var w: int | null = 9
+println(w ?? bump())
+println(count)
+var u = find(users, "ada")
+if u != null { println(u.name) }
+var c = u?.address
+if c == null { println("no address") } else { println(c.city ?? "no city") }
+println(null == null)
 
 // expect
 // out: london

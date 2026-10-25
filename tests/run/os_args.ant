@@ -1,9 +1,7 @@
 // spec: stdlib Os
 // Os.args returns the arguments after the program path (stdlib.md).
-func main(): void {
-  println(Os.args())
-  println(Array.length(Os.args()))
-}
+println(Os.args())
+println(Array.length(Os.args()))
 
 // expect
 // args: one two three

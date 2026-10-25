@@ -26,35 +26,33 @@ func findInSeq(target: int): string {
   "not found"
 }
 
-func main(): void {
-  println(firstEven([1, 3, 6, 7]))
-  for i in Iter.range(0, 3) {
-    for j in Iter.range(0, 3) {
-      if j == 1 { continue }
-      if j == 2 { break }
-      println(`${i}${j}`)
-    }
+println(firstEven([1, 3, 6, 7]))
+for i in Iter.range(0, 3) {
+  for j in Iter.range(0, 3) {
+    if j == 1 { continue }
+    if j == 2 { break }
+    println(`${i}${j}`)
   }
-  var n = 0
-  while n < 5 { n += 1; if n == 2 { continue }; if n == 4 { break } }
-  println(n)
-  for v in countdown(3) { println(v) }
-  for v in countdown(5) { if v == 4 { break } }
-  println(findInSeq(2))
-  println(findInSeq(9))
-  var fs: Array[func(): int] = []
-  for k in [1, 2, 3] { Array.push(fs, func(): int { k * 10 }) }
-  println(Array.map(fs, { x() }))
-  for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}${value}`) }
-  for ch in "añ😀" { println(String.length(ch)) }
-  var none: Array[int] = []
-  for _ in none { println("never") }
-  var w: void = for x in [1] {}
-  println(w)
-  var taken: Array[int] = []
-  for x in Iter.range(0, 1000) { if x > 2 { break }; Array.push(taken, x) }
-  println(taken)
 }
+var n = 0
+while n < 5 { n += 1; if n == 2 { continue }; if n == 4 { break } }
+println(n)
+for v in countdown(3) { println(v) }
+for v in countdown(5) { if v == 4 { break } }
+println(findInSeq(2))
+println(findInSeq(9))
+var fs: Array[func(): int] = []
+for k in [1, 2, 3] { Array.push(fs, func(): int { k * 10 }) }
+println(Array.map(fs, { x() }))
+for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}${value}`) }
+for ch in "añ😀" { println(String.length(ch)) }
+var none: Array[int] = []
+for _ in none { println("never") }
+var w: void = for x in [1] {}
+println(w)
+var taken: Array[int] = []
+for x in Iter.range(0, 1000) { if x > 2 { break }; Array.push(taken, x) }
+println(taken)
 
 // expect
 // out: 6

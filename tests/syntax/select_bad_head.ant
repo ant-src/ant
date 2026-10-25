@@ -1,9 +1,7 @@
 // spec: 5 select
-func main(): void {
-  var c: Channel[int] = Channel.new()
-  select {
-    Array.length([1]) { println("no") }
-  }
+var c: Channel[int] = Channel.new()
+select {
+  Array.length([1]) { println("no") }
 }
 
 // expect

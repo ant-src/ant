@@ -69,21 +69,19 @@ func tasks(parsed: Result[Json.Value, Error]): Array[Json.Value] {
   }
 }
 
-func main(): void {
-  var items = tasks(Json.parse(Result.unwrap(File.readAll(Os.stdin()))))
-  var failed = 0
-  for item in items {
-    var t = task(item)
-    if t is Ok {
-      if !run(t.value) { failed += 1 }
-    } else {
-      println(`skipped: ${t.error.message}`)
-      failed += 1
-    }
+var items = tasks(Json.parse(Result.unwrap(File.readAll(Os.stdin()))))
+var failed = 0
+for item in items {
+  var t = task(item)
+  if t is Ok {
+    if !run(t.value) { failed += 1 }
+  } else {
+    println(`skipped: ${t.error.message}`)
+    failed += 1
   }
-  println(`${Array.length(items) - failed} of ${plural(Array.length(items), "task")} succeeded`)
-  if failed > 0 { Os.exit(1) }
 }
+println(`${Array.length(items) - failed} of ${plural(Array.length(items), "task")} succeeded`)
+if failed > 0 { Os.exit(1) }
 
 // expect
 // stdin: [{"name": "version", "program": "go", "args": ["version"]},

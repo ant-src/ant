@@ -20,28 +20,26 @@ func wrong(s: Shape): float64 {
   else { 1.0 } // ERR: this else cannot run
 }
 
-func main(): void {
-  var count = 0
-  if count = 5 { println("x") } // ERR: cannot use void where bool is expected
-  if count { println("x") }     // ERR: cannot use int where bool is expected
-  println(1 + 2.0)              // ERR: + needs both operands of one type, got int and float64
-  println("a" + 1)              // ERR: + needs both operands of one type, got string and int
-  println(!1)                   // ERR: cannot use int where bool is expected
-  println(true && 1)            // ERR: cannot use int where bool is expected
-  var n: Number = 1
-  var m: Number = 2
-  println(n > m) // ERR: > applies to
-  var id: Id = 1
-  println(id is Id) // ERR: Id is an alias and has no run-time identity
-  var b = byte(7)
-  println(b is byte)    // ERR: the test is always true
-  println(id is bool)   // ERR: Id is never a bool
-  println(count == "x") // ERR: int and string cannot be compared
-  var s: Shape = Empty{}
-  println(area(s))
-  println(wrong(s))
-  println(_) // ERR: _ is write-only
-  _ += 1     // ERR: _ is write-only
-  var label = if count > 0 { "positive" } else { null }
-  println(label)
-}
+var count = 0
+if count = 5 { println("x") } // ERR: cannot use void where bool is expected
+if count { println("x") }     // ERR: cannot use int where bool is expected
+println(1 + 2.0)              // ERR: + needs both operands of one type, got int and float64
+println("a" + 1)              // ERR: + needs both operands of one type, got string and int
+println(!1)                   // ERR: cannot use int where bool is expected
+println(true && 1)            // ERR: cannot use int where bool is expected
+var n: Number = 1
+var m: Number = 2
+println(n > m) // ERR: > applies to
+var id: Id = 1
+println(id is Id) // ERR: Id is an alias and has no run-time identity
+var b = byte(7)
+println(b is byte)    // ERR: the test is always true
+println(id is bool)   // ERR: Id is never a bool
+println(count == "x") // ERR: int and string cannot be compared
+var s: Shape = Empty{}
+println(area(s))
+println(wrong(s))
+println(_) // ERR: _ is write-only
+_ += 1     // ERR: _ is write-only
+var label = if count > 0 { "positive" } else { null }
+println(label)

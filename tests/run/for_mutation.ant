@@ -3,30 +3,28 @@
 // elements are visited and removed ones are not; over a map, an entry inserted during the loop is
 // visited, one removed before the loop reaches it is not, no entry is visited twice, and a key
 // removed and inserted again is a new entry at the end.
-func main(): void {
-  var xs = [1, 2, 3]
-  for x in xs {
-    if x == 1 { Array.push(xs, 4) }
-    if x == 2 { _ = Array.pop(xs) }
-    println(x)
-  }
-  println(xs)
-  var m = Map{ a: 1, b: 2, c: 3, d: 4 }
-  for { key, value } in m {
-    if key == "a" { m["e"] = 5; _ = Map.remove(m, "c") }
-    if key == "b" { _ = Map.remove(m, "a"); m["a"] = 10 }
-    println(`${key}=${value}`)
-  }
-  println(m)
-  var count = 0
-  var grow = Map{ x: 0 }
-  for { key, value } in grow {
-    count += 1
-    if count < 5 { grow[`${key}${count}`] = count }
-  }
-  println(count)
-  println(Map.size(grow))
+var xs = [1, 2, 3]
+for x in xs {
+  if x == 1 { Array.push(xs, 4) }
+  if x == 2 { _ = Array.pop(xs) }
+  println(x)
 }
+println(xs)
+var m = Map{ a: 1, b: 2, c: 3, d: 4 }
+for { key, value } in m {
+  if key == "a" { m["e"] = 5; _ = Map.remove(m, "c") }
+  if key == "b" { _ = Map.remove(m, "a"); m["a"] = 10 }
+  println(`${key}=${value}`)
+}
+println(m)
+var count = 0
+var grow = Map{ x: 0 }
+for { key, value } in grow {
+  count += 1
+  if count < 5 { grow[`${key}${count}`] = count }
+}
+println(count)
+println(Map.size(grow))
 
 // expect
 // out: 1

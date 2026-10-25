@@ -2,10 +2,8 @@
 // panics: Context.new; library-value
 // A timeout with years, months or weeks has no fixed length, and one that is not positive is
 // a mistake: both are a panic, since Context.new is computation and not I/O.
-func main(): void {
-  println(Context.isDone(Context.new(Time.duration(hours: 1))))
-  println(Context.isDone(Context.new(Time.duration(months: 1))))
-}
+println(Context.isDone(Context.new(Time.duration(hours: 1))))
+println(Context.isDone(Context.new(Time.duration(months: 1))))
 
 // expect
 // exit: 1

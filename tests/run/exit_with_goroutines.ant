@@ -2,17 +2,15 @@
 // go returns at once with type void; goroutines are preemptive, so a goroutine that never blocks
 // cannot keep main from running; and the program exits when main returns, whatever other
 // goroutines are doing.
-func main(): void {
-  var started: void = go { while true {} }
-  println(started)
-  var spins = Atomic.new(0)
-  go { while true { _ = Atomic.add(spins, 1) } }
-  var total = 0
-  for i in Iter.range(0, 100000) { total += i }
-  println(total)
-  println(Atomic.load(spins) >= 0)
-  println("main returns")
-}
+var started: void = go { while true {} }
+println(started)
+var spins = Atomic.new(0)
+go { while true { _ = Atomic.add(spins, 1) } }
+var total = 0
+for i in Iter.range(0, 100000) { total += i }
+println(total)
+println(Atomic.load(spins) >= 0)
+println("main returns")
 
 // expect
 // out: void

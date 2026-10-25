@@ -7,37 +7,35 @@ type Point = { x: int, y: int }
 
 func after(a: int, b: int = a + 1, c: int = b * 2): Array[int] { [a, b, c] }
 
-func main(): void {
-  var xs = [1]
-  var ys = xs
-  Array.push(ys, 2)
-  println(xs)
-  var m = Map{ a: 1 }
-  var n = m
-  n["b"] = 2
-  println(m)
-  var s = "immutable"
-  var t = s
-  t = t + "!"
-  println(s)
-  var f = func(): int { 1 }
-  var g = f
-  println(f == g)
-  println(f == func(): int { 1 })
-  println(Point{ y: 2, x: 1 })
-  println(after(1))
-  println(after(1, 5))
-  println(after(1, c: 9))
-  var nan = float32(0.0 / 0.0)
-  println(nan == nan)
-  println(float64(nan) != float64(nan))
-  println(int8(-1) == int8(-1) && byte(200) != byte(201))
-  var p = Point{ x: 1, y: 2 }
-  var q = p
-  q.x = 9
-  println(p == q && Record.same(p, q))
-  println(Array.same(xs, ys) && !Array.same(xs, [1, 2]) && Map.same(m, n))
-}
+var xs = [1]
+var ys = xs
+Array.push(ys, 2)
+println(xs)
+var m = Map{ a: 1 }
+var n = m
+n["b"] = 2
+println(m)
+var s = "immutable"
+var t = s
+t = t + "!"
+println(s)
+var f = func(): int { 1 }
+var g = f
+println(f == g)
+println(f == func(): int { 1 })
+println(Point{ y: 2, x: 1 })
+println(after(1))
+println(after(1, 5))
+println(after(1, c: 9))
+var nan = float32(0.0 / 0.0)
+println(nan == nan)
+println(float64(nan) != float64(nan))
+println(int8(-1) == int8(-1) && byte(200) != byte(201))
+var p = Point{ x: 1, y: 2 }
+var q = p
+q.x = 9
+println(p == q && Record.same(p, q))
+println(Array.same(xs, ys) && !Array.same(xs, [1, 2]) && Map.same(m, n))
 
 // expect
 // out: [1, 2]

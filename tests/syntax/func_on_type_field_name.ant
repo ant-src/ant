@@ -1,7 +1,6 @@
 // spec: 6 Functions on types
 type Point = { x: int }
 func Point.x(p: Point): int { p.x }
-func main(): void {}
 
 // expect
 // exit: 2

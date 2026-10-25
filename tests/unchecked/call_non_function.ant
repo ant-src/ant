@@ -1,7 +1,8 @@
 // spec: 12 Runtime panics
 // panics: call
 // Calling a value that is not a function panics (section 12).
-func main(): void { var f = 1; f() }
+var f = 1
+f()
 
 // expect
 // exit: 1

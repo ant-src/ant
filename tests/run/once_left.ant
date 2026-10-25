@@ -22,13 +22,11 @@ func firstV(): int {
   for x in seqV { return x }
   0
 }
-func main(): void {
-  println(first())
-  Once.do(once, { println("second do") })
-  println("done")
-  println(firstV())
-  println(get())
-}
+println(first())
+Once.do(once, { println("second do") })
+println("done")
+println(firstV())
+println(get())
 
 // expect
 // out: 1

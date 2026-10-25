@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; stdlib Time
 // panics: library-kind
 // A date has no time to round.
-func main(): void { println(Time.round(Time.plainDate(2026, 1, 1), Time.Day{})) }
+println(Time.round(Time.plainDate(2026, 1, 1), Time.Day{}))
 
 // expect
 // exit: 1

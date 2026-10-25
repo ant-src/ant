@@ -146,8 +146,9 @@ type Instance struct {
 	in *interp.Instance
 }
 
-// Start initializes the program's modules without calling main. The options given to Load
-// apply, and options given here override them.
+// Start initializes the program's modules, the root last, and returns an Instance to call into.
+// A root that is a script runs its body here, as Run would; a library runs only its
+// initializers. The options given to Load apply, and options given here override them.
 func (p *Program) Start(ctx context.Context, opts ...Option) (*Instance, error) {
 	in, err := interp.Start(ctx, p.prog, p.cfg.with(opts).run(p.prelude))
 	if err != nil {
@@ -210,6 +211,8 @@ func convertRunError(err error) error {
 		return &PanicError{Message: e.Message, Trace: trace}
 	case *interp.ExitError:
 		return &ExitError{Status: e.Status}
+	case *interp.ResultError:
+		return &ResultError{Message: e.Message}
 	}
 	return err
 }

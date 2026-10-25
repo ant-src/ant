@@ -3,7 +3,6 @@
 // return is; inside a lambda or a parameter default it returns from that function.
 var ok = { try Result.ok(1) }
 var x = try Result.ok(1)
-func main(): void {}
 
 // expect
 // exit: 2

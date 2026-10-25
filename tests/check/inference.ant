@@ -22,7 +22,7 @@ func count(): int {
   return // ERR: cannot use void where int is expected
 }
 
-func main(): void {
+func uses(): void {
   var s = Active{}
   s = Suspended{ reason: "x" } // ERR: cannot use Suspended where Active is expected
   var t: Status = Active{}

@@ -5,19 +5,17 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 200, headers: Map{}, body: "ok" }
 }
 
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  println(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
-  var stop = Context.new()
-  var served: Channel[Result[void, Error]] = Channel.new(1)
-  go { Channel.send(served, Http.serve(l, handle, stop)) }
-  var t = Time.duration(seconds: 5)
-  println(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
-  println(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
-  Context.cancel(stop)
-  println(Channel.receive(served))
-  println(Net.accept(l))
-}
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+println(Net.accept(l, Context.new(Time.duration(milliseconds: 20))))
+var stop = Context.new()
+var served: Channel[Result[void, Error]] = Channel.new(1)
+go { Channel.send(served, Http.serve(l, handle, stop)) }
+var t = Time.duration(seconds: 5)
+println(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
+println(Result.unwrap(Http.get(`http://${Net.address(l)}/`, timeout: t)).body)
+Context.cancel(stop)
+println(Channel.receive(served))
+println(Net.accept(l))
 
 // expect
 // out: Err{ error: Error{ message: "timeout" } }

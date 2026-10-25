@@ -36,13 +36,11 @@ func last(): int {
   type Q = int
 }
 
-func main(): void {
-  var same = first() == second() // ERR: P (declared at 21:3) and P (declared at 26:3) cannot be compared
-  var p: Point = shadow()        // ERR: cannot use Point (declared at 31:3) where Point (declared at 11:1)
-  if true { type Inner = { n: int } }
-  var i: Inner = 1  // ERR: unknown type Inner
-  type A = A | null // ERR: type A refers to itself without passing through
-  var both = [first(), second()]
-  if both[0] is int {}                  // ERR: P (declared at 21:3) | P (declared at 26:3) is never a int
-  var g: Geometry.Point = Point{ x: 1 } // ERR: lib/exports.ant:2:8) is expected
-}
+var same = first() == second() // ERR: P (declared at 21:3) and P (declared at 26:3) cannot be compared
+var p: Point = shadow()        // ERR: cannot use Point (declared at 31:3) where Point (declared at 11:1)
+if true { type Inner = { n: int } }
+var i: Inner = 1  // ERR: unknown type Inner
+type A = A | null // ERR: type A refers to itself without passing through
+var both = [first(), second()]
+if both[0] is int {}                  // ERR: P (declared at 21:3) | P (declared at 26:3) is never a int
+var g: Geometry.Point = Point{ x: 1 } // ERR: lib/exports.ant:2:8) is expected

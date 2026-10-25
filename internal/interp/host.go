@@ -8,8 +8,8 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// Start creates an instance and initializes its modules without calling main. The caller
-// runs functions with Call and ends the instance with Close.
+// Start creates an instance and initializes its modules, running a script root's body as Run
+// does. The caller runs functions with Call and ends the instance with Close.
 func Start(ctx context.Context, prog *loader.Program, cfg Config) (*Instance, error) {
 	in := New(ctx, prog, cfg)
 	g := in.newGoroutine(true)

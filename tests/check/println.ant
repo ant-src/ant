@@ -1,10 +1,8 @@
 // spec: 11 Prelude
 // println alone is the one call the checker allows without its value, and it is void; print
 // still needs one, and println takes no more than one.
-func main(): void {
-  println()
-  println(value: 1)
-  println(1, 2)          // ERR: println takes 1 argument, got more
-  var x: int = println() // ERR: cannot use void where int is expected
-  print()                // ERR: print needs an argument for value
-}
+println()
+println(value: 1)
+println(1, 2)          // ERR: println takes 1 argument, got more
+var x: int = println() // ERR: cannot use void where int is expected
+print()                // ERR: print needs an argument for value

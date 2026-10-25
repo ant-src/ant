@@ -1,26 +1,24 @@
 // spec: stdlib File
 // Handles (stdlib.md): writeText and flush on a file being written, readAll on one being read,
 // and every function on a closed handle is an Err.
-func main(): void {
-  var dir = Os.args()[0]
-  var path = `${dir}/log.txt`
-  var out = Result.unwrap(File.create(path))
-  println(File.writeText(out, "a"))
-  println(File.read(path))
-  println(File.flush(out))
-  println(File.read(path))
-  println(File.writeText(out, "b\n"))
-  File.close(out)
-  var input = Result.unwrap(File.open(path))
-  println(File.readLine(input))
-  println(File.readAll(input))
-  println(File.readAll(input))
-  println(File.flush(input))
-  println(File.writeText(input, "x") is Err)
-  File.close(input)
-  println(File.readAll(input) is Err)
-  println(File.flush(input) is Err)
-}
+var dir = Os.args()[0]
+var path = `${dir}/log.txt`
+var out = Result.unwrap(File.create(path))
+println(File.writeText(out, "a"))
+println(File.read(path))
+println(File.flush(out))
+println(File.read(path))
+println(File.writeText(out, "b\n"))
+File.close(out)
+var input = Result.unwrap(File.open(path))
+println(File.readLine(input))
+println(File.readAll(input))
+println(File.readAll(input))
+println(File.flush(input))
+println(File.writeText(input, "x") is Err)
+File.close(input)
+println(File.readAll(input) is Err)
+println(File.flush(input) is Err)
 
 // expect
 // args: $TMP

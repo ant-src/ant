@@ -14,15 +14,13 @@ type Tree[T] = Array[Tree[T] | Box[T]]
 type Config[T] = Map[string, Config[T] | bool]
 type Deep[T] = Array[Map[string, Deep[T] | Set[T]] | Box[T]]
 
-func main(): void {
-  var n: Nested[string] = [1, [2]]
-  var t: Tree[int] = [Box{ value: 1 }, []]
-  var c: Config[int] = Map{ "a": true }
-  var d: Deep[int] = [Map{ "k": [] }]
-  var wrong: Tree[int] = [1] // ERR: cannot use
-  println(n)
-  println(t)
-  println(c)
-  println(d)
-  println(wrong)
-}
+var n: Nested[string] = [1, [2]]
+var t: Tree[int] = [Box{ value: 1 }, []]
+var c: Config[int] = Map{ "a": true }
+var d: Deep[int] = [Map{ "k": [] }]
+var wrong: Tree[int] = [1] // ERR: cannot use
+println(n)
+println(t)
+println(c)
+println(d)
+println(wrong)

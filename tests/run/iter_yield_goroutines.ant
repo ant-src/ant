@@ -13,11 +13,9 @@ func spread(yield: func(int): bool): void {
   WaitGroup.wait(wg)
 }
 
-func main(): void {
-  var xs = Iter.toArray(Iter.filter(spread, { x % 2 == 0 }))
-  println(len(xs))
-  println(len(Array.unique(xs)))
-}
+var xs = Iter.toArray(Iter.filter(spread, { x % 2 == 0 }))
+println(len(xs))
+println(len(Array.unique(xs)))
 
 // expect
 // out: 20000

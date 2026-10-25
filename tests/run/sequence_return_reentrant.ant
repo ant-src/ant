@@ -22,9 +22,7 @@ func walk(n: int): int {
   }
   5
 }
-func main(): void {
-  println(walk(0))
-}
+println(walk(0))
 
 // expect
 // out: 200

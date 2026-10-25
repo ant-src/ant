@@ -1,6 +1,5 @@
 // spec: 3
 const x = 1
-func main(): void {}
 
 // expect
 // exit: 2

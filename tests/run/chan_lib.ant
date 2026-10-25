@@ -3,53 +3,51 @@
 // send beyond that gives up when its context ends; closing lets receivers drain and then get
 // null; values ends at a close or when its context ends; a null value and a close conflate
 // when T includes null; isClosed and length.
-func main(): void {
-  var c: Channel[int] = Channel.new()
-  go { Channel.send(c, 1); Channel.send(c, 2); Channel.close(c) }
-  println(Channel.receive(c))
-  println(Channel.receive(c))
-  println(Channel.receive(c))
-  println(Channel.isClosed(c))
-  var b: Channel[string] = Channel.new(2)
-  println(Channel.send(b, "a"))
-  println(Channel.send(b, "b"))
-  println(Channel.length(b))
-  var quick = Context.new(Time.duration(milliseconds: 20))
-  println(Channel.send(b, "c", quick))
-  println(Context.isDone(quick))
-  Channel.close(b)
-  println(Iter.toArray(Channel.values(b)))
-  println(Channel.receive(b))
-  var empty: Channel[int] = Channel.new()
-  var bounded = Context.new(Time.duration(milliseconds: 20))
-  println(Channel.receive(empty, bounded))
-  println(Context.isDone(bounded))
-  println(Channel.isClosed(empty))
-  var vals: Channel[int] = Channel.new(3)
-  Channel.send(vals, 1)
-  Channel.send(vals, 2)
-  Channel.send(vals, 3)
-  var stop = Context.new()
-  var seen: Array[int] = []
-  go { Time.sleep(Time.duration(milliseconds: 20)); Context.cancel(stop) }
-  for v in Channel.values(vals, stop) { Array.push(seen, v) }
-  println(seen)
-  println(Context.isDone(stop))
-  var maybe: Channel[int | null] = Channel.new(1)
-  Channel.send(maybe, null)
-  println(Channel.receive(maybe))
-  println(Channel.isClosed(maybe))
-  var hand: Channel[string] = Channel.new()
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  go {
-    defer { WaitGroup.done(wg) }
-    println("got " + (Channel.receive(hand) ?? "nothing"))
-  }
-  Channel.send(hand, "x")
-  WaitGroup.wait(wg)
-  println("handed")
+var c: Channel[int] = Channel.new()
+go { Channel.send(c, 1); Channel.send(c, 2); Channel.close(c) }
+println(Channel.receive(c))
+println(Channel.receive(c))
+println(Channel.receive(c))
+println(Channel.isClosed(c))
+var b: Channel[string] = Channel.new(2)
+println(Channel.send(b, "a"))
+println(Channel.send(b, "b"))
+println(Channel.length(b))
+var quick = Context.new(Time.duration(milliseconds: 20))
+println(Channel.send(b, "c", quick))
+println(Context.isDone(quick))
+Channel.close(b)
+println(Iter.toArray(Channel.values(b)))
+println(Channel.receive(b))
+var empty: Channel[int] = Channel.new()
+var bounded = Context.new(Time.duration(milliseconds: 20))
+println(Channel.receive(empty, bounded))
+println(Context.isDone(bounded))
+println(Channel.isClosed(empty))
+var vals: Channel[int] = Channel.new(3)
+Channel.send(vals, 1)
+Channel.send(vals, 2)
+Channel.send(vals, 3)
+var stop = Context.new()
+var seen: Array[int] = []
+go { Time.sleep(Time.duration(milliseconds: 20)); Context.cancel(stop) }
+for v in Channel.values(vals, stop) { Array.push(seen, v) }
+println(seen)
+println(Context.isDone(stop))
+var maybe: Channel[int | null] = Channel.new(1)
+Channel.send(maybe, null)
+println(Channel.receive(maybe))
+println(Channel.isClosed(maybe))
+var hand: Channel[string] = Channel.new()
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+go {
+  defer { WaitGroup.done(wg) }
+  println("got " + (Channel.receive(hand) ?? "nothing"))
 }
+Channel.send(hand, "x")
+WaitGroup.wait(wg)
+println("handed")
 
 // expect
 // out: 1

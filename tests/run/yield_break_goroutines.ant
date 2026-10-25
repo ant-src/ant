@@ -13,10 +13,8 @@ func fanOut(yield: func(int): bool): void {
   WaitGroup.wait(wg)
 }
 
-func main(): void {
-  for v in fanOut { if v == 10 { break } }
-  println("done")
-}
+for v in fanOut { if v == 10 { break } }
+println("done")
 
 // expect
 // out: done

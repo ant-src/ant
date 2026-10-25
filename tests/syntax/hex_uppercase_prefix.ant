@@ -1,6 +1,5 @@
 // spec: 2 Literals
 var x = 0XFF
-func main(): void {}
 
 // expect
 // exit: 2

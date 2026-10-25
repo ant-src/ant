@@ -1,26 +1,24 @@
 // spec: stdlib Net
 // Two goroutines accept on one listener with a context each: the one whose context ends gives
 // up with its reason and the other, undisturbed, gets the connection that arrives later.
-func main(): void {
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  var results: Channel[string] = Channel.new()
-  go {
-    var r = Net.accept(l, Context.new(Time.duration(milliseconds: 50)))
-    var text = if r is Ok { "connection" } else { r.error.message }
-    Channel.send(results, `short: ${text}`)
-  }
-  go {
-    var r = Net.accept(l, Context.new(Time.duration(seconds: 5)))
-    var text = if r is Ok { "connection" } else { r.error.message }
-    Channel.send(results, `long: ${text}`)
-  }
-  println(Channel.receive(results))
-  var c = Result.unwrap(Net.dial(Net.address(l)))
-  println(Channel.receive(results))
-  File.close(c)
-  Net.close(l)
-  println(Net.accept(l))
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+var results: Channel[string] = Channel.new()
+go {
+  var r = Net.accept(l, Context.new(Time.duration(milliseconds: 50)))
+  var text = if r is Ok { "connection" } else { r.error.message }
+  Channel.send(results, `short: ${text}`)
 }
+go {
+  var r = Net.accept(l, Context.new(Time.duration(seconds: 5)))
+  var text = if r is Ok { "connection" } else { r.error.message }
+  Channel.send(results, `long: ${text}`)
+}
+println(Channel.receive(results))
+var c = Result.unwrap(Net.dial(Net.address(l)))
+println(Channel.receive(results))
+File.close(c)
+Net.close(l)
+println(Net.accept(l))
 
 // expect
 // out: short: timeout

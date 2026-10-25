@@ -1,7 +1,6 @@
 // spec: 6 Functions on types
 type A = { b: int }
 func A.b.c(): int { 1 }
-func main(): void {}
 
 // expect
 // exit: 2

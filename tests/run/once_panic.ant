@@ -5,18 +5,16 @@ var attempts = 0
 
 func boom(): int { attempts += 1; panic("load failed") }
 
-func main(): void {
-  var value = Once.value(boom)
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  go {
-    defer { WaitGroup.done(wg) }
-    println(value())
-  }
-  WaitGroup.wait(wg)
-  println(attempts)
+var value = Once.value(boom)
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+go {
+  defer { WaitGroup.done(wg) }
   println(value())
 }
+WaitGroup.wait(wg)
+println(attempts)
+println(value())
 
 // expect
 // out: 1

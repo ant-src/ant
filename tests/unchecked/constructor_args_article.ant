@@ -2,7 +2,7 @@
 // panics: call
 // A constructor given an argument of another kind names its base kind with the right article.
 type Count = int
-func main(): void { println(Count("3")) }
+println(Count("3"))
 
 // expect
 // exit: 1

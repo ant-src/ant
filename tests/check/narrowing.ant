@@ -14,38 +14,36 @@ func fromGlobal(): int {
   if global != null { global + 1 } else { 0 } // ERR: + needs both operands of one type, got int | null and int
 }
 
-func main(): void {
-  var v: int | null = 1
-  var i = 0
-  while i < 3 {
-    println(v + 1) // ERR: + needs both operands of one type, got int | null and int
-    v = null
-    i += 1
-  }
-  var c: Config | null = null
-  while c == null {
-    c = load()
-    if attempts > 5 { break }
-  }
-  println(c.name) // ERR: narrow the value first
-  var w: int | null = 1
-  if w != null {
-    println(w + 1)
-    w = null
-    println(w + 1) // ERR: + needs both operands of one type, got null and int
-  }
-  var x: int | string = 1
-  if x is int { println(x + 1) } else { println(String.length(x)); println(x + 1) } // ERR: + needs both operands of one type
-  if !(x is int) { println(String.length(x)) }
-  var d: Config | null = null
-  while d == null { d = load() }
-  println(d.name)
-  var u: int | null = 1
-  var keep = func(): int { u ?? 0 }
-  if u != null {
-    var inner = func(): int { u + 1 }
-    println(inner() + keep())
-  }
+var v: int | null = 1
+var i = 0
+while i < 3 {
+  println(v + 1) // ERR: + needs both operands of one type, got int | null and int
+  v = null
+  i += 1
+}
+var c: Config | null = null
+while c == null {
+  c = load()
+  if attempts > 5 { break }
+}
+println(c.name) // ERR: narrow the value first
+var w: int | null = 1
+if w != null {
+  println(w + 1)
+  w = null
+  println(w + 1) // ERR: + needs both operands of one type, got null and int
+}
+var x: int | string = 1
+if x is int { println(x + 1) } else { println(String.length(x)); println(x + 1) } // ERR: + needs both operands of one type
+if !(x is int) { println(String.length(x)) }
+var d: Config | null = null
+while d == null { d = load() }
+println(d.name)
+var u: int | null = 1
+var keep = func(): int { u ?? 0 }
+if u != null {
+  var inner = func(): int { u + 1 }
+  println(inner() + keep())
 }
 
 func inPlace(c: Config | null): void {

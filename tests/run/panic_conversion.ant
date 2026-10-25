@@ -1,11 +1,9 @@
 // spec: 12 Runtime panics; 4 Primitives
 // panics: conversion
 // A conversion into an integer kind panics when the value does not fit (section 12).
-func main(): void {
-  var n = 300
-  println("before")
-  println(int8(n))
-}
+var n = 300
+println("before")
+println(int8(n))
 
 // expect
 // out: before

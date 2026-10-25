@@ -1,20 +1,18 @@
 // spec: 11 String; stdlib Json
 // Floats of large or small magnitude render in the exponent form of JavaScript, from 1e21 up and
 // below 1e-6, and Json.stringify renders numbers the same way.
-func main(): void {
-  println(1e21)
-  println(1e20)
-  println(1e-7)
-  println(0.000001)
-  println(1.5e-7)
-  println(-1e300)
-  println(123456789012345678901234.0)
-  println(float32(1e30))
-  println(Json.stringify(1e21))
-  println(Json.stringify(1234567.0))
-  println(Json.stringify([1e-7, 0.5]))
-  println(Json.parse("1e21"))
-}
+println(1e21)
+println(1e20)
+println(1e-7)
+println(0.000001)
+println(1.5e-7)
+println(-1e300)
+println(123456789012345678901234.0)
+println(float32(1e30))
+println(Json.stringify(1e21))
+println(Json.stringify(1234567.0))
+println(Json.stringify([1e-7, 0.5]))
+println(Json.parse("1e21"))
 
 // expect
 // out: 1e+21

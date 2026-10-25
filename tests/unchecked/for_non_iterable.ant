@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics
 // panics: for
 // for over a value that is not iterable panics (section 12).
-func main(): void { for x in 5 { println(x) } }
+for x in 5 { println(x) }
 
 // expect
 // exit: 1

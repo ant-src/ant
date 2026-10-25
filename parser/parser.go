@@ -17,7 +17,7 @@ import (
 type Mode int
 
 const (
-	// Program is a module: imports followed by declarations.
+	// Program is a module: imports followed by declarations and statements (section 10).
 	Program Mode = iota
 	// Spec also allows top-level statements and "..." placeholders, for the specification's
 	// own examples.
@@ -123,15 +123,18 @@ type parser struct {
 	ci       int             // comments before ci end before the declaration being parsed
 	nl       int             // > 0: newlines are ignored (inside a list)
 	header   bool            // inside an if, while, or for header: Path { is not a literal
-	boundary string          // "", "func", "lambda", "go", or "defer"
+	boundary string          // "", "script", "func", "lambda", "go", or "defer"
 	loops    int             // loops entered inside the current boundary
 	// inDefault > 0: inside a parameter default, which runs in the callee, so a try there returns
 	// from it
 	inDefault int
-	curBlock  *ast.Block   // the innermost block whose statements are being parsed
-	depth     int          // nesting of expressions, types, and blocks, bounded by maxNesting
-	roles     map[int]Role // filled for ParseLayout, nil otherwise
-	prefix    map[int]bool // likewise
+	// bodyOnly is the first try, return, or defer at the top level of a program module, which
+	// only a script body allows; the module is a script only once a statement has been seen.
+	bodyOnly *Error
+	curBlock *ast.Block   // the innermost block whose statements are being parsed
+	depth    int          // nesting of expressions, types, and blocks, bounded by maxNesting
+	roles    map[int]Role // filled for ParseLayout, nil otherwise
+	prefix   map[int]bool // likewise
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -356,6 +359,9 @@ func (p *parser) leaveBoundary(s boundary) { p.boundary, p.loops = s.kind, s.loo
 
 func (p *parser) file(path string) *ast.File {
 	f := &ast.File{Path: path}
+	if p.mode == Program {
+		p.boundary = "script"
+	}
 	p.skipTerms()
 	f.Doc = p.moduleDoc(p.peek())
 	for p.at("import") {
@@ -385,19 +391,51 @@ func (p *parser) file(path string) *ast.File {
 			d := p.varDecl()
 			d.Doc = doc
 			f.Decls = append(f.Decls, d)
-			if p.mode == Spec || p.mode == Session {
+			if p.mode != Declarations {
 				f.Stmts = append(f.Stmts, d)
 			}
 		default:
-			if p.mode != Spec && p.mode != Session {
+			if p.mode == Declarations {
 				p.failAt(t, "expected a declaration, got %s", t)
+			}
+			if p.mode == Program && !f.Script {
+				f.Script = true
+				f.FirstStmt = pos(t)
 			}
 			f.Stmts = append(f.Stmts, p.statement())
 		}
 		p.expectTerm()
 		p.skipTerms()
 	}
+	if p.mode == Program {
+		p.scriptRules(f)
+	}
 	return f
+}
+
+// scriptRules enforces what a module's statements decide (section 10, Scripts): a script
+// exports nothing, and only a script's top level is a body that try, return, and defer can
+// leave or register on.
+func (p *parser) scriptRules(f *ast.File) {
+	if !f.Script {
+		if p.bodyOnly != nil {
+			panic(p.bodyOnly)
+		}
+		return
+	}
+	for _, d := range f.Decls {
+		if d.Exported() {
+			panic(&Error{Pos: f.FirstStmt, Msg: "a module with exports cannot have top-level statements; this statement makes it a script, which cannot be imported"})
+		}
+	}
+}
+
+// topLevelOnly records a try, return, or defer at the top level of a program module, which is
+// an error unless the module turns out to be a script.
+func (p *parser) topLevelOnly(at token.Pos, msg string) {
+	if p.bodyOnly == nil {
+		p.bodyOnly = &Error{Pos: ast.Pos{Line: at.Line, Col: at.Col}, Msg: msg}
+	}
 }
 
 func (p *parser) importDecl() *ast.Import {
@@ -1013,6 +1051,9 @@ func (p *parser) unary() ast.Expr {
 		if t.Is("try") && p.boundary == "" && p.inDefault == 0 && p.mode != Spec {
 			p.fail(t.Pos, "'try' outside a function")
 		}
+		if t.Is("try") && p.boundary == "script" && p.inDefault == 0 {
+			p.topLevelOnly(t.Pos, "'try' outside a function")
+		}
 		p.nest()
 		defer p.unnest()
 		p.next()
@@ -1167,7 +1208,9 @@ func (p *parser) primary() ast.Expr {
 		case "go", "defer":
 			p.next()
 			enclosing := p.curBlock
-			if enclosing == nil && t.Text == "defer" && p.mode != Spec {
+			if enclosing == nil && t.Text == "defer" && p.boundary == "script" {
+				p.topLevelOnly(t.Pos, "defer needs an enclosing block")
+			} else if enclosing == nil && t.Text == "defer" && p.mode != Spec {
 				p.fail(t.Pos, "defer needs an enclosing block")
 			}
 			saved := p.enterBoundary(t.Text)
@@ -1183,6 +1226,9 @@ func (p *parser) primary() ast.Expr {
 		case "return":
 			if p.boundary == "" && p.mode != Spec {
 				p.fail(t.Pos, "'return' outside a function")
+			}
+			if p.boundary == "script" {
+				p.topLevelOnly(t.Pos, "'return' outside a function")
 			}
 			p.next()
 			r := p.raw()

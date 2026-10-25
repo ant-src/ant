@@ -76,33 +76,31 @@ func run(path: string, argv: Array[string]): int {
   else { println(`error: ${outcome.error.message}`); 1 }
 }
 
-func main(): void {
-  var argv = Os.args()
-  var dir = Array.get(argv, 0) ?? "."
-  var rest = Array.slice(argv, 1, Array.length(argv))
-  var path = `${dir}/todo.json`
-  var script = [
-    ["list"],
-    ["add", "buy", "milk"],
-    ["add", "write", "tests"],
-    ["add"],
-    ["list"],
-    ["done", "1"],
-    ["done", "7"],
-    ["done", "x"],
-    ["list"],
-    ["remove", "2"],
-    ["list"],
-  ]
-  var status = 0
-  for argv in script {
-    println(`$ todo ${String.join(argv, " ")}`)
-    status = run(path, argv)
-  }
-  println(Result.unwrapOr(File.read(path), "no file"))
-  if !Array.isEmpty(rest) { status = run(path, rest) }
-  if status != 0 { Os.exit(status) }
+var argv = Os.args()
+var dir = Array.get(argv, 0) ?? "."
+var rest = Array.slice(argv, 1, Array.length(argv))
+var path = `${dir}/todo.json`
+var script = [
+  ["list"],
+  ["add", "buy", "milk"],
+  ["add", "write", "tests"],
+  ["add"],
+  ["list"],
+  ["done", "1"],
+  ["done", "7"],
+  ["done", "x"],
+  ["list"],
+  ["remove", "2"],
+  ["list"],
+]
+var status = 0
+for argv in script {
+  println(`$ todo ${String.join(argv, " ")}`)
+  status = run(path, argv)
 }
+println(Result.unwrapOr(File.read(path), "no file"))
+if !Array.isEmpty(rest) { status = run(path, rest) }
+if status != 0 { Os.exit(status) }
 
 // expect
 // out: $ todo list

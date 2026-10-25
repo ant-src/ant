@@ -9,9 +9,7 @@ func which[T](v: GeoPoint | T): string {
   if v is GeoPoint { "geometry" } else { "other" }
 }
 
-func main(): void {
-  println(which(PlainPoint{ x: 1.0, y: 2.0 }))
-}
+println(which(PlainPoint{ x: 1.0, y: 2.0 }))
 
 // expect
 // out: geometry init

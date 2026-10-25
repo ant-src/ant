@@ -2,20 +2,18 @@
 // String.from on strings, bools, null, and void (section 11): a string renders as itself at the
 // top level and quoted with escapes inside a container; bool, null, and void render as their
 // literals; a template string renders each interpolation with String.from.
-func main(): void {
-  println("plain")
-  println("")
-  println("with \"quotes\" and a \\ backslash")
-  println(["plain"])
-  println(["tab\there", "new\nline", "quote\"", "back\\slash"])
-  println(`${"inner"} and ${1}`)
-  println(true)
-  println(false)
-  println(null)
-  println(void)
-  println([true, null, void])
-  println(Map{ k: "v" })
-}
+println("plain")
+println("")
+println("with \"quotes\" and a \\ backslash")
+println(["plain"])
+println(["tab\there", "new\nline", "quote\"", "back\\slash"])
+println(`${"inner"} and ${1}`)
+println(true)
+println(false)
+println(null)
+println(void)
+println([true, null, void])
+println(Map{ k: "v" })
 
 // expect
 // out: plain

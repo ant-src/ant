@@ -4,13 +4,11 @@
 // keeps ten frames at each end of the trace and counts the ones between.
 func down(n: int): int { down(n + 1) }
 
-func main(): void {
-  println(down(0))
-}
+println(down(0))
 
 // expect
 // exit: 1
 // err: call depth exceeded
 // err: at down (
 // err:   ... 9980 more frames
-// err: at main (
+// err: at module

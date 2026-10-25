@@ -4,11 +4,9 @@
 // (stdlib.md, Json).
 type Job = { id: int, done: Channel[bool] }
 
-func main(): void {
-  var job = Job{ id: 1, done: Channel.new() }
-  println(Json.stringify(job.id))
-  println(Json.stringify(job))
-}
+var job = Job{ id: 1, done: Channel.new() }
+println(Json.stringify(job.id))
+println(Json.stringify(job))
 
 // expect
 // out: 1

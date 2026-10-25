@@ -1,10 +1,8 @@
 // spec: 12 Runtime panics; 4 Primitives
 // panics: conversion
 // A conversion from a float to an integer kind must be exact (section 12).
-func main(): void {
-  var f = 2.5
-  println(int(f))
-}
+var f = 2.5
+println(int(f))
 
 // expect
 // exit: 1

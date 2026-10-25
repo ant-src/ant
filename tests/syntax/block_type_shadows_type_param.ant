@@ -4,8 +4,6 @@ func id[T](v: T): T {
   v
 }
 
-func main(): void {}
-
 // expect
 // exit: 2
 // err: T is a type parameter of the enclosing function

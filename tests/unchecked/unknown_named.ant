@@ -2,7 +2,7 @@
 // panics: call
 // A named argument for an unknown parameter panics (section 12).
 func f(a: int): int { a }
-func main(): void { println(f(b: 1)) }
+println(f(b: 1))
 
 // expect
 // exit: 1

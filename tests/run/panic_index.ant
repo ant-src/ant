@@ -1,12 +1,10 @@
 // spec: 12 Runtime panics
 // panics: index-range
 // An array index out of range panics (section 12).
-func main(): void {
-  var xs = [1, 2]
-  var i = 5
-  println(xs[1])
-  println(xs[i])
-}
+var xs = [1, 2]
+var i = 5
+println(xs[1])
+println(xs[i])
 
 // expect
 // out: 2

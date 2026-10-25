@@ -83,7 +83,7 @@ func TestSyntaxError(t *testing.T) {
 	if !strings.HasPrefix(err.Error(), "3:1: ") {
 		t.Errorf("error %q", err)
 	}
-	if _, err := Source("t.ant", []byte("println(1)\n")); err == nil {
-		t.Error("a top-level statement formatted; fmt.md section 1 says it is a syntax error")
+	if out, err := Source("t.ant", []byte("println( 1 );\n")); err != nil || string(out) != "println(1)\n" {
+		t.Errorf("a script formats as a module (fmt.md section 1): %q, %v", out, err)
 	}
 }

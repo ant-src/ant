@@ -7,11 +7,9 @@ func bad(yield: func(int): bool): void {
   println("not reached")
 }
 
-func main(): void {
-  for v in bad {
-    println(v)
-    break
-  }
+for v in bad {
+  println(v)
+  break
 }
 
 // expect

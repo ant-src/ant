@@ -15,24 +15,22 @@ func writeTwice(f: File.Handle): void {
   if second is Err { println(second.error.message) }
 }
 
-func main(): void {
-  var dir = Result.unwrap(File.tempDir("ant-fresh"))
-  var path = Path.join([dir, "a.txt"])
-  var w = Result.unwrap(File.create(path))
-  readTwice(w)
-  File.close(w)
-  var r = Result.unwrap(File.open(path))
-  writeTwice(r)
-  File.close(r)
+var dir = Result.unwrap(File.tempDir("ant-fresh"))
+var path = Path.join([dir, "a.txt"])
+var w = Result.unwrap(File.create(path))
+readTwice(w)
+File.close(w)
+var r = Result.unwrap(File.open(path))
+writeTwice(r)
+File.close(r)
 
-  var l = Result.unwrap(Net.listen("127.0.0.1:0"))
-  Net.close(l)
-  var first = Net.accept(l)
-  if first is Err { first.error.message = "changed" }
-  var second = Net.accept(l)
-  if second is Err { println(second.error.message) }
-  var gone = File.removeAll(dir)
-}
+var l = Result.unwrap(Net.listen("127.0.0.1:0"))
+Net.close(l)
+var first = Net.accept(l)
+if first is Err { first.error.message = "changed" }
+var second = Net.accept(l)
+if second is Err { println(second.error.message) }
+var gone = File.removeAll(dir)
 
 // expect
 // out: the file is not open for reading

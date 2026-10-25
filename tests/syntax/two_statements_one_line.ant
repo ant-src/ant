@@ -1,5 +1,5 @@
 // spec: 2 Line endings
-func main(): void { var a = 1 var b = 2 }
+var a = 1 var b = 2
 
 // expect
 // exit: 2

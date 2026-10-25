@@ -25,19 +25,17 @@ func inner(): Result[int, Error] {
   r
 }
 
-func main(): void {
-  println(parseAll(["1", "2", "3"]))
-  println(parseAll(["1", "x", "3"]))
-  println(firstDoubled(["21"]))
-  println(firstDoubled(["no"]))
-  println(inner())
-  var one: Result[int, Error] = Result.ok(1)
-  println(Ok{ value: 1 } == one)
-  var failed: Result[int, Error] = Result.err(Error{ message: "m" })
-  println(Err{ error: Error{ message: "m" } } == failed)
-  var e: Result[int, Error] = Result.err(Error{ message: "e" })
-  println(Result.mapErr(e, { Error{ message: `wrapped: ${x.message}` } }))
-}
+println(parseAll(["1", "2", "3"]))
+println(parseAll(["1", "x", "3"]))
+println(firstDoubled(["21"]))
+println(firstDoubled(["no"]))
+println(inner())
+var one: Result[int, Error] = Result.ok(1)
+println(Ok{ value: 1 } == one)
+var failed: Result[int, Error] = Result.err(Error{ message: "m" })
+println(Err{ error: Error{ message: "m" } } == failed)
+var e: Result[int, Error] = Result.err(Error{ message: "e" })
+println(Result.mapErr(e, { Error{ message: `wrapped: ${x.message}` } }))
 
 // expect
 // out: Ok{ value: [1, 2, 3] }

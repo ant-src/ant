@@ -21,16 +21,14 @@ func TestPanicReport(t *testing.T) {
 
 func outer(): int { inner(2) }
 
-func main(): void {
-  var wg = WaitGroup.new()
-  WaitGroup.add(wg, 1)
-  go {
-    defer { WaitGroup.done(wg) }
-    panic("in a goroutine")
-  }
-  WaitGroup.wait(wg)
-  println(outer())
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+go {
+  defer { WaitGroup.done(wg) }
+  panic("in a goroutine")
 }
+WaitGroup.wait(wg)
+println(outer())
 `
 	prog, err := ant.Load("report.ant", ant.WithSource("report.ant", src), ant.WithFS(fstest.MapFS{}))
 	if err != nil {
@@ -45,18 +43,18 @@ func main(): void {
 	if pe.Message != "boom" || ant.ExitStatus(err) != 1 {
 		t.Errorf("message %q, status %d", pe.Message, ant.ExitStatus(err))
 	}
-	if len(pe.Trace) < 5 || pe.Trace[0].Function != "inner" || pe.Trace[3].Function != "outer" || pe.Trace[4].Function != "main" {
+	if len(pe.Trace) < 5 || pe.Trace[0].Function != "inner" || pe.Trace[3].Function != "outer" || pe.Trace[4].Function != "module report.ant" {
 		t.Errorf("trace: %+v", pe.Trace)
 	}
 	if pe.Trace[0].Pos.Path != "report.ant" || pe.Trace[0].Pos.Line != 2 {
 		t.Errorf("innermost frame: %+v", pe.Trace[0])
 	}
 	got := errOut.String()
-	mainReport := regexp.MustCompile(`(?m)^panic: boom\n  at inner \(report\.ant:2:\d+\)\n  at inner \(report\.ant:3:\d+\)\n  at inner \(report\.ant:3:\d+\)\n  at outer \(report\.ant:6:\d+\)\n  at main \(report\.ant:16:\d+\)\n`)
+	mainReport := regexp.MustCompile(`(?m)^panic: boom\n  at inner \(report\.ant:2:\d+\)\n  at inner \(report\.ant:3:\d+\)\n  at inner \(report\.ant:3:\d+\)\n  at outer \(report\.ant:6:\d+\)\n  at module report\.ant \(report\.ant:15:\d+\)\n`)
 	if !mainReport.MatchString(got) {
 		t.Errorf("the main goroutine's report does not match:\n%s", got)
 	}
-	goReport := regexp.MustCompile(`(?m)^panic: in a goroutine\n  at go block \(report\.ant:13:\d+\)\n`)
+	goReport := regexp.MustCompile(`(?m)^panic: in a goroutine\n  at go block \(report\.ant:12:\d+\)\n`)
 	if !goReport.MatchString(got) {
 		t.Errorf("the goroutine's report does not match:\n%s", got)
 	}

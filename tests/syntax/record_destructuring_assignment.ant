@@ -1,6 +1,6 @@
 // spec: 5 Destructuring
 type P = { a: int }
-func main(): void { var a = 0; { a } = P{ a: 1 } }
+var a = 0; { a } = P{ a: 1 }
 
 // expect
 // exit: 2

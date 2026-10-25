@@ -2,10 +2,8 @@
 // panics: index
 // Bytes is immutable: b[i] reads a byte and b[i] = x panics, since Bytes is not an array or a map
 // (section 12).
-func main(): void {
-  var b = String.toBytes("a")
-  b[0] = byte(98)
-}
+var b = String.toBytes("a")
+b[0] = byte(98)
 
 // expect
 // exit: 1

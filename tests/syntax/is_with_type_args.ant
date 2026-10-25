@@ -1,6 +1,6 @@
 // spec: 5 is
 type Box[T] = { value: T }
-func main(): void { var b = Box{ value: 1 }; println(b is Box[int]) }
+var b = Box{ value: 1 }; println(b is Box[int])
 
 // expect
 // exit: 2

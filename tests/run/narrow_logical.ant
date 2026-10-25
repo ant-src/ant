@@ -10,18 +10,16 @@ func isOrigin(v: Item): bool { v is Point && v.x == 0 && v.y == 0 }
 
 func isNullOrEmpty(v: Item): bool { v == null || v is Point || v.text == "" }
 
-func main(): void {
-  var items: Array[Item] = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Label{ text: "" }, Label{ text: "t" }, null]
-  for v in items {
-    var origin = v is Point && v.x == 0 && v.y == 0
-    var longLabel = v is Label && String.length(v.text) > 0
-    var notPositive = !(v is Point) || v.x <= 0
-    println(`${v}: ${origin} ${longLabel} ${notPositive} ${isOrigin(v)} ${isNullOrEmpty(v)}`)
-  }
-  var p: Point | null = Point{ x: 3, y: 4 }
-  println(p != null && p.x + p.y == 7)
-  println(p == null || p.x > 10)
+var items: Array[Item] = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Label{ text: "" }, Label{ text: "t" }, null]
+for v in items {
+  var origin = v is Point && v.x == 0 && v.y == 0
+  var longLabel = v is Label && String.length(v.text) > 0
+  var notPositive = !(v is Point) || v.x <= 0
+  println(`${v}: ${origin} ${longLabel} ${notPositive} ${isOrigin(v)} ${isNullOrEmpty(v)}`)
 }
+var p: Point | null = Point{ x: 3, y: 4 }
+println(p != null && p.x + p.y == 7)
+println(p == null || p.x > 10)
 
 // expect
 // out: Point{ x: 0, y: 0 }: true false true true true

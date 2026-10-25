@@ -8,33 +8,31 @@ type Person = { name: string, age: int }
 
 func greet(n: { name: string }): string { `hi ${n.name}` }
 
-func main(): void {
-  var x = 1.0
-  var y = 2.0
-  var p = Point{ x, y }
-  println(p)
-  var q = p
-  q.x = 5.0
-  println(p.x)
-  println(p == Point{ x: 5.0, y: 2.0 })
-  var v = Vec{ ...p }
-  println(v)
-  var moved = Point{ ...p, x: 0.0 }
-  println(moved)
-  println(p == q)
-  var user = Person{ name: "ada", age: 36 }
-  println(greet(user))
-  println(greet(Named{ name: "bob" }))
-  var m: Map[Point, string] = Map{}
-  m[Point{ x: 1.0, y: 1.0 }] = "one"
-  println(m[Point{ x: 1.0, y: 1.0 }])
-  println(m[Point{ x: 1.0, y: 2.0 }])
-  user.age += 1
-  println(user)
-  var people = [user, Person{ name: "bob", age: 1 }]
-  people[1].age = 2
-  println(people)
-}
+var x = 1.0
+var y = 2.0
+var p = Point{ x, y }
+println(p)
+var q = p
+q.x = 5.0
+println(p.x)
+println(p == Point{ x: 5.0, y: 2.0 })
+var v = Vec{ ...p }
+println(v)
+var moved = Point{ ...p, x: 0.0 }
+println(moved)
+println(p == q)
+var user = Person{ name: "ada", age: 36 }
+println(greet(user))
+println(greet(Named{ name: "bob" }))
+var m: Map[Point, string] = Map{}
+m[Point{ x: 1.0, y: 1.0 }] = "one"
+println(m[Point{ x: 1.0, y: 1.0 }])
+println(m[Point{ x: 1.0, y: 2.0 }])
+user.age += 1
+println(user)
+var people = [user, Person{ name: "bob", age: 1 }]
+people[1].age = 2
+println(people)
 
 // expect
 // out: Point{ x: 1.0, y: 2.0 }

@@ -1,5 +1,5 @@
 // spec: 3
-func main(): void { var x = 1; x++ }
+var x = 1; x++
 
 // expect
 // exit: 2

@@ -30,33 +30,31 @@ func cityOf(id: int): string {
   if address != null { address.city } else { "unknown" }
 }
 
-func main(): void {
-  var c: Config | null = null
-  while c == null { c = load() }
-  println(c.name)
-  println(attempts)
-  var d: Config | null = null
-  if d == null { d = Config{ name: "direct" } }
-  println(d.name)
-  println(firstName(1))
-  println(firstName(0))
-  println(cityOf(1))
-  println(cityOf(2))
-  println(cityOf(0))
-  var v: int | string = 1
-  v = "now a string"
-  println(String.length(v))
-  var w: int | null = 5
-  if w != null { println(w + 1) } else { println("none") }
-  var x: int | string | null = "s"
-  if x is string || x == null { println("string or null") } else { println(x + 1) }
-  if !(x is int) { println("not int") } else { println(x * 2) }
-  var y: int | null = null
-  var z = if y == null { 0 } else { y }
-  println(z)
-  var picked: int | string = if attempts > 1 { 1 } else { "one" }
-  if picked is int { println(picked + 1) }
-}
+var c: Config | null = null
+while c == null { c = load() }
+println(c.name)
+println(attempts)
+var d: Config | null = null
+if d == null { d = Config{ name: "direct" } }
+println(d.name)
+println(firstName(1))
+println(firstName(0))
+println(cityOf(1))
+println(cityOf(2))
+println(cityOf(0))
+var v: int | string = 1
+v = "now a string"
+println(String.length(v))
+var w: int | null = 5
+if w != null { println(w + 1) } else { println("none") }
+var x: int | string | null = "s"
+if x is string || x == null { println("string or null") } else { println(x + 1) }
+if !(x is int) { println("not int") } else { println(x * 2) }
+var y: int | null = null
+var z = if y == null { 0 } else { y }
+println(z)
+var picked: int | string = if attempts > 1 { 1 } else { "one" }
+if picked is int { println(picked + 1) }
 
 // expect
 // out: loaded

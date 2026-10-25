@@ -5,48 +5,46 @@
 // record or an array is a key; mutating a key after insertion stays memory-safe.
 type Point = { x: int, y: int }
 
-func main(): void {
-  var xs: Array[int] = [1, 2, 3]
-  var more = [...xs, 4]
-  println(more)
-  println(xs)
-  var name = "ada"
-  var ages = Map{ ada: 36, linus: 54 }
-  println(ages)
-  var keyed = Map{ (name): 1, 7: "seven" }
-  println(keyed)
-  println(Map{ name })
-  println(Map.keys(Map{ for: 1, type: 2, if: 3 }))
-  var empty: Map[string, int] = Map{}
-  println(Map.size(empty))
-  var m = Map{ a: 1, b: 2, c: 3 }
-  m["b"] = 20
-  println(Map.keys(m))
-  _ = Map.remove(m, "a")
-  m["a"] = 100
-  println(m)
-  var byPoint: Map[Point, string] = Map{}
-  byPoint[Point{ x: 1, y: 2 }] = "p"
-  println(byPoint[Point{ x: 1, y: 2 }])
-  println(byPoint[Point{ x: 2, y: 1 }])
-  var byList: Map[Array[int], int] = Map{}
-  byList[[1, 2]] = 3
-  println(byList[[1, 2]])
-  var key = Point{ x: 0, y: 0 }
-  var tricky: Map[Point, int] = Map{}
-  tricky[key] = 1
-  key.x = 9
-  println(Map.size(tricky))
-  Array.push(xs, 4)
-  xs[0] = 10
-  println(xs)
-  println(Array.length(xs))
-  var nested = [[1], [2, 3]]
-  println(nested[1][0])
-  var grid: Array[Array[int]] = Array.filled(2, Array.filled(2, 0))
-  grid[0][0] = 1
-  println(grid)
-}
+var xs: Array[int] = [1, 2, 3]
+var more = [...xs, 4]
+println(more)
+println(xs)
+var name = "ada"
+var ages = Map{ ada: 36, linus: 54 }
+println(ages)
+var keyed = Map{ (name): 1, 7: "seven" }
+println(keyed)
+println(Map{ name })
+println(Map.keys(Map{ for: 1, type: 2, if: 3 }))
+var empty: Map[string, int] = Map{}
+println(Map.size(empty))
+var m = Map{ a: 1, b: 2, c: 3 }
+m["b"] = 20
+println(Map.keys(m))
+_ = Map.remove(m, "a")
+m["a"] = 100
+println(m)
+var byPoint: Map[Point, string] = Map{}
+byPoint[Point{ x: 1, y: 2 }] = "p"
+println(byPoint[Point{ x: 1, y: 2 }])
+println(byPoint[Point{ x: 2, y: 1 }])
+var byList: Map[Array[int], int] = Map{}
+byList[[1, 2]] = 3
+println(byList[[1, 2]])
+var key = Point{ x: 0, y: 0 }
+var tricky: Map[Point, int] = Map{}
+tricky[key] = 1
+key.x = 9
+println(Map.size(tricky))
+Array.push(xs, 4)
+xs[0] = 10
+println(xs)
+println(Array.length(xs))
+var nested = [[1], [2, 3]]
+println(nested[1][0])
+var grid: Array[Array[int]] = Array.filled(2, Array.filled(2, 0))
+grid[0][0] = 1
+println(grid)
 
 // expect
 // out: [1, 2, 3, 4]

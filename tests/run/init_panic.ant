@@ -6,7 +6,7 @@ func peek(): int { later }
 var early = peek()
 var later = 1
 
-func main(): void { println(early) }
+println(early)
 
 // expect
 // exit: 1

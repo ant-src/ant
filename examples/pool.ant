@@ -13,29 +13,27 @@ func fetch(url: string, ctx: Context): Fetched {
   else { Fetched{ url, status: null, error: response.error.message } }
 }
 
-func main(): void {
-  var base = Os.args()[0]
-  var paths = ["/hello", "/status/404", "/status/500", "/slow", "/hello"]
-  var jobs: Channel[string] = Channel.new()
-  var results: Channel[Fetched] = Channel.new(Array.length(paths))
-  var deadline = Context.new(Time.duration(milliseconds: 500))
-  var wg = WaitGroup.new()
-  for w in Array.range(0, 3) {
-    WaitGroup.add(wg, 1)
-    go {
-      defer { WaitGroup.done(wg) }
-      for url in Channel.values(jobs) { Channel.send(results, fetch(url, deadline)) }
-    }
+var base = Os.args()[0]
+var paths = ["/hello", "/status/404", "/status/500", "/slow", "/hello"]
+var jobs: Channel[string] = Channel.new()
+var results: Channel[Fetched] = Channel.new(Array.length(paths))
+var deadline = Context.new(Time.duration(milliseconds: 500))
+var wg = WaitGroup.new()
+for w in Array.range(0, 3) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    for url in Channel.values(jobs) { Channel.send(results, fetch(url, deadline)) }
   }
-  for p in paths { Channel.send(jobs, base + p) }
-  Channel.close(jobs)
-  WaitGroup.wait(wg)
-  Channel.close(results)
-  for f in Iter.toArray(Channel.values(results)) | Array.sortBy({ x.url }) {
-    var status = f.status
-    var outcome = if status != null { String.from(status) } else { f.error ?? "?" }
-    println(`${String.padEnd(String.trimPrefix(f.url, base), 12)} ${outcome}`)
-  }
+}
+for p in paths { Channel.send(jobs, base + p) }
+Channel.close(jobs)
+WaitGroup.wait(wg)
+Channel.close(results)
+for f in Iter.toArray(Channel.values(results)) | Array.sortBy({ x.url }) {
+  var status = f.status
+  var outcome = if status != null { String.from(status) } else { f.error ?? "?" }
+  println(`${String.padEnd(String.trimPrefix(f.url, base), 12)} ${outcome}`)
 }
 
 // expect

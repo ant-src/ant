@@ -7,14 +7,12 @@ func lookup(found: bool): Result[int, Problem] | null {
   if found { Result.ok(1) } else { null }
 }
 
-func main(): void {
-  var ok: Result[int, Problem] | null = Result.ok(1)
-  var failed: Result[int, Problem] | null = Result.err(Problem{ code: 7 })
-  println(ok)
-  println(failed)
-  println(lookup(true))
-  println(lookup(false))
-}
+var ok: Result[int, Problem] | null = Result.ok(1)
+var failed: Result[int, Problem] | null = Result.err(Problem{ code: 7 })
+println(ok)
+println(failed)
+println(lookup(true))
+println(lookup(false))
 
 // expect
 // out: Ok{ value: 1 }

@@ -1,38 +1,36 @@
 // spec: stdlib File
 // File (stdlib.md): every function, in a temporary directory given as the first argument;
 // every failure is a Result with Error, never a panic.
-func main(): void {
-  var dir = Os.args()[0]
-  var path = `${dir}/notes.txt`
-  println(File.exists(path))
-  println(File.write(path, "one\ntwo\n"))
-  println(File.exists(path))
-  println(File.read(path))
-  println(File.readBytes(path) | Result.map({ len(x) }))
-  println(File.writeBytes(`${dir}/bytes.bin`, Bytes.fromArray([104, 105])))
-  println(File.read(`${dir}/bytes.bin`))
-  println(File.list(dir))
-  println(File.read(`${dir}/missing.txt`) is Err)
-  var input = Result.unwrap(File.open(path))
-  println(File.readLine(input))
-  println(File.readLine(input))
-  println(File.readLine(input))
-  File.close(input)
-  var output = Result.unwrap(File.create(`${dir}/copy.txt`))
-  println(File.writeLine(output, "header"))
-  var src = Result.unwrap(File.open(path))
-  println(File.pipe(src, output))
-  File.close(src)
-  File.close(output)
-  println(File.read(`${dir}/copy.txt`))
-  println(File.remove(`${dir}/copy.txt`))
-  println(File.remove(`${dir}/copy.txt`) is Err)
-  println(File.exists(`${dir}/copy.txt`))
-  println(File.readLine(input) is Err)
-  println(input)
-  println(File.open(`${dir}/nope`) is Err)
-  println(File.list(`${dir}/nope`) is Err)
-}
+var dir = Os.args()[0]
+var path = `${dir}/notes.txt`
+println(File.exists(path))
+println(File.write(path, "one\ntwo\n"))
+println(File.exists(path))
+println(File.read(path))
+println(File.readBytes(path) | Result.map({ len(x) }))
+println(File.writeBytes(`${dir}/bytes.bin`, Bytes.fromArray([104, 105])))
+println(File.read(`${dir}/bytes.bin`))
+println(File.list(dir))
+println(File.read(`${dir}/missing.txt`) is Err)
+var input = Result.unwrap(File.open(path))
+println(File.readLine(input))
+println(File.readLine(input))
+println(File.readLine(input))
+File.close(input)
+var output = Result.unwrap(File.create(`${dir}/copy.txt`))
+println(File.writeLine(output, "header"))
+var src = Result.unwrap(File.open(path))
+println(File.pipe(src, output))
+File.close(src)
+File.close(output)
+println(File.read(`${dir}/copy.txt`))
+println(File.remove(`${dir}/copy.txt`))
+println(File.remove(`${dir}/copy.txt`) is Err)
+println(File.exists(`${dir}/copy.txt`))
+println(File.readLine(input) is Err)
+println(input)
+println(File.open(`${dir}/nope`) is Err)
+println(File.list(`${dir}/nope`) is Err)
 
 // expect
 // args: $TMP

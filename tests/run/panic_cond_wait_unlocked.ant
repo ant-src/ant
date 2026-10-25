@@ -1,12 +1,10 @@
 // spec: 11 Synchronization; 12 Runtime panics
 // panics: Cond.wait; library-value
 // Cond.wait when the mutex is not locked panics (section 11).
-func main(): void {
-  var lock = Mutex.new()
-  var c = Cond.new(lock)
-  println("waiting unlocked")
-  Cond.wait(c)
-}
+var lock = Mutex.new()
+var c = Cond.new(lock)
+println("waiting unlocked")
+Cond.wait(c)
 
 // expect
 // out: waiting unlocked

@@ -1,5 +1,5 @@
 // spec: 5 return, break, continue
-func main(): void { for x in [1] { go { continue } } }
+for x in [1] { go { continue } }
 
 // expect
 // exit: 2

@@ -3,19 +3,17 @@
 // a template may span lines, and the escapes.
 type Point = { x: int, y: int }
 
-func main(): void {
-  var count = 3
-  println(`total: ${count} items`)
-  println(`${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}`)
-  println(`nested: ${`inner ${count}`}`)
-  println(`multi
+var count = 3
+println(`total: ${count} items`)
+println(`${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}`)
+println(`nested: ${`inner ${count}`}`)
+println(`multi
 line`)
-  println(`escapes: \` \${not} \\ \u{41}`)
-  println(`$ alone and ${count}$`)
-  var f: func(int): string = { `${x * 2}` }
-  println(f(21))
-  println(`a var inside: ${func(): int { var a = 1; a + 1 }()}`)
-}
+println(`escapes: \` \${not} \\ \u{41}`)
+println(`$ alone and ${count}$`)
+var f: func(int): string = { `${x * 2}` }
+println(f(21))
+println(`a var inside: ${func(): int { var a = 1; a + 1 }()}`)
 
 // expect
 // out: total: 3 items

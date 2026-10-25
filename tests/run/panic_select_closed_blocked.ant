@@ -2,26 +2,24 @@
 // panics: select-closed
 // A channel closed while a select's send clause waits ends the select with a panic, as it ends a
 // send; a receive clause on a closed channel takes what was buffered before it binds null.
-func main(): void {
-  var d: Channel[int] = Channel.new(1)
-  var x = Channel.send(d, 7)
-  Channel.close(d)
-  var got: Array[int | null] = []
-  for i in [1, 2] {
-    select {
-      var v = Channel.receive(d) { Array.push(got, v) }
-    }
-  }
-  println(got)
-  var c: Channel[int] = Channel.new(1)
-  x = Channel.send(c, 1)
-  go {
-    Time.sleep(Time.duration(milliseconds: 20))
-    Channel.close(c)
-  }
+var d: Channel[int] = Channel.new(1)
+var x = Channel.send(d, 7)
+Channel.close(d)
+var got: Array[int | null] = []
+for i in [1, 2] {
   select {
-    Channel.send(c, 2) { println("unreachable") }
+    var v = Channel.receive(d) { Array.push(got, v) }
   }
+}
+println(got)
+var c: Channel[int] = Channel.new(1)
+x = Channel.send(c, 1)
+go {
+  Time.sleep(Time.duration(milliseconds: 20))
+  Channel.close(c)
+}
+select {
+  Channel.send(c, 2) { println("unreachable") }
 }
 
 // expect

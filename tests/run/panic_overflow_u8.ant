@@ -1,11 +1,9 @@
 // spec: 12 Runtime panics
 // panics: int-overflow
 // Unsigned subtraction below zero panics (section 12).
-func main(): void {
-  var a = byte(1)
-  var b = byte(2)
-  println(a - b)
-}
+var a = byte(1)
+var b = byte(2)
+println(a - b)
 
 // expect
 // exit: 1

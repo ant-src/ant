@@ -1,5 +1,5 @@
 // spec: 5 Pipes
-func main(): void { var f = Array.length; println([1] | f) }
+var f = Array.length; println([1] | f)
 
 // expect
 // exit: 2

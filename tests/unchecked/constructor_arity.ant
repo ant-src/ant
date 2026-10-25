@@ -2,7 +2,7 @@
 // panics: call
 // A constructor with two arguments panics (section 12).
 type UserId = string
-func main(): void { println(UserId("a", "b")) }
+println(UserId("a", "b"))
 
 // expect
 // exit: 1

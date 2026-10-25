@@ -6,27 +6,25 @@ type UserId = string
 
 func size[T: string | Array[int]](x: T): int { len(x) }
 
-func main(): void {
-  println(len([1, 2, 3]))
-  println(len(Array.filled(0, 1)))
-  println(len(Map{ "a": 1, "b": 2 }))
-  println(len(Set.of([1, 2, 2])))
-  println(len("héllo"))
-  println(len(""))
-  var c: Channel[int] = Channel.new(4)
-  Channel.send(c, 1)
-  Channel.send(c, 2)
-  println(len(c))
-  println(len(UserId("u-1")))
-  var u: string | Array[int] = [7]
-  println(len(u))
-  println(size("ab"))
-  println(Array.map(["a", "bcd"], len))
-  var f: func(string): int = len
-  println(f("xyz"))
-  var xs = [1, 2]
-  println(len(xs) == Array.length(xs))
-}
+println(len([1, 2, 3]))
+println(len(Array.filled(0, 1)))
+println(len(Map{ "a": 1, "b": 2 }))
+println(len(Set.of([1, 2, 2])))
+println(len("héllo"))
+println(len(""))
+var c: Channel[int] = Channel.new(4)
+Channel.send(c, 1)
+Channel.send(c, 2)
+println(len(c))
+println(len(UserId("u-1")))
+var u: string | Array[int] = [7]
+println(len(u))
+println(size("ab"))
+println(Array.map(["a", "bcd"], len))
+var f: func(string): int = len
+println(f("xyz"))
+var xs = [1, 2]
+println(len(xs) == Array.length(xs))
 
 // expect
 // out: 3

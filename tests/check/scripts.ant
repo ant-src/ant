@@ -1,0 +1,27 @@
+// spec: 10 Scripts; 7 Narrowing
+// A script's top-level code is a function body: its vars narrow like locals, unless one of its
+// functions assigns them; a func sees them at their declared types, while a lambda written in
+// the body keeps the narrowing of a var never assigned again; the body returns void or an Err;
+// and a statement may refer only to the vars above it.
+func reset(): void { assigned = null }
+func peek(): int { fixed + 1 } // ERR: + needs both operands of one type
+
+var fixed: int | null = 1
+var assigned: int | null = 2
+var later2 = early2 // ERR: early2 is declared later in the module
+var early2 = 1
+if fixed != null {
+  println(fixed + 1)
+  println(Array.map([1], { fixed + x }))
+}
+if assigned != null {
+  println(assigned + 1) // ERR: + needs both operands of one type
+}
+var r = File.read("notes.txt")
+if r is Err { return r }
+println(String.length(r.value))
+var name = Os.env("NAME") ?? return Result.err(Error{ message: "no NAME" })
+println(String.length(name))
+undeclared = 3 // ERR: undeclared is declared later in the module
+var undeclared = 0
+if name == "" { return 5 } // ERR: a script returns void or an Err, not int
