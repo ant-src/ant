@@ -272,7 +272,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 		if own == "" {
 			own = defaultOwner
 		}
-		decl := &types.Decl{Name: td.Name, Pos: td.Pos}
+		decl := &types.Decl{Name: td.Name, Pos: td.Pos, Kind: declKind(td.Body)}
 		if own != "" {
 			decl.Name = own + "." + td.Name
 		}
@@ -357,7 +357,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
-			decl := &types.Decl{Name: d.Name, Pos: d.Pos}
+			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Kind: declKind(d.Body)}
 			for _, tp := range d.TypeParams {
 				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
 			}
@@ -446,6 +446,23 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 		fi.ent = ent
 		owner.members[d.Name] = ent
 	}
+}
+
+// declKind is the kind a type declaration's body gives it, known before any body is resolved, so
+// that a body naming a later declaration sees whether it is a record, a primitive, or an alias.
+// resolveTypeDecl settles which kind of opaque type a declaration without a body is.
+func declKind(body ast.Type) types.DeclKind {
+	switch b := body.(type) {
+	case nil:
+		return types.OpaqueDecl
+	case *ast.RecordType:
+		return types.RecordDecl
+	case *ast.TypeName:
+		if _, ok := builtinKinds[b.Path[0]]; ok && len(b.Path) == 1 && len(b.Args) == 0 {
+			return types.PrimitiveDecl
+		}
+	}
+	return types.AliasDecl
 }
 
 func (c *Checker) resolveTypeDecl(ti *typeInfo) {
