@@ -880,7 +880,7 @@ type fnCtx struct {
 	declared types.Type
 	returns  []types.Type
 	// tries holds the try expressions of a body whose return type is inferred, which must
-	// come out a Result (section 8).
+	// come out a Result, or a Result or null (section 8).
 	tries   []*ast.Unary
 	fi      *funcInfo
 	initVar *varInfo
