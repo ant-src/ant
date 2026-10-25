@@ -51,7 +51,7 @@ have prevented a bug fixed on this branch, noted as "(bug: ...)".
   helper per kind would roughly halve them.
 - **Recursive walks.** `value/equal.go`, `value/render.go` and `lib/json.go` stringify all
   recurse once per level of nesting and hop to a fresh goroutine every 4096 levels
-  (`value.Nested`; see question 9 in BUGHUNT_QUESTIONS.md). An explicit stack would make that
+  (`value.Deep` and `value.OnFreshStack`; see question 9 in BUGHUNT_QUESTIONS.md). An explicit stack would make that
   unnecessary. The `ancestors` set in `json.go` and the map in `render.go` could share one type.
 - **`runOnce` and `g.Catch`.** Now that `Once.Do` completes in a `defer`, `runOnce` could use a
   plain `defer`/`recover` that stores any `*AntPanic` instead of `g.Catch`.

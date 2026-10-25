@@ -55,8 +55,12 @@ whose fix is a design choice. Probe programs that show each one are in the sessi
    linked list built in a loop. Section 12 says `==` never panics, and section 9 says the
    interpreter never crashes.
    - Fix: the walks stay recursive, but every 4096 levels they continue on a fresh goroutine and
-     wait for it (`value.Nested`), so no single Go stack overflows.
+     wait for it (`value.Deep` and `value.OnFreshStack`), so no single Go stack overflows.
    - Cost: memory proportional to depth, about 1 KB per level, and a goroutine per 4096 levels.
+   - Cost on shallow values: a set that may reach another goroutine cannot live on the stack, so
+     `==` and `String.from` take theirs from a `sync.Pool`. A loop of 2M `==` on a small record
+     takes 0.38 s against 0.33 s before the change (it was 0.53 s with a fresh set per call).
+     `String.from` also gives up stack allocation of its builder, about 13% on a small record.
    - Alternative: an iterative walk with an explicit stack. That is harder for `==` because map
      lookups nest comparisons that may fail without affecting the outer one.
 10. **The `Iter` functions silently ignore `yield` calls after `false`**, while `for` panics on
@@ -78,6 +82,11 @@ whose fix is a design choice. Probe programs that show each one are in the sessi
 15. **Case of identifiers.** Section 2 says "Case carries no meaning", but identifiers are
     case-sensitive: `value`, `Value` and `VALUE` are three variables, and the corpus tests this.
     doc.md matches names "without regard to case". One of the two texts needs rewording.
+16. **`Time.compareDuration` of two identical durations with calendar units and no
+    `relativeTo`.** Temporal's `Duration.compare` returns 0 for identical durations before it
+    looks at `relativeTo`. The branch now panics first, which the spec's "panics without one"
+    allows but which departs from Temporal, which Ant follows elsewhere. Keep the panic, or return
+    0 as Temporal does and say so in the spec?
 
 ## Smaller spec gaps the hunters noted
 
