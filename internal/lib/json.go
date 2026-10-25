@@ -1,8 +1,6 @@
 package lib
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -30,7 +28,7 @@ func init() {
 			}),
 			fn("Json.stringify", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var sb strings.Builder
-				if msg := stringify(&sb, a[0], ancestors{}); msg != "" {
+				if msg := stringify(&sb, a[0], value.Ancestors{}); msg != "" {
 					g.Panic("Json.stringify: %s", msg)
 				}
 				return sb.String()
@@ -356,7 +354,7 @@ func (p *jsonParser) hex4() (rune, error) {
 
 // stringify writes v as JSON. It returns why v has no JSON form, a cycle or a part with none, or
 // "" when it has one.
-func stringify(sb *strings.Builder, v value.Value, stack ancestors) string {
+func stringify(sb *strings.Builder, v value.Value, stack value.Ancestors) string {
 	switch v.(type) {
 	case *value.Record, *value.Array, *value.Set, *value.Map:
 		if value.Deep(len(stack) + 1) {
@@ -367,13 +365,13 @@ func stringify(sb *strings.Builder, v value.Value, stack ancestors) string {
 }
 
 // stringifyOnFreshStack is stringifyBody on a fresh goroutine.
-func stringifyOnFreshStack(sb *strings.Builder, v value.Value, stack ancestors) (msg string) {
+func stringifyOnFreshStack(sb *strings.Builder, v value.Value, stack value.Ancestors) (msg string) {
 	value.OnFreshStack(func() { msg = stringifyBody(sb, v, stack) })
 	return msg
 }
 
 // stringifyBody is stringify once it has decided which goroutine to run on.
-func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
+func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) string {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))
@@ -388,10 +386,10 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 	case *value.Tagged:
 		return stringify(sb, x.Payload, stack)
 	case *value.Record:
-		if !stack.enter(x) {
+		if !stack.Enter(x) {
 			return "cyclic value"
 		}
-		defer stack.leave(x)
+		defer stack.Leave(x)
 		sb.WriteByte('{')
 		for i, name := range x.Tag.Fields {
 			if i > 0 {
@@ -405,10 +403,10 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 		}
 		sb.WriteByte('}')
 	case *value.Array, *value.Set:
-		if !stack.enter(x) {
+		if !stack.Enter(x) {
 			return "cyclic value"
 		}
-		defer stack.leave(x)
+		defer stack.Leave(x)
 		var xs []value.Value
 		if a, ok := x.(*value.Array); ok {
 			xs = a.Values()
@@ -426,10 +424,10 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 		}
 		sb.WriteByte(']')
 	case *value.Map:
-		if !stack.enter(x) {
+		if !stack.Enter(x) {
 			return "cyclic value"
 		}
-		defer stack.leave(x)
+		defer stack.Leave(x)
 		sb.WriteByte('{')
 		for i, e := range x.Entries() {
 			if i > 0 {
@@ -439,7 +437,7 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 			if t, ok := key.(*value.Tagged); ok {
 				key = t.Payload // a named primitive key, without its tag as a value is written
 			}
-			if msg := keyNoJSON(key, ancestors{}); msg != "" {
+			if msg := keyNoJSON(key, value.Ancestors{}); msg != "" {
 				return msg
 			}
 			if s, ok := key.(string); ok {
@@ -489,7 +487,7 @@ func noJSON(v value.Value) string {
 // keyNoJSON is why a map key has no JSON form, or "" when it has one. stringify writes a key
 // through value.Render rather than taking it apart, so this looks through it for a part that
 // has none. stack holds the containers being searched, so a cyclic key terminates.
-func keyNoJSON(v value.Value, stack ancestors) string {
+func keyNoJSON(v value.Value, stack value.Ancestors) string {
 	var parts []value.Value
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64, float64, float32, string, bool,
@@ -515,10 +513,10 @@ func keyNoJSON(v value.Value, stack ancestors) string {
 		}
 		return noJSON(v)
 	}
-	if !stack.enter(v) {
+	if !stack.Enter(v) {
 		return ""
 	}
-	defer stack.leave(v)
+	defer stack.Leave(v)
 	if value.Deep(len(stack)) {
 		var msg string
 		value.OnFreshStack(func() { msg = partsNoJSON(parts, stack) })
@@ -528,7 +526,7 @@ func keyNoJSON(v value.Value, stack ancestors) string {
 }
 
 // partsNoJSON is why one of parts has no JSON form, or "".
-func partsNoJSON(parts []value.Value, stack ancestors) string {
+func partsNoJSON(parts []value.Value, stack value.Ancestors) string {
 	for _, p := range parts {
 		if msg := keyNoJSON(p, stack); msg != "" {
 			return msg
@@ -536,21 +534,6 @@ func partsNoJSON(parts []value.Value, stack ancestors) string {
 	}
 	return ""
 }
-
-// ancestors holds the containers being walked, the enclosing ones of the value at hand, as a
-// set so that a deep value is walked in linear time.
-type ancestors map[any]bool
-
-// enter adds v, or reports false when v is already being walked: a cycle.
-func (a ancestors) enter(v any) bool {
-	if a[v] {
-		return false
-	}
-	a[v] = true
-	return true
-}
-
-func (a ancestors) leave(v any) { delete(a, v) }
 
 func writeFloat(sb *strings.Builder, f float64, bits int) {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
@@ -560,10 +543,40 @@ func writeFloat(sb *strings.Builder, f float64, bits int) {
 	sb.WriteString(value.FormatFloat(f, bits))
 }
 
+// writeJSONString writes s as a JSON string: a quote and a backslash escaped, a control character
+// as \n or its kind or else as \u00XX, U+2028 and U+2029 as \u escapes, since JavaScript once
+// read them as line breaks, and every other code point as it is, a byte that is not UTF-8 as
+// U+FFFD.
 func writeJSONString(sb *strings.Builder, s string) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	enc.Encode(s)
-	sb.WriteString(strings.TrimRight(buf.String(), "\n"))
+	const hex = "0123456789abcdef"
+	sb.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"', '\\':
+			sb.WriteByte('\\')
+			sb.WriteRune(r)
+		case '\b':
+			sb.WriteString(`\b`)
+		case '\f':
+			sb.WriteString(`\f`)
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\r':
+			sb.WriteString(`\r`)
+		case '\t':
+			sb.WriteString(`\t`)
+		case '\u2028', '\u2029':
+			sb.WriteString(`\u202`)
+			sb.WriteByte(hex[r&0xF])
+		default:
+			if r < ' ' {
+				sb.WriteString(`\u00`)
+				sb.WriteByte(hex[r>>4])
+				sb.WriteByte(hex[r&0xF])
+			} else {
+				sb.WriteRune(r)
+			}
+		}
+	}
+	sb.WriteByte('"')
 }
