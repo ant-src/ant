@@ -69,7 +69,13 @@ func init() {
 				sep := separator(g, who, a[1])
 				var sb strings.Builder
 				for _, row := range rows {
-					for i, field := range stringsArg(g, who, row) {
+					fields := stringsArg(g, who, row)
+					if len(fields) == 1 && fields[0] == "" {
+						// Unquoted, the row would be an empty line, which parse drops.
+						sb.WriteString("\"\"\n")
+						continue
+					}
+					for i, field := range fields {
 						if i > 0 {
 							sb.WriteRune(sep)
 						}

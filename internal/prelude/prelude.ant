@@ -1056,7 +1056,7 @@ func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Er
 func File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.readExactly reads exactly n bytes from f, waiting until all of them have arrived. It returns
 // null at end of file, is Err with the message "unexpected end of file" when the input ends
-// partway, and is Err when n is below 0. An n of 0 gives empty Bytes without reading, at the end of
+// partway, discarding the bytes it read, and is Err when n is below 0. An n of 0 gives empty Bytes without reading, at the end of
 // the file too.
 func File.readExactly(f: File.Handle, n: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.writeChunk writes bytes to f as they are.
@@ -1072,7 +1072,7 @@ func File.flush(f: File.Handle): Result[void, Error]
 // Path holds pure functions over paths in the host's convention: / on Unix, \ and drive letters on
 // Windows. They work on the text and never touch the file system, except [Path.abs].
 
-// Path.join joins parts with the path separator and cleans the result.
+// Path.join joins parts with the path separator and cleans the result, so no parts give ".".
 //
 //     Path.join(["a", "b/../c", "d.ant"])   // "a/c/d.ant"
 func Path.join(parts: Array[string]): string
@@ -1124,9 +1124,10 @@ type Http.Reply = { status: int, headers: Map[string, string], body: string | By
 type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], body: string, bytes: Bytes, remote: string }
 // Http.request sends one request with method, body, and headers to url and reads the whole
 // response. A response of any status is Ok, and no redirect is followed; Err means no response: a
-// malformed url, an empty method, no connection, the timeout ("timeout"), or ctx done. timeout
-// bounds the whole call and is no deadline when null; one that is not positive or has years,
-// months, or weeks is Err; when both timeout and ctx are given, the earlier wins.
+// malformed url, an empty method, header names that differ only in case, no connection, the
+// timeout ("timeout"), or ctx done. timeout bounds the whole call and is no deadline when null;
+// one that is not positive or has years, months, or weeks is Err; when both timeout and ctx are
+// given, the earlier wins.
 func Http.request(method: string, url: string, body: string | Bytes = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 // Http.get sends a GET request to url and reads the whole response. It is [Http.request] with the
 // method "GET" and an empty body.
@@ -1604,14 +1605,17 @@ func Os.stderr(): File.Handle
 // Json.Value is a JSON value: null, a boolean, a number, a string, an array, or an object. Every
 // number is a float64; [Math.toInt] converts one to an int when it is whole and in range.
 type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[string, Json.Value]
-// Json.parse parses text as one JSON value. It is Err when text is not valid JSON.
+// Json.parse parses text as one JSON value. A repeated key keeps its first place and its last
+// value. It is Err when text is not valid JSON, nests arrays and objects deeper than 10000, or
+// holds a number too large for a float64.
 //
 //     Json.parse("{\"a\": [1, 2.5]}")   // Ok{ value: Map{ "a": [1.0, 2.5] } }
 func Json.parse(text: string): Result[Json.Value, Error]
 // Json.stringify returns the compact JSON text of value. Records become objects without their tag,
 // sets arrays, time values strings, and NaN and the infinities null. It panics with "cyclic value"
-// on a value that contains itself, and panics on Bytes, which a program writes with
-// [Encoding.toBase64] instead.
+// on a value that contains itself, and panics on what has no JSON form: Bytes, which a program
+// writes with [Encoding.toBase64] instead, a function, void, a type, or a reference such as a
+// channel or a Random.
 //
 //     Json.stringify(Map{ "a": [1, 2] })   // "{\"a\":[1,2]}"
 func Json.stringify[T](value: T): string
@@ -1628,8 +1632,8 @@ func Json.stringify[T](value: T): string
 //     Csv.parse("a,\"b,c\"\n1,2\n")   // Ok{ value: [["a", "b,c"], ["1", "2"]] }
 func Csv.parse(text: string, sep: string = ","): Result[Array[Array[string]], Error]
 // Csv.stringify writes rows as CSV with sep between fields, a line per row ending in \n. A field is
-// quoted when it holds sep, a quote, or a line break, or begins with white space. It panics if sep
-// is not a separator [Csv.parse] accepts.
+// quoted when it holds sep, a quote, or a line break, or begins with white space, and a row of one
+// empty field is written "". It panics if sep is not a separator [Csv.parse] accepts.
 //
 //     Csv.stringify([["a", "b,c"], ["1", "2"]])   // "a,\"b,c\"\n1,2\n"
 func Csv.stringify(rows: Array[Array[string]], sep: string = ","): string
@@ -1664,8 +1668,8 @@ func Encoding.fromHex(s: string): Result[Bytes, Error]
 
 // Url.Parts is a URL reference divided as RFC 3986 does, with each absent part "". scheme is in
 // lower case without its colon, opaque is what follows "scheme:" when that is not "//", as in a
-// mailto: address, and user is the userinfo as written. path and fragment are decoded, while query
-// is the raw text after the ?, for [Url.parseQuery].
+// mailto: address or x:/a, and user is the userinfo as written. path and fragment are decoded, but
+// path keeps %2F and %25 as written, while query is the raw text after the ?, for [Url.parseQuery].
 type Url.Parts = { scheme: string, opaque: string, user: string, host: string, port: string, path: string, query: string, fragment: string }
 
 // Url.parse divides s, an absolute or a relative reference, into its parts. It is Err on a

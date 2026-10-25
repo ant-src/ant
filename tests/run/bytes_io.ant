@@ -36,6 +36,7 @@ func main(): void {
   var g = Result.unwrap(File.open(path))
   println(File.readExactly(g, 0))
   println(File.readChunk(g, 4))
+  // A file that ends partway through readExactly's bytes: they are discarded with the Err.
   println(File.readExactly(g, 100))
   println(File.readChunk(g, 100))
   println(File.readChunk(g, 0))
@@ -43,7 +44,7 @@ func main(): void {
   File.close(g)
   println(File.readBytes(path) | Result.map({ Bytes.slice(x, 7, 13) }))
 
-  // A length from the other end allocates only what arrives.
+  // A length from the other end allocates only what arrives, and an early end discards it.
   var h = Result.unwrap(File.open(path))
   println(File.readExactly(h, 1099511627776))
   println(File.readChunk(h, 1099511627776) | Result.map({ len(x ?? String.toBytes("")) }))
@@ -103,12 +104,12 @@ func main(): void {
 // out: Ok{ value: Bytes() }
 // out: Ok{ value: Bytes(53 49 5a 45) }
 // out: Err{ error: Error{ message: "unexpected end of file" } }
-// out: Ok{ value: Bytes(20 36 0a ff 00 fe 01 02 03) }
+// out: Ok{ value: null }
 // out: Err{ error: Error{ message: "the most to read is 0; it must be at least 1" } }
 // out: Err{ error: Error{ message: "the count to read is -1; it must be at least 0" } }
 // out: Ok{ value: Bytes(ff 00 fe 01 02 03) }
 // out: Err{ error: Error{ message: "unexpected end of file" } }
-// out: Ok{ value: 13 }
+// out: Ok{ value: 0 }
 // out: true
 // out: true
 // out: true

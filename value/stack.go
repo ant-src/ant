@@ -30,3 +30,20 @@ func OnFreshStack(f func()) {
 		panic(p)
 	}
 }
+
+// Ancestors holds the containers a walk is inside, the enclosing ones of the value at hand, as a
+// set, so that a deep value is walked in linear time and a cyclic one ends: rendering writes ...
+// where Enter fails, and Json.stringify panics.
+type Ancestors map[any]bool
+
+// Enter adds v, or reports false when v is already being walked: a cycle.
+func (a Ancestors) Enter(v any) bool {
+	if a[v] {
+		return false
+	}
+	a[v] = true
+	return true
+}
+
+// Leave removes v once its walk is done.
+func (a Ancestors) Leave(v any) { delete(a, v) }

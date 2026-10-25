@@ -27,13 +27,78 @@ func queryUnescape(s string) (string, error) {
 	return s, err
 }
 
-// partsRecord builds a Url.Parts from a parsed URL.
-func partsRecord(u *url.URL) value.Value {
+// keptEscape reports whether s starts with an escape that a path keeps: %2F, a slash that is not a
+// separator, or %25, so that a path's text tells the two apart from what it decodes to.
+func keptEscape(s string) bool {
+	return len(s) >= 3 && s[0] == '%' && (s[1:3] == "25" || strings.EqualFold(s[1:3], "2F"))
+}
+
+// decodePath decodes the escapes of an escaped path but the ones it keeps.
+func decodePath(escaped string) (string, error) {
+	var sb strings.Builder
+	for escaped != "" {
+		i := strings.IndexByte(escaped, '%')
+		for i >= 0 && !keptEscape(escaped[i:]) {
+			j := strings.IndexByte(escaped[i+1:], '%')
+			if j < 0 {
+				i = -1
+			} else {
+				i += 1 + j
+			}
+		}
+		run := escaped
+		if i >= 0 {
+			run = escaped[:i]
+		}
+		d, err := url.PathUnescape(run)
+		if err != nil {
+			return "", err
+		}
+		sb.WriteString(d)
+		if i < 0 {
+			break
+		}
+		sb.WriteString(escaped[i : i+3])
+		escaped = escaped[i+3:]
+	}
+	return sb.String(), nil
+}
+
+// partsRecord builds a Url.Parts from a parsed URL. What follows "scheme:" is opaque when it does
+// not start with //, a single / included, so a reference with no authority is told apart from
+// one whose authority is empty.
+func partsRecord(u *url.URL) (value.Value, error) {
 	user := ""
 	if u.User != nil {
 		user = u.User.String()
 	}
-	return value.NewRecord(PartsTag, []value.Value{u.Scheme, u.Opaque, user, u.Hostname(), u.Port(), u.Path, u.RawQuery, u.Fragment})
+	path, err := decodePath(u.EscapedPath())
+	if err != nil {
+		return nil, err
+	}
+	opaque := u.Opaque
+	if u.OmitHost && u.Host == "" && u.User == nil {
+		opaque, path = u.EscapedPath(), ""
+	}
+	return value.NewRecord(PartsTag, []value.Value{u.Scheme, opaque, user, u.Hostname(), u.Port(), path, u.RawQuery, u.Fragment}), nil
+}
+
+// escapePath escapes a path for a URL, keeping the escapes decodePath keeps and escaping every
+// other %.
+func escapePath(path string) string {
+	var sb strings.Builder
+	for {
+		i := 0
+		for i < len(path) && !keptEscape(path[i:]) {
+			i++
+		}
+		sb.WriteString((&url.URL{Path: path[:i]}).EscapedPath())
+		if i == len(path) {
+			return sb.String()
+		}
+		sb.WriteString(path[i : i+3])
+		path = path[i+3:]
+	}
 }
 
 // partsURL rebuilds a URL from a Url.Parts record.
@@ -46,7 +111,9 @@ func partsURL(g *interp.Goroutine, who string, v value.Value) *url.URL {
 		f, _ := r.Field(name)
 		return stringArg(g, who, f)
 	}
-	u := &url.URL{Scheme: field("scheme"), Opaque: field("opaque"), Path: field("path"), RawQuery: field("query"), Fragment: field("fragment")}
+	u := &url.URL{Scheme: field("scheme"), Opaque: field("opaque"), RawQuery: field("query"), Fragment: field("fragment")}
+	u.RawPath = escapePath(field("path"))
+	u.Path, _ = url.PathUnescape(u.RawPath)
 	if user := field("user"); user != "" {
 		name, pass, hasPass := strings.Cut(user, ":")
 		// An escape that does not decode stays as written, and is escaped as a whole.
@@ -82,10 +149,14 @@ func init() {
 				if err == nil && !(utf8.ValidString(u.Host) && utf8.ValidString(u.Path) && utf8.ValidString(u.Fragment)) {
 					err = errNotUTF8
 				}
+				var parts value.Value
+				if err == nil {
+					parts, err = partsRecord(u)
+				}
 				if err != nil {
 					return errResult(err)
 				}
-				return value.Ok(partsRecord(u))
+				return value.Ok(parts)
 			}),
 			fn("Url.stringify", "parts", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return partsURL(g, who, a[0]).String()

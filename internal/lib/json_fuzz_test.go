@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -18,15 +17,15 @@ func FuzzJSON(f *testing.F) {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, src string) {
-		v, err := parseJSON(json.NewDecoder(strings.NewReader(src)))
+		v, err := parseJSON(src)
 		if err != nil {
 			return
 		}
 		var sb strings.Builder
-		if stringify(&sb, v, ancestors{}) != "" {
+		if stringify(&sb, v, value.Ancestors{}) != "" {
 			t.Fatal("a decoded value cannot be cyclic")
 		}
-		again, err := parseJSON(json.NewDecoder(strings.NewReader(sb.String())))
+		again, err := parseJSON(sb.String())
 		if err != nil {
 			t.Fatalf("stringify gave %q, which does not parse: %v", sb.String(), err)
 		}

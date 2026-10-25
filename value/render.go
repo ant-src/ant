@@ -23,26 +23,24 @@ func RenderQuoted(v Value) string {
 }
 
 // renderSets holds emptied sets of enclosing containers for render to reuse.
-var renderSets = sync.Pool{New: func() any { return map[any]bool{} }}
+var renderSets = sync.Pool{New: func() any { return Ancestors{} }}
 
-// stack holds the containers being rendered, the enclosing ones of v, as a set so that a deep
-// value renders in linear time.
-func render(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
+// stack holds the containers being rendered, the enclosing ones of v.
+func render(sb *strings.Builder, v Value, top bool, stack Ancestors) {
 	switch v.(type) {
 	case *Record, *Array, *Map, *Set:
-		// A container inside itself renders as ... at the inner occurrence.
-		if stack[v] {
-			sb.WriteString("...")
-			return
-		}
 		if stack == nil {
 			// OnFreshStack shares the set with another goroutine, which puts it on the heap; the
 			// pool spares a shallow rendering that allocation. Rendering empties the set again.
-			stack = renderSets.Get().(map[any]bool)
+			stack = renderSets.Get().(Ancestors)
 			defer renderSets.Put(stack)
 		}
-		stack[v] = true
-		defer delete(stack, v)
+		// A container inside itself renders as ... at the inner occurrence.
+		if !stack.Enter(v) {
+			sb.WriteString("...")
+			return
+		}
+		defer stack.Leave(v)
 		if Deep(len(stack)) {
 			OnFreshStack(func() { renderBody(sb, v, top, stack) })
 			return
@@ -52,7 +50,7 @@ func render(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
 }
 
 // renderBody renders v once render has entered it.
-func renderBody(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
+func renderBody(sb *strings.Builder, v Value, top bool, stack Ancestors) {
 	switch x := v.(type) {
 	case int64, int8, int16, int32:
 		sb.WriteString(strconv.FormatInt(toInt64(v), 10))

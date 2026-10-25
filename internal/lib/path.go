@@ -24,7 +24,8 @@ func init() {
 				for _, v := range arrayArg(g, who, a[0]).Values() {
 					parts = append(parts, stringArg(g, who, v))
 				}
-				return filepath.Join(parts...)
+				// filepath.Join cleans its result, but leaves an empty one empty.
+				return filepath.Clean(filepath.Join(parts...))
 			}),
 			str("base", filepath.Base),
 			str("dir", filepath.Dir),

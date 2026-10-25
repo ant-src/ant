@@ -17,6 +17,8 @@ var none: Array[Array[string]] = []
 Csv.stringify(none)                           // => ""
 Csv.stringify([["ñ", ""]])                    // => "ñ,\n"
 Csv.parse(Csv.stringify([["x,y", "z"]]))      // => Ok{ value: [["x,y", "z"]] }
+Csv.stringify([[""], ["a"]])                  // => "\"\"\na\n"
+Csv.parse(Csv.stringify([[""], ["a"]]))       // => Ok{ value: [[""], ["a"]] }
 
 // A separator that is not one character, or is a quote, a line break, U+0000 or U+FFFD, is a
 // panic: it is part of the program, not of the data.
