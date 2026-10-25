@@ -21,14 +21,14 @@ func MakeUnion(members []Type) (Type, error) {
 				expanding[n.Decl] = true
 				aliased = true
 			}
-			switch x := Expand(t).(type) {
+			switch x := expandTop(t).(type) {
 			case Union:
 				collect(x.Members)
 			case Never:
 			default:
 				dup := false
 				for _, f := range flat {
-					if Equal(f, t) {
+					if sameMember(f, t) {
 						dup = true
 						break
 					}
@@ -57,7 +57,7 @@ func MakeUnion(members []Type) (Type, error) {
 			}
 			dup := false
 			for _, w := range u.Written {
-				if Equal(w, m) {
+				if sameMember(w, m) {
 					dup = true
 					break
 				}
@@ -70,14 +70,74 @@ func MakeUnion(members []Type) (Type, error) {
 	return u, nil
 }
 
+// sameMember reports whether two members of a union are the same type. Only members with one
+// discriminator, or two without one, can be, and comparing that first spares Equal the expansion of an alias whose
+// body holds a union naming the alias itself, which needs this very union.
+func sameMember(a, b Type) bool {
+	ka, _, oka := Discriminator(a)
+	kb, _, okb := Discriminator(b)
+	if oka != okb || oka && ka != kb {
+		return false
+	}
+	return Equal(a, b)
+}
+
 // Join forms the union of branch types where control merges, or returns an error to report.
 func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
+
+// expandTop expands an alias as far as a union needs to see it: a body that is a union, a type
+// parameter, or another alias is substituted, and any other body comes back as declared, with
+// its own parameters. Its form and discriminator are those of the full expansion, and nothing
+// inside an array, map, set, function or record is substituted, which for an alias whose body
+// holds a union naming the alias itself, as in type L[T] = Array[L[T] | int], would not end.
+func expandTop(t Type) Type {
+	var met map[*Decl]bool
+	for i := 0; ; i++ {
+		n, ok := t.(Named)
+		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
+			return t
+		}
+		if i >= 64 {
+			if met == nil {
+				met = map[*Decl]bool{}
+			}
+			if met[n.Decl] {
+				panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
+			}
+			met[n.Decl] = true
+		}
+		m := Bindings(n.Decl.Params, n.Args)
+		switch b := n.Decl.Body.(type) {
+		case Union, Param:
+		case Named:
+			// Only the arguments: substituting the alias itself checks its body, which may
+			// hold a union naming the alias being expanded.
+			args := make([]Type, len(b.Args))
+			for i, a := range b.Args {
+				s, err := Subst(a, m)
+				if err != nil {
+					panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
+				}
+				args[i] = s
+			}
+			t = Named{Decl: b.Decl, Args: args}
+			continue
+		default:
+			return n.Decl.Body
+		}
+		body, err := Subst(n.Decl.Body, m)
+		if err != nil {
+			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
+		}
+		t = body
+	}
+}
 
 // Discriminator is what is tests at run time: a kind, a tag, or a shape class, as a key that two
 // types share exactly when is cannot tell them apart, and as words for a message. A sync type
 // has none, since is does not accept one (section 4, Unions).
 func Discriminator(t Type) (key, describe string, ok bool) {
-	switch x := Expand(t).(type) {
+	switch x := expandTop(t).(type) {
 	case Prim:
 		return "kind:" + x.Kind.String(), x.Kind.String(), true
 	case Null:
@@ -105,6 +165,10 @@ func Discriminator(t Type) (key, describe string, ok bool) {
 	return "", "", false
 }
 
+// CheckUnion reports an error when the members of a formed union, which may name an alias
+// whose body was not yet known when the union was formed, share a discriminator.
+func CheckUnion(members []Type) error { return checkDiscriminators(members) }
+
 func checkDiscriminators(members []Type) error {
 	seen := map[string]Type{}
 	var record Type
@@ -114,7 +178,7 @@ func checkDiscriminators(members []Type) error {
 	for _, m := range members {
 		key, desc, ok := Discriminator(m)
 		if !ok {
-			if n, isNamed := Expand(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
+			if n, isNamed := expandTop(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
 				if opaque != nil {
 					return fmt.Errorf("a union may contain at most one sync type, since is cannot tell %s from %s", String(opaque), String(m))
 				}
@@ -127,7 +191,7 @@ func checkDiscriminators(members []Type) error {
 				String(prev), String(m), strings.TrimPrefix(desc, "the "))
 		}
 		seen[key] = m
-		switch x := Expand(m).(type) {
+		switch x := expandTop(m).(type) {
 		case Record:
 			record = m
 		case Param:
@@ -144,7 +208,7 @@ func checkDiscriminators(members []Type) error {
 	}
 	if len(params) > 0 {
 		for _, m := range members {
-			switch x := Expand(m).(type) {
+			switch x := expandTop(m).(type) {
 			case Param, Null, Void:
 			case Named:
 				if len(x.Args) > 0 {

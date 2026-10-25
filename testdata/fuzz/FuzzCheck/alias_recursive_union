@@ -1,0 +1,2 @@
+go test fuzz v1
+string("type L[T] = Array[L[T] | int]\ntype Tree[T] = Array[Tree[T] | Box[T]]\ntype Box[T] = { value: T }\n\nfunc main(): void {\n  var x: L[string] = [1, [2]]\n  var t: Tree[int] = [Box{ value: 1 }]\n  println(x)\n  println(t)\n}\n")

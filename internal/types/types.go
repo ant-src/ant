@@ -207,25 +207,33 @@ func (n Named) FieldsOf() []Field {
 
 // ---- equality
 
-// Equal reports whether two types are the same type.
-func Equal(a, b Type) bool { return equal(a, b, 0) }
+// Equal reports whether two types are the same type. A recursive alias is compared as the
+// infinite type it stands for: a pair of types already under comparison is assumed equal, as
+// == does for values, so that type L[T] = Array[L[T] | int] ends.
+func Equal(a, b Type) bool { return equal(a, b, &[][2]Type{}) }
 
-func equal(a, b Type, depth int) bool {
-	if depth > 64 {
-		return false
-	}
+func equal(a, b Type, assumed *[][2]Type) bool {
 	if na, ok := a.(Named); ok {
 		if nb, ok := b.(Named); ok && na.Decl == nb.Decl {
 			if len(na.Args) != len(nb.Args) {
 				return false
 			}
 			for i := range na.Args {
-				if !equal(na.Args[i], nb.Args[i], depth+1) {
+				if !equal(na.Args[i], nb.Args[i], assumed) {
 					return false
 				}
 			}
 			return true
 		}
+	}
+	if isAlias(a) || isAlias(b) {
+		for _, p := range *assumed {
+			if identical(p[0], a) && identical(p[1], b) {
+				return true
+			}
+		}
+		*assumed = append(*assumed, [2]Type{a, b})
+		defer func() { *assumed = (*assumed)[:len(*assumed)-1] }()
 	}
 	a, b = Expand(a), Expand(b)
 	switch x := a.(type) {
@@ -246,24 +254,24 @@ func equal(a, b Type, depth int) bool {
 		return ok
 	case Array:
 		y, ok := b.(Array)
-		return ok && equal(x.Elem, y.Elem, depth+1)
+		return ok && equal(x.Elem, y.Elem, assumed)
 	case Map:
 		y, ok := b.(Map)
-		return ok && equal(x.Key, y.Key, depth+1) && equal(x.Val, y.Val, depth+1)
+		return ok && equal(x.Key, y.Key, assumed) && equal(x.Val, y.Val, assumed)
 	case Set:
 		y, ok := b.(Set)
-		return ok && equal(x.Elem, y.Elem, depth+1)
+		return ok && equal(x.Elem, y.Elem, assumed)
 	case Func:
 		y, ok := b.(Func)
 		if !ok || len(x.Params) != len(y.Params) || x.Required != y.Required {
 			return false
 		}
 		for i := range x.Params {
-			if !equal(x.Params[i], y.Params[i], depth+1) {
+			if !equal(x.Params[i], y.Params[i], assumed) {
 				return false
 			}
 		}
-		return equal(x.Return, y.Return, depth+1)
+		return equal(x.Return, y.Return, assumed)
 	case Record:
 		y, ok := b.(Record)
 		if !ok || len(x.Fields) != len(y.Fields) {
@@ -274,7 +282,7 @@ func equal(a, b Type, depth int) bool {
 			found := false
 			for _, g := range y.Fields {
 				if g.Name == f.Name {
-					found = equal(f.Type, g.Type, depth+1)
+					found = equal(f.Type, g.Type, assumed)
 					break
 				}
 			}
@@ -289,7 +297,7 @@ func equal(a, b Type, depth int) bool {
 			return false
 		}
 		for i := range x.Args {
-			if !equal(x.Args[i], y.Args[i], depth+1) {
+			if !equal(x.Args[i], y.Args[i], assumed) {
 				return false
 			}
 		}
@@ -305,7 +313,7 @@ func equal(a, b Type, depth int) bool {
 		for _, m := range x.Members {
 			found := false
 			for _, n := range y.Members {
-				if equal(m, n, depth+1) {
+				if equal(m, n, assumed) {
 					found = true
 					break
 				}
@@ -317,6 +325,67 @@ func equal(a, b Type, depth int) bool {
 		return true
 	}
 	return false
+}
+
+func isAlias(t Type) bool {
+	n, ok := t.(Named)
+	return ok && n.Decl.Kind == AliasDecl && n.Decl.Body != nil
+}
+
+// identical reports whether two types are written alike, expanding no alias.
+func identical(a, b Type) bool {
+	switch x := a.(type) {
+	case Named:
+		y, ok := b.(Named)
+		return ok && x.Decl == y.Decl && identicalAll(x.Args, y.Args)
+	case Param:
+		y, ok := b.(Param)
+		return ok && x.Decl == y.Decl
+	case Prim:
+		y, ok := b.(Prim)
+		return ok && x.Kind == y.Kind
+	case Array:
+		y, ok := b.(Array)
+		return ok && identical(x.Elem, y.Elem)
+	case Map:
+		y, ok := b.(Map)
+		return ok && identical(x.Key, y.Key) && identical(x.Val, y.Val)
+	case Set:
+		y, ok := b.(Set)
+		return ok && identical(x.Elem, y.Elem)
+	case Func:
+		y, ok := b.(Func)
+		return ok && x.Required == y.Required && identicalAll(x.Params, y.Params) && identical(x.Return, y.Return)
+	case Record:
+		y, ok := b.(Record)
+		if !ok || len(x.Fields) != len(y.Fields) {
+			return false
+		}
+		for i, f := range x.Fields {
+			if f.Name != y.Fields[i].Name || !identical(f.Type, y.Fields[i].Type) {
+				return false
+			}
+		}
+		return true
+	case Union:
+		y, ok := b.(Union)
+		return ok && identicalAll(x.Members, y.Members)
+	case Null, Void, Never, Invalid:
+		return a == b
+	}
+	return false
+}
+
+func identicalAll(as, bs []Type) bool {
+	if len(as) != len(bs) {
+		return false
+	}
+	for i := range as {
+		if !identical(as[i], bs[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // ---- rendering

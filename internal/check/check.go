@@ -485,6 +485,68 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	c.resolveTypeDecl(ti)
 	c.checkAliasCycle(ti)
 	c.checkAliasArgs(ti)
+	c.checkCycleUnions(ti)
+}
+
+// checkCycleUnions checks again the unions of the declarations ti reaches in its module. A union
+// that names a declaration of its own cycle was formed before that declaration's body was known,
+// as Array[L[T] | Array[int]] in the body of L, and only now shows whether its members share a
+// discriminator (section 4, Unions).
+func (c *Checker) checkCycleUnions(ti *typeInfo) {
+	own := map[*types.Decl]bool{}
+	for _, t := range c.mod.types {
+		own[t.t] = true
+	}
+	if !own[ti.t] {
+		return
+	}
+	reached := map[*types.Decl]bool{ti.t: true}
+	order := []*types.Decl{ti.t}
+	for i := 0; i < len(order); i++ {
+		for _, t := range declTypes(order[i]) {
+			types.Walk(t, func(t types.Type) {
+				if n, ok := t.(types.Named); ok && own[n.Decl] && !reached[n.Decl] {
+					reached[n.Decl] = true
+					order = append(order, n.Decl)
+				}
+			})
+		}
+	}
+	for _, d := range order {
+		check := func(t types.Type) bool {
+			ok := true
+			types.Walk(t, func(t types.Type) {
+				if u, isUnion := t.(types.Union); isUnion && ok {
+					if err := types.CheckUnion(u.Members); err != nil {
+						pos, _ := d.Pos.(ast.Pos)
+						c.errorf(pos, "type %s: %s", d.Name, err)
+						ok = false
+					}
+				}
+			})
+			return ok
+		}
+		if d.Kind == types.AliasDecl && d.Body != nil && !check(d.Body) {
+			d.Body = types.Invalid{}
+		}
+		for i, f := range d.Fields {
+			if !check(f.Type) {
+				d.Fields[i].Type = types.Invalid{}
+			}
+		}
+	}
+}
+
+// declTypes lists the types a declaration's body consists of.
+func declTypes(d *types.Decl) []types.Type {
+	var out []types.Type
+	if d.Kind == types.AliasDecl && d.Body != nil {
+		out = append(out, d.Body)
+	}
+	for _, f := range d.Fields {
+		out = append(out, f.Type)
+	}
+	return out
 }
 
 func (c *Checker) resolveTypeDecl(ti *typeInfo) {

@@ -1,0 +1,28 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: a union that names a generic alias of its own cycle is checked once the alias's body
+// is known, so members that share a discriminator through the alias are a compile error at the
+// declaration, directly, through another alias, and through a mutual cycle; the same shapes with
+// distinct discriminators are fine, and using one does not loop.
+type Box[T] = { value: T }
+type Bad[T] = Array[Bad[T] | Array[int]]  // ERR: type Bad: a union may contain each discriminator at most once: Bad[T] and Array[int] are both an array
+type Via[T] = Array[Name[T] | Array[int]] // ERR: type Via: a union may contain each discriminator at most once: Name[T] and Array[int] are both an array
+type Name[T] = Via[T]
+type Even[T] = Array[Odd[T] | Map[string, int]] // ERR: Odd[T] and Map[string, int] are both a map
+type Odd[T] = Map[string, Even[T] | int]
+type Nested[T] = Array[Nested[T] | int]
+type Tree[T] = Array[Tree[T] | Box[T]]
+type Config[T] = Map[string, Config[T] | bool]
+type Deep[T] = Array[Map[string, Deep[T] | Set[T]] | Box[T]]
+
+func main(): void {
+  var n: Nested[string] = [1, [2]]
+  var t: Tree[int] = [Box{ value: 1 }, []]
+  var c: Config[int] = Map{ "a": true }
+  var d: Deep[int] = [Map{ "k": [] }]
+  var wrong: Tree[int] = [1] // ERR: cannot use
+  println(n)
+  println(t)
+  println(c)
+  println(d)
+  println(wrong)
+}
