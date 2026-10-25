@@ -95,15 +95,17 @@ func (l *lexer) invalidUTF8() {
 
 func (l *lexer) here() token.Pos { return token.Pos{Line: l.line, Col: l.col} }
 
+// peek returns the byte k bytes ahead. Past the end it returns 0, which only keeps a test of the
+// byte from holding there: a NUL byte is a character like any other, so the end of the input is
+// tested with atEnd and never by comparing with 0.
 func (l *lexer) peek(k int) byte {
-	if l.pos+k < len(l.src) {
-		return l.src[l.pos+k]
+	if l.atEnd(k) {
+		return 0
 	}
-	return 0
+	return l.src[l.pos+k]
 }
 
-// atEnd reports whether the input ends k bytes ahead. A NUL byte is a character like any other,
-// so the 0 peek returns past the end cannot stand for the end.
+// atEnd reports whether the input ends k bytes ahead.
 func (l *lexer) atEnd(k int) bool { return l.pos+k >= len(l.src) }
 
 func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) }
@@ -111,11 +113,14 @@ func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) 
 // lineBreak reports whether a line break starts k bytes ahead: a \n, or a \r not followed by a
 // \n (section 2). The \r of a \r\n is white space before the \n.
 func (l *lexer) lineBreak(k int) bool {
-	switch l.peek(k) {
+	if l.atEnd(k) {
+		return false
+	}
+	switch l.src[l.pos+k] {
 	case '\n':
-		return !l.atEnd(k)
+		return true
 	case '\r':
-		return !l.atEnd(k) && l.peek(k+1) != '\n'
+		return l.atEnd(k+1) || l.src[l.pos+k+1] != '\n'
 	}
 	return false
 }
@@ -137,7 +142,7 @@ func NormalizeBreaks(s string) string {
 }
 
 func (l *lexer) advance(n int) {
-	for i := 0; i < n && l.pos < len(l.src); i++ {
+	for i := 0; i < n && !l.atEnd(0); i++ {
 		if l.lineBreak(0) {
 			l.line++
 			l.col = 1
@@ -168,12 +173,6 @@ func (l *lexer) keepComment(pos token.Pos, start int) {
 	}
 }
 
-// Keywords that can end an expression; every other keyword continues the line.
-var endingKeywords = map[string]bool{
-	"return": true, "break": true, "continue": true, "true": true, "false": true, "null": true,
-	"void": true,
-}
-
 // lastContinues reports whether the previous token cannot end an expression, so that a line
 // break after it is not a statement end.
 func (l *lexer) lastContinues() bool {
@@ -187,7 +186,9 @@ func (l *lexer) lastContinues() bool {
 	case token.Op:
 		return t.Text != ")" && t.Text != "]" && t.Text != "}" && t.Text != ";" && t.Text != "..."
 	case token.Keyword:
-		return !endingKeywords[t.Text]
+		// The keywords that can end an expression: the operands, and the three jumps, which
+		// are not operands (section 2). Every other keyword continues the line.
+		return !operandKeywords[t.Text] && t.Text != "return" && t.Text != "break" && t.Text != "continue"
 	}
 	return false
 }
@@ -271,7 +272,7 @@ func (l *lexer) toplevel(t token.Token) bool { return false }
 // scan lexes one token, or whitespace and comments. It returns false at the end of the source
 // or when stop reports that the token just scanned ends the current stream.
 func (l *lexer) scan(stop func(token.Token) bool) bool {
-	if l.pos >= len(l.src) {
+	if l.atEnd(0) {
 		return false
 	}
 	c := l.src[l.pos]
