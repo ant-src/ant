@@ -272,7 +272,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 		if own == "" {
 			own = defaultOwner
 		}
-		decl := &types.Decl{Name: td.Name, Pos: td.Pos}
+		decl := &types.Decl{Name: td.Name, Pos: td.Pos, Kind: declKind(td.Body)}
 		if own != "" {
 			decl.Name = own + "." + td.Name
 		}
@@ -357,7 +357,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
-			decl := &types.Decl{Name: d.Name, Pos: d.Pos}
+			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Kind: declKind(d.Body)}
 			for _, tp := range d.TypeParams {
 				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
 			}
@@ -397,7 +397,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 func targetNames(t ast.Target) []*ast.NameTarget {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		if t.Name == "_" {
+		if t.Slot.Discard {
 			return nil
 		}
 		return []*ast.NameTarget{t}
@@ -446,6 +446,23 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 		fi.ent = ent
 		owner.members[d.Name] = ent
 	}
+}
+
+// declKind is the kind a type declaration's body gives it, known before any body is resolved, so
+// that a body naming a later declaration sees whether it is a record, a primitive, or an alias.
+// resolveTypeDecl settles which kind of opaque type a declaration without a body is.
+func declKind(body ast.Type) types.DeclKind {
+	switch b := body.(type) {
+	case nil:
+		return types.OpaqueDecl
+	case *ast.RecordType:
+		return types.RecordDecl
+	case *ast.TypeName:
+		if _, ok := builtinKinds[b.Path[0]]; ok && len(b.Path) == 1 && len(b.Args) == 0 {
+			return types.PrimitiveDecl
+		}
+	}
+	return types.AliasDecl
 }
 
 func (c *Checker) resolveTypeDecl(ti *typeInfo) {
@@ -863,7 +880,7 @@ type fnCtx struct {
 	declared types.Type
 	returns  []types.Type
 	// tries holds the try expressions of a body whose return type is inferred, which must
-	// come out a Result (section 8).
+	// come out a Result, or a Result or null (section 8).
 	tries   []*ast.Unary
 	fi      *funcInfo
 	initVar *varInfo
@@ -939,7 +956,7 @@ func withRigid(rigid map[*types.ParamDecl]bool, own map[string]*types.ParamDecl)
 func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCtx) {
 	for i, p := range params {
 		l := &local{name: p.Name, typ: s.fn.Params[i], slot: p.Slot, ctx: ctx, pos: p.Pos}
-		if p.Name != "_" {
+		if !p.Slot.Discard {
 			sc.names[p.Name] = l
 		}
 	}
@@ -949,14 +966,14 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 	saved := c.fn
 	c.fn = ctx
 	for _, p := range params {
-		if p.Default != nil && p.Name != "_" {
+		if p.Default != nil && !p.Slot.Discard {
 			sc.names[p.Name].unset = true
 		}
 	}
 	for i, p := range params {
 		if p.Default != nil {
 			c.check(p.Default, sc, s.fn.Params[i])
-			if p.Name != "_" {
+			if !p.Slot.Discard {
 				sc.names[p.Name].unset = false
 			}
 		}
@@ -968,17 +985,17 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 // body's value and its returns.
 func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 	if ctx.declared != nil {
-		c.checkBlock(body, sc, ctx.declared)
+		c.block(body, sc, ctx.declared)
 		return ctx.declared
 	}
-	t := c.synthBlock(body, sc)
+	t := c.block(body, sc, nil)
 	all := append([]types.Type{t}, ctx.returns...)
 	u, err := types.MakeUnion(all)
 	if err != nil {
 		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}
 	}
-	if _, _, isResult := resultParts(u); !isResult && !types.IsInvalid(u) {
+	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !types.IsInvalid(u) {
 		for _, x := range ctx.tries {
 			c.errorf(x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
 		}

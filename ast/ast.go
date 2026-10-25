@@ -348,16 +348,18 @@ type (
 		Else Node // *If, *Block, or nil
 	}
 	While struct {
-		Pos  Pos
-		Cond Expr
-		Body *Block
+		Pos      Pos
+		Cond     Expr
+		Body     *Block
+		Assigned []string // the locals declared outside the loop that its body assigns, filled by the resolver
 	}
 	For struct {
-		Pos    Pos
-		Target Target
-		Iter   Expr
-		Body   *Block
-		Scope  *BlockScope // the per-iteration scope, filled by the resolver
+		Pos      Pos
+		Target   Target
+		Iter     Expr
+		Body     *Block
+		Scope    *BlockScope // the per-iteration scope, filled by the resolver
+		Assigned []string    // the locals declared outside the loop that its body assigns, filled by the resolver
 	}
 	// Select is a select expression (section 5): clauses with a head each, and at most one
 	// else, last.
@@ -471,6 +473,8 @@ type Slot struct {
 	// AssignedNested when it is assigned inside a nested body (section 7).
 	Reassigned     bool
 	AssignedNested bool
+	// Discard is set for _, which binds nothing: a value stored there is dropped.
+	Discard bool
 }
 
 // BlockScope describes the environment a block, loop iteration, or function allocates.

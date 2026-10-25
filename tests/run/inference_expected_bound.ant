@@ -1,0 +1,21 @@
+// spec: 4 Inference; 4 Generics
+// Section 4: a solution from the expected type that breaks the parameter's bound is skipped and
+// the arguments solve that parameter instead, so a bounded T under an expected union takes the
+// type of its arguments, and the result is then checked against the expected union.
+func bigger[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
+
+func main(): void {
+  var r: int | string = bigger(1, 2)
+  var s: int | string = bigger("a", "b")
+  var n: Number | null = bigger(1.5, 0.5)
+  println(r)
+  println(s)
+  println(n)
+  println(r is int)
+}
+
+// expect
+// out: 2
+// out: b
+// out: 1.5
+// out: true

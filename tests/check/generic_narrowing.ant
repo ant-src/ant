@@ -1,0 +1,18 @@
+// spec: 4 Generics
+// Section 4: testing a bounded T against a member of its bound narrows the value to that plain
+// member, which is no longer a T, so it cannot be returned as one; a copy made before the test
+// keeps the T.
+func narrowed[T: Ordered](x: T): T {
+  if x is int { x } else { x } // ERR: cannot use int where T is expected
+}
+
+func copied[T: Ordered](x: T): T {
+  var original = x
+  if x is int { println(x + 1); original } else { original }
+}
+
+func main(): void {
+  println(narrowed(1))
+  println(copied(1))
+  println(copied("a"))
+}

@@ -65,113 +65,13 @@ func (c *Checker) markBreak() {
 	}
 }
 
-// resetAssigned drops the narrowing of every local a loop body assigns, since the assignment
-// may have run before the next test of the condition.
-func (c *Checker) resetAssigned(body *ast.Block, sc *scope) {
-	walkAssigned(body, func(name string) {
+// resetAssigned drops the narrowing of every local declared outside a loop that its body
+// assigns, as the resolver found them, since the assignment may have run before the next test of
+// the condition.
+func (c *Checker) resetAssigned(assigned []string, sc *scope) {
+	for _, name := range assigned {
 		if l, _ := c.lookup(sc, name); l != nil {
 			delete(c.flow, l)
-		}
-	})
-}
-
-// walkAssigned calls visit with the name of every variable a statement list assigns, at any
-// depth including nested bodies.
-func walkAssigned(n ast.Node, visit func(string)) {
-	switch x := n.(type) {
-	case nil:
-	case *ast.Block:
-		for _, s := range x.Stmts {
-			walkAssigned(s, visit)
-		}
-	case *ast.VarDecl:
-		walkAssigned(x.Init, visit)
-	case *ast.Assign:
-		assignedNames(x.Target, visit)
-		walkAssigned(x.Target, visit) // the places' own sub-expressions, as m[(u = null)]
-		walkAssigned(x.Value, visit)
-	case *ast.AssignArray:
-		for _, e := range x.Elems {
-			walkAssigned(e, visit)
-		}
-		if x.Rest != nil {
-			walkAssigned(x.Rest, visit)
-		}
-	case *ast.If:
-		walkAssigned(x.Cond, visit)
-		walkAssigned(x.Then, visit)
-		walkAssigned(x.Else, visit)
-	case *ast.While:
-		walkAssigned(x.Cond, visit)
-		walkAssigned(x.Body, visit)
-	case *ast.For:
-		walkAssigned(x.Iter, visit)
-		walkAssigned(x.Body, visit)
-	case *ast.Select:
-		for _, cl := range x.Clauses {
-			if cl.Head != nil {
-				walkAssigned(cl.Head, visit)
-			}
-			walkAssigned(cl.Body, visit)
-		}
-	case *ast.Go:
-		walkAssigned(x.Body, visit)
-	case *ast.Defer:
-		walkAssigned(x.Body, visit)
-	case *ast.Lambda:
-		walkAssigned(x.Body, visit)
-	case *ast.FuncLit:
-		walkAssigned(x.Body, visit)
-	case *ast.Call:
-		walkAssigned(x.Fn, visit)
-		for _, a := range x.Args {
-			walkAssigned(a.Value, visit)
-		}
-	case *ast.Binary:
-		walkAssigned(x.X, visit)
-		walkAssigned(x.Y, visit)
-	case *ast.Unary:
-		walkAssigned(x.X, visit)
-	case *ast.Field:
-		walkAssigned(x.X, visit)
-	case *ast.Index:
-		walkAssigned(x.X, visit)
-		walkAssigned(x.Index, visit)
-	case *ast.Return:
-		walkAssigned(x.Value, visit)
-	case *ast.Template:
-		for _, p := range x.Parts {
-			walkAssigned(p.Expr, visit)
-		}
-	case *ast.ArrayLit:
-		for _, e := range x.Elems {
-			walkAssigned(e.Value, visit)
-		}
-	case *ast.MapLit:
-		for _, e := range x.Entries {
-			walkAssigned(e.Key, visit)
-			walkAssigned(e.Value, visit)
-		}
-	case *ast.RecordLit:
-		for _, e := range x.Entries {
-			walkAssigned(e.Value, visit)
-			walkAssigned(e.Spread, visit)
-		}
-	case *ast.Is:
-		walkAssigned(x.X, visit)
-	}
-}
-
-func assignedNames(t ast.Node, visit func(string)) {
-	switch x := t.(type) {
-	case *ast.Ident:
-		visit(x.Name)
-	case *ast.AssignArray:
-		for _, e := range x.Elems {
-			assignedNames(e, visit)
-		}
-		if x.Rest != nil {
-			assignedNames(x.Rest, visit)
 		}
 	}
 }
@@ -264,14 +164,6 @@ func (c *Checker) nullTest(x *ast.Binary, sc *scope) (*local, bool) {
 
 // ---- blocks and statements
 
-func (c *Checker) synthBlock(b *ast.Block, sc *scope) types.Type {
-	return c.block(b, sc, nil)
-}
-
-func (c *Checker) checkBlock(b *ast.Block, sc *scope, expected types.Type) types.Type {
-	return c.block(b, sc, expected)
-}
-
 // block checks a block's statements in a new scope. Its type is that of the last expression,
 // checked against expected when there is one, or void.
 func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type {
@@ -357,7 +249,7 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string, types.Type)) {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		if t.Name != "_" {
+		if !t.Slot.Discard {
 			bind(t.Name, src)
 		}
 	case *ast.RecordTarget:
@@ -541,18 +433,16 @@ func narrowedToNever(wt, wf flow) bool {
 }
 
 func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
-	c.resetAssigned(x.Body, sc)
-	loop := &loopCtx{}
-	c.fn.loops = append(c.fn.loops, loop)
-	wt, wf := c.cond(x.Cond, sc)
-	c.flow = wt
-	c.synthBlock(x.Body, sc)
-	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
-	c.flow = wf
-	for _, b := range loop.breaks {
-		c.flow = joinFlows(c.flow, b)
-	}
-	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && len(loop.breaks) == 0 {
+	c.resetAssigned(x.Assigned, sc)
+	var wf flow
+	breaks := c.loop(func() {
+		var wt flow
+		wt, wf = c.cond(x.Cond, sc)
+		c.flow = wt
+		c.block(x.Body, sc, nil)
+	})
+	c.flow = joinBreaks(wf, breaks)
+	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && len(breaks) == 0 {
 		return types.Never{}
 	}
 	return types.Void{}
@@ -563,17 +453,29 @@ func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	elem := c.elementType(it, x.Iter.Position())
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	c.declareTarget(x.Target, elem, inner)
-	c.resetAssigned(x.Body, sc)
+	c.resetAssigned(x.Assigned, sc)
 	before := c.flow.copy()
-	loop := &loopCtx{}
-	c.fn.loops = append(c.fn.loops, loop)
-	c.synthBlock(x.Body, inner)
-	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
-	c.flow = joinFlows(before, c.flow)
-	for _, b := range loop.breaks {
-		c.flow = joinFlows(c.flow, b)
-	}
+	breaks := c.loop(func() { c.block(x.Body, inner, nil) })
+	c.flow = joinBreaks(joinFlows(before, c.flow), breaks)
 	return types.Void{}
+}
+
+// loop runs check, the part of a loop that a break leaves, and returns the state at each break.
+func (c *Checker) loop(check func()) []flow {
+	l := &loopCtx{}
+	c.fn.loops = append(c.fn.loops, l)
+	check()
+	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
+	return l.breaks
+}
+
+// joinBreaks is the state after a loop: the state where it ends without a break, joined with
+// the state at each break.
+func joinBreaks(end flow, breaks []flow) flow {
+	for _, b := range breaks {
+		end = joinFlows(end, b)
+	}
+	return end
 }
 
 // elementType is what a for binds from an iterable: an array's element, a map's Entry, a set's

@@ -1,0 +1,37 @@
+// spec: 8 try
+// Section 8: try is allowed in a function that returns a Result or null, declared or inferred;
+// an Err leaves the function as a fresh Err, widened to the declared error type.
+type NotFound = { id: int }
+type Timeout = { ms: int }
+
+func parse(s: string): Result[int, NotFound] {
+  if s == "" { Result.err(NotFound{ id: 0 }) } else { Result.ok(String.length(s)) }
+}
+
+func lookup(s: string): Result[int, NotFound | Timeout] | null {
+  if s == "skip" { return null }
+  var n = try parse(s)
+  Result.ok(n + 1)
+}
+
+func inferred(s: string) {
+  var n = try parse(s)
+  if n > 3 { null } else { Ok{ value: n } }
+}
+
+func main(): void {
+  println(lookup("skip"))
+  println(lookup(""))
+  println(lookup("ab"))
+  println(inferred(""))
+  println(inferred("abcd"))
+  println(inferred("a"))
+}
+
+// expect
+// out: null
+// out: Err{ error: NotFound{ id: 0 } }
+// out: Ok{ value: 3 }
+// out: Err{ error: NotFound{ id: 0 } }
+// out: null
+// out: Ok{ value: 1 }

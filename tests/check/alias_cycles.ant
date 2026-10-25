@@ -1,12 +1,17 @@
 // spec: 4 Type declarations; 4 Unions
 // Section 4: an alias that reaches itself without passing through a record, array, map, set, or
 // function is an error, directly, through a union, through a chain of aliases, and whichever
-// declaration order the cycle is written in; a later declaration that mentions the cyclic alias
-// does not loop. Recursion through a record, an array, a set or a map is fine.
+// declaration order the cycle is written in, with or without type parameters; a later declaration
+// that mentions the cyclic alias does not loop, and an alias may name a later alias. Recursion
+// through a record, an array, a set or a map is fine.
 type Self = Self | null // ERR: without passing through a record, array, map, set, or function
 type Chain = Link | int
 type Link = Chain | string // ERR: refers to itself without passing through
 type Mentions = Self | Link | bool
+type Same[T] = Same[T] // ERR: type Same refers to itself without passing through
+type Plain = Plain     // ERR: type Plain refers to itself without passing through
+type Early = Later
+type Later = int | string
 type Tree = { value: int, children: Array[Tree] }
 type Forest = Array[Tree] | null
 type Bag = Set[Bag] | Map[string, Bag] | null
@@ -19,4 +24,6 @@ func main(): void {
   println(t)
   println(f)
   println(p)
+  var e: Early = "e"
+  println(e)
 }

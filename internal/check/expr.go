@@ -62,7 +62,7 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	case *ast.Call:
 		t = c.call(x, sc, expected)
 	case *ast.Block:
-		t = c.checkBlock(x, sc, expected)
+		t = c.block(x, sc, expected)
 	case *ast.Binary:
 		if x.Op == "??" {
 			t = c.nullish(x, sc, expected)
@@ -86,16 +86,24 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 		return nil
 	}
 	ent := c.entityPath(e, sc)
-	if ent == nil || ent.kind != entFunc {
+	if ent == nil {
 		return nil
 	}
-	if t := convValue(ent, f); t != nil {
-		return t
+	var s *sig
+	switch {
+	case ent.kind == entType:
+		s = ctorSig(ent.decl)
+	case ent.kind != entFunc:
+		return nil
+	default:
+		if t := convValue(ent, f); t != nil {
+			return t
+		}
+		if t := c.lenValue(ent, f, e.Position()); t != nil {
+			return t
+		}
+		s = c.sigOf(ent, e.Position())
 	}
-	if t := c.lenValue(ent, f, e.Position()); t != nil {
-		return t
-	}
-	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil
 	}
@@ -243,7 +251,7 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 	case *ast.Continue:
 		return types.Never{}
 	case *ast.Block:
-		return c.synthBlock(x, sc)
+		return c.block(x, sc, nil)
 	case *ast.Placeholder:
 		return types.Invalid{}
 	}
@@ -254,7 +262,7 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 // ---- names
 
 func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
-	if x.Name == "_" {
+	if x.Ref.Kind == ast.RefDiscard {
 		c.errorf(x.Pos, "_ is write-only and cannot be read")
 		return types.Invalid{}
 	}
@@ -305,7 +313,18 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 		return s.fn
 	case entType:
 		if ent.decl.Kind == types.PrimitiveDecl {
-			return c.constructorType(ent.decl)
+			// type Id[T] = string: only an expected function type fixes T (genericValue).
+			fn := constructorType(ent.decl)
+			if len(ent.decl.Params) == 0 {
+				return fn
+			}
+			args := make([]types.Type, len(ent.decl.Params))
+			for i, p := range ent.decl.Params {
+				c.errorf(pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, ent.decl.Name)
+				args[i] = types.Invalid{}
+			}
+			fn.Return = types.Named{Decl: ent.decl, Args: args}
+			return fn
 		}
 		c.errorf(pos, "%s is a type, not a value; a type appears only as a literal head, after is, or before a dot", ent.decl.Name)
 		return types.Invalid{}
@@ -316,13 +335,23 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 	return types.Invalid{}
 }
 
-// constructorType is the function type of a named primitive type's constructor.
-func (c *Checker) constructorType(decl *types.Decl) types.Type {
+// constructorType is the function type of a named primitive type's constructor, with the type's
+// own parameters free.
+func constructorType(decl *types.Decl) types.Func {
 	var args []types.Type
 	for _, p := range decl.Params {
 		args = append(args, types.Param{Decl: p})
 	}
 	return types.Func{Params: []types.Type{types.Prim{Kind: decl.Base}}, Return: types.Named{Decl: decl, Args: args}, Required: 1}
+}
+
+// ctorSig is the signature of a generic named primitive type's constructor, which is generic in
+// the type's parameters, or nil for any other type.
+func ctorSig(decl *types.Decl) *sig {
+	if decl.Kind != types.PrimitiveDecl || len(decl.Params) == 0 {
+		return nil
+	}
+	return &sig{tparams: decl.Params, fn: constructorType(decl), name: decl.Name}
 }
 
 // sigOf returns a function entity's signature with its return type known.
@@ -927,7 +956,7 @@ func (c *Checker) withNested(ctx *fnCtx, f func() types.Type) types.Type {
 func (c *Checker) nestedBody(body *ast.Block, sc *scope, kind string) {
 	ctx := &fnCtx{parent: c.fn, kind: kind, name: kind + " block"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
-	c.withNested(ctx, func() types.Type { c.synthBlock(body, inner); return types.Void{} })
+	c.withNested(ctx, func() types.Type { c.block(body, inner, nil); return types.Void{} })
 }
 
 // ---- operators
@@ -1098,7 +1127,7 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 	}
 	errRec := types.Named{Decl: c.prelude["Err"].decl, Args: []types.Type{errT}}
 	if fn.declared != nil {
-		_, declaredErr, isResult := resultParts(fn.declared)
+		_, declaredErr, isResult := resultParts(types.Without(fn.declared, types.Null{}))
 		if !isResult || !types.Assignable(errT, declaredErr) {
 			c.errorf(x.Pos, "try would return %s, but the function returns %s", types.String(errRec), types.String(fn.declared))
 		}
@@ -1328,7 +1357,7 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 	switch t := x.Target.(type) {
 	case *ast.Ident:
-		if t.Name == "_" {
+		if t.Ref.Kind == ast.RefDiscard {
 			if x.Op != "=" {
 				// a compound assignment reads its target
 				c.errorf(t.Pos, "_ is write-only and cannot be read")
@@ -1444,7 +1473,7 @@ func (c *Checker) assignArray(t *ast.AssignArray, v types.Type, sc *scope) {
 func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 	switch t := p.(type) {
 	case *ast.Ident:
-		if t.Name == "_" {
+		if t.Ref.Kind == ast.RefDiscard {
 			return
 		}
 		l, ent := c.lookup(sc, t.Name)

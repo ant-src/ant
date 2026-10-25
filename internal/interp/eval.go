@@ -536,7 +536,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
 		}
 		for i := 0; i < np; i++ {
-			setParam(env, &f.Params[i], args[i])
+			env.set(f.Params[i].Slot, args[i])
 			filled[i] = true
 		}
 		for i := np; i < len(args); i++ {
@@ -553,7 +553,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			if filled[idx] {
 				g.panicf(pos, "the parameter %s is given twice", names[i])
 			}
-			setParam(env, &f.Params[idx], args[i])
+			env.set(f.Params[idx].Slot, args[i])
 			filled[idx] = true
 		}
 		for i := range f.Params {
@@ -568,7 +568,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 			if c == ctlReturn {
 				return v // a try in the default returned the Err from the callee
 			}
-			setParam(env, p, v)
+			env.set(p.Slot, v)
 		}
 	}
 	v, _ := g.evalBlock(f.Body, env)
@@ -977,9 +977,6 @@ func (g *Goroutine) storePlaces(p place, v value.Value) {
 func (g *Goroutine) bind(t ast.Target, v value.Value, env *Env) {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		if t.Name == "_" {
-			return
-		}
 		if t.Slot.Module {
 			env.mod.set(t.Slot.Index, v)
 			return

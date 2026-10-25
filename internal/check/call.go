@@ -1,7 +1,6 @@
 package check
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/ant-src/ant/ast"
@@ -658,35 +657,18 @@ func expectedPart(result, expected types.Type) types.Type {
 	return u
 }
 
+// sameDiscriminator reports whether a and b are members that is tells apart by the same kind,
+// tag or shape. A sync type has no discriminator, but a union holds at most one, so it pairs with
+// its own declaration.
 func sameDiscriminator(a, b types.Type) bool {
-	ka, oka := discriminatorOf(a)
-	kb, okb := discriminatorOf(b)
-	return oka && okb && ka == kb
-}
-
-func discriminatorOf(t types.Type) (string, bool) {
-	switch x := types.Expand(t).(type) {
-	case types.Prim:
-		return "kind:" + x.Kind.String(), true
-	case types.Null:
-		return "null", true
-	case types.Void:
-		return "void", true
-	case types.Array:
-		return "array", true
-	case types.Map:
-		return "map", true
-	case types.Set:
-		return "set", true
-	case types.Func:
-		return "func", true
-	case types.Named:
-		// by declaration: two modules may each declare a Point
-		return fmt.Sprintf("tag:%p", x.Decl), true
-	case types.Record:
-		return "record", true
+	ka, _, oka := types.Discriminator(a)
+	kb, _, okb := types.Discriminator(b)
+	if oka || okb {
+		return oka && okb && ka == kb
 	}
-	return "", false
+	na, isA := types.Expand(a).(types.Named)
+	nb, isB := types.Expand(b).(types.Named)
+	return isA && isB && na.Decl == nb.Decl
 }
 
 // synthWithPattern synthesizes an argument whose parameter type still mentions unsolved type
@@ -825,19 +807,25 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 		return nil
 	}
 	ent := c.entityPath(e, sc)
-	if ent == nil || ent.kind != entFunc {
+	if ent == nil {
 		return nil
 	}
-	if t := convValue(ent, pf); t != nil {
-		return t
-	}
-	if ent.isLen {
+	var s *sig
+	switch {
+	case ent.kind == entType:
+		s = ctorSig(ent.decl)
+	case ent.kind != entFunc:
+		return nil
+	case convValue(ent, pf) != nil:
+		return convValue(ent, pf)
+	case ent.isLen:
 		if len(pf.Params) == 1 && types.Mentions(pf.Params[0], unsolved) {
 			return nil
 		}
 		return c.lenValue(ent, pf, e.Position())
+	default:
+		s = c.sigOf(ent, e.Position())
 	}
-	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil
 	}

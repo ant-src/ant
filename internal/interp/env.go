@@ -49,18 +49,14 @@ func (e *Env) get(slot ast.Slot) value.Value {
 }
 
 func (e *Env) set(slot ast.Slot, v value.Value) {
+	if slot.Discard {
+		return // _ binds nothing
+	}
 	if slot.Shared {
 		e.shared[slot.Index].Store(v)
 		return
 	}
 	e.plain[slot.Index] = v
-}
-
-// setParam binds a parameter; a parameter named _ binds nothing and has no slot.
-func setParam(e *Env, p *ast.Param, v value.Value) {
-	if p.Name != "_" {
-		e.set(p.Slot, v)
-	}
 }
 
 // ---- functions
