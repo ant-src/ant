@@ -197,8 +197,9 @@ func (d Duration) String() string {
 	return sb.String()
 }
 
-// ParseDuration reads ISO 8601's PnYnMnWnDTnHnMnS with an optional sign, where only the last
-// time component may carry a fraction, which is spread over the smaller units.
+// ParseDuration reads ISO 8601's PnYnMnWnDTnHnMnS with an optional sign, in capitals, where only
+// the last time component may carry a fraction, after a point and of up to nine digits, which is
+// spread over the smaller units.
 func ParseDuration(s string) (Duration, error) {
 	bad := func() (Duration, error) { return Duration{}, fmt.Errorf("not a duration: %q", s) }
 	i := 0
@@ -209,7 +210,7 @@ func ParseDuration(s string) (Duration, error) {
 		}
 		i++
 	}
-	if i >= len(s) || (s[i] != 'P' && s[i] != 'p') {
+	if i >= len(s) || s[i] != 'P' {
 		return bad()
 	}
 	i++
@@ -222,7 +223,7 @@ func ParseDuration(s string) (Duration, error) {
 	order := map[byte]int{'Y': 0, 'M': 1, 'W': 2, 'D': 3, 'H': 4, 'S': 6}
 	for i < len(s) {
 		c := s[i]
-		if c == 'T' || c == 't' {
+		if c == 'T' {
 			if inTime {
 				return bad()
 			}
@@ -242,7 +243,7 @@ func ParseDuration(s string) (Duration, error) {
 		}
 		digits := s[start:i]
 		var fraction string
-		if i < len(s) && (s[i] == '.' || s[i] == ',') {
+		if i < len(s) && s[i] == '.' {
 			i++
 			fs := i
 			for i < len(s) && isDigit(s[i]) {
@@ -258,9 +259,6 @@ func ParseDuration(s string) (Duration, error) {
 		}
 		designator := s[i]
 		i++
-		if designator >= 'a' && designator <= 'z' {
-			designator -= 'a' - 'A'
-		}
 		var idx int
 		switch {
 		case designator == 'M' && inTime:

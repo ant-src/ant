@@ -277,7 +277,9 @@ func TestDurationText(t *testing.T) {
 			t.Errorf("%s parses to %v (%v), want %v", s, got, err, want)
 		}
 	}
-	for _, bad := range []string{"", "P", "PT", "1H", "P1H", "PT1.5H30M", "P1D2Y", "P1.5D", "PT1S1M", "P1DT", "PT1.1234567890S", "P-1D", "PT1H.5S"} {
+	for _, bad := range []string{"", "P", "PT", "1H", "P1H", "PT1.5H30M", "P1D2Y", "P1.5D", "PT1S1M", "P1DT", "PT1.1234567890S", "P-1D", "PT1H.5S",
+		// Only the grammar of stdlib.md: capitals and a point.
+		"pt1h", "p1D", "Pt1H", "PT1h", "P1d", "PT1,5S", "-pT1H"} {
 		if _, err := ParseDuration(bad); err == nil {
 			t.Errorf("%q accepted", bad)
 		}
