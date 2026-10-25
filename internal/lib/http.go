@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -30,11 +31,13 @@ func timeout(g *interp.Goroutine, who string, v value.Value) (time.Duration, err
 	return goDuration(durationArg(g, who, v))
 }
 
-// headers reads an optional Map[string, string] of request headers.
-func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) {
+// headers reads an optional Map[string, string] of request headers. Two names that differ only in
+// case name one header, which the map would give two values, so they are an error.
+func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) error {
 	if !given(v) {
-		return
+		return nil
 	}
+	seen := map[string]string{}
 	for _, e := range mapArg(g, who, v).Entries() {
 		k, ok := e.Key.(string)
 		if !ok {
@@ -44,12 +47,18 @@ func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) 
 		if !ok {
 			g.Panic("%s needs string header values, got %s", who, value.Describe(e.Value))
 		}
+		lower := strings.ToLower(k)
+		if first, ok := seen[lower]; ok {
+			return fmt.Errorf("the headers %q and %q differ only in case", first, k)
+		}
+		seen[lower] = k
 		if http.CanonicalHeaderKey(k) == "Host" {
 			req.Host = val // which Go sends from the request, ignoring a Host in the headers
 			continue
 		}
 		req.Header.Set(k, val)
 	}
+	return nil
 }
 
 // client sends one request and follows no redirect, so a 3xx is the response, as stdlib.md
@@ -93,7 +102,9 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	if err != nil {
 		return errResult(err)
 	}
-	headers(g, who, hdrs, req)
+	if err := headers(g, who, hdrs, req); err != nil {
+		return errResult(err)
+	}
 	g.Instance().Flush()
 	resp, err := client.Do(req)
 	g.AfterWait()

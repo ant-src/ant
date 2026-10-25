@@ -1,6 +1,7 @@
 // spec: stdlib Http
 // Http.request sends its headers as given, Host among them: a handler sees the Host the client
-// named, in any letter case, and the address it dialed when none is named.
+// named, in any letter case, and the address it dialed when none is named. Two names that differ
+// only in case are Err, before anything is sent.
 func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 200, headers: Map{}, body: req.headers["Host"] ?? "no host" }
 }
@@ -15,6 +16,8 @@ func main(): void {
   println(Result.unwrap(Http.get(base, Map{ "Host": "example.test" }, t)).body)
   println(Result.unwrap(Http.get(base, Map{ "host": "other.test:8080" }, t)).body)
   println(Result.unwrap(Http.get(base, timeout: t)).body == Net.address(listener))
+  println(Http.get(base, Map{ "Accept": "text/plain", "accept": "text/html" }, t))
+  println(Http.get(base, Map{ "Host": "a.test", "HOST": "b.test" }, t))
   Context.cancel(stop)
   println(Channel.receive(served))
 }
@@ -23,4 +26,6 @@ func main(): void {
 // out: example.test
 // out: other.test:8080
 // out: true
+// out: Err{ error: Error{ message: "the headers \"Accept\" and \"accept\" differ only in case" } }
+// out: Err{ error: Error{ message: "the headers \"Host\" and \"HOST\" differ only in case" } }
 // out: Ok{ value: void }
