@@ -1,0 +1,14 @@
+// spec: 5 select; 12 Runtime panics
+// panics: call
+// A select head given too many arguments panics and says how many it was given (section 12).
+func main(): void {
+  var c: Channel[int] = Channel.new(1)
+  Channel.send(c, 1)
+  select {
+    var v = Channel.receive(c, 2, 3) { println(v) }
+  }
+}
+
+// expect
+// exit: 1
+// err: Channel.receive takes c in a select clause, got 3 arguments
