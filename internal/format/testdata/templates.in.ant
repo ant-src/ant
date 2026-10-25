@@ -13,4 +13,6 @@ func main() {
   println(`multi
     line ${a +
           b} text`)
+  println(`a tab ${a +
+	b} after a break in an interpolation is kept`)
 }
