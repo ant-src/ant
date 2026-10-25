@@ -50,7 +50,7 @@ go {
     Time.sleep(Time.duration(milliseconds: 5), stop)
   }
 }
-Time.sleep(Time.duration(milliseconds: 30))
+while Atomic.load(ticks) == 0 { Time.sleep(Time.duration(milliseconds: 1)) }
 Context.cancel(stop)
 WaitGroup.wait(done)
 println(Atomic.load(ticks) > 0)

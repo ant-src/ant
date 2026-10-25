@@ -2,7 +2,9 @@
 // The patterns of Waiting: a mailbox of a union type fed by several producers and drained by
 // one loop with an is chain; the first of several with the rest stopped through a context; a
 // worker pool over a channel of jobs and a channel of results; a future as a channel of
-// capacity one; a ticker as a loop of sleeps that a context ends.
+// capacity one; a ticker as a loop of sleeps that a context ends. Nothing depends on how fast a
+// goroutine starts: Quit is sent after the other producers are done, the slow racer sleeps until
+// cancelled, and the ticker reports why it stopped, not how often it ran.
 type Tick = { n: int }
 type Said = { text: string }
 type Quit = {}
@@ -12,9 +14,20 @@ type Job = { id: int, x: int }
 type Done = { id: int, square: int }
 
 var events: Channel[Event] = Channel.new()
-go { for i in Array.range(1, 4) { Channel.send(events, Tick{ n: i }) } }
-go { Channel.send(events, Said{ text: "hello" }) }
-go { Time.sleep(Time.duration(milliseconds: 30)); Channel.send(events, Quit{}) }
+var producers = WaitGroup.new()
+WaitGroup.add(producers, 2)
+go {
+  defer { WaitGroup.done(producers) }
+  for i in Array.range(1, 4) { Channel.send(events, Tick{ n: i }) }
+}
+go {
+  defer { WaitGroup.done(producers) }
+  Channel.send(events, Said{ text: "hello" })
+}
+go {
+  WaitGroup.wait(producers)
+  Channel.send(events, Quit{})
+}
 var ticks = 0
 var said = ""
 for event in Channel.values(events) {
@@ -25,7 +38,7 @@ for event in Channel.values(events) {
 println(`${ticks} ${said}`)
 var ctx = Context.new()
 var race: Channel[string] = Channel.new()
-go { Time.sleep(Time.duration(milliseconds: 200), ctx); Channel.send(race, "slow", ctx) }
+go { Time.sleep(Time.duration(seconds: 10), ctx); Channel.send(race, "slow", ctx) }
 go { Time.sleep(Time.duration(milliseconds: 10), ctx); Channel.send(race, "fast", ctx) }
 println(Channel.receive(race))
 Context.cancel(ctx)
@@ -50,12 +63,10 @@ var future: Channel[int] = Channel.new(1)
 go { Channel.send(future, 21 * 2) }
 println(Channel.receive(future))
 var stop = Context.new(Time.duration(milliseconds: 35))
-var beats = 0
 while !Context.isDone(stop) {
-  beats += 1
   Time.sleep(Time.duration(milliseconds: 10), stop)
 }
-println(beats >= 3)
+println(Context.reason(stop))
 
 // expect
 // out: 6 hello
@@ -63,4 +74,4 @@ println(beats >= 3)
 // out: cancelled
 // out: [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 // out: 42
-// out: true
+// out: timeout
