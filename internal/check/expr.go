@@ -62,7 +62,7 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	case *ast.Call:
 		t = c.call(x, sc, expected)
 	case *ast.Block:
-		t = c.checkBlock(x, sc, expected)
+		t = c.block(x, sc, expected)
 	case *ast.Binary:
 		if x.Op == "??" {
 			t = c.nullish(x, sc, expected)
@@ -251,7 +251,7 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 	case *ast.Continue:
 		return types.Never{}
 	case *ast.Block:
-		return c.synthBlock(x, sc)
+		return c.block(x, sc, nil)
 	case *ast.Placeholder:
 		return types.Invalid{}
 	}
@@ -956,7 +956,7 @@ func (c *Checker) withNested(ctx *fnCtx, f func() types.Type) types.Type {
 func (c *Checker) nestedBody(body *ast.Block, sc *scope, kind string) {
 	ctx := &fnCtx{parent: c.fn, kind: kind, name: kind + " block"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
-	c.withNested(ctx, func() types.Type { c.synthBlock(body, inner); return types.Void{} })
+	c.withNested(ctx, func() types.Type { c.block(body, inner, nil); return types.Void{} })
 }
 
 // ---- operators

@@ -985,10 +985,10 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 // body's value and its returns.
 func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 	if ctx.declared != nil {
-		c.checkBlock(body, sc, ctx.declared)
+		c.block(body, sc, ctx.declared)
 		return ctx.declared
 	}
-	t := c.synthBlock(body, sc)
+	t := c.block(body, sc, nil)
 	all := append([]types.Type{t}, ctx.returns...)
 	u, err := types.MakeUnion(all)
 	if err != nil {

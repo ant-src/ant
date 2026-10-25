@@ -164,14 +164,6 @@ func (c *Checker) nullTest(x *ast.Binary, sc *scope) (*local, bool) {
 
 // ---- blocks and statements
 
-func (c *Checker) synthBlock(b *ast.Block, sc *scope) types.Type {
-	return c.block(b, sc, nil)
-}
-
-func (c *Checker) checkBlock(b *ast.Block, sc *scope, expected types.Type) types.Type {
-	return c.block(b, sc, expected)
-}
-
 // block checks a block's statements in a new scope. Its type is that of the last expression,
 // checked against expected when there is one, or void.
 func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type {
