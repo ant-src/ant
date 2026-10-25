@@ -1,0 +1,24 @@
+// spec: 5 select; 12 Expressions
+// A select chooses uniformly among the clauses that can proceed: a receive on a closed channel
+// that still holds buffered values counts once, not twice, against another ready receive.
+func main(): void {
+  var n = 2000
+  var closed: Channel[int] = Channel.new(n)
+  var open: Channel[int] = Channel.new(n)
+  for i in Iter.range(0, n) {
+    Channel.send(closed, i)
+    Channel.send(open, i)
+  }
+  Channel.close(closed)
+  var fromClosed = 0
+  for _ in Iter.range(0, n) {
+    select {
+      Channel.receive(closed) { fromClosed += 1 }
+      Channel.receive(open) {}
+    }
+  }
+  println(fromClosed > 800 && fromClosed < 1200)
+}
+
+// expect
+// out: true
