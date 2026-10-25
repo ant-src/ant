@@ -204,6 +204,21 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		if n, ok := status.(int64); !ok || n < 200 || n > 599 {
 			ng.Panic("Http.serve: the response status %s is outside 200 to 599", value.Render(status))
 		}
+		// Two names that differ only in case name one header, as in Http.request.
+		if hdrs, ok := resp.Field("headers"); ok {
+			if m, ok := hdrs.(*value.Map); ok {
+				seen := map[string]string{}
+				for _, e := range m.Entries() {
+					if k, ok := e.Key.(string); ok {
+						lower := strings.ToLower(k)
+						if first, ok := seen[lower]; ok {
+							ng.Panic("Http.serve: the headers %q and %q differ only in case", first, k)
+						}
+						seen[lower] = k
+					}
+				}
+			}
+		}
 		body, _ := resp.Field("body")
 		result <- reply{resp, textOrBytes(ng, "Http.serve", body)}
 	})

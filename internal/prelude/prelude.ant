@@ -1116,7 +1116,7 @@ func Path.rel(base: string, target: string): Result[string, Error]
 type Http.Response = { status: int, headers: Map[string, string], body: string, bytes: Bytes }
 // Http.Reply is what an [Http.serve] handler returns to answer a request. body is sent as given, a
 // string as its UTF-8 and Bytes as they are, with Content-Length set from it; a status outside 200
-// to 599 panics.
+// to 599, or two header names that differ only in case, panics.
 type Http.Reply = { status: int, headers: Map[string, string], body: string | Bytes }
 // Http.Request is a request that [Http.serve] passes to its handler. path is decoded, query is raw
 // for [Url.parseQuery], and remote is the client's "ip:port". The body is there twice, as in
@@ -1139,7 +1139,8 @@ func Http.post(url: string, body: string | Bytes, headers: Map[string, string] =
 // It returns Ok once ctx is done and the requests in flight have finished, waiting at most five
 // seconds for them, or serves until the run is cancelled when ctx is null; it closes l on return
 // and is Err when l is closed under it. A panic in handler sends status 500, and a reply status
-// outside 200 to 599 panics in the handler's goroutine.
+// outside 200 to 599, or reply header names that differ only in case, panic in the handler's
+// goroutine.
 func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: Context | null = null): Result[void, Error]
 
 // Time

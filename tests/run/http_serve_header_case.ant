@@ -1,0 +1,29 @@
+// spec: stdlib Http; 12 Runtime panics
+// panics: Http.serve; library-value
+// A reply whose header names differ only in case names one header twice, so Http.serve panics in
+// the handler's goroutine, as on a status outside 200 to 599, and the client gets 500; a reply
+// with distinct names goes out as given.
+func handle(req: Http.Request): Http.Reply {
+  if req.path == "/twice" { return Http.Reply{ status: 200, headers: Map{ "X-A": "1", "x-a": "2" }, body: "" } }
+  Http.Reply{ status: 200, headers: Map{ "X-A": "1", "X-B": "2" }, body: "ok" }
+}
+
+func main(): void {
+  var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
+  var base = `http://${Net.address(listener)}`
+  var stop = Context.new()
+  var served: Channel[Result[void, Error]] = Channel.new(1)
+  go { Channel.send(served, Http.serve(listener, handle, stop)) }
+  var twice = Result.unwrap(Http.get(`${base}/twice`, timeout: Time.duration(seconds: 5)))
+  println(twice.status)
+  var once = Result.unwrap(Http.get(`${base}/once`, timeout: Time.duration(seconds: 5)))
+  println(`${once.status} ${once.headers["X-A"] ?? "-"} ${once.headers["X-B"] ?? "-"} ${once.body}`)
+  Context.cancel(stop)
+  println(Channel.receive(served))
+}
+
+// expect
+// out: 500
+// out: 200 1 2 ok
+// out: Ok{ value: void }
+// err: Http.serve: the headers "X-A" and "x-a" differ only in case
