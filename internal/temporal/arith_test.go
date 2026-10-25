@@ -187,8 +187,9 @@ func TestWith(t *testing.T) {
 	check(t, "constrained day", d, err, "2024-02-29")
 	d, err = date(t, "2024-01-31").With(Fields{Month: &thirteen})
 	check(t, "constrained month", d, err, "2024-12-31")
-	d, err = date(t, "2024-01-31").With(Fields{Day: &zero})
-	check(t, "constrained day up", d, err, "2024-01-01")
+	if _, err := date(t, "2024-01-31").With(Fields{Day: &zero}); err == nil {
+		t.Error("day 0 is not constrained up, as in Temporal")
+	}
 	if _, err := date(t, "2024-01-31").With(Fields{Hour: &two}); err == nil {
 		t.Error("an hour on a date")
 	}

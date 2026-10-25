@@ -376,10 +376,17 @@ func pick(p *int, v int) int {
 	return v
 }
 
-// With replaces the given date fields, constrained; a time field is an error.
+// With replaces the given date fields, constrained; a time field is an error, and so is a
+// month or a day below 1, which Temporal's "constrain" rejects rather than clamps.
 func (d PlainDate) With(f Fields) (PlainDate, error) {
 	if f.hasTime() {
 		return PlainDate{}, errors.New("a date has no time fields")
+	}
+	if f.Month != nil && *f.Month < 1 {
+		return PlainDate{}, fmt.Errorf("month below 1: %d", *f.Month)
+	}
+	if f.Day != nil && *f.Day < 1 {
+		return PlainDate{}, fmt.Errorf("day below 1: %d", *f.Day)
 	}
 	return constrainDate(int64(pick(f.Year, d.Year)), pick(f.Month, d.Month), pick(f.Day, d.Day))
 }
