@@ -270,13 +270,24 @@ func (in *Instance) endErr(r any) error {
 	panic(r)
 }
 
+// traceEnds is how many frames a reported trace keeps at each end.
+const traceEnds = 10
+
 func (in *Instance) report(p *AntPanic) {
 	in.Flush()
 	var sb strings.Builder
 	sb.WriteString("panic: ")
 	sb.WriteString(p.Message)
 	sb.WriteByte('\n')
-	for _, f := range p.Trace {
+	for i, f := range p.Trace {
+		// A long trace, such as a call-depth overflow's, keeps its innermost and outermost
+		// frames and counts the ones between.
+		if n := len(p.Trace); n > 2*traceEnds+1 && i >= traceEnds && i < n-traceEnds {
+			if i == traceEnds {
+				fmt.Fprintf(&sb, "  ... %d more frames\n", n-2*traceEnds)
+			}
+			continue
+		}
 		fmt.Fprintf(&sb, "  at %s (%s:%d:%d)\n", f.Function, f.Path, f.Pos.Line, f.Pos.Col)
 	}
 	in.errMu.Lock()
