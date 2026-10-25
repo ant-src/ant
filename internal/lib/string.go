@@ -509,7 +509,11 @@ func init() {
 				if math.IsNaN(x) || math.IsInf(x, 0) {
 					return value.Render(x)
 				}
-				return strconv.FormatFloat(x, 'f', int(digits), 64)
+				out := strconv.FormatFloat(x, 'f', int(digits), 64)
+				if strings.Trim(out, "-0.") == "" {
+					return strings.TrimPrefix(out, "-") // a zero result has no sign
+				}
+				return out
 			}),
 			fn("String.from", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return value.Render(a[0])
