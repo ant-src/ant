@@ -431,14 +431,11 @@ func AddDurations(a, b Duration) (Duration, error) {
 // CompareDurations orders two durations by length: with a zoned point for any date unit, with
 // a date for years, months or weeks, and days as 24 hours otherwise.
 func CompareDurations(a, b Duration, rel RelativeTo) (int, error) {
-	la, lb := a.defaultLargestUnit(), b.defaultLargestUnit()
-	if rel == nil && (isCalendarUnit(la) || isCalendarUnit(lb)) {
-		// before the shortcut for equal durations, so the panic does not depend on the values
-		return 0, errors.New("years, months or weeks need a relativeTo point to compare")
-	}
 	if a.fields() == b.fields() {
+		// before relativeTo is looked at, as in Temporal's Duration.compare
 		return 0, nil
 	}
+	la, lb := a.defaultLargestUnit(), b.defaultLargestUnit()
 	ia, err := a.internal()
 	if err != nil {
 		return 0, err
