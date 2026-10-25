@@ -1,0 +1,31 @@
+// spec: 7 Narrowing
+// Section 7: inside a loop, an assignment to the variable anywhere in the body cancels its
+// narrowing from the loop head on, while an assignment to another variable of the same name, a
+// local declared in the body or the x of a lambda, leaves it alone.
+func assigned(n: int): void {
+  var x: int | null = n
+  if x != null {
+    var i = 0
+    while i < 3 {
+      var y: int = x // ERR: cannot use int | null where int is expected
+      i += 1
+      if i > 1 { x = null }
+    }
+  }
+}
+
+func shadowed(n: int): void {
+  var x: int | null = n
+  if x != null {
+    for k in [1, 2] {
+      var w: int = x
+      if k > 1 { var x = 0; x = k }
+      println(Array.map([k], { x = 0; x + w }))
+    }
+  }
+}
+
+func main(): void {
+  assigned(1)
+  shadowed(1)
+}

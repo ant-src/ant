@@ -59,6 +59,13 @@ type scope struct {
 	alloc    bool
 }
 
+// loopFacts collects the locals declared outside a loop that its body assigns.
+type loopFacts struct {
+	outer    *scope
+	assigned *[]string
+	seen     map[*binding]bool
+}
+
 type use struct {
 	id   *ast.Ident
 	b    *binding
@@ -71,6 +78,7 @@ type resolver struct {
 	targetsOf []targetBinding
 	paramsOf  []paramBinding
 	scopes    []*scope
+	loops     []*loopFacts // the loops whose bodies are being resolved, innermost last
 	module    *scope
 	fields    *ast.ModuleScope
 	session   bool
@@ -462,12 +470,12 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		}
 	case *ast.While:
 		r.expr(e.Cond, s)
-		r.block(e.Body, s)
+		r.loopBody(s, &e.Assigned, func() { r.block(e.Body, s) })
 	case *ast.For:
 		r.expr(e.Iter, s)
 		it := r.push(&scope{parent: s, loop: e})
 		r.target(e.Target, it)
-		r.stmts(e.Body.Stmts, it)
+		r.loopBody(s, &e.Assigned, func() { r.stmts(e.Body.Stmts, it) })
 	case *ast.Select:
 		// The heads' operands belong to the enclosing scope; each body is a scope of its own
 		// with the clause's binding, as a loop's iteration is.
@@ -516,7 +524,18 @@ func (r *resolver) assignTarget(t ast.Node, s *scope) {
 	}
 }
 
-// markAssigned records that a local is assigned, and whether from a nested body.
+// loopBody resolves the body of a loop in the scope outer, recording in assigned the locals
+// declared outside the loop that the body assigns, at any depth: the checker drops their
+// narrowing for the whole loop, since an assignment may run before the next iteration (section 7).
+func (r *resolver) loopBody(outer *scope, assigned *[]string, resolve func()) {
+	*assigned = nil
+	r.loops = append(r.loops, &loopFacts{outer: outer, assigned: assigned, seen: map[*binding]bool{}})
+	resolve()
+	r.loops = r.loops[:len(r.loops)-1]
+}
+
+// markAssigned records that a local is assigned, whether from a nested body, and in which
+// enclosing loops.
 func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
 	crossed := false
 	for sc := s; sc != nil; sc = sc.parent {
@@ -528,12 +547,28 @@ func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
 			if crossed {
 				b.assignedNested = true
 			}
+			for _, l := range r.loops {
+				if !l.seen[b] && encloses(b.scope, l.outer) {
+					l.seen[b] = true
+					*l.assigned = append(*l.assigned, b.name)
+				}
+			}
 			return
 		}
 		if sc.boundary {
 			crossed = true
 		}
 	}
+}
+
+// encloses reports whether outer is s or one of its parents.
+func encloses(outer, s *scope) bool {
+	for ; s != nil; s = s.parent {
+		if s == outer {
+			return true
+		}
+	}
+	return false
 }
 
 // use resolves an identifier read or write.

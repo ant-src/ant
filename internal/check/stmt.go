@@ -65,113 +65,13 @@ func (c *Checker) markBreak() {
 	}
 }
 
-// resetAssigned drops the narrowing of every local a loop body assigns, since the assignment
-// may have run before the next test of the condition.
-func (c *Checker) resetAssigned(body *ast.Block, sc *scope) {
-	walkAssigned(body, func(name string) {
+// resetAssigned drops the narrowing of every local declared outside a loop that its body
+// assigns, as the resolver found them, since the assignment may have run before the next test of
+// the condition.
+func (c *Checker) resetAssigned(assigned []string, sc *scope) {
+	for _, name := range assigned {
 		if l, _ := c.lookup(sc, name); l != nil {
 			delete(c.flow, l)
-		}
-	})
-}
-
-// walkAssigned calls visit with the name of every variable a statement list assigns, at any
-// depth including nested bodies.
-func walkAssigned(n ast.Node, visit func(string)) {
-	switch x := n.(type) {
-	case nil:
-	case *ast.Block:
-		for _, s := range x.Stmts {
-			walkAssigned(s, visit)
-		}
-	case *ast.VarDecl:
-		walkAssigned(x.Init, visit)
-	case *ast.Assign:
-		assignedNames(x.Target, visit)
-		walkAssigned(x.Target, visit) // the places' own sub-expressions, as m[(u = null)]
-		walkAssigned(x.Value, visit)
-	case *ast.AssignArray:
-		for _, e := range x.Elems {
-			walkAssigned(e, visit)
-		}
-		if x.Rest != nil {
-			walkAssigned(x.Rest, visit)
-		}
-	case *ast.If:
-		walkAssigned(x.Cond, visit)
-		walkAssigned(x.Then, visit)
-		walkAssigned(x.Else, visit)
-	case *ast.While:
-		walkAssigned(x.Cond, visit)
-		walkAssigned(x.Body, visit)
-	case *ast.For:
-		walkAssigned(x.Iter, visit)
-		walkAssigned(x.Body, visit)
-	case *ast.Select:
-		for _, cl := range x.Clauses {
-			if cl.Head != nil {
-				walkAssigned(cl.Head, visit)
-			}
-			walkAssigned(cl.Body, visit)
-		}
-	case *ast.Go:
-		walkAssigned(x.Body, visit)
-	case *ast.Defer:
-		walkAssigned(x.Body, visit)
-	case *ast.Lambda:
-		walkAssigned(x.Body, visit)
-	case *ast.FuncLit:
-		walkAssigned(x.Body, visit)
-	case *ast.Call:
-		walkAssigned(x.Fn, visit)
-		for _, a := range x.Args {
-			walkAssigned(a.Value, visit)
-		}
-	case *ast.Binary:
-		walkAssigned(x.X, visit)
-		walkAssigned(x.Y, visit)
-	case *ast.Unary:
-		walkAssigned(x.X, visit)
-	case *ast.Field:
-		walkAssigned(x.X, visit)
-	case *ast.Index:
-		walkAssigned(x.X, visit)
-		walkAssigned(x.Index, visit)
-	case *ast.Return:
-		walkAssigned(x.Value, visit)
-	case *ast.Template:
-		for _, p := range x.Parts {
-			walkAssigned(p.Expr, visit)
-		}
-	case *ast.ArrayLit:
-		for _, e := range x.Elems {
-			walkAssigned(e.Value, visit)
-		}
-	case *ast.MapLit:
-		for _, e := range x.Entries {
-			walkAssigned(e.Key, visit)
-			walkAssigned(e.Value, visit)
-		}
-	case *ast.RecordLit:
-		for _, e := range x.Entries {
-			walkAssigned(e.Value, visit)
-			walkAssigned(e.Spread, visit)
-		}
-	case *ast.Is:
-		walkAssigned(x.X, visit)
-	}
-}
-
-func assignedNames(t ast.Node, visit func(string)) {
-	switch x := t.(type) {
-	case *ast.Ident:
-		visit(x.Name)
-	case *ast.AssignArray:
-		for _, e := range x.Elems {
-			assignedNames(e, visit)
-		}
-		if x.Rest != nil {
-			assignedNames(x.Rest, visit)
 		}
 	}
 }
@@ -541,7 +441,7 @@ func narrowedToNever(wt, wf flow) bool {
 }
 
 func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
-	c.resetAssigned(x.Body, sc)
+	c.resetAssigned(x.Assigned, sc)
 	var wf flow
 	breaks := c.loop(func() {
 		var wt flow
@@ -561,7 +461,7 @@ func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	elem := c.elementType(it, x.Iter.Position())
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	c.declareTarget(x.Target, elem, inner)
-	c.resetAssigned(x.Body, sc)
+	c.resetAssigned(x.Assigned, sc)
 	before := c.flow.copy()
 	breaks := c.loop(func() { c.block(x.Body, inner, nil) })
 	c.flow = joinBreaks(joinFlows(before, c.flow), breaks)
