@@ -132,14 +132,6 @@ type parser struct {
 	depth     int          // nesting of expressions, types, and blocks, bounded by maxNesting
 	roles     map[int]Role // filled for ParseLayout, nil otherwise
 	prefix    map[int]bool // likewise
-	// spreadEnd holds the [ of each array literal that ends in a spread, and whether a comma
-	// follows that spread, for when the literal turns out to be a destructuring assignment.
-	spreadEnd map[*ast.ArrayLit]spreadEnd
-}
-
-type spreadEnd struct {
-	open  token.Token
-	comma bool
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -837,11 +829,10 @@ func (p *parser) arrayAssignTarget(lit *ast.ArrayLit, op token.Token) *ast.Assig
 			if !isPlace(el.Value) {
 				p.fail(op.Pos, "the rest position of a destructuring must be an assignable place")
 			}
-			if end := p.spreadEnd[lit]; end.comma {
+			if lit.SpreadComma {
 				p.fail(op.Pos, "a destructuring takes no comma after its rest position")
-			} else {
-				p.mark(end.open, Role{}) // no comma after the rest
 			}
+			p.mark(token.Token{Off: lit.Off}, Role{}) // no comma after the rest
 			t.Rest = el.Value
 			continue
 		}
@@ -1563,10 +1554,9 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 
 func (p *parser) arrayLit() *ast.ArrayLit {
 	t := p.expect("[")
-	lit := &ast.ArrayLit{Pos: pos(t)}
-	comma := false
+	lit := &ast.ArrayLit{Pos: pos(t), Off: t.Off}
 	p.list("]", func() {
-		comma = false
+		lit.SpreadComma = false
 		if !p.at("...") {
 			lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression()})
 			return
@@ -1576,14 +1566,8 @@ func (p *parser) arrayLit() *ast.ArrayLit {
 			return
 		}
 		lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression(), Spread: true})
-		comma = p.at(",")
+		lit.SpreadComma = p.at(",")
 	})
-	if n := len(lit.Elems); n > 0 && lit.Elems[n-1].Spread {
-		if p.spreadEnd == nil {
-			p.spreadEnd = map[*ast.ArrayLit]spreadEnd{}
-		}
-		p.spreadEnd[lit] = spreadEnd{open: t, comma: comma}
-	}
 	return lit
 }
 

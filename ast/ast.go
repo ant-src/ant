@@ -265,6 +265,10 @@ type (
 	ArrayLit struct {
 		Pos   Pos
 		Elems []ArrayElem
+		// Off is the byte offset of the [, and SpreadComma reports a comma after a final
+		// spread, for the parser when the literal turns out to be a destructuring assignment.
+		Off         int
+		SpreadComma bool
 	}
 	// Lambda is a bare block with the implicit parameter x.
 	Lambda struct {
