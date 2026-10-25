@@ -1,0 +1,24 @@
+// spec: 11 Iter; 9 Data races
+// An Iter function whose source calls yield from goroutines of its own takes the elements one at
+// a time, as a for body does, so none is lost.
+func spread(yield: func(int): bool): void {
+  var wg = WaitGroup.new()
+  for w in Iter.range(0, 8) {
+    WaitGroup.add(wg, 1)
+    go {
+      defer { WaitGroup.done(wg) }
+      for i in Iter.range(0, 5000) { yield(w * 1000000 + i) }
+    }
+  }
+  WaitGroup.wait(wg)
+}
+
+func main(): void {
+  var xs = Iter.toArray(Iter.filter(spread, { x % 2 == 0 }))
+  println(len(xs))
+  println(len(Array.unique(xs)))
+}
+
+// expect
+// out: 20000
+// out: 20000

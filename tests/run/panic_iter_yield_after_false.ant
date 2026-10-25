@@ -1,0 +1,17 @@
+// spec: 12 Runtime panics; 11 Iter
+// panics: for-yield
+// The yield an Iter function passes to its source panics when called again after it returned
+// false, as for's does (section 12).
+func bad(yield: func(int): bool): void {
+  _ = yield(1)
+  _ = yield(2)
+  println("not reached")
+}
+
+func main(): void {
+  println(Iter.toArray(Iter.take(bad, 1)))
+}
+
+// expect
+// exit: 1
+// err: yield called after the sequence ended

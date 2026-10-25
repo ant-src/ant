@@ -1108,21 +1108,12 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 	// goes on past the loop.
 	var active atomic.Bool
 	active.Store(true)
-	var body sync.Mutex
-	var owner atomic.Pointer[Goroutine]
-	enter := func(g2 *Goroutine) (leave func()) {
-		if owner.Load() == g2 {
-			return func() {}
-		}
-		body.Lock()
-		owner.Store(g2)
-		return func() { owner.Store(nil); body.Unlock() }
-	}
+	var body BodyLock
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
-		leave := enter(g2)
+		leave := body.Enter(g2)
 		defer leave()
 		if !active.Load() {
-			g2.Panic("yield called after the sequence ended")
+			g2.Panic(YieldAfterEnd)
 		}
 		v, c, stop := run(g2, args[0])
 		if !stop {
@@ -1148,10 +1139,32 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		}
 	}()
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
-	leave := enter(g)
+	leave := body.Enter(g)
 	active.Store(false)
 	leave()
 	return value.Void, ctlNone
+}
+
+// YieldAfterEnd is the panic of a yield called after it returned false or after its sequence
+// returned (section 12, for).
+const YieldAfterEnd = "yield called after the sequence ended"
+
+// BodyLock serializes the runs of a loop body that a sequence's yield calls, which may come from
+// several goroutines. Enter on the goroutine that holds it, a yield inside the body, does not
+// take it again.
+type BodyLock struct {
+	mu    sync.Mutex
+	owner atomic.Pointer[Goroutine]
+}
+
+// Enter takes the lock for g unless g holds it, and returns the function that gives it back.
+func (b *BodyLock) Enter(g *Goroutine) (leave func()) {
+	if b.owner.Load() == g {
+		return func() {}
+	}
+	b.mu.Lock()
+	b.owner.Store(g)
+	return func() { b.owner.Store(nil); b.mu.Unlock() }
 }
 
 // withArticle puts "a" or "an" before a kind name: "an int", "a string".
