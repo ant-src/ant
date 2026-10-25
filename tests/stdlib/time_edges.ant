@@ -83,3 +83,10 @@ least                                         // => -PT9223372036.854775808S
 Time.negate(least)                            // => panic: Time.negate: the negated duration has a field that does not fit an int
 Time.abs(least)                               // => panic: Time.abs: the negated duration has a field that does not fit an int
 Time.subtract(Time.fromEpochMillis(0), least) // => panic: Time.subtract: the negated duration has a field that does not fit an int
+
+// A valid duration whose balanced fields do not fit an int is a panic, as is negating a field of
+// -2^63.
+Time.roundDuration(Time.duration(seconds: 9007199254740991), largestUnit: Time.Nanosecond{}) // => panic: Time.roundDuration: a balanced field does not fit an int
+Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(10000000000000), largestUnit: Time.Nanosecond{}) // => panic: Time.until: a balanced field does not fit an int
+Time.negate(Time.duration(nanoseconds: Math.minInt)) // => panic: Time.negate: the negated duration has a field that does not fit an int
+Time.abs(Time.duration(nanoseconds: Math.minInt)) // => panic: Time.abs: the negated duration has a field that does not fit an int
