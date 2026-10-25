@@ -1604,14 +1604,17 @@ func Os.stderr(): File.Handle
 // Json.Value is a JSON value: null, a boolean, a number, a string, an array, or an object. Every
 // number is a float64; [Math.toInt] converts one to an int when it is whole and in range.
 type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[string, Json.Value]
-// Json.parse parses text as one JSON value. It is Err when text is not valid JSON.
+// Json.parse parses text as one JSON value. A repeated key keeps its first place and its last
+// value. It is Err when text is not valid JSON, nests arrays and objects deeper than 10000, or
+// holds a number too large for a float64.
 //
 //     Json.parse("{\"a\": [1, 2.5]}")   // Ok{ value: Map{ "a": [1.0, 2.5] } }
 func Json.parse(text: string): Result[Json.Value, Error]
 // Json.stringify returns the compact JSON text of value. Records become objects without their tag,
 // sets arrays, time values strings, and NaN and the infinities null. It panics with "cyclic value"
-// on a value that contains itself, and panics on Bytes, which a program writes with
-// [Encoding.toBase64] instead.
+// on a value that contains itself, and panics on what has no JSON form: Bytes, which a program
+// writes with [Encoding.toBase64] instead, a function, void, a type, or a reference such as a
+// channel or a Random.
 //
 //     Json.stringify(Map{ "a": [1, 2] })   // "{\"a\":[1,2]}"
 func Json.stringify[T](value: T): string
@@ -1628,8 +1631,8 @@ func Json.stringify[T](value: T): string
 //     Csv.parse("a,\"b,c\"\n1,2\n")   // Ok{ value: [["a", "b,c"], ["1", "2"]] }
 func Csv.parse(text: string, sep: string = ","): Result[Array[Array[string]], Error]
 // Csv.stringify writes rows as CSV with sep between fields, a line per row ending in \n. A field is
-// quoted when it holds sep, a quote, or a line break, or begins with white space. It panics if sep
-// is not a separator [Csv.parse] accepts.
+// quoted when it holds sep, a quote, or a line break, or begins with white space, and a row of one
+// empty field is written "". It panics if sep is not a separator [Csv.parse] accepts.
 //
 //     Csv.stringify([["a", "b,c"], ["1", "2"]])   // "a,\"b,c\"\n1,2\n"
 func Csv.stringify(rows: Array[Array[string]], sep: string = ","): string
