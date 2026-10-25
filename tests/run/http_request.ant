@@ -3,7 +3,8 @@
 // response of any status is Ok; a timeout that passes is Err with the message timeout; a
 // timeout in days converts at 24 hours, one with months or weeks, zero or negative is Err
 // before anything is sent, and one beyond the host's range is taken as that range; an
-// invalid method is Err.
+// invalid method is Err; and a failed request's message is lowercase and names its URL, as
+// section 8 (Wrapping errors) and the stdlib introduction ask.
 var base = Os.args()[0]
 var put = Result.unwrap(Http.request("PUT", `${base}/echo`, "data", Map{ "X-Token": "t" }))
 println(put.status)
@@ -29,6 +30,7 @@ println(Http.get(`${base}/hello`, timeout: Time.duration(seconds: -1)))
 println(Result.isOk(Http.get(`${base}/hello`, timeout: Time.duration(days: 4294967295))))
 println(Result.isOk(Http.request("BAD METHOD", `${base}/hello`)))
 println(Result.isOk(Http.request("GET", "http://127.0.0.1:1/unreachable", timeout: Time.duration(seconds: 5))))
+println(Http.request("PATCH", "ftp://example.invalid/"))
 
 // expect
 // args: $HTTP
@@ -52,3 +54,4 @@ println(Result.isOk(Http.request("GET", "http://127.0.0.1:1/unreachable", timeou
 // out: true
 // out: false
 // out: false
+// out: Err{ error: Error{ message: "patch \"ftp://example.invalid/\": unsupported protocol scheme \"ftp\"" } }

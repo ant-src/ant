@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -76,6 +77,16 @@ func plainTransport() http.RoundTripper {
 	return t
 }
 
+// lowerOp lowercases the method that Go's client puts at the front of its errors, as in
+// `Get "http://x": ...`, so the message is lowercase as section 8 (Wrapping errors) asks.
+func lowerOp(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		ue.Op = strings.ToLower(ue.Op)
+	}
+	return err
+}
+
 // request is Http.request and, with the method filled in, Http.get and Http.post: one request
 // under the run's context, the given context and the timeout, the whole response read. A
 // response of any status is Ok; a failure to get one is Err, with the context's reason, or
@@ -109,7 +120,7 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	resp, err := client.Do(req)
 	g.AfterWait()
 	if err != nil {
-		return failed(ctx, err)
+		return failed(ctx, lowerOp(err))
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
