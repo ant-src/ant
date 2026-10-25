@@ -322,22 +322,35 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 
 // regex scans a regular expression literal at its opening /: the source up to the closing /,
 // and the flags after it. A \ escapes the next character, so \/ does not end the literal, and
-// neither does a / inside a character class; the literal stays on one line. The source is kept
-// as written, and value.NewRegex normalizes it when the parser builds the pattern.
+// neither does a / inside a character class; the literal stays on one line. Inside a \Q...\E
+// span, which RE2 ends at the first \E, a / still ends the literal unless a \ precedes it, and
+// nothing else is special. The source is kept as written, and value.NewRegex normalizes it when
+// the parser builds the pattern.
 func (l *lexer) regex() {
 	pos := l.here()
 	l.advance(1)
 	start := l.pos
-	inClass := false
+	inClass, inSpan := false, false
 	for {
 		c := l.peek(0)
 		switch {
 		case l.atEnd(0) || c == '\n' || c == '\r':
 			l.fail(pos, "unterminated regular expression")
+		case inSpan && l.has(`\E`):
+			inSpan = false
+			l.advance(2)
+			continue
+		case inSpan && l.has(`\/`):
+			l.advance(2)
+			continue
+		case inSpan && c != '/':
+			l.advance(1)
+			continue
 		case c == '\\':
 			if l.atEnd(1) || l.peek(1) == '\n' || l.peek(1) == '\r' {
 				l.fail(pos, "unterminated regular expression")
 			}
+			inSpan = !inClass && l.peek(1) == 'Q'
 			l.advance(2)
 			continue
 		case c == '[':
