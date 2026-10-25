@@ -149,20 +149,34 @@ func IsNever(t Type) bool {
 	return ok
 }
 
-// Expand replaces an alias by its body, repeatedly, and leaves every other type alone.
+// Expand replaces an alias by its body, repeatedly, and leaves every other type alone. The
+// substitution cannot fail: the checker checks an alias's arguments against its body where they
+// are written, and a generic alias reaches itself only with its own parameters (section 4, Type
+// declarations), so no deeper instantiation is left unchecked. Nor can the chain loop, since the
+// checker marks a cyclic alias invalid as soon as its cycle is resolved; past 64 steps the
+// declarations met are tracked to assert it.
 func Expand(t Type) Type {
-	for i := 0; i < 64; i++ {
+	var met map[*Decl]bool
+	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
 			return t
 		}
+		if i >= 64 {
+			if met == nil {
+				met = map[*Decl]bool{}
+			}
+			if met[n.Decl] {
+				panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
+			}
+			met[n.Decl] = true
+		}
 		body, err := Subst(n.Decl.Body, Bindings(n.Decl.Params, n.Args))
 		if err != nil {
-			return Invalid{}
+			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}
 		t = body
 	}
-	return Invalid{}
 }
 
 // Bindings pairs type parameters with their arguments; a parameter past the arguments is left

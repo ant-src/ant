@@ -83,7 +83,8 @@ func (s *substituter) subst(t Type) (Type, error) {
 		}
 		if x.Decl.Kind == AliasDecl && x.Decl.Body != nil && !s.seen[x.Decl] {
 			// The arguments may form an invalid union inside the alias's body, as
-			// Either[Box[int], Box[string]] does; an alias that reaches itself is checked once.
+			// Either[Box[int], Box[string]] does. An alias that reaches itself is checked once,
+			// since it passes its own parameters (section 4, Type declarations).
 			if s.seen == nil {
 				s.seen = map[*Decl]bool{}
 			}
@@ -161,4 +162,36 @@ func mentions(t Type, pred func(Param) bool) bool {
 		}
 	}
 	return false
+}
+
+// Walk calls f on t and on every type written inside it, the type arguments of a named type
+// included, but not on the bodies or fields of the declarations it names.
+func Walk(t Type, f func(Type)) {
+	f(t)
+	switch x := t.(type) {
+	case Array:
+		Walk(x.Elem, f)
+	case Map:
+		Walk(x.Key, f)
+		Walk(x.Val, f)
+	case Set:
+		Walk(x.Elem, f)
+	case Func:
+		for _, p := range x.Params {
+			Walk(p, f)
+		}
+		Walk(x.Return, f)
+	case Record:
+		for _, fl := range x.Fields {
+			Walk(fl.Type, f)
+		}
+	case Named:
+		for _, a := range x.Args {
+			Walk(a, f)
+		}
+	case Union:
+		for _, m := range x.Members {
+			Walk(m, f)
+		}
+	}
 }

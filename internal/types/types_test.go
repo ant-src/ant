@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -191,9 +192,14 @@ func TestUnionsAndSubst(t *testing.T) {
 	}
 	loop := &Decl{Name: "Loop", Kind: AliasDecl}
 	loop.Body = Named{Decl: loop}
-	if !IsInvalid(Expand(Named{Decl: loop})) {
-		t.Error("an endless alias chain expands to invalid")
-	}
+	func() {
+		defer func() {
+			if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "internal error") {
+				t.Errorf("an endless alias chain, which the checker rejects, is an internal error: %v", r)
+			}
+		}()
+		Expand(Named{Decl: loop})
+	}()
 	if !Equal(Expand(Named{Decl: shape}), shape.Body) || !Equal(Expand(IntType), IntType) {
 		t.Error("Expand")
 	}
