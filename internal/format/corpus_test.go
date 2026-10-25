@@ -211,7 +211,8 @@ func significant(t *testing.T, src string) []string {
 	return out
 }
 
-// commentTexts lists the comments of src, with the whitespace at the end of each line removed.
+// commentTexts lists the comments of src, with the whitespace at the end of each line removed
+// and every line break written \n.
 func commentTexts(t *testing.T, src string) []string {
 	t.Helper()
 	_, comments, err := lexer.LexLayout(src)
@@ -220,7 +221,7 @@ func commentTexts(t *testing.T, src string) []string {
 	}
 	var out []string
 	for _, c := range comments {
-		lines := strings.Split(c.Text, "\n")
+		lines := strings.Split(lexer.NormalizeBreaks(src)[c.Off:c.End], "\n")
 		for i := range lines {
 			lines[i] = strings.TrimRight(lines[i], " \t\r")
 		}

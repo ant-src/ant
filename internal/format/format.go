@@ -358,7 +358,7 @@ func (p *printer) token(t token.Token) {
 
 // comment writes a comment's text with the spaces and tabs at the end of each line removed.
 func (p *printer) comment(c *token.Comment) {
-	lines := strings.Split(lexer.NormalizeBreaks(c.Text), "\n")
+	lines := strings.Split(p.src[c.Off:c.End], "\n") // c.Text with its line breaks normalized
 	for i := range lines {
 		lines[i] = strings.TrimRight(lines[i], " \t\r")
 	}
