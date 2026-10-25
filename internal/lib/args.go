@@ -105,6 +105,38 @@ func less(g *interp.Goroutine, who string, a, b value.Value) bool {
 	return r
 }
 
+// extremeLess is less with -0.0 below 0.0, as Math.min, Math.max, Array.min and Array.max order
+// them; < holds the two zeros equal.
+func extremeLess(g *interp.Goroutine, who string, a, b value.Value) bool {
+	if za, zb := zeroSign(a), zeroSign(b); za != 0 && zb != 0 {
+		return za < zb
+	}
+	return less(g, who, a, b)
+}
+
+// zeroSign is -1 for a float -0.0, 1 for a float 0.0, tagged or not, and 0 for anything else.
+func zeroSign(v value.Value) int {
+	if t, ok := v.(*value.Tagged); ok {
+		v = t.Payload
+	}
+	var x float64
+	switch f := v.(type) {
+	case float64:
+		x = f
+	case float32:
+		x = float64(f)
+	default:
+		return 0
+	}
+	if x != 0 {
+		return 0
+	}
+	if math.Signbit(x) {
+		return -1
+	}
+	return 1
+}
+
 // sortLess is less with NaN after every number, so that a sort has a total order to follow.
 func sortLess(g *interp.Goroutine, who string, a, b value.Value) bool {
 	an, bn := isNaN(a), isNaN(b)

@@ -379,7 +379,7 @@ func isNaN(v value.Value) bool {
 }
 
 // extreme is Array.min and Array.max: null on an empty array, NaN when any element is NaN, and
-// otherwise the least or greatest element by <.
+// otherwise the least or greatest element by <, with -0.0 below 0.0.
 func extreme(name string, least bool) *interp.Builtin {
 	return fn(name, "xs", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		xs := arrayArg(g, name, a[0]).Values()
@@ -394,7 +394,7 @@ func extreme(name string, least bool) *interp.Builtin {
 			if isNaN(x) {
 				return x
 			}
-			if least && less(g, name, x, best) || !least && less(g, name, best, x) {
+			if least && extremeLess(g, name, x, best) || !least && extremeLess(g, name, best, x) {
 				best = x
 			}
 		}
