@@ -729,10 +729,20 @@ func (p *parser) block() *ast.Block {
 	p.mark(t, Role{Block: true})
 	b := &ast.Block{Pos: pos(t)}
 	saved := p.enterBlock(b)
-	b.Stmts = p.statements()
+	p.blockStatements(b)
 	p.expect("}")
 	p.leave(saved)
 	return b
+}
+
+// blockStatements parses a block's statements and lists the types it declares.
+func (p *parser) blockStatements(b *ast.Block) {
+	b.Stmts = p.statements()
+	for _, s := range b.Stmts {
+		if td, ok := s.(*ast.TypeDecl); ok {
+			b.Types = append(b.Types, td)
+		}
+	}
 }
 
 func (p *parser) statements() []ast.Stmt {
@@ -759,7 +769,7 @@ func (p *parser) statement() ast.Stmt {
 		case "var":
 			return p.varDecl()
 		case "type":
-			p.fail(t.Pos, "type declarations are only allowed at the top level")
+			return p.typeDecl()
 		case "export", "import":
 			p.fail(t.Pos, "'%s' is only allowed at the top level", t.Text)
 		}
@@ -1577,7 +1587,7 @@ func (p *parser) lambda() *ast.Lambda {
 	b := &ast.Block{Pos: pos(t)}
 	savedN := p.enterBlock(b)
 	savedB := p.enterBoundary("lambda")
-	b.Stmts = p.statements()
+	p.blockStatements(b)
 	p.leaveBoundary(savedB)
 	p.expect("}")
 	p.leave(savedN)

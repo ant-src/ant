@@ -118,6 +118,8 @@ type TypeDecl struct {
 	Body       Type
 	Doc        string // the doc comment (section 2), or ""
 	Sig        string // the whole declaration from type on, as written
+	// Slot is filled by the resolver for a type declared in a block.
+	Slot Slot
 }
 
 // TypeParam is a type parameter with an optional bound.
@@ -406,6 +408,7 @@ type (
 		Pos      Pos
 		Stmts    []Stmt
 		HasDefer bool        // a defer statement registers directly with this block
+		Types    []*TypeDecl // the types declared directly in the block, bound when it starts
 		Scope    *BlockScope // filled by the resolver; nil when the block declares nothing
 	}
 )
@@ -560,6 +563,7 @@ func (n *FuncDecl) Exported() bool { return n.Export }
 func (n *TypeDecl) Exported() bool { return n.Export }
 
 func (*VarDecl) stmtNode()     {}
+func (*TypeDecl) stmtNode()    {}
 func (*Ident) stmtNode()       {}
 func (*IntLit) stmtNode()      {}
 func (*FloatLit) stmtNode()    {}

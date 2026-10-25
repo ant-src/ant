@@ -122,6 +122,16 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 	}
 }
 
+// localType is what a type declared in a block binds: one value per declaration for the whole
+// run, however often the block runs, so every value it tags has one type (section 4).
+func (in *Instance) localType(d *ast.TypeDecl) value.Value {
+	if v, ok := in.localTypes.Load(d); ok {
+		return v.(value.Value)
+	}
+	v, _ := in.localTypes.LoadOrStore(d, TypeValue(d))
+	return v.(value.Value)
+}
+
 // TypeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.
 func TypeValue(d *ast.TypeDecl) value.Value {
 	switch body := d.Body.(type) {

@@ -1,0 +1,71 @@
+// spec: 4 Type declarations; 12 Names and scopes
+// A type declared in a block is visible throughout the block, before its declaration too, and
+// local types may refer to each other in any order; each declaration has one tag for the whole
+// run, so values from two calls compare equal; a local record, named primitive type and alias
+// work as at the top level, in a function body, a nested block, a loop body, and a lambda; a
+// local type may shadow a top-level one; its values leave the block through an inferred return
+// type; a type declaration as a block's last statement makes the block void.
+
+type Point = { x: int, y: int }
+
+func tally(words: Array[string]): Array[string] {
+  type Count = { word: string, n: int }
+  var counts: Map[string, Count] = Map{}
+  for w in words {
+    var c = counts[w] ?? Count{ word: w, n: 0 }
+    c.n += 1
+    counts[w] = c
+  }
+  Map.values(counts) | Array.sortBy({ -x.n }) | Array.map({ `${x.word}: ${x.n}` })
+}
+
+func pair(a: int, b: int) {
+  var p = Pair{ a, b }
+  type Pair = { a: int, b: int }
+  p
+}
+
+func shadow(): int {
+  type Point = { z: int }
+  var p = Point{ z: 7 }
+  p.z
+}
+
+func declaresOnly() {
+  type Unused = int
+}
+
+func main(): void {
+  println(tally(["a", "b", "a", "c", "a", "b"]))
+  println(pair(1, 2) == pair(1, 2))
+  println(pair(1, 2))
+  println(`${shadow()} ${Point{ x: 1, y: 2 }}`)
+  if true {
+    type Node = { value: int, next: Link }
+    type Link = Node | null
+    type Meters = float64
+    var list = Node{ value: 1, next: Node{ value: 2, next: null } }
+    println(list.next?.value)
+    var m: Meters | float64 = Meters(1.5) + Meters(2.0)
+    println(`${m} ${m is Meters}`)
+  }
+  var tags: Array[string] = []
+  for i in [1, 2] {
+    type Tagged = { i: int }
+    Array.push(tags, `${Tagged{ i }}`)
+  }
+  println(tags)
+  println(Array.map([1, 2], { type Wrap = { v: int }; Wrap{ v: x } }))
+  println(declaresOnly())
+}
+
+// expect
+// out: ["a: 3", "b: 2", "c: 1"]
+// out: true
+// out: Pair{ a: 1, b: 2 }
+// out: 7 Point{ x: 1, y: 2 }
+// out: 2
+// out: Meters(3.5) true
+// out: ["Tagged{ i: 1 }", "Tagged{ i: 2 }"]
+// out: [Wrap{ v: 1 }, Wrap{ v: 2 }]
+// out: void

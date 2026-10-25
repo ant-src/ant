@@ -77,6 +77,9 @@ type Checker struct {
 	// unresolved holds the type declarations whose bodies are not resolved yet, so that a type
 	// argument list naming a later declaration resolves it first and can be checked at the use.
 	unresolved map[*types.Decl]*typeInfo
+	// localTypes holds the types declared in blocks, made once per declaration however often
+	// the block is checked.
+	localTypes map[*ast.TypeDecl]*typeInfo
 
 	// the context of the function or initializer being checked
 	mod  *moduleInfo
@@ -175,6 +178,8 @@ type typeInfo struct {
 	t    *types.Decl
 	ent  *entity
 	mod  *moduleInfo
+	// scope is the block a local type is declared in; nil at the top level.
+	scope *scope
 }
 
 type funcInfo struct {
@@ -551,7 +556,7 @@ func declTypes(d *types.Decl) []types.Type {
 
 func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 	d, decl := ti.decl, ti.t
-	sc := &scope{tparams: map[string]*types.ParamDecl{}}
+	sc := &scope{parent: ti.scope, tparams: map[string]*types.ParamDecl{}, typeDecl: d.Name}
 	for i, tp := range d.TypeParams {
 		sc.tparams[tp.Name] = decl.Params[i]
 	}
@@ -831,22 +836,31 @@ func (c *Checker) signature(d *ast.FuncDecl, parent *scope, owner string) *sig {
 
 // ---- type resolution
 
-// scope is a lexical scope of the checker: locals and type parameters.
+// scope is a lexical scope of the checker: locals, the types a block declares, and type
+// parameters.
 type scope struct {
 	parent  *scope
 	names   map[string]*local
+	types   map[string]*entity
 	tparams map[string]*types.ParamDecl
+	// typeDecl names the type whose body this scope resolves.
+	typeDecl string
 }
 
-func (sc *scope) lookupTypeParam(name string) *types.ParamDecl {
+// lookupTypeParam finds a type parameter. outside names the type declared in a block whose
+// body reaches past its own parameters to those of the enclosing function, or is "".
+func (sc *scope) lookupTypeParam(name string) (p *types.ParamDecl, outside string) {
 	for s := sc; s != nil; s = s.parent {
 		if s.tparams != nil {
 			if p, ok := s.tparams[name]; ok {
-				return p
+				return p, outside
 			}
 		}
+		if s.typeDecl != "" && outside == "" {
+			outside = s.typeDecl
+		}
 	}
-	return nil
+	return nil, ""
 }
 
 // resolveType turns a type expression into a type, reporting unknown names and wrong
@@ -894,7 +908,11 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	name := x.Path[0]
 	if len(x.Path) == 1 {
-		if p := sc.lookupTypeParam(name); p != nil {
+		if p, outside := sc.lookupTypeParam(name); p != nil {
+			if outside != "" {
+				c.errorf(x.Pos, "%s is declared in a block and cannot mention %s, a type parameter of the enclosing function", outside, name)
+				return types.Invalid{}
+			}
 			if len(x.Args) > 0 {
 				c.errorf(x.Pos, "the type parameter %s takes no type arguments", name)
 			}
@@ -933,7 +951,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 			return types.Prim{Kind: k}
 		}
 	}
-	ent := c.lookupEntity(name)
+	ent := c.lookupType(sc, name)
 	if ent == nil {
 		c.errorf(x.Pos, "unknown type %s", name)
 		return types.Invalid{}
@@ -995,6 +1013,18 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 		}
 	}
 	return n
+}
+
+// lookupType finds a type name: one declared in an enclosing block, else a module-level or
+// prelude entity. A local variable does not hide a type here, since a type position holds no
+// value.
+func (c *Checker) lookupType(sc *scope, name string) *entity {
+	for s := sc; s != nil; s = s.parent {
+		if e, ok := s.types[name]; ok {
+			return e
+		}
+	}
+	return c.lookupEntity(name)
 }
 
 // lookupEntity finds a module-level or prelude name.

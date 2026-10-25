@@ -71,6 +71,7 @@ type Instance struct {
 	errMu       sync.Mutex
 	keep        map[string]any
 	keepMu      sync.Mutex
+	localTypes  sync.Map // *ast.TypeDecl of a block → the tag or constructor it binds
 	done        atomic.Bool
 	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
 	result      chan error

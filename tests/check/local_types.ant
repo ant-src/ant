@@ -1,0 +1,43 @@
+// spec: 4 Type declarations; 3
+// A type declared in a block may not mention a type parameter of the enclosing function, though
+// it may have parameters of its own; it is not visible outside its block; two local types of one
+// name in different functions are different types, and a local type that shadows a top-level one
+// is a different type from it; a block whose last statement is a type declaration is void; the
+// alias rules hold in a block too. A message naming two different types of one name says where
+// each is declared.
+// error: 33: cannot use void where int is expected
+type Point = { x: int }
+
+func wrap[T](v: T): Array[T] {
+  type Box = { value: T } // ERR: Box is declared in a block and cannot mention T
+  type Own[U] = { value: U }
+  var b = Own{ value: v }
+  [b.value]
+}
+
+func first() {
+  type P = { v: int }
+  P{ v: 1 }
+}
+
+func second() {
+  type P = { v: int }
+  P{ v: 1 }
+}
+
+func shadow() {
+  type Point = { x: int }
+  Point{ x: 1 }
+}
+
+func last(): int {
+  type Q = int
+}
+
+func main(): void {
+  var same = first() == second() // ERR: P (declared at 19:3) and P (declared at 24:3) cannot be compared
+  var p: Point = shadow()        // ERR: cannot use Point (declared at 29:3) where Point (declared at 9:1)
+  if true { type Inner = { n: int } }
+  var i: Inner = 1  // ERR: unknown type Inner
+  type A = A | null // ERR: type A refers to itself without passing through
+}

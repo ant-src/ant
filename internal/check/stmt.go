@@ -168,12 +168,15 @@ func (c *Checker) nullTest(x *ast.Binary, sc *scope) (*local, bool) {
 // checked against expected when there is one, or void.
 func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type {
 	inner := &scope{parent: sc, names: map[string]*local{}}
+	c.blockTypes(b, inner)
 	var last types.Type = types.Void{}
 	for i, s := range b.Stmts {
 		isLast := i == len(b.Stmts)-1
 		switch st := s.(type) {
 		case *ast.VarDecl:
 			c.varDecl(st, inner)
+			last = types.Void{}
+		case *ast.TypeDecl:
 			last = types.Void{}
 		case ast.Expr:
 			if isLast && expected != nil {
@@ -189,11 +192,41 @@ func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type
 	if expected != nil {
 		if len(b.Stmts) == 0 {
 			c.expect(b.Pos, types.Void{}, expected)
-		} else if _, isVar := b.Stmts[len(b.Stmts)-1].(*ast.VarDecl); isVar {
+		} else if _, isExpr := b.Stmts[len(b.Stmts)-1].(ast.Expr); !isExpr {
 			c.expect(b.Pos, types.Void{}, expected)
 		}
 	}
 	return last
+}
+
+// blockTypes declares the types of a block in its scope, all before its statements, so they
+// may refer to each other in any order (section 4, Type declarations). A block checked again,
+// as a lambda body may be, finds the declarations it made the first time.
+func (c *Checker) blockTypes(b *ast.Block, sc *scope) {
+	if len(b.Types) == 0 {
+		return
+	}
+	if c.localTypes == nil {
+		c.localTypes = map[*ast.TypeDecl]*typeInfo{}
+	}
+	sc.types = map[string]*entity{}
+	var fresh []*typeInfo
+	for _, d := range b.Types {
+		ti := c.localTypes[d]
+		if ti == nil {
+			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Kind: declKind(d.Body)}
+			for _, tp := range d.TypeParams {
+				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
+			}
+			ent := &entity{name: d.Name, kind: entType, decl: decl, pos: d.Pos, members: map[string]*entity{}}
+			ti = &typeInfo{decl: d, t: decl, ent: ent, mod: c.mod, scope: sc}
+			c.localTypes[d] = ti
+			c.mod.types = append(c.mod.types, ti)
+			fresh = append(fresh, ti)
+		}
+		sc.types[d.Name] = ti.ent
+	}
+	c.resolveTypeDecls(fresh)
 }
 
 // varDecl checks a local var declaration. The name is in scope inside its own initializer,

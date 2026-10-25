@@ -140,7 +140,6 @@ func TestSyntaxErrors(t *testing.T) {
 		{"reserved shorthand destructure", "var { class } = e", "'class' is a reserved word and cannot be bound", Program},
 		{"reserved shorthand map", "var m = Map{ class }", "'class' is a reserved word: as a key", Program},
 		{"record string key", `var p = Point{ "x": 1 }`, "must be a name", Program},
-		{"type in block", "func f() { type T = int }", "only allowed at the top level", Program},
 		{"export in block", "func f() { export var x = 1 }", "only allowed at the top level", Program},
 		{"named func in block", "func f() { func g() {} }", "only allowed at the top level", Program},
 		{"import after declaration", "var x = 1\nimport \"./a.ant\" A", "imports must come before", Program},
@@ -233,6 +232,7 @@ func TestAST(t *testing.T) {
 		{"func f() {\n  a\n  (b)\n}", "(file (func f() { a; b }))"},
 		{"func f() {\n  var x = 1; var y = 2; x + y\n}", "(file (func f() { (var x 1); (var y 2); (+ x y) }))"},
 		{"type S = Circle\n  | Rect\n  | Empty", "(file (type S (| Circle Rect Empty)))"},
+		{"func f() {\n  type T = { v: int }\n  T{ v: 1 }\n}", "(file (func f() { (type T {v:int}); (T v:1) }))"},
 		{"type H = func(int): A | B", "(file (type H (func (int):(| A B))))"},
 		{"type H = (func(int): A) | B", "(file (type H (| (func (int):A) B)))"},
 		{"type P[A, B: Ordered] = { first: A, second: B }", "(file (type P[A B:Ordered] {first:A second:B}))"},
@@ -279,6 +279,26 @@ func TestHasDefer(t *testing.T) {
 	inner := body.Stmts[0].(*ast.If).Then
 	if !inner.HasDefer {
 		t.Error("the if block should have the defer")
+	}
+}
+
+// TestBlockTypes checks that a block, a lambda body included, lists the types declared directly
+// in it and no others.
+func TestBlockTypes(t *testing.T) {
+	f, err := Parse("test", "func f() {\n  type A = int\n  if c { type B = int }\n  g({ type C = int; C(1) })\n}", Program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := f.Decls[0].(*ast.FuncDecl).Body
+	if len(body.Types) != 1 || body.Types[0].Name != "A" {
+		t.Errorf("the function body should list A alone, got %v", body.Types)
+	}
+	if then := body.Stmts[1].(*ast.If).Then; len(then.Types) != 1 || then.Types[0].Name != "B" {
+		t.Errorf("the if block should list B alone, got %v", then.Types)
+	}
+	lam := body.Stmts[2].(*ast.Call).Args[0].Value.(*ast.Lambda)
+	if len(lam.Body.Types) != 1 || lam.Body.Types[0].Name != "C" {
+		t.Errorf("the lambda body should list C alone, got %v", lam.Body.Types)
 	}
 }
 

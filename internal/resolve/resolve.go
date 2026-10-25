@@ -77,6 +77,7 @@ type resolver struct {
 	errs      []*Error
 	uses      []use
 	targetsOf []targetBinding
+	typesOf   []typeBinding
 	paramsOf  []paramBinding
 	scopes    []*scope
 	loops     []*loopFacts // the loops whose bodies are being resolved, innermost last
@@ -259,7 +260,7 @@ func (r *resolver) declareModule(f *ast.File) {
 			td, ok = r.fields.Types[fd.Owner] // a type of an earlier input, not redeclared here
 		}
 		if !ok {
-			r.errorf(fd.Pos, "func %s.%s: %s is not a type declared in this module", fd.Owner, fd.Name, fd.Owner)
+			r.errorf(fd.Pos, "func %s.%s: %s is not a type declared at the top level of this module", fd.Owner, fd.Name, fd.Owner)
 			continue
 		}
 		if typeFuncs[fd.Owner] == nil {
@@ -302,7 +303,7 @@ func (r *resolver) funcDecl(d *ast.FuncDecl) {
 	s.fnScope = d.Scope
 	r.params(d.Params, s)
 	if d.Body != nil {
-		r.stmts(d.Body.Stmts, s)
+		r.stmts(d.Body, s)
 	}
 }
 
@@ -349,6 +350,11 @@ type targetBinding struct {
 	b *binding
 }
 
+type typeBinding struct {
+	d *ast.TypeDecl
+	b *binding
+}
+
 type paramBinding struct {
 	p *ast.Param
 	b *binding
@@ -356,8 +362,14 @@ type paramBinding struct {
 
 // ---- statements and expressions
 
-func (r *resolver) stmts(ss []ast.Stmt, s *scope) {
-	for _, st := range ss {
+// stmts resolves a block's statements in s. Its types are declared first, so they are visible
+// throughout the block (section 4, Type declarations).
+func (r *resolver) stmts(b *ast.Block, s *scope) {
+	for _, td := range b.Types {
+		r.typesOf = append(r.typesOf, typeBinding{td, r.declare(s, td.Name, td.Pos)})
+		r.typeParams(td.TypeParams)
+	}
+	for _, st := range b.Stmts {
 		r.stmt(st, s)
 	}
 }
@@ -380,7 +392,7 @@ func (r *resolver) stmt(st ast.Stmt, s *scope) {
 // block resolves a block's statements in a new scope, unless it declares nothing.
 func (r *resolver) block(b *ast.Block, parent *scope) {
 	s := r.push(&scope{parent: parent, block: b})
-	r.stmts(b.Stmts, s)
+	r.stmts(b, s)
 }
 
 func (r *resolver) body(kind string, b *ast.Block, parent *scope, fs *ast.FuncScope) {
@@ -388,7 +400,7 @@ func (r *resolver) body(kind string, b *ast.Block, parent *scope, fs *ast.FuncSc
 	if kind == "lambda" {
 		s.xBinding = r.declare(s, "x", b.Pos)
 	}
-	r.stmts(b.Stmts, s)
+	r.stmts(b, s)
 }
 
 func (r *resolver) expr(e ast.Expr, s *scope) {
@@ -429,7 +441,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		e.Scope = &ast.FuncScope{}
 		fs := r.push(&scope{parent: s, boundary: true, fn: true, fnScope: e.Scope})
 		r.params(e.Params, fs)
-		r.stmts(e.Body.Stmts, fs)
+		r.stmts(e.Body, fs)
 	case *ast.Field:
 		r.expr(e.X, s)
 	case *ast.Index:
@@ -477,7 +489,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		r.expr(e.Iter, s)
 		it := r.push(&scope{parent: s, loop: e})
 		r.target(e.Target, it)
-		r.loopBody(s, &e.Assigned, func() { r.stmts(e.Body.Stmts, it) })
+		r.loopBody(s, &e.Assigned, func() { r.stmts(e.Body, it) })
 	case *ast.Select:
 		// The heads' operands belong to the enclosing scope; each body is a scope of its own
 		// with the clause's binding, as a loop's iteration is.
@@ -489,7 +501,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 			if c.Target != nil {
 				r.target(c.Target, cs)
 			}
-			r.stmts(c.Body.Stmts, cs)
+			r.stmts(c.Body, cs)
 		}
 	case *ast.Go:
 		e.Scope = &ast.FuncScope{}
@@ -664,6 +676,9 @@ func (r *resolver) finalize() {
 	}
 	for _, tb := range r.targetsOf {
 		tb.t.Slot = slotOf(tb.b)
+	}
+	for _, tb := range r.typesOf {
+		tb.d.Slot = slotOf(tb.b)
 	}
 	for _, u := range r.uses {
 		depth := 0

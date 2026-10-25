@@ -275,7 +275,8 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type) 
 			got := c.synthWithPattern(a.Value, pt, subst, unsolved, sc)
 			if !c.unify(pt, got, subst) {
 				want, _ := types.Subst(pt, subst)
-				c.errorf(a.Pos, "cannot use %s where %s is expected", types.String(got), types.String(want))
+				gs, ws := typeNames(got, want)
+				c.errorf(a.Pos, "cannot use %s where %s is expected", gs, ws)
 			}
 			pruneSolved(unsolved, subst)
 			synthesized = append(synthesized, pending{i, got})
@@ -312,7 +313,8 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type) 
 			continue
 		}
 		if !types.Assignable(pe.t, want) {
-			c.errorf(slots[pe.i].Pos, "cannot use %s where %s is expected", types.String(pe.t), types.String(want))
+			gs, ws := typeNames(pe.t, want)
+			c.errorf(slots[pe.i].Pos, "cannot use %s where %s is expected", gs, ws)
 		}
 	}
 	return c.resultOf(s, subst, x.Pos)

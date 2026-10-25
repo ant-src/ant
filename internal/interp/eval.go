@@ -49,6 +49,8 @@ func (g *Goroutine) evalStmts(stmts []ast.Stmt, env *Env) (value.Value, ctl) {
 			}
 			g.bind(st.Target, v, env)
 			last = value.Void
+		case *ast.TypeDecl:
+			last = value.Void // bound when the block started
 		case ast.Expr:
 			v, c := g.eval(st, env)
 			if c != ctlNone {
@@ -63,6 +65,9 @@ func (g *Goroutine) evalStmts(stmts []ast.Stmt, env *Env) (value.Value, ctl) {
 func (g *Goroutine) evalBlock(b *ast.Block, env *Env) (value.Value, ctl) {
 	if b.Scope != nil {
 		env = newEnv(b.Scope, env)
+	}
+	for _, td := range b.Types {
+		env.set(td.Slot, g.in.localType(td))
 	}
 	if !b.HasDefer {
 		return g.evalStmts(b.Stmts, env)

@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"maps"
 
 	"github.com/ant-src/ant/ast"
@@ -8,13 +9,17 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// lookup finds a name: a local in the scope chain, else a module-level or prelude entity.
+// lookup finds a name: a local or a block's type in the scope chain, else a module-level or
+// prelude entity.
 func (c *Checker) lookup(sc *scope, name string) (*local, *entity) {
 	for s := sc; s != nil; s = s.parent {
 		if s.names != nil {
 			if l, ok := s.names[name]; ok {
 				return l, nil
 			}
+		}
+		if e, ok := s.types[name]; ok {
+			return nil, e
 		}
 	}
 	return nil, c.lookupEntity(name)
@@ -173,8 +178,28 @@ func convValue(ent *entity, f types.Func) types.Type {
 // expect reports a type that is not assignable to the expected one.
 func (c *Checker) expect(pos ast.Pos, t, expected types.Type) {
 	if !types.Assignable(t, expected) {
-		c.errorf(pos, "cannot use %s where %s is expected", types.String(t), types.String(expected))
+		got, want := typeNames(t, expected)
+		c.errorf(pos, "cannot use %s where %s is expected", got, want)
 	}
+}
+
+// typeNames renders two types for a message. When they read alike but differ, as two types of
+// one name declared in different blocks do, each declared type says where it is declared.
+func typeNames(a, b types.Type) (string, string) {
+	sa, sb := types.String(a), types.String(b)
+	if sa == sb {
+		sa, sb = sa+declaredAt(a), sb+declaredAt(b)
+	}
+	return sa, sb
+}
+
+func declaredAt(t types.Type) string {
+	if n, ok := t.(types.Named); ok {
+		if pos, ok := n.Decl.Pos.(ast.Pos); ok && pos.Line > 0 {
+			return fmt.Sprintf(" (declared at %d:%d)", pos.Line, pos.Col)
+		}
+	}
+	return ""
 }
 
 // synth determines the type of an expression without an expected type.
@@ -378,10 +403,11 @@ func (c *Checker) sigOf(ent *entity, pos ast.Pos) *sig {
 func (c *Checker) entityPath(e ast.Expr, sc *scope) *entity {
 	switch x := e.(type) {
 	case *ast.Ident:
-		if l, _ := c.lookup(sc, x.Name); l != nil {
+		l, ent := c.lookup(sc, x.Name)
+		if l != nil {
 			return nil
 		}
-		return c.lookupEntity(x.Name)
+		return ent
 	case *ast.Field:
 		if x.Optional {
 			return nil
@@ -1025,7 +1051,8 @@ func (c *Checker) binary(x *ast.Binary, sc *scope) types.Type {
 		l := c.synth(x.X, sc)
 		r := c.synth(x.Y, sc)
 		if !types.Assignable(l, r) && !types.Assignable(r, l) {
-			c.errorf(x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", types.String(l), types.String(r), x.Op)
+			ls, rs := typeNames(l, r)
+			c.errorf(x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", ls, rs, x.Op)
 		}
 		return types.BoolType
 	case "<", "<=", ">", ">=":

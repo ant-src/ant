@@ -31,7 +31,7 @@ func TestScopeErrors(t *testing.T) {
 		{"shadow import", "import \"./a.ant\" { thing }\nvar thing = 1", "thing is already bound by an import"},
 		{"two imports", "import \"./a.ant\" { thing }\nimport \"./b.ant\" { thing }", "thing is already bound by an import"},
 		{"import prelude name", "import \"./a.ant\" { print }", "print is a prelude name"},
-		{"func on unknown type", "func Point.norm(p: Point): float64 { 1.0 }", "Point is not a type declared in this module"},
+		{"func on unknown type", "func Point.norm(p: Point): float64 { 1.0 }", "Point is not a type declared at the top level of this module"},
 		{"func on type twice", "type P = {}\nfunc P.a() {}\nfunc P.a() {}", "P.a is already declared"},
 		{"func shares field name", "type P = { a: int }\nfunc P.a() {}", "shares its name with a field"},
 	}
