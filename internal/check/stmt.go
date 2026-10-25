@@ -249,7 +249,7 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string, types.Type)) {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		if t.Name != "_" {
+		if !t.Slot.Discard {
 			bind(t.Name, src)
 		}
 	case *ast.RecordTarget:

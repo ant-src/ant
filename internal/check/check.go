@@ -397,7 +397,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 func targetNames(t ast.Target) []*ast.NameTarget {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		if t.Name == "_" {
+		if t.Slot.Discard {
 			return nil
 		}
 		return []*ast.NameTarget{t}
@@ -956,7 +956,7 @@ func withRigid(rigid map[*types.ParamDecl]bool, own map[string]*types.ParamDecl)
 func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCtx) {
 	for i, p := range params {
 		l := &local{name: p.Name, typ: s.fn.Params[i], slot: p.Slot, ctx: ctx, pos: p.Pos}
-		if p.Name != "_" {
+		if !p.Slot.Discard {
 			sc.names[p.Name] = l
 		}
 	}
@@ -966,14 +966,14 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 	saved := c.fn
 	c.fn = ctx
 	for _, p := range params {
-		if p.Default != nil && p.Name != "_" {
+		if p.Default != nil && !p.Slot.Discard {
 			sc.names[p.Name].unset = true
 		}
 	}
 	for i, p := range params {
 		if p.Default != nil {
 			c.check(p.Default, sc, s.fn.Params[i])
-			if p.Name != "_" {
+			if !p.Slot.Discard {
 				sc.names[p.Name].unset = false
 			}
 		}

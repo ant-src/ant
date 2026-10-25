@@ -473,6 +473,8 @@ type Slot struct {
 	// AssignedNested when it is assigned inside a nested body (section 7).
 	Reassigned     bool
 	AssignedNested bool
+	// Discard is set for _, which binds nothing: a value stored there is dropped.
+	Discard bool
 }
 
 // BlockScope describes the environment a block, loop iteration, or function allocates.

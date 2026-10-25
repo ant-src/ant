@@ -37,6 +37,7 @@ type binding struct {
 	captured       bool
 	reassigned     bool
 	assignedNested bool
+	discard        bool // _, which binds nothing
 	module         bool
 	index          int // module field index, or slot index after finalize
 	shared         bool
@@ -158,6 +159,7 @@ func (r *resolver) push(s *scope) *scope {
 func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
 	b := &binding{name: name, pos: pos, scope: s, imp: -1}
 	if name == "_" {
+		b.discard = true
 		return b
 	}
 	if r.isPrelude(name) {
@@ -606,6 +608,17 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 
 // ---- finalize
 
+// slotOf is where a parameter or target binding lives, once finalize has numbered the slots.
+func slotOf(b *binding) ast.Slot {
+	switch {
+	case b.discard:
+		return ast.Slot{Discard: true}
+	case b.module:
+		return ast.Slot{Index: b.index, Module: true}
+	}
+	return ast.Slot{Index: b.index, Shared: b.shared, Reassigned: b.reassigned, AssignedNested: b.assignedNested}
+}
+
 func (r *resolver) finalize() {
 	// Slot numbering and environment allocation per scope.
 	for _, s := range r.scopes {
@@ -647,17 +660,10 @@ func (r *resolver) finalize() {
 		}
 	}
 	for _, pb := range r.paramsOf {
-		pb.p.Slot = ast.Slot{Index: pb.b.index, Shared: pb.b.shared, Reassigned: pb.b.reassigned, AssignedNested: pb.b.assignedNested}
+		pb.p.Slot = slotOf(pb.b)
 	}
 	for _, tb := range r.targetsOf {
-		if tb.t.Name == "_" {
-			continue
-		}
-		if tb.b.module {
-			tb.t.Slot = ast.Slot{Index: tb.b.index, Module: true}
-		} else {
-			tb.t.Slot = ast.Slot{Index: tb.b.index, Shared: tb.b.shared, Reassigned: tb.b.reassigned, AssignedNested: tb.b.assignedNested}
-		}
+		tb.t.Slot = slotOf(tb.b)
 	}
 	for _, u := range r.uses {
 		depth := 0

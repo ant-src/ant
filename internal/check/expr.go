@@ -262,7 +262,7 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 // ---- names
 
 func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
-	if x.Name == "_" {
+	if x.Ref.Kind == ast.RefDiscard {
 		c.errorf(x.Pos, "_ is write-only and cannot be read")
 		return types.Invalid{}
 	}
@@ -1357,7 +1357,7 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 	switch t := x.Target.(type) {
 	case *ast.Ident:
-		if t.Name == "_" {
+		if t.Ref.Kind == ast.RefDiscard {
 			if x.Op != "=" {
 				// a compound assignment reads its target
 				c.errorf(t.Pos, "_ is write-only and cannot be read")
@@ -1473,7 +1473,7 @@ func (c *Checker) assignArray(t *ast.AssignArray, v types.Type, sc *scope) {
 func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 	switch t := p.(type) {
 	case *ast.Ident:
-		if t.Name == "_" {
+		if t.Ref.Kind == ast.RefDiscard {
 			return
 		}
 		l, ent := c.lookup(sc, t.Name)
