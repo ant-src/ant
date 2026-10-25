@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var x = 0B101
+func main(): void {}
+
+// expect
+// exit: 2
+// err: prefix 0b in lowercase

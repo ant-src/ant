@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var x = 00.5
+func main(): void {}
+
+// expect
+// exit: 2
+// err: other than 0 cannot start with 0

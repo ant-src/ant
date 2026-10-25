@@ -17,11 +17,13 @@ func main(): void {
   println(`multi
 line template`)
   println(1_000 + 0x10 + 0b11)
-  println(0xff == 255 && 0B1 == 1 && 0X1 == 1)
+  println(0xff == 255 && 0b1 == 1 && 0x1 == 1)
   println(1e3)
   println(2.5e-3)
-  println(1.5E2)
+  println(1.5e2)
   println(0.5 + 0.25)
+  println(0 + 0x0F + 0b0)
+  println(0e-400 == 0.0 && 5e-324 > 0.0)
   var big: int = 9_223_372_036_854_775_807
   println(big)
   println(Math.minInt)
@@ -52,6 +54,8 @@ line template`)
 // out: 0.0025
 // out: 150.0
 // out: 0.75
+// out: 15
+// out: true
 // out: 9223372036854775807
 // out: -9223372036854775808
 // out: 255

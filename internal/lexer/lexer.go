@@ -391,16 +391,19 @@ func (l *lexer) number() {
 	kind := token.Int
 	base := 10
 	switch {
-	case l.has("0x") || l.has("0X"):
+	case l.has("0x"):
 		l.advance(2)
 		base = 16
 		l.digits(isHex, "hexadecimal")
-	case l.has("0b") || l.has("0B"):
+	case l.has("0b"):
 		l.advance(2)
 		base = 2
 		l.digits(isBinary, "binary")
 	default:
 		l.digits(isDigit, "number")
+		if l.src[start] == '0' && l.pos-start > 1 {
+			l.fail(pos, "a decimal literal other than 0 cannot start with 0")
+		}
 		if l.peek(0) == '.' {
 			if !isDigit(l.peek(1)) {
 				l.fail(l.here(), "a float literal needs a digit after the point")
@@ -409,7 +412,7 @@ func (l *lexer) number() {
 			l.advance(1)
 			l.digits(isDigit, "number")
 		}
-		if l.peek(0) == 'e' || l.peek(0) == 'E' {
+		if l.peek(0) == 'e' {
 			kind = token.Float
 			l.advance(1)
 			if l.peek(0) == '+' || l.peek(0) == '-' {
@@ -418,7 +421,12 @@ func (l *lexer) number() {
 			l.digits(isDigit, "exponent")
 		}
 	}
-	if isIdentChar(l.peek(0)) {
+	switch c := l.peek(0); {
+	case (c == 'X' || c == 'B') && l.src[start:l.pos] == "0":
+		l.fail(l.here(), "malformed number literal: write the prefix 0%c in lowercase", c+'a'-'A')
+	case c == 'E' && base == 10 && !strings.Contains(l.src[start:l.pos], "e"):
+		l.fail(l.here(), "malformed number literal: write the exponent with a lowercase e")
+	case isIdentChar(c):
 		l.fail(l.here(), "malformed number literal")
 	}
 	text := l.src[start:l.pos]
@@ -435,7 +443,10 @@ func (l *lexer) number() {
 		t.Value = v
 	} else {
 		v, err := strconv.ParseFloat(clean, 64)
-		if err != nil {
+		// A nonzero literal that rounds to 0.0 is as far out of range as one that rounds to
+		// infinity.
+		mantissa, _, _ := strings.Cut(clean, "e")
+		if err != nil || v == 0 && strings.Trim(mantissa, "0.") != "" {
 			l.fail(pos, "float literal %s is out of range", text)
 		}
 		t.Float = v
