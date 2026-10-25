@@ -496,8 +496,13 @@ func (i Instant) Round(unit Unit, inc int64, mode RoundingMode) (Instant, error)
 	if unit <= Day {
 		return Instant{}, fmt.Errorf("an instant cannot be rounded to a %s", unit)
 	}
-	if err := validateIncrement(unit, inc); err != nil {
-		return Instant{}, err
+	// As Temporal's Instant.round: the increment divides a day and may be all of it.
+	perDay := nsPerUnit[Day] / nsPerUnit[unit]
+	if inc < 1 {
+		return Instant{}, fmt.Errorf("the increment must be positive, not %d", inc)
+	}
+	if inc > perDay || perDay%inc != 0 {
+		return Instant{}, fmt.Errorf("the increment for %ss of an instant must divide %d, not %d", unit, perDay, inc)
 	}
 	return instantFromNs(roundBig(i.ns(), big.NewInt(nsPerUnit[unit]*inc), mode))
 }

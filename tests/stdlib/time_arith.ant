@@ -71,6 +71,11 @@ Time.round(dt, Time.Minute{}, 30)             // => 2021-07-01T12:30:00
 Time.round(dt, Time.Day{}, mode: Time.Ceil{}) // => 2021-07-02T00:00:00
 Time.round(Result.unwrap(Time.parseZoned("2024-03-10T01:00:00-05:00[America/New_York]")), Time.Hour{}, 2) // => 2024-03-10T03:00:00-04:00[America/New_York]
 Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Second{}) // => 2026-10-22T14:03:06Z
+// An instant's increment divides a day and may be all of it, as in Temporal's Instant.round.
+Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Hour{}, 24) // => 2026-10-23T00:00:00Z
+Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Minute{}, 720) // => 2026-10-22T12:00:00Z
+Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Hour{}, 48) // => panic: Time.round: the increment for hours of an instant must divide 24, not 48
+Time.round(Result.unwrap(Time.parseInstant("2026-10-22T14:03:05.5Z")), Time.Minute{}, 7) // => panic: Time.round: the increment for minutes of an instant must divide 1440, not 7
 Time.round(Time.plainTime(10, 44, 30), Time.Hour{}, mode: Time.HalfEven{}) // => 11:00:00
 Time.with(before, day: 3)                     // => 2024-11-03T01:00:00-04:00[America/New_York]
 Time.with(Result.unwrap(Time.parseZoned("2024-11-04T01:05:00-05:00[America/New_York]")), day: 3) // => 2024-11-03T01:05:00-05:00[America/New_York]
