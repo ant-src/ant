@@ -267,8 +267,6 @@ func TestDurationText(t *testing.T) {
 		"-PT1H":            {Hours: -1},
 		"PT0S":             {},
 		"P1W":              {Weeks: 1},
-		"pt1h":             {Hours: 1},
-		"PT1,5S":           {Seconds: 1, Milliseconds: 500},
 		"+P1D":             {Days: 1},
 		"PT0.000000001S":   {Nanoseconds: 1},
 		"P1DT36H":          {Days: 1, Hours: 36},
@@ -644,7 +642,7 @@ func TestArithmeticErrors(t *testing.T) {
 	if _, err := (PlainTime{Hour: 1}).Until(PlainTime{}, Day); err == nil {
 		t.Error("days between times")
 	}
-	first := zdt(t, "1800-01-01T00:00:00-04:56:02[America/New_York]")
+	first := zdt(t, "1800-01-01T00:00:00-04:56[America/New_York]")
 	if _, ok := first.PreviousTransition(); ok {
 		t.Error("a transition before the first")
 	}

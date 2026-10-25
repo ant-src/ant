@@ -140,8 +140,10 @@ func TestParsePlain(t *testing.T) {
 	if tm, err := ParsePlainTime("14:03:05.123"); err != nil || tm.String() != "14:03:05.123" || tm.Millisecond() != 123 {
 		t.Errorf("time: %v %v", tm, err)
 	}
-	if tm, err := ParsePlainTime("T14:03"); err != nil || tm.String() != "14:03:00" {
-		t.Errorf("T time: %v %v", tm, err)
+	for _, bad := range []string{"T14:03", "T14:03:05", "T14:03[u-ca=iso8601]"} {
+		if tm, err := ParsePlainTime(bad); err == nil {
+			t.Errorf("a T before a bare time, %q, accepted as %v", bad, tm)
+		}
 	}
 	if tm, err := ParsePlainTime("2026-10-22 14:03:05.000000001+02:00"); err != nil || tm.Nanosecond() != 1 || tm.String() != "14:03:05.000000001" {
 		t.Errorf("time with a date: %v %v", tm, err)
@@ -300,14 +302,13 @@ func TestCivil(t *testing.T) {
 
 func TestParseEdges(t *testing.T) {
 	good := map[string]string{
-		"2026-10-22T14:03:05.5+05:30":                       "2026-10-22T14:03:05.5",
-		"2026-10-22 14:03:05+05:30":                         "2026-10-22T14:03:05",
-		"2026-10-22T14:03:05+05:30:00":                      "2026-10-22T14:03:05",
-		"2026-10-22T14:03:05+05:30:00.5":                    "2026-10-22T14:03:05",
-		"2026-10-22T14:03:05+05:30[Europe/Stockholm]":       "2026-10-22T14:03:05",
-		"2026-10-22T14:03:05Z[Europe/Stockholm]":            "2026-10-22T14:03:05",
-		"2026-10-22T14:03:05.123456789-00:00[u-ca=ISO8601]": "2026-10-22T14:03:05.123456789",
-		"+010000-01-01T00:00":                               "+010000-01-01T00:00:00",
+		"2026-10-22T14:03:05.5+05:30":                               "2026-10-22T14:03:05.5",
+		"2026-10-22 14:03:05+05:30":                                 "2026-10-22T14:03:05",
+		"2026-10-22T14:03:05+05:30[Europe/Stockholm]":               "2026-10-22T14:03:05",
+		"2026-10-22T14:03:05Z[Europe/Stockholm]":                    "2026-10-22T14:03:05",
+		"2026-10-22T14:03:05.123456789-00:00[u-ca=iso8601]":         "2026-10-22T14:03:05.123456789",
+		"2026-10-22T14:03:05+05:30[Europe/Stockholm][u-ca=iso8601]": "2026-10-22T14:03:05",
+		"+010000-01-01T00:00":                                       "+010000-01-01T00:00:00",
 	}
 	for s, want := range good {
 		if dt, err := ParsePlainDateTime(s); err != nil || dt.String() != want {
@@ -327,6 +328,11 @@ func TestParseEdges(t *testing.T) {
 		"2026-10-22T14:03:05+05:30:00,5", "2026-10-22T14:03:05+05", "2026-10-22T14:03:05+0530",
 		"2026-10-22T14:03:05+05:30[!Europe/Stockholm]", "2026-10-22T14:03:05[!u-ca=iso8601]",
 		"2026-10-22T23:59:60", "t14:03",
+		// Nor an offset with seconds, which Ant never renders, an annotation other than the zone
+		// and [u-ca=iso8601], the calendar in capitals, or the zone after the calendar.
+		"2026-10-22T14:03:05+05:30:00", "2026-10-22T14:03:05+05:30:00.5", "2026-10-22T14:03:05-04:56:02[America/New_York]",
+		"2026-10-22T14:03:05[u-ca=ISO8601]", "2026-10-22T14:03:05[foo=bar]", "2026-10-22T14:03:05[Europe/Stockholm][foo=bar]",
+		"2026-10-22T14:03:05[u-ca=iso8601][Europe/Stockholm]", "2026-10-22T14:03:05[u-ca=]", "2026-10-22T14:03:05[=iso8601]",
 	}
 	for _, s := range bad {
 		if _, err := ParsePlainDateTime(s); err == nil {
@@ -356,12 +362,14 @@ func TestParseEdges(t *testing.T) {
 	if z, err := ParseZoned("1883-11-18T12:00:00-04:56[America/New_York]", Compatible); err != nil || z.Offset() != "-04:56:02" {
 		t.Errorf("local mean time: %v %v", z, err)
 	}
-	if _, err := ParseZoned("1883-11-18T12:00:00-04:56:00[America/New_York]", Compatible); err == nil {
-		t.Error("an offset with seconds that do not match")
+	for _, s := range []string{"1883-11-18T12:00:00-04:56:02[America/New_York]", "1883-11-18T12:00:00-04:57[America/New_York]"} {
+		if _, err := ParseZoned(s, Compatible); err == nil {
+			t.Errorf("%s: an offset with seconds, or not the zone's to the minute", s)
+		}
 	}
 	// The string rounds a sub-minute offset to the minute, as RFC 9557 has no seconds; the
 	// offset itself keeps them, and the string parses back to the same instant.
-	lmt, err := ParseZoned("1874-12-07T19:33:28+00:53:28[Europe/Berlin]", Compatible)
+	lmt, err := ParseZoned("1874-12-07T19:33:28+00:53[Europe/Berlin]", Compatible)
 	if err != nil || lmt.String() != "1874-12-07T19:33:28+00:53[Europe/Berlin]" || lmt.Offset() != "+00:53:28" {
 		t.Errorf("local mean time in Berlin: %v %q %v", lmt, lmt.Offset(), err)
 	}

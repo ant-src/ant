@@ -10,18 +10,17 @@ import (
 // An RFC 9557 string: ISO 8601's extended format with the zone and the calendar in brackets.
 // Each parser takes the part its type needs and ignores the rest, as Temporal's from does.
 type parsed struct {
-	hasDate          bool
-	year             int64
-	month, day       int
-	hasTime          bool
-	hour, minute     int
-	second, nano     int
-	hasOffset        bool
-	utc              bool // Z
-	offset           int  // seconds
-	offsetHasSeconds bool
-	zone             string
-	calendar         string
+	hasDate      bool
+	year         int64
+	month, day   int
+	hasTime      bool
+	hour, minute int
+	second, nano int
+	hasOffset    bool
+	utc          bool // Z
+	offset       int  // seconds
+	zone         string
+	calendar     string
 }
 
 type scanner struct {
@@ -67,8 +66,8 @@ func parseISO(s string) (parsed, error) {
 	var p parsed
 	sc := &scanner{s: s}
 	bad := func() (parsed, error) { return parsed{}, fmt.Errorf("not a date or time: %q", s) }
-	// A date, unless the string starts as a time: HH: or T.
-	startsTime := len(s) >= 3 && isDigit(s[0]) && isDigit(s[1]) && s[2] == ':' || sc.peek() == 'T'
+	// A date, unless the string starts as a time, HH:; a T comes only between a date and a time.
+	startsTime := len(s) >= 3 && isDigit(s[0]) && isDigit(s[1]) && s[2] == ':'
 	if !startsTime {
 		sign := int64(1)
 		var ok bool
@@ -107,8 +106,6 @@ func parseISO(s string) (parsed, error) {
 		if !sc.take('T') && !sc.take(' ') {
 			return bad()
 		}
-	} else {
-		sc.take('T')
 	}
 	h, ok := sc.digits(2)
 	if !ok || !sc.take(':') {
@@ -138,11 +135,11 @@ func parseISO(s string) (parsed, error) {
 		sc.i++
 		p.hasOffset, p.utc = true, true
 	case '+', '-':
-		off, hasSec, ok := sc.offset()
+		off, ok := sc.offset()
 		if !ok {
 			return bad()
 		}
-		p.hasOffset, p.offset, p.offsetHasSeconds = true, off, hasSec
+		p.hasOffset, p.offset = true, off
 	}
 	return finish(p, sc, s)
 }
@@ -161,42 +158,25 @@ func (sc *scanner) fraction() (int, bool) {
 	return n, true
 }
 
-// offset reads ±HH:MM, ±HH:MM:SS or ±HH:MM:SS.fraction.
-func (sc *scanner) offset() (seconds int, hasSeconds, ok bool) {
+// offset reads ±HH:MM, the only offset Ant renders: a zoned value's offset is rounded to the
+// minute in its string.
+func (sc *scanner) offset() (seconds int, ok bool) {
 	sign := 1
 	if sc.s[sc.i] == '-' {
 		sign = -1
 	}
 	sc.i++
-	h, ok := sc.digits(2)
-	if !ok {
-		return 0, false, false
+	h, ok1 := sc.digits(2)
+	ok2 := sc.take(':')
+	m, ok3 := sc.digits(2)
+	if !ok1 || !ok2 || !ok3 || h > 23 || m > 59 {
+		return 0, false
 	}
-	var m, s int64
-	if !sc.take(':') {
-		return 0, false, false
-	}
-	if m, ok = sc.digits(2); !ok {
-		return 0, false, false
-	}
-	if sc.take(':') {
-		if s, ok = sc.digits(2); !ok {
-			return 0, false, false
-		}
-		hasSeconds = true
-		if sc.take('.') {
-			if _, ok = sc.fraction(); !ok {
-				return 0, false, false
-			}
-		}
-	}
-	if h > 23 || m > 59 || s > 59 {
-		return 0, false, false
-	}
-	return sign * int(h*3600+m*60+s), hasSeconds, true
+	return sign * int(h*3600+m*60), true
 }
 
-// finish reads the bracketed annotations: the zone, then key=value pairs.
+// finish reads the bracketed annotations stdlib.md states: a zone, then [u-ca=iso8601], each
+// optional. RFC 9557's other keys, its critical flag and another calendar are errors.
 func finish(p parsed, sc *scanner, s string) (parsed, error) {
 	for sc.i < len(s) {
 		if !sc.take('[') {
@@ -208,29 +188,18 @@ func finish(p parsed, sc *scanner, s string) (parsed, error) {
 		}
 		body := s[sc.i : sc.i+end]
 		sc.i += end + 1
-		if strings.HasPrefix(body, "!") {
-			// RFC 9557's critical flag is not in the grammar stdlib.md states
-			return parsed{}, fmt.Errorf("not a date or time: %q", s)
-		}
-		if key, val, ok := strings.Cut(body, "="); ok {
-			if key == "u-ca" {
-				if p.calendar != "" {
-					return parsed{}, fmt.Errorf("two calendars in %q", s)
-				}
-				p.calendar = val
+		key, val, isKey := strings.Cut(body, "=")
+		switch {
+		case isKey && key == "u-ca" && p.calendar == "":
+			if val != "iso8601" {
+				return parsed{}, fmt.Errorf("calendar %s is not supported; only iso8601 is", val)
 			}
-			continue
-		}
-		if p.zone != "" {
-			return parsed{}, fmt.Errorf("two time zones in %q", s)
-		}
-		if body == "" {
+			p.calendar = val
+		case !isKey && p.zone == "" && p.calendar == "" && body != "" && body[0] != '!':
+			p.zone = body
+		default:
 			return parsed{}, fmt.Errorf("not a date or time: %q", s)
 		}
-		p.zone = body
-	}
-	if p.calendar != "" && !strings.EqualFold(p.calendar, "iso8601") {
-		return parsed{}, fmt.Errorf("calendar %s is not supported; only iso8601 is", p.calendar)
 	}
 	return p, nil
 }
@@ -288,8 +257,9 @@ func (p parsed) dateTime() (PlainDateTime, error) {
 }
 
 // ParseZoned reads a date, a time, a bracketed zone, and an offset or Z. Without a time it is
-// the start of the day; without an offset the wall-clock time is resolved by d; Z gives the exact moment, shown in the zone; an offset
-// the zone does not have at that time is an error.
+// the start of the day; without an offset the wall-clock time is resolved by d; Z gives the exact
+// moment, shown in the zone; an offset that is not the zone's at that time, rounded to the
+// minute as the string renders it, is an error.
 func ParseZoned(s string, d Disambiguation) (ZonedDateTime, error) {
 	p, err := parseISO(s)
 	if err != nil {
@@ -327,7 +297,7 @@ func ParseZoned(s string, d Disambiguation) (ZonedDateTime, error) {
 	}
 	for _, i := range ps {
 		off := z.offsetAt(i)
-		if off == p.offset || !p.offsetHasSeconds && roundToMinute(off) == p.offset {
+		if roundToMinute(off) == p.offset {
 			return ZonedDateTime{i, z}, nil
 		}
 	}
