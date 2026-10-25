@@ -68,7 +68,7 @@ func parseISO(s string) (parsed, error) {
 	sc := &scanner{s: s}
 	bad := func() (parsed, error) { return parsed{}, fmt.Errorf("not a date or time: %q", s) }
 	// A date, unless the string starts as a time: HH: or T.
-	startsTime := len(s) >= 3 && isDigit(s[0]) && isDigit(s[1]) && s[2] == ':' || sc.peek() == 'T' || sc.peek() == 't'
+	startsTime := len(s) >= 3 && isDigit(s[0]) && isDigit(s[1]) && s[2] == ':' || sc.peek() == 'T'
 	if !startsTime {
 		sign := int64(1)
 		var ok bool
@@ -104,12 +104,11 @@ func parseISO(s string) (parsed, error) {
 		if sc.i == len(s) || sc.peek() == '[' {
 			return finish(p, sc, s)
 		}
-		if !sc.take('T') && !sc.take('t') && !sc.take(' ') {
+		if !sc.take('T') && !sc.take(' ') {
 			return bad()
 		}
 	} else {
 		sc.take('T')
-		sc.take('t')
 	}
 	h, ok := sc.digits(2)
 	if !ok || !sc.take(':') {
@@ -126,7 +125,7 @@ func parseISO(s string) (parsed, error) {
 			return bad()
 		}
 		p.second = int(sec)
-		if sc.take('.') || sc.take(',') {
+		if sc.take('.') {
 			n, ok := sc.fraction()
 			if !ok {
 				return bad()
@@ -135,7 +134,7 @@ func parseISO(s string) (parsed, error) {
 		}
 	}
 	switch sc.peek() {
-	case 'Z', 'z':
+	case 'Z':
 		sc.i++
 		p.hasOffset, p.utc = true, true
 	case '+', '-':
@@ -162,7 +161,7 @@ func (sc *scanner) fraction() (int, bool) {
 	return n, true
 }
 
-// offset reads ±HH, ±HH:MM, ±HHMM, ±HH:MM:SS or ±HH:MM:SS.fraction.
+// offset reads ±HH:MM, ±HH:MM:SS or ±HH:MM:SS.fraction.
 func (sc *scanner) offset() (seconds int, hasSeconds, ok bool) {
 	sign := 1
 	if sc.s[sc.i] == '-' {
@@ -174,24 +173,22 @@ func (sc *scanner) offset() (seconds int, hasSeconds, ok bool) {
 		return 0, false, false
 	}
 	var m, s int64
-	colon := sc.take(':')
-	if isDigit(sc.peek()) {
-		if m, ok = sc.digits(2); !ok {
+	if !sc.take(':') {
+		return 0, false, false
+	}
+	if m, ok = sc.digits(2); !ok {
+		return 0, false, false
+	}
+	if sc.take(':') {
+		if s, ok = sc.digits(2); !ok {
 			return 0, false, false
 		}
-		if colon && sc.take(':') {
-			if s, ok = sc.digits(2); !ok {
+		hasSeconds = true
+		if sc.take('.') {
+			if _, ok = sc.fraction(); !ok {
 				return 0, false, false
 			}
-			hasSeconds = true
-			if sc.take('.') || sc.take(',') {
-				if _, ok = sc.fraction(); !ok {
-					return 0, false, false
-				}
-			}
 		}
-	} else if colon {
-		return 0, false, false
 	}
 	if h > 23 || m > 59 || s > 59 {
 		return 0, false, false
@@ -205,13 +202,16 @@ func finish(p parsed, sc *scanner, s string) (parsed, error) {
 		if !sc.take('[') {
 			return parsed{}, fmt.Errorf("not a date or time: %q", s)
 		}
-		sc.take('!')
 		end := strings.IndexByte(s[sc.i:], ']')
 		if end < 0 {
 			return parsed{}, fmt.Errorf("not a date or time: %q", s)
 		}
 		body := s[sc.i : sc.i+end]
 		sc.i += end + 1
+		if strings.HasPrefix(body, "!") {
+			// RFC 9557's critical flag is not in the grammar stdlib.md states
+			return parsed{}, fmt.Errorf("not a date or time: %q", s)
+		}
 		if key, val, ok := strings.Cut(body, "="); ok {
 			if key == "u-ca" {
 				if p.calendar != "" {

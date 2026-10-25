@@ -80,6 +80,17 @@ Time.parsePlainDate("2024-11-03T01:00:00-04:00[America/New_York]") // => Ok{ val
 Time.parsePlainDate("2024-02-30") is Err      // => true
 Time.parsePlainTime("14:03:05.123")           // => Ok{ value: 14:03:05.123 }
 Time.parsePlainDateTime("2024-11-03T01:00:00Z") is Err // => true
+// Parsing takes the grammar as stated and nothing more: an uppercase T and Z, a point before the
+// fraction, an offset ±HH:MM, no critical flag, no leap second; a year beyond 9999 with its sign.
+Time.parsePlainDateTime("2024-11-03 01:00:00.5") // => Ok{ value: 2024-11-03T01:00:00.5 }
+Time.parsePlainDateTime("2024-11-03t01:00:00") is Err // => true
+Time.parseInstant("2024-11-03T01:00:00z") is Err // => true
+Time.parsePlainTime("01:00:00,5") is Err      // => true
+Time.parseInstant("2024-11-03T01:00:00+05") is Err // => true
+Time.parseInstant("2024-11-03T01:00:00+0530") is Err // => true
+Time.parseZoned("2024-11-03T01:00:00-04:00[!America/New_York]") is Err // => true
+Time.parsePlainTime("23:59:60") is Err        // => true
+Time.parsePlainDate("+010000-01-01")          // => Ok{ value: +010000-01-01 }
 Time.plainDate(-100000, 1, 1)                 // => -100000-01-01
 var a = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Kolkata]"))
 var b = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Calcutta]"))
