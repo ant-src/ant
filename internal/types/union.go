@@ -73,8 +73,10 @@ func MakeUnion(members []Type) (Type, error) {
 // Join forms the union of branch types where control merges, or returns an error to report.
 func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
 
-// discriminator is what is tests at run time: a kind, a tag, or a shape class.
-func discriminator(t Type) (key, describe string, ok bool) {
+// Discriminator is what is tests at run time: a kind, a tag, or a shape class, as a key that two
+// types share exactly when is cannot tell them apart, and as words for a message. A sync type
+// has none, since is does not accept one (section 4, Unions).
+func Discriminator(t Type) (key, describe string, ok bool) {
 	switch x := Expand(t).(type) {
 	case Prim:
 		return "kind:" + x.Kind.String(), x.Kind.String(), true
@@ -110,7 +112,7 @@ func checkDiscriminators(members []Type) error {
 
 	var opaque Type
 	for _, m := range members {
-		key, desc, ok := discriminator(m)
+		key, desc, ok := Discriminator(m)
 		if !ok {
 			if n, isNamed := Expand(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
 				if opaque != nil {
