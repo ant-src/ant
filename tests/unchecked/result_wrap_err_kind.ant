@@ -1,0 +1,13 @@
+// spec: 12 Runtime panics; 11 Result, Error, and Record
+// panics: library-kind
+// Result.wrapErr passes an Ok through, but an Err must hold an Error to be wrapped (section 8,
+// Wrapping errors).
+var ok: Result[int, string] = Result.ok(1)
+println(Result.wrapErr(ok, "load config"))
+var err: Result[int, string] = Result.err("no such file")
+println(Result.wrapErr(err, "load config"))
+
+// expect
+// out: Ok{ value: 1 }
+// exit: 1
+// err: Result.wrapErr needs an Error, got string

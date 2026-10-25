@@ -1,0 +1,9 @@
+// spec: 12 Runtime panics; 11 Result, Error, and Record
+// panics: library-kind
+// Error.wrap takes only an Error, so a typed error must become one first (section 8, Wrapping
+// errors).
+println(Error.wrap("no such file", "load config"))
+
+// expect
+// exit: 1
+// err: Error.wrap needs an Error, got string
