@@ -508,9 +508,16 @@ func (g *Goroutine) push(name, path string, pos ast.Pos) {
 func (g *Goroutine) pop() { g.stack = g.stack[:len(g.stack)-1] }
 
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
-	g.push(f.FuncName(), f.Env.mod.path, pos)
-	defer g.pop()
-	env := newEnv(&f.Scope.BlockScope, f.Env)
+	// The arguments are matched to parameters before the frame is pushed, so that an arity
+	// panic is reported at the call site, in the caller, with no frame of the callee. A call
+	// with no caller, main or a host's call, has only the callee's frame to name.
+	root := len(g.stack) == 0
+	if root {
+		g.push(f.FuncName(), f.Env.mod.path, pos)
+		defer g.pop()
+	}
+	var slots []int // the parameter each argument fills
+	var filled []bool
 	if f.Lambda {
 		if names != nil {
 			g.panicf(pos, "a lambda takes no named arguments")
@@ -518,52 +525,29 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 		if len(args) > 1 {
 			g.panicf(pos, "a lambda takes at most one argument, got %d", len(args))
 		}
+	} else {
+		slots, filled = g.matchParams(f, args, names, pos)
+	}
+	if !root {
+		g.push(f.FuncName(), f.Env.mod.path, pos)
+		defer g.pop()
+	}
+	env := newEnv(&f.Scope.BlockScope, f.Env)
+	if f.Lambda {
 		x := value.Void
 		if len(args) == 1 {
 			x = args[0]
 		}
 		env.set(f.Scope.X, x)
 	} else {
-		filled := make([]bool, len(f.Params))
-		np := 0
-		for i := range args {
-			if names != nil && names[i] != "" {
-				break
-			}
-			np++
-		}
-		if np > len(f.Params) {
-			g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
-		}
-		for i := 0; i < np; i++ {
-			setParam(env, &f.Params[i], args[i])
-			filled[i] = true
-		}
-		for i := np; i < len(args); i++ {
-			idx := -1
-			for j := range f.Params {
-				if f.Params[j].Name == names[i] {
-					idx = j
-					break
-				}
-			}
-			if idx < 0 {
-				g.panicf(pos, "%s has no parameter %s", f.FuncName(), names[i])
-			}
-			if filled[idx] {
-				g.panicf(pos, "the parameter %s is given twice", names[i])
-			}
-			setParam(env, &f.Params[idx], args[i])
-			filled[idx] = true
+		for i, a := range args {
+			setParam(env, &f.Params[slots[i]], a)
 		}
 		for i := range f.Params {
 			if filled[i] {
 				continue
 			}
 			p := &f.Params[i]
-			if p.Default == nil {
-				g.panicf(pos, "%s needs an argument for %s", f.FuncName(), p.Name)
-			}
 			v, c := g.eval(p.Default, env)
 			if c == ctlReturn {
 				return v // a try in the default returned the Err from the callee
@@ -573,6 +557,51 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 	}
 	v, _ := g.evalBlock(f.Body, env)
 	return v
+}
+
+// matchParams matches a call's arguments to f's parameters, the positional ones first and then
+// the named ones, and panics on an argument too many, an unknown or repeated name, or a required
+// parameter left unfilled. It returns the parameter of each argument and which were filled.
+func (g *Goroutine) matchParams(f *Func, args []value.Value, names []string, pos ast.Pos) (slots []int, filled []bool) {
+	slots = make([]int, len(args))
+	filled = make([]bool, len(f.Params))
+	np := 0
+	for i := range args {
+		if names != nil && names[i] != "" {
+			break
+		}
+		np++
+	}
+	if np > len(f.Params) {
+		g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
+	}
+	for i := 0; i < np; i++ {
+		slots[i] = i
+		filled[i] = true
+	}
+	for i := np; i < len(args); i++ {
+		idx := -1
+		for j := range f.Params {
+			if f.Params[j].Name == names[i] {
+				idx = j
+				break
+			}
+		}
+		if idx < 0 {
+			g.panicf(pos, "%s has no parameter %s", f.FuncName(), names[i])
+		}
+		if filled[idx] {
+			g.panicf(pos, "the parameter %s is given twice", names[i])
+		}
+		slots[i] = idx
+		filled[idx] = true
+	}
+	for i := range f.Params {
+		if !filled[i] && f.Params[i].Default == nil {
+			g.panicf(pos, "%s needs an argument for %s", f.FuncName(), f.Params[i].Name)
+		}
+	}
+	return slots, filled
 }
 
 func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, pos ast.Pos) value.Value {
