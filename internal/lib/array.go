@@ -65,7 +65,7 @@ func init() {
 				i := intArg(g, who, a[1])
 				var v value.Value
 				var ok bool
-				if i >= 0 && i <= int64(xs.Len()) {
+				if i >= 0 && i < int64(xs.Len()) {
 					v, ok = xs.Remove(int(i))
 				}
 				if !ok {

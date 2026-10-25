@@ -35,13 +35,8 @@ func init() {
 			}),
 			fn("Set.union", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				x, y := setArg(g, who, a[0]), setArg(g, who, a[1])
-				out := value.NewSet()
-				for _, v := range x.Values() {
-					out.Add(v)
-				}
-				for _, v := range y.Values() {
-					out.Add(v)
-				}
+				out := x.Clone()
+				out.AddAll(y)
 				return out
 			}),
 			fn("Set.intersect", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {

@@ -71,13 +71,8 @@ func init() {
 				return out
 			}),
 			fn("Map.merge", "m, n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				out := value.NewMap()
-				for _, e := range mapArg(g, who, a[0]).Entries() {
-					out.Set(e.Key, e.Value)
-				}
-				for _, e := range mapArg(g, who, a[1]).Entries() {
-					out.Set(e.Key, e.Value)
-				}
+				out := mapArg(g, who, a[0]).Clone()
+				out.SetAll(mapArg(g, who, a[1]))
 				return out
 			}),
 			fn("Map.same", "m, n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {

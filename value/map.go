@@ -228,3 +228,18 @@ func (m *Map) Entries() []KeyValue {
 	}
 	return out
 }
+
+// Clone is a new map with the entries of m, in its order.
+func (m *Map) Clone() *Map {
+	out := NewMap()
+	out.SetAll(m)
+	return out
+}
+
+// SetAll sets each entry of n in m, in n's order: a key already in m keeps its position and
+// takes n's value.
+func (m *Map) SetAll(n *Map) {
+	for _, e := range n.Entries() {
+		m.Set(e.Key, e.Value)
+	}
+}
