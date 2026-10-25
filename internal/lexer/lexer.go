@@ -192,6 +192,12 @@ func (l *lexer) lastContinues() bool {
 	return false
 }
 
+// lastIs reports whether the previous token is the keyword word. A return at the end of a line
+// ends its statement even when the next line starts with ., ?., |, or else (section 2).
+func (l *lexer) lastIs(word string) bool {
+	return len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind == token.Keyword && l.toks[len(l.toks)-1].Text == word
+}
+
 // operandKeywords are the keywords that are operands, after which a / is division.
 var operandKeywords = map[string]bool{"true": true, "false": true, "null": true, "void": true}
 
@@ -272,7 +278,7 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 	pos := l.here()
 	switch {
 	case l.lineBreak(0):
-		if !l.lastContinues() && !l.nextLineContinues() {
+		if !l.lastContinues() && (l.lastIs("return") || !l.nextLineContinues()) {
 			l.emit(token.Token{Kind: token.Newline, Pos: pos})
 		}
 		l.advance(1)

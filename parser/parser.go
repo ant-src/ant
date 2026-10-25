@@ -826,6 +826,9 @@ func (p *parser) assignTarget(e ast.Expr, op token.Token) ast.Node {
 
 func (p *parser) arrayAssignTarget(lit *ast.ArrayLit, op token.Token) *ast.AssignArray {
 	t := &ast.AssignArray{Pos: lit.Pos}
+	if len(lit.Elems) == 0 {
+		p.fail(op.Pos, "an array destructuring binds at least one position")
+	}
 	for i, el := range lit.Elems {
 		if el.Spread {
 			if i != len(lit.Elems)-1 {
@@ -1265,6 +1268,11 @@ func (p *parser) headerExpr(what string) ast.Expr {
 	if !p.at("{") {
 		p.fail(p.peek().Pos, "expected '{' after the %s header, got %s", what, p.peek())
 	}
+	if p.toks[p.i-1].Kind == token.Newline {
+		// Inside parentheses the parser skips the line break, but the { still belongs on the
+		// header's line (section 5, Blocks).
+		p.fail(p.peek().Pos, "expected '{' after the %s header on its line, got a line break", what)
+	}
 	if p.entryFollows() {
 		p.fail(p.peek().Pos, "a record or map literal in the %s header must be parenthesized", what)
 	}
@@ -1337,7 +1345,7 @@ func (p *parser) selectExpr() *ast.Select {
 	p.mark(open, Role{Block: true})
 	saved := p.enterBlock(p.curBlock)
 	heads, hasElse := 0, false
-	p.skipTerms()
+	p.skipClauseBreaks()
 	for !p.at("}") {
 		if p.atKind(token.EOF) {
 			p.fail(p.peek().Pos, "expected '}', got end of file")
@@ -1374,10 +1382,10 @@ func (p *parser) selectExpr() *ast.Select {
 		}
 		// A line that starts with else continues the line before it (section 2), so no
 		// terminator separates a clause's block from an else clause.
-		if !p.at("else") {
-			p.expectTerm()
+		if !p.at("else") && p.skipClauseBreaks() == 0 {
+			p.failAt(p.raw(), "expected a line break before %s: a select has one clause per line", p.raw())
 		}
-		p.skipTerms()
+		p.skipClauseBreaks()
 	}
 	p.expect("}")
 	p.leave(saved)
@@ -1385,6 +1393,19 @@ func (p *parser) selectExpr() *ast.Select {
 		p.fail(open.Pos, "a select needs at least one clause with a head: %s", selectHeadNames)
 	}
 	return s
+}
+
+// skipClauseBreaks skips the line breaks between select clauses and returns how many it
+// skipped. A ; there is an error, since a select has one clause per line (section 5).
+func (p *parser) skipClauseBreaks() int {
+	n := 0
+	for ; p.raw().Kind == token.Newline; n++ {
+		p.i++
+	}
+	if p.raw().Is(";") {
+		p.failAt(p.raw(), "a select has one clause per line, so no ';' separates its clauses")
+	}
+	return n
 }
 
 // selectHead checks that a clause's head is one of the five calls, written plainly.
@@ -1440,6 +1461,9 @@ func (p *parser) destructure() ast.Target {
 		}
 		rt.Fields = append(rt.Fields, f)
 	})
+	if len(rt.Fields) == 0 {
+		p.fail(t.Pos, "a record destructuring binds at least one field")
+	}
 	return rt
 }
 
@@ -1459,6 +1483,9 @@ func (p *parser) arrayDestructure() *ast.ArrayTarget {
 		}
 		at.Elems = append(at.Elems, p.target())
 	})
+	if len(at.Elems) == 0 && at.Rest == nil {
+		p.fail(t.Pos, "an array destructuring binds at least one position")
+	}
 	return at
 }
 

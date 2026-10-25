@@ -1,0 +1,9 @@
+// spec: 5 Destructuring
+type P = { x: int }
+func main(): void {
+  var {} = P{ x: 1 }
+}
+
+// expect
+// exit: 2
+// err: 4:7: a record destructuring binds at least one field

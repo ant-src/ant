@@ -1,0 +1,11 @@
+// spec: 5 select
+func main(): void {
+  var c: Channel[int] = Channel.new(1)
+  select {
+    Channel.send(c, 1) { println("sent") }; Channel.receive(c) { println("got") }
+  }
+}
+
+// expect
+// exit: 2
+// err: 5:43: a select has one clause per line
