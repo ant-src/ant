@@ -216,9 +216,9 @@ func (h *Handle) readChunk(max int) value.Value {
 const scratchCap = 64 << 10
 
 // readExactly is File.readExactly's read: n bytes, gathered as they arrive. The buffer grows with
-// what arrives rather than with n, which may come from the other end; a read that ends early,
-// because the context ended it or the input did, leaves what it gathered in pending for the next
-// read. null when the input is already at its end, and an Err when it ends partway.
+// what arrives rather than with n, which may come from the other end; a read that the context
+// or an error ends early leaves what it gathered in pending for the next read. null when the input
+// is already at its end, and an Err when it ends partway, which discards the partial bytes.
 func (h *Handle) readExactly(n int) value.Value {
 	if len(h.pending) >= n {
 		out := h.pending[:n]
@@ -236,15 +236,15 @@ func (h *Handle) readExactly(n int) value.Value {
 		if len(buf) == n {
 			break // a reader may return the last bytes with io.EOF; they are all here
 		}
-		if err != nil {
-			h.pending = string(buf)
-			if err != io.EOF {
-				return errResult(err)
-			}
+		if err == io.EOF {
 			if len(buf) == 0 {
 				return value.Ok(value.Null)
 			}
 			return value.Err(value.ErrorValue("unexpected end of file"))
+		}
+		if err != nil {
+			h.pending = string(buf)
+			return errResult(err)
 		}
 	}
 	return value.Ok(bytesValue(buf))

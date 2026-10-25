@@ -1056,7 +1056,7 @@ func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Er
 func File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.readExactly reads exactly n bytes from f, waiting until all of them have arrived. It returns
 // null at end of file, is Err with the message "unexpected end of file" when the input ends
-// partway, and is Err when n is below 0. An n of 0 gives empty Bytes without reading, at the end of
+// partway, discarding the bytes it read, and is Err when n is below 0. An n of 0 gives empty Bytes without reading, at the end of
 // the file too.
 func File.readExactly(f: File.Handle, n: int, ctx: Context | null = null): Result[Bytes | null, Error]
 // File.writeChunk writes bytes to f as they are.

@@ -39,8 +39,8 @@ func TestReadExactlyWithEOF(t *testing.T) {
 	if got := value.Render(h.readExactly(5)); got != `Err{ error: Error{ message: "unexpected end of file" } }` {
 		t.Errorf("short: %s", got)
 	}
-	if got := value.Render(h.readChunk(10)); got != "Ok{ value: Bytes(61 62 63) }" {
-		t.Errorf("a short read keeps its bytes for the next read: %s", got)
+	if got := value.Render(h.readChunk(10)); got != "Ok{ value: null }" {
+		t.Errorf("a short read discards its bytes: %s", got)
 	}
 }
 
