@@ -95,22 +95,55 @@ func (l *lexer) invalidUTF8() {
 
 func (l *lexer) here() token.Pos { return token.Pos{Line: l.line, Col: l.col} }
 
+// peek returns the byte k bytes ahead. Past the end it returns 0, which only keeps a test of the
+// byte from holding there: a NUL byte is a character like any other, so the end of the input is
+// tested with atEnd and never by comparing with 0.
 func (l *lexer) peek(k int) byte {
-	if l.pos+k < len(l.src) {
-		return l.src[l.pos+k]
+	if l.atEnd(k) {
+		return 0
 	}
-	return 0
+	return l.src[l.pos+k]
 }
 
-// atEnd reports whether the input ends k bytes ahead. A NUL byte is a character like any other,
-// so the 0 peek returns past the end cannot stand for the end.
+// atEnd reports whether the input ends k bytes ahead.
 func (l *lexer) atEnd(k int) bool { return l.pos+k >= len(l.src) }
 
 func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) }
 
+// lineBreak reports whether a line break starts k bytes ahead: a \n, or a \r not followed by a
+// \n (section 2). The \r of a \r\n is white space before the \n.
+func (l *lexer) lineBreak(k int) bool {
+	if l.atEnd(k) {
+		return false
+	}
+	switch l.src[l.pos+k] {
+	case '\n':
+		return true
+	case '\r':
+		return l.atEnd(k+1) || l.src[l.pos+k+1] != '\n'
+	}
+	return false
+}
+
+// NormalizeBreaks returns s with each \r that is a line break on its own replaced by \n, so that
+// every line break holds a \n and its lines can be found and counted by \n. The offsets do not
+// change.
+func NormalizeBreaks(s string) string {
+	if !strings.Contains(s, "\r") {
+		return s
+	}
+	b := []byte(s)
+	for i, c := range b {
+		if c == '\r' && (i+1 == len(b) || b[i+1] != '\n') {
+			b[i] = '\n'
+		}
+	}
+	return string(b)
+}
+
 func (l *lexer) advance(n int) {
-	for i := 0; i < n && l.pos < len(l.src); i++ {
-		if l.src[l.pos] == '\n' {
+	for i := 0; i < n && !l.atEnd(0); i++ {
+		if l.lineBreak(0) {
 			l.line++
 			l.col = 1
 			l.lines = append(l.lines, l.pos+1)
@@ -140,12 +173,6 @@ func (l *lexer) keepComment(pos token.Pos, start int) {
 	}
 }
 
-// Keywords that can end an expression; every other keyword continues the line.
-var endingKeywords = map[string]bool{
-	"return": true, "break": true, "continue": true, "true": true, "false": true, "null": true,
-	"void": true,
-}
-
 // lastContinues reports whether the previous token cannot end an expression, so that a line
 // break after it is not a statement end.
 func (l *lexer) lastContinues() bool {
@@ -159,9 +186,17 @@ func (l *lexer) lastContinues() bool {
 	case token.Op:
 		return t.Text != ")" && t.Text != "]" && t.Text != "}" && t.Text != ";" && t.Text != "..."
 	case token.Keyword:
-		return !endingKeywords[t.Text]
+		// The keywords that can end an expression: the operands, and the three jumps, which
+		// are not operands (section 2). Every other keyword continues the line.
+		return !operandKeywords[t.Text] && t.Text != "return" && t.Text != "break" && t.Text != "continue"
 	}
 	return false
+}
+
+// lastIs reports whether the previous token is the keyword word. A return at the end of a line
+// ends its statement even when the next line starts with ., ?., |, or else (section 2).
+func (l *lexer) lastIs(word string) bool {
+	return len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind == token.Keyword && l.toks[len(l.toks)-1].Text == word
 }
 
 // operandKeywords are the keywords that are operands, after which a / is division.
@@ -203,7 +238,7 @@ func (l *lexer) nextLineContinues() bool {
 		case src[i] == ' ' || src[i] == '\t' || src[i] == '\r' || src[i] == '\n':
 			i++
 		case strings.HasPrefix(src[i:], "//"):
-			j := strings.IndexByte(src[i:], '\n')
+			j := strings.IndexAny(src[i:], "\r\n")
 			if j < 0 {
 				return false
 			}
@@ -237,14 +272,14 @@ func (l *lexer) toplevel(t token.Token) bool { return false }
 // scan lexes one token, or whitespace and comments. It returns false at the end of the source
 // or when stop reports that the token just scanned ends the current stream.
 func (l *lexer) scan(stop func(token.Token) bool) bool {
-	if l.pos >= len(l.src) {
+	if l.atEnd(0) {
 		return false
 	}
 	c := l.src[l.pos]
 	pos := l.here()
 	switch {
-	case c == '\n':
-		if !l.lastContinues() && !l.nextLineContinues() {
+	case l.lineBreak(0):
+		if !l.lastContinues() && (l.lastIs("return") || !l.nextLineContinues()) {
 			l.emit(token.Token{Kind: token.Newline, Pos: pos})
 		}
 		l.advance(1)
@@ -254,7 +289,7 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 		return true
 	case l.has("//"):
 		start := l.pos
-		for l.pos < len(l.src) && l.src[l.pos] != '\n' {
+		for !l.atEnd(0) && !l.lineBreak(0) {
 			l.advance(1)
 		}
 		l.keepComment(pos, start)
@@ -288,29 +323,42 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 
 // regex scans a regular expression literal at its opening /: the source up to the closing /,
 // and the flags after it. A \ escapes the next character, so \/ does not end the literal, and
-// neither does a / inside a character class; the literal stays on one line. The source is kept
-// as written, and value.NewRegex normalizes it when the parser builds the pattern.
+// neither does a / inside a character class; the literal stays on one line. Inside a \Q...\E
+// span, which RE2 ends at the first \E, a / still ends the literal unless a \ precedes it, and
+// nothing else is special. The source is kept as written, and value.NewRegex normalizes it when
+// the parser builds the pattern.
 func (l *lexer) regex() {
 	pos := l.here()
 	l.advance(1)
 	start := l.pos
-	inClass := false
+	inClass, inSpan := false, false
 	for {
 		c := l.peek(0)
 		switch {
-		case l.atEnd(0) || c == '\n':
+		case l.atEnd(0) || c == '\n' || c == '\r':
 			l.fail(pos, "unterminated regular expression")
+		case inSpan && l.has(`\E`):
+			inSpan = false
+			l.advance(2)
+			continue
+		case inSpan && l.has(`\/`):
+			l.advance(2)
+			continue
+		case inSpan && c != '/':
+			l.advance(1)
+			continue
 		case c == '\\':
-			if l.atEnd(1) || l.peek(1) == '\n' {
+			if l.atEnd(1) || l.peek(1) == '\n' || l.peek(1) == '\r' {
 				l.fail(pos, "unterminated regular expression")
 			}
+			inSpan = !inClass && l.peek(1) == 'Q'
 			l.advance(2)
 			continue
 		case c == '[':
 			if inClass && l.peek(1) == ':' {
 				// A POSIX name such as [:alpha:], whose ] does not end the class.
 				l.advance(2)
-				for !l.atEnd(0) && l.peek(0) != '\n' && !(l.peek(0) == ':' && l.peek(1) == ']') {
+				for !l.atEnd(0) && l.peek(0) != '\n' && l.peek(0) != '\r' && !(l.peek(0) == ':' && l.peek(1) == ']') {
 					l.advance(1)
 				}
 				if l.peek(0) == ':' {
@@ -391,16 +439,19 @@ func (l *lexer) number() {
 	kind := token.Int
 	base := 10
 	switch {
-	case l.has("0x") || l.has("0X"):
+	case l.has("0x"):
 		l.advance(2)
 		base = 16
 		l.digits(isHex, "hexadecimal")
-	case l.has("0b") || l.has("0B"):
+	case l.has("0b"):
 		l.advance(2)
 		base = 2
 		l.digits(isBinary, "binary")
 	default:
 		l.digits(isDigit, "number")
+		if l.src[start] == '0' && l.pos-start > 1 {
+			l.fail(pos, "a decimal literal other than 0 cannot start with 0")
+		}
 		if l.peek(0) == '.' {
 			if !isDigit(l.peek(1)) {
 				l.fail(l.here(), "a float literal needs a digit after the point")
@@ -409,7 +460,7 @@ func (l *lexer) number() {
 			l.advance(1)
 			l.digits(isDigit, "number")
 		}
-		if l.peek(0) == 'e' || l.peek(0) == 'E' {
+		if l.peek(0) == 'e' {
 			kind = token.Float
 			l.advance(1)
 			if l.peek(0) == '+' || l.peek(0) == '-' {
@@ -418,7 +469,12 @@ func (l *lexer) number() {
 			l.digits(isDigit, "exponent")
 		}
 	}
-	if isIdentChar(l.peek(0)) {
+	switch c := l.peek(0); {
+	case (c == 'X' || c == 'B') && l.src[start:l.pos] == "0":
+		l.fail(l.here(), "malformed number literal: write the prefix 0%c in lowercase", c+'a'-'A')
+	case c == 'E' && base == 10 && !strings.Contains(l.src[start:l.pos], "e"):
+		l.fail(l.here(), "malformed number literal: write the exponent with a lowercase e")
+	case isIdentChar(c):
 		l.fail(l.here(), "malformed number literal")
 	}
 	text := l.src[start:l.pos]
@@ -435,7 +491,10 @@ func (l *lexer) number() {
 		t.Value = v
 	} else {
 		v, err := strconv.ParseFloat(clean, 64)
-		if err != nil {
+		// A nonzero literal that rounds to 0.0 is as far out of range as one that rounds to
+		// infinity.
+		mantissa, _, _ := strings.Cut(clean, "e")
+		if err != nil || v == 0 && strings.Trim(mantissa, "0.") != "" {
 			l.fail(pos, "float literal %s is out of range", text)
 		}
 		t.Float = v
@@ -516,7 +575,7 @@ func (l *lexer) string() {
 	for {
 		c := l.peek(0)
 		switch {
-		case l.atEnd(0) || c == '\n':
+		case l.atEnd(0) || c == '\n' || c == '\r':
 			l.fail(pos, "unterminated string")
 		case c == '"':
 			l.advance(1)

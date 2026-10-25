@@ -1,0 +1,12 @@
+// spec: 2 Line endings
+// A return at the end of a line ends its statement, even before a line that starts with |, so
+// that line begins a statement of its own, which | cannot.
+func f(): void {
+  return
+    | println()
+}
+func main(): void { f() }
+
+// expect
+// exit: 2
+// err: 6:5: unexpected '|'

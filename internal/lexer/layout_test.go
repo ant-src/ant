@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -64,5 +65,31 @@ func TestLexKeepsNoComments(t *testing.T) {
 	l := &lexer{src: "// a\nx /* b */\n"}
 	if _, comments, err := lex(l); err != nil || comments != nil {
 		t.Errorf("comments %v, err %v", comments, err)
+	}
+}
+
+// TestLoneCR checks that a \r not followed by \n is a line break, as \n and \r\n are (section 2):
+// it ends a statement, a line comment, and a plain string, and it starts a new line.
+func TestLoneCR(t *testing.T) {
+	toks, err := Lex("a\rb // c\rc\r\nd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, tok := range toks {
+		got = append(got, fmt.Sprintf("%v %q %d:%d", tok.Kind, tok.Text, tok.Pos.Line, tok.Pos.Col))
+	}
+	want := []string{
+		`identifier "a" 1:1`, `newline "" 1:2`, `identifier "b" 2:1`, `newline "" 2:7`,
+		`identifier "c" 3:1`, `newline "" 3:3`, `identifier "d" 4:1`, `newline "" 4:2`,
+		`end of file "" 4:2`,
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	for _, src := range []string{"\"a\rb\"", "/a\rb/"} {
+		if _, err := Lex(src); err == nil || !strings.Contains(err.Error(), "unterminated") {
+			t.Errorf("%q: got %v, want unterminated", src, err)
+		}
 	}
 }

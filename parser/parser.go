@@ -44,7 +44,7 @@ func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	if lerr != nil {
 		return nil, lexError(src, lerr)
 	}
-	p := &parser{mode: mode, src: src, toks: toks, comments: comments}
+	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments}
 	defer p.recover(&err)
 	return p.file(path), nil
 }
@@ -78,7 +78,7 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 		return nil, nil, lexError(src, lerr)
 	}
 	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
-	p := &parser{mode: Program, src: src, toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
+	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
 	defer p.recover(&err)
 	return p.file(path), l, nil
 }
@@ -92,7 +92,7 @@ func incompleteLex(src string, le *lexer.Error) bool {
 		return false
 	}
 	if le.Msg == "unterminated string" || le.Msg == "unterminated regular expression" {
-		return le.Pos.Line == strings.Count(src, "\n")+1
+		return le.Pos.Line == strings.Count(lexer.NormalizeBreaks(src), "\n")+1
 	}
 	return true
 }
@@ -104,7 +104,7 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 		le := lerr.(*lexer.Error)
 		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg}
 	}
-	p := &parser{mode: Spec, src: src, toks: toks}
+	p := &parser{mode: Spec, src: lexer.NormalizeBreaks(src), toks: toks}
 	defer p.recover(&err)
 	e = p.expression()
 	p.skipTerms()
@@ -116,7 +116,7 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 
 type parser struct {
 	mode     Mode
-	src      string
+	src      string // with every line break holding a \n (lexer.NormalizeBreaks)
 	toks     []token.Token
 	i        int
 	comments []token.Comment // for doc comments
@@ -125,18 +125,13 @@ type parser struct {
 	header   bool            // inside an if, while, or for header: Path { is not a literal
 	boundary string          // "", "func", "lambda", "go", or "defer"
 	loops    int             // loops entered inside the current boundary
-	curBlock *ast.Block      // the innermost block whose statements are being parsed
-	depth    int             // nesting of expressions, types, and blocks, bounded by maxNesting
-	roles    map[int]Role    // filled for ParseLayout, nil otherwise
-	prefix   map[int]bool    // likewise
-	// spreadEnd holds the [ of each array literal that ends in a spread, and whether a comma
-	// follows that spread, for when the literal turns out to be a destructuring assignment.
-	spreadEnd map[*ast.ArrayLit]spreadEnd
-}
-
-type spreadEnd struct {
-	open  token.Token
-	comma bool
+	// inDefault > 0: inside a parameter default, which runs in the callee, so a try there returns
+	// from it
+	inDefault int
+	curBlock  *ast.Block   // the innermost block whose statements are being parsed
+	depth     int          // nesting of expressions, types, and blocks, bounded by maxNesting
+	roles     map[int]Role // filled for ParseLayout, nil otherwise
+	prefix    map[int]bool // likewise
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -626,7 +621,9 @@ func (p *parser) signature() ([]ast.Param, ast.Type) {
 		prm := ast.Param{Pos: pos(n), Name: n.Text, Type: p.parseType()}
 		if p.at("=") {
 			p.next()
+			p.inDefault++
 			prm.Default = p.expression()
+			p.inDefault--
 		}
 		params = append(params, prm)
 	})
@@ -821,6 +818,9 @@ func (p *parser) assignTarget(e ast.Expr, op token.Token) ast.Node {
 
 func (p *parser) arrayAssignTarget(lit *ast.ArrayLit, op token.Token) *ast.AssignArray {
 	t := &ast.AssignArray{Pos: lit.Pos}
+	if len(lit.Elems) == 0 {
+		p.fail(op.Pos, "an array destructuring binds at least one position")
+	}
 	for i, el := range lit.Elems {
 		if el.Spread {
 			if i != len(lit.Elems)-1 {
@@ -829,11 +829,10 @@ func (p *parser) arrayAssignTarget(lit *ast.ArrayLit, op token.Token) *ast.Assig
 			if !isPlace(el.Value) {
 				p.fail(op.Pos, "the rest position of a destructuring must be an assignable place")
 			}
-			if end := p.spreadEnd[lit]; end.comma {
+			if lit.SpreadComma {
 				p.fail(op.Pos, "a destructuring takes no comma after its rest position")
-			} else {
-				p.mark(end.open, Role{}) // no comma after the rest
 			}
+			p.mark(token.Token{Off: lit.Off}, Role{}) // no comma after the rest
 			t.Rest = el.Value
 			continue
 		}
@@ -1001,6 +1000,9 @@ func (p *parser) multiplicative() ast.Expr { return p.binaryLeft(p.unary, "*", "
 func (p *parser) unary() ast.Expr {
 	t := p.peek()
 	if t.Is("-") || t.Is("!") || t.Is("try") {
+		if t.Is("try") && p.boundary == "" && p.inDefault == 0 && p.mode != Spec {
+			p.fail(t.Pos, "'try' outside a function")
+		}
 		p.nest()
 		defer p.unnest()
 		p.next()
@@ -1257,6 +1259,11 @@ func (p *parser) headerExpr(what string) ast.Expr {
 	if !p.at("{") {
 		p.fail(p.peek().Pos, "expected '{' after the %s header, got %s", what, p.peek())
 	}
+	if p.toks[p.i-1].Kind == token.Newline {
+		// Inside parentheses the parser skips the line break, but the { still belongs on the
+		// header's line (section 5, Blocks).
+		p.fail(p.peek().Pos, "expected '{' after the %s header on its line, got a line break", what)
+	}
 	if p.entryFollows() {
 		p.fail(p.peek().Pos, "a record or map literal in the %s header must be parenthesized", what)
 	}
@@ -1329,7 +1336,7 @@ func (p *parser) selectExpr() *ast.Select {
 	p.mark(open, Role{Block: true})
 	saved := p.enterBlock(p.curBlock)
 	heads, hasElse := 0, false
-	p.skipTerms()
+	p.skipClauseBreaks()
 	for !p.at("}") {
 		if p.atKind(token.EOF) {
 			p.fail(p.peek().Pos, "expected '}', got end of file")
@@ -1366,10 +1373,10 @@ func (p *parser) selectExpr() *ast.Select {
 		}
 		// A line that starts with else continues the line before it (section 2), so no
 		// terminator separates a clause's block from an else clause.
-		if !p.at("else") {
-			p.expectTerm()
+		if !p.at("else") && p.skipClauseBreaks() == 0 {
+			p.failAt(p.raw(), "expected a line break before %s: a select has one clause per line", p.raw())
 		}
-		p.skipTerms()
+		p.skipClauseBreaks()
 	}
 	p.expect("}")
 	p.leave(saved)
@@ -1377,6 +1384,19 @@ func (p *parser) selectExpr() *ast.Select {
 		p.fail(open.Pos, "a select needs at least one clause with a head: %s", selectHeadNames)
 	}
 	return s
+}
+
+// skipClauseBreaks skips the line breaks between select clauses and returns how many it
+// skipped. A ; there is an error, since a select has one clause per line (section 5).
+func (p *parser) skipClauseBreaks() int {
+	n := 0
+	for ; p.raw().Kind == token.Newline; n++ {
+		p.i++
+	}
+	if p.raw().Is(";") {
+		p.failAt(p.raw(), "a select has one clause per line, so no ';' separates its clauses")
+	}
+	return n
 }
 
 // selectHead checks that a clause's head is one of the five calls, written plainly.
@@ -1432,6 +1452,9 @@ func (p *parser) destructure() ast.Target {
 		}
 		rt.Fields = append(rt.Fields, f)
 	})
+	if len(rt.Fields) == 0 {
+		p.fail(t.Pos, "a record destructuring binds at least one field")
+	}
 	return rt
 }
 
@@ -1451,6 +1474,9 @@ func (p *parser) arrayDestructure() *ast.ArrayTarget {
 		}
 		at.Elems = append(at.Elems, p.target())
 	})
+	if len(at.Elems) == 0 && at.Rest == nil {
+		p.fail(t.Pos, "an array destructuring binds at least one position")
+	}
 	return at
 }
 
@@ -1528,10 +1554,9 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 
 func (p *parser) arrayLit() *ast.ArrayLit {
 	t := p.expect("[")
-	lit := &ast.ArrayLit{Pos: pos(t)}
-	comma := false
+	lit := &ast.ArrayLit{Pos: pos(t), Off: t.Off}
 	p.list("]", func() {
-		comma = false
+		lit.SpreadComma = false
 		if !p.at("...") {
 			lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression()})
 			return
@@ -1541,14 +1566,8 @@ func (p *parser) arrayLit() *ast.ArrayLit {
 			return
 		}
 		lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression(), Spread: true})
-		comma = p.at(",")
+		lit.SpreadComma = p.at(",")
 	})
-	if n := len(lit.Elems); n > 0 && lit.Elems[n-1].Spread {
-		if p.spreadEnd == nil {
-			p.spreadEnd = map[*ast.ArrayLit]spreadEnd{}
-		}
-		p.spreadEnd[lit] = spreadEnd{open: t, comma: comma}
-	}
 	return lit
 }
 

@@ -19,4 +19,11 @@ func main() {
   println(f(/* none */))
   var none = [/* not yet */]
   var empty = Map{ /* later */ }
+  // a comment that ends the bracket's line stays there, as a trailing comment does
+  var line = [ // none yet
+  ]
+  var block = [ /* none yet */
+  ]
+  var both = [/* first */ // second
+  ]
 }

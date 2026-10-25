@@ -31,4 +31,12 @@ func main() {
   var empty = Map{
     /* later */
   }
+  // a comment that ends the bracket's line stays there, as a trailing comment does
+  var line = [ // none yet
+  ]
+  var block = [ /* none yet */
+  ]
+  var both = [
+    /* first */ // second
+  ]
 }

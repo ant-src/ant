@@ -111,7 +111,7 @@ func checkProperties(t *testing.T, path, src string) {
 		if strings.TrimRight(line, " \t") != line && !verbatim(got, end) {
 			t.Errorf("%s:%d: trailing whitespace", path, i+1)
 		}
-		if strings.HasPrefix(strings.TrimLeft(line, " "), "\t") && !verbatim(got, start) {
+		if strings.HasPrefix(strings.TrimLeft(line, " "), "\t") && !verbatim(got, start) && !inInterpolation(got, start) {
 			t.Errorf("%s:%d: a tab in the indentation", path, i+1)
 		}
 		start = end + 1
@@ -146,6 +146,23 @@ func verbatim(src string, off int) bool {
 	for _, c := range comments {
 		if c.Off < off && off < c.End {
 			return true
+		}
+	}
+	return false
+}
+
+// inInterpolation reports whether the line starting at off starts inside the code of a template's
+// interpolation, whose indentation belongs to the template and is kept as written (fmt.md 4.9).
+func inInterpolation(src string, off int) bool {
+	toks, _, err := lexer.LexLayout(src)
+	if err != nil {
+		return false
+	}
+	for _, t := range toks {
+		for _, part := range t.Parts {
+			if part.Tokens != nil && part.Off < off && off < part.End {
+				return true
+			}
 		}
 	}
 	return false
@@ -194,7 +211,8 @@ func significant(t *testing.T, src string) []string {
 	return out
 }
 
-// commentTexts lists the comments of src, with the whitespace at the end of each line removed.
+// commentTexts lists the comments of src, with the whitespace at the end of each line removed
+// and every line break written \n.
 func commentTexts(t *testing.T, src string) []string {
 	t.Helper()
 	_, comments, err := lexer.LexLayout(src)
@@ -203,7 +221,7 @@ func commentTexts(t *testing.T, src string) []string {
 	}
 	var out []string
 	for _, c := range comments {
-		lines := strings.Split(c.Text, "\n")
+		lines := strings.Split(lexer.NormalizeBreaks(src)[c.Off:c.End], "\n")
 		for i := range lines {
 			lines[i] = strings.TrimRight(lines[i], " \t\r")
 		}

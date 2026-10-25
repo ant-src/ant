@@ -1,0 +1,8 @@
+// spec: 5 Destructuring
+func main(): void {
+  var [] = [1]
+}
+
+// expect
+// exit: 2
+// err: 3:7: an array destructuring binds at least one position

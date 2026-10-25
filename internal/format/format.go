@@ -21,7 +21,7 @@ func Source(path string, src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &printer{src: s, roles: l.Roles, prefix: l.Prefix}
+	p := &printer{src: lexer.NormalizeBreaks(s), text: s, roles: l.Roles, prefix: l.Prefix}
 	p.comments = l.Comments
 	file := p.build(l.Tokens, 0, len(s))
 	p.file(file)
@@ -65,19 +65,20 @@ func (e elem) end() int {
 	return e.grp.close.End
 }
 
-// first and last are the tokens at the edges of a token or a group, for spacing.
-func (e elem) first() token.Token {
+// first and last are the tokens at the edges of a token or a group, for spacing, and nil for a
+// comment.
+func (e elem) first() *token.Token {
 	if e.grp != nil {
-		return e.grp.open
+		return &e.grp.open
 	}
-	return *e.tok
+	return e.tok
 }
 
-func (e elem) last() token.Token {
+func (e elem) last() *token.Token {
 	if e.grp != nil {
-		return e.grp.close
+		return &e.grp.close
 	}
-	return *e.tok
+	return e.tok
 }
 
 func (e elem) is(text string) bool { return e.tok != nil && e.tok.Is(text) }
@@ -85,7 +86,8 @@ func (e elem) is(text string) bool { return e.tok != nil && e.tok.Is(text) }
 func (e elem) isNewline() bool { return e.tok != nil && e.tok.Kind == token.Newline }
 
 type printer struct {
-	src      string
+	src      string // with every line break holding a \n (lexer.NormalizeBreaks)
+	text     string // as written, for the text of template strings, which is kept byte for byte
 	roles    map[int]parser.Role
 	prefix   map[int]bool // the offsets of the - and ! the parser read as prefix
 	comments []token.Comment
@@ -356,7 +358,7 @@ func (p *printer) token(t token.Token) {
 
 // comment writes a comment's text with the spaces and tabs at the end of each line removed.
 func (p *printer) comment(c *token.Comment) {
-	lines := strings.Split(c.Text, "\n")
+	lines := strings.Split(p.src[c.Off:c.End], "\n") // c.Text with its line breaks normalized
 	for i := range lines {
 		lines[i] = strings.TrimRight(lines[i], " \t\r")
 	}
@@ -495,10 +497,8 @@ func (p *printer) seq(es []elem, base int) {
 				p.trailing(e.com)
 				prev = &es[i]
 				continue
-			case e.com != nil || prev.com != nil:
-				p.write(" ")
 			default:
-				p.write(strings.Repeat(" ", p.space(prev.last(), e.first())))
+				p.write(strings.Repeat(" ", p.spacing(prev.last(), e.first())))
 			}
 		}
 		switch {
@@ -639,6 +639,16 @@ func (p *printer) flat(g *group, afterOpen []elem, units []unit) {
 	}
 }
 
+// spacing is the number of spaces between two neighbours on one line, in a statement or in the
+// code of an interpolation: one beside a comment, which a nil token stands for, and the table of
+// fmt.md 4.7 between two tokens.
+func (p *printer) spacing(prev, cur *token.Token) int {
+	if prev == nil || cur == nil {
+		return 1
+	}
+	return p.space(*prev, *cur)
+}
+
 // space is the spacing between two tokens on one line, by the table of fmt.md 4.7.
 func (p *printer) space(prev, cur token.Token) int {
 	switch {
@@ -681,7 +691,7 @@ func (p *printer) template(t token.Token) {
 		if part.Tokens == nil {
 			continue
 		}
-		p.write(p.src[at:part.Off])
+		p.write(p.text[at:part.Off])
 		p.write("${")
 		g := p.build(part.Tokens, part.Off, part.End)
 		end := p.inline(g.elems, part.Off+2)
@@ -691,7 +701,7 @@ func (p *printer) template(t token.Token) {
 		p.write("}")
 		at = part.End
 	}
-	p.write(p.src[at:t.End])
+	p.write(p.text[at:t.End])
 }
 
 // breaks is the whitespace between two tokens of an interpolation that holds a line break, as
@@ -716,10 +726,8 @@ func (p *printer) inline(es []elem, from int) int {
 		case p.newlines(prevEnd, off) > 0:
 			p.write(breaks(p.src[prevEnd:off]))
 		case prevEnd == from:
-		case prev == nil || cur == nil:
-			p.write(" ")
 		default:
-			p.write(strings.Repeat(" ", p.space(*prev, *cur)))
+			p.write(strings.Repeat(" ", p.spacing(prev, cur)))
 		}
 	}
 	walk = func(es []elem) {

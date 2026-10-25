@@ -1,0 +1,10 @@
+// spec: 5 Blocks
+// Inside parentheses newlines are ignored, but the { of a header still sits on its line.
+func main(): void {
+  println((if true
+  { 1 } else { 2 }))
+}
+
+// expect
+// exit: 2
+// err: 5:3: expected '{' after the if header on its line

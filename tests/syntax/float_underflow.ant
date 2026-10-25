@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var x = 1e-400
+func main(): void {}
+
+// expect
+// exit: 2
+// err: float literal 1e-400 is out of range

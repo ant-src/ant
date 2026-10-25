@@ -1,0 +1,8 @@
+// spec: 2 Line endings
+// A carriage return alone is a line break, so it ends a plain string.
+var s = "ab"
+func main(): void {}
+
+// expect
+// exit: 2
+// err: 3:9: unterminated string

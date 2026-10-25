@@ -103,7 +103,7 @@ func TestPrefix(t *testing.T) {
 		{"var x = (a\n- 1)", ""},
 		{"var x = [a,\n-1]", "-"},
 		{"var x = `${a\n  - b} ${-c}`", "-"},
-		{"var x = try f()", ""},
+		{"func g() { try f() }", ""},
 	} {
 		_, l, err := ParseLayout("t.ant", c.src)
 		if err != nil {

@@ -52,7 +52,7 @@ func RegexFlags(flags string) (string, error) {
 // alike and a literal needs the backslash only to keep the / from ending it; writes a line
 // break, escaped or not, as \n or \r and an empty source as (?:), which RE2 reads the same, so
 // that a pattern renders as a literal that reads back to a pattern == to it. Every other escape,
-// \\ included, is kept as written.
+// \\ included, is kept as written, and so is the text of a \Q...\E span (copySpan).
 func NormalizeRegexSource(source string) string {
 	if source == "" {
 		return "(?:)"
@@ -64,6 +64,10 @@ func NormalizeRegexSource(source string) string {
 	for i := 0; i < len(source); i++ {
 		switch source[i] {
 		case '\\':
+			if i+1 < len(source) && source[i+1] == 'Q' {
+				i = copySpan(&sb, source, i+2) - 1
+				continue
+			}
 			if i+1 < len(source) {
 				switch next := source[i+1]; next {
 				case '/':
@@ -89,6 +93,48 @@ func NormalizeRegexSource(source string) string {
 		}
 	}
 	return sb.String()
+}
+
+// copySpan writes the \Q...\E span whose text starts at source[i], as written, since RE2 takes
+// every character of it as itself, and returns the offset after its \E. RE2 ends the span at the
+// first \E, or at the end of the source, where the copy adds the \E. A span that is closed and
+// reopened around a single / or line break, as a rendering writes it, continues with that
+// character as itself, so that the rendering reads back to the same source.
+func copySpan(sb *strings.Builder, source string, i int) int {
+	sb.WriteString(`\Q`)
+	for {
+		end := strings.Index(source[i:], `\E`)
+		if end < 0 {
+			sb.WriteString(source[i:])
+			sb.WriteString(`\E`)
+			return len(source)
+		}
+		sb.WriteString(source[i : i+end])
+		i += end + 2
+		c, n := reopened(source[i:])
+		if n == 0 {
+			sb.WriteString(`\E`)
+			return i
+		}
+		sb.WriteByte(c)
+		i += n
+	}
+}
+
+// reopened reports whether s, which follows the \E of a span, starts with a / or a line break,
+// as itself or escaped, and then \Q. It returns that character and the length through the \Q.
+func reopened(s string) (byte, int) {
+	c, n := byte(0), 0
+	switch {
+	case len(s) >= 1 && (s[0] == '/' || s[0] == '\n' || s[0] == '\r'):
+		c, n = s[0], 1
+	case len(s) >= 2 && s[0] == '\\':
+		c, n = map[byte]byte{'/': '/', '\n': '\n', '\r': '\r', 'n': '\n', 'r': '\r'}[s[1]], 2
+	}
+	if c == 0 || !strings.HasPrefix(s[n:], `\Q`) {
+		return 0, 0
+	}
+	return c, n + 2
 }
 
 // NewRegex compiles source with flags into a pattern. The source is normalized and the flags
@@ -132,22 +178,34 @@ func (r *Regex) String() string { return RegexLiteral(r.Source, r.Flags) }
 
 // RegexLiteral writes a source and flags as a literal that reads back to them: every / of the
 // source escaped, a line break as \n or \r, and an empty source as (?:), as JavaScript has it.
+// Inside a \Q...\E span, where an escape would stand for itself, the span is closed before such
+// a character and reopened after it: \E\/\Q, \E\n\Q, or \E\r\Q, which copySpan reads back.
 func RegexLiteral(source, flags string) string {
 	if source == "" {
 		source = "(?:)"
 	}
 	var sb strings.Builder
 	sb.WriteByte('/')
+	inSpan := false
 	for i := 0; i < len(source); i++ {
-		switch source[i] {
-		case '/':
-			sb.WriteString(`\/`)
-		case '\n':
-			sb.WriteString(`\n`)
-		case '\r':
-			sb.WriteString(`\r`)
+		c := source[i]
+		switch {
+		case inSpan && strings.HasPrefix(source[i:], `\E`):
+			inSpan = false
+			sb.WriteString(`\E`)
+			i++
+		case !inSpan && c == '\\' && i+1 < len(source):
+			inSpan = source[i+1] == 'Q'
+			sb.WriteString(source[i : i+2])
+			i++
+		case c == '/' || c == '\n' || c == '\r':
+			esc := map[byte]string{'/': `\/`, '\n': `\n`, '\r': `\r`}[c]
+			if inSpan {
+				esc = `\E` + esc + `\Q`
+			}
+			sb.WriteString(esc)
 		default:
-			sb.WriteByte(source[i])
+			sb.WriteByte(c)
 		}
 	}
 	sb.WriteByte('/')
