@@ -26,3 +26,15 @@ Json.stringify(Json.parse("[]") | Result.unwrapOr(null)) // => "[]"
 Json.parse("\"\\ud83d\\udc1c\"")              // => Ok{ value: "🐜" }
 Result.unwrap(Json.parse("\"\\ud800x\"")) == "\u{FFFD}x"   // => true
 Result.unwrap(Json.parse("\"\\udc1c\\ud83d\"")) == "\u{FFFD}\u{FFFD}"   // => true
+
+// A repeated key keeps its first place and its last value. Nesting is allowed 10000 deep, no
+// deeper, and the errors say where the text goes wrong in Ant's words.
+Json.parse(`{"a": 1, "b": 2, "a": 3}`)        // => Ok{ value: Map{ "a": 3.0, "b": 2.0 } }
+Json.parse(String.repeat("[", 10000) + String.repeat("]", 10000)) is Ok // => true
+Json.parse(String.repeat("[", 10001) + String.repeat("]", 10001)) // => Err{ error: Error{ message: "arrays and objects nested deeper than 10000 levels" } }
+Json.parse("1e400")                           // => Err{ error: Error{ message: "number 1e400 is too large for a float64" } }
+Json.parse("1e-400")                          // => Ok{ value: 0.0 }
+Json.parse("[1 2]")                           // => Err{ error: Error{ message: "expected ',' or ']' after an array element, found '2' at line 1, column 4" } }
+Json.parse("{\n  \"a\" 1}")                   // => Err{ error: Error{ message: "expected ':' after an object key, found '1' at line 2, column 7" } }
+Json.parse("{1: 2}")                          // => Err{ error: Error{ message: "expected a string key, found '1' at line 1, column 2" } }
+Json.parse("[1] ]")                           // => Err{ error: Error{ message: "unexpected text after the JSON value" } }

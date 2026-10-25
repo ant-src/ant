@@ -3,12 +3,12 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"math"
 	"strconv"
 	"strings"
+	"unicode/utf16"
+	"unicode/utf8"
 
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
@@ -22,13 +22,9 @@ func init() {
 		return namespace("Json",
 			constant("Value", value.NewTag("Json.Value", value.AliasTag, nil)),
 			fn("Json.parse", "text", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				dec := json.NewDecoder(strings.NewReader(stringArg(g, who, a[0])))
-				v, err := parseJSON(dec)
+				v, err := parseJSON(stringArg(g, who, a[0]))
 				if err != nil {
-					return value.Err(value.ErrorValue(parseError(err)))
-				}
-				if _, err := dec.Token(); err != io.EOF {
-					return value.Err(value.ErrorValue("unexpected text after the JSON value"))
+					return value.Err(value.ErrorValue(err.Error()))
 				}
 				return value.Ok(v)
 			}),
@@ -43,75 +39,319 @@ func init() {
 	})
 }
 
-// parseError is the message of a decoding error. Truncated input gets one message whatever Go
-// version built the binary: encoding/json reports an unexpected end as io.EOF, as
-// io.ErrUnexpectedEOF or as a SyntaxError depending on where the text stops and on the version.
-func parseError(err error) string {
-	var syn *json.SyntaxError
-	if err == io.EOF || err == io.ErrUnexpectedEOF ||
-		(errors.As(err, &syn) && strings.HasPrefix(syn.Error(), "unexpected end")) {
-		return "unexpected end of JSON input"
-	}
-	return err.Error()
+// maxJSONDepth is how many arrays and objects Json.parse lets nest (stdlib.md, Json).
+const maxJSONDepth = 10000
+
+// jsonParser reads one JSON text (RFC 8259) by recursive descent.
+type jsonParser struct {
+	src   string
+	pos   int
+	depth int
 }
 
-func parseJSON(dec *json.Decoder) (value.Value, error) {
-	tok, err := dec.Token()
+// jsonError is why a text is not JSON, as Json.parse's Err says it.
+type jsonError struct{ msg string }
+
+func (e *jsonError) Error() string { return e.msg }
+
+// errEndOfJSON is the error of a text that ends before its value does.
+var errEndOfJSON = &jsonError{"unexpected end of JSON input"}
+
+// parseJSON parses src, which holds one JSON value and white space around it.
+func parseJSON(src string) (value.Value, error) {
+	p := &jsonParser{src: src}
+	v, err := p.value()
 	if err != nil {
 		return nil, err
 	}
-	return parseFrom(dec, tok)
+	p.space()
+	if p.pos < len(p.src) {
+		return nil, &jsonError{"unexpected text after the JSON value"}
+	}
+	return v, nil
 }
 
-func parseFrom(dec *json.Decoder, tok json.Token) (value.Value, error) {
-	switch t := tok.(type) {
-	case nil:
-		return value.Null, nil
-	case bool:
-		return t, nil
-	case float64:
-		return t, nil
-	case string:
-		return t, nil
-	case json.Delim:
-		switch t {
-		case '[':
-			var elems []value.Value
-			for dec.More() {
-				v, err := parseJSON(dec)
-				if err != nil {
-					return nil, err
-				}
-				elems = append(elems, v)
-			}
-			if _, err := dec.Token(); err != nil {
-				return nil, err
-			}
-			return value.NewArray(elems), nil
-		case '{':
-			m := value.NewMap()
-			for dec.More() {
-				k, err := dec.Token()
-				if err != nil {
-					return nil, err
-				}
-				key, ok := k.(string)
-				if !ok {
-					return nil, fmt.Errorf("JSON object keys must be strings")
-				}
-				v, err := parseJSON(dec)
-				if err != nil {
-					return nil, err
-				}
-				m.Set(key, v)
-			}
-			if _, err := dec.Token(); err != nil {
-				return nil, err
-			}
-			return m, nil
+// fail is the error for what stands at the current position, which is not what was wanted.
+func (p *jsonParser) fail(wanted string) error {
+	if p.pos >= len(p.src) {
+		return errEndOfJSON
+	}
+	r, _ := utf8.DecodeRuneInString(p.src[p.pos:])
+	found := fmt.Sprintf("%q", r)
+	if r < ' ' || r == utf8.RuneError {
+		found = fmt.Sprintf("U+%04X", r)
+	}
+	line := 1 + strings.Count(p.src[:p.pos], "\n")
+	col := 1 + utf8.RuneCountInString(p.src[strings.LastIndexByte(p.src[:p.pos], '\n')+1:p.pos])
+	return &jsonError{fmt.Sprintf("expected %s, found %s at line %d, column %d", wanted, found, line, col)}
+}
+
+func (p *jsonParser) space() {
+	for p.pos < len(p.src) {
+		switch p.src[p.pos] {
+		case ' ', '\t', '\n', '\r':
+			p.pos++
+		default:
+			return
 		}
 	}
-	return nil, fmt.Errorf("unexpected JSON token %v", tok)
+}
+
+// next skips white space and reports the byte that follows, or 0 at the end.
+func (p *jsonParser) next() byte {
+	p.space()
+	if p.pos < len(p.src) {
+		return p.src[p.pos]
+	}
+	return 0
+}
+
+func (p *jsonParser) value() (value.Value, error) {
+	switch c := p.next(); {
+	case c == '{', c == '[':
+		if p.depth == maxJSONDepth {
+			return nil, &jsonError{fmt.Sprintf("arrays and objects nested deeper than %d levels", maxJSONDepth)}
+		}
+		p.depth++
+		defer func() { p.depth-- }()
+		p.pos++
+		if c == '[' {
+			return p.array()
+		}
+		return p.object()
+	case c == '"':
+		return p.string()
+	case c == '-' || '0' <= c && c <= '9':
+		return p.number()
+	case c == 't':
+		return p.literal("true", true)
+	case c == 'f':
+		return p.literal("false", false)
+	case c == 'n':
+		return p.literal("null", value.Null)
+	}
+	return nil, p.fail("a value")
+}
+
+func (p *jsonParser) literal(word string, v value.Value) (value.Value, error) {
+	for i := 0; i < len(word); i, p.pos = i+1, p.pos+1 {
+		if p.pos == len(p.src) || p.src[p.pos] != word[i] {
+			return nil, p.fail(fmt.Sprintf("%q", word))
+		}
+	}
+	return v, nil
+}
+
+// array reads the elements and the ] after the [.
+func (p *jsonParser) array() (value.Value, error) {
+	var elems []value.Value
+	if p.next() == ']' {
+		p.pos++
+		return value.NewArray(elems), nil
+	}
+	for {
+		v, err := p.value()
+		if err != nil {
+			return nil, err
+		}
+		elems = append(elems, v)
+		switch p.next() {
+		case ',':
+			p.pos++
+		case ']':
+			p.pos++
+			return value.NewArray(elems), nil
+		default:
+			return nil, p.fail("',' or ']' after an array element")
+		}
+	}
+}
+
+// object reads the members and the } after the {. A repeated key keeps its first place and its
+// last value.
+func (p *jsonParser) object() (value.Value, error) {
+	m := value.NewMap()
+	if p.next() == '}' {
+		p.pos++
+		return m, nil
+	}
+	for {
+		if p.next() != '"' {
+			return nil, p.fail("a string key")
+		}
+		key, err := p.string()
+		if err != nil {
+			return nil, err
+		}
+		if p.next() != ':' {
+			return nil, p.fail("':' after an object key")
+		}
+		p.pos++
+		v, err := p.value()
+		if err != nil {
+			return nil, err
+		}
+		m.Set(key, v)
+		switch p.next() {
+		case ',':
+			p.pos++
+		case '}':
+			p.pos++
+			return m, nil
+		default:
+			return nil, p.fail("',' or '}' after an object member")
+		}
+	}
+}
+
+// number reads -?(0|[1-9][0-9]*)(.[0-9]+)?([eE][+-]?[0-9]+)? as a float64.
+func (p *jsonParser) number() (value.Value, error) {
+	start := p.pos
+	if p.src[p.pos] == '-' {
+		p.pos++
+	}
+	if p.pos < len(p.src) && p.src[p.pos] == '0' {
+		p.pos++
+	} else if err := p.digits(); err != nil {
+		return nil, err
+	}
+	if p.pos < len(p.src) && p.src[p.pos] == '.' {
+		p.pos++
+		if err := p.digits(); err != nil {
+			return nil, err
+		}
+	}
+	if p.pos < len(p.src) && (p.src[p.pos] == 'e' || p.src[p.pos] == 'E') {
+		p.pos++
+		if p.pos < len(p.src) && (p.src[p.pos] == '+' || p.src[p.pos] == '-') {
+			p.pos++
+		}
+		if err := p.digits(); err != nil {
+			return nil, err
+		}
+	}
+	text := p.src[start:p.pos]
+	f, err := strconv.ParseFloat(text, 64)
+	if err != nil {
+		return nil, &jsonError{fmt.Sprintf("number %s is too large for a float64", text)}
+	}
+	return f, nil
+}
+
+// digits reads one or more decimal digits.
+func (p *jsonParser) digits() error {
+	start := p.pos
+	for p.pos < len(p.src) && '0' <= p.src[p.pos] && p.src[p.pos] <= '9' {
+		p.pos++
+	}
+	if p.pos == start {
+		return p.fail("a digit")
+	}
+	return nil
+}
+
+// string reads a string from its opening quote. A \u escape of a surrogate pair is the code point
+// the pair encodes, and a surrogate escape outside a pair, like a byte that is not UTF-8, U+FFFD.
+func (p *jsonParser) string() (value.Value, error) {
+	p.pos++
+	var sb strings.Builder
+	for {
+		if p.pos >= len(p.src) {
+			return nil, errEndOfJSON
+		}
+		c := p.src[p.pos]
+		switch {
+		case c == '"':
+			p.pos++
+			return sb.String(), nil
+		case c < ' ':
+			return nil, p.fail("a character of a string")
+		case c == '\\':
+			if err := p.escape(&sb); err != nil {
+				return nil, err
+			}
+		case c < utf8.RuneSelf:
+			sb.WriteByte(c)
+			p.pos++
+		default:
+			r, size := utf8.DecodeRuneInString(p.src[p.pos:])
+			sb.WriteRune(r)
+			p.pos += size
+		}
+	}
+}
+
+// escape reads one escape sequence of a string, from its backslash.
+func (p *jsonParser) escape(sb *strings.Builder) error {
+	p.pos++
+	if p.pos >= len(p.src) {
+		return errEndOfJSON
+	}
+	c := p.src[p.pos]
+	p.pos++
+	switch c {
+	case '"', '\\', '/':
+		sb.WriteByte(c)
+	case 'b':
+		sb.WriteByte('\b')
+	case 'f':
+		sb.WriteByte('\f')
+	case 'n':
+		sb.WriteByte('\n')
+	case 'r':
+		sb.WriteByte('\r')
+	case 't':
+		sb.WriteByte('\t')
+	case 'u':
+		r, err := p.hex4()
+		if err != nil {
+			return err
+		}
+		if utf16.IsSurrogate(r) {
+			// The low half follows as another \u escape; one that does not pair is read again.
+			if rest := p.src[p.pos:]; len(rest) >= 6 && rest[0] == '\\' && rest[1] == 'u' {
+				save := p.pos
+				p.pos += 2
+				if r2, err := p.hex4(); err == nil {
+					if pair := utf16.DecodeRune(r, r2); pair != utf8.RuneError {
+						sb.WriteRune(pair)
+						return nil
+					}
+				}
+				p.pos = save
+			}
+			r = utf8.RuneError
+		}
+		sb.WriteRune(r)
+	default:
+		p.pos--
+		return p.fail(`an escape: one of \" \\ \/ \b \f \n \r \t \u`)
+	}
+	return nil
+}
+
+// hex4 reads the four hex digits of a \u escape.
+func (p *jsonParser) hex4() (rune, error) {
+	var r rune
+	for i := 0; i < 4; i++ {
+		if p.pos >= len(p.src) {
+			return 0, errEndOfJSON
+		}
+		c := p.src[p.pos]
+		switch {
+		case '0' <= c && c <= '9':
+			c -= '0'
+		case 'a' <= c && c <= 'f':
+			c -= 'a' - 10
+		case 'A' <= c && c <= 'F':
+			c -= 'A' - 10
+		default:
+			return 0, p.fail("a hex digit")
+		}
+		r = r<<4 | rune(c)
+		p.pos++
+	}
+	return r, nil
 }
 
 // stringify writes v as JSON. It returns why v has no JSON form, a cycle or Bytes, or "" when it
