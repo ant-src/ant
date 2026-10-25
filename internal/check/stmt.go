@@ -542,17 +542,15 @@ func narrowedToNever(wt, wf flow) bool {
 
 func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
 	c.resetAssigned(x.Body, sc)
-	loop := &loopCtx{}
-	c.fn.loops = append(c.fn.loops, loop)
-	wt, wf := c.cond(x.Cond, sc)
-	c.flow = wt
-	c.synthBlock(x.Body, sc)
-	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
-	c.flow = wf
-	for _, b := range loop.breaks {
-		c.flow = joinFlows(c.flow, b)
-	}
-	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && len(loop.breaks) == 0 {
+	var wf flow
+	breaks := c.loop(func() {
+		var wt flow
+		wt, wf = c.cond(x.Cond, sc)
+		c.flow = wt
+		c.block(x.Body, sc, nil)
+	})
+	c.flow = joinBreaks(wf, breaks)
+	if lit, ok := x.Cond.(*ast.BoolLit); ok && lit.Value && len(breaks) == 0 {
 		return types.Never{}
 	}
 	return types.Void{}
@@ -565,15 +563,27 @@ func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	c.declareTarget(x.Target, elem, inner)
 	c.resetAssigned(x.Body, sc)
 	before := c.flow.copy()
-	loop := &loopCtx{}
-	c.fn.loops = append(c.fn.loops, loop)
-	c.synthBlock(x.Body, inner)
-	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
-	c.flow = joinFlows(before, c.flow)
-	for _, b := range loop.breaks {
-		c.flow = joinFlows(c.flow, b)
-	}
+	breaks := c.loop(func() { c.block(x.Body, inner, nil) })
+	c.flow = joinBreaks(joinFlows(before, c.flow), breaks)
 	return types.Void{}
+}
+
+// loop runs check, the part of a loop that a break leaves, and returns the state at each break.
+func (c *Checker) loop(check func()) []flow {
+	l := &loopCtx{}
+	c.fn.loops = append(c.fn.loops, l)
+	check()
+	c.fn.loops = c.fn.loops[:len(c.fn.loops)-1]
+	return l.breaks
+}
+
+// joinBreaks is the state after a loop: the state where it ends without a break, joined with
+// the state at each break.
+func joinBreaks(end flow, breaks []flow) flow {
+	for _, b := range breaks {
+		end = joinFlows(end, b)
+	}
+	return end
 }
 
 // elementType is what a for binds from an iterable: an array's element, a map's Entry, a set's
