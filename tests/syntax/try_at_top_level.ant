@@ -1,0 +1,10 @@
+// spec: 8 try
+// A top-level initializer has no function to return an Err from, so try there is an error, as
+// return is; inside a lambda or a parameter default it returns from that function.
+var ok = { try Result.ok(1) }
+var x = try Result.ok(1)
+func main(): void {}
+
+// expect
+// exit: 2
+// err: 5:9: 'try' outside a function

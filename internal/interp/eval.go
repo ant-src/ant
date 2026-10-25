@@ -28,9 +28,8 @@ type loopUnwind struct {
 	v    value.Value
 }
 
-// evalValue evaluates a top-level initializer. The parser rules out return, break and continue
-// there, but not try, which the checker rejects; unchecked, a try that meets an Err has no
-// function to return it from.
+// evalValue evaluates a top-level initializer. The parser rules out return, break, continue and
+// try there, so the panic is only a guard.
 func (g *Goroutine) evalValue(e ast.Expr, env *Env) value.Value {
 	v, c := g.eval(e, env)
 	if c != ctlNone {

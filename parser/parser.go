@@ -125,10 +125,13 @@ type parser struct {
 	header   bool            // inside an if, while, or for header: Path { is not a literal
 	boundary string          // "", "func", "lambda", "go", or "defer"
 	loops    int             // loops entered inside the current boundary
-	curBlock *ast.Block      // the innermost block whose statements are being parsed
-	depth    int             // nesting of expressions, types, and blocks, bounded by maxNesting
-	roles    map[int]Role    // filled for ParseLayout, nil otherwise
-	prefix   map[int]bool    // likewise
+	// inDefault > 0: inside a parameter default, which runs in the callee, so a try there returns
+	// from it
+	inDefault int
+	curBlock  *ast.Block   // the innermost block whose statements are being parsed
+	depth     int          // nesting of expressions, types, and blocks, bounded by maxNesting
+	roles     map[int]Role // filled for ParseLayout, nil otherwise
+	prefix    map[int]bool // likewise
 	// spreadEnd holds the [ of each array literal that ends in a spread, and whether a comma
 	// follows that spread, for when the literal turns out to be a destructuring assignment.
 	spreadEnd map[*ast.ArrayLit]spreadEnd
@@ -626,7 +629,9 @@ func (p *parser) signature() ([]ast.Param, ast.Type) {
 		prm := ast.Param{Pos: pos(n), Name: n.Text, Type: p.parseType()}
 		if p.at("=") {
 			p.next()
+			p.inDefault++
 			prm.Default = p.expression()
+			p.inDefault--
 		}
 		params = append(params, prm)
 	})
@@ -1001,6 +1006,9 @@ func (p *parser) multiplicative() ast.Expr { return p.binaryLeft(p.unary, "*", "
 func (p *parser) unary() ast.Expr {
 	t := p.peek()
 	if t.Is("-") || t.Is("!") || t.Is("try") {
+		if t.Is("try") && p.boundary == "" && p.inDefault == 0 && p.mode != Spec {
+			p.fail(t.Pos, "'try' outside a function")
+		}
 		p.nest()
 		defer p.unnest()
 		p.next()
