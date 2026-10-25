@@ -1,33 +1,7 @@
 # Work still to do
 
-Four gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Three gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
-
-## Error wrapping
-
-**Today:** `Error` is `{ message: string }`. A function that adds context builds a new message by
-hand (`Error{ message: "load config: " + e.message }`), and the original error is lost as a value.
-
-**Sketch:** a cause chain on the library's error, with helpers to build and walk it.
-
-```
-type Error = { message: string, cause: Error | null }
-
-Error.new(message: string): Error
-Error.wrap(e: Error, message: string): Error               // cause is e
-Error.root(e: Error): Error                                // the end of the chain
-Error.chain(e: Error): Array[Error]                        // e first
-Result.context[T](r: Result[T, Error], message: string): Result[T, Error]  // wraps an Err
-```
-
-**Open questions:**
-- Adding a field breaks every `Error{ message: "..." }` literal unless records get field defaults,
-  or the cause lives somewhere else.
-- Whether a cause can be any error type, such as a user's tagged union. `cause: Error | null` keeps
-  it simple but wraps only library errors.
-- How an `Error` with a cause renders, and what `message` means then: only its own text, or the
-  chain joined with `: ` as Go's `%w` gives.
-- Whether `try` gets a form that adds context on the way out.
 
 ## Test framework
 
