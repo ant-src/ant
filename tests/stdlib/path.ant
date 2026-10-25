@@ -2,7 +2,8 @@
 // Path (stdlib.md): pure functions over paths in the host's convention, each a function of
 // Go's path/filepath.
 Path.join(["a", "b", "../c", "d.ant"])        // => "a/c/d.ant"
-Path.join([])                                 // => ""
+Path.join([])                                 // => "."
+Path.join(["", ""])                           // => "."
 Path.base("/x/y/z.ant")                       // => "z.ant"
 Path.base("")                                 // => "."
 Path.dir("/x/y/z.ant")                        // => "/x/y"

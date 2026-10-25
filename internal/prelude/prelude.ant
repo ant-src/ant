@@ -1072,7 +1072,7 @@ func File.flush(f: File.Handle): Result[void, Error]
 // Path holds pure functions over paths in the host's convention: / on Unix, \ and drive letters on
 // Windows. They work on the text and never touch the file system, except [Path.abs].
 
-// Path.join joins parts with the path separator and cleans the result.
+// Path.join joins parts with the path separator and cleans the result, so no parts give ".".
 //
 //     Path.join(["a", "b/../c", "d.ant"])   // "a/c/d.ant"
 func Path.join(parts: Array[string]): string
