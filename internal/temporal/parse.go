@@ -287,8 +287,8 @@ func (p parsed) dateTime() (PlainDateTime, error) {
 	return PlainDateTime{d, t}, nil
 }
 
-// ParseZoned reads a date, a time, a bracketed zone, and an offset or Z. Without an offset
-// the wall-clock time is resolved by d; Z gives the exact moment, shown in the zone; an offset
+// ParseZoned reads a date, a time, a bracketed zone, and an offset or Z. Without a time it is
+// the start of the day; without an offset the wall-clock time is resolved by d; Z gives the exact moment, shown in the zone; an offset
 // the zone does not have at that time is an error.
 func ParseZoned(s string, d Disambiguation) (ZonedDateTime, error) {
 	p, err := parseISO(s)
@@ -305,6 +305,10 @@ func ParseZoned(s string, d Disambiguation) (ZonedDateTime, error) {
 	dt, err := p.dateTime()
 	if err != nil {
 		return ZonedDateTime{}, err
+	}
+	if !p.hasTime {
+		// a date alone is the start of that day, as in Temporal, not midnight disambiguated
+		return startOfDate(dt.date, z)
 	}
 	if p.utc {
 		sec, nsec := dt.asUTC()
