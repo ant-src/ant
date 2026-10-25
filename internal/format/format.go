@@ -65,19 +65,20 @@ func (e elem) end() int {
 	return e.grp.close.End
 }
 
-// first and last are the tokens at the edges of a token or a group, for spacing.
-func (e elem) first() token.Token {
+// first and last are the tokens at the edges of a token or a group, for spacing, and nil for a
+// comment.
+func (e elem) first() *token.Token {
 	if e.grp != nil {
-		return e.grp.open
+		return &e.grp.open
 	}
-	return *e.tok
+	return e.tok
 }
 
-func (e elem) last() token.Token {
+func (e elem) last() *token.Token {
 	if e.grp != nil {
-		return e.grp.close
+		return &e.grp.close
 	}
-	return *e.tok
+	return e.tok
 }
 
 func (e elem) is(text string) bool { return e.tok != nil && e.tok.Is(text) }
@@ -496,10 +497,8 @@ func (p *printer) seq(es []elem, base int) {
 				p.trailing(e.com)
 				prev = &es[i]
 				continue
-			case e.com != nil || prev.com != nil:
-				p.write(" ")
 			default:
-				p.write(strings.Repeat(" ", p.space(prev.last(), e.first())))
+				p.write(strings.Repeat(" ", p.spacing(prev.last(), e.first())))
 			}
 		}
 		switch {
@@ -640,6 +639,16 @@ func (p *printer) flat(g *group, afterOpen []elem, units []unit) {
 	}
 }
 
+// spacing is the number of spaces between two neighbours on one line, in a statement or in the
+// code of an interpolation: one beside a comment, which a nil token stands for, and the table of
+// fmt.md 4.7 between two tokens.
+func (p *printer) spacing(prev, cur *token.Token) int {
+	if prev == nil || cur == nil {
+		return 1
+	}
+	return p.space(*prev, *cur)
+}
+
 // space is the spacing between two tokens on one line, by the table of fmt.md 4.7.
 func (p *printer) space(prev, cur token.Token) int {
 	switch {
@@ -717,10 +726,8 @@ func (p *printer) inline(es []elem, from int) int {
 		case p.newlines(prevEnd, off) > 0:
 			p.write(breaks(p.src[prevEnd:off]))
 		case prevEnd == from:
-		case prev == nil || cur == nil:
-			p.write(" ")
 		default:
-			p.write(strings.Repeat(" ", p.space(*prev, *cur)))
+			p.write(strings.Repeat(" ", p.spacing(prev, cur)))
 		}
 	}
 	walk = func(es []elem) {
