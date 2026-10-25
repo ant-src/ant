@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; 11 Result, Error, Panic, and Record
+// panics: library-kind
+// Panic.raise takes only a Panic, so an Error must not stand in for one.
+Panic.raise(Error{ message: "not a panic" })
+
+// expect
+// exit: 1
+// err: Panic.raise needs a Panic, got Error

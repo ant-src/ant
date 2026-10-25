@@ -135,6 +135,8 @@ func Prelude() map[string]value.Value {
 		table["Ok"] = value.OkTag
 		table["Err"] = value.ErrTag
 		table["Error"] = withFuncs(value.ErrorTag, errorFuncs())
+		table["Panic"] = withFuncs(PanicTag, panicFuncs())
+		PanicTag.SetFunc("Frame", FrameTag)
 		table["Entry"] = value.EntryTag
 		table["Indexed"] = value.IndexedTag
 		for _, name := range []string{"Integer", "Number", "Ordered", "Seq"} {

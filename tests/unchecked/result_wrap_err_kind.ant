@@ -1,4 +1,4 @@
-// spec: 12 Runtime panics; 11 Result, Error, and Record
+// spec: 12 Runtime panics; 11 Result, Error, Panic, and Record
 // panics: library-kind
 // Result.wrapErr passes an Ok through, but an Err must hold an Error to be wrapped (section 8,
 // Wrapping errors).

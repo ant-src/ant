@@ -1,0 +1,19 @@
+// spec: 8 Catching a panic; 10 Scripts
+// panics: panic
+// Panic.raise sends a caught panic on as though it had not been caught: it ends the script with
+// status 1, and the report names the original message and the frame where the panic began.
+func work(): int {
+  panic("work failed")
+}
+
+var r = Panic.catch({ work() })
+println("caught")
+if r is Err { Panic.raise(r.error) }
+println("not reached")
+
+// expect
+// out: caught
+// exit: 1
+// err: panic: work failed
+// err: at work (
+// err: panic_raise.ant:6:8)

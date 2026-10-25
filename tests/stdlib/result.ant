@@ -1,4 +1,4 @@
-// spec: 11 Result, Error, and Record; 12 Runtime panics
+// spec: 11 Result, Error, Panic, and Record; 12 Runtime panics
 // Each Result function on both cases, all stopping at the first Err or giving Ok of every
 // value, Error.wrap and Result.wrapErr joining context with ": ", and Record.same as identity
 // against == as structure.

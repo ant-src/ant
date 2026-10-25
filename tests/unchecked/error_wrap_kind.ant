@@ -1,4 +1,4 @@
-// spec: 12 Runtime panics; 11 Result, Error, and Record
+// spec: 12 Runtime panics; 11 Result, Error, Panic, and Record
 // panics: library-kind
 // Error.wrap takes only an Error, so a typed error must become one first (section 8, Wrapping
 // errors).

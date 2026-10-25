@@ -8,7 +8,7 @@ var Names = []string{
 	"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64",
 	"float32", "float64", "int", "byte", "string", "bool",
 	"never", "Integer", "Number", "Ordered", "Seq", "Entry", "Indexed",
-	"Error", "Ok", "Err", "Result",
+	"Error", "Panic", "Ok", "Err", "Result",
 	"Array", "Map", "Set", "String", "Regex", "Iter", "Math", "Bits", "Random", "Record",
 	"Bytes", "Mutex", "RwMutex", "WaitGroup", "Once", "Cond", "Atomic", "Context", "Channel",
 	"File", "Http", "Net", "Path", "Time", "Os", "Json", "Csv", "Encoding", "Url", "Crypto",

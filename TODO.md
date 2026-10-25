@@ -28,8 +28,8 @@ Test.skip(t: Test, reason: string): never
 **Open questions:**
 - How tests are found: `*_test.ant` files and functions named `test...`, as in Go, or a `test "name"
   { }` declaration.
-- Whether a panic in a test is a failure of that test only, and whether a test may start goroutines
-  that outlive it.
+- Whether a test may start goroutines that outlive it. A panic in a test can be a failure of that
+  test only: the runner calls each test through `Panic.catch` (section 8, Catching a panic).
 - Filtering (`-run pattern`), running tests in parallel, the output format, and the exit status.
 - Whether test files can reach a module's unexported names (section 10).
 

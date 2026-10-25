@@ -1,0 +1,13 @@
+// spec: 8 Catching a panic
+// Panic.catch catches only a panic: Os.exit inside it ends the process with its status, and no
+// deferred block runs.
+var r = Panic.catch({
+  defer { println("deferred") }
+  println("exiting")
+  Os.exit(3)
+})
+println("not reached")
+
+// expect
+// out: exiting
+// exit: 3

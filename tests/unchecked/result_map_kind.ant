@@ -1,4 +1,4 @@
-// spec: 12 Runtime panics; 11 Result, Error, and Record
+// spec: 12 Runtime panics; 11 Result, Error, Panic, and Record
 // panics: library-kind
 // Result.map checks that its callback is a function whatever the result holds, as every library
 // function that takes a callback does (section 12, the library row).

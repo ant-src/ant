@@ -468,4 +468,23 @@ func (g *Goroutine) AfterWait() {
 // Repanic raises a caught Ant panic again.
 func (g *Goroutine) Repanic(p *AntPanic) { panic(p) }
 
+// Catch calls fn and returns its value, or the Ant panic that left it once the deferred blocks
+// inside it have run (section 8, Catching a panic). Anything else that unwinds, Os.exit or the
+// run's end, goes on.
+func (g *Goroutine) Catch(fn value.Value) (v value.Value, p *AntPanic) {
+	depth, pos := len(g.stack), g.pos
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		ap, ok := r.(*AntPanic)
+		if !ok {
+			panic(r)
+		}
+		g.stack, g.pos, p = g.stack[:depth], pos, ap
+	}()
+	return g.Call(fn), nil
+}
+
 func (p *AntPanic) Error() string { return "panic: " + p.Message }

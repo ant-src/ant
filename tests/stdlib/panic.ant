@@ -1,0 +1,9 @@
+// spec: 11 Result, Error, Panic, and Record; 8 Catching a panic
+// Panic.catch on a function that returns and on one that panics, as a value and as the message
+// of the Err, and Panic.raise of a Panic built by hand.
+Panic.catch({ 1 + 1 })                                              // => Ok{ value: 2 }
+Panic.catch({ Array.push([1], 2) })                                 // => Ok{ value: void }
+Result.mapErr(Panic.catch({ panic("boom") }), { x.message })        // => Err{ error: "boom" }
+Panic.catch({ Array.slice([1], 0, 2) }) | Result.isOk()            // => false
+Panic.raise(Panic{ message: "again", trace: [] })                   // => panic: again
+Result.mapErr(Panic.catch({ Panic.raise(Panic{ message: "again", trace: [] }) }), { x })   // => Err{ error: Panic{ message: "again", trace: [] } }

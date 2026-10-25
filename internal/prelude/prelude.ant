@@ -18,6 +18,12 @@ type Result[T, E] = Ok[T] | Err[E]
 // Error is the error the standard library returns in an [Err]: a message for a person to read.
 // [Error.wrap] and [Result.wrapErr] add context in front of the message.
 type Error = { message: string }
+// Panic is a panic that [Panic.catch] stopped: its message and the goroutine's stack when it
+// began, innermost frame first.
+type Panic = { message: string, trace: Array[Panic.Frame] }
+// Panic.Frame is one frame of a panic's trace: the function, the path of its module, and the line
+// and column, counted from 1, of the panic in the first frame and of a call in the others.
+type Panic.Frame = { function: string, path: string, line: int, column: int }
 // Entry is a key and its value, as a map yields them.
 type Entry[K, V] = { key: K, value: V }
 // Indexed is an element with its index, as [Array.entries] yields them.
@@ -38,8 +44,9 @@ func print[T](value: T): void
 // println writes String.from(value) and a newline to standard output. println() with no argument
 // writes only the newline.
 func println[T](value: T): void
-// panic stops the current goroutine with message, running its deferred blocks on the way out. A
-// panic in the main goroutine ends the program with exit status 1.
+// panic stops the current goroutine with message, running its deferred blocks on the way out,
+// unless a [Panic.catch] on the way stops it. A panic in the main goroutine ends the program with
+// exit status 1.
 func panic(message: string): never
 
 // Conversions
@@ -849,6 +856,21 @@ func Result.wrapErr[T](r: Result[T, Error], context: string): Result[T, Error]
 //
 //     Error.wrap(Error{ message: "no such file" }, "load config")   // Error{ message: "load config: no such file" }
 func Error.wrap(e: Error, context: string): Error
+
+// Panic
+
+// Panic.catch calls f and returns Ok of its value, or an Err of the panic that left f once the
+// deferred blocks inside f have run. A caught panic is not reported. Os.exit and the end of the
+// run pass through. It belongs at the edge of a unit of work, not in place of a Result.
+//
+//     var done = Panic.catch({ handle(job) })
+//     if done is Err { println(`job ${job.id}: ${done.error.message}`) }
+func Panic.catch[T](f: func(): T): Result[T, Panic]
+// Panic.raise panics with p's message and trace as they are, so a caught panic goes on as though
+// it had not been caught.
+//
+//     if done is Err { Panic.raise(done.error) }
+func Panic.raise(p: Panic): never
 
 // Record
 //

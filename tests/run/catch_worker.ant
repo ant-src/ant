@@ -1,0 +1,34 @@
+// spec: 9 Panics in goroutines; 8 Catching a panic
+// panics: index-range
+// A worker goroutine calls each job through Panic.catch, so a job that panics ends that job alone
+// and the worker goes on to the next. A goroutine started inside the catch panics on its own: it
+// is reported, and the catch that started it returns Ok.
+type Job = { id: int, items: Array[int] }
+
+var jobs = [Job{ id: 1, items: [1, 2] }, Job{ id: 2, items: [] }, Job{ id: 3, items: [5] }]
+var results: Channel[string] = Channel.new(3)
+go {
+  for job in jobs {
+    var done = Panic.catch({ job.items[0] * 10 })
+    Channel.send(results, if done is Ok { `job ${job.id}: ${done.value}` } else { `job ${job.id}: ${done.error.message}` })
+  }
+}
+for i in Array.range(0, 3) { println(Channel.receive(results)) }
+
+var wg = WaitGroup.new()
+WaitGroup.add(wg, 1)
+var started = Panic.catch({
+  go {
+    defer { WaitGroup.done(wg) }
+    panic("in the inner goroutine")
+  }
+})
+WaitGroup.wait(wg)
+println(started)
+
+// expect
+// out: job 1: 10
+// out: job 2: index 0 out of range for an array of length 0
+// out: job 3: 50
+// out: Ok{ value: void }
+// err: panic: in the inner goroutine

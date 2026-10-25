@@ -1,0 +1,52 @@
+// spec: 8 Catching a panic; 12 Deferred blocks and panics
+// Panic.catch gives Ok of the function's value, or an Err of the panic once the deferred blocks
+// inside have run: its message and a trace of frames from the panic out to the goroutine's root,
+// innermost first. A panic in a deferred block replaces the one in progress, the innermost catch
+// stops a panic, and a caught panic writes nothing to standard error.
+func div(a: int, b: int): int {
+  a / b
+}
+
+func describe(f: Panic.Frame): string { `${f.function} ${Path.base(f.path)}:${f.line}:${f.column}` }
+
+println(Panic.catch({ div(6, 3) }))
+
+var failed = Panic.catch({ div(1, 0) })
+if failed is Err {
+  println(failed.error.message)
+  println(describe(failed.error.trace[0]))
+  println(describe(failed.error.trace[1]))
+  println(len(failed.error.trace))
+}
+
+var log: Array[string] = []
+var deferred = Panic.catch({
+  defer { Array.push(log, "first deferred") }
+  defer { panic("from defer") }
+  panic("from body")
+})
+println(log)
+println(Result.mapErr(deferred, { x.message }))
+
+var inner: Result[int, Panic] = Result.ok(0)
+var outer = Panic.catch({
+  inner = Panic.catch({ div(1, 0) })
+  "outer went on"
+})
+println(outer)
+println(Result.mapErr(inner, { x.message }))
+
+var frame = Panic.Frame{ function: "f", path: "x.ant", line: 1, column: 2 }
+println(frame)
+
+// expect
+// out: Ok{ value: 2 }
+// out: division by zero
+// out: div catching_panic.ant:7:5
+// out: func catching_panic.ant:14:31
+// out: 3
+// out: ["first deferred"]
+// out: Err{ error: "from defer" }
+// out: Ok{ value: "outer went on" }
+// out: Err{ error: "division by zero" }
+// out: Panic.Frame{ function: "f", path: "x.ant", line: 1, column: 2 }

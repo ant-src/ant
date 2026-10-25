@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
@@ -46,6 +47,60 @@ func errorFuncs() []*interp.Builtin {
 	return []*interp.Builtin{
 		fn("Error.wrap", "e, context", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return wrapError(g, who, a[0], a[1])
+		}),
+	}
+}
+
+// PanicTag is Panic: { message: string, trace: Array[Panic.Frame] }.
+var PanicTag = value.NewTag("Panic", value.RecordTag, []string{"message", "trace"})
+
+// FrameTag is Panic.Frame: { function: string, path: string, line: int, column: int }.
+var FrameTag = value.NewTag("Panic.Frame", value.RecordTag, []string{"function", "path", "line", "column"})
+
+// panicValue is the Panic record of a caught panic.
+func panicValue(p *interp.AntPanic) value.Value {
+	frames := make([]value.Value, len(p.Trace))
+	for i, f := range p.Trace {
+		frames[i] = value.NewRecord(FrameTag, []value.Value{f.Function, f.Path, int64(f.Pos.Line), int64(f.Pos.Col)})
+	}
+	return value.NewRecord(PanicTag, []value.Value{p.Message, value.NewArray(frames)})
+}
+
+// antPanic requires a Panic and returns the panic it describes.
+func antPanic(g *interp.Goroutine, who string, v value.Value) *interp.AntPanic {
+	r, ok := v.(*value.Record)
+	if !ok || r.Tag != PanicTag {
+		g.Panic("%s needs a Panic, got %s", who, value.Describe(v))
+	}
+	p := &interp.AntPanic{Message: stringArg(g, who, r.Get(0))}
+	trace := arrayArg(g, who, r.Get(1))
+	for i := 0; i < trace.Len(); i++ {
+		e, _ := trace.Get(i)
+		f, ok := e.(*value.Record)
+		if !ok || f.Tag != FrameTag {
+			g.Panic("%s needs a Panic.Frame in the trace, got %s", who, value.Describe(e))
+		}
+		p.Trace = append(p.Trace, interp.Frame{
+			Function: stringArg(g, who, f.Get(0)),
+			Path:     stringArg(g, who, f.Get(1)),
+			Pos:      ast.Pos{Line: int(intArg(g, who, f.Get(2))), Col: int(intArg(g, who, f.Get(3)))},
+		})
+	}
+	return p
+}
+
+func panicFuncs() []*interp.Builtin {
+	return []*interp.Builtin{
+		fn("Panic.catch", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			v, p := g.Catch(funcArg(g, who, a[0]))
+			if p != nil {
+				return value.Err(panicValue(p))
+			}
+			return value.Ok(v)
+		}),
+		fn("Panic.raise", "p", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			g.Repanic(antPanic(g, who, a[0]))
+			return nil
 		}),
 	}
 }
