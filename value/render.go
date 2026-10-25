@@ -4,6 +4,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -21,6 +22,9 @@ func RenderQuoted(v Value) string {
 	return sb.String()
 }
 
+// renderSets holds emptied sets of enclosing containers for render to reuse.
+var renderSets = sync.Pool{New: func() any { return map[any]bool{} }}
+
 // stack holds the containers being rendered, the enclosing ones of v, as a set so that a deep
 // value renders in linear time.
 func render(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
@@ -32,12 +36,17 @@ func render(sb *strings.Builder, v Value, top bool, stack map[any]bool) {
 			return
 		}
 		if stack == nil {
-			stack = map[any]bool{}
+			// OnFreshStack shares the set with another goroutine, which puts it on the heap; the
+			// pool spares a shallow rendering that allocation. Rendering empties the set again.
+			stack = renderSets.Get().(map[any]bool)
+			defer renderSets.Put(stack)
 		}
 		stack[v] = true
 		defer delete(stack, v)
-		Nested(len(stack), func() { renderBody(sb, v, top, stack) })
-		return
+		if Deep(len(stack)) {
+			OnFreshStack(func() { renderBody(sb, v, top, stack) })
+			return
+		}
 	}
 	renderBody(sb, v, top, stack)
 }

@@ -119,14 +119,20 @@ func parseFrom(dec *json.Decoder, tok json.Token) (value.Value, error) {
 func stringify(sb *strings.Builder, v value.Value, stack ancestors) string {
 	switch v.(type) {
 	case *value.Record, *value.Array, *value.Set, *value.Map:
-		var msg string
-		value.Nested(len(stack)+1, func() { msg = stringifyBody(sb, v, stack) })
-		return msg
+		if value.Deep(len(stack) + 1) {
+			return stringifyOnFreshStack(sb, v, stack)
+		}
 	}
 	return stringifyBody(sb, v, stack)
 }
 
-// stringifyBody is stringify on the goroutine value.Nested chose.
+// stringifyOnFreshStack is stringifyBody on a fresh goroutine.
+func stringifyOnFreshStack(sb *strings.Builder, v value.Value, stack ancestors) (msg string) {
+	value.OnFreshStack(func() { msg = stringifyBody(sb, v, stack) })
+	return msg
+}
+
+// stringifyBody is stringify once it has decided which goroutine to run on.
 func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
@@ -251,6 +257,16 @@ func holdsBytes(v value.Value, stack ancestors) bool {
 		return false
 	}
 	defer stack.leave(v)
+	if value.Deep(len(stack)) {
+		var held bool
+		value.OnFreshStack(func() { held = anyHoldsBytes(parts, stack) })
+		return held
+	}
+	return anyHoldsBytes(parts, stack)
+}
+
+// anyHoldsBytes reports whether one of parts is Bytes or contains them.
+func anyHoldsBytes(parts []value.Value, stack ancestors) bool {
 	for _, p := range parts {
 		if holdsBytes(p, stack) {
 			return true

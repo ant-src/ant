@@ -3,6 +3,7 @@ package value
 import (
 	"hash/maphash"
 	"math"
+	"sync"
 )
 
 // Equal is == (section 12): structural, never panics, and finite on cyclic values. It never
@@ -12,6 +13,9 @@ func Equal(a, b Value) bool {
 }
 
 type pair struct{ a, b any }
+
+// equalSets holds emptied sets of pairs for equal to reuse.
+var equalSets = sync.Pool{New: func() any { return map[pair]bool{} }}
 
 func equal(a, b Value, visiting map[pair]bool) bool {
 	switch x := a.(type) {
@@ -26,7 +30,10 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 	case *Record, *Array, *Map, *Set:
 		// A pair already under comparison is assumed equal, so cyclic values compare finitely.
 		if visiting == nil {
-			visiting = map[pair]bool{}
+			// OnFreshStack shares the set with another goroutine, which puts it on the heap; the
+			// pool spares a shallow == that allocation. Comparing empties the set again.
+			visiting = equalSets.Get().(map[pair]bool)
+			defer equalSets.Put(visiting)
 		}
 		p := pair{a, b}
 		if visiting[p] {
@@ -34,9 +41,10 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		}
 		visiting[p] = true
 		defer delete(visiting, p)
-		var eq bool
-		Nested(len(visiting), func() { eq = equalContainer(a, b, visiting) })
-		return eq
+		if Deep(len(visiting)) {
+			return equalOnFreshStack(a, b, visiting)
+		}
+		return equalContainer(a, b, visiting)
 	case Callable, Sync:
 		return a == b
 	case Time:
@@ -47,6 +55,12 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		return ok && x.Source == y.Source && x.Flags == y.Flags
 	}
 	return false
+}
+
+// equalOnFreshStack is equalContainer on a fresh goroutine.
+func equalOnFreshStack(a, b Value, visiting map[pair]bool) (eq bool) {
+	OnFreshStack(func() { eq = equalContainer(a, b, visiting) })
+	return eq
 }
 
 // equalContainer compares a record, array, map or set with b, element by element.
