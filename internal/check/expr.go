@@ -1098,7 +1098,7 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 	}
 	errRec := types.Named{Decl: c.prelude["Err"].decl, Args: []types.Type{errT}}
 	if fn.declared != nil {
-		_, declaredErr, isResult := resultParts(fn.declared)
+		_, declaredErr, isResult := resultParts(types.Without(fn.declared, types.Null{}))
 		if !isResult || !types.Assignable(errT, declaredErr) {
 			c.errorf(x.Pos, "try would return %s, but the function returns %s", types.String(errRec), types.String(fn.declared))
 		}

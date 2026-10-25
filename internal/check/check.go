@@ -978,7 +978,7 @@ func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}
 	}
-	if _, _, isResult := resultParts(u); !isResult && !types.IsInvalid(u) {
+	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !types.IsInvalid(u) {
 		for _, x := range ctx.tries {
 			c.errorf(x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
 		}
