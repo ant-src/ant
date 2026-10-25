@@ -1068,65 +1068,71 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 		}
 		return nil, ctlNone, false
 	}
-	run := func(v value.Value) (value.Value, ctl, bool) { return runOn(g, v) }
-	switch x := iter.(type) {
+	if seq, ok := iter.(value.Callable); ok {
+		return g.forSeq(e, seq, runOn)
+	}
+	var rv value.Value
+	rc := ctlNone
+	visit := func(v value.Value) bool {
+		g.check()
+		var stop bool
+		rv, rc, stop = runOn(g, v)
+		return !stop
+	}
+	if !each(iter, visit) {
+		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, Bytes, or a function, got %s", value.Describe(iter))
+	}
+	if rc != ctlNone {
+		return rv, rc
+	}
+	return value.Void, ctlNone
+}
+
+// each calls visit with each element of a collection, as for visits them (section 12), until
+// visit returns false. It reports false when v is not an array, a map, a set, a string, or Bytes.
+func each(v value.Value, visit func(value.Value) bool) bool {
+	switch x := v.(type) {
 	case *value.Array:
 		for i := 0; i < x.Len(); i++ {
-			g.check()
 			v, ok := x.Get(i)
-			if !ok {
+			if !ok || !visit(v) {
 				break
-			}
-			if rv, rc, stop := run(v); stop {
-				return rv, rc
 			}
 		}
 	case *value.Map:
 		var cursor uint64
 		for {
-			g.check()
 			k, v, seq, ok := x.Next(cursor)
-			if !ok {
+			if !ok || !visit(value.Entry(k, v)) {
 				break
 			}
 			cursor = seq
-			if rv, rc, stop := run(value.Entry(k, v)); stop {
-				return rv, rc
-			}
 		}
 	case *value.Set:
 		var cursor uint64
 		for {
-			g.check()
 			v, seq, ok := x.Next(cursor)
-			if !ok {
+			if !ok || !visit(v) {
 				break
 			}
 			cursor = seq
-			if rv, rc, stop := run(v); stop {
-				return rv, rc
-			}
 		}
 	case value.Bytes:
-		for i := 0; i < len(x); i++ {
-			g.check()
-			if rv, rc, stop := run(x[i]); stop {
-				return rv, rc
+		for _, b := range x {
+			if !visit(b) {
+				break
 			}
 		}
 	case string:
 		for _, r := range x {
-			g.check()
-			if rv, rc, stop := run(string(r)); stop {
-				return rv, rc
+			if !visit(string(r)) {
+				break
 			}
 		}
-	case value.Callable:
-		return g.forSeq(e, x, runOn)
 	default:
-		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, Bytes, or a function, got %s", value.Describe(iter))
+		return false
 	}
-	return value.Void, ctlNone
+	return true
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
