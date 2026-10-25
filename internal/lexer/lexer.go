@@ -108,9 +108,37 @@ func (l *lexer) atEnd(k int) bool { return l.pos+k >= len(l.src) }
 
 func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) }
 
+// lineBreak reports whether a line break starts k bytes ahead: a \n, or a \r not followed by a
+// \n (section 2). The \r of a \r\n is white space before the \n.
+func (l *lexer) lineBreak(k int) bool {
+	switch l.peek(k) {
+	case '\n':
+		return !l.atEnd(k)
+	case '\r':
+		return !l.atEnd(k) && l.peek(k+1) != '\n'
+	}
+	return false
+}
+
+// NormalizeBreaks returns s with each \r that is a line break on its own replaced by \n, so that
+// every line break holds a \n and its lines can be found and counted by \n. The offsets do not
+// change.
+func NormalizeBreaks(s string) string {
+	if !strings.Contains(s, "\r") {
+		return s
+	}
+	b := []byte(s)
+	for i, c := range b {
+		if c == '\r' && (i+1 == len(b) || b[i+1] != '\n') {
+			b[i] = '\n'
+		}
+	}
+	return string(b)
+}
+
 func (l *lexer) advance(n int) {
 	for i := 0; i < n && l.pos < len(l.src); i++ {
-		if l.src[l.pos] == '\n' {
+		if l.lineBreak(0) {
 			l.line++
 			l.col = 1
 			l.lines = append(l.lines, l.pos+1)
@@ -203,7 +231,7 @@ func (l *lexer) nextLineContinues() bool {
 		case src[i] == ' ' || src[i] == '\t' || src[i] == '\r' || src[i] == '\n':
 			i++
 		case strings.HasPrefix(src[i:], "//"):
-			j := strings.IndexByte(src[i:], '\n')
+			j := strings.IndexAny(src[i:], "\r\n")
 			if j < 0 {
 				return false
 			}
@@ -243,7 +271,7 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 	c := l.src[l.pos]
 	pos := l.here()
 	switch {
-	case c == '\n':
+	case l.lineBreak(0):
 		if !l.lastContinues() && !l.nextLineContinues() {
 			l.emit(token.Token{Kind: token.Newline, Pos: pos})
 		}
@@ -254,7 +282,7 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 		return true
 	case l.has("//"):
 		start := l.pos
-		for l.pos < len(l.src) && l.src[l.pos] != '\n' {
+		for !l.atEnd(0) && !l.lineBreak(0) {
 			l.advance(1)
 		}
 		l.keepComment(pos, start)
@@ -298,10 +326,10 @@ func (l *lexer) regex() {
 	for {
 		c := l.peek(0)
 		switch {
-		case l.atEnd(0) || c == '\n':
+		case l.atEnd(0) || c == '\n' || c == '\r':
 			l.fail(pos, "unterminated regular expression")
 		case c == '\\':
-			if l.atEnd(1) || l.peek(1) == '\n' {
+			if l.atEnd(1) || l.peek(1) == '\n' || l.peek(1) == '\r' {
 				l.fail(pos, "unterminated regular expression")
 			}
 			l.advance(2)
@@ -310,7 +338,7 @@ func (l *lexer) regex() {
 			if inClass && l.peek(1) == ':' {
 				// A POSIX name such as [:alpha:], whose ] does not end the class.
 				l.advance(2)
-				for !l.atEnd(0) && l.peek(0) != '\n' && !(l.peek(0) == ':' && l.peek(1) == ']') {
+				for !l.atEnd(0) && l.peek(0) != '\n' && l.peek(0) != '\r' && !(l.peek(0) == ':' && l.peek(1) == ']') {
 					l.advance(1)
 				}
 				if l.peek(0) == ':' {
@@ -527,7 +555,7 @@ func (l *lexer) string() {
 	for {
 		c := l.peek(0)
 		switch {
-		case l.atEnd(0) || c == '\n':
+		case l.atEnd(0) || c == '\n' || c == '\r':
 			l.fail(pos, "unterminated string")
 		case c == '"':
 			l.advance(1)

@@ -44,7 +44,7 @@ func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	if lerr != nil {
 		return nil, lexError(src, lerr)
 	}
-	p := &parser{mode: mode, src: src, toks: toks, comments: comments}
+	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments}
 	defer p.recover(&err)
 	return p.file(path), nil
 }
@@ -78,7 +78,7 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 		return nil, nil, lexError(src, lerr)
 	}
 	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
-	p := &parser{mode: Program, src: src, toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
+	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
 	defer p.recover(&err)
 	return p.file(path), l, nil
 }
@@ -92,7 +92,7 @@ func incompleteLex(src string, le *lexer.Error) bool {
 		return false
 	}
 	if le.Msg == "unterminated string" || le.Msg == "unterminated regular expression" {
-		return le.Pos.Line == strings.Count(src, "\n")+1
+		return le.Pos.Line == strings.Count(lexer.NormalizeBreaks(src), "\n")+1
 	}
 	return true
 }
@@ -104,7 +104,7 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 		le := lerr.(*lexer.Error)
 		return nil, &Error{Pos: ast.Pos{Line: le.Pos.Line, Col: le.Pos.Col}, Msg: le.Msg}
 	}
-	p := &parser{mode: Spec, src: src, toks: toks}
+	p := &parser{mode: Spec, src: lexer.NormalizeBreaks(src), toks: toks}
 	defer p.recover(&err)
 	e = p.expression()
 	p.skipTerms()
@@ -116,7 +116,7 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 
 type parser struct {
 	mode     Mode
-	src      string
+	src      string // with every line break holding a \n (lexer.NormalizeBreaks)
 	toks     []token.Token
 	i        int
 	comments []token.Comment // for doc comments
