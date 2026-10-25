@@ -59,15 +59,18 @@ func pad(g *interp.Goroutine, who string, a []value.Value, left bool) value.Valu
 	if missing <= 0 {
 		return s
 	}
-	prs := []rune(p)
-	fill := make([]rune, missing)
-	for i := range fill {
-		fill[i] = prs[i%len(prs)]
+	k := utf8.RuneCountInString(p)
+	whole, cut := missing/k, 0 // p whole times, then the bytes of its first missing % k code points
+	for range missing % k {
+		_, size := utf8.DecodeRuneInString(p[cut:])
+		cut += size
 	}
+	boundSize(g, who, int64(len(s))+sizeProduct(int64(whole), int64(len(p)))+int64(cut))
+	fill := strings.Repeat(p, whole) + p[:cut]
 	if left {
-		return string(fill) + s
+		return fill + s
 	}
-	return s + string(fill)
+	return s + fill
 }
 
 // classTest is String.isDigit and the others: true when every code point of s satisfies f,
@@ -244,7 +247,9 @@ func init() {
 					g.Panic("String.repeat needs a count of at least 0, got %d", n)
 				}
 				boundCount(g, who, "count", n)
-				return strings.Repeat(stringArg(g, who, a[0]), int(n))
+				s := stringArg(g, who, a[0])
+				boundSize(g, who, sizeProduct(int64(len(s)), n))
+				return strings.Repeat(s, int(n))
 			}),
 			fn("String.trim", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return strings.TrimFunc(stringArg(g, who, a[0]), unicode.IsSpace)
@@ -300,7 +305,12 @@ func init() {
 				if old == "" {
 					g.Panic("String.replace needs a pattern that is not empty")
 				}
-				return strings.ReplaceAll(stringArg(g, who, a[0]), old, stringArg(g, who, a[2]))
+				s, new := stringArg(g, who, a[0]), stringArg(g, who, a[2])
+				if len(new) > len(old) {
+					grow := sizeProduct(int64(strings.Count(s, old)), int64(len(new)-len(old)))
+					boundSize(g, who, int64(len(s))+grow)
+				}
+				return strings.ReplaceAll(s, old, new)
 			}),
 			fn("String.replaceFirst", "s, old, new", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				old := stringArg(g, who, a[1])

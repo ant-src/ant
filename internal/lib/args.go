@@ -50,6 +50,23 @@ func boundCount(g *interp.Goroutine, who, what string, n int64) {
 	}
 }
 
+// boundSize panics when a string result of size bytes, as a function computes it before building
+// the string, is above maxCount: the "a result size" row of section 12's table.
+func boundSize(g *interp.Goroutine, who string, size int64) {
+	if size > maxCount {
+		g.Panic("%s would give a string longer than %d bytes", who, maxCount)
+	}
+}
+
+// sizeProduct is a * b for non-negative sizes, or maxCount + 1 when that is above maxCount, so
+// that a sum of sizes cannot overflow.
+func sizeProduct(a, b int64) int64 {
+	if a != 0 && b > maxCount/a {
+		return maxCount + 1
+	}
+	return a * b
+}
+
 func intArg(g *interp.Goroutine, who string, v value.Value) int64 {
 	return typedArg[int64](g, who, "an int", v)
 }

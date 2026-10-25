@@ -1,5 +1,5 @@
 // spec: 11 String; 12 Runtime panics
-// panics: count
+// panics: count; size
 // String (section 11): lengths, indices and slices count code points, not bytes.
 
 // Length and slices.
@@ -64,6 +64,12 @@ String.repeat("ab", 3)                        // => "ababab"
 String.repeat("ab", 0)                        // => ""
 String.repeat("ab", -1)                       // => panic: String.repeat needs a count of at least 0, got -1
 String.repeat("ab", 2147483648)               // => panic: String.repeat needs a count of at most 2147483647, got 2147483648
+// A result longer than 2^31 − 1 bytes is the size row, whatever the count.
+String.repeat("abcdefgh", 2147483647)         // => panic: String.repeat would give a string longer than 2147483647 bytes
+String.repeat("ab", 1073741824)               // => panic: String.repeat would give a string longer than 2147483647 bytes
+String.padStart("x", 2147483647, "é")         // => panic: String.padStart would give a string longer than 2147483647 bytes
+String.padEnd("x", 1500000000, "aé")          // => panic: String.padEnd would give a string longer than 2147483647 bytes
+String.replace(String.repeat("a", 1000), "a", String.repeat("b", 3000000)) // => panic: String.replace would give a string longer than 2147483647 bytes
 
 // Trimming removes Unicode white space; the prefix and suffix forms remove one copy.
 String.trim("\u{2003} \t x y \n\u{00A0}")     // => "x y"
