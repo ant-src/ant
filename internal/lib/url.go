@@ -65,8 +65,7 @@ func decodePath(escaped string) (string, error) {
 }
 
 // partsRecord builds a Url.Parts from a parsed URL. What follows "scheme:" is opaque when it does
-// not start with //, a single / included, so a reference with no authority is told apart from
-// one whose authority is empty.
+// not start with /; a path that does, as in x:/a, is the path.
 func partsRecord(u *url.URL) (value.Value, error) {
 	user := ""
 	if u.User != nil {
@@ -76,11 +75,7 @@ func partsRecord(u *url.URL) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	opaque := u.Opaque
-	if u.OmitHost && u.Host == "" && u.User == nil {
-		opaque, path = u.EscapedPath(), ""
-	}
-	return value.NewRecord(PartsTag, []value.Value{u.Scheme, opaque, user, u.Hostname(), u.Port(), path, u.RawQuery, u.Fragment}), nil
+	return value.NewRecord(PartsTag, []value.Value{u.Scheme, u.Opaque, user, u.Hostname(), u.Port(), path, u.RawQuery, u.Fragment}), nil
 }
 
 // escapePath escapes a path for a URL, keeping the escapes decodePath keeps and escaping every
@@ -137,8 +132,15 @@ func partsURL(g *interp.Goroutine, who string, v value.Value) *url.URL {
 		host += ":" + port
 	}
 	u.Host = host
+	// // comes before an empty authority only for a scheme that always has one, or before a path
+	// that starts with //, which would otherwise read as an authority.
+	u.OmitHost = host == "" && u.User == nil && !authorityScheme[strings.ToLower(u.Scheme)] && !strings.HasPrefix(u.RawPath, "//")
 	return u
 }
+
+// authorityScheme holds the schemes whose references always have an authority, so that stringify
+// writes // before it even when it is empty, as in file:///etc/hosts.
+var authorityScheme = map[string]bool{"http": true, "https": true, "ws": true, "wss": true, "ftp": true, "file": true}
 
 func init() {
 	register("Url", func() value.Value {

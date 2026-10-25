@@ -42,10 +42,15 @@ Url.stringify(Result.unwrap(Url.parse("http://h/a%2Fb/c%20d%25e"))) // => "http:
 Url.stringify(Result.unwrap(Url.parse("http://h/a%252Fb"))) // => "http://h/a%252Fb"
 Url.stringify(Url.Parts{ ...p, path: "/100% sure" }) // => "http://example.com/100%25%20sure"
 
-// After the scheme, a single / starts the opaque part: no authority, which an empty one, //, is
-// not.
-Url.parse("x:/a")                             // => Ok{ value: Url.Parts{ scheme: "x", opaque: "/a", user: "", host: "", port: "", path: "", query: "", fragment: "" } }
+// After the scheme, a single / starts the path, with no authority. stringify writes // before an
+// empty authority only for a scheme that always has one, so x:///a comes back as x:/a, the same
+// reference, while file:///etc/hosts comes back as written.
+Url.parse("x:/a")                             // => Ok{ value: Url.Parts{ scheme: "x", opaque: "", user: "", host: "", port: "", path: "/a", query: "", fragment: "" } }
 Url.stringify(Result.unwrap(Url.parse("x:/a"))) // => "x:/a"
 Url.parse("x:///a")                           // => Ok{ value: Url.Parts{ scheme: "x", opaque: "", user: "", host: "", port: "", path: "/a", query: "", fragment: "" } }
-Url.stringify(Result.unwrap(Url.parse("x:///a"))) // => "x:///a"
-Url.stringify(Result.unwrap(Url.parse("file:/etc/hosts?x#y"))) // => "file:/etc/hosts?x#y"
+Url.stringify(Result.unwrap(Url.parse("x:///a"))) // => "x:/a"
+Url.parse("file:/etc/hosts")                  // => Ok{ value: Url.Parts{ scheme: "file", opaque: "", user: "", host: "", port: "", path: "/etc/hosts", query: "", fragment: "" } }
+Url.stringify(Result.unwrap(Url.parse("file:///etc/hosts?x#y"))) // => "file:///etc/hosts?x#y"
+Url.stringify(Result.unwrap(Url.parse("FILE:/etc/hosts"))) // => "file:///etc/hosts"
+Url.stringify(Result.unwrap(Url.parse("http://h/p"))) // => "http://h/p"
+Url.stringify(Result.unwrap(Url.parse("x://h/a"))) // => "x://h/a"

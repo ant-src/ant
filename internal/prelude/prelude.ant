@@ -1667,8 +1667,8 @@ func Encoding.fromHex(s: string): Result[Bytes, Error]
 // Url divides URLs into parts and escapes and parses query strings.
 
 // Url.Parts is a URL reference divided as RFC 3986 does, with each absent part "". scheme is in
-// lower case without its colon, opaque is what follows "scheme:" when that is not "//", as in a
-// mailto: address or x:/a, and user is the userinfo as written. path and fragment are decoded, but
+// lower case without its colon, opaque is what follows "scheme:" when that does not start with /,
+// as in a mailto: address, and user is the userinfo as written. path and fragment are decoded, but
 // path keeps %2F and %25 as written, while query is the raw text after the ?, for [Url.parseQuery].
 type Url.Parts = { scheme: string, opaque: string, user: string, host: string, port: string, path: string, query: string, fragment: string }
 
@@ -1678,7 +1678,8 @@ type Url.Parts = { scheme: string, opaque: string, user: string, host: string, p
 func Url.parse(s: string): Result[Url.Parts, Error]
 // Url.stringify returns the reference parts make, escaping what needs it in every part but query,
 // which is written as it is, so a program changes a URL by parsing it, replacing a field, and
-// stringifying it.
+// stringifying it. It writes // before an empty authority only for http, https, ws, wss, ftp and
+// file, so x:///a comes back as x:/a, the same reference.
 func Url.stringify(parts: Url.Parts): string
 // Url.escape escapes s for use as one query key or value: every character but the unreserved ones
 // becomes %XX, and a space becomes +.
