@@ -25,6 +25,31 @@ func okVoid(err error) value.Value {
 	return value.Ok(value.Void)
 }
 
+// errorArg requires an Error and returns its message.
+func errorArg(g *interp.Goroutine, who string, v value.Value) string {
+	r, ok := v.(*value.Record)
+	if !ok || r.Tag != value.ErrorTag {
+		g.Panic("%s needs an Error, got %s", who, value.Describe(v))
+	}
+	return stringArg(g, who, r.Get(0))
+}
+
+// wrapError is Error.wrap: a new Error whose message is context, ": ", and e's message.
+func wrapError(g *interp.Goroutine, who string, e, context value.Value) value.Value {
+	msg := errorArg(g, who, e)
+	ctx := stringArg(g, who, context)
+	boundSize(g, who, int64(len(ctx))+2+int64(len(msg)))
+	return value.ErrorValue(ctx + ": " + msg)
+}
+
+func errorFuncs() []*interp.Builtin {
+	return []*interp.Builtin{
+		fn("Error.wrap", "e, context", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			return wrapError(g, who, a[0], a[1])
+		}),
+	}
+}
+
 func resultFuncs() []*interp.Builtin {
 	return []*interp.Builtin{
 		fn("Result.ok", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value { return value.Ok(a[0]) }),
@@ -47,6 +72,14 @@ func resultFuncs() []*interp.Builtin {
 				return r
 			}
 			return value.Err(g.Call(f, r.Get(0)))
+		}),
+		fn("Result.wrapErr", "r, context", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			r := result(g, who, a[0])
+			stringArg(g, who, a[1])
+			if r.Tag != value.ErrTag {
+				return r
+			}
+			return value.Err(wrapError(g, who, r.Get(0), a[1]))
 		}),
 		fn("Result.unwrap", "r", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			r := result(g, who, a[0])

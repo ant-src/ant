@@ -16,6 +16,7 @@ type Err[E] = { error: E }
 //     if r is Ok { println(r.value) } else { println(r.error.message) }
 type Result[T, E] = Ok[T] | Err[E]
 // Error is the error the standard library returns in an [Err]: a message for a person to read.
+// [Error.wrap] and [Result.wrapErr] add context in front of the message.
 type Error = { message: string }
 // Entry is a key and its value, as a map yields them.
 type Entry[K, V] = { key: K, value: V }
@@ -835,6 +836,19 @@ func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
 //     Result.all([Result.ok(1), Result.ok(2)])                            // Ok{ value: [1, 2] }
 //     Result.all([Result.ok(1), Result.err("no"), Result.err("later")])   // Err{ error: "no" }
 func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
+// Result.wrapErr returns r itself if it is an Ok, and an Err holding Error.wrap(r.error, context) if
+// it is an Err.
+//
+//     try (Json.parse(text) | Result.wrapErr(`parse ${path}`))
+func Result.wrapErr[T](r: Result[T, Error], context: string): Result[T, Error]
+
+// Error
+
+// Error.wrap returns a new Error whose message is context, ": ", and the message of e, leaving e
+// untouched. An empty context is joined like any other.
+//
+//     Error.wrap(Error{ message: "no such file" }, "load config")   // Error{ message: "load config: no such file" }
+func Error.wrap(e: Error, context: string): Error
 
 // Record
 //

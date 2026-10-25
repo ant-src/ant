@@ -63,8 +63,9 @@ type PanicError struct {
 func (e *PanicError) Error() string { return "panic: " + e.Message }
 
 // ResultError is returned by Run when the script returned an Err, through try or return
-// (section 10). Message is String.from of the Err's error field, which the runtime has already
-// written to the run's stderr writer, with a newline. The ant command exits with status 1.
+// (section 10). Message is the Err's error field, an Error as its message alone and any other
+// error as String.from renders it, which the runtime has already written to the run's stderr
+// writer, with a newline. The ant command exits with status 1.
 type ResultError struct {
 	Message string
 }

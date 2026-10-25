@@ -263,7 +263,14 @@ func (in *Instance) endErr(r any) error {
 	case *exitSignal:
 		return &ExitError{Status: x.status}
 	case *resultSignal:
+		// An Error is written as its message alone, any other error as String.from renders it
+		// (section 10, Scripts).
 		msg := value.Render(x.err)
+		if r, ok := x.err.(*value.Record); ok && r.Tag == value.ErrorTag {
+			if m, ok := r.Get(0).(string); ok {
+				msg = m
+			}
+		}
 		in.Flush()
 		in.errMu.Lock()
 		io.WriteString(in.cfg.Stderr, msg+"\n")

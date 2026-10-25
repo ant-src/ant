@@ -53,7 +53,7 @@ func FuzzCheck(f *testing.F) {
 var unsafeForFuzz = regexp.MustCompile(`\bgo\b|Mutex|RwMutex|WaitGroup|Once|Cond|Atomic|Time\.|File\.|Http\.|Os\.|repeat|filled|\d{5,}`)
 
 // FuzzRun checks that running any program that loads, checked or not, ends in a normal return,
-// an Ant panic, an exit, or the deadline, never a Go panic.
+// an Err from the script, an Ant panic, an exit, or the deadline, never a Go panic.
 func FuzzRun(f *testing.F) {
 	seedPrograms(f)
 	f.Fuzz(func(t *testing.T, src string) {
@@ -72,7 +72,7 @@ func FuzzRun(f *testing.F) {
 			return
 		}
 		switch err.(type) {
-		case *ant.PanicError, *ant.ExitError:
+		case *ant.ResultError, *ant.PanicError, *ant.ExitError:
 		default:
 			t.Fatalf("error of type %T: %v", err, err)
 		}

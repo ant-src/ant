@@ -1,0 +1,11 @@
+// spec: 10 Scripts
+//! An Err that is not an Error ends a script with String.from of the error on standard error, so a
+//! typed error keeps its fields.
+type BadDigit = { at: int }
+func parse(s: string): Result[int, BadDigit] { Result.err(BadDigit{ at: 2 }) }
+var n = try parse("1x3")
+println(n)
+
+// expect
+// exit: 1
+// err: BadDigit{ at: 2 }

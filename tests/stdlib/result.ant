@@ -1,6 +1,7 @@
-// spec: 11 Result and Record; 12 Runtime panics
+// spec: 11 Result, Error, and Record; 12 Runtime panics
 // Each Result function on both cases, all stopping at the first Err or giving Ok of every
-// value, and Record.same as identity against == as structure.
+// value, Error.wrap and Result.wrapErr joining context with ": ", and Record.same as identity
+// against == as structure.
 type P = { n: int }
 var ok: Result[int, Error] = Result.ok(2)
 var err: Result[int, Error] = Result.err(Error{ message: "bad" })
@@ -18,6 +19,13 @@ Result.all([ok, ok])                          // => Ok{ value: [2, 2] }
 Result.all([ok, err, second])                 // => Err{ error: Error{ message: "bad" } }
 var none: Array[Result[int, Error]] = []
 Result.all(none)                              // => Ok{ value: [] }
+Result.wrapErr(ok, "load")                    // => Ok{ value: 2 }
+Result.wrapErr(err, "load")                   // => Err{ error: Error{ message: "load: bad" } }
+Error.wrap(Error{ message: "bad" }, "load")   // => Error{ message: "load: bad" }
+Error.wrap(Error{ message: "bad" }, "")       // => Error{ message: ": bad" }
+var base = Error{ message: "bad" }
+Record.same(Error.wrap(base, "load"), base)   // => false
+base                                          // => Error{ message: "bad" }
 var p = P{ n: 1 }
 var q = P{ n: 1 }
 Record.same(p, p)                             // => true

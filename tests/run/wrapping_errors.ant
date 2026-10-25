@@ -1,0 +1,21 @@
+// spec: 8 Wrapping errors; 10 Scripts
+//! Context added with Result.wrapErr at two levels reads as one line, a pipeline under try
+//! parenthesized with its call, and the script ends with the joined message alone on standard
+//! error.
+func loadConfig(path: string): Result[Json.Value, Error] {
+  var text = try File.read(path)
+  var json = try (Json.parse(text) | Result.wrapErr(`parse ${Path.base(path)}`))
+  Result.ok(json)
+}
+
+var path = Path.join([Os.args()[0], "app.json"])
+try File.write(path, "{")
+println(loadConfig(path) | Result.isOk())
+var config = try (loadConfig(path) | Result.wrapErr("load config"))
+println(config)
+
+// expect
+// args: $TMP
+// out: false
+// exit: 1
+// err: load config: parse app.json: unexpected end of JSON input
