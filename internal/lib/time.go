@@ -571,36 +571,40 @@ func init() {
 		for _, name := range modeNames {
 			entries = append(entries, constant(name, enumTag(name)))
 		}
-		dated := map[string]func(temporal.PlainDate) value.Value{
-			"year":        func(d temporal.PlainDate) value.Value { return int64(d.Year) },
-			"month":       func(d temporal.PlainDate) value.Value { return int64(d.Month) },
-			"day":         func(d temporal.PlainDate) value.Value { return int64(d.Day) },
-			"dayOfWeek":   func(d temporal.PlainDate) value.Value { return int64(d.DayOfWeek()) },
-			"dayOfYear":   func(d temporal.PlainDate) value.Value { return int64(d.DayOfYear()) },
-			"weekOfYear":  func(d temporal.PlainDate) value.Value { return int64(d.WeekOfYear()) },
-			"yearOfWeek":  func(d temporal.PlainDate) value.Value { return int64(d.YearOfWeek()) },
-			"daysInMonth": func(d temporal.PlainDate) value.Value { return int64(d.DaysInMonth()) },
-			"daysInYear":  func(d temporal.PlainDate) value.Value { return int64(d.DaysInYear()) },
-			"inLeapYear":  func(d temporal.PlainDate) value.Value { return d.InLeapYear() },
+		dated := []struct {
+			name  string
+			field func(temporal.PlainDate) value.Value
+		}{
+			{"year", func(d temporal.PlainDate) value.Value { return int64(d.Year) }},
+			{"month", func(d temporal.PlainDate) value.Value { return int64(d.Month) }},
+			{"day", func(d temporal.PlainDate) value.Value { return int64(d.Day) }},
+			{"dayOfWeek", func(d temporal.PlainDate) value.Value { return int64(d.DayOfWeek()) }},
+			{"dayOfYear", func(d temporal.PlainDate) value.Value { return int64(d.DayOfYear()) }},
+			{"weekOfYear", func(d temporal.PlainDate) value.Value { return int64(d.WeekOfYear()) }},
+			{"yearOfWeek", func(d temporal.PlainDate) value.Value { return int64(d.YearOfWeek()) }},
+			{"daysInMonth", func(d temporal.PlainDate) value.Value { return int64(d.DaysInMonth()) }},
+			{"daysInYear", func(d temporal.PlainDate) value.Value { return int64(d.DaysInYear()) }},
+			{"inLeapYear", func(d temporal.PlainDate) value.Value { return d.InLeapYear() }},
 		}
-		for _, name := range []string{"year", "month", "day", "dayOfWeek", "dayOfYear", "weekOfYear", "yearOfWeek", "daysInMonth", "daysInYear", "inLeapYear"} {
-			field := dated[name]
-			who := "Time." + name
+		for _, f := range dated {
+			field, who := f.field, "Time."+f.name
 			entries = append(entries, fn(who, "t", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 				return field(datedArg(g, who, a[0]).Date())
 			}))
 		}
-		timed := map[string]func(temporal.PlainTime) value.Value{
-			"hour":        func(t temporal.PlainTime) value.Value { return int64(t.Hour) },
-			"minute":      func(t temporal.PlainTime) value.Value { return int64(t.Minute) },
-			"second":      func(t temporal.PlainTime) value.Value { return int64(t.Second) },
-			"millisecond": func(t temporal.PlainTime) value.Value { return int64(t.Millisecond()) },
-			"microsecond": func(t temporal.PlainTime) value.Value { return int64(t.Microsecond()) },
-			"nanosecond":  func(t temporal.PlainTime) value.Value { return int64(t.Nanosecond()) },
+		timed := []struct {
+			name  string
+			field func(temporal.PlainTime) value.Value
+		}{
+			{"hour", func(t temporal.PlainTime) value.Value { return int64(t.Hour) }},
+			{"minute", func(t temporal.PlainTime) value.Value { return int64(t.Minute) }},
+			{"second", func(t temporal.PlainTime) value.Value { return int64(t.Second) }},
+			{"millisecond", func(t temporal.PlainTime) value.Value { return int64(t.Millisecond()) }},
+			{"microsecond", func(t temporal.PlainTime) value.Value { return int64(t.Microsecond()) }},
+			{"nanosecond", func(t temporal.PlainTime) value.Value { return int64(t.Nanosecond()) }},
 		}
-		for _, name := range []string{"hour", "minute", "second", "millisecond", "microsecond", "nanosecond"} {
-			field := timed[name]
-			who := "Time." + name
+		for _, f := range timed {
+			field, who := f.field, "Time."+f.name
 			entries = append(entries, fn(who, "t", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 				return field(timedArg(g, who, a[0]).Clock())
 			}))
