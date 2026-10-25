@@ -83,7 +83,8 @@ func (s *substituter) subst(t Type) (Type, error) {
 		}
 		if x.Decl.Kind == AliasDecl && x.Decl.Body != nil && !s.seen[x.Decl] {
 			// The arguments may form an invalid union inside the alias's body, as
-			// Either[Box[int], Box[string]] does; an alias that reaches itself is checked once.
+			// Either[Box[int], Box[string]] does. An alias that reaches itself is checked once,
+			// since it passes its own parameters (section 4, Type declarations).
 			if s.seen == nil {
 				s.seen = map[*Decl]bool{}
 			}
