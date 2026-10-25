@@ -280,7 +280,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 		if own == "" {
 			own = defaultOwner
 		}
-		decl := &types.Decl{Name: td.Name, Pos: td.Pos, Kind: declKind(td.Body)}
+		decl := &types.Decl{Name: td.Name, Pos: td.Pos, Path: c.mod.path, Kind: declKind(td.Body)}
 		if own != "" {
 			decl.Name = own + "." + td.Name
 		}
@@ -363,7 +363,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
-			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Kind: declKind(d.Body)}
+			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Path: mi.path, Kind: declKind(d.Body)}
 			for _, tp := range d.TypeParams {
 				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
 			}

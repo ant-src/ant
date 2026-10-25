@@ -85,7 +85,8 @@ type Decl struct {
 	Base   value.Kind // PrimitiveDecl: the base kind
 	Body   Type       // AliasDecl: the body, with Params inside
 	Funcs  map[string]*Func
-	Pos    any // the declaration's position, for messages
+	Pos    any    // the declaration's position, for messages
+	Path   string // the file the declaration is in, for messages
 }
 
 // Named is a reference to a declared type with type arguments.
@@ -392,12 +393,53 @@ func identicalAll(as, bs []Type) bool {
 
 // String renders a type as Ant writes it.
 func String(t Type) string {
-	var sb strings.Builder
-	write(&sb, t, 0)
-	return sb.String()
+	w := &writer{}
+	w.write(t, 0)
+	return w.sb.String()
 }
 
-func write(sb *strings.Builder, t Type, depth int) {
+// Strings renders several types for one message. When a name stands for two different
+// declarations among them, as two types of one name declared in different blocks or modules
+// do, each use of it is followed by where(decl).
+func Strings(where func(*Decl) string, ts ...Type) []string {
+	seen := map[string]*Decl{}
+	clash := map[string]bool{}
+	probe := &writer{named: func(d *Decl) {
+		if old, ok := seen[d.Name]; ok && old != d {
+			clash[d.Name] = true
+		}
+		seen[d.Name] = d
+	}}
+	for _, t := range ts {
+		probe.write(t, 0)
+	}
+	out := make([]string, len(ts))
+	for i, t := range ts {
+		w := &writer{}
+		if len(clash) > 0 {
+			w.suffix = func(d *Decl) string {
+				if clash[d.Name] {
+					return where(d)
+				}
+				return ""
+			}
+		}
+		w.write(t, 0)
+		out[i] = w.sb.String()
+	}
+	return out
+}
+
+// writer renders types. named, when set, sees every declared type rendered; suffix, when set,
+// gives the text that follows its name.
+type writer struct {
+	sb     strings.Builder
+	named  func(*Decl)
+	suffix func(*Decl) string
+}
+
+func (w *writer) write(t Type, depth int) {
+	sb := &w.sb
 	if depth > 8 {
 		sb.WriteString("...")
 		return
@@ -415,17 +457,17 @@ func write(sb *strings.Builder, t Type, depth int) {
 		sb.WriteString("?")
 	case Array:
 		sb.WriteString("Array[")
-		write(sb, x.Elem, depth+1)
+		w.write(x.Elem, depth+1)
 		sb.WriteString("]")
 	case Map:
 		sb.WriteString("Map[")
-		write(sb, x.Key, depth+1)
+		w.write(x.Key, depth+1)
 		sb.WriteString(", ")
-		write(sb, x.Val, depth+1)
+		w.write(x.Val, depth+1)
 		sb.WriteString("]")
 	case Set:
 		sb.WriteString("Set[")
-		write(sb, x.Elem, depth+1)
+		w.write(x.Elem, depth+1)
 		sb.WriteString("]")
 	case Func:
 		sb.WriteString("func(")
@@ -433,13 +475,13 @@ func write(sb *strings.Builder, t Type, depth int) {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			write(sb, p, depth+1)
+			w.write(p, depth+1)
 			if i >= x.Required {
 				sb.WriteString(" = ...")
 			}
 		}
 		sb.WriteString("): ")
-		write(sb, x.Return, depth+1)
+		w.write(x.Return, depth+1)
 	case Record:
 		if len(x.Fields) == 0 {
 			sb.WriteString("{}")
@@ -452,20 +494,26 @@ func write(sb *strings.Builder, t Type, depth int) {
 			}
 			sb.WriteString(f.Name)
 			sb.WriteString(": ")
-			write(sb, f.Type, depth+1)
+			w.write(f.Type, depth+1)
 		}
 		sb.WriteString(" }")
 	case Named:
 		sb.WriteString(x.Decl.Name)
+		if w.named != nil {
+			w.named(x.Decl)
+		}
 		if len(x.Args) > 0 {
 			sb.WriteString("[")
 			for i, a := range x.Args {
 				if i > 0 {
 					sb.WriteString(", ")
 				}
-				write(sb, a, depth+1)
+				w.write(a, depth+1)
 			}
 			sb.WriteString("]")
+		}
+		if w.suffix != nil {
+			sb.WriteString(w.suffix(x.Decl))
 		}
 	case Param:
 		sb.WriteString(x.Decl.Name)
@@ -480,11 +528,11 @@ func write(sb *strings.Builder, t Type, depth int) {
 			}
 			if f, ok := m.(Func); ok {
 				sb.WriteString("(")
-				write(sb, f, depth+1)
+				w.write(f, depth+1)
 				sb.WriteString(")")
 				continue
 			}
-			write(sb, m, depth+1)
+			w.write(m, depth+1)
 		}
 	default:
 		fmt.Fprintf(sb, "%T", t)

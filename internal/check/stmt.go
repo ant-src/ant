@@ -214,7 +214,7 @@ func (c *Checker) blockTypes(b *ast.Block, sc *scope) {
 	for _, d := range b.Types {
 		ti := c.localTypes[d]
 		if ti == nil {
-			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Kind: declKind(d.Body)}
+			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Path: c.mod.path, Kind: declKind(d.Body)}
 			for _, tp := range d.TypeParams {
 				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
 			}

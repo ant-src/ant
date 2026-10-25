@@ -78,6 +78,7 @@ type resolver struct {
 	uses      []use
 	targetsOf []targetBinding
 	typesOf   []typeBinding
+	tparams   []ast.TypeParam // the type parameters of the function being resolved
 	paramsOf  []paramBinding
 	scopes    []*scope
 	loops     []*loopFacts // the loops whose bodies are being resolved, innermost last
@@ -299,6 +300,8 @@ func (r *resolver) typeParams(tps []ast.TypeParam) {
 
 func (r *resolver) funcDecl(d *ast.FuncDecl) {
 	s := r.push(&scope{parent: r.module, boundary: true, fn: true})
+	r.tparams = d.TypeParams
+	defer func() { r.tparams = nil }()
 	d.Scope = &ast.FuncScope{}
 	s.fnScope = d.Scope
 	r.params(d.Params, s)
@@ -366,6 +369,11 @@ type paramBinding struct {
 // throughout the block (section 4, Type declarations).
 func (r *resolver) stmts(b *ast.Block, s *scope) {
 	for _, td := range b.Types {
+		for _, tp := range r.tparams {
+			if tp.Name == td.Name {
+				r.errorf(td.Pos, "%s is a type parameter of the enclosing function and cannot be redeclared", td.Name)
+			}
+		}
 		r.typesOf = append(r.typesOf, typeBinding{td, r.declare(s, td.Name, td.Pos)})
 		r.typeParams(td.TypeParams)
 	}

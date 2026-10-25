@@ -34,6 +34,11 @@ func TestScopeErrors(t *testing.T) {
 		{"func on unknown type", "func Point.norm(p: Point): float64 { 1.0 }", "Point is not a type declared at the top level of this module"},
 		{"func on type twice", "type P = {}\nfunc P.a() {}\nfunc P.a() {}", "P.a is already declared"},
 		{"func shares field name", "type P = { a: int }\nfunc P.a() {}", "shares its name with a field"},
+		{"block type twice", "func f() {\n  type T = int\n  var T = 1\n}", "T is already declared"},
+		{"block type prelude name", "func f() { type int = string }", "int is a prelude name"},
+		{"block type shadows type param", "func f[T](v: T): T {\n  if true { type T = int }\n  v\n}", "T is a type parameter of the enclosing function"},
+		{"block type in lambda shadows type param", "func f[T](v: T) { g({ type T = int }) }", "T is a type parameter of the enclosing function"},
+		{"func on block type", "func f() { type R = {} }\nfunc R.k() {}", "R is not a type declared at the top level of this module"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

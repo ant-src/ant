@@ -178,28 +178,27 @@ func convValue(ent *entity, f types.Func) types.Type {
 // expect reports a type that is not assignable to the expected one.
 func (c *Checker) expect(pos ast.Pos, t, expected types.Type) {
 	if !types.Assignable(t, expected) {
-		got, want := typeNames(t, expected)
-		c.errorf(pos, "cannot use %s where %s is expected", got, want)
+		n := c.typeNames(t, expected)
+		c.errorf(pos, "cannot use %s where %s is expected", n[0], n[1])
 	}
 }
 
-// typeNames renders two types for a message. When they read alike but differ, as two types of
-// one name declared in different blocks do, each declared type says where it is declared.
-func typeNames(a, b types.Type) (string, string) {
-	sa, sb := types.String(a), types.String(b)
-	if sa == sb {
-		sa, sb = sa+declaredAt(a), sb+declaredAt(b)
-	}
-	return sa, sb
+// typeNames renders types for one message. A name that stands for two different types among
+// them, as two types of one name declared in different blocks or modules do, says where each is
+// declared.
+func (c *Checker) typeNames(ts ...types.Type) []string {
+	return types.Strings(c.declaredAt, ts...)
 }
 
-func declaredAt(t types.Type) string {
-	if n, ok := t.(types.Named); ok {
-		if pos, ok := n.Decl.Pos.(ast.Pos); ok && pos.Line > 0 {
-			return fmt.Sprintf(" (declared at %d:%d)", pos.Line, pos.Col)
-		}
+func (c *Checker) declaredAt(d *types.Decl) string {
+	pos, ok := d.Pos.(ast.Pos)
+	switch {
+	case !ok || pos.Line == 0:
+		return ""
+	case c.mod != nil && d.Path != c.mod.path:
+		return fmt.Sprintf(" (declared at %s:%d:%d)", d.Path, pos.Line, pos.Col)
 	}
-	return ""
+	return fmt.Sprintf(" (declared at %d:%d)", pos.Line, pos.Col)
 }
 
 // synth determines the type of an expression without an expected type.
@@ -1051,8 +1050,8 @@ func (c *Checker) binary(x *ast.Binary, sc *scope) types.Type {
 		l := c.synth(x.X, sc)
 		r := c.synth(x.Y, sc)
 		if !types.Assignable(l, r) && !types.Assignable(r, l) {
-			ls, rs := typeNames(l, r)
-			c.errorf(x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", ls, rs, x.Op)
+			n := c.typeNames(l, r)
+			c.errorf(x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", n[0], n[1], x.Op)
 		}
 		return types.BoolType
 	case "<", "<=", ">", ">=":
@@ -1287,7 +1286,8 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 				}
 			}
 		}
-		c.errorf(pos, "%s is never a %s, so the test is always false", types.String(t), types.String(target))
+		n := c.typeNames(t, target)
+		c.errorf(pos, "%s is never a %s, so the test is always false", n[0], n[1])
 		return nil, nil, false
 	}
 	wt, _ := types.MakeUnion(yes)
