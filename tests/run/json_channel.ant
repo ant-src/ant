@@ -1,0 +1,16 @@
+// spec: stdlib Json; 12 Runtime panics
+// panics: Json.stringify; library-value
+// A channel has no JSON form, so Json.stringify panics on one rather than writing null
+// (stdlib.md, Json).
+type Job = { id: int, done: Channel[bool] }
+
+func main(): void {
+  var job = Job{ id: 1, done: Channel.new() }
+  println(Json.stringify(job.id))
+  println(Json.stringify(job))
+}
+
+// expect
+// out: 1
+// exit: 1
+// err: Json.stringify: Channel has no JSON form

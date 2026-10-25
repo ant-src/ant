@@ -354,8 +354,8 @@ func (p *jsonParser) hex4() (rune, error) {
 	return r, nil
 }
 
-// stringify writes v as JSON. It returns why v has no JSON form, a cycle or Bytes, or "" when it
-// has one.
+// stringify writes v as JSON. It returns why v has no JSON form, a cycle or a part with none, or
+// "" when it has one.
 func stringify(sb *strings.Builder, v value.Value, stack ancestors) string {
 	switch v.(type) {
 	case *value.Record, *value.Array, *value.Set, *value.Map:
@@ -439,8 +439,8 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 			if t, ok := key.(*value.Tagged); ok {
 				key = t.Payload // a named primitive key, without its tag as a value is written
 			}
-			if holdsBytes(key, ancestors{}) {
-				return bytesNoJSON
+			if msg := keyNoJSON(key, ancestors{}); msg != "" {
+				return msg
 			}
 			if s, ok := key.(string); ok {
 				writeJSONString(sb, s)
@@ -453,14 +453,16 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 			}
 		}
 		sb.WriteByte('}')
-	case value.Bytes:
-		return bytesNoJSON
 	case value.Time:
 		writeJSONString(sb, x.String())
 	case *value.Regex:
 		writeJSONString(sb, x.String())
 	default:
-		sb.WriteString("null")
+		if v == value.Null {
+			sb.WriteString("null")
+			break
+		}
+		return noJSON(v)
 	}
 	return ""
 }
@@ -468,16 +470,33 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack ancestors) string {
 // bytesNoJSON is why Json.stringify panics on Bytes: JSON has no form for them (stdlib.md, Json).
 const bytesNoJSON = "Bytes has no JSON form; write Encoding.toBase64 of it"
 
-// holdsBytes reports whether v is Bytes or contains them, for a map key, which stringify writes
-// through value.Render rather than taking apart. stack holds the containers being searched, so a
-// cyclic key terminates.
-func holdsBytes(v value.Value, stack ancestors) bool {
-	var parts []value.Value
+// noJSON is why Json.stringify panics on v, a value that is none of the ones JSON can carry: Bytes,
+// a function, void, a type, or a reference such as a channel, a Random or a File.Handle.
+func noJSON(v value.Value) string {
 	switch x := v.(type) {
 	case value.Bytes:
-		return true
+		return bytesNoJSON
+	case value.Callable, *value.Constructor:
+		return "a function has no JSON form"
+	case *value.Tag:
+		return "a type has no JSON form"
+	case value.Sync:
+		return x.SyncName() + " has no JSON form"
+	}
+	return value.Render(v) + " has no JSON form"
+}
+
+// keyNoJSON is why a map key has no JSON form, or "" when it has one. stringify writes a key
+// through value.Render rather than taking it apart, so this looks through it for a part that
+// has none. stack holds the containers being searched, so a cyclic key terminates.
+func keyNoJSON(v value.Value, stack ancestors) string {
+	var parts []value.Value
+	switch x := v.(type) {
+	case int64, int8, int16, int32, uint8, uint16, uint32, uint64, float64, float32, string, bool,
+		value.Time, *value.Regex:
+		return ""
 	case *value.Tagged:
-		return holdsBytes(x.Payload, stack)
+		return keyNoJSON(x.Payload, stack)
 	case *value.Array:
 		parts = x.Values()
 	case *value.Set:
@@ -491,28 +510,31 @@ func holdsBytes(v value.Value, stack ancestors) bool {
 			parts = append(parts, e.Key, e.Value)
 		}
 	default:
-		return false
+		if v == value.Null {
+			return ""
+		}
+		return noJSON(v)
 	}
 	if !stack.enter(v) {
-		return false
+		return ""
 	}
 	defer stack.leave(v)
 	if value.Deep(len(stack)) {
-		var held bool
-		value.OnFreshStack(func() { held = anyHoldsBytes(parts, stack) })
-		return held
+		var msg string
+		value.OnFreshStack(func() { msg = partsNoJSON(parts, stack) })
+		return msg
 	}
-	return anyHoldsBytes(parts, stack)
+	return partsNoJSON(parts, stack)
 }
 
-// anyHoldsBytes reports whether one of parts is Bytes or contains them.
-func anyHoldsBytes(parts []value.Value, stack ancestors) bool {
+// partsNoJSON is why one of parts has no JSON form, or "".
+func partsNoJSON(parts []value.Value, stack ancestors) string {
 	for _, p := range parts {
-		if holdsBytes(p, stack) {
-			return true
+		if msg := keyNoJSON(p, stack); msg != "" {
+			return msg
 		}
 	}
-	return false
+	return ""
 }
 
 // ancestors holds the containers being walked, the enclosing ones of the value at hand, as a
