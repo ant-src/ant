@@ -1,0 +1,20 @@
+// spec: 11 Synchronization; 8 Catching a panic
+// panics: panic
+// A panic in Once.value's function completes the once, and every later call panics with the same
+// panic, its trace included: the second caller sees the frames of the first run, down to the
+// first caller's line.
+var config = Once.value({
+  panic("no config")
+})
+
+func describe(r: Result[void, Panic]): string {
+  if r is Ok { return "ok" }
+  `${r.error.message} at ${r.error.trace[0].line}:${r.error.trace[0].column}, called on ${r.error.trace[2].line}`
+}
+
+println(describe(Panic.catch({ config() })))
+println(describe(Panic.catch({ config() })))
+
+// expect
+// out: no config at 7:8, called on 15
+// out: no config at 7:8, called on 15

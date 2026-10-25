@@ -472,7 +472,7 @@ func (g *Goroutine) Repanic(p *AntPanic) { panic(p) }
 // inside it have run (section 8, Catching a panic). Anything else that unwinds, Os.exit or the
 // run's end, goes on.
 func (g *Goroutine) Catch(fn value.Value) (v value.Value, p *AntPanic) {
-	depth, pos := len(g.stack), g.pos
+	// The frames and the call site unwind on their own, by the deferred pops and restores.
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -482,7 +482,7 @@ func (g *Goroutine) Catch(fn value.Value) (v value.Value, p *AntPanic) {
 		if !ok {
 			panic(r)
 		}
-		g.stack, g.pos, p = g.stack[:depth], pos, ap
+		p = ap
 	}()
 	return g.Call(fn), nil
 }

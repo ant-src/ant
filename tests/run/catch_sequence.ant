@@ -1,0 +1,39 @@
+// spec: 5 Loops; 12 Expressions; 8 Catching a panic
+// panics: for-yield; panic
+// A panic in the body ends the loop: a yield kept past it panics, a sequence that catches it may
+// not call yield again, and one that returns after catching it makes the loop panic with a message
+// naming the body's, through Iter.map as well. A sequence that raises it again passes it on as it
+// is.
+var saved: func(int): bool = { true }
+
+func keep(yield: func(int): bool) {
+  saved = yield
+  yield(1)
+}
+
+func swallow(yield: func(int): bool) {
+  Panic.catch({ yield(1) })
+  println(Result.mapErr(Panic.catch({ yield(2) }), { x.message }))
+}
+
+func rethrow(yield: func(int): bool) {
+  var caught = Panic.catch({ yield(1) })
+  if caught is Err { Panic.raise(caught.error) }
+}
+
+func message[T](r: Result[T, Panic]): Result[T, string] { Result.mapErr(r, { x.message }) }
+
+println(message(Panic.catch({ for x in keep { panic(`body ${x}`) } })))
+println(message(Panic.catch({ saved(2) })))
+println(message(Panic.catch({ for x in swallow { panic(`body ${x}`) } })))
+println(message(Panic.catch({ for x in Iter.map(swallow, { x * 10 }) { panic(`body ${x}`) } })))
+println(message(Panic.catch({ for x in rethrow { panic(`body ${x}`) } })))
+
+// expect
+// out: Err{ error: "body 1" }
+// out: Err{ error: "yield called after the sequence ended" }
+// out: Err{ error: "yield called after the sequence ended" }
+// out: Err{ error: "the sequence returned after a panic in the loop body: body 1" }
+// out: Err{ error: "yield called after the sequence ended" }
+// out: Err{ error: "the sequence returned after a panic in the loop body: body 10" }
+// out: Err{ error: "body 1" }

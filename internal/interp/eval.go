@@ -1153,12 +1153,25 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 	var active atomic.Bool
 	active.Store(true)
 	var body BodyLock
+	var bodyPanic atomic.Pointer[AntPanic] // a panic that ended a run of the body
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
 		leave := body.Enter(g2)
 		defer leave()
 		if !active.Load() {
 			g2.Panic(YieldAfterEnd)
 		}
+		defer func() {
+			// Whatever leaves the body ends the loop. A panic on the loop's goroutine is kept: it
+			// can reach the loop only through the sequence, so a sequence that returns after it
+			// caught it, and cannot hide it.
+			if r := recover(); r != nil {
+				active.Store(false)
+				if p, ok := r.(*AntPanic); ok && g2 == g {
+					bodyPanic.Store(p)
+				}
+				panic(r)
+			}
+		}()
 		v, c, stop := run(g2, args[0])
 		if !stop {
 			return true
@@ -1174,6 +1187,10 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		return false
 	}}
 	defer func() {
+		// The loop has ended however the sequence was left, so a yield kept past it panics.
+		leave := body.Enter(g)
+		active.Store(false)
+		leave()
 		if r := recover(); r != nil {
 			if u, ok := r.(*loopUnwind); ok && u.loop == &active {
 				rv, rc = u.v, ctlReturn
@@ -1183,15 +1200,19 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		}
 	}()
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
-	leave := body.Enter(g)
-	active.Store(false)
-	leave()
+	if p := bodyPanic.Load(); p != nil {
+		g.panicf(e.Pos, "%s: %s", SeqCaughtBody, p.Message)
+	}
 	return value.Void, ctlNone
 }
 
 // YieldAfterEnd is the panic of a yield called after it returned false or after its sequence
 // returned (section 12, for).
 const YieldAfterEnd = "yield called after the sequence ended"
+
+// SeqCaughtBody begins the panic of a sequence that returned after a panic left a run of the
+// loop body on the loop's goroutine, which it must have caught (section 12, for).
+const SeqCaughtBody = "the sequence returned after a panic in the loop body"
 
 // BodyLock serializes the runs of a loop body that a sequence's yield calls, which may come from
 // several goroutines. Enter on the goroutine that holds it, a yield inside the body, does not

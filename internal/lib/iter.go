@@ -24,10 +24,12 @@ func seq(name string, run func(g *interp.Goroutine, push func(g *interp.Goroutin
 
 // drive runs a sequence with a yield that calls push and stops the source once push says so.
 // As for's yield does, it runs push for one call at a time, and panics when called after it
-// returned false or after the source returned (section 12, for). push runs on the goroutine that
+// returned false, after a panic left push, or after the source returned, and when the source
+// returns after a panic left push on g, which it must have caught (section 12, for). push runs on the goroutine that
 // called yield, which it receives, since the source may call yield from a goroutine of its own.
 func drive(g *interp.Goroutine, who string, s value.Value, push func(g *interp.Goroutine, v value.Value) bool) {
 	more := true
+	var bodyPanic *interp.AntPanic // a panic that ended a run of push, under body
 	var body interp.BodyLock
 	y := fn("yield", "x", func(g2 *interp.Goroutine, who string, a []value.Value) value.Value {
 		leave := body.Enter(g2)
@@ -35,13 +37,30 @@ func drive(g *interp.Goroutine, who string, s value.Value, push func(g *interp.G
 		if !more {
 			g2.Panic(interp.YieldAfterEnd)
 		}
+		defer func() {
+			if r := recover(); r != nil {
+				more = false
+				if p, ok := r.(*interp.AntPanic); ok && g2 == g {
+					bodyPanic = p
+				}
+				panic(r)
+			}
+		}()
 		more = push(g2, a[0])
 		return more
 	})
+	defer func() {
+		leave := body.Enter(g)
+		more = false
+		leave()
+	}()
 	g.Call(funcArg(g, who, s), y)
 	leave := body.Enter(g)
-	more = false
+	p := bodyPanic
 	leave()
+	if p != nil {
+		g.Panic("%s: %s", interp.SeqCaughtBody, p.Message)
+	}
 }
 
 func init() {

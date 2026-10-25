@@ -1,0 +1,19 @@
+// spec: 8 Catching a panic
+// panics: panic
+// Mutex.withLock releases its lock as a panic leaves the block, so the lock can be taken again
+// after the panic is caught, while what the block wrote before the panic stays written.
+var lock = Mutex.new()
+var counts = [0]
+var r = Panic.catch({
+  Mutex.withLock(lock, {
+    counts[0] += 1
+    panic("half done")
+  })
+})
+println(Result.mapErr(r, { x.message }))
+Mutex.withLock(lock, { counts[0] += 1 })
+println(counts)
+
+// expect
+// out: Err{ error: "half done" }
+// out: [2]
