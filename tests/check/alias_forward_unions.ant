@@ -1,0 +1,18 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: a union that names an alias declared later is checked against the alias's body, as
+// it is when the alias comes first, in an alias and in a record field alike. A cycle of aliases
+// is reported at the member declared last, also when an earlier declaration names the cycle.
+type U = Later | Box[int]             // ERR: a union may contain each discriminator at most once: Box[string] and Box[int] are both tag Box
+type Holder = { v: Later | Box[int] } // ERR: a union may contain each discriminator at most once: Box[string] and Box[int] are both tag Box
+type Fine = Later | int
+type Box[T] = { value: T }
+type Later = Box[string] | null
+type Before = Third | bool
+type First = Second | int
+type Second = Third | string
+type Third = First | float64 // ERR: type Third refers to itself without passing through a record, array, map, set, or function
+
+func main(): void {
+  var f: Fine = 1
+  println(f)
+}

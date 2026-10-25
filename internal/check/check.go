@@ -542,12 +542,15 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 }
 
 // checkAliasCycle reports an alias that reaches itself without passing through a record,
-// array, map, set, or function.
+// array, map, set, or function. The error goes to the member of the cycle declared last, which
+// is the one whose body closes the cycle when the declarations are read in order, whichever
+// member a later declaration's use resolved first.
 func (c *Checker) checkAliasCycle(ti *typeInfo) {
 	if ti.t.Kind != types.AliasDecl {
 		return
 	}
 	visited := map[*types.Decl]bool{}
+	var path []*types.Decl
 	var walk func(t types.Type) bool
 	walk = func(t types.Type) bool {
 		switch x := t.(type) {
@@ -562,9 +565,15 @@ func (c *Checker) checkAliasCycle(ti *typeInfo) {
 				return false
 			}
 			visited[x.Decl] = true
-			return walk(x.Decl.Body)
+			path = append(path, x.Decl)
+			if walk(x.Decl.Body) {
+				return true
+			}
+			path = path[:len(path)-1]
 		case types.Union:
-			for _, m := range x.Members {
+			// The members as written first: a union flattens the aliases it names, and the
+			// path through them says which declarations are in the cycle.
+			for _, m := range append(x.Written, x.Members...) {
 				if walk(m) {
 					return true
 				}
@@ -572,10 +581,21 @@ func (c *Checker) checkAliasCycle(ti *typeInfo) {
 		}
 		return false
 	}
-	if walk(ti.t.Body) {
-		c.errorf(ti.decl.Pos, "type %s refers to itself without passing through a record, array, map, set, or function", ti.decl.Name)
-		ti.t.Body = types.Invalid{}
+	if !walk(ti.t.Body) {
+		return
 	}
+	last, lastPos := ti.t, ti.decl.Pos
+	for _, d := range path {
+		if pos, ok := d.Pos.(ast.Pos); ok && (pos.Line > lastPos.Line || pos.Line == lastPos.Line && pos.Col > lastPos.Col) {
+			last, lastPos = d, pos
+		}
+	}
+	name := last.Name
+	if last == ti.t {
+		name = ti.decl.Name
+	}
+	c.errorf(lastPos, "type %s refers to itself without passing through a record, array, map, set, or function", name)
+	last.Body = types.Invalid{}
 }
 
 // checkAliasArgs reports a generic alias that refers to itself, directly or through other
@@ -889,9 +909,10 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	for _, a := range x.Args {
 		args = append(args, c.resolveType(a, sc))
 	}
-	if ti := c.unresolved[decl]; ti != nil && len(args) > 0 {
-		// A later declaration: its body is needed to check the arguments here. One whose body
-		// is being resolved is in a cycle with this use, and checkAliasArgs covers it.
+	if ti := c.unresolved[decl]; ti != nil && (len(args) > 0 || decl.Kind == types.AliasDecl) {
+		// A later declaration: its body is needed to check the arguments here, or to form a
+		// union that names the alias. One whose body is being resolved is in a cycle with this
+		// use, which checkAliasCycle and checkAliasArgs cover.
 		c.resolveTypeOnce(ti)
 	}
 	n := types.Named{Decl: decl, Args: args}
