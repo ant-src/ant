@@ -90,6 +90,16 @@ Time.parseInstant("2024-11-03T01:00:00+05") is Err // => true
 Time.parseInstant("2024-11-03T01:00:00+0530") is Err // => true
 Time.parseZoned("2024-11-03T01:00:00-04:00[!America/New_York]") is Err // => true
 Time.parsePlainTime("23:59:60") is Err        // => true
+// Nor an offset with seconds, which a zoned value renders rounded to the minute, a T before a
+// bare time, an annotation other than the zone and [u-ca=iso8601], or the calendar in capitals.
+Time.parseInstant("2024-11-03T01:00:00+05:30:00") is Err // => true
+Time.parseZoned("1883-11-18T12:00:00-04:56:02[America/New_York]") is Err // => true
+Time.parseZoned("1883-11-18T12:00:00-04:56[America/New_York]") // => Ok{ value: 1883-11-18T12:00:00-04:56[America/New_York] }
+Time.parsePlainTime("T14:03") is Err          // => true
+Time.parsePlainDateTime("2024-11-03T01:00:00[foo=bar]") is Err // => true
+Time.parsePlainDateTime("2024-11-03T01:00:00[u-ca=ISO8601]") is Err // => true
+Time.parsePlainDateTime("2024-11-03T01:00:00[u-ca=iso8601]") // => Ok{ value: 2024-11-03T01:00:00 }
+Time.parseZoned("2024-11-03T01:00:00-04:00[America/New_York][u-ca=iso8601]") // => Ok{ value: 2024-11-03T01:00:00-04:00[America/New_York] }
 Time.parsePlainDate("+010000-01-01")          // => Ok{ value: +010000-01-01 }
 Time.plainDate(-100000, 1, 1)                 // => -100000-01-01
 var a = Result.unwrap(Time.parseZoned("2021-07-01T12:34:56+05:30[Asia/Kolkata]"))
