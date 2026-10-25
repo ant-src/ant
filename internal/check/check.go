@@ -74,6 +74,9 @@ type Checker struct {
 	// bytes is the declaration of Bytes, built in like string: len, for, indexing and is take
 	// it whether or not the host removed the namespace of its functions.
 	bytes *types.Decl
+	// unresolved holds the type declarations whose bodies are not resolved yet, so that a type
+	// argument list naming a later declaration resolves it first and can be checked at the use.
+	unresolved map[*types.Decl]*typeInfo
 
 	// the context of the function or initializer being checked
 	mod  *moduleInfo
@@ -291,9 +294,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 		}
 		pending = append(pending, &typeInfo{decl: td, t: decl, ent: ent})
 	}
-	for _, ti := range pending {
-		c.resolveTypeDecl(ti)
-	}
+	c.resolveTypeDecls(pending)
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.FuncDecl:
@@ -424,12 +425,7 @@ func targetNames(t ast.Target) []*ast.NameTarget {
 // declared on its types.
 func (c *Checker) resolveTypes(mi *moduleInfo) {
 	c.mod = mi
-	// A cyclic alias is marked invalid as soon as its body is resolved, before a later
-	// declaration can expand it.
-	for _, ti := range mi.types {
-		c.resolveTypeDecl(ti)
-		c.checkAliasCycle(ti)
-	}
+	c.resolveTypeDecls(mi.types)
 	for _, fi := range mi.funcs {
 		d := fi.decl
 		if d.Owner == "" {
@@ -463,6 +459,32 @@ func declKind(body ast.Type) types.DeclKind {
 		}
 	}
 	return types.AliasDecl
+}
+
+// resolveTypeDecls resolves the bodies of type declarations in order, except those a type
+// argument list already resolved. A cyclic alias, or a generic one that refers to itself with
+// other type arguments, is marked invalid as soon as its cycle is resolved, before a later
+// declaration can expand it.
+func (c *Checker) resolveTypeDecls(tis []*typeInfo) {
+	if c.unresolved == nil {
+		c.unresolved = map[*types.Decl]*typeInfo{}
+	}
+	for _, ti := range tis {
+		c.unresolved[ti.t] = ti
+	}
+	for _, ti := range tis {
+		c.resolveTypeOnce(ti)
+	}
+}
+
+func (c *Checker) resolveTypeOnce(ti *typeInfo) {
+	if c.unresolved[ti.t] != ti {
+		return
+	}
+	delete(c.unresolved, ti.t)
+	c.resolveTypeDecl(ti)
+	c.checkAliasCycle(ti)
+	c.checkAliasArgs(ti)
 }
 
 func (c *Checker) resolveTypeDecl(ti *typeInfo) {
@@ -554,6 +576,114 @@ func (c *Checker) checkAliasCycle(ti *typeInfo) {
 		c.errorf(ti.decl.Pos, "type %s refers to itself without passing through a record, array, map, set, or function", ti.decl.Name)
 		ti.t.Body = types.Invalid{}
 	}
+}
+
+// checkAliasArgs reports a generic alias that refers to itself, directly or through other
+// aliases, with anything but its own type parameters in order (section 4, Type declarations):
+// each level of N[A, B] = Array[N[B, Box[A]]] | ... would be a new instantiation whose unions
+// are never checked. A cycle is complete once its last declaration is resolved, which is ti, so
+// every alias ti reaches is checked again.
+func (c *Checker) checkAliasArgs(ti *typeInfo) {
+	if ti.t.Kind != types.AliasDecl {
+		return
+	}
+	reached := map[*types.Decl]bool{}
+	var reach func(t types.Type)
+	reach = func(t types.Type) {
+		types.Walk(t, func(t types.Type) {
+			if n, ok := t.(types.Named); ok && n.Decl.Kind == types.AliasDecl && n.Decl.Body != nil && !reached[n.Decl] {
+				reached[n.Decl] = true
+				reach(n.Decl.Body)
+			}
+		})
+	}
+	reached[ti.t] = true
+	reach(ti.t.Body)
+	type violation struct {
+		decl *types.Decl
+		msg  string
+	}
+	var bad []violation
+	for d := range reached {
+		if msg := selfArgs(d); msg != "" {
+			bad = append(bad, violation{d, msg})
+		}
+	}
+	for _, v := range bad {
+		pos, _ := v.decl.Pos.(ast.Pos) // only this module's aliases can still be in a cycle
+		c.errorf(pos, "%s", v.msg)
+		v.decl.Body = types.Invalid{}
+	}
+}
+
+// selfArgs describes how the generic alias d refers to itself with other type arguments than
+// its own parameters in order, or returns "" when it does not. It follows d's body through the
+// aliases it names, tracking which of their parameters stand for which of d's.
+func selfArgs(d *types.Decl) string {
+	if len(d.Params) == 0 || d.Body == nil {
+		return ""
+	}
+	own := make([]types.Type, len(d.Params))
+	for i, p := range d.Params {
+		own[i] = types.Param{Decl: p}
+	}
+	want := types.String(types.Named{Decl: d, Args: own})
+	// env maps a parameter of the alias being followed to the parameter of d it stands for.
+	type visit struct {
+		decl *types.Decl
+		env  string
+	}
+	visited := map[visit]bool{}
+	var msg string
+	var follow func(t types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl)
+	follow = func(t types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl) {
+		types.Walk(t, func(t types.Type) {
+			n, ok := t.(types.Named)
+			if msg != "" || !ok || n.Decl.Kind != types.AliasDecl || n.Decl.Body == nil {
+				return
+			}
+			next := map[*types.ParamDecl]*types.ParamDecl{}
+			key := ""
+			for i, p := range n.Decl.Params {
+				var stands *types.ParamDecl
+				if i < len(n.Args) {
+					if a, ok := n.Args[i].(types.Param); ok {
+						stands = env[a.Decl]
+					}
+				}
+				next[p] = stands
+				key += fmt.Sprintf("%p,", stands)
+			}
+			if n.Decl == d {
+				for i, p := range d.Params {
+					if next[n.Decl.Params[i]] != p {
+						if via == nil {
+							msg = fmt.Sprintf("type %s refers to itself as %s; a generic alias must refer to itself as %s, with its own type parameters in order", d.Name, types.String(n), want)
+						} else {
+							msg = fmt.Sprintf("type %s refers to itself through %s with other type arguments; a generic alias must refer to itself as %s, with its own type parameters in order", d.Name, via.Name, want)
+						}
+						return
+					}
+				}
+				return
+			}
+			if visited[visit{n.Decl, key}] {
+				return
+			}
+			visited[visit{n.Decl, key}] = true
+			if via == nil {
+				follow(n.Decl.Body, next, n.Decl)
+			} else {
+				follow(n.Decl.Body, next, via)
+			}
+		})
+	}
+	env := map[*types.ParamDecl]*types.ParamDecl{}
+	for _, p := range d.Params {
+		env[p] = p
+	}
+	follow(d.Body, env, nil)
+	return msg
 }
 
 // resolveSignatures resolves every function's parameter and declared return types.
@@ -758,6 +888,11 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	var args []types.Type
 	for _, a := range x.Args {
 		args = append(args, c.resolveType(a, sc))
+	}
+	if ti := c.unresolved[decl]; ti != nil && len(args) > 0 {
+		// A later declaration: its body is needed to check the arguments here. One whose body
+		// is being resolved is in a cycle with this use, and checkAliasArgs covers it.
+		c.resolveTypeOnce(ti)
 	}
 	n := types.Named{Decl: decl, Args: args}
 	if decl.Kind == types.AliasDecl && len(args) > 0 {

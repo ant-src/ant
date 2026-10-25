@@ -162,3 +162,35 @@ func mentions(t Type, pred func(Param) bool) bool {
 	}
 	return false
 }
+
+// Walk calls f on t and on every type written inside it, the type arguments of a named type
+// included, but not on the bodies or fields of the declarations it names.
+func Walk(t Type, f func(Type)) {
+	f(t)
+	switch x := t.(type) {
+	case Array:
+		Walk(x.Elem, f)
+	case Map:
+		Walk(x.Key, f)
+		Walk(x.Val, f)
+	case Set:
+		Walk(x.Elem, f)
+	case Func:
+		for _, p := range x.Params {
+			Walk(p, f)
+		}
+		Walk(x.Return, f)
+	case Record:
+		for _, fl := range x.Fields {
+			Walk(fl.Type, f)
+		}
+	case Named:
+		for _, a := range x.Args {
+			Walk(a, f)
+		}
+	case Union:
+		for _, m := range x.Members {
+			Walk(m, f)
+		}
+	}
+}

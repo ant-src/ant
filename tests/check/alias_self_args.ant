@@ -1,0 +1,31 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: a generic alias that refers to itself, directly or through other aliases, passes its
+// own type parameters unchanged and in order; other type arguments are a compile error at the
+// declaration, whichever declaration order a mutual cycle is written in, while an alias in the
+// cycle that does get its own parameters back is fine. Recursion through a record is not an
+// alias cycle. A use that names a later generic alias is checked against its body all the same.
+type Box[T] = { value: T }
+type N[A, B] = Array[N[B, Box[A]]] | Map[string, A | B] // ERR: type N refers to itself as N[B, Box[A]]; a generic alias must refer to itself as N[A, B], with its own type parameters in order
+type Swap[A, B] = Array[Swap[B, A]] | Map[A, B]         // ERR: type Swap refers to itself as Swap[B, A]
+type Deep[T] = Array[Box[Deep[Box[T]]]] | Box[T]        // ERR: type Deep refers to itself as Deep[Box[T]]
+type Calls[T] = func(Calls[Array[T]]): T                // ERR: type Calls refers to itself as Calls[Array[T]]
+type Outer[X, Y] = Array[Inner[X]] | Map[X, Y]          // ERR: type Outer refers to itself through Inner with other type arguments; a generic alias must refer to itself as Outer[X, Y]
+type Inner[T] = Map[string, Outer[T, int]] | Box[T]
+type Early[T] = Array[Late[T]] | null     // ERR: type Early refers to itself through Late with other type arguments
+type Late[U] = Map[string, Early[Box[U]]] // ERR: type Late refers to itself through Early with other type arguments
+type Nest[T] = Array[Nest[T]] | Box[T]
+type Even[T] = Array[Odd[T]] | Box[T]
+type Odd[U] = Map[string, Even[U]] | Set[U]
+type Chain[T] = { next: Chain[Box[T]] | null }
+type Pairs = Wrap[Box[int], Box[string]] // ERR: Wrap[Box[int], Box[string]]: a union may contain each discriminator at most once
+type Wrap[A, B] = Array[Either[A, B]]
+type Either[A, B] = A | B
+
+func main(): void {
+  var n: Nest[int] = [[Box{ value: 1 }]]
+  var e: Even[int] = [Map{ "a": Box{ value: 2 } }]
+  var c: Chain[int] = Chain{ next: null }
+  println(n)
+  println(e)
+  println(c)
+}
