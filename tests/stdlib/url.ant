@@ -34,3 +34,18 @@ var none: Map[string, Array[string]] = Map{}
 Url.stringifyQuery(none)                      // => ""
 Url.parse("http://a%FFb/x")                   // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
 Url.parse("http://a%C3%A9b/x") is Ok          // => true
+
+// A path keeps %2F, a slash that is not a separator, and %25, a percent sign, escaped, so they
+// survive a round trip and stay apart from what they decode to; every other % is escaped.
+Url.parse("http://h/a%2Fb/c%20d%25e")         // => Ok{ value: Url.Parts{ scheme: "http", opaque: "", user: "", host: "h", port: "", path: "/a%2Fb/c d%25e", query: "", fragment: "" } }
+Url.stringify(Result.unwrap(Url.parse("http://h/a%2Fb/c%20d%25e"))) // => "http://h/a%2Fb/c%20d%25e"
+Url.stringify(Result.unwrap(Url.parse("http://h/a%252Fb"))) // => "http://h/a%252Fb"
+Url.stringify(Url.Parts{ ...p, path: "/100% sure" }) // => "http://example.com/100%25%20sure"
+
+// After the scheme, a single / starts the opaque part: no authority, which an empty one, //, is
+// not.
+Url.parse("x:/a")                             // => Ok{ value: Url.Parts{ scheme: "x", opaque: "/a", user: "", host: "", port: "", path: "", query: "", fragment: "" } }
+Url.stringify(Result.unwrap(Url.parse("x:/a"))) // => "x:/a"
+Url.parse("x:///a")                           // => Ok{ value: Url.Parts{ scheme: "x", opaque: "", user: "", host: "", port: "", path: "/a", query: "", fragment: "" } }
+Url.stringify(Result.unwrap(Url.parse("x:///a"))) // => "x:///a"
+Url.stringify(Result.unwrap(Url.parse("file:/etc/hosts?x#y"))) // => "file:/etc/hosts?x#y"
