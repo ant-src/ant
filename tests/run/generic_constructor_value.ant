@@ -1,0 +1,18 @@
+// spec: 4 Named primitive types
+// Section 4: an expected function type fixes the type parameter of a generic named primitive's
+// constructor used as a value, and the values it builds carry the tag.
+type Id[T] = string
+type User = {}
+func main(): void {
+  var ids: Array[Id[User]] = Array.map(["a"], Id)
+  var g: func(string): Id[User] = Id
+  var one: Id[User] = g("a")
+  println(ids)
+  println(one == ids[0])
+  println(string(one))
+}
+
+// expect
+// out: [Id("a")]
+// out: true
+// out: a

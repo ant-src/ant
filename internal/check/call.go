@@ -825,19 +825,25 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 		return nil
 	}
 	ent := c.entityPath(e, sc)
-	if ent == nil || ent.kind != entFunc {
+	if ent == nil {
 		return nil
 	}
-	if t := convValue(ent, pf); t != nil {
-		return t
-	}
-	if ent.isLen {
+	var s *sig
+	switch {
+	case ent.kind == entType:
+		s = ctorSig(ent.decl)
+	case ent.kind != entFunc:
+		return nil
+	case convValue(ent, pf) != nil:
+		return convValue(ent, pf)
+	case ent.isLen:
 		if len(pf.Params) == 1 && types.Mentions(pf.Params[0], unsolved) {
 			return nil
 		}
 		return c.lenValue(ent, pf, e.Position())
+	default:
+		s = c.sigOf(ent, e.Position())
 	}
-	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil
 	}

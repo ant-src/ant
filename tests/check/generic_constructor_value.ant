@@ -1,0 +1,18 @@
+// spec: 4 Named primitive types; 4 Inference
+// Section 4: the constructor of a generic named primitive type is generic in the parameters its
+// body does not mention, so as a value it needs an expected function type that fixes them, as a
+// call needs an expected result; a type parameter that nothing fixes is a compile error.
+type Id[T] = string
+type User = {}
+
+func main(): void {
+  var loose = Array.map(["a"], Id) // ERR: cannot infer the type parameter T of Id
+  var ids: Array[Id[User]] = Array.map(["a"], Id)
+  var f = Id // ERR: cannot infer the type parameter T of Id
+  var g: func(string): Id[User] = Id
+  var one: Id[User] = g("b")
+  println(loose)
+  println(ids)
+  println(f)
+  println(one == ids[0])
+}

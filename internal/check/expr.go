@@ -86,16 +86,24 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 		return nil
 	}
 	ent := c.entityPath(e, sc)
-	if ent == nil || ent.kind != entFunc {
+	if ent == nil {
 		return nil
 	}
-	if t := convValue(ent, f); t != nil {
-		return t
+	var s *sig
+	switch {
+	case ent.kind == entType:
+		s = ctorSig(ent.decl)
+	case ent.kind != entFunc:
+		return nil
+	default:
+		if t := convValue(ent, f); t != nil {
+			return t
+		}
+		if t := c.lenValue(ent, f, e.Position()); t != nil {
+			return t
+		}
+		s = c.sigOf(ent, e.Position())
 	}
-	if t := c.lenValue(ent, f, e.Position()); t != nil {
-		return t
-	}
-	s := c.sigOf(ent, e.Position())
 	if s == nil || len(s.tparams) == 0 {
 		return nil
 	}
@@ -305,7 +313,18 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 		return s.fn
 	case entType:
 		if ent.decl.Kind == types.PrimitiveDecl {
-			return c.constructorType(ent.decl)
+			// type Id[T] = string: only an expected function type fixes T (genericValue).
+			fn := constructorType(ent.decl)
+			if len(ent.decl.Params) == 0 {
+				return fn
+			}
+			args := make([]types.Type, len(ent.decl.Params))
+			for i, p := range ent.decl.Params {
+				c.errorf(pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, ent.decl.Name)
+				args[i] = types.Invalid{}
+			}
+			fn.Return = types.Named{Decl: ent.decl, Args: args}
+			return fn
 		}
 		c.errorf(pos, "%s is a type, not a value; a type appears only as a literal head, after is, or before a dot", ent.decl.Name)
 		return types.Invalid{}
@@ -316,13 +335,23 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 	return types.Invalid{}
 }
 
-// constructorType is the function type of a named primitive type's constructor.
-func (c *Checker) constructorType(decl *types.Decl) types.Type {
+// constructorType is the function type of a named primitive type's constructor, with the type's
+// own parameters free.
+func constructorType(decl *types.Decl) types.Func {
 	var args []types.Type
 	for _, p := range decl.Params {
 		args = append(args, types.Param{Decl: p})
 	}
 	return types.Func{Params: []types.Type{types.Prim{Kind: decl.Base}}, Return: types.Named{Decl: decl, Args: args}, Required: 1}
+}
+
+// ctorSig is the signature of a generic named primitive type's constructor, which is generic in
+// the type's parameters, or nil for any other type.
+func ctorSig(decl *types.Decl) *sig {
+	if decl.Kind != types.PrimitiveDecl || len(decl.Params) == 0 {
+		return nil
+	}
+	return &sig{tparams: decl.Params, fn: constructorType(decl), name: decl.Name}
 }
 
 // sigOf returns a function entity's signature with its return type known.
