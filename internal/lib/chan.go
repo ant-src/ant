@@ -63,12 +63,12 @@ func init() {
 			fn("Channel.values", "c, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := chanArg(g, who, a[0])
 				ctx := waitContext(g, who, a[1])
-				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
+				return seq(who, func(g *interp.Goroutine, push func(*interp.Goroutine, value.Value) bool) {
 					for {
 						g.Instance().Flush()
 						v, ok, _ := c.Receive(ctx)
 						g.AfterWait()
-						if !ok || !push(v) {
+						if !ok || !push(g, v) {
 							return
 						}
 					}
