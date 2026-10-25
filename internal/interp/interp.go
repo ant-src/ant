@@ -449,22 +449,6 @@ func (g *Goroutine) AfterWait() {
 	}
 }
 
-// Catch runs f and returns the Ant panic that ended it, if one did. Other panics, such as
-// Os.exit and cancellation, propagate.
-func (g *Goroutine) Catch(f func()) (p *AntPanic) {
-	defer func() {
-		if r := recover(); r != nil {
-			if ap, ok := r.(*AntPanic); ok {
-				p = ap
-				return
-			}
-			panic(r)
-		}
-	}()
-	f()
-	return nil
-}
-
 // Repanic raises a caught Ant panic again.
 func (g *Goroutine) Repanic(p *AntPanic) { panic(p) }
 
