@@ -36,6 +36,7 @@ func selectHeadName(head *ast.Call) string {
 type selectOwner struct {
 	clause int // -1 for the run's context
 	closed bool
+	ch     *value.Chan // a receive clause's channel
 }
 
 // selectExpr evaluates a select (section 12): the heads' operands in order, then one
@@ -65,9 +66,14 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 		pos := c.Head.Position()
 		switch name {
 		case "Channel.receive":
+			// A channel closed already has only its signal, which takes what is buffered
+			// first: with the operation too, the clause would be two ready cases of the
+			// select's uniform choice and so chosen twice as often as another.
 			ch := g.selectChan(pos, args[0])
-			recv(ch.Raw(), selectOwner{clause: i})
-			recv(ch.Closed(), selectOwner{clause: i, closed: true})
+			if !ch.IsClosed() {
+				recv(ch.Raw(), selectOwner{clause: i})
+			}
+			recv(ch.Closed(), selectOwner{clause: i, closed: true, ch: ch})
 		case "Channel.send":
 			// A channel closed already has only its signal, so the send is never buffered
 			// after the close; one closed during the wait ends the blocked send the same way.
@@ -121,9 +127,10 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 			switch {
 			case owner.closed:
 				// The closed signal: what is buffered comes first, then null, as Channel.receive.
-				if v, got := cases[chosen-1].Chan.TryRecv(); got {
-					result = v.Interface().(value.Value)
-				} else {
+				select {
+				case v := <-owner.ch.Raw():
+					result = v
+				default:
 					result = value.Null
 				}
 			case ok:

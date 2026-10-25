@@ -18,8 +18,8 @@ String.fromInt(int8(-128), 2)                 // => "-10000000"
 String.fromInt(byte(7), 2)                    // => "111"
 String.fromInt(11, 1)                         // => panic: String.fromInt needs a base from 2 to 36, got 1
 
-// fromFloat is fixed point, half to even on a tie, and renders NaN and the infinities as
-// String.from does.
+// fromFloat is fixed point, half to even on a tie of the binary value, unsigned when zero, and
+// renders NaN and the infinities as String.from does.
 String.fromFloat(3.14159, 2)                  // => "3.14"
 String.fromFloat(2.0, 0)                      // => "2"
 String.fromFloat(2.5, 0)                      // => "2"
@@ -27,6 +27,13 @@ String.fromFloat(3.5, 0)                      // => "4"
 String.fromFloat(-1.5, 0)                     // => "-2"
 String.fromFloat(1.0, 3)                      // => "1.000"
 String.fromFloat(1e21, 0)                     // => "1000000000000000000000"
+String.fromFloat(1.005, 2)                    // => "1.00"
+String.fromFloat(0.125, 2)                    // => "0.12"
+String.fromFloat(-0.001, 2)                   // => "0.00"
+String.fromFloat(-0.4, 0)                     // => "0"
+String.fromFloat(-0.0, 1)                     // => "0.0"
+String.fromFloat(-0.005, 2)                   // => "-0.01"
+String.from(-0.0)                             // => "-0.0"
 String.fromFloat(0.0 / 0.0, 2)                // => "NaN"
 String.fromFloat(1.0, 2147483648)             // => panic: String.fromFloat needs a count of digits of at most 2147483647, got 2147483648
 String.fromFloat(1.0 / 0.0, 2)                // => "Infinity"
@@ -84,6 +91,8 @@ String.padStart("7", 4, "ab")                 // => "aba7"
 String.padStart("abc", 2)                     // => "abc"
 String.padStart("ab", 2, "x")                 // => "ab"
 String.padStart("ñ", 3)                       // => "  ñ"
+String.padEnd("x", 4, "éb")                   // => "xébé"
+String.padStart("x", 6, "éb")                 // => "ébébéx"
 String.padStart("7", 3, "")                   // => panic: String.padStart needs a pad that is not empty
 String.padEnd("7", 3, "0")                    // => "700"
 String.padEnd("7", 4, "ab")                   // => "7aba"

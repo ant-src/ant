@@ -1,0 +1,24 @@
+// spec: 12 Runtime panics; 11 Iter
+// panics: for-yield
+// The yield an Iter function passes to its source panics when called after the source returned,
+// as for's does (section 12).
+type Yield = func(int): bool
+
+var kept: Yield | null = null
+
+func leak(yield: func(int): bool): void {
+  kept = yield
+  _ = yield(1)
+}
+
+func main(): void {
+  println(Iter.toArray(Iter.map(leak, { x * 10 })))
+  var y = kept ?? return
+  _ = y(2)
+  println("not reached")
+}
+
+// expect
+// out: [10]
+// exit: 1
+// err: yield called after the sequence ended

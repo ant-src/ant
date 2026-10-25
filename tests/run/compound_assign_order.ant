@@ -1,0 +1,23 @@
+// spec: 12 Expressions
+// A compound assignment reads its target before the right side evaluates, so a write to the
+// target from the right side is lost.
+func main(): void {
+  var x = 1
+  var set = func(): int {
+    x = 10
+    return 5
+  }
+  x += set()
+  println(x)
+  var xs = [1]
+  var setAt = func(): int {
+    xs[0] = 100
+    return 3
+  }
+  xs[0] *= setAt()
+  println(xs)
+}
+
+// expect
+// out: 6
+// out: [3]

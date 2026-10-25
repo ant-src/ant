@@ -32,73 +32,41 @@ func Binary(op string, a, b Value) (Value, error) {
 	}
 	switch x := a.(type) {
 	case string:
-		y, ok := b.(string)
-		if !ok || op != "+" {
+		if op != "+" {
 			return nil, operandError(op, a, b)
 		}
-		return x + y, nil
+		return binary(op, x, a, b, func(_ string, x, y string) (Value, error) { return x + y, nil })
 	case int64:
-		y, ok := b.(int64)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return int64Op(op, x, y)
+		return binary(op, x, a, b, int64Op)
 	case float64:
-		y, ok := b.(float64)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return floatOp(op, x, y), nil
+		return binary(op, x, a, b, floatOp[float64])
 	case float32:
-		y, ok := b.(float32)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return float32(floatOp(op, float64(x), float64(y))), nil
+		return binary(op, x, a, b, floatOp[float32])
 	case int8:
-		y, ok := b.(int8)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return signedOp(op, int64(x), int64(y), math.MinInt8, math.MaxInt8, func(v int64) Value { return int8(v) })
+		return binary(op, x, a, b, signedOp[int8])
 	case int16:
-		y, ok := b.(int16)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return signedOp(op, int64(x), int64(y), math.MinInt16, math.MaxInt16, func(v int64) Value { return int16(v) })
+		return binary(op, x, a, b, signedOp[int16])
 	case int32:
-		y, ok := b.(int32)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return signedOp(op, int64(x), int64(y), math.MinInt32, math.MaxInt32, func(v int64) Value { return int32(v) })
+		return binary(op, x, a, b, signedOp[int32])
 	case uint8:
-		y, ok := b.(uint8)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return unsignedOp(op, uint64(x), uint64(y), math.MaxUint8, func(v uint64) Value { return uint8(v) })
+		return binary(op, x, a, b, unsignedOp[uint8])
 	case uint16:
-		y, ok := b.(uint16)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return unsignedOp(op, uint64(x), uint64(y), math.MaxUint16, func(v uint64) Value { return uint16(v) })
+		return binary(op, x, a, b, unsignedOp[uint16])
 	case uint32:
-		y, ok := b.(uint32)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return unsignedOp(op, uint64(x), uint64(y), math.MaxUint32, func(v uint64) Value { return uint32(v) })
+		return binary(op, x, a, b, unsignedOp[uint32])
 	case uint64:
-		y, ok := b.(uint64)
-		if !ok {
-			return nil, operandError(op, a, b)
-		}
-		return uint64Op(op, x, y)
+		return binary(op, x, a, b, uint64Op)
 	}
 	return nil, operandError(op, a, b)
+}
+
+// binary applies f to x, a's payload, and b's, which must have x's kind.
+func binary[T Value](op string, x T, a, b Value, f func(string, T, T) (Value, error)) (Value, error) {
+	y, ok := b.(T)
+	if !ok {
+		return nil, operandError(op, a, b)
+	}
+	return f(op, x, y)
 }
 
 func operandError(op string, a, b Value) error {
@@ -128,24 +96,26 @@ func Describe(v Value) string {
 	return KindOf(v).String()
 }
 
-func floatOp(op string, x, y float64) float64 {
+func floatOp[T float32 | float64](op string, x, y T) (Value, error) {
 	switch op {
 	case "+":
-		return x + y
+		return x + y, nil
 	case "-":
-		return x - y
+		return x - y, nil
 	case "*":
-		return x * y
+		return x * y, nil
 	case "/":
-		return x / y
+		return x / y, nil
 	case "%":
-		return math.Mod(x, y)
+		return T(math.Mod(float64(x), float64(y))), nil
 	}
 	panic("unknown operator " + op)
 }
 
-// signedOp computes in int64 and range-checks, for the kinds narrower than 64 bits.
-func signedOp(op string, x, y, lo, hi int64, wrap func(int64) Value) (Value, error) {
+// signedOp computes in int64 and checks that the result fits T, for the kinds narrower than 64
+// bits.
+func signedOp[T int8 | int16 | int32](op string, a, b T) (Value, error) {
+	x, y := int64(a), int64(b)
 	var r int64
 	switch op {
 	case "+":
@@ -165,13 +135,16 @@ func signedOp(op string, x, y, lo, hi int64, wrap func(int64) Value) (Value, err
 		}
 		r = x % y
 	}
-	if r < lo || r > hi {
+	if int64(T(r)) != r {
 		return nil, errOverflow
 	}
-	return wrap(r), nil
+	return T(r), nil
 }
 
-func unsignedOp(op string, x, y, hi uint64, wrap func(uint64) Value) (Value, error) {
+// unsignedOp computes in uint64 and checks that the result fits T, for the kinds narrower than
+// 64 bits.
+func unsignedOp[T uint8 | uint16 | uint32](op string, a, b T) (Value, error) {
+	x, y := uint64(a), uint64(b)
 	var r uint64
 	switch op {
 	case "+":
@@ -194,10 +167,10 @@ func unsignedOp(op string, x, y, hi uint64, wrap func(uint64) Value) (Value, err
 		}
 		r = x % y
 	}
-	if r > hi {
+	if uint64(T(r)) != r {
 		return nil, errOverflow
 	}
-	return wrap(r), nil
+	return T(r), nil
 }
 
 func int64Op(op string, x, y int64) (Value, error) {
@@ -346,75 +319,35 @@ func Compare(op string, a, b Value) (bool, error) {
 		return false, operandError(op, a, b)
 	}
 	var c int // -1, 0, 1; 2 for unordered floats
+	var err error
 	switch x := a.(type) {
 	case string:
-		y, ok := b.(string)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = compareStrings(x, y)
+		c, err = order(op, x, a, b, compareStrings)
 	case int64:
-		y, ok := b.(int64)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[int64])
 	case float64:
-		y, ok := b.(float64)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmpFloat(x, y)
+		c, err = order(op, x, a, b, cmpFloat[float64])
 	case float32:
-		y, ok := b.(float32)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmpFloat(float64(x), float64(y))
+		c, err = order(op, x, a, b, cmpFloat[float32])
 	case int8:
-		y, ok := b.(int8)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[int8])
 	case int16:
-		y, ok := b.(int16)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[int16])
 	case int32:
-		y, ok := b.(int32)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[int32])
 	case uint8:
-		y, ok := b.(uint8)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[uint8])
 	case uint16:
-		y, ok := b.(uint16)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[uint16])
 	case uint32:
-		y, ok := b.(uint32)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[uint32])
 	case uint64:
-		y, ok := b.(uint64)
-		if !ok {
-			return false, operandError(op, a, b)
-		}
-		c = cmp(x, y)
+		c, err = order(op, x, a, b, cmp[uint64])
 	default:
 		return false, operandError(op, a, b)
+	}
+	if err != nil {
+		return false, err
 	}
 	if c == 2 {
 		return false, nil
@@ -442,7 +375,16 @@ func cmp[T int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64](x, y
 	return 0
 }
 
-func cmpFloat(x, y float64) int {
+// order compares x, a's payload, with b's, which must have x's kind.
+func order[T Value](op string, x T, a, b Value, f func(T, T) int) (int, error) {
+	y, ok := b.(T)
+	if !ok {
+		return 0, operandError(op, a, b)
+	}
+	return f(x, y), nil
+}
+
+func cmpFloat[T float32 | float64](x, y T) int {
 	switch {
 	case x < y:
 		return -1

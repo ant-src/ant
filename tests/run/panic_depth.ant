@@ -1,6 +1,7 @@
 // spec: 12 Runtime panics
 // panics: depth
-// A call deeper than the runtime's limit panics rather than crashing (section 12).
+// A call deeper than the runtime's limit panics rather than crashing (section 12). The report
+// keeps ten frames at each end of the trace and counts the ones between.
 func down(n: int): int { down(n + 1) }
 
 func main(): void {
@@ -10,3 +11,6 @@ func main(): void {
 // expect
 // exit: 1
 // err: call depth exceeded
+// err: at down (
+// err:   ... 9980 more frames
+// err: at main (

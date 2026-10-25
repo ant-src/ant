@@ -59,15 +59,18 @@ func pad(g *interp.Goroutine, who string, a []value.Value, left bool) value.Valu
 	if missing <= 0 {
 		return s
 	}
-	prs := []rune(p)
-	fill := make([]rune, missing)
-	for i := range fill {
-		fill[i] = prs[i%len(prs)]
+	k := utf8.RuneCountInString(p)
+	whole, cut := missing/k, 0 // p whole times, then the bytes of its first missing % k code points
+	for range missing % k {
+		_, size := utf8.DecodeRuneInString(p[cut:])
+		cut += size
 	}
+	boundSize(g, who, int64(len(s))+sizeProduct(int64(whole), int64(len(p)))+int64(cut))
+	fill := strings.Repeat(p, whole) + p[:cut]
 	if left {
-		return string(fill) + s
+		return fill + s
 	}
-	return s + string(fill)
+	return s + fill
 }
 
 // classTest is String.isDigit and the others: true when every code point of s satisfies f,
@@ -204,6 +207,42 @@ func digitsOf(s string, base int) bool {
 	return true
 }
 
+// decimalFloat reports whether s is a number as String.toFloat reads one: an optional sign,
+// ASCII digits with an optional fraction after '.', at least one digit in all, and an optional
+// exponent after 'e' or 'E' with its own optional sign and at least one digit.
+func decimalFloat(s string) bool {
+	i := 0
+	sign := func() {
+		if i < len(s) && (s[i] == '+' || s[i] == '-') {
+			i++
+		}
+	}
+	digits := func() int {
+		start := i
+		for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+			i++
+		}
+		return i - start
+	}
+	sign()
+	n := digits()
+	if i < len(s) && s[i] == '.' {
+		i++
+		n += digits()
+	}
+	if n == 0 {
+		return false
+	}
+	if i < len(s) && (s[i] == 'e' || s[i] == 'E') {
+		i++
+		sign()
+		if digits() == 0 {
+			return false
+		}
+	}
+	return i == len(s)
+}
+
 func init() {
 	register("String", func() value.Value {
 		return namespace("String",
@@ -244,7 +283,9 @@ func init() {
 					g.Panic("String.repeat needs a count of at least 0, got %d", n)
 				}
 				boundCount(g, who, "count", n)
-				return strings.Repeat(stringArg(g, who, a[0]), int(n))
+				s := stringArg(g, who, a[0])
+				boundSize(g, who, sizeProduct(int64(len(s)), n))
+				return strings.Repeat(s, int(n))
 			}),
 			fn("String.trim", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return strings.TrimFunc(stringArg(g, who, a[0]), unicode.IsSpace)
@@ -278,11 +319,7 @@ func init() {
 			}),
 			fn("String.indexOf", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				s := stringArg(g, who, a[0])
-				i := strings.Index(s, stringArg(g, who, a[1]))
-				if i < 0 {
-					return value.Null
-				}
-				return int64(utf8.RuneCountInString(s[:i]))
+				return runeIndex(s, strings.Index(s, stringArg(g, who, a[1])))
 			}),
 			fn("String.lastIndexOf", "s, t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				s := stringArg(g, who, a[0])
@@ -300,7 +337,12 @@ func init() {
 				if old == "" {
 					g.Panic("String.replace needs a pattern that is not empty")
 				}
-				return strings.ReplaceAll(stringArg(g, who, a[0]), old, stringArg(g, who, a[2]))
+				s, new := stringArg(g, who, a[0]), stringArg(g, who, a[2])
+				if len(new) > len(old) {
+					grow := sizeProduct(int64(strings.Count(s, old)), int64(len(new)-len(old)))
+					boundSize(g, who, int64(len(s))+grow)
+				}
+				return strings.ReplaceAll(s, old, new)
 			}),
 			fn("String.replaceFirst", "s, old, new", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				old := stringArg(g, who, a[1])
@@ -457,7 +499,7 @@ func init() {
 			}),
 			fn("String.toFloat", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				s := stringArg(g, who, a[0])
-				if s == "" || strings.ContainsAny(s, "_xXpP") || strings.ContainsAny(strings.ToLower(s), "in") {
+				if !decimalFloat(s) {
 					return value.Null
 				}
 				f, err := strconv.ParseFloat(s, 64)
@@ -468,26 +510,11 @@ func init() {
 			}),
 			fn("String.fromInt", "x, base?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				base := baseArg(g, who, a[1])
-				switch x := a[0].(type) {
-				case int64:
-					return strconv.FormatInt(x, base)
-				case int8:
-					return strconv.FormatInt(int64(x), base)
-				case int16:
-					return strconv.FormatInt(int64(x), base)
-				case int32:
-					return strconv.FormatInt(int64(x), base)
-				case uint8:
-					return strconv.FormatUint(uint64(x), base)
-				case uint16:
-					return strconv.FormatUint(uint64(x), base)
-				case uint32:
-					return strconv.FormatUint(uint64(x), base)
-				case uint64:
-					return strconv.FormatUint(x, base)
+				u, k := intBits(g, who, a[0])
+				if k.IsSigned() {
+					return strconv.FormatInt(int64(u), base) // intBits sign-extends
 				}
-				g.Panic("String.fromInt needs an integer, got %s", value.Describe(a[0]))
-				return nil
+				return strconv.FormatUint(u, base)
 			}),
 			fn("String.fromFloat", "x, digits", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				x := floatArg(g, who, a[0])
@@ -499,7 +526,11 @@ func init() {
 				if math.IsNaN(x) || math.IsInf(x, 0) {
 					return value.Render(x)
 				}
-				return strconv.FormatFloat(x, 'f', int(digits), 64)
+				out := strconv.FormatFloat(x, 'f', int(digits), 64)
+				if strings.Trim(out, "-0.") == "" {
+					return strings.TrimPrefix(out, "-") // a zero result has no sign
+				}
+				return out
 			}),
 			fn("String.from", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return value.Render(a[0])

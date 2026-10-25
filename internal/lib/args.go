@@ -50,6 +50,23 @@ func boundCount(g *interp.Goroutine, who, what string, n int64) {
 	}
 }
 
+// boundSize panics when a string result of size bytes, as a function computes it before building
+// the string, is above maxCount: the "a result size" row of section 12's table.
+func boundSize(g *interp.Goroutine, who string, size int64) {
+	if size > maxCount {
+		g.Panic("%s would give a string longer than %d bytes", who, maxCount)
+	}
+}
+
+// sizeProduct is a * b for non-negative sizes, or maxCount + 1 when that is above maxCount, so
+// that a sum of sizes cannot overflow.
+func sizeProduct(a, b int64) int64 {
+	if a != 0 && b > maxCount/a {
+		return maxCount + 1
+	}
+	return a * b
+}
+
 func intArg(g *interp.Goroutine, who string, v value.Value) int64 {
 	return typedArg[int64](g, who, "an int", v)
 }
@@ -103,6 +120,38 @@ func less(g *interp.Goroutine, who string, a, b value.Value) bool {
 		g.Panic("%s: %s", who, err)
 	}
 	return r
+}
+
+// extremeLess is less with -0.0 below 0.0, as Math.min, Math.max, Array.min and Array.max order
+// them; < holds the two zeros equal.
+func extremeLess(g *interp.Goroutine, who string, a, b value.Value) bool {
+	if za, zb := zeroSign(a), zeroSign(b); za != 0 && zb != 0 {
+		return za < zb
+	}
+	return less(g, who, a, b)
+}
+
+// zeroSign is -1 for a float -0.0, 1 for a float 0.0, tagged or not, and 0 for anything else.
+func zeroSign(v value.Value) int {
+	if t, ok := v.(*value.Tagged); ok {
+		v = t.Payload
+	}
+	var x float64
+	switch f := v.(type) {
+	case float64:
+		x = f
+	case float32:
+		x = float64(f)
+	default:
+		return 0
+	}
+	if x != 0 {
+		return 0
+	}
+	if math.Signbit(x) {
+		return -1
+	}
+	return 1
 }
 
 // sortLess is less with NaN after every number, so that a sort has a total order to follow.

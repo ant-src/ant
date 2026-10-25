@@ -508,9 +508,16 @@ func (g *Goroutine) push(name, path string, pos ast.Pos) {
 func (g *Goroutine) pop() { g.stack = g.stack[:len(g.stack)-1] }
 
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
-	g.push(f.FuncName(), f.Env.mod.path, pos)
-	defer g.pop()
-	env := newEnv(&f.Scope.BlockScope, f.Env)
+	// The arguments are matched to parameters before the frame is pushed, so that an arity
+	// panic is reported at the call site, in the caller, with no frame of the callee. A call
+	// with no caller, main or a host's call, has only the callee's frame to name.
+	root := len(g.stack) == 0
+	if root {
+		g.push(f.FuncName(), f.Env.mod.path, pos)
+		defer g.pop()
+	}
+	var slots []int // the parameter each argument fills
+	var filled []bool
 	if f.Lambda {
 		if names != nil {
 			g.panicf(pos, "a lambda takes no named arguments")
@@ -518,52 +525,29 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 		if len(args) > 1 {
 			g.panicf(pos, "a lambda takes at most one argument, got %d", len(args))
 		}
+	} else {
+		slots, filled = g.matchParams(f, args, names, pos)
+	}
+	if !root {
+		g.push(f.FuncName(), f.Env.mod.path, pos)
+		defer g.pop()
+	}
+	env := newEnv(&f.Scope.BlockScope, f.Env)
+	if f.Lambda {
 		x := value.Void
 		if len(args) == 1 {
 			x = args[0]
 		}
 		env.set(f.Scope.X, x)
 	} else {
-		filled := make([]bool, len(f.Params))
-		np := 0
-		for i := range args {
-			if names != nil && names[i] != "" {
-				break
-			}
-			np++
-		}
-		if np > len(f.Params) {
-			g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
-		}
-		for i := 0; i < np; i++ {
-			env.set(f.Params[i].Slot, args[i])
-			filled[i] = true
-		}
-		for i := np; i < len(args); i++ {
-			idx := -1
-			for j := range f.Params {
-				if f.Params[j].Name == names[i] {
-					idx = j
-					break
-				}
-			}
-			if idx < 0 {
-				g.panicf(pos, "%s has no parameter %s", f.FuncName(), names[i])
-			}
-			if filled[idx] {
-				g.panicf(pos, "the parameter %s is given twice", names[i])
-			}
-			env.set(f.Params[idx].Slot, args[i])
-			filled[idx] = true
+		for i, a := range args {
+			env.set(f.Params[slots[i]].Slot, a)
 		}
 		for i := range f.Params {
 			if filled[i] {
 				continue
 			}
 			p := &f.Params[i]
-			if p.Default == nil {
-				g.panicf(pos, "%s needs an argument for %s", f.FuncName(), p.Name)
-			}
 			v, c := g.eval(p.Default, env)
 			if c == ctlReturn {
 				return v // a try in the default returned the Err from the callee
@@ -573,6 +557,51 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 	}
 	v, _ := g.evalBlock(f.Body, env)
 	return v
+}
+
+// matchParams matches a call's arguments to f's parameters, the positional ones first and then
+// the named ones, and panics on an argument too many, an unknown or repeated name, or a required
+// parameter left unfilled. It returns the parameter of each argument and which were filled.
+func (g *Goroutine) matchParams(f *Func, args []value.Value, names []string, pos ast.Pos) (slots []int, filled []bool) {
+	slots = make([]int, len(args))
+	filled = make([]bool, len(f.Params))
+	np := 0
+	for i := range args {
+		if names != nil && names[i] != "" {
+			break
+		}
+		np++
+	}
+	if np > len(f.Params) {
+		g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
+	}
+	for i := 0; i < np; i++ {
+		slots[i] = i
+		filled[i] = true
+	}
+	for i := np; i < len(args); i++ {
+		idx := -1
+		for j := range f.Params {
+			if f.Params[j].Name == names[i] {
+				idx = j
+				break
+			}
+		}
+		if idx < 0 {
+			g.panicf(pos, "%s has no parameter %s", f.FuncName(), names[i])
+		}
+		if filled[idx] {
+			g.panicf(pos, "the parameter %s is given twice", names[i])
+		}
+		slots[i] = idx
+		filled[idx] = true
+	}
+	for i := range f.Params {
+		if !filled[i] && f.Params[i].Default == nil {
+			g.panicf(pos, "%s needs an argument for %s", f.FuncName(), f.Params[i].Name)
+		}
+	}
+	return slots, filled
 }
 
 func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, pos ast.Pos) value.Value {
@@ -1036,65 +1065,71 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 		}
 		return nil, ctlNone, false
 	}
-	run := func(v value.Value) (value.Value, ctl, bool) { return runOn(g, v) }
-	switch x := iter.(type) {
+	if seq, ok := iter.(value.Callable); ok {
+		return g.forSeq(e, seq, runOn)
+	}
+	var rv value.Value
+	rc := ctlNone
+	visit := func(v value.Value) bool {
+		g.check()
+		var stop bool
+		rv, rc, stop = runOn(g, v)
+		return !stop
+	}
+	if !each(iter, visit) {
+		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, Bytes, or a function, got %s", value.Describe(iter))
+	}
+	if rc != ctlNone {
+		return rv, rc
+	}
+	return value.Void, ctlNone
+}
+
+// each calls visit with each element of a collection, as for visits them (section 12), until
+// visit returns false. It reports false when v is not an array, a map, a set, a string, or Bytes.
+func each(v value.Value, visit func(value.Value) bool) bool {
+	switch x := v.(type) {
 	case *value.Array:
 		for i := 0; i < x.Len(); i++ {
-			g.check()
 			v, ok := x.Get(i)
-			if !ok {
+			if !ok || !visit(v) {
 				break
-			}
-			if rv, rc, stop := run(v); stop {
-				return rv, rc
 			}
 		}
 	case *value.Map:
 		var cursor uint64
 		for {
-			g.check()
 			k, v, seq, ok := x.Next(cursor)
-			if !ok {
+			if !ok || !visit(value.Entry(k, v)) {
 				break
 			}
 			cursor = seq
-			if rv, rc, stop := run(value.Entry(k, v)); stop {
-				return rv, rc
-			}
 		}
 	case *value.Set:
 		var cursor uint64
 		for {
-			g.check()
 			v, seq, ok := x.Next(cursor)
-			if !ok {
+			if !ok || !visit(v) {
 				break
 			}
 			cursor = seq
-			if rv, rc, stop := run(v); stop {
-				return rv, rc
-			}
 		}
 	case value.Bytes:
-		for i := 0; i < len(x); i++ {
-			g.check()
-			if rv, rc, stop := run(x[i]); stop {
-				return rv, rc
+		for _, b := range x {
+			if !visit(b) {
+				break
 			}
 		}
 	case string:
 		for _, r := range x {
-			g.check()
-			if rv, rc, stop := run(string(r)); stop {
-				return rv, rc
+			if !visit(string(r)) {
+				break
 			}
 		}
-	case value.Callable:
-		return g.forSeq(e, x, runOn)
 	default:
-		g.panicf(e.Iter.Position(), "for needs an array, a map, a set, a string, Bytes, or a function, got %s", value.Describe(iter))
+		return false
 	}
-	return value.Void, ctlNone
+	return true
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
@@ -1105,21 +1140,12 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 	// goes on past the loop.
 	var active atomic.Bool
 	active.Store(true)
-	var body sync.Mutex
-	var owner atomic.Pointer[Goroutine]
-	enter := func(g2 *Goroutine) (leave func()) {
-		if owner.Load() == g2 {
-			return func() {}
-		}
-		body.Lock()
-		owner.Store(g2)
-		return func() { owner.Store(nil); body.Unlock() }
-	}
+	var body BodyLock
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
-		leave := enter(g2)
+		leave := body.Enter(g2)
 		defer leave()
 		if !active.Load() {
-			g2.Panic("yield called after the sequence ended")
+			g2.Panic(YieldAfterEnd)
 		}
 		v, c, stop := run(g2, args[0])
 		if !stop {
@@ -1145,10 +1171,32 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		}
 	}()
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
-	leave := enter(g)
+	leave := body.Enter(g)
 	active.Store(false)
 	leave()
 	return value.Void, ctlNone
+}
+
+// YieldAfterEnd is the panic of a yield called after it returned false or after its sequence
+// returned (section 12, for).
+const YieldAfterEnd = "yield called after the sequence ended"
+
+// BodyLock serializes the runs of a loop body that a sequence's yield calls, which may come from
+// several goroutines. Enter on the goroutine that holds it, a yield inside the body, does not
+// take it again.
+type BodyLock struct {
+	mu    sync.Mutex
+	owner atomic.Pointer[Goroutine]
+}
+
+// Enter takes the lock for g unless g holds it, and returns the function that gives it back.
+func (b *BodyLock) Enter(g *Goroutine) (leave func()) {
+	if b.owner.Load() == g {
+		return func() {}
+	}
+	b.mu.Lock()
+	b.owner.Store(g)
+	return func() { b.owner.Store(nil); b.mu.Unlock() }
 }
 
 // withArticle puts "a" or "an" before a kind name: "an int", "a string".

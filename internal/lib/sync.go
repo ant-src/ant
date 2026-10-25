@@ -49,12 +49,20 @@ func unlock(g *interp.Goroutine, who string, m *value.Mutex) {
 // runOnce runs f under the once, sharing a panic in f with every caller. It reports whether f
 // returned, which it did not when a return unwound through it.
 func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.Value)) bool {
-	err := o.Do(func() error {
-		var v value.Value
-		if p := g.Catch(func() { v = g.Call(f) }); p != nil {
-			return p
-		}
-		keep(v)
+	err := o.Do(func() (err error) {
+		defer func() {
+			// An Ant panic becomes the once's error; any other leaves through Do's own defer.
+			r := recover()
+			if r == nil {
+				return
+			}
+			p, ok := r.(*interp.AntPanic)
+			if !ok {
+				panic(r)
+			}
+			err = p
+		}()
+		keep(g.Call(f))
 		return nil
 	}, g.Instance().Flush)
 	if p, ok := err.(*interp.AntPanic); ok {

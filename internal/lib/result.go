@@ -34,17 +34,19 @@ func resultFuncs() []*interp.Builtin {
 		}),
 		fn("Result.map", "r, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			r := result(g, who, a[0])
+			f := funcArg(g, who, a[1])
 			if r.Tag != value.OkTag {
 				return r
 			}
-			return value.Ok(g.Call(a[1], r.Get(0)))
+			return value.Ok(g.Call(f, r.Get(0)))
 		}),
 		fn("Result.mapErr", "r, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			r := result(g, who, a[0])
+			f := funcArg(g, who, a[1])
 			if r.Tag != value.ErrTag {
 				return r
 			}
-			return value.Err(g.Call(a[1], r.Get(0)))
+			return value.Err(g.Call(f, r.Get(0)))
 		}),
 		fn("Result.unwrap", "r", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			r := result(g, who, a[0])

@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 11 Result and Record
+// panics: library-kind
+// Result.map checks that its callback is a function whatever the result holds, as every library
+// function that takes a callback does (section 12, the library row).
+func main(): void {
+  var r: Result[int, string] = Result.err("e")
+  println(Result.map(r, 5))
+}
+
+// expect
+// exit: 1
+// err: Result.map needs a function, got int

@@ -36,3 +36,17 @@ func (s *Set) Next(after uint64) (x Value, seq uint64, ok bool) {
 
 // Values copies the members out in insertion order.
 func (s *Set) Values() []Value { return s.m.Keys() }
+
+// Clone is a new set with the members of s, in its order.
+func (s *Set) Clone() *Set {
+	out := NewSet()
+	out.AddAll(s)
+	return out
+}
+
+// AddAll adds each member of t to s, in t's order.
+func (s *Set) AddAll(t *Set) {
+	for _, x := range t.Values() {
+		s.Add(x)
+	}
+}

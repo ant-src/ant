@@ -454,3 +454,21 @@ func TestWithoutBytesNamespace(t *testing.T) {
 		t.Errorf("check: %v", diags)
 	}
 }
+
+// TestArityPanicFrames: a call given the wrong arguments panics at the call site, in the caller,
+// with no frame of the callee it never entered.
+func TestArityPanicFrames(t *testing.T) {
+	src := "func f(a: int): int { a }\n\nfunc main(): void { println(f(1, 2)) }\n"
+	prog, err := ant.Load("arity.ant", ant.WithSource("arity.ant", src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = prog.Run(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	var p *ant.PanicError
+	if !errors.As(err, &p) {
+		t.Fatalf("the run ended with %v, want a panic", err)
+	}
+	if len(p.Trace) != 1 || p.Trace[0].Function != "main" || p.Trace[0].Pos.Line != 3 || p.Trace[0].Pos.Col != 30 {
+		t.Errorf("trace %+v, want the one frame of main at the call, 3:30", p.Trace)
+	}
+}

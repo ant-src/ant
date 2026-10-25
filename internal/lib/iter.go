@@ -21,16 +21,24 @@ func seq(name string, run func(g *interp.Goroutine, push func(value.Value) bool)
 }
 
 // drive runs a sequence with a yield that calls push and stops the source once push says so.
+// As for's yield does, it runs push for one call at a time, and panics when called after it
+// returned false or after the source returned (section 12, for).
 func drive(g *interp.Goroutine, who string, s value.Value, push func(value.Value) bool) {
 	more := true
-	y := fn("yield", "x", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	var body interp.BodyLock
+	y := fn("yield", "x", func(g2 *interp.Goroutine, who string, a []value.Value) value.Value {
+		leave := body.Enter(g2)
+		defer leave()
 		if !more {
-			return false
+			g2.Panic(interp.YieldAfterEnd)
 		}
 		more = push(a[0])
 		return more
 	})
 	g.Call(funcArg(g, who, s), y)
+	leave := body.Enter(g)
+	more = false
+	leave()
 }
 
 func init() {
