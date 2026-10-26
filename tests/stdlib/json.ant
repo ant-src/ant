@@ -1,7 +1,7 @@
 // spec: stdlib Json; 12 Runtime panics
 // Json (stdlib.md): parse gives Json.Value trees, numbers as float64, objects as maps in
 // document order; a decoder narrows with is; stringify renders records as objects without
-// their tag.
+// their tag; a map key must be a string, a named primitive over one written without its tag.
 type Server = { host: string, port: int }
 func decodeServer(v: Json.Value, path: string): Result[Server, Error] {
   if !(v is Map) { return Result.err(Error{ message: `${path}: not an object` }) }
@@ -26,9 +26,14 @@ decodeServer(Result.unwrap(bad), "$")         // => Err{ error: Error{ message: 
 Json.stringify(Server{ host: "h", port: 1 })  // => "{\"host\":\"h\",\"port\":1}"
 Json.stringify([1, "two", 3.5, null, true, Map{ k: [0] }]) // => "[1,\"two\",3.5,null,true,{\"k\":[0]}]"
 Json.stringify("quote \" and \n newline")     // => "\"quote \\\" and \\n newline\""
-Json.stringify(Map{ 1: "one" })               // => "{\"1\":\"one\"}"
+Json.stringify(Map{ 1: "one" })               // => panic: Json.stringify: a map key must be a string, got int
+Json.stringify(Map{ "1": "one" })             // => "{\"1\":\"one\"}"
 type UserId = string
 Json.stringify(Map{ UserId("u-1"): UserId("u-2") }) // => "{\"u-1\":\"u-2\"}"
+var mixed: Map[UserId | string, int] = Map{ UserId("a"): 1, "a": 2 }
+Json.stringify(mixed)                         // => panic: Json.stringify: map keys UserId("a") and "a" both give the property name "a"
+type Meters = float64
+Json.stringify(Map{ Meters(3.0): 1 })         // => panic: Json.stringify: a map key must be a string, got Meters
 Json.stringify(1.0 / 0.0)                     // => "null"
 var round = Json.parse(Json.stringify(Map{ x: [1.5, "s"] }))
 round                                         // => Ok{ value: Map{ "x": [1.5, "s"] } }

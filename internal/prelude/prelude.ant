@@ -1654,7 +1654,8 @@ func Json.parse(text: string): Result[Json.Value, Error]
 // sets arrays, time values strings, and NaN and the infinities null. It panics with "cyclic value"
 // on a value that contains itself, and panics on what has no JSON form: Bytes, which a program
 // writes with [Encoding.toBase64] instead, a function, void, a type, or a reference such as a
-// channel or a Random.
+// channel or a Random. A map key must be a string or a named primitive over one, which is written
+// without its tag; any other key panics, as do two keys that give one property name.
 //
 //     Json.stringify(Map{ "a": [1, 2] })   // "{\"a\":[1,2]}"
 func Json.stringify[T](value: T): string

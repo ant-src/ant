@@ -429,22 +429,20 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 		}
 		defer stack.Leave(x)
 		sb.WriteByte('{')
+		names := make(map[string]value.Value, x.Len())
 		for i, e := range x.Entries() {
 			if i > 0 {
 				sb.WriteByte(',')
 			}
-			key := e.Key
-			if t, ok := key.(*value.Tagged); ok {
-				key = t.Payload // a named primitive key, without its tag as a value is written
-			}
-			if msg := keyNoJSON(key, value.Ancestors{}); msg != "" {
+			name, msg := keyName(e.Key)
+			if msg != "" {
 				return msg
 			}
-			if s, ok := key.(string); ok {
-				writeJSONString(sb, s)
-			} else {
-				writeJSONString(sb, value.Render(key))
+			if first, ok := names[name]; ok {
+				return "map keys " + renderKey(first) + " and " + renderKey(e.Key) + " both give the property name " + strconv.Quote(name)
 			}
+			names[name] = e.Key
+			writeJSONString(sb, name)
 			sb.WriteByte(':')
 			if msg := stringify(sb, e.Value, stack); msg != "" {
 				return msg
@@ -484,55 +482,37 @@ func noJSON(v value.Value) string {
 	return value.Render(v) + " has no JSON form"
 }
 
-// keyNoJSON is why a map key has no JSON form, or "" when it has one. stringify writes a key
-// through value.Render rather than taking it apart, so this looks through it for a part that
-// has none. stack holds the containers being searched, so a cyclic key terminates.
-func keyNoJSON(v value.Value, stack value.Ancestors) string {
-	var parts []value.Value
-	switch x := v.(type) {
-	case int64, int8, int16, int32, uint8, uint16, uint32, uint64, float64, float32, string, bool,
-		value.Time, *value.Regex:
-		return ""
-	case *value.Tagged:
-		return keyNoJSON(x.Payload, stack)
-	case *value.Array:
-		parts = x.Values()
-	case *value.Set:
-		parts = x.Values()
-	case *value.Record:
-		for i := 0; i < x.Len(); i++ {
-			parts = append(parts, x.Get(i))
-		}
-	case *value.Map:
-		for _, e := range x.Entries() {
-			parts = append(parts, e.Key, e.Value)
-		}
-	default:
-		if v == value.Null {
-			return ""
-		}
-		return noJSON(v)
+// keyName is the property name of a map key, a string or a named primitive over one without its
+// tag, or why the key has none (stdlib.md, Json).
+func keyName(k value.Value) (string, string) {
+	payload := k
+	if t, ok := k.(*value.Tagged); ok {
+		payload = t.Payload
 	}
-	if !stack.Enter(v) {
-		return ""
+	if s, ok := payload.(string); ok {
+		return s, ""
 	}
-	defer stack.Leave(v)
-	if value.Deep(len(stack)) {
-		var msg string
-		value.OnFreshStack(func() { msg = partsNoJSON(parts, stack) })
-		return msg
-	}
-	return partsNoJSON(parts, stack)
+	return "", "a map key must be a string, got " + describeKey(k)
 }
 
-// partsNoJSON is why one of parts has no JSON form, or "".
-func partsNoJSON(parts []value.Value, stack value.Ancestors) string {
-	for _, p := range parts {
-		if msg := keyNoJSON(p, stack); msg != "" {
-			return msg
-		}
+// describeKey names the type of a map key with no JSON form, without rendering it, since a key can
+// be a container of any depth.
+func describeKey(k value.Value) string {
+	if x, ok := k.(value.Sync); ok {
+		return x.SyncName()
 	}
-	return ""
+	if d := value.Describe(k); d != "invalid" {
+		return d
+	}
+	return value.Render(k) // a Random, a File.Handle or a Net.Listener renders as its type's name
+}
+
+// renderKey renders a map key as String.from renders it inside a container, a string quoted.
+func renderKey(k value.Value) string {
+	if s, ok := k.(string); ok {
+		return strconv.Quote(s)
+	}
+	return value.Render(k)
 }
 
 func writeFloat(sb *strings.Builder, f float64, bits int) {

@@ -10,8 +10,9 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// TestStringifyDeep writes a value and checks a map key nested far deeper than one small Go stack
-// holds, so both walks must move to fresh goroutines as they go down (section 9: no crash).
+// TestStringifyDeep writes a value nested far deeper than one small Go stack holds, so the walk
+// must move to fresh goroutines as it goes down (section 9: no crash), and a map keyed by one,
+// which panics on the key without walking it.
 func TestStringifyDeep(t *testing.T) {
 	defer debug.SetMaxStack(debug.SetMaxStack(64 << 20))
 	var deep value.Value = value.Bytes("x")
@@ -21,7 +22,7 @@ func TestStringifyDeep(t *testing.T) {
 	m := value.NewMap()
 	m.Set(deep, int64(1))
 	var sb strings.Builder
-	if msg := stringify(&sb, m, value.Ancestors{}); msg != bytesNoJSON {
+	if msg := stringify(&sb, m, value.Ancestors{}); msg != "a map key must be a string, got array" {
 		t.Errorf("a map keyed by deeply nested Bytes stringifies with %q", msg)
 	}
 	sb.Reset()

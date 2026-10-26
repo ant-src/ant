@@ -40,11 +40,11 @@ Json.parse("{1: 2}")                          // => Err{ error: Error{ message: 
 Json.parse("[1] ]")                           // => Err{ error: Error{ message: "unexpected text after the JSON value" } }
 
 // Like Bytes, a function, a reference such as a Random or a Mutex, and void have no JSON form,
-// as a value, inside one, or in a map key.
+// as a value or inside one; as a map key, any of them fails the rule that keys are strings.
 func nothing(): void {}
 Json.stringify(nothing)                       // => panic: Json.stringify: a function has no JSON form
 Json.stringify(Map{ "f": nothing })           // => panic: Json.stringify: a function has no JSON form
 Json.stringify(Map{ "r": Random.new(1) })     // => panic: Json.stringify: Random has no JSON form
-Json.stringify(Map{ Random.new(1): 1 })       // => panic: Json.stringify: Random has no JSON form
+Json.stringify(Map{ Random.new(1): 1 })       // => panic: Json.stringify: a map key must be a string, got Random
 Json.stringify(Mutex.new())                   // => panic: Json.stringify: Mutex has no JSON form
 Json.stringify(nothing())                     // => panic: Json.stringify: void has no JSON form
