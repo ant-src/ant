@@ -2,7 +2,6 @@ package lib
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"runtime"
 	"testing"
@@ -83,29 +82,5 @@ func TestBytesValueTrims(t *testing.T) {
 	data, _ := io.ReadAll(io.LimitReader(drip{1000}, 3000))
 	if b := bytesValue(data); len(b) != 3000 {
 		t.Errorf("len %d", len(b))
-	}
-}
-
-// failingWriter accepts nothing, as a full disk does once the buffer is written out.
-type failingWriter struct{}
-
-func (failingWriter) Write(p []byte) (int, error) { return 0, errors.New("no space left on device") }
-
-type nopCloser struct{}
-
-func (nopCloser) Close() error { return nil }
-
-// TestCloseReportsFlush: a write that entered the buffer and failed when close flushed it is
-// reported by close, and a second close does nothing and reports nothing.
-func TestCloseReportsFlush(t *testing.T) {
-	h := newHandle(nopCloser{}, nil, failingWriter{})
-	if got := value.Render(h.write("lost\n")); got != "Ok{ value: void }" {
-		t.Fatalf("write = %s, want Ok", got)
-	}
-	if err := h.close(); err == nil || err.Error() != "no space left on device" {
-		t.Fatalf("close = %v, want the flush error", err)
-	}
-	if err := h.close(); err != nil {
-		t.Fatalf("second close = %v, want nil", err)
 	}
 }

@@ -1,0 +1,28 @@
+// spec: stdlib File; stdlib Os
+// File.close returns a Result: Ok when the flush and the close succeed, Ok again on a handle
+// already closed, which stays closed, and Ok on a standard stream, which it leaves open.
+var dir = Os.args()[0]
+var path = `${dir}/out.txt`
+var out = Result.unwrap(File.create(path))
+println(File.writeLine(out, "kept"))
+println(File.close(out))
+println(File.close(out))
+println(File.writeLine(out, "late") is Err)
+println(File.read(path))
+var input = Result.unwrap(File.open(path))
+println(File.close(input))
+println(File.close(Os.stdout()))
+println(File.close(Os.stderr()))
+println("still open")
+
+// expect
+// args: $TMP
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: true
+// out: Ok{ value: "kept\n" }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: still open

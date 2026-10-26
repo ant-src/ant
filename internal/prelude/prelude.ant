@@ -1082,9 +1082,9 @@ func File.writeLine(f: File.Handle, line: string): Result[void, Error]
 // which is then Err with ctx's reason.
 func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): Result[void, Error]
 // File.close flushes and closes f, and is Err when the flush or the close fails, as a write can
-// once its buffer is written out. It does nothing and is Ok on a standard stream and on a handle
-// already closed, so a deferred close can follow an explicit one. Called from another goroutine,
-// it ends a read or write in progress on f with an Err.
+// once its buffer is written out; f is closed either way. It does nothing and is Ok on a standard
+// stream and on a handle already closed, so a deferred close can follow an explicit one. Called
+// from another goroutine, it ends a read or write in progress on f with an Err.
 func File.close(f: File.Handle): Result[void, Error]
 // File.readAll reads the rest of f as text. Bytes that are not valid UTF-8 become U+FFFD.
 func File.readAll(f: File.Handle, ctx: Context | null = null): Result[string, Error]
