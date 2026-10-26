@@ -1,6 +1,6 @@
 # Work still to do
 
-Three gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Six gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
@@ -96,3 +96,64 @@ scheduler.
   `ant run` and `ant build`, so the corpus harness runs both.
 - Debugging: positions in panics must point at the `.ant` source, not the generated Go. Go's
   `//line` directives can do this.
+
+## Default values for records
+
+**Today:** a record literal must list exactly the fields of its type (section 4, Records), so a
+record with many fields is verbose to build, and adding a field breaks every literal.
+
+**Sketch:** as in Go, a field left out of a literal takes the zero value of its type: `0`, `0.0`,
+`""`, `false`, `null` for a nullable type, an empty array, map or set. An unknown field stays a
+compile error, so typos are still caught.
+
+```
+type Server = { addr: string, workers: int, verbose: bool, tags: Array[string] }
+
+var s = Server{ addr: ":8080" }   // workers: 0, verbose: false, tags: []
+```
+
+**Open questions:**
+- Fields with no zero value: a record type, a union that is not nullable, a type parameter, a
+  function type, a sync object. Either such a field must always be listed, or the type has no zero
+  value and Go's rule does not carry over.
+- Declared defaults instead of, or as well as, zero values: `type Server = { workers: int = 4 }`,
+  evaluated per literal like parameter defaults (section 6). This would also answer the record of
+  defaults in Flags.
+- Whether a missing field should stay an error under a flag or lint, since it catches a forgotten
+  field after one is added.
+- A zero value for a whole type, `Server{}`, and whether `ant run` (which keeps no field types)
+  needs the field types at run time to fill in zeros.
+
+## Interfaces
+
+**Today:** "There are no interfaces" (section 4, Generics). A generic function can bound `T` by a
+record shape, but cannot ask for functions on `T`, so code over "anything printable" or "anything
+with an area" passes the functions in by hand.
+
+**Sketch:** an interface lists functions a type must have in its namespace (section 6, Functions on
+types). There is no method call, so the required "methods" are the `T.name` functions, and a type
+satisfies the interface structurally, as in Go, without declaring it.
+
+```
+interface Shape {
+  area(s: Self): float64
+  name(s: Self): string
+}
+
+func describe[T: Shape](s: T): string {
+  `${T.name(s)}: ${T.area(s)}`
+}
+
+describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circle is a Shape
+```
+
+**Open questions:**
+- Go's model or type classes: is `Shape` only a bound on a type parameter (static dispatch through
+  `T.area`), or also a type of its own, so `Array[Shape]` can hold circles and rects and dispatch at
+  run time by the tag? The second needs `ant run` to find `Circle.area` from a value's tag.
+- Prelude types: their namespaces are closed, so `int` can never satisfy a user interface unless
+  the rule changes.
+- Required fields alongside functions, which anonymous record types already cover.
+- Whether `String.from`, equality and ordering become interfaces a user type can implement.
+
+v
