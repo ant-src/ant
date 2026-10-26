@@ -1,22 +1,23 @@
 # The test corpus
 
-Every program here is derived from a sentence of the specification, and says which one. The Go
-tests in this directory run the programs and keep the corpus traceable; `go test ./tests -v -run
-TestSpecCoverage` prints the matrix of headings against the number of programs naming each.
+Every program here is derived from a sentence of the specification, and says which one. The Go tests
+in this directory run the programs and keep the corpus traceable;
+`go test ./tests -v -run TestSpecCoverage` prints the matrix of headings against the number of
+programs naming each.
 
 ## Kinds of program
 
-| Directory | What the harness proves |
-| --- | --- |
-| `run/` | the program's output, exit status and standard error match its trailer, and `ant check` reports nothing |
-| `unchecked/` | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out |
-| `check/` | `ant check` reports exactly the errors the inline markers name, and nothing else |
-| `stdlib/` | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md` |
-| `../examples/` | real programs, run like `run/` |
+| Directory      | What the harness proves                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `run/`         | the program's output, exit status and standard error match its trailer, and `ant check` reports nothing           |
+| `unchecked/`   | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out |
+| `check/`       | `ant check` reports exactly the errors the inline markers name, and nothing else                                  |
+| `stdlib/`      | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md`  |
+| `../examples/` | real programs, run like `run/`                                                                                    |
 
-Files under a directory named `lib` are modules the programs import, not tests. An example
-program, and a module under `lib`, says what it does in `//!` lines, its module doc (section 2 of
-the specification), so `ant doc` prints it.
+Files under a directory named `lib` are modules the programs import, not tests. An example program,
+and a module under `lib`, says what it does in `//!` lines, its module doc (section 2 of the
+specification), so `ant doc` prints it.
 
 ## Tags
 
@@ -28,20 +29,20 @@ A program starts with a tag line naming the headings of the specification it pro
 // spec: stdlib Json
 ```
 
-A tag is a chapter number followed by a subsection heading copied from the spec (backticks
-removed), a chapter number alone for the chapter's own text, `stdlib` and a namespace of
-`stdlib.md`, or `fmt` and a subsection of `fmt.md`, such as `fmt 4.4 Lists`, which the
-formatter's golden files in `internal/format/testdata` carry. Several tags are separated by `;`.
-A program that triggers a runtime panic also carries a `// panics:` line naming a row of the chapter 12 table by its key (see `panicRows` in
-`spec_test.go`) or a function of chapter 11 whose comment says it panics on a value:
+A tag is a chapter number followed by a subsection heading copied from the spec (backticks removed),
+a chapter number alone for the chapter's own text, `stdlib` and a namespace of `stdlib.md`, or `fmt`
+and a subsection of `fmt.md`, such as `fmt 4.4 Lists`, which the formatter's golden files in
+`internal/format/testdata` carry. Several tags are separated by `;`. A program that triggers a
+runtime panic also carries a `// panics:` line naming a row of the chapter 12 table by its key (see
+`panicRows` in `spec_test.go`) or a function of chapter 11 whose comment says it panics on a value:
 
 ```
 // panics: index-range
 // panics: Array.slice; library-value
 ```
 
-`TestSpecCoverage`, `TestLibraryCoverage` and `TestPanicCoverage` fail when a tag names nothing
-in the spec, when a heading, library name or panic has no program, or when a pending list in
+`TestSpecCoverage`, `TestLibraryCoverage` and `TestPanicCoverage` fail when a tag names nothing in
+the spec, when a heading, library name or panic has no program, or when a pending list in
 `spec_test.go` still names something that is now covered.
 
 ## Trailers
@@ -66,9 +67,8 @@ var n: int = "x"      // ERR: string is not int
 f(1, 2)               // ERR: first text ;; second text
 ```
 
-The marker text must be contained in the message. A line `// error: <line>: <text>` at the top
-names an error on another line, for errors the checker reports on a declaration rather than a
-use.
+The marker text must be contained in the message. A line `// error: <line>: <text>` at the top names
+an error on another line, for errors the checker reports on a declaration rather than a use.
 
 ## Where to add a test
 

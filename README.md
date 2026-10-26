@@ -64,8 +64,8 @@ println(next) // 2024-09-30
 ```
 
 ```ts
-println(String.graphemes("🇨🇭🇩🇪")) // ["🇨🇭", "🇩🇪"]
-println(len(String.graphemes("👨‍👩‍👧"))) // 1
+println(String.graphemes("🇨🇭🇩🇪")); // ["🇨🇭", "🇩🇪"]
+println(len(String.graphemes("👨‍👩‍👧"))); // 1
 ```
 
 ## Install
@@ -98,7 +98,7 @@ ant doc geometry.ant distance
 
 ## API
 
-Ant can be used as a lib too: 
+Ant can be used as a lib too:
 
 ```go
 prog, err := ant.Load("main.ant")
@@ -123,8 +123,8 @@ prog, err := ant.Load("main.ant", ant.WithNamespace(ant.Namespace{
 }), ant.WithoutNamespaces("File", "Http"))
 ```
 
-A `Session` evaluates one input at a time on a persistent module, which is what the REPL is
-built on:
+A `Session` evaluates one input at a time on a persistent module, which is what the REPL is built
+on:
 
 ```go
 s, err := ant.NewSession(ctx, ant.WithStdout(os.Stdout))

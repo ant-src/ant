@@ -26,8 +26,9 @@ Test.skip(t: Test, reason: string): never
 ```
 
 **Open questions:**
-- How tests are found: `*_test.ant` files and functions named `test...`, as in Go, or a `test "name"
-  { }` declaration.
+
+- How tests are found: `*_test.ant` files and functions named `test...`, as in Go, or a
+  `test "name" { }` declaration.
 - Whether a test may start goroutines that outlive it. A panic in a test can be a failure of that
   test only: the runner calls each test through `Panic.catch` (section 8, Catching a panic).
 - Filtering (`-run pattern`), running tests in parallel, the output format, and the exit status.
@@ -55,14 +56,15 @@ Flag.rest(p: Flag.Parsed): Array[string]           // the positional arguments
 ```
 
 **Open questions:**
+
 - Getting a typed result without reflection. Lookups by name check nothing until the program runs,
-  and a misspelled name would be a run-time panic. A record of defaults the parser fills in would be checked,
-  but needs a way to iterate a record's fields.
+  and a misspelled name would be a run-time panic. A record of defaults the parser fills in would be
+  checked, but needs a way to iterate a record's fields.
 - The syntax accepted: `--name=value`, `--name value`, `-n`, grouped short flags, `--` to stop, and
   `--no-verbose`.
 - Subcommands such as `tool serve --addr :80`.
-- What `--help` prints, and whether a parse error exits with status 2 as Go's `flag` does or is
-  left to the program.
+- What `--help` prints, and whether a parse error exits with status 2 as Go's `flag` does or is left
+  to the program.
 
 ## Native code through Go
 
@@ -72,20 +74,19 @@ faster way to run a program.
 **Sketch:** an `ant build main.ant -o main` command. It checks the program, generates a Go package
 from the checked tree, and runs `go build` on it. The output is one static binary. The generated
 code links against the runtime the interpreter already uses (`value`, `internal/lib`, `temporal`),
-so the library is written once, and Go supplies goroutines, the garbage collector and the
-scheduler.
+so the library is written once, and Go supplies goroutines, the garbage collector and the scheduler.
 
-- Records become Go structs. Named primitives become defined types. A union becomes an interface,
-  or a tagged struct where the members are few and small.
-- Functions become Go functions. Closures become Go closures. Generic functions become Go
-  generics, or `value.Value` where Go's generics cannot express them, such as a constraint over a
-  union.
+- Records become Go structs. Named primitives become defined types. A union becomes an interface, or
+  a tagged struct where the members are few and small.
+- Functions become Go functions. Closures become Go closures. Generic functions become Go generics,
+  or `value.Value` where Go's generics cannot express them, such as a constraint over a union.
 - `go`, `Channel`, `select`, `defer` and `panic` map onto their Go counterparts. `select` needs
   `reflect.Select` only when the number of heads isn't fixed.
-- An Ant panic becomes a Go panic carrying the same message, and the `ant` exit status and stderr format
-  stay the same.
+- An Ant panic becomes a Go panic carrying the same message, and the `ant` exit status and stderr
+  format stay the same.
 
 **Open questions:**
+
 - The runtime packages are `internal`, so the generated code has to build inside the `ant` module,
   in a temporary directory with a `replace`, or the runtime must move to public packages with a
   stable API.
@@ -113,6 +114,7 @@ var s = Server{ addr: ":8080" }   // workers: 0, verbose: false, tags: []
 ```
 
 **Open questions:**
+
 - Fields with no zero value: a record type, a union that is not nullable, a type parameter, a
   function type, a sync object. Either such a field must always be listed, or the type has no zero
   value and Go's rule does not carry over.
@@ -148,19 +150,19 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
 ```
 
 **Open questions:**
+
 - Go's model or type classes: is `Shape` only a bound on a type parameter (static dispatch through
   `T.area`), or also a type of its own, so `Array[Shape]` can hold circles and rects and dispatch at
   run time by the tag? The second needs `ant run` to find `Circle.area` from a value's tag.
-- Prelude types: their namespaces are closed, so `int` can never satisfy a user interface unless
-  the rule changes.
+- Prelude types: their namespaces are closed, so `int` can never satisfy a user interface unless the
+  rule changes.
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
 
 ## Shebang line
 
-**Today:** a script runs only as `ant run script.ant`. A `#!` line is a syntax error (section 2),
-so an Ant script cannot be made executable and run as `./script.ant`, as a Python or shell script
-can.
+**Today:** a script runs only as `ant run script.ant`. A `#!` line is a syntax error (section 2), so
+an Ant script cannot be made executable and run as `./script.ant`, as a Python or shell script can.
 
 **Sketch:** a first line that starts with `#!` is ignored, as in JavaScript and Python. Only the
 first line of the file, and only from its first byte.
@@ -173,6 +175,7 @@ println(Os.args())
 ```
 
 **Open questions:**
+
 - `#!/usr/bin/env ant` would run `ant script.ant`, which is not a command today. Either the line
   needs `env -S ant run`, or `ant <file.ant>` becomes a short form of `ant run`.
 - Whether `ant fmt` keeps the line as written, and where the module doc's `//!` lines may start
@@ -202,6 +205,7 @@ Json.stringify(Map{ "id": "x1", "tags": ["a"] }, indent: "  ")
 ```
 
 **Open questions:**
+
 - `indent` as a string, as Go has it, or a count of spaces, as JavaScript does. A string allows a
   tab.
 - How empty arrays and objects are written: `[]` and `{}` on one line, as both Go and JavaScript
@@ -214,8 +218,8 @@ v
 ## Running a command on the terminal
 
 **Today:** `Os.exec` captures the child's output whole and feeds it a fixed `stdin`, so a script
-cannot hand the terminal to `ssh`, `git`, `make`, an editor or a pager. A wrapper script that ends by
-starting such a program cannot be written in Ant.
+cannot hand the terminal to `ssh`, `git`, `make`, an editor or a pager. A wrapper script that ends
+by starting such a program cannot be written in Ant.
 
 **Sketch:** a call whose child shares the program's three standard streams and returns its exit
 status.
@@ -226,6 +230,7 @@ Os.run(program: string, args: Array[string] = [], dir: string | null = null,
 ```
 
 **Open questions:**
+
 - The name, and whether it is a parameter of `Os.exec` instead (`stdin`, `stdout` and `stderr` each
   captured or inherited, or a `File.Handle`), as Go's `exec.Cmd` has it.
 - Signals: while the child runs, Ctrl-C should reach the child and not end the script, as a shell
@@ -241,10 +246,12 @@ Os.run(program: string, args: Array[string] = [], dir: string | null = null,
 wrapper does, leaves its temporary files behind or removes them by hand before exiting.
 
 **Sketch:** one of:
+
 - the script body may return an `int`, the exit status, after its deferred blocks run;
 - an `Os.exitAfterDefers(status)`-style call that unwinds the main goroutine first.
 
 **Open questions:**
+
 - Whether `return 3` in a script body reads as an exit status or as a mistake, given that today
   `return 5` is a compile error.
 - What happens to other goroutines, as with `Os.exit`.
@@ -264,6 +271,7 @@ type Info = { name: string, size: int, isDir: bool, modified: Time.Instant, mode
 ```
 
 **Open questions:**
+
 - Whether `tempDir` promises mode `0700` too.
 - Modes on Windows, where only the read-only bit means anything.
 - A mode parameter on `File.write` and `File.create` as well as, or instead of, `chmod`, which
@@ -271,8 +279,7 @@ type Info = { name: string, size: int, isDir: bool, modified: Time.Instant, mode
 
 ## Platform
 
-**Today:** a script that does something different on macOS and Linux runs `uname` through
-`Os.exec`.
+**Today:** a script that does something different on macOS and Linux runs `uname` through `Os.exec`.
 
 **Sketch:**
 
@@ -282,6 +289,7 @@ Os.arch(): string       // "arm64", "amd64", as Go's GOARCH
 ```
 
 **Open questions:**
+
 - Go's names or a union type of literals; what the JS backend reports.
 
 ## The program's name
@@ -292,6 +300,7 @@ Os.arch(): string       // "arm64", "amd64", as Go's GOARCH
 **Sketch:** `Os.program(): string`, the path of the script as given to `ant run`.
 
 **Open questions:**
+
 - What it is in the REPL, under `ant build`, and when run through a shebang line.
 
 ## Writing to standard error
@@ -302,8 +311,9 @@ common enough in scripts that it is long.
 **Sketch:** `eprint` and `eprintln` in the prelude, as `print` and `println` to standard error.
 
 **Open questions:**
-- Whether the two belong in the prelude or as `Os.eprintln`, and how they interleave with
-  buffered standard output.
+
+- Whether the two belong in the prelude or as `Os.eprintln`, and how they interleave with buffered
+  standard output.
 
 ## Pushing several values
 
@@ -313,6 +323,7 @@ needs `xs = Array.concat(xs, ["-o", x])`.
 **Sketch:** `Array.pushAll[T](xs: Array[T], ys: Array[T]): void // mutates`, or a variadic `push`.
 
 **Open questions:**
+
 - Ant has no variadic functions, so `pushAll` is the smaller change.
 
 ## Formatting argument lists
@@ -321,6 +332,7 @@ needs `xs = Array.concat(xs, ["-o", x])`.
 `["-o", "IdentitiesOnly=yes", "-o", ...]` turns into one value per line and the pairs are lost.
 
 **Open questions:**
+
 - Keep a multi-line literal's line breaks as the author wrote them, filling each line, as `gofmt`
   does for composite literals, rather than one element per line.
 
@@ -336,5 +348,6 @@ Os.output(program: string, args: Array[string] = [], ...): Result[string, Error]
 ```
 
 **Open questions:**
+
 - How much of `stderr` goes in the message, and whether a caller that needs the status uses
   `Os.exec` instead.
