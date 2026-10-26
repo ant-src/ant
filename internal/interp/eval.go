@@ -19,12 +19,11 @@ const (
 	ctlContinue
 )
 
-// loopUnwind carries a return out of a for body that a sequence function is running. loop is
-// the active flag of one run of the loop, not its node, so when a body re-enters the same loop,
-// as a recursive call does, each run catches only its own return.
+// loopUnwind carries a return out of a for body that a sequence function is running. Each run
+// of a loop raises and catches its own, by identity, so when a body re-enters the same loop, as a
+// recursive call does, each run catches only its own return.
 type loopUnwind struct {
-	loop *bool
-	v    value.Value
+	v value.Value
 }
 
 // evalValue evaluates a top-level initializer. The parser rules out return, break, continue and
@@ -1143,23 +1142,52 @@ func each(v value.Value, visit func(value.Value) bool) bool {
 }
 
 func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
-	// The body runs only on g, where a return in it can reach the loop's function, so only g
-	// touches active. A yield from another goroutine sets elsewhere, which the loop reads once
-	// the sequence returns.
+	u := &loopUnwind{}
+	defer func() {
+		if r := recover(); r != nil {
+			if r == u {
+				rv, rc = u.v, ctlReturn
+				return
+			}
+			panic(r)
+		}
+	}()
+	g.runSeq(seq, e.Pos, func(v value.Value) bool {
+		rv, c, stop := run(v)
+		if c == ctlReturn {
+			u.v = rv
+			panic(u)
+		}
+		return !stop
+	})
+	return value.Void, ctlNone
+}
+
+// RunSeq runs a sequence as for does, with push as the loop body: it reports whether the
+// consumer wants more (section 12, for).
+func (g *Goroutine) RunSeq(seq value.Value, push func(value.Value) bool) {
+	g.runSeq(seq, g.pos, push)
+}
+
+// runSeq calls seq with a yield that runs push. push runs only on g, where a return in a for
+// body can reach the loop's function, so only g touches active and bodyPanic. A yield from
+// another goroutine panics there and sets elsewhere, which runSeq reads once the sequence
+// returns. Whatever leaves push, or the sequence, ends the run, so a yield kept past it panics.
+func (g *Goroutine) runSeq(seq value.Value, at ast.Pos, push func(value.Value) bool) {
 	active := true
 	var elsewhere atomic.Bool
-	var bodyPanic *AntPanic // a panic that ended a run of the body
+	var bodyPanic *AntPanic // a panic that ended a run of push
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
 		if g2 != g {
 			elsewhere.Store(true)
-			g2.Panic(YieldElsewhere)
+			g2.Panic(yieldElsewhere)
 		}
 		if !active {
-			g.Panic(YieldAfterEnd)
+			g.Panic(yieldAfterEnd)
 		}
 		defer func() {
-			// Whatever leaves the body ends the loop. A panic is kept: it can reach the loop only
-			// through the sequence, so a sequence that returns after it caught it, and cannot hide it.
+			// A panic can reach the loop only through the sequence, so one that returns after it
+			// caught it, and cannot hide it.
 			if r := recover(); r != nil {
 				active = false
 				if p, ok := r.(*AntPanic); ok {
@@ -1168,52 +1196,34 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 				panic(r)
 			}
 		}()
-		v, c, stop := run(args[0])
-		if !stop {
-			return true
-		}
-		active = false
-		if c == ctlReturn {
-			panic(&loopUnwind{loop: &active, v: v})
-		}
-		return false
+		active = push(args[0])
+		return active
 	}}
-	defer func() {
-		// The loop has ended however the sequence was left, so a yield kept past it panics.
-		active = false
-		if r := recover(); r != nil {
-			if u, ok := r.(*loopUnwind); ok && u.loop == &active {
-				rv, rc = u.v, ctlReturn
-				return
-			}
-			panic(r)
-		}
-	}()
-	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
+	defer func() { active = false }()
+	g.callValue(seq, []value.Value{yield}, nil, at)
 	if bodyPanic != nil {
-		g.panicf(e.Pos, "%s: %s", SeqCaughtBody, bodyPanic.Message)
+		g.panicf(at, "%s: %s", seqCaughtBody, bodyPanic.Message)
 	}
 	if elsewhere.Load() {
-		g.panicf(e.Pos, "%s", SeqYieldedElsewhere)
+		g.panicf(at, "%s", seqYieldedElsewhere)
 	}
-	return value.Void, ctlNone
 }
 
-// YieldAfterEnd is the panic of a yield called after it returned false or after its sequence
+// yieldAfterEnd is the panic of a yield called after it returned false or after its sequence
 // returned (section 12, for).
-const YieldAfterEnd = "yield called after the sequence ended"
+const yieldAfterEnd = "yield called after the sequence ended"
 
-// YieldElsewhere is the panic of a yield called on a goroutine other than its loop's, where a
+// yieldElsewhere is the panic of a yield called on a goroutine other than its loop's, where a
 // return in the body could not reach the loop's function (section 12, for).
-const YieldElsewhere = "yield called on a goroutine other than its loop's"
+const yieldElsewhere = "yield called on a goroutine other than its loop's"
 
-// SeqCaughtBody begins the panic of a sequence that returned after a panic left a run of the
+// seqCaughtBody begins the panic of a sequence that returned after a panic left a run of the
 // loop body, which it must have caught (section 12, for).
-const SeqCaughtBody = "the sequence returned after a panic in the loop body"
+const seqCaughtBody = "the sequence returned after a panic in the loop body"
 
-// SeqYieldedElsewhere is the panic of a loop whose sequence returned after calling yield on
+// seqYieldedElsewhere is the panic of a loop whose sequence returned after calling yield on
 // another goroutine (section 12, for).
-const SeqYieldedElsewhere = "the sequence called yield on a goroutine other than the loop's"
+const seqYieldedElsewhere = "the sequence called yield on a goroutine other than the loop's"
 
 // withArticle puts "a" or "an" before a kind name: "an int", "a string".
 func withArticle(name string) string {

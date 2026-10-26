@@ -1,8 +1,6 @@
 package lib
 
 import (
-	"sync/atomic"
-
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
@@ -22,43 +20,10 @@ func seq(name string, run func(g *interp.Goroutine, push func(v value.Value) boo
 	})
 }
 
-// drive runs a sequence with a yield that calls push and stops the source once push says so.
-// As for's yield does, it runs push only on g, and panics when called on another goroutine,
-// after it returned false, after a panic left push, or after the source returned; and it panics
-// when the source returns after a panic left push, which it must have caught, or after a call of
-// yield on another goroutine (section 12, for).
+// drive runs a sequence with a yield that calls push and stops the source once push says so,
+// by for's rules (section 12, for).
 func drive(g *interp.Goroutine, who string, s value.Value, push func(v value.Value) bool) {
-	more := true
-	var elsewhere atomic.Bool
-	var bodyPanic *interp.AntPanic // a panic that ended a run of push
-	y := fn("yield", "x", func(g2 *interp.Goroutine, who string, a []value.Value) value.Value {
-		if g2 != g {
-			elsewhere.Store(true)
-			g2.Panic(interp.YieldElsewhere)
-		}
-		if !more {
-			g.Panic(interp.YieldAfterEnd)
-		}
-		defer func() {
-			if r := recover(); r != nil {
-				more = false
-				if p, ok := r.(*interp.AntPanic); ok {
-					bodyPanic = p
-				}
-				panic(r)
-			}
-		}()
-		more = push(a[0])
-		return more
-	})
-	defer func() { more = false }()
-	g.Call(funcArg(g, who, s), y)
-	if bodyPanic != nil {
-		g.Panic("%s: %s", interp.SeqCaughtBody, bodyPanic.Message)
-	}
-	if elsewhere.Load() {
-		g.Panic("%s", interp.SeqYieldedElsewhere)
-	}
+	g.RunSeq(funcArg(g, who, s), push)
 }
 
 func init() {
