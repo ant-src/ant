@@ -3,7 +3,6 @@ package interp
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/ant-src/ant/ast"
@@ -24,7 +23,7 @@ const (
 // the active flag of one run of the loop, not its node, so when a body re-enters the same loop,
 // as a recursive call does, each run catches only its own return.
 type loopUnwind struct {
-	loop *atomic.Bool
+	loop *bool
 	v    value.Value
 }
 
@@ -1060,15 +1059,14 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	if c != ctlNone {
 		return iter, c
 	}
-	// runOn runs the body once, on the goroutine that reached it: g, or for a sequence,
-	// whichever goroutine called yield; stop reports a break or a return.
-	runOn := func(rg *Goroutine, v value.Value) (value.Value, ctl, bool) {
+	// runOn runs the body once; stop reports a break or a return.
+	runOn := func(v value.Value) (value.Value, ctl, bool) {
 		ienv := env
 		if e.Scope != nil {
 			ienv = newEnv(e.Scope, env)
 		}
-		rg.bind(e.Target, v, ienv)
-		rv, rc := rg.evalBlock(e.Body, ienv)
+		g.bind(e.Target, v, ienv)
+		rv, rc := g.evalBlock(e.Body, ienv)
 		switch rc {
 		case ctlBreak:
 			return nil, ctlNone, true
@@ -1085,7 +1083,7 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 	visit := func(v value.Value) bool {
 		g.check()
 		var stop bool
-		rv, rc, stop = runOn(g, v)
+		rv, rc, stop = runOn(v)
 		return !stop
 	}
 	if !each(iter, visit) {
@@ -1144,53 +1142,45 @@ func each(v value.Value, visit func(value.Value) bool) bool {
 	return true
 }
 
-func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
-	// active is atomic, since a sequence may call yield from goroutines of its own. The body's
-	// runs are serialized by body, which a yield inside the body on the same goroutine does not
-	// take again: the body writes the loop function's plain slots, which two goroutines must not
-	// write at once (section 9, Data races), and the loop waits for a run in progress before it
-	// goes on past the loop.
-	var active atomic.Bool
-	active.Store(true)
-	var body BodyLock
-	var bodyPanic atomic.Pointer[AntPanic] // a panic that ended a run of the body
+func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
+	// The body runs only on g, where a return in it can reach the loop's function, so only g
+	// touches active. A yield from another goroutine sets elsewhere, which the loop reads once
+	// the sequence returns.
+	active := true
+	var elsewhere atomic.Bool
+	var bodyPanic *AntPanic // a panic that ended a run of the body
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
-		leave := body.Enter(g2)
-		defer leave()
-		if !active.Load() {
-			g2.Panic(YieldAfterEnd)
+		if g2 != g {
+			elsewhere.Store(true)
+			g2.Panic(YieldElsewhere)
+		}
+		if !active {
+			g.Panic(YieldAfterEnd)
 		}
 		defer func() {
-			// Whatever leaves the body ends the loop. A panic on the loop's goroutine is kept: it
-			// can reach the loop only through the sequence, so a sequence that returns after it
-			// caught it, and cannot hide it.
+			// Whatever leaves the body ends the loop. A panic is kept: it can reach the loop only
+			// through the sequence, so a sequence that returns after it caught it, and cannot hide it.
 			if r := recover(); r != nil {
-				active.Store(false)
-				if p, ok := r.(*AntPanic); ok && g2 == g {
-					bodyPanic.Store(p)
+				active = false
+				if p, ok := r.(*AntPanic); ok {
+					bodyPanic = p
 				}
 				panic(r)
 			}
 		}()
-		v, c, stop := run(g2, args[0])
+		v, c, stop := run(args[0])
 		if !stop {
 			return true
 		}
-		active.Store(false)
+		active = false
 		if c == ctlReturn {
-			if g2 != g {
-				// The loop's function is on another goroutine's stack, out of reach.
-				g2.Panic("a return in a for body cannot leave the loop from a yield called on another goroutine")
-			}
 			panic(&loopUnwind{loop: &active, v: v})
 		}
 		return false
 	}}
 	defer func() {
 		// The loop has ended however the sequence was left, so a yield kept past it panics.
-		leave := body.Enter(g)
-		active.Store(false)
-		leave()
+		active = false
 		if r := recover(); r != nil {
 			if u, ok := r.(*loopUnwind); ok && u.loop == &active {
 				rv, rc = u.v, ctlReturn
@@ -1200,8 +1190,11 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 		}
 	}()
 	g.callValue(seq, []value.Value{yield}, nil, e.Pos)
-	if p := bodyPanic.Load(); p != nil {
-		g.panicf(e.Pos, "%s: %s", SeqCaughtBody, p.Message)
+	if bodyPanic != nil {
+		g.panicf(e.Pos, "%s: %s", SeqCaughtBody, bodyPanic.Message)
+	}
+	if elsewhere.Load() {
+		g.panicf(e.Pos, "%s", SeqYieldedElsewhere)
 	}
 	return value.Void, ctlNone
 }
@@ -1210,27 +1203,17 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(*Goroutine, val
 // returned (section 12, for).
 const YieldAfterEnd = "yield called after the sequence ended"
 
+// YieldElsewhere is the panic of a yield called on a goroutine other than its loop's, where a
+// return in the body could not reach the loop's function (section 12, for).
+const YieldElsewhere = "yield called on a goroutine other than its loop's"
+
 // SeqCaughtBody begins the panic of a sequence that returned after a panic left a run of the
-// loop body on the loop's goroutine, which it must have caught (section 12, for).
+// loop body, which it must have caught (section 12, for).
 const SeqCaughtBody = "the sequence returned after a panic in the loop body"
 
-// BodyLock serializes the runs of a loop body that a sequence's yield calls, which may come from
-// several goroutines. Enter on the goroutine that holds it, a yield inside the body, does not
-// take it again.
-type BodyLock struct {
-	mu    sync.Mutex
-	owner atomic.Pointer[Goroutine]
-}
-
-// Enter takes the lock for g unless g holds it, and returns the function that gives it back.
-func (b *BodyLock) Enter(g *Goroutine) (leave func()) {
-	if b.owner.Load() == g {
-		return func() {}
-	}
-	b.mu.Lock()
-	b.owner.Store(g)
-	return func() { b.owner.Store(nil); b.mu.Unlock() }
-}
+// SeqYieldedElsewhere is the panic of a loop whose sequence returned after calling yield on
+// another goroutine (section 12, for).
+const SeqYieldedElsewhere = "the sequence called yield on a goroutine other than the loop's"
 
 // withArticle puts "a" or "an" before a kind name: "an int", "a string".
 func withArticle(name string) string {

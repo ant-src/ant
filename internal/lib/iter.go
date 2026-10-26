@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"sync/atomic"
+
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/value"
 )
@@ -9,13 +11,11 @@ import (
 // (section 5). The Iter functions build sequences as builtins over other sequences.
 
 // seq builds a sequence function from a Go loop body. push sends one element and reports
-// whether the consumer wants more. It calls the consumer's yield on g, the goroutine running push,
-// which is not the sequence's own when the loop body is a drive callback run by a yield from
-// another goroutine.
-func seq(name string, run func(g *interp.Goroutine, push func(g *interp.Goroutine, v value.Value) bool)) *interp.Builtin {
+// whether the consumer wants more.
+func seq(name string, run func(g *interp.Goroutine, push func(v value.Value) bool)) *interp.Builtin {
 	return fn(name, "yield", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		y := funcArg(g, name, a[0])
-		run(g, func(g *interp.Goroutine, v value.Value) bool {
+		run(g, func(v value.Value) bool {
 			return boolResult(g, "a sequence's yield", g.Call(y, v))
 		})
 		return value.Void
@@ -23,43 +23,41 @@ func seq(name string, run func(g *interp.Goroutine, push func(g *interp.Goroutin
 }
 
 // drive runs a sequence with a yield that calls push and stops the source once push says so.
-// As for's yield does, it runs push for one call at a time, and panics when called after it
-// returned false, after a panic left push, or after the source returned, and when the source
-// returns after a panic left push on g, which it must have caught (section 12, for). push runs on the goroutine that
-// called yield, which it receives, since the source may call yield from a goroutine of its own.
-func drive(g *interp.Goroutine, who string, s value.Value, push func(g *interp.Goroutine, v value.Value) bool) {
+// As for's yield does, it runs push only on g, and panics when called on another goroutine,
+// after it returned false, after a panic left push, or after the source returned; and it panics
+// when the source returns after a panic left push, which it must have caught, or after a call of
+// yield on another goroutine (section 12, for).
+func drive(g *interp.Goroutine, who string, s value.Value, push func(v value.Value) bool) {
 	more := true
-	var bodyPanic *interp.AntPanic // a panic that ended a run of push, under body
-	var body interp.BodyLock
+	var elsewhere atomic.Bool
+	var bodyPanic *interp.AntPanic // a panic that ended a run of push
 	y := fn("yield", "x", func(g2 *interp.Goroutine, who string, a []value.Value) value.Value {
-		leave := body.Enter(g2)
-		defer leave()
+		if g2 != g {
+			elsewhere.Store(true)
+			g2.Panic(interp.YieldElsewhere)
+		}
 		if !more {
-			g2.Panic(interp.YieldAfterEnd)
+			g.Panic(interp.YieldAfterEnd)
 		}
 		defer func() {
 			if r := recover(); r != nil {
 				more = false
-				if p, ok := r.(*interp.AntPanic); ok && g2 == g {
+				if p, ok := r.(*interp.AntPanic); ok {
 					bodyPanic = p
 				}
 				panic(r)
 			}
 		}()
-		more = push(g2, a[0])
+		more = push(a[0])
 		return more
 	})
-	defer func() {
-		leave := body.Enter(g)
-		more = false
-		leave()
-	}()
+	defer func() { more = false }()
 	g.Call(funcArg(g, who, s), y)
-	leave := body.Enter(g)
-	p := bodyPanic
-	leave()
-	if p != nil {
-		g.Panic("%s: %s", interp.SeqCaughtBody, p.Message)
+	if bodyPanic != nil {
+		g.Panic("%s: %s", interp.SeqCaughtBody, bodyPanic.Message)
+	}
+	if elsewhere.Load() {
+		g.Panic("%s", interp.SeqYieldedElsewhere)
 	}
 }
 
@@ -68,9 +66,9 @@ func init() {
 		return namespace("Iter",
 			fn("Iter.range", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				from, to := intArg(g, who, a[0]), intArg(g, who, a[1])
-				return seq(who, func(g *interp.Goroutine, push func(*interp.Goroutine, value.Value) bool) {
+				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
 					for i := from; i < to; i++ {
-						if !push(g, i) {
+						if !push(i) {
 							return
 						}
 					}
@@ -78,10 +76,10 @@ func init() {
 			}),
 			fn("Iter.fromArray", "xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				xs := arrayArg(g, who, a[0])
-				return seq(who, func(g *interp.Goroutine, push func(*interp.Goroutine, value.Value) bool) {
+				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
 					for i := 0; i < xs.Len(); i++ {
 						v, ok := xs.Get(i)
-						if !ok || !push(g, v) {
+						if !ok || !push(v) {
 							return
 						}
 					}
@@ -89,16 +87,16 @@ func init() {
 			}),
 			fn("Iter.map", "s, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				src, f := funcArg(g, who, a[0]), funcArg(g, who, a[1])
-				return seq(who, func(g *interp.Goroutine, push func(*interp.Goroutine, value.Value) bool) {
-					drive(g, who, src, func(g *interp.Goroutine, v value.Value) bool { return push(g, g.Call(f, v)) })
+				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
+					drive(g, who, src, func(v value.Value) bool { return push(g.Call(f, v)) })
 				})
 			}),
 			fn("Iter.filter", "s, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				src, f := funcArg(g, who, a[0]), funcArg(g, who, a[1])
-				return seq(who, func(g *interp.Goroutine, push func(*interp.Goroutine, value.Value) bool) {
-					drive(g, who, src, func(g *interp.Goroutine, v value.Value) bool {
+				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
+					drive(g, who, src, func(v value.Value) bool {
 						if boolResult(g, who, g.Call(f, v)) {
-							return push(g, v)
+							return push(v)
 						}
 						return true
 					})
@@ -110,20 +108,20 @@ func init() {
 				if n < 0 {
 					g.Panic("Iter.take needs a count of at least 0, got %d", n)
 				}
-				return seq(who, func(g *interp.Goroutine, push func(*interp.Goroutine, value.Value) bool) {
+				return seq(who, func(g *interp.Goroutine, push func(value.Value) bool) {
 					if n == 0 {
 						return
 					}
 					var taken int64
-					drive(g, who, src, func(g *interp.Goroutine, v value.Value) bool {
+					drive(g, who, src, func(v value.Value) bool {
 						taken++
-						return push(g, v) && taken < n
+						return push(v) && taken < n
 					})
 				})
 			}),
 			fn("Iter.toArray", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				var out []value.Value
-				drive(g, who, a[0], func(_ *interp.Goroutine, v value.Value) bool {
+				drive(g, who, a[0], func(v value.Value) bool {
 					out = append(out, v)
 					return true
 				})

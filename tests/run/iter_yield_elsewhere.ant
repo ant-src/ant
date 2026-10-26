@@ -1,0 +1,21 @@
+// spec: 11 Iter
+// The yield an Iter function passes to its source runs only on the goroutine running the source,
+// as for's does: a call from another goroutine panics there, and the Iter function panics once the
+// source returns, rather than giving back an array with the elements left out.
+func spread(yield: func(int): bool): void {
+  _ = yield(0)
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    _ = yield(1)
+  }
+  WaitGroup.wait(wg)
+}
+
+var r = Panic.catch({ Iter.toArray(Iter.filter(spread, { true })) })
+if r is Err { println(r.error.message) }
+
+// expect
+// out: the sequence called yield on a goroutine other than the loop's
+// err: yield called on a goroutine other than its loop's

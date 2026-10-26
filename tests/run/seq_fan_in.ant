@@ -1,0 +1,52 @@
+// spec: 5 Loops; 12 Expressions
+// A sequence whose elements come from goroutines of its own has them send on a channel and yields
+// what Channel.values receives, on the loop's goroutine, so return and break in the body leave
+// the loop as they do over any sequence, and cancelling the context stops the workers.
+func fanOut(ctx: Context): Seq[int] {
+  func(yield: func(int): bool): void {
+    var c: Channel[int] = Channel.new()
+    var wg = WaitGroup.new()
+    for w in Iter.range(0, 4) {
+      WaitGroup.add(wg, 1)
+      go {
+        defer { WaitGroup.done(wg) }
+        for i in Iter.range(0, 50) {
+          select {
+            Channel.send(c, w * 100 + i) {}
+            Context.wait(ctx) { return }
+          }
+        }
+      }
+    }
+    go { WaitGroup.wait(wg); Channel.close(c) }
+    for v in Channel.values(c, ctx) { if !yield(v) { return } }
+  }
+}
+
+func firstSeven(seq: Seq[int]): int {
+  for n in seq { if n % 100 == 7 { return n % 100 } }
+  -1
+}
+
+var all = Context.new()
+var total = 0
+for v in fanOut(all) { total += v % 100 }
+println(total)
+
+var early = Context.new()
+println(firstSeven(fanOut(early)))
+Context.cancel(early)
+
+var stopped = Context.new()
+var seen = 0
+for v in fanOut(stopped) {
+  seen += 1
+  if seen == 3 { break }
+}
+Context.cancel(stopped)
+println(seen)
+
+// expect
+// out: 4900
+// out: 7
+// out: 3
