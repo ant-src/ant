@@ -1,0 +1,29 @@
+// spec: 12 Expressions; 11 Iter
+// After a yield on another goroutine, the loop panics at the next yield on its own goroutine
+// rather than run the body there: first does not return the second element as though the first,
+// lost with the other goroutine, had never been, and an Iter function behaves the same.
+func mixed(yield: func(int): bool): void {
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    _ = yield(1)
+  }
+  WaitGroup.wait(wg)
+  _ = yield(2)
+}
+
+func first(seq: Seq[int]): int {
+  for n in seq { return n }
+  0
+}
+
+var r = Panic.catch({ first(mixed) })
+if r is Err { println(r.error.message) }
+var t = Panic.catch({ Iter.toArray(Iter.take(mixed, 1)) })
+if t is Err { println(t.error.message) }
+
+// expect
+// out: the sequence called yield on a goroutine other than the loop's
+// out: the sequence called yield on a goroutine other than the loop's
+// err: yield called on a goroutine other than its loop's

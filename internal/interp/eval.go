@@ -1171,8 +1171,9 @@ func (g *Goroutine) RunSeq(seq value.Value, push func(value.Value) bool) {
 
 // runSeq calls seq with a yield that runs push. push runs only on g, where a return in a for
 // body can reach the loop's function, so only g touches active and bodyPanic. A yield from
-// another goroutine panics there and sets elsewhere, which runSeq reads once the sequence
-// returns. Whatever leaves push, or the sequence, ends the run, so a yield kept past it panics.
+// another goroutine panics there and sets elsewhere, which makes the run panic at its next yield,
+// at a return out of push, or once the sequence returns. Whatever leaves push, or the
+// sequence, ends the run, so a yield kept past it panics.
 func (g *Goroutine) runSeq(seq value.Value, at ast.Pos, push func(value.Value) bool) {
 	active := true
 	var elsewhere atomic.Bool
@@ -1185,13 +1186,19 @@ func (g *Goroutine) runSeq(seq value.Value, at ast.Pos, push func(value.Value) b
 		if !active {
 			g.Panic(yieldAfterEnd)
 		}
+		if elsewhere.Load() {
+			g.Panic("%s", seqYieldedElsewhere)
+		}
 		defer func() {
-			// A panic can reach the loop only through the sequence, so one that returns after it
-			// caught it, and cannot hide it.
+			// A panic can reach the loop only through the sequence, so a sequence that catches it
+			// and returns still makes the loop panic. A return out of the body after a yield from
+			// elsewhere panics in its place, so the loop never ends as though it saw every element.
 			if r := recover(); r != nil {
 				active = false
 				if p, ok := r.(*AntPanic); ok {
 					bodyPanic = p
+				} else if _, ok := r.(*loopUnwind); ok && elsewhere.Load() {
+					g.Panic("%s", seqYieldedElsewhere)
 				}
 				panic(r)
 			}
