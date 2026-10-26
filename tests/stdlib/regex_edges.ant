@@ -16,6 +16,7 @@ var escnl = Result.unwrap(Regex.compile("a\\\nb"))
 [escnl == /a\nb/, Regex.source(escnl) == "a\\nb", Regex.test(escnl, "a\nb")] // => [true, true, true]
 var empty = Result.unwrap(Regex.compile(""))
 [empty == /(?:)/, Regex.source(empty) == "(?:)"] // => [true, true]
+[Regex.compile("a+", "i") == Ok{ value: /a+/i }, Regex.compile("a/b") == Ok{ value: /a\/b/ }, Regex.compile("") == Ok{ value: /(?:)/ }] // => [true, true, true]
 Encoding.fromBase64("aGk=")                   // => Ok{ value: Bytes(68 69) }
 Encoding.fromBase64("aGk")                    // => Ok{ value: Bytes(68 69) }
 Encoding.fromBase64("aGk==") is Err           // => true

@@ -1,0 +1,26 @@
+// spec: 11; 11 Array; 11 Map; 11 Iter
+// A function that takes a collection and a callback reads the collection once, at the call: what
+// the callback pushes, sets, or removes stays in the collection but changes nothing the call
+// visits. A for loop and a sequence read their source as they go instead.
+var a = [1, 2, 3]
+Array.map(a, { Array.push(a, x + 10); x * 2 }) // => [2, 4, 6]
+a                                             // => [1, 2, 3, 11, 12, 13]
+var b = [1, 2, 3]
+Array.map(b, { if x == 1 { b[1] = 20 }; x })   // => [1, 2, 3]
+b                                             // => [1, 20, 3]
+var c = [1, 2, 3, 4]
+Array.filter(c, { if x == 1 { Array.pop(c) }; true }) // => [1, 2, 3, 4]
+c                                             // => [1, 2, 3]
+var d = [1, 2]
+Array.reduce(d, 0, func(acc: int, x: int): int { Array.push(d, x); acc + x }) // => 3
+Array.some(d, { Array.push(d, 9); x == 9 })   // => false
+var m = Map{ "a": 1 }
+Map.map(m, { Map.set(m, "z", 9); x.value })    // => Map{ "a": 1 }
+len(m)                                        // => 2
+var e = [1, 2]
+var seen: Array[int] = []
+for x in Iter.fromArray(e) {
+  if x < 3 { Array.push(e, x + 2) }
+  Array.push(seen, x)
+}
+seen                                          // => [1, 2, 3, 4]
