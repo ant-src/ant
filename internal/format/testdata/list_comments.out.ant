@@ -13,8 +13,7 @@ func main() {
   ))
   println(f(1, /* inline */ 2))
   println(f( // after the bracket
-    1,
-    2,
+    1, 2,
   ))
   println(f(
     /* leads the first item */ 1,

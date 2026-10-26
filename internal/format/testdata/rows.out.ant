@@ -1,0 +1,74 @@
+// spec: fmt 4.4 Lists
+// A broken list keeps the rows the author wrote: an item that shares its line with the one before
+// it stays there, the first item moves off the bracket's line, and the closing bracket gets a line
+// of its own.
+
+// pairs
+var sshArgs = [
+  "-o", "IdentitiesOnly=yes",
+  "-o", "StrictHostKeyChecking=no",
+  "-p", "2222",
+]
+// first item on bracket line, last on closing line
+var a = [
+  "-o", "x",
+  "-p", "y",
+]
+// newline only after the opening bracket
+var b = [
+  1, 2, 3,
+]
+// matrix with trailing comments
+var m = [
+  1, 0, 0, // x
+  0, 1, 0, // y
+  0, 0, 1, // z
+]
+// call with named arguments
+Os.exec(
+  "ssh", args: sshArgs,
+  dir: "/tmp", env: null,
+)
+// lambdas on one row
+var fs = [
+  { x + 1 }, { x * 2 },
+  { x - 1 },
+]
+// multi-line item followed by another on its closing line
+var ps = [
+  Point{
+    x: 1,
+  }, Point{ x: 2 },
+  Point{ x: 3 },
+]
+// block comment between items on one row
+var c = [
+  1, /* one */ 2,
+  3,
+]
+// blank line between rows
+var d = [
+  1, 2,
+
+  3, 4,
+]
+// record type fields on a row
+type P = {
+  x: int, y: int,
+  z: int,
+}
+// map rows
+var e = Map{
+  "a": 1, "b": 2,
+  "c": 3,
+}
+// import-like destructuring
+var [
+  first, second,
+  ...rest
+] = [1, 2, 3]
+// leading comma
+f(
+  a, // c
+  b, c,
+)

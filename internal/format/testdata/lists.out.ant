@@ -14,8 +14,7 @@ func main() {
   )
   connect("a", 1)
   var xs = [
-    1,
-    2,
+    1, 2,
     3,
   ]
   var lock = RwMutex.new()

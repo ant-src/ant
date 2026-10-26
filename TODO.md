@@ -1,6 +1,6 @@
 # Work still to do
 
-Fourteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Thirteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
@@ -269,16 +269,6 @@ needs `xs = Array.concat(xs, ["-o", x])`.
 **Open questions:**
 
 - Ant has no variadic functions, so `pushAll` is the smaller change.
-
-## Formatting argument lists
-
-**Today:** `ant fmt` puts each element of a long array literal on a line of its own, so
-`["-o", "IdentitiesOnly=yes", "-o", ...]` turns into one value per line and the pairs are lost.
-
-**Open questions:**
-
-- Keep a multi-line literal's line breaks as the author wrote them, filling each line, as `gofmt`
-  does for composite literals, rather than one element per line.
 
 ## Command output as text
 

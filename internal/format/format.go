@@ -556,7 +556,11 @@ func (p *printer) group(g *group) {
 			keepSemicolons(units)
 		}
 		for i, u := range units {
-			p.newline(line+1, i > 0 && p.blankBefore(u.start()))
+			if i > 0 && !g.role.Block && p.newlines(p.lastEnd, u.start()) == 0 {
+				p.write(" ") // a row the author wrote: the item shares the line of the one before it (fmt 4.4)
+			} else {
+				p.newline(line+1, i > 0 && p.blankBefore(u.start()))
+			}
 			p.unit(u, line+1)
 			if !g.role.Block && len(u.body) > 0 && (i < last || g.role.Comma) {
 				p.write(",")
