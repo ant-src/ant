@@ -444,6 +444,7 @@ func (p *printer) file(root *group) {
 		// A file has no opening bracket: a comment after a leading ; leads the first statement.
 		units = append([]unit{{lead: afterOpen}}, units...)
 	}
+	keepSemicolons(units)
 	for i, u := range units {
 		if i > 0 {
 			p.newline(0, p.blankBefore(u.start()))

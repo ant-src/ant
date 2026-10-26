@@ -24,3 +24,7 @@ func main() {
     /y/
   }
 }
+
+// At the top level too, the semicolon before a pattern stays.
+println(1);
+/z/

@@ -23,6 +23,7 @@ func FuzzFormat(f *testing.F) {
 	f.Add("func f() { var [a, ...b] = [\n1]\n}")
 	f.Add("func f() { x\n-1\n(y\n-1) }")
 	f.Add("func f() { `${ {x}(1) } ${\n a }` }")
+	f.Add("{};/0/")
 	f.Fuzz(func(t *testing.T, src string) {
 		if _, err := parser.Parse("fuzz.ant", src, parser.Program); err != nil {
 			return
