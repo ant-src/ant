@@ -159,39 +159,6 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
 
-## Pretty-printed JSON
-
-**Today:** `Json.stringify` writes compact JSON on one line. A program that writes a file for a
-person to read, or to diff, has no way to indent it.
-
-**Sketch:** an optional parameter, as `JSON.stringify(value, null, 2)` and Go's `json.MarshalIndent`
-have it.
-
-```
-Json.stringify[T](value: T, indent: string = ""): string   // "": one line; else one member per line, nested levels indented by indent
-```
-
-```
-Json.stringify(Map{ "id": "x1", "tags": ["a"] }, indent: "  ")
-// {
-//   "id": "x1",
-//   "tags": [
-//     "a"
-//   ]
-// }
-```
-
-**Open questions:**
-
-- `indent` as a string, as Go has it, or a count of spaces, as JavaScript does. A string allows a
-  tab.
-- How empty arrays and objects are written: `[]` and `{}` on one line, as both Go and JavaScript
-  write them.
-- The separator after a key, `": "` when indented and `":"` when not, as JavaScript does, and
-  whether the output ends with a newline (neither does).
-
-v
-
 ## Shebang line
 
 **Today:** a script runs only as `ant run script.ant`. A `#!` line is a syntax error (section 2), so
