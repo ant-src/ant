@@ -20,7 +20,7 @@ type Bad2 = { a: int } | { b: int } // ERR: are both an anonymous record
 type P2[T] = T | Box[int]           // ERR: a type parameter may not share a union with Box[int]
 type Fine[T] = T | NotFound | null
 type R[T, E] = Ok[T] | Err[E]
-type S = Mutex | WaitGroup // ERR: at most one sync type
+type S = Mutex | WaitGroup // ERR: at most one type that is cannot test
 type OneOfEach = Array[int] | Map[string, int] | (func(): int) | null | int | float64 | string | bool | Point
 
 func items(u: U1 | U2): int { Array.length(u.items) } // ERR: a union may contain each discriminator at most once

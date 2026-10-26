@@ -180,7 +180,7 @@ func checkDiscriminators(members []Type) error {
 		if !ok {
 			if n, isNamed := expandTop(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
 				if opaque != nil {
-					return fmt.Errorf("a union may contain at most one sync type, since is cannot tell %s from %s", String(opaque), String(m))
+					return fmt.Errorf("a union may contain at most one type that is cannot test, since it cannot tell %s from %s", String(opaque), String(m))
 				}
 				opaque = m
 			}

@@ -1,0 +1,51 @@
+// spec: 4 Kinds
+// The rows other sections used to leave out: Bytes and void as is targets and union members, and
+// Random, File.Handle, and Net.Listener, which compare by identity, render as their type's name,
+// and are narrowed in a union by testing the other members.
+func body(b: string | Bytes): string {
+  if b is Bytes { `${Bytes.length(b)} bytes` } else { b }
+}
+
+func done(r: int | void): string {
+  if r is void { "void" } else { `${r}` }
+}
+
+func draw(g: Random | null): string {
+  if g != null { `${g}` } else { "none" }
+}
+
+func handle(h: File.Handle | int): string {
+  if h is int { "int" } else { `${h} ${h == Os.stdout()} ${h == Os.stderr()}` }
+}
+
+println(body(Bytes.fromArray([104, 105])))
+println(body("hi"))
+println(done(println("")))
+println(done(3))
+var g = Random.new(1)
+println(draw(g))
+println(draw(null))
+println(g == g)
+println(g == Random.new(1))
+println(handle(Os.stdout()))
+println(handle(1))
+var listened = Net.listen("127.0.0.1:0")
+if listened is Ok {
+  var l = listened.value
+  println(`${l} ${l == l}`)
+  Net.close(l)
+}
+
+// expect
+// out: 2 bytes
+// out: hi
+// out:
+// out: void
+// out: 3
+// out: Random
+// out: none
+// out: true
+// out: false
+// out: File.Handle true false
+// out: int
+// out: Net.Listener true
