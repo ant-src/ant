@@ -1,0 +1,16 @@
+// spec: stdlib File
+// A write that enters the buffer and fails when it is written out is reported by File.close,
+// which closes the handle all the same. /dev/full accepts the open and refuses every write, so
+// this runs on Linux only.
+var out = Result.unwrap(File.create("/dev/full"))
+println(File.writeLine(out, "lost"))
+println(File.close(out))
+println(File.writeLine(out, "late") is Err)
+println(File.close(out))
+
+// expect
+// os: linux
+// out: Ok{ value: void }
+// out: Err{ error: Error{ message: "write /dev/full: no space left on device" } }
+// out: true
+// out: Ok{ value: void }

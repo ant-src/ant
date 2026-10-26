@@ -13,6 +13,8 @@
 //	                   echoes requests
 //	// stdin: <line>   one line of standard input, in order; the program reads them through
 //	                   Os.stdin()
+//	// os: <goos>      the program runs only on this operating system, as runtime.GOOS names it,
+//	                   and is skipped elsewhere; for host behavior such as Linux's /dev/full
 //
 // Files under run/lib are modules the programs import, not tests. Every program under run/ must
 // also pass ant check, which is tested once the checker exists; programs under unchecked/ are
@@ -27,6 +29,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,6 +45,7 @@ type expectation struct {
 	err   []string
 	args  []string
 	stdin string
+	os    string
 }
 
 func parseTrailer(t *testing.T, path, src string) expectation {
@@ -69,6 +73,8 @@ func parseTrailer(t *testing.T, path, src string) expectation {
 			e.args = strings.Fields(rest)
 		case "// stdin":
 			e.stdin += rest + "\n"
+		case "// os":
+			e.os = strings.TrimSpace(rest)
 		default:
 			t.Fatalf("%s: unexpected trailer line %q", path, line)
 		}
@@ -107,6 +113,9 @@ func TestRun(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := parseTrailer(t, path, string(src))
+			if want.os != "" && want.os != runtime.GOOS {
+				t.Skipf("runs only on %s", want.os)
+			}
 			for i, a := range want.args {
 				switch a {
 				case "$TMP":

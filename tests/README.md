@@ -58,6 +58,7 @@ reading `// expect`:
 // args: a b c      command-line arguments; $TMP becomes a fresh temporary directory and $HTTP
 //                  the URL of a test server (see echoServer in conformance_test.go)
 // stdin: line      one line of standard input, in order, for Os.stdin(); may repeat
+// os: linux        runs only where runtime.GOOS is this, skipped elsewhere; CI runs Linux
 ```
 
 A program under `check/` marks each expected error on its line:
