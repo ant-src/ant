@@ -22,11 +22,11 @@ func TestStringifyDeep(t *testing.T) {
 	m := value.NewMap()
 	m.Set(deep, int64(1))
 	var sb strings.Builder
-	if msg := stringify(&sb, m, value.Ancestors{}); msg != "a map key must be a string, got array" {
+	if msg := stringify(&sb, m, value.Ancestors{}, ""); msg != "a map key must be a string, got array" {
 		t.Errorf("a map keyed by deeply nested Bytes stringifies with %q", msg)
 	}
 	sb.Reset()
-	if msg := stringify(&sb, deep, value.Ancestors{}); msg != bytesNoJSON {
+	if msg := stringify(&sb, deep, value.Ancestors{}, ""); msg != bytesNoJSON {
 		t.Errorf("deeply nested Bytes stringifies with %q", msg)
 	}
 }

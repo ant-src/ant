@@ -192,6 +192,29 @@ Json.stringify(Map{ "id": "x1", "tags": ["a"] }, indent: "  ")
 
 v
 
+## Shebang line
+
+**Today:** a script runs only as `ant run script.ant`. A `#!` line is a syntax error (section 2), so
+an Ant script cannot be made executable and run as `./script.ant`, as a Python or shell script can.
+
+**Sketch:** a first line that starts with `#!` is ignored, as in JavaScript and Python. Only the
+first line of the file, and only from its first byte.
+
+```
+#!/usr/bin/env -S ant run
+//! Syncs ~/.ssh/cerrion-config with on-prem.conf.
+
+println(Os.args())
+```
+
+**Open questions:**
+
+- `#!/usr/bin/env ant` would run `ant script.ant`, which is not a command today. Either the line
+  needs `env -S ant run`, or `ant <file.ant>` becomes a short form of `ant run`.
+- Whether `ant fmt` keeps the line as written, and where the module doc's `//!` lines may start
+  after it (section 2 puts them before the first `import` or declaration).
+- Whether a `#!` line in a library is an error, since only a script can be run (section 10).
+
 ## Running a command on the terminal
 
 **Today:** `Os.exec` captures the child's output whole and feeds it a fixed `stdin`, so a script

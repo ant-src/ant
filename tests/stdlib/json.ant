@@ -1,7 +1,7 @@
 // spec: stdlib Json; 12 Runtime panics
 // Json (stdlib.md): parse gives Json.Value trees, numbers as float64, objects as maps in
 // document order; a decoder narrows with is; stringify renders records as objects without
-// their tag; a map key must be a string, a named primitive over one written without its tag.
+// their tag, on one line or indented; a map key must be a string, a named primitive over one written without its tag.
 type Server = { host: string, port: int }
 func decodeServer(v: Json.Value, path: string): Result[Server, Error] {
   if !(v is Map) { return Result.err(Error{ message: `${path}: not an object` }) }
@@ -35,6 +35,15 @@ Json.stringify(mixed)                         // => panic: Json.stringify: map k
 type Meters = float64
 Json.stringify(Map{ Meters(3.0): 1 })         // => panic: Json.stringify: a map key must be a string, got Meters
 Json.stringify(1.0 / 0.0)                     // => "null"
+
+// With an indent, one member per line, ": " after a name, empty containers kept on one line.
+var noEntries: Map[string, int] = Map{}
+var noTags: Array[string] = []
+Json.stringify(Map{ "id": "x1", "tags": ["a"], "none": noTags, "e": noEntries }, indent: "  ") // => "{\n  \"id\": \"x1\",\n  \"tags\": [\n    \"a\"\n  ],\n  \"none\": [],\n  \"e\": {}\n}"
+Json.stringify([[1], Server{ host: "h", port: 1 }], indent: "\t") // => "[\n\t[\n\t\t1\n\t],\n\t{\n\t\t\"host\": \"h\",\n\t\t\"port\": 1\n\t}\n]"
+Json.stringify(1, indent: "  ")               // => "1"
+Json.stringify([1, 2], indent: "")            // => "[1,2]"
+Json.stringify([1], indent: "x")              // => panic: Json.stringify needs an indent of spaces and tabs, got "x"
 var round = Json.parse(Json.stringify(Map{ x: [1.5, "s"] }))
 round                                         // => Ok{ value: Map{ "x": [1.5, "s"] } }
 

@@ -1657,8 +1657,14 @@ func Json.parse(text: string): Result[Json.Value, Error]
 // channel or a Random. A map key must be a string or a named primitive over one, which is written
 // without its tag; any other key panics, as do two keys that give one property name.
 //
-//     Json.stringify(Map{ "a": [1, 2] })   // "{\"a\":[1,2]}"
-func Json.stringify[T](value: T): string
+// With an empty indent the text is one line. Otherwise each member of an array or object is on a
+// line of its own, indented by indent once per level, ": " follows a property name, and an empty
+// array or object stays [] or {}; the text ends without a newline. It panics on an indent that is
+// not all spaces and tabs.
+//
+//     Json.stringify(Map{ "a": [1, 2] })               // "{\"a\":[1,2]}"
+//     Json.stringify(Map{ "a": [1] }, indent: "  ")    // "{\n  \"a\": [\n    1\n  ]\n}"
+func Json.stringify[T](value: T, indent: string = ""): string
 
 // Csv
 //

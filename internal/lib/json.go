@@ -26,9 +26,16 @@ func init() {
 				}
 				return value.Ok(v)
 			}),
-			fn("Json.stringify", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			fn("Json.stringify", "value, indent?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				indent := ""
+				if given(a[1]) {
+					indent = stringArg(g, who, a[1])
+					if strings.Trim(indent, " \t") != "" {
+						g.Panic("%s needs an indent of spaces and tabs, got %q", who, indent)
+					}
+				}
 				var sb strings.Builder
-				if msg := stringify(&sb, a[0], value.Ancestors{}); msg != "" {
+				if msg := stringify(&sb, a[0], value.Ancestors{}, indent); msg != "" {
 					g.Panic("Json.stringify: %s", msg)
 				}
 				return sb.String()
@@ -352,26 +359,27 @@ func (p *jsonParser) hex4() (rune, error) {
 	return r, nil
 }
 
-// stringify writes v as JSON. It returns why v has no JSON form, a cycle or a part with none, or
-// "" when it has one.
-func stringify(sb *strings.Builder, v value.Value, stack value.Ancestors) string {
+// stringify writes v as JSON, on one line when indent is empty and otherwise with each member on a
+// line of its own, indented by indent once per level. It returns why v has no JSON form, a cycle
+// or a part with none, or "" when it has one.
+func stringify(sb *strings.Builder, v value.Value, stack value.Ancestors, indent string) string {
 	switch v.(type) {
 	case *value.Record, *value.Array, *value.Set, *value.Map:
 		if value.Deep(len(stack) + 1) {
-			return stringifyOnFreshStack(sb, v, stack)
+			return stringifyOnFreshStack(sb, v, stack, indent)
 		}
 	}
-	return stringifyBody(sb, v, stack)
+	return stringifyBody(sb, v, stack, indent)
 }
 
 // stringifyOnFreshStack is stringifyBody on a fresh goroutine.
-func stringifyOnFreshStack(sb *strings.Builder, v value.Value, stack value.Ancestors) (msg string) {
-	value.OnFreshStack(func() { msg = stringifyBody(sb, v, stack) })
+func stringifyOnFreshStack(sb *strings.Builder, v value.Value, stack value.Ancestors, indent string) (msg string) {
+	value.OnFreshStack(func() { msg = stringifyBody(sb, v, stack, indent) })
 	return msg
 }
 
 // stringifyBody is stringify once it has decided which goroutine to run on.
-func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) string {
+func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors, indent string) string {
 	switch x := v.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))
@@ -384,7 +392,7 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 	case bool:
 		sb.WriteString(strconv.FormatBool(x))
 	case *value.Tagged:
-		return stringify(sb, x.Payload, stack)
+		return stringify(sb, x.Payload, stack, indent)
 	case *value.Record:
 		if !stack.Enter(x) {
 			return "cyclic value"
@@ -392,15 +400,14 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 		defer stack.Leave(x)
 		sb.WriteByte('{')
 		for i, name := range x.Tag.Fields {
-			if i > 0 {
-				sb.WriteByte(',')
-			}
+			member(sb, i, indent, len(stack))
 			writeJSONString(sb, name)
-			sb.WriteByte(':')
-			if msg := stringify(sb, x.Get(i), stack); msg != "" {
+			colon(sb, indent)
+			if msg := stringify(sb, x.Get(i), stack, indent); msg != "" {
 				return msg
 			}
 		}
+		closing(sb, len(x.Tag.Fields), indent, len(stack))
 		sb.WriteByte('}')
 	case *value.Array, *value.Set:
 		if !stack.Enter(x) {
@@ -415,13 +422,12 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 		}
 		sb.WriteByte('[')
 		for i, e := range xs {
-			if i > 0 {
-				sb.WriteByte(',')
-			}
-			if msg := stringify(sb, e, stack); msg != "" {
+			member(sb, i, indent, len(stack))
+			if msg := stringify(sb, e, stack, indent); msg != "" {
 				return msg
 			}
 		}
+		closing(sb, len(xs), indent, len(stack))
 		sb.WriteByte(']')
 	case *value.Map:
 		if !stack.Enter(x) {
@@ -430,10 +436,9 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 		defer stack.Leave(x)
 		sb.WriteByte('{')
 		names := make(map[string]value.Value, x.Len())
-		for i, e := range x.Entries() {
-			if i > 0 {
-				sb.WriteByte(',')
-			}
+		entries := x.Entries()
+		for i, e := range entries {
+			member(sb, i, indent, len(stack))
 			name, msg := keyName(e.Key)
 			if msg != "" {
 				return msg
@@ -443,11 +448,12 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 			}
 			names[name] = e.Key
 			writeJSONString(sb, name)
-			sb.WriteByte(':')
-			if msg := stringify(sb, e.Value, stack); msg != "" {
+			colon(sb, indent)
+			if msg := stringify(sb, e.Value, stack, indent); msg != "" {
 				return msg
 			}
 		}
+		closing(sb, len(entries), indent, len(stack))
 		sb.WriteByte('}')
 	case value.Time:
 		writeJSONString(sb, x.String())
@@ -461,6 +467,35 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors) st
 		return noJSON(v)
 	}
 	return ""
+}
+
+// member starts the i-th member of an array or object at depth levels down: a comma after the
+// first, and with an indent, a new line indented depth times.
+func member(sb *strings.Builder, i int, indent string, depth int) {
+	if i > 0 {
+		sb.WriteByte(',')
+	}
+	if indent != "" {
+		sb.WriteByte('\n')
+		sb.WriteString(strings.Repeat(indent, depth))
+	}
+}
+
+// closing puts the bracket that ends an array or object of n members, its members depth levels
+// down, on a line of its own when there is an indent; an empty one stays [] or {}.
+func closing(sb *strings.Builder, n int, indent string, depth int) {
+	if indent != "" && n > 0 {
+		sb.WriteByte('\n')
+		sb.WriteString(strings.Repeat(indent, depth-1))
+	}
+}
+
+// colon follows a property name: ":", or ": " when there is an indent.
+func colon(sb *strings.Builder, indent string) {
+	sb.WriteByte(':')
+	if indent != "" {
+		sb.WriteByte(' ')
+	}
 }
 
 // bytesNoJSON is why Json.stringify panics on Bytes: JSON has no form for them (stdlib.md, Json).
