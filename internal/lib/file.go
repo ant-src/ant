@@ -277,6 +277,39 @@ func (h *Handle) flushed(err error) value.Value {
 	return okVoid(err)
 }
 
+// close flushes and closes h, returning the first error of the two, so a write that failed only
+// when its buffer was written out is reported. A standard stream and a closed handle give nil.
+func (h *Handle) close() error {
+	if h.std {
+		if h.w != nil {
+			h.writes.Lock()
+			h.w.Flush()
+			h.writes.Unlock()
+		}
+		return nil
+	}
+	h.state.Lock()
+	if h.closed {
+		h.state.Unlock()
+		return nil
+	}
+	h.closed = true
+	h.state.Unlock()
+	// A file's writes never block, so its buffer is flushed before the close; a connection's are
+	// flushed as they are written, and its close ends a write or a read in progress on another
+	// goroutine.
+	var err error
+	if h.w != nil && !h.conn {
+		h.writes.Lock()
+		err = h.w.Flush()
+		h.writes.Unlock()
+	}
+	if cerr := h.c.Close(); err == nil {
+		err = cerr
+	}
+	return err
+}
+
 // pump reads standard input on a goroutine of its own, since no deadline and no close ends a
 // terminal's read: the goroutine blocks in the real read and hands chunks over a channel, and
 // Read takes them, or gives up when the current reader's context is done without taking one, so
@@ -554,32 +587,7 @@ func init() {
 				})
 			}),
 			fn("File.close", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				h := handleArg(g, who, a[0])
-				if h.std {
-					if h.w != nil {
-						h.writes.Lock()
-						h.w.Flush()
-						h.writes.Unlock()
-					}
-					return value.Void
-				}
-				h.state.Lock()
-				if h.closed {
-					h.state.Unlock()
-					return value.Void
-				}
-				h.closed = true
-				h.state.Unlock()
-				// A file's writes never block, so its buffer is flushed before the close; a
-				// connection's are flushed as they are written, and its close ends a write or a
-				// read in progress on another goroutine.
-				if h.w != nil && !h.conn {
-					h.writes.Lock()
-					h.w.Flush()
-					h.writes.Unlock()
-				}
-				h.c.Close()
-				return value.Void
+				return okVoid(handleArg(g, who, a[0]).close())
 			}),
 		)
 	})

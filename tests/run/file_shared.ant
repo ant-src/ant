@@ -7,7 +7,7 @@ func serve(l: Net.Listener): void {
     var got = Result.unwrap(File.readLine(c))
     var x = File.writeLine(c, `echo ${got ?? ""}`)
   }
-  File.close(c)
+  Result.unwrap(File.close(c))
 }
 
 var l = Result.unwrap(Net.listen("127.0.0.1:0"))
