@@ -155,7 +155,10 @@ func corpus(t *testing.T) (programs, modules []program) {
 				isModule = true
 			}
 		}
-		for _, line := range strings.Split(p.src, "\n") {
+		for i, line := range strings.Split(p.src, "\n") {
+			if i == 0 && strings.HasPrefix(line, "#!") {
+				continue
+			}
 			if !strings.HasPrefix(line, "//") {
 				break
 			}

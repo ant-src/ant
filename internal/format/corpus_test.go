@@ -127,7 +127,7 @@ func checkProperties(t *testing.T, path, src string) {
 // a block comment, which are kept as written (fmt.md 4.8, 4.9). The code of an interpolation is
 // not.
 func verbatim(src string, off int) bool {
-	toks, comments, err := lexer.LexLayout(src)
+	toks, comments, err := lexer.LexLayout(src, true)
 	if err != nil {
 		return false
 	}
@@ -156,7 +156,7 @@ func verbatim(src string, off int) bool {
 // inInterpolation reports whether the line starting at off starts inside the code of a template's
 // interpolation, whose indentation belongs to the template and is kept as written (fmt.md 4.9).
 func inInterpolation(src string, off int) bool {
-	toks, _, err := lexer.LexLayout(src)
+	toks, _, err := lexer.LexLayout(src, true)
 	if err != nil {
 		return false
 	}
@@ -175,7 +175,7 @@ func inInterpolation(src string, off int) bool {
 // interpolations.
 func significant(t *testing.T, src string) []string {
 	t.Helper()
-	toks, err := lexer.Lex(src)
+	toks, _, err := lexer.LexLayout(src, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func significant(t *testing.T, src string) []string {
 // and every line break written \n.
 func commentTexts(t *testing.T, src string) []string {
 	t.Helper()
-	_, comments, err := lexer.LexLayout(src)
+	_, comments, err := lexer.LexLayout(src, true)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,7 +14,7 @@ func TestInvalidUTF8(t *testing.T) {
 		if err == nil || err.Error() != tc.want {
 			t.Errorf("Lex(%+q) = %v, want %s", tc.src, err, tc.want)
 		}
-		if _, _, err := LexLayout(tc.src); err == nil {
+		if _, _, err := LexLayout(tc.src, false); err == nil {
 			t.Errorf("LexLayout(%+q) accepted it", tc.src)
 		}
 	}

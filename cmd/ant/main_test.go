@@ -23,6 +23,7 @@ func TestRunCommand(t *testing.T) {
 	}{
 		{"run", []string{"run", example}, "", 0, "ada: 50.0\n", ""},
 		{"run with args", []string{"run", "../../tests/run/os_args.ant", "a", "b"}, "", 0, `["a", "b"]`, ""},
+		{"run short form", []string{"../../tests/run/os_args.ant", "a", "b"}, "", 0, `["a", "b"]`, ""},
 		{"run panic", []string{"run", panics}, "", 1, "", "panic:"},
 		{"run cannot load", []string{"run", missing}, "", 2, "", "main"},
 		{"run no file", []string{"run"}, "", 2, "", "usage"},

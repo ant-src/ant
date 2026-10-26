@@ -40,7 +40,7 @@ func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.P
 
 // Parse parses one module. path only labels the result.
 func Parse(path, src string, mode Mode) (f *ast.File, err error) {
-	toks, comments, lerr := lexer.LexLayout(src)
+	toks, comments, lerr := lexer.LexLayout(src, mode == Program)
 	if lerr != nil {
 		return nil, lexError(src, lerr)
 	}
@@ -73,7 +73,7 @@ type Role struct {
 
 // ParseLayout parses one module, as Parse does in Program mode, and also returns its Layout.
 func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
-	toks, comments, lerr := lexer.LexLayout(src)
+	toks, comments, lerr := lexer.LexLayout(src, true)
 	if lerr != nil {
 		return nil, nil, lexError(src, lerr)
 	}

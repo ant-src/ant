@@ -426,7 +426,7 @@ func align(out string, trails [][2]int) string {
 
 // endsLine reports whether nothing but whitespace follows the comment on its source line.
 func (p *printer) endsLine(c *token.Comment) bool {
-	if strings.HasPrefix(c.Text, "//") {
+	if strings.HasPrefix(c.Text, "//") || strings.HasPrefix(c.Text, "#!") {
 		return true
 	}
 	rest := p.src[c.End:]

@@ -1,0 +1,9 @@
+#!/usr/bin/env ant
+// spec: 2 Comments
+//! A first line that starts with #! is skipped, so a script can be run as a command; the module
+//! doc lines may follow it.
+
+println("ran")
+
+// expect
+// out: ran

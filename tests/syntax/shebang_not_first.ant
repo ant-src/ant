@@ -1,0 +1,8 @@
+// spec: 2 Comments
+// Only the file's first line may be a #! line; anywhere else it is not Ant.
+#!/usr/bin/env ant
+println("never")
+
+// expect
+// exit: 2
+// err: 3:1

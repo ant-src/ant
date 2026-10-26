@@ -1,6 +1,7 @@
 // Command ant runs, checks, and evaluates Ant programs.
 //
 //	ant run file.ant [args...]   run a program
+//	ant file.ant [args...]       the same, for a #!/usr/bin/env ant line
 //	ant check file.ant           type-check a program and every module it imports
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
@@ -22,6 +23,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/ant-src/ant"
@@ -30,6 +32,7 @@ import (
 
 const usage = `usage:
   ant run <file.ant> [args...]
+  ant <file.ant> [args...]
   ant check <file.ant>
   ant fmt [--check] <path>...   (- for standard input)
   ant doc <name> | <file.ant> [name]
@@ -110,6 +113,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, usage)
 		return 0
 	default:
+		if strings.HasSuffix(args[0], ".ant") {
+			return run(append([]string{"run"}, args...), stdin, stdout, stderr)
+		}
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}

@@ -14,7 +14,7 @@ func TestSpans(t *testing.T) {
 	src := "var x = 0xFF + 1_000 * 1e9 // trailing\n" +
 		"/* block\n   comment */ f(\"a\\n\", /^\\d+$/i, `t ${ a+b } u`)\n" +
 		"  e.y ?. z ... !q\n"
-	toks, comments, err := LexLayout(src)
+	toks, comments, err := LexLayout(src, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,6 +90,28 @@ func TestLoneCR(t *testing.T) {
 	for _, src := range []string{"\"a\rb\"", "/a\rb/"} {
 		if _, err := Lex(src); err == nil || !strings.Contains(err.Error(), "unterminated") {
 			t.Errorf("%q: got %v, want unterminated", src, err)
+		}
+	}
+}
+
+// TestShebang checks that a #! first line is skipped in a file and kept as its first comment,
+// and that it is not Ant elsewhere.
+func TestShebang(t *testing.T) {
+	src := "#!/usr/bin/env ant\nx\n"
+	toks, comments, err := LexLayout(src, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(comments) != 1 || comments[0].Text != "#!/usr/bin/env ant" {
+		t.Errorf("comments %v, want the #! line", comments)
+	}
+	if toks[0].Text != "x" || toks[0].Pos != (token.Pos{Line: 2, Col: 1}) {
+		t.Errorf("first token %v at %v, want x at 2:1", toks[0], toks[0].Pos)
+	}
+	for _, src := range []string{"#!x\n", " #!x\n", "x\n#!y\n"} {
+		shebang := src != "#!x\n"
+		if _, _, err := LexLayout(src, shebang); err == nil {
+			t.Errorf("LexLayout(%q, %v) accepted the #! line", src, shebang)
 		}
 	}
 }

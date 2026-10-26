@@ -29,6 +29,7 @@ type lexer struct {
 	noRegex bool            // read / as the operator always, for the differential test of the operand rule
 	lines   []int           // the byte offset at which each line starts
 	layout  bool            // keep the comments, for the formatter
+	shebang bool            // skip a #! first line, as in a file run as a command
 	comment []token.Comment // the comments kept in layout mode, in source order
 }
 
@@ -48,9 +49,10 @@ func LexWith(src string, regex bool) (toks []token.Token, err error) {
 }
 
 // LexLayout tokenizes src as Lex does, and also returns its comments in source order, for the
-// formatter, which must print them where they were.
-func LexLayout(src string) ([]token.Token, []token.Comment, error) {
-	return lex(&lexer{src: src, layout: true})
+// formatter, which must print them where they were. With shebang true, src is a file, and a first
+// line that starts with #! is skipped (section 2); it is returned as the first comment.
+func LexLayout(src string, shebang bool) ([]token.Token, []token.Comment, error) {
+	return lex(&lexer{src: src, layout: true, shebang: shebang})
 }
 
 func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
@@ -66,6 +68,12 @@ func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
 	}()
 	if !utf8.ValidString(l.src) {
 		l.invalidUTF8()
+	}
+	if l.shebang && l.has("#!") {
+		for !l.atEnd(0) && !l.lineBreak(0) {
+			l.advance(1)
+		}
+		l.keepComment(token.Pos{Line: 1, Col: 1}, 0)
 	}
 	for l.scan(l.toplevel) {
 	}

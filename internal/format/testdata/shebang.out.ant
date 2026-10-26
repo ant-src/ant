@@ -1,0 +1,5 @@
+#!/usr/bin/env -S ant run
+// spec: fmt 4.8 Comments
+//! Prints a greeting.
+
+println("hi")
