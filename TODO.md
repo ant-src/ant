@@ -1,6 +1,6 @@
 # Work still to do
 
-Fifteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Fourteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
@@ -158,29 +158,6 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
   rule changes.
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
-
-## Shebang line
-
-**Today:** a script runs only as `ant run script.ant`. A `#!` line is a syntax error (section 2), so
-an Ant script cannot be made executable and run as `./script.ant`, as a Python or shell script can.
-
-**Sketch:** a first line that starts with `#!` is ignored, as in JavaScript and Python. Only the
-first line of the file, and only from its first byte.
-
-```
-#!/usr/bin/env -S ant run
-//! Syncs ~/.ssh/cerrion-config with on-prem.conf.
-
-println(Os.args())
-```
-
-**Open questions:**
-
-- `#!/usr/bin/env ant` would run `ant script.ant`, which is not a command today. Either the line
-  needs `env -S ant run`, or `ant <file.ant>` becomes a short form of `ant run`.
-- Whether `ant fmt` keeps the line as written, and where the module doc's `//!` lines may start
-  after it (section 2 puts them before the first `import` or declaration).
-- Whether a `#!` line in a library is an error, since only a script can be run (section 10).
 
 ## Running a command on the terminal
 
