@@ -1,0 +1,13 @@
+// spec: fmt 4.10 HTML expressions
+type Task = { title: string, done: bool }
+
+func item(x: Task, attrs: Html.Attributes): Html {
+  <li class={if x.done { "done" }} {...attrs}>{x.title + "!"}{/* a note */}</li>
+}
+
+func list(tasks: Array[Task]): Html {
+  <ul>
+      {Array.map(tasks, { item(x, Map{}) })}
+    <li>  kept   as   written  </li>
+  </ul>
+}

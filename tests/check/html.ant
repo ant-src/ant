@@ -1,0 +1,29 @@
+// spec: 5 HTML expressions; 11 Html
+// What markup and its attributes take: strings, numbers, void, Html, and arrays of them in
+// content; a bool only on a boolean attribute; arrays only on class; and Html.Attributes in a
+// spread. <title> and <textarea> hold no Html.
+type UserId = string
+type Point = { x: int }
+
+var name: string | null = null
+var a = <p>{name}</p>          // ERR: markup takes a string, a number, void, Html, or an array of them, got string | null
+var b = <p>{UserId("u-1")}</p> // ERR: got UserId; convert it, as {string(x)}
+var c = <p>{Point{ x: 1 }}</p> // ERR: got Point
+var d = <p>{true}</p>          // ERR: got bool
+var e = <p>{[1, 2]}{void}{3.5}</p>
+var f = <p>{name ?? "guest"}</p>
+var g = <title>{<b>x</b>}</title> // ERR: <title> and <textarea> hold text only, so they cannot hold Html
+var h = <svg><title>{<b>x</b>}</title></svg>
+var i = <input disabled={true} aria-hidden={true} /> // ERR: aria-hidden is not a boolean attribute
+var j = <p id={1} title={name} />
+var k = <p id={Point{ x: 1 }} /> // ERR: attribute id takes a string, a number, or null, got Point
+var l = <p class={["a", null, if a == b { "c" }]} />
+var m = <p class={[1]} />       // ERR: class takes a string, a number, null, or an array of string, null, and void
+var n = <p id={["a"]} />        // ERR: attribute id takes a string, a number, or null
+var o = <p {...Map{ id: 1 }} /> // ERR: cannot use int where string | bool | null is expected
+var attrs: Html.Attributes = Map{ id: "x", hidden: true, title: null }
+var p = <p {...attrs} />
+var q: string = <p /> // ERR: cannot use Html where string is expected
+var r: Html = Html.unsafe("<b>x</b>")
+var s: Array[Html.Node] = Html.nodes(r)
+var t = len(r) // ERR: len needs an array, a map, a set, a string, Bytes, or a channel, got Html

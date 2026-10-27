@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p>a < b</p>
+
+// expect
+// exit: 2
+// err: a < in text is written &lt;

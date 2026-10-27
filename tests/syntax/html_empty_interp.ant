@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p>{}</p>
+
+// expect
+// exit: 2
+// err: an empty {} in markup

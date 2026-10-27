@@ -220,6 +220,8 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 		return types.Null{}
 	case *ast.VoidLit:
 		return types.Void{}
+	case *ast.Html:
+		return c.htmlExpr(x, sc)
 	case *ast.Template:
 		for _, p := range x.Parts {
 			if p.Expr != nil {
@@ -1231,6 +1233,8 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 			return types.Set{}
 		case "Bytes":
 			return types.Named{Decl: c.bytes}
+		case "Html":
+			return types.Named{Decl: c.html}
 		}
 		return types.Prim{Kind: builtinKinds[x.Kind]}
 	}

@@ -1,0 +1,7 @@
+// spec: 5 HTML expressions
+var css = "color: red"
+var x = <p style={css}>x</p>
+
+// expect
+// exit: 2
+// err: style takes only literal text

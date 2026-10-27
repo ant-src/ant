@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <xmp>a</xmp>
+
+// expect
+// exit: 2
+// err: <xmp> is obsolete

@@ -507,6 +507,8 @@ func noJSON(v value.Value) string {
 	switch x := v.(type) {
 	case value.Bytes:
 		return bytesNoJSON
+	case *value.Html:
+		return "Html has no JSON form; write String.from of it"
 	case value.Callable, *value.Constructor:
 		return "a function has no JSON form"
 	case *value.Tag:

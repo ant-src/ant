@@ -145,6 +145,11 @@ func verbatim(src string, off int) bool {
 	if inText(toks) {
 		return true
 	}
+	for _, t := range toks {
+		if t.Kind == token.Html && t.Off < off && off < t.End && !inMarkupCode(t.Markup, off) {
+			return true
+		}
+	}
 	for _, c := range comments {
 		if c.Off < off && off < c.End {
 			return true
@@ -165,6 +170,9 @@ func inInterpolation(src string, off int) bool {
 			if part.Tokens != nil && part.Off < off && off < part.End {
 				return true
 			}
+		}
+		if t.Kind == token.Html && inMarkupCode(t.Markup, off) {
+			return true
 		}
 	}
 	return false
@@ -194,6 +202,9 @@ func significant(t *testing.T, src string) []string {
 				if j < len(toks) && (toks[j].Is(")") || toks[j].Is("]") || toks[j].Is("}")) {
 					continue
 				}
+			case tok.Kind == token.Html:
+				walkMarkup(tok.Markup, &out, walk)
+				continue
 			case tok.Kind == token.Template:
 				for _, part := range tok.Parts {
 					if part.Tokens == nil {
@@ -249,4 +260,56 @@ func TestFormatCorpusDiff(t *testing.T) {
 		os.MkdirAll(filepath.Dir(dst), 0o755)
 		os.WriteFile(dst, out, 0o644)
 	}
+}
+
+// walkMarkup lists the significant pieces of an HTML expression: its tags, attributes and decoded
+// text, and the tokens of its code.
+func walkMarkup(m *token.Markup, out *[]string, walk func([]token.Token)) {
+	for _, n := range m.Nodes {
+		switch n.Kind {
+		case token.MarkupText:
+			*out = append(*out, "text:"+n.Text)
+		case token.MarkupExpr:
+			*out = append(*out, "{")
+			walk(n.Tokens)
+			*out = append(*out, "}")
+		case token.MarkupElement:
+			*out = append(*out, "<"+n.Name)
+			for _, a := range n.Attrs {
+				switch a.Kind {
+				case token.AttrExpr, token.AttrSpread:
+					*out = append(*out, a.Name+"={")
+					walk(a.Tokens)
+					*out = append(*out, "}")
+				default:
+					*out = append(*out, a.Name+"="+a.Text)
+				}
+			}
+			walkMarkup(n.Children, out, walk)
+			*out = append(*out, "</"+n.Name+">")
+		}
+	}
+}
+
+// inMarkupCode reports whether off lies inside the code of an interpolation, attribute value, or
+// spread of an HTML expression, whose indentation is kept as written (fmt.md 4.10).
+func inMarkupCode(m *token.Markup, off int) bool {
+	for _, n := range m.Nodes {
+		switch n.Kind {
+		case token.MarkupExpr:
+			if n.Off < off && off < n.End {
+				return true
+			}
+		case token.MarkupElement:
+			for _, a := range n.Attrs {
+				if (a.Kind == token.AttrExpr || a.Kind == token.AttrSpread) && a.Off < off && off < a.End {
+					return true
+				}
+			}
+			if inMarkupCode(n.Children, off) {
+				return true
+			}
+		}
+	}
+	return false
 }

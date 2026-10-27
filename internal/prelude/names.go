@@ -10,7 +10,7 @@ var Names = []string{
 	"never", "Integer", "Number", "Ordered", "Seq", "Entry", "Indexed",
 	"Error", "Panic", "Ok", "Err", "Result",
 	"Array", "Map", "Set", "String", "Regex", "Iter", "Math", "Bits", "Random", "Record",
-	"Bytes", "Mutex", "RwMutex", "WaitGroup", "Once", "Cond", "Atomic", "Context", "Channel",
+	"Bytes", "Html", "Mutex", "RwMutex", "WaitGroup", "Once", "Cond", "Atomic", "Context", "Channel",
 	"File", "Http", "Net", "Path", "Time", "Os", "Json", "Csv", "Encoding", "Url", "Crypto",
 }
 

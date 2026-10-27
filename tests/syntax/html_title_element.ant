@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <title><b>x</b></title>
+
+// expect
+// exit: 2
+// err: <title> holds text only, so it cannot contain <b>

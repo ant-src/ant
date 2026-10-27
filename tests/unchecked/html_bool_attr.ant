@@ -1,0 +1,9 @@
+// spec: 12 Runtime panics; 5 HTML expressions
+// panics: html-kind
+// A written bool on an attribute that is not boolean panics.
+var on: bool | string = true
+println(<p aria-hidden={on} />)
+
+// expect
+// exit: 1
+// err: aria-hidden is not a boolean attribute, so it takes a string, not a bool

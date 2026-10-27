@@ -53,6 +53,9 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 	case *Regex:
 		y, ok := b.(*Regex)
 		return ok && x.Source == y.Source && x.Flags == y.Flags
+	case *Html:
+		y, ok := b.(*Html)
+		return ok && equalHtml(x, y)
 	}
 	return false
 }
@@ -168,6 +171,10 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 		h.WriteString(x)
 	case Bytes:
 		h.WriteString(string(x))
+	case *Html:
+		// Equal values render alike; a raw node may also render as an element does, which only
+		// shares a hash.
+		h.WriteString(RenderHtml(x))
 	case bool:
 		if x {
 			h.WriteByte(1)

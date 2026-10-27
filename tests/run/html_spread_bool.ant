@@ -1,0 +1,18 @@
+// spec: 12 Runtime panics; 5 HTML expressions
+// panics: html-spread
+// A spread may give a bool only to a boolean attribute; the names are data, so the checker cannot
+// tell, and a bad name such as "a b" panics too.
+var ok: Html.Attributes = Map{ hidden: true, disabled: false }
+println(<p {...ok} />)
+var r = Panic.catch({ <p {...Map{ "a b": "x" }} /> })
+if r is Err {
+  println(r.error.message)
+}
+var bad: Html.Attributes = Map{ draggable: true }
+println(<p {...bad} />)
+
+// expect
+// out: <p hidden></p>
+// out: "a b" is not an attribute name
+// exit: 1
+// err: draggable is not a boolean attribute, so it takes a string, not a bool

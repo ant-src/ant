@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <svg><script>x</script></svg>
+
+// expect
+// exit: 2
+// err: <script> is not allowed inside <svg> or <math>

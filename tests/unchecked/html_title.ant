@@ -1,0 +1,9 @@
+// spec: 12 Runtime panics; 5 HTML expressions
+// panics: html-kind
+// Html inside <title> panics, since <title> holds text only.
+var h: Html | string = <b>x</b>
+println(<title>{h}</title>)
+
+// expect
+// exit: 1
+// err: <title> and <textarea> hold text only, so they cannot hold Html

@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <iframe>x</iframe>
+
+// expect
+// exit: 2
+// err: <iframe> takes no content

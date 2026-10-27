@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p onclick={go}>x</p>
+
+// expect
+// exit: 2
+// err: onclick takes only literal text, since it runs code

@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <svg><style><![CDATA[ a {} ]]></style></svg>
+
+// expect
+// exit: 2
+// err: <![CDATA[ inside <style> would reach the CSS as text

@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p><!-- note --></p>
+
+// expect
+// exit: 2
+// err: an HTML comment is written {/* ... */} in markup

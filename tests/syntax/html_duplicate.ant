@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p id="a" ID="b">x</p>
+
+// expect
+// exit: 2
+// err: attribute ID is written twice

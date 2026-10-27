@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics; 12 Expressions
+// panics: html-kind
+// A value markup does not take panics when the element is built, as the checker would have
+// rejected it: here a bool in content.
+var on: bool | string = true
+println(<p>{on}</p>)
+
+// expect
+// exit: 1
+// err: markup takes a string, a number, void, Html, or an array of them, got bool

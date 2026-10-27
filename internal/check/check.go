@@ -73,6 +73,9 @@ type Checker struct {
 	// bytes is the declaration of Bytes, built in like string: len, for, indexing and is take
 	// it whether or not the host removed the namespace of its functions.
 	bytes *types.Decl
+	// html is the declaration of Html, the type of an HTML expression, which stays when the host
+	// removes the namespace.
+	html *types.Decl
 	// unresolved holds the type declarations whose bodies are not resolved yet, so that a type
 	// argument list naming a later declaration resolves it first and can be checked at the use.
 	unresolved map[*types.Decl]*typeInfo
@@ -230,12 +233,16 @@ func (c *Checker) loadPrelude(cfg Config) {
 	}
 	c.declareFile(f, "")
 	c.bytes = c.prelude["Bytes"].decl
+	c.html = c.prelude["Html"].decl
 	for _, name := range cfg.Removed {
 		delete(c.prelude, name)
 	}
 	if _, ok := c.prelude["Bytes"]; !ok {
 		// The functions go with the namespace; the type stays, as string stays without String.
 		c.prelude["Bytes"] = &entity{name: "Bytes", kind: entType, decl: c.bytes, exported: true}
+	}
+	if _, ok := c.prelude["Html"]; !ok {
+		c.prelude["Html"] = &entity{name: "Html", kind: entType, decl: c.html, exported: true}
 	}
 	for _, ns := range cfg.Namespaces {
 		c.declareFile(ns.Decls, ns.Name)

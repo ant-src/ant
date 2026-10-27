@@ -61,6 +61,7 @@ const (
 	KindTime
 	KindRegex
 	KindBytes
+	KindHtml
 )
 
 var kindNames = [...]string{
@@ -70,6 +71,7 @@ var kindNames = [...]string{
 	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map", KindSet: "set",
 	KindRecord: "record", KindTagged: "tagged primitive", KindFunc: "func", KindTag: "type",
 	KindSync: "sync object", KindTime: "time value", KindRegex: "regular expression", KindBytes: "Bytes",
+	KindHtml: "Html",
 }
 
 func (k Kind) String() string { return kindNames[k] }
@@ -145,6 +147,8 @@ func KindByName(name string) (Kind, bool) {
 		return KindFunc, true
 	case "Bytes":
 		return KindBytes, true
+	case "Html":
+		return KindHtml, true
 	}
 	return KindInvalid, false
 }
@@ -202,6 +206,8 @@ func KindOf(v Value) Kind {
 		return KindRegex
 	case Bytes:
 		return KindBytes
+	case *Html:
+		return KindHtml
 	}
 	return KindInvalid
 }

@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions; 10 Scripts
+<p>a</p>
+
+// expect
+// exit: 2
+// err: this HTML expression's value is discarded

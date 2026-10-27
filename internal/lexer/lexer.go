@@ -31,6 +31,9 @@ type lexer struct {
 	layout  bool            // keep the comments, for the formatter
 	shebang bool            // skip a #! first line, as in a file run as a command
 	comment []token.Comment // the comments kept in layout mode, in source order
+	// brackets holds the open brackets of the current token stream, innermost last, so that a <
+	// at the start of a line inside ( or [ stays a comparison (section 2).
+	brackets []byte
 }
 
 // maxNesting bounds the nesting of template interpolations, so that no input can overflow the
@@ -168,6 +171,16 @@ func (l *lexer) emit(t token.Token) {
 	if t.Kind == token.Newline {
 		t.End = t.Off
 	}
+	if t.Kind == token.Op {
+		switch t.Text {
+		case "(", "[", "{":
+			l.brackets = append(l.brackets, t.Text[0])
+		case ")", "]", "}":
+			if len(l.brackets) > 0 {
+				l.brackets = l.brackets[:len(l.brackets)-1]
+			}
+		}
+	}
 	l.toks = append(l.toks, t)
 }
 
@@ -214,7 +227,7 @@ var operandKeywords = map[string]bool{"true": true, "false": true, "null": true,
 // any kind, true, false, null, void, or a closing bracket. After an operand a / is division.
 func Operand(t token.Token) bool {
 	switch t.Kind {
-	case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex:
+	case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex, token.Html:
 		return true
 	case token.Keyword:
 		return operandKeywords[t.Text]
@@ -323,6 +336,8 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 		l.fail(pos, "a float literal needs a digit before the point")
 	case c == '/' && !l.noRegex && l.regexAllowed():
 		l.regex()
+	case c == '<' && l.markupAllowed():
+		l.markup()
 	default:
 		l.operator()
 	}
@@ -638,13 +653,19 @@ func (l *lexer) template() {
 
 // interpolation lexes the tokens of a ${...} up to its matching brace, which it consumes.
 func (l *lexer) interpolation(pos token.Pos) []token.Token {
+	return l.interpolationOf(pos, "unterminated ${ in template string")
+}
+
+// interpolationOf lexes the tokens of an interpolation up to its matching brace, which it
+// consumes, and fails with unterminated when there is none.
+func (l *lexer) interpolationOf(pos token.Pos, unterminated string) []token.Token {
 	l.nesting++
 	if l.nesting > maxNesting {
 		l.fail(pos, "nesting deeper than %d levels", maxNesting)
 	}
 	defer func() { l.nesting-- }()
-	outer := l.toks
-	l.toks = nil
+	outer, brackets := l.toks, l.brackets
+	l.toks, l.brackets = nil, nil
 	depth := 0
 	closed := false
 	stop := func(t token.Token) bool {
@@ -666,10 +687,10 @@ func (l *lexer) interpolation(pos token.Pos) []token.Token {
 	for l.scan(stop) {
 	}
 	if !closed {
-		l.fail(pos, "unterminated ${ in template string")
+		l.fail(pos, "%s", unterminated)
 	}
 	toks := l.toks[:len(l.toks)-1] // drop the closing brace
 	toks = append(toks, token.Token{Kind: token.EOF, Pos: l.here()})
-	l.toks = outer
+	l.toks, l.brackets = outer, brackets
 	return toks
 }

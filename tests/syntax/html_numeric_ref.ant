@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p>&#128;</p>
+
+// expect
+// exit: 2
+// err: is not a character a page can hold

@@ -1,0 +1,134 @@
+// spec: 5 HTML expressions; 2 Literals; 11 Html; 4 Kinds; 12 Values; 12 Expressions
+// HTML expressions: elements and fragments, escaped text and attributes, interpolation by kind,
+// boolean and class attributes, spreads, checked URLs, script and style text, white space,
+// <pre>, components, ==, and rendering inside containers.
+type Task = { title: string, done: bool }
+
+func badge(n: int): Html {
+  <span class="badge">{n}</span>
+}
+
+func card(title: string, children: Html, footer: Html | null = null): Html {
+  <section class="card">
+    <h2>{title}</h2>
+    {children}
+    {if footer != null { <footer>{footer}</footer> }}
+  </section>
+}
+
+func button(label: string, attrs: Html.Attributes = Map{}): Html {
+  <button class="btn" {...attrs}>{label}</button>
+}
+
+var tasks = [Task{ title: "<b>bold</b>", done: true }, Task{ title: "Tom & Jerry", done: false }]
+
+// < after an operand is a comparison; after = or at the start of a line it begins markup.
+var n = 2
+var limit = 3
+println(n < limit)
+var list = <ul>
+  {Array.map(tasks, { <li class={["task", if x.done { "done" }]}>{x.title}</li> })}
+</ul>
+println(list)
+
+// Interpolation by kind: Html as it is, numbers rendered, void dropped, arrays spliced.
+println(<p>{badge(3)} {1.5} {void}{[["a", "b"], 7]}</p>)
+println(badge(3) == <span class="badge">3</span>)
+println(<p>{"a"}{"b"}</p> == <p>ab</p>)
+println(<p>a</p> == <p>b</p>)
+
+// References are decoded, then escaped again on the way out.
+println(<p title="&quot;q&quot; &amp; &#x41;">&lt;tag&gt; &nbsp;&#8212; &copy=2 & {"'"}</p>)
+
+// Boolean attributes, null attributes, and class arrays.
+println(<input type="checkbox" checked={true} disabled={false} required />)
+println(<p id={null} class={[null, ""]} hidden="until-found">x</p>)
+println(<td colspan={2}>x</td>)
+
+// A spread: a later value wins at the earlier position, and null removes.
+println(button("Save", Map{ type: "submit", disabled: true, class: "primary" }))
+println(<button disabled {...Map{ disabled: null, id: "b" }} />)
+
+// URL attributes are checked when interpolated, never when literal.
+println(<a href={"javascript:alert(1)"}>x</a>)
+println(<a href={" JavaScript:x"}>x</a>)
+println(<a href={"java\tscript:x"}>x</a>)
+println(<a href={"/path?a=b:c"}>x</a>)
+println(<a href={"HTTPS://ant.dev"} cite={"mailto:a@b.c"} data-x={"javascript:ok"}>x</a>)
+println(<img srcset={"a.png 1x, data:image/png;base64 2x"} src="javascript:literal" />)
+
+// Script and style hold literal text; on* and style take literal text.
+println(<>
+  <script>if (a < b && c) { go("</p>") }</script>
+  <style>p > a { color: red }</style>
+  <button onclick="go()" style="color: red">x</button>
+</>)
+
+// White space: a run with a line break collapses, and goes at the edges.
+println(<p>
+  Hello
+  <b>{"ada"}</b>{/* a comment */}
+  !
+</p>)
+println(<p>a   b</p>)
+println(<pre>
+  keep
+    this
+</pre>)
+println(<textarea>{"\nfirst"}</textarea>)
+
+// Void and self-closing elements, SVG.
+println(<><br /><div /></>)
+println(<svg viewBox="0 0 10 10"><circle cx="5" r="4" /><style>a > b</style><title><b>t</b></title></svg>)
+
+// Components with named arguments and children.
+println(card(title: "Tasks", children: <p>{len(tasks)} tasks</p>))
+println(card(title: "x", children: <></>, footer: <a href="/">home</a>))
+
+// Html in containers, as a map key, and in a template string.
+println([<></>, <br />, badge(1)])
+var seen: Map[Html, string] = Map{}
+seen[badge(1)] = "one"
+println(seen[<span class="badge">1</span>])
+println(`<!doctype html>${<html lang="en"></html>}`)
+var h: Html | string = <p />
+println(h is Html)
+println(String.from(<></>) == "")
+
+// expect
+// out: true
+// out: <ul><li class="task done">&lt;b&gt;bold&lt;/b&gt;</li><li class="task">Tom &amp; Jerry</li></ul>
+// out: <p><span class="badge">3</span> 1.5 ab7</p>
+// out: true
+// out: true
+// out: false
+// out: <p title="&quot;q&quot; &amp; A">&lt;tag&gt;  — &amp;copy=2 &amp; &#39;</p>
+// out: <input type="checkbox" checked required>
+// out: <p hidden="until-found">x</p>
+// out: <td colspan="2">x</td>
+// out: <button class="primary" type="submit" disabled>Save</button>
+// out: <button id="b"></button>
+// out: <a href="about:invalid#ant">x</a>
+// out: <a href="about:invalid#ant">x</a>
+// out: <a href="about:invalid#ant">x</a>
+// out: <a href="/path?a=b:c">x</a>
+// out: <a href="HTTPS://ant.dev" cite="mailto:a@b.c" data-x="javascript:ok">x</a>
+// out: <img srcset="a.png 1x, about:invalid#ant 2x" src="javascript:literal">
+// out: <script>if (a < b && c) { go("</p>") }</script> <style>p > a { color: red }</style> <button onclick="go()" style="color: red">x</button>
+// out: <p>Hello <b>ada</b> !</p>
+// out: <p>a   b</p>
+// out: <pre>  keep
+// out:     this
+// out: </pre>
+// out: <textarea>
+// out:
+// out: first</textarea>
+// out: <br><div></div>
+// out: <svg viewBox="0 0 10 10"><circle cx="5" r="4"></circle><style>a &gt; b</style><title><b>t</b></title></svg>
+// out: <section class="card"><h2>Tasks</h2> <p>2 tasks</p> </section>
+// out: <section class="card"><h2>x</h2>  <footer><a href="/">home</a></footer></section>
+// out: [<></>, <br>, <span class="badge">1</span>]
+// out: one
+// out: <!doctype html><html lang="en"></html>
+// out: true
+// out: true

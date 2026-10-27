@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <p>&copy;</p>
+
+// expect
+// exit: 2
+// err: &copy; is not one of the named references

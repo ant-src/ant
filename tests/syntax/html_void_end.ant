@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <br></br>
+
+// expect
+// exit: 2
+// err: <br> is a void element; write <br />

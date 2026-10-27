@@ -347,6 +347,8 @@ func (p *printer) token(t token.Token) {
 	switch {
 	case t.Kind == token.Template:
 		p.template(t)
+	case t.Kind == token.Html:
+		p.html(t)
 	case t.Off == t.End:
 		p.write(t.Text) // a separator the printer added
 	default:
@@ -702,6 +704,52 @@ func (p *printer) template(t token.Token) {
 		}
 		p.write("}")
 		at = part.End
+	}
+	p.write(p.text[at:t.End])
+}
+
+// html writes an HTML expression (4.10): its markup as written, and the code inside each
+// interpolation, attribute value, and spread formatted as an expression.
+func (p *printer) html(t token.Token) {
+	type span struct {
+		off, end int
+		toks     []token.Token
+		spread   bool
+	}
+	var spans []span
+	var walk func(m *token.Markup)
+	walk = func(m *token.Markup) {
+		for _, n := range m.Nodes {
+			switch n.Kind {
+			case token.MarkupExpr:
+				spans = append(spans, span{n.Off, n.End, n.Tokens, false})
+			case token.MarkupElement:
+				for _, a := range n.Attrs {
+					if a.Kind == token.AttrExpr || a.Kind == token.AttrSpread {
+						spans = append(spans, span{a.Off, a.End, a.Tokens, a.Kind == token.AttrSpread})
+					}
+				}
+				walk(n.Children)
+			}
+		}
+	}
+	walk(t.Markup)
+	at := t.Off
+	for _, s := range spans {
+		p.write(p.text[at:s.off])
+		from := s.off + 1
+		p.write("{")
+		if s.spread {
+			from += strings.Index(p.src[from:s.end], "...") + 3
+			p.write("...")
+		}
+		g := p.build(s.toks, from, s.end)
+		end := p.inline(g.elems, from)
+		if close := s.end - 1; p.newlines(end, close) > 0 {
+			p.write(breaks(p.src[end:close]))
+		}
+		p.write("}")
+		at = s.end
 	}
 	p.write(p.text[at:t.End])
 }

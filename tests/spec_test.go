@@ -345,6 +345,7 @@ var panicRows = [][]string{
 	{"depth"},                                // call depth
 	{"count"},                                // a count above 2^31 − 1
 	{"size"},                                 // a string result above 2^31 − 1 bytes
+	{"html-kind", "html-spread"},             // HTML expression: a value of a bad kind; a bad spread name
 	{"try"},                                  // try on a non-Result
 	{"select-closed"},                        // select: a send clause chosen on a closed channel
 	{"never"},                                // ??, ?., ==, != never panic

@@ -257,6 +257,11 @@ type (
 		Pos   Pos
 		Parts []TemplatePart
 	}
+	// Html is an HTML expression (section 5): an element, or a fragment, as its content.
+	Html struct {
+		Pos     Pos
+		Content []HtmlNode
+	}
 	// RecordLit is Head{ entries }, where Head is an identifier path.
 	RecordLit struct {
 		Pos     Pos
@@ -418,6 +423,34 @@ type (
 	}
 )
 
+// HtmlNode is an item of an HTML expression's content: decoded text, an interpolated Expr, or
+// an Element.
+type HtmlNode struct {
+	Pos     Pos
+	Text    string
+	Expr    Expr
+	Element *HtmlElement
+}
+
+// HtmlElement is an element as written. TextOnly marks a <title> or <textarea> outside <svg>
+// and <math>, whose content may not hold Html.
+type HtmlElement struct {
+	Name     string
+	Attrs    []HtmlAttr
+	Content  []HtmlNode
+	TextOnly bool
+}
+
+// HtmlAttr is an attribute: literal Text when Expr is nil, a value when Expr is set, and every
+// entry of a map when Spread is set, in which case Name is empty.
+type HtmlAttr struct {
+	Pos    Pos
+	Name   string
+	Text   string
+	Expr   Expr
+	Spread bool
+}
+
 // TemplatePart is literal text or an interpolated expression.
 type TemplatePart struct {
 	Text string
@@ -534,6 +567,7 @@ func (n *BoolLit) Position() Pos      { return n.Pos }
 func (n *NullLit) Position() Pos      { return n.Pos }
 func (n *VoidLit) Position() Pos      { return n.Pos }
 func (n *Template) Position() Pos     { return n.Pos }
+func (n *Html) Position() Pos         { return n.Pos }
 func (n *RecordLit) Position() Pos    { return n.Pos }
 func (n *MapLit) Position() Pos       { return n.Pos }
 func (n *ArrayLit) Position() Pos     { return n.Pos }
@@ -578,6 +612,7 @@ func (*BoolLit) stmtNode()     {}
 func (*NullLit) stmtNode()     {}
 func (*VoidLit) stmtNode()     {}
 func (*Template) stmtNode()    {}
+func (*Html) stmtNode()        {}
 func (*RecordLit) stmtNode()   {}
 func (*MapLit) stmtNode()      {}
 func (*ArrayLit) stmtNode()    {}
@@ -611,6 +646,7 @@ func (*BoolLit) exprNode()     {}
 func (*NullLit) exprNode()     {}
 func (*VoidLit) exprNode()     {}
 func (*Template) exprNode()    {}
+func (*Html) exprNode()        {}
 func (*RecordLit) exprNode()   {}
 func (*MapLit) exprNode()      {}
 func (*ArrayLit) exprNode()    {}

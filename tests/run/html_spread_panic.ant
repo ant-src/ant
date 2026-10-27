@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics; 5 HTML expressions
+// panics: html-spread
+// A spread's names are data, so a name that runs code panics when the element is built, though
+// the program checks.
+var attrs: Html.Attributes = Map{ id: "x", onclick: "alert(1)" }
+println(<p {...attrs} />)
+
+// expect
+// exit: 1
+// err: onclick takes only literal text, so a spread cannot give it

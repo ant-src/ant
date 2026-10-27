@@ -560,6 +560,33 @@ func Bytes.fromArray[T: Integer](xs: Array[T]): Bytes
 // Bytes.toArray returns the bytes of b as an array.
 func Bytes.toArray(b: Bytes): Array[byte]
 
+// Html is the value of an HTML expression, <p>{name}</p>: an immutable list of nodes, each an
+// element, a text node, or raw markup from [Html.unsafe]. It compares by its nodes with ==, and
+// String.from renders it as markup, escaping text and attribute values.
+type Html
+// Html.Node is one node of an Html value, as [Html.nodes] returns it.
+type Html.Node = Html.Element | Html.Text | Html.Raw
+// Html.Element is an element: its name as written, its attributes in order, and its children.
+type Html.Element = { name: string, attributes: Array[Html.Attribute], children: Html }
+// Html.Attribute is an attribute of an element; a boolean attribute that is on has the empty value.
+type Html.Attribute = { name: string, value: string }
+// Html.Text is a text node, holding its text decoded.
+type Html.Text = { text: string }
+// Html.Raw is a node of trusted markup, made by [Html.unsafe].
+type Html.Raw = { markup: string }
+// Html.Attributes is what an attribute spread {...attrs} takes.
+type Html.Attributes = Map[string, string | bool | null]
+// Html.unsafe returns s as markup, which String.from writes unescaped. It is the one way to turn a
+// string into markup: pass only markup the program trusts, such as a sanitizer's output.
+//
+//     String.from(Html.unsafe("<b>x</b>"))   // "<b>x</b>"
+func Html.unsafe(s: string): Html
+// Html.nodes returns the top-level nodes of h, in order. An element's children are read with
+// Html.nodes again.
+//
+//     Html.nodes(<p>hi</p>)   // [Html.Element{ name: "p", attributes: [], children: hi }]
+func Html.nodes(h: Html): Array[Html.Node]
+
 // Regex
 //
 // Regex holds the functions of regular expressions, written as a literal /.../flags or compiled

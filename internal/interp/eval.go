@@ -124,6 +124,8 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 		return value.Null, ctlNone
 	case *ast.VoidLit:
 		return value.Void, ctlNone
+	case *ast.Html:
+		return g.html(e, env)
 	case *ast.Template:
 		var sb strings.Builder
 		for _, p := range e.Parts {

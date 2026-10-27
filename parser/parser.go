@@ -402,7 +402,11 @@ func (p *parser) file(path string) *ast.File {
 				f.Script = true
 				f.FirstStmt = pos(t)
 			}
-			f.Stmts = append(f.Stmts, p.statement())
+			s := p.statement()
+			if p.mode == Program {
+				p.discardedHtml(s)
+			}
+			f.Stmts = append(f.Stmts, s)
 		}
 		p.expectTerm()
 		p.skipTerms()
@@ -790,6 +794,9 @@ func (p *parser) statements() []ast.Stmt {
 		if p.atKind(token.EOF) {
 			p.fail(p.peek().Pos, "expected '}', got end of file")
 		}
+		if len(stmts) > 0 {
+			p.discardedHtml(stmts[len(stmts)-1])
+		}
 		stmts = append(stmts, p.statement())
 		if p.at("}") {
 			break
@@ -986,7 +993,7 @@ func (p *parser) binaryLeft(next func() ast.Expr, ops ...string) ast.Expr {
 }
 
 var kindNames = map[string]bool{
-	"bool": true, "string": true, "Bytes": true, "Array": true, "Map": true, "Set": true,
+	"bool": true, "string": true, "Bytes": true, "Html": true, "Array": true, "Map": true, "Set": true,
 	"int8": true, "int16": true, "int32": true, "int64": true,
 	"uint8": true, "uint16": true, "uint32": true, "uint64": true,
 	"float32": true, "float64": true, "int": true, "byte": true,
@@ -1167,6 +1174,9 @@ func (p *parser) primary() ast.Expr {
 	case token.Template:
 		p.next()
 		return p.template(t)
+	case token.Html:
+		p.next()
+		return &ast.Html{Pos: pos(t), Content: p.markup(t.Markup)}
 	case token.Ident:
 		p.next()
 		id := &ast.Ident{Pos: pos(t), Name: t.Text}
@@ -1303,6 +1313,61 @@ func (p *parser) template(t token.Token) *ast.Template {
 		n.Parts = append(n.Parts, ast.TemplatePart{Expr: e})
 	}
 	return n
+}
+
+// markup converts the content the lexer read, parsing each interpolation on its own tokens as
+// template does.
+func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
+	p.nest()
+	defer p.unnest()
+	var out []ast.HtmlNode
+	for _, n := range m.Nodes {
+		switch n.Kind {
+		case token.MarkupText:
+			out = append(out, ast.HtmlNode{Pos: pos(token.Token{Pos: n.Pos}), Text: n.Text})
+		case token.MarkupExpr:
+			out = append(out, ast.HtmlNode{Pos: pos(token.Token{Pos: n.Pos}), Expr: p.subExpression(n.Tokens, "markup")})
+		case token.MarkupElement:
+			el := &ast.HtmlElement{Name: n.Name, TextOnly: n.TextOnly}
+			for _, a := range n.Attrs {
+				attr := ast.HtmlAttr{Pos: pos(token.Token{Pos: a.Pos}), Name: a.Name, Text: a.Text}
+				switch a.Kind {
+				case token.AttrExpr:
+					attr.Expr = p.subExpression(a.Tokens, "an attribute")
+				case token.AttrSpread:
+					attr.Spread = true
+					attr.Expr = p.subExpression(a.Tokens, "a spread")
+				}
+				el.Attrs = append(el.Attrs, attr)
+			}
+			el.Content = p.markup(n.Children)
+			out = append(out, ast.HtmlNode{Pos: pos(token.Token{Pos: n.Pos}), Element: el})
+		}
+	}
+	return out
+}
+
+// subExpression parses one expression from toks, an interpolation's tokens ending with EOF.
+func (p *parser) subExpression(toks []token.Token, where string) ast.Expr {
+	saved, i, nl, header := p.toks, p.i, p.nl, p.header
+	p.toks, p.i, p.nl, p.header = toks, 0, 1, false
+	if p.atKind(token.EOF) {
+		p.fail(p.peek().Pos, "expected an expression in %s", where)
+	}
+	e := p.expression()
+	if !p.atKind(token.EOF) {
+		p.fail(p.peek().Pos, "unexpected %s in %s", p.peek(), where)
+	}
+	p.toks, p.i, p.nl, p.header = saved, i, nl, header
+	return e
+}
+
+// discardedHtml fails at an HTML expression that is a statement whose value is discarded
+// (section 5, HTML expressions).
+func (p *parser) discardedHtml(s ast.Stmt) {
+	if h, ok := s.(*ast.Html); ok {
+		p.fail(token.Pos{Line: h.Pos.Line, Col: h.Pos.Col}, "this HTML expression's value is discarded; put siblings in a fragment <>...</>")
+	}
 }
 
 // headerExpr parses the condition of an if or while, or the iterable of a for: an expression in

@@ -1,0 +1,7 @@
+// spec: 5 HTML expressions
+var kind = "a"
+var x = <p class="btn {kind}">x</p>
+
+// expect
+// exit: 2
+// err: { in a quoted attribute value; interpolate with class={...}

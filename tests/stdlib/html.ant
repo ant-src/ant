@@ -1,0 +1,19 @@
+// spec: 11 Html; stdlib Json
+// Html.unsafe makes a raw node, rendered as it is but not == to the elements it spells;
+// Html.nodes reads the top-level nodes as records; Json.stringify has no form for Html.
+var raw = Html.unsafe("<b>x</b>")
+String.from(raw)                                // => "<b>x</b>"
+raw == <b>x</b>                                 // => false
+raw == Html.unsafe("<b>x</b>")                  // => true
+String.from(Html.unsafe(""))                    // => ""
+Html.unsafe("") == <></>                        // => true
+String.from(Html.nodes(raw))                    // => "[Html.Raw{ markup: \"<b>x</b>\" }]"
+
+var page = <><p id="a" hidden={true}>hi <i>there</i></p>tail</>
+len(Html.nodes(page))                           // => 2
+var first = Html.nodes(page)[0]
+first is Html.Element                           // => true
+String.from(Html.nodes(page)[1])                // => "Html.Text{ text: \"tail\" }"
+String.from(Html.nodes(<p id="a" hidden={true} />)) // => "[Html.Element{ name: \"p\", attributes: [Html.Attribute{ name: \"id\", value: \"a\" }, Html.Attribute{ name: \"hidden\", value: \"\" }], children: <></> }]"
+String.from(Html.nodes(<></>))                  // => "[]"
+Json.stringify(raw)                             // => panic: Json.stringify: Html has no JSON form; write String.from of it

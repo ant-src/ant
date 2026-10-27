@@ -1,0 +1,9 @@
+// spec: 5 HTML expressions
+func f(): Html {
+  <p>a</p>
+  <p>b</p>
+}
+
+// expect
+// exit: 2
+// err: this HTML expression's value is discarded

@@ -205,6 +205,10 @@ func sprint(sb *strings.Builder, n Node) {
 			}
 		}
 		sb.WriteString(")")
+	case *Html:
+		sb.WriteString("(html")
+		sprintHtml(sb, x.Content)
+		sb.WriteString(")")
 	case *RecordLit:
 		sb.WriteString("(")
 		sprint(sb, x.Head)
@@ -450,4 +454,34 @@ func params(sb *strings.Builder, ps []Param) {
 		}
 	}
 	sb.WriteString(")")
+}
+
+func sprintHtml(sb *strings.Builder, content []HtmlNode) {
+	for _, n := range content {
+		sb.WriteString(" ")
+		switch {
+		case n.Element != nil:
+			sb.WriteString("(<" + n.Element.Name)
+			for _, a := range n.Element.Attrs {
+				sb.WriteString(" ")
+				switch {
+				case a.Spread:
+					sb.WriteString("...")
+					sprint(sb, a.Expr)
+				case a.Expr != nil:
+					sb.WriteString(a.Name + "=")
+					sprint(sb, a.Expr)
+				default:
+					sb.WriteString(a.Name + "=" + strconv.Quote(a.Text))
+				}
+			}
+			sb.WriteString(">")
+			sprintHtml(sb, n.Element.Content)
+			sb.WriteString(")")
+		case n.Expr != nil:
+			sprint(sb, n.Expr)
+		default:
+			sb.WriteString(strconv.Quote(n.Text))
+		}
+	}
 }

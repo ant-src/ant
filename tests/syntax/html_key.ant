@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <li key="1">x</li>
+
+// expect
+// exit: 2
+// err: key is reserved

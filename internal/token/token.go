@@ -18,6 +18,7 @@ const (
 	Template      // a template string; Parts holds its pieces
 	Op            // an operator or punctuation; Text holds it
 	Regex         // a regular expression literal; Text holds the source as written, Flags the sorted flags
+	Html          // an HTML expression; Markup holds its tree
 )
 
 func (k Kind) String() string {
@@ -44,6 +45,8 @@ func (k Kind) String() string {
 		return "operator"
 	case Regex:
 		return "regular expression"
+	case Html:
+		return "HTML expression"
 	}
 	return "token"
 }
@@ -61,7 +64,9 @@ type Token struct {
 	Float float64 // for Float
 	Parts []Part  // for Template
 	Flags string  // for Regex
-	Pos   Pos
+	// Markup is the fragment an Html token holds: an element is a fragment of one node.
+	Markup *Markup
+	Pos    Pos
 	// Off and End are the token's byte span in the source: the source between them is the token
 	// as written. A Newline is empty, at its line break.
 	Off, End int
@@ -75,6 +80,57 @@ type Part struct {
 	Pos    Pos
 	// Off and End are the part's byte span in the source: the text as written, or an
 	// interpolation from its $ to its closing brace.
+	Off, End int
+}
+
+// Markup is the content of an HTML expression as the lexer read it (section 5): its text decoded and
+// its white space collapsed, its interpolations as token streams for the parser.
+type Markup struct {
+	Nodes []MarkupNode
+}
+
+// MarkupKind is the kind of a MarkupNode.
+type MarkupKind uint8
+
+const (
+	MarkupText    MarkupKind = iota // Text holds the decoded text
+	MarkupElement                   // Name, Attrs, and Children
+	MarkupExpr                      // an interpolation; Tokens ends with EOF
+)
+
+// MarkupNode is one item of content.
+type MarkupNode struct {
+	Kind     MarkupKind
+	Name     string
+	Attrs    []MarkupAttr
+	Children *Markup
+	Text     string
+	Tokens   []Token
+	// TextOnly marks a <title> or <textarea> outside <svg> and <math>, whose content may not be Html.
+	TextOnly bool
+	Pos      Pos
+	// Off and End are the node's byte span in the source.
+	Off, End int
+}
+
+// MarkupAttrKind is the form of a MarkupAttr.
+type MarkupAttrKind uint8
+
+const (
+	AttrText   MarkupAttrKind = iota // name="text"; Text holds the decoded text
+	AttrBare                         // name alone
+	AttrExpr                         // name={expr}
+	AttrSpread                       // {...expr}
+)
+
+// MarkupAttr is an attribute as written; an expression's tokens end with EOF.
+type MarkupAttr struct {
+	Kind   MarkupAttrKind
+	Name   string
+	Text   string
+	Tokens []Token
+	Pos    Pos
+	// Off and End are the byte span of the expression, from its { to its }.
 	Off, End int
 }
 
@@ -100,6 +156,8 @@ func (t Token) String() string {
 		return "template string"
 	case Regex:
 		return "regular expression literal"
+	case Html:
+		return "HTML expression"
 	}
 	return t.Kind.String()
 }

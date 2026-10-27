@@ -62,6 +62,12 @@ func renderBody(sb *strings.Builder, v Value, top bool, stack Ancestors) {
 		sb.WriteString(FormatFloat(float64(x), 32))
 	case Bytes:
 		renderBytes(sb, x)
+	case *Html:
+		if !top && len(x.Nodes) == 0 {
+			sb.WriteString("<></>")
+			return
+		}
+		renderHtml(sb, x, false)
 	case string:
 		if top {
 			sb.WriteString(x)

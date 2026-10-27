@@ -1,0 +1,6 @@
+// spec: 5 HTML expressions
+var x = <><!doctype html></>
+
+// expect
+// exit: 2
+// err: a doctype is written where the page becomes a response

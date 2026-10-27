@@ -427,6 +427,8 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 				r.expr(p.Expr, s)
 			}
 		}
+	case *ast.Html:
+		r.markup(e.Content, s)
 	case *ast.RecordLit:
 		r.expr(e.Head, s)
 		for _, en := range e.Entries {
@@ -699,5 +701,22 @@ func (r *resolver) finalize() {
 			}
 		}
 		u.id.Ref = ast.Ref{Kind: ast.RefLocal, Depth: depth, Index: u.b.index, Shared: u.b.shared, Name: u.id.Name}
+	}
+}
+
+// markup resolves the expressions of an HTML expression's content, attributes first.
+func (r *resolver) markup(content []ast.HtmlNode, s *scope) {
+	for _, n := range content {
+		switch {
+		case n.Element != nil:
+			for _, a := range n.Element.Attrs {
+				if a.Expr != nil {
+					r.expr(a.Expr, s)
+				}
+			}
+			r.markup(n.Element.Content, s)
+		case n.Expr != nil:
+			r.expr(n.Expr, s)
+		}
 	}
 }
