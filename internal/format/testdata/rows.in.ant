@@ -4,6 +4,9 @@
 // of its own.
 
 
+import "./geometry.ant" { distance, area,
+  Point, Rect }
+
 // pairs
 var sshArgs = [
   "-o", "IdentitiesOnly=yes",
@@ -58,7 +61,7 @@ var e = Map{
   "a": 1, "b": 2,
   "c": 3,
 }
-// import-like destructuring
+// destructuring
 var [first, second,
   ...rest] = [1, 2, 3]
 // leading comma

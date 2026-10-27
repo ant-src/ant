@@ -458,21 +458,22 @@ func (p *printer) file(root *group) {
 func (p *printer) unit(u unit, indent int) {
 	for i, c := range u.lead {
 		if i > 0 {
-			p.breakBefore(c, indent)
+			p.breakBefore(c.off(), indent)
 		}
 		p.comment(c.com)
 	}
 	if len(u.lead) > 0 && len(u.body) > 0 {
-		p.breakBefore(u.body[0], indent)
+		p.breakBefore(u.body[0].off(), indent)
 	}
 	p.seq(u.body, indent)
 }
 
-// breakBefore starts a new line before e when the author wrote one there, and otherwise
-// leaves one space, as after a block comment that shares its line with code.
-func (p *printer) breakBefore(e elem, indent int) {
-	if p.newlines(p.lastEnd, e.off()) > 0 {
-		p.newline(indent, p.blankBefore(e.off()))
+// breakBefore starts a new line before the source offset off when the author wrote one there, and
+// otherwise leaves one space, as after a block comment that shares its line with code or between
+// the items of a row (fmt 4.4).
+func (p *printer) breakBefore(off int, indent int) {
+	if p.newlines(p.lastEnd, off) > 0 {
+		p.newline(indent, p.blankBefore(off))
 	} else {
 		p.write(" ")
 	}
@@ -556,8 +557,8 @@ func (p *printer) group(g *group) {
 			keepSemicolons(units)
 		}
 		for i, u := range units {
-			if i > 0 && !g.role.Block && p.newlines(p.lastEnd, u.start()) == 0 {
-				p.write(" ") // a row the author wrote: the item shares the line of the one before it (fmt 4.4)
+			if i > 0 && !g.role.Block {
+				p.breakBefore(u.start(), line+1) // an item keeps the row the author wrote it on
 			} else {
 				p.newline(line+1, i > 0 && p.blankBefore(u.start()))
 			}
@@ -566,12 +567,8 @@ func (p *printer) group(g *group) {
 				p.write(",")
 			}
 			for _, c := range u.trail {
-				if p.newlines(p.lastEnd, c.off()) > 0 {
-					p.newline(line+1, p.blankBefore(c.off()))
-					p.comment(c.com)
-				} else {
-					p.trailing(c.com)
-				}
+				p.breakBefore(c.off(), line+1)
+				p.comment(c.com)
 			}
 		}
 		p.newline(line, false)

@@ -28,3 +28,5 @@ func main() {
 // At the top level too, the semicolon before a pattern stays.
 println(1);
 /z/
+var after = 1; // the semicolon stays, before this comment
+/w/
