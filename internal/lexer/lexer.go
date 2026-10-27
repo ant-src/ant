@@ -665,7 +665,8 @@ func (l *lexer) interpolationOf(pos token.Pos, unterminated string) []token.Toke
 	}
 	defer func() { l.nesting-- }()
 	outer, brackets := l.toks, l.brackets
-	l.toks, l.brackets = nil, nil
+	// Line breaks end no statement inside an interpolation, as inside parentheses.
+	l.toks, l.brackets = nil, []byte{'('}
 	depth := 0
 	closed := false
 	stop := func(t token.Token) bool {

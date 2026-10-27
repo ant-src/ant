@@ -172,9 +172,7 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 	case Bytes:
 		h.WriteString(string(x))
 	case *Html:
-		// Equal values render alike; a raw node may also render as an element does, which only
-		// shares a hash.
-		h.WriteString(RenderHtml(x))
+		hashHtml(h, x, depth)
 	case bool:
 		if x {
 			h.WriteByte(1)
@@ -233,4 +231,30 @@ func writeUint(h *maphash.Hash, u uint64) {
 		b[i] = byte(u >> (8 * i))
 	}
 	h.Write(b[:])
+}
+
+// hashHtml hashes the nodes of an Html value as equalHtml compares them, within the bounds that
+// keep hashing a large value cheap.
+func hashHtml(h *maphash.Hash, x *Html, depth int) {
+	writeUint(h, uint64(len(x.Nodes)))
+	if depth >= hashDepth {
+		return
+	}
+	for i := 0; i < len(x.Nodes) && i < hashWidth; i++ {
+		n := &x.Nodes[i]
+		h.WriteByte(byte(n.Kind))
+		h.WriteString(n.Name)
+		h.WriteByte(0)
+		h.WriteString(n.Text)
+		writeUint(h, uint64(len(n.Attrs)))
+		for _, a := range n.Attrs {
+			h.WriteString(a.Name)
+			h.WriteByte(0)
+			h.WriteString(a.Value)
+			h.WriteByte(0)
+		}
+		if n.Kind == HtmlElement {
+			hashHtml(h, n.Children, depth+1)
+		}
+	}
 }

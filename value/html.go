@@ -241,20 +241,6 @@ func HtmlCodeAttr(lower string) bool {
 	return strings.HasPrefix(lower, "on") || lower == "style" || lower == "srcdoc"
 }
 
-// HtmlElementName reports whether s is an element name: an ASCII letter, then ASCII letters,
-// digits, and -.
-func HtmlElementName(s string) bool {
-	if s == "" || !isASCIILetter(s[0]) {
-		return false
-	}
-	for i := 1; i < len(s); i++ {
-		if c := s[i]; !isASCIILetter(c) && !isASCIIDigit(c) && c != '-' {
-			return false
-		}
-	}
-	return true
-}
-
 // HtmlAttrName reports whether s is an attribute name: an ASCII letter or _, then ASCII letters,
 // digits, -, _, :, and ..
 func HtmlAttrName(s string) bool {

@@ -1,0 +1,19 @@
+// spec: 2 Literals; 5 HTML expressions
+// Inside an interpolation, of a template string or of markup, line breaks end no statement, so a
+// < at the start of a line there is a comparison. A reference that a comment splits is not one.
+var x = 2
+var s = `${x
+  < 3}`
+println(s)
+println(<p>{if x
+  < 3 { "less" }}</p>)
+println(<p>&#{/* not a reference */}0;</p>)
+println(<p>{Array.map([1, 2], {
+  <i>{x}</i>
+})}</p>)
+
+// expect
+// out: true
+// out: <p>less</p>
+// out: <p>&amp;#0;</p>
+// out: <p><i>1</i><i>2</i></p>

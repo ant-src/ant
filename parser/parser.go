@@ -1301,16 +1301,7 @@ func (p *parser) template(t token.Token) *ast.Template {
 			n.Parts = append(n.Parts, ast.TemplatePart{Text: part.Text})
 			continue
 		}
-		// The interpolation is parsed by this parser on its own tokens, so it keeps the source,
-		// the nesting depth, and everything else of the enclosing expression.
-		toks, i, nl, header := p.toks, p.i, p.nl, p.header
-		p.toks, p.i, p.nl, p.header = part.Tokens, 0, 1, false
-		e := p.expression()
-		if !p.atKind(token.EOF) {
-			p.fail(p.peek().Pos, "unexpected %s in a template expression", p.peek())
-		}
-		p.toks, p.i, p.nl, p.header = toks, i, nl, header
-		n.Parts = append(n.Parts, ast.TemplatePart{Expr: e})
+		n.Parts = append(n.Parts, ast.TemplatePart{Expr: p.subExpression(part.Tokens, "a template expression")})
 	}
 	return n
 }
@@ -1347,13 +1338,12 @@ func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 	return out
 }
 
-// subExpression parses one expression from toks, an interpolation's tokens ending with EOF.
+// subExpression parses one expression from toks, an interpolation's tokens ending with EOF. It is
+// parsed by this parser on its own tokens, so it keeps the source, the nesting depth, and
+// everything else of the enclosing expression.
 func (p *parser) subExpression(toks []token.Token, where string) ast.Expr {
 	saved, i, nl, header := p.toks, p.i, p.nl, p.header
 	p.toks, p.i, p.nl, p.header = toks, 0, 1, false
-	if p.atKind(token.EOF) {
-		p.fail(p.peek().Pos, "expected an expression in %s", where)
-	}
 	e := p.expression()
 	if !p.atKind(token.EOF) {
 		p.fail(p.peek().Pos, "unexpected %s in %s", p.peek(), where)

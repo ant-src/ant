@@ -63,11 +63,7 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 	}
 	defer func() { l.nesting-- }()
 	l.advance(1)
-	nameStart := l.pos
-	for isLetter(l.peek(0)) || isDigit(l.peek(0)) || l.peek(0) == '-' {
-		l.advance(1)
-	}
-	name := l.src[nameStart:l.pos]
+	name := l.elementName()
 	lower := strings.ToLower(name)
 	if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '/' && c != '>' {
 		l.fail(l.here(), "an element name is ASCII letters, digits, and -; unexpected %s after <%s", l.describe(), name)
@@ -119,6 +115,16 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 	return n
 }
 
+// elementName scans an element name: ASCII letters, digits, and -. The caller has checked the
+// first character, a letter, where one is required.
+func (l *lexer) elementName() string {
+	start := l.pos
+	for isLetter(l.peek(0)) || isDigit(l.peek(0)) || l.peek(0) == '-' {
+		l.advance(1)
+	}
+	return l.src[start:l.pos]
+}
+
 // describe names the character at the lexer's position for an error message.
 func (l *lexer) describe() string {
 	if l.atEnd(0) {
@@ -168,7 +174,7 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		}
 		name := l.src[start:l.pos]
 		lower := strings.ToLower(name)
-		if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '=' && c != '>' && c != '/' && c != '{' {
+		if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '=' && c != '>' && c != '/' {
 			l.fail(l.here(), "an attribute name is ASCII letters, digits, -, _, :, and .; unexpected %s after %s", l.describe(), name)
 		}
 		if seen[lower] {
@@ -357,11 +363,7 @@ func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup 
 func (l *lexer) endTag(open token.Pos, name string) {
 	pos := l.here()
 	l.advance(2)
-	start := l.pos
-	for isLetter(l.peek(0)) || isDigit(l.peek(0)) || l.peek(0) == '-' {
-		l.advance(1)
-	}
-	got := l.src[start:l.pos]
+	got := l.elementName()
 	l.skipMarkupSpace()
 	if l.peek(0) != '>' {
 		l.fail(l.here(), "expected > to end the end tag </%s", got)
@@ -469,27 +471,39 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 
 // finishContent drops the interpolations that hold only comments, joins the text around them,
 // collapses white space outside <pre> and <textarea> (section 5, White space), and decodes the
-// references.
+// references. Each piece of text was checked on its own, so the references are decoded piece by
+// piece: a reference split by a comment is not one.
 func finishContent(m *token.Markup, ctx markupContext) *token.Markup {
 	var items []token.MarkupNode
+	var joins [][]int // for each item of text, the offsets in it where a dropped comment was
 	for _, n := range m.Nodes {
 		if n.Kind == token.MarkupExpr && n.Tokens == nil {
 			continue
 		}
 		if k := len(items); n.Kind == token.MarkupText && k > 0 && items[k-1].Kind == token.MarkupText {
+			joins[k-1] = append(joins[k-1], len(items[k-1].Text))
 			items[k-1].Text += n.Text
 			items[k-1].End = n.End
 			continue
 		}
 		items = append(items, n)
+		joins = append(joins, nil)
 	}
 	out := &token.Markup{}
 	for i, n := range items {
 		if n.Kind == token.MarkupText {
+			text, bounds := n.Text, joins[i]
 			if !ctx.preserve {
-				n.Text = collapse(n.Text, i == 0, i == len(items)-1)
+				text, bounds = collapse(text, bounds, i == 0, i == len(items)-1)
 			}
-			n.Text = decodeReferences(n.Text)
+			var sb strings.Builder
+			at := 0
+			for _, b := range bounds {
+				sb.WriteString(decodeReferences(text[at:b]))
+				at = b
+			}
+			sb.WriteString(decodeReferences(text[at:]))
+			n.Text = sb.String()
 			if n.Text == "" {
 				continue
 			}
@@ -500,11 +514,18 @@ func finishContent(m *token.Markup, ctx markupContext) *token.Markup {
 }
 
 // collapse applies the white space rule to text: a run with a line break is removed at the start
-// of the content (first) or its end (last), and becomes one space elsewhere.
-func collapse(s string, first, last bool) string {
+// of the content (first) or its end (last), and becomes one space elsewhere. It returns the
+// offsets bounds in text moved to where they fall in the result; one inside a run moves past it.
+func collapse(s string, bounds []int, first, last bool) (string, []int) {
 	var sb strings.Builder
+	moved := make([]int, len(bounds))
+	b := 0
 	for i := 0; i < len(s); {
 		if !isMarkupSpace(s[i]) {
+			for b < len(bounds) && bounds[b] <= i {
+				moved[b] = sb.Len()
+				b++
+			}
 			sb.WriteByte(s[i])
 			i++
 			continue
@@ -521,7 +542,14 @@ func collapse(s string, first, last bool) string {
 		default:
 			sb.WriteByte(' ')
 		}
+		for b < len(bounds) && bounds[b] <= j {
+			moved[b] = sb.Len()
+			b++
+		}
 		i = j
 	}
-	return sb.String()
+	for ; b < len(bounds); b++ {
+		moved[b] = sb.Len()
+	}
+	return sb.String(), moved
 }
