@@ -96,6 +96,14 @@ ant doc Time
 ant doc geometry.ant distance
 ```
 
+Complete commands, flags, and files in the shell:
+
+```sh
+source <(ant --comp zsh)   # in ~/.zshrc, after compinit
+source <(ant --comp bash)  # in ~/.bashrc
+ant --comp fish | source   # in ~/.config/fish/config.fish
+```
+
 ## API
 
 Ant can be used as a lib too:

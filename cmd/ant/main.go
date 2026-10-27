@@ -5,6 +5,7 @@
 //	ant check file.ant           type-check a program and every module it imports
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
+//	ant --comp bash|zsh|fish     print the script that completes ant's commands in the shell
 //	ant                          start a REPL
 //
 // Exit status: 0 when the script ends or the check passes, 1 when the script returns an Err, the
@@ -36,9 +37,13 @@ const usage = `usage:
   ant check <file.ant>
   ant fmt [--check] <path>...   (- for standard input)
   ant doc <name> | <file.ant> [name]
+  ant --comp bash|zsh|fish
   ant`
 
 func main() {
+	if completion(os.Args[1:], os.Stdout) {
+		return
+	}
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
 
@@ -109,6 +114,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return fmtCommand(args[1:], stdin, stdout, stderr)
 	case "doc":
 		return docCommand(args[1:], stdout, stderr)
+	case "--comp":
+		return compCommand(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		fmt.Fprintln(stdout, usage)
 		return 0
