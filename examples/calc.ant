@@ -1,6 +1,8 @@
 // spec: 4 Tagged unions; 4 Type declarations; 6 Functions on types; 8 try; 5 is
 //! A calculator: a tokenizer, a recursive-descent parser into a tagged union of records, and an
-//! evaluator over an environment. Every error is a Result, and try threads them up.
+//! evaluator over an environment. Every error is a Result, and try threads them up. Each line of
+//! standard input is an expression; the answer shows how it was grouped. Try:
+//!   echo '1 + 2 * pi' | ant run examples/calc.ant
 
 type Num = { value: float64 }
 type Ident = { name: string }
@@ -149,34 +151,10 @@ func calculate(src: string, env: Map[string, float64]): string {
   `${format(parsed.value)} => ${result.value}`
 }
 
-var env = Map{ x: 2.0, y: 0.5, pi: 3.14159 }
-for src in [
-  "1 + 2 * 3",
-  "(1 + 2) * 3",
-  "x * 2 + y",
-  "-x * -(y + 1)",
-  "10 / 4",
-  "pi * x * x",
-  "1 / (x - 2)",
-  "1 +",
-  "2 * (3",
-  "3 $ 4",
-  "z + 1",
-  "1 2",
-  "1.5.2",
-] { println(calculate(src, env)) }
-
-// expect
-// out: (1.0 + (2.0 * 3.0)) => 7.0
-// out: ((1.0 + 2.0) * 3.0) => 9.0
-// out: ((x * 2.0) + y) => 4.5
-// out: ((-x) * (-(y + 1.0))) => 3.0
-// out: (10.0 / 4.0) => 2.5
-// out: ((pi * x) * x) => 12.56636
-// out: (1.0 / (x - 2.0)) => error: division by zero
-// out: 1 + => error: unexpected end of input
-// out: 2 * (3 => error: expected )
-// out: 3 $ 4 => error: unexpected character $ at 2
-// out: (z + 1.0) => error: unknown variable z
-// out: 1 2 => error: unexpected 2.0 after the expression
-// out: 1.5.2 => error: bad number 1.5.2
+var env = Map{ pi: 3.141592653589793, e: 2.718281828459045 }
+var input = Os.stdin()
+var line = Result.unwrap(File.readLine(input))
+while line != null {
+  if String.trim(line) != "" { println(calculate(line, env)) }
+  line = Result.unwrap(File.readLine(input))
+}

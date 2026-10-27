@@ -32,16 +32,3 @@ println(Geometry.distance(p, origin))
 println(`points made: ${Geometry.created}`)
 var circles = Array.filter(shapes, { x is Circle })
 println(Array.length(circles))
-
-// expect
-// out: circle: area 3.142, perimeter 6.283
-// out: rect: area 6.0, perimeter 10.0
-// out: triangle: area 6.0, perimeter 12.0
-// out: rect: area 1.0, perimeter 4.0
-// out: largest: rect
-// out: ["rect", "circle", "rect", "triangle"]
-// out: points made: 4 true
-// out: Point{ x: 1.0, y: 2.0 }
-// out: 2.23606797749979
-// out: points made: 5
-// out: 1

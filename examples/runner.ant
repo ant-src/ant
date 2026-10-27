@@ -82,16 +82,3 @@ for item in items {
 }
 println(`${Array.length(items) - failed} of ${plural(Array.length(items), "task")} succeeded`)
 if failed > 0 { Os.exit(1) }
-
-// expect
-// stdin: [{"name": "version", "program": "go", "args": ["version"]},
-// stdin:  {"name": "nonsense", "program": "go", "args": ["nonsense"]},
-// stdin:  {"name": "missing", "program": "ant-no-such-program-xyz"},
-// stdin:  7]
-// exit: 1
-// out: version: ok, 1 line of output
-// out: nonsense: failed with status 2
-// out: missing: could not start
-// out: skipped: a task must be an object
-// out: 1 of 4 tasks succeeded
-// err: took

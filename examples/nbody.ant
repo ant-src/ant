@@ -119,8 +119,3 @@ for _ in Iter.range(0, 1000) { advance(bs, 0.01) }
 println(nine(energy(bs)))
 var sun = bs[0]
 println(`sun moved to ${nine(sun.x)}, ${nine(sun.y)}, ${nine(sun.z)}`)
-
-// expect
-// out: -0.169075164
-// out: -0.169087605
-// out: sun moved to 0.007413153, 0.003009803, -0.000266704

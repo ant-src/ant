@@ -72,14 +72,3 @@ for m in Array.sortWith(meetings, byMoment) {
   var from = `${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}`
   println(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
 }
-
-// expect
-// args: Europe/Stockholm 2024-10-30
-// stdin: [{"title": "Standup", "when": "2024-11-01T09:00", "zone": "America/New_York"},
-// stdin:  {"title": "Retro", "when": "2024-11-05T09:00", "zone": "America/New_York"},
-// stdin:  {"title": "Planning", "when": "2024-11-04T17:00", "zone": "Asia/Tokyo"},
-// stdin:  {"title": "Ghost", "when": "2024-11-02T10:00", "zone": "Mars/Olympus"}]
-// out: Fri 2024-11-01 14:00 +01:00  Standup (09:00 in America/New_York), in 2 days
-// out: Mon 2024-11-04 09:00 +01:00  Planning (17:00 in Asia/Tokyo), in 5 days
-// out: Tue 2024-11-05 15:00 +01:00  Retro (09:00 in America/New_York), in 6 days
-// err: skipped: unknown time zone

@@ -1,61 +1,49 @@
 // spec: stdlib Http; stdlib Json; 8 try; 8 Result; 11 Map
-//! An HTTP client against the test server whose base URL is the first argument: a plain GET, a
-//! status the caller must check, a POST that echoes its body and a header, JSON over the wire in
-//! both directions, and the failures, which are all Err values and never panics.
+//! A JSON fetcher: it gets the URL in the first argument, checks the status, parses the body,
+//! and prints the value at a dotted path such as owner.login, or the whole document when no path
+//! is given. Every failure is an Err that try carries up to one report, never a panic. Try:
+//!   ant run examples/fetch.ant https://api.github.com/repos/golang/go owner.login
+
+func fail[T](message: string): Result[T, Error] { Result.err(Error{ message }) }
 
 func getJson(url: string): Result[Json.Value, Error] {
-  var r = try Http.get(url)
-  if r.status != 200 { return Result.err(Error{ message: `status ${r.status}` }) }
+  var r = try Http.get(url, headers: Map{ "Accept": "application/json" }, timeout: Time.duration(seconds: 10))
+  if r.status != 200 { return fail(`status ${r.status}`) }
   Json.parse(r.body)
 }
 
-func postJson(url: string, payload: Json.Value, token: string): Result[Json.Value, Error] {
-  var headers = Map{ "Content-Type": "application/json", "X-Token": token }
-  var r = try Http.post(url, Json.stringify(payload), headers)
-  if r.status != 200 { return Result.err(Error{ message: `status ${r.status}` }) }
-  var echoed = r.headers["X-Token"] ?? ""
-  if echoed != token { return Result.err(Error{ message: "the token did not come back" }) }
-  Json.parse(r.body)
-}
-
-var base = Os.args()[0]
-var hello = Http.get(`${base}/hello`)
-if hello is Ok {
-  var r = hello.value
-  println(`${r.status} ${r.headers["Content-Type"]} ${r.body}`)
-}
-var missing = Result.unwrap(Http.get(`${base}/status/404`))
-println(`status ${missing.status}, body ${missing.body}`)
-println(getJson(`${base}/status/500`))
-println(getJson(`${base}/hello`) is Err)
-var payload: Json.Value = Map{ "n": 1.0, "tags": ["a", "b"], "nested": Map{ "ok": true } }
-var reply = postJson(`${base}/echo`, payload, "secret")
-if reply is Ok {
-  var v = reply.value
-  if v is Map {
-    println(v["n"])
-    println(v["tags"])
-    var nested = v["nested"]
-    if nested is Map { println(nested["ok"]) }
+// lookup follows a path of object keys and array indexes, such as items.0.name.
+func lookup(doc: Json.Value, path: string): Result[Json.Value, Error] {
+  var at = doc
+  for key in String.split(path, ".") {
+    if at is Map {
+      if !Map.has(at, key) { return fail(`no field ${key}`) }
+      at = at[key]
+    } else if at is Array {
+      var i = String.toInt(key) ?? return fail(`${key} is not an index`)
+      if i < 0 || i >= len(at) { return fail(`no index ${i}`) }
+      at = at[i]
+    } else {
+      return fail(`cannot look up ${key} in ${Json.stringify(at)}`)
+    }
   }
-  println(Json.stringify(v) == Json.stringify(payload))
-} else {
-  println(reply.error.message)
+  Result.ok(at)
 }
-println(Http.get("http://127.0.0.1:1/") is Err)
-println(Http.post("::nope", "", Map{}) is Err)
-println(Result.unwrapOr(Result.map(Http.get(`${base}/nowhere`), { x.status }), -1))
 
-// expect
-// out: 200 text/plain hello
-// out: status 404, body status
-// out: Err{ error: Error{ message: "status 500" } }
-// out: true
-// out: 1.0
-// out: ["a", "b"]
-// out: true
-// out: true
-// out: true
-// out: true
-// out: 404
-// args: $HTTP
+func fetch(url: string, path: string | null): Result[Json.Value, Error] {
+  var doc = try getJson(url)
+  if path == null { Result.ok(doc) } else { lookup(doc, path) }
+}
+
+var args = Os.args()
+if len(args) == 0 || len(args) > 2 {
+  File.writeLine(Os.stderr(), "usage: ant run examples/fetch.ant <url> [path]")
+  Os.exit(2)
+}
+var result = fetch(args[0], Array.get(args, 1))
+if result is Err {
+  File.writeLine(Os.stderr(), `${args[0]}: ${result.error.message}`)
+  Os.exit(1)
+}
+var v = result.value
+if v is string { println(v) } else { println(Json.stringify(v, indent: "  ")) }

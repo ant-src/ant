@@ -1,8 +1,7 @@
 // spec: stdlib Http; stdlib Net; stdlib Json; stdlib Os; 9 Waiting
 //! A small HTTP API: GET /health, GET /items, and POST /items with a JSON body, the items kept
 //! in an array under a mutex, served until Ctrl-C, when the server drains and the program says
-//! why it stopped. With the port 0 the program takes a free port, runs its own client against
-//! it, and stops itself, which is how the corpus runs it. Try:
+//! why it stopped. Try:
 //!   ant run examples/api.ant 8080
 //!   curl -X POST localhost:8080/items -d '{"name": "ant"}'
 
@@ -42,29 +41,7 @@ func handle(req: Http.Request): Http.Reply {
 
 var port = Array.get(Os.args(), 0) ?? "8080"
 var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
-var base = `http://${Net.address(listener)}`
 var stop = Context.new(parent: Os.interrupt())
-var served: Channel[Result[void, Error]] = Channel.new(1)
-go { Channel.send(served, Http.serve(listener, handle, stop)) }
-println(`serving on port ${port}`)
-if port == "0" {
-  println(Result.unwrap(Http.get(`${base}/health`)).body)
-  println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": \"ant\"}")).body)
-  println(Result.unwrap(Http.post(`${base}/items`, "{\"name\": 7}")).status)
-  println(Result.unwrap(Http.post(`${base}/items`, "not json")).status)
-  println(Result.unwrap(Http.get(`${base}/items`)).body)
-  println(Result.unwrap(Http.get(`${base}/nowhere`)).status)
-  Context.cancel(stop)
-}
-println(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
-
-// expect
-// args: 0
-// out: serving on port 0
-// out: {"ok": true}
-// out: {"id":1,"name":"ant"}
-// out: 400
-// out: 400
-// out: [{"id":1,"name":"ant"}]
-// out: 404
-// out: stopped: Ok{ value: void } (cancelled)
+println(`listening on ${Net.address(listener)}`)
+var served = Http.serve(listener, handle, stop)
+println(`stopped: ${served} (${Context.reason(stop) ?? "?"})`)

@@ -2,8 +2,7 @@
 //! A guestbook served as HTML: GET / renders the page from components, and POST /sign takes a
 //! form and redirects back. Every name, message, and link is escaped or checked as it goes into
 //! the markup, so a visitor who signs as <script> shows up as text, and a javascript: link goes
-//! nowhere. With the port 0 the program takes a free port, signs the book itself, prints the
-//! page, and stops, which is how the corpus runs it. Try:
+//! nowhere. Try:
 //!   ant run examples/guestbook.ant 8080
 //! and open http://localhost:8080 in a browser.
 
@@ -85,34 +84,5 @@ func handle(req: Http.Request): Http.Reply {
 
 var port = Array.get(Os.args(), 0) ?? "8080"
 var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
-var base = `http://${Net.address(listener)}`
-var stop = Context.new(parent: Os.interrupt())
-var served: Channel[Result[void, Error]] = Channel.new(1)
-go { Channel.send(served, Http.serve(listener, handle, stop)) }
-println(`serving on port ${port}`)
-if port == "0" {
-  var form = Map{ "Content-Type": "application/x-www-form-urlencoded" }
-  var sign = func(fields: Map[string, Array[string]]): int {
-    Result.unwrap(Http.post(`${base}/sign`, Url.stringifyQuery(fields), headers: form)).status
-  }
-  println(sign(Map{ name: ["Ada"], message: ["Hello & welcome"], website: ["https://ada.dev"] }))
-  println(sign(Map{ name: ["<script>alert(1)</script>"], message: ["hi"], website: ["javascript:alert(1)"] }))
-  println(sign(Map{ name: [""], message: ["no name"] }))
-  println(Result.unwrap(Http.get(`${base}/`)).body)
-  println(Result.unwrap(Http.get(`${base}/nowhere?x=<b>`)).status)
-  Context.cancel(stop)
-}
-println(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
-
-// expect
-// args: 0
-// out: serving on port 0
-// out: 303
-// out: 303
-// out: 400
-// out: <!doctype html><html lang="en"><head><meta charset="utf-8"> <title>Guestbook (2)</title> <style>
-// out:         body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto }
-// out:         .entry > b { color: #6b4f2a }
-// out:       </style></head> <body><h1>Guestbook</h1> <ul><li class="entry"><b><a href="https://ada.dev">Ada</a></b> wrote: Hello &amp; welcome</li><li class="entry"><b><a href="about:invalid#ant">&lt;script&gt;alert(1)&lt;/script&gt;</a></b> wrote: hi</li></ul> <form method="post" action="/sign"><input name="name" placeholder="Name" required> <input name="website" placeholder="https://..."> <textarea name="message" required></textarea> <button type="submit">Sign</button></form></body></html>
-// out: 404
-// out: stopped: Ok{ value: void } (cancelled)
+println(`listening on ${Net.address(listener)}`)
+Result.unwrap(Http.serve(listener, handle, Os.interrupt()))

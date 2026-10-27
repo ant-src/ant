@@ -1,7 +1,10 @@
 // spec: stdlib File; stdlib Json; stdlib Os; 5 Destructuring; 8 Result; 8 try; 6 Calling
 //! A to-do list kept in a JSON file: subcommands add, done, remove, list and clear, each a run of
-//! the program with the file's directory as the first argument. Here main scripts a session and
-//! then runs whatever further arguments it was given, exiting with the last command's status.
+//! the program. The list lives in todo.json in the current directory, or in the file TODO_FILE
+//! names. Try:
+//!   ant run examples/todo.ant add buy milk
+//!   ant run examples/todo.ant done 1
+//!   ant run examples/todo.ant list
 
 type Task = { id: int, title: string, done: bool }
 
@@ -68,64 +71,13 @@ func execute(path: string, command: string, args: Array[string]): Result[string,
   Result.err(Error{ message: `unknown command ${command}; use add, done, remove, list, or clear` })
 }
 
-func run(path: string, argv: Array[string]): int {
-  var command = Array.get(argv, 0) ?? "list"
-  var args = Array.slice(argv, 1, Array.length(argv))
-  var outcome = execute(path, command, args)
-  if outcome is Ok { println(outcome.value); 0 }
-  else { println(`error: ${outcome.error.message}`); 1 }
-}
-
+var path = Os.env("TODO_FILE") ?? "todo.json"
 var argv = Os.args()
-var dir = Array.get(argv, 0) ?? "."
-var rest = Array.slice(argv, 1, Array.length(argv))
-var path = `${dir}/todo.json`
-var script = [
-  ["list"],
-  ["add", "buy", "milk"],
-  ["add", "write", "tests"],
-  ["add"],
-  ["list"],
-  ["done", "1"],
-  ["done", "7"],
-  ["done", "x"],
-  ["list"],
-  ["remove", "2"],
-  ["list"],
-]
-var status = 0
-for argv in script {
-  println(`$ todo ${String.join(argv, " ")}`)
-  status = run(path, argv)
+var command = Array.get(argv, 0) ?? "list"
+var outcome = execute(path, command, Array.slice(argv, Math.min(1, len(argv)), len(argv)))
+if outcome is Ok {
+  println(outcome.value)
+} else {
+  File.writeLine(Os.stderr(), `error: ${outcome.error.message}`)
+  Os.exit(1)
 }
-println(Result.unwrapOr(File.read(path), "no file"))
-if !Array.isEmpty(rest) { status = run(path, rest) }
-if status != 0 { Os.exit(status) }
-
-// expect
-// out: $ todo list
-// out: nothing to do
-// out: $ todo add buy milk
-// out: added 1
-// out: $ todo add write tests
-// out: added 2
-// out: $ todo add
-// out: error: a title is required
-// out: $ todo list
-// out: [ ] 1 buy milk
-// out: [ ] 2 write tests
-// out: $ todo done 1
-// out: done 1
-// out: $ todo done 7
-// out: error: no task 7
-// out: $ todo done x
-// out: error: x is not an id
-// out: $ todo list
-// out: [x] 1 buy milk
-// out: [ ] 2 write tests
-// out: $ todo remove 2
-// out: removed 2
-// out: $ todo list
-// out: [x] 1 buy milk
-// out: [{"id":1,"title":"buy milk","done":true}]
-// args: $TMP

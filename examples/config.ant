@@ -1,7 +1,9 @@
-// spec: stdlib Json; 8 try; 8 Result; 7 Narrowing; 5 is
+// spec: stdlib Json; stdlib File; 8 try; 8 Result; 7 Narrowing; 5 is
 //! A configuration decoder, the way stdlib.md describes one: Json.parse gives a Json.Value tree,
 //! a function per record type narrows it with is, and try propagates the first error, which
-//! carries the path of the offending value such as $.servers[1].port.
+//! carries the path of the offending value such as $.servers[1].port. Try:
+//!   echo '{"name": "api", "servers": [{"host": "a.example", "port": 443}]}' > config.json
+//!   ant run examples/config.ant config.json
 
 type Server = { host: string, port: int, tls: bool }
 type Config = { name: string, servers: Array[Server], limits: Map[string, int] }
@@ -67,54 +69,17 @@ func decodeConfig(v: Json.Value, path: string): Result[Config, Error] {
   Result.ok(Config{ name: name, servers: servers, limits: limits })
 }
 
-func load(text: string): Result[Config, Error] {
-  var tree = try Json.parse(text)
+func load(path: string): Result[Config, Error] {
+  var tree = try Json.parse(try File.read(path))
   decodeConfig(tree, "$")
 }
 
-func report(text: string): void {
-  var loaded = load(text)
-  if loaded is Ok {
-    var c = loaded.value
-    println(`${c.name}: ${Array.length(c.servers)} servers, limits ${c.limits}`)
-    for s in c.servers { println(`  ${s.host}:${s.port}${if s.tls { " (tls)" } else { "" }}`) }
-  } else {
-    println(`error: ${loaded.error.message}`)
-  }
+var path = Array.get(Os.args(), 0) ?? "config.json"
+var loaded = load(path)
+if loaded is Err {
+  File.writeLine(Os.stderr(), `${path}: ${loaded.error.message}`)
+  Os.exit(1)
 }
-
-report(`{
-    "name": "api",
-    "servers": [
-      { "host": "a.example", "port": 443, "tls": true },
-      { "host": "b.example", "port": 8080 }
-    ],
-    "limits": { "rps": 100, "burst": 250 }
-  }`)
-report(`{ "name": "bare", "servers": [] }`)
-report(`{ "name": "oops", "servers": [ { "host": "a", "port": 80 }, { "host": "b", "port": "81" } ] }`)
-report(`{ "name": "frac", "servers": [ { "host": "a", "port": 80.5 } ] }`)
-report(`{ "name": "range", "servers": [ { "host": "a", "port": 70000 } ] }`)
-report(`{ "name": "nohost", "servers": [ { "port": 1 } ] }`)
-report(`{ "name": 7, "servers": [] }`)
-report(`{ "servers": [] }`)
-report(`{ "name": "limits", "servers": [], "limits": { "rps": true } }`)
-report(`[1, 2, 3]`)
-report(`{ "name": "broken"`)
-println(Json.stringify(Server{ host: "h", port: 1, tls: false }))
-
-// expect
-// out: api: 2 servers, limits Map{ "rps": 100, "burst": 250 }
-// out:   a.example:443 (tls)
-// out:   b.example:8080
-// out: bare: 0 servers, limits Map{}
-// out: error: $.servers[1].port: expected a number, got a string
-// out: error: $.servers[0].port: expected an integer, got 80.5
-// out: error: $.servers[0].port: 70000 is out of range
-// out: error: $.servers[0]: missing field host
-// out: error: $.name: expected a string, got a number
-// out: error: $: missing field name
-// out: error: $.limits.rps: expected a number, got a bool
-// out: error: $: expected an object, got an array
-// out: error: unexpected end of JSON input
-// out: {"host":"h","port":1,"tls":false}
+var c = loaded.value
+println(`${c.name}: ${Array.length(c.servers)} servers, limits ${c.limits}`)
+for s in c.servers { println(`  ${s.host}:${s.port}${if s.tls { " (tls)" } else { "" }}`) }

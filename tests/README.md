@@ -13,7 +13,7 @@ programs naming each.
 | `unchecked/`   | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out |
 | `check/`       | `ant check` reports exactly the errors the inline markers name, and nothing else                                  |
 | `stdlib/`      | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md`  |
-| `../examples/` | real programs, run like `run/`                                                                                    |
+| `../examples/` | real programs with no trailer; `examples_test.go` runs each as a user would, and talks to the servers             |
 
 Files under a directory named `lib` are modules the programs import, not tests. An example program,
 and a module under `lib`, says what it does in `//!` lines, its module doc (section 2 of the
@@ -47,7 +47,7 @@ the spec, when a heading, library name or panic has no program, or when a pendin
 
 ## Trailers
 
-A program under `run/`, `unchecked/` or `examples/` ends with a trailer that starts with a line
+A program under `run/` or `unchecked/` ends with a trailer that starts with a line
 reading `// expect`:
 
 ```
@@ -78,5 +78,7 @@ an error on another line, for errors the checker reports on a declaration rather
 - A behavior with observable output: `run/`.
 - A kind panic the checker rejects: `unchecked/`, one program per panic.
 - A panic that a checked program can reach: `run/`, with `// exit: 1` and an `// err:` line.
+- An example: the program under `../examples/`, written to be run by hand, with its tests in
+  `examples_test.go`.
 - A bug found by an example or a fuzzer: the smallest program under `run/` or `check/` that shows
   it, added before the fix.

@@ -1,9 +1,10 @@
 // spec: stdlib Net; stdlib File; 9 Waiting
-//! A line server over a socket: every connection is served on its own goroutine, each line
-//! answered in upper case until the client closes, and the whole thing stopped through one
-//! context. The program takes a free port, talks to its own server with three clients at once,
-//! and stops it. Try:
-//!   ant run examples/echo.ant
+//! A line server over a socket: every connection is served on its own goroutine and each line
+//! is answered in upper case until the client closes. Ctrl-C stops the server and every session
+//! through one context. Try:
+//!   ant run examples/echo.ant 7000
+//! and in another terminal:
+//!   nc localhost 7000
 
 func session(c: File.Handle, stop: Context): void {
   defer { File.close(c) }
@@ -14,45 +15,21 @@ func session(c: File.Handle, stop: Context): void {
   }
 }
 
-func serve(listener: Net.Listener, stop: Context): void {
-  var conn = Net.accept(listener, stop)
-  while conn is Ok {
-    var c = conn.value
-    go { session(c, stop) }
-    conn = Net.accept(listener, stop)
+var port = Array.get(Os.args(), 0) ?? "7000"
+var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
+var stop = Context.new(parent: Os.interrupt())
+var sessions = WaitGroup.new()
+println(`listening on ${Net.address(listener)}`)
+var conn = Net.accept(listener, stop)
+while conn is Ok {
+  var c = conn.value
+  WaitGroup.add(sessions, 1)
+  go {
+    defer { WaitGroup.done(sessions) }
+    session(c, stop)
   }
+  conn = Net.accept(listener, stop)
 }
-
-func client(address: string, name: string, lines: Array[string]): Array[string] {
-  var c = Result.unwrap(Net.dial(address, Context.new(Time.duration(seconds: 5))))
-  defer { File.close(c) }
-  Array.map(lines, {
-    Result.unwrap(File.writeLine(c, `${name}: ${x}`))
-    Result.unwrap(File.readLine(c, Context.new(Time.duration(seconds: 5)))) ?? ""
-  })
-}
-
-var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
-var address = Net.address(listener)
-var stop = Context.new()
-var done = WaitGroup.new()
-WaitGroup.add(done, 1)
-go {
-  defer { WaitGroup.done(done) }
-  serve(listener, stop)
-}
-var replies: Channel[Array[string]] = Channel.new(3)
-for name in ["ann", "bo", "cy"] {
-  go { Channel.send(replies, client(address, name, ["hello", "bye"])) }
-}
-var all: Array[string] = []
-for i in Array.range(0, 3) { all = Array.concat(all, Channel.receive(replies) ?? []) }
-println(Array.sort(all))
-Context.cancel(stop)
-WaitGroup.wait(done)
+WaitGroup.wait(sessions)
 Net.close(listener)
 println("stopped")
-
-// expect
-// out: ["ANN: BYE", "ANN: HELLO", "BO: BYE", "BO: HELLO", "CY: BYE", "CY: HELLO"]
-// out: stopped

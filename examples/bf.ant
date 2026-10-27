@@ -1,6 +1,9 @@
-// spec: 4 Primitives; 11 Math and Bits; 11 String; 11 Map; 8 Result; 5 Loops
+// spec: 4 Primitives; stdlib File; 11 Math and Bits; 11 String; 11 Map; 8 Result; 5 Loops
 //! An interpreter for a small tape language: a tape of bytes that wrap around on + and -, a
 //! bracket table built once by a Result-returning pass, and output collected as code points.
+//! The program is the file named by the first argument, and , reads standard input. Try:
+//!   echo '++++++++[>++++++++<-]>+.+.+.' > abc.bf
+//!   ant run examples/bf.ant abc.bf
 
 type Program = { code: Array[string], jumps: Map[int, int] }
 
@@ -49,28 +52,14 @@ func run(p: Program, input: string): string {
   String.fromCodePoints(out) ?? "<not text>"
 }
 
-var hello = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
-var programs = [
-  hello,
-  "++++++++[>++++++++<-]>+.+.+.",
-  ",[.,]",
-  "-.",
-  "+++[>+++[>+++<-]<-]>>++++++.",
-  "[[]",
-  "]",
-]
-for src in programs {
-  var compiled = compile(src)
-  if compiled is Err { println(`error: ${compiled.error.message}`) }
-  else { println(String.from(run(compiled.value, "ant"))) }
+var args = Os.args()
+if Array.length(args) != 1 {
+  File.writeLine(Os.stderr(), "usage: ant run examples/bf.ant program.bf < input")
+  Os.exit(2)
 }
-
-// expect
-// out: Hello World!
-// out:
-// out: ABC
-// out: ant
-// out: ÿ
-// out: !
-// out: error: [ without ] at 0
-// out: error: ] without [ at 0
+var compiled = compile(Result.unwrap(File.read(args[0])))
+if compiled is Err {
+  File.writeLine(Os.stderr(), `${args[0]}: ${compiled.error.message}`)
+  Os.exit(1)
+}
+print(run(compiled.value, Result.unwrap(File.readAll(Os.stdin()))))

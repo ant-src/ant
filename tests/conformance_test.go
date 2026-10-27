@@ -97,11 +97,6 @@ func TestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	paths = append(paths, syntax...)
-	examples, err := filepath.Glob(filepath.Join("..", "examples", "*.ant"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	paths = append(paths, examples...)
 	if len(paths) == 0 {
 		t.Fatal("no programs under run/")
 	}

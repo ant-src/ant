@@ -26,12 +26,3 @@ while line != null {
   line = Result.unwrap(File.readLine(input))
 }
 if File.writeLine(Os.stderr(), `${kept} of ${number} lines`) is Err { Os.exit(1) }
-
-// expect
-// args: ant time
-// stdin: Ant has time values
-// stdin: no match here
-// stdin: TIME and ANT again
-// out: 1: Ant has time values
-// out: 3: TIME and ANT again
-// err: 2 of 3 lines

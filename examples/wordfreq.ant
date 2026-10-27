@@ -1,7 +1,8 @@
 // spec: stdlib File; stdlib Os; 9 Goroutines; 9 Synchronization; 9 Sharing results; 11 Map; 11 Array
-//! A word counter: one goroutine per file, each counting into its own map, merged under a mutex,
-//! then ranked with a comparator. The files are written first into the directory given as the
-//! only argument, and a missing file is an Err, not a panic.
+//! A word counter: one goroutine per file named on the command line, each counting into its own
+//! map, merged under a mutex, then ranked with a comparator. A file that cannot be read is an
+//! Err, reported and skipped, not a panic. Try:
+//!   ant run examples/wordfreq.ant ../spec/*.md
 
 func words(text: string): Array[string] {
   var out: Array[string] = []
@@ -32,25 +33,20 @@ func byCountThenWord(a: Entry[string, int], b: Entry[string, int]): int {
   else { 0 }
 }
 
-var dir = Os.args()[0]
-var samples = Map{
-  "fox.txt": "The quick brown fox jumps over the lazy dog. The dog sleeps; the fox doesn't.",
-  "rain.txt": "The rain in Spain stays mainly in the plain. In the plain the rain is plain.",
-  "song.txt": "Row, row, row your boat gently down the stream. The stream, the stream!",
-  "empty.txt": "",
-}
-for { key, value } in samples {
-  if File.write(`${dir}/${key}`, value) is Err { println(`cannot write ${key}`) }
+var paths = Os.args()
+if Array.isEmpty(paths) {
+  File.writeLine(Os.stderr(), "usage: ant run examples/wordfreq.ant file...")
+  Os.exit(2)
 }
 var totals: Map[string, int] = Map{}
 var files = 0
 var lock = Mutex.new()
 var wg = WaitGroup.new()
-for name in Array.concat(Map.keys(samples), ["missing.txt"]) {
+for path in paths {
   WaitGroup.add(wg, 1)
   go {
     defer { WaitGroup.done(wg) }
-    var counted = countFile(`${dir}/${name}`)
+    var counted = countFile(path)
     if counted is Ok {
       var counts = counted.value
       Mutex.withLock(lock, {
@@ -58,24 +54,11 @@ for name in Array.concat(Map.keys(samples), ["missing.txt"]) {
         for { key, value } in counts { totals[key] = (totals[key] ?? 0) + value }
       })
     } else {
-      Mutex.withLock(lock, { println(`skipped ${name}`) })
+      File.writeLine(Os.stderr(), `skipped: ${counted.error.message}`)
     }
   }
 }
 WaitGroup.wait(wg)
 var ranked = Array.sortWith(Map.entries(totals), byCountThenWord)
-for e in Array.slice(ranked, 0, 6) { println(`${e.key}: ${e.value}`) }
+for e in Array.slice(ranked, 0, Math.min(10, len(ranked))) { println(`${String.padStart(String.fromInt(e.value), 6)} ${e.key}`) }
 println(`${files} files, ${Map.size(totals)} distinct words, ${Array.sum(Map.values(totals)) ?? 0} in all`)
-println(words("Don't stop-me now!"))
-
-// expect
-// out: skipped missing.txt
-// out: the: 11
-// out: in: 3
-// out: plain: 3
-// out: row: 3
-// out: stream: 3
-// out: dog: 2
-// out: 4 files, 23 distinct words, 44 in all
-// out: ["don't", "stop", "me", "now"]
-// args: $TMP

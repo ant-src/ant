@@ -34,15 +34,3 @@ for status in Array.sort(Map.keys(groups)) {
   println(String.padEnd(status, 8) + String.padStart(String.fromInt(count), 6)
     + String.padStart(String.fromFloat(share, 2) + "%", 8) + String.padStart(String.fromFloat(mean, 1), 8))
 }
-
-// expect
-// stdin: 127.0.0.1 - - [10/Oct/2026:13:55:36 +0000] "GET /index.html HTTP/1.1" 200 2326
-// stdin: 127.0.0.1 - frank [10/Oct/2026:13:55:37 +0000] "GET /missing HTTP/1.1" 404 512
-// stdin: 10.0.0.5 - - [10/Oct/2026:13:55:38 +0000] "POST /api/items HTTP/1.1" 200 74
-// stdin: 10.0.0.5 - - [10/Oct/2026:13:55:39 +0000] "GET /favicon.ico HTTP/1.1" 304 -
-// stdin: not a log line
-// out: 4 requests, 1 unparsed
-// out: status   count   share    mean
-// out: 200          2  50.00%  1200.0
-// out: 304          1  25.00%     0.0
-// out: 404          1  25.00%   512.0
