@@ -14,10 +14,12 @@ var lock = Mutex.new()
 func layout(title: string, children: Html): Html {
   <html lang="en">
     <head>
-      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>{title}</title>
       <style>
-        body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto }
+        html { color-scheme: light dark; font: 16px system-ui; }
+        body { max-width: 40rem; margin: 2rem auto }
+        input, textarea { display: block; font: 16px system-ui; }
         .entry > b { color: #6b4f2a }
       </style>
     </head>
