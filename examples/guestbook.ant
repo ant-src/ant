@@ -1,0 +1,118 @@
+// spec: 5 HTML expressions; 11 Html; stdlib Http; stdlib Url; 9 Waiting
+//! A guestbook served as HTML: GET / renders the page from components, and POST /sign takes a
+//! form and redirects back. Every name, message, and link is escaped or checked as it goes into
+//! the markup, so a visitor who signs as <script> shows up as text, and a javascript: link goes
+//! nowhere. With the port 0 the program takes a free port, signs the book itself, prints the
+//! page, and stops, which is how the corpus runs it. Try:
+//!   ant run examples/guestbook.ant 8080
+//! and open http://localhost:8080 in a browser.
+
+type Signature = { name: string, message: string, website: string | null }
+
+var entries: Array[Signature] = []
+var lock = Mutex.new()
+
+func layout(title: string, children: Html): Html {
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>{title}</title>
+      <style>
+        body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto }
+        .entry > b { color: #6b4f2a }
+      </style>
+    </head>
+    <body>{children}</body>
+  </html>
+}
+
+func entry(e: Signature): Html {
+  <li class="entry">
+    <b>{if e.website != null { <a href={e.website}>{e.name}</a> } else { e.name }}</b>
+    wrote: {e.message}
+  </li>
+}
+
+func signForm(): Html {
+  <form method="post" action="/sign">
+    <input name="name" placeholder="Name" required />
+    <input name="website" placeholder="https://..." />
+    <textarea name="message" required></textarea>
+    <button type="submit">Sign</button>
+  </form>
+}
+
+func page(list: Array[Signature]): Html {
+  layout(title: `Guestbook (${len(list)})`, children: <>
+    <h1>Guestbook</h1>
+    {if len(list) == 0 { <p>Nobody has signed yet.</p> } else { <ul>{Array.map(list, entry)}</ul> }}
+    {signForm()}
+  </>)
+}
+
+func html(status: int, body: Html): Http.Reply {
+  Http.Reply{
+    status,
+    headers: Map{ "Content-Type": "text/html; charset=utf-8" },
+    body: `<!doctype html>${body}`,
+  }
+}
+
+// field returns the first value of a form field, trimmed, or null when it is missing or empty.
+func field(form: Map[string, Array[string]], name: string): string | null {
+  var value = String.trim(form[name]?.[0] ?? "")
+  if value == "" { null } else { value }
+}
+
+func handle(req: Http.Request): Http.Reply {
+  if req.method == "GET" && req.path == "/" {
+    return html(200, page(Mutex.withLock(lock, { Array.slice(entries, 0, len(entries)) })))
+  }
+  if req.method == "POST" && req.path == "/sign" {
+    var form = Url.parseQuery(req.body)
+    if form is Err { return html(400, <p>That form could not be read.</p>) }
+    var name = field(form.value, "name")
+    var message = field(form.value, "message")
+    if name == null || message == null {
+      return html(400, layout(title: "Guestbook", children: <p>A name and a message are needed. <a href="/">Back</a></p>))
+    }
+    var e = Signature{ name, message, website: field(form.value, "website") }
+    Mutex.withLock(lock, { Array.push(entries, e) })
+    return Http.Reply{ status: 303, headers: Map{ "Location": "/" }, body: "" }
+  }
+  html(404, layout(title: "Not found", children: <p>No page at <code>{req.path}</code>.</p>))
+}
+
+var port = Array.get(Os.args(), 0) ?? "8080"
+var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
+var base = `http://${Net.address(listener)}`
+var stop = Context.new(parent: Os.interrupt())
+var served: Channel[Result[void, Error]] = Channel.new(1)
+go { Channel.send(served, Http.serve(listener, handle, stop)) }
+println(`serving on port ${port}`)
+if port == "0" {
+  var form = Map{ "Content-Type": "application/x-www-form-urlencoded" }
+  var sign = func(fields: Map[string, Array[string]]): int {
+    Result.unwrap(Http.post(`${base}/sign`, Url.stringifyQuery(fields), headers: form)).status
+  }
+  println(sign(Map{ name: ["Ada"], message: ["Hello & welcome"], website: ["https://ada.dev"] }))
+  println(sign(Map{ name: ["<script>alert(1)</script>"], message: ["hi"], website: ["javascript:alert(1)"] }))
+  println(sign(Map{ name: [""], message: ["no name"] }))
+  println(Result.unwrap(Http.get(`${base}/`)).body)
+  println(Result.unwrap(Http.get(`${base}/nowhere?x=<b>`)).status)
+  Context.cancel(stop)
+}
+println(`stopped: ${Channel.receive(served)} (${Context.reason(stop) ?? "?"})`)
+
+// expect
+// args: 0
+// out: serving on port 0
+// out: 303
+// out: 303
+// out: 400
+// out: <!doctype html><html lang="en"><head><meta charset="utf-8"> <title>Guestbook (2)</title> <style>
+// out:         body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto }
+// out:         .entry > b { color: #6b4f2a }
+// out:       </style></head> <body><h1>Guestbook</h1> <ul><li class="entry"><b><a href="https://ada.dev">Ada</a></b> wrote: Hello &amp; welcome</li><li class="entry"><b><a href="about:invalid#ant">&lt;script&gt;alert(1)&lt;/script&gt;</a></b> wrote: hi</li></ul> <form method="post" action="/sign"><input name="name" placeholder="Name" required> <input name="website" placeholder="https://..."> <textarea name="message" required></textarea> <button type="submit">Sign</button></form></body></html>
+// out: 404
+// out: stopped: Ok{ value: void } (cancelled)
