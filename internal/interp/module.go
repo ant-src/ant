@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"slices"
 	"sync"
 
 	"github.com/ant-src/ant/ast"
@@ -96,7 +97,7 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
 			v := TypeValue(d)
-			in.keepDefaults(v, d, m.root)
+			setDefaults(v, d, m.root)
 			m.rec.SetField(d.Name, v)
 			switch x := v.(type) {
 			case *value.Tag:
@@ -123,20 +124,63 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 	}
 }
 
-// localType is what a type declared in a block binds: one value per declaration for the whole
-// run, however often the block runs, so every value it tags has one type (section 4).
-// Its field defaults are evaluated in env, the block's environment the first time it runs: a
-// default may name the block's types, which are the same in every run, but none of its
-// variables (section 4, Records).
-func (in *Instance) localType(d *ast.TypeDecl, env *Env) value.Value {
-	if v, ok := in.localTypes.Load(d); ok {
-		return v.(value.Value)
+// bindLocalTypes binds the types a block declares in env, its environment for this run: one
+// value per declaration for the whole run, however often the block runs, so every value it tags
+// has one type (section 4). The first run makes them, and gives their field defaults an
+// environment that keeps only the types visible in the block, since a default may name the
+// block's types but none of its variables (section 4, Field defaults). The defaults are set
+// before any goroutine can see the types.
+func (in *Instance) bindLocalTypes(b *ast.Block, env *Env) {
+	v, ok := in.localTypes.Load(b)
+	if !ok {
+		fresh := make([]value.Value, len(b.Types))
+		for i, d := range b.Types {
+			fresh[i] = TypeValue(d)
+			env.set(d.Slot, fresh[i])
+		}
+		var types *Env
+		for i, d := range b.Types {
+			if hasDefaults(d) {
+				if types == nil {
+					types = typesOnly(env)
+				}
+				setDefaults(fresh[i], d, types)
+			}
+		}
+		v, _ = in.localTypes.LoadOrStore(b, fresh)
 	}
-	v, loaded := in.localTypes.LoadOrStore(d, TypeValue(d))
-	if !loaded {
-		in.keepDefaults(v.(value.Value), d, env)
+	for i, d := range b.Types {
+		env.set(d.Slot, v.([]value.Value)[i])
 	}
-	return v.(value.Value)
+}
+
+// typesOnly copies env and its parents up to the module's root, keeping only the types bound in
+// them, so a field default holds no variable of the run that first bound its type.
+func typesOnly(e *Env) *Env {
+	if e == nil || e.parent == nil {
+		return e // the module's root, which lives as long as the module
+	}
+	c := &Env{parent: typesOnly(e.parent), mod: e.mod, plain: make([]value.Value, len(e.plain)), shared: make([]value.Slot, len(e.shared))}
+	for i, v := range e.plain {
+		if !isType(v) {
+			v = value.Uninitialized
+		}
+		c.plain[i] = v
+	}
+	for i := range e.shared {
+		if v := e.shared[i].Load(); isType(v) {
+			c.shared[i].Store(v)
+		}
+	}
+	return c
+}
+
+func isType(v value.Value) bool {
+	switch v.(type) {
+	case *value.Tag, *value.Constructor:
+		return true
+	}
+	return false
 }
 
 // fieldDefaults are the default expressions of a record tag's fields, nil for a field without
@@ -146,22 +190,24 @@ type fieldDefaults struct {
 	env   *Env
 }
 
-// keepDefaults records the field defaults of the record tag v declares, if it has any.
-func (in *Instance) keepDefaults(v value.Value, d *ast.TypeDecl, env *Env) {
+func hasDefaults(d *ast.TypeDecl) bool {
+	rt, ok := d.Body.(*ast.RecordType)
+	return ok && slices.ContainsFunc(rt.Fields, func(f ast.FieldType) bool { return f.Default != nil })
+}
+
+// setDefaults gives the record tag v declares its field defaults, evaluated in env, if it has
+// any.
+func setDefaults(v value.Value, d *ast.TypeDecl, env *Env) {
 	tag, ok := v.(*value.Tag)
-	rt, isRecord := d.Body.(*ast.RecordType)
-	if !ok || !isRecord {
+	if !ok || !hasDefaults(d) {
 		return
 	}
+	rt := d.Body.(*ast.RecordType)
 	fd := &fieldDefaults{exprs: make([]ast.Expr, len(rt.Fields)), env: env}
-	has := false
 	for i, f := range rt.Fields {
 		fd.exprs[i] = f.Default
-		has = has || f.Default != nil
 	}
-	if has {
-		in.defaults.Store(tag, fd)
-	}
+	tag.Defaults = fd
 }
 
 // TypeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.

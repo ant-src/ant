@@ -751,7 +751,10 @@ func (p *parser) recordType(defaults bool) *ast.RecordType {
 		p.expect(":")
 		f := ast.FieldType{Pos: pos(n), Name: n.Text, Type: p.parseType()}
 		if p.at("=") {
-			if !defaults && p.mode != Spec {
+			switch {
+			case p.mode == Declarations:
+				p.fail(p.peek().Pos, "a declarations file takes no field defaults")
+			case !defaults && p.mode != Spec:
 				p.fail(p.peek().Pos, "a field default belongs in the record body of a type declaration")
 			}
 			p.next()

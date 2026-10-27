@@ -9,10 +9,10 @@ import (
 )
 
 func decls() (point, boxDecl, id, shape *Decl, tParam *ParamDecl) {
-	point = &Decl{Name: "Point", Kind: RecordDecl, Fields: []Field{{"x", Float64Type}, {"y", Float64Type}}}
+	point = &Decl{Name: "Point", Kind: RecordDecl, Fields: []Field{{Name: "x", Type: Float64Type}, {Name: "y", Type: Float64Type}}}
 	tParam = &ParamDecl{Name: "T"}
 	boxDecl = &Decl{Name: "Box", Kind: RecordDecl, Params: []*ParamDecl{tParam}}
-	boxDecl.Fields = []Field{{"value", Param{tParam}}}
+	boxDecl.Fields = []Field{{Name: "value", Type: Param{tParam}}}
 	id = &Decl{Name: "UserId", Kind: PrimitiveDecl, Base: value.KindString}
 	shape = &Decl{Name: "Shape", Kind: AliasDecl}
 	shape.Body = Union{Members: []Type{Named{Decl: point}, Named{Decl: id}}}
@@ -79,7 +79,7 @@ func TestAssignable(t *testing.T) {
 		{Null{}, nullable(IntType)},
 		{IntType, nullable(IntType)},
 		{Union{Members: []Type{IntType, Null{}}}, Union{Members: []Type{IntType, StringType, Null{}}}},
-		{Named{Decl: point}, Record{Fields: []Field{{"x", Float64Type}}}},
+		{Named{Decl: point}, Record{Fields: []Field{{Name: "x", Type: Float64Type}}}},
 		{Named{Decl: point}, Record{}},
 		{Named{Decl: point}, Named{Decl: shape}},
 		{Named{Decl: shape}, Union{Members: []Type{Named{Decl: point}, Named{Decl: id}}}},
@@ -99,9 +99,9 @@ func TestAssignable(t *testing.T) {
 		{Void{}, IntType},
 		{IntType, Void{}},
 		{nullable(IntType), IntType},
-		{Record{Fields: []Field{{"x", Float64Type}}}, Named{Decl: point}},
-		{Named{Decl: point}, Record{Fields: []Field{{"x", nullable(Float64Type)}}}},
-		{Named{Decl: point}, Record{Fields: []Field{{"z", Float64Type}}}},
+		{Record{Fields: []Field{{Name: "x", Type: Float64Type}}}, Named{Decl: point}},
+		{Named{Decl: point}, Record{Fields: []Field{{Name: "x", Type: nullable(Float64Type)}}}},
+		{Named{Decl: point}, Record{Fields: []Field{{Name: "z", Type: Float64Type}}}},
 		{box(IntType), box(StringType)},
 		{Array{Named{Decl: point}}, Array{Named{Decl: shape}}},
 		{Func{Params: []Type{Named{Decl: point}}, Return: IntType, Required: 1}, Func{Params: []Type{Named{Decl: shape}}, Return: IntType, Required: 1}},
@@ -143,7 +143,7 @@ func TestUnionsAndSubst(t *testing.T) {
 		{Array{IntType}, Array{StringType}},
 		{box(IntType), box(StringType)},
 		{Record{}, Named{Decl: point}},
-		{Record{Fields: []Field{{"a", IntType}}}, Record{Fields: []Field{{"b", IntType}}}},
+		{Record{Fields: []Field{{Name: "a", Type: IntType}}}, Record{Fields: []Field{{Name: "b", Type: IntType}}}},
 		{Param{tParam}, Array{IntType}},
 		{Param{tParam}, box(IntType)},
 		{Named{Decl: &Decl{Name: "Mutex", Kind: OpaqueDecl}}, Named{Decl: &Decl{Name: "Cond", Kind: OpaqueDecl}}},

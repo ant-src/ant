@@ -1,0 +1,21 @@
+// spec: 4 Field defaults; 12 Names and scopes
+// A local type has one tag for the whole run, and its defaults come with it: goroutines that run
+// the declaring block for the first time at once all see the defaults, and a default runs on the
+// goroutine whose literal leaves its field out.
+func make(n: int): int {
+  type Opts = { workers: int = 4, tags: Array[string] = [] }
+  var o = Opts{}
+  Array.push(o.tags, "t")
+  o.workers + len(o.tags) + n
+}
+
+var results: Channel[int] = Channel.new(64)
+for i in Array.range(0, 64) {
+  go { Channel.send(results, make(0)) }
+}
+var sum = 0
+for i in Array.range(0, 64) { sum += Channel.receive(results) ?? 0 }
+println(sum)
+
+// expect
+// out: 320

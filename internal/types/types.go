@@ -58,6 +58,9 @@ type Func struct {
 type Field struct {
 	Name string
 	Type Type
+	// Default marks a field of a RecordDecl that declares a default, which a literal may leave
+	// out (section 4, Field defaults).
+	Default bool
 }
 
 // Record is an anonymous record type { name: T, ... }.
@@ -81,15 +84,12 @@ type Decl struct {
 	Name   string
 	Kind   DeclKind
 	Params []*ParamDecl
-	Fields []Field // RecordDecl: the fields, with Params inside
-	// Defaults marks the fields of a RecordDecl that declare a default, which a literal may
-	// leave out (section 4, Records).
-	Defaults map[string]bool
-	Base     value.Kind // PrimitiveDecl: the base kind
-	Body     Type       // AliasDecl: the body, with Params inside
-	Funcs    map[string]*Func
-	Pos      any    // the declaration's position, for messages
-	Path     string // the file the declaration is in, for messages
+	Fields []Field    // RecordDecl: the fields, with Params inside
+	Base   value.Kind // PrimitiveDecl: the base kind
+	Body   Type       // AliasDecl: the body, with Params inside
+	Funcs  map[string]*Func
+	Pos    any    // the declaration's position, for messages
+	Path   string // the file the declaration is in, for messages
 }
 
 // Named is a reference to a declared type with type arguments.

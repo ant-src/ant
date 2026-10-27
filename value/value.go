@@ -296,8 +296,11 @@ type Tag struct {
 	Kind   TagKind
 	Fields []string
 	Base   Kind // PrimitiveTag: the base kind
-	index  map[string]int
-	funcs  map[string]Value
+	// Defaults is what the interpreter fills an omitted field of a record literal from, set
+	// before the tag is bound and opaque to this package; nil when no field declares a default.
+	Defaults any
+	index    map[string]int
+	funcs    map[string]Value
 }
 
 // NewTag creates a tag. fields is used for record tags only.

@@ -64,8 +64,8 @@ func (g *Goroutine) evalBlock(b *ast.Block, env *Env) (value.Value, ctl) {
 	if b.Scope != nil {
 		env = newEnv(b.Scope, env)
 	}
-	for _, td := range b.Types {
-		env.set(td.Slot, g.in.localType(td, env))
+	if len(b.Types) > 0 {
+		g.in.bindLocalTypes(b, env)
 	}
 	if !b.HasDefer {
 		return g.evalStmts(b.Stmts, env)
@@ -720,15 +720,10 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 // evaluated afresh in the scope of the type's declaration as if called from the literal at pos
 // (section 12, Record literal).
 func (g *Goroutine) fillDefaults(tag *value.Tag, vals []value.Value, pos ast.Pos) {
-	var fd *fieldDefaults
+	fd, _ := tag.Defaults.(*fieldDefaults)
 	for i, v := range vals {
 		if v != nil {
 			continue
-		}
-		if fd == nil {
-			if x, ok := g.in.defaults.Load(tag); ok {
-				fd = x.(*fieldDefaults)
-			}
 		}
 		if fd == nil || fd.exprs[i] == nil {
 			g.panicf(pos, "%s literal is missing the field %s", tag.Name, tag.Fields[i])

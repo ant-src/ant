@@ -1,7 +1,7 @@
 # Work still to do
 
-Thirteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision:
-the spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
+Twelve gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
 

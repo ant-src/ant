@@ -595,13 +595,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 				c.errorf(f.Pos, "%s declares the field %s twice", d.Name, f.Name)
 			}
 			seen[f.Name] = true
-			decl.Fields = append(decl.Fields, types.Field{Name: f.Name, Type: c.resolveType(f.Type, sc)})
-			if f.Default != nil {
-				if decl.Defaults == nil {
-					decl.Defaults = map[string]bool{}
-				}
-				decl.Defaults[f.Name] = true
-			}
+			decl.Fields = append(decl.Fields, types.Field{Name: f.Name, Type: c.resolveType(f.Type, sc), Default: f.Default != nil})
 		}
 	case *ast.TypeName:
 		if len(body.Path) == 1 && len(body.Args) == 0 {
@@ -1084,7 +1078,7 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 // a generic function's body (section 4, Records).
 func (c *Checker) checkDefaults(ti *typeInfo) {
 	rt, ok := ti.decl.Body.(*ast.RecordType)
-	if !ok || ti.t.Kind != types.RecordDecl || len(ti.t.Defaults) == 0 {
+	if !ok || ti.t.Kind != types.RecordDecl {
 		return
 	}
 	savedMod, savedFn, savedFlow, savedRigid := c.mod, c.fn, c.flow, c.rigid
