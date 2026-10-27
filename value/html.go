@@ -87,7 +87,18 @@ func UnsafeHtml(s string) *Html {
 	return &Html{Nodes: []HtmlNode{{Kind: HtmlRaw, Text: s}}}
 }
 
-func equalHtml(a, b *Html) bool {
+// equalHtml compares two Html values node by node. depth counts the elements entered, and the
+// walk moves to a fresh stack as it goes down, as the walks of containers do.
+func equalHtml(a, b *Html, depth int) bool {
+	if Deep(depth) {
+		var eq bool
+		OnFreshStack(func() { eq = equalNodes(a, b, depth) })
+		return eq
+	}
+	return equalNodes(a, b, depth)
+}
+
+func equalNodes(a, b *Html, depth int) bool {
 	if len(a.Nodes) != len(b.Nodes) {
 		return false
 	}
@@ -101,7 +112,7 @@ func equalHtml(a, b *Html) bool {
 				return false
 			}
 		}
-		if x.Kind == HtmlElement && !equalHtml(x.Children, y.Children) {
+		if x.Kind == HtmlElement && !equalHtml(x.Children, y.Children, depth+1) {
 			return false
 		}
 	}
@@ -113,13 +124,22 @@ func equalHtml(a, b *Html) bool {
 // RenderHtml is String.from of an Html value: its markup.
 func RenderHtml(h *Html) string {
 	var sb strings.Builder
-	renderHtml(&sb, h, false)
+	renderHtml(&sb, h, false, 0)
 	return sb.String()
 }
 
 // renderHtml writes the nodes of h; foreign is true inside <svg> or <math> and outside a
-// <foreignObject>, where the browser reads <style> as ordinary text.
-func renderHtml(sb *strings.Builder, h *Html, foreign bool) {
+// <foreignObject>, where the browser reads <style> as ordinary text. depth counts the elements
+// entered, and the walk moves to a fresh stack as it goes down.
+func renderHtml(sb *strings.Builder, h *Html, foreign bool, depth int) {
+	if Deep(depth) {
+		OnFreshStack(func() { renderNodes(sb, h, foreign, depth) })
+		return
+	}
+	renderNodes(sb, h, foreign, depth)
+}
+
+func renderNodes(sb *strings.Builder, h *Html, foreign bool, depth int) {
 	for i := range h.Nodes {
 		n := &h.Nodes[i]
 		switch n.Kind {
@@ -128,12 +148,12 @@ func renderHtml(sb *strings.Builder, h *Html, foreign bool) {
 		case HtmlRaw:
 			sb.WriteString(n.Text)
 		case HtmlElement:
-			renderElement(sb, n, foreign)
+			renderElement(sb, n, foreign, depth)
 		}
 	}
 }
 
-func renderElement(sb *strings.Builder, n *HtmlNode, foreign bool) {
+func renderElement(sb *strings.Builder, n *HtmlNode, foreign bool, depth int) {
 	name := strings.ToLower(n.Name)
 	sb.WriteByte('<')
 	sb.WriteString(n.Name)
@@ -168,7 +188,7 @@ func renderElement(sb *strings.Builder, n *HtmlNode, foreign bool) {
 			sb.WriteString(c.Text)
 		}
 	} else {
-		renderHtml(sb, n.Children, foreign)
+		renderHtml(sb, n.Children, foreign, depth+1)
 	}
 	sb.WriteString("</")
 	sb.WriteString(n.Name)

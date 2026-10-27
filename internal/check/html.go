@@ -24,9 +24,9 @@ func (c *Checker) markup(content []ast.HtmlNode, sc *scope, textOnly bool) {
 			c.markup(n.Element.Content, sc, n.Element.TextOnly)
 		case n.Expr != nil:
 			t := c.synth(n.Expr, sc)
-			if !c.renders(t, !textOnly, 0) {
+			if !c.renders(t, !textOnly, nil) {
 				switch {
-				case textOnly && c.renders(t, true, 0):
+				case textOnly && c.renders(t, true, nil):
 					c.errorf(n.Expr.Position(), "<title> and <textarea> hold text only, so they cannot hold Html")
 				default:
 					c.errorf(n.Expr.Position(), "markup takes a string, a number, void, Html, or an array of them, got %s%s", types.String(t), contentHint(t))
@@ -52,10 +52,16 @@ func contentHint(t types.Type) string {
 }
 
 // renders reports whether every value of t can be inserted into content: a string, a number,
-// void, Html when html is set, or an array of these.
-func (c *Checker) renders(t types.Type, html bool, depth int) bool {
-	if depth > 64 {
-		return false
+// void, Html when html is set, or an array of these. seen holds the aliases being checked, so
+// that a recursive one, as type Nested = string | Array[Nested], is checked once.
+func (c *Checker) renders(t types.Type, html bool, seen []types.Type) bool {
+	if n, ok := t.(types.Named); ok && n.Decl.Kind == types.AliasDecl {
+		for _, s := range seen {
+			if types.Equal(s, t) {
+				return true
+			}
+		}
+		seen = append(seen, t)
 	}
 	switch x := types.Expand(t).(type) {
 	case types.Invalid, types.Never, types.Void:
@@ -65,12 +71,17 @@ func (c *Checker) renders(t types.Type, html bool, depth int) bool {
 	case types.Named:
 		return html && x.Decl == c.html
 	case types.Array:
-		return c.renders(x.Elem, html, depth+1)
+		return c.renders(x.Elem, html, seen)
 	case types.Param:
-		return x.Decl.Bound != nil && c.renders(x.Decl.Bound, html, depth+1)
+		return x.Decl.Bound != nil && c.renders(x.Decl.Bound, html, seen)
 	case types.Union:
-		for _, m := range x.Members {
-			if !c.renders(m, html, depth+1) {
+		members := x.Members
+		if x.Written != nil {
+			// the members as written keep the aliases, which seen recognizes
+			members = x.Written
+		}
+		for _, m := range members {
+			if !c.renders(m, html, seen) {
 				return false
 			}
 		}
@@ -114,6 +125,8 @@ func classPart(t types.Type, depth int) bool {
 		return true
 	case types.Prim:
 		return x.Kind == value.KindString
+	case types.Param:
+		return x.Decl.Bound != nil && classPart(x.Decl.Bound, depth+1)
 	case types.Union:
 		for _, m := range x.Members {
 			if !classPart(m, depth+1) {

@@ -59,6 +59,14 @@ func (g *Goroutine) insert(b *value.HtmlBuilder, v value.Value, pos ast.Pos, tex
 			}
 		}
 		outer = append(outer, x)
+		if value.Deep(len(outer)) {
+			value.OnFreshStack(func() {
+				for _, e := range x.Values() {
+					g.insert(b, e, pos, textOnly, outer)
+				}
+			})
+			return
+		}
 		for _, e := range x.Values() {
 			g.insert(b, e, pos, textOnly, outer)
 		}

@@ -12,22 +12,24 @@ import (
 // markupAllowed reports whether a < here begins an HTML expression (section 2): when the last
 // token, skipping line breaks, is not an Operand, or when the < is the first token of a line
 // whose line break ended a statement outside ( and [. Such a < must be followed by an ASCII
-// letter or by >; anything else there is an error, since a comparison needs a left operand.
+// letter or by >. After no operand anything else is an error, since a comparison needs a left
+// operand. At the start of a line it is a comparison: the lexer cannot tell a block's { from a
+// record or map literal's, inside which a line break ends nothing and < n continues the line.
 func (l *lexer) markupAllowed() bool {
-	allowed := true
+	afterOperand := false
 	for i := len(l.toks) - 1; i >= 0; i-- {
 		if t := l.toks[i]; t.Kind != token.Newline {
-			allowed = !Operand(t)
+			afterOperand = Operand(t)
 			break
 		}
 	}
-	if !allowed && len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind == token.Newline {
-		allowed = len(l.brackets) == 0 || l.brackets[len(l.brackets)-1] == '{'
+	tag := isLetter(l.peek(1)) || l.peek(1) == '>'
+	if afterOperand {
+		lineStart := len(l.toks) > 0 && l.toks[len(l.toks)-1].Kind == token.Newline &&
+			(len(l.brackets) == 0 || l.brackets[len(l.brackets)-1] == '{')
+		return lineStart && tag
 	}
-	if !allowed {
-		return false
-	}
-	if c := l.peek(1); !isLetter(c) && c != '>' {
+	if !tag {
 		l.fail(l.here(), "a comparison needs a left operand; an HTML element starts with a letter after <")
 	}
 	return true

@@ -55,7 +55,7 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 		return ok && x.Source == y.Source && x.Flags == y.Flags
 	case *Html:
 		y, ok := b.(*Html)
-		return ok && equalHtml(x, y)
+		return ok && equalHtml(x, y, 0)
 	}
 	return false
 }

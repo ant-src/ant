@@ -1,4 +1,4 @@
-// spec: 2 Literals; 5 HTML expressions
+// spec: 2 Literals; 5 HTML expressions; 4 Type declarations
 // Inside an interpolation, of a template string or of markup, line breaks end no statement, so a
 // < at the start of a line there is a comparison. A reference that a comment splits is not one.
 var x = 2
@@ -12,8 +12,25 @@ println(<p>{Array.map([1, 2], {
   <i>{x}</i>
 })}</p>)
 
+// A < starting a line inside a map literal continues the comparison, as before markup existed.
+var m = Map{ "ok": x
+  < 3 }
+println(m)
+
+// A recursive alias whose values render, and a bounded type parameter in a class array.
+type Nested = string | Array[Nested]
+var nested: Nested = ["a", ["b", ["c"]]]
+println(<p>{nested}</p>)
+func classes[T: string](name: T): Html {
+  <p class={[name]} />
+}
+println(classes("y"))
+
 // expect
 // out: true
 // out: <p>less</p>
 // out: <p>&amp;#0;</p>
 // out: <p><i>1</i><i>2</i></p>
+// out: Map{ "ok": true }
+// out: <p>abc</p>
+// out: <p class="y"></p>

@@ -30,6 +30,28 @@ func TestDeepValues(t *testing.T) {
 	}
 }
 
+// TestDeepHtml renders and compares Html nested as deep as TestDeepValues' lists.
+func TestDeepHtml(t *testing.T) {
+	defer debug.SetMaxStack(debug.SetMaxStack(64 << 20))
+	nest := func(n int) *Html {
+		h := EmptyHtml
+		for i := 0; i < n; i++ {
+			h = &Html{Nodes: []HtmlNode{{Kind: HtmlElement, Name: "i", Children: h}}}
+		}
+		return h
+	}
+	a, b := nest(300_000), nest(300_000)
+	if !Equal(a, b) {
+		t.Error("two equal deep values are unequal")
+	}
+	if Equal(a, nest(299_999)) {
+		t.Error("values of different depths are equal")
+	}
+	if s := Render(a); len(s) != 300_000*len("<i></i>") {
+		t.Errorf("rendering has %d bytes", len(s))
+	}
+}
+
 // TestDeepCycles compares rings longer than one goroutine's share of a walk: a cycle that crosses
 // a hop to a fresh goroutine must still end the comparison, with the same result.
 func TestDeepCycles(t *testing.T) {

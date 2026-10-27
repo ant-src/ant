@@ -67,7 +67,7 @@ func renderBody(sb *strings.Builder, v Value, top bool, stack Ancestors) {
 			sb.WriteString("<></>")
 			return
 		}
-		renderHtml(sb, x, false)
+		renderHtml(sb, x, false, 0)
 	case string:
 		if top {
 			sb.WriteString(x)
