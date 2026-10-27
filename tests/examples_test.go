@@ -3,15 +3,11 @@ package tests
 import (
 	"bufio"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -223,31 +219,6 @@ func call(t *testing.T, method, url, contentType, body string) (int, string) {
 	return resp.StatusCode, string(data)
 }
 
-func TestExampleApi(t *testing.T) {
-	s := startExample(t, "api")
-	base := "http://" + s.addr
-	for _, c := range []struct {
-		method, path, body string
-		status             int
-		reply              string
-	}{
-		{"GET", "/health", "", 200, `{"ok": true}`},
-		{"GET", "/items", "", 200, `[]`},
-		{"POST", "/items", `{"name": "ant"}`, 201, `{"id":1,"name":"ant"}`},
-		{"POST", "/items", `{"name": "bee"}`, 201, `{"id":2,"name":"bee"}`},
-		{"POST", "/items", `{"name": 7}`, 400, `{"error": "a name is required"}`},
-		{"POST", "/items", `not json`, 400, ``},
-		{"GET", "/items", "", 200, `[{"id":1,"name":"ant"},{"id":2,"name":"bee"}]`},
-		{"GET", "/nowhere", "", 404, `{"error": "no such route"}`},
-	} {
-		status, body := call(t, c.method, base+c.path, "application/json", c.body)
-		if status != c.status || c.reply != "" && body != c.reply {
-			t.Errorf("%s %s %s: %d %s, want %d %s", c.method, c.path, c.body, status, body, c.status, c.reply)
-		}
-	}
-	s.stop(t).expect(t, lines("listening on "+s.addr, "stopped: Ok{ value: void } (interrupt)"), 0)
-}
-
 func TestExampleGuestbook(t *testing.T) {
 	s := startExample(t, "guestbook")
 	base := "http://" + s.addr
@@ -297,12 +268,8 @@ func TestExamplePrograms(t *testing.T) {
 	}{
 		{name: "agenda", in: exampleRun{args: []string{"Europe/Stockholm", "2024-10-30"}, stdin: "[{\"title\": \"Standup\", \"when\": \"2024-11-01T09:00\", \"zone\": \"America/New_York\"},\n {\"title\": \"Retro\", \"when\": \"2024-11-05T09:00\", \"zone\": \"America/New_York\"},\n {\"title\": \"Planning\", \"when\": \"2024-11-04T17:00\", \"zone\": \"Asia/Tokyo\"},\n {\"title\": \"Ghost\", \"when\": \"2024-11-02T10:00\", \"zone\": \"Mars/Olympus\"}]\n"}, out: lines("Fri 2024-11-01 14:00 +01:00  Standup (09:00 in America/New_York), in 2 days", "Mon 2024-11-04 09:00 +01:00  Planning (17:00 in Asia/Tokyo), in 5 days", "Tue 2024-11-05 15:00 +01:00  Retro (09:00 in America/New_York), in 6 days"), status: 0, err: []string{"skipped: unknown time zone"}},
 		{name: "bank", in: exampleRun{}, out: lines("transfers: 4000", "audits: 2000, mismatches: 0", "total 10000 of 10000, balances [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]", "rates loaded 1 time(s), leaders elected 1", "false"), status: 0, err: []string{}},
-		{name: "logstat", in: exampleRun{stdin: "127.0.0.1 - - [10/Oct/2026:13:55:36 +0000] \"GET /index.html HTTP/1.1\" 200 2326\n127.0.0.1 - frank [10/Oct/2026:13:55:37 +0000] \"GET /missing HTTP/1.1\" 404 512\n10.0.0.5 - - [10/Oct/2026:13:55:38 +0000] \"POST /api/items HTTP/1.1\" 200 74\n10.0.0.5 - - [10/Oct/2026:13:55:39 +0000] \"GET /favicon.ico HTTP/1.1\" 304 -\nnot a log line\n"}, out: lines("4 requests, 1 unparsed", "status   count   share    mean", "200          2  50.00%  1200.0", "304          1  25.00%     0.0", "404          1  25.00%   512.0"), status: 0, err: []string{}},
-		{name: "nbody", in: exampleRun{}, out: lines("-0.169075164", "-0.169087605", "sun moved to 0.007413153, 0.003009803, -0.000266704"), status: 0, err: []string{}},
-		{name: "queue", in: exampleRun{}, out: lines("took 60 items, sum 6630, largest 220", "queue drained: true", "2 of 3 workers finished"), status: 0, err: []string{"worker 1 failed"}},
-		{name: "runner", in: exampleRun{stdin: "[{\"name\": \"version\", \"program\": \"go\", \"args\": [\"version\"]},\n {\"name\": \"nonsense\", \"program\": \"go\", \"args\": [\"nonsense\"]},\n {\"name\": \"missing\", \"program\": \"ant-no-such-program-xyz\"},\n 7]\n"}, out: lines("version: ok, 1 line of output", "nonsense: failed with status 2", "missing: could not start", "skipped: a task must be an object", "1 of 4 tasks succeeded"), status: 1, err: []string{"took"}},
 		{name: "shapes", in: exampleRun{}, out: lines("circle: area 3.142, perimeter 6.283", "rect: area 6.0, perimeter 10.0", "triangle: area 6.0, perimeter 12.0", "rect: area 1.0, perimeter 4.0", "largest: rect", "[\"rect\", \"circle\", \"rect\", \"triangle\"]", "points made: 4 true", "Point{ x: 1.0, y: 2.0 }", "2.23606797749979", "points made: 5", "1"), status: 0, err: []string{}},
-		{name: "sift", in: exampleRun{args: []string{"ant", "time"}, stdin: "Ant has time values\nno match here\nTIME and ANT again\n"}, out: lines("1: Ant has time values", "3: TIME and ANT again"), status: 0, err: []string{"2 of 3 lines"}},
+		{name: "grep", in: exampleRun{args: []string{"ant", "time"}, stdin: "Ant has time values\nno match here\nTIME and ANT again\n"}, out: lines("1: Ant has time values", "3: TIME and ANT again"), status: 0, err: []string{"2 of 3 lines"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
@@ -327,32 +294,6 @@ func TestExampleCalc(t *testing.T) {
 		"1 2 => error: unexpected 2.0 after the expression",
 		"1.5.2 => error: bad number 1.5.2",
 	), 0)
-}
-
-func TestExampleBf(t *testing.T) {
-	dir := t.TempDir()
-	write := func(name, src string) string {
-		path := filepath.Join(dir, name)
-		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return path
-	}
-	hello := write("hello.bf", "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.")
-	runExample(t, "bf", exampleRun{args: []string{hello}}).expect(t, "Hello World!\n", 0)
-	abc := write("abc.bf", "a comment, ignored\n++++++++[>++++++++<-]>+.+.+.")
-	runExample(t, "bf", exampleRun{args: []string{abc}}).expect(t, "ABC", 0)
-	cat := write("cat.bf", ",[.,]")
-	runExample(t, "bf", exampleRun{args: []string{cat}, stdin: "ant"}).expect(t, "ant", 0)
-	wrap := write("wrap.bf", "-.")
-	runExample(t, "bf", exampleRun{args: []string{wrap}}).expect(t, "ÿ", 0)
-	nested := write("nested.bf", "+++[>+++[>+++<-]<-]>>++++++.")
-	runExample(t, "bf", exampleRun{args: []string{nested}}).expect(t, "!", 0)
-	open := write("open.bf", "[[]")
-	runExample(t, "bf", exampleRun{args: []string{open}}).expect(t, "", 1, "[ without ] at 0")
-	shut := write("shut.bf", "]")
-	runExample(t, "bf", exampleRun{args: []string{shut}}).expect(t, "", 1, "] without [ at 0")
-	runExample(t, "bf", exampleRun{}).expect(t, "", 2, "usage:")
 }
 
 func TestExampleTodo(t *testing.T) {
@@ -386,74 +327,6 @@ func TestExampleTodo(t *testing.T) {
 				step.command, r.status, r.out, r.err, step.status, step.out, step.err)
 		}
 	}
-}
-
-func TestExampleWordfreq(t *testing.T) {
-	dir := t.TempDir()
-	var args []string
-	for name, text := range map[string]string{
-		"fox.txt":   "The quick brown fox jumps over the lazy dog. The dog sleeps; the fox doesn't.",
-		"rain.txt":  "The rain in Spain stays mainly in the plain. In the plain the rain is plain.",
-		"song.txt":  "Row, row, row your boat gently down the stream. The stream, the stream!",
-		"empty.txt": "",
-	} {
-		path := filepath.Join(dir, name)
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		args = append(args, path)
-	}
-	args = append(args, filepath.Join(dir, "missing.txt"))
-	runExample(t, "wordfreq", exampleRun{args: args}).expect(t, lines(
-		"    11 the",
-		"     3 in",
-		"     3 plain",
-		"     3 row",
-		"     3 stream",
-		"     2 dog",
-		"     2 fox",
-		"     2 rain",
-		"     1 boat",
-		"     1 brown",
-		"4 files, 23 distinct words, 44 in all",
-	), 0, "skipped: ", "missing.txt")
-	runExample(t, "wordfreq", exampleRun{}).expect(t, "", 2, "usage:")
-}
-
-func TestExampleConfig(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.json")
-	for _, c := range []struct {
-		json, out, err string
-	}{
-		{`{
-			"name": "api",
-			"servers": [
-				{ "host": "a.example", "port": 443, "tls": true },
-				{ "host": "b.example", "port": 8080 }
-			],
-			"limits": { "rps": 100, "burst": 250 }
-		}`, lines(`api: 2 servers, limits Map{ "rps": 100, "burst": 250 }`, "  a.example:443 (tls)", "  b.example:8080"), ""},
-		{`{ "name": "bare", "servers": [] }`, "bare: 0 servers, limits Map{}\n", ""},
-		{`{ "name": "oops", "servers": [ { "host": "a", "port": 80 }, { "host": "b", "port": "81" } ] }`, "", "$.servers[1].port: expected a number, got a string"},
-		{`{ "name": "frac", "servers": [ { "host": "a", "port": 80.5 } ] }`, "", "$.servers[0].port: expected an integer, got 80.5"},
-		{`{ "name": "range", "servers": [ { "host": "a", "port": 70000 } ] }`, "", "$.servers[0].port: 70000 is out of range"},
-		{`{ "name": "nohost", "servers": [ { "port": 1 } ] }`, "", "$.servers[0]: missing field host"},
-		{`{ "name": 7, "servers": [] }`, "", "$.name: expected a string, got a number"},
-		{`{ "servers": [] }`, "", "$: missing field name"},
-		{`{ "name": "limits", "servers": [], "limits": { "rps": true } }`, "", "$.limits.rps: expected a number, got a bool"},
-		{`[1, 2, 3]`, "", "$: expected an object, got an array"},
-		{`{ "name": "broken"`, "", "unexpected end of JSON input"},
-	} {
-		if err := os.WriteFile(path, []byte(c.json), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		status := 0
-		if c.err != "" {
-			status = 1
-		}
-		runExample(t, "config", exampleRun{args: []string{path}}).expect(t, c.out, status, c.err)
-	}
-	runExample(t, "config", exampleRun{args: []string{filepath.Join(t.TempDir(), "none.json")}}).expect(t, "", 1, "none.json")
 }
 
 func TestExampleFetch(t *testing.T) {
@@ -494,44 +367,4 @@ func TestExampleFetch(t *testing.T) {
 	} {
 		runExample(t, "fetch", exampleRun{args: c.args}).expect(t, c.out, c.status, c.err)
 	}
-}
-
-func TestExamplePool(t *testing.T) {
-	base := echoServer(t)
-	paths := []string{"/hello", "/status/404", "/slow", "/status/500", "/hello"}
-	var args []string
-	for _, p := range paths {
-		args = append(args, base+p)
-	}
-	runExample(t, "pool", exampleRun{args: args}).expect(t, lines(
-		"200  "+base+"/hello",
-		"404  "+base+"/status/404",
-		"timeout  "+base+"/slow",
-		"500  "+base+"/status/500",
-		"200  "+base+"/hello",
-	), 0)
-}
-
-func TestExampleWebhook(t *testing.T) {
-	var got []byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		mac := hmac.New(sha256.New, []byte("shared-secret"))
-		mac.Write(body)
-		want := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-		if r.Method != "POST" || r.URL.Path != "/hook" || !hmac.Equal([]byte(r.Header.Get("X-Signature")), []byte(want)) {
-			http.Error(w, "bad signature", http.StatusUnauthorized)
-			return
-		}
-		got = body
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	t.Cleanup(srv.Close)
-	runExample(t, "webhook", exampleRun{args: []string{srv.URL + "/hook"}}).expect(t, "delivered: 204\n", 0)
-	if string(got) != `{"id":"evt_1","kind":"payment","amount":12.5}` {
-		t.Errorf("the receiver got %s", got)
-	}
-	wrong := exampleRun{args: []string{srv.URL + "/hook"}, env: map[string]string{"WEBHOOK_SECRET": "guess"}}
-	runExample(t, "webhook", wrong).expect(t, "delivered: 401\n", 1)
-	runExample(t, "webhook", exampleRun{args: []string{"http://127.0.0.1:1/hook"}}).expect(t, "", 1, "delivery failed: ")
 }

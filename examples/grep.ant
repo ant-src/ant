@@ -1,7 +1,7 @@
 // spec: stdlib Os; stdlib File; 11 String; 11 Array
 //! A filter in the manner of grep: it keeps the lines of standard input that contain every
 //! argument, in any letter case, numbers them, and reports the count on standard error. Try:
-//!   ant run examples/sift.ant time zone < ../spec/stdlib.md
+//!   ant run examples/grep.ant time zone < ../spec/stdlib.md
 
 func keeps(line: string, needles: Array[string]): bool {
   var lower = String.toLower(line)
@@ -10,7 +10,7 @@ func keeps(line: string, needles: Array[string]): bool {
 
 var needles = Array.map(Os.args(), { String.toLower(x) })
 if Array.length(needles) == 0 {
-  File.writeLine(Os.stderr(), "usage: ant run examples/sift.ant word... < file")
+  File.writeLine(Os.stderr(), "usage: ant run examples/grep.ant word... < file")
   Os.exit(2)
 }
 var input = Os.stdin()
