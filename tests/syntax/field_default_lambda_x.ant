@@ -1,0 +1,9 @@
+// spec: 4 Field defaults; 4 Type declarations
+var f: func(int): int = {
+  type T = { a: int = x }
+  T{}.a
+}
+
+// expect
+// exit: 2
+// err: a field default of a local type cannot use x

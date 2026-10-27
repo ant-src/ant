@@ -1,0 +1,10 @@
+// spec: 4 Field defaults; 4 Type declarations
+func f(): int {
+  var helper = func(): int { 4 }
+  type T = { a: int = helper() }
+  T{}.a
+}
+
+// expect
+// exit: 2
+// err: a field default of a local type cannot use helper

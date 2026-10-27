@@ -1,0 +1,42 @@
+// spec: 4 Field defaults; 12 Expressions; 5
+// A literal evaluates its entries and spreads in written order, then the defaults of the fields
+// still without a value in declaration order, whatever order the literal writes. A field given by
+// a spread or an entry skips its default, and a later entry still wins over a spread. A field
+// given in a generic record solves its type argument while a defaulted one is left out.
+var log: Array[string] = []
+
+func note(s: string): int {
+  Array.push(log, s)
+  len(log)
+}
+
+type T = { c: int = note("c"), a: int = note("a"), b: int = note("b"), d: int }
+
+var t = T{ d: note("d"), a: note("a!") }
+println(log)
+println(t)
+
+log = []
+var u = T{ ...t, c: note("c!") }
+println(log)
+println(u)
+
+log = []
+type Small = { a: int, d: int }
+var v = T{ ...Small{ a: 1, d: 2 } }
+println(log)
+println(v)
+
+type Pair[A] = { first: A, rest: Array[A] = [] }
+var p = Pair{ first: "x" }
+Array.push(p.rest, "y")
+println(p)
+
+// expect
+// out: ["d", "a!", "c", "b"]
+// out: T{ c: 3, a: 2, b: 4, d: 1 }
+// out: ["c!"]
+// out: T{ c: 1, a: 2, b: 4, d: 1 }
+// out: ["c", "b"]
+// out: T{ c: 1, a: 1, b: 2, d: 2 }
+// out: Pair{ first: "x", rest: ["y"] }

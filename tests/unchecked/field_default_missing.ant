@@ -1,0 +1,17 @@
+// spec: 4 Field defaults; 12 Runtime panics
+// panics: record-literal
+// A field without a default still panics when a literal leaves it out, after the defaults of the
+// fields before and after it have run.
+type S = { a: int = note("a"), b: int, c: int = note("c") }
+
+func note(s: string): int {
+  println(s)
+  1
+}
+
+println(S{})
+
+// expect
+// out: a
+// exit: 1
+// err: S literal is missing the field b

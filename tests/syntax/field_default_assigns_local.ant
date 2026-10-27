@@ -1,0 +1,12 @@
+// spec: 4 Field defaults; 4 Type declarations
+// Assigning counts as naming: a default's lambda may not change a variable of the block either.
+func f(): int {
+  var k = 0
+  type T = { next: func(): int = { k += 1
+    k } }
+  T{}.next()
+}
+
+// expect
+// exit: 2
+// err: a field default of a local type cannot use k

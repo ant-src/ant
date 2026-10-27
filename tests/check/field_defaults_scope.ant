@@ -1,0 +1,21 @@
+// spec: 4 Field defaults
+// Section 4: a default sees module names but not the other fields of its record; it is checked
+// against its field's type, null only where the field is nullable, a lambda against a function
+// field's type; a local type's default is checked like a top-level one; a spread that leaves out a
+// field without a default is still missing it.
+var base = 2
+
+type A = { a: int = base, b: int = a }        // ERR: a is not defined
+type N = { n: int = null }                    // ERR: cannot use null where int is expected
+type F = { f: func(int): string = { x * 2 } } // ERR: cannot use int where string is expected
+type Small = { x: int }
+type Big = { x: int, y: int = 0, z: int }
+
+func local(): int {
+  type L = { s: string = base } // ERR: cannot use int where string is expected
+  L{ s: "x" }
+  1
+}
+
+println(Big{ ...Small{ x: 1 } }) // ERR: Big literal is missing the field z
+println(Big{ ...Small{ x: 1 }, z: 3 })

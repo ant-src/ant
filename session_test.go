@@ -203,6 +203,53 @@ func TestSessionTypeFuncLater(t *testing.T) {
 	}
 }
 
+// TestSessionFieldDefaults: a default reads the session's variables at each literal, a later
+// input's literal fills in a type an earlier input declared, and a redeclared type takes its new
+// defaults.
+func TestSessionFieldDefaults(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithSource("lib.ant", "var hidden = 3\nexport type L = { n: int = hidden }"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	render := func(src string) string {
+		t.Helper()
+		v, err := s.Eval(src)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		return value.Render(v)
+	}
+	render("var base = 5")
+	render("type C = { n: int = base, tags: Array[string] = [] }")
+	if got := render("C{}"); got != "C{ n: 5, tags: [] }" {
+		t.Errorf("C{} = %s", got)
+	}
+	render("base = 7")
+	if got := render("C{ tags: [\"a\"] }"); got != `C{ n: 7, tags: ["a"] }` {
+		t.Errorf("after base = 7: %s", got)
+	}
+	render("var one = C{}")
+	render("Array.push(one.tags, \"x\")")
+	if got := render("C{}.tags"); got != "[]" {
+		t.Errorf("a default shared its array: %s", got)
+	}
+	render("type C = { n: int = 1, m: int = 2 }")
+	if got := render("C{ m: 3 }"); got != "C{ n: 1, m: 3 }" {
+		t.Errorf("redeclared C = %s", got)
+	}
+	render(`import "lib.ant" { L }`)
+	if got := render("L{}"); got != "L{ n: 3 }" {
+		t.Errorf("imported L{} = %s", got)
+	}
+	if got := render("C{ n: 4 }"); got != "C{ n: 4, m: 2 }" {
+		t.Errorf("C{ n: 4 } = %s", got)
+	}
+	if _, err := s.Eval("type D = { a: int, b: int = 1 }\nD{ b: 2 }"); err == nil || !strings.Contains(err.Error(), "missing the field a") {
+		t.Errorf("D{ b: 2 } = %v, want missing the field a", err)
+	}
+}
+
 // TestSessionInterrupts: a session honors WithInterrupts as a run does, so an interrupt ends
 // an input that never waits.
 func TestSessionInterrupts(t *testing.T) {

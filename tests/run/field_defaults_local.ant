@@ -1,0 +1,73 @@
+// spec: 4 Field defaults; 4 Type declarations; 12 Names and scopes
+// A local type's defaults see the module's names and the types of its block and of enclosing
+// blocks, local named primitive types included, also from a lambda in a default and when a later
+// type of the block is named. A type in a loop body has one tag, and its defaults run afresh in
+// every iteration. A generic local type's default fits every type argument. A name the default
+// reads that its block declares only further down is not yet in scope there, so the top-level one
+// is meant, as anywhere else.
+var top = 1
+var seed = 10
+
+func next(): int {
+  seed += 1
+  seed
+}
+
+func build(): string {
+  type Id = string
+  type Outer = {
+    id: Id = Id("o"),
+    inner: Inner = Inner{},
+    make: func(): Inner = { Inner{ v: 5 } },
+  }
+  type Inner = { v: int = top }
+  var o = Outer{}
+  if true {
+    type Deep = { outer: Outer = Outer{}, n: int = next() }
+    var d = Deep{}
+    return `${o.id} ${o.inner.v} ${o.make().v} ${d.outer.inner.v} ${d.n}`
+  }
+  ""
+}
+
+func box[T](v: T): Array[T] {
+  type Bag[U] = { items: Array[U] = [] }
+  var b: Bag[T] = Bag{}
+  Array.push(b.items, v)
+  var c: Bag[string] = Bag{}
+  Array.push(c.items, "fresh")
+  b.items
+}
+
+func shadowed(): int {
+  type T = { a: int = top }
+  var top = 5
+  T{}.a + top
+}
+
+println(build())
+println(build())
+
+var bags: Array[Array[int]] = []
+var tags: Array[string] = []
+for i in Array.range(0, 3) {
+  type Slot = { items: Array[int] = [], n: int = next() }
+  var s = Slot{}
+  Array.push(s.items, i)
+  Array.push(bags, s.items)
+  if i > 0 && s == (Slot{ items: [i], n: s.n }) {
+    Array.push(tags, "same tag")
+  }
+}
+println(bags)
+println(tags)
+println(box("x"))
+println(shadowed())
+
+// expect
+// out: Id("o") 1 5 1 11
+// out: Id("o") 1 5 1 12
+// out: [[0], [1], [2]]
+// out: ["same tag", "same tag"]
+// out: ["x"]
+// out: 6

@@ -1,0 +1,9 @@
+// spec: 4 Field defaults; 4 Type declarations
+for i in [1, 2] {
+  type T = { a: int = i }
+  println(T{}.a)
+}
+
+// expect
+// exit: 2
+// err: a field default of a local type cannot use i

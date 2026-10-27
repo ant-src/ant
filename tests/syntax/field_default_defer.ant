@@ -1,0 +1,10 @@
+// spec: 4 Field defaults; 5 return, break, continue
+// A default lies outside every block of its enclosing function, so a defer at its top has no block
+// to attach to.
+func f() {
+  type T = { a: int = defer { println("d") } }
+}
+
+// expect
+// exit: 2
+// err: defer needs an enclosing block

@@ -204,7 +204,7 @@ func (n Named) FieldsOf() []Field {
 		if err != nil {
 			t = Invalid{}
 		}
-		out[i] = Field{Name: f.Name, Type: t}
+		out[i] = Field{Name: f.Name, Type: t, Default: f.Default}
 	}
 	return out
 }

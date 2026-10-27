@@ -66,7 +66,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 			if err != nil {
 				return nil, err
 			}
-			fs[i] = Field{Name: f.Name, Type: ft}
+			fs[i] = Field{Name: f.Name, Type: ft, Default: f.Default}
 		}
 		return Record{Fields: fs}, nil
 	case Named:

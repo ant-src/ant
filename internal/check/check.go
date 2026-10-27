@@ -185,6 +185,9 @@ type typeInfo struct {
 	mod  *moduleInfo
 	// scope is the block a local type is declared in; nil at the top level.
 	scope *scope
+	// defaultsChecked is set once its field defaults are checked, which a block checked again,
+	// as a lambda body may be, does not repeat.
+	defaultsChecked bool
 }
 
 type funcInfo struct {
@@ -1078,9 +1081,10 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 // a generic function's body (section 4, Records).
 func (c *Checker) checkDefaults(ti *typeInfo) {
 	rt, ok := ti.decl.Body.(*ast.RecordType)
-	if !ok || ti.t.Kind != types.RecordDecl {
+	if !ok || ti.t.Kind != types.RecordDecl || ti.defaultsChecked {
 		return
 	}
+	ti.defaultsChecked = true
 	savedMod, savedFn, savedFlow, savedRigid := c.mod, c.fn, c.flow, c.rigid
 	c.mod = ti.mod
 	c.flow = flow{}

@@ -177,6 +177,7 @@ func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type
 			c.varDecl(st, inner)
 			last = types.Void{}
 		case *ast.TypeDecl:
+			c.checkDefaults(c.localTypes[st])
 			last = types.Void{}
 		case ast.Expr:
 			if isLast && expected != nil {
@@ -227,9 +228,6 @@ func (c *Checker) blockTypes(b *ast.Block, sc *scope) {
 		sc.types[d.Name] = ti.ent
 	}
 	c.resolveTypeDecls(fresh)
-	for _, ti := range fresh {
-		c.checkDefaults(ti)
-	}
 }
 
 // varDecl checks a local var declaration. The name is in scope inside its own initializer,

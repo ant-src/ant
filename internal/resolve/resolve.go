@@ -410,9 +410,6 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)
 	}
-	for _, td := range b.Types {
-		r.defaults(td, s)
-	}
 	for _, st := range b.Stmts {
 		r.stmt(st, s)
 	}
@@ -428,6 +425,10 @@ func (r *resolver) stmt(st ast.Stmt, s *scope) {
 		}
 		r.target(st.Target, s)
 		r.expr(st.Init, s)
+	case *ast.TypeDecl:
+		// A local type's defaults are resolved where it is declared, so a variable declared
+		// above it in its block is in scope and refused, not taken for a top-level name.
+		r.defaults(st, s)
 	case ast.Expr:
 		r.expr(st, s)
 	}

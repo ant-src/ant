@@ -1,0 +1,14 @@
+// spec: 4 Field defaults; 4 Type declarations
+// A local type's default may not name a variable declared above it in its own block, even when a
+// top-level variable has the same name: the default would otherwise read the top-level one.
+var x = 1
+
+func f(): int {
+  var x = 2
+  type T = { a: int = x }
+  T{}.a
+}
+
+// expect
+// exit: 2
+// err: a field default of a local type cannot use x

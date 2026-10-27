@@ -1,0 +1,77 @@
+// spec: 4 Field defaults
+// A default is any expression: null, a union member's record, a named primitive's constructor, a
+// library call such as a duration or a new mutex, a function value, an if, a function called in
+// the declaring module, or a call of a func literal with a loop and a block of its own. Each runs
+// afresh, so every record gets its own mutex. The type is unchanged: ==, String.from,
+// Json.stringify and destructuring see every field, and an anonymous record type accepts the value.
+type Info = {}
+type Warn = { code: int = 0 }
+type Level = Info | Warn
+type UserId = string
+
+var verbose = false
+
+func twice(n: int): int { n * 2 }
+
+type Job = {
+  name: string,
+  owner: UserId = UserId("anon"),
+  nick: string | null = null,
+  level: Level = Info{},
+  timeout: Time.Duration = Time.duration(seconds: 30),
+  lock: Mutex = Mutex.new(),
+  retries: int = if verbose { 9 } else { twice(Math.max(1, 2)) },
+  score: func(int): int = { x + 1 },
+  limit: int = func(): int {
+    var s = 0
+    for i in Array.range(1, 100) {
+      if i > 4 { break }
+      if true {
+        defer { s += 100 }
+        s += i
+      }
+    }
+    s
+  }(),
+}
+
+var a = Job{ name: "a" }
+var b = Job{ name: "b", level: Warn{}, nick: "bee" }
+println(a.owner == UserId("anon"))
+println(a.nick)
+println(a.level is Info)
+println(b.level)
+println(String.from(a.timeout))
+println(a.lock == b.lock)
+println(a.retries)
+println(a.score(41))
+println(a.limit)
+verbose = true
+println(Job{ name: "c" }.retries)
+
+type Point = { x: int, y: int = 0 }
+var p = Point{ x: 1 }
+println(p == Point{ x: 1, y: 0 })
+println(String.from(p))
+println(Json.stringify(p))
+var { x, y } = p
+println(x + y)
+var named: { y: int } = p
+println(named.y)
+
+// expect
+// out: true
+// out: null
+// out: true
+// out: Warn{ code: 0 }
+// out: PT30S
+// out: false
+// out: 4
+// out: 42
+// out: 410
+// out: 9
+// out: true
+// out: Point{ x: 1, y: 0 }
+// out: {"x":1,"y":0}
+// out: 1
+// out: 0

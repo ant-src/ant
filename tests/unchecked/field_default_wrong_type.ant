@@ -1,0 +1,9 @@
+// spec: 4 Field defaults; 4 Checking and running
+// ant run keeps no field types, so a default of the wrong type, which the checker rejects, fills
+// its field as written.
+type S = { a: string = 1 }
+
+println(S{})
+
+// expect
+// out: S{ a: 1 }

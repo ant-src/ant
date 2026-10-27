@@ -159,6 +159,18 @@ func TestSyntaxErrors(t *testing.T) {
 		{"brace after literal", "func f() { 1{ } }", "expected a newline or ';'", Program},
 		{"defer at top level", "defer { 1 }", "defer needs an enclosing block", Session},
 		{"empty source with garbage", "@", "unexpected character", Program},
+		{"field default in an annotation", "var a: { port: int = 80 } = b", "belongs in the record body of a type declaration", Program},
+		{"field default in a nested record type", "type A = Array[{ n: int = 1 }]", "belongs in the record body of a type declaration", Program},
+		{"field default in a union member", "type U = { n: int = 1 } | null", "not in a union member", Program},
+		{"field default in a function type", "func f(g: func({ n: int = 1 }): int) {}", "belongs in the record body of a type declaration", Program},
+		{"field default in declarations", "type Opts = { n: int = 1 }", "a declarations file takes no field defaults", Declarations},
+		{"return in a field default", "type T = { n: int = return 1 }", "'return' in a field default", Program},
+		{"try in a field default", "func f(): Result[int, Error] {\n  type T = { n: int = try g() }\n  Result.ok(1)\n}", "'try' in a field default", Program},
+		{"try in a field default in a script", "type T = { n: int = try g() }\nprintln(1)", "'try' in a field default", Program},
+		{"break in a field default inside a loop", "for i in xs {\n  type T = { n: int = if c { break } else { 1 } }\n}", "'break' outside a loop", Program},
+		{"continue in a field default inside a loop", "while c {\n  type T = { n: int = if c { continue } else { 1 } }\n}", "'continue' outside a loop", Program},
+		{"defer in a field default", "func f() {\n  type T = { n: int = defer { 1 } }\n}", "defer needs an enclosing block", Program},
+		{"field default needs an expression", "type T = { n: int = }", "unexpected", Program},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -270,6 +282,42 @@ func TestAST(t *testing.T) {
 }
 
 // TestHasDefer checks that defer marks the block it registers with.
+// TestFieldDefaults checks what the parser accepts in a field default: any expression, with
+// loops and blocks of its own, and a lambda whose return and try belong to the lambda.
+func TestFieldDefaults(t *testing.T) {
+	ok := []string{
+		"type T = { a: int, b: int = 1, c: Array[string] = [], d: string | null = null }",
+		"type T = {\n  a: int = 1,\n  b: int = 2,\n}",
+		"type Box[T] = { items: Array[T] = [] }",
+		"type T = { n: int = if c { 1 } else { 2 } }",
+		"type T = { n: int = { var s = 0\n  for i in xs { if i > 2 { break }\n s += i }\n s }() }",
+		"type T = { f: func(): int = { return 1 } }",
+		"type T = { f: func(): Result[int, Error] = { Result.ok(try g()) } }",
+		"type T = { n: int = if c { defer { 1 }\n 2 } else { 3 } }",
+		"type U = { n: int } | null",
+		"func f() {\n  type T = { n: int = 1 }\n}",
+	}
+	for _, src := range ok {
+		if _, err := Parse("test", src, Program); err != nil {
+			t.Errorf("%q: %v", src, err)
+		}
+	}
+	f, err := Parse("test", "type T = { a: int, b: int = 1 + 2 }", Program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := f.Decls[0].(*ast.TypeDecl).Body.(*ast.RecordType)
+	if rt.Fields[0].Default != nil {
+		t.Errorf("a has a default: %s", ast.Sprint(rt.Fields[0].Default))
+	}
+	if got := ast.Sprint(rt.Fields[1].Default); got != "(+ 1 2)" {
+		t.Errorf("b's default = %s", got)
+	}
+	if got := ast.Sprint(rt); got != "{a:int b:int=(+ 1 2)}" {
+		t.Errorf("record type = %s", got)
+	}
+}
+
 func TestHasDefer(t *testing.T) {
 	f, err := Parse("test", "func f() {\n  if c {\n    defer { x() }\n  }\n  y()\n}", Program)
 	if err != nil {

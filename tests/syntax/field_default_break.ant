@@ -1,0 +1,9 @@
+// spec: 4 Field defaults; 5 return, break, continue
+// A default is outside the loop its type is declared in, so a break in it has no loop to leave.
+for i in [1] {
+  type T = { a: int = if true { break } else { 1 } }
+}
+
+// expect
+// exit: 2
+// err: 'break' outside a loop
