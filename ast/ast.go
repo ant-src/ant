@@ -160,11 +160,13 @@ type RecordType struct {
 	Fields []FieldType
 }
 
-// FieldType is one field of a record type.
+// FieldType is one field of a record type. Default is the expression a literal that leaves the
+// field out evaluates, or nil; only the body of a type declaration has defaults (section 4).
 type FieldType struct {
-	Pos  Pos
-	Name string
-	Type Type
+	Pos     Pos
+	Name    string
+	Type    Type
+	Default Expr
 }
 
 // FuncType is a function type func(T, U): R.

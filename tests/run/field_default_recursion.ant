@@ -1,0 +1,12 @@
+// spec: 4 Field defaults; 12 Runtime panics
+// panics: depth
+// A default that builds its own type recurses; evaluating a default counts as a call, so it panics
+// when the call depth exceeds the runtime's limit (section 4, Field defaults).
+type Node = { next: Node | null = Node{} }
+
+println(Node{})
+
+// expect
+// exit: 1
+// err: call depth exceeded
+// err: at default of Node.next (

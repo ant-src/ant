@@ -752,7 +752,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		}
 	}
 	for _, f := range decl.Fields {
-		if !given[f.Name] && !spreadUnknown {
+		if !given[f.Name] && !spreadUnknown && !decl.Defaults[f.Name] {
 			c.errorf(x.Pos, "%s literal is missing the field %s", decl.Name, f.Name)
 		}
 	}

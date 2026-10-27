@@ -1,0 +1,16 @@
+// spec: 4 Field defaults
+// Section 4: a literal must give every field without a default; a default is checked against its
+// field's type, with the type's own parameters rigid; an omitted field fixes no type argument; an
+// entry for an unknown field is still an error.
+type Server = { addr: string, workers: int = 4 }
+type Bag[T] = { items: Array[T] = [] }
+type Box[T] = { value: T = 0 }    // ERR: cannot use int where T is expected
+type Named = { name: string = 1 } // ERR: cannot use int where string is expected
+type Maybe = { nick: string | null = null }
+
+println(Server{ addr: ":80" })
+println(Server{ workers: 8 })              // ERR: Server literal is missing the field addr
+println(Server{ addr: ":80", workres: 8 }) // ERR: Server has no field workres
+var b: Bag[int] = Bag{}
+var c = Bag{} // ERR: cannot infer the type parameter T of Bag
+println(Maybe{})

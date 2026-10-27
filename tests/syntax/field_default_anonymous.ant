@@ -1,0 +1,6 @@
+// spec: 4 Field defaults
+func port(c: { port: int = 80 }): int { c.port }
+
+// expect
+// exit: 2
+// err: a field default belongs in the record body of a type declaration

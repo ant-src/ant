@@ -1,7 +1,7 @@
 # Work still to do
 
-Thirteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
-spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
+Thirteen gaps in the language, the library and the tooling. Each one is a sketch, not a decision:
+the spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
 
@@ -58,8 +58,9 @@ Flag.rest(p: Flag.Parsed): Array[string]           // the positional arguments
 **Open questions:**
 
 - Getting a typed result without reflection. Lookups by name check nothing until the program runs,
-  and a misspelled name would be a run-time panic. A record of defaults the parser fills in would be
-  checked, but needs a way to iterate a record's fields.
+  and a misspelled name would be a run-time panic. A record whose fields declare defaults (section
+  4, Field defaults) would be checked, but filling it from `Os.args()` needs a way to iterate a
+  record's fields.
 - The syntax accepted: `--name=value`, `--name value`, `-n`, grouped short flags, `--` to stop, and
   `--no-verbose`.
 - Subcommands such as `tool serve --addr :80`.
@@ -97,34 +98,6 @@ so the library is written once, and Go supplies goroutines, the garbage collecto
   `ant run` and `ant build`, so the corpus harness runs both.
 - Debugging: positions in panics must point at the `.ant` source, not the generated Go. Go's
   `//line` directives can do this.
-
-## Default values for records
-
-**Today:** a record literal must list exactly the fields of its type (section 4, Records), so a
-record with many fields is verbose to build, and adding a field breaks every literal.
-
-**Sketch:** as in Go, a field left out of a literal takes the zero value of its type: `0`, `0.0`,
-`""`, `false`, `null` for a nullable type, an empty array, map or set. An unknown field stays a
-compile error, so typos are still caught.
-
-```
-type Server = { addr: string, workers: int, verbose: bool, tags: Array[string] }
-
-var s = Server{ addr: ":8080" }   // workers: 0, verbose: false, tags: []
-```
-
-**Open questions:**
-
-- Fields with no zero value: a record type, a union that is not nullable, a type parameter, a
-  function type, a sync object. Either such a field must always be listed, or the type has no zero
-  value and Go's rule does not carry over.
-- Declared defaults instead of, or as well as, zero values: `type Server = { workers: int = 4 }`,
-  evaluated per literal like parameter defaults (section 6). This would also answer the record of
-  defaults in Flags.
-- Whether a missing field should stay an error under a flag or lint, since it catches a forgotten
-  field after one is added.
-- A zero value for a whole type, `Server{}`, and whether `ant run` (which keeps no field types)
-  needs the field types at run time to fill in zeros.
 
 ## Interfaces
 

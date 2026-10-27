@@ -1,0 +1,9 @@
+// spec: 4 Field defaults; 8 try
+func f(): Result[int, Error] {
+  type T = { x: int = try Result.ok(1) }
+  Result.ok(T{}.x)
+}
+
+// expect
+// exit: 2
+// err: 'try' in a field default

@@ -1,0 +1,6 @@
+// spec: 4 Field defaults
+type Shape = { r: float64 = 1.0 } | null
+
+// expect
+// exit: 2
+// err: not in a union member

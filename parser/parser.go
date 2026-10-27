@@ -123,7 +123,7 @@ type parser struct {
 	ci       int             // comments before ci end before the declaration being parsed
 	nl       int             // > 0: newlines are ignored (inside a list)
 	header   bool            // inside an if, while, or for header: Path { is not a literal
-	boundary string          // "", "script", "func", "lambda", "go", or "defer"
+	boundary string          // "", "script", "func", "lambda", "go", "defer", or "default" (a field's)
 	loops    int             // loops entered inside the current boundary
 	// inDefault > 0: inside a parameter default, which runs in the callee, so a try there returns
 	// from it
@@ -571,7 +571,15 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 		return d // an opaque type
 	}
 	p.expect("=")
-	d.Body = p.parseType()
+	if p.at("{") && p.mode != Declarations {
+		rt := p.recordType(true)
+		if p.at("|") && p.mode != Spec && slices.ContainsFunc(rt.Fields, func(f ast.FieldType) bool { return f.Default != nil }) {
+			p.fail(p.peek().Pos, "a field default belongs in the record body of a type declaration, not in a union member")
+		}
+		d.Body = p.unionFrom(rt)
+	} else {
+		d.Body = p.parseType()
+	}
 	d.Sig = p.since(t)
 	return d
 }
@@ -682,7 +690,11 @@ func (p *parser) signature() ([]ast.Param, ast.Type) {
 func (p *parser) parseType() ast.Type {
 	p.nest()
 	defer p.unnest()
-	first := p.typeTerm()
+	return p.unionFrom(p.typeTerm())
+}
+
+// unionFrom parses the rest of a union type whose first member has been read, if there is one.
+func (p *parser) unionFrom(first ast.Type) ast.Type {
 	if !p.at("|") {
 		return first
 	}
@@ -701,7 +713,7 @@ func (p *parser) typeTerm() ast.Type {
 		p.next()
 		return &ast.TypeName{Pos: pos(t), Path: []string{t.Text}}
 	case t.Is("{"):
-		return p.recordType()
+		return p.recordType(false)
 	case t.Is("func"):
 		return p.funcType()
 	case t.Is("("):
@@ -729,15 +741,38 @@ func (p *parser) typeTerm() ast.Type {
 	return nil
 }
 
-func (p *parser) recordType() *ast.RecordType {
+// recordType parses a record type. Its fields take defaults only when it is the body of a type
+// declaration (section 4, Records).
+func (p *parser) recordType(defaults bool) *ast.RecordType {
 	t := p.expect("{")
 	rt := &ast.RecordType{Pos: pos(t)}
 	p.list("}", func() {
 		n := p.expectName("a field name")
 		p.expect(":")
-		rt.Fields = append(rt.Fields, ast.FieldType{Pos: pos(n), Name: n.Text, Type: p.parseType()})
+		f := ast.FieldType{Pos: pos(n), Name: n.Text, Type: p.parseType()}
+		if p.at("=") {
+			if !defaults && p.mode != Spec {
+				p.fail(p.peek().Pos, "a field default belongs in the record body of a type declaration")
+			}
+			p.next()
+			f.Default = p.fieldDefault()
+		}
+		rt.Fields = append(rt.Fields, f)
 	})
 	return rt
+}
+
+// fieldDefault parses a field's default, which lies outside every boundary and every block, as
+// a library's top-level initializer does (section 5), so return, try, break, continue, and
+// defer have nothing to leave or attach to.
+func (p *parser) fieldDefault() ast.Expr {
+	saved := p.enterBoundary("default")
+	inDefault, block := p.inDefault, p.curBlock
+	p.inDefault, p.curBlock = 0, nil
+	e := p.expression()
+	p.inDefault, p.curBlock = inDefault, block
+	p.leaveBoundary(saved)
+	return e
 }
 
 func (p *parser) funcType() *ast.FuncType {
@@ -1058,6 +1093,9 @@ func (p *parser) unary() ast.Expr {
 		if t.Is("try") && p.boundary == "" && p.inDefault == 0 && p.mode != Spec {
 			p.fail(t.Pos, "'try' outside a function")
 		}
+		if t.Is("try") && p.boundary == "default" && p.mode != Spec {
+			p.fail(t.Pos, "'try' in a field default")
+		}
 		if t.Is("try") && p.boundary == "script" && p.inDefault == 0 {
 			p.topLevelOnly(t.Pos, "'try' outside a function")
 		}
@@ -1236,6 +1274,9 @@ func (p *parser) primary() ast.Expr {
 		case "return":
 			if p.boundary == "" && p.mode != Spec {
 				p.fail(t.Pos, "'return' outside a function")
+			}
+			if p.boundary == "default" && p.mode != Spec {
+				p.fail(t.Pos, "'return' in a field default")
 			}
 			if p.boundary == "script" {
 				p.topLevelOnly(t.Pos, "'return' outside a function")

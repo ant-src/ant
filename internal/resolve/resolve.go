@@ -38,6 +38,7 @@ type binding struct {
 	reassigned     bool
 	assignedNested bool
 	discard        bool // _, which binds nothing
+	isType         bool // a type declared in a block
 	module         bool
 	index          int // module field index, or slot index after finalize
 	shared         bool
@@ -88,7 +89,10 @@ type resolver struct {
 	// script is set for a script, whose top-level vars are locals of its body for narrowing, so
 	// their assignments are tracked as a local's are (section 7).
 	script bool
-	extra  map[string]bool
+	// defaultOf is the block scope of the local type whose field defaults are being resolved,
+	// or nil: a default there may name the block's types but none of its variables.
+	defaultOf *scope
+	extra     map[string]bool
 }
 
 func (r *resolver) isPrelude(name string) bool { return prelude.IsName(name) || r.extra[name] }
@@ -117,6 +121,8 @@ func Resolve(f *ast.File, opts Options) []*Error {
 			r.expr(d.Init, r.module)
 		case *ast.FuncDecl:
 			r.funcDecl(d)
+		case *ast.TypeDecl:
+			r.defaults(d, r.module)
 		}
 	}
 	for _, s := range f.Stmts {
@@ -366,6 +372,28 @@ type paramBinding struct {
 	b *binding
 }
 
+// defaults resolves the field defaults of a record type declared in s. They are evaluated at
+// literals anywhere in the run but in the scope of the declaration (section 4, Records), and a
+// local type has one tag for the whole run, so its defaults may not close over the variables
+// of one run of its block.
+func (r *resolver) defaults(d *ast.TypeDecl, s *scope) {
+	rt, ok := d.Body.(*ast.RecordType)
+	if !ok {
+		return
+	}
+	savedOf, savedLoops := r.defaultOf, r.loops
+	if !s.module {
+		r.defaultOf = s
+	}
+	r.loops = nil
+	for _, f := range rt.Fields {
+		if f.Default != nil {
+			r.expr(f.Default, s)
+		}
+	}
+	r.defaultOf, r.loops = savedOf, savedLoops
+}
+
 // ---- statements and expressions
 
 // stmts resolves a block's statements in s. Its types are declared first, so they are visible
@@ -377,8 +405,13 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 				r.errorf(td.Pos, "%s is a type parameter of the enclosing function and cannot be redeclared", td.Name)
 			}
 		}
-		r.typesOf = append(r.typesOf, typeBinding{td, r.declare(s, td.Name, td.Pos)})
+		b := r.declare(s, td.Name, td.Pos)
+		b.isType = true
+		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)
+	}
+	for _, td := range b.Types {
+		r.defaults(td, s)
 	}
 	for _, st := range b.Stmts {
 		r.stmt(st, s)
@@ -607,6 +640,9 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 	crossed := false
 	for sc := s; sc != nil; sc = sc.parent {
 		if b, ok := sc.names[id.Name]; ok {
+			if r.defaultOf != nil && !b.module && b.imp < 0 && !b.isType && encloses(b.scope, r.defaultOf) {
+				r.errorf(id.Pos, "a field default of a local type cannot use %s, a variable or parameter of an enclosing block", id.Name)
+			}
 			switch {
 			case b.imp >= 0:
 				id.Ref = ast.Ref{Kind: ast.RefImport, Index: b.imp, Name: b.impName}

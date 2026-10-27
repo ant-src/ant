@@ -1,0 +1,9 @@
+// spec: 4 Field defaults; 5 return, break, continue
+func f(): int {
+  type T = { x: int = return 1 }
+  T{}.x
+}
+
+// expect
+// exit: 2
+// err: 'return' in a field default

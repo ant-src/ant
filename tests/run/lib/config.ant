@@ -1,0 +1,11 @@
+// Helper module for the field-defaults tests. Not a test itself.
+var defaultPort = 8080
+
+export type Config = {
+  host: string,
+  port: int = defaultPort,
+  retries: int = 3,
+  headers: Map[string, string] = Map{},
+}
+
+export func setDefaultPort(p: int): void { defaultPort = p }

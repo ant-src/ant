@@ -1,0 +1,15 @@
+// spec: 4 Field defaults; 12 Runtime panics
+// panics: var-init
+// A default runs at the literal, so one that reads a top-level var before its initializer has run
+// panics there, as a function that reads it would (section 4, Field defaults).
+var early = Config{ host: "x" }
+var defaultPort = 8080
+
+type Config = { host: string, port: int = defaultPort }
+
+println(early)
+
+// expect
+// exit: 1
+// err: defaultPort is read before its initializer has run
+// err: at default of Config.port (

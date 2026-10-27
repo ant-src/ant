@@ -596,6 +596,12 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 			}
 			seen[f.Name] = true
 			decl.Fields = append(decl.Fields, types.Field{Name: f.Name, Type: c.resolveType(f.Type, sc)})
+			if f.Default != nil {
+				if decl.Defaults == nil {
+					decl.Defaults = map[string]bool{}
+				}
+				decl.Defaults[f.Name] = true
+			}
 		}
 	case *ast.TypeName:
 		if len(body.Path) == 1 && len(body.Args) == 0 {
@@ -1060,12 +1066,43 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 	if mi.m.File.Script {
 		c.checkScript(mi)
 	}
+	for _, ti := range mi.types {
+		if ti.scope == nil {
+			c.checkDefaults(ti)
+		}
+	}
 	for _, v := range mi.vars {
 		c.varType(v, ast.Pos{}, false)
 	}
 	for _, fi := range mi.funcs {
 		c.checkFunc(fi)
 	}
+}
+
+// checkDefaults checks the field defaults of a record type against the fields' types, in the
+// scope of the declaration, outside every function, with the type's own parameters rigid as in
+// a generic function's body (section 4, Records).
+func (c *Checker) checkDefaults(ti *typeInfo) {
+	rt, ok := ti.decl.Body.(*ast.RecordType)
+	if !ok || ti.t.Kind != types.RecordDecl || len(ti.t.Defaults) == 0 {
+		return
+	}
+	savedMod, savedFn, savedFlow, savedRigid := c.mod, c.fn, c.flow, c.rigid
+	c.mod = ti.mod
+	c.flow = flow{}
+	tparams := map[string]*types.ParamDecl{}
+	for i, tp := range ti.decl.TypeParams {
+		tparams[tp.Name] = ti.t.Params[i]
+	}
+	c.rigid = withRigid(c.rigid, tparams)
+	sc := &scope{parent: ti.scope, names: map[string]*local{}, tparams: tparams, typeDecl: ti.decl.Name}
+	for i, f := range rt.Fields {
+		if f.Default != nil {
+			c.fn = &fnCtx{kind: "init", name: "default of " + ti.decl.Name + "." + f.Name}
+			c.check(f.Default, sc, ti.t.Fields[i].Type)
+		}
+	}
+	c.mod, c.fn, c.flow, c.rigid = savedMod, savedFn, savedFlow, savedRigid
 }
 
 // checkScript checks a script's body: its top-level var initializers and statements in source

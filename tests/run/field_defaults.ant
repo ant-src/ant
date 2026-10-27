@@ -1,0 +1,88 @@
+// spec: 4 Field defaults; 12 Expressions
+// A literal may leave out a field that declares a default. The defaults run after the entries and
+// spreads, in declaration order, only for the fields still without a value, and afresh each time,
+// so a collection default is new in each record and a default that reads a variable reads it at
+// the literal. A default is evaluated in the scope of its declaration: an imported type's default
+// reads a name its module does not export. A spread converts to a type with more fields when the
+// extra ones have defaults. A generic record's default fits every type argument, and an omitted
+// field fixes none. A local type's default may name the block's other types. The type is
+// unchanged: every value has every field.
+import "./lib/config.ant" { Config, setDefaultPort }
+
+var log: Array[string] = []
+
+func note(s: string, v: int): int {
+  Array.push(log, s)
+  v
+}
+
+type Server = {
+  addr: string,
+  workers: int = note("workers", 4),
+  verbose: bool = false,
+  tags: Array[string] = [],
+  id: int = note("id", len(log)),
+}
+
+type Point = { x: float64, y: float64 }
+type Point3 = { x: float64, y: float64, z: float64 = 0.0 }
+type Bag[T] = { items: Array[T] = [] }
+
+var shared = ["s"]
+type Shares = { tags: Array[string] = shared }
+
+func local(n: int): int {
+  type Outer = { inner: Inner = Inner{}, f: func(int): int = { x * 10 } }
+  type Inner = { v: int = 1 }
+  var o = Outer{}
+  o.inner.v + o.f(n)
+}
+
+var s = Server{ addr: ":8080" }
+println(s)
+println(log)
+var t = Server{ id: note("entry", 99), addr: ":9090", verbose: true }
+println(t)
+println(log)
+Array.push(s.tags, "a")
+println(t.tags)
+var u = Server{ ...s }
+println(u.id == s.id && len(log) == 4)
+
+var c = Config{ host: "example.com" }
+setDefaultPort(9000)
+var d = Config{ ...c, retries: 5 }
+var e = Config{ host: "example.org" }
+c.headers["accept"] = "text/html"
+println(`${c.port} ${d.port} ${e.port} ${len(d.headers)} ${len(e.headers)}`)
+
+println(Point3{ ...Point{ x: 1.0, y: 2.0 } })
+var b: Bag[int] = Bag{}
+println(b)
+println(Bag{ items: ["x"] })
+
+var one = Shares{}
+Array.push(one.tags, "t")
+println(Shares{}.tags)
+shared = []
+println(Shares{}.tags)
+
+println(local(2) + local(3))
+var w: { workers: int } = s
+println(w.workers)
+
+// expect
+// out: Server{ addr: ":8080", workers: 4, verbose: false, tags: [], id: 1 }
+// out: ["workers", "id"]
+// out: Server{ addr: ":9090", workers: 4, verbose: true, tags: [], id: 99 }
+// out: ["workers", "id", "entry", "workers"]
+// out: []
+// out: true
+// out: 8080 8080 9000 1 0
+// out: Point3{ x: 1.0, y: 2.0, z: 0.0 }
+// out: Bag{ items: [] }
+// out: Bag{ items: ["x"] }
+// out: ["s", "t"]
+// out: []
+// out: 52
+// out: 4

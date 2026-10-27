@@ -123,6 +123,10 @@ func sprint(sb *strings.Builder, n Node) {
 			}
 			sb.WriteString(f.Name + ":")
 			sprint(sb, f.Type)
+			if f.Default != nil {
+				sb.WriteString("=")
+				sprint(sb, f.Default)
+			}
 		}
 		sb.WriteString("}")
 	case *FuncType:

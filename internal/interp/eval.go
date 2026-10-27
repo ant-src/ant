@@ -65,7 +65,7 @@ func (g *Goroutine) evalBlock(b *ast.Block, env *Env) (value.Value, ctl) {
 		env = newEnv(b.Scope, env)
 	}
 	for _, td := range b.Types {
-		env.set(td.Slot, g.in.localType(td))
+		env.set(td.Slot, g.in.localType(td, env))
 	}
 	if !b.HasDefer {
 		return g.evalStmts(b.Stmts, env)
@@ -712,12 +712,37 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 		}
 		vals[idx] = v
 	}
-	for i, v := range vals {
-		if v == nil {
-			g.panicf(e.Pos, "%s literal is missing the field %s", tag.Name, tag.Fields[i])
-		}
-	}
+	g.fillDefaults(tag, vals, e.Pos)
 	return value.NewRecord(tag, vals), ctlNone
+}
+
+// fillDefaults gives each field still without a value its default, in declaration order, each
+// evaluated afresh in the scope of the type's declaration as if called from the literal at pos
+// (section 12, Record literal).
+func (g *Goroutine) fillDefaults(tag *value.Tag, vals []value.Value, pos ast.Pos) {
+	var fd *fieldDefaults
+	for i, v := range vals {
+		if v != nil {
+			continue
+		}
+		if fd == nil {
+			if x, ok := g.in.defaults.Load(tag); ok {
+				fd = x.(*fieldDefaults)
+			}
+		}
+		if fd == nil || fd.exprs[i] == nil {
+			g.panicf(pos, "%s literal is missing the field %s", tag.Name, tag.Fields[i])
+		}
+		vals[i] = g.evalDefault(tag.Name+"."+tag.Fields[i], fd.exprs[i], fd.env, pos)
+	}
+}
+
+// evalDefault evaluates a field default as a call, so a default that builds its own type
+// reaches the call-depth limit (section 12, Runtime panics).
+func (g *Goroutine) evalDefault(field string, e ast.Expr, env *Env, pos ast.Pos) value.Value {
+	g.push("default of "+field, env.mod.path, pos)
+	defer g.pop()
+	return g.evalValue(e, env)
 }
 
 // ---- operators

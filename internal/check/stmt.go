@@ -227,6 +227,9 @@ func (c *Checker) blockTypes(b *ast.Block, sc *scope) {
 		sc.types[d.Name] = ti.ent
 	}
 	c.resolveTypeDecls(fresh)
+	for _, ti := range fresh {
+		c.checkDefaults(ti)
+	}
 }
 
 // varDecl checks a local var declaration. The name is in scope inside its own initializer,

@@ -96,6 +96,7 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
 			v := TypeValue(d)
+			in.keepDefaults(v, d, m.root)
 			m.rec.SetField(d.Name, v)
 			switch x := v.(type) {
 			case *value.Tag:
@@ -124,12 +125,43 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 
 // localType is what a type declared in a block binds: one value per declaration for the whole
 // run, however often the block runs, so every value it tags has one type (section 4).
-func (in *Instance) localType(d *ast.TypeDecl) value.Value {
+// Its field defaults are evaluated in env, the block's environment the first time it runs: a
+// default may name the block's types, which are the same in every run, but none of its
+// variables (section 4, Records).
+func (in *Instance) localType(d *ast.TypeDecl, env *Env) value.Value {
 	if v, ok := in.localTypes.Load(d); ok {
 		return v.(value.Value)
 	}
-	v, _ := in.localTypes.LoadOrStore(d, TypeValue(d))
+	v, loaded := in.localTypes.LoadOrStore(d, TypeValue(d))
+	if !loaded {
+		in.keepDefaults(v.(value.Value), d, env)
+	}
 	return v.(value.Value)
+}
+
+// fieldDefaults are the default expressions of a record tag's fields, nil for a field without
+// one, and the environment of the declaration they are evaluated in.
+type fieldDefaults struct {
+	exprs []ast.Expr
+	env   *Env
+}
+
+// keepDefaults records the field defaults of the record tag v declares, if it has any.
+func (in *Instance) keepDefaults(v value.Value, d *ast.TypeDecl, env *Env) {
+	tag, ok := v.(*value.Tag)
+	rt, isRecord := d.Body.(*ast.RecordType)
+	if !ok || !isRecord {
+		return
+	}
+	fd := &fieldDefaults{exprs: make([]ast.Expr, len(rt.Fields)), env: env}
+	has := false
+	for i, f := range rt.Fields {
+		fd.exprs[i] = f.Default
+		has = has || f.Default != nil
+	}
+	if has {
+		in.defaults.Store(tag, fd)
+	}
 }
 
 // TypeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag.

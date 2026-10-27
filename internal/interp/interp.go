@@ -80,6 +80,7 @@ type Instance struct {
 	keep        map[string]any
 	keepMu      sync.Mutex
 	localTypes  sync.Map // *ast.TypeDecl of a block → the tag or constructor it binds
+	defaults    sync.Map // *value.Tag of a record type with field defaults → *fieldDefaults
 	done        atomic.Bool
 	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
 	result      chan error
