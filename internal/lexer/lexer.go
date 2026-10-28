@@ -167,9 +167,9 @@ func (l *lexer) advance(n int) {
 
 // emit appends t, which starts at t.Pos and ends where the lexer stands.
 func (l *lexer) emit(t token.Token) {
-	t.Off, t.End = l.offset(t.Pos), l.pos
+	t.Off, t.End, t.EndPos = l.offset(t.Pos), l.pos, l.here()
 	if t.Kind == token.Newline {
-		t.End = t.Off
+		t.End, t.EndPos = t.Off, t.Pos
 	}
 	if t.Kind == token.Op {
 		switch t.Text {
@@ -190,7 +190,7 @@ func (l *lexer) offset(p token.Pos) int { return l.lines[p.Line-1] + p.Col - 1 }
 // keepComment records the comment from start to where the lexer stands, in layout mode.
 func (l *lexer) keepComment(pos token.Pos, start int) {
 	if l.layout {
-		l.comment = append(l.comment, token.Comment{Text: l.src[start:l.pos], Pos: pos, Off: start, End: l.pos})
+		l.comment = append(l.comment, token.Comment{Text: l.src[start:l.pos], Pos: pos, EndPos: l.here(), Off: start, End: l.pos})
 	}
 }
 
@@ -621,7 +621,7 @@ func (l *lexer) template() {
 	textPos := l.here()
 	flush := func() {
 		if sb.Len() > 0 {
-			parts = append(parts, token.Part{Text: sb.String(), Pos: textPos, Off: l.offset(textPos), End: l.pos})
+			parts = append(parts, token.Part{Text: sb.String(), Pos: textPos, EndPos: l.here(), Off: l.offset(textPos), End: l.pos})
 			sb.Reset()
 		}
 	}
@@ -642,7 +642,7 @@ func (l *lexer) template() {
 			exprPos := l.here()
 			l.advance(2)
 			toks := l.interpolation(exprPos)
-			parts = append(parts, token.Part{Tokens: toks, Pos: exprPos, Off: l.offset(exprPos), End: l.pos})
+			parts = append(parts, token.Part{Tokens: toks, Pos: exprPos, EndPos: l.here(), Off: l.offset(exprPos), End: l.pos})
 			textPos = l.here()
 		default:
 			sb.WriteByte(c)

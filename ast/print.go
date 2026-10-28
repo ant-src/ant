@@ -404,6 +404,8 @@ func sprint(sb *strings.Builder, n Node) {
 		sb.WriteString("(continue)")
 	case *Placeholder:
 		sb.WriteString("...")
+	case *BadExpr, *BadStmt, *BadType:
+		sb.WriteString("(bad)")
 	case *Block:
 		sb.WriteString("{")
 		stmts(sb, x.Stmts)

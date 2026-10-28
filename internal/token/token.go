@@ -67,6 +67,8 @@ type Token struct {
 	// Markup is the fragment an Html token holds: an element is a fragment of one node.
 	Markup *Markup
 	Pos    Pos
+	// EndPos is the position just after the token, so Pos and EndPos span it; a Newline is empty.
+	EndPos Pos
 	// Off and End are the token's byte span in the source: the source between them is the token
 	// as written. A Newline is empty, at its line break.
 	Off, End int
@@ -78,6 +80,7 @@ type Part struct {
 	Text   string
 	Tokens []Token
 	Pos    Pos
+	EndPos Pos // just after the part
 	// Off and End are the part's byte span in the source: the text as written, or an
 	// interpolation from its $ to its closing brace.
 	Off, End int
@@ -87,6 +90,9 @@ type Part struct {
 // its white space collapsed, its interpolations as token streams for the parser.
 type Markup struct {
 	Nodes []MarkupNode
+	// Close is the position of the end tag that closed the content, </name> or </>, and zero for
+	// the children of a self-closing element.
+	Close Pos
 }
 
 // MarkupKind is the kind of a MarkupNode.
@@ -109,6 +115,7 @@ type MarkupNode struct {
 	// TextOnly marks a <title> or <textarea> outside <svg> and <math>, whose content may not be Html.
 	TextOnly bool
 	Pos      Pos
+	EndPos   Pos // just after the node
 	// Off and End are the node's byte span in the source.
 	Off, End int
 }
@@ -130,6 +137,7 @@ type MarkupAttr struct {
 	Text   string
 	Tokens []Token
 	Pos    Pos
+	EndPos Pos // just after the attribute
 	// Off and End are the byte span of the expression, from its { to its }.
 	Off, End int
 }
@@ -138,6 +146,7 @@ type MarkupAttr struct {
 type Comment struct {
 	Text     string // the comment's source, from // or /* to the end of the line or */
 	Pos      Pos
+	EndPos   Pos // just after the comment
 	Off, End int
 }
 

@@ -9,9 +9,12 @@ type Pos struct {
 	Line, Col int
 }
 
-// Node is any syntax node.
+// Node is any syntax node. Position is where it starts, as messages report it, and EndPosition
+// is just after its last token, so the two span the node; Start is where it begins on the page,
+// which for a postfix chain or an operator is its first operand.
 type Node interface {
 	Position() Pos
+	EndPosition() Pos
 }
 
 // Expr is an expression. Every construct of section 5 is an expression, including if, loops,
@@ -55,6 +58,8 @@ type File struct {
 	// the first one starts.
 	Script    bool
 	FirstStmt Pos
+	// End is the position after the last token of the file.
+	End Pos
 	// Scope is filled by the resolver: the module record's fields.
 	Scope *ModuleScope
 }
@@ -62,18 +67,24 @@ type File struct {
 // Import is one import declaration.
 type Import struct {
 	Pos       Pos
+	End       Pos
 	Path      string
+	PathPos   Pos // the path string, from its opening quote
+	PathEnd   Pos
 	Namespace string       // the bare name that binds the whole module, or ""
 	Names     []ImportName // the destructured names, when Namespace is ""
-	// Module is filled by the loader: the index of the imported module in the program.
+	// Module is filled by the loader: the index of the imported module in the program, or -1
+	// when the module could not be loaded and the loader went on (Config.Recover).
 	Module int
 }
 
 // ImportName is one entry of an import list: the export, and the local name it binds.
 type ImportName struct {
-	Pos   Pos
-	Name  string
-	Alias string // the local name; equals Name when not renamed
+	Pos      Pos
+	End      Pos
+	Name     string
+	Alias    string // the local name; equals Name when not renamed
+	AliasPos Pos    // where the alias is written, or zero when not renamed
 }
 
 // Decl is a top-level declaration.
@@ -87,6 +98,7 @@ type Decl interface {
 // constant such as var Math.PI: float64 has an Owner and no Init.
 type VarDecl struct {
 	Pos    Pos
+	End    Pos
 	Export bool
 	Owner  string
 	Target Target
@@ -99,9 +111,12 @@ type VarDecl struct {
 // FuncDecl is a named function, or a function declared on a type when Owner is set.
 type FuncDecl struct {
 	Pos        Pos
+	End        Pos
 	Export     bool
 	Owner      string // the type for func Type.name, or ""
+	OwnerPos   Pos    // where Owner is written, or zero
 	Name       string
+	NamePos    Pos
 	TypeParams []TypeParam
 	Params     []Param
 	Return     Type   // nil when inferred
@@ -116,9 +131,12 @@ type FuncDecl struct {
 // belongs to, as in type Json.Value, and Body may be nil for an opaque type such as Mutex.
 type TypeDecl struct {
 	Pos        Pos
+	End        Pos
 	Export     bool
 	Owner      string
+	OwnerPos   Pos // where Owner is written, or zero
 	Name       string
+	NamePos    Pos
 	TypeParams []TypeParam
 	Body       Type
 	Doc        string // the doc comment (section 2), or ""
@@ -130,6 +148,7 @@ type TypeDecl struct {
 // TypeParam is a type parameter with an optional bound.
 type TypeParam struct {
 	Pos   Pos
+	End   Pos
 	Name  string
 	Bound Type
 }
@@ -137,6 +156,7 @@ type TypeParam struct {
 // Param is a function parameter.
 type Param struct {
 	Pos     Pos
+	End     Pos
 	Name    string
 	Type    Type
 	Default Expr
@@ -149,14 +169,17 @@ type Param struct {
 // TypeName is a named type with optional type arguments: int, Array[T], Geometry.Point, and
 // also null and void.
 type TypeName struct {
-	Pos  Pos
-	Path []string
-	Args []Type
+	Pos     Pos
+	End     Pos
+	Path    []string
+	PathPos []Pos // where each part of Path is written
+	Args    []Type
 }
 
 // RecordType is an anonymous record type { name: T, ... }.
 type RecordType struct {
 	Pos    Pos
+	End    Pos
 	Fields []FieldType
 }
 
@@ -164,6 +187,7 @@ type RecordType struct {
 // field out evaluates, or nil; only the body of a type declaration has defaults (section 4).
 type FieldType struct {
 	Pos     Pos
+	End     Pos
 	Name    string
 	Type    Type
 	Default Expr
@@ -172,6 +196,7 @@ type FieldType struct {
 // FuncType is a function type func(T, U): R.
 type FuncType struct {
 	Pos    Pos
+	End    Pos
 	Params []FuncTypeParam
 	Return Type
 }
@@ -185,6 +210,7 @@ type FuncTypeParam struct {
 // UnionType is A | B.
 type UnionType struct {
 	Pos     Pos
+	End     Pos
 	Members []Type
 }
 
@@ -193,6 +219,7 @@ type UnionType struct {
 // NameTarget binds a name; "_" binds nothing.
 type NameTarget struct {
 	Pos  Pos
+	End  Pos
 	Name string
 	// Slot is filled by the resolver.
 	Slot Slot
@@ -201,6 +228,7 @@ type NameTarget struct {
 // RecordTarget is a record destructuring { x, y: py, ... }.
 type RecordTarget struct {
 	Pos    Pos
+	End    Pos
 	Fields []RecordTargetField
 }
 
@@ -208,6 +236,7 @@ type RecordTarget struct {
 // (a NameTarget with the field's name for the shorthand).
 type RecordTargetField struct {
 	Pos    Pos
+	End    Pos
 	Name   string
 	Target Target
 }
@@ -215,6 +244,7 @@ type RecordTargetField struct {
 // ArrayTarget is an array destructuring [a, b, ...rest].
 type ArrayTarget struct {
 	Pos   Pos
+	End   Pos
 	Elems []Target
 	Rest  *NameTarget // nil without a rest
 }
@@ -225,59 +255,71 @@ type (
 	// Ident is a variable reference. Ref is filled by the resolver.
 	Ident struct {
 		Pos  Pos
+		End  Pos
 		Name string
 		Ref  Ref
 	}
 	IntLit struct {
 		Pos   Pos
+		End   Pos
 		Value int64
 	}
 	FloatLit struct {
 		Pos   Pos
+		End   Pos
 		Value float64
 	}
 	StringLit struct {
 		Pos   Pos
+		End   Pos
 		Value string
 	}
 	BoolLit struct {
 		Pos   Pos
+		End   Pos
 		Value bool
 	}
-	NullLit struct{ Pos Pos }
+	NullLit struct{ Pos, End Pos }
 	// RegexLit is a regular expression literal (section 2). Pattern is the value it evaluates
 	// to, built once when the literal is parsed.
 	RegexLit struct {
 		Pos     Pos
+		End     Pos
 		Source  string // normalized
 		Flags   string // sorted
 		Pattern *value.Regex
 	}
-	VoidLit struct{ Pos Pos }
+	VoidLit struct{ Pos, End Pos }
 	// Template is a template string; each part is literal text or an interpolated expression.
 	Template struct {
 		Pos   Pos
+		End   Pos
 		Parts []TemplatePart
 	}
 	// Html is an HTML expression (section 5): an element, or a fragment, as its content.
 	Html struct {
 		Pos     Pos
+		End     Pos
 		Content []HtmlNode
+		Close   Pos // the </> of a fragment, or zero for an element
 	}
 	// RecordLit is Head{ entries }, where Head is an identifier path.
 	RecordLit struct {
 		Pos     Pos
+		End     Pos
 		Head    Expr
 		Entries []RecordEntry
 	}
 	// MapLit is Map{ entries }.
 	MapLit struct {
 		Pos     Pos
+		End     Pos
 		Entries []MapEntry
 	}
 	// ArrayLit is [ elements ].
 	ArrayLit struct {
 		Pos   Pos
+		End   Pos
 		Elems []ArrayElem
 		// Off is the byte offset of the [, and SpreadComma reports a comma after a final
 		// spread, for the parser when the literal turns out to be a destructuring assignment.
@@ -287,12 +329,14 @@ type (
 	// Lambda is a bare block with the implicit parameter x.
 	Lambda struct {
 		Pos   Pos
+		End   Pos
 		Body  *Block
 		Scope *FuncScope
 	}
 	// FuncLit is an anonymous func.
 	FuncLit struct {
 		Pos    Pos
+		End    Pos
 		Params []Param
 		Return Type
 		Body   *Block
@@ -301,15 +345,18 @@ type (
 	// Field is a.name or a?.name. Grouped marks one written in parentheses, which ends its
 	// postfix chain: a ?. inside skips nothing outside (section 12).
 	Field struct {
-		Pos      Pos
+		Pos      Pos // the . or ?.
+		End      Pos
 		X        Expr
 		Name     string
+		NamePos  Pos
 		Optional bool
 		Grouped  bool
 	}
 	// Index is a[i] or a?.[i]; Grouped as for Field.
 	Index struct {
 		Pos      Pos
+		End      Pos
 		X        Expr
 		Index    Expr
 		Optional bool
@@ -319,6 +366,7 @@ type (
 	// argument; it evaluates that argument before f. Grouped as for Field.
 	Call struct {
 		Pos      Pos
+		End      Pos
 		Fn       Expr
 		Args     []Arg
 		Optional bool
@@ -328,26 +376,31 @@ type (
 	// Unary is -a, !a, or try a.
 	Unary struct {
 		Pos Pos
+		End Pos
 		Op  string
 		X   Expr
 	}
 	// Binary is an arithmetic, comparison, equality, logical, or ?? operation.
 	Binary struct {
 		Pos  Pos
+		End  Pos
 		Op   string
 		X, Y Expr
 	}
 	// Is is x is T. Kind is set for a kind test (null, void, bool, string, func, Array, Map, and
 	// the numeric names); otherwise Path is the type's expression.
 	Is struct {
-		Pos  Pos
-		X    Expr
-		Kind string
-		Path Expr
+		Pos     Pos // the is
+		End     Pos
+		X       Expr
+		Kind    string
+		KindPos Pos // where Kind is written, or zero
+		Path    Expr
 	}
 	// Assign is target op value. Target is an Ident, Field, Index, or ArrayTarget.
 	Assign struct {
 		Pos    Pos
+		End    Pos
 		Op     string
 		Target Node
 		Value  Expr
@@ -356,23 +409,27 @@ type (
 	// targets, with an optional rest place.
 	AssignArray struct {
 		Pos   Pos
+		End   Pos
 		Elems []Node // Ident, Field, Index, or *AssignArray
 		Rest  Expr   // Ident, Field, or Index; nil without a rest
 	}
 	If struct {
 		Pos  Pos
+		End  Pos
 		Cond Expr
 		Then *Block
 		Else Node // *If, *Block, or nil
 	}
 	While struct {
 		Pos      Pos
+		End      Pos
 		Cond     Expr
 		Body     *Block
 		Assigned []string // the locals declared outside the loop that its body assigns, filled by the resolver
 	}
 	For struct {
 		Pos      Pos
+		End      Pos
 		Target   Target
 		Iter     Expr
 		Body     *Block
@@ -383,6 +440,7 @@ type (
 	// else, last.
 	Select struct {
 		Pos     Pos
+		End     Pos
 		Clauses []*SelectClause
 	}
 	// SelectClause is one clause of a select. Head is the call that names the wait, one of
@@ -392,6 +450,7 @@ type (
 	// nothing.
 	SelectClause struct {
 		Pos    Pos
+		End    Pos
 		Target *NameTarget
 		Head   *Call
 		Body   *Block
@@ -399,25 +458,35 @@ type (
 	}
 	Go struct {
 		Pos   Pos
+		End   Pos
 		Body  *Block
 		Scope *FuncScope
 	}
 	Defer struct {
 		Pos   Pos
+		End   Pos
 		Body  *Block
 		Scope *FuncScope
 	}
 	Return struct {
 		Pos   Pos
+		End   Pos
 		Value Expr // nil for a bare return
 	}
-	Break    struct{ Pos Pos }
-	Continue struct{ Pos Pos }
+	Break    struct{ Pos, End Pos }
+	Continue struct{ Pos, End Pos }
 	// Placeholder is the "..." of spec mode.
-	Placeholder struct{ Pos Pos }
+	Placeholder struct{ Pos, End Pos }
+	// BadExpr, BadStmt, and BadType stand for source that did not parse, in a tree the parser
+	// built past a syntax error (parser.ParseRecover). They have no meaning: the checker gives a
+	// BadExpr the type Invalid and reports nothing about it.
+	BadExpr struct{ Pos, End Pos }
+	BadStmt struct{ Pos, End Pos }
+	BadType struct{ Pos, End Pos }
 	// Block is { statements }.
 	Block struct {
 		Pos      Pos
+		End      Pos
 		Stmts    []Stmt
 		HasDefer bool        // a defer statement registers directly with this block
 		Types    []*TypeDecl // the types declared directly in the block, bound when it starts
@@ -429,17 +498,23 @@ type (
 // an Element.
 type HtmlNode struct {
 	Pos     Pos
+	End     Pos
 	Text    string
 	Expr    Expr
 	Element *HtmlElement
 }
 
 // HtmlElement is an element as written. TextOnly marks a <title> or <textarea> outside <svg>
-// and <math>, whose content may not hold Html.
+// and <math>, whose content may not hold Html. Close is where its end tag starts, or zero when
+// it is written self-closing.
 type HtmlElement struct {
+	Pos      Pos // the <
+	End      Pos
 	Name     string
+	NamePos  Pos
 	Attrs    []HtmlAttr
 	Content  []HtmlNode
+	Close    Pos
 	TextOnly bool
 }
 
@@ -447,14 +522,18 @@ type HtmlElement struct {
 // entry of a map when Spread is set, in which case Name is empty.
 type HtmlAttr struct {
 	Pos    Pos
+	End    Pos
 	Name   string
 	Text   string
 	Expr   Expr
 	Spread bool
 }
 
-// TemplatePart is literal text or an interpolated expression.
+// TemplatePart is literal text or an interpolated expression; an interpolation spans from its $
+// to its closing brace.
 type TemplatePart struct {
+	Pos  Pos
+	End  Pos
 	Text string
 	Expr Expr
 }
@@ -462,6 +541,7 @@ type TemplatePart struct {
 // RecordEntry is a field of a record literal, or a spread.
 type RecordEntry struct {
 	Pos    Pos
+	End    Pos
 	Name   string
 	Value  Expr
 	Spread Expr
@@ -470,6 +550,7 @@ type RecordEntry struct {
 // MapEntry is one key and value of a map literal.
 type MapEntry struct {
 	Pos   Pos
+	End   Pos
 	Key   Expr
 	Value Expr
 }
@@ -483,6 +564,7 @@ type ArrayElem struct {
 // Arg is a call argument, named when Name is set.
 type Arg struct {
 	Pos   Pos
+	End   Pos
 	Name  string
 	Value Expr
 }
@@ -548,52 +630,131 @@ type ModuleScope struct {
 
 // ---- Interface plumbing
 
-func (n *File) Position() Pos         { return Pos{1, 1} }
-func (n *Import) Position() Pos       { return n.Pos }
-func (n *VarDecl) Position() Pos      { return n.Pos }
-func (n *FuncDecl) Position() Pos     { return n.Pos }
-func (n *TypeDecl) Position() Pos     { return n.Pos }
-func (n *TypeName) Position() Pos     { return n.Pos }
-func (n *RecordType) Position() Pos   { return n.Pos }
-func (n *FuncType) Position() Pos     { return n.Pos }
-func (n *UnionType) Position() Pos    { return n.Pos }
-func (n *NameTarget) Position() Pos   { return n.Pos }
-func (n *RecordTarget) Position() Pos { return n.Pos }
-func (n *ArrayTarget) Position() Pos  { return n.Pos }
-func (n *Ident) Position() Pos        { return n.Pos }
-func (n *IntLit) Position() Pos       { return n.Pos }
-func (n *FloatLit) Position() Pos     { return n.Pos }
-func (n *StringLit) Position() Pos    { return n.Pos }
-func (n *RegexLit) Position() Pos     { return n.Pos }
-func (n *BoolLit) Position() Pos      { return n.Pos }
-func (n *NullLit) Position() Pos      { return n.Pos }
-func (n *VoidLit) Position() Pos      { return n.Pos }
-func (n *Template) Position() Pos     { return n.Pos }
-func (n *Html) Position() Pos         { return n.Pos }
-func (n *RecordLit) Position() Pos    { return n.Pos }
-func (n *MapLit) Position() Pos       { return n.Pos }
-func (n *ArrayLit) Position() Pos     { return n.Pos }
-func (n *Lambda) Position() Pos       { return n.Pos }
-func (n *FuncLit) Position() Pos      { return n.Pos }
-func (n *Field) Position() Pos        { return n.Pos }
-func (n *Index) Position() Pos        { return n.Pos }
-func (n *Call) Position() Pos         { return n.Pos }
-func (n *Unary) Position() Pos        { return n.Pos }
-func (n *Binary) Position() Pos       { return n.Pos }
-func (n *Is) Position() Pos           { return n.Pos }
-func (n *Assign) Position() Pos       { return n.Pos }
-func (n *AssignArray) Position() Pos  { return n.Pos }
-func (n *If) Position() Pos           { return n.Pos }
-func (n *While) Position() Pos        { return n.Pos }
-func (n *For) Position() Pos          { return n.Pos }
-func (n *Go) Position() Pos           { return n.Pos }
-func (n *Select) Position() Pos       { return n.Pos }
-func (n *Defer) Position() Pos        { return n.Pos }
-func (n *Return) Position() Pos       { return n.Pos }
-func (n *Break) Position() Pos        { return n.Pos }
-func (n *Continue) Position() Pos     { return n.Pos }
-func (n *Placeholder) Position() Pos  { return n.Pos }
-func (n *Block) Position() Pos        { return n.Pos }
+func (n *File) Position() Pos              { return Pos{1, 1} }
+func (n *File) EndPosition() Pos           { return n.End }
+func (n *Import) Position() Pos            { return n.Pos }
+func (n *VarDecl) Position() Pos           { return n.Pos }
+func (n *FuncDecl) Position() Pos          { return n.Pos }
+func (n *TypeDecl) Position() Pos          { return n.Pos }
+func (n *TypeName) Position() Pos          { return n.Pos }
+func (n *RecordType) Position() Pos        { return n.Pos }
+func (n *FuncType) Position() Pos          { return n.Pos }
+func (n *UnionType) Position() Pos         { return n.Pos }
+func (n *NameTarget) Position() Pos        { return n.Pos }
+func (n *RecordTarget) Position() Pos      { return n.Pos }
+func (n *ArrayTarget) Position() Pos       { return n.Pos }
+func (n *Ident) Position() Pos             { return n.Pos }
+func (n *IntLit) Position() Pos            { return n.Pos }
+func (n *FloatLit) Position() Pos          { return n.Pos }
+func (n *StringLit) Position() Pos         { return n.Pos }
+func (n *RegexLit) Position() Pos          { return n.Pos }
+func (n *BoolLit) Position() Pos           { return n.Pos }
+func (n *NullLit) Position() Pos           { return n.Pos }
+func (n *VoidLit) Position() Pos           { return n.Pos }
+func (n *Template) Position() Pos          { return n.Pos }
+func (n *Html) Position() Pos              { return n.Pos }
+func (n *RecordLit) Position() Pos         { return n.Pos }
+func (n *MapLit) Position() Pos            { return n.Pos }
+func (n *ArrayLit) Position() Pos          { return n.Pos }
+func (n *Lambda) Position() Pos            { return n.Pos }
+func (n *FuncLit) Position() Pos           { return n.Pos }
+func (n *Field) Position() Pos             { return n.Pos }
+func (n *Index) Position() Pos             { return n.Pos }
+func (n *Call) Position() Pos              { return n.Pos }
+func (n *Unary) Position() Pos             { return n.Pos }
+func (n *Binary) Position() Pos            { return n.Pos }
+func (n *Is) Position() Pos                { return n.Pos }
+func (n *Assign) Position() Pos            { return n.Pos }
+func (n *AssignArray) Position() Pos       { return n.Pos }
+func (n *If) Position() Pos                { return n.Pos }
+func (n *While) Position() Pos             { return n.Pos }
+func (n *For) Position() Pos               { return n.Pos }
+func (n *Go) Position() Pos                { return n.Pos }
+func (n *Select) Position() Pos            { return n.Pos }
+func (n *Defer) Position() Pos             { return n.Pos }
+func (n *Return) Position() Pos            { return n.Pos }
+func (n *Break) Position() Pos             { return n.Pos }
+func (n *Continue) Position() Pos          { return n.Pos }
+func (n *Placeholder) Position() Pos       { return n.Pos }
+func (n *Block) Position() Pos             { return n.Pos }
+func (n *BadExpr) Position() Pos           { return n.Pos }
+func (n *BadStmt) Position() Pos           { return n.Pos }
+func (n *BadType) Position() Pos           { return n.Pos }
+func (n *ImportName) Position() Pos        { return n.Pos }
+func (n *TypeParam) Position() Pos         { return n.Pos }
+func (n *Param) Position() Pos             { return n.Pos }
+func (n *FieldType) Position() Pos         { return n.Pos }
+func (n *RecordTargetField) Position() Pos { return n.Pos }
+func (n *HtmlNode) Position() Pos          { return n.Pos }
+func (n *HtmlElement) Position() Pos       { return n.Pos }
+func (n *HtmlAttr) Position() Pos          { return n.Pos }
+func (n *TemplatePart) Position() Pos      { return n.Pos }
+func (n *RecordEntry) Position() Pos       { return n.Pos }
+func (n *MapEntry) Position() Pos          { return n.Pos }
+func (n *Arg) Position() Pos               { return n.Pos }
+func (n *SelectClause) Position() Pos      { return n.Pos }
+
+func (n *Import) EndPosition() Pos            { return n.End }
+func (n *VarDecl) EndPosition() Pos           { return n.End }
+func (n *FuncDecl) EndPosition() Pos          { return n.End }
+func (n *TypeDecl) EndPosition() Pos          { return n.End }
+func (n *TypeName) EndPosition() Pos          { return n.End }
+func (n *RecordType) EndPosition() Pos        { return n.End }
+func (n *FuncType) EndPosition() Pos          { return n.End }
+func (n *UnionType) EndPosition() Pos         { return n.End }
+func (n *NameTarget) EndPosition() Pos        { return n.End }
+func (n *RecordTarget) EndPosition() Pos      { return n.End }
+func (n *ArrayTarget) EndPosition() Pos       { return n.End }
+func (n *Ident) EndPosition() Pos             { return n.End }
+func (n *IntLit) EndPosition() Pos            { return n.End }
+func (n *FloatLit) EndPosition() Pos          { return n.End }
+func (n *StringLit) EndPosition() Pos         { return n.End }
+func (n *RegexLit) EndPosition() Pos          { return n.End }
+func (n *BoolLit) EndPosition() Pos           { return n.End }
+func (n *NullLit) EndPosition() Pos           { return n.End }
+func (n *VoidLit) EndPosition() Pos           { return n.End }
+func (n *Template) EndPosition() Pos          { return n.End }
+func (n *Html) EndPosition() Pos              { return n.End }
+func (n *RecordLit) EndPosition() Pos         { return n.End }
+func (n *MapLit) EndPosition() Pos            { return n.End }
+func (n *ArrayLit) EndPosition() Pos          { return n.End }
+func (n *Lambda) EndPosition() Pos            { return n.End }
+func (n *FuncLit) EndPosition() Pos           { return n.End }
+func (n *Field) EndPosition() Pos             { return n.End }
+func (n *Index) EndPosition() Pos             { return n.End }
+func (n *Call) EndPosition() Pos              { return n.End }
+func (n *Unary) EndPosition() Pos             { return n.End }
+func (n *Binary) EndPosition() Pos            { return n.End }
+func (n *Is) EndPosition() Pos                { return n.End }
+func (n *Assign) EndPosition() Pos            { return n.End }
+func (n *AssignArray) EndPosition() Pos       { return n.End }
+func (n *If) EndPosition() Pos                { return n.End }
+func (n *While) EndPosition() Pos             { return n.End }
+func (n *For) EndPosition() Pos               { return n.End }
+func (n *Go) EndPosition() Pos                { return n.End }
+func (n *Select) EndPosition() Pos            { return n.End }
+func (n *Defer) EndPosition() Pos             { return n.End }
+func (n *Return) EndPosition() Pos            { return n.End }
+func (n *Break) EndPosition() Pos             { return n.End }
+func (n *Continue) EndPosition() Pos          { return n.End }
+func (n *Placeholder) EndPosition() Pos       { return n.End }
+func (n *Block) EndPosition() Pos             { return n.End }
+func (n *BadExpr) EndPosition() Pos           { return n.End }
+func (n *BadStmt) EndPosition() Pos           { return n.End }
+func (n *BadType) EndPosition() Pos           { return n.End }
+func (n *ImportName) EndPosition() Pos        { return n.End }
+func (n *TypeParam) EndPosition() Pos         { return n.End }
+func (n *Param) EndPosition() Pos             { return n.End }
+func (n *FieldType) EndPosition() Pos         { return n.End }
+func (n *RecordTargetField) EndPosition() Pos { return n.End }
+func (n *HtmlNode) EndPosition() Pos          { return n.End }
+func (n *HtmlElement) EndPosition() Pos       { return n.End }
+func (n *HtmlAttr) EndPosition() Pos          { return n.End }
+func (n *TemplatePart) EndPosition() Pos      { return n.End }
+func (n *RecordEntry) EndPosition() Pos       { return n.End }
+func (n *MapEntry) EndPosition() Pos          { return n.End }
+func (n *Arg) EndPosition() Pos               { return n.End }
+func (n *SelectClause) EndPosition() Pos      { return n.End }
 
 func (*VarDecl) declNode()  {}
 func (*FuncDecl) declNode() {}
@@ -638,6 +799,8 @@ func (*Break) stmtNode()       {}
 func (*Continue) stmtNode()    {}
 func (*Placeholder) stmtNode() {}
 func (*Block) stmtNode()       {}
+func (*BadExpr) stmtNode()     {}
+func (*BadStmt) stmtNode()     {}
 
 func (*Ident) exprNode()       {}
 func (*IntLit) exprNode()      {}
@@ -672,11 +835,13 @@ func (*Break) exprNode()       {}
 func (*Continue) exprNode()    {}
 func (*Placeholder) exprNode() {}
 func (*Block) exprNode()       {}
+func (*BadExpr) exprNode()     {}
 
 func (*TypeName) typeNode()   {}
 func (*RecordType) typeNode() {}
 func (*FuncType) typeNode()   {}
 func (*UnionType) typeNode()  {}
+func (*BadType) typeNode()    {}
 
 func (*NameTarget) targetNode()   {}
 func (*RecordTarget) targetNode() {}

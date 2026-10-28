@@ -94,7 +94,7 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 	if l.has("/>") {
 		l.advance(2)
 		n.Children = &token.Markup{}
-		n.Off, n.End = start, l.pos
+		n.Off, n.End, n.EndPos = start, l.pos, l.here()
 		return n
 	}
 	l.advance(1) // >
@@ -113,7 +113,7 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 			l.fail(pos, "<iframe> takes no content; write <iframe ... />")
 		}
 	}
-	n.Off, n.End = start, l.pos
+	n.Off, n.End, n.EndPos = start, l.pos, l.here()
 	return n
 }
 
@@ -165,7 +165,7 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 			}
 			l.advance(3)
 			toks := l.interpolationOf(pos, "unterminated { in a start tag")
-			attrs = append(attrs, token.MarkupAttr{Kind: token.AttrSpread, Tokens: toks, Pos: pos, Off: off, End: l.pos})
+			attrs = append(attrs, token.MarkupAttr{Kind: token.AttrSpread, Tokens: toks, Pos: pos, EndPos: l.here(), Off: off, End: l.pos})
 			continue
 		case !isLetter(c) && c != '_':
 			l.fail(pos, "unexpected %s in the start tag <%s>", l.describe(), element)
@@ -192,6 +192,7 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 			eq++
 		}
 		if eq == len(l.src) || l.src[eq] != '=' {
+			a.EndPos = l.here()
 			attrs = append(attrs, a)
 			continue
 		}
@@ -216,6 +217,7 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		default:
 			l.fail(l.here(), "an attribute value is \"text\" or {expr}")
 		}
+		a.EndPos = l.here()
 		attrs = append(attrs, a)
 	}
 }
@@ -353,16 +355,17 @@ func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup 
 		l.advance(1)
 	}
 	text := l.src[start:l.pos]
-	l.endTag(pos, name)
-	m := &token.Markup{}
+	textEnd := l.here()
+	m := &token.Markup{Close: l.endTag(pos, name)}
 	if text != "" {
-		m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupText, Text: text, Pos: textPos, Off: start, End: start + len(text)})
+		m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupText, Text: text, Pos: textPos, EndPos: textEnd, Off: start, End: start + len(text)})
 	}
 	return m
 }
 
-// endTag scans the end tag of the element name at its </, or of a fragment when name is "".
-func (l *lexer) endTag(open token.Pos, name string) {
+// endTag scans the end tag of the element name at its </, or of a fragment when name is "", and
+// returns where the tag starts.
+func (l *lexer) endTag(open token.Pos, name string) token.Pos {
 	pos := l.here()
 	l.advance(2)
 	got := l.elementName()
@@ -372,7 +375,7 @@ func (l *lexer) endTag(open token.Pos, name string) {
 	}
 	l.advance(1)
 	if got == name {
-		return
+		return pos
 	}
 	switch {
 	case name == "":
@@ -381,6 +384,7 @@ func (l *lexer) endTag(open token.Pos, name string) {
 		l.fail(pos, "</> closes no fragment; <%s> opened at %d:%d ends with </%s>", name, open.Line, open.Col, name)
 	}
 	l.fail(pos, "</%s> does not close <%s>, opened at %d:%d", got, name, open.Line, open.Col)
+	return pos
 }
 
 // contentOf scans an element's content up to its end tag. With first set, a line break right
@@ -413,7 +417,7 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 	var textPos token.Pos
 	flush := func() {
 		if textStart >= 0 {
-			m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupText, Text: l.src[textStart:l.pos], Pos: textPos, Off: textStart, End: l.pos})
+			m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupText, Text: l.src[textStart:l.pos], Pos: textPos, EndPos: l.here(), Off: textStart, End: l.pos})
 			textStart = -1
 		}
 	}
@@ -429,7 +433,7 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 			switch n := l.peek(1); {
 			case n == '/':
 				flush()
-				l.endTag(pos, name)
+				m.Close = l.endTag(pos, name)
 				return m
 			case isLetter(n):
 				flush()
@@ -455,7 +459,7 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 				}
 				toks = nil
 			}
-			m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupExpr, Tokens: toks, Pos: here, Off: off, End: l.pos})
+			m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupExpr, Tokens: toks, Pos: here, EndPos: l.here(), Off: off, End: l.pos})
 		case c == '}':
 			l.fail(here, "a } in text is written &#125; or {\"}\"}")
 		default:
@@ -485,13 +489,13 @@ func finishContent(m *token.Markup, ctx markupContext) *token.Markup {
 		if k := len(items); n.Kind == token.MarkupText && k > 0 && items[k-1].Kind == token.MarkupText {
 			joins[k-1] = append(joins[k-1], len(items[k-1].Text))
 			items[k-1].Text += n.Text
-			items[k-1].End = n.End
+			items[k-1].End, items[k-1].EndPos = n.End, n.EndPos
 			continue
 		}
 		items = append(items, n)
 		joins = append(joins, nil)
 	}
-	out := &token.Markup{}
+	out := &token.Markup{Close: m.Close}
 	for i, n := range items {
 		if n.Kind == token.MarkupText {
 			text, bounds := n.Text, joins[i]

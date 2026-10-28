@@ -198,6 +198,28 @@ func (p *parser) failAt(t token.Token, format string, args ...any) {
 
 func pos(t token.Token) ast.Pos { return ast.Pos{Line: t.Pos.Line, Col: t.Pos.Col} }
 
+// epos is the position just after t.
+func epos(t token.Token) ast.Pos { return ast.Pos{Line: t.EndPos.Line, Col: t.EndPos.Col} }
+
+// cpos converts a lexer position.
+func cpos(p token.Pos) ast.Pos { return ast.Pos{Line: p.Line, Col: p.Col} }
+
+// end is the position just after the last token read, skipping the line breaks peek may have
+// stepped over inside a list.
+func (p *parser) end() ast.Pos {
+	for j := p.i - 1; j >= 0; j-- {
+		if t := p.toks[j]; t.Kind != token.Newline {
+			return epos(t)
+		}
+	}
+	return ast.Pos{Line: 1, Col: 1}
+}
+
+// name makes the target a name token binds.
+func name(t token.Token) *ast.NameTarget {
+	return &ast.NameTarget{Pos: pos(t), End: epos(t), Name: t.Text}
+}
+
 // ---- tokens
 
 func (p *parser) raw() token.Token { return p.toks[p.i] }
@@ -419,6 +441,7 @@ func (p *parser) file(path string) *ast.File {
 	if p.mode == Program {
 		p.scriptRules(f)
 	}
+	f.End = epos(p.toks[len(p.toks)-1])
 	return f
 }
 
@@ -454,9 +477,10 @@ func (p *parser) importDecl() *ast.Import {
 		p.fail(pt.Pos, "expected a module path string, got %s", pt)
 	}
 	p.next()
-	imp := &ast.Import{Pos: pos(t), Path: pt.Text}
+	imp := &ast.Import{Pos: pos(t), Path: pt.Text, PathPos: pos(pt), PathEnd: epos(pt)}
 	if p.atKind(token.Ident) {
 		imp.Namespace = p.next().Text
+		imp.End = p.end()
 		return imp
 	}
 	p.expect("{")
@@ -465,10 +489,13 @@ func (p *parser) importDecl() *ast.Import {
 		item := ast.ImportName{Pos: pos(name), Name: name.Text, Alias: name.Text}
 		if p.at(":") {
 			p.next()
-			item.Alias = p.expectIdent("a local name").Text
+			alias := p.expectIdent("a local name")
+			item.Alias, item.AliasPos = alias.Text, pos(alias)
 		}
+		item.End = p.end()
 		imp.Names = append(imp.Names, item)
 	})
+	imp.End = p.end()
 	return imp
 }
 
@@ -505,15 +532,16 @@ func (p *parser) varDecl() *ast.VarDecl {
 		d.Target = p.destructure()
 	case p.atKind(token.Ident):
 		n := p.next()
-		d.Target = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+		d.Target = name(n)
 		if p.declarations() && p.at(".") {
 			p.next()
 			d.Owner = n.Text
 			m := p.expectName("a constant name")
-			d.Target = &ast.NameTarget{Pos: pos(m), Name: m.Text}
+			d.Target = name(m)
 			p.expect(":")
 			d.Type = p.parseType()
 			d.Sig = p.since(t)
+			d.End = p.end()
 			return d
 		}
 		if p.at(":") {
@@ -530,17 +558,19 @@ func (p *parser) varDecl() *ast.VarDecl {
 	d.Sig = p.since(t)
 	p.expect("=")
 	d.Init = p.expression()
+	d.End = p.end()
 	return d
 }
 
 func (p *parser) funcDecl() *ast.FuncDecl {
 	t := p.expect("func")
 	name := p.expectIdent("a function name")
-	d := &ast.FuncDecl{Pos: pos(t), Name: name.Text}
+	d := &ast.FuncDecl{Pos: pos(t), Name: name.Text, NamePos: pos(name)}
 	if p.at(".") {
 		p.next()
-		d.Owner = d.Name
-		d.Name = p.expectName("a function name").Text
+		d.Owner, d.OwnerPos = d.Name, d.NamePos
+		m := p.expectName("a function name")
+		d.Name, d.NamePos = m.Text, pos(m)
 		if p.at(".") {
 			p.fail(p.peek().Pos, "a function belongs to one type: func Type.name")
 		}
@@ -551,28 +581,32 @@ func (p *parser) funcDecl() *ast.FuncDecl {
 	d.Params, d.Return = p.signature()
 	d.Sig = p.since(t)
 	if p.declarations() && !p.at("{") {
+		d.End = p.end()
 		return d
 	}
 	saved := p.enterBoundary("func")
 	d.Body = p.block()
 	p.leaveBoundary(saved)
+	d.End = p.end()
 	return d
 }
 
 func (p *parser) typeDecl() *ast.TypeDecl {
 	t := p.expect("type")
 	name := p.expectIdent("a type name")
-	d := &ast.TypeDecl{Pos: pos(t), Name: name.Text}
+	d := &ast.TypeDecl{Pos: pos(t), Name: name.Text, NamePos: pos(name)}
 	if p.declarations() && p.at(".") {
 		p.next()
-		d.Owner = d.Name
-		d.Name = p.expectIdent("a type name").Text
+		d.Owner, d.OwnerPos = d.Name, d.NamePos
+		m := p.expectIdent("a type name")
+		d.Name, d.NamePos = m.Text, pos(m)
 	}
 	if p.at("[") {
 		d.TypeParams = p.typeParams()
 	}
 	if p.declarations() && !p.at("=") {
 		d.Sig = p.since(t)
+		d.End = p.end()
 		return d // an opaque type
 	}
 	p.expect("=")
@@ -586,6 +620,7 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 		d.Body = p.parseType()
 	}
 	d.Sig = p.since(t)
+	d.End = p.end()
 	return d
 }
 
@@ -658,6 +693,7 @@ func (p *parser) typeParams() []ast.TypeParam {
 			p.next()
 			tp.Bound = p.parseType()
 		}
+		tp.End = p.end()
 		params = append(params, tp)
 	})
 	return params
@@ -680,6 +716,7 @@ func (p *parser) signature() ([]ast.Param, ast.Type) {
 			prm.Default = p.expression()
 			p.inDefault--
 		}
+		prm.End = p.end()
 		params = append(params, prm)
 	})
 	var ret ast.Type
@@ -708,6 +745,7 @@ func (p *parser) unionFrom(first ast.Type) ast.Type {
 		p.next()
 		u.Members = append(u.Members, p.typeTerm())
 	}
+	u.End = p.end()
 	return u
 }
 
@@ -716,7 +754,7 @@ func (p *parser) typeTerm() ast.Type {
 	switch {
 	case t.Is("null") || t.Is("void"):
 		p.next()
-		return &ast.TypeName{Pos: pos(t), Path: []string{t.Text}}
+		return &ast.TypeName{Pos: pos(t), End: epos(t), Path: []string{t.Text}, PathPos: []ast.Pos{pos(t)}}
 	case t.Is("{"):
 		return p.recordType(false)
 	case t.Is("func"):
@@ -731,15 +769,18 @@ func (p *parser) typeTerm() ast.Type {
 		return inner
 	case t.Kind == token.Ident:
 		p.next()
-		tn := &ast.TypeName{Pos: pos(t), Path: []string{t.Text}}
+		tn := &ast.TypeName{Pos: pos(t), Path: []string{t.Text}, PathPos: []ast.Pos{pos(t)}}
 		for p.at(".") {
 			p.next()
-			tn.Path = append(tn.Path, p.expectIdent("a type name").Text)
+			part := p.expectIdent("a type name")
+			tn.Path = append(tn.Path, part.Text)
+			tn.PathPos = append(tn.PathPos, pos(part))
 		}
 		if p.at("[") {
 			p.next()
 			p.list("]", func() { tn.Args = append(tn.Args, p.parseType()) })
 		}
+		tn.End = p.end()
 		return tn
 	}
 	p.failAt(t, "expected a type, got %s", t)
@@ -765,8 +806,10 @@ func (p *parser) recordType(defaults bool) *ast.RecordType {
 			p.next()
 			f.Default = p.fieldDefault()
 		}
+		f.End = p.end()
 		rt.Fields = append(rt.Fields, f)
 	})
+	rt.End = p.end()
 	return rt
 }
 
@@ -802,6 +845,7 @@ func (p *parser) funcType() *ast.FuncType {
 	})
 	p.expect(":")
 	ft.Return = p.parseType()
+	ft.End = p.end()
 	return ft
 }
 
@@ -817,6 +861,7 @@ func (p *parser) block() *ast.Block {
 	p.blockStatements(b)
 	p.expect("}")
 	p.leave(saved)
+	b.End = p.end()
 	return b
 }
 
@@ -884,10 +929,11 @@ func (p *parser) expression() ast.Expr {
 		p.next()
 		target := p.assignTarget(left, t)
 		right := p.pipe()
+		end := p.end()
 		if n := p.peek(); n.Kind == token.Op && isAssignOp(n.Text) {
 			p.fail(n.Pos, "assignment cannot be chained")
 		}
-		return &ast.Assign{Pos: pos(t), Op: t.Text, Target: target, Value: right}
+		return &ast.Assign{Pos: pos(t), End: end, Op: t.Text, Target: target, Value: right}
 	}
 	return left
 }
@@ -915,7 +961,7 @@ func (p *parser) assignTarget(e ast.Expr, op token.Token) ast.Node {
 }
 
 func (p *parser) arrayAssignTarget(lit *ast.ArrayLit, op token.Token) *ast.AssignArray {
-	t := &ast.AssignArray{Pos: lit.Pos}
+	t := &ast.AssignArray{Pos: lit.Pos, End: lit.End}
 	if len(lit.Elems) == 0 {
 		p.fail(op.Pos, "an array destructuring binds at least one position")
 	}
@@ -971,7 +1017,7 @@ func (p *parser) pipe() ast.Expr {
 		if !ok || call.Optional || call.Pipe {
 			p.fail(bar.Pos, "the right side of a pipe must be a call")
 		}
-		call.Args = append([]ast.Arg{{Pos: left.Position(), Value: left}}, call.Args...)
+		call.Args = append([]ast.Arg{{Pos: ast.Start(left), End: left.EndPosition(), Value: left}}, call.Args...)
 		call.Pipe = true
 		left = call
 	}
@@ -986,7 +1032,9 @@ func (p *parser) pipeOperand() ast.Expr {
 		for p.at("??") {
 			p.link(&links)
 			t := p.next()
-			left = &ast.Binary{Pos: pos(t), Op: "??", X: left, Y: p.equality()}
+			b := &ast.Binary{Pos: pos(t), Op: "??", X: left, Y: p.equality()}
+			b.End = p.end()
+			left = b
 		}
 		if p.at("&&") || p.at("||") {
 			p.fail(p.peek().Pos, "'??' cannot mix with '&&' or '||' without parentheses")
@@ -999,7 +1047,7 @@ func (p *parser) pipeOperand() ast.Expr {
 			p.link(&links)
 			t := p.next()
 			right := p.andTail(p.equality())
-			left = &ast.Binary{Pos: pos(t), Op: "||", X: left, Y: right}
+			left = &ast.Binary{Pos: pos(t), End: p.end(), Op: "||", X: left, Y: right}
 		}
 		if p.at("??") {
 			p.fail(p.peek().Pos, "'??' cannot mix with '&&' or '||' without parentheses")
@@ -1014,7 +1062,9 @@ func (p *parser) andTail(left ast.Expr) ast.Expr {
 	for p.at("&&") {
 		p.link(&links)
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: "&&", X: left, Y: p.equality()}
+		b := &ast.Binary{Pos: pos(t), Op: "&&", X: left, Y: p.equality()}
+		b.End = p.end()
+		left = b
 	}
 	return left
 }
@@ -1030,7 +1080,9 @@ func (p *parser) binaryLeft(next func() ast.Expr, ops ...string) ast.Expr {
 	for slices.ContainsFunc(ops, p.at) {
 		p.link(&links)
 		t := p.next()
-		left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: next()}
+		b := &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: next()}
+		b.End = p.end()
+		left = b
 	}
 	return left
 }
@@ -1051,11 +1103,14 @@ func (p *parser) comparison() ast.Expr {
 		switch {
 		case t.Is("<") || t.Is("<=") || t.Is(">") || t.Is(">="):
 			p.next()
-			left = &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.additive()}
+			b := &ast.Binary{Pos: pos(t), Op: t.Text, X: left, Y: p.additive()}
+			b.End = p.end()
+			left = b
 		case t.Is("is"):
 			p.next()
 			is := &ast.Is{Pos: pos(t), X: left}
-			is.Kind, is.Path = p.isTarget()
+			is.Kind, is.KindPos, is.Path = p.isTarget()
+			is.End = p.end()
 			left = is
 		default:
 			return left
@@ -1064,17 +1119,17 @@ func (p *parser) comparison() ast.Expr {
 	}
 }
 
-func (p *parser) isTarget() (string, ast.Expr) {
+func (p *parser) isTarget() (kind string, kindPos ast.Pos, path ast.Expr) {
 	t := p.peek()
 	if t.Is("null") || t.Is("void") || t.Is("func") {
 		p.next()
-		return t.Text, nil
+		return t.Text, pos(t), nil
 	}
 	if t.Kind != token.Ident {
 		p.fail(t.Pos, "expected a type name after 'is', got %s", t)
 	}
 	p.next()
-	var e ast.Expr = &ast.Ident{Pos: pos(t), Name: t.Text}
+	var e ast.Expr = &ast.Ident{Pos: pos(t), End: epos(t), Name: t.Text}
 	single := true
 	links := 0
 	defer p.unlink(&links)
@@ -1082,13 +1137,13 @@ func (p *parser) isTarget() (string, ast.Expr) {
 		p.link(&links)
 		d := p.next()
 		name := p.expectIdent("a type name")
-		e = &ast.Field{Pos: pos(d), X: e, Name: name.Text}
+		e = &ast.Field{Pos: pos(d), End: epos(name), X: e, Name: name.Text, NamePos: pos(name)}
 		single = false
 	}
 	if single && kindNames[t.Text] {
-		return t.Text, nil
+		return t.Text, pos(t), nil
 	}
-	return "", e
+	return "", ast.Pos{}, e
 }
 
 func (p *parser) additive() ast.Expr { return p.binaryLeft(p.multiplicative, "+", "-") }
@@ -1113,7 +1168,9 @@ func (p *parser) unary() ast.Expr {
 		if p.prefix != nil && t.Kind == token.Op {
 			p.prefix[t.Off] = true
 		}
-		return &ast.Unary{Pos: pos(t), Op: t.Text, X: p.unary()}
+		u := &ast.Unary{Pos: pos(t), Op: t.Text, X: p.unary()}
+		u.End = p.end()
+		return u
 	}
 	return p.postfix()
 }
@@ -1132,7 +1189,7 @@ func (p *parser) postfix() ast.Expr {
 		case ".":
 			p.next()
 			name := p.expectIdent("a field name")
-			node = &ast.Field{Pos: pos(t), X: node, Name: name.Text}
+			node = &ast.Field{Pos: pos(t), End: epos(name), X: node, Name: name.Text, NamePos: pos(name)}
 			if isPath && p.at("{") && !p.header {
 				return p.braceLit(node)
 			}
@@ -1142,20 +1199,28 @@ func (p *parser) postfix() ast.Expr {
 			switch {
 			case p.at("["):
 				lb := p.peek()
-				node = &ast.Index{Pos: pos(lb), X: node, Index: p.index(), Optional: true}
+				idx := &ast.Index{Pos: pos(lb), X: node, Index: p.index(), Optional: true}
+				idx.End = p.end()
+				node = idx
 			case p.at("("):
 				lp := p.peek()
-				node = &ast.Call{Pos: pos(lp), Fn: node, Args: p.callArgs(), Optional: true}
+				call := &ast.Call{Pos: pos(lp), Fn: node, Args: p.callArgs(), Optional: true}
+				call.End = p.end()
+				node = call
 			default:
 				name := p.expectIdent("a field name")
-				node = &ast.Field{Pos: pos(t), X: node, Name: name.Text, Optional: true}
+				node = &ast.Field{Pos: pos(t), End: epos(name), X: node, Name: name.Text, NamePos: pos(name), Optional: true}
 			}
 		case "[":
 			isPath = false
-			node = &ast.Index{Pos: pos(t), X: node, Index: p.index()}
+			idx := &ast.Index{Pos: pos(t), X: node, Index: p.index()}
+			idx.End = p.end()
+			node = idx
 		case "(":
 			isPath = false
-			node = &ast.Call{Pos: pos(t), Fn: node, Args: p.callArgs()}
+			call := &ast.Call{Pos: pos(t), Fn: node, Args: p.callArgs()}
+			call.End = p.end()
+			node = call
 		default:
 			return node
 		}
@@ -1186,13 +1251,15 @@ func (p *parser) callArgs() []ast.Arg {
 		e := p.expression()
 		if id, ok := e.(*ast.Ident); ok && p.at(":") {
 			p.next()
-			args = append(args, ast.Arg{Pos: pos(start), Name: id.Name, Value: p.expression()})
+			a := ast.Arg{Pos: pos(start), Name: id.Name, Value: p.expression()}
+			a.End = p.end()
+			args = append(args, a)
 			named = true
 		} else {
 			if named {
 				p.fail(start.Pos, "a positional argument cannot follow a named argument")
 			}
-			args = append(args, ast.Arg{Pos: pos(start), Value: e})
+			args = append(args, ast.Arg{Pos: pos(start), End: p.end(), Value: e})
 		}
 	})
 	return args
@@ -1203,29 +1270,29 @@ func (p *parser) primary() ast.Expr {
 	switch t.Kind {
 	case token.Int:
 		p.next()
-		return &ast.IntLit{Pos: pos(t), Value: t.Value}
+		return &ast.IntLit{Pos: pos(t), End: epos(t), Value: t.Value}
 	case token.Float:
 		p.next()
-		return &ast.FloatLit{Pos: pos(t), Value: t.Float}
+		return &ast.FloatLit{Pos: pos(t), End: epos(t), Value: t.Float}
 	case token.String:
 		p.next()
-		return &ast.StringLit{Pos: pos(t), Value: t.Text}
+		return &ast.StringLit{Pos: pos(t), End: epos(t), Value: t.Text}
 	case token.Regex:
 		p.next()
 		re, err := value.NewRegex(t.Text, t.Flags)
 		if err != nil {
 			p.fail(t.Pos, "%s", err)
 		}
-		return &ast.RegexLit{Pos: pos(t), Source: re.Source, Flags: re.Flags, Pattern: re}
+		return &ast.RegexLit{Pos: pos(t), End: epos(t), Source: re.Source, Flags: re.Flags, Pattern: re}
 	case token.Template:
 		p.next()
 		return p.template(t)
 	case token.Html:
 		p.next()
-		return &ast.Html{Pos: pos(t), Content: p.markup(t.Markup)}
+		return &ast.Html{Pos: pos(t), End: epos(t), Content: p.markup(t.Markup), Close: cpos(t.Markup.Close)}
 	case token.Ident:
 		p.next()
-		id := &ast.Ident{Pos: pos(t), Name: t.Text}
+		id := &ast.Ident{Pos: pos(t), End: epos(t), Name: t.Text}
 		if p.at("{") && !p.header {
 			return p.braceLit(id)
 		}
@@ -1234,13 +1301,13 @@ func (p *parser) primary() ast.Expr {
 		switch t.Text {
 		case "true", "false":
 			p.next()
-			return &ast.BoolLit{Pos: pos(t), Value: t.Text == "true"}
+			return &ast.BoolLit{Pos: pos(t), End: epos(t), Value: t.Text == "true"}
 		case "null":
 			p.next()
-			return &ast.NullLit{Pos: pos(t)}
+			return &ast.NullLit{Pos: pos(t), End: epos(t)}
 		case "void":
 			p.next()
-			return &ast.VoidLit{Pos: pos(t)}
+			return &ast.VoidLit{Pos: pos(t), End: epos(t)}
 		case "func":
 			p.next()
 			if p.atKind(token.Ident) {
@@ -1250,7 +1317,7 @@ func (p *parser) primary() ast.Expr {
 			saved := p.enterBoundary("func")
 			body := p.block()
 			p.leaveBoundary(saved)
-			return &ast.FuncLit{Pos: pos(t), Params: params, Return: ret, Body: body}
+			return &ast.FuncLit{Pos: pos(t), End: p.end(), Params: params, Return: ret, Body: body}
 		case "if":
 			return p.ifExpr()
 		case "select":
@@ -1258,7 +1325,9 @@ func (p *parser) primary() ast.Expr {
 		case "while":
 			p.next()
 			cond := p.headerExpr("while")
-			return &ast.While{Pos: pos(t), Cond: cond, Body: p.loopBody()}
+			w := &ast.While{Pos: pos(t), Cond: cond, Body: p.loopBody()}
+			w.End = p.end()
+			return w
 		case "for":
 			return p.forExpr()
 		case "go", "defer":
@@ -1273,12 +1342,12 @@ func (p *parser) primary() ast.Expr {
 			body := p.block()
 			p.leaveBoundary(saved)
 			if t.Text == "go" {
-				return &ast.Go{Pos: pos(t), Body: body}
+				return &ast.Go{Pos: pos(t), End: p.end(), Body: body}
 			}
 			if enclosing != nil {
 				enclosing.HasDefer = true
 			}
-			return &ast.Defer{Pos: pos(t), Body: body}
+			return &ast.Defer{Pos: pos(t), End: p.end(), Body: body}
 		case "return":
 			if p.boundary == "" && p.mode != Spec {
 				p.fail(t.Pos, "'return' outside a function")
@@ -1293,21 +1362,23 @@ func (p *parser) primary() ast.Expr {
 			r := p.raw()
 			if r.Kind == token.Newline || r.Kind == token.EOF ||
 				r.Is(";") || r.Is("}") || r.Is(")") || r.Is("]") || r.Is(",") {
-				return &ast.Return{Pos: pos(t)}
+				return &ast.Return{Pos: pos(t), End: epos(t)}
 			}
 			if p.boundary == "go" || p.boundary == "defer" {
 				p.fail(t.Pos, "'return' takes no value in a %s block", p.boundary)
 			}
-			return &ast.Return{Pos: pos(t), Value: p.expression()}
+			ret := &ast.Return{Pos: pos(t), Value: p.expression()}
+			ret.End = p.end()
+			return ret
 		case "break", "continue":
 			if p.loops == 0 && p.mode != Spec {
 				p.fail(t.Pos, "'%s' outside a loop", t.Text)
 			}
 			p.next()
 			if t.Text == "break" {
-				return &ast.Break{Pos: pos(t)}
+				return &ast.Break{Pos: pos(t), End: epos(t)}
 			}
-			return &ast.Continue{Pos: pos(t)}
+			return &ast.Continue{Pos: pos(t), End: epos(t)}
 		}
 	case token.Op:
 		switch t.Text {
@@ -1335,7 +1406,7 @@ func (p *parser) primary() ast.Expr {
 		case "...":
 			if p.mode == Spec {
 				p.next()
-				return &ast.Placeholder{Pos: pos(t)}
+				return &ast.Placeholder{Pos: pos(t), End: epos(t)}
 			}
 		}
 	}
@@ -1344,13 +1415,13 @@ func (p *parser) primary() ast.Expr {
 }
 
 func (p *parser) template(t token.Token) *ast.Template {
-	n := &ast.Template{Pos: pos(t)}
+	n := &ast.Template{Pos: pos(t), End: epos(t)}
 	for _, part := range t.Parts {
 		if part.Tokens == nil {
-			n.Parts = append(n.Parts, ast.TemplatePart{Text: part.Text})
+			n.Parts = append(n.Parts, ast.TemplatePart{Pos: cpos(part.Pos), End: cpos(part.EndPos), Text: part.Text})
 			continue
 		}
-		n.Parts = append(n.Parts, ast.TemplatePart{Expr: p.subExpression(part.Tokens, "a template expression")})
+		n.Parts = append(n.Parts, ast.TemplatePart{Pos: cpos(part.Pos), End: cpos(part.EndPos), Expr: p.subExpression(part.Tokens, "a template expression")})
 	}
 	return n
 }
@@ -1364,13 +1435,17 @@ func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 	for _, n := range m.Nodes {
 		switch n.Kind {
 		case token.MarkupText:
-			out = append(out, ast.HtmlNode{Pos: pos(token.Token{Pos: n.Pos}), Text: n.Text})
+			out = append(out, ast.HtmlNode{Pos: cpos(n.Pos), End: cpos(n.EndPos), Text: n.Text})
 		case token.MarkupExpr:
-			out = append(out, ast.HtmlNode{Pos: pos(token.Token{Pos: n.Pos}), Expr: p.subExpression(n.Tokens, "markup")})
+			out = append(out, ast.HtmlNode{Pos: cpos(n.Pos), End: cpos(n.EndPos), Expr: p.subExpression(n.Tokens, "markup")})
 		case token.MarkupElement:
-			el := &ast.HtmlElement{Name: n.Name, TextOnly: n.TextOnly}
+			el := &ast.HtmlElement{Pos: cpos(n.Pos), End: cpos(n.EndPos), Name: n.Name, TextOnly: n.TextOnly}
+			el.NamePos = ast.Pos{Line: el.Pos.Line, Col: el.Pos.Col + 1}
+			if n.Children != nil {
+				el.Close = cpos(n.Children.Close)
+			}
 			for _, a := range n.Attrs {
-				attr := ast.HtmlAttr{Pos: pos(token.Token{Pos: a.Pos}), Name: a.Name, Text: a.Text}
+				attr := ast.HtmlAttr{Pos: cpos(a.Pos), End: cpos(a.EndPos), Name: a.Name, Text: a.Text}
 				switch a.Kind {
 				case token.AttrExpr:
 					attr.Expr = p.subExpression(a.Tokens, "an attribute")
@@ -1381,7 +1456,7 @@ func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 				el.Attrs = append(el.Attrs, attr)
 			}
 			el.Content = p.markup(n.Children)
-			out = append(out, ast.HtmlNode{Pos: pos(token.Token{Pos: n.Pos}), Element: el})
+			out = append(out, ast.HtmlNode{Pos: el.Pos, End: el.End, Element: el})
 		}
 	}
 	return out
@@ -1472,6 +1547,7 @@ func (p *parser) ifExpr() *ast.If {
 			n.Else = p.block()
 		}
 	}
+	n.End = p.end()
 	return n
 }
 
@@ -1506,7 +1582,7 @@ func (p *parser) selectExpr() *ast.Select {
 		if p.at("var") {
 			p.next()
 			n := p.expectIdent("a name for the clause's result")
-			c.Target = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+			c.Target = name(n)
 			p.expect("=")
 		}
 		if p.at("else") {
@@ -1527,6 +1603,7 @@ func (p *parser) selectExpr() *ast.Select {
 			heads++
 			c.Body = p.block()
 		}
+		c.End = p.end()
 		s.Clauses = append(s.Clauses, c)
 		if p.at("}") {
 			break
@@ -1540,6 +1617,7 @@ func (p *parser) selectExpr() *ast.Select {
 	}
 	p.expect("}")
 	p.leave(saved)
+	s.End = p.end()
 	if heads == 0 {
 		p.fail(open.Pos, "a select needs at least one clause with a head: %s", selectHeadNames)
 	}
@@ -1580,11 +1658,13 @@ func (p *parser) forExpr() *ast.For {
 		target = p.destructure()
 	} else {
 		n := p.expectIdent("a loop variable")
-		target = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+		target = name(n)
 	}
 	p.expect("in")
 	iter := p.headerExpr("for")
-	return &ast.For{Pos: pos(t), Target: target, Iter: iter, Body: p.loopBody()}
+	fr := &ast.For{Pos: pos(t), Target: target, Iter: iter, Body: p.loopBody()}
+	fr.End = p.end()
+	return fr
 }
 
 // ---- destructuring
@@ -1599,8 +1679,8 @@ func (p *parser) destructure() ast.Target {
 	rt := &ast.RecordTarget{Pos: pos(t)}
 	p.list("}", func() {
 		w := p.peek()
-		name := p.expectName("a field name")
-		f := ast.RecordTargetField{Pos: pos(w), Name: name.Text}
+		field := p.expectName("a field name")
+		f := ast.RecordTargetField{Pos: pos(w), Name: field.Text}
 		if p.at(":") {
 			p.next()
 			f.Target = p.target()
@@ -1608,10 +1688,12 @@ func (p *parser) destructure() ast.Target {
 			if w.Kind != token.Ident {
 				p.fail(w.Pos, "'%s' is %s and cannot be bound: write { %s: name }", w.Text, wordKind(w), w.Text)
 			}
-			f.Target = &ast.NameTarget{Pos: pos(w), Name: w.Text}
+			f.Target = name(w)
 		}
+		f.End = p.end()
 		rt.Fields = append(rt.Fields, f)
 	})
+	rt.End = p.end()
 	if len(rt.Fields) == 0 {
 		p.fail(t.Pos, "a record destructuring binds at least one field")
 	}
@@ -1625,7 +1707,7 @@ func (p *parser) arrayDestructure() *ast.ArrayTarget {
 		if p.at("...") {
 			p.next()
 			n := p.expectIdent("a rest name")
-			at.Rest = &ast.NameTarget{Pos: pos(n), Name: n.Text}
+			at.Rest = name(n)
 			p.mark(t, Role{}) // no comma after the rest
 			if !p.at("]") {
 				p.fail(p.peek().Pos, "the rest must be the last position of a destructuring")
@@ -1634,6 +1716,7 @@ func (p *parser) arrayDestructure() *ast.ArrayTarget {
 		}
 		at.Elems = append(at.Elems, p.target())
 	})
+	at.End = p.end()
 	if len(at.Elems) == 0 && at.Rest == nil {
 		p.fail(t.Pos, "an array destructuring binds at least one position")
 	}
@@ -1645,7 +1728,7 @@ func (p *parser) target() ast.Target {
 		return p.destructure()
 	}
 	n := p.expectIdent("a name or a destructuring")
-	return &ast.NameTarget{Pos: pos(n), Name: n.Text}
+	return name(n)
 }
 
 // ---- literals
@@ -1669,7 +1752,9 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			if isMap {
 				p.fail(w.Pos, "spread has no meaning in a map literal")
 			}
-			rec = append(rec, ast.RecordEntry{Pos: pos(w), Spread: p.expression()})
+			e := ast.RecordEntry{Pos: pos(w), Spread: p.expression()}
+			e.End = p.end()
+			rec = append(rec, e)
 		case w.Kind == token.Keyword || w.Kind == token.Reserved:
 			p.next()
 			if !p.at(":") {
@@ -1678,9 +1763,9 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			p.next()
 			v := p.expression()
 			if isMap {
-				entries = append(entries, ast.MapEntry{Pos: pos(w), Key: &ast.StringLit{Pos: pos(w), Value: w.Text}, Value: v})
+				entries = append(entries, ast.MapEntry{Pos: pos(w), End: p.end(), Key: &ast.StringLit{Pos: pos(w), End: epos(w), Value: w.Text}, Value: v})
 			} else {
-				rec = append(rec, ast.RecordEntry{Pos: pos(w), Name: w.Text, Value: v})
+				rec = append(rec, ast.RecordEntry{Pos: pos(w), End: p.end(), Name: w.Text, Value: v})
 			}
 		case w.Kind == token.Ident && (after.Is(":") || after.Is(",") || after.Is("}")):
 			p.next()
@@ -1689,12 +1774,12 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 				p.next()
 				v = p.expression()
 			} else {
-				v = &ast.Ident{Pos: pos(w), Name: w.Text}
+				v = &ast.Ident{Pos: pos(w), End: epos(w), Name: w.Text}
 			}
 			if isMap {
-				entries = append(entries, ast.MapEntry{Pos: pos(w), Key: &ast.StringLit{Pos: pos(w), Value: w.Text}, Value: v})
+				entries = append(entries, ast.MapEntry{Pos: pos(w), End: p.end(), Key: &ast.StringLit{Pos: pos(w), End: epos(w), Value: w.Text}, Value: v})
 			} else {
-				rec = append(rec, ast.RecordEntry{Pos: pos(w), Name: w.Text, Value: v})
+				rec = append(rec, ast.RecordEntry{Pos: pos(w), End: p.end(), Name: w.Text, Value: v})
 			}
 		default:
 			if !isMap {
@@ -1702,14 +1787,16 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			}
 			k := p.expression()
 			p.expect(":")
-			entries = append(entries, ast.MapEntry{Pos: pos(w), Key: k, Value: p.expression()})
+			e := ast.MapEntry{Pos: pos(w), Key: k, Value: p.expression()}
+			e.End = p.end()
+			entries = append(entries, e)
 		}
 	})
 	p.mark(t, Role{Typed: true, Comma: true})
 	if isMap {
-		return &ast.MapLit{Pos: pos(t), Entries: entries}
+		return &ast.MapLit{Pos: pos(t), End: p.end(), Entries: entries}
 	}
-	return &ast.RecordLit{Pos: head.Position(), Head: head, Entries: rec}
+	return &ast.RecordLit{Pos: head.Position(), End: p.end(), Head: head, Entries: rec}
 }
 
 func (p *parser) arrayLit() *ast.ArrayLit {
@@ -1728,6 +1815,7 @@ func (p *parser) arrayLit() *ast.ArrayLit {
 		lit.Elems = append(lit.Elems, ast.ArrayElem{Value: p.expression(), Spread: true})
 		lit.SpreadComma = p.at(",")
 	})
+	lit.End = p.end()
 	return lit
 }
 
@@ -1741,5 +1829,6 @@ func (p *parser) lambda() *ast.Lambda {
 	p.leaveBoundary(savedB)
 	p.expect("}")
 	p.leave(savedN)
-	return &ast.Lambda{Pos: pos(t), Body: b}
+	b.End = p.end()
+	return &ast.Lambda{Pos: pos(t), End: b.End, Body: b}
 }
