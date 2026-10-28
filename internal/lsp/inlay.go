@@ -8,8 +8,8 @@ import (
 // inlayHints answers textDocument/inlayHint: the inferred type of a var without an annotation,
 // and the parameter name before a positional argument (spec/lsp.md section 4).
 func (s *Server) inlayHints(p *InlayHintParams) []InlayHint {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)

@@ -4,7 +4,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -24,16 +23,15 @@ const placeholder = "__ant_cmp__"
 
 // completion answers textDocument/completion (spec/lsp.md section 4).
 func (s *Server) completion(p *CompletionParams) *CompletionList {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
 	off := d.offset(p.Position, s.utf16)
-	c := &completer{s: s, a: a, d: d, off: off, items: []CompletionItem{}, seen: map[string]bool{}}
-	c.word, c.wordStart = d.wordAt(off)
-	c.wordEnd = c.wordStart + len(c.word)
-	c.word = c.word[:off-c.wordStart]
+	c := &completer{s: s, a: a, d: d, off: off, toks: a.module().Layout.Tokens, items: []CompletionItem{}, seen: map[string]bool{}}
+	word, start := d.wordAt(off)
+	c.wordStart, c.wordEnd = start, start+len(word)
 	c.run()
 	return &CompletionList{Items: c.items}
 }
@@ -44,11 +42,13 @@ type completer struct {
 	a         *analysis
 	d         *document
 	off       int
-	word      string // the identifier typed so far, up to the cursor
-	wordStart int
-	wordEnd   int // where the identifier under the cursor ends, past the cursor when it goes on
-	items     []CompletionItem
-	seen      map[string]bool
+	wordStart int // where the identifier under the cursor starts
+	wordEnd   int // where it ends, past the cursor when it goes on
+	// toks is the token stream the cursor is in: the document's, or an interpolation's inside a
+	// template string.
+	toks  []token.Token
+	items []CompletionItem
+	seen  map[string]bool
 }
 
 func (c *completer) add(item CompletionItem) {
@@ -85,13 +85,15 @@ func (c *completer) run() {
 				c.markup(t)
 				return
 			case token.Template:
-				if !c.inInterpolation(t) {
-					return
+				part := c.interpolation(t)
+				if part == nil {
+					return // in the text of the template
 				}
+				c.toks = part.Tokens
 			}
 		}
 	}
-	prev := c.tokenBefore(toks, c.wordStart)
+	prev := c.tokenBefore(c.toks, c.wordStart)
 	switch {
 	case prev != nil && (prev.Is(".") || prev.Is("?.")) && prev.End == c.wordStart:
 		c.members(prev)
@@ -103,7 +105,7 @@ func (c *completer) run() {
 	if c.importNames() {
 		return
 	}
-	if c.pipe(toks, prev) {
+	if c.pipe(prev) {
 		return
 	}
 	if c.typePosition(prev) {
@@ -133,14 +135,15 @@ func (c *completer) tokenBefore(toks []token.Token, off int) *token.Token {
 	return prev
 }
 
-// inInterpolation reports whether the cursor is inside a ${...} of a template string.
-func (c *completer) inInterpolation(t *token.Token) bool {
-	for _, part := range t.Parts {
+// interpolation is the ${...} of a template string the cursor is in, or nil in its text.
+func (c *completer) interpolation(t *token.Token) *token.Part {
+	for i := range t.Parts {
+		part := &t.Parts[i]
 		if part.Tokens != nil && part.Off < c.off && c.off < part.End {
-			return true
+			return part
 		}
 	}
-	return false
+	return nil
 }
 
 // fixup analyzes the document again with the word under the cursor replaced by placeholder, and
@@ -231,7 +234,7 @@ func (c *completer) members(dot *token.Token) {
 
 // inPipeRight reports whether the dot ends a path that is the right side of a pipe: xs | Array.
 func (c *completer) inPipeRight(dot *token.Token) bool {
-	toks := c.a.module().Layout.Tokens
+	toks := c.toks
 	i := -1
 	for j := range toks {
 		if toks[j].Off == dot.Off {
@@ -311,7 +314,7 @@ func (c *completer) pipedLeft(a *analysis, fld *ast.Field) types.Type {
 
 // pipe completes after |: the functions whose first parameter takes the left side's type, from
 // the prelude, the imported modules, and the types in scope.
-func (c *completer) pipe(toks []token.Token, prev *token.Token) bool {
+func (c *completer) pipe(prev *token.Token) bool {
 	if prev == nil || !prev.Is("|") {
 		return false
 	}
@@ -436,8 +439,6 @@ func (c *completer) scopeNames() {
 	m := a.module()
 	pos := c.d.posOf(c.wordStart)
 	if m.Resolve != nil {
-		var scopes []*ast.Node
-		_ = scopes
 		nodes := ast.Path(m.File, pos)
 		for i := len(nodes) - 1; i >= 0; i-- {
 			sc, ok := m.Resolve.Scopes[nodes[i]]
@@ -593,7 +594,7 @@ func (c *completer) typePosition(prev *token.Token) bool {
 // afterParamName reports whether the colon before the cursor follows a name in a parameter list
 // of a function literal, which the tree may not hold yet.
 func (c *completer) afterParamName(colon *token.Token) bool {
-	toks := c.a.module().Layout.Tokens
+	toks := c.toks
 	for i := range toks {
 		if &toks[i] != colon || i < 2 {
 			continue
@@ -904,9 +905,4 @@ func (c *completer) expressionInMarkup() {
 	for _, k := range exprKeywords {
 		c.add(CompletionItem{Label: k, Kind: ItemKeyword})
 	}
-}
-
-// sortItems orders items by label, for stable output.
-func sortItems(items []CompletionItem) {
-	sort.SliceStable(items, func(i, j int) bool { return items[i].Label < items[j].Label })
 }

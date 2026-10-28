@@ -41,8 +41,8 @@ type semToken struct {
 
 // semanticTokens answers textDocument/semanticTokens/full: what each identifier is.
 func (s *Server) semanticTokens(p *SemanticTokensParams) *SemanticTokens {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
@@ -85,7 +85,7 @@ func (s *Server) semanticTokens(p *SemanticTokensParams) *SemanticTokens {
 		if decl {
 			mods |= modDeclaration
 		}
-		if o.Path == "prelude.ant" || o.Decl == nil && o.Kind != check.Module {
+		if o.Path == "prelude.ant" {
 			mods |= modDefaultLibrary
 		}
 		add(pos, name, typ, mods)

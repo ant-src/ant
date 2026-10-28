@@ -28,6 +28,7 @@ type Server struct {
 	roots    []string // the workspace folders' paths
 	prelude  *document
 	caps     ClientCapabilities
+	files    map[string]*workspaceFile // the workspace's parsed files, by path
 
 	initialized bool
 	shutdown    bool
@@ -312,6 +313,26 @@ func (s *Server) dispatch(m *message) (any, *rpcError) {
 
 // changed notes that a document changed, so that every analysis is made again.
 func (s *Server) changed() { s.gen++ }
+
+// doc returns the open document at uri when it is a file the server analyzes, or nil.
+func (s *Server) doc(uri string) *document {
+	d, ok := s.docs[uri]
+	if !ok || d.path == "" {
+		return nil
+	}
+	return d
+}
+
+// byPath maps each open file's path to its document.
+func (s *Server) byPath() map[string]*document {
+	out := make(map[string]*document, len(s.docs))
+	for _, d := range s.docs {
+		if d.path != "" {
+			out[d.path] = d
+		}
+	}
+	return out
+}
 
 // initialize answers the client's first request: the server's capabilities, and the position
 // encoding, utf-8 when the client offers it (spec/lsp.md section 2).

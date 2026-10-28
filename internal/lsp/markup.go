@@ -64,9 +64,12 @@ func scanMarkup(src string) markupContext {
 		case inTagName:
 			switch {
 			case c == '>':
-				ctx.open = append(ctx.open, name.String())
+				n := name.String()
+				if !value.HtmlVoid[strings.ToLower(n)] {
+					ctx.open = append(ctx.open, n)
+				}
 				state = inText
-				if l := strings.ToLower(name.String()); value.HtmlRawText[l] {
+				if l := strings.ToLower(n); value.HtmlRawText[l] {
 					raw = l
 				}
 			case strings.HasPrefix(src[i:], "/>"):

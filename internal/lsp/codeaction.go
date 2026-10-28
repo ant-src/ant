@@ -20,14 +20,13 @@ var (
 // the range (spec/lsp.md section 4): stating a type the checker inferred where a message asks
 // for an annotation, and adding the fields a record literal leaves out.
 func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
 	path := a.module().File.Path
 	out := []CodeAction{}
-	from, to := d.posOf(d.offset(p.Range.Start, s.utf16)), d.posOf(d.offset(p.Range.End, s.utf16))
 	for _, dg := range a.diags {
 		if dg.Path != path {
 			continue
@@ -36,7 +35,6 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 		if rng.End.Line < p.Range.Start.Line || rng.Start.Line > p.Range.End.Line {
 			continue
 		}
-		_, _ = from, to
 		lsp := Diagnostic{Range: rng, Severity: 1, Source: "ant", Message: dg.Msg}
 		switch {
 		case missingField.MatchString(dg.Msg):
@@ -111,12 +109,9 @@ func (s *Server) addFields(a *analysis, d *document, pos ast.Pos, dg Diagnostic)
 	}
 	switch {
 	case len(lit.Entries) == 0:
+		// an empty literal: Point{} becomes Point{ x: 0.0 }
 		text = " " + text + " "
 		insertAt = closeOff
-		// an empty literal: Point{} becomes Point{ x: 0.0 }
-		if insertAt > 0 && d.text[insertAt-1] == '{' {
-			text = " " + strings.Join(parts, ", ") + " "
-		}
 	case d.text[insertAt-1] == ',':
 		text = " " + text
 	default:

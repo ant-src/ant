@@ -2,9 +2,7 @@ package lsp
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
@@ -115,8 +113,8 @@ func (a *analysis) throughAlias(path string, id *ast.Ident) bool {
 
 // references answers textDocument/references.
 func (s *Server) references(p *ReferenceParams) []Location {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
@@ -138,8 +136,8 @@ func (s *Server) references(p *ReferenceParams) []Location {
 
 // highlight answers textDocument/documentHighlight: the mentions in this document.
 func (s *Server) highlight(p *TextDocumentPositionParams) []DocumentHighlight {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
@@ -197,8 +195,8 @@ func validName(name string) *rpcError {
 // prepareRename answers textDocument/prepareRename: the range of the name, or why it cannot be
 // renamed.
 func (s *Server) prepareRename(p *TextDocumentPositionParams) (any, *rpcError) {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil, nil
 	}
 	a := s.analyze(d)
@@ -208,9 +206,6 @@ func (s *Server) prepareRename(p *TextDocumentPositionParams) (any, *rpcError) {
 	}
 	if err := renamable(t.obj); err != nil {
 		return nil, err
-	}
-	if alias := a.aliasAt(t); alias != nil {
-		return s.rng(d, t.from, t.to), nil
 	}
 	return s.rng(d, t.from, t.to), nil
 }
@@ -237,8 +232,8 @@ func (a *analysis) aliasAt(t *target) *ast.ImportName {
 
 // rename answers textDocument/rename.
 func (s *Server) rename(p *RenameParams) (any, *rpcError) {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil, nil
 	}
 	if err := validName(p.NewName); err != nil {
@@ -253,9 +248,6 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 	if err := renamable(t.obj); err != nil {
 		return nil, err
 	}
-	if err := a.collides(t.obj, p.NewName); err != nil {
-		return nil, err
-	}
 	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
 	add := func(rpath string, from, to ast.Pos) {
 		if rd := a.doc(rpath); rd != nil {
@@ -263,12 +255,22 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 		}
 	}
 	if alias := a.aliasAt(t); alias != nil {
-		// the alias and its uses in this module only
+		// the alias and its uses in this module only, which must not clash with its names
+		if sc := a.modules[path].Resolve.Scopes[a.module().File]; sc != nil {
+			for _, b := range sc.Names {
+				if b.Name == p.NewName && b.Node != ast.Node(alias) {
+					return nil, &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared in this module", p.NewName)}
+				}
+			}
+		}
 		add(path, alias.AliasPos, after(alias.AliasPos, alias.Alias))
 		for _, id := range a.modules[path].Resolve.Uses[alias] {
 			add(path, id.Pos, id.End)
 		}
 		return edit, nil
+	}
+	if err := a.collides(t.obj, p.NewName); err != nil {
+		return nil, err
 	}
 	for _, r := range a.referencesOf(t.obj) {
 		add(r.path, r.from, r.to)
@@ -323,51 +325,24 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 	return nil
 }
 
-// importers lists the documents, open or in the workspace, that import the module at path,
-// other than the one at skip: each becomes the root of a program the rename reaches into.
+// importers lists the documents, open or in the workspace, whose imports lead to the module at
+// path, other than the one at skip: each becomes the root of a program the rename reaches into.
+// Which files import it is read from their parsed imports, so only those are analyzed.
 func (s *Server) importers(path, skip string) []*document {
 	var out []*document
-	seen := map[string]bool{}
-	consider := func(d *document) {
-		if d.uri == skip || seen[d.path] || d.path == "" {
-			return
+	for _, f := range s.workspaceFiles() {
+		if f.doc.uri == skip || f.doc.path == path {
+			continue
 		}
-		seen[d.path] = true
-		if !strings.Contains(d.text, "import") {
-			return
+		imports := false
+		for _, imp := range f.file.Imports {
+			if sameFile(filepath.Join(filepath.Dir(f.doc.path), filepath.FromSlash(imp.Path)), path) {
+				imports = true
+			}
 		}
-		a := s.analyze(d)
-		if _, ok := a.modules[path]; ok && a.module().File.Path != path {
-			out = append(out, d)
+		if imports {
+			out = append(out, f.doc)
 		}
-	}
-	for _, d := range s.docs {
-		consider(d)
-	}
-	for _, root := range s.roots {
-		filepath.WalkDir(root, func(p string, e os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if e.IsDir() {
-				if p != root && (strings.HasPrefix(e.Name(), ".") || e.Name() == "node_modules") {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if !strings.HasSuffix(p, ".ant") {
-				return nil
-			}
-			if _, open := s.docs[fileURI(p)]; open {
-				return nil
-			}
-			src, err := os.ReadFile(p)
-			if err != nil {
-				return nil
-			}
-			consider(newDocument(fileURI(p), 0, string(src)))
-			return nil
-		})
 	}
 	return out
 }

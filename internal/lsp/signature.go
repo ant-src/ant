@@ -5,15 +5,14 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/internal/types"
 )
 
 // signatureHelp answers textDocument/signatureHelp: the signature of the call the cursor is in
 // and its active parameter (spec/lsp.md section 4).
 func (s *Server) signatureHelp(p *SignatureHelpParams) *SignatureHelp {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
@@ -21,8 +20,7 @@ func (s *Server) signatureHelp(p *SignatureHelpParams) *SignatureHelp {
 	call, index := enclosingCall(a, d, off)
 	if call == nil {
 		// the call may not parse yet: give it an argument to read
-		word, start := d.wordAt(off)
-		_ = word
+		_, start := d.wordAt(off)
 		text := d.text[:start] + placeholder + d.text[off:]
 		a = s.analyzeText(d, text)
 		call, index = enclosingCall(a, newDocument(d.uri, d.version, text), off)
@@ -144,5 +142,3 @@ func signatureParts(a *analysis, ci *check.CallInfo) (string, []ParameterInforma
 	sb.WriteString(typeString(ci.Fn.Return))
 	return sb.String(), params
 }
-
-var _ = token.EOF

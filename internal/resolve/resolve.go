@@ -234,6 +234,9 @@ func (r *resolver) noteBinding(s *scope, b *binding) {
 // declare binds name in s, enforcing the shadowing rules. node is what declares it.
 func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node) *binding {
 	b := &binding{name: name, pos: pos, scope: s, imp: -1, node: node}
+	if _, isType := node.(*ast.TypeDecl); isType {
+		b.isType = true
+	}
 	if name == "_" {
 		b.discard = true
 		return b
@@ -477,10 +480,6 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 			}
 		}
 		b := r.declare(s, td.Name, td.Pos, td)
-		b.isType = true
-		if s.info != nil {
-			s.info.Names[len(s.info.Names)-1].Type = true
-		}
 		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)
 	}

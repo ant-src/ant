@@ -304,9 +304,10 @@ var statementStart = map[string]bool{"var": true, "type": true, "func": true, "e
 // sync skips to where parsing can go on after an error, when recovering: to a line break or
 // semicolon outside brackets, or to a comma inside a list, or up to the closer close of the
 // enclosing block or list, or to a closing brace that must end an enclosing block, or to the
-// end of the file. In a list, where line breaks are nothing, one followed by a keyword that
-// begins a statement ends the list, since the author has moved on. A stray closer is skipped.
-func (p *parser) sync(close string, list bool) {
+// end of the file. A statement on a line of its own, which the lexer may have joined to the line
+// before, ends the skipping too, once the item that failed, begun at from, has consumed
+// something, so that the parser makes progress. A stray closer is skipped.
+func (p *parser) sync(close string, list bool, from int) {
 	depth := 0
 	for {
 		t := p.raw()
@@ -317,7 +318,7 @@ func (p *parser) sync(close string, list bool) {
 			if depth <= 0 && !list {
 				return
 			}
-		case list && depth <= 0 && p.statementStarts(p.i):
+		case depth <= 0 && p.i > from && p.statementStarts(p.i):
 			return
 		case t.Is(",") && list && depth <= 0:
 			return
@@ -567,7 +568,7 @@ func (p *parser) list(close string, item func()) {
 		start := p.i
 		if !p.attempt(item) || p.i == start {
 			// The item could not be read, or read nothing: skip to the next item or the end.
-			p.sync(close, true)
+			p.sync(close, true, start)
 			if p.at(",") {
 				p.next()
 			}
@@ -626,27 +627,38 @@ func (p *parser) file(path string) *ast.File {
 	p.skipTerms()
 	f.Doc = p.moduleDoc(p.peek())
 	for p.at("import") {
-		f.Imports = append(f.Imports, p.importDecl())
-		p.expectTerm()
-		p.skipTerms()
+		start := p.i
+		if !p.attempt(func() { f.Imports = append(f.Imports, p.importDecl()) }) {
+			p.sync("", false, start)
+			f.Stmts = append(f.Stmts, p.badStmt(start))
+		}
+		p.terminate("")
 	}
 	for !p.atKind(token.EOF) {
 		start := p.i
 		added := false
 		if !p.attempt(func() { added = p.item(f) }) || !added {
 			if p.i == start {
-				p.sync("", false)
+				p.sync("", false, start)
 			}
 			f.Stmts = append(f.Stmts, p.badStmt(start))
 		}
-		p.expectTerm()
-		p.skipTerms()
+		p.terminate("")
 	}
 	if p.mode == Program {
 		p.scriptRules(f)
 	}
 	f.End = epos(p.toks[len(p.toks)-1])
 	return f
+}
+
+// terminate expects the end of a statement and skips the terminators that follow. When
+// recovering, what cannot end one, such as a reserved word, is skipped to the next statement.
+func (p *parser) terminate(close string) {
+	if !p.attempt(p.expectTerm) {
+		p.sync(close, false, -1)
+	}
+	p.skipTerms()
 }
 
 // item parses one top-level item into f: a declaration, or a statement, which makes a program
@@ -1174,15 +1186,14 @@ func (p *parser) statements() []ast.Stmt {
 		start := p.i
 		var s ast.Stmt
 		if !p.attempt(func() { s = p.statement() }) || p.i == start {
-			p.sync("}", false)
+			p.sync("}", false, start)
 			s = p.badStmt(start)
 		}
 		stmts = append(stmts, s)
 		if p.at("}") {
 			break
 		}
-		p.expectTerm()
-		p.skipTerms()
+		p.terminate("}")
 	}
 	return stmts
 }
@@ -1903,7 +1914,7 @@ func (p *parser) selectExpr() *ast.Select {
 		begin := p.i
 		var c *ast.SelectClause
 		if !p.attempt(func() { c = p.selectClause(&heads, &hasElse) }) || p.i == begin {
-			p.sync("}", false)
+			p.sync("}", false, begin)
 			p.skipClauseBreaks()
 			continue
 		}
@@ -1914,7 +1925,10 @@ func (p *parser) selectExpr() *ast.Select {
 		// A line that starts with else continues the line before it (section 2), so no
 		// terminator separates a clause's block from an else clause.
 		if !p.at("else") && p.skipClauseBreaks() == 0 {
-			p.failAt(p.raw(), "expected a line break before %s: a select has one clause per line", p.raw())
+			if p.raw().Kind == token.Reserved {
+				p.failAt(p.raw(), "")
+			}
+			p.soft(p.raw().Pos, "expected a line break before %s: a select has one clause per line", p.raw())
 		}
 		p.skipClauseBreaks()
 	}
@@ -1967,7 +1981,9 @@ func (p *parser) skipClauseBreaks() int {
 		p.i++
 	}
 	if p.raw().Is(";") {
-		p.failAt(p.raw(), "a select has one clause per line, so no ';' separates its clauses")
+		p.soft(p.raw().Pos, "a select has one clause per line, so no ';' separates its clauses")
+		p.i++
+		return n + 1
 	}
 	return n
 }

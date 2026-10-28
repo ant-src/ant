@@ -6,8 +6,8 @@ import (
 
 // definition answers textDocument/definition (spec/lsp.md section 4).
 func (s *Server) definition(p *TextDocumentPositionParams) []Location {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)

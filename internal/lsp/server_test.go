@@ -475,6 +475,17 @@ func TestCompletion(t *testing.T) {
 	src = strings.Replace(mainSrc, "if s.area > 0.0 { label } else { \"none\" }", "var h = <p>{s.}</p>", 1)
 	got = labels(src, at(src, "{s.", 1, 3))
 	has("markup interpolation", got, "name", "area")
+	// inside a template string's interpolation: members and names; nothing in its text
+	src = strings.Replace(mainSrc, "if s.area > 0.0 { label } else { \"none\" }", "var t = `hello ${s.} and ${lab}`", 1)
+	got = labels(src, at(src, "${s.", 1, 4))
+	has("template members", got, "name", "area")
+	lacks("template members", got, "describe")
+	got = labels(src, at(src, "${lab", 1, 5))
+	has("template names", got, "label", "s")
+	got = labels(src, at(src, "hello ", 1, 3))
+	if len(got) != 0 {
+		t.Errorf("completion in template text: %q", got)
+	}
 	// nothing in a comment or a string
 	src = strings.Replace(mainSrc, "var label = s.name", "var label = \"s.\"", 1)
 	got = labels(src, at(src, "\"s.", 1, 3))
@@ -580,6 +591,26 @@ func apply(text string, e TextEdit) string {
 	return text[:start] + e.NewText + text[end:]
 }
 
+func TestUntitledAndAnonymousFields(t *testing.T) {
+	c := start(t, workspace())
+	// a document of another scheme is accepted and ignored
+	c.notify("textDocument/didOpen", DidOpenTextDocumentParams{TextDocument: TextDocumentItem{URI: "untitled:Untitled-1", LanguageID: "ant", Version: 1, Text: "var x = 1"}})
+	var h *Hover
+	c.call("textDocument/hover", TextDocumentPositionParams{TextDocument: TextDocumentIdentifier{URI: "untitled:Untitled-1"}}, &h)
+	if h != nil {
+		t.Errorf("hover on an untitled document: %+v", h)
+	}
+	// references of a field of an anonymous record type
+	src := "func f(p: { x: int, y: int }): int { p.x + p.x + p.y }\n"
+	uri := c.open("main.ant", src)
+	var locs []Location
+	p := ReferenceParams{TextDocumentPositionParams: c.pos(uri, at(src, "p.x", 1, 2))}
+	c.call("textDocument/references", p, &locs)
+	if len(locs) != 2 {
+		t.Errorf("references of an anonymous record's field: %+v", locs)
+	}
+}
+
 func TestCodeActions(t *testing.T) {
 	c := start(t, workspace())
 	src := strings.Replace(mainSrc, "Point{ x: 1.0, y: 2.0 }", "Point{ x: 1.0 }", 1)
@@ -612,8 +643,16 @@ func TestCodeActions(t *testing.T) {
 	if len(acts) != 1 || acts[0].Title != "State the return type float64" || !strings.Contains(apply(lib, acts[0].Edit.Changes[libURI][0]), "b: Point): float64 {") {
 		t.Errorf("code actions: %+v", acts)
 	}
-	// a rename that would clash
+	// a rename that would clash, and an alias rename checked in the alias's own module
 	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "label }", 1, 0)), NewName: "p"}, nil); err == nil || !strings.Contains(err.Message, "already declared") {
 		t.Errorf("renaming label to p: %v", err)
+	}
+	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "dist(p", 1, 0)), NewName: "describe"}, nil); err == nil || !strings.Contains(err.Message, "already declared") {
+		t.Errorf("renaming the alias dist to describe: %v", err)
+	}
+	var edit WorkspaceEdit
+	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "dist(p", 1, 0)), NewName: "origin"}, &edit); err != nil || len(edit.Changes[uri]) != 2 {
+		// origin is a name of the library, not of main, so the alias may take it
+		t.Errorf("renaming the alias dist to origin: %v %+v", err, edit.Changes)
 	}
 }

@@ -1,21 +1,17 @@
 package lsp
 
 import (
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/parser"
 )
 
 // documentSymbols answers textDocument/documentSymbol: the module's imports, types with their
 // fields and functions, functions, and top-level variables (spec/lsp.md section 4).
 func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
@@ -124,8 +120,7 @@ func (a *analysis) typeText(d *document, t ast.Type) string { return typeText(t,
 func (s *Server) workspaceSymbols(p *WorkspaceSymbolParams) []SymbolInformation {
 	query := strings.ToLower(p.Query)
 	out := []SymbolInformation{}
-	seen := map[string]bool{}
-	visit := func(path string, f *ast.File, d *document) {
+	visit := func(f *ast.File, d *document) {
 		for _, decl := range f.Decls {
 			name, kind, pos, end := declInfo(decl)
 			if name == "" || !strings.Contains(strings.ToLower(name), query) {
@@ -139,37 +134,8 @@ func (s *Server) workspaceSymbols(p *WorkspaceSymbolParams) []SymbolInformation 
 				Location: Location{URI: d.uri, Range: s.rng(d, pos, end)}})
 		}
 	}
-	for _, d := range s.docs {
-		if d.path == "" {
-			continue
-		}
-		seen[d.path] = true
-		a := s.analyze(d)
-		visit(d.path, a.module().File, d)
-	}
-	for _, root := range s.roots {
-		filepath.WalkDir(root, func(path string, e os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if e.IsDir() {
-				if path != root && (strings.HasPrefix(e.Name(), ".") || e.Name() == "node_modules") {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if !strings.HasSuffix(path, ".ant") || seen[path] {
-				return nil
-			}
-			seen[path] = true
-			src, err := os.ReadFile(path)
-			if err != nil {
-				return nil
-			}
-			f, _, _ := parser.ParseRecover(path, string(src))
-			visit(path, f, newDocument(fileURI(path), 0, string(src)))
-			return nil
-		})
+	for _, f := range s.workspaceFiles() {
+		visit(f.file, f.doc)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
@@ -197,5 +163,3 @@ func declInfo(decl ast.Decl) (name string, kind int, pos, end ast.Pos) {
 	}
 	return "", 0, ast.Pos{}, ast.Pos{}
 }
-
-var _ = check.Var

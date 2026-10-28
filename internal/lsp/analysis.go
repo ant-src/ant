@@ -36,11 +36,10 @@ func (s *Server) analyze(doc *document) *analysis {
 	if a, ok := s.cache[doc.uri]; ok {
 		return a
 	}
+	open := s.byPath()
 	sources := map[string]string{}
-	for _, d := range s.docs {
-		if d.path != "" {
-			sources[d.path] = d.text
-		}
+	for path, d := range open {
+		sources[path] = d.text
 	}
 	a := &analysis{root: doc, modules: map[string]*loader.Module{}, docs: map[string]*document{}, server: s}
 	prog, diags := loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: sources})
@@ -53,7 +52,7 @@ func (s *Server) analyze(doc *document) *analysis {
 	a.prog = prog
 	for _, m := range prog.Modules {
 		a.modules[m.File.Path] = m
-		if d, ok := s.docs[fileURI(m.File.Path)]; ok {
+		if d, ok := open[m.File.Path]; ok {
 			a.docs[m.File.Path] = d
 		} else {
 			a.docs[m.File.Path] = newDocument(fileURI(m.File.Path), 0, m.Src)

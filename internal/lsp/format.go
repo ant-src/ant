@@ -7,8 +7,8 @@ import (
 // formatting answers textDocument/formatting with ant fmt (spec/lsp.md section 4): one edit that
 // replaces what changed, or nothing when the document does not parse or is formatted already.
 func (s *Server) formatting(p *DocumentFormattingParams) []TextEdit {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	out, err := format.Source(d.path, []byte(d.text))

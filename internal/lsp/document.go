@@ -169,11 +169,12 @@ func isIdentByte(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
 }
 
-// uriPath turns a file URI into a path, or returns the URI itself for another scheme.
+// uriPath turns a file URI into a path, or "" for another scheme, whose document the server
+// does not analyze.
 func uriPath(uri string) string {
 	u, err := url.Parse(uri)
 	if err != nil || u.Scheme != "file" {
-		return uri
+		return ""
 	}
 	p := u.Path
 	if runtime.GOOS == "windows" {

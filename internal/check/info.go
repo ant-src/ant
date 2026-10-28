@@ -40,6 +40,7 @@ type Info struct {
 	objects map[*entity]*Object
 	locals  map[*local]*Object
 	fields  map[fieldKey]*Object
+	anon    map[string]*Object // fields of anonymous record types, by the type's text and the name
 	tparams map[*types.ParamDecl]*Object
 }
 
@@ -119,7 +120,7 @@ func NewInfo() *Info {
 		TypeNames: map[*ast.TypeName][]*Object{}, Decls: map[ast.Node]*Object{}, Calls: map[*ast.Call]*CallInfo{},
 		Lambdas: map[*ast.Lambda]types.Type{}, Entries: map[*ast.RecordEntry]*Object{}, Modules: map[string]*ModuleInfo{},
 		objects: map[*entity]*Object{}, locals: map[*local]*Object{}, fields: map[fieldKey]*Object{},
-		tparams: map[*types.ParamDecl]*Object{},
+		anon: map[string]*Object{}, tparams: map[*types.ParamDecl]*Object{},
 	}
 }
 
@@ -413,7 +414,15 @@ func (in *Info) fieldOf(recv types.Type, name string) *Object {
 		case types.Record:
 			for _, f := range r.Fields {
 				if f.Name == name {
-					return &Object{Name: name, Kind: Field, typ: f.Type, info: in}
+					// an anonymous record type is its shape (section 4), so one object per
+					// shape and name
+					key := types.String(r) + "\x00" + name
+					if o, ok := in.anon[key]; ok {
+						return o
+					}
+					o := &Object{Name: name, Kind: Field, typ: f.Type, info: in}
+					in.anon[key] = o
+					return o
 				}
 			}
 		}

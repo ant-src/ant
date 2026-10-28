@@ -185,6 +185,15 @@ func TestRecoverCases(t *testing.T) {
 		// side is not a call; an editor completes Array. from the tokens, not the tree.
 		{"pipe left open", "func f() {\n  var r = xs\n    | Array.\n  r\n}", []string{"the right side of a pipe must be a call"},
 			"(file (func f() { (bad) }))"},
+		// An import being typed, whose line the lexer joins to the declaration below.
+		{"import left incomplete", "import\nvar x = 1\n", []string{"expected a module path string, got 'var'"},
+			"(file (var x 1) (bad))"},
+		{"reserved word after a statement", "var x = 1 class\nvar y = 2", []string{"'class' is a reserved word"},
+			"(file (var x 1) (var y 2))"},
+		{"reserved word after a statement in a block", "func f() {\n  a class\n  b\n}", []string{"'class' is a reserved word"},
+			"(file (func f() { a; b }))"},
+		{"local type redeclares a prelude name", "func f() {\n  type Math = int\n  1\n}", nil,
+			"(file (func f() { (type Math int); 1 }))"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

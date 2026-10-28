@@ -4,6 +4,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/parser"
 )
 
@@ -48,5 +49,18 @@ func TestRecover(t *testing.T) {
 	strict, sdiags := Load("main.ant", Config{FS: fsys, Mode: parser.Program})
 	if strict != nil || len(sdiags) == 0 {
 		t.Errorf("strict load: program %v, diagnostics %v", strict, sdiags)
+	}
+}
+
+// TestRecoverResolve checks that a recovering load survives the scope errors the resolver
+// reports, such as a local type that takes a prelude name.
+func TestRecoverResolve(t *testing.T) {
+	fsys := fstest.MapFS{"main.ant": {Data: []byte("func f() {\n  type Math = int\n  1\n}\n")}}
+	prog, diags := Load("main.ant", Config{FS: fsys, Mode: parser.Program, Recover: true})
+	if prog == nil || len(diags) != 1 || diags[0].Msg != "Math is a prelude name and cannot be redeclared" {
+		t.Fatalf("program %v, diagnostics %v", prog != nil, diags)
+	}
+	if sc := prog.Root.Resolve.Scopes[prog.Root.File.Decls[0].(*ast.FuncDecl).Body]; sc == nil || len(sc.Names) != 0 {
+		t.Errorf("the body's scope: %+v", sc)
 	}
 }

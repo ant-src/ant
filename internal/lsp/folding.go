@@ -10,8 +10,8 @@ import (
 // foldingRanges answers textDocument/foldingRange: blocks, lists, markup elements, comment runs,
 // and the imports (spec/lsp.md section 4).
 func (s *Server) foldingRanges(p *FoldingRangeParams) []FoldingRange {
-	d, ok := s.docs[p.TextDocument.URI]
-	if !ok {
+	d := s.doc(p.TextDocument.URI)
+	if d == nil {
 		return nil
 	}
 	a := s.analyze(d)
