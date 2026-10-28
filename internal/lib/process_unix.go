@@ -13,10 +13,13 @@ import (
 	"github.com/ant-src/ant/internal/interp"
 )
 
-// terminate is the signal Os.stop sends first.
+// terminate is the signal Cmd.stop sends first.
 var terminate os.Signal = syscall.SIGTERM
 
-// signals are the names Os.kill takes.
+// brokenPipe is the signal that ends a writer whose reader is gone.
+var brokenPipe os.Signal = syscall.SIGPIPE
+
+// signals are the names Cmd.kill takes.
 var signals = map[string]syscall.Signal{
 	"SIGTERM": syscall.SIGTERM, "SIGKILL": syscall.SIGKILL, "SIGINT": syscall.SIGINT,
 	"SIGHUP": syscall.SIGHUP, "SIGQUIT": syscall.SIGQUIT, "SIGUSR1": syscall.SIGUSR1,
@@ -30,20 +33,26 @@ func signalNamed(name string) (os.Signal, error) {
 	return nil, fmt.Errorf("unknown signal %s", name)
 }
 
-// setGroup makes the child the leader of a process group of its own, outside the terminal's
-// foreground group.
-func setGroup(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+// setGroup puts the child in the process group leader leads, outside the terminal's foreground
+// group, or makes it the leader of a group of its own when leader is 0.
+func setGroup(cmd *exec.Cmd, leader int) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pgid: leader}
 }
 
-// signalGroup sends sig once to the process group p leads, the leader included, while the
-// leader runs. Signal 0 asks Go whether it does, which knows the process and not just its id,
-// so a reused id is never signalled.
-func signalGroup(p *os.Process, sig os.Signal) error {
-	if err := p.Signal(syscall.Signal(0)); err != nil {
+// signalGroup sends sig once to the process group the first of ps leads, while any of ps runs.
+// Signal 0 asks Go whether one does, which knows the process and not just its id, so a reused id
+// is never signalled; the group outlives its leader while a member runs.
+func signalGroup(ps []*os.Process, sig os.Signal) error {
+	err := os.ErrProcessDone
+	for _, p := range ps {
+		if err = p.Signal(syscall.Signal(0)); err == nil {
+			break
+		}
+	}
+	if err != nil {
 		return err
 	}
-	if err := syscall.Kill(-p.Pid, sig.(syscall.Signal)); err != nil && err != syscall.ESRCH {
+	if err := syscall.Kill(-ps[0].Pid, sig.(syscall.Signal)); err != nil && err != syscall.ESRCH {
 		return err
 	}
 	return nil

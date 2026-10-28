@@ -1,0 +1,14 @@
+// spec: stdlib Cmd; 12 Runtime panics
+// panics: Cmd.stop
+// Cmd.stop's grace is a span of time: zero kills at once, and years, months or weeks, which have no
+// fixed length, panic.
+var now = Result.unwrap(Cmd.start(Cmd.new("sleep", ["30"])))
+println(Cmd.stop(now, grace: Time.duration()))
+var later = Result.unwrap(Cmd.start(Cmd.new("sleep", ["30"])))
+defer { Cmd.stop(later, grace: Time.duration()) }
+Cmd.stop(later, grace: Time.duration(months: 1))
+
+// expect
+// exit: 1
+// out: Ok{ value: 137 }
+// err: Cmd.stop needs a duration without years, months or weeks

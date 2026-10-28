@@ -37,10 +37,10 @@ type Config struct {
 	// Os.interrupt created, when the program created one and it is not done; otherwise the run
 	// is cancelled, as the first is for a program that never asked. Nil delivers none.
 	Interrupts <-chan struct{}
-	// Foreground is called as Os.run starts a child in the foreground, and the function it
+	// Foreground is called as Cmd.run starts a child in the foreground, and the function it
 	// returns as the child exits, with the signal that ended the child or nil, so the host can
 	// hold back its keyboard signals meanwhile; that function reports whether one it held is
-	// now the program's interrupt, which Os.run delivers before it returns. Nil holds nothing.
+	// now the program's interrupt, which Cmd.run delivers before it returns. Nil holds nothing.
 	Foreground func() func(os.Signal) bool
 }
 

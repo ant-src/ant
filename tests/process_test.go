@@ -28,15 +28,15 @@ func loadSource(t *testing.T, src string) *ant.Program {
 // nothing into the host's writers once Run has returned, which the race detector would see.
 func TestProcessHostWriters(t *testing.T) {
 	prog := loadSource(t, `print("a")
-Os.run("printf", ["b"])
+Cmd.run(Cmd.new("printf", ["b"]))
 print("c")
 File.writeText(Os.stdout(), "d")
-Os.wait(Result.unwrap(Os.start("printf", ["e"])))
+Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("printf", ["e"]))))
 print("f")
 File.writeText(Os.stderr(), "1")
-Os.run("sh", ["-c", "printf 2 >&2"])
+Cmd.run(Cmd.new("sh", ["-c", "printf 2 >&2"]))
 File.writeText(Os.stderr(), "3")
-Os.start("sh", ["-c", "sleep 0.2; head -c 100000 /dev/zero; head -c 100000 /dev/zero >&2"])
+Cmd.start(Cmd.new("sh", ["-c", "sleep 0.2; head -c 100000 /dev/zero; head -c 100000 /dev/zero >&2"]))
 `)
 	var out, errOut bytes.Buffer
 	if err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithStderr(&errOut)); err != nil {
@@ -58,11 +58,11 @@ Os.start("sh", ["-c", "sleep 0.2; head -c 100000 /dev/zero; head -c 100000 /dev/
 // TestProcessSharedStdin checks that children given a host's standard input that is not a file
 // read it one at a time, beside Os.stdin.
 func TestProcessSharedStdin(t *testing.T) {
-	prog := loadSource(t, `var a = Result.unwrap(Os.start("cat", stdin: Os.stdin(), stdout: null))
-var b = Result.unwrap(Os.start("cat", stdin: Os.stdin(), stdout: null))
+	prog := loadSource(t, `var a = Result.unwrap(Cmd.start(Cmd.new("cat"), stdin: Os.stdin(), stdout: null))
+var b = Result.unwrap(Cmd.start(Cmd.new("cat"), stdin: Os.stdin(), stdout: null))
 println(File.readLine(Os.stdin()) is Ok)
-Os.wait(a)
-Os.wait(b)
+Cmd.wait(a)
+Cmd.wait(b)
 `)
 	var out bytes.Buffer
 	in := bytes.NewReader(bytes.Repeat([]byte("line\n"), 10000))
@@ -74,7 +74,7 @@ Os.wait(b)
 // TestProcessInstanceClose checks that closing an instance, as a host cancelling it, kills the
 // children its functions started.
 func TestProcessInstanceClose(t *testing.T) {
-	prog := loadSource(t, "func spawn(): int { Os.pid(Result.unwrap(Os.start(\"sleep\", [\"30\"]))) }\n")
+	prog := loadSource(t, "func spawn(): int { Cmd.pid(Result.unwrap(Cmd.start(Cmd.new(\"sleep\", [\"30\"])))) }\n")
 	inst, err := prog.Start(context.Background())
 	if err != nil {
 		t.Fatal(err)

@@ -52,10 +52,19 @@ func WithNamespace(ns Namespace) Option {
 }
 
 // WithoutNamespaces removes prelude namespaces from a program, such as File or Http, so a
-// script cannot reach them.
+// script cannot reach them. Removing Os removes Cmd too, since a Cmd runs with the process's
+// streams and environment.
 func WithoutNamespaces(names ...string) Option {
-	return func(c *config) { c.removed = append(c.removed, names...) }
+	return func(c *config) {
+		for _, name := range names {
+			c.removed = append(c.removed, name)
+			c.removed = append(c.removed, goesWith[name]...)
+		}
+	}
 }
+
+// goesWith lists the prelude names a removed namespace takes with it.
+var goesWith = map[string][]string{"Os": {"Cmd"}}
 
 // build parses a namespace's signatures and binds its functions.
 func (ns Namespace) build() (value.Value, *ast.File, error) {

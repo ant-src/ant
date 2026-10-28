@@ -1,0 +1,91 @@
+// spec: stdlib Cmd
+// Cmd (stdlib.md): a Cmd literal takes the defaults Cmd.new does; Cmd.string quotes as a shell
+// needs and leaves out env and dir; a pipeline joins each stage's output to the next one's input
+// and keeps its own copy of the array; its status is the rightmost failure but for a stage a
+// broken pipe ended, Cmd.capture gives each stage's status, and Cmd.read names the stage that
+// failed. Cmd.start runs a pipeline as one job.
+var echo = Cmd{ program: "echo", args: ["hi there"] }
+println(echo)
+println(Cmd{ program: "true" })
+println(Cmd.new("true"))
+println(Cmd.string(echo))
+println(Cmd.string(Cmd.new("x", ["", "it's", "a=b", "$HOME"], env: Map{ "SECRET": "s" })))
+println(Cmd.string(Cmd.new("A=b", ["c=d"])))
+var build = Cmd.new("go", ["build"])
+Array.push(build.args, "-v")
+println(Cmd.string(build))
+
+var grep = Cmd.pipe([
+  Cmd.new("printf", ["fix a\\nnope\\nfix b\\n"]),
+  Cmd.new("grep", ["fix"]),
+  Cmd.new("wc", ["-l"]),
+])
+println(Cmd.string(grep))
+println(Cmd.read(grep) | Result.map({ String.trim(x) }))
+println(Cmd.read(Cmd.pipe([Cmd.new("cat"), Cmd.new("tr", ["a-z", "A-Z"])]), input: "fed\n"))
+println(Cmd.readBytes(Cmd.pipe([Cmd.new("printf", ["x\\n"]), Cmd.new("cat")])))
+println(Cmd.read(Cmd.pipe([Cmd.new("echo")])))
+var stages = [Cmd.new("echo", ["a"])]
+var copied = Cmd.pipe(stages)
+Array.push(stages, Cmd.new("tr", ["a", "b"]))
+println(Cmd.read(copied))
+
+// Status: the rightmost failure; a broken pipe before the last stage is not one.
+println(Cmd.read(Cmd.pipe([Cmd.new("yes"), Cmd.new("head", ["-n", "1"])])))
+println(Cmd.read(Cmd.pipe([Cmd.new("false"), Cmd.new("cat")])))
+println(Cmd.read(Cmd.pipe([Cmd.new("false"), Cmd.new("false")])))
+println(Cmd.read(Cmd.pipe([Cmd.new("sh", ["-c", "echo why >&2; exit 3"]), Cmd.new("sh", ["-c", "exit 4"]), Cmd.new("true")])))
+var out = Result.unwrap(Cmd.capture(Cmd.pipe([Cmd.new("yes"), Cmd.new("head", ["-n", "2"]), Cmd.new("sh", ["-c", "cat; exit 5"])])))
+println(`${out.status} ${out.statuses} ${String.trim(out.stdout)}`)
+println(Result.unwrap(Cmd.capture(Cmd.new("true"))).statuses)
+println(Cmd.run(Cmd.pipe([Cmd.new("echo", ["run"]), Cmd.new("tr", ["r", "R"])])))
+println(Cmd.read(Cmd.pipe([Cmd.new("true"), Cmd.new("ant-no-such-program-xyz")])) is Err)
+
+// Each stage keeps its own dir and env.
+println(Cmd.read(Cmd.pipe([
+  Cmd.new("sh", ["-c", "echo $A"], env: Map{ "A": "one" }),
+  Cmd.new("sh", ["-c", "cat; echo $B; pwd"], dir: "/", env: Map{ "B": "two" }),
+])))
+
+// One job: every stage stops with one signal.
+var job = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("sleep", ["30"]), Cmd.new("cat")]), stdout: null))
+println(Cmd.pid(job) > 0)
+println(Cmd.stop(job, grace: Time.duration(seconds: 2)))
+var bounded = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("sleep", ["30"]), Cmd.new("sleep", ["30"])]), ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
+println(Cmd.wait(bounded))
+var log = Result.unwrap(Os.openPipe())
+var lines = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("printf", ["b\\na\\n"]), Cmd.new("sort")]), stdout: log.write))
+File.close(log.write)
+println(File.readAll(log.read))
+println(Cmd.wait(lines))
+
+// expect
+// out: Cmd{ program: "echo", args: ["hi there"], dir: null, env: null }
+// out: Cmd{ program: "true", args: [], dir: null, env: null }
+// out: Cmd{ program: "true", args: [], dir: null, env: null }
+// out: echo 'hi there'
+// out: x '' 'it'\''s' a=b '$HOME'
+// out: 'A=b' c=d
+// out: go build -v
+// out: printf 'fix a\nnope\nfix b\n' | grep fix | wc -l
+// out: Ok{ value: "2" }
+// out: Ok{ value: "FED" }
+// out: Ok{ value: Bytes(78 0a) }
+// out: Ok{ value: "" }
+// out: Ok{ value: "a" }
+// out: Ok{ value: "y" }
+// out: Err{ error: Error{ message: "false: exit status 1" } }
+// out: Err{ error: Error{ message: "false (stage 2): exit status 1" } }
+// out: Err{ error: Error{ message: "sh (stage 2): exit status 4: why" } }
+// out: 5 [141, 0, 5] y
+// out: y
+// out: [0]
+// out: Run
+// out: Ok{ value: 0 }
+// out: true
+// out: Ok{ value: "one\ntwo\n/" }
+// out: true
+// out: Ok{ value: 143 }
+// out: Err{ error: Error{ message: "timeout" } }
+// out: Ok{ value: "a\nb\n" }
+// out: Ok{ value: 0 }

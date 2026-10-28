@@ -172,7 +172,7 @@ type Info = { name: string, size: int, isDir: bool, modified: Time.Instant, mode
 
 ## Platform
 
-**Today:** a script that does something different on macOS and Linux runs `uname` through `Os.exec`.
+**Today:** a script that does something different on macOS and Linux runs `uname` through `Cmd.read`.
 
 **Sketch:**
 

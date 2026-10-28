@@ -1626,15 +1626,9 @@ func Net.peer(f: File.Handle): string | null
 
 // Os
 //
-// Os holds the process: its arguments, environment, standard streams, exit, interrupts, and child
-// processes.
+// Os holds the process: its arguments, environment, standard streams, exit, interrupts, and pipes.
+// [Cmd] runs other programs.
 
-// Os.Output is what [Os.exec] captures from a child process that ran to its end. status is its exit
-// status, 128 + n when signal n ended it; each output is kept as bytes in stdoutBytes and
-// stderrBytes and as text in stdout and stderr.
-type Os.Output = { status: int, stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
-// Os.Process is an opaque child process started by [Os.start], waited for with [Os.wait].
-type Os.Process
 // Os.Pipe is a pair of connected handles, made by [Os.openPipe]: what is written to write is read
 // from read.
 type Os.Pipe = { read: File.Handle, write: File.Handle }
@@ -1648,59 +1642,11 @@ func Os.environ(): Map[string, string]
 func Os.cwd(): Result[string, Error]
 // Os.exit ends the process at once with status. No deferred block runs, in any goroutine.
 func Os.exit(status: int): never
-// Os.run runs program with args in the foreground, with the program's own standard input, output
-// and error, so a pager, an editor or ssh can use the terminal, and returns its exit status,
-// nonzero included. program is looked up in PATH when it has no path separator; the child runs in
-// dir and with env as its whole environment when they are given. While it runs the ant command
-// holds back Ctrl-C, which the child gets and decides on, and passes it on when the child dies of
-// it. It is Err when the child could not be started, and when ctx is done, which kills the child.
-//
-//     var status = try Os.run("git", ["commit"])
-func Os.run(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
-        ctx: Context | null = null): Result[int, Error]
-// Os.output runs program with args as [Os.exec] does and returns its standard output as text,
-// without one final newline. A nonzero exit status is Err with the message
-// "program: exit status n", followed by ": " and standard error when it wrote any.
-//
-//     var head = try Os.output("git", ["rev-parse", "--short", "HEAD"])
-func Os.output(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
-        stdin: string | Bytes = "", ctx: Context | null = null): Result[string, Error]
-// Os.exec runs program with args, with no shell between, waits for it to exit, and captures its
-// output. program is looked up in PATH when it has no path separator; the child runs in dir and
-// with env as its whole environment when they are given, and reads stdin. A nonzero exit is Ok with its status; Err means the child
-// could not be started or run to its end, and when ctx is done the child is killed and the result
-// is Err with ctx's reason.
-func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
-        stdin: string | Bytes = "", ctx: Context | null = null): Result[Os.Output, Error]
-// Os.start starts program with args in the background, in a process group of its own, and returns
-// once it is running. Its standard streams are the handles given, null being the null device;
-// standard input is the null device and the outputs are the program's unless given. A terminal as
-// stdin is Err. Every handle stays the program's, which closes its copy of a pipe end it gave
-// away. When ctx is done the child and its group are killed, as they are when the run is
-// cancelled; a child still running when the script ends is left running.
-func Os.start(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
-        stdin: File.Handle | null = null, stdout: File.Handle | null = Os.stdout(), stderr: File.Handle | null = Os.stderr(),
-        ctx: Context | null = null): Result[Os.Process, Error]
-// Os.wait waits until p has exited and returns its exit status, 128 + n when signal n ended it.
-// Every call gets the same outcome. It is Err when ctx is done first, and the child goes on; and
-// when the context given to [Os.start] killed the child, with that context's reason.
-func Os.wait(p: Os.Process, ctx: Context | null = null): Result[int, Error]
-// Os.kill sends the signal named, "SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT", "SIGUSR1"
-// or "SIGUSR2", to p's process group, and does not wait. It is Ok when p has exited already, and
-// Err for a name the host does not have.
-func Os.kill(p: Os.Process, signal: string = "SIGTERM"): Result[void, Error]
-// Os.stop ends p: SIGTERM, then SIGKILL when it is still running after grace, or SIGKILL alone
-// when grace is zero or negative, and returns its status as [Os.wait] does. It panics when grace has years,
-// months or weeks.
-func Os.stop(p: Os.Process, grace: Time.Duration = Time.duration(seconds: 5)): Result[int, Error]
-// Os.pid returns p's process id.
-func Os.pid(p: Os.Process): int
 // Os.openPipe returns a pipe, two handles the program closes: what is written to write is read
 // from read. A read waits for data, and a write is flushed. The reading end is at end of file once
 // every writing end is closed, the copies given to children and the program's own.
 func Os.openPipe(): Result[Os.Pipe, Error]
-// Os.which returns the path [Os.run] and the other calls would start for program, or null when
-// PATH holds none.
+// Os.which returns the path a [Cmd] naming program starts, or null when PATH holds none.
 func Os.which(program: string): string | null
 // Os.stdin returns the program's standard input. A read of it flushes standard output first, so a
 // prompt is seen before the program waits.
@@ -1715,6 +1661,82 @@ func Os.interrupt(): Context
 func Os.stdout(): File.Handle
 // Os.stderr returns the program's standard error.
 func Os.stderr(): File.Handle
+
+// Cmd is a program to run, as a value: a Cmd says what to run, and a function of Cmd says how.
+// Nothing runs it through a shell. program is looked up in PATH when it has no path separator, and is taken
+// relative to dir otherwise; the child runs in dir and with env as its whole environment when they
+// are given. A child ended by signal n has the status 128 + n, as a shell reports it.
+//
+//     var head = try Cmd.read(Cmd.new("git", ["rev-parse", "--short", "HEAD"]))
+type Cmd = { program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null }
+// Cmd.Pipeline is commands run at once, each one's standard output the next one's standard input,
+// made by [Cmd.pipe]. Every function of Cmd that runs a Cmd runs a pipeline too: the first stage
+// reads its input, the last writes its output, and every stage writes standard error. Its status is
+// that of the rightmost stage that failed, or 0; a stage before the last that SIGPIPE ended does
+// not count, since only a later stage that stopped reading ends it so. A pipeline of no commands
+// panics wherever it is run.
+type Cmd.Pipeline = { cmds: Array[Cmd] }
+// Cmd.Output is what [Cmd.capture] collects from a command that ran to its end. status is its
+// status, statuses each stage's own; each output is kept as bytes in stdoutBytes and stderrBytes
+// and as text in stdout and stderr. The stages' standard error interleaves as it arrived.
+type Cmd.Output = { status: int, statuses: Array[int], stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
+// Cmd.Process is an opaque command started by [Cmd.start], waited for with [Cmd.wait].
+type Cmd.Process
+// Cmd.new returns the Cmd of program with args, run in dir and with env when they are given.
+func Cmd.new(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null): Cmd
+// Cmd.pipe returns the pipeline of cmds, in order, holding a copy of the array. It panics when
+// cmds is empty.
+//
+//     var n = try Cmd.read(Cmd.pipe([Cmd.new("ls"), Cmd.new("wc", ["-l"])]))
+func Cmd.pipe(cmds: Array[Cmd]): Cmd.Pipeline
+// Cmd.string returns c as a line for a log: the program and its arguments, each quoted as a POSIX
+// shell needs it, and a pipeline's stages joined by " | ". env and dir are left out, so the
+// environment's secrets are not.
+func Cmd.string(c: Cmd | Cmd.Pipeline): string
+// Cmd.run runs c in the foreground, with the program's own standard input, output and error, so a
+// pager, an editor or ssh can use the terminal, and returns its status, nonzero included. While it
+// runs the ant command holds back Ctrl-C, which every stage gets and decides on, and passes it on
+// when the last stage dies of it. It is Err when a stage could not be started, and when ctx is
+// done, which kills every stage.
+//
+//     var status = try Cmd.run(Cmd.new("git", ["commit"]))
+func Cmd.run(c: Cmd | Cmd.Pipeline, ctx: Context | null = null): Result[int, Error]
+// Cmd.read runs c with input as its standard input, waits for it to exit, and returns its standard
+// output as text without one final newline. A nonzero status is Err with the message
+// "program: exit status n", followed by ": " and standard error when it wrote any; program is that
+// of the stage that set the status, with "(stage i)" after it when another stage runs the same
+// program. Err also means a stage could not be started or ctx was done, which kills every stage.
+//
+//     var head = try Cmd.read(Cmd.new("git", ["rev-parse", "--short", "HEAD"]))
+func Cmd.read(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context | null = null): Result[string, Error]
+// Cmd.readBytes is [Cmd.read] that returns standard output as the command wrote it.
+func Cmd.readBytes(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context | null = null): Result[Bytes, Error]
+// Cmd.capture runs c with input as its standard input, waits for it to exit, and captures its
+// status and outputs. A nonzero status is Ok; Err means a stage could not be started or run to its
+// end, and when ctx is done every stage is killed and the result is Err with ctx's reason.
+func Cmd.capture(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context | null = null): Result[Cmd.Output, Error]
+// Cmd.start starts c in the background, every stage in one process group of its own, and returns
+// once it is running. Its standard streams are the handles given, null being the null device;
+// standard input is the null device and the outputs are the program's unless given. A terminal as
+// stdin is Err. Every handle stays the program's, which closes its copy of a pipe end it gave
+// away. When ctx is done every stage is killed, as when the run is cancelled; a command still
+// running when the script ends is left running.
+func Cmd.start(c: Cmd | Cmd.Pipeline, stdin: File.Handle | null = null, stdout: File.Handle | null = Os.stdout(),
+        stderr: File.Handle | null = Os.stderr(), ctx: Context | null = null): Result[Cmd.Process, Error]
+// Cmd.wait waits until every stage of p has exited and returns its status. Every call gets the
+// same outcome. It is Err when ctx is done first, and p goes on; and when the context given to
+// [Cmd.start] killed p, with that context's reason.
+func Cmd.wait(p: Cmd.Process, ctx: Context | null = null): Result[int, Error]
+// Cmd.kill sends the signal named, "SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT", "SIGUSR1"
+// or "SIGUSR2", to p's process group, and does not wait. It is Ok when p has exited already, and
+// Err for a name the host does not have.
+func Cmd.kill(p: Cmd.Process, signal: string = "SIGTERM"): Result[void, Error]
+// Cmd.stop ends p: SIGTERM, then SIGKILL when it is still running after grace, or SIGKILL alone
+// when grace is zero or negative, and returns its status as [Cmd.wait] does. It panics when grace
+// has years, months or weeks.
+func Cmd.stop(p: Cmd.Process, grace: Time.Duration = Time.duration(seconds: 5)): Result[int, Error]
+// Cmd.pid returns the process id of p's last stage.
+func Cmd.pid(p: Cmd.Process): int
 
 // Json
 //

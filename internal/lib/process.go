@@ -18,51 +18,103 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// The processes of the Os namespace (stdlib.md, Os): Os.run in the foreground with the program's
-// streams, Os.exec and Os.output captured, Os.start in the background with any handles, and the
-// pipes that join them. Every call starts a Process, so the blocking ones are a start, the
-// captures, and a wait.
+// Commands (stdlib.md, Cmd): a Cmd says what to run and a verb how, Cmd.run in the foreground
+// with the program's streams, Cmd.read and Cmd.capture captured, Cmd.start in the background with
+// any handles. A Cmd.Pipeline runs its commands at once, each one's output the next one's input.
+// Every verb starts a Process, so the blocking ones are a start, the captures, and a wait.
 
-// OutputTag is Os.Output: { status: int, stdout: string, stderr: string, stdoutBytes: Bytes,
-// stderrBytes: Bytes }, each output as text and as the child wrote it.
-var OutputTag = value.NewTag("Os.Output", value.RecordTag, []string{"status", "stdout", "stderr", "stdoutBytes", "stderrBytes"})
+// CmdTag is Cmd: { program: string, args: Array[string], dir: string | null,
+// env: Map[string, string] | null }, with the defaults the prelude declares.
+var CmdTag = value.NewTag("Cmd", value.RecordTag, []string{"program", "args", "dir", "env"})
+
+// PipelineTag is Cmd.Pipeline: { cmds: Array[Cmd] }.
+var PipelineTag = value.NewTag("Cmd.Pipeline", value.RecordTag, []string{"cmds"})
+
+// OutputTag is Cmd.Output: { status: int, statuses: Array[int], stdout: string, stderr: string,
+// stdoutBytes: Bytes, stderrBytes: Bytes }, each output as text and as the children wrote it.
+var OutputTag = value.NewTag("Cmd.Output", value.RecordTag, []string{"status", "statuses", "stdout", "stderr", "stdoutBytes", "stderrBytes"})
 
 // PipeTag is Os.Pipe: { read: File.Handle, write: File.Handle }.
 var PipeTag = value.NewTag("Os.Pipe", value.RecordTag, []string{"read", "write"})
+
+func init() {
+	CmdTag.Defaults = interp.NativeDefaults{
+		nil,
+		func() value.Value { return value.NewArray([]value.Value{}) },
+		func() value.Value { return value.Null },
+		func() value.Value { return value.Null },
+	}
+	register("Cmd", func() value.Value {
+		withFuncs(CmdTag, cmdFuncs())
+		CmdTag.SetFunc("Pipeline", PipelineTag)
+		CmdTag.SetFunc("Output", OutputTag)
+		CmdTag.SetFunc("Process", value.NewTag("Cmd.Process", value.SyncTag, nil))
+		return CmdTag
+	})
+}
 
 // waitDelay is how long a wait goes on, after the child exited, for the copies into and out of
 // it: a process the child started may hold a pipe open long after.
 const waitDelay = time.Second
 
-// Process is a started child: Os.Process. A goroutine waits for it from the start, so it is
-// reaped whether or not the program waits, and records the outcome every Os.wait returns.
+// Process is a started command, one child per stage: Cmd.Process. A goroutine waits for them
+// from the start, so they are reaped whether or not the program waits, and records the outcome
+// every Cmd.wait returns.
 type Process struct {
-	cmd    *exec.Cmd
-	group  bool // it leads a process group of its own, which its signals reach
-	mu     sync.Mutex
-	killed context.Context // the context whose end made the runtime kill it; nil when none did
-	done   chan struct{}   // closed once the outcome is recorded
-	status int
-	err    error // what failed beside the exit status, such as a copy
+	cmds     []*exec.Cmd
+	programs []string // each stage's program as its Cmd names it, for messages
+	group    bool     // the stages share a process group of their own, which signals reach
+	mu       sync.Mutex
+	killed   context.Context // the context whose end made the runtime kill it; nil when none did
+	done     chan struct{}   // closed once the outcome is recorded
+	status   int             // the pipeline's status (pipelineStatus)
+	failed   int             // the stage that set status, or -1
+	statuses []int
+	err      error // what failed beside the exit status, such as a copy
 }
 
 // SyncName names the process for rendering.
-func (p *Process) SyncName() string { return "Os.Process" }
+func (p *Process) SyncName() string { return "Cmd.Process" }
 
 func processArg(g *interp.Goroutine, who string, v value.Value) *Process {
-	return typedArg[*Process](g, who, "an Os.Process", v)
+	return typedArg[*Process](g, who, "a Cmd.Process", v)
 }
 
-// signal sends sig to the child, and to its group when it leads one. It is os.ErrProcessDone,
-// and nothing is sent, once the child has exited.
-func (p *Process) signal(sig os.Signal) error {
-	if p.group {
-		return signalGroup(p.cmd.Process, sig)
+// last is the stage whose output and pid the process's are.
+func (p *Process) last() *exec.Cmd { return p.cmds[len(p.cmds)-1] }
+
+// signal sends sig to every stage, through their group when they share one. It is
+// os.ErrProcessDone, and nothing is sent, once every stage has exited.
+func (p *Process) signal(sig os.Signal) error { return signalStages(p.cmds, p.group, sig) }
+
+// signalStages sends sig to the started stages cmds, through their group when they share one.
+func signalStages(cmds []*exec.Cmd, group bool, sig os.Signal) error {
+	procs := make([]*os.Process, len(cmds))
+	for i, c := range cmds {
+		procs[i] = c.Process
 	}
-	return p.cmd.Process.Signal(sig)
+	if group {
+		return signalGroup(procs, sig)
+	}
+	return signalEach(procs, sig)
 }
 
-// cancel kills the child because ctx ended, unless it has exited, in which case its status
+// signalEach sends sig to each of ps alone. It is nil when one got it, os.ErrProcessDone when
+// every one has exited, and otherwise the first other failure.
+func signalEach(ps []*os.Process, sig os.Signal) error {
+	err := os.ErrProcessDone
+	for _, p := range ps {
+		switch e := p.Signal(sig); {
+		case e == nil:
+			err = nil
+		case !errors.Is(e, os.ErrProcessDone) && errors.Is(err, os.ErrProcessDone):
+			err = e
+		}
+	}
+	return err
+}
+
+// cancel kills the stages because ctx ended, unless they have exited, in which case their status
 // stands: the race is decided by whether the kill was sent.
 func (p *Process) cancel(ctx context.Context) {
 	p.mu.Lock()
@@ -72,8 +124,8 @@ func (p *Process) cancel(ctx context.Context) {
 	}
 }
 
-// outcome is what a wait returns once the child is done: Err with the reason of the context
-// that killed it, Err when a copy failed, and otherwise Ok of its status.
+// outcome is what a wait returns once the stages are done: Err with the reason of the context
+// that killed them, Err when a copy failed, and otherwise Ok of the status.
 func (p *Process) outcome() value.Value {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -96,14 +148,52 @@ func (p *Process) exited() bool {
 	}
 }
 
-// command builds the child that a call's first four arguments describe: program, looked up in
-// the run's PATH when it has no path separator, args, dir, and env as the whole environment.
-func command(g *interp.Goroutine, who string, a []value.Value) (*exec.Cmd, value.Value) {
+// pipelineStatus is a pipeline's status from its stages': the rightmost that failed, as under
+// bash's pipefail, and the stage that set it, or 0 and -1 when none did. A stage before the last
+// that a broken pipe ended does not count, since only a later stage that stopped reading can end
+// it so: yes | head -n 1 succeeds.
+func pipelineStatus(cmds []*exec.Cmd, statuses []int) (status, stage int) {
+	for i := len(statuses) - 1; i >= 0; i-- {
+		if statuses[i] == 0 {
+			continue
+		}
+		if i < len(statuses)-1 && brokenPipe != nil && endedBy(cmds[i].ProcessState) == brokenPipe {
+			continue
+		}
+		return statuses[i], i
+	}
+	return 0, -1
+}
+
+// failure is the message of a Cmd.read whose pipeline failed: the program of the stage that set
+// the status, with its place when another stage runs the same program, the status, and what the
+// stages wrote to standard error.
+func (p *Process) failure(stderr []byte) string {
+	program := p.programs[p.failed]
+	same := 0
+	for _, q := range p.programs {
+		if q == program {
+			same++
+		}
+	}
+	if same > 1 {
+		program += fmt.Sprintf(" (stage %d)", p.failed+1)
+	}
+	msg := fmt.Sprintf("%s: exit status %d", program, p.status)
+	if e := strings.TrimRightFunc(string(stderr), unicode.IsSpace); e != "" {
+		msg += ": " + e
+	}
+	return msg
+}
+
+// command builds the child a Cmd describes: program, looked up in the run's PATH when it has no
+// path separator, args, dir, and env as the whole environment.
+func command(g *interp.Goroutine, who string, c *value.Record) (*exec.Cmd, value.Value) {
 	in := g.Instance()
-	program := stringArg(g, who, a[0])
+	program := stringArg(g, who, c.Get(0))
 	args := []string{program}
-	if given(a[1]) {
-		for _, v := range arrayArg(g, who, a[1]).Values() {
+	if given(c.Get(1)) {
+		for _, v := range arrayArg(g, who, c.Get(1)).Values() {
 			args = append(args, stringArg(g, who, v))
 		}
 	}
@@ -116,17 +206,86 @@ func command(g *interp.Goroutine, who string, a []value.Value) (*exec.Cmd, value
 		}
 	}
 	cmd := &exec.Cmd{Path: path, Args: args, Env: in.Environ(), WaitDelay: waitDelay}
-	if given(a[2]) {
-		cmd.Dir = stringArg(g, who, a[2])
+	if given(c.Get(2)) {
+		cmd.Dir = stringArg(g, who, c.Get(2))
 	}
-	if given(a[3]) {
+	if given(c.Get(3)) {
 		env := []string{}
-		for _, e := range mapArg(g, who, a[3]).Entries() {
+		for _, e := range mapArg(g, who, c.Get(3)).Entries() {
 			env = append(env, stringArg(g, who, e.Key)+"="+stringArg(g, who, e.Value))
 		}
 		cmd.Env = env
 	}
 	return cmd, nil
+}
+
+// cmdStages reads a Cmd or a Cmd.Pipeline as its stages, one Cmd record each. An empty pipeline
+// panics, as Cmd.pipe does.
+func cmdStages(g *interp.Goroutine, who string, v value.Value) []*value.Record {
+	r, ok := v.(*value.Record)
+	switch {
+	case ok && r.Tag == CmdTag:
+		return []*value.Record{r}
+	case ok && r.Tag == PipelineTag:
+		cmds := arrayArg(g, who, r.Get(0)).Values()
+		if len(cmds) == 0 {
+			g.Panic("%s needs a pipeline of at least one command", who)
+		}
+		stages := make([]*value.Record, len(cmds))
+		for i, c := range cmds {
+			cr, ok := c.(*value.Record)
+			if !ok || cr.Tag != CmdTag {
+				g.Panic("%s needs a pipeline of Cmd values, got %s", who, value.Describe(c))
+			}
+			stages[i] = cr
+		}
+		return stages
+	}
+	g.Panic("%s needs a Cmd or a Cmd.Pipeline, got %s", who, value.Describe(v))
+	return nil
+}
+
+// commands builds the children of a Cmd or a Cmd.Pipeline, and the programs they name.
+func commands(g *interp.Goroutine, who string, v value.Value) ([]*exec.Cmd, []string, value.Value) {
+	stages := cmdStages(g, who, v)
+	cmds := make([]*exec.Cmd, len(stages))
+	programs := make([]string, len(stages))
+	for i, c := range stages {
+		cmd, fail := command(g, who, c)
+		if fail != nil {
+			return nil, nil, fail
+		}
+		cmds[i], programs[i] = cmd, stringArg(g, who, c.Get(0))
+	}
+	return cmds, programs, nil
+}
+
+// lockedWriter serializes the writes of several children's copies into one writer.
+type lockedWriter struct {
+	mu *sync.Mutex
+	w  io.Writer
+}
+
+func (l lockedWriter) Write(b []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.w.Write(b)
+}
+
+// serialize makes the outputs of every stage that are not files write one at a time, since each
+// stage copies into its own from a goroutine of its own.
+func serialize(cmds []*exec.Cmd) {
+	mu := &sync.Mutex{}
+	wrap := func(w io.Writer) io.Writer {
+		switch w.(type) {
+		case nil, *os.File:
+			return w
+		}
+		return lockedWriter{mu, w}
+	}
+	for _, c := range cmds {
+		c.Stdout, c.Stderr = wrap(c.Stdout), wrap(c.Stderr)
+	}
 }
 
 // input is what a child reads through a copy the runtime runs, rather than as a file: the copy
@@ -147,38 +306,69 @@ func (f *input) end() {
 	}
 }
 
-// startProcess starts cmd, flushing standard output first, and returns the child, with a
-// goroutine that reaps it and then ends the copy of feed into it, when there is one. The child
-// is killed when ctx ends, when ctx is not nil, and when a cancellation ends the run. group puts
-// it in a process group of its own.
-func startProcess(in *interp.Instance, cmd *exec.Cmd, ctx context.Context, group bool, feed *input) (*Process, value.Value) {
+// startProcess starts the stages, flushing standard output first, each one's standard output
+// joined to the next one's input, and returns the process, with a goroutine that reaps them and
+// then ends the copy of feed into the first, when there is one. The caller has set the first
+// stage's input, the last one's output, and every standard error. The stages are killed when ctx
+// ends, when ctx is not nil, and when a cancellation ends the run. group puts them in a process
+// group of their own. When a stage cannot start, those started are killed and reaped.
+func startProcess(in *interp.Instance, cmds []*exec.Cmd, programs []string, ctx context.Context, group bool, feed *input) (*Process, value.Value) {
 	if ctx != nil && ctx.Err() != nil {
 		if feed != nil {
 			feed.end()
 		}
 		return nil, gaveUp(ctx)
 	}
-	if group {
-		setGroup(cmd)
+	var ends []*os.File // the pipe ends the children hold, closed here once they started
+	closeEnds := func() {
+		for _, f := range ends {
+			f.Close()
+		}
 	}
 	var pw *os.File
-	if feed != nil {
-		pr, w, err := os.Pipe()
-		if err != nil {
-			feed.end()
-			return nil, errResult(err)
-		}
-		cmd.Stdin, pw = pr, w
-		defer pr.Close() // the child has its own copy once it starts
-	}
-	in.Flush() // what the program printed precedes what the child prints
-	if err := cmd.Start(); err != nil {
-		if feed != nil {
+	fail := func(err error) (*Process, value.Value) {
+		closeEnds()
+		if pw != nil {
 			pw.Close()
+		}
+		if feed != nil {
 			feed.end()
 		}
 		return nil, errResult(err)
 	}
+	if feed != nil {
+		pr, w, err := os.Pipe()
+		if err != nil {
+			return fail(err)
+		}
+		cmds[0].Stdin, pw = pr, w
+		ends = append(ends, pr)
+	}
+	for i := 0; i < len(cmds)-1; i++ {
+		r, w, err := os.Pipe()
+		if err != nil {
+			return fail(err)
+		}
+		cmds[i].Stdout, cmds[i+1].Stdin = w, r
+		ends = append(ends, r, w)
+	}
+	serialize(cmds)
+	in.Flush() // what the program printed precedes what the children print
+	for i, cmd := range cmds {
+		if group {
+			leader := 0
+			if i > 0 {
+				leader = cmds[0].Process.Pid
+			}
+			setGroup(cmd, leader)
+		}
+		if err := cmd.Start(); err != nil {
+			signalStages(cmds[:i], group, os.Kill) // with their group, what they started too
+			waitAll(cmds[:i])
+			return fail(err)
+		}
+	}
+	closeEnds()
 	endFeed := func() {}
 	if feed != nil {
 		copied := make(chan struct{})
@@ -203,7 +393,7 @@ func startProcess(in *interp.Instance, cmd *exec.Cmd, ctx context.Context, group
 			feed.end()
 		}
 	}
-	p := &Process{cmd: cmd, group: group, done: make(chan struct{})}
+	p := &Process{cmds: cmds, programs: programs, group: group, done: make(chan struct{}), failed: -1}
 	stopAfter := func() bool { return false }
 	if ctx != nil {
 		stopAfter = context.AfterFunc(ctx, func() { p.cancel(ctx) })
@@ -219,25 +409,44 @@ func startProcess(in *interp.Instance, cmd *exec.Cmd, ctx context.Context, group
 		}
 	})
 	go func() {
-		err := cmd.Wait()
+		errs := waitAll(cmds)
+		statuses := make([]int, len(cmds))
+		var waitErr error
+		for i, cmd := range cmds {
+			if cmd.ProcessState != nil {
+				statuses[i] = exitStatus(cmd.ProcessState)
+			}
+			var exit *exec.ExitError
+			if err := errs[i]; err != nil && waitErr == nil && !errors.As(err, &exit) && !errors.Is(err, exec.ErrWaitDelay) {
+				waitErr = err
+			}
+		}
 		stopAfter()
 		removeStop()
 		endFeed()
 		p.mu.Lock()
-		if cmd.ProcessState != nil {
-			p.status = exitStatus(cmd.ProcessState)
-		}
-		var exit *exec.ExitError
-		if err != nil && !errors.As(err, &exit) && !errors.Is(err, exec.ErrWaitDelay) {
-			p.err = err
-		}
+		p.statuses = statuses
+		p.status, p.failed = pipelineStatus(cmds, statuses)
+		p.err = waitErr
 		p.mu.Unlock()
 		close(p.done)
 	}()
 	return p, nil
 }
 
-// childInput gives a child of Os.start the handle h as its standard input: a standard stream
+// waitAll waits for every stage at once, so each one's wait for its copies (WaitDelay) runs
+// beside the others' rather than after them, and returns each one's error.
+func waitAll(cmds []*exec.Cmd) []error {
+	errs := make([]error, len(cmds))
+	var wg sync.WaitGroup
+	for i, cmd := range cmds {
+		wg.Go(func() { errs[i] = cmd.Wait() })
+	}
+	wg.Wait()
+	return errs
+}
+
+// childInput gives the first stage of Cmd.start the handle h as its standard input: a standard stream
 // as the run's own, a file with nothing read ahead as it is, and anything else as a copy, with
 // the handle's read slot held until the copy ends, so the program does not read it meanwhile.
 // A pipe end handed over as it is reads through a pump from then on, since starting the child
@@ -351,56 +560,60 @@ func (w handleWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
-// capture runs a child for Os.exec and Os.output, arguments program, args, dir, env, stdin and
-// ctx: both outputs captured, in the program's process group, the call blocking until the child
-// is done. fail is the Err of a child that could not start or that ctx ended.
-func capture(g *interp.Goroutine, who string, a []value.Value) (status int, stdout, stderr []byte, fail value.Value) {
-	cmd, fail := command(g, who, a)
+// capture runs a command for Cmd.read, Cmd.readBytes and Cmd.capture, arguments c, input and ctx:
+// standard output and error captured, in the program's process group, the call blocking until
+// every stage is done. fail is the Err of a stage that could not start or of the end of ctx.
+func capture(g *interp.Goroutine, who string, a []value.Value) (p *Process, stdout, stderr []byte, fail value.Value) {
+	cmds, programs, fail := commands(g, who, a[0])
 	if fail != nil {
-		return 0, nil, nil, fail
+		return nil, nil, nil, fail
 	}
 	var feed *input
-	if given(a[4]) {
-		feed = &input{r: strings.NewReader(textOrBytes(g, who, a[4]))}
+	if given(a[1]) {
+		feed = &input{r: strings.NewReader(textOrBytes(g, who, a[1]))}
 	}
 	var out, errOut bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &errOut
-	p, fail := startProcess(g.Instance(), cmd, waitContext(g, who, a[5]), false, feed)
+	cmds[len(cmds)-1].Stdout = &out
+	for _, cmd := range cmds {
+		cmd.Stderr = &errOut
+	}
+	p, fail = startProcess(g.Instance(), cmds, programs, waitContext(g, who, a[2]), false, feed)
 	if fail != nil {
-		return 0, nil, nil, fail
+		return nil, nil, nil, fail
 	}
 	<-p.done
 	g.AfterWait()
 	if r := p.outcome(); r.(*value.Record).Tag == value.ErrTag {
-		return 0, nil, nil, r
+		return nil, nil, nil, r
 	}
-	return p.status, out.Bytes(), errOut.Bytes(), nil
+	return p, out.Bytes(), errOut.Bytes(), nil
 }
 
-// execProcess is Os.exec: the status and both outputs, a nonzero status being Ok.
-func execProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
-	status, stdout, stderr, fail := capture(g, who, a)
+// captureCmd is Cmd.capture: the status, each stage's, and both outputs, a nonzero status being
+// Ok.
+func captureCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	p, stdout, stderr, fail := capture(g, who, a)
 	if fail != nil {
 		return fail
+	}
+	statuses := make([]value.Value, len(p.statuses))
+	for i, s := range p.statuses {
+		statuses[i] = int64(s)
 	}
 	outText, outBytes := received(stdout)
 	errText, errBytes := received(stderr)
-	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(status), outText, errText, outBytes, errBytes}))
+	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(p.status), value.NewArray(statuses), outText, errText, outBytes, errBytes}))
 }
 
-// outputProcess is Os.output: standard output as text without one final newline, and Err on a
-// nonzero status, with standard error in the message.
-func outputProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
-	status, stdout, stderr, fail := capture(g, who, a)
+// readCmd is Cmd.read: standard output as text without one final newline, and Err on a nonzero
+// status, with standard error in the message.
+func readCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	p, stdout, stderr, fail := capture(g, who, a)
 	if fail != nil {
 		return fail
 	}
-	if status != 0 {
-		msg := fmt.Sprintf("%s: exit status %d", stringArg(g, who, a[0]), status)
-		if e := strings.TrimRightFunc(string(stderr), unicode.IsSpace); e != "" {
-			msg += ": " + e
-		}
-		return value.Err(value.ErrorValue(value.Text(msg)))
+	if p.status != 0 {
+		return value.Err(value.ErrorValue(value.Text(p.failure(stderr))))
 	}
 	if bytes.HasSuffix(stdout, []byte("\r\n")) {
 		stdout = stdout[:len(stdout)-2]
@@ -411,43 +624,61 @@ func outputProcess(g *interp.Goroutine, who string, a []value.Value) value.Value
 	return value.Ok(text)
 }
 
-// runProcess is Os.run: the child in the foreground with the program's three streams, the host
-// told, so it can hold back its keyboard signals until the child exits.
-func runProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
-	in := g.Instance()
-	cmd, fail := command(g, who, a)
+// readBytesCmd is Cmd.readBytes: standard output as the last stage wrote it, and Err on a
+// nonzero status as Cmd.read gives it.
+func readBytesCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	p, stdout, stderr, fail := capture(g, who, a)
 	if fail != nil {
 		return fail
 	}
-	cmd.Stdout, cmd.Stderr = in.ChildStdout(), in.ChildStderr()
+	if p.status != 0 {
+		return value.Err(value.ErrorValue(value.Text(p.failure(stderr))))
+	}
+	return value.Ok(bytesValue(stdout))
+}
+
+// runCmd is Cmd.run: the stages in the foreground, the first reading the program's standard
+// input, the last writing its output, and the host told, so it can hold back its keyboard
+// signals until they exit. The last stage's end decides whether a held interrupt is passed on.
+func runCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	in := g.Instance()
+	cmds, programs, fail := commands(g, who, a[0])
+	if fail != nil {
+		return fail
+	}
+	cmds[len(cmds)-1].Stdout = in.ChildStdout()
+	for _, cmd := range cmds {
+		cmd.Stderr = in.ChildStderr()
+	}
 	file, feed, _ := stdinFor(in)
 	if file != nil {
-		cmd.Stdin = file
+		cmds[0].Stdin = file
 	}
 	release := in.Foreground()
-	p, fail := startProcess(in, cmd, waitContext(g, who, a[4]), false, feed)
+	p, fail := startProcess(in, cmds, programs, waitContext(g, who, a[1]), false, feed)
 	if fail != nil {
 		release(nil)
 		return fail
 	}
 	<-p.done
-	release(endedBy(cmd.ProcessState))
+	release(endedBy(p.last().ProcessState))
 	in.Flush()
 	g.AfterWait()
 	return p.outcome()
 }
 
-// startBackground is Os.start: the child in a process group of its own, its streams the
-// handles given, standard input the null device and the outputs the program's by default.
-func startBackground(g *interp.Goroutine, who string, a []value.Value) value.Value {
+// startCmd is Cmd.start: the stages in a process group of their own, the first reading the
+// stdin handle, the last writing stdout, and every one writing stderr; standard input is the
+// null device and the outputs are the program's by default.
+func startCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	in := g.Instance()
-	cmd, fail := command(g, who, a)
+	cmds, programs, fail := commands(g, who, a[0])
 	if fail != nil {
 		return fail
 	}
 	var ctx context.Context
-	if given(a[7]) {
-		ctx = contextArg(g, who, a[7]).Ctx
+	if given(a[4]) {
+		ctx = contextArg(g, who, a[4]).Ctx
 	}
 	var feed *input
 	undo := func() {
@@ -455,23 +686,24 @@ func startBackground(g *interp.Goroutine, who string, a []value.Value) value.Val
 			feed.end()
 		}
 	}
-	if v := a[4]; given(v) {
+	if v := a[1]; given(v) {
 		file, f, fail := childInput(in, handleArg(g, who, v))
 		if fail != nil {
 			return fail
 		}
 		if file != nil && isTerminal(file) {
-			return value.Err(value.ErrorValue("a child in the background cannot read the terminal; Os.run gives it the terminal"))
+			return value.Err(value.ErrorValue("a child in the background cannot read the terminal; Cmd.run gives it the terminal"))
 		}
 		if file != nil {
-			cmd.Stdin = file
+			cmds[0].Stdin = file
 		}
 		feed = f
 	}
-	for i, v := range []value.Value{a[5], a[6]} {
-		set, std := &cmd.Stdout, in.ChildStdout
+	var stdout, stderr io.Writer
+	for i, v := range []value.Value{a[2], a[3]} {
+		set, std := &stdout, in.ChildStdout
 		if i == 1 {
-			set, std = &cmd.Stderr, in.ChildStderr
+			set, std = &stderr, in.ChildStderr
 		}
 		switch {
 		case v == nil:
@@ -485,21 +717,25 @@ func startBackground(g *interp.Goroutine, who string, a []value.Value) value.Val
 			*set = w
 		}
 	}
-	p, fail := startProcess(in, cmd, ctx, true, feed)
+	cmds[len(cmds)-1].Stdout = stdout
+	for _, cmd := range cmds {
+		cmd.Stderr = stderr
+	}
+	p, fail := startProcess(in, cmds, programs, ctx, true, feed)
 	if fail != nil {
 		return fail
 	}
 	return value.Ok(p)
 }
 
-// waitProcess is Os.wait: the outcome once the child is done, or Err when ctx ends first.
-func waitProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
+// waitCmd is Cmd.wait: the outcome once the stages are done, or Err when ctx ends first.
+func waitCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	p := processArg(g, who, a[0])
 	ctx := waitContext(g, who, a[1])
 	select {
 	case <-p.done:
 	case <-ctx.Done():
-		if !p.exited() { // a child done by then gives its outcome, whichever select saw first
+		if !p.exited() { // a process done by then gives its outcome, whichever select saw first
 			g.AfterWait()
 			return gaveUp(ctx)
 		}
@@ -508,8 +744,8 @@ func waitProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	return p.outcome()
 }
 
-// killProcess is Os.kill: the signal named, sent to the child's group, Ok when it has exited.
-func killProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
+// killCmd is Cmd.kill: the signal named, sent to the stages' group, Ok when they have exited.
+func killCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	p := processArg(g, who, a[0])
 	name := "SIGTERM"
 	if given(a[1]) {
@@ -525,8 +761,8 @@ func killProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	return value.Ok(value.Void)
 }
 
-// stopProcess is Os.stop: SIGTERM, SIGKILL when grace passes first, and the outcome.
-func stopProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
+// stopCmd is Cmd.stop: SIGTERM, SIGKILL when grace passes first, and the outcome.
+func stopCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	p := processArg(g, who, a[0])
 	grace := 5 * time.Second
 	if given(a[1]) {
@@ -556,7 +792,70 @@ func stopProcess(g *interp.Goroutine, who string, a []value.Value) value.Value {
 		timer.Stop()
 	}
 	g.AfterWait()
+	if !p.exited() { // the run ended first, which kills the stages; they have no status yet
+		return gaveUp(run)
+	}
 	return p.outcome()
+}
+
+// newCmd is Cmd.new, the literal with its defaults.
+func newCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	defaults := CmdTag.Defaults.(interp.NativeDefaults)
+	vals := []value.Value{a[0], a[1], a[2], a[3]}
+	for i, v := range vals {
+		if v == nil {
+			vals[i] = defaults[i]()
+		}
+	}
+	return value.NewRecord(CmdTag, vals)
+}
+
+// pipeCmd is Cmd.pipe: the commands as a pipeline, which needs one at least. The pipeline holds
+// a copy of the array, so changing the array later does not change it.
+func pipeCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	cmds := arrayArg(g, who, a[0]).Values()
+	if len(cmds) == 0 {
+		g.Panic("%s needs at least one command", who)
+	}
+	return value.NewRecord(PipelineTag, []value.Value{value.NewArray(append([]value.Value(nil), cmds...))})
+}
+
+// stringCmd is Cmd.string: the program and its arguments as a POSIX shell would need them
+// quoted, and a pipeline's stages joined by " | ". env and dir are left out.
+func stringCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	var b strings.Builder
+	for i, c := range cmdStages(g, who, a[0]) {
+		if i > 0 {
+			b.WriteString(" | ")
+		}
+		b.WriteString(shellQuote(stringArg(g, who, c.Get(0)), true))
+		for _, v := range arrayArg(g, who, c.Get(1)).Values() {
+			b.WriteByte(' ')
+			b.WriteString(shellQuote(stringArg(g, who, v), false))
+		}
+	}
+	return value.Text(b.String())
+}
+
+// shellQuote is s as one word of a POSIX shell: as it is when no character of it is special,
+// and in single quotes otherwise, each single quote in it closing them, escaped, and reopening.
+// A program's word quotes = too, which a shell would read as an assignment there.
+func shellQuote(s string, program bool) string {
+	plain := s != ""
+	safe := "_@%+=:,./-"
+	if program {
+		safe = "_@%+:,./-"
+	}
+	for _, r := range s {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune(safe, r)) {
+			plain = false
+			break
+		}
+	}
+	if plain {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 // openPipe is Os.openPipe: two handles, what is written to one read from the other. A read of
@@ -574,22 +873,30 @@ func openPipe(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	return value.Ok(value.NewRecord(PipeTag, []value.Value{read, write}))
 }
 
-// processEntries are the Os namespace's entries for processes.
+// cmdFuncs are the functions of the Cmd type.
+func cmdFuncs() []*interp.Builtin {
+	return []*interp.Builtin{
+		fn("Cmd.new", "program, args?, dir?, env?", newCmd),
+		fn("Cmd.pipe", "cmds", pipeCmd),
+		fn("Cmd.string", "c", stringCmd),
+		fn("Cmd.run", "c, ctx?", runCmd),
+		fn("Cmd.read", "c, input?, ctx?", readCmd),
+		fn("Cmd.readBytes", "c, input?, ctx?", readBytesCmd),
+		fn("Cmd.capture", "c, input?, ctx?", captureCmd),
+		fn("Cmd.start", "c, stdin?, stdout?, stderr?, ctx?", startCmd),
+		fn("Cmd.wait", "p, ctx?", waitCmd),
+		fn("Cmd.kill", "p, signal?", killCmd),
+		fn("Cmd.stop", "p, grace?", stopCmd),
+		fn("Cmd.pid", "p", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			return int64(processArg(g, who, a[0]).last().Process.Pid)
+		}),
+	}
+}
+
+// processEntries are the Os namespace's entries for pipes and programs.
 func processEntries() []any {
 	return []any{
-		constant("Output", OutputTag),
 		constant("Pipe", PipeTag),
-		constant("Process", value.NewTag("Os.Process", value.SyncTag, nil)),
-		fn("Os.exec", "program, args?, dir?, env?, stdin?, ctx?", execProcess),
-		fn("Os.output", "program, args?, dir?, env?, stdin?, ctx?", outputProcess),
-		fn("Os.run", "program, args?, dir?, env?, ctx?", runProcess),
-		fn("Os.start", "program, args?, dir?, env?, stdin?, stdout?, stderr?, ctx?", startBackground),
-		fn("Os.wait", "p, ctx?", waitProcess),
-		fn("Os.kill", "p, signal?", killProcess),
-		fn("Os.stop", "p, grace?", stopProcess),
-		fn("Os.pid", "p", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-			return int64(processArg(g, who, a[0]).cmd.Process.Pid)
-		}),
 		fn("Os.openPipe", "", openPipe),
 		fn("Os.which", "program", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			path, err := lookPath(g.Instance(), stringArg(g, who, a[0]))

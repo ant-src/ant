@@ -24,9 +24,14 @@ const (
 	Spec
 	// Session also allows top-level statements, for a REPL.
 	Session
-	// Declarations allows a func without a body, for the prelude's signatures.
+	// Declarations allows a func without a body, for a host namespace's signatures.
 	Declarations
+	// Prelude is Declarations that also allows field defaults, which the library fills natively.
+	Prelude
 )
+
+// declarations reports whether the source holds signatures rather than a program.
+func (p *parser) declarations() bool { return p.mode == Declarations || p.mode == Prelude }
 
 // Error is a syntax error. Incomplete is set when the input ended too early, which a REPL
 // uses to keep reading.
@@ -391,11 +396,11 @@ func (p *parser) file(path string) *ast.File {
 			d := p.varDecl()
 			d.Doc = doc
 			f.Decls = append(f.Decls, d)
-			if p.mode != Declarations {
+			if !p.declarations() {
 				f.Stmts = append(f.Stmts, d)
 			}
 		default:
-			if p.mode == Declarations {
+			if p.declarations() {
 				p.failAt(t, "expected a declaration, got %s", t)
 			}
 			if p.mode == Program && !f.Script {
@@ -501,7 +506,7 @@ func (p *parser) varDecl() *ast.VarDecl {
 	case p.atKind(token.Ident):
 		n := p.next()
 		d.Target = &ast.NameTarget{Pos: pos(n), Name: n.Text}
-		if p.mode == Declarations && p.at(".") {
+		if p.declarations() && p.at(".") {
 			p.next()
 			d.Owner = n.Text
 			m := p.expectName("a constant name")
@@ -545,7 +550,7 @@ func (p *parser) funcDecl() *ast.FuncDecl {
 	}
 	d.Params, d.Return = p.signature()
 	d.Sig = p.since(t)
-	if p.mode == Declarations && !p.at("{") {
+	if p.declarations() && !p.at("{") {
 		return d
 	}
 	saved := p.enterBoundary("func")
@@ -558,7 +563,7 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 	t := p.expect("type")
 	name := p.expectIdent("a type name")
 	d := &ast.TypeDecl{Pos: pos(t), Name: name.Text}
-	if p.mode == Declarations && p.at(".") {
+	if p.declarations() && p.at(".") {
 		p.next()
 		d.Owner = d.Name
 		d.Name = p.expectIdent("a type name").Text
@@ -566,7 +571,7 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 	if p.at("[") {
 		d.TypeParams = p.typeParams()
 	}
-	if p.mode == Declarations && !p.at("=") {
+	if p.declarations() && !p.at("=") {
 		d.Sig = p.since(t)
 		return d // an opaque type
 	}

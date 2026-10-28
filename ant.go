@@ -134,7 +134,7 @@ func WithStderr(w io.Writer) Option { return func(c *config) { c.stderr = w } }
 func WithArgs(args []string) Option { return func(c *config) { c.args = args } }
 
 // WithEnv sets what Os.env consults. The default is os.LookupEnv. Os.environ and the
-// environment a child of Os.exec inherits stay the process's; WithEnvironment replaces all three.
+// environment a child of a Cmd inherits stay the process's; WithEnvironment replaces all three.
 func WithEnv(lookup func(name string) (string, bool)) Option {
 	return func(c *config) { c.env = lookup }
 }
@@ -146,12 +146,12 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 // progress returns ErrInterrupted. The ant command sends one per Ctrl-C or SIGTERM.
 func WithInterrupts(c <-chan struct{}) Option { return func(cfg *config) { cfg.interrupts = c } }
 
-// WithForeground tells the host when Os.run has a child in the foreground: hold is called as the
+// WithForeground tells the host when Cmd.run has a child in the foreground: hold is called as the
 // child starts, and the function it returns as the child exits, with the signal that ended it or
-// nil. That function reports whether the run gets an interrupt for it, which Os.run delivers
+// nil. That function reports whether the run gets an interrupt for it, which Cmd.run delivers
 // before it returns, as WithInterrupts would. The ant command holds back Ctrl-C meanwhile, which
 // the child gets from the terminal, and passes it on only when the child died of it. Without it
-// Os.run holds nothing back.
+// Cmd.run holds nothing back.
 func WithForeground(hold func() (release func(ended os.Signal) (interrupt bool))) Option {
 	return func(cfg *config) { cfg.foreground = hold }
 }
@@ -161,7 +161,7 @@ func WithForeground(hold func() (release func(ended os.Signal) (interrupt bool))
 var ErrInterrupted = interp.ErrInterrupted
 
 // WithEnvironment gives the run its whole environment: what Os.env and Os.environ see, and
-// what a child of Os.exec inherits when it is given no env of its own.
+// what a child of a Cmd inherits when it is given no env of its own.
 func WithEnvironment(vars map[string]string) Option {
 	return func(c *config) {
 		c.env = func(name string) (string, bool) { v, ok := vars[name]; return v, ok }

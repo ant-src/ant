@@ -721,8 +721,13 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 // (section 12, Record literal).
 func (g *Goroutine) fillDefaults(tag *value.Tag, vals []value.Value, pos ast.Pos) {
 	fd, _ := tag.Defaults.(*fieldDefaults)
+	nd, _ := tag.Defaults.(NativeDefaults)
 	for i, v := range vals {
 		if v != nil {
+			continue
+		}
+		if nd != nil && nd[i] != nil {
+			vals[i] = nd[i]()
 			continue
 		}
 		if fd == nil || fd.exprs[i] == nil {

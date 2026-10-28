@@ -109,6 +109,20 @@ func TestWithoutNamespaces(t *testing.T) {
 	}
 }
 
+// TestWithoutOs: removing Os removes Cmd with it, so a host that forbids the process forbids
+// running programs too.
+func TestWithoutOs(t *testing.T) {
+	prog := loadSrc(t, `println(Cmd.read(Cmd.new("echo", ["ran"])))`, ant.WithoutNamespaces("Os"))
+	if diags := prog.Check(); len(diags) == 0 || !strings.Contains(diags[0].Message, "Cmd") {
+		t.Errorf("check: %v", diags)
+	}
+	var out strings.Builder
+	err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithStderr(&strings.Builder{}))
+	if _, ok := err.(*ant.PanicError); !ok || strings.Contains(out.String(), "ran") {
+		t.Errorf("run: %v, printed %q", err, out.String())
+	}
+}
+
 func TestErrorsAndStatuses(t *testing.T) {
 	_, err := ant.Load("main.ant", ant.WithSource("main.ant", "var x ="), ant.WithFS(fstest.MapFS{}))
 	var le *ant.LoadError
@@ -214,7 +228,7 @@ func TestWithStdin(t *testing.T) {
 
 // TestExecCancelled: cancelling the run kills the child, and Run returns promptly.
 func TestExecCancelled(t *testing.T) {
-	prog := loadSrc(t, `println(Os.exec("sleep", ["30"]))`)
+	prog := loadSrc(t, `println(Cmd.capture(Cmd.new("sleep", ["30"])))`)
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
@@ -241,12 +255,12 @@ func TestHostTimeNamespace(t *testing.T) {
 	}
 }
 
-// TestWithEnvironment: the whole environment, for Os.env, Os.environ and a child of Os.exec.
+// TestWithEnvironment: the whole environment, for Os.env, Os.environ and a child of a Cmd.
 func TestWithEnvironment(t *testing.T) {
 	prog := loadSrc(t, `println(Os.env("ANT_ONLY"))
 println(Os.env("PATH"))
 println(Map.has(Os.environ(), "ANT_ONLY") && !Map.has(Os.environ(), "PATH"))
-println(Os.exec("/usr/bin/env") | Result.map({ x.stdout }))`)
+println(Cmd.capture(Cmd.new("/usr/bin/env")) | Result.map({ x.stdout }))`)
 	var out strings.Builder
 	err := prog.Run(context.Background(), ant.WithStdout(&out), ant.WithEnvironment(map[string]string{"ANT_ONLY": "yes"}))
 	if err != nil {

@@ -20,7 +20,7 @@ var (
 
 // Decls returns the prelude's declarations, parsed once.
 func Decls() (*ast.File, error) {
-	once.Do(func() { file, err = parser.Parse("prelude.ant", source, parser.Declarations) })
+	once.Do(func() { file, err = parser.Parse("prelude.ant", source, parser.Prelude) })
 	return file, err
 }
 

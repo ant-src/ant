@@ -40,7 +40,7 @@ func threshold(arg: string | null, fallback: int): int {
 
 // runTests writes the profile by running the suite, and ends the program when the suite fails.
 func runTests(profile: string): void {
-  var run = Os.exec("go", ["test", "-coverpkg=./...", `-coverprofile=${profile}`, "./..."])
+  var run = Cmd.capture(Cmd.new("go", ["test", "-coverpkg=./...", `-coverprofile=${profile}`, "./..."]))
   var output = if run is Ok { run.value } else { fail(`cannot run go test: ${run.error.message}`) }
   File.writeText(Os.stdout(), output.stdout)
   File.writeText(Os.stderr(), output.stderr)

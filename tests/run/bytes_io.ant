@@ -85,9 +85,9 @@ println(Bytes.slice(text.bytes, 32, len(text.bytes)))
 Context.cancel(stop)
 
 // A child reads Bytes and writes them.
-var out = Result.unwrap(Os.exec("wc", ["-c"], stdin: Bytes.fromArray([0xde, 0xad, 0x00])))
+var out = Result.unwrap(Cmd.capture(Cmd.new("wc", ["-c"]), input: Bytes.fromArray([0xde, 0xad, 0x00])))
 println(String.trim(out.stdout))
-var cat = Result.unwrap(Os.exec("cat", stdin: Bytes.fromArray([0x61, 0xff])))
+var cat = Result.unwrap(Cmd.capture(Cmd.new("cat"), input: Bytes.fromArray([0x61, 0xff])))
 println(cat.stdoutBytes)
 println([cat.stdout])
 

@@ -19,17 +19,21 @@ import (
 // processChildren are the programs a generated script starts: quick ones, ones that wait for
 // input, ones that ignore SIGTERM, ones that leave a grandchild holding the outputs.
 var processChildren = []string{
-	`"true"`,
-	`"false"`,
-	`"cat"`,
-	`"sleep", ["0.05"]`,
-	`"sh", ["-c", "echo out; echo err >&2"]`,
-	`"sh", ["-c", "head -c 70000 /dev/zero"]`,
-	`"sh", ["-c", "trap '' TERM; sleep 0.2"]`,
-	`"sh", ["-c", "sleep 0.3 & echo bg"]`,
-	`"sh", ["-c", "kill -9 $$"]`,
-	`"sh", ["-c", "read line; echo got $line"]`,
-	`"ant-no-such-program-xyz"`,
+	`Cmd.new("true")`,
+	`Cmd.new("false")`,
+	`Cmd.new("cat")`,
+	`Cmd.new("sleep", ["0.05"])`,
+	`Cmd.new("sh", ["-c", "echo out; echo err >&2"])`,
+	`Cmd.new("sh", ["-c", "head -c 70000 /dev/zero"])`,
+	`Cmd.new("sh", ["-c", "trap '' TERM; sleep 0.2"])`,
+	`Cmd.new("sh", ["-c", "sleep 0.3 & echo bg"])`,
+	`Cmd.new("sh", ["-c", "kill -9 $$"])`,
+	`Cmd.new("sh", ["-c", "read line; echo got $line"])`,
+	`Cmd.new("ant-no-such-program-xyz")`,
+	`Cmd.pipe([Cmd.new("yes"), Cmd.new("head", ["-n", "3"])])`,
+	`Cmd.pipe([Cmd.new("cat"), Cmd.new("sh", ["-c", "head -c 5; exit 2"]), Cmd.new("cat")])`,
+	`Cmd.pipe([Cmd.new("sh", ["-c", "trap '' TERM; sleep 0.2"]), Cmd.new("cat")])`,
+	`Cmd.pipe([Cmd.new("true"), Cmd.new("ant-no-such-program-xyz")])`,
 }
 
 var processSignals = []string{"SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT", "SIGUSR1", "SIGNOPE"}
@@ -40,9 +44,9 @@ func genProcessProgram(ops []byte, dir string) string {
 	var b strings.Builder
 	b.WriteString("var pipes = [Result.unwrap(Os.openPipe()), Result.unwrap(Os.openPipe()), Result.unwrap(Os.openPipe())]\n")
 	fmt.Fprintf(&b, "var file = Result.unwrap(File.create(%q))\n", dir+"/f.txt")
-	b.WriteString("var procs: Array[Os.Process] = []\n")
+	b.WriteString("var procs: Array[Cmd.Process] = []\n")
 	b.WriteString("func ms(n: int): Time.Duration { Time.duration(milliseconds: n) }\n")
-	b.WriteString("func started(r: Result[Os.Process, Error]): void { if r is Ok { Array.push(procs, r.value) } else { println(r.error.message) } }\n")
+	b.WriteString("func started(r: Result[Cmd.Process, Error]): void { if r is Ok { Array.push(procs, r.value) } else { println(r.error.message) } }\n")
 	next := func(i *int) int {
 		if *i >= len(ops) {
 			return 0
@@ -87,14 +91,14 @@ func genProcessProgram(ops []byte, dir string) string {
 			if c := next(&i); c%3 == 0 {
 				ctx = fmt.Sprintf(", ctx: Context.new(timeout: ms(%d))", c%200+1)
 			}
-			fmt.Fprintf(&b, "started(Os.start(%s, stdin: %s, stdout: %s, stderr: %s%s))\n",
+			fmt.Fprintf(&b, "started(Cmd.start(%s, stdin: %s, stdout: %s, stderr: %s%s))\n",
 				child, input(next(&i)), output(next(&i)), output(next(&i)), ctx)
 		case 2:
-			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Os.wait(%s, ctx: Context.new(timeout: ms(%d))) is Ok) }\n", proc(next(&i)), next(&i)%100+1)
+			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Cmd.wait(%s, ctx: Context.new(timeout: ms(%d))) is Ok) }\n", proc(next(&i)), next(&i)%100+1)
 		case 3:
-			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Os.kill(%s, %q)) }\n", proc(next(&i)), processSignals[next(&i)%len(processSignals)])
+			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Cmd.kill(%s, %q)) }\n", proc(next(&i)), processSignals[next(&i)%len(processSignals)])
 		case 4:
-			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Os.stop(%s, grace: ms(%d)) is Ok) }\n", proc(next(&i)), next(&i)%60-10)
+			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Cmd.stop(%s, grace: ms(%d)) is Ok) }\n", proc(next(&i)), next(&i)%60-10)
 		case 5:
 			c := next(&i)
 			end := "read"
@@ -108,18 +112,18 @@ func genProcessProgram(ops []byte, dir string) string {
 			fmt.Fprintf(&b, "go { var w = File.writeText(pipes[%d].write, \"line\\n\") }\n", next(&i)%3)
 		case 8:
 			child := processChildren[next(&i)%len(processChildren)]
-			fmt.Fprintf(&b, "println(Os.exec(%s, stdin: \"in\\n\", ctx: Context.new(timeout: ms(%d))) is Ok)\n", child, next(&i)%300+1)
+			fmt.Fprintf(&b, "println(Cmd.capture(%s, input: \"in\\n\", ctx: Context.new(timeout: ms(%d))) is Ok)\n", child, next(&i)%300+1)
 		case 9:
 			child := processChildren[next(&i)%len(processChildren)]
-			fmt.Fprintf(&b, "println(Os.output(%s, ctx: Context.new(timeout: ms(%d))) is Ok)\n", child, next(&i)%300+1)
+			fmt.Fprintf(&b, "println(Cmd.read(%s, ctx: Context.new(timeout: ms(%d))) is Ok)\n", child, next(&i)%300+1)
 		case 10:
 			child := processChildren[next(&i)%len(processChildren)]
-			fmt.Fprintf(&b, "println(Os.run(%s, ctx: Context.new(timeout: ms(%d))) is Ok)\n", child, next(&i)%300+1)
+			fmt.Fprintf(&b, "println(Cmd.run(%s, ctx: Context.new(timeout: ms(%d))) is Ok)\n", child, next(&i)%300+1)
 		case 11:
-			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Os.pid(%s) > 0) }\n", proc(next(&i)))
+			fmt.Fprintf(&b, "if Array.length(procs) > 0 { println(Cmd.pid(%s) > 0) }\n", proc(next(&i)))
 		}
 	}
-	b.WriteString("for p in procs { Os.stop(p, grace: ms(20)) }\n")
+	b.WriteString("for p in procs { Cmd.stop(p, grace: ms(20)) }\n")
 	b.WriteString("println(\"end\")\n")
 	return b.String()
 }
@@ -158,17 +162,17 @@ func FuzzProcess(f *testing.F) {
 }
 
 // roundTrip is a script that hands its arguments to a child, which writes each back followed by
-// a NUL, and then reads the first as Os.output's text.
+// a NUL, and then reads the first as Cmd.read's text.
 const roundTrip = `var args = ["-c", "printf '%s\\0' \"$@\"", "sh"]
 for a in Os.args() { Array.push(args, a) }
-var all = Os.exec("sh", args)
+var all = Cmd.capture(Cmd.new("sh", args))
 if all is Err { println("ERR") } else { File.writeText(Os.stdout(), all.value.stdout) }
-var first = Os.output("printf", ["%s", Os.args()[0]])
+var first = Cmd.read(Cmd.new("printf", ["%s", Os.args()[0]]))
 if first is Err { println("ERR") } else { File.writeText(Os.stdout(), "|" + first.value + "|") }
 `
 
 // FuzzProcessArgs checks that arguments reach a child byte for byte, that a NUL in one is Err,
-// and that Os.output removes one final newline and nothing else.
+// and that Cmd.read removes one final newline and nothing else.
 func FuzzProcessArgs(f *testing.F) {
 	f.Add("plain", "two words")
 	f.Add("trailing\n\n", "\r\n")

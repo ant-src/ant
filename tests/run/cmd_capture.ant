@@ -1,19 +1,19 @@
-// spec: stdlib Os
-// Processes (stdlib.md): Os.exec runs a program without a shell and captures its outputs; a
+// spec: stdlib Cmd
+// Processes (stdlib.md): Cmd.capture runs a program without a shell and captures its outputs; a
 // nonzero exit is Ok with its status, and a program that cannot start is Err. The suite runs
 // under go test, so go is on the path, and dir, env and stdin reach a small Go program that
 // reports them, run in a temporary directory given as the first argument.
-var version = Result.unwrap(Os.exec("go", ["version"]))
+var version = Result.unwrap(Cmd.capture(Cmd.new("go", ["version"])))
 println(version.status)
 println(String.startsWith(version.stdout, "go version"))
 println(version.stderr == "")
-var bad = Result.unwrap(Os.exec("go", ["nonsense"]))
+var bad = Result.unwrap(Cmd.capture(Cmd.new("go", ["nonsense"])))
 println(bad.status)
 println(bad.stdout == "")
 println(String.contains(bad.stderr, "nonsense"))
-println(Os.exec("ant-no-such-program-xyz") is Err)
-println(Os.exec("go", ["version"], dir: "/no/such/dir") is Err)
-println(Result.unwrap(Os.exec("sh", ["-c", "kill -9 $$"])).status)
+println(Cmd.capture(Cmd.new("ant-no-such-program-xyz")) is Err)
+println(Cmd.capture(Cmd.new("go", ["version"], dir: "/no/such/dir")) is Err)
+println(Result.unwrap(Cmd.capture(Cmd.new("sh", ["-c", "kill -9 $$"]))).status)
 println(Map.has(Os.environ(), "PATH"))
 println(Os.cwd() is Ok)
 
@@ -27,7 +27,7 @@ var src = "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"path/
 println(File.write(`${dir}/echo.go`, src))
 var env = Os.environ()
 env["ANT_EXEC_TEST"] = "seen"
-var out = Result.unwrap(Os.exec("go", ["run", "echo.go", base], dir: dir, env: env, stdin: "typed\n"))
+var out = Result.unwrap(Cmd.capture(Cmd.new("go", ["run", "echo.go", base], dir: dir, env: env), input: "typed\n"))
 println(out.status)
 println(out.stdout)
 println(String.contains(out.stderr, "warned"))
@@ -50,4 +50,4 @@ println(out)
 // out: 0
 // out: true seen typed
 // out: true
-// out: Os.Output{ status: 0, stdout: "true seen typed", stderr: "warned\n", stdoutBytes: Bytes(74 72 75 65 20 73 65 65 6e 20 74 79 70 65 64), stderrBytes: Bytes(77 61 72 6e 65 64 0a) }
+// out: Cmd.Output{ status: 0, statuses: [0], stdout: "true seen typed", stderr: "warned\n", stdoutBytes: Bytes(74 72 75 65 20 73 65 65 6e 20 74 79 70 65 64), stderrBytes: Bytes(77 61 72 6e 65 64 0a) }

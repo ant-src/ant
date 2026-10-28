@@ -1,27 +1,27 @@
-// spec: stdlib Os
-// Processes (stdlib.md): Os.run shares the program's streams and returns the status; Os.output
-// returns standard output without one final newline and fails on a nonzero status; Os.start runs a
-// child beside the program, with handles and pipes as its streams, and Os.wait, Os.kill and
-// Os.stop end it; a signal's status is 128 + n. Run in a temporary directory given as the
+// spec: stdlib Cmd
+// Cmd (stdlib.md): Cmd.run shares the program's streams and returns the status; Cmd.read returns
+// standard output without one final newline and fails on a nonzero status; Cmd.start runs a child
+// beside the program, with handles and pipes as its streams, and Cmd.wait, Cmd.kill and Cmd.stop
+// end it; a signal's status is 128 + n. Run in a temporary directory given as the
 // first argument.
 var dir = Os.args()[0]
 
 println("before")
-println(Os.run("sh", ["-c", "echo from the child; exit 3"]))
-println(Os.run("ant-no-such-program-xyz") is Err)
+println(Cmd.run(Cmd.new("sh", ["-c", "echo from the child; exit 3"])))
+println(Cmd.run(Cmd.new("ant-no-such-program-xyz")) is Err)
 
-println(Os.output("printf", ["a\\n\\n"]))
-println(Os.output("printf", ["crlf\\r\\n"]))
-println(Os.output("sh", ["-c", "echo partial; echo broke >&2; exit 2"]))
-println(Os.output("sh", ["-c", "exit 4"]))
-println(Os.output("cat", stdin: "fed"))
+println(Cmd.read(Cmd.new("printf", ["a\\n\\n"])))
+println(Cmd.read(Cmd.new("printf", ["crlf\\r\\n"])))
+println(Cmd.read(Cmd.new("sh", ["-c", "echo partial; echo broke >&2; exit 2"])))
+println(Cmd.read(Cmd.new("sh", ["-c", "exit 4"])))
+println(Cmd.read(Cmd.new("cat"), input: "fed"))
 
 println(Os.which("sh") != null)
 println(Os.which("ant-no-such-program-xyz"))
 
 // Output as it comes, both streams into one pipe.
 var out = Result.unwrap(Os.openPipe())
-var lines = Result.unwrap(Os.start("sh", ["-c", "echo one; echo two >&2; echo three"], stdout: out.write, stderr: out.write))
+var lines = Result.unwrap(Cmd.start(Cmd.new("sh", ["-c", "echo one; echo two >&2; echo three"]), stdout: out.write, stderr: out.write))
 File.close(out.write)
 var seen: Array[string] = []
 while true {
@@ -30,65 +30,65 @@ while true {
   Array.push(seen, line)
 }
 println(Array.length(seen))
-println(Os.wait(lines))
-println(Os.wait(lines))
+println(Cmd.wait(lines))
+println(Cmd.wait(lines))
 
 // Two children joined by a pipe, the last one's output captured by another.
 var p = Result.unwrap(Os.openPipe())
 var captured = Result.unwrap(Os.openPipe())
-var log = Result.unwrap(Os.start("printf", ["fix a\\nnope\\nfix b\\n"], stdout: p.write))
-var grep = Result.unwrap(Os.start("grep", ["fix"], stdin: p.read, stdout: captured.write))
+var log = Result.unwrap(Cmd.start(Cmd.new("printf", ["fix a\\nnope\\nfix b\\n"]), stdout: p.write))
+var grep = Result.unwrap(Cmd.start(Cmd.new("grep", ["fix"]), stdin: p.read, stdout: captured.write))
 File.close(p.write)
 File.close(p.read)
 File.close(captured.write)
 println(File.readAll(captured.read))
-println(Os.wait(log))
-println(Os.wait(grep))
+println(Cmd.wait(log))
+println(Cmd.wait(grep))
 
 // A file as output, written after what the program wrote first, and as input, after what the
 // program read from it.
 var path = `${dir}/dump.txt`
 var dump = Result.unwrap(File.create(path))
 File.writeLine(dump, "header")
-println(Os.wait(Result.unwrap(Os.start("echo", ["body"], stdout: dump))))
+println(Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("echo", ["body"]), stdout: dump))))
 File.close(dump)
 var input = Result.unwrap(File.open(path))
 println(File.readLine(input))
 var rest = Result.unwrap(Os.openPipe())
-println(Os.wait(Result.unwrap(Os.start("cat", stdin: input, stdout: rest.write))))
+println(Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("cat"), stdin: input, stdout: rest.write))))
 File.close(rest.write)
 println(File.readAll(rest.read))
-println(Os.wait(Result.unwrap(Os.start("cat", stdout: null))))
+println(Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("cat"), stdout: null))))
 
 // Ending a child: a signal's status is 128 + n, a name the host lacks is Err, and a context that
 // ends kills it.
-var sleeper = Result.unwrap(Os.start("sleep", ["30"]))
-println(Os.pid(sleeper) > 0)
-println(Os.kill(sleeper, "SIGNOPE"))
-println(Os.stop(sleeper))
-println(Os.kill(sleeper))
-var stubborn = Result.unwrap(Os.start("sh", ["-c", "trap '' TERM; sleep 30"], stdout: null))
+var sleeper = Result.unwrap(Cmd.start(Cmd.new("sleep", ["30"])))
+println(Cmd.pid(sleeper) > 0)
+println(Cmd.kill(sleeper, "SIGNOPE"))
+println(Cmd.stop(sleeper))
+println(Cmd.kill(sleeper))
+var stubborn = Result.unwrap(Cmd.start(Cmd.new("sh", ["-c", "trap '' TERM; sleep 30"]), stdout: null))
 Time.sleep(Time.duration(milliseconds: 200))
-println(Os.stop(stubborn, grace: Time.duration(milliseconds: 100)))
-var interrupted = Result.unwrap(Os.start("sleep", ["30"]))
-println(Os.kill(interrupted, "SIGINT"))
-println(Os.wait(interrupted))
-var bounded = Result.unwrap(Os.start("sleep", ["30"], ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
-println(Os.wait(bounded))
-var waited = Result.unwrap(Os.start("sleep", ["30"]))
-println(Os.wait(waited, ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
-println(Os.stop(waited))
+println(Cmd.stop(stubborn, grace: Time.duration(milliseconds: 100)))
+var interrupted = Result.unwrap(Cmd.start(Cmd.new("sleep", ["30"])))
+println(Cmd.kill(interrupted, "SIGINT"))
+println(Cmd.wait(interrupted))
+var bounded = Result.unwrap(Cmd.start(Cmd.new("sleep", ["30"]), ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
+println(Cmd.wait(bounded))
+var waited = Result.unwrap(Cmd.start(Cmd.new("sleep", ["30"])))
+println(Cmd.wait(waited, ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
+println(Cmd.stop(waited))
 
 // A pipe end handed to a child still ends a read when its context does; a handle the program
 // has read ahead goes through a copy, which ends when the child does, and the program reads the
 // handle again after.
 var given = Result.unwrap(Os.openPipe())
-println(Os.wait(Result.unwrap(Os.start("true", stdin: given.read))))
+println(Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("true"), stdin: given.read))))
 println(File.readLine(given.read, ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
 File.writeLine(given.write, "a")
 File.writeLine(given.write, "b")
 println(File.readLine(given.read))
-println(Os.wait(Result.unwrap(Os.start("head", ["-n", "1"], stdin: given.read, stdout: null))))
+println(Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("head", ["-n", "1"]), stdin: given.read, stdout: null))))
 File.writeLine(given.write, "c")
 println(File.readLine(given.read, ctx: Context.new(timeout: Time.duration(seconds: 2))))
 

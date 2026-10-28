@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// quit is SIGQUIT, which Os.run holds back with SIGINT.
+// quit is SIGQUIT, which Cmd.run holds back with SIGINT.
 var quit os.Signal = syscall.SIGQUIT
 
 // dieBy ends the command by sig, at its default disposition, so the parent sees a process the

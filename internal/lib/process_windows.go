@@ -11,10 +11,13 @@ import (
 	"github.com/ant-src/ant/internal/interp"
 )
 
-// terminate is the signal Os.stop sends first; Windows ends a process one way.
+// terminate is the signal Cmd.stop sends first; Windows ends a process one way.
 var terminate os.Signal = os.Kill
 
-// signalNamed maps the names Os.kill takes to the one way Windows has: SIGTERM and SIGKILL both
+// brokenPipe is nil: Windows has no signal for a writer whose reader is gone.
+var brokenPipe os.Signal
+
+// signalNamed maps the names Cmd.kill takes to the one way Windows has: SIGTERM and SIGKILL both
 // terminate the process, with status 1.
 func signalNamed(name string) (os.Signal, error) {
 	switch name {
@@ -26,13 +29,14 @@ func signalNamed(name string) (os.Signal, error) {
 	return nil, fmt.Errorf("unknown signal %s", name)
 }
 
-// setGroup puts the child in a process group of its own, which Ctrl-C does not reach.
-func setGroup(cmd *exec.Cmd) {
+// setGroup puts the child in a process group of its own, which Ctrl-C does not reach; Windows
+// cannot add it to another's.
+func setGroup(cmd *exec.Cmd, leader int) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP}
 }
 
-// signalGroup signals the child alone: Windows has no signal for a process group.
-func signalGroup(p *os.Process, sig os.Signal) error { return p.Signal(sig) }
+// signalGroup signals each child alone, since Windows has no signal for a process group.
+func signalGroup(ps []*os.Process, sig os.Signal) error { return signalEach(ps, sig) }
 
 func exitStatus(ps *os.ProcessState) int { return ps.ExitCode() }
 

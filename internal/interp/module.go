@@ -190,6 +190,10 @@ type fieldDefaults struct {
 	env   *Env
 }
 
+// NativeDefaults are the field defaults of a record tag the library builds, as the prelude
+// declares them: per field, nil or a function that makes a fresh value.
+type NativeDefaults []func() value.Value
+
 func hasDefaults(d *ast.TypeDecl) bool {
 	rt, ok := d.Body.(*ast.RecordType)
 	return ok && slices.ContainsFunc(rt.Fields, func(f ast.FieldType) bool { return f.Default != nil })

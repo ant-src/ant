@@ -1,0 +1,14 @@
+// spec: stdlib Cmd; 12 Runtime panics
+// panics: Cmd.pipe
+// A pipeline needs a command: Cmd.pipe of none panics, and so does running an empty pipeline a
+// literal made.
+var empty = Cmd.Pipeline{ cmds: [] }
+println(Panic.catch({ Cmd.read(empty) }) | Result.mapErr({ x.message }))
+println(Cmd.string(Cmd.Pipeline{ cmds: [Cmd.new("a")] }))
+Cmd.pipe([])
+
+// expect
+// out: Err{ error: "Cmd.read needs a pipeline of at least one command" }
+// out: a
+// exit: 1
+// err: Cmd.pipe needs at least one command
