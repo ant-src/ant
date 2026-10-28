@@ -32,6 +32,7 @@ func (s *Server) completion(p *CompletionParams) *CompletionList {
 	off := d.offset(p.Position, s.utf16)
 	c := &completer{s: s, a: a, d: d, off: off, items: []CompletionItem{}, seen: map[string]bool{}}
 	c.word, c.wordStart = d.wordAt(off)
+	c.wordEnd = c.wordStart + len(c.word)
 	c.word = c.word[:off-c.wordStart]
 	c.run()
 	return &CompletionList{Items: c.items}
@@ -43,8 +44,9 @@ type completer struct {
 	a         *analysis
 	d         *document
 	off       int
-	word      string // the identifier typed so far
+	word      string // the identifier typed so far, up to the cursor
 	wordStart int
+	wordEnd   int // where the identifier under the cursor ends, past the cursor when it goes on
 	items     []CompletionItem
 	seen      map[string]bool
 }
@@ -141,11 +143,11 @@ func (c *completer) inInterpolation(t *token.Token) bool {
 	return false
 }
 
-// fixup analyzes the document again with the name being typed replaced by placeholder, and with
-// extra text after it, so that an unfinished statement parses and the tree says what the cursor
-// is in. It returns the new analysis and the tree node of the placeholder's identifier.
+// fixup analyzes the document again with the word under the cursor replaced by placeholder, and
+// with extra text after it, so that an unfinished statement parses and the tree says what the
+// cursor is in. It returns the new analysis and the placeholder's identifier, when it is one.
 func (c *completer) fixup(extra string) (*analysis, *ast.Ident) {
-	text := c.d.text[:c.wordStart] + placeholder + extra + c.d.text[c.off:]
+	text := c.d.text[:c.wordStart] + placeholder + extra + c.d.text[c.wordEnd:]
 	a := c.s.analyzeText(c.d, text)
 	var found *ast.Ident
 	ast.Inspect(a.module().File, func(n ast.Node) bool {

@@ -399,11 +399,13 @@ func TestCompletion(t *testing.T) {
 			}
 		}
 	}
-	// record fields after a dot, while the name is typed
+	// record fields after a dot, while the name is typed, and with the cursor inside a name
 	src := strings.Replace(mainSrc, "var label = s.name", "var label = s.na", 1)
 	got := labels(src, at(src, "s.na", 1, 4))
 	has("fields", got, "name", "area")
 	lacks("fields", got, "describe")
+	got = labels(mainSrc, at(mainSrc, "s.name", 1, 2))
+	has("fields with the cursor before the name", got, "name", "area")
 	// namespace members after a dot at the end of a line
 	src = strings.Replace(mainSrc, "var label = s.name", "var label = Math.\n  var z = 1", 1)
 	got = labels(src, at(src, "Math.", 1, 5))
