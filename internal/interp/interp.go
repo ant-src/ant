@@ -37,6 +37,11 @@ type Config struct {
 	// Os.interrupt created, when the program created one and it is not done; otherwise the run
 	// is cancelled, as the first is for a program that never asked. Nil delivers none.
 	Interrupts <-chan struct{}
+	// Foreground is called as Os.run starts a child in the foreground, and the function it
+	// returns as the child exits, with the signal that ended the child or nil, so the host can
+	// hold back its keyboard signals meanwhile; that function reports whether one it held is
+	// now the program's interrupt, which Os.run delivers before it returns. Nil holds nothing.
+	Foreground func() func(os.Signal) bool
 }
 
 // Frame is one entry of a panic trace, innermost first.
@@ -90,6 +95,13 @@ type Instance struct {
 	// interrupt is the context Os.interrupt returns, made at the first call.
 	interruptMu sync.Mutex
 	interrupt   *value.Context
+	// onStop holds what a library runs as the run stops, such as killing its children.
+	onStopMu sync.Mutex
+	onStop   map[*func(aborted bool)]struct{}
+	// released is set once the run has stopped and flushed: the host's writers are the host's
+	// again, and what a child left running writes through the run is dropped.
+	released bool
+	stdin    io.Reader // cfg.Stdin, behind a lock when it is not a file
 }
 
 // AntPanic is the Go panic value that carries an Ant panic while it unwinds.
@@ -139,6 +151,13 @@ func New(ctx context.Context, prog *loader.Program, cfg Config) *Instance {
 		cfg.Grace = 100 * time.Millisecond
 	}
 	in := &Instance{prog: prog, cfg: cfg, out: bufio.NewWriter(cfg.Stdout), result: make(chan error, 1)}
+	switch r := cfg.Stdin.(type) {
+	case nil:
+	case *os.File:
+		in.stdin = r
+	default:
+		in.stdin = &lockedReader{r: r}
+	}
 	in.ctx, in.cancel = context.WithCancel(ctx)
 	// The context's end sets the flag, so a goroutine that never waits stops at its next check
 	// too, whether Close, an interrupt, or the caller's context ended the run.
@@ -159,22 +178,28 @@ func (in *Instance) relayInterrupts(interrupts <-chan struct{}) {
 			if !ok {
 				return
 			}
-			in.interruptMu.Lock()
-			c := in.interrupt
-			in.interruptMu.Unlock()
-			if c != nil && !c.Done() {
-				c.Cancel(value.ErrInterrupt)
-			} else {
-				// As Close does: the flag first, so a goroutine whose wait the cancellation
-				// ends finds it at its very next check and runs nothing more.
-				in.interrupted.Store(true)
-				in.done.Store(true)
-				in.cancel()
-			}
+			in.deliverInterrupt()
 		case <-in.ctx.Done():
 			return
 		}
 	}
+}
+
+// deliverInterrupt delivers one interrupt: to the program's interrupt context while the
+// program holds one that is not done, and otherwise by cancelling the run.
+func (in *Instance) deliverInterrupt() {
+	in.interruptMu.Lock()
+	c := in.interrupt
+	in.interruptMu.Unlock()
+	if c != nil && !c.Done() {
+		c.Cancel(value.ErrInterrupt)
+		return
+	}
+	// As Close does: the flag first, so a goroutine whose wait the cancellation ends finds it
+	// at its very next check and runs nothing more.
+	in.interrupted.Store(true)
+	in.done.Store(true)
+	in.cancel()
 }
 
 // Interrupt returns the context Os.interrupt gives: the same one at every call, done when the
@@ -198,16 +223,24 @@ func (in *Instance) wait() error {
 	case <-in.ctx.Done():
 		err = in.stopErr()
 	}
-	in.stop()
+	in.stop(errors.Is(err, ErrInterrupted) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 	return err
 }
 
 // stop ends the run: the flag first, so a goroutine whose wait the cancellation ends finds it
-// at its very next check, then the context, then the grace period for the goroutines still
+// at its very next check, then the context, then what the libraries run as the run stops,
+// told whether a cancellation ended it, then the grace period for the goroutines still
 // running, and a last flush.
-func (in *Instance) stop() {
+func (in *Instance) stop(aborted bool) {
 	in.done.Store(true)
 	in.cancel()
+	in.onStopMu.Lock()
+	fs := in.onStop
+	in.onStop = nil
+	in.onStopMu.Unlock()
+	for f := range fs {
+		(*f)(aborted)
+	}
 	finished := make(chan struct{})
 	go func() {
 		in.active.Wait()
@@ -217,7 +250,12 @@ func (in *Instance) stop() {
 	case <-finished:
 	case <-time.After(in.cfg.Grace):
 	}
-	in.Flush()
+	in.outMu.Lock()
+	in.out.Flush()
+	in.errMu.Lock()
+	in.released = true
+	in.errMu.Unlock()
+	in.outMu.Unlock()
 }
 
 // stopErr is the error of a run its context ended: ErrInterrupted when an interrupt did, which
@@ -321,7 +359,9 @@ func (in *Instance) Print(s string) {
 // Flush flushes stdout; blocking builtins call it so output is not held back.
 func (in *Instance) Flush() {
 	in.outMu.Lock()
-	in.out.Flush()
+	if !in.released {
+		in.out.Flush()
+	}
 	in.outMu.Unlock()
 }
 
@@ -330,10 +370,23 @@ func (in *Instance) Args() []string { return in.cfg.Args }
 
 // Stdin returns the run's standard input, an empty stream when none was given.
 func (in *Instance) Stdin() io.Reader {
-	if in.cfg.Stdin == nil {
+	if in.stdin == nil {
 		return eofReader{}
 	}
-	return in.cfg.Stdin
+	return in.stdin
+}
+
+// lockedReader is a host's standard input that is not a file, read by one reader at a time:
+// Os.stdin's pump and the copies into children that are given it.
+type lockedReader struct {
+	mu sync.Mutex
+	r  io.Reader
+}
+
+func (r *lockedReader) Read(p []byte) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.r.Read(p)
 }
 
 type eofReader struct{}
@@ -349,6 +402,9 @@ type stdoutWriter struct{ in *Instance }
 func (w stdoutWriter) Write(p []byte) (int, error) {
 	w.in.outMu.Lock()
 	defer w.in.outMu.Unlock()
+	if w.in.released {
+		return len(p), nil
+	}
 	return w.in.out.Write(p)
 }
 
@@ -385,6 +441,81 @@ func (in *Instance) Environ() []string {
 		return os.Environ()
 	}
 	return in.cfg.Environ()
+}
+
+// OnStop registers f to run as the run stops, before the grace period, told whether a
+// cancellation ended the run: the host's, or an interrupt's. The returned function unregisters
+// it.
+func (in *Instance) OnStop(f func(aborted bool)) (remove func()) {
+	key := &f
+	in.onStopMu.Lock()
+	if in.onStop == nil {
+		in.onStop = map[*func(aborted bool)]struct{}{}
+	}
+	in.onStop[key] = struct{}{}
+	in.onStopMu.Unlock()
+	return func() {
+		in.onStopMu.Lock()
+		delete(in.onStop, key)
+		in.onStopMu.Unlock()
+	}
+}
+
+// Foreground tells the host that a child is starting in the foreground, and returns what tells
+// it the child exited and which signal ended it, nil for none, and delivers the interrupt the
+// host held back meanwhile when the host says it is now the program's.
+func (in *Instance) Foreground() func(os.Signal) {
+	if in.cfg.Foreground == nil {
+		return func(os.Signal) {}
+	}
+	release := in.cfg.Foreground()
+	return func(ended os.Signal) {
+		if release(ended) {
+			in.deliverInterrupt()
+		}
+	}
+}
+
+// ChildStdin returns the run's standard input as a child process is given it: the file itself
+// when it is one, so a terminal is handed over as it is; nil, the null device, when the run has
+// none; and otherwise the reader every reader of standard input shares.
+func (in *Instance) ChildStdin() io.Reader {
+	if in.stdin == nil {
+		return nil
+	}
+	return in.stdin
+}
+
+// ChildStdout returns the run's standard output as a child process is given it, once the buffer
+// is flushed: the file itself when it is one, and otherwise the buffer, so what the child writes
+// and what the program prints never write the host's writer at once.
+func (in *Instance) ChildStdout() io.Writer {
+	if f, ok := in.cfg.Stdout.(*os.File); ok {
+		return f
+	}
+	return in.Stdout()
+}
+
+// ChildStderr returns the run's standard error as a child process is given it: the file itself
+// when it is one, and otherwise the writer behind the lock the run's reports take.
+func (in *Instance) ChildStderr() io.Writer {
+	if f, ok := in.cfg.Stderr.(*os.File); ok {
+		return f
+	}
+	return stderrWriter{in}
+}
+
+// stderrWriter writes to the run's standard error under the lock its reports take, until the
+// run is released.
+type stderrWriter struct{ in *Instance }
+
+func (w stderrWriter) Write(p []byte) (int, error) {
+	w.in.errMu.Lock()
+	defer w.in.errMu.Unlock()
+	if w.in.released {
+		return len(p), nil
+	}
+	return w.in.cfg.Stderr.Write(p)
 }
 
 // Context returns the run's context, for blocking builtins.

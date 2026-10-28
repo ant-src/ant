@@ -9,8 +9,9 @@
 //	ant                          start a REPL
 //
 // Exit status: 0 when the script ends or the check passes, 1 when the script returns an Err, the
-// main goroutine panics, or the check finds errors, 2 when the program cannot be loaded or the usage is wrong, 130 when an
-// interrupt the program did not ask for ends the run, with nothing printed, as a shell does.
+// main goroutine panics, or the check finds errors, 2 when the program cannot be loaded or the usage is wrong. When an
+// interrupt the program did not ask for ends the run, the command prints nothing and ends by that
+// signal, SIGINT or SIGTERM, as a shell's child does, or exits with 130 where there are none.
 // Os.exit sets its own status. ant fmt exits 1 when --check finds a file to change and 2 when a
 // file cannot be read, parsed, or written. ant doc exits 1 when there is no such declaration.
 package main
@@ -25,7 +26,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/ant-src/ant"
 	replpkg "github.com/ant-src/ant/internal/repl"
@@ -44,8 +44,15 @@ func main() {
 	if completion(os.Args[1:], os.Stdout) {
 		return
 	}
-	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	status := run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
+	if endSignal != nil {
+		dieBy(endSignal)
+	}
+	os.Exit(status)
 }
+
+// endSignal is the signal an interrupt that ended the run came by, which the command ends by.
+var endSignal os.Signal
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
@@ -64,23 +71,15 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		// An interrupt goes to the program when it asked for one (Os.interrupt), and ends the
 		// run otherwise, or at the second; the run decides, the command only relays.
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
-		defer signal.Stop(sigs)
-		interrupts := make(chan struct{}, 1)
-		go func() {
-			for range sigs {
-				select {
-				case interrupts <- struct{}{}:
-				default:
-				}
-			}
-		}()
+		r := newRelay()
+		defer r.stop()
 		err = prog.Run(context.Background(), ant.WithStdin(stdin), ant.WithStdout(stdout), ant.WithStderr(stderr),
-			ant.WithArgs(args[2:]), ant.WithInterrupts(interrupts))
+			ant.WithArgs(args[2:]), ant.WithInterrupts(r.interrupts), ant.WithForeground(r.hold))
 		switch {
-		case err == nil, errors.Is(err, ant.ErrInterrupted):
+		case err == nil:
+		case errors.Is(err, ant.ErrInterrupted):
 			// An interrupt that ends the run says nothing, as a shell says nothing.
+			endSignal = r.ending()
 		default:
 			var pe *ant.PanicError
 			var ee *ant.ExitError

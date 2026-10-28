@@ -80,6 +80,7 @@ type config struct {
 	namespaces []Namespace
 	removed    []string
 	interrupts <-chan struct{}
+	foreground func() func(os.Signal) bool
 }
 
 func defaultConfig() config {
@@ -98,6 +99,7 @@ func (c config) run(prelude map[string]value.Value) interp.Config {
 	return interp.Config{
 		Prelude: prelude, Stdin: c.stdin, Stdout: c.stdout, Stderr: c.stderr,
 		Args: c.args, Env: c.env, Environ: c.environ, Interrupts: c.interrupts,
+		Foreground: c.foreground,
 	}
 }
 
@@ -143,6 +145,16 @@ func WithEnv(lookup func(name string) (string, bool)) Option {
 // that never called it, an interrupt ends the run, and Run, the Func.Call or the Session.Eval in
 // progress returns ErrInterrupted. The ant command sends one per Ctrl-C or SIGTERM.
 func WithInterrupts(c <-chan struct{}) Option { return func(cfg *config) { cfg.interrupts = c } }
+
+// WithForeground tells the host when Os.run has a child in the foreground: hold is called as the
+// child starts, and the function it returns as the child exits, with the signal that ended it or
+// nil. That function reports whether the run gets an interrupt for it, which Os.run delivers
+// before it returns, as WithInterrupts would. The ant command holds back Ctrl-C meanwhile, which
+// the child gets from the terminal, and passes it on only when the child died of it. Without it
+// Os.run holds nothing back.
+func WithForeground(hold func() (release func(ended os.Signal) (interrupt bool))) Option {
+	return func(cfg *config) { cfg.foreground = hold }
+}
 
 // ErrInterrupted is what Run returns when an interrupt ended the run: one the program had not
 // asked for, or the second. ExitStatus gives it 130, as a shell gives a process a signal ended.

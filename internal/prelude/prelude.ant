@@ -1630,9 +1630,14 @@ func Net.peer(f: File.Handle): string | null
 // processes.
 
 // Os.Output is what [Os.exec] captures from a child process that ran to its end. status is its exit
-// status, -1 when a signal ended it; each output is kept as bytes in stdoutBytes and stderrBytes
-// and as text in stdout and stderr.
+// status, 128 + n when signal n ended it; each output is kept as bytes in stdoutBytes and
+// stderrBytes and as text in stdout and stderr.
 type Os.Output = { status: int, stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
+// Os.Process is an opaque child process started by [Os.start], waited for with [Os.wait].
+type Os.Process
+// Os.Pipe is a pair of connected handles, made by [Os.openPipe]: what is written to write is read
+// from read.
+type Os.Pipe = { read: File.Handle, write: File.Handle }
 // Os.args returns the arguments after the program path: ant run main.ant a b gives ["a", "b"].
 func Os.args(): Array[string]
 // Os.env returns the value of the environment variable name, or null when it is not set.
@@ -1643,13 +1648,60 @@ func Os.environ(): Map[string, string]
 func Os.cwd(): Result[string, Error]
 // Os.exit ends the process at once with status. No deferred block runs, in any goroutine.
 func Os.exit(status: int): never
+// Os.run runs program with args in the foreground, with the program's own standard input, output
+// and error, so a pager, an editor or ssh can use the terminal, and returns its exit status,
+// nonzero included. program is looked up in PATH when it has no path separator; the child runs in
+// dir and with env as its whole environment when they are given. While it runs the ant command
+// holds back Ctrl-C, which the child gets and decides on, and passes it on when the child dies of
+// it. It is Err when the child could not be started, and when ctx is done, which kills the child.
+//
+//     var status = try Os.run("git", ["commit"])
+func Os.run(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
+        ctx: Context | null = null): Result[int, Error]
+// Os.output runs program with args as [Os.exec] does and returns its standard output as text,
+// without one final newline. A nonzero exit status is Err with the message
+// "program: exit status n", followed by ": " and standard error when it wrote any.
+//
+//     var head = try Os.output("git", ["rev-parse", "--short", "HEAD"])
+func Os.output(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
+        stdin: string | Bytes = "", ctx: Context | null = null): Result[string, Error]
 // Os.exec runs program with args, with no shell between, waits for it to exit, and captures its
 // output. program is looked up in PATH when it has no path separator; the child runs in dir and
-// with env as its whole environment when they are given, and reads stdin. A nonzero exit is Ok with
-// its status; Err means the child could not be started or run to its end, and when ctx is done the
-// child is killed and the result is Err with ctx's reason.
-func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null, stdin: string | Bytes = "",
-        ctx: Context | null = null): Result[Os.Output, Error]
+// with env as its whole environment when they are given, and reads stdin. A nonzero exit is Ok with its status; Err means the child
+// could not be started or run to its end, and when ctx is done the child is killed and the result
+// is Err with ctx's reason.
+func Os.exec(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
+        stdin: string | Bytes = "", ctx: Context | null = null): Result[Os.Output, Error]
+// Os.start starts program with args in the background, in a process group of its own, and returns
+// once it is running. Its standard streams are the handles given, null being the null device;
+// standard input is the null device and the outputs are the program's unless given. A terminal as
+// stdin is Err. Every handle stays the program's, which closes its copy of a pipe end it gave
+// away. When ctx is done the child and its group are killed, as they are when the run is
+// cancelled; a child still running when the script ends is left running.
+func Os.start(program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null,
+        stdin: File.Handle | null = null, stdout: File.Handle | null = Os.stdout(), stderr: File.Handle | null = Os.stderr(),
+        ctx: Context | null = null): Result[Os.Process, Error]
+// Os.wait waits until p has exited and returns its exit status, 128 + n when signal n ended it.
+// Every call gets the same outcome. It is Err when ctx is done first, and the child goes on; and
+// when the context given to [Os.start] killed the child, with that context's reason.
+func Os.wait(p: Os.Process, ctx: Context | null = null): Result[int, Error]
+// Os.kill sends the signal named, "SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT", "SIGUSR1"
+// or "SIGUSR2", to p's process group, and does not wait. It is Ok when p has exited already, and
+// Err for a name the host does not have.
+func Os.kill(p: Os.Process, signal: string = "SIGTERM"): Result[void, Error]
+// Os.stop ends p: SIGTERM, then SIGKILL when it is still running after grace, or SIGKILL alone
+// when grace is zero or negative, and returns its status as [Os.wait] does. It panics when grace has years,
+// months or weeks.
+func Os.stop(p: Os.Process, grace: Time.Duration = Time.duration(seconds: 5)): Result[int, Error]
+// Os.pid returns p's process id.
+func Os.pid(p: Os.Process): int
+// Os.openPipe returns a pipe, two handles the program closes: what is written to write is read
+// from read. A read waits for data, and a write is flushed. The reading end is at end of file once
+// every writing end is closed, the copies given to children and the program's own.
+func Os.openPipe(): Result[Os.Pipe, Error]
+// Os.which returns the path [Os.run] and the other calls would start for program, or null when
+// PATH holds none.
+func Os.which(program: string): string | null
 // Os.stdin returns the program's standard input. A read of it flushes standard output first, so a
 // prompt is seen before the program waits.
 func Os.stdin(): File.Handle

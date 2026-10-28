@@ -1,6 +1,6 @@
 # Work still to do
 
-Twelve gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Ten gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
@@ -132,30 +132,6 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
 
-## Running a command on the terminal
-
-**Today:** `Os.exec` captures the child's output whole and feeds it a fixed `stdin`, so a script
-cannot hand the terminal to `ssh`, `git`, `make`, an editor or a pager. A wrapper script that ends
-by starting such a program cannot be written in Ant.
-
-**Sketch:** a call whose child shares the program's three standard streams and returns its exit
-status.
-
-```
-Os.run(program: string, args: Array[string] = [], dir: string | null = null,
-       env: Map[string, string] | null = null, ctx: Context | null = null): Result[int, Error]
-```
-
-**Open questions:**
-
-- The name, and whether it is a parameter of `Os.exec` instead (`stdin`, `stdout` and `stderr` each
-  captured or inherited, or a `File.Handle`), as Go's `exec.Cmd` has it.
-- Signals: while the child runs, Ctrl-C should reach the child and not end the script, as a shell
-  does. How this meets `Os.interrupt()`.
-- Flushing the program's buffered output before the child writes to the same stream.
-- Whether a `syscall.Exec`-style call that replaces the process is wanted too; it skips deferred
-  blocks, as `Os.exit` does.
-
 ## Exit status with deferred blocks
 
 **Today:** a script exits with `0`, or `1` on an `Err` (section 10, Scripts). Any other status needs
@@ -242,19 +218,3 @@ needs `xs = Array.concat(xs, ["-o", x])`.
 **Open questions:**
 
 - Ant has no variadic functions, so `pushAll` is the smaller change.
-
-## Command output as text
-
-**Today:** a call to a command for its output checks `status`, reads `stdout`, and trims the final
-newline every time, which a small helper does in each script.
-
-**Sketch:**
-
-```
-Os.output(program: string, args: Array[string] = [], ...): Result[string, Error]   // stdout without its final newline; Err on a nonzero status, with the status and stderr in the message
-```
-
-**Open questions:**
-
-- How much of `stderr` goes in the message, and whether a caller that needs the status uses
-  `Os.exec` instead.

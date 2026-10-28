@@ -60,7 +60,7 @@ func (in *Instance) Lookup(name string) (value.Value, bool) {
 // see the cancelled context, and reports in progress get the grace period to finish.
 func (in *Instance) Close() {
 	in.finish(context.Canceled)
-	in.stop()
+	in.stop(true)
 }
 
 // Context returns the run's context, for blocking host functions.

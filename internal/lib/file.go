@@ -47,9 +47,15 @@ type Handle struct {
 	in      *interp.Instance // standard input: a read flushes stdout first
 	writes  sync.Mutex
 	w       *bufio.Writer
-	std     bool   // a standard stream: close does nothing, a write flushes
-	conn    bool   // a connection: a write flushes
-	peer    string // a connection's remote address, for Net.peer
+	std     bool       // a standard stream: close does nothing, a write flushes
+	conn    bool       // a connection: a write flushes
+	pipe    bool       // a pipe's writing end: a write flushes, since the other end waits for it
+	via     *viaReader // a pipe's reading end: its source, which handing it to a child changes
+	peer    string     // a connection's remote address, for Net.peer
+	// What a child process is given for a standard stream: the run's own, not the handle's
+	// buffer (process.go).
+	childIn  io.Reader
+	childOut io.Writer
 }
 
 // newHandle makes a handle over c that reads r and writes w, either of which may be nil.
@@ -269,7 +275,7 @@ func (h *Handle) write(s string) value.Value {
 // writes to stderr is not lost at exit, what it writes to a connection reaches the other end,
 // which is waiting, and what a pipe copied before its context ended it is delivered.
 func (h *Handle) flushed(err error) value.Value {
-	if h.std || h.conn {
+	if h.std || h.conn || h.pipe {
 		if ferr := h.w.Flush(); err == nil {
 			err = ferr
 		}
@@ -313,13 +319,17 @@ func (h *Handle) close() error {
 // pump reads standard input on a goroutine of its own, since no deadline and no close ends a
 // terminal's read: the goroutine blocks in the real read and hands chunks over a channel, and
 // Read takes them, or gives up when the current reader's context is done without taking one, so
-// a read the context ended loses nothing and the next read gets the chunk. The goroutine starts
-// at the first read and ends with the input, or stays in its read when the run ends first.
+// a read the context ended loses nothing and the next read gets the chunk. The goroutine reads
+// only when asked, so between the program's reads the input is left to a child that is handed
+// it. It starts at the first read and ends with the input, or stays in its read when the run
+// ends first.
 type pump struct {
 	src    io.Reader
 	done   <-chan struct{} // the run's end, after which a chunk has no taker
+	asks   chan struct{}
 	chunks chan chunk
 	once   sync.Once
+	asked  bool            // a read was asked for and its chunk not yet taken
 	rest   []byte          // the unread part of the last chunk
 	err    error           // what ended the input, given once rest is empty
 	cancel <-chan struct{} // the current reader's context, set under the read slot
@@ -332,6 +342,11 @@ type chunk struct {
 
 func (p *pump) run() {
 	for {
+		select {
+		case <-p.asks:
+		case <-p.done:
+			return
+		}
 		buf := make([]byte, 4096)
 		n, err := p.src.Read(buf)
 		select {
@@ -347,13 +362,18 @@ func (p *pump) run() {
 
 func (p *pump) Read(b []byte) (int, error) {
 	p.once.Do(func() {
+		p.asks = make(chan struct{}, 1)
 		p.chunks = make(chan chunk)
 		go p.run()
 	})
 	if len(p.rest) == 0 && p.err == nil {
+		if !p.asked {
+			p.asks <- struct{}{}
+			p.asked = true
+		}
 		select {
 		case c := <-p.chunks:
-			p.rest, p.err = c.data, c.err
+			p.rest, p.err, p.asked = c.data, c.err, false
 		case <-p.cancel:
 			return 0, os.ErrDeadlineExceeded
 		}
