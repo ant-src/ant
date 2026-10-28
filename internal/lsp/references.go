@@ -253,6 +253,9 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 	if err := renamable(t.obj); err != nil {
 		return nil, err
 	}
+	if err := a.collides(t.obj, p.NewName); err != nil {
+		return nil, err
+	}
 	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
 	add := func(rpath string, from, to ast.Pos) {
 		if rd := a.doc(rpath); rd != nil {
@@ -367,4 +370,54 @@ func (s *Server) importers(path, skip string) []*document {
 		})
 	}
 	return out
+}
+
+// collides reports a name already bound where the renamed binding is declared or used, which
+// the rename would shadow or clash with (section 10): in the scopes around its declaration and
+// around each use in its module, and among the module's top-level names.
+func (a *analysis) collides(o *check.Object, name string) *rpcError {
+	declPath, from, _, ok := a.declRange(o)
+	if !ok {
+		return nil
+	}
+	if declPath == "" {
+		declPath = a.pathOf(o)
+	}
+	m := a.modules[declPath]
+	if m == nil {
+		return nil
+	}
+	clash := &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared where %s is used", name, o.Name)}
+	if mi, ok := a.info.Modules[declPath]; ok {
+		for _, other := range mi.Names {
+			if other.Name == name {
+				return clash
+			}
+		}
+	}
+	if m.Resolve == nil {
+		return nil
+	}
+	// the scopes around the declaration and around each use
+	var positions []ast.Pos
+	positions = append(positions, from)
+	for _, r := range a.referencesOf(o) {
+		if r.path == declPath {
+			positions = append(positions, r.from)
+		}
+	}
+	for _, pos := range positions {
+		for _, n := range ast.Path(m.File, pos) {
+			sc, ok := m.Resolve.Scopes[n]
+			if !ok {
+				continue
+			}
+			for _, b := range sc.Names {
+				if b.Name == name && b.Node != o.Decl {
+					return clash
+				}
+			}
+		}
+	}
+	return nil
 }

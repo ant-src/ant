@@ -104,6 +104,13 @@ source <(ant --comp bash)  # in ~/.bashrc
 ant --comp fish | source   # in ~/.config/fish/config.fish
 ```
 
+## Editors
+
+`ant lsp` is a language server: diagnostics as you type, completion, hover with types and doc
+comments, go to definition, references and rename, symbols, formatting, and more, over the Language
+Server Protocol on standard input and output. The VS Code extension in
+[vscode-ant](https://github.com/ant-src/vscode-ant) starts it; any other editor's LSP client can.
+
 ## API
 
 Ant can be used as a lib too:

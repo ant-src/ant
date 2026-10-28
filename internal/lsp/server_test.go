@@ -577,3 +577,41 @@ func apply(text string, e TextEdit) string {
 	start, end := d.offset(e.Range.Start, true), d.offset(e.Range.End, true)
 	return text[:start] + e.NewText + text[end:]
 }
+
+func TestCodeActions(t *testing.T) {
+	c := start(t, workspace())
+	src := strings.Replace(mainSrc, "Point{ x: 1.0, y: 2.0 }", "Point{ x: 1.0 }", 1)
+	uri := c.open("main.ant", src)
+	diags := c.diagnostics(uri)
+	if len(diags) != 1 || !strings.Contains(diags[0].Message, "missing the field y") {
+		t.Fatalf("diagnostics: %+v", diags)
+	}
+	var acts []CodeAction
+	p := CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: diags[0].Range}
+	p.Context.Diagnostics = diags
+	c.call("textDocument/codeAction", p, &acts)
+	if len(acts) != 1 || acts[0].Title != "Add the missing field y" {
+		t.Fatalf("code actions: %+v", acts)
+	}
+	fixed := apply(src, acts[0].Edit.Changes[uri][0])
+	if !strings.Contains(fixed, "Point{ x: 1.0, y: 0.0 }") {
+		t.Errorf("after the fix: %s", fixed)
+	}
+	// an exported function without a return type
+	lib := strings.Replace(geometry, "export func distance(a: Point, b: Point): float64 {", "export func distance(a: Point, b: Point) {", 1)
+	libURI := c.open("lib/geometry.ant", lib)
+	diags = c.diagnostics(libURI)
+	if len(diags) != 1 || !strings.Contains(diags[0].Message, "must state its return type") {
+		t.Fatalf("library diagnostics: %+v", diags)
+	}
+	acts = nil
+	p = CodeActionParams{TextDocument: TextDocumentIdentifier{URI: libURI}, Range: diags[0].Range}
+	c.call("textDocument/codeAction", p, &acts)
+	if len(acts) != 1 || acts[0].Title != "State the return type float64" || !strings.Contains(apply(lib, acts[0].Edit.Changes[libURI][0]), "b: Point): float64 {") {
+		t.Errorf("code actions: %+v", acts)
+	}
+	// a rename that would clash
+	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "label }", 1, 0)), NewName: "p"}, nil); err == nil || !strings.Contains(err.Message, "already declared") {
+		t.Errorf("renaming label to p: %v", err)
+	}
+}
