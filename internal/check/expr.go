@@ -46,6 +46,12 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	if expected == nil {
 		return c.synth(e, sc)
 	}
+	t := c.checkExpr(e, sc, expected)
+	c.info.recordType(e, t)
+	return t
+}
+
+func (c *Checker) checkExpr(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	var t types.Type
 	switch x := e.(type) {
 	case *ast.Lambda:
@@ -82,6 +88,24 @@ func (c *Checker) check(e ast.Expr, sc *scope, expected types.Type) types.Type {
 	return t
 }
 
+// notePath records what the parts of an entity path refer to, which synth never sees.
+func (c *Checker) notePath(e ast.Expr, sc *scope) {
+	if c.info == nil {
+		return
+	}
+	switch x := e.(type) {
+	case *ast.Ident:
+		if _, ent := c.lookup(sc, x.Name); ent != nil {
+			c.info.recordIdent(x, c.info.object(ent))
+		}
+	case *ast.Field:
+		if ent := c.entityPath(x, sc); ent != nil {
+			c.info.recordMember(x, c.info.object(ent))
+		}
+		c.notePath(x.X, sc)
+	}
+}
+
 // genericValue instantiates a generic function used as a value from the expected function
 // type, which fixes its type parameters (section 4, Generics). It returns nil when e is not a
 // generic function or no function type is expected.
@@ -94,6 +118,7 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 	if ent == nil {
 		return nil
 	}
+	c.notePath(e, sc)
 	var s *sig
 	switch {
 	case ent.kind == entType:
@@ -203,6 +228,12 @@ func (c *Checker) declaredAt(d *types.Decl) string {
 
 // synth determines the type of an expression without an expected type.
 func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
+	t := c.synthExpr(e, sc)
+	c.info.recordType(e, t)
+	return t
+}
+
+func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 	switch x := e.(type) {
 	case *ast.Ident:
 		return c.ident(x, sc)
@@ -294,6 +325,7 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 	}
 	l, ent := c.lookup(sc, x.Name)
 	if l != nil {
+		c.info.recordIdent(x, c.info.localObject(l))
 		if c.hiddenX(l, x.Pos) {
 			return types.Invalid{}
 		}
@@ -317,6 +349,7 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 		c.errorf(x.Pos, "%s is not defined", x.Name)
 		return types.Invalid{}
 	}
+	c.info.recordIdent(x, c.info.object(ent))
 	return c.entityValue(ent, x.Pos)
 }
 
@@ -467,12 +500,15 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 		case entMissing:
 			return types.Invalid{}
 		case entModule:
+			c.notePath(x.X, sc)
 			m := c.moduleMember(base, x.Name, x.Pos)
 			if m == nil {
 				return types.Invalid{}
 			}
+			c.info.recordMember(x, c.info.object(m))
 			return c.entityValue(m, x.Pos)
 		case entNamespace, entType:
+			c.notePath(x.X, sc)
 			m, ok := base.members[x.Name]
 			if !ok {
 				if base.kind == entType && base.decl.Kind == types.PrimitiveDecl {
@@ -485,6 +521,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 				c.errorf(x.Pos, "%s.%s is not exported", base.name, x.Name)
 				return types.Invalid{}
 			}
+			c.info.recordMember(x, c.info.object(m))
 			return c.entityValue(m, x.Pos)
 		}
 	}
@@ -494,9 +531,11 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 			c.errorf(x.Pos, "?. needs a nullable left side, got %s", types.String(recv))
 			return types.Invalid{}
 		}
+		c.info.recordMember(x, c.info.fieldOf(types.Without(recv, types.Null{}), x.Name))
 		inner := c.fieldOf(types.Without(recv, types.Null{}), x.Name, x.Pos)
 		return c.endLink(x, x.Grouped, inner, true)
 	}
+	c.info.recordMember(x, c.info.fieldOf(recv, x.Name))
 	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos), short)
 }
 
@@ -664,6 +703,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		}
 		return types.Invalid{}
 	}
+	c.notePath(x.Head, sc)
 	decl := head.decl
 	if decl.Kind != types.RecordDecl {
 		c.errorf(x.Pos, "%s is not a record type, so it has no literal", decl.Name)
@@ -748,6 +788,9 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 			c.errorf(en.Pos, "%s has no field %s", decl.Name, en.Name)
 			c.synth(en.Value, sc)
 			continue
+		}
+		if c.info != nil {
+			c.info.Entries[&x.Entries[i]] = c.info.field(decl, decl.Fields[idx])
 		}
 		want := decl.Fields[idx].Type
 		if types.Mentions(want, unsolved) {
@@ -952,11 +995,18 @@ func (c *Checker) lambda(x *ast.Lambda, sc *scope, ft types.Func) types.Type {
 	}
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	if len(ft.Params) == 1 {
-		inner.names["x"] = &local{name: "x", typ: ft.Params[0], slot: x.Scope.X, ctx: ctx, pos: x.Pos}
+		inner.names["x"] = &local{name: "x", typ: ft.Params[0], slot: x.Scope.X, ctx: ctx, pos: x.Pos, node: x}
+		if c.info != nil {
+			c.info.Lambdas[x] = ft.Params[0]
+		}
 	} else {
 		// At run time x is bound to void, so it must not reach an outer x either.
-		inner.names["x"] = &local{name: "x", typ: types.Invalid{}, slot: x.Scope.X, ctx: ctx, pos: x.Pos, hidden: true}
+		inner.names["x"] = &local{name: "x", typ: types.Invalid{}, slot: x.Scope.X, ctx: ctx, pos: x.Pos, hidden: true, node: x}
+		if c.info != nil {
+			c.info.Lambdas[x] = nil
+		}
 	}
+	c.info.localObject(inner.names["x"])
 	ret := c.withNested(ctx, func() types.Type { return c.inferBody(x.Body, inner, ctx) })
 	return types.Func{Params: ft.Params, Return: ret, Required: len(ft.Params)}
 }
@@ -965,7 +1015,8 @@ func (c *Checker) lambda(x *ast.Lambda, sc *scope, ft types.Func) types.Type {
 func (c *Checker) lambdaBodyAnyway(x *ast.Lambda, sc *scope) {
 	ctx := &fnCtx{parent: c.fn, kind: "lambda", name: "lambda"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
-	inner.names["x"] = &local{name: "x", typ: types.Invalid{}, slot: x.Scope.X, ctx: ctx, pos: x.Pos}
+	inner.names["x"] = &local{name: "x", typ: types.Invalid{}, slot: x.Scope.X, ctx: ctx, pos: x.Pos, node: x}
+	c.info.localObject(inner.names["x"])
 	c.withNested(ctx, func() types.Type { return c.inferBody(x.Body, inner, ctx) })
 }
 
@@ -1256,6 +1307,7 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 		return types.Prim{Kind: builtinKinds[x.Kind]}
 	}
 	ent := c.entityPath(x.Path, sc)
+	c.notePath(x.Path, sc)
 	if ent == nil {
 		// a private or missing member of an imported module says so
 		if f, ok := x.Path.(*ast.Field); ok {

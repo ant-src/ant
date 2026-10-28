@@ -227,6 +227,9 @@ func (c *Checker) blockTypes(b *ast.Block, sc *scope) {
 		}
 		sc.types[d.Name] = ti.ent
 	}
+	for _, ti := range fresh {
+		c.info.declared(ti.ent, ti.decl, c.mod.path, "")
+	}
 	c.resolveTypeDecls(fresh)
 }
 
@@ -244,7 +247,8 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 		if t == nil {
 			t = types.Invalid{}
 		}
-		l := &local{name: nt.Name, typ: t, slot: nt.Slot, ctx: c.fn, pos: nt.Pos, pending: true, stated: declared != nil}
+		l := &local{name: nt.Name, typ: t, slot: nt.Slot, ctx: c.fn, pos: nt.Pos, node: nt, pending: true, stated: declared != nil}
+		c.info.localObject(l)
 		sc.names[nt.Name] = l
 		locals = append(locals, l)
 	}
@@ -317,14 +321,15 @@ func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string
 
 // declareTarget binds a for target's names as locals in sc.
 func (c *Checker) declareTarget(t ast.Target, src types.Type, sc *scope) {
-	slots := map[string]ast.Slot{}
-	positions := map[string]ast.Pos{}
+	nodes := map[string]*ast.NameTarget{}
 	for _, nt := range targetNames(t) {
-		slots[nt.Name] = nt.Slot
-		positions[nt.Name] = nt.Pos
+		nodes[nt.Name] = nt
 	}
 	c.bindTargetTypes(t, src, func(name string, ty types.Type) {
-		sc.names[name] = &local{name: name, typ: ty, slot: slots[name], ctx: c.fn, pos: positions[name]}
+		nt := nodes[name]
+		l := &local{name: name, typ: ty, slot: nt.Slot, ctx: c.fn, pos: nt.Pos, node: nt}
+		c.info.localObject(l)
+		sc.names[name] = l
 	})
 }
 

@@ -21,12 +21,16 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 	}
 	ent := c.entityPath(x.Fn, sc)
 	if ent != nil {
+		c.notePath(x.Fn, sc)
 		switch ent.kind {
 		case entFunc:
 			s := c.sigOf(ent, x.Pos)
 			if s == nil {
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
+			}
+			if ent.isConv || ent.isLen || ent.isPrintln && len(x.Args) == 0 {
+				c.info.recordCall(x, &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: c.info.object(ent), Slots: positional(x)})
 			}
 			if ent.isConv {
 				return c.conversion(ent, x, sc)
@@ -37,9 +41,10 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isPrintln && len(x.Args) == 0 {
 				return types.Void{}
 			}
-			return c.applySig(s, x, sc, expected)
+			return c.applySig(s, x, sc, expected, c.info.object(ent))
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {
+				c.info.recordCall(x, &CallInfo{Fn: constructorType(ent.decl), Callee: c.info.object(ent), Slots: positional(x)})
 				return c.construct(ent.decl, x, sc, expected)
 			}
 			c.errorf(x.Pos, "%s is a type, not a function", ent.decl.Name)
@@ -64,6 +69,15 @@ func (c *Checker) synthArgs(args []ast.Arg, sc *scope) {
 	}
 }
 
+// positional maps each argument of a call to the parameter of its position.
+func positional(x *ast.Call) []int {
+	slots := make([]int, len(x.Args))
+	for i := range slots {
+		slots[i] = i
+	}
+	return slots
+}
+
 // callValue checks a positional call through a function value.
 func (c *Checker) callValue(fn types.Type, x *ast.Call, sc *scope) types.Type {
 	ft, ok := types.Expand(fn).(types.Func)
@@ -74,6 +88,7 @@ func (c *Checker) callValue(fn types.Type, x *ast.Call, sc *scope) types.Type {
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
+	c.info.recordCall(x, &CallInfo{Fn: ft, Slots: positional(x)})
 	for _, a := range x.Args {
 		if a.Name != "" {
 			c.errorf(a.Pos, "a call through a function value is positional; named arguments apply only to a declared function")
@@ -227,8 +242,27 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 
 // applySig checks a call of a declared function, solving its type parameters (section 4,
 // Inference) and matching positional and named arguments to its parameters.
-func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type) types.Type {
+func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object) types.Type {
 	slots, ok := c.argSlots(s, x)
+	if c.info != nil {
+		ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args))}
+		for i := range ci.Slots {
+			ci.Slots[i] = -1
+		}
+		for param, a := range slots {
+			if a != nil {
+				for i := range x.Args {
+					if &x.Args[i] == a {
+						ci.Slots[i] = param
+					}
+				}
+			}
+		}
+		if !ok {
+			ci.Slots = argSlotsLoosely(s, x)
+		}
+		c.info.recordCall(x, ci)
+	}
 	if !ok {
 		c.synthArgs(x.Args, sc)
 		return c.resultOf(s, nil, x.Pos)
@@ -321,6 +355,29 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type) 
 		}
 	}
 	return c.resultOf(s, subst, x.Pos)
+}
+
+// argSlotsLoosely maps each argument of a call that argSlots refused to the parameter it would
+// fill: a positional one by its position, a named one by its name, or -1.
+func argSlotsLoosely(s *sig, x *ast.Call) []int {
+	out := make([]int, len(x.Args))
+	positional := 0
+	for i, a := range x.Args {
+		out[i] = -1
+		if a.Name == "" {
+			if positional < len(s.fn.Params) {
+				out[i] = positional
+			}
+			positional++
+			continue
+		}
+		for j, name := range s.fn.Names {
+			if name == a.Name {
+				out[i] = j
+			}
+		}
+	}
+	return out
 }
 
 // argSlots matches a call's positional and named arguments to the function's parameters, one

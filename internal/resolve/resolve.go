@@ -28,6 +28,52 @@ type Options struct {
 	Fields *ast.ModuleScope
 	// Extra names the prelude binds in this program, such as host namespaces.
 	Extra []string
+	// Info, when set, is filled with what the resolver learned about the module's names, for an
+	// editor.
+	Info *Info
+}
+
+// Info is what the resolver learned about a module's names: where each identifier is declared
+// and the names each scope holds.
+type Info struct {
+	// Defs maps each identifier to the node that declares it: a *ast.NameTarget, a *ast.Param,
+	// a *ast.FuncDecl, a *ast.TypeDecl, a *ast.Import that binds a namespace, a *ast.ImportName,
+	// or the *ast.Lambda whose x it is. A prelude name or an unbound one has no entry.
+	Defs map[*ast.Ident]ast.Node
+	// Uses maps each declaring node to the identifiers that refer to it, in source order.
+	Uses map[ast.Node][]*ast.Ident
+	// Scopes maps the node that opens a scope to it: the *ast.File for the module's, a
+	// function's or lambda's body *ast.Block for its parameters and locals, a *ast.Block, the
+	// body of a for loop for its variable, and the body of a select clause for its binding.
+	Scopes map[ast.Node]*Scope
+}
+
+// Scope is a lexical scope: the names declared in it, in order, and the scope around it.
+type Scope struct {
+	Parent *Scope
+	Names  []Binding
+}
+
+// Binding is a name a scope declares and the node that declares it.
+type Binding struct {
+	Name string
+	Pos  ast.Pos
+	Node ast.Node
+	// Type is set for a type declared in a block, Import for an import's binding.
+	Type, Import bool
+}
+
+func (in *Info) def(id *ast.Ident, n ast.Node) {
+	if in == nil || n == nil {
+		return
+	}
+	in.Defs[id] = n
+	in.Uses[n] = append(in.Uses[n], id)
+}
+
+// NewInfo returns an empty Info.
+func NewInfo() *Info {
+	return &Info{Defs: map[*ast.Ident]ast.Node{}, Uses: map[ast.Node][]*ast.Ident{}, Scopes: map[ast.Node]*Scope{}}
 }
 
 type binding struct {
@@ -42,8 +88,9 @@ type binding struct {
 	module         bool
 	index          int // module field index, or slot index after finalize
 	shared         bool
-	imp            int    // RefImport: the import's index; -1 otherwise
-	impName        string // RefImport: the export's name, "" for a namespace
+	imp            int      // RefImport: the import's index; -1 otherwise
+	impName        string   // RefImport: the export's name, "" for a namespace
+	node           ast.Node // the declaring node, for Info
 }
 
 type scope struct {
@@ -59,6 +106,8 @@ type scope struct {
 	fnScope  *ast.FuncScope
 	xBinding *binding
 	alloc    bool
+	node     ast.Node // the node that opens the scope, for Info
+	info     *Scope
 }
 
 // loopFacts collects the locals declared outside a loop that its body assigns.
@@ -93,13 +142,14 @@ type resolver struct {
 	// or nil: a default there may name the block's types but none of its variables.
 	defaultOf *scope
 	extra     map[string]bool
+	info      *Info
 }
 
 func (r *resolver) isPrelude(name string) bool { return prelude.IsName(name) || r.extra[name] }
 
 // Resolve annotates f and returns the scope errors it finds.
 func Resolve(f *ast.File, opts Options) []*Error {
-	r := &resolver{session: opts.Session, script: f.Script, extra: map[string]bool{}}
+	r := &resolver{session: opts.Session, script: f.Script, extra: map[string]bool{}, info: opts.Info}
 	for _, n := range opts.Extra {
 		r.extra[n] = true
 	}
@@ -108,7 +158,7 @@ func Resolve(f *ast.File, opts Options) []*Error {
 		r.fields = &ast.ModuleScope{Index: map[string]int{}}
 	}
 	f.Scope = r.fields
-	r.module = r.push(&scope{module: true})
+	r.module = r.push(&scope{module: true, node: f})
 	if opts.Session {
 		for name, idx := range r.fields.Index {
 			r.module.names[name] = &binding{name: name, scope: r.module, module: true, index: idx, imp: -1}
@@ -163,12 +213,27 @@ func (r *resolver) errorf(pos ast.Pos, format string, args ...any) {
 func (r *resolver) push(s *scope) *scope {
 	s.names = map[string]*binding{}
 	r.scopes = append(r.scopes, s)
+	if r.info != nil && s.node != nil {
+		s.info = &Scope{}
+		if s.parent != nil {
+			s.info.Parent = s.parent.info
+		}
+		r.info.Scopes[s.node] = s.info
+	}
 	return s
 }
 
-// declare binds name in s, enforcing the shadowing rules.
-func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
-	b := &binding{name: name, pos: pos, scope: s, imp: -1}
+// noteBinding records a binding in its scope's Info.
+func (r *resolver) noteBinding(s *scope, b *binding) {
+	if s.info == nil || b.node == nil {
+		return
+	}
+	s.info.Names = append(s.info.Names, Binding{Name: b.name, Pos: b.pos, Node: b.node, Type: b.isType, Import: b.imp >= 0})
+}
+
+// declare binds name in s, enforcing the shadowing rules. node is what declares it.
+func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node) *binding {
+	b := &binding{name: name, pos: pos, scope: s, imp: -1, node: node}
 	if name == "_" {
 		b.discard = true
 		return b
@@ -191,12 +256,14 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
 				r.fields.Fields = append(r.fields.Fields, name)
 				r.fields.Index[name] = b.index
 			}
+			r.noteBinding(s, b)
 			return b
 		case s.module && r.session:
 			// A session replaces the binding; the field keeps its index.
 			b.module = true
 			b.index = old.index
 			s.names[name] = b
+			r.noteBinding(s, b)
 			return b
 		case old.imp >= 0:
 			r.errorf(pos, "%s is already bound by an import", name)
@@ -218,10 +285,11 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos) *binding {
 			r.fields.Index[name] = b.index
 		}
 	}
+	r.noteBinding(s, b)
 	return b
 }
 
-func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, impName string) {
+func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, impName string, node ast.Node) {
 	if r.isPrelude(name) {
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
 		return
@@ -230,17 +298,20 @@ func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, im
 		r.errorf(pos, "%s is already bound by an import", name)
 		return
 	}
-	s.names[name] = &binding{name: name, pos: pos, scope: s, imp: imp, impName: impName}
+	b := &binding{name: name, pos: pos, scope: s, imp: imp, impName: impName, node: node}
+	s.names[name] = b
+	r.noteBinding(s, b)
 }
 
 func (r *resolver) declareModule(f *ast.File) {
 	for i, imp := range f.Imports {
 		if imp.Namespace != "" {
-			r.declareImport(r.module, imp.Namespace, imp.Pos, i, "")
+			r.declareImport(r.module, imp.Namespace, imp.Pos, i, "", imp)
 			continue
 		}
-		for _, n := range imp.Names {
-			r.declareImport(r.module, n.Alias, n.Pos, i, n.Name)
+		for j := range imp.Names {
+			n := &imp.Names[j]
+			r.declareImport(r.module, n.Alias, n.Pos, i, n.Name, n)
 		}
 	}
 	types := map[string]*ast.TypeDecl{}
@@ -251,11 +322,11 @@ func (r *resolver) declareModule(f *ast.File) {
 			r.target(d.Target, r.module)
 		case *ast.FuncDecl:
 			if d.Owner == "" {
-				r.declare(r.module, d.Name, d.Pos)
+				r.declare(r.module, d.Name, d.Pos, d)
 			}
 			r.typeParams(d.TypeParams)
 		case *ast.TypeDecl:
-			r.declare(r.module, d.Name, d.Pos)
+			r.declare(r.module, d.Name, d.Pos, d)
 			types[d.Name] = d
 			r.typeParams(d.TypeParams)
 		}
@@ -308,7 +379,7 @@ func (r *resolver) typeParams(tps []ast.TypeParam) {
 // ---- declarations
 
 func (r *resolver) funcDecl(d *ast.FuncDecl) {
-	s := r.push(&scope{parent: r.module, boundary: true, fn: true})
+	s := r.push(&scope{parent: r.module, boundary: true, fn: true, node: d.Body})
 	r.tparams = d.TypeParams
 	defer func() { r.tparams = nil }()
 	d.Scope = &ast.FuncScope{}
@@ -321,7 +392,7 @@ func (r *resolver) funcDecl(d *ast.FuncDecl) {
 
 func (r *resolver) params(ps []ast.Param, s *scope) {
 	for i := range ps {
-		b := r.declare(s, ps[i].Name, ps[i].Pos)
+		b := r.declare(s, ps[i].Name, ps[i].Pos, &ps[i])
 		r.paramsOf = append(r.paramsOf, paramBinding{&ps[i], b})
 	}
 	for _, p := range ps {
@@ -335,7 +406,7 @@ func (r *resolver) params(ps []ast.Param, s *scope) {
 func (r *resolver) target(t ast.Target, s *scope) {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		b := r.declare(s, t.Name, t.Pos)
+		b := r.declare(s, t.Name, t.Pos, t)
 		t.Slot = ast.Slot{} // filled in finalize
 		r.bindTarget(t, b)
 	case *ast.RecordTarget:
@@ -405,8 +476,11 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 				r.errorf(td.Pos, "%s is a type parameter of the enclosing function and cannot be redeclared", td.Name)
 			}
 		}
-		b := r.declare(s, td.Name, td.Pos)
+		b := r.declare(s, td.Name, td.Pos, td)
 		b.isType = true
+		if s.info != nil {
+			s.info.Names[len(s.info.Names)-1].Type = true
+		}
 		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)
 	}
@@ -436,14 +510,15 @@ func (r *resolver) stmt(st ast.Stmt, s *scope) {
 
 // block resolves a block's statements in a new scope, unless it declares nothing.
 func (r *resolver) block(b *ast.Block, parent *scope) {
-	s := r.push(&scope{parent: parent, block: b})
+	s := r.push(&scope{parent: parent, block: b, node: b})
 	r.stmts(b, s)
 }
 
-func (r *resolver) body(kind string, b *ast.Block, parent *scope, fs *ast.FuncScope) {
-	s := r.push(&scope{parent: parent, boundary: true, fn: true, fnScope: fs})
-	if kind == "lambda" {
-		s.xBinding = r.declare(s, "x", b.Pos)
+// body resolves the body of a lambda, whose node binds x, or of a go or defer block.
+func (r *resolver) body(lambda *ast.Lambda, b *ast.Block, parent *scope, fs *ast.FuncScope) {
+	s := r.push(&scope{parent: parent, boundary: true, fn: true, fnScope: fs, node: b})
+	if lambda != nil {
+		s.xBinding = r.declare(s, "x", b.Pos, lambda)
 	}
 	r.stmts(b, s)
 }
@@ -483,10 +558,10 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		}
 	case *ast.Lambda:
 		e.Scope = &ast.FuncScope{}
-		r.body("lambda", e.Body, s, e.Scope)
+		r.body(e, e.Body, s, e.Scope)
 	case *ast.FuncLit:
 		e.Scope = &ast.FuncScope{}
-		fs := r.push(&scope{parent: s, boundary: true, fn: true, fnScope: e.Scope})
+		fs := r.push(&scope{parent: s, boundary: true, fn: true, fnScope: e.Scope, node: e.Body})
 		r.params(e.Params, fs)
 		r.stmts(e.Body, fs)
 	case *ast.Field:
@@ -534,7 +609,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		r.loopBody(s, &e.Assigned, func() { r.block(e.Body, s) })
 	case *ast.For:
 		r.expr(e.Iter, s)
-		it := r.push(&scope{parent: s, loop: e})
+		it := r.push(&scope{parent: s, loop: e, node: e.Body})
 		r.target(e.Target, it)
 		r.loopBody(s, &e.Assigned, func() { r.stmts(e.Body, it) })
 	case *ast.Select:
@@ -544,7 +619,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 			if c.Head != nil {
 				r.expr(c.Head, s)
 			}
-			cs := r.push(&scope{parent: s, clause: c})
+			cs := r.push(&scope{parent: s, clause: c, node: c.Body})
 			if c.Target != nil {
 				r.target(c.Target, cs)
 			}
@@ -552,10 +627,10 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		}
 	case *ast.Go:
 		e.Scope = &ast.FuncScope{}
-		r.body("go", e.Body, s, e.Scope)
+		r.body(nil, e.Body, s, e.Scope)
 	case *ast.Defer:
 		e.Scope = &ast.FuncScope{}
-		r.body("defer", e.Body, s, e.Scope)
+		r.body(nil, e.Body, s, e.Scope)
 	case *ast.Return:
 		r.expr(e.Value, s)
 	case *ast.Block:
@@ -645,6 +720,7 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 			if r.defaultOf != nil && !b.module && b.imp < 0 && !b.isType && encloses(b.scope, r.defaultOf) {
 				r.errorf(id.Pos, "a field default of a local type cannot use %s, a variable or parameter of an enclosing block", id.Name)
 			}
+			r.info.def(id, b.node)
 			switch {
 			case b.imp >= 0:
 				id.Ref = ast.Ref{Kind: ast.RefImport, Index: b.imp, Name: b.impName}

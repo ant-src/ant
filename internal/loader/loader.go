@@ -57,9 +57,11 @@ type Module struct {
 	Path  string // canonical, the module's identity
 	File  *ast.File
 	Index int
-	// Src and Layout are the module's source and layout, kept when loading with Recover.
-	Src    string
-	Layout *parser.Layout
+	// Src, Layout, and Resolve are the module's source, layout, and the resolver's findings,
+	// kept when loading with Recover.
+	Src     string
+	Layout  *parser.Layout
+	Resolve *resolve.Info
 }
 
 // Program is a loaded module graph.
@@ -212,13 +214,16 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		opts.Session = true
 		opts.Fields = l.cfg.Session
 	}
+	if l.cfg.Recover {
+		opts.Info = resolve.NewInfo()
+	}
 	for _, e := range resolve.Resolve(f, opts) {
 		l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
 	}
 	l.state[key] = 1
 	m := &Module{Path: key, File: f}
 	if l.cfg.Recover {
-		m.Src, m.Layout = src, layout
+		m.Src, m.Layout, m.Resolve = src, layout, opts.Info
 	}
 	for _, imp := range f.Imports {
 		childKey, childDisplay := l.canonical(imp.Path, raw)

@@ -24,15 +24,17 @@ type HostNamespace struct {
 	Decls *ast.File
 }
 
-// Config adjusts the prelude a program sees.
+// Config adjusts the prelude a program sees, and asks for Info.
 type Config struct {
 	Namespaces []HostNamespace
 	Removed    []string
+	// Info, when set, is filled with what the checker learns (NewInfo).
+	Info *Info
 }
 
 // Program checks every module of prog and returns the errors sorted by position.
 func Program(prog *loader.Program, cfg Config) []Diagnostic {
-	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}}
+	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}, info: cfg.Info}
 	c.loadPrelude(cfg)
 	c.mods = make([]*moduleInfo, len(prog.Modules))
 	for _, m := range prog.Modules {
@@ -50,6 +52,7 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 	for _, m := range prog.Modules {
 		c.checkModule(c.mods[m.Index])
 	}
+	c.info.finish(c)
 	sort.SliceStable(c.diags, func(i, j int) bool {
 		a, b := c.diags[i], c.diags[j]
 		if a.Path != b.Path {
@@ -93,6 +96,8 @@ type Checker struct {
 	// shorted holds, for each postfix link of a chain that a ?. may skip, the link's type when
 	// nothing was null; the links after it in the chain read that type (see chainRecv).
 	shorted map[ast.Expr]types.Type
+	// info, when set, records what the checker learns for an editor; its methods accept nil.
+	info *Info
 }
 
 func (c *Checker) errorf(pos ast.Pos, format string, args ...any) {
@@ -306,6 +311,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 			decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
 		}
 		ent := &entity{name: td.Name, kind: entType, decl: decl, pos: td.Pos, exported: true}
+		c.info.declared(ent, td, c.mod.path, own)
 		if own != "" {
 			owner(own).members[td.Name] = ent
 		} else {
@@ -328,6 +334,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 			fi := &funcInfo{decl: d, mod: c.mod}
 			fi.sig = c.signature(d, nil, own)
 			ent := &entity{name: d.Name, kind: entFunc, sig: fi.sig, pos: d.Pos, exported: true}
+			c.info.declared(ent, d, c.mod.path, own)
 			if own == "" {
 				c.prelude[d.Name] = ent
 				continue
@@ -347,6 +354,7 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 			}
 			name := d.Target.(*ast.NameTarget).Name
 			ent := &entity{name: name, kind: entConst, typ: c.resolveType(d.Type, nil), pos: d.Pos, exported: true}
+			c.info.declared(ent, d, c.mod.path, own)
 			owner(own).members[name] = ent
 		}
 	}
@@ -369,10 +377,13 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 		}
 		target := c.mods[imp.Module]
 		if imp.Namespace != "" {
-			mi.names[imp.Namespace] = &entity{name: imp.Namespace, kind: entModule, mod: target, members: target.exports, pos: imp.Pos}
+			ent := &entity{name: imp.Namespace, kind: entModule, mod: target, members: target.exports, pos: imp.Pos}
+			mi.names[imp.Namespace] = ent
+			c.info.alias(imp, ent)
 			continue
 		}
-		for _, n := range imp.Names {
+		for j := range imp.Names {
+			n := &imp.Names[j]
 			// Only the target's own exported declarations are visible: a name the target
 			// imported is not re-exported (section 10).
 			ent, ok := target.exports[n.Name]
@@ -385,6 +396,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 				continue
 			}
 			mi.names[n.Alias] = ent
+			c.info.alias(n, ent)
 		}
 	}
 	for _, d := range f.Decls {
@@ -396,6 +408,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			}
 			ent := &entity{name: d.Name, kind: entType, decl: decl, exported: d.Export, pos: d.Pos, members: map[string]*entity{}}
 			mi.names[d.Name] = ent
+			c.info.declared(ent, d, mi.path, "")
 			mi.types = append(mi.types, &typeInfo{decl: d, t: decl, ent: ent, mod: mi})
 			if d.Export {
 				mi.exports[d.Name] = ent
@@ -409,6 +422,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			ent := &entity{name: d.Name, kind: entFunc, fn: fi, exported: d.Export, pos: d.Pos}
 			fi.ent = ent
 			mi.names[d.Name] = ent
+			c.info.declared(ent, d, mi.path, "")
 			if d.Export {
 				mi.exports[d.Name] = ent
 			}
@@ -419,6 +433,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 				mi.vars = append(mi.vars, v)
 				ent := &entity{name: name.Name, kind: entVar, v: v, exported: d.Export, pos: name.Pos}
 				mi.names[name.Name] = ent
+				c.info.declared(ent, name, mi.path, "")
 				if d.Export {
 					mi.exports[name.Name] = ent
 				}
@@ -473,6 +488,7 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 		ent := &entity{name: d.Name, kind: entFunc, fn: fi, exported: d.Export, pos: d.Pos}
 		fi.ent = ent
 		owner.members[d.Name] = ent
+		c.info.declared(ent, d, mi.path, d.Owner)
 	}
 }
 
@@ -515,6 +531,7 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	}
 	delete(c.unresolved, ti.t)
 	c.resolveTypeDecl(ti)
+	c.info.fieldDecl(ti.t, ti.decl)
 	c.checkAliasCycle(ti)
 	c.checkAliasArgs(ti)
 	c.checkCycleUnions(ti)
@@ -933,6 +950,17 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 }
 
 func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
+	t := c.resolveTypeNameParts(x, sc)
+	if c.info != nil {
+		if _, ok := c.info.TypeNames[x]; !ok && !types.IsInvalid(t) {
+			// a built-in: a primitive, null, void, never, Array, Map, or Set
+			c.info.TypeNames[x] = []*Object{c.info.builtinType(x.Path[0], t)}
+		}
+	}
+	return t
+}
+
+func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 	name := x.Path[0]
 	if len(x.Path) == 1 {
 		if p, outside := sc.lookupTypeParam(name); p != nil {
@@ -942,6 +970,9 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 			}
 			if len(x.Args) > 0 {
 				c.errorf(x.Pos, "the type parameter %s takes no type arguments", name)
+			}
+			if c.info != nil {
+				c.info.TypeNames[x] = []*Object{c.info.typeParamObject(p)}
 			}
 			return types.Param{Decl: p}
 		}
@@ -986,6 +1017,14 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	if ent.kind == entMissing {
 		return types.Invalid{}
 	}
+	var parts []*Object
+	note := func(e *entity) {
+		if c.info != nil {
+			parts = append(parts, c.info.object(e))
+			c.info.TypeNames[x] = parts
+		}
+	}
+	note(ent)
 	for _, part := range x.Path[1:] {
 		if ent.kind == entModule {
 			next := c.moduleMember(ent, part, x.Pos)
@@ -993,6 +1032,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 				return types.Invalid{}
 			}
 			ent = next
+			note(ent)
 			continue
 		}
 		if ent.members == nil {
@@ -1005,6 +1045,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 			return types.Invalid{}
 		}
 		ent = next
+		note(ent)
 	}
 	if ent.kind != entType {
 		c.errorf(x.Pos, "%s is not a type", x.Path[len(x.Path)-1])
@@ -1290,6 +1331,7 @@ type local struct {
 	slot    ast.Slot
 	ctx     *fnCtx
 	pos     ast.Pos
+	node    ast.Node // what declares it: a *ast.NameTarget, a *ast.Param, or a *ast.Lambda for x
 	pending bool
 	// unset marks a parameter with a default while the defaults up to its own are checked.
 	unset  bool
@@ -1345,7 +1387,8 @@ func withRigid(rigid map[*types.ParamDecl]bool, own map[string]*types.ParamDecl)
 // declareParams binds parameters as locals and checks their defaults.
 func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCtx) {
 	for i, p := range params {
-		l := &local{name: p.Name, typ: s.fn.Params[i], slot: p.Slot, ctx: ctx, pos: p.Pos}
+		l := &local{name: p.Name, typ: s.fn.Params[i], slot: p.Slot, ctx: ctx, pos: p.Pos, node: &params[i]}
+		c.info.localObject(l)
 		if !p.Slot.Discard {
 			sc.names[p.Name] = l
 		}
