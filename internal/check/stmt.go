@@ -216,8 +216,10 @@ func (c *Checker) blockTypes(b *ast.Block, sc *scope) {
 		ti := c.localTypes[d]
 		if ti == nil {
 			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Path: c.mod.path, Kind: declKind(d.Body)}
-			for _, tp := range d.TypeParams {
-				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
+			for i := range d.TypeParams {
+				pd := &types.ParamDecl{Name: d.TypeParams[i].Name}
+				decl.Params = append(decl.Params, pd)
+				c.info.typeParam(pd, &d.TypeParams[i], c.mod.path)
 			}
 			ent := &entity{name: d.Name, kind: entType, decl: decl, pos: d.Pos, members: map[string]*entity{}}
 			ti = &typeInfo{decl: d, t: decl, ent: ent, mod: c.mod, scope: sc}
@@ -248,7 +250,7 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 			t = types.Invalid{}
 		}
 		l := &local{name: nt.Name, typ: t, slot: nt.Slot, ctx: c.fn, pos: nt.Pos, node: nt, pending: true, stated: declared != nil}
-		c.info.localObject(l)
+		c.info.localObject(l, c.mod.path)
 		sc.names[nt.Name] = l
 		locals = append(locals, l)
 	}
@@ -328,7 +330,7 @@ func (c *Checker) declareTarget(t ast.Target, src types.Type, sc *scope) {
 	c.bindTargetTypes(t, src, func(name string, ty types.Type) {
 		nt := nodes[name]
 		l := &local{name: name, typ: ty, slot: nt.Slot, ctx: c.fn, pos: nt.Pos, node: nt}
-		c.info.localObject(l)
+		c.info.localObject(l, c.mod.path)
 		sc.names[name] = l
 	})
 }

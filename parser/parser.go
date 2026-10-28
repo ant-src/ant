@@ -739,7 +739,8 @@ func (p *parser) importDecl() *ast.Import {
 	p.next()
 	imp := &ast.Import{Pos: pos(t), Path: pt.Text, PathPos: pos(pt), PathEnd: epos(pt)}
 	if p.atKind(token.Ident) {
-		imp.Namespace = p.next().Text
+		ns := p.next()
+		imp.Namespace, imp.NamespacePos = ns.Text, pos(ns)
 		imp.End = p.end()
 		return imp
 	}
@@ -2117,6 +2118,13 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			}
 		default:
 			if !isMap {
+				if p.recovering && w.Kind == token.Ident {
+					// A name with no colon or comma after it yet, as while an entry is typed:
+					// the shorthand entry, and the list reports what follows.
+					p.next()
+					rec = append(rec, ast.RecordEntry{Pos: pos(w), End: epos(w), Name: w.Text, Value: &ast.Ident{Pos: pos(w), End: epos(w), Name: w.Text}})
+					return
+				}
 				p.fail(w.Pos, "a record field must be a name")
 			}
 			k := p.expression()

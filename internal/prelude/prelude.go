@@ -18,6 +18,9 @@ var (
 	err  error
 )
 
+// Source is the text of prelude.ant, which an editor shows for a prelude declaration.
+func Source() string { return source }
+
 // Decls returns the prelude's declarations, parsed once.
 func Decls() (*ast.File, error) {
 	once.Do(func() { file, err = parser.Parse("prelude.ant", source, parser.Prelude) })

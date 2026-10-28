@@ -325,7 +325,7 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 	}
 	l, ent := c.lookup(sc, x.Name)
 	if l != nil {
-		c.info.recordIdent(x, c.info.localObject(l))
+		c.info.recordIdent(x, c.info.localObject(l, c.mod.path))
 		if c.hiddenX(l, x.Pos) {
 			return types.Invalid{}
 		}
@@ -1006,7 +1006,7 @@ func (c *Checker) lambda(x *ast.Lambda, sc *scope, ft types.Func) types.Type {
 			c.info.Lambdas[x] = nil
 		}
 	}
-	c.info.localObject(inner.names["x"])
+	c.info.localObject(inner.names["x"], c.mod.path)
 	ret := c.withNested(ctx, func() types.Type { return c.inferBody(x.Body, inner, ctx) })
 	return types.Func{Params: ft.Params, Return: ret, Required: len(ft.Params)}
 }
@@ -1016,7 +1016,7 @@ func (c *Checker) lambdaBodyAnyway(x *ast.Lambda, sc *scope) {
 	ctx := &fnCtx{parent: c.fn, kind: "lambda", name: "lambda"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	inner.names["x"] = &local{name: "x", typ: types.Invalid{}, slot: x.Scope.X, ctx: ctx, pos: x.Pos, node: x}
-	c.info.localObject(inner.names["x"])
+	c.info.localObject(inner.names["x"], c.mod.path)
 	c.withNested(ctx, func() types.Type { return c.inferBody(x.Body, inner, ctx) })
 }
 

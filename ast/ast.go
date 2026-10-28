@@ -66,13 +66,14 @@ type File struct {
 
 // Import is one import declaration.
 type Import struct {
-	Pos       Pos
-	End       Pos
-	Path      string
-	PathPos   Pos // the path string, from its opening quote
-	PathEnd   Pos
-	Namespace string       // the bare name that binds the whole module, or ""
-	Names     []ImportName // the destructured names, when Namespace is ""
+	Pos          Pos
+	End          Pos
+	Path         string
+	PathPos      Pos // the path string, from its opening quote
+	PathEnd      Pos
+	Namespace    string       // the bare name that binds the whole module, or ""
+	NamespacePos Pos          // where Namespace is written, or zero
+	Names        []ImportName // the destructured names, when Namespace is ""
 	// Module is filled by the loader: the index of the imported module in the program, or -1
 	// when the module could not be loaded and the loader went on (Config.Recover).
 	Module int

@@ -40,6 +40,7 @@ type Info struct {
 	objects map[*entity]*Object
 	locals  map[*local]*Object
 	fields  map[fieldKey]*Object
+	tparams map[*types.ParamDecl]*Object
 }
 
 // ModuleInfo lists a module's top-level names and exports.
@@ -118,6 +119,7 @@ func NewInfo() *Info {
 		TypeNames: map[*ast.TypeName][]*Object{}, Decls: map[ast.Node]*Object{}, Calls: map[*ast.Call]*CallInfo{},
 		Lambdas: map[*ast.Lambda]types.Type{}, Entries: map[*ast.RecordEntry]*Object{}, Modules: map[string]*ModuleInfo{},
 		objects: map[*entity]*Object{}, locals: map[*local]*Object{}, fields: map[fieldKey]*Object{},
+		tparams: map[*types.ParamDecl]*Object{},
 	}
 }
 
@@ -301,15 +303,15 @@ func (in *Info) declared(e *entity, decl ast.Node, path, owner string) {
 	}
 }
 
-// localObject is the Object of a local, made once.
-func (in *Info) localObject(l *local) *Object {
+// localObject is the Object of a local, made once; path is its module.
+func (in *Info) localObject(l *local, path string) *Object {
 	if in == nil || l == nil {
 		return nil
 	}
 	if o, ok := in.locals[l]; ok {
 		return o
 	}
-	o := &Object{Name: l.name, Kind: Var, loc: l, Decl: l.node, info: in}
+	o := &Object{Name: l.name, Kind: Var, loc: l, Decl: l.node, Path: path, info: in}
 	if _, isParam := l.node.(*ast.Param); isParam {
 		o.Kind = Param
 	}
@@ -355,9 +357,27 @@ func (in *Info) fieldDecl(decl *types.Decl, td *ast.TypeDecl) {
 	}
 }
 
-// typeParamObject is the Object of a type parameter.
+// typeParamObject is the Object of a type parameter, made once.
 func (in *Info) typeParamObject(p *types.ParamDecl) *Object {
-	return &Object{Name: p.Name, Kind: TypeParam, param: p, info: in}
+	if in == nil {
+		return nil
+	}
+	if o, ok := in.tparams[p]; ok {
+		return o
+	}
+	o := &Object{Name: p.Name, Kind: TypeParam, param: p, info: in}
+	in.tparams[p] = o
+	return o
+}
+
+// typeParam records where a type parameter is declared.
+func (in *Info) typeParam(p *types.ParamDecl, decl *ast.TypeParam, path string) {
+	if in == nil {
+		return
+	}
+	o := in.typeParamObject(p)
+	o.Decl, o.Path = decl, path
+	in.Decls[decl] = o
 }
 
 // builtinType is the Object of a built-in type name with no declaration: a primitive, null,

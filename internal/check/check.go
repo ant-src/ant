@@ -307,8 +307,10 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 		if own != "" {
 			decl.Name = own + "." + td.Name
 		}
-		for _, tp := range td.TypeParams {
-			decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
+		for i := range td.TypeParams {
+			pd := &types.ParamDecl{Name: td.TypeParams[i].Name}
+			decl.Params = append(decl.Params, pd)
+			c.info.typeParam(pd, &td.TypeParams[i], c.mod.path)
 		}
 		ent := &entity{name: td.Name, kind: entType, decl: decl, pos: td.Pos, exported: true}
 		c.info.declared(ent, td, c.mod.path, own)
@@ -403,8 +405,10 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
 			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Path: mi.path, Kind: declKind(d.Body)}
-			for _, tp := range d.TypeParams {
-				decl.Params = append(decl.Params, &types.ParamDecl{Name: tp.Name})
+			for i := range d.TypeParams {
+				pd := &types.ParamDecl{Name: d.TypeParams[i].Name}
+				decl.Params = append(decl.Params, pd)
+				c.info.typeParam(pd, &d.TypeParams[i], mi.path)
 			}
 			ent := &entity{name: d.Name, kind: entType, decl: decl, exported: d.Export, pos: d.Pos, members: map[string]*entity{}}
 			mi.names[d.Name] = ent
@@ -853,10 +857,14 @@ func (c *Checker) resolveSignatures(mi *moduleInfo) {
 func (c *Checker) signature(d *ast.FuncDecl, parent *scope, owner string) *sig {
 	s := &sig{name: d.Name, ownerName: owner}
 	sc := &scope{parent: parent, tparams: map[string]*types.ParamDecl{}}
-	for _, tp := range d.TypeParams {
+	for i := range d.TypeParams {
+		tp := &d.TypeParams[i]
 		pd := &types.ParamDecl{Name: tp.Name}
 		s.tparams = append(s.tparams, pd)
 		sc.tparams[tp.Name] = pd
+		if c.mod != nil {
+			c.info.typeParam(pd, tp, c.mod.path)
+		}
 	}
 	for i, tp := range d.TypeParams {
 		if tp.Bound != nil {
@@ -1388,7 +1396,7 @@ func withRigid(rigid map[*types.ParamDecl]bool, own map[string]*types.ParamDecl)
 func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCtx) {
 	for i, p := range params {
 		l := &local{name: p.Name, typ: s.fn.Params[i], slot: p.Slot, ctx: ctx, pos: p.Pos, node: &params[i]}
-		c.info.localObject(l)
+		c.info.localObject(l, c.mod.path)
 		if !p.Slot.Discard {
 			sc.names[p.Name] = l
 		}
