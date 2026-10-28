@@ -19,6 +19,9 @@ type Error struct {
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
 
+// bail unwinds a recovering lexer to the token it was scanning, once the error is recorded.
+type bail struct{}
+
 type lexer struct {
 	src     string
 	pos     int
@@ -34,6 +37,17 @@ type lexer struct {
 	// brackets holds the open brackets of the current token stream, innermost last, so that a <
 	// at the start of a line inside ( or [ stays a comparison (section 2).
 	brackets []byte
+	// recover makes the lexer go on past an error, recording it in errs: a construct the error
+	// leaves unfinished ends where the error is, or at the end of its line, and what cannot be
+	// read at all becomes a Bad token.
+	recover bool
+	errs    []*Error
+	// unclosed is set when an interpolation ended at the end of the source while recovering, so
+	// that the template around it reports nothing more.
+	unclosed bool
+	// open holds the names of the markup elements being read, outermost first, so that an end
+	// tag that closes an outer one can be left for it when recovering.
+	open []string
 }
 
 // maxNesting bounds the nesting of template interpolations, so that no input can overflow the
@@ -56,6 +70,21 @@ func LexWith(src string, regex bool) (toks []token.Token, err error) {
 // line that starts with #! is skipped (section 2); it is returned as the first comment.
 func LexLayout(src string, shebang bool) ([]token.Token, []token.Comment, error) {
 	return lex(&lexer{src: src, layout: true, shebang: shebang})
+}
+
+// LexRecover tokenizes src as LexLayout does but goes on past every error, for an editor, and
+// returns the errors found in source order. A string, template, or comment left open ends where
+// its error is reported; a construct that cannot be read at all becomes a Bad token; and markup
+// that is malformed is read as far as it goes. Tokens come out as they would once the errors
+// were fixed, as far as the lexer can tell.
+func LexRecover(src string, shebang bool) ([]token.Token, []token.Comment, []*Error) {
+	l := &lexer{src: src, layout: true, shebang: shebang, recover: true}
+	toks, comments, err := lex(l)
+	if err != nil {
+		// Only a lexer that is not recovering reports an error this way.
+		panic("lexer: an error escaped recovery: " + err.Error())
+	}
+	return toks, comments, l.errs
 }
 
 func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
@@ -87,18 +116,53 @@ func lex(l *lexer) (toks []token.Token, comments []token.Comment, err error) {
 	return l.toks, l.comment, nil
 }
 
+// fail reports an error and stops reading the token: when recovering, the error is recorded and
+// the token being scanned becomes a Bad token (see scan); otherwise it ends the lexing.
 func (l *lexer) fail(pos token.Pos, format string, args ...any) {
+	if l.recover {
+		l.record(pos, format, args...)
+		panic(bail{})
+	}
 	panic(&Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+}
+
+// soft reports an error that the lexer can read past: when recovering, it records the error and
+// returns true, and the caller takes the way out it names; otherwise it fails as fail does.
+func (l *lexer) soft(pos token.Pos, format string, args ...any) bool {
+	if !l.recover {
+		l.fail(pos, format, args...)
+	}
+	l.record(pos, format, args...)
+	return true
+}
+
+// record keeps an error, once per position and message.
+func (l *lexer) record(pos token.Pos, format string, args ...any) {
+	e := &Error{Pos: pos, Msg: fmt.Sprintf(format, args...)}
+	for _, have := range l.errs {
+		if have.Pos == pos && have.Msg == e.Msg {
+			return
+		}
+	}
+	l.errs = append(l.errs, e)
 }
 
 // invalidUTF8 fails at the first byte of src where no UTF-8 sequence is, since a source
 // file is UTF-8 text (section 2) and a string literal must not carry other bytes into a program.
 func (l *lexer) invalidUTF8() {
+	line, col := 1, 1
 	for i := 0; i < len(l.src); {
 		r, size := utf8.DecodeRuneInString(l.src[i:])
 		if r == utf8.RuneError && size == 1 {
-			l.advance(i)
-			l.fail(l.here(), "the source is not UTF-8 text at the byte 0x%02X", l.src[i])
+			if l.soft(token.Pos{Line: line, Col: col}, "the source is not UTF-8 text at the byte 0x%02X", l.src[i]) {
+				return // the byte is reported again as an unexpected character where it is reached
+			}
+		}
+		switch {
+		case l.src[i] == '\n', l.src[i] == '\r' && (i+1 == len(l.src) || l.src[i+1] != '\n'):
+			line, col = line+1, 1
+		default:
+			col += size
 		}
 		i += size
 	}
@@ -291,10 +355,29 @@ func (l *lexer) nextLineContinues() bool {
 func (l *lexer) toplevel(t token.Token) bool { return false }
 
 // scan lexes one token, or whitespace and comments. It returns false at the end of the source
-// or when stop reports that the token just scanned ends the current stream.
-func (l *lexer) scan(stop func(token.Token) bool) bool {
+// or when stop reports that the token just scanned ends the current stream. When recovering, an
+// error that fail reports inside a token ends the token where the error is: what was read becomes
+// a Bad token, at least one character long so that the lexer makes progress.
+func (l *lexer) scan(stop func(token.Token) bool) (more bool) {
 	if l.atEnd(0) {
 		return false
+	}
+	if l.recover {
+		start, pos, n := l.pos, l.here(), len(l.toks)
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(bail); !ok {
+					panic(r)
+				}
+				l.toks = l.toks[:n]
+				if l.pos == start {
+					_, size := utf8.DecodeRuneInString(l.src[l.pos:])
+					l.advance(size)
+				}
+				l.emit(token.Token{Kind: token.Bad, Text: l.src[start:l.pos], Pos: pos})
+				more = !stop(l.toks[len(l.toks)-1])
+			}
+		}()
 	}
 	c := l.src[l.pos]
 	pos := l.here()
@@ -317,11 +400,12 @@ func (l *lexer) scan(stop func(token.Token) bool) bool {
 		return true
 	case l.has("/*"):
 		end := strings.Index(l.src[l.pos+2:], "*/")
-		if end < 0 {
-			l.fail(pos, "unterminated block comment")
-		}
 		start := l.pos
-		l.advance(2 + end + 2)
+		if end < 0 && l.soft(pos, "unterminated block comment") {
+			l.advance(len(l.src) - l.pos) // the comment runs to the end
+		} else {
+			l.advance(2 + end + 2)
+		}
 		l.keepComment(pos, start)
 		return true
 	case isDigit(c):
@@ -401,8 +485,8 @@ func (l *lexer) regex() {
 				l.advance(1)
 			}
 			flags, err := value.RegexFlags(l.src[flagStart:l.pos])
-			if err != nil {
-				l.fail(flagPos, "%s", err)
+			if err != nil && l.soft(flagPos, "%s", err) {
+				flags = ""
 			}
 			l.emit(token.Token{Kind: token.Regex, Text: source, Flags: flags, Pos: pos})
 			return
@@ -547,9 +631,10 @@ func (l *lexer) identifier() {
 }
 
 // escape is called at a backslash; it validates the escape, steps over it, and returns the
-// character it denotes.
+// character it denotes. When recovering, a bad escape is kept as written.
 func (l *lexer) escape() string {
 	pos := l.here()
+	start := l.pos
 	l.advance(1)
 	c := l.peek(0)
 	switch c {
@@ -567,19 +652,27 @@ func (l *lexer) escape() string {
 		return string(c)
 	case 'u':
 		if l.peek(1) != '{' {
-			l.fail(pos, "bad escape: \\u needs a {...} code")
+			if l.soft(pos, "bad escape: \\u needs a {...} code") {
+				l.advance(1)
+				return l.src[start:l.pos]
+			}
 		}
 		l.advance(2)
-		start := l.pos
+		digits := l.pos
 		for isHex(l.peek(0)) {
 			l.advance(1)
 		}
-		if l.pos == start || l.peek(0) != '}' {
-			l.fail(pos, "bad escape: \\u{...} needs hexadecimal digits")
+		if l.pos == digits || l.peek(0) != '}' {
+			if l.soft(pos, "bad escape: \\u{...} needs hexadecimal digits") {
+				return l.src[start:l.pos]
+			}
 		}
-		v, err := strconv.ParseUint(l.src[start:l.pos], 16, 32)
+		v, err := strconv.ParseUint(l.src[digits:l.pos], 16, 32)
 		if err != nil || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF) {
-			l.fail(pos, "bad escape: \\u{%s} is not a Unicode scalar value", l.src[start:l.pos])
+			if l.soft(pos, "bad escape: \\u{%s} is not a Unicode scalar value", l.src[digits:l.pos]) {
+				l.advance(1)
+				return l.src[start:l.pos]
+			}
 		}
 		l.advance(1)
 		return string(rune(v))
@@ -587,7 +680,11 @@ func (l *lexer) escape() string {
 	if l.atEnd(0) {
 		l.fail(pos, "unterminated string")
 	}
-	l.fail(pos, "bad escape '\\%c'", c)
+	if l.soft(pos, "bad escape '\\%c'", c) {
+		_, size := utf8.DecodeRuneInString(l.src[l.pos:])
+		l.advance(size)
+		return l.src[start:l.pos]
+	}
 	return ""
 }
 
@@ -599,7 +696,10 @@ func (l *lexer) string() {
 		c := l.peek(0)
 		switch {
 		case l.atEnd(0) || c == '\n' || c == '\r':
-			l.fail(pos, "unterminated string")
+			if l.soft(pos, "unterminated string") {
+				l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
+				return
+			}
 		case c == '"':
 			l.advance(1)
 			l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
@@ -629,7 +729,12 @@ func (l *lexer) template() {
 		c := l.peek(0)
 		switch {
 		case l.atEnd(0):
-			l.fail(pos, "unterminated template string")
+			if l.unclosed || l.soft(pos, "unterminated template string") {
+				l.unclosed = false
+				flush()
+				l.emit(token.Token{Kind: token.Template, Parts: parts, Pos: pos})
+				return
+			}
 		case c == '`':
 			flush()
 			l.advance(1)
@@ -667,6 +772,10 @@ func (l *lexer) interpolationOf(pos token.Pos, unterminated string) []token.Toke
 	outer, brackets := l.toks, l.brackets
 	// Line breaks end no statement inside an interpolation, as inside parentheses.
 	l.toks, l.brackets = nil, []byte{'('}
+	defer func() {
+		// restored on the way out of a failure too, so that recovery goes on in the outer stream
+		l.toks, l.brackets = outer, brackets
+	}()
 	depth := 0
 	closed := false
 	stop := func(t token.Token) bool {
@@ -687,11 +796,12 @@ func (l *lexer) interpolationOf(pos token.Pos, unterminated string) []token.Toke
 	}
 	for l.scan(stop) {
 	}
-	if !closed {
-		l.fail(pos, "%s", unterminated)
+	if !closed && l.soft(pos, "%s", unterminated) {
+		l.unclosed = true
 	}
-	toks := l.toks[:len(l.toks)-1] // drop the closing brace
-	toks = append(toks, token.Token{Kind: token.EOF, Pos: l.here()})
-	l.toks, l.brackets = outer, brackets
-	return toks
+	toks := l.toks
+	if closed {
+		toks = toks[:len(toks)-1] // drop the closing brace
+	}
+	return append(toks, token.Token{Kind: token.EOF, Pos: l.here()})
 }

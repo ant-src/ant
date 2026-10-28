@@ -68,16 +68,18 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 	name := l.elementName()
 	lower := strings.ToLower(name)
 	if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '/' && c != '>' {
-		l.fail(l.here(), "an element name is ASCII letters, digits, and -; unexpected %s after <%s", l.describe(), name)
+		l.soft(l.here(), "an element name is ASCII letters, digits, and -; unexpected %s after <%s", l.describe(), name)
 	}
 	switch {
 	case value.HtmlObsolete[lower]:
-		l.fail(pos, "<%s> is obsolete and not allowed", name)
+		l.soft(pos, "<%s> is obsolete and not allowed", name)
 	case lower == "script" && ctx.foreign:
-		l.fail(pos, "<script> is not allowed inside <svg> or <math>")
+		l.soft(pos, "<script> is not allowed inside <svg> or <math>")
 	case ctx.textOnly != "":
-		l.fail(pos, "<%s> holds text only, so it cannot contain <%s>", ctx.textOnly, name)
+		l.soft(pos, "<%s> holds text only, so it cannot contain <%s>", ctx.textOnly, name)
 	}
+	l.open = append(l.open, name)
+	defer func() { l.open = l.open[:len(l.open)-1] }()
 	n := token.MarkupNode{Kind: token.MarkupElement, Name: name, Pos: pos}
 	n.Attrs = l.attributes(name)
 	inner := ctx
@@ -97,9 +99,19 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 		n.Off, n.End, n.EndPos = start, l.pos, l.here()
 		return n
 	}
-	l.advance(1) // >
+	if l.atEnd(0) {
+		// an unterminated start tag, reported by attributes when recovering: the element ends here
+		n.Children = &token.Markup{}
+		n.Off, n.End, n.EndPos = start, l.pos, l.here()
+		return n
+	}
+	if l.peek(0) == '>' {
+		l.advance(1)
+	}
+	// else the start tag was never closed, reported by attributes when recovering, and what
+	// follows is read as the element's content, so a tag typed above its content keeps the tree
 	if value.HtmlVoid[lower] {
-		l.fail(pos, "<%s> is a void element; write <%s />", name, name)
+		l.soft(pos, "<%s> is a void element; write <%s />", name, name)
 	}
 	switch {
 	case lower == "script" || lower == "style":
@@ -110,7 +122,7 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 		}
 		n.Children = l.contentOf(pos, name, inner, lower == "pre" || lower == "textarea")
 		if lower == "iframe" && len(n.Children.Nodes) > 0 {
-			l.fail(pos, "<iframe> takes no content; write <iframe ... />")
+			l.soft(pos, "<iframe> takes no content; write <iframe ... />")
 		}
 	}
 	n.Off, n.End, n.EndPos = start, l.pos, l.here()
@@ -138,6 +150,16 @@ func (l *lexer) describe() string {
 
 func isMarkupSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
 
+// skipPast advances past the next s, or to the end of the source, when recovering.
+func (l *lexer) skipPast(s string) {
+	i := strings.Index(l.src[l.pos:], s)
+	if i < 0 {
+		l.advance(len(l.src) - l.pos)
+		return
+	}
+	l.advance(i + len(s))
+}
+
 func (l *lexer) skipMarkupSpace() {
 	for !l.atEnd(0) && isMarkupSpace(l.peek(0)) {
 		l.advance(1)
@@ -153,22 +175,32 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		pos := l.here()
 		switch c := l.peek(0); {
 		case l.atEnd(0):
-			l.fail(pos, "unterminated start tag <%s>", element)
+			if l.soft(pos, "unterminated start tag <%s>", element) {
+				return attrs
+			}
 		case c == '>' || l.has("/>"):
 			return attrs
 		case c == '{':
 			off := l.pos
 			l.advance(1)
 			l.skipMarkupSpace()
-			if !l.has("...") {
-				l.fail(pos, "an attribute is name=\"text\", name={expr}, or a spread {...attrs}")
+			if l.has("...") {
+				l.advance(3)
+			} else {
+				l.soft(pos, "an attribute is name=\"text\", name={expr}, or a spread {...attrs}")
 			}
-			l.advance(3)
 			toks := l.interpolationOf(pos, "unterminated { in a start tag")
 			attrs = append(attrs, token.MarkupAttr{Kind: token.AttrSpread, Tokens: toks, Pos: pos, EndPos: l.here(), Off: off, End: l.pos})
 			continue
 		case !isLetter(c) && c != '_':
-			l.fail(pos, "unexpected %s in the start tag <%s>", l.describe(), element)
+			if l.soft(pos, "unexpected %s in the start tag <%s>", l.describe(), element) {
+				if c == '<' {
+					return attrs // the tag was never closed; the next tag belongs to the content
+				}
+				_, size := utf8.DecodeRuneInString(l.src[l.pos:])
+				l.advance(size)
+				continue
+			}
 		}
 		start := l.pos
 		for !l.atEnd(0) && value.HtmlAttrChar(l.peek(0)) {
@@ -177,14 +209,14 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		name := l.src[start:l.pos]
 		lower := strings.ToLower(name)
 		if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '=' && c != '>' && c != '/' {
-			l.fail(l.here(), "an attribute name is ASCII letters, digits, -, _, :, and .; unexpected %s after %s", l.describe(), name)
+			l.soft(l.here(), "an attribute name is ASCII letters, digits, -, _, :, and .; unexpected %s after %s", l.describe(), name)
 		}
 		if seen[lower] {
-			l.fail(pos, "attribute %s is written twice", name)
+			l.soft(pos, "attribute %s is written twice", name)
 		}
 		seen[lower] = true
 		if lower == "key" {
-			l.fail(pos, "key is reserved for a later client renderer")
+			l.soft(pos, "key is reserved for a later client renderer")
 		}
 		a := token.MarkupAttr{Kind: token.AttrBare, Name: name, Pos: pos}
 		eq := l.pos
@@ -201,10 +233,10 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		switch l.peek(0) {
 		case '"':
 			a.Kind = token.AttrText
-			a.Text = l.attrText(name)
+			a.Text = l.attrText(name, '"')
 		case '{':
 			if value.HtmlCodeAttr(lower) {
-				l.fail(pos, "%s takes only literal text, since it runs code; pass data in a data- attribute that a script reads, or use a class", name)
+				l.soft(pos, "%s takes only literal text, since it runs code; pass data in a data- attribute that a script reads, or use a class", name)
 			}
 			a.Kind = token.AttrExpr
 			a.Off = l.pos
@@ -213,30 +245,36 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 			a.Tokens = l.interpolationOf(ipos, "unterminated { in an attribute")
 			a.End = l.pos
 		case '\'':
-			l.fail(l.here(), "an attribute value is written in double quotes")
+			if l.soft(l.here(), "an attribute value is written in double quotes") {
+				a.Kind = token.AttrText
+				a.Text = l.attrText(name, '\'')
+			}
 		default:
-			l.fail(l.here(), "an attribute value is \"text\" or {expr}")
+			l.soft(l.here(), "an attribute value is \"text\" or {expr}")
 		}
 		a.EndPos = l.here()
 		attrs = append(attrs, a)
 	}
 }
 
-// attrText scans a double-quoted attribute value at its " and returns it decoded.
-func (l *lexer) attrText(name string) string {
+// attrText scans a quoted attribute value at its opening quote and returns it decoded.
+func (l *lexer) attrText(name string, quote byte) string {
 	pos := l.here()
 	l.advance(1)
 	start := l.pos
 	for {
 		switch c := l.peek(0); {
 		case l.atEnd(0):
-			l.fail(pos, "unterminated attribute value")
-		case c == '"':
+			if l.soft(pos, "unterminated attribute value") {
+				return decodeReferences(l.src[start:l.pos])
+			}
+		case c == quote:
 			raw := l.src[start:l.pos]
 			l.advance(1)
 			return decodeReferences(raw)
 		case c == '{' || c == '}':
-			l.fail(l.here(), "%c in a quoted attribute value; interpolate with %s={...}, or write &#%d;", c, name, c)
+			l.soft(l.here(), "%c in a quoted attribute value; interpolate with %s={...}, or write &#%d;", c, name, c)
+			l.advance(1)
 		case c == '&':
 			l.reference()
 		default:
@@ -265,7 +303,7 @@ func (l *lexer) reference() {
 		}
 		v, err := strconv.ParseUint(digits[:n], base, 32)
 		if err != nil || v == 0 || v > 0x10FFFF || v >= 0xD800 && v <= 0xDFFF || v >= 0x80 && v <= 0x9F {
-			l.fail(pos, "&%s is not a character a page can hold", rest[:len(rest)-len(digits)+n+1])
+			l.soft(pos, "&%s is not a character a page can hold", rest[:len(rest)-len(digits)+n+1])
 		}
 		l.advance(1 + len(rest) - len(digits) + n + 1)
 		return
@@ -279,7 +317,7 @@ func (l *lexer) reference() {
 		return
 	}
 	if _, ok := namedReferences[rest[:n]]; !ok {
-		l.fail(pos, "&%s; is not one of the named references &amp; &lt; &gt; &quot; &apos; &nbsp;; write the character itself or a numeric reference", rest[:n])
+		l.soft(pos, "&%s; is not one of the named references &amp; &lt; &gt; &quot; &apos; &nbsp;; write the character itself or a numeric reference", rest[:n])
 	}
 	l.advance(1 + n + 1)
 }
@@ -339,9 +377,13 @@ func referenceValue(body string) (string, bool) {
 func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup {
 	start := l.pos
 	textPos := l.here()
+	closed := true
 	for {
 		if l.atEnd(0) {
-			l.fail(pos, "<%s> is never closed", name)
+			if l.soft(pos, "<%s> is never closed", name) {
+				closed = false
+				break
+			}
 		}
 		if l.has("</") && len(l.src)-l.pos >= 2+len(name) && strings.EqualFold(l.src[l.pos+2:l.pos+2+len(name)], name) {
 			after := l.pos + 2 + len(name)
@@ -350,13 +392,16 @@ func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup 
 			}
 		}
 		if foreign && l.has("<![CDATA[") {
-			l.fail(l.here(), "<![CDATA[ inside <%s> would reach the CSS as text; remove the CDATA wrapper", name)
+			l.soft(l.here(), "<![CDATA[ inside <%s> would reach the CSS as text; remove the CDATA wrapper", name)
 		}
 		l.advance(1)
 	}
 	text := l.src[start:l.pos]
 	textEnd := l.here()
-	m := &token.Markup{Close: l.endTag(pos, name)}
+	m := &token.Markup{}
+	if closed {
+		m.Close = l.endTag(pos, name)
+	}
 	if text != "" {
 		m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupText, Text: text, Pos: textPos, EndPos: textEnd, Off: start, End: start + len(text)})
 	}
@@ -364,14 +409,19 @@ func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup 
 }
 
 // endTag scans the end tag of the element name at its </, or of a fragment when name is "", and
-// returns where the tag starts.
+// returns where the tag starts. When recovering, an end tag that names an enclosing element is
+// left for that element, and the one being read ends before it, as a browser would close it; any
+// other mismatched end tag closes the element being read.
 func (l *lexer) endTag(open token.Pos, name string) token.Pos {
 	pos := l.here()
+	mark := l.mark()
 	l.advance(2)
 	got := l.elementName()
 	l.skipMarkupSpace()
 	if l.peek(0) != '>' {
-		l.fail(l.here(), "expected > to end the end tag </%s", got)
+		if l.soft(l.here(), "expected > to end the end tag </%s", got) {
+			return pos
+		}
 	}
 	l.advance(1)
 	if got == name {
@@ -379,12 +429,30 @@ func (l *lexer) endTag(open token.Pos, name string) token.Pos {
 	}
 	switch {
 	case name == "":
-		l.fail(pos, "</%s> closes nothing; the fragment opened at %d:%d ends with </>", got, open.Line, open.Col)
+		l.soft(pos, "</%s> closes nothing; the fragment opened at %d:%d ends with </>", got, open.Line, open.Col)
 	case got == "":
-		l.fail(pos, "</> closes no fragment; <%s> opened at %d:%d ends with </%s>", name, open.Line, open.Col, name)
+		l.soft(pos, "</> closes no fragment; <%s> opened at %d:%d ends with </%s>", name, open.Line, open.Col, name)
+	default:
+		l.soft(pos, "</%s> does not close <%s>, opened at %d:%d", got, name, open.Line, open.Col)
 	}
-	l.fail(pos, "</%s> does not close <%s>, opened at %d:%d", got, name, open.Line, open.Col)
+	for _, outer := range l.open[:max(len(l.open)-1, 0)] {
+		if outer == got {
+			l.reset(mark) // the outer element closes on this tag
+			break
+		}
+	}
 	return pos
+}
+
+// A position the lexer can return to, for recovery; nothing is emitted between mark and reset.
+type position struct {
+	pos, line, col, lines int
+}
+
+func (l *lexer) mark() position { return position{l.pos, l.line, l.col, len(l.lines)} }
+
+func (l *lexer) reset(m position) {
+	l.pos, l.line, l.col, l.lines = m.pos, m.line, m.col, l.lines[:m.lines]
 }
 
 // contentOf scans an element's content up to its end tag. With first set, a line break right
@@ -425,27 +493,45 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 		here := l.here()
 		switch c := l.peek(0); {
 		case l.atEnd(0):
+			flush()
 			if name == "" {
-				l.fail(pos, "the fragment is never closed; end it with </>")
+				l.soft(pos, "the fragment is never closed; end it with </>")
+			} else {
+				l.soft(pos, "<%s> is never closed", name)
 			}
-			l.fail(pos, "<%s> is never closed", name)
+			return m
 		case c == '<':
 			switch n := l.peek(1); {
 			case n == '/':
 				flush()
+				before := l.pos
 				m.Close = l.endTag(pos, name)
+				if l.pos == before {
+					m.Close = token.Pos{} // left for the enclosing element
+				}
 				return m
 			case isLetter(n):
 				flush()
 				m.Nodes = append(m.Nodes, l.element(ctx))
 			case l.has("<!--"):
-				l.fail(here, "an HTML comment is written {/* ... */} in markup")
+				if l.soft(here, "an HTML comment is written {/* ... */} in markup") {
+					l.skipPast("-->")
+				}
 			case n == '!':
-				l.fail(here, "<! is not allowed in markup; a doctype is written where the page becomes a response")
+				if l.soft(here, "<! is not allowed in markup; a doctype is written where the page becomes a response") {
+					l.skipPast(">")
+				}
 			case n == '?':
-				l.fail(here, "<? is not allowed in markup")
+				if l.soft(here, "<? is not allowed in markup") {
+					l.skipPast(">")
+				}
 			default:
-				l.fail(here, "a < in text is written &lt;")
+				if l.soft(here, "a < in text is written &lt;") {
+					if textStart < 0 {
+						textStart, textPos = l.pos, here
+					}
+					l.advance(1)
+				}
 			}
 		case c == '{':
 			flush()
@@ -454,14 +540,19 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 			toks := l.interpolationOf(here, "unterminated { in markup")
 			if len(toks) == 1 {
 				// only an EOF: empty, or only comments
-				if strings.TrimSpace(l.src[off+1:l.pos-1]) == "" {
-					l.fail(here, "an empty {} in markup")
+				if strings.TrimSpace(l.src[off+1:max(off+1, l.pos-1)]) == "" {
+					l.soft(here, "an empty {} in markup")
 				}
 				toks = nil
 			}
 			m.Nodes = append(m.Nodes, token.MarkupNode{Kind: token.MarkupExpr, Tokens: toks, Pos: here, EndPos: l.here(), Off: off, End: l.pos})
 		case c == '}':
-			l.fail(here, "a } in text is written &#125; or {\"}\"}")
+			if l.soft(here, "a } in text is written &#125; or {\"}\"}") {
+				if textStart < 0 {
+					textStart, textPos = l.pos, here
+				}
+				l.advance(1)
+			}
 		default:
 			if textStart < 0 {
 				textStart, textPos = l.pos, here

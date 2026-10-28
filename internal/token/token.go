@@ -19,6 +19,9 @@ const (
 	Op            // an operator or punctuation; Text holds it
 	Regex         // a regular expression literal; Text holds the source as written, Flags the sorted flags
 	Html          // an HTML expression; Markup holds its tree
+	// Bad is source the recovering lexer could not read as a token (lexer.LexRecover), kept so
+	// that the parser can step over it; Text holds it as written.
+	Bad
 )
 
 func (k Kind) String() string {
@@ -47,6 +50,8 @@ func (k Kind) String() string {
 		return "regular expression"
 	case Html:
 		return "HTML expression"
+	case Bad:
+		return "malformed source"
 	}
 	return "token"
 }

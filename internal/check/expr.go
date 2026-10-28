@@ -278,7 +278,7 @@ func (c *Checker) synth(e ast.Expr, sc *scope) types.Type {
 		return types.Never{}
 	case *ast.Block:
 		return c.block(x, sc, nil)
-	case *ast.Placeholder:
+	case *ast.Placeholder, *ast.BadExpr:
 		return types.Invalid{}
 	}
 	c.errorf(e.Position(), "internal error: cannot check %T", e)
@@ -357,6 +357,8 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 	case entModule, entNamespace:
 		c.errorf(pos, "%s is a namespace, not a value", ent.name)
 		return types.Invalid{}
+	case entMissing:
+		return types.Invalid{}
 	}
 	return types.Invalid{}
 }
@@ -417,6 +419,9 @@ func (c *Checker) entityPath(e ast.Expr, sc *scope) *entity {
 		if base == nil {
 			return nil
 		}
+		if base.kind == entMissing {
+			return base
+		}
 		if base.kind == entModule {
 			m, ok := base.mod.names[x.Name]
 			if !ok || !m.exported {
@@ -459,6 +464,8 @@ func (c *Checker) moduleMember(base *entity, name string, pos ast.Pos) *entity {
 func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 	if base := c.entityPath(x.X, sc); base != nil && !x.Optional {
 		switch base.kind {
+		case entMissing:
+			return types.Invalid{}
 		case entModule:
 			m := c.moduleMember(base, x.Name, x.Pos)
 			if m == nil {
@@ -635,6 +642,16 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 				return types.Invalid{}
 			}
 		}
+	}
+	if head != nil && head.kind == entMissing {
+		for _, en := range x.Entries {
+			if en.Spread != nil {
+				c.synth(en.Spread, sc)
+			} else {
+				c.synth(en.Value, sc)
+			}
+		}
+		return types.Invalid{}
 	}
 	if head == nil || head.kind != entType {
 		c.errorf(x.Pos, "a record literal needs a record type as its head")
@@ -1247,6 +1264,9 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 				return nil
 			}
 		}
+	}
+	if ent != nil && ent.kind == entMissing {
+		return nil
 	}
 	if ent == nil || ent.kind != entType {
 		c.errorf(x.Pos, "the right side of is must be a type")

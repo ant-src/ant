@@ -49,6 +49,9 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			c.errorf(x.Pos, "%s is a namespace, not a function", ent.name)
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
+		case entMissing:
+			c.synthArgs(x.Args, sc)
+			return types.Invalid{}
 		}
 	}
 	fn, short := c.chainRecv(x.Fn, sc)

@@ -454,7 +454,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 	case *ast.Ident:
 		r.use(e, s)
 	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.RegexLit, *ast.BoolLit, *ast.NullLit, *ast.VoidLit,
-		*ast.Break, *ast.Continue, *ast.Placeholder:
+		*ast.Break, *ast.Continue, *ast.Placeholder, *ast.BadExpr:
 	case *ast.Template:
 		for _, p := range e.Parts {
 			if p.Expr != nil {
@@ -567,6 +567,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 
 func (r *resolver) assignTarget(t ast.Node, s *scope) {
 	switch t := t.(type) {
+	case *ast.BadExpr:
 	case *ast.Ident:
 		r.use(t, s)
 		r.markAssigned(t, s)

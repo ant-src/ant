@@ -43,6 +43,47 @@ type Error struct {
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
 
+// bail unwinds a recovering parser to the nearest point that can go on, once fail has recorded
+// the error: the statement, list item, or interpolation being parsed.
+type bail struct{}
+
+// ParseRecover parses one module in Program mode as ParseLayout does, but goes on past its
+// syntax errors, for an editor. It returns the tree of what parsed, with a BadStmt, BadExpr, or
+// BadType standing where a statement, an expression, or a type could not be read, the layout,
+// and every error in source order: the lexer's, then the parser's as it met them. The errors
+// are those Parse would report once the earlier ones were fixed, as far as the parser can tell,
+// and the first is the one Parse reports. The tree is for analysis only and must not be run.
+func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
+	toks, comments, lerrs := lexer.LexRecover(src, true)
+	l := &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
+	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments,
+		roles: l.Roles, prefix: l.Prefix, recovering: true}
+	for _, e := range lerrs {
+		p.record(&Error{Pos: cpos(e.Pos), Msg: e.Msg})
+	}
+	var f *ast.File
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(bail); !ok {
+					panic(r)
+				}
+			}
+		}()
+		f = p.file(path)
+	}()
+	if f == nil {
+		f = &ast.File{Path: path, End: epos(toks[len(toks)-1])}
+	}
+	slices.SortStableFunc(p.errs, func(a, b *Error) int {
+		if a.Pos.Line != b.Pos.Line {
+			return a.Pos.Line - b.Pos.Line
+		}
+		return a.Pos.Col - b.Pos.Col
+	})
+	return f, l, p.errs
+}
+
 // Parse parses one module. path only labels the result.
 func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	toks, comments, lerr := lexer.LexLayout(src, mode == Program)
@@ -140,6 +181,10 @@ type parser struct {
 	depth    int          // nesting of expressions, types, and blocks, bounded by maxNesting
 	roles    map[int]Role // filled for ParseLayout, nil otherwise
 	prefix   map[int]bool // likewise
+	// recovering makes the parser go on past an error (ParseRecover): fail records the error
+	// in errs and unwinds to the nearest recovery point, and soft records it and goes on.
+	recovering bool
+	errs       []*Error
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -184,7 +229,155 @@ func (p *parser) recover(err *error) {
 
 func (p *parser) fail(pos token.Pos, format string, args ...any) {
 	incomplete := p.i < len(p.toks) && p.toks[p.i].Kind == token.EOF
-	panic(&Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...), Incomplete: incomplete})
+	e := &Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...), Incomplete: incomplete}
+	if p.recovering {
+		p.record(e)
+		panic(bail{})
+	}
+	panic(e)
+}
+
+// soft reports an error the parser can go on from when recovering, and returns true so that
+// the caller takes the way out it names; otherwise it fails as fail does.
+func (p *parser) soft(pos token.Pos, format string, args ...any) bool {
+	if !p.recovering {
+		p.fail(pos, format, args...)
+	}
+	p.record(&Error{Pos: cpos(pos), Msg: fmt.Sprintf(format, args...)})
+	return true
+}
+
+// record keeps an error, once per position and message.
+func (p *parser) record(e *Error) {
+	for _, have := range p.errs {
+		if have.Pos == e.Pos && have.Msg == e.Msg {
+			return
+		}
+	}
+	p.errs = append(p.errs, e)
+}
+
+// state is what a recovery point restores: the nesting a failed construct did not leave.
+type state struct {
+	nl        int
+	header    bool
+	block     *ast.Block
+	boundary  string
+	loops     int
+	inDefault int
+}
+
+func (p *parser) save() state {
+	return state{p.nl, p.header, p.curBlock, p.boundary, p.loops, p.inDefault}
+}
+
+func (p *parser) restore(s state) {
+	p.nl, p.header, p.curBlock, p.boundary, p.loops, p.inDefault = s.nl, s.header, s.block, s.boundary, s.loops, s.inDefault
+}
+
+// attempt runs f. When recovering, a syntax error inside f ends it: attempt restores the state
+// around it and returns false, with the error recorded and the cursor where the error was.
+func (p *parser) attempt(f func()) (ok bool) {
+	if !p.recovering {
+		f()
+		return true
+	}
+	saved := p.save()
+	defer func() {
+		if r := recover(); r != nil {
+			if _, isBail := r.(bail); !isBail {
+				panic(r)
+			}
+			p.restore(saved)
+			ok = false
+		}
+	}()
+	f()
+	return true
+}
+
+// statementStart lists the keywords that begin a statement a list cannot hold, so that a list
+// left open above one of them ends there when recovering.
+var statementStart = map[string]bool{"var": true, "type": true, "func": true, "export": true, "import": true,
+	"return": true, "for": true, "while": true, "if": true, "select": true, "go": true, "defer": true, "break": true, "continue": true}
+
+// sync skips to where parsing can go on after an error, when recovering: to a line break or
+// semicolon outside brackets, or to a comma inside a list, or up to the closer close of the
+// enclosing block or list, or to a closing brace that must end an enclosing block, or to the
+// end of the file. In a list, where line breaks are nothing, one followed by a keyword that
+// begins a statement ends the list, since the author has moved on. A stray closer is skipped.
+func (p *parser) sync(close string, list bool) {
+	depth := 0
+	for {
+		t := p.raw()
+		switch {
+		case t.Kind == token.EOF:
+			return
+		case t.Kind == token.Newline || t.Is(";"):
+			if depth <= 0 && !list {
+				return
+			}
+		case list && depth <= 0 && p.statementStarts(p.i):
+			return
+		case t.Is(",") && list && depth <= 0:
+			return
+		case t.Is("(") || t.Is("[") || t.Is("{"):
+			depth++
+		case t.Is(")") || t.Is("]") || t.Is("}"):
+			if depth <= 0 && (t.Is(close) || t.Is("}") && close != "") {
+				return
+			}
+			depth--
+		}
+		p.i++
+	}
+}
+
+// statementStarts reports whether the token at j begins a statement on a line of its own: a
+// keyword that begins one, after a line break, which the lexer may have joined to the line
+// before when that line ended in an operator or an open bracket (section 2).
+func (p *parser) statementStarts(j int) bool {
+	t := p.toks[j]
+	if t.Kind != token.Keyword || !statementStart[t.Text] {
+		return false
+	}
+	for k := j - 1; k >= 0; k-- {
+		switch prev := p.toks[k]; {
+		case prev.Kind == token.Newline:
+			continue
+		default:
+			return t.Pos.Line > prev.EndPos.Line
+		}
+	}
+	return true
+}
+
+// listEnds reports whether, when recovering, the list closed by close has ended without its
+// closer: at the end of the file, at a brace that ends an enclosing block, or at a statement
+// that begins on a line of its own.
+func (p *parser) listEnds(close string) bool {
+	if !p.recovering {
+		return false
+	}
+	t := p.peek()
+	if t.Kind == token.EOF || t.Is("}") && close != "}" {
+		return true
+	}
+	return p.statementStarts(p.i)
+}
+
+// badExpr is a BadExpr for the tokens from start to the cursor, or an empty one just after the
+// last token read when nothing was, so that it lies inside the node that lacks it.
+func (p *parser) badExpr(start int) *ast.BadExpr {
+	if p.i <= start {
+		return &ast.BadExpr{Pos: p.end(), End: p.end()}
+	}
+	return &ast.BadExpr{Pos: pos(p.toks[start]), End: p.end()}
+}
+
+func (p *parser) badStmt(start int) *ast.BadStmt {
+	e := p.badExpr(start)
+	return &ast.BadStmt{Pos: e.Pos, End: e.End}
 }
 
 // failAt reports an error at t, unless t is a reserved word: then the error says so, since the
@@ -317,12 +510,21 @@ func (p *parser) expectTerm() {
 	if t.Kind == token.EOF || t.Is("}") {
 		return
 	}
+	if p.recovering && p.i > 0 && (p.toks[p.i-1].Kind == token.Newline || t.Pos.Line > p.toks[p.i-1].EndPos.Line) {
+		// A list left open stepped over the line break, or the lexer joined the lines because
+		// the statement was unfinished: the break is there in the source, and the error that
+		// left the statement unfinished has been reported.
+		return
+	}
 	if p.skipTerms() == 0 {
 		if t.Is(":") && p.i >= 2 && p.toks[p.i-2].Is("{") && (p.toks[p.i-1].Kind == token.Ident || p.toks[p.i-1].Kind == token.String) {
 			// { name: value } reads as a block or lambda; the author meant a literal without a head.
 			p.failAt(t, "a record or map literal names its type, as in Point{ x: 1 } or Map{ \"a\": 1 }")
 		}
-		p.failAt(t, "expected a newline or ';' before %s", t)
+		if t.Kind == token.Reserved {
+			p.failAt(t, "")
+		}
+		p.soft(t.Pos, "expected a newline or ';' before %s", t) // when recovering, the next statement starts here
 	}
 }
 
@@ -359,13 +561,45 @@ func (p *parser) list(close string, item func()) {
 	p.mark(p.toks[p.i-1], Role{Comma: true})
 	saved := p.enterList()
 	for !p.at(close) {
-		item()
+		if p.listEnds(close) {
+			break
+		}
+		start := p.i
+		if !p.attempt(item) || p.i == start {
+			// The item could not be read, or read nothing: skip to the next item or the end.
+			p.sync(close, true)
+			if p.at(",") {
+				p.next()
+			}
+			continue
+		}
 		if !p.at(close) {
+			if p.recovering && !p.at(",") {
+				if p.listEnds(close) {
+					break
+				}
+				p.soft(p.peek().Pos, "expected ',', got %s", p.peek())
+				continue
+			}
 			p.expect(",")
 		}
 	}
-	p.expect(close)
+	if p.recovering && !p.at(close) {
+		p.soft(p.peek().Pos, "expected '%s', got %s", close, p.peek())
+	} else {
+		p.expect(close)
+	}
 	p.leave(saved)
+}
+
+// expectClose expects the brace that ends a block. When recovering, a block left open at the end
+// of the file ends there.
+func (p *parser) expectClose() {
+	if p.recovering && p.atKind(token.EOF) {
+		p.soft(p.peek().Pos, "expected '}', got end of file")
+		return
+	}
+	p.expect("}")
 }
 
 type boundary struct {
@@ -397,43 +631,13 @@ func (p *parser) file(path string) *ast.File {
 		p.skipTerms()
 	}
 	for !p.atKind(token.EOF) {
-		t := p.peek()
-		switch {
-		case t.Is("import"):
-			p.fail(t.Pos, "imports must come before declarations")
-		case t.Is("export"), t.Is("func"), t.Is("type"):
-			doc := p.doc(t)
-			d := p.declaration()
-			switch d := d.(type) {
-			case *ast.VarDecl:
-				d.Doc = doc
-			case *ast.FuncDecl:
-				d.Doc = doc
-			case *ast.TypeDecl:
-				d.Doc = doc
+		start := p.i
+		added := false
+		if !p.attempt(func() { added = p.item(f) }) || !added {
+			if p.i == start {
+				p.sync("", false)
 			}
-			f.Decls = append(f.Decls, d)
-		case t.Is("var"):
-			doc := p.doc(t)
-			d := p.varDecl()
-			d.Doc = doc
-			f.Decls = append(f.Decls, d)
-			if !p.declarations() {
-				f.Stmts = append(f.Stmts, d)
-			}
-		default:
-			if p.declarations() {
-				p.failAt(t, "expected a declaration, got %s", t)
-			}
-			if p.mode == Program && !f.Script {
-				f.Script = true
-				f.FirstStmt = pos(t)
-			}
-			s := p.statement()
-			if p.mode == Program {
-				p.discardedHtml(s)
-			}
-			f.Stmts = append(f.Stmts, s)
+			f.Stmts = append(f.Stmts, p.badStmt(start))
 		}
 		p.expectTerm()
 		p.skipTerms()
@@ -445,19 +649,75 @@ func (p *parser) file(path string) *ast.File {
 	return f
 }
 
+// item parses one top-level item into f: a declaration, or a statement, which makes a program
+// module a script. It reports whether it added one; a statement that did not parse adds nothing.
+func (p *parser) item(f *ast.File) bool {
+	t := p.peek()
+	switch {
+	case t.Is("import"):
+		p.fail(t.Pos, "imports must come before declarations")
+	case t.Is("export"), t.Is("func"), t.Is("type"):
+		doc := p.doc(t)
+		d := p.declaration()
+		switch d := d.(type) {
+		case *ast.VarDecl:
+			d.Doc = doc
+		case *ast.FuncDecl:
+			d.Doc = doc
+		case *ast.TypeDecl:
+			d.Doc = doc
+		}
+		f.Decls = append(f.Decls, d)
+	case t.Is("var"):
+		doc := p.doc(t)
+		d := p.varDecl()
+		d.Doc = doc
+		f.Decls = append(f.Decls, d)
+		if !p.declarations() {
+			f.Stmts = append(f.Stmts, d)
+		}
+	default:
+		if p.declarations() {
+			p.failAt(t, "expected a declaration, got %s", t)
+		}
+		s := p.statement()
+		if _, bad := s.(*ast.BadExpr); bad {
+			return false // what did not parse does not make the module a script
+		}
+		if p.mode == Program && !f.Script {
+			f.Script = true
+			f.FirstStmt = pos(t)
+		}
+		if p.mode == Program {
+			p.discardedHtml(s)
+		}
+		f.Stmts = append(f.Stmts, s)
+	}
+	return true
+}
+
 // scriptRules enforces what a module's statements decide (section 10, Scripts): a script
 // exports nothing, and only a script's top level is a body that try, return, and defer can
 // leave or register on.
 func (p *parser) scriptRules(f *ast.File) {
 	if !f.Script {
 		if p.bodyOnly != nil {
+			if p.recovering {
+				p.record(p.bodyOnly)
+				return
+			}
 			panic(p.bodyOnly)
 		}
 		return
 	}
 	for _, d := range f.Decls {
 		if d.Exported() {
-			panic(&Error{Pos: f.FirstStmt, Msg: "a module with exports cannot have top-level statements; this statement makes it a script, which cannot be imported"})
+			e := &Error{Pos: f.FirstStmt, Msg: "a module with exports cannot have top-level statements; this statement makes it a script, which cannot be imported"}
+			if p.recovering {
+				p.record(e)
+				return
+			}
+			panic(e)
 		}
 	}
 }
@@ -556,6 +816,12 @@ func (p *parser) varDecl() *ast.VarDecl {
 		p.fail(n.Pos, "expected a name or a destructuring after var, got %s", n)
 	}
 	d.Sig = p.since(t)
+	if p.recovering && !p.at("=") {
+		p.soft(p.peek().Pos, "expected '=', got %s", p.peek())
+		d.Init = p.badExpr(p.i)
+		d.End = p.end()
+		return d
+	}
 	p.expect("=")
 	d.Init = p.expression()
 	d.End = p.end()
@@ -584,6 +850,11 @@ func (p *parser) funcDecl() *ast.FuncDecl {
 		d.End = p.end()
 		return d
 	}
+	if p.recovering && !p.at("{") {
+		p.soft(p.peek().Pos, "expected '{', got %s", p.peek())
+		d.End = p.end()
+		return d // a declaration whose body is not written yet
+	}
 	saved := p.enterBoundary("func")
 	d.Body = p.block()
 	p.leaveBoundary(saved)
@@ -608,6 +879,13 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 		d.Sig = p.since(t)
 		d.End = p.end()
 		return d // an opaque type
+	}
+	if p.recovering && !p.at("=") {
+		p.soft(p.peek().Pos, "expected '=', got %s", p.peek())
+		d.Sig = p.since(t)
+		d.Body = &ast.BadType{Pos: p.end(), End: p.end()}
+		d.End = p.end()
+		return d
 	}
 	p.expect("=")
 	if p.at("{") && p.mode != Declarations {
@@ -659,11 +937,11 @@ func (p *parser) moduleDoc(first token.Token) string {
 		}
 		switch {
 		case c.Off >= first.Off:
-			p.fail(c.Pos, "a //! module doc line must come before the first import or declaration")
+			p.soft(c.Pos, "a //! module doc line must come before the first import or declaration")
 		case !lineStart(p.src, c.Off):
-			p.fail(c.Pos, "a //! module doc line must be alone on its line")
+			p.soft(c.Pos, "a //! module doc line must be alone on its line")
 		case last >= 0 && (k != last+1 || !oneLineBreak(p.src[p.comments[last].End:c.Off])):
-			p.fail(c.Pos, "the //! module doc lines must be consecutive, with no blank line or other comment between")
+			p.soft(c.Pos, "the //! module doc lines must be consecutive, with no blank line or other comment between")
 		}
 		line := strings.TrimRight(c.Text[3:], " \t\r")
 		lines = append(lines, strings.TrimPrefix(line, " "))
@@ -783,6 +1061,10 @@ func (p *parser) typeTerm() ast.Type {
 		tn.End = p.end()
 		return tn
 	}
+	if p.recovering && t.Kind != token.Reserved {
+		p.soft(t.Pos, "expected a type, got %s", t)
+		return &ast.BadType{Pos: p.end(), End: p.end()}
+	}
 	p.failAt(t, "expected a type, got %s", t)
 	return nil
 }
@@ -859,7 +1141,7 @@ func (p *parser) block() *ast.Block {
 	b := &ast.Block{Pos: pos(t)}
 	saved := p.enterBlock(b)
 	p.blockStatements(b)
-	p.expect("}")
+	p.expectClose()
 	p.leave(saved)
 	b.End = p.end()
 	return b
@@ -880,12 +1162,21 @@ func (p *parser) statements() []ast.Stmt {
 	p.skipTerms()
 	for !p.at("}") {
 		if p.atKind(token.EOF) {
+			if p.recovering {
+				break // expectClose reports it
+			}
 			p.fail(p.peek().Pos, "expected '}', got end of file")
 		}
 		if len(stmts) > 0 {
 			p.discardedHtml(stmts[len(stmts)-1])
 		}
-		stmts = append(stmts, p.statement())
+		start := p.i
+		var s ast.Stmt
+		if !p.attempt(func() { s = p.statement() }) || p.i == start {
+			p.sync("}", false)
+			s = p.badStmt(start)
+		}
+		stmts = append(stmts, s)
 		if p.at("}") {
 			break
 		}
@@ -1188,6 +1479,11 @@ func (p *parser) postfix() ast.Expr {
 		switch t.Text {
 		case ".":
 			p.next()
+			if p.recovering && !p.atKind(token.Ident) && p.raw().Kind != token.Reserved && p.raw().Kind != token.Keyword {
+				// A dot with no name after it, as while the name is typed: the field is empty.
+				p.soft(p.raw().Pos, "expected a field name, got %s", p.raw())
+				return &ast.Field{Pos: pos(t), End: epos(t), X: node, NamePos: epos(t)}
+			}
 			name := p.expectIdent("a field name")
 			node = &ast.Field{Pos: pos(t), End: epos(name), X: node, Name: name.Text, NamePos: pos(name)}
 			if isPath && p.at("{") && !p.header {
@@ -1208,6 +1504,10 @@ func (p *parser) postfix() ast.Expr {
 				call.End = p.end()
 				node = call
 			default:
+				if p.recovering && !p.atKind(token.Ident) && p.raw().Kind != token.Reserved && p.raw().Kind != token.Keyword {
+					p.soft(p.raw().Pos, "expected a field name, got %s", p.raw())
+					return &ast.Field{Pos: pos(t), End: epos(t), X: node, NamePos: epos(t), Optional: true}
+				}
 				name := p.expectIdent("a field name")
 				node = &ast.Field{Pos: pos(t), End: epos(name), X: node, Name: name.Text, NamePos: pos(name), Optional: true}
 			}
@@ -1410,6 +1710,18 @@ func (p *parser) primary() ast.Expr {
 			}
 		}
 	}
+	if p.recovering && t.Kind != token.Reserved {
+		// What is here cannot start an expression. A token that ends something, a line break, a
+		// closer, a comma, or the end of the file, is left for the enclosing construct and the
+		// expression is empty; anything else is skipped as the expression.
+		p.soft(t.Pos, "unexpected %s", t)
+		if t.Kind == token.Newline || t.Kind == token.EOF || t.Kind == token.Keyword ||
+			t.Is(")") || t.Is("]") || t.Is("}") || t.Is(",") || t.Is(";") || t.Is(":") {
+			return &ast.BadExpr{Pos: p.end(), End: p.end()}
+		}
+		p.next()
+		return &ast.BadExpr{Pos: pos(t), End: epos(t)}
+	}
 	p.unexpected(t)
 	return nil
 }
@@ -1465,14 +1777,21 @@ func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 // subExpression parses one expression from toks, an interpolation's tokens ending with EOF. It is
 // parsed by this parser on its own tokens, so it keeps the source, the nesting depth, and
 // everything else of the enclosing expression.
-func (p *parser) subExpression(toks []token.Token, where string) ast.Expr {
+func (p *parser) subExpression(toks []token.Token, where string) (e ast.Expr) {
 	saved, i, nl, header := p.toks, p.i, p.nl, p.header
 	p.toks, p.i, p.nl, p.header = toks, 0, 1, false
-	e := p.expression()
-	if !p.atKind(token.EOF) {
-		p.fail(p.peek().Pos, "unexpected %s in %s", p.peek(), where)
+	defer func() { p.toks, p.i, p.nl, p.header = saved, i, nl, header }()
+	if len(toks) == 0 {
+		return &ast.BadExpr{} // an interpolation the recovering lexer could not read
 	}
-	p.toks, p.i, p.nl, p.header = saved, i, nl, header
+	if !p.attempt(func() { e = p.expression() }) {
+		return &ast.BadExpr{Pos: pos(toks[0]), End: epos(toks[len(toks)-1])}
+	}
+	if !p.atKind(token.EOF) {
+		if p.soft(p.peek().Pos, "unexpected %s in %s", p.peek(), where) {
+			return e
+		}
+	}
 	return e
 }
 
@@ -1480,7 +1799,7 @@ func (p *parser) subExpression(toks []token.Token, where string) ast.Expr {
 // (section 5, HTML expressions).
 func (p *parser) discardedHtml(s ast.Stmt) {
 	if h, ok := s.(*ast.Html); ok {
-		p.fail(token.Pos{Line: h.Pos.Line, Col: h.Pos.Col}, "this HTML expression's value is discarded; put siblings in a fragment <>...</>")
+		p.soft(token.Pos{Line: h.Pos.Line, Col: h.Pos.Col}, "this HTML expression's value is discarded; put siblings in a fragment <>...</>")
 	}
 }
 
@@ -1575,35 +1894,18 @@ func (p *parser) selectExpr() *ast.Select {
 	p.skipClauseBreaks()
 	for !p.at("}") {
 		if p.atKind(token.EOF) {
+			if p.recovering {
+				break
+			}
 			p.fail(p.peek().Pos, "expected '}', got end of file")
 		}
-		start := p.peek()
-		c := &ast.SelectClause{Pos: pos(start)}
-		if p.at("var") {
-			p.next()
-			n := p.expectIdent("a name for the clause's result")
-			c.Target = name(n)
-			p.expect("=")
+		begin := p.i
+		var c *ast.SelectClause
+		if !p.attempt(func() { c = p.selectClause(&heads, &hasElse) }) || p.i == begin {
+			p.sync("}", false)
+			p.skipClauseBreaks()
+			continue
 		}
-		if p.at("else") {
-			if c.Target != nil {
-				p.fail(start.Pos, "an else clause binds nothing; it runs when no head can proceed")
-			}
-			if hasElse {
-				p.fail(start.Pos, "a select has at most one else clause")
-			}
-			hasElse = true
-			p.next()
-			c.Body = p.block()
-		} else {
-			if hasElse {
-				p.fail(start.Pos, "the else clause must be the last clause of a select")
-			}
-			c.Head = p.selectHead(p.headerExpr("select clause"))
-			heads++
-			c.Body = p.block()
-		}
-		c.End = p.end()
 		s.Clauses = append(s.Clauses, c)
 		if p.at("}") {
 			break
@@ -1615,13 +1917,45 @@ func (p *parser) selectExpr() *ast.Select {
 		}
 		p.skipClauseBreaks()
 	}
-	p.expect("}")
+	p.expectClose()
 	p.leave(saved)
 	s.End = p.end()
 	if heads == 0 {
 		p.fail(open.Pos, "a select needs at least one clause with a head: %s", selectHeadNames)
 	}
 	return s
+}
+
+// selectClause parses one clause of a select, counting the heads and the else.
+func (p *parser) selectClause(heads *int, hasElse *bool) *ast.SelectClause {
+	start := p.peek()
+	c := &ast.SelectClause{Pos: pos(start)}
+	if p.at("var") {
+		p.next()
+		n := p.expectIdent("a name for the clause's result")
+		c.Target = name(n)
+		p.expect("=")
+	}
+	if p.at("else") {
+		if c.Target != nil {
+			p.fail(start.Pos, "an else clause binds nothing; it runs when no head can proceed")
+		}
+		if *hasElse {
+			p.fail(start.Pos, "a select has at most one else clause")
+		}
+		*hasElse = true
+		p.next()
+		c.Body = p.block()
+	} else {
+		if *hasElse {
+			p.fail(start.Pos, "the else clause must be the last clause of a select")
+		}
+		c.Head = p.selectHead(p.headerExpr("select clause"))
+		*heads++
+		c.Body = p.block()
+	}
+	c.End = p.end()
+	return c
 }
 
 // skipClauseBreaks skips the line breaks between select clauses and returns how many it
@@ -1827,7 +2161,7 @@ func (p *parser) lambda() *ast.Lambda {
 	savedB := p.enterBoundary("lambda")
 	p.blockStatements(b)
 	p.leaveBoundary(savedB)
-	p.expect("}")
+	p.expectClose()
 	p.leave(savedN)
 	b.End = p.end()
 	return &ast.Lambda{Pos: pos(t), End: b.End, Body: b}

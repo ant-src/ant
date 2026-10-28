@@ -45,6 +45,11 @@ type Config struct {
 	// Imports, for a session, are the imports of earlier inputs still in force: the root takes
 	// them before its own, without their text, so its positions stay those of its source.
 	Imports []*ast.Import
+	// Recover makes Load go on past errors, for an editor: a module with syntax errors is
+	// parsed as far as it goes (parser.ParseRecover), a module that cannot be read or is in a
+	// cycle leaves its import's Module at -1, and the program comes back with the diagnostics
+	// instead of nil. Such a program is for analysis only and must not be run. Mode is Program.
+	Recover bool
 }
 
 // Module is one loaded module.
@@ -52,6 +57,9 @@ type Module struct {
 	Path  string // canonical, the module's identity
 	File  *ast.File
 	Index int
+	// Src and Layout are the module's source and layout, kept when loading with Recover.
+	Src    string
+	Layout *parser.Layout
 }
 
 // Program is a loaded module graph.
@@ -85,9 +93,11 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 			}
 			return l.diags[i].Pos.Col < l.diags[j].Pos.Col
 		})
-		return nil, l.diags
+		if !cfg.Recover || m == nil {
+			return nil, l.diags
+		}
 	}
-	return &Program{Modules: l.modules, Root: m}, nil
+	return &Program{Modules: l.modules, Root: m}, l.diags
 }
 
 // canonical returns a module's identity key and the path used in messages. raw is the path as
@@ -172,11 +182,22 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	if root {
 		mode = l.cfg.Mode
 	}
-	f, err := parser.Parse(display, src, mode)
-	if err != nil {
-		pe := err.(*parser.Error)
-		l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
-		return nil
+	var f *ast.File
+	var layout *parser.Layout
+	if l.cfg.Recover {
+		var errs []*parser.Error
+		f, layout, errs = parser.ParseRecover(display, src)
+		for _, pe := range errs {
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
+		}
+	} else {
+		var err error
+		f, err = parser.Parse(display, src, mode)
+		if err != nil {
+			pe := err.(*parser.Error)
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
+			return nil
+		}
 	}
 	if root && len(l.cfg.Imports) > 0 {
 		imports := make([]*ast.Import, 0, len(l.cfg.Imports)+len(f.Imports))
@@ -196,9 +217,15 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	}
 	l.state[key] = 1
 	m := &Module{Path: key, File: f}
+	if l.cfg.Recover {
+		m.Src, m.Layout = src, layout
+	}
 	for _, imp := range f.Imports {
 		childKey, childDisplay := l.canonical(imp.Path, raw)
 		child := l.visit(childKey, childDisplay, path.Join(path.Dir(raw), imp.Path), imp.Path, Diagnostic{Path: display, Pos: imp.Pos}, false)
+		if child == nil {
+			imp.Module = -1
+		}
 		if child != nil {
 			imp.Module = child.Index
 			if child.File.Script {

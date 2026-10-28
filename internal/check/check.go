@@ -120,6 +120,9 @@ const (
 	entVar                         // a module variable
 	entConst                       // a namespace constant
 	entModule                      // an imported module
+	// entMissing is a name imported from a module the loader could not load (loader.Config
+	// Recover): its uses are checked no further and reported nowhere, since the import is.
+	entMissing
 )
 
 // entity is a named thing in a module's top-level scope or the prelude.
@@ -355,6 +358,15 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 	c.mod = mi
 	f := mi.m.File
 	for _, imp := range f.Imports {
+		if imp.Module < 0 || imp.Module >= len(c.mods) {
+			if imp.Namespace != "" {
+				mi.names[imp.Namespace] = &entity{name: imp.Namespace, kind: entMissing, pos: imp.Pos}
+			}
+			for _, n := range imp.Names {
+				mi.names[n.Alias] = &entity{name: n.Alias, kind: entMissing, pos: n.Pos}
+			}
+			continue
+		}
 		target := c.mods[imp.Module]
 		if imp.Namespace != "" {
 			mi.names[imp.Namespace] = &entity{name: imp.Namespace, kind: entModule, mod: target, members: target.exports, pos: imp.Pos}
@@ -882,7 +894,7 @@ func (sc *scope) lookupTypeParam(name string) (p *types.ParamDecl, outside strin
 // arities.
 func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 	switch x := t.(type) {
-	case nil:
+	case nil, *ast.BadType:
 		return types.Invalid{}
 	case *ast.TypeName:
 		return c.resolveTypeName(x, sc)
@@ -969,6 +981,9 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	ent := c.lookupType(sc, name)
 	if ent == nil {
 		c.errorf(x.Pos, "unknown type %s", name)
+		return types.Invalid{}
+	}
+	if ent.kind == entMissing {
 		return types.Invalid{}
 	}
 	for _, part := range x.Path[1:] {

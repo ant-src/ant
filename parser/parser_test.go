@@ -69,11 +69,28 @@ func TestSpecBlocks(t *testing.T) {
 }
 
 // TestSyntaxErrors covers the syntax errors the specification names, one case per sentence.
+type syntaxCase struct {
+	name, src, want string
+	mode            Mode
+}
+
 func TestSyntaxErrors(t *testing.T) {
-	cases := []struct {
-		name, src, want string
-		mode            Mode
-	}{
+	for _, c := range syntaxCases() {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := Parse("test", c.src, c.mode)
+			if err == nil {
+				t.Fatalf("parsed, want an error containing %q", c.want)
+			}
+			if !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("error %q, want one containing %q", err.Error(), c.want)
+			}
+		})
+	}
+}
+
+// syntaxCases are the syntax errors the specification names, one case per sentence.
+func syntaxCases() []syntaxCase {
+	return []syntaxCase{
 		{"float leading dot", "var x = .5", "digit before the point", Program},
 		{"module doc after code", "var x = 1\n//! late", "before the first import or declaration", Program},
 		{"module doc in a body", "func f() {\n  //! inside\n}", "before the first import or declaration", Program},
@@ -171,17 +188,6 @@ func TestSyntaxErrors(t *testing.T) {
 		{"continue in a field default inside a loop", "while c {\n  type T = { n: int = if c { continue } else { 1 } }\n}", "'continue' outside a loop", Program},
 		{"defer in a field default", "func f() {\n  type T = { n: int = defer { 1 } }\n}", "defer needs an enclosing block", Program},
 		{"field default needs an expression", "type T = { n: int = }", "unexpected", Program},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			_, err := Parse("test", c.src, c.mode)
-			if err == nil {
-				t.Fatalf("parsed, want an error containing %q", c.want)
-			}
-			if !strings.Contains(err.Error(), c.want) {
-				t.Fatalf("error %q, want one containing %q", err.Error(), c.want)
-			}
-		})
 	}
 }
 
