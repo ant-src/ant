@@ -866,3 +866,53 @@ func TestExitStatus(t *testing.T) {
 		t.Errorf("exit status %d after shutdown and exit, want 0", code)
 	}
 }
+
+func TestThirdRound(t *testing.T) {
+	lib := "export type Point = { x: float64, y: float64 }\nexport func origin(): Point { Point{ x: 0.0, y: 0.0 } }\nexport func foo(): int { 1 }\n"
+	main := "import \"./lib/geo.ant\" { Point: Pt, origin, foo }\n\nvar bar = 1\nvar q: Pt = origin()\nvar r: Array[Pt] = [q]\nfunc h(a: int | null, b: Pt): Pt { b }\n"
+	c := start(t, map[string]string{"lib/geo.ant": lib, "main.ant": main})
+	libURI := c.open("lib/geo.ant", lib)
+	mainURI := c.open("main.ant", main)
+	// renaming the export leaves the alias and the type names written through it alone
+	var edit WorkspaceEdit
+	c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(libURI, at(lib, "Point =", 1, 0)), NewName: "Vec"}, &edit)
+	if got := applyAll(main, edit.Changes[mainURI]); got != strings.Replace(main, "{ Point: Pt,", "{ Vec: Pt,", 1) {
+		t.Errorf("renaming Point from the library:\n%s", got)
+	}
+	// renaming an import from the importing module checks the importer's own names
+	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(mainURI, at(main, "foo }", 1, 0)), NewName: "bar"}, nil); err == nil || !strings.Contains(err.Message, "already declared in main.ant") {
+		t.Errorf("renaming foo to bar from main: %v", err)
+	}
+	// completion of types after a namespace dot in a type, and after the bar of a union
+	labels := func(text string, p Position) map[string]bool {
+		c.change(mainURI, 2, text)
+		var list CompletionList
+		c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(mainURI, p)}, &list)
+		out := map[string]bool{}
+		for _, it := range list.Items {
+			out[it.Label] = true
+		}
+		return out
+	}
+	src := strings.Replace(main, "var bar = 1", "var v: Json.", 1)
+	got := labels(src, at(src, "var v: Json.", 1, 12))
+	if !got["Value"] || got["parse"] {
+		t.Errorf("types after Json.: Value %v parse %v (%d items)", got["Value"], got["parse"], len(got))
+	}
+	src = strings.Replace(main, "var bar = 1", "type T = int | ", 1)
+	got = labels(src, at(src, "type T = int | ", 1, 15))
+	if !got["string"] || !got["Pt"] || got["origin"] {
+		t.Errorf("types after a union bar in a type declaration: string %v Pt %v origin %v", got["string"], got["Pt"], got["origin"])
+	}
+	src = strings.Replace(main, "func h(a: int | null, b: Pt): Pt { b }", "func h(a: int | ", 1)
+	got = labels(src, at(src, "func h(a: int | ", 1, 16))
+	if !got["null"] || !got["string"] || got["origin"] {
+		t.Errorf("types after a union bar in a parameter: null %v string %v origin %v", got["null"], got["string"], got["origin"])
+	}
+	// a pipe in an expression still completes functions
+	src = strings.Replace(main, "var bar = 1", "var bar = [1] | ", 1)
+	got = labels(src, at(src, "var bar = [1] | ", 1, 16))
+	if !got["Array.map"] {
+		t.Errorf("a pipe still completes functions: %d items", len(got))
+	}
+}

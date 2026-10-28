@@ -105,11 +105,11 @@ func (c *completer) run() {
 	if c.importNames() {
 		return
 	}
-	if c.pipe(prev) {
-		return
-	}
 	if c.typePosition(prev) {
 		c.typeNames("")
+		return
+	}
+	if c.pipe(prev) {
 		return
 	}
 	c.recordFields(prev)
@@ -205,6 +205,7 @@ func (c *completer) members(dot *token.Token) {
 		return fld == nil
 	})
 	if fld == nil {
+		c.typeMembers(a)
 		return
 	}
 	piped := c.pipedLeft(a, fld)
@@ -254,6 +255,34 @@ func (c *completer) inPipeRight(dot *token.Token) bool {
 		}
 	}
 	return false
+}
+
+// typeMembers completes after a dot in a type: the types a namespace or a module holds, found
+// through the type name whose last part the placeholder is.
+func (c *completer) typeMembers(a *analysis) {
+	var tn *ast.TypeName
+	ast.Inspect(a.module().File, func(n ast.Node) bool {
+		if x, ok := n.(*ast.TypeName); ok && x.Path[len(x.Path)-1] == placeholder {
+			tn = x
+		}
+		return tn == nil
+	})
+	if tn == nil {
+		return
+	}
+	objs := a.info.TypeNames[tn]
+	if len(objs) < len(tn.Path)-1 || len(objs) == 0 {
+		return
+	}
+	owner := objs[len(tn.Path)-2]
+	for _, m := range owner.Members() {
+		if m.Kind == check.TypeKind || m.Kind == check.Namespace && hasTypes(m) {
+			if owner.Kind == check.Module && !m.Exported {
+				continue
+			}
+			c.add(c.objectItem(a, m, ""))
+		}
+	}
 }
 
 // entityOf is the object an expression names when it is a path to a namespace, a module, or a
@@ -603,8 +632,36 @@ func (c *completer) tokensSayType(prev *token.Token) bool {
 	switch {
 	case prev.Is(":"):
 		return c.afterParamName(prev)
-	case prev.Is("=") || prev.Is("|"):
+	case prev.Is("="):
 		return c.lineStartsWith(prev, "type")
+	case prev.Is("|"):
+		// a union being written: the tokens before the bar are a type that follows the colon
+		// of a parameter or a var, or the = of a type declaration
+		return c.lineStartsWith(prev, "type") || c.unionAfterColon(prev)
+	}
+	return false
+}
+
+// unionAfterColon reports whether the bar at t follows a type written after the colon of a
+// parameter or a var, reading back over the tokens a type is made of.
+func (c *completer) unionAfterColon(bar *token.Token) bool {
+	toks := c.toks
+	i := -1
+	for j := range toks {
+		if &toks[j] == bar {
+			i = j
+		}
+	}
+	for i--; i >= 0; i-- {
+		t := toks[i]
+		switch {
+		case t.Kind == token.Newline:
+		case t.Kind == token.Ident, t.Is("."), t.Is("["), t.Is("]"), t.Is(","), t.Is("|"), t.Is("("), t.Is(")"), t.Is("null"), t.Is("void"), t.Is("func"):
+		case t.Is(":"):
+			return c.afterParamName(&toks[i])
+		default:
+			return false
+		}
 	}
 	return false
 }
@@ -654,13 +711,7 @@ func (c *completer) typeNames(prefix string) {
 			c.add(c.objectItem(a, o, ""))
 		}
 	}
-	if mi, ok := a.info.Modules[a.module().File.Path]; ok {
-		for _, o := range mi.Names {
-			if o.Kind == check.TypeKind || o.Kind == check.Module {
-				c.add(c.objectItem(a, o, ""))
-			}
-		}
-	}
+	c.moduleTypes()
 	nodes := ast.Path(a.module().File, c.d.posOf(c.wordStart))
 	for _, n := range nodes {
 		var tps []ast.TypeParam
@@ -684,6 +735,29 @@ func (c *completer) typeNames(prefix string) {
 				}
 			}
 		}
+	}
+}
+
+// moduleTypes completes the types and modules the module binds at its top level, under the
+// names it binds them by: its own types, and imports under their aliases.
+func (c *completer) moduleTypes() {
+	a := c.a
+	m := a.module()
+	if m.Resolve == nil {
+		return
+	}
+	sc := m.Resolve.Scopes[m.File]
+	if sc == nil {
+		return
+	}
+	for _, b := range sc.Names {
+		o := a.info.Decls[b.Node]
+		if o == nil || o.Kind != check.TypeKind && o.Kind != check.Module {
+			continue
+		}
+		item := c.objectItem(a, o, "")
+		item.Label = b.Name
+		c.add(item)
 	}
 }
 
@@ -711,13 +785,7 @@ func (c *completer) isTargets() {
 			c.add(c.objectItem(a, o, ""))
 		}
 	}
-	if mi, ok := a.info.Modules[a.module().File.Path]; ok {
-		for _, o := range mi.Names {
-			if o.Kind == check.TypeKind || o.Kind == check.Module {
-				c.add(c.objectItem(a, o, ""))
-			}
-		}
-	}
+	c.moduleTypes()
 }
 
 // ---- arguments and entries

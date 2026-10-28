@@ -61,7 +61,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 				}
 			case *ast.TypeName:
 				for i, obj := range in.TypeNames[x] {
-					if obj == o && i < len(x.PathPos) {
+					if obj == o && i < len(x.PathPos) && !(i == 0 && a.aliased(path, x.Path[0])) {
 						refs = append(refs, reference{path: path, from: x.PathPos[i], to: after(x.PathPos[i], x.Path[i])})
 					}
 				}
@@ -136,6 +136,26 @@ func (a *analysis) throughAlias(path string, id *ast.Ident) bool {
 	}
 	in, ok := m.Resolve.Defs[id].(*ast.ImportName)
 	return ok && in.Alias != in.Name
+}
+
+// aliased reports whether name is bound at the top level of the module at path by an import
+// that renames what it imports, as a type name written through it is.
+func (a *analysis) aliased(path, name string) bool {
+	m := a.modules[path]
+	if m == nil || m.Resolve == nil {
+		return false
+	}
+	sc := m.Resolve.Scopes[m.File]
+	if sc == nil {
+		return false
+	}
+	for _, b := range sc.Names {
+		if b.Name == name {
+			in, ok := b.Node.(*ast.ImportName)
+			return ok && in.Alias != in.Name
+		}
+	}
+	return false
 }
 
 // references answers textDocument/references.
@@ -298,6 +318,9 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 	}
 	if err := a.collides(t.obj, p.NewName); err != nil {
 		return nil, err
+	}
+	if err := a.importerClash(t.obj, p.NewName); err != nil {
+		return nil, err // the module the rename starts from may import the name itself
 	}
 	for _, r := range a.referencesOf(t.obj) {
 		add2(&edit, s, a, r, p.NewName, t.obj.Name)
