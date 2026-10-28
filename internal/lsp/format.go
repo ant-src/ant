@@ -33,7 +33,8 @@ func (s *Server) formatting(p *DocumentFormattingParams) []TextEdit {
 		d.text[len(d.text)-1-suffix] == formatted[len(formatted)-1-suffix] {
 		suffix++
 	}
-	for suffix > 0 && d.text[len(d.text)-suffix] != '\n' {
+	// the kept suffix begins at a line start, after a line break, so no \r\n is split
+	for suffix > 0 && d.text[len(d.text)-suffix-1] != '\n' {
 		suffix--
 	}
 	return []TextEdit{{

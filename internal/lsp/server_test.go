@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -654,5 +655,214 @@ func TestCodeActions(t *testing.T) {
 	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "dist(p", 1, 0)), NewName: "origin"}, &edit); err != nil || len(edit.Changes[uri]) != 2 {
 		// origin is a name of the library, not of main, so the alias may take it
 		t.Errorf("renaming the alias dist to origin: %v %+v", err, edit.Changes)
+	}
+}
+
+func TestRenameShorthandAndParams(t *testing.T) {
+	lib := "export type P = { x: int, y: int }\n\n// make makes a P.\nexport func make(x: int, y: int): P { P{ x, y } }\n"
+	main := "import \"./lib/p.ant\" { P, make }\n\nvar p = make(x: 1, y: 2)\nvar { x, y } = p\nprintln(x + y)\n"
+	c := start(t, map[string]string{"lib/p.ant": lib, "main.ant": main})
+	libURI := c.open("lib/p.ant", lib)
+	mainURI := c.open("main.ant", main)
+	// a shorthand entry keeps its field when the variable is renamed
+	var edit WorkspaceEdit
+	c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(libURI, at(lib, "x: int, y: int): P", 1, 0)), NewName: "px"}, &edit)
+	if got := applyAll(lib, edit.Changes[libURI]); !strings.Contains(got, "func make(px: int, y: int): P { P{ x: px, y } }") {
+		t.Errorf("renaming the parameter x:\n%s", got)
+	}
+	// and the named argument in the importing module follows
+	if got := applyAll(main, edit.Changes[mainURI]); !strings.Contains(got, "make(px: 1, y: 2)") {
+		t.Errorf("the named argument in main:\n%s", got)
+	}
+	// a destructuring shorthand keeps its field too
+	edit = WorkspaceEdit{}
+	c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(mainURI, at(main, "x + y", 1, 0)), NewName: "a"}, &edit)
+	if got := applyAll(main, edit.Changes[mainURI]); !strings.Contains(got, "var { x: a, y } = p\nprintln(a + y)") {
+		t.Errorf("renaming the destructured x:\n%s", got)
+	}
+	// renaming an export to a name its importer declares is refused
+	if err := c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(libURI, at(lib, "make(x", 1, 0)), NewName: "p"}, nil); err == nil || !strings.Contains(err.Message, "already declared in main.ant") {
+		t.Errorf("renaming make to p: %v", err)
+	}
+}
+
+func applyAll(text string, edits []TextEdit) string {
+	d := newDocument("", 0, text)
+	type span struct {
+		start, end int
+		text       string
+	}
+	var spans []span
+	for _, e := range edits {
+		spans = append(spans, span{d.offset(e.Range.Start, true), d.offset(e.Range.End, true), e.NewText})
+	}
+	for i := 0; i < len(spans); i++ {
+		for j := i + 1; j < len(spans); j++ {
+			if spans[j].start > spans[i].start {
+				spans[i], spans[j] = spans[j], spans[i]
+			}
+		}
+	}
+	for _, sp := range spans {
+		text = text[:sp.start] + sp.text + text[sp.end:]
+	}
+	return text
+}
+
+func TestGenericArgAndTransitiveErrors(t *testing.T) {
+	c := start(t, map[string]string{
+		"c.ant":    "export func broken(): int { \"x\" }\n",
+		"b.ant":    "import \"./c.ant\" { broken }\nexport func viaB(): int { broken() }\n",
+		"main.ant": "import \"./b.ant\" { viaB }\nfunc id[T](x: T): T { x }\nvar ys = Array.map([1, 2], id)\nvar n = viaB()\n",
+	})
+	main := "import \"./b.ant\" { viaB }\nfunc id[T](x: T): T { x }\nvar ys = Array.map([1, 2], id)\nvar n = viaB()\n"
+	uri := c.open("main.ant", main)
+	// a generic function passed as a value has a hover and a definition
+	var h Hover
+	c.call("textDocument/hover", c.pos(uri, at(main, "], id)", 1, 3)), &h)
+	if !strings.Contains(h.Contents.Value, "func id[T](x: T): T") {
+		t.Errorf("hover on a generic argument: %q", h.Contents.Value)
+	}
+	// an error two imports away shows on the import
+	diags := c.diagnostics(uri)
+	if len(diags) != 1 || !strings.Contains(diags[0].Message, "./b.ant has errors") || !strings.Contains(diags[0].Message, "c.ant:1:") {
+		t.Errorf("transitive import diagnostics: %+v", diags)
+	}
+}
+
+func TestMoreCompletionAndActions(t *testing.T) {
+	c := start(t, workspace())
+	uri := c.open("main.ant", mainSrc)
+	// types after the colon of a var, and after the = of a type declaration
+	for _, tc := range []struct{ src, needle string }{
+		{strings.Replace(mainSrc, "var label = s.name", "var label: ", 1), "var label: "},
+		{strings.Replace(mainSrc, "var label = s.name", "var label:", 1), "var label:"},
+		{strings.Replace(mainSrc, "type Shape = { name: string, area: float64 }", "type Shape = ", 1), "type Shape = "},
+	} {
+		c.change(uri, 2, tc.src)
+		var list CompletionList
+		c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(tc.src, tc.needle, 1, len(tc.needle)))}, &list)
+		labels := map[string]bool{}
+		for _, it := range list.Items {
+			labels[it.Label] = true
+		}
+		if !labels["int"] || !labels["Point"] || labels["describe"] {
+			t.Errorf("types after %q: int %v Point %v describe %v", tc.needle, labels["int"], labels["Point"], labels["describe"])
+		}
+	}
+	// a code action on a literal of an imported type writes the field after the last entry,
+	// before a comment, and names a nested imported type by the import's name
+	lib := geometry + "\nexport type Box = { corner: Point, size: int }\n"
+	main := strings.Replace(mainSrc, `import "./lib/geometry.ant" { Point, distance: dist }`, `import "./lib/geometry.ant" { Point, distance: dist, Box }`, 1)
+	main = strings.Replace(main, "var label = s.name", "var label = s.name\n  var b = Box{ size: 1 // a box\n  }", 1)
+	c.open("lib/geometry.ant", lib)
+	c.change(uri, 3, main)
+	diags := c.diagnostics(uri)
+	var acts []CodeAction
+	for _, dg := range diags {
+		if strings.Contains(dg.Message, "missing the field corner") {
+			p := CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: dg.Range}
+			c.call("textDocument/codeAction", p, &acts)
+		}
+	}
+	if len(acts) != 1 {
+		t.Fatalf("code actions: %+v (diagnostics %+v)", acts, diags)
+	}
+	if fixed := apply(main, acts[0].Edit.Changes[uri][0]); !strings.Contains(fixed, "Box{ size: 1, corner: Point{} // a box") {
+		t.Errorf("after the fix:\n%s", fixed)
+	}
+	// no action when the type has a part the checker could not determine
+	main = strings.Replace(mainSrc, "var label = s.name", "var label = s.name\n  var ch = Channel.new()\n  type T = { c: Channel[int], n: int }\n  var tt = T{ c: ch }", 1)
+	c.change(uri, 4, main)
+	diags = c.diagnostics(uri)
+	acts = nil
+	for _, dg := range diags {
+		if strings.Contains(dg.Message, "missing the field") {
+			p := CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: dg.Range}
+			c.call("textDocument/codeAction", p, &acts)
+		}
+	}
+	for _, act := range acts {
+		if strings.Contains(act.Edit.Changes[uri][0].NewText, "?") {
+			t.Errorf("a fix with an unknown type: %+v", act)
+		}
+	}
+}
+
+func TestSignatureOffsetsAndFolding(t *testing.T) {
+	c := start(t, workspace())
+	uri := c.open("main.ant", mainSrc)
+	src := strings.Replace(mainSrc, "var d = dist(p, Geo.origin)", "var d = describe(s, ", 1)
+	c.change(uri, 2, src)
+	var sh SignatureHelp
+	c.call("textDocument/signatureHelp", SignatureHelpParams{TextDocumentPositionParams: c.pos(uri, at(src, "describe(s, ", 1, 12))}, &sh)
+	if len(sh.Signatures) != 1 {
+		t.Fatalf("signature help: %+v", sh)
+	}
+	label := []uint16{}
+	for _, r := range sh.Signatures[0].Label {
+		label = append(label, uint16(r))
+	}
+	p := sh.Signatures[0].Parameters
+	if len(p) != 2 || string(toRunes(label[p[1].Label[0]:p[1].Label[1]])) != "times: int = …" || sh.ActiveParameter != 1 {
+		t.Errorf("parameter offsets in %q: %+v", sh.Signatures[0].Label, p)
+	}
+	// an if whose closer shares its line with else keeps that line in view
+	src = "func f(a: bool): int {\n  if a {\n    1\n  } else {\n    2\n  }\n}\n"
+	c.change(uri, 3, src)
+	var folds []FoldingRange
+	c.call("textDocument/foldingRange", FoldingRangeParams{TextDocument: TextDocumentIdentifier{URI: uri}}, &folds)
+	var got []string
+	for _, f := range folds {
+		got = append(got, fmt.Sprintf("%d-%d", f.StartLine, f.EndLine))
+	}
+	if strings.Join(got, " ") != "0-5 1-2 3-4" {
+		t.Errorf("folds: %v", got)
+	}
+}
+
+func toRunes(units []uint16) []rune {
+	out := make([]rune, len(units))
+	for i, u := range units {
+		out[i] = rune(u)
+	}
+	return out
+}
+
+func TestDocRendering(t *testing.T) {
+	known := func(name string) bool { return name == "Array.map" }
+	got := docMarkdown("See [Array.map] and element [i] of a*b.\n\n    Array.map([1], { x })\n", known)
+	want := "See `Array.map` and element \\[i\\] of a\\*b.\n\n```ant\nArray.map([1], { x })\n```"
+	if got != want {
+		t.Errorf("docMarkdown:\n%s\nwant:\n%s", got, want)
+	}
+	if s := summary("Array.map returns [Array.filter]. More.", known); s != "Array.map returns \\[Array.filter\\]." {
+		t.Errorf("summary: %q", s)
+	}
+}
+
+func TestExitStatus(t *testing.T) {
+	// shutdown followed by the end of the stream, not by exit, ends with 1 (spec/lsp.md section 1)
+	var in bytes.Buffer
+	for _, m := range []string{
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}`,
+		`{"jsonrpc":"2.0","method":"initialized","params":{}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"shutdown"}`,
+	} {
+		fmt.Fprintf(&in, "Content-Length: %d\r\n\r\n%s", len(m), m)
+	}
+	if code := Serve(context.Background(), &in, io.Discard, io.Discard); code != 1 {
+		t.Errorf("exit status %d after shutdown and the end of input, want 1", code)
+	}
+	in.Reset()
+	for _, m := range []string{
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"shutdown"}`,
+		`{"jsonrpc":"2.0","method":"exit"}`,
+	} {
+		fmt.Fprintf(&in, "Content-Length: %d\r\n\r\n%s", len(m), m)
+	}
+	if code := Serve(context.Background(), &in, io.Discard, io.Discard); code != 0 {
+		t.Errorf("exit status %d after shutdown and exit, want 0", code)
 	}
 }

@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"strings"
+	"unicode/utf16"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
@@ -36,7 +37,7 @@ func (s *Server) signatureHelp(p *SignatureHelpParams) *SignatureHelp {
 	sig := SignatureInformation{Label: label, Parameters: params}
 	if ci.Callee != nil {
 		if doc := ci.Callee.Doc(); doc != "" {
-			sig.Documentation = markdown(docMarkdown(doc))
+			sig.Documentation = markdown(docMarkdown(doc, a.knows))
 		}
 	}
 	active := activeParam(ci, index)
@@ -87,6 +88,15 @@ func enclosingCall(a *analysis, d *document, off int) (*ast.Call, int) {
 	return nil, 0
 }
 
+// utf16Len is the length of s in UTF-16 code units.
+func utf16Len(s string) int {
+	n := 0
+	for _, r := range s {
+		n += utf16.RuneLen(r)
+	}
+	return n
+}
+
 // activeParam is the parameter the argument at index fills: as the checker matched it, or by
 // position for an argument not written yet.
 func activeParam(ci *check.CallInfo, index int) int {
@@ -134,9 +144,10 @@ func signatureParts(a *analysis, ci *check.CallInfo) (string, []ParameterInforma
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		start := sb.Len()
+		// the offsets count UTF-16 code units of the label, as the protocol says
+		start := utf16Len(sb.String())
 		sb.WriteString(l)
-		params[i] = ParameterInformation{Label: [2]int{start, sb.Len()}}
+		params[i] = ParameterInformation{Label: [2]int{start, utf16Len(sb.String())}}
 	}
 	sb.WriteString("): ")
 	sb.WriteString(typeString(ci.Fn.Return))

@@ -33,26 +33,42 @@ func (s *Server) publish(d *document) {
 		if imp.Module < 0 || imp.Module >= len(a.prog.Modules) {
 			continue
 		}
-		m := a.prog.Modules[imp.Module]
-		var first *loader.Diagnostic
-		for i := range a.diags {
-			if a.diags[i].Path == m.File.Path {
-				first = &a.diags[i]
-				break
-			}
-		}
+		// The module's own first error, else the first error of a module it imports, at any
+		// depth: a broken import is visible from every file that depends on it.
+		first := a.firstError(imp.Module, map[int]bool{})
 		if first == nil {
 			continue
 		}
 		dg := Diagnostic{Range: s.rng(d, imp.PathPos, imp.PathEnd), Severity: 1, Source: "ant",
 			Message: fmt.Sprintf("%s has errors: %s", imp.Path, first.String())}
-		if loc, ok := a.location(m.File.Path, first.Pos, first.Pos); ok {
+		if loc, ok := a.location(first.Path, first.Pos, first.Pos); ok {
 			dg.RelatedInformation = []DiagnosticRelatedInformation{{Location: loc, Message: first.Msg}}
 		}
 		out = append(out, dg)
 	}
 	version := d.version
 	s.conn.notify("textDocument/publishDiagnostics", PublishDiagnosticsParams{URI: d.uri, Version: &version, Diagnostics: out})
+}
+
+// firstError is the first diagnostic of the module at index i, or of a module it imports, found
+// depth first in import order, or nil when the whole subtree is clean.
+func (a *analysis) firstError(i int, seen map[int]bool) *loader.Diagnostic {
+	if i < 0 || i >= len(a.prog.Modules) || seen[i] {
+		return nil
+	}
+	seen[i] = true
+	m := a.prog.Modules[i]
+	for k := range a.diags {
+		if a.diags[k].Path == m.File.Path {
+			return &a.diags[k]
+		}
+	}
+	for _, imp := range m.File.Imports {
+		if first := a.firstError(imp.Module, seen); first != nil {
+			return first
+		}
+	}
+	return nil
 }
 
 // diagRange is the range a diagnostic at pos covers: the token there when it is a keyword or an

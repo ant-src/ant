@@ -56,10 +56,7 @@ func (s *Server) run(ctx context.Context) int {
 		m, err := s.conn.read()
 		if err != nil {
 			if err == errClosed {
-				if s.shutdown {
-					return 0
-				}
-				return 1
+				return 1 // only exit after shutdown ends with 0 (spec/lsp.md section 1)
 			}
 			var re *rpcError
 			if e, ok := err.(*rpcError); ok {
@@ -353,7 +350,7 @@ func (s *Server) initialize(p *InitializeParams) InitializeResult {
 		Capabilities: ServerCapabilities{
 			PositionEncoding:           encoding,
 			TextDocumentSync:           TextDocumentSyncOptions{OpenClose: true, Change: 2},
-			CompletionProvider:         &CompletionOptions{TriggerCharacters: []string{".", "|", "<", "/", "\"", " ", "{", "("}},
+			CompletionProvider:         &CompletionOptions{TriggerCharacters: []string{".", "|", "<", "/", "\"", "{", "("}},
 			HoverProvider:              true,
 			SignatureHelpProvider:      &SignatureHelpOptions{TriggerCharacters: []string{"(", ","}, RetriggerCharacters: []string{","}},
 			DefinitionProvider:         true,

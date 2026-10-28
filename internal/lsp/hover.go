@@ -28,7 +28,7 @@ func (s *Server) hover(p *TextDocumentPositionParams) *Hover {
 			m := a.prog.Modules[t.imp.Module]
 			text := code("import " + quote(t.imp.Path))
 			if m.File.Doc != "" {
-				text += "\n\n" + docMarkdown(m.File.Doc)
+				text += "\n\n" + docMarkdown(m.File.Doc, a.knows)
 			}
 			return &Hover{Contents: *markdown(text), Range: &rng}
 		}
@@ -49,7 +49,7 @@ func (s *Server) hover(p *TextDocumentPositionParams) *Hover {
 	}
 	text := code(head)
 	if doc != "" {
-		text += "\n\n" + docMarkdown(doc)
+		text += "\n\n" + docMarkdown(doc, a.knows)
 	}
 	return &Hover{Contents: *markdown(text), Range: &rng}
 }

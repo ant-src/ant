@@ -513,7 +513,7 @@ func (c *completer) objectItem(a *analysis, o *check.Object, prefix string) Comp
 		_, doc = prelude.NamespaceDoc(o.Name)
 	}
 	if doc != "" {
-		item.Documentation = markdown(summary(doc))
+		item.Documentation = markdown(summary(doc, a.knows))
 	}
 	return item
 }
@@ -584,22 +584,57 @@ func (c *completer) typePosition(prev *token.Token) bool {
 			return false
 		case *ast.TypeDecl:
 			return prev != nil && (prev.Is("=") || prev.Is("|") || prev.Is("["))
-		case *ast.Block, *ast.Call, *ast.RecordLit:
+		case *ast.Call, *ast.RecordLit:
 			return false
+		case *ast.Block:
+			return c.tokensSayType(prev)
 		}
 	}
-	return prev != nil && prev.Is(":") && c.afterParamName(prev)
+	return c.tokensSayType(prev)
+}
+
+// tokensSayType reads a type position from the tokens before the cursor, where the tree holds
+// no type yet: after the colon of a parameter or a var, or after the = or | of a type
+// declaration.
+func (c *completer) tokensSayType(prev *token.Token) bool {
+	if prev == nil {
+		return false
+	}
+	switch {
+	case prev.Is(":"):
+		return c.afterParamName(prev)
+	case prev.Is("=") || prev.Is("|"):
+		return c.lineStartsWith(prev, "type")
+	}
+	return false
 }
 
 // afterParamName reports whether the colon before the cursor follows a name in a parameter list
-// of a function literal, which the tree may not hold yet.
+// of a function literal, or in a var declaration, which the tree may not hold yet.
 func (c *completer) afterParamName(colon *token.Token) bool {
 	toks := c.toks
 	for i := range toks {
 		if &toks[i] != colon || i < 2 {
 			continue
 		}
-		return toks[i-1].Kind == token.Ident && (toks[i-2].Is("(") || toks[i-2].Is(","))
+		return toks[i-1].Kind == token.Ident && (toks[i-2].Is("(") || toks[i-2].Is(",") || toks[i-2].Is("var"))
+	}
+	return false
+}
+
+// lineStartsWith reports whether the line holding t begins with the keyword word.
+func (c *completer) lineStartsWith(t *token.Token, word string) bool {
+	toks := c.toks
+	for i := range toks {
+		if &toks[i] != t {
+			continue
+		}
+		for j := i; j >= 0; j-- {
+			if toks[j].Kind == token.Newline || j > 0 && toks[j-1].EndPos.Line < toks[j].Pos.Line {
+				return toks[j].Is(word)
+			}
+		}
+		return toks[0].Is(word)
 	}
 	return false
 }

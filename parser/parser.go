@@ -50,14 +50,25 @@ type bail struct{}
 // ParseRecover parses one module in Program mode as ParseLayout does, but goes on past its
 // syntax errors, for an editor. It returns the tree of what parsed, with a BadStmt, BadExpr, or
 // BadType standing where a statement, an expression, or a type could not be read, the layout,
-// and every error in source order: the lexer's, then the parser's as it met them. The errors
-// are those Parse would report once the earlier ones were fixed, as far as the parser can tell,
-// and the first is the one Parse reports. The tree is for analysis only and must not be run.
+// and every error in source order: the lexer's, then the parser's as it met them. The error
+// Parse reports is among them, and the rest are those Parse would report once the earlier ones
+// were fixed, as far as the parser can tell. A Bad token, which the lexer has reported, ends a
+// statement for the parser, as a line break would, so that it is reported once. The tree is for
+// analysis only and must not be run.
 func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
 	toks, comments, lerrs := lexer.LexRecover(src, true)
 	l := &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
-	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments,
-		roles: l.Roles, prefix: l.Prefix, recovering: true}
+	parsed := toks
+	if slices.ContainsFunc(toks, func(t token.Token) bool { return t.Kind == token.Bad }) {
+		parsed = slices.Clone(toks)
+		for i := range parsed {
+			if parsed[i].Kind == token.Bad {
+				parsed[i] = token.Token{Kind: token.Newline, Pos: parsed[i].Pos, EndPos: parsed[i].Pos, Off: parsed[i].Off, End: parsed[i].Off}
+			}
+		}
+	}
+	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: parsed, comments: comments,
+		roles: l.Roles, prefix: l.Prefix, recovering: true, recorded: map[Error]bool{}}
 	for _, e := range lerrs {
 		p.record(&Error{Pos: cpos(e.Pos), Msg: e.Msg})
 	}
@@ -185,6 +196,7 @@ type parser struct {
 	// in errs and unwinds to the nearest recovery point, and soft records it and goes on.
 	recovering bool
 	errs       []*Error
+	recorded   map[Error]bool // the errors in errs, by position and message
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -249,11 +261,11 @@ func (p *parser) soft(pos token.Pos, format string, args ...any) bool {
 
 // record keeps an error, once per position and message.
 func (p *parser) record(e *Error) {
-	for _, have := range p.errs {
-		if have.Pos == e.Pos && have.Msg == e.Msg {
-			return
-		}
+	key := Error{Pos: e.Pos, Msg: e.Msg}
+	if p.recorded[key] {
+		return
 	}
+	p.recorded[key] = true
 	p.errs = append(p.errs, e)
 }
 
@@ -1745,7 +1757,11 @@ func (p *parser) template(t token.Token) *ast.Template {
 			n.Parts = append(n.Parts, ast.TemplatePart{Pos: cpos(part.Pos), End: cpos(part.EndPos), Text: part.Text})
 			continue
 		}
-		n.Parts = append(n.Parts, ast.TemplatePart{Pos: cpos(part.Pos), End: cpos(part.EndPos), Expr: p.subExpression(part.Tokens, "a template expression")})
+		e := p.subExpression(part.Tokens, "a template expression")
+		if bad, ok := e.(*ast.BadExpr); ok && bad.Pos == (ast.Pos{}) {
+			bad.Pos, bad.End = cpos(part.Pos), cpos(part.EndPos)
+		}
+		n.Parts = append(n.Parts, ast.TemplatePart{Pos: cpos(part.Pos), End: cpos(part.EndPos), Expr: e})
 	}
 	return n
 }
@@ -1761,7 +1777,11 @@ func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 		case token.MarkupText:
 			out = append(out, ast.HtmlNode{Pos: cpos(n.Pos), End: cpos(n.EndPos), Text: n.Text})
 		case token.MarkupExpr:
-			out = append(out, ast.HtmlNode{Pos: cpos(n.Pos), End: cpos(n.EndPos), Expr: p.subExpression(n.Tokens, "markup")})
+			e := p.subExpression(n.Tokens, "markup")
+			if bad, ok := e.(*ast.BadExpr); ok && bad.Pos == (ast.Pos{}) {
+				bad.Pos, bad.End = cpos(n.Pos), cpos(n.EndPos)
+			}
+			out = append(out, ast.HtmlNode{Pos: cpos(n.Pos), End: cpos(n.EndPos), Expr: e})
 		case token.MarkupElement:
 			el := &ast.HtmlElement{Pos: cpos(n.Pos), End: cpos(n.EndPos), Name: n.Name, TextOnly: n.TextOnly}
 			el.NamePos = ast.Pos{Line: el.Pos.Line, Col: el.Pos.Col + 1}
@@ -1776,6 +1796,9 @@ func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 				case token.AttrSpread:
 					attr.Spread = true
 					attr.Expr = p.subExpression(a.Tokens, "a spread")
+				}
+				if bad, ok := attr.Expr.(*ast.BadExpr); ok && bad.Pos == (ast.Pos{}) {
+					bad.Pos, bad.End = cpos(a.Pos), cpos(a.EndPos)
 				}
 				el.Attrs = append(el.Attrs, attr)
 			}

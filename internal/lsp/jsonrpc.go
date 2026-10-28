@@ -54,6 +54,9 @@ const (
 
 var errClosed = errors.New("the connection ended")
 
+// maxMessage bounds a message's body, so that a malformed header cannot ask for all memory.
+const maxMessage = 256 << 20
+
 // read reads one message, or returns errClosed at the end of the stream.
 func (c *conn) read() (*message, error) {
 	length := -1
@@ -82,6 +85,9 @@ func (c *conn) read() (*message, error) {
 	}
 	if length < 0 {
 		return nil, errors.New("a message without Content-Length")
+	}
+	if length > maxMessage {
+		return nil, fmt.Errorf("a message of %d bytes, more than the %d allowed", length, maxMessage)
 	}
 	body := make([]byte, length)
 	if _, err := io.ReadFull(c.r, body); err != nil {

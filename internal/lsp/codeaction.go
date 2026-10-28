@@ -91,31 +91,47 @@ func (s *Server) addFields(a *analysis, d *document, pos ast.Pos, dg Diagnostic)
 	var parts []string
 	for _, f := range named.FieldsOf() {
 		if !given[f.Name] && !f.Default {
-			parts = append(parts, f.Name+": "+zeroValue(f.Type))
+			value, ok := a.zeroValue(d.path, f.Type)
+			if !ok {
+				return nil
+			}
+			parts = append(parts, f.Name+": "+value)
 		}
 	}
 	if len(parts) == 0 {
 		return nil
 	}
-	// insert before the closing brace, after a comma when entries are there
-	closeOff := d.offsetOf(lit.End) - 1
-	if closeOff < 0 || closeOff >= len(d.text) || d.text[closeOff] != '}' {
-		return nil
-	}
 	text := strings.Join(parts, ", ")
-	insertAt := closeOff
-	for insertAt > 0 && (d.text[insertAt-1] == ' ' || d.text[insertAt-1] == '\n' || d.text[insertAt-1] == '\t') {
-		insertAt--
-	}
-	switch {
-	case len(lit.Entries) == 0:
-		// an empty literal: Point{} becomes Point{ x: 0.0 }
-		text = " " + text + " "
-		insertAt = closeOff
-	case d.text[insertAt-1] == ',':
+	var insertAt int
+	if len(lit.Entries) == 0 {
+		// an empty literal: Point{} becomes Point{ x: 0.0 }, whatever stands between the braces
+		open := d.offsetOf(lit.Head.EndPosition())
+		for open < len(d.text) && d.text[open] != '{' {
+			open++
+		}
+		if open >= len(d.text) {
+			return nil
+		}
+		insertAt = open + 1
 		text = " " + text
-	default:
-		text = ", " + text
+		if insertAt < len(d.text) && d.text[insertAt] == '}' {
+			text += " "
+		}
+	} else {
+		// after the last entry, before a comment or line break that follows it, keeping a
+		// trailing comma last
+		last := &lit.Entries[len(lit.Entries)-1]
+		insertAt = d.offsetOf(last.End)
+		comma := insertAt
+		for comma < len(d.text) && (d.text[comma] == ' ' || d.text[comma] == '\t') {
+			comma++
+		}
+		if comma < len(d.text) && d.text[comma] == ',' {
+			insertAt = comma + 1
+			text = " " + text + ","
+		} else {
+			text = ", " + text
+		}
 	}
 	title := "Add the missing field " + parts[0][:strings.Index(parts[0], ":")]
 	if len(parts) > 1 {
@@ -126,37 +142,175 @@ func (s *Server) addFields(a *analysis, d *document, pos ast.Pos, dg Diagnostic)
 		Edit: &WorkspaceEdit{Changes: map[string][]TextEdit{d.uri: {{Range: Range{Start: pos2, End: pos2}, NewText: text}}}}}
 }
 
-// zeroValue is a placeholder value of a type: its zero, or null for a nullable type.
-func zeroValue(t types.Type) string {
+// zeroValue is a placeholder value of a type, written with the names the module at path has:
+// its zero, or null for a nullable type; false when the type has a part the checker could not
+// determine or a type the module cannot name.
+func (a *analysis) zeroValue(path string, t types.Type) (string, bool) {
+	if mentionsInvalid(t) {
+		return "", false
+	}
 	if types.Includes(t, types.Null{}) {
-		return "null"
+		return "null", true
 	}
 	switch x := types.Expand(t).(type) {
 	case types.Prim:
 		switch {
 		case x.Kind.IsFloat():
-			return "0.0"
+			return "0.0", true
 		case x.Kind.IsNumber():
-			return "0"
+			return "0", true
 		case x.Kind == value.KindString:
-			return `""`
+			return `""`, true
 		case x.Kind == value.KindBool:
-			return "false"
+			return "false", true
 		}
 	case types.Array:
-		return "[]"
+		return "[]", true
 	case types.Map:
-		return "Map{}"
+		return "Map{}", true
 	case types.Named:
 		if x.Decl.Kind == types.RecordDecl {
-			return x.Decl.Name + "{}"
+			name, ok := a.localTypeName(path, x.Decl)
+			if !ok {
+				return "", false
+			}
+			return name + "{}", true
 		}
 	case types.Func:
-		return "{ }"
+		return "{ }", true
 	case types.Void:
-		return "void"
+		return "void", true
 	}
-	return "null"
+	return "null", true
+}
+
+// mentionsInvalid reports whether any part of t is a type the checker could not determine.
+func mentionsInvalid(t types.Type) bool {
+	found := false
+	types.Walk(t, func(x types.Type) {
+		if types.IsInvalid(x) {
+			found = true
+		}
+	})
+	return found
+}
+
+// localTypeName is how the module at path names a declared type: by its own name for its own
+// and the prelude's types, else by the name an import gives it, or Namespace.Name through a
+// namespace import; false when the module has no name for it.
+func (a *analysis) localTypeName(path string, decl *types.Decl) (string, bool) {
+	if decl.Path == path || decl.Path == "prelude.ant" || decl.Path == "" {
+		return decl.Name, true
+	}
+	m := a.modules[path]
+	if m == nil || m.Resolve == nil {
+		return "", false
+	}
+	sc := m.Resolve.Scopes[m.File]
+	if sc == nil {
+		return "", false
+	}
+	for _, b := range sc.Names {
+		switch n := b.Node.(type) {
+		case *ast.ImportName:
+			if o := a.info.Decls[n]; o != nil && o.TypeDecl() == decl {
+				return b.Name, true
+			}
+		case *ast.Import:
+			if o := a.info.Decls[n]; o != nil {
+				for _, e := range o.Members() {
+					if e.TypeDecl() == decl {
+						return b.Name + "." + e.Name, true
+					}
+				}
+			}
+		}
+	}
+	return "", false
+}
+
+// writeType writes a type with the names the module at path has for the declared types in it,
+// or false when it has a part the checker could not determine or a type the module cannot
+// name.
+func (a *analysis) writeType(path string, t types.Type) (string, bool) {
+	if mentionsInvalid(t) {
+		return "", false
+	}
+	ok := true
+	var write func(t types.Type) string
+	write = func(t types.Type) string {
+		switch x := t.(type) {
+		case types.Array:
+			return "Array[" + write(x.Elem) + "]"
+		case types.Map:
+			return "Map[" + write(x.Key) + ", " + write(x.Val) + "]"
+		case types.Set:
+			return "Set[" + write(x.Elem) + "]"
+		case types.Func:
+			var sb strings.Builder
+			sb.WriteString("func(")
+			for i, p := range x.Params {
+				if i > 0 {
+					sb.WriteString(", ")
+				}
+				sb.WriteString(write(p))
+			}
+			sb.WriteString("): " + write(x.Return))
+			return sb.String()
+		case types.Record:
+			if len(x.Fields) == 0 {
+				return "{}"
+			}
+			var sb strings.Builder
+			sb.WriteString("{ ")
+			for i, f := range x.Fields {
+				if i > 0 {
+					sb.WriteString(", ")
+				}
+				sb.WriteString(f.Name + ": " + write(f.Type))
+			}
+			sb.WriteString(" }")
+			return sb.String()
+		case types.Named:
+			name, found := a.localTypeName(path, x.Decl)
+			if !found {
+				ok = false
+			}
+			if len(x.Args) == 0 {
+				return name
+			}
+			var sb strings.Builder
+			sb.WriteString(name + "[")
+			for i, arg := range x.Args {
+				if i > 0 {
+					sb.WriteString(", ")
+				}
+				sb.WriteString(write(arg))
+			}
+			sb.WriteString("]")
+			return sb.String()
+		case types.Union:
+			members := x.Members
+			if x.Written != nil {
+				members = x.Written
+			}
+			var sb strings.Builder
+			for i, m := range members {
+				if i > 0 {
+					sb.WriteString(" | ")
+				}
+				if _, isFunc := m.(types.Func); isFunc {
+					sb.WriteString("(" + write(m) + ")")
+				} else {
+					sb.WriteString(write(m))
+				}
+			}
+			return sb.String()
+		}
+		return types.String(t)
+	}
+	s := write(t)
+	return s, ok
 }
 
 // stateReturnType writes the inferred return type on the exported function at pos.
@@ -175,7 +329,11 @@ func (s *Server) stateReturnType(a *analysis, d *document, pos ast.Pos, dg Diagn
 		return nil
 	}
 	fn, ok := o.Type().(types.Func)
-	if !ok || fn.Return == nil || types.IsInvalid(fn.Return) || types.HasParam(fn.Return) && len(fd.TypeParams) == 0 {
+	if !ok || fn.Return == nil || types.HasParam(fn.Return) && len(fd.TypeParams) == 0 {
+		return nil
+	}
+	ret, ok := a.writeType(d.path, fn.Return)
+	if !ok {
 		return nil
 	}
 	// after the ) of the parameters: the last ) before the body
@@ -187,9 +345,8 @@ func (s *Server) stateReturnType(a *analysis, d *document, pos ast.Pos, dg Diagn
 		return nil
 	}
 	at := d.position(off, s.utf16)
-	text := ": " + types.String(fn.Return)
-	return &CodeAction{Title: "State the return type " + types.String(fn.Return), Kind: "quickfix", Diagnostics: []Diagnostic{dg}, IsPreferred: true,
-		Edit: &WorkspaceEdit{Changes: map[string][]TextEdit{d.uri: {{Range: Range{Start: at, End: at}, NewText: text}}}}}
+	return &CodeAction{Title: "State the return type " + ret, Kind: "quickfix", Diagnostics: []Diagnostic{dg}, IsPreferred: true,
+		Edit: &WorkspaceEdit{Changes: map[string][]TextEdit{d.uri: {{Range: Range{Start: at, End: at}, NewText: ": " + ret}}}}}
 }
 
 // stateVarType writes the type of the var at pos, when the checker found it.
@@ -208,10 +365,14 @@ func (s *Server) stateVarType(a *analysis, d *document, pos ast.Pos, dg Diagnost
 		return nil
 	}
 	o := a.info.Decls[nt]
-	if o == nil || o.Type() == nil || types.IsInvalid(o.Type()) {
+	if o == nil || o.Type() == nil {
+		return nil
+	}
+	ty, ok := a.writeType(d.path, o.Type())
+	if !ok {
 		return nil
 	}
 	at := d.position(d.offsetOf(nt.End), s.utf16)
-	return &CodeAction{Title: "State the type " + types.String(o.Type()), Kind: "quickfix", Diagnostics: []Diagnostic{dg},
-		Edit: &WorkspaceEdit{Changes: map[string][]TextEdit{d.uri: {{Range: Range{Start: at, End: at}, NewText: ": " + types.String(o.Type())}}}}}
+	return &CodeAction{Title: "State the type " + ty, Kind: "quickfix", Diagnostics: []Diagnostic{dg},
+		Edit: &WorkspaceEdit{Changes: map[string][]TextEdit{d.uri: {{Range: Range{Start: at, End: at}, NewText: ": " + ty}}}}}
 }

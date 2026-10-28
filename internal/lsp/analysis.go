@@ -24,6 +24,7 @@ type analysis struct {
 	modules map[string]*loader.Module // by the path the module's file carries
 	docs    map[string]*document      // the text of each module, open or read from disk
 	server  *Server
+	names   map[string]bool // the names docs may link to, made on first use
 }
 
 // analyze loads and checks the program rooted at doc, with every open document standing in for
@@ -73,6 +74,30 @@ func (s *Server) analyze(doc *document) *analysis {
 
 // module is the root's module.
 func (a *analysis) module() *loader.Module { return a.prog.Root }
+
+// knows reports whether name, as a doc comment brackets it, is a declaration the program can
+// see: a prelude name or Namespace.member, or a top-level name of the root module or a member
+// of one, so that doc.md's links become code and other bracketed text stays as written.
+func (a *analysis) knows(name string) bool {
+	if a.names == nil {
+		a.names = map[string]bool{}
+		note := func(prefix string, objs []*check.Object) {
+			for _, o := range objs {
+				a.names[prefix+o.Name] = true
+				if o.Kind == check.Namespace || o.Kind == check.TypeKind || o.Kind == check.Module {
+					for _, m := range o.Members() {
+						a.names[prefix+o.Name+"."+m.Name] = true
+					}
+				}
+			}
+		}
+		note("", a.info.Prelude)
+		if mi, ok := a.info.Modules[a.module().File.Path]; ok {
+			note("", mi.Names)
+		}
+	}
+	return a.names[name]
+}
 
 // doc returns the document of a module by path, the prelude's for "prelude.ant", or nil.
 func (a *analysis) doc(path string) *document {

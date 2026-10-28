@@ -152,6 +152,20 @@ func (d *document) apply(changes []TextDocumentContentChangeEvent, utf16Units bo
 	}
 }
 
+// lineStartsAt reports whether only white space comes before the token that ends at p on its
+// line, p being the position after a closing bracket.
+func (d *document) lineStartsAt(p ast.Pos) bool {
+	end := d.offsetOf(p)
+	i := end - 1 // the closer
+	for i > 0 && d.text[i-1] != '\n' && d.text[i-1] != '\r' {
+		i--
+		if d.text[i] != ' ' && d.text[i] != '\t' {
+			return false
+		}
+	}
+	return true
+}
+
 // wordAt returns the identifier around off, and where it starts.
 func (d *document) wordAt(off int) (string, int) {
 	start := off

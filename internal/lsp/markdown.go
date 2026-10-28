@@ -11,8 +11,9 @@ import (
 
 // docMarkdown renders a doc comment by the conventions of doc.md section 2: paragraphs separated
 // by empty lines, lines indented beyond the comment's own space as a code block, and a
-// bracketed name as code.
-func docMarkdown(doc string) string {
+// bracketed name that known says is a declaration as code; any other text is plain, so the
+// characters Markdown would read are escaped.
+func docMarkdown(doc string, known func(string) bool) string {
 	if doc == "" {
 		return ""
 	}
@@ -24,7 +25,7 @@ func docMarkdown(doc string) string {
 			codeLines = nil
 		}
 		if len(para) > 0 {
-			out = append(out, linkNames(strings.Join(para, " ")))
+			out = append(out, prose(strings.Join(para, " "), known))
 			para = nil
 		}
 	}
@@ -66,25 +67,55 @@ func dedent(lines []string) []string {
 
 var bracketedName = regexp.MustCompile(`\[([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?)\]`)
 
-// linkNames turns a bracketed name into code, since the editor cannot link to the declaration
-// from a hover.
-func linkNames(s string) string {
-	return bracketedName.ReplaceAllString(s, "`$1`")
+// prose renders a paragraph of plain text as Markdown: a bracketed name that known says is a
+// declaration becomes code, since the editor cannot link to it from a hover, and the characters
+// Markdown would read, as in `a * b`, are escaped. A bracketed text that names nothing stays as
+// written.
+func prose(s string, known func(string) bool) string {
+	var sb strings.Builder
+	last := 0
+	for _, m := range bracketedName.FindAllStringSubmatchIndex(s, -1) {
+		name := s[m[2]:m[3]]
+		if known == nil || !known(name) {
+			continue
+		}
+		sb.WriteString(escapeMarkdown(s[last:m[0]]))
+		sb.WriteString("`" + name + "`")
+		last = m[1]
+	}
+	sb.WriteString(escapeMarkdown(s[last:]))
+	return sb.String()
+}
+
+// escapeMarkdown escapes the characters that would format plain text.
+func escapeMarkdown(s string) string {
+	if !strings.ContainsAny(s, "\\`*_{}[]()#+-!<>|~") {
+		return s
+	}
+	var sb strings.Builder
+	for _, r := range s {
+		switch r {
+		case '\\', '`', '*', '_', '[', ']', '<', '>', '#', '|', '~':
+			sb.WriteByte('\\')
+		}
+		sb.WriteRune(r)
+	}
+	return sb.String()
 }
 
 // summary is the first sentence of a doc: up to the first period followed by a space or a line
 // break (doc.md section 2).
-func summary(doc string) string {
+func summary(doc string, known func(string) bool) string {
 	doc = strings.TrimSpace(doc)
 	for i := 0; i < len(doc); i++ {
 		if doc[i] == '.' && (i+1 == len(doc) || doc[i+1] == ' ' || doc[i+1] == '\n') {
-			return linkNames(strings.ReplaceAll(doc[:i+1], "\n", " "))
+			return prose(strings.ReplaceAll(doc[:i+1], "\n", " "), known)
 		}
 	}
 	if i := strings.IndexByte(doc, '\n'); i >= 0 {
-		return linkNames(doc[:i])
+		return prose(doc[:i], known)
 	}
-	return linkNames(doc)
+	return prose(doc, known)
 }
 
 // describe renders an object for hover: a code block that says what it is, and its doc.

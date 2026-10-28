@@ -872,6 +872,7 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 	if ent == nil {
 		return nil
 	}
+	c.notePath(e, sc)
 	var s *sig
 	switch {
 	case ent.kind == entType:

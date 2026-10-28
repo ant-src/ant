@@ -10,11 +10,22 @@ import (
 	"github.com/ant-src/ant/internal/token"
 )
 
-// reference is one mention of an object: the module and the span of the name.
+// reference is one mention of an object: the module and the span of the name. shorthand is set
+// when the name is a record entry or destructuring written short, { x } for { x: x }, whose
+// field must keep its name when the variable is renamed.
 type reference struct {
-	path     string
-	from, to ast.Pos
-	decl     bool // the declaration itself
+	path      string
+	from, to  ast.Pos
+	decl      bool // the declaration itself
+	shorthand bool
+}
+
+// newText is what a reference becomes when its name is renamed.
+func (r reference) newText(name, field string) string {
+	if r.shorthand {
+		return field + ": " + name
+	}
+	return name
 }
 
 // referencesOf finds every mention of o in the program: the uses, and the declaration.
@@ -22,29 +33,45 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 	var refs []reference
 	in := a.info
 	for path, m := range a.modules {
+		shortIdents := map[*ast.Ident]bool{}
+		shortTargets := map[*ast.NameTarget]bool{}
 		ast.Inspect(m.File, func(n ast.Node) bool {
 			switch x := n.(type) {
+			case *ast.RecordLit:
+				for i := range x.Entries {
+					e := &x.Entries[i]
+					if id, ok := e.Value.(*ast.Ident); ok && e.Name != "" && id.Pos == e.Pos {
+						shortIdents[id] = true
+					}
+				}
+			case *ast.RecordTarget:
+				for i := range x.Fields {
+					f := &x.Fields[i]
+					if nt, ok := f.Target.(*ast.NameTarget); ok && nt.Pos == f.Pos {
+						shortTargets[nt] = true
+					}
+				}
 			case *ast.Ident:
 				if in.Objects[x] == o && !a.throughAlias(path, x) {
-					refs = append(refs, reference{path, x.Pos, x.End, false})
+					refs = append(refs, reference{path, x.Pos, x.End, false, shortIdents[x]})
 				}
 			case *ast.Field:
 				if in.Members[x] == o && x.Name != "" {
-					refs = append(refs, reference{path, x.NamePos, x.End, false})
+					refs = append(refs, reference{path: path, from: x.NamePos, to: x.End})
 				}
 			case *ast.TypeName:
 				for i, obj := range in.TypeNames[x] {
 					if obj == o && i < len(x.PathPos) {
-						refs = append(refs, reference{path, x.PathPos[i], after(x.PathPos[i], x.Path[i]), false})
+						refs = append(refs, reference{path: path, from: x.PathPos[i], to: after(x.PathPos[i], x.Path[i])})
 					}
 				}
 			case *ast.RecordEntry:
 				if in.Entries[x] == o && x.Name != "" {
-					refs = append(refs, reference{path, x.Pos, after(x.Pos, x.Name), false})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
 				}
 			case *ast.ImportName:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.Pos, after(x.Pos, x.Name), false})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
 				}
 			case *ast.Call:
 				if ci := in.Calls[x]; ci != nil && ci.Callee != nil {
@@ -56,7 +83,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 							}
 							for j := range fd.Params {
 								if fd.Params[j].Name == arg.Name && in.Decls[&fd.Params[j]] == o {
-									refs = append(refs, reference{path, arg.Pos, after(arg.Pos, arg.Name), false})
+									refs = append(refs, reference{path: path, from: arg.Pos, to: after(arg.Pos, arg.Name)})
 								}
 							}
 						}
@@ -64,34 +91,34 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 				}
 			case *ast.FuncDecl:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.NamePos, after(x.NamePos, x.Name), true})
+					refs = append(refs, reference{path: path, from: x.NamePos, to: after(x.NamePos, x.Name), decl: true})
 				}
 				if x.Owner != "" && a.named(path, x.Owner) == o {
-					refs = append(refs, reference{path, x.OwnerPos, after(x.OwnerPos, x.Owner), false})
+					refs = append(refs, reference{path: path, from: x.OwnerPos, to: after(x.OwnerPos, x.Owner)})
 				}
 			case *ast.TypeDecl:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.NamePos, after(x.NamePos, x.Name), true})
+					refs = append(refs, reference{path: path, from: x.NamePos, to: after(x.NamePos, x.Name), decl: true})
 				}
 			case *ast.NameTarget:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.Pos, x.End, true})
+					refs = append(refs, reference{path, x.Pos, x.End, true, shortTargets[x]})
 				}
 			case *ast.Param:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.Pos, after(x.Pos, x.Name), true})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), decl: true})
 				}
 			case *ast.TypeParam:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.Pos, after(x.Pos, x.Name), true})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), decl: true})
 				}
 			case *ast.FieldType:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.Pos, after(x.Pos, x.Name), true})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), decl: true})
 				}
 			case *ast.Import:
 				if x.Namespace != "" && in.Decls[x] == o {
-					refs = append(refs, reference{path, x.NamespacePos, after(x.NamespacePos, x.Namespace), true})
+					refs = append(refs, reference{path: path, from: x.NamespacePos, to: after(x.NamespacePos, x.Namespace), decl: true})
 				}
 			}
 			return true
@@ -273,21 +300,26 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 		return nil, err
 	}
 	for _, r := range a.referencesOf(t.obj) {
-		add(r.path, r.from, r.to)
+		add2(&edit, s, a, r, p.NewName, t.obj.Name)
 	}
-	if t.obj.Exported && t.obj.Kind != check.Module {
+	if a.reachesImporters(t.obj) {
 		// Every module of the workspace that imports the declaring module (spec/lsp.md
 		// section 4): each is the root of a program of its own, in which the object is found
-		// again by where it is declared.
+		// again by where it is declared. A name the importer binds must not clash there.
 		declPath, from, _, ok := a.declRange(t.obj)
 		if ok {
 			for _, other := range s.importers(declPath, a.root.uri) {
 				oa := s.analyze(other)
-				if same := oa.objectDeclaredAt(declPath, from); same != nil {
-					for _, r := range oa.referencesOf(same) {
-						if r.path != declPath {
-							add2(&edit, s, oa, r, p.NewName)
-						}
+				same := oa.objectDeclaredAt(declPath, from)
+				if same == nil {
+					continue
+				}
+				if err := oa.importerClash(same, p.NewName); err != nil {
+					return nil, err
+				}
+				for _, r := range oa.referencesOf(same) {
+					if r.path != declPath {
+						add2(&edit, s, oa, r, p.NewName, t.obj.Name)
 					}
 				}
 			}
@@ -296,13 +328,81 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 	return edit, nil
 }
 
-// add2 adds a rename edit found in another program, once per document.
-func add2(edit *WorkspaceEdit, s *Server, a *analysis, r reference, name string) {
+// reachesImporters reports whether renaming o changes other modules: an export, or a
+// parameter of an exported function, which named arguments elsewhere spell.
+func (a *analysis) reachesImporters(o *check.Object) bool {
+	switch o.Kind {
+	case check.Module:
+		return false
+	case check.Param:
+		if fd := a.enclosingFunc(o); fd != nil {
+			return fd.Export
+		}
+		return false
+	}
+	return o.Exported
+}
+
+// enclosingFunc is the declared function whose parameter o is, or nil.
+func (a *analysis) enclosingFunc(o *check.Object) *ast.FuncDecl {
+	param, ok := o.Decl.(*ast.Param)
+	if !ok {
+		return nil
+	}
+	f := a.file(a.pathOf(o))
+	if f == nil {
+		return nil
+	}
+	for _, d := range f.Decls {
+		if fd, ok := d.(*ast.FuncDecl); ok {
+			for i := range fd.Params {
+				if &fd.Params[i] == param {
+					return fd
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// importerClash reports a name the root module of this analysis, which imports o, already
+// binds, when it imports o under its own name.
+func (a *analysis) importerClash(o *check.Object, name string) *rpcError {
+	m := a.module()
+	if m.Resolve == nil {
+		return nil
+	}
+	sc := m.Resolve.Scopes[m.File]
+	if sc == nil {
+		return nil
+	}
+	imported := false
+	for _, b := range sc.Names {
+		if in, ok := b.Node.(*ast.ImportName); ok && a.info.Decls[in] == o && in.Alias == in.Name {
+			imported = true
+		}
+	}
+	if !imported {
+		return nil
+	}
+	for _, b := range sc.Names {
+		if b.Name == name {
+			if in, ok := b.Node.(*ast.ImportName); ok && a.info.Decls[in] == o {
+				continue
+			}
+			return &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared in %s, which imports %s", name, filepath.Base(m.File.Path), o.Name)}
+		}
+	}
+	return nil
+}
+
+// add2 adds a rename edit, once per document and range.
+func add2(edit *WorkspaceEdit, s *Server, a *analysis, r reference, name, field string) {
 	rd := a.doc(r.path)
 	if rd == nil {
 		return
 	}
-	te := TextEdit{Range: s.rng(rd, r.from, r.to), NewText: name}
+	te := TextEdit{Range: s.rng(rd, r.from, r.to), NewText: r.newText(name, field)}
 	for _, have := range edit.Changes[rd.uri] {
 		if have == te {
 			return
@@ -311,18 +411,39 @@ func add2(edit *WorkspaceEdit, s *Server, a *analysis, r reference, name string)
 	edit.Changes[rd.uri] = append(edit.Changes[rd.uri], te)
 }
 
-// objectDeclaredAt finds the object declared at a position of a module in this analysis.
+// objectDeclaredAt finds the object whose name is declared at a position of a module in this
+// analysis: a top-level declaration, or a parameter.
 func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
-	mi, ok := a.info.Modules[path]
-	if !ok {
+	f := a.file(path)
+	if f == nil {
 		return nil
 	}
-	for _, o := range mi.Names {
-		if p, from, _, ok := a.declRange(o); ok && p == path && from == pos {
-			return o
+	var found *check.Object
+	ast.Inspect(f, func(n ast.Node) bool {
+		if found != nil {
+			return false
 		}
-	}
-	return nil
+		switch x := n.(type) {
+		case *ast.FuncDecl:
+			if x.NamePos == pos {
+				found = a.info.Decls[x]
+			}
+		case *ast.TypeDecl:
+			if x.NamePos == pos {
+				found = a.info.Decls[x]
+			}
+		case *ast.NameTarget:
+			if x.Pos == pos {
+				found = a.info.Decls[x]
+			}
+		case *ast.Param:
+			if x.Pos == pos {
+				found = a.info.Decls[x]
+			}
+		}
+		return true
+	})
+	return found
 }
 
 // importers lists the documents, open or in the workspace, whose imports lead to the module at

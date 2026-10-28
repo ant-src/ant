@@ -194,6 +194,9 @@ func TestRecoverCases(t *testing.T) {
 			"(file (func f() { a; b }))"},
 		{"local type redeclares a prelude name", "func f() {\n  type Math = int\n  1\n}", nil,
 			"(file (func f() { (type Math int); 1 }))"},
+		// A Bad token is the lexer's error alone; for the parser it ends the statement.
+		{"bad token", "var x = 1 @ 2\nvar y = 3", []string{"unexpected character '@'"},
+			"(file (var x 1) (var y 3) 2)"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -18,9 +18,10 @@ func (s *Server) foldingRanges(p *FoldingRangeParams) []FoldingRange {
 	m := a.module()
 	out := []FoldingRange{}
 	add := func(from, to ast.Pos, kind string) {
-		// The last line folded is the one before the closer when the closer stands alone.
+		// The last line folded is the one before the closer when the closer starts its line,
+		// so that a } else { stays in view.
 		start, end := from.Line-1, to.Line-1
-		if end > start && to.Col <= 2 {
+		if end > start && d.lineStartsAt(to) {
 			end--
 		}
 		if end > start {
