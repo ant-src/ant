@@ -56,6 +56,7 @@ var commands = []command{
 		return nil
 	}},
 	{name: "lsp"},
+	{name: "dap"},
 	{name: "help"},
 }
 

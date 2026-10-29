@@ -26,7 +26,7 @@ type Debugger struct {
 	// StopOnEntry stops before the first statement of the root module.
 	StopOnEntry bool
 
-	in   *Instance
+	in   atomic.Pointer[Instance] // set as the run starts
 	root *module
 
 	halt   atomic.Bool // a stop is under way: every active goroutine parks at its next chance
@@ -84,7 +84,7 @@ func NewDebugger() *Debugger {
 }
 
 func (d *Debugger) attach(in *Instance) {
-	d.in = in
+	d.in.Store(in)
 	d.root = in.modules[in.prog.Root.Index]
 	d.entry = d.StopOnEntry
 }
@@ -113,6 +113,13 @@ func (d *Debugger) SetPanicFilters(uncaught, all bool) {
 	d.mu.Lock()
 	d.uncaught, d.all = uncaught, all
 	d.mu.Unlock()
+}
+
+// Flush writes out what the program has printed, once the run has started.
+func (d *Debugger) Flush() {
+	if in := d.in.Load(); in != nil {
+		in.Flush()
+	}
 }
 
 // ---- control
@@ -170,10 +177,11 @@ func (d *Debugger) Pause(id int) {
 		for d.active > 0 {
 			d.cond.Wait()
 		}
-		d.stop = Stop{Goroutine: id, Reason: "pause"}
+		st := Stop{Goroutine: id, Reason: "pause"}
+		d.stop = st
 		d.mu.Unlock()
-		d.in.Flush()
-		d.OnStop(d.stop)
+		d.Flush()
+		d.OnStop(st)
 	}()
 }
 
@@ -289,11 +297,12 @@ func (d *Debugger) stopAt(g *Goroutine, reason string, p *AntPanic) {
 	for d.active > 0 {
 		d.cond.Wait()
 	}
-	d.stop = Stop{Goroutine: g.id, Reason: reason, Panic: p}
+	st := Stop{Goroutine: g.id, Reason: reason, Panic: p}
+	d.stop = st
 	gen := d.gen
 	d.mu.Unlock()
-	d.in.Flush() // what the program wrote before the stop shows at the stop
-	d.OnStop(d.stop)
+	d.Flush() // what the program wrote before the stop shows at the stop
+	d.OnStop(st)
 	d.mu.Lock()
 	for d.gen == gen {
 		d.cond.Wait()
