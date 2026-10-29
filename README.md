@@ -116,9 +116,12 @@ Official editor extensions:
 
 Other editors can integrate with Ant using LSP and DAP.
 
-## API
+## Go API
 
-Ant can be used as a lib too:
+Ant can be embedded in Go applications for executing scripts, calling Ant functions,
+and exposing Go functions to Ant.
+
+**Load, check, and run a program:**
 
 ```go
 prog, err := ant.Load("main.ant")
@@ -126,15 +129,17 @@ diags := prog.Check()
 err = prog.Run(ctx, ant.WithArgs(args))
 ```
 
+**Call Ant functions from Go:**
+
 ```go
 in, err := prog.Start(ctx)
 defer in.Close()
+
 scale, _ := in.Func("scale")
 result, err := scale.Call(point, 2.0)
 ```
 
-To call Go from Ant, give the program a namespace with its signatures written as a declaration
-file writes them (section 10, Declaration files):
+**Expose Go functions to Ant** using namespaces and Ant type signatures:
 
 ```go
 prog, err := ant.Load("main.ant", ant.WithNamespace(ant.Namespace{
@@ -144,15 +149,13 @@ prog, err := ant.Load("main.ant", ant.WithNamespace(ant.Namespace{
 }), ant.WithoutNamespaces("File", "Http"))
 ```
 
-A `Session` evaluates one input at a time on a persistent module, which is what the REPL is built
-on:
+**Evaluate code interactively** with persistent state, using the same API as the Ant REPL:
 
 ```go
 s, err := ant.NewSession(ctx, ant.WithStdout(os.Stdout))
 v, err := s.Eval("var x = 2")
 v, err = s.Eval("x * 21")
 ```
-
 ## License
 
 [MIT](LICENSE)
