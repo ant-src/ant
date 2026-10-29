@@ -916,3 +916,83 @@ func TestThirdRound(t *testing.T) {
 		t.Errorf("a pipe still completes functions: %d items", len(got))
 	}
 }
+
+func TestMarkupDestructuringAndVarTypes(t *testing.T) {
+	c := start(t, workspace())
+	src := mainSrc + `
+var page = <form action={"/go"}><input type="checkbox" checked={true} onclick="go()" class={["a"]} /><br /><script>x</script><textarea>t</textarea><p>p</p></form>
+var { name, area } = Shape{ name: "sq", area: 1.0 }
+var [one, _, ...rest] = [1, 2, 3]
+
+func counter(): int {
+  var fact = func(n: int): int { if n < 2 { 1 } else { n * fact(n - 1) } }
+  var tick = func(n: int, m: Map[string, Array[int]], s: Set[string], r: { a: int }, e: {}, f: func(int): int, u: int | (func(): int), sh: Shape | null) {
+    if n > 0 { tick(n - 1, m, s, r, e, f, u, sh) }
+    println(n)
+  }
+  fact(3)
+}
+`
+	uri := c.open("main.ant", src)
+	cases := []struct {
+		name string
+		pos  Position
+		want string
+	}{
+		{"element", at(src, "<form", 1, 1), "<form>"},
+		{"void element", at(src, "<input", 1, 1), "A void element"},
+		{"raw-text element", at(src, "<script", 1, 1), "literal text"},
+		{"text-only element", at(src, "<textarea", 1, 1), "text only"},
+		{"plain element", at(src, "<p>", 1, 1), "<p>"},
+		{"boolean attribute", at(src, "checked", 1, 0), "A boolean attribute"},
+		{"code attribute", at(src, "onclick", 1, 0), "Runs code"},
+		{"URL attribute", at(src, "action", 1, 0), "A URL attribute"},
+		{"class attribute", at(src, "class", 1, 0), "joined with spaces"},
+		{"plain attribute", at(src, "type=", 1, 0), "type"},
+	}
+	for _, tc := range cases {
+		var h Hover
+		c.call("textDocument/hover", c.pos(uri, tc.pos), &h)
+		if !strings.Contains(h.Contents.Value, tc.want) {
+			t.Errorf("%s: hover %q lacks %q", tc.name, h.Contents.Value, tc.want)
+		}
+	}
+	// the names a destructuring var binds are symbols, and go to their target
+	var syms []DocumentSymbol
+	c.call("textDocument/documentSymbol", DocumentSymbolParams{TextDocument: TextDocumentIdentifier{URI: uri}}, &syms)
+	var names []string
+	for _, s := range syms {
+		names = append(names, s.Name)
+	}
+	if got := strings.Join(names, " "); !strings.Contains(got, "name area one rest") {
+		t.Errorf("symbols: %s", got)
+	}
+	var locs []Location
+	c.call("textDocument/definition", c.pos(uri, at(src, "fact(3)", 1, 0)), &locs)
+	if len(locs) != 1 || locs[0].Range.Start != at(src, "fact =", 1, 0) {
+		t.Errorf("definition of fact: %+v", locs)
+	}
+	locs = nil
+	c.call("textDocument/definition", c.pos(uri, at(src, "Geo.origin", 1, 0)), &locs)
+	if len(locs) != 1 {
+		t.Errorf("definition of Geo: %+v", locs)
+	}
+	// a var a function in its initializer uses needs its type stated
+	var diags []Diagnostic
+	all := c.diagnostics(uri)
+	for _, dg := range all {
+		if strings.Contains(dg.Message, "state its type on the var") {
+			diags = append(diags, dg)
+		}
+	}
+	if len(diags) != 1 {
+		t.Fatalf("diagnostics: %+v", all)
+	}
+	const tickType = "func(int, Map[string, Array[int]], Set[string], { a: int }, {}, func(int): int, int | (func(): int), Shape | null): void"
+	var acts []CodeAction
+	p := CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: diags[0].Range}
+	c.call("textDocument/codeAction", p, &acts)
+	if len(acts) != 1 || acts[0].Title != "State the type "+tickType || !strings.Contains(apply(src, acts[0].Edit.Changes[uri][0]), "var tick: "+tickType+" = ") {
+		t.Errorf("code actions: %+v", acts)
+	}
+}

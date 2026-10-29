@@ -156,15 +156,6 @@ func (s *Server) preludeDoc() *document {
 	return s.prelude
 }
 
-// rangeOf converts a node's span in the module at path to a protocol range.
-func (a *analysis) rangeOf(path string, n ast.Node) (Range, bool) {
-	d := a.doc(path)
-	if d == nil {
-		return Range{}, false
-	}
-	return a.server.rng(d, ast.Start(n), n.EndPosition()), true
-}
-
 // rng converts two parser positions in d to a protocol range.
 func (s *Server) rng(d *document, from, to ast.Pos) Range {
 	return Range{Start: d.position(d.offsetOf(from), s.utf16), End: d.position(d.offsetOf(to), s.utf16)}

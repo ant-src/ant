@@ -1,13 +1,11 @@
 package lsp
 
 import (
-	"fmt"
 	"net/url"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"unicode/utf16"
-	"unicode/utf8"
 
 	"github.com/ant-src/ant/ast"
 )
@@ -213,12 +211,4 @@ func fileURI(path string) string {
 	}
 	u := url.URL{Scheme: "file", Path: abs}
 	return u.String()
-}
-
-// validUTF8 says whether the text is UTF-8, which a document from the client always is.
-func validUTF8(s string) error {
-	if !utf8.ValidString(s) {
-		return fmt.Errorf("the document is not UTF-8")
-	}
-	return nil
 }
