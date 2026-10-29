@@ -104,17 +104,17 @@ source <(ant --comp bash)  # in ~/.bashrc
 ant --comp fish | source   # in ~/.config/fish/config.fish
 ```
 
-## Editors
+## Editor Support
 
-`ant lsp` is a language server: diagnostics as you type, completion, hover with types and doc
-comments, go to definition, references and rename, symbols, formatting, and more, over the Language
-Server Protocol on standard input and output. The VS Code extension in
-[vscode-ant](https://github.com/ant-src/vscode-ant) and the IntelliJ IDEA plugin in
-[intellij-ant](https://github.com/ant-src/intellij-ant) start it; any other editor's LSP client can.
+Ant provides code completion, diagnostics, and navigation through the Language Server Protocol (LSP),
+and debugging through the Debug Adapter Protocol (DAP).
 
-`ant dap` is the debugger, over the Debug Adapter Protocol: breakpoints, stepping that walks a
-pipeline one stage at a time, pause, every goroutine's stack and variables, and a stop at a panic.
-Both editors debug through it.
+Official editor extensions:
+
+- **[Visual Studio Code](https://github.com/ant-src/vscode-ant)** 
+- **[IntelliJ IDEA](https://github.com/ant-src/intellij-ant)**
+
+Other editors can integrate with Ant using LSP and DAP.
 
 ## API
 
