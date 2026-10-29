@@ -151,9 +151,9 @@ func (s *server) serve(req *request) bool {
 			s.cols1 = *args.ColumnsStartAt1
 		}
 		s.reply(req, map[string]any{
-			"supportsConfigurationDoneRequest": true,
-			"supportsTerminateRequest":         true,
-			"supportsExceptionInfoRequest":     true,
+			"supportsConfigurationDoneRequest":  true,
+			"supportsTerminateRequest":          true,
+			"supportsExceptionInfoRequest":      true,
 			"supportsEvaluateForHovers":         true,
 			"supportsConditionalBreakpoints":    true,
 			"supportsHitConditionalBreakpoints": true,
