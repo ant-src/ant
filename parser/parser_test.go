@@ -164,6 +164,11 @@ func syntaxCases() []syntaxCase {
 		{"try in a library initializer", "var x = try f()", "'try' outside a function", Program},
 		{"return in a library initializer", "var x = 1\nvar y = x ?? return 2", "'return' outside a function", Program},
 		{"top-level expression in declarations", "println(1)", "expected a declaration", Declarations},
+		{"import in declarations", "import \"./a.ant\" A", "a declaration file takes no imports", Declarations},
+		{"export in declarations", "export func f(): int", "a declaration file takes no export", Declarations},
+		{"var with an initializer in declarations", "var x = 1", "declares a constant as var Owner.NAME: T", Declarations},
+		{"var destructuring in declarations", "var { a } = p", "declares a constant as var Owner.NAME: T", Declarations},
+		{"func body in declarations", "func Db.query(sql: string): string { sql }", "has a signature and no body", Declarations},
 		{"two statements one line", "func f() { a b }", "expected a newline or ';'", Program},
 		{"leading or", "func f() { var t = a\n  || b }", "unexpected '||'", Program},
 		{"else alone", "func f() { else { 1 } }", "unexpected 'else'", Program},
@@ -180,7 +185,6 @@ func syntaxCases() []syntaxCase {
 		{"field default in a nested record type", "type A = Array[{ n: int = 1 }]", "belongs in the record body of a type declaration", Program},
 		{"field default in a union member", "type U = { n: int = 1 } | null", "not in a union member", Program},
 		{"field default in a function type", "func f(g: func({ n: int = 1 }): int) {}", "belongs in the record body of a type declaration", Program},
-		{"field default in declarations", "type Opts = { n: int = 1 }", "a declarations file takes no field defaults", Declarations},
 		{"return in a field default", "type T = { n: int = return 1 }", "'return' in a field default", Program},
 		{"try in a field default", "func f(): Result[int, Error] {\n  type T = { n: int = try g() }\n  Result.ok(1)\n}", "'try' in a field default", Program},
 		{"try in a field default in a script", "type T = { n: int = try g() }\nprintln(1)", "'try' in a field default", Program},
@@ -503,5 +507,84 @@ func TestRestComma(t *testing.T) {
 	}
 	if _, err := Parse("t", "func f() { var c = [a, ...b,] }", Program); err != nil {
 		t.Errorf("a spread with a trailing comma: %v", err)
+	}
+}
+
+// TestDeclarationFile checks what a declaration file parses to (section 10, Declaration files),
+// and that a path ending in .d.ant chooses the mode.
+func TestDeclarationFile(t *testing.T) {
+	src := "// Db.Row is a row.\ntype Db.Row = { cells: Map[string, string], n: int = 0 }\ntype Db.Handle\n" +
+		"func Db.query(db: Db.Handle, sql: string, args: Array[string] = []): Result[Array[Db.Row], Error]\n" +
+		"var Db.VERSION: string\nfunc print[T](value: T): void\n"
+	f, err := Parse("db.d.ant", src, Declarations)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !f.Declarations || len(f.Decls) != 5 || len(f.Stmts) != 0 || f.Script {
+		t.Fatalf("Declarations %v, %d decls, %d stmts", f.Declarations, len(f.Decls), len(f.Stmts))
+	}
+	td := f.Decls[0].(*ast.TypeDecl)
+	if td.Owner != "Db" || td.Name != "Row" || td.Doc != "Db.Row is a row." || td.Body.(*ast.RecordType).Fields[1].Default == nil {
+		t.Errorf("type with a field default: %+v", td)
+	}
+	if op := f.Decls[1].(*ast.TypeDecl); op.Owner != "Db" || op.Body != nil || op.Sig != "type Db.Handle" {
+		t.Errorf("opaque type: %+v", op)
+	}
+	fd := f.Decls[2].(*ast.FuncDecl)
+	if fd.Owner != "Db" || fd.Name != "query" || fd.Body != nil || fd.Params[2].Default == nil ||
+		fd.Sig != "func Db.query(db: Db.Handle, sql: string, args: Array[string] = []): Result[Array[Db.Row], Error]" {
+		t.Errorf("func: %+v", fd)
+	}
+	vd := f.Decls[3].(*ast.VarDecl)
+	if vd.Owner != "Db" || vd.Target.(*ast.NameTarget).Name != "VERSION" || vd.Type == nil || vd.Init != nil || vd.Sig != "var Db.VERSION: string" {
+		t.Errorf("constant: %+v", vd)
+	}
+	if pf := f.Decls[4].(*ast.FuncDecl); pf.Owner != "" || pf.Name != "print" || pf.Body != nil {
+		t.Errorf("unqualified func: %+v", pf)
+	}
+	for path, want := range map[string]Mode{"x.ant": Program, "x.d.ant": Declarations, "lib/db.d.ant": Declarations, "d.ant": Program, "x.in.ant": Program, "x.d.ant/y.ant": Program} {
+		if got := ModeOf(path); got != want {
+			t.Errorf("ModeOf(%q) = %v, want %v", path, got, want)
+		}
+	}
+	if _, _, err := ParseLayout("db.d.ant", src); err != nil {
+		t.Errorf("ParseLayout of a declaration file: %v", err)
+	}
+	if _, _, errs := ParseRecover("db.d.ant", src); len(errs) != 0 {
+		t.Errorf("ParseRecover of a declaration file: %v", errs[0])
+	}
+	if _, err := Parse("db.ant", src, Program); err == nil {
+		t.Error("a module with a func without a body parsed")
+	}
+	if _, _, err := ParseLayout("db.ant", src); err == nil {
+		t.Error("ParseLayout read a module as a declaration file")
+	}
+	// Recovery keeps the declarations around an import, a var that is not a constant, and a
+	// func with a body, each reported once.
+	bad := "import \"./a.ant\" A\ntype Db.Row = int\nvar y: int\nfunc Db.q(): Db.Row { 1 }\nfunc Db.r(): Db.Row\n"
+	rf, _, errs := ParseRecover("db.d.ant", bad)
+	var msgs []string
+	for _, e := range errs {
+		msgs = append(msgs, e.Error())
+	}
+	if !rf.Declarations || len(rf.Decls) != 4 || rf.Decls[2].(*ast.FuncDecl).Body != nil || len(errs) != 3 ||
+		!strings.Contains(msgs[0], "1:1: a declaration file takes no imports") ||
+		!strings.Contains(msgs[1], "3:6: a declaration file declares a constant") ||
+		!strings.Contains(msgs[2], "4:21: a func in a declaration file has a signature and no body") {
+		t.Errorf("recovering a declaration file: Declarations %v, %d decls, errors %q", rf.Declarations, len(rf.Decls), msgs)
+	}
+	if _, err := Parse("db.d.ant", bad, Declarations); err == nil || !strings.Contains(err.Error(), "takes no imports") {
+		t.Errorf("strict parse of a declaration file with an import: %v", err)
+	}
+	// A shebang line belongs to a program, not a declaration file, for both parsers.
+	shebang := "#!/usr/bin/env ant\ntype Db.Row = int\n"
+	if _, err := Parse("db.d.ant", shebang, Declarations); err == nil {
+		t.Error("a declaration file with a shebang line parsed")
+	}
+	if _, _, errs := ParseRecover("db.d.ant", shebang); len(errs) == 0 {
+		t.Error("a declaration file with a shebang line recovered without an error")
+	}
+	if _, _, errs := ParseRecover("db.ant", "#!/usr/bin/env ant\nvar x = 1\n"); len(errs) != 0 {
+		t.Errorf("a module with a shebang line: %v", errs[0])
 	}
 }

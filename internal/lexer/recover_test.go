@@ -16,7 +16,7 @@ func corpusFiles(t *testing.T) map[string]string {
 	files := map[string]string{}
 	for _, pattern := range []string{"../../tests/run/*.ant", "../../tests/check/*.ant", "../../tests/check/lib/*.ant",
 		"../../tests/unchecked/*.ant", "../../tests/stdlib/*.ant", "../../tests/syntax/*.ant", "../../examples/*.ant",
-		"../../examples/lib/*.ant", "../../internal/format/testdata/*.ant", "../prelude/prelude.ant"} {
+		"../../examples/lib/*.ant", "../../internal/format/testdata/*.ant", "../prelude/prelude.d.ant"} {
 		paths, _ := filepath.Glob(pattern)
 		for _, path := range paths {
 			src, err := os.ReadFile(path)

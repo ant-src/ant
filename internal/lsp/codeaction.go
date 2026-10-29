@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
 )
@@ -199,7 +200,7 @@ func mentionsInvalid(t types.Type) bool {
 // and the prelude's types, else by the name an import gives it, or Namespace.Name through a
 // namespace import; false when the module has no name for it.
 func (a *analysis) localTypeName(path string, decl *types.Decl) (string, bool) {
-	if decl.Path == path || decl.Path == "prelude.ant" || decl.Path == "" {
+	if decl.Path == path || decl.Path == prelude.Path || decl.Path == "" {
 		return decl.Name, true
 	}
 	m := a.modules[path]

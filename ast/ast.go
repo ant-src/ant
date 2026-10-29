@@ -58,6 +58,9 @@ type File struct {
 	// the first one starts.
 	Script    bool
 	FirstStmt Pos
+	// Declarations is set for a declaration file (section 10, Declaration files), parsed in
+	// the parser's Declarations mode: its funcs have no bodies and its names join the prelude.
+	Declarations bool
 	// End is the position after the last token of the file.
 	End Pos
 	// Scope is filled by the resolver: the module record's fields.
@@ -98,15 +101,16 @@ type Decl interface {
 // VarDecl is a var declaration, at the top level or in a block. In declarations mode a
 // constant such as var Math.PI: float64 has an Owner and no Init.
 type VarDecl struct {
-	Pos    Pos
-	End    Pos
-	Export bool
-	Owner  string
-	Target Target
-	Type   Type // nil when inferred; only with a NameTarget
-	Init   Expr
-	Doc    string // the doc comment (section 2) of a top-level var, or ""
-	Sig    string // the source from var through the type, as written, without the initializer
+	Pos      Pos
+	End      Pos
+	Export   bool
+	Owner    string // the namespace of a declaration file's constant, var Owner.NAME: T, or ""
+	OwnerPos Pos    // where Owner is written, or zero
+	Target   Target
+	Type     Type // nil when inferred; only with a NameTarget
+	Init     Expr
+	Doc      string // the doc comment (section 2) of a top-level var, or ""
+	Sig      string // the source from var through the type, as written, without the initializer
 }
 
 // FuncDecl is a named function, or a function declared on a type when Owner is set.

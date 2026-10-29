@@ -5,6 +5,7 @@ package check
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -32,25 +33,32 @@ type Config struct {
 	Info *Info
 }
 
-// Program checks every module of prog and returns the errors sorted by position.
+// Program checks every module of prog and returns the errors sorted by position. A program whose
+// root is a declaration file (section 10, Declaration files) has no module to check: the file's
+// declarations join the prelude as a host namespace's do, and the errors are those of its
+// signatures.
 func Program(prog *loader.Program, cfg Config) []Diagnostic {
 	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}, info: cfg.Info}
 	c.loadPrelude(cfg)
-	c.mods = make([]*moduleInfo, len(prog.Modules))
-	for _, m := range prog.Modules {
-		c.mods[m.Index] = &moduleInfo{m: m, path: m.File.Path, index: m.Index, names: map[string]*entity{}, exports: map[string]*entity{}}
-	}
-	for _, m := range prog.Modules {
-		c.declareModule(c.mods[m.Index])
-	}
-	for _, m := range prog.Modules {
-		c.resolveTypes(c.mods[m.Index])
-	}
-	for _, m := range prog.Modules {
-		c.resolveSignatures(c.mods[m.Index])
-	}
-	for _, m := range prog.Modules {
-		c.checkModule(c.mods[m.Index])
+	if prog.Root != nil && prog.Root.File.Declarations {
+		c.declarationFile(prog.Root.File)
+	} else {
+		c.mods = make([]*moduleInfo, len(prog.Modules))
+		for _, m := range prog.Modules {
+			c.mods[m.Index] = &moduleInfo{m: m, path: m.File.Path, index: m.Index, names: map[string]*entity{}, exports: map[string]*entity{}}
+		}
+		for _, m := range prog.Modules {
+			c.declareModule(c.mods[m.Index])
+		}
+		for _, m := range prog.Modules {
+			c.resolveTypes(c.mods[m.Index])
+		}
+		for _, m := range prog.Modules {
+			c.resolveSignatures(c.mods[m.Index])
+		}
+		for _, m := range prog.Modules {
+			c.checkModule(c.mods[m.Index])
+		}
 	}
 	c.info.finish(c)
 	sort.SliceStable(c.diags, func(i, j int) bool {
@@ -79,6 +87,10 @@ type Checker struct {
 	// html is the declaration of Html, the type of an HTML expression, which stays when the host
 	// removes the namespace.
 	html *types.Decl
+	// preludeTypes and preludeFuncs are the built-in prelude's declarations, checked further
+	// only when the prelude itself is the root (declarationFile).
+	preludeTypes []*typeInfo
+	preludeFuncs []*funcInfo
 	// unresolved holds the type declarations whose bodies are not resolved yet, so that a type
 	// argument list naming a later declaration resolves it first and can be checked at the use.
 	unresolved map[*types.Decl]*typeInfo
@@ -235,14 +247,14 @@ var builtinKinds = map[string]value.Kind{
 	"bool": value.KindBool, "string": value.KindString,
 }
 
-// loadPrelude builds the prelude's entities from prelude.ant and the host namespaces.
+// loadPrelude builds the prelude's entities from prelude.d.ant and the host namespaces.
 func (c *Checker) loadPrelude(cfg Config) {
 	c.prelude = map[string]*entity{}
 	f, err := prelude.Decls()
 	if err != nil {
 		panic("prelude: " + err.Error())
 	}
-	c.declareFile(f, "")
+	c.preludeTypes, c.preludeFuncs = c.declareFile(f)
 	c.bytes = c.prelude["Bytes"].decl
 	c.html = c.prelude["Html"].decl
 	for _, name := range cfg.Removed {
@@ -256,7 +268,7 @@ func (c *Checker) loadPrelude(cfg Config) {
 		c.prelude["Html"] = &entity{name: "Html", kind: entType, decl: c.html, exported: true}
 	}
 	for _, ns := range cfg.Namespaces {
-		c.declareFile(ns.Decls, ns.Name)
+		c.declareFile(ns.Decls)
 	}
 	for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {
 		if e, ok := c.prelude[name]; ok {
@@ -272,9 +284,83 @@ func (c *Checker) loadPrelude(cfg Config) {
 	}
 }
 
-// declareFile declares the entities of a declarations-mode file into the prelude. In a host
-// namespace, plain declarations belong to that namespace.
-func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
+// declarationFile checks a declaration file given as the root of a program: no declaration may
+// take a name the prelude binds, the host namespaces included, or be declared twice; the others
+// join the prelude, which resolves every type they mention, and their field and parameter
+// defaults are checked as a module's are. A file named prelude.d.ant is the prelude's own
+// source, or a copy of it being edited: its declarations stand in for the built-in ones, so they
+// may take prelude names. The built-in prelude is declared already.
+func (c *Checker) declarationFile(f *ast.File) {
+	if pf, _ := prelude.Decls(); f == pf {
+		// declared already: check its defaults, which also records its parameters for an editor
+		for _, ti := range c.preludeTypes {
+			c.checkDefaults(ti)
+		}
+		for _, fi := range c.preludeFuncs {
+			c.checkFunc(fi)
+		}
+		return
+	}
+	isPrelude := filepath.Base(f.Path) == prelude.Path
+	saved := c.mod
+	c.mod = &moduleInfo{path: f.Path, names: map[string]*entity{}}
+	seen := map[string]bool{}
+	kept := &ast.File{Path: f.Path, Declarations: true}
+	for _, d := range f.Decls {
+		var owner, name string
+		var pos ast.Pos
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			owner, name, pos = d.Owner, d.Name, d.NamePos
+			if owner != "" {
+				pos = d.OwnerPos
+			}
+		case *ast.TypeDecl:
+			owner, name, pos = d.Owner, d.Name, d.NamePos
+			if owner != "" {
+				pos = d.OwnerPos
+			}
+		case *ast.VarDecl:
+			nt, ok := d.Target.(*ast.NameTarget)
+			if !ok || d.Owner == "" {
+				continue // what recovery kept of a var that is not a constant, reported already
+			}
+			owner, name, pos = d.Owner, nt.Name, d.OwnerPos
+		default:
+			continue
+		}
+		top := owner
+		if top == "" {
+			top = name
+		}
+		if _, bound := c.prelude[top]; bound && !isPrelude {
+			c.errorf(pos, "%s is a prelude name and cannot be redeclared", top)
+			continue
+		}
+		full := name
+		if owner != "" {
+			full = owner + "." + name
+		}
+		if seen[full] {
+			c.errorf(pos, "%s is already declared", full)
+			continue
+		}
+		seen[full] = true
+		kept.Decls = append(kept.Decls, d)
+	}
+	c.mod = saved
+	decls, fns := c.declareFile(kept)
+	for _, ti := range decls {
+		c.checkDefaults(ti)
+	}
+	for _, fi := range fns {
+		c.checkFunc(fi) // its parameters and their defaults; there is no body
+	}
+}
+
+// declareFile declares the entities of a declaration file into the prelude, and returns the
+// types and functions it declared, for a check of their defaults.
+func (c *Checker) declareFile(f *ast.File) (decls []*typeInfo, funcs []*funcInfo) {
 	saved := c.mod
 	c.mod = &moduleInfo{path: f.Path, names: map[string]*entity{}}
 	defer func() { c.mod = saved }()
@@ -300,9 +386,6 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 			continue
 		}
 		own := td.Owner
-		if own == "" {
-			own = defaultOwner
-		}
 		decl := &types.Decl{Name: td.Name, Pos: td.Pos, Path: c.mod.path, Kind: declKind(td.Body)}
 		if own != "" {
 			decl.Name = own + "." + td.Name
@@ -323,19 +406,21 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 			}
 			c.prelude[td.Name] = ent
 		}
-		pending = append(pending, &typeInfo{decl: td, t: decl, ent: ent})
+		pending = append(pending, &typeInfo{decl: td, t: decl, ent: ent, mod: c.mod})
 	}
 	c.resolveTypeDecls(pending)
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.FuncDecl:
 			own := d.Owner
-			if own == "" {
-				own = defaultOwner
-			}
-			fi := &funcInfo{decl: d, mod: c.mod}
+			fi := &funcInfo{decl: d, mod: c.mod, tparams: map[string]*types.ParamDecl{}}
 			fi.sig = c.signature(d, nil, own)
+			for i, tp := range d.TypeParams {
+				fi.tparams[tp.Name] = fi.sig.tparams[i]
+			}
+			funcs = append(funcs, fi)
 			ent := &entity{name: d.Name, kind: entFunc, sig: fi.sig, pos: d.Pos, exported: true}
+			fi.ent = ent
 			c.info.declared(ent, d, c.mod.path, own)
 			if own == "" {
 				c.prelude[d.Name] = ent
@@ -350,16 +435,16 @@ func (c *Checker) declareFile(f *ast.File, defaultOwner string) {
 				o.decl.Funcs[d.Name] = &fi.sig.fn
 			}
 		case *ast.VarDecl:
-			own := d.Owner
-			if own == "" {
-				own = defaultOwner
+			nt, ok := d.Target.(*ast.NameTarget)
+			if !ok || d.Owner == "" {
+				continue // what recovery kept of a var that is not a constant
 			}
-			name := d.Target.(*ast.NameTarget).Name
-			ent := &entity{name: name, kind: entConst, typ: c.resolveType(d.Type, nil), pos: d.Pos, exported: true}
-			c.info.declared(ent, d, c.mod.path, own)
-			owner(own).members[name] = ent
+			ent := &entity{name: nt.Name, kind: entConst, typ: c.resolveType(d.Type, nil), pos: d.Pos, exported: true}
+			c.info.declared(ent, d, c.mod.path, d.Owner)
+			owner(d.Owner).members[nt.Name] = ent
 		}
 	}
+	return pending, funcs
 }
 
 // ---- module declarations
@@ -618,7 +703,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 		// The time types of stdlib.md, the opaque types the prelude declares under Time, and
 		// Regex.Pattern carry their tag, so is tests them; every other opaque type, a host's
 		// included, is a sync type, which is cannot test.
-		if (strings.HasPrefix(decl.Name, "Time.") || decl.Name == "Regex.Pattern") && c.mod != nil && c.mod.path == "prelude.ant" {
+		if (strings.HasPrefix(decl.Name, "Time.") || decl.Name == "Regex.Pattern") && c.mod != nil && filepath.Base(c.mod.path) == prelude.Path {
 			decl.Kind = types.TaggedOpaqueDecl
 		} else {
 			decl.Kind = types.OpaqueDecl

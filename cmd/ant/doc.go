@@ -32,19 +32,24 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, err)
 			return 2
 		}
-		f, err := parser.Parse(args[0], string(src), parser.Program)
+		f, err := parser.Parse(args[0], string(src), parser.ModeOf(args[0]))
 		if err != nil {
 			fmt.Fprintf(stderr, "%s:%v\n", args[0], err)
 			return 2
 		}
+		// every declaration of a declaration file is visible (section 10, Declaration files)
 		for _, d := range f.Decls {
-			if exported(d) {
+			if f.Declarations || exported(d) {
 				decls = append(decls, d)
 			}
 		}
 		if len(args) == 1 {
 			if f.Doc == "" && len(decls) == 0 {
-				fmt.Fprintf(stderr, "ant doc: %s has no doc and exports nothing\n", args[0])
+				if f.Declarations {
+					fmt.Fprintf(stderr, "ant doc: %s has no doc and declares nothing\n", args[0])
+				} else {
+					fmt.Fprintf(stderr, "ant doc: %s has no doc and exports nothing\n", args[0])
+				}
 				return 1
 			}
 			if f.Doc != "" {

@@ -24,14 +24,23 @@ const (
 	Spec
 	// Session also allows top-level statements, for a REPL.
 	Session
-	// Declarations allows a func without a body, for a host namespace's signatures.
+	// Declarations is a declaration file (section 10, Declaration files): declarations only,
+	// each qualified by its owner, a func without a body, a type without one, and a var as a
+	// typed constant; the prelude and a host namespace's signatures.
 	Declarations
-	// Prelude is Declarations that also allows field defaults, which the library fills natively.
-	Prelude
 )
 
+// ModeOf is the mode a file's path chooses: Declarations for a declaration file, whose name
+// ends in .d.ant, and Program otherwise.
+func ModeOf(path string) Mode {
+	if strings.HasSuffix(path, ".d.ant") {
+		return Declarations
+	}
+	return Program
+}
+
 // declarations reports whether the source holds signatures rather than a program.
-func (p *parser) declarations() bool { return p.mode == Declarations || p.mode == Prelude }
+func (p *parser) declarations() bool { return p.mode == Declarations }
 
 // Error is a syntax error. Incomplete is set when the input ended too early, which a REPL
 // uses to keep reading.
@@ -47,16 +56,17 @@ func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.P
 // the error: the statement, list item, or interpolation being parsed.
 type bail struct{}
 
-// ParseRecover parses one module in Program mode as ParseLayout does, but goes on past its
-// syntax errors, for an editor. It returns the tree of what parsed, with a BadStmt, BadExpr, or
-// BadType standing where a statement, an expression, or a type could not be read, the layout,
-// and every error in source order: the lexer's, then the parser's as it met them. The error
-// Parse reports is among them, and the rest are those Parse would report once the earlier ones
-// were fixed, as far as the parser can tell. A Bad token, which the lexer has reported, ends a
-// statement for the parser, as a line break would, so that it is reported once. The tree is for
-// analysis only and must not be run.
+// ParseRecover parses one module in the mode of its path (ModeOf) as ParseLayout does, but goes
+// on past its syntax errors, for an editor. It returns the tree of what parsed, with a BadStmt,
+// BadExpr, or BadType standing where a statement, an expression, or a type could not be read,
+// the layout, and every error in source order: the lexer's, then the parser's as it met them.
+// The error Parse reports is among them, and the rest are those Parse would report once the
+// earlier ones were fixed, as far as the parser can tell. A Bad token, which the lexer has
+// reported, ends a statement for the parser, as a line break would, so that it is reported once.
+// The tree is for analysis only and must not be run.
 func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
-	toks, comments, lerrs := lexer.LexRecover(src, true)
+	mode := ModeOf(path)
+	toks, comments, lerrs := lexer.LexRecover(src, mode == Program)
 	l := &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
 	parsed := toks
 	if slices.ContainsFunc(toks, func(t token.Token) bool { return t.Kind == token.Bad }) {
@@ -67,7 +77,7 @@ func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
 			}
 		}
 	}
-	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: parsed, comments: comments,
+	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: parsed, comments: comments,
 		roles: l.Roles, prefix: l.Prefix, recovering: true, recorded: map[Error]bool{}}
 	for _, e := range lerrs {
 		p.record(&Error{Pos: cpos(e.Pos), Msg: e.Msg})
@@ -128,14 +138,16 @@ type Role struct {
 	Comma bool // a list that allows a comma after its last item
 }
 
-// ParseLayout parses one module, as Parse does in Program mode, and also returns its Layout.
+// ParseLayout parses one module, as Parse does in the mode of its path (ModeOf), and also
+// returns its Layout.
 func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
-	toks, comments, lerr := lexer.LexLayout(src, true)
+	mode := ModeOf(path)
+	toks, comments, lerr := lexer.LexLayout(src, mode == Program)
 	if lerr != nil {
 		return nil, nil, lexError(src, lerr)
 	}
 	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
-	p := &parser{mode: Program, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
+	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
 	defer p.recover(&err)
 	return p.file(path), l, nil
 }
@@ -632,7 +644,7 @@ func (p *parser) leaveBoundary(s boundary) { p.boundary, p.loops = s.kind, s.loo
 // ---- module
 
 func (p *parser) file(path string) *ast.File {
-	f := &ast.File{Path: path}
+	f := &ast.File{Path: path, Declarations: p.declarations()}
 	if p.mode == Program {
 		p.boundary = "script"
 	}
@@ -640,7 +652,12 @@ func (p *parser) file(path string) *ast.File {
 	f.Doc = p.moduleDoc(p.peek())
 	for p.at("import") {
 		start := p.i
-		if !p.attempt(func() { f.Imports = append(f.Imports, p.importDecl()) }) {
+		if !p.attempt(func() {
+			if p.declarations() {
+				p.fail(p.peek().Pos, "a declaration file takes no imports: it sees the prelude and its own declarations")
+			}
+			f.Imports = append(f.Imports, p.importDecl())
+		}) {
 			p.sync("", false, start)
 			f.Stmts = append(f.Stmts, p.badStmt(start))
 		}
@@ -787,6 +804,9 @@ func (p *parser) importDecl() *ast.Import {
 func (p *parser) declaration() ast.Decl {
 	export := false
 	if p.at("export") {
+		if p.declarations() {
+			p.fail(p.peek().Pos, "a declaration file takes no export: every declaration in it is visible")
+		}
 		p.next()
 		export = true
 	}
@@ -814,17 +834,36 @@ func (p *parser) varDecl() *ast.VarDecl {
 	d := &ast.VarDecl{Pos: pos(t)}
 	switch {
 	case p.at("{") || p.at("["):
+		if p.declarations() {
+			// when recovering, the var is read as written, so that one error is reported
+			p.soft(p.peek().Pos, "a declaration file declares a constant as var Owner.NAME: T")
+		}
 		d.Target = p.destructure()
 	case p.atKind(token.Ident):
 		n := p.next()
 		d.Target = name(n)
 		if p.declarations() && p.at(".") {
 			p.next()
-			d.Owner = n.Text
+			d.Owner, d.OwnerPos = n.Text, pos(n)
 			m := p.expectName("a constant name")
 			d.Target = name(m)
 			p.expect(":")
 			d.Type = p.parseType()
+			d.Sig = p.since(t)
+			d.End = p.end()
+			return d
+		}
+		if p.declarations() {
+			// when recovering, the var is read as written, so that one error is reported
+			p.soft(p.peek().Pos, "a declaration file declares a constant as var Owner.NAME: T")
+			if p.at(":") {
+				p.next()
+				d.Type = p.parseType()
+			}
+			if p.at("=") {
+				p.next()
+				d.Init = p.expression()
+			}
 			d.Sig = p.since(t)
 			d.End = p.end()
 			return d
@@ -871,7 +910,14 @@ func (p *parser) funcDecl() *ast.FuncDecl {
 	}
 	d.Params, d.Return = p.signature()
 	d.Sig = p.since(t)
-	if p.declarations() && !p.at("{") {
+	if p.declarations() {
+		if p.at("{") {
+			// when recovering, the body is read and dropped, so that one error is reported
+			p.soft(p.peek().Pos, "a func in a declaration file has a signature and no body")
+			saved := p.enterBoundary("func")
+			p.block()
+			p.leaveBoundary(saved)
+		}
 		d.End = p.end()
 		return d
 	}
@@ -913,7 +959,7 @@ func (p *parser) typeDecl() *ast.TypeDecl {
 		return d
 	}
 	p.expect("=")
-	if p.at("{") && p.mode != Declarations {
+	if p.at("{") {
 		rt := p.recordType(true)
 		if p.at("|") && p.mode != Spec && slices.ContainsFunc(rt.Fields, func(f ast.FieldType) bool { return f.Default != nil }) {
 			p.fail(p.peek().Pos, "a field default belongs in the record body of a type declaration, not in a union member")
@@ -1104,10 +1150,7 @@ func (p *parser) recordType(defaults bool) *ast.RecordType {
 		p.expect(":")
 		f := ast.FieldType{Pos: pos(n), Name: n.Text, Type: p.parseType()}
 		if p.at("=") {
-			switch {
-			case p.mode == Declarations:
-				p.fail(p.peek().Pos, "a declarations file takes no field defaults")
-			case !defaults && p.mode != Spec:
+			if !defaults && p.mode != Spec {
 				p.fail(p.peek().Pos, "a field default belongs in the record body of a type declaration")
 			}
 			p.next()

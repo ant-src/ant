@@ -35,7 +35,8 @@ type Config struct {
 	FS fs.FS
 	// Sources overrides the text of modules by path.
 	Sources map[string]string
-	// Mode is the parser mode for the root module; imports always parse as programs.
+	// Mode is the parser mode for the root module, unless its path names a declaration file
+	// (parser.ModeOf); imports always parse as programs.
 	Mode parser.Mode
 	// Extra names the prelude binds in this program, beyond the standard ones.
 	Extra []string
@@ -171,6 +172,11 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	case 2:
 		return l.index[key]
 	}
+	if !root && parser.ModeOf(display) == parser.Declarations {
+		l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf(
+			"cannot import %q: a declaration file declares names for the prelude and cannot be imported", written)})
+		return nil
+	}
 	src, ok := l.read(key, raw)
 	if !ok {
 		if root {
@@ -183,6 +189,9 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	mode := parser.Program
 	if root {
 		mode = l.cfg.Mode
+		if parser.ModeOf(display) == parser.Declarations {
+			mode = parser.Declarations
+		}
 	}
 	var f *ast.File
 	var layout *parser.Layout
@@ -209,21 +218,26 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		}
 		f.Imports = append(imports, f.Imports...)
 	}
-	opts := resolve.Options{Extra: l.cfg.Extra}
-	if root && l.cfg.Session != nil {
-		opts.Session = true
-		opts.Fields = l.cfg.Session
-	}
-	if l.cfg.Recover {
-		opts.Info = resolve.NewInfo()
-	}
-	for _, e := range resolve.Resolve(f, opts) {
-		l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
+	var info *resolve.Info
+	if !f.Declarations {
+		// A declaration file has no scopes to resolve: the checker reads its signatures.
+		opts := resolve.Options{Extra: l.cfg.Extra}
+		if root && l.cfg.Session != nil {
+			opts.Session = true
+			opts.Fields = l.cfg.Session
+		}
+		if l.cfg.Recover {
+			opts.Info = resolve.NewInfo()
+		}
+		for _, e := range resolve.Resolve(f, opts) {
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
+		}
+		info = opts.Info
 	}
 	l.state[key] = 1
 	m := &Module{Path: key, File: f}
 	if l.cfg.Recover {
-		m.Src, m.Layout, m.Resolve = src, layout, opts.Info
+		m.Src, m.Layout, m.Resolve = src, layout, info
 	}
 	for _, imp := range f.Imports {
 		childKey, childDisplay := l.canonical(imp.Path, raw)

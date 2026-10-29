@@ -94,7 +94,7 @@ type Object struct {
 	// its x, or nil for a namespace with no declaration, a type parameter, or the field of an
 	// anonymous record type.
 	Decl ast.Node
-	// Path is the module the declaration is in: "prelude.ant" for the prelude, the host
+	// Path is the module the declaration is in: "prelude.d.ant" for the prelude, the host
 	// namespace's name for a host declaration, or "" when there is no declaration.
 	Path     string
 	Exported bool

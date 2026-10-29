@@ -8,7 +8,9 @@ import (
 )
 
 // documentSymbols answers textDocument/documentSymbol: the module's imports, types with their
-// fields and functions, functions, and top-level variables (spec/lsp.md section 4).
+// fields and functions, functions, and top-level variables (spec/lsp.md section 4). In a
+// declaration file, the types and constants an owner qualifies go under it too, and an owner
+// with no type declaration of its own is a namespace, listed where its first member is.
 func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {
@@ -25,11 +27,32 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 		out = append(out, DocumentSymbol{Name: name, Detail: imp.Path, Kind: SymbolModule,
 			Range: s.rng(d, imp.Pos, imp.End), SelectionRange: s.rng(d, imp.PathPos, imp.PathEnd)})
 	}
-	// the functions declared on each type go under it
-	onType := map[string][]DocumentSymbol{}
+	// the declarations on each owner go under it
+	onOwner := map[string][]DocumentSymbol{}
+	isType := map[string]bool{}
 	for _, decl := range f.Decls {
-		if fd, ok := decl.(*ast.FuncDecl); ok && fd.Owner != "" {
-			onType[fd.Owner] = append(onType[fd.Owner], s.funcSymbol(a, d, fd))
+		switch x := decl.(type) {
+		case *ast.FuncDecl:
+			if x.Owner != "" {
+				onOwner[x.Owner] = append(onOwner[x.Owner], s.funcSymbol(a, d, x))
+			}
+		case *ast.TypeDecl:
+			if x.Owner != "" {
+				onOwner[x.Owner] = append(onOwner[x.Owner], s.typeSymbol(a, d, x, nil))
+			} else {
+				isType[x.Name] = true
+			}
+		case *ast.VarDecl:
+			if x.Owner != "" {
+				onOwner[x.Owner] = append(onOwner[x.Owner], s.varSymbols(a, d, x)...)
+			}
+		}
+	}
+	listed := map[string]bool{}
+	namespace := func(owner string) {
+		if !isType[owner] && !listed[owner] {
+			listed[owner] = true
+			out = append(out, namespaceSymbol(owner, onOwner[owner]))
 		}
 	}
 	for _, decl := range f.Decls {
@@ -37,33 +60,83 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 		case *ast.FuncDecl:
 			if x.Owner == "" {
 				out = append(out, s.funcSymbol(a, d, x))
+			} else {
+				namespace(x.Owner)
 			}
 		case *ast.TypeDecl:
-			sym := DocumentSymbol{Name: x.Name, Kind: SymbolClass, Range: s.rng(d, x.Pos, x.End),
-				SelectionRange: s.nameRange(d, x.NamePos, x.Name)}
-			if rt, ok := x.Body.(*ast.RecordType); ok {
-				sym.Kind = SymbolStruct
-				for i := range rt.Fields {
-					fld := &rt.Fields[i]
-					sym.Children = append(sym.Children, DocumentSymbol{Name: fld.Name, Detail: a.typeText(d, fld.Type), Kind: SymbolField,
-						Range: s.rng(d, fld.Pos, fld.End), SelectionRange: s.nameRange(d, fld.Pos, fld.Name)})
-				}
-			} else if o := a.info.Decls[x]; o != nil && o.TypeDecl() != nil {
-				sym.Detail = typeText(x.Body, d)
+			if x.Owner == "" {
+				out = append(out, s.typeSymbol(a, d, x, onOwner[x.Name]))
+			} else {
+				namespace(x.Owner)
 			}
-			sym.Children = append(sym.Children, onType[x.Name]...)
-			out = append(out, sym)
 		case *ast.VarDecl:
-			for _, nt := range targetNames(x.Target) {
-				sym := DocumentSymbol{Name: nt.Name, Kind: SymbolVariable, Range: s.rng(d, x.Pos, x.End), SelectionRange: s.rng(d, nt.Pos, nt.End)}
-				if o := a.info.Decls[nt]; o != nil {
-					sym.Detail = typeString(o.Type())
-				}
-				out = append(out, sym)
+			if x.Owner == "" {
+				out = append(out, s.varSymbols(a, d, x)...)
+			} else {
+				namespace(x.Owner)
 			}
 		}
 	}
 	return out
+}
+
+// typeSymbol is a type's symbol: a struct with its fields as children when it is a record, with
+// the symbols declared on it after them.
+func (s *Server) typeSymbol(a *analysis, d *document, x *ast.TypeDecl, on []DocumentSymbol) DocumentSymbol {
+	sym := DocumentSymbol{Name: x.Name, Kind: SymbolClass, Range: s.rng(d, x.Pos, x.End),
+		SelectionRange: s.nameRange(d, x.NamePos, x.Name)}
+	if rt, ok := x.Body.(*ast.RecordType); ok {
+		sym.Kind = SymbolStruct
+		for i := range rt.Fields {
+			fld := &rt.Fields[i]
+			sym.Children = append(sym.Children, DocumentSymbol{Name: fld.Name, Detail: a.typeText(d, fld.Type), Kind: SymbolField,
+				Range: s.rng(d, fld.Pos, fld.End), SelectionRange: s.nameRange(d, fld.Pos, fld.Name)})
+		}
+	} else if o := a.info.Decls[x]; o != nil && o.TypeDecl() != nil {
+		sym.Detail = typeText(x.Body, d)
+	}
+	sym.Children = append(sym.Children, on...)
+	return sym
+}
+
+// varSymbols are the symbols of the names a var binds, with their types.
+func (s *Server) varSymbols(a *analysis, d *document, x *ast.VarDecl) []DocumentSymbol {
+	var out []DocumentSymbol
+	for _, nt := range targetNames(x.Target) {
+		sym := DocumentSymbol{Name: nt.Name, Kind: SymbolVariable, Range: s.rng(d, x.Pos, x.End), SelectionRange: s.rng(d, nt.Pos, nt.End)}
+		o := a.info.Decls[nt]
+		if o == nil {
+			o = a.info.Decls[x] // a declaration file's constant is declared by its var
+		}
+		if o != nil {
+			sym.Detail = typeString(o.Type())
+		}
+		out = append(out, sym)
+	}
+	return out
+}
+
+// namespaceSymbol groups the symbols declared on an owner that is not a type, spanning them.
+func namespaceSymbol(name string, members []DocumentSymbol) DocumentSymbol {
+	sym := DocumentSymbol{Name: name, Kind: SymbolNamespace, Children: members}
+	for i, m := range members {
+		if i == 0 || before(m.Range.Start, sym.Range.Start) {
+			sym.Range.Start = m.Range.Start
+		}
+		if i == 0 || before(sym.Range.End, m.Range.End) {
+			sym.Range.End = m.Range.End
+		}
+	}
+	sym.SelectionRange = sym.Range
+	if len(members) > 0 {
+		sym.SelectionRange = members[0].SelectionRange
+	}
+	return sym
+}
+
+// before reports whether a comes before b.
+func before(a, b Position) bool {
+	return a.Line < b.Line || a.Line == b.Line && a.Character < b.Character
 }
 
 func (s *Server) funcSymbol(a *analysis, d *document, fd *ast.FuncDecl) DocumentSymbol {

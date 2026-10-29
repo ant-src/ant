@@ -117,7 +117,7 @@ func TestInfo(t *testing.T) {
 	if ci := info.Calls[distCall]; ci == nil || ci.Callee == nil || ci.Callee.Name != "distance" || strings.Join(ci.Names, ",") != "a,b" || !equalInts(ci.Slots, 0, 1) {
 		t.Errorf("dist(...): %+v", ci)
 	}
-	if ci := info.Calls[pipe]; ci == nil || !ci.Pipe || ci.Callee == nil || ci.Callee.Owner != "Array" || ci.Callee.Path != "prelude.ant" || !equalInts(ci.Slots, 0, 1) {
+	if ci := info.Calls[pipe]; ci == nil || !ci.Pipe || ci.Callee == nil || ci.Callee.Owner != "Array" || ci.Callee.Path != "prelude.d.ant" || !equalInts(ci.Slots, 0, 1) {
 		t.Errorf("xs | Array.map(...): %+v", ci)
 	}
 	if ci := info.Calls[plain]; ci == nil || ci.Pipe || len(ci.Defaults) != 2 {

@@ -129,7 +129,8 @@ scale, _ := in.Func("scale")
 result, err := scale.Call(point, 2.0)
 ```
 
-To call Go from Ant, give the program a namespace declared in Ant notation:
+To call Go from Ant, give the program a namespace with its signatures written as a declaration
+file writes them (section 10, Declaration files):
 
 ```go
 prog, err := ant.Load("main.ant", ant.WithNamespace(ant.Namespace{

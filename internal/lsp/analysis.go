@@ -12,7 +12,7 @@ import (
 )
 
 // preludeURI is the document the prelude's declarations are shown in (spec/lsp.md section 4).
-const preludeURI = "ant:/prelude.ant"
+const preludeURI = "ant:/" + prelude.Path
 
 // analysis is a program rooted at one document (spec/lsp.md section 2): its modules, the
 // checker's findings, and every diagnostic.
@@ -43,12 +43,21 @@ func (s *Server) analyze(doc *document) *analysis {
 		sources[path] = d.text
 	}
 	a := &analysis{root: doc, modules: map[string]*loader.Module{}, docs: map[string]*document{}, server: s}
-	prog, diags := loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: sources})
-	a.diags = diags
-	if prog == nil {
-		// The root could not be read, which cannot happen for an open document; analyze its
-		// text alone.
-		prog, _ = loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: map[string]string{doc.path: doc.text}})
+	var prog *loader.Program
+	if doc == s.prelude {
+		// The prelude is a program of its own: a declaration file the checker has declared
+		// already, parsed once for every program.
+		f, _ := prelude.Decls()
+		m := &loader.Module{Path: prelude.Path, File: f, Src: doc.text}
+		prog = &loader.Program{Modules: []*loader.Module{m}, Root: m}
+		open[prelude.Path] = doc
+	} else {
+		prog, a.diags = loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: sources})
+		if prog == nil {
+			// The root could not be read, which cannot happen for an open document; analyze its
+			// text alone.
+			prog, _ = loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: map[string]string{doc.path: doc.text}})
+		}
 	}
 	a.prog = prog
 	for _, m := range prog.Modules {
@@ -99,9 +108,9 @@ func (a *analysis) knows(name string) bool {
 	return a.names[name]
 }
 
-// doc returns the document of a module by path, the prelude's for "prelude.ant", or nil.
+// doc returns the document of a module by path, the prelude's for prelude.Path, or nil.
 func (a *analysis) doc(path string) *document {
-	if path == "prelude.ant" {
+	if path == prelude.Path {
 		return a.server.preludeDoc()
 	}
 	if d, ok := a.docs[path]; ok {
@@ -116,9 +125,9 @@ func (a *analysis) doc(path string) *document {
 	return nil
 }
 
-// file returns the parsed module at path, the prelude's for "prelude.ant", or nil.
+// file returns the parsed module at path, the prelude's for prelude.Path, or nil.
 func (a *analysis) file(path string) *ast.File {
-	if path == "prelude.ant" {
+	if path == prelude.Path {
 		f, _ := prelude.Decls()
 		return f
 	}
@@ -137,11 +146,12 @@ func sameFile(a, b string) bool {
 	return errx == nil && erry == nil && x == y
 }
 
-// preludeDoc is the prelude as a document, made once.
+// preludeDoc is the prelude as a document, made once: the server's own, which it analyzes as a
+// declaration file, whatever copy the client opened under its URI.
 func (s *Server) preludeDoc() *document {
 	if s.prelude == nil {
 		s.prelude = newDocument(preludeURI, 0, prelude.Source())
-		s.prelude.path = ""
+		s.prelude.path = prelude.Path
 	}
 	return s.prelude
 }

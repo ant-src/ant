@@ -34,11 +34,11 @@ type HostFunc func(rt Runtime, args []value.Value) (value.Value, error)
 type Namespace struct {
 	// Name is the namespace's name, bound in every module like a prelude name.
 	Name string
-	// Signatures declares the functions and types in Ant notation, one per line, as the
-	// prelude declares the standard library, for example:
+	// Signatures declares the functions and types as a declaration file does (section 10,
+	// Declaration files), every name qualified by the namespace, for example:
 	//
 	//	func Db.query(sql: string, args: Array[string]): Result[Array[Db.Row], Error]
-	//	type Row = Map[string, string]
+	//	type Db.Row = Map[string, string]
 	//
 	// The checker types calls from them; the runtime takes parameter names from them.
 	Signatures string
@@ -97,6 +97,9 @@ func (ns Namespace) build() (value.Value, *ast.File, error) {
 			vals = append(vals, &interp.Builtin{Name: ns.Name + "." + d.Name, Params: params, Optional: optional, Fn: hostBuiltin(impl)})
 			seen[d.Name] = true
 		case *ast.TypeDecl:
+			if d.Owner != ns.Name {
+				return nil, nil, fmt.Errorf("namespace %s: type %s must be declared as %s.%s", ns.Name, d.Name, ns.Name, d.Name)
+			}
 			fields = append(fields, d.Name)
 			vals = append(vals, interp.TypeValue(d))
 		default:
@@ -159,6 +162,9 @@ type Instance struct {
 // A root that is a script runs its body here, as Run would; a library runs only its
 // initializers. The options given to Load apply, and options given here override them.
 func (p *Program) Start(ctx context.Context, opts ...Option) (*Instance, error) {
+	if err := p.runnable(); err != nil {
+		return nil, err
+	}
 	in, err := interp.Start(ctx, p.prog, p.cfg.with(opts).run(p.prelude))
 	if err != nil {
 		return nil, convertRunError(err)

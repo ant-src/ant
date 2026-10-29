@@ -1,10 +1,10 @@
-// The prelude, in Ant notation: every type and function signature the checker binds in every
-// module (section 11 and stdlib.md), with the doc comments ant doc and editors show. The runtime
-// binds the same names to Go implementations; a test keeps the two in step. Parsed in declarations
-// mode: a func has no body, a type may be opaque, and var Name.CONSTANT: T declares a namespace
-// constant. println with no argument, the twelve conversions, and len are built into the checker;
-// their declarations here give their shape and their docs. A section label that names a namespace,
-// followed by an empty comment line and a paragraph, as in "// Array", holds the namespace's doc.
+// The prelude, a declaration file (section 10, Declaration files): every type and function
+// signature the checker binds in every module (section 11 and stdlib.md), with the doc comments
+// ant doc and editors show. The runtime binds the same names to Go implementations; a test keeps
+// the two in step. println with no argument, the twelve conversions, and len are built into the
+// checker; their declarations here give their shape and their docs. A section label that names a
+// namespace, followed by an empty comment line and a paragraph, as in "// Array", holds the
+// namespace's doc.
 
 // Ok is the success case of a [Result], holding its value.
 type Ok[T] = { value: T }
@@ -1721,8 +1721,10 @@ func Cmd.capture(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context
 // stdin is Err. Every handle stays the program's, which closes its copy of a pipe end it gave
 // away. When ctx is done every stage is killed, as when the run is cancelled; a command still
 // running when the script ends is left running.
-func Cmd.start(c: Cmd | Cmd.Pipeline, stdin: File.Handle | null = null, stdout: File.Handle | null = Os.stdout(),
-        stderr: File.Handle | null = Os.stderr(), ctx: Context | null = null): Result[Cmd.Process, Error]
+func Cmd.start(
+  c: Cmd | Cmd.Pipeline, stdin: File.Handle | null = null, stdout: File.Handle | null = Os.stdout(),
+  stderr: File.Handle | null = Os.stderr(), ctx: Context | null = null,
+): Result[Cmd.Process, Error]
 // Cmd.wait waits until every stage of p has exited and returns its status. Every call gets the
 // same outcome. It is Err when ctx is done first, and p goes on; and when the context given to
 // [Cmd.start] killed p, with that context's reason.

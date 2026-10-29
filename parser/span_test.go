@@ -64,12 +64,12 @@ func TestSpans(t *testing.T) {
 		}
 		checkSpans(t, path, text, f)
 	}
-	preludeSrc, _ := os.ReadFile("../internal/prelude/prelude.ant")
-	pf, err := Parse("prelude.ant", string(preludeSrc), Prelude)
+	preludeSrc, _ := os.ReadFile("../internal/prelude/prelude.d.ant")
+	pf, err := Parse("prelude.d.ant", string(preludeSrc), Declarations)
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkSpans(t, "prelude.ant", string(preludeSrc), pf)
+	checkSpans(t, "prelude.d.ant", string(preludeSrc), pf)
 }
 
 func checkSpans(t *testing.T, path, src string, f *ast.File) {

@@ -186,7 +186,8 @@ type Program struct {
 
 // Load parses the module at path and every module it imports. It returns a *LoadError when a
 // module has a syntax error, cannot be found, takes part in an import cycle, or is a script that
-// another module imports.
+// another module imports. A path ending in .d.ant is a declaration file (section 10, Declaration
+// files), which Check checks and Run refuses.
 func Load(path string, opts ...Option) (*Program, error) {
 	cfg := defaultConfig().with(opts)
 	table, extra, nsDecls, err := cfg.prelude()
@@ -215,7 +216,20 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 // an Err, a *PanicError when the main goroutine panics, an *ExitError
 // when the program calls Os.exit, and ctx.Err() when the context is cancelled first.
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
+	if err := p.runnable(); err != nil {
+		return err
+	}
 	return convertRunError(interp.Run(ctx, p.prog, p.cfg.with(opts).run(p.prelude)))
+}
+
+// runnable is the *LoadError Run and Start return for a root that is a declaration file (section
+// 10, Declaration files), which declares names and holds nothing to run; Check checks one.
+func (p *Program) runnable() error {
+	if root := p.prog.Root; root != nil && root.File.Declarations {
+		return &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: root.File.Path},
+			Message: "a declaration file declares names for the prelude and cannot be run"}}}
+	}
+	return nil
 }
 
 // Check type-checks every module of the program, including code nothing calls, and returns the

@@ -311,8 +311,12 @@ func (s *Server) dispatch(m *message) (any, *rpcError) {
 // changed notes that a document changed, so that every analysis is made again.
 func (s *Server) changed() { s.gen++ }
 
-// doc returns the open document at uri when it is a file the server analyzes, or nil.
+// doc returns the open document at uri when it is a file the server analyzes, the prelude's
+// own document for its URI, or nil.
 func (s *Server) doc(uri string) *document {
+	if uri == preludeURI {
+		return s.preludeDoc()
+	}
 	d, ok := s.docs[uri]
 	if !ok || d.path == "" {
 		return nil

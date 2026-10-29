@@ -14,11 +14,12 @@ import (
 	"github.com/ant-src/ant/parser"
 )
 
-// corpusDirs hold the modules of the repository: every file in them parses as a module.
-// tests/syntax does not parse by design, and tests/stdlib holds tables the harness reads one
-// input per line, where a line may start with a regular expression literal that the whole file
-// would read as a division (fmt.md section 4.3).
-var corpusDirs = []string{"../../examples", "../../tests/run", "../../tests/unchecked", "../../tests/check"}
+// corpusDirs hold the modules of the repository: every file in them parses as a module, or as a
+// declaration file when its name says so (parser.ModeOf), the prelude among them. tests/syntax
+// does not parse by design, and tests/stdlib holds tables the harness reads one input per line,
+// where a line may start with a regular expression literal that the whole file would read as a
+// division (fmt.md section 4.3).
+var corpusDirs = []string{"../../examples", "../../tests/run", "../../tests/unchecked", "../../tests/check", "../../internal/prelude"}
 
 func corpus(t *testing.T) []string {
 	t.Helper()
@@ -48,7 +49,7 @@ func TestCorpusProperties(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := parser.Parse(path, string(src), parser.Program); err != nil {
+		if _, err := parser.Parse(path, string(src), parser.ModeOf(path)); err != nil {
 			continue // a check program may hold a syntax error on purpose
 		}
 		checkProperties(t, path, string(src))
@@ -64,7 +65,7 @@ func TestFormatted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := parser.Parse(path, string(src), parser.Program); err != nil {
+		if _, err := parser.Parse(path, string(src), parser.ModeOf(path)); err != nil {
 			continue
 		}
 		if out, err := Source(path, src); err != nil || string(out) != string(src) {
@@ -83,12 +84,12 @@ func checkProperties(t *testing.T, path, src string) {
 		return
 	}
 	got := string(out)
-	before, err := parser.Parse(path, src, parser.Program)
+	before, err := parser.Parse(path, src, parser.ModeOf(path))
 	if err != nil {
 		t.Errorf("%s: %v", path, err)
 		return
 	}
-	after, err := parser.Parse(path, got, parser.Program)
+	after, err := parser.Parse(path, got, parser.ModeOf(path))
 	if err != nil {
 		t.Errorf("%s: the output does not parse: %v\n%s", path, err, got)
 		return

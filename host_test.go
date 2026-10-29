@@ -475,3 +475,59 @@ func TestArityPanicFrames(t *testing.T) {
 		t.Errorf("trace %+v, want the one frame of the script at the call, 3:10", p.Trace)
 	}
 }
+
+// TestHostTypeOwner: a host namespace's types are qualified by the namespace, as in a declaration
+// file, like its functions.
+func TestHostTypeOwner(t *testing.T) {
+	ns := ant.Namespace{Name: "Db", Signatures: "type Row = Map[string, string]\nfunc Db.row(): Db.Row", Funcs: map[string]ant.HostFunc{
+		"row": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil },
+	}}
+	_, err := ant.Load("main.ant", ant.WithSource("main.ant", "println(1)\n"), ant.WithFS(fstest.MapFS{}), ant.WithNamespace(ns))
+	if err == nil || !strings.Contains(err.Error(), "namespace Db: type Row must be declared as Db.Row") {
+		t.Errorf("unqualified host type: %v", err)
+	}
+}
+
+// TestDeclarationFileProgram: a declaration file loads, checks, and cannot run (section 10,
+// Declaration files).
+func TestDeclarationFileProgram(t *testing.T) {
+	fsys := fstest.MapFS{"db.d.ant": {Data: []byte("type Db.Row = Map[string, string]\nfunc Db.query(sql: string): Array[Db.Row]\nfunc Db.count(): Count\n")}}
+	prog, err := ant.Load("db.d.ant", ant.WithFS(fsys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	diags := prog.Check()
+	if len(diags) != 1 || diags[0].Error() != "db.d.ant:3:18: unknown type Count" {
+		t.Errorf("check: %v", diags)
+	}
+	err = prog.Run(context.Background())
+	var le *ant.LoadError
+	if !errors.As(err, &le) || ant.ExitStatus(err) != 2 || err.Error() != "db.d.ant: a declaration file declares names for the prelude and cannot be run" {
+		t.Errorf("run: %v", err)
+	}
+	if _, err := prog.Start(context.Background()); !errors.As(err, &le) {
+		t.Errorf("start: %v", err)
+	}
+	// A name a host namespace binds is a prelude name to the file; one the host removed is free.
+	ns := ant.Namespace{Name: "Db", Signatures: "func Db.row(): int", Funcs: map[string]ant.HostFunc{
+		"row": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil },
+	}}
+	fsys = fstest.MapFS{"x.d.ant": {Data: []byte("func Db.query(sql: string): int\nvar Os.LIMIT: int\ntype Cmd.Line = string\n")}}
+	prog, err = ant.Load("x.d.ant", ant.WithFS(fsys), ant.WithNamespace(ns), ant.WithoutNamespaces("Os"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diags := prog.Check(); len(diags) != 1 || diags[0].Error() != "x.d.ant:1:6: Db is a prelude name and cannot be redeclared" {
+		t.Errorf("check against a host namespace: %v", diags)
+	}
+	// Defaults are checked as a module's are.
+	fsys = fstest.MapFS{"d.d.ant": {Data: []byte("type Db.Limits = { rows: int = \"many\" }\nfunc Db.log(to: File.Handle = Os.stdout(), rows: int = 1.5): void\n")}}
+	prog, err = ant.Load("d.d.ant", ant.WithFS(fsys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diags := prog.Check(); len(diags) != 2 || diags[0].Error() != "d.d.ant:1:32: cannot use string where int is expected" ||
+		diags[1].Error() != "d.d.ant:2:56: cannot use float64 where int is expected" {
+		t.Errorf("defaults of a declaration file: %v", diags)
+	}
+}

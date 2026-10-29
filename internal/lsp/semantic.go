@@ -5,6 +5,7 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
+	"github.com/ant-src/ant/internal/prelude"
 )
 
 // The semantic token types and modifiers the server emits (spec/lsp.md section 4).
@@ -85,7 +86,7 @@ func (s *Server) semanticTokens(p *SemanticTokensParams) *SemanticTokens {
 		if decl {
 			mods |= modDeclaration
 		}
-		if o.Path == "prelude.ant" {
+		if o.Path == prelude.Path {
 			mods |= modDefaultLibrary
 		}
 		add(pos, name, typ, mods)

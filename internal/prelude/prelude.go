@@ -9,8 +9,12 @@ import (
 	"github.com/ant-src/ant/parser"
 )
 
-//go:embed prelude.ant
+//go:embed prelude.d.ant
 var source string
+
+// Path is the prelude's file name, a declaration file (section 10, Declaration files): the path
+// its declarations carry and the document an editor opens for one, ant:/prelude.d.ant.
+const Path = "prelude.d.ant"
 
 var (
 	once sync.Once
@@ -18,12 +22,12 @@ var (
 	err  error
 )
 
-// Source is the text of prelude.ant, which an editor shows for a prelude declaration.
+// Source is the text of prelude.d.ant, which an editor shows for a prelude declaration.
 func Source() string { return source }
 
 // Decls returns the prelude's declarations, parsed once.
 func Decls() (*ast.File, error) {
-	once.Do(func() { file, err = parser.Parse("prelude.ant", source, parser.Prelude) })
+	once.Do(func() { file, err = parser.Parse(Path, source, parser.Declarations) })
 	return file, err
 }
 

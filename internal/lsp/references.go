@@ -207,7 +207,7 @@ func renamable(o *check.Object) *rpcError {
 	switch {
 	case o == nil:
 		return &rpcError{Code: codeInvalidParams, Message: "nothing to rename here"}
-	case o.Path == "prelude.ant" || o.Decl == nil && o.Kind != check.Module:
+	case o.Path == prelude.Path || o.Decl == nil && o.Kind != check.Module:
 		return &rpcError{Code: codeInvalidParams, Message: "a name of the prelude cannot be renamed"}
 	case o.Kind == check.Field:
 		return &rpcError{Code: codeInvalidParams, Message: "a record field is not renamed"}

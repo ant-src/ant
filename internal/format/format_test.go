@@ -87,3 +87,17 @@ func TestSyntaxError(t *testing.T) {
 		t.Errorf("a script formats as a module (fmt.md section 1): %q, %v", out, err)
 	}
 }
+
+// TestDeclarationFile: a file whose name ends in .d.ant is formatted as a declaration file
+// (section 10, Declaration files), which a module's parse would reject.
+func TestDeclarationFile(t *testing.T) {
+	src := "type  Db.Row =  { a: int,b: int }\nfunc Db.query( sql: string ) : Array[Db.Row]\nvar Db.VERSION : string\ntype Db.Handle\n"
+	want := "type Db.Row = { a: int, b: int }\nfunc Db.query(sql: string): Array[Db.Row]\nvar Db.VERSION: string\ntype Db.Handle\n"
+	out, err := Source("db.d.ant", []byte(src))
+	if err != nil || string(out) != want {
+		t.Errorf("formatting a declaration file: %v\n%s", err, out)
+	}
+	if _, err := Source("db.ant", []byte(src)); err == nil {
+		t.Error("a module with a func without a body was formatted")
+	}
+}
