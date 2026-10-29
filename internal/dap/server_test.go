@@ -478,3 +478,188 @@ println(seen)
 		t.Errorf("stdout: %q", got)
 	}
 }
+
+func TestServeRejectsWhatIsNotARequestAndEndsWithStatus1(t *testing.T) {
+	c := newClient(t)
+	frame.Write(c.w, []byte("not json"))
+	frame.Write(c.w, []byte(`{"seq": 1, "type": "event", "event": "x"}`))
+	if r := c.request("nothing", nil); r["success"] != false || !strings.Contains(r["message"].(string), "does not serve") {
+		t.Errorf("an unknown command: %v", r)
+	}
+	c.w.(io.Closer).Close() // the connection ends without disconnect
+	if s := <-c.status; s != 1 {
+		t.Errorf("status %d, want 1", s)
+	}
+}
+
+func TestRequestsBeforeLaunchAndWhileRunning(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `var n = 0
+while true {
+  n += 1
+}
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", map[string]any{"linesStartAt1": false, "columnsStartAt1": false}))
+	bps := ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "lines": []int{2}}))["breakpoints"].([]any)
+	if b := bps[0].(map[string]any); b["verified"] != false || !strings.Contains(b["message"].(string), "not launched") {
+		t.Errorf("a breakpoint before launch: %v", b)
+	}
+	if r := c.request("stackTrace", map[string]any{"threadId": 1}); r["success"] != false {
+		t.Errorf("stackTrace before launch: %v", r)
+	}
+	if r := c.request("exceptionInfo", map[string]any{"threadId": 1}); r["success"] != false {
+		t.Errorf("exceptionInfo before launch: %v", r)
+	}
+	if r := c.request("evaluate", map[string]any{"expression": "1", "frameId": 1}); r["success"] != false {
+		t.Errorf("evaluate before launch: %v", r)
+	}
+	if threads := ok(t, c.request("threads", nil))["threads"].([]any); len(threads) != 0 {
+		t.Errorf("threads before launch: %v", threads)
+	}
+	ok(t, c.request("setExceptionBreakpoints", map[string]any{"filters": []string{"uncaught", "all"}}))
+	ok(t, c.request("terminate", nil)) // nothing to terminate yet
+
+	if r := c.request("launch", map[string]any{"program": 7}); r["success"] != false {
+		t.Errorf("launch with a malformed argument: %v", r)
+	}
+	if r := c.request("launch", map[string]any{}); r["success"] != false || !strings.Contains(r["message"].(string), "needs a program") {
+		t.Errorf("launch without a program: %v", r)
+	}
+	if r := c.request("launch", map[string]any{"program": main, "stdin": filepath.Join(dir, "missing.txt")}); r["success"] != false {
+		t.Errorf("launch with a missing stdin: %v", r)
+	}
+	if r := c.request("launch", map[string]any{"program": main, "cwd": filepath.Join(dir, "nowhere")}); r["success"] != false {
+		t.Errorf("launch with a missing cwd: %v", r)
+	}
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	if r := c.request("launch", map[string]any{"program": main}); r["success"] != false || !strings.Contains(r["message"].(string), "already launched") {
+		t.Errorf("a second launch: %v", r)
+	}
+	// lines and columns from 0: line 2 is the third line, the loop body
+	bps = ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "lines": []int{2}}))["breakpoints"].([]any)
+	if b := bps[0].(map[string]any); b["verified"] != true || b["line"] != 2.0 || b["column"] != 2.0 {
+		t.Errorf("a breakpoint counted from 0: %v", b)
+	}
+	bps = ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": filepath.Join(dir, "other.ant")}, "lines": []int{0}}))["breakpoints"].([]any)
+	if b := bps[0].(map[string]any); b["verified"] != false || !strings.Contains(b["message"].(string), "not a module") {
+		t.Errorf("a breakpoint in another file: %v", b)
+	}
+	ok(t, c.request("configurationDone", nil))
+	stop := c.event("stopped")
+	frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"], "startFrame": 0, "levels": 1}))["stackFrames"].([]any)
+	if top := frames[0].(map[string]any); top["line"] != 2.0 {
+		t.Errorf("a frame counted from 0: %v", top)
+	}
+	if r := c.request("scopes", map[string]any{"frameId": 99}); r["success"] != false {
+		t.Errorf("scopes of no frame: %v", r)
+	}
+	if r := c.request("variables", map[string]any{"variablesReference": 99}); r["success"] != false {
+		t.Errorf("variables of no reference: %v", r)
+	}
+	if r := c.request("setVariable", map[string]any{"variablesReference": 99, "name": "n", "value": "1"}); r["success"] != false {
+		t.Errorf("setVariable of no reference: %v", r)
+	}
+	if r := c.request("exceptionInfo", map[string]any{"threadId": stop["threadId"]}); r["success"] != false {
+		t.Errorf("exceptionInfo at a breakpoint: %v", r)
+	}
+	ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{}}))
+	ok(t, c.request("stepIn", map[string]any{"threadId": stop["threadId"]}))
+	c.event("stopped")
+	ok(t, c.request("stepOut", map[string]any{"threadId": stop["threadId"]})) // the module body has no caller: the program runs on
+	time.Sleep(20 * time.Millisecond)
+	if r := c.request("stackTrace", map[string]any{"threadId": 1}); r["success"] != false {
+		t.Errorf("stackTrace while running: %v", r)
+	}
+	if threads := ok(t, c.request("threads", nil))["threads"].([]any); len(threads) != 1 {
+		t.Errorf("threads while running: %v", threads)
+	}
+	ok(t, c.request("pause", map[string]any{"threadId": 1}))
+	if stop := c.event("stopped"); stop["reason"] != "pause" {
+		t.Errorf("after pause: %v", stop)
+	}
+	ok(t, c.request("terminate", nil)) // the first interrupt ends a program that did not ask for one
+	if code := c.event("exited")["exitCode"]; code != 130.0 {
+		t.Errorf("exit code after terminate: %v", code)
+	}
+	c.event("terminated")
+	ok(t, c.request("disconnect", nil))
+}
+
+func TestVariablesOfEveryKind(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `type Id = int
+
+var set = Set.of([3, 4])
+var bytes = String.toBytes("hi")
+var m = Map{ "k": [1] }
+var id = Id(7)
+var empty = []
+var text = String.repeat("x", 300)
+println(id)
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	// a blank line binds to the next stop point of the module body
+	bps := ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{{"line": 2}}}))["breakpoints"].([]any)
+	if b := bps[0].(map[string]any); b["verified"] != true || b["line"] != 3.0 {
+		t.Errorf("a breakpoint on a blank line: %v", b)
+	}
+	ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{{"line": 9}}}))
+	fbs := ok(t, c.request("setFunctionBreakpoints", map[string]any{"breakpoints": []map[string]any{{"name": "nothing", "condition": "1 +"}}}))["breakpoints"].([]any)
+	if b := fbs[0].(map[string]any); b["verified"] != false {
+		t.Errorf("a function breakpoint on nothing: %v", b)
+	}
+	ok(t, c.request("configurationDone", nil))
+	stop := c.event("stopped")
+	frame := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)[0].(map[string]any)
+	scopes := ok(t, c.request("scopes", map[string]any{"frameId": frame["id"]}))["scopes"].([]any)
+	vars := map[string]map[string]any{}
+	for _, v := range ok(t, c.request("variables", map[string]any{"variablesReference": scopes[0].(map[string]any)["variablesReference"]}))["variables"].([]any) {
+		vars[v.(map[string]any)["name"].(string)] = v.(map[string]any)
+	}
+	if v := vars["id"]; v["type"] != "Id" || v["value"] != "Id(7)" {
+		t.Errorf("id: %v", v)
+	}
+	if v := vars["empty"]; v["variablesReference"] != 0.0 {
+		t.Errorf("an empty array expands: %v", v)
+	}
+	if v := vars["text"]; len([]rune(v["value"].(string))) != maxValue+1 {
+		t.Errorf("a long string is not cut: %d runes", len([]rune(v["value"].(string))))
+	}
+	readOnly := func(v map[string]any) bool {
+		hint, _ := v["presentationHint"].(map[string]any)
+		attrs, _ := hint["attributes"].([]any)
+		return len(attrs) == 1 && attrs[0] == "readOnly"
+	}
+	for name, typ := range map[string]string{"set": "set", "bytes": "Bytes"} {
+		v := vars[name]
+		if v["type"] != typ || v["indexedVariables"] != 2.0 {
+			t.Fatalf("%s: %v", name, v)
+		}
+		members := ok(t, c.request("variables", map[string]any{"variablesReference": v["variablesReference"], "start": 1, "count": 5}))["variables"].([]any)
+		if len(members) != 1 || members[0].(map[string]any)["name"] != "[1]" || !readOnly(members[0].(map[string]any)) {
+			t.Errorf("%s[1:]: %v", name, members)
+		}
+		if r := c.request("setVariable", map[string]any{"variablesReference": v["variablesReference"], "name": "[1]", "value": "9"}); r["success"] != false {
+			t.Errorf("a member of %s was set: %v", name, r)
+		}
+	}
+	entries := ok(t, c.request("variables", map[string]any{"variablesReference": vars["m"]["variablesReference"]}))["variables"].([]any)
+	if e := entries[0].(map[string]any); e["name"] != "k" || e["value"] != "[1]" || readOnly(e) {
+		t.Errorf("the map's entry: %v", entries)
+	}
+	ok(t, c.request("continue", nil))
+	c.event("terminated")
+}
+
+func TestLaunchDeclarationFile(t *testing.T) {
+	dir := write(t, map[string]string{"lib.d.ant": "func double(n: int): int\n"})
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	r := c.request("launch", map[string]any{"program": filepath.Join(dir, "lib.d.ant")})
+	if r["success"] != false || !strings.Contains(r["message"].(string), "declaration file") {
+		t.Errorf("a declaration file launched: %v", r)
+	}
+}

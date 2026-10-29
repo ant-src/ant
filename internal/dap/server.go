@@ -304,6 +304,14 @@ func (s *server) launch(raw json.RawMessage) error {
 	if prog.Root.File.Declarations {
 		return fmt.Errorf("%s: a declaration file declares names for the prelude and cannot be run", prog.Root.File.Path)
 	}
+	var stdin io.Reader
+	if args.Stdin != "" {
+		f, err := os.Open(args.Stdin)
+		if err != nil {
+			return err // before anything of the launch is kept, so that the next one can succeed
+		}
+		stdin = f
+	}
 	s.prog = prog
 	s.modules = map[string]*module{}
 	for _, m := range prog.Modules {
@@ -319,14 +327,6 @@ func (s *server) launch(raw json.RawMessage) error {
 	}
 	for k, v := range args.Env {
 		env[k] = v
-	}
-	var stdin io.Reader
-	if args.Stdin != "" {
-		f, err := os.Open(args.Stdin)
-		if err != nil {
-			return err
-		}
-		stdin = f
 	}
 	s.interrupts = make(chan struct{}, 2)
 	s.d = interp.NewDebugger()
