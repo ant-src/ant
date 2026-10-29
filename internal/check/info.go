@@ -304,6 +304,17 @@ func (in *Info) declared(e *entity, decl ast.Node, path, owner string) {
 	}
 }
 
+// retyped notes that e, a namespace until now, has become a type, so that an Object made for it
+// earlier reports the right kind.
+func (in *Info) retyped(e *entity) {
+	if in == nil {
+		return
+	}
+	if o, ok := in.objects[e]; ok {
+		o.Kind = TypeKind
+	}
+}
+
 // localObject is the Object of a local, made once; path is its module.
 func (in *Info) localObject(l *local, path string) *Object {
 	if in == nil || l == nil {

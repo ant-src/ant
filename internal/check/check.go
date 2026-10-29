@@ -403,7 +403,19 @@ func (c *Checker) declareFile(f *ast.File) (decls []*typeInfo, funcs []*funcInfo
 		}
 		return e
 	}
-	// types first, so signatures can mention them
+	// Every owner is a namespace from the start, so a signature may mention one before the
+	// declaration that first names it.
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			owner(d.Owner)
+		case *ast.TypeDecl:
+			owner(d.Owner)
+		case *ast.VarDecl:
+			owner(d.Owner)
+		}
+	}
+	// types next, so signatures can mention them
 	var pending []*typeInfo
 	for _, d := range f.Decls {
 		td, ok := d.(*ast.TypeDecl)
@@ -420,17 +432,18 @@ func (c *Checker) declareFile(f *ast.File) (decls []*typeInfo, funcs []*funcInfo
 			decl.Params = append(decl.Params, pd)
 			c.info.typeParam(pd, &td.TypeParams[i], c.mod.path)
 		}
-		ent := &entity{name: td.Name, kind: entType, decl: decl, pos: td.Pos, exported: true}
-		c.info.declared(ent, td, c.mod.path, own)
+		var ent *entity
 		if own != "" {
+			ent = &entity{name: td.Name, kind: entType, decl: decl, pos: td.Pos, exported: true}
 			owner(own).members[td.Name] = ent
 		} else {
-			if existing, ok := c.prelude[td.Name]; ok && existing.kind == entNamespace {
-				// a namespace whose functions were declared before its type: merge
-				ent.members = existing.members
-			}
-			c.prelude[td.Name] = ent
+			// A name is one namespace for the whole run (section 10, Namespaces): a member
+			// declared before the type made it a namespace already, and the type fills it in.
+			ent = owner(td.Name)
+			ent.kind, ent.decl, ent.pos, ent.exported = entType, decl, td.Pos, true
+			c.info.retyped(ent)
 		}
+		c.info.declared(ent, td, c.mod.path, own)
 		pending = append(pending, &typeInfo{decl: td, t: decl, ent: ent, mod: c.mod})
 	}
 	c.resolveTypeDecls(pending)
@@ -1166,7 +1179,11 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 		note(ent)
 	}
 	if ent.kind != entType {
-		c.errorf(x.Pos, "%s is not a type", x.Path[len(x.Path)-1])
+		if ent.kind == entNamespace {
+			c.errorf(x.Pos, "%s is a namespace, not a type", x.Path[len(x.Path)-1])
+		} else {
+			c.errorf(x.Pos, "%s is not a type", x.Path[len(x.Path)-1])
+		}
 		return types.Invalid{}
 	}
 	decl := ent.decl

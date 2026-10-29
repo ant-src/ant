@@ -1,7 +1,9 @@
 // spec: 10 Declaration files
 // Section 10: a declaration file holds signatures that join the prelude, each qualified by the type
 // or namespace that owns it; an owner that is not a type is a namespace needing no declaration of
-// its own, a func has no body, a type without one is opaque, and a var is a typed constant. Every
+// its own, and a member may be declared before the type that owns it, since a name is one
+// namespace throughout; a func has no body, a type without one is opaque, and a var is a typed
+// constant. Every
 // type mentioned must resolve, a name may be declared once, and no declaration may take a prelude
 // name.
 type Db.Row = Map[string, string]
@@ -25,3 +27,9 @@ func Db.log(db: Db.Handle, to: File.Handle = Os.stdout(), tags: Array[string] = 
 func Db.pick[T: Ordered](a: T, b: T = a): T
 func Cache(): int // ERR: Cache is declared as a function and owns declarations as a namespace
 func Cache.get(key: string): string | null
+type Shape.Kind = Round | Square // a member before its owner: Shape is one namespace
+type Round = {}
+type Square = {}
+type Shape = { kind: Shape.Kind }
+func Shape.make(k: Shape.Kind): Shape
+func Db.self(): Db // ERR: Db is a namespace, not a type

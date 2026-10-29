@@ -1,0 +1,21 @@
+// spec: 10 Namespaces
+// Section 10: a namespace is a record read with a dot, and three things are one: a type, which
+// holds the functions declared on it; a module imported under a name, which holds its exports; and
+// a prelude namespace, which holds what prelude.d.ant declares on its name. A prelude namespace
+// that no type declares is neither a type nor a value; a type is a namespace in an expression and
+// a type in an annotation.
+import "../run/lib/geometry.ant" Geometry
+
+type Point = { x: float64, y: float64 }
+
+func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
+
+var a = Geometry.distance(Geometry.Point{ x: 0.0, y: 0.0 }, Geometry.Point{ x: 3.0, y: 4.0 }) // a module under a name
+var b = Point.origin()                                                                        // a type
+var c = Array.map([1, 2], { x * 2 })                                                          // a prelude namespace
+var d: Time.Instant = Time.now()                                                              // a type a prelude namespace declares
+var m: Mutex = Mutex.new()                                                                    // a type and a namespace in one name
+var t = Time                                                                                  // ERR: Time is a namespace, not a value
+var u: Time = Time.now()                                                                      // ERR: Time is a namespace, not a type
+var v = Mutex                                                                                 // ERR: Mutex is a type, not a value
+var w = Os.cwd                                                                                // a function value of a namespace
