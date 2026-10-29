@@ -110,7 +110,13 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 	}
 	recv(g.in.ctx.Done(), selectOwner{clause: -1})
 	g.in.Flush()
+	if g.in.dbg != nil {
+		g.leaveAnt()
+	}
 	chosen, got, ok := reflect.Select(cases)
+	if g.in.dbg != nil {
+		g.enterAnt()
+	}
 	for _, t := range timers {
 		t.Stop()
 	}

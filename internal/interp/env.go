@@ -13,12 +13,15 @@ type Env struct {
 	shared []value.Slot
 	parent *Env
 	mod    *module
+	scope  *ast.BlockScope // names the slots, for a debugger
+	frame  uint64          // the call the environment belongs to, under a debugger
 }
 
 func newEnv(scope *ast.BlockScope, parent *Env) *Env {
-	e := &Env{parent: parent}
+	e := &Env{parent: parent, scope: scope}
 	if parent != nil {
 		e.mod = parent.mod
+		e.frame = parent.frame
 	}
 	if scope != nil {
 		if scope.Plain > 0 {
