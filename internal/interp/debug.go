@@ -316,13 +316,17 @@ func (d *Debugger) park(g *Goroutine) {
 	d.mu.Unlock()
 }
 
-// stopAt stops the run for g, or parks g when another stop is under way.
+// stopAt stops the run for g. When another stop is under way, g parks, and stops the run for
+// its own reason once that one ends: a breakpoint or a panic g reached is not lost, unless the
+// run resumed by stepping g, which moves g on from it.
 func (d *Debugger) stopAt(g *Goroutine, reason string, p *AntPanic) {
 	d.mu.Lock()
-	if d.stopping {
+	for d.stopping {
 		d.parkLocked(g)
-		d.mu.Unlock()
-		return
+		if reason == "step" || reason == "entry" || d.step != nil && d.step.g == g {
+			d.mu.Unlock()
+			return
+		}
 	}
 	d.stopping = true
 	d.halt.Store(true)

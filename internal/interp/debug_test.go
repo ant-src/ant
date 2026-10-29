@@ -424,3 +424,26 @@ println(f())
 		t.Errorf("output %q", r.out)
 	}
 }
+
+func TestDebugEveryGoroutineReportsItsBreakpoint(t *testing.T) {
+	for range 20 { // the goroutines reach the breakpoint together in some runs, one by one in others
+		r := debug(t, `var ch = Channel.new(2)
+func work(n: int) {
+  Channel.send(ch, n)
+}
+go { work(1) }
+go { work(2) }
+var a = Channel.receive(ch)
+var b = Channel.receive(ch)
+println(a + b)
+`, func(r *debugRun) { r.breakAt(3) })
+		r.wait("breakpoint", 3)
+		first := r.stop.Goroutine
+		r.d.Continue()
+		r.wait("breakpoint", 3)
+		if r.stop.Goroutine == first {
+			t.Fatalf("goroutine %d stopped twice", first)
+		}
+		r.finish()
+	}
+}
