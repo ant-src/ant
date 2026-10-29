@@ -1367,6 +1367,7 @@ func (p *parser) pipe() ast.Expr {
 	links := 0
 	defer p.unlink(&links)
 	left := p.pipeOperand()
+	var stages []*ast.Call
 	for p.at("|") {
 		p.link(&links)
 		bar := p.next()
@@ -1377,7 +1378,14 @@ func (p *parser) pipe() ast.Expr {
 		}
 		call.Args = append([]ast.Arg{{Pos: ast.Start(left), End: left.EndPosition(), Value: left}}, call.Args...)
 		call.Pipe = true
+		call.Bar = pos(bar)
+		stages = append(stages, call)
 		left = call
+	}
+	if len(stages) > 1 {
+		for _, c := range stages {
+			c.Stage = true
+		}
 	}
 	return left
 }

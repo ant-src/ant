@@ -38,7 +38,11 @@ func (g *Goroutine) evalValue(e ast.Expr, env *Env) value.Value {
 
 func (g *Goroutine) evalStmts(stmts []ast.Stmt, env *Env) (value.Value, ctl) {
 	var last value.Value = value.Void
+	debug := g.d != nil
 	for _, s := range stmts {
+		if debug {
+			g.stopPoint(env, ast.Start(s))
+		}
 		switch st := s.(type) {
 		case *ast.VarDecl:
 			v, c := g.eval(st.Init, env)
@@ -237,11 +241,16 @@ func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
 	case *ast.Go:
 		body, scope := e.Body, e.Scope
 		path, pos := env.mod.path, e.Pos
-		g.Spawn(func(ng *Goroutine) {
+		g.spawn(path, pos, func(ng *Goroutine) {
+			if ng.d != nil {
+				ng.enterAnt()
+			}
 			// the block is the goroutine's root frame, so its panics report a position
 			ng.push("go block", path, pos)
 			defer ng.pop()
-			ng.evalBlock(body, newEnv(&scope.BlockScope, env))
+			genv := newEnv(&scope.BlockScope, env)
+			genv.frame = ng.stack[len(ng.stack)-1].id
+			ng.evalBlock(body, genv)
 		})
 		return value.Void, ctlNone
 	case *ast.Defer:
@@ -393,6 +402,9 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 			if c != ctlNone {
 				return v, c, false
 			}
+			if x.Stage && g.d != nil {
+				g.stagePoint(env, x.Bar, v)
+			}
 			args = append(args, v)
 			rest = x.Args[1:]
 		}
@@ -487,6 +499,10 @@ func (g *Goroutine) index(recv, idx value.Value, pos ast.Pos) value.Value {
 
 // Call calls an Ant function value from a builtin.
 func (g *Goroutine) Call(fn value.Value, args ...value.Value) value.Value {
+	if g.d != nil {
+		g.enterAnt()
+		defer g.leaveAnt()
+	}
 	return g.callValue(fn, args, nil, g.pos)
 }
 
@@ -514,7 +530,11 @@ func (g *Goroutine) push(name, path string, pos ast.Pos) {
 	if len(g.stack) >= maxDepth {
 		g.panicf(pos, "call depth exceeded %d", maxDepth)
 	}
-	g.stack = append(g.stack, Frame{Function: name, Path: path, Pos: pos})
+	f := frame{Frame: Frame{Function: name, Path: path, Pos: pos}}
+	if d := g.d; d != nil {
+		f.id = d.frames.Add(1)
+	}
+	g.stack = append(g.stack, f)
 }
 
 func (g *Goroutine) pop() { g.stack = g.stack[:len(g.stack)-1] }
@@ -545,6 +565,9 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 		defer g.pop()
 	}
 	env := newEnv(&f.Scope.BlockScope, f.Env)
+	if g.d != nil {
+		env.frame = g.stack[len(g.stack)-1].id
+	}
 	if f.Lambda {
 		x := value.Void
 		if len(args) == 1 {
@@ -617,6 +640,10 @@ func (g *Goroutine) matchParams(f *Func, args []value.Value, names []string, pos
 }
 
 func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, pos ast.Pos) value.Value {
+	if g.d != nil {
+		g.leaveAnt()
+		defer g.enterAnt()
+	}
 	if names != nil {
 		ordered := make([]value.Value, len(f.Params))
 		filled := make([]bool, len(f.Params))
@@ -1180,6 +1207,19 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 		}
 	}()
 	g.runSeq(seq, e.Pos, func(v value.Value) bool {
+		if g.d != nil {
+			// yield is a builtin, so the body comes back into Ant code, on top of the frame that
+			// called yield; its stop points move that frame's position, which is put back after.
+			g.enterAnt()
+			defer g.leaveAnt()
+			if n := len(g.stack); n > 0 {
+				top := g.stack[n-1]
+				defer func() {
+					f := &g.stack[len(g.stack)-1]
+					f.env, f.at, f.piped, f.atStop = top.env, top.at, top.piped, top.atStop
+				}()
+			}
+		}
 		rv, c, stop := run(v)
 		if c == ctlReturn {
 			u.v = rv
@@ -1193,6 +1233,10 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 // RunSeq runs a sequence as for does, with push as the loop body: it reports whether the
 // consumer wants more (section 12, for).
 func (g *Goroutine) RunSeq(seq value.Value, push func(value.Value) bool) {
+	if g.d != nil {
+		g.enterAnt()
+		defer g.leaveAnt()
+	}
 	g.runSeq(seq, g.pos, push)
 }
 

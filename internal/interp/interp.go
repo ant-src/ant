@@ -42,6 +42,8 @@ type Config struct {
 	// hold back its keyboard signals meanwhile; that function reports whether one it held is
 	// now the program's interrupt, which Cmd.run delivers before it returns. Nil holds nothing.
 	Foreground func() func(os.Signal) bool
+	// Debugger, when set, stops the run at its breakpoints and steps (dap.md).
+	Debugger *Debugger
 }
 
 // Frame is one entry of a panic trace, innermost first.
@@ -102,6 +104,7 @@ type Instance struct {
 	// again, and what a child left running writes through the run is dropped.
 	released bool
 	stdin    io.Reader // cfg.Stdin, behind a lock when it is not a file
+	dbg      *Debugger
 }
 
 // AntPanic is the Go panic value that carries an Ant panic while it unwinds.
@@ -130,10 +133,16 @@ var ErrInterrupted = errors.New("interrupted")
 func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
 	in := New(ctx, prog, cfg)
 	g := in.newGoroutine(true)
+	if g.d != nil {
+		g.d.register(g)
+	}
 	in.active.Add(1)
 	go func() {
 		defer in.active.Done()
 		defer in.recoverRoot(g)
+		if g.d != nil {
+			g.enterAnt()
+		}
 		in.initModules(g)
 	}()
 	return in.wait()
@@ -163,6 +172,10 @@ func New(ctx context.Context, prog *loader.Program, cfg Config) *Instance {
 	// too, whether Close, an interrupt, or the caller's context ended the run.
 	context.AfterFunc(in.ctx, func() { in.done.Store(true) })
 	in.setupModules()
+	if cfg.Debugger != nil {
+		in.dbg = cfg.Debugger
+		in.dbg.attach(in)
+	}
 	if cfg.Interrupts != nil {
 		go in.relayInterrupts(cfg.Interrupts)
 	}
@@ -278,6 +291,9 @@ func (in *Instance) finish(err error) {
 // recoverRoot handles whatever ends a goroutine: a panic, Os.exit, cancellation, or a normal
 // return of the main goroutine.
 func (in *Instance) recoverRoot(g *Goroutine) {
+	if g.d != nil {
+		defer g.d.unregister(g)
+	}
 	r := recover()
 	if r == nil {
 		if g.main {
@@ -532,17 +548,38 @@ func (in *Instance) Exit(status int) {
 // Goroutine is the per-goroutine interpreter state: its call stack, whose length is the depth.
 type Goroutine struct {
 	in    *Instance
+	d     *Debugger // the run's debugger, nil without one and for an evaluation (debug.go)
 	main  bool
-	stack []Frame
+	stack []frame
 	pos   ast.Pos // the call site of the builtin in progress, for its panics
 	// frames of blocks that registered deferred blocks, innermost last
 	defers []*deferFrame
+	// catching counts the Panic.catch calls in progress, for a debugger's uncaught panics.
+	catching int
+	// Under a debugger: the goroutine's number, where it started, how deep it is outside Ant
+	// code, and whether the debugger counts it as active (debug.go).
+	id        int
+	startPath string
+	startPos  ast.Pos
+	outside   int
+	dActive   bool
+}
+
+// frame is one call in progress. Under a debugger it has an ID and the environment and
+// position of its last stop point, and the value flowing into a pipeline stage stopped at.
+type frame struct {
+	Frame
+	id     uint64
+	env    *Env
+	at     ast.Pos
+	piped  value.Value
+	atStop bool
 }
 
 const maxDepth = 10000
 
 func (in *Instance) newGoroutine(main bool) *Goroutine {
-	return &Goroutine{in: in, main: main}
+	return &Goroutine{in: in, main: main, d: in.dbg}
 }
 
 // Instance returns the run this goroutine belongs to.
@@ -551,7 +588,20 @@ func (g *Goroutine) Instance() *Instance { return g.in }
 // Spawn runs body on a new Ant goroutine, as a go block does: a panic in it is reported and
 // ends it alone, and the run's grace period waits for it.
 func (g *Goroutine) Spawn(body func(*Goroutine)) {
+	path := ""
+	if len(g.stack) > 0 {
+		path = g.stack[len(g.stack)-1].Path
+	}
+	g.spawn(path, g.pos, body)
+}
+
+// spawn starts a goroutine that a go block, or a builtin called at pos, starts.
+func (g *Goroutine) spawn(path string, pos ast.Pos, body func(*Goroutine)) {
 	ng := g.in.newGoroutine(false)
+	if ng.d != nil {
+		ng.startPath, ng.startPos = path, pos
+		ng.d.register(ng)
+	}
 	g.in.active.Add(1)
 	go func() {
 		defer g.in.active.Done()
@@ -566,7 +616,11 @@ func (g *Goroutine) Panic(format string, args ...any) {
 }
 
 func (g *Goroutine) panicf(pos ast.Pos, format string, args ...any) {
-	panic(&AntPanic{Message: fmt.Sprintf(format, args...), Trace: g.trace(pos)})
+	p := &AntPanic{Message: fmt.Sprintf(format, args...), Trace: g.trace(pos)}
+	if g.d != nil {
+		g.panicked(p)
+	}
+	panic(p)
 }
 
 // trace builds the stack trace, innermost first, with pos as the innermost position.
@@ -585,6 +639,9 @@ func (g *Goroutine) check() {
 	if g.in.done.Load() {
 		panic(&cancelSignal{})
 	}
+	if d := g.d; d != nil && d.halt.Load() && g.outside == 0 {
+		d.park(g)
+	}
 }
 
 // AfterWait ends the goroutine when the run's own context is done: a wait the run's end
@@ -597,14 +654,21 @@ func (g *Goroutine) AfterWait() {
 }
 
 // Repanic raises a caught Ant panic again.
-func (g *Goroutine) Repanic(p *AntPanic) { panic(p) }
+func (g *Goroutine) Repanic(p *AntPanic) {
+	if g.d != nil {
+		g.panicked(p)
+	}
+	panic(p)
+}
 
 // Catch calls fn and returns its value, or the Ant panic that left it once the deferred blocks
 // inside it have run (section 8, Catching a panic). Anything else that unwinds, Os.exit or the
 // run's end, goes on.
 func (g *Goroutine) Catch(fn value.Value) (v value.Value, p *AntPanic) {
 	// The frames and the call site unwind on their own, by the deferred pops and restores.
+	g.catching++
 	defer func() {
+		g.catching--
 		r := recover()
 		if r == nil {
 			return

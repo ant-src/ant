@@ -6,6 +6,7 @@
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
 //	ant lsp                      serve the Language Server Protocol to an editor
+//	ant dap                      serve the Debug Adapter Protocol to an editor
 //	ant --comp bash|zsh|fish     print the script that completes ant's commands in the shell
 //	ant                          start a REPL
 //
@@ -16,7 +17,7 @@
 // Os.exit sets its own status. ant fmt exits 1 when --check finds a file to change and 2 when a
 // file cannot be read, parsed, or written. ant doc exits 1 when there is no such declaration.
 // ant lsp exits 0 when the client sends shutdown and then exit, 1 when the connection ends
-// otherwise.
+// otherwise. ant dap exits 0 when the client disconnects, 1 when the connection ends first.
 package main
 
 import (
@@ -41,6 +42,7 @@ const usage = `usage:
   ant fmt [--check] <path>...   (- for standard input)
   ant doc <name> | <file.ant> [name]
   ant lsp
+  ant dap
   ant --comp bash|zsh|fish
   ant`
 
@@ -119,6 +121,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return docCommand(args[1:], stdout, stderr)
 	case "lsp":
 		return lspCommand(args[1:], stdin, stdout, stderr)
+	case "dap":
+		return dapCommand(args[1:], stdin, stdout, stderr)
 	case "--comp":
 		return compCommand(args[1:], stdout, stderr)
 	case "help", "-h", "--help":

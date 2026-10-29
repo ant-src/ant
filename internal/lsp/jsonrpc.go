@@ -3,12 +3,10 @@ package lsp
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
-	"strconv"
-	"strings"
 	"sync"
+
+	"github.com/ant-src/ant/internal/frame"
 )
 
 // conn carries JSON-RPC 2.0 messages over a stream with the base protocol's Content-Length
@@ -52,45 +50,12 @@ const (
 	codeContentModified  = -32801
 )
 
-var errClosed = errors.New("the connection ended")
-
-// maxMessage bounds a message's body, so that a malformed header cannot ask for all memory.
-const maxMessage = 256 << 20
+var errClosed = frame.ErrClosed
 
 // read reads one message, or returns errClosed at the end of the stream.
 func (c *conn) read() (*message, error) {
-	length := -1
-	for {
-		line, err := c.r.ReadString('\n')
-		if err != nil {
-			if err == io.EOF && line == "" {
-				return nil, errClosed
-			}
-			return nil, err
-		}
-		line = strings.TrimRight(line, "\r\n")
-		if line == "" {
-			break
-		}
-		name, value, ok := strings.Cut(line, ":")
-		if !ok {
-			return nil, fmt.Errorf("malformed header %q", line)
-		}
-		if strings.EqualFold(strings.TrimSpace(name), "Content-Length") {
-			length, err = strconv.Atoi(strings.TrimSpace(value))
-			if err != nil {
-				return nil, fmt.Errorf("malformed Content-Length %q", value)
-			}
-		}
-	}
-	if length < 0 {
-		return nil, errors.New("a message without Content-Length")
-	}
-	if length > maxMessage {
-		return nil, fmt.Errorf("a message of %d bytes, more than the %d allowed", length, maxMessage)
-	}
-	body := make([]byte, length)
-	if _, err := io.ReadFull(c.r, body); err != nil {
+	body, err := frame.Read(c.r)
+	if err != nil {
 		return nil, err
 	}
 	var m message
@@ -108,11 +73,7 @@ func (c *conn) write(v any) error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if _, err := fmt.Fprintf(c.w, "Content-Length: %d\r\n\r\n", len(body)); err != nil {
-		return err
-	}
-	_, err = c.w.Write(body)
-	return err
+	return frame.Write(c.w, body)
 }
 
 // reply answers a request with a result.

@@ -241,7 +241,10 @@ func (in *Instance) initModules(g *Goroutine) {
 }
 
 func (in *Instance) initModule(g *Goroutine, m *module) {
-	g.stack = append(g.stack, Frame{Function: "module " + m.m.File.Path, Path: m.m.File.Path})
+	g.push("module "+m.m.File.Path, m.m.File.Path, ast.Pos{})
+	if g.d != nil {
+		m.root.frame = g.stack[len(g.stack)-1].id
+	}
 	if m.m.File.Script {
 		in.runScript(g, m)
 		g.stack = g.stack[:len(g.stack)-1]
@@ -251,6 +254,9 @@ func (in *Instance) initModule(g *Goroutine, m *module) {
 		vd, ok := d.(*ast.VarDecl)
 		if !ok {
 			continue
+		}
+		if g.d != nil {
+			g.stopPoint(m.root, ast.Start(vd))
 		}
 		v := g.evalValue(vd.Init, m.root)
 		g.bind(vd.Target, v, m.root)

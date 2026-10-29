@@ -19,7 +19,7 @@ func TestComplete(t *testing.T) {
 		line string
 		want []string
 	}{
-		{"ant ", []string{"run", "check", "fmt", "doc", "lsp", "help", "lib", "main.ant", "my dir"}},
+		{"ant ", []string{"run", "check", "fmt", "doc", "lsp", "dap", "help", "lib", "main.ant", "my dir"}},
 		{"ant r", []string{"run"}},
 		{"ant m", []string{"main.ant", "my dir"}},
 		{"ant -", []string{"-h", "--help", "--comp"}},
