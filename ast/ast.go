@@ -377,6 +377,10 @@ type (
 		Optional bool
 		Pipe     bool
 		Grouped  bool
+		// Bar is the position of a pipe's |, and Stage is set on each pipe of a pipeline of two
+		// or more, where a debugger stops before the stage (dap.md section 4).
+		Bar   Pos
+		Stage bool
 	}
 	// Unary is -a, !a, or try a.
 	Unary struct {
