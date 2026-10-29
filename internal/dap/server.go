@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -81,11 +82,12 @@ type server struct {
 	// handles are the frames and variable containers of the current stop, reset on resume.
 	hmu     sync.Mutex
 	frames  []interp.StackFrame
-	handles []any
+	handles []handle
 }
 
 // module is one module of the program, with what positions and breakpoints need.
 type module struct {
+	file  *ast.File
 	path  string // the module's path as the interpreter names it
 	abs   string
 	lines []string
@@ -158,6 +160,8 @@ func (s *server) serve(req *request) bool {
 			"supportsConditionalBreakpoints":    true,
 			"supportsHitConditionalBreakpoints": true,
 			"supportsLogPoints":                 true,
+			"supportsSetVariable":               true,
+			"supportsFunctionBreakpoints":       true,
 			"exceptionBreakpointFilters": []map[string]any{
 				{"filter": "uncaught", "label": "Uncaught panics", "default": true},
 				{"filter": "all", "label": "All panics"},
@@ -227,6 +231,10 @@ func (s *server) serve(req *request) bool {
 		s.exceptionInfo(req)
 	case "evaluate":
 		s.evaluate(req)
+	case "setVariable":
+		s.setVariable(req)
+	case "setFunctionBreakpoints":
+		s.setFunctionBreakpoints(req)
 	case "terminate":
 		s.reply(req, nil)
 		s.terminate()
@@ -293,7 +301,7 @@ func (s *server) launch(raw json.RawMessage) error {
 	for _, m := range prog.Modules {
 		abs, _ := filepath.Abs(m.File.Path)
 		src, _ := os.ReadFile(m.File.Path)
-		s.modules[abs] = &module{path: m.File.Path, abs: abs, lines: strings.Split(string(src), "\n"), stops: interp.StopPoints(m.File)}
+		s.modules[abs] = &module{file: m.File, path: m.File.Path, abs: abs, lines: strings.Split(string(src), "\n"), stops: interp.StopPoints(m.File)}
 	}
 
 	env := map[string]string{}
@@ -494,6 +502,76 @@ func (s *server) setBreakpoints(req *request) {
 		}
 	}
 	s.reply(req, map[string]any{"breakpoints": out})
+}
+
+func (s *server) setFunctionBreakpoints(req *request) {
+	var args struct {
+		Breakpoints []struct {
+			Name         string `json:"name"`
+			Condition    string `json:"condition"`
+			HitCondition string `json:"hitCondition"`
+		} `json:"breakpoints"`
+	}
+	json.Unmarshal(req.Arguments, &args)
+	out := make([]map[string]any, len(args.Breakpoints))
+	var set []interp.FunctionBreakpoint
+	var setAt []int
+	for i, b := range args.Breakpoints {
+		out[i] = map[string]any{"verified": false, "message": fmt.Sprintf("no function %s with a statement in its body", b.Name)}
+		for _, m := range s.sortedModules() {
+			sp, ok := bindFunction(m, strings.TrimSpace(b.Name))
+			if !ok {
+				continue
+			}
+			set = append(set, interp.FunctionBreakpoint{Path: m.path, Breakpoint: interp.Breakpoint{Pos: sp.Pos, Condition: b.Condition, HitCondition: b.HitCondition}})
+			setAt = append(setAt, i)
+			if out[i]["verified"] == false {
+				out[i] = map[string]any{"verified": true, "line": s.line(sp.Pos.Line), "column": s.col(m, sp.Pos), "source": map[string]any{"name": m.path, "path": m.abs}}
+			}
+		}
+	}
+	if s.d != nil {
+		for k, err := range s.d.SetFunctionBreakpoints(set) {
+			if err != nil {
+				out[setAt[k]] = map[string]any{"verified": false, "message": err.Error()}
+			}
+		}
+	}
+	s.reply(req, map[string]any{"breakpoints": out})
+}
+
+// sortedModules lists the program's modules by path, so that responses do not depend on map order.
+func (s *server) sortedModules() []*module {
+	ms := make([]*module, 0, len(s.modules))
+	for _, m := range s.modules {
+		ms = append(ms, m)
+	}
+	sort.Slice(ms, func(i, j int) bool { return ms[i].abs < ms[j].abs })
+	return ms
+}
+
+// bindFunction finds the first stop point of the body of the top-level function name, written
+// as name or Type.name, in m.
+func bindFunction(m *module, name string) (interp.StopPoint, bool) {
+	for _, d := range m.file.Decls {
+		fd, ok := d.(*ast.FuncDecl)
+		if !ok || fd.Body == nil {
+			continue
+		}
+		full := fd.Name
+		if fd.Owner != "" {
+			full = fd.Owner + "." + fd.Name
+		}
+		if full != name {
+			continue
+		}
+		for _, sp := range m.stops {
+			if sp.Body == ast.Node(fd) {
+				return sp, true
+			}
+		}
+	}
+	return interp.StopPoint{}, false
 }
 
 // bind finds the stop point a breakpoint on line binds to: the first that starts on the line,

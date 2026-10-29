@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -45,6 +46,7 @@ type Debugger struct {
 	step     *step
 	stop     Stop
 	bps      map[bpKey]*bp
+	fbps     map[bpKey]*bp // function breakpoints
 	uncaught bool
 	all      bool
 }
@@ -114,6 +116,32 @@ func (d *Debugger) SetBreakpoints(path string, list []Breakpoint) []error {
 		}
 	}
 	d.bps = bps
+	return errs
+}
+
+// FunctionBreakpoint is a breakpoint at the first stop point of a function's body, in the
+// module at Path.
+type FunctionBreakpoint struct {
+	Path string
+	Breakpoint
+}
+
+// SetFunctionBreakpoints replaces every function breakpoint. It returns, for each, why it is not
+// set, or nil.
+func (d *Debugger) SetFunctionBreakpoints(list []FunctionBreakpoint) []error {
+	errs := make([]error, len(list))
+	bps := map[bpKey]*bp{}
+	for i, b := range list {
+		p, err := newBP(b.Breakpoint)
+		if err != nil {
+			errs[i] = err
+			continue
+		}
+		bps[bpKey{b.Path, b.Pos}] = p
+	}
+	d.mu.Lock()
+	d.fbps = bps
+	d.mu.Unlock()
 	return errs
 }
 
@@ -393,6 +421,9 @@ func (d *Debugger) reason(g *Goroutine, env *Env, pos ast.Pos) (string, *bp) {
 	if p := d.bps[bpKey{env.mod.path, pos}]; p != nil {
 		return "breakpoint", p
 	}
+	if p := d.fbps[bpKey{env.mod.path, pos}]; p != nil {
+		return "function breakpoint", p
+	}
 	return "", nil
 }
 
@@ -473,6 +504,25 @@ func (d *Debugger) Frames(id int) ([]StackFrame, bool) {
 type Var struct {
 	Name  string
 	Value value.Value
+	set   func(value.Value) // writes the binding, nil when it cannot be set
+}
+
+// Settable reports whether SetVar can give v a new value.
+func (v Var) Settable() bool { return v.set != nil }
+
+// SetVar gives a variable of a stopped frame's scopes a new value (dap.md section 6, Setting
+// variables).
+func (d *Debugger) SetVar(v Var, x value.Value) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.stopping {
+		return errors.New("the program is not stopped")
+	}
+	if v.set == nil {
+		return fmt.Errorf("%s cannot be set", v.Name)
+	}
+	v.set(x)
+	return nil
 }
 
 // Scopes returns the Locals, Closure and Module variables of a frame (dap.md section 3).
@@ -520,7 +570,8 @@ func (e *Env) vars(out []Var, seen map[string]bool) []Var {
 			continue
 		}
 		seen[n.Name] = true
-		out = append(out, Var{Name: n.Name, Value: v})
+		slot := ast.Slot{Index: n.Index, Shared: n.Shared}
+		out = append(out, Var{Name: n.Name, Value: v, set: func(x value.Value) { e.set(slot, x) }})
 	}
 	return out
 }
@@ -606,7 +657,8 @@ func (m *module) vars() []Var {
 				return true
 			}
 			if v := m.get(t.Slot.Index); v != value.Uninitialized {
-				out = append(out, Var{Name: t.Name, Value: v})
+				i := t.Slot.Index
+				out = append(out, Var{Name: t.Name, Value: v, set: func(x value.Value) { m.rec.Set(i, x) }})
 			}
 			return true
 		})

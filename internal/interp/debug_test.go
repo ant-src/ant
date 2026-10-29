@@ -395,3 +395,32 @@ println(x)
 	}
 	r.finish()
 }
+
+func TestDebugSetLocals(t *testing.T) {
+	r := debug(t, `func f(): int {
+  var a = 1
+  var b = 2
+  var get = { b }
+  return a + get()
+}
+println(f())
+`, func(r *debugRun) { r.breakAt(5) })
+	r.wait("breakpoint", 5)
+	locals, _, _ := r.d.Scopes(r.frames(r.stop.Goroutine)[0])
+	for _, v := range locals {
+		switch v.Name {
+		case "a":
+			if err := r.d.SetVar(v, int64(10)); err != nil {
+				t.Fatal(err)
+			}
+		case "b": // captured by the lambda, so a shared slot
+			if err := r.d.SetVar(v, int64(20)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	r.finish()
+	if r.out.String() != "30\n" {
+		t.Errorf("output %q", r.out)
+	}
+}

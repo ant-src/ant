@@ -350,3 +350,75 @@ println(sum)
 	ok(t, c.request("continue", nil))
 	c.event("terminated")
 }
+
+func TestSetVariableAndFunctionBreakpoints(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `type Point = { x: int, y: int }
+
+func Point.sum(p: Point): int {
+  var s = p.x + p.y
+  return s
+}
+
+var p = Point { x: 1, y: 2 }
+var scores = Map{ "ada": 1 }
+var n = 10
+println(Point.sum(p) + n + scores["ada"])
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	caps := ok(t, c.request("initialize", nil))
+	if caps["supportsSetVariable"] != true || caps["supportsFunctionBreakpoints"] != true {
+		t.Errorf("capabilities: %v", caps)
+	}
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	fbs := ok(t, c.request("setFunctionBreakpoints", map[string]any{"breakpoints": []map[string]any{{"name": "Point.sum"}, {"name": "nothing"}}}))["breakpoints"].([]any)
+	if b := fbs[0].(map[string]any); b["verified"] != true || b["line"] != 4.0 {
+		t.Errorf("Point.sum: %v", b)
+	}
+	if b := fbs[1].(map[string]any); b["verified"] != false {
+		t.Errorf("nothing: %v", b)
+	}
+	ok(t, c.request("configurationDone", nil))
+	stop := c.event("stopped")
+	if stop["reason"] != "function breakpoint" {
+		t.Fatalf("stopped: %v", stop)
+	}
+	frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)
+	scope := func(frame any, name string) float64 {
+		for _, sc := range ok(t, c.request("scopes", map[string]any{"frameId": frame}))["scopes"].([]any) {
+			if sc.(map[string]any)["name"] == name {
+				return sc.(map[string]any)["variablesReference"].(float64)
+			}
+		}
+		t.Fatalf("no %s scope", name)
+		return 0
+	}
+	vars := func(ref any) map[string]map[string]any {
+		out := map[string]map[string]any{}
+		for _, v := range ok(t, c.request("variables", map[string]any{"variablesReference": ref}))["variables"].([]any) {
+			out[v.(map[string]any)["name"].(string)] = v.(map[string]any)
+		}
+		return out
+	}
+	locals := scope(frames[0].(map[string]any)["id"], "Locals")
+	// a field of the parameter, which the caller's p shares
+	pRef := vars(locals)["p"]["variablesReference"]
+	if r := ok(t, c.request("setVariable", map[string]any{"variablesReference": pRef, "name": "y", "value": "p.x * 100"})); r["value"] != "100" {
+		t.Errorf("p.y: %v", r)
+	}
+	module := scope(frames[1].(map[string]any)["id"], "Module")
+	if r := ok(t, c.request("setVariable", map[string]any{"variablesReference": module, "name": "n", "value": "n + 1"})); r["value"] != "11" {
+		t.Errorf("n: %v", r)
+	}
+	scoresRef := vars(module)["scores"]["variablesReference"]
+	ok(t, c.request("setVariable", map[string]any{"variablesReference": scoresRef, "name": "ada", "value": "5"}))
+	if r := c.request("setVariable", map[string]any{"variablesReference": module, "name": "n", "value": "nope"}); r["success"] != false {
+		t.Errorf("an expression that fails set n: %v", r)
+	}
+	ok(t, c.request("continue", nil))
+	c.event("terminated")
+	// sum is 1 + 100, then n is 11 and scores["ada"] is 5
+	if got := c.output("stdout"); got != "117\n" {
+		t.Errorf("output %q", got)
+	}
+}
