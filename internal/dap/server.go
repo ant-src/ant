@@ -154,6 +154,10 @@ func (s *server) serve(req *request) bool {
 			"supportsConfigurationDoneRequest": true,
 			"supportsTerminateRequest":         true,
 			"supportsExceptionInfoRequest":     true,
+			"supportsEvaluateForHovers":         true,
+			"supportsConditionalBreakpoints":    true,
+			"supportsHitConditionalBreakpoints": true,
+			"supportsLogPoints":                 true,
 			"exceptionBreakpointFilters": []map[string]any{
 				{"filter": "uncaught", "label": "Uncaught panics", "default": true},
 				{"filter": "all", "label": "All panics"},
@@ -221,6 +225,8 @@ func (s *server) serve(req *request) bool {
 		}
 	case "exceptionInfo":
 		s.exceptionInfo(req)
+	case "evaluate":
+		s.evaluate(req)
 	case "terminate":
 		s.reply(req, nil)
 		s.terminate()
@@ -310,6 +316,7 @@ func (s *server) launch(raw json.RawMessage) error {
 	s.d = interp.NewDebugger()
 	s.d.StopOnEntry = args.StopOnEntry
 	s.d.OnStop = s.stopped
+	s.d.OnLog = func(text string) { s.output("console", text) }
 	s.d.OnGoroutine = func(id int, started bool) {
 		reason := "exited"
 		if started {
@@ -435,46 +442,56 @@ func (s *server) stopped(st interp.Stop) {
 // ---- breakpoints
 
 func (s *server) setBreakpoints(req *request) {
+	type sourceBreakpoint struct {
+		Line         int    `json:"line"`
+		Condition    string `json:"condition"`
+		HitCondition string `json:"hitCondition"`
+		LogMessage   string `json:"logMessage"`
+	}
 	var args struct {
 		Source struct {
 			Path string `json:"path"`
 		} `json:"source"`
-		Breakpoints []struct {
-			Line int `json:"line"`
-		} `json:"breakpoints"`
-		Lines []int `json:"lines"`
+		Breakpoints []sourceBreakpoint `json:"breakpoints"`
+		Lines       []int              `json:"lines"`
 	}
 	json.Unmarshal(req.Arguments, &args)
-	lines := args.Lines
-	if args.Breakpoints != nil {
-		lines = lines[:0]
-		for _, b := range args.Breakpoints {
-			lines = append(lines, b.Line)
+	asked := args.Breakpoints
+	if asked == nil {
+		for _, l := range args.Lines {
+			asked = append(asked, sourceBreakpoint{Line: l})
 		}
 	}
 	abs, _ := filepath.Abs(args.Source.Path)
 	m := s.modules[abs]
-	out := []map[string]any{}
-	var at []ast.Pos
-	for _, l := range lines {
-		line := l
+	out := make([]map[string]any, len(asked))
+	var set []interp.Breakpoint
+	var setAt []int // the index in out of each breakpoint set
+	for i, b := range asked {
+		line := b.Line
 		if !s.lines1 {
 			line++
 		}
 		switch sp, ok := bind(m, line); {
 		case m == nil && s.prog == nil:
-			out = append(out, map[string]any{"verified": false, "line": l, "message": "the program is not launched yet"})
+			out[i] = map[string]any{"verified": false, "line": b.Line, "message": "the program is not launched yet"}
 		case m == nil:
-			out = append(out, map[string]any{"verified": false, "line": l, "message": "the file is not a module of the program"})
+			out[i] = map[string]any{"verified": false, "line": b.Line, "message": "the file is not a module of the program"}
 		case !ok:
-			out = append(out, map[string]any{"verified": false, "line": l, "message": "no statement here or below in the same body"})
+			out[i] = map[string]any{"verified": false, "line": b.Line, "message": "no statement here or below in the same body"}
 		default:
-			at = append(at, sp.Pos)
-			out = append(out, map[string]any{"verified": true, "line": s.line(sp.Pos.Line), "column": s.col(m, sp.Pos)})
+			set = append(set, interp.Breakpoint{Pos: sp.Pos, Condition: b.Condition, HitCondition: b.HitCondition, LogMessage: b.LogMessage})
+			setAt = append(setAt, i)
+			out[i] = map[string]any{"verified": true, "line": s.line(sp.Pos.Line), "column": s.col(m, sp.Pos)}
 		}
 	}
 	if m != nil {
-		s.d.SetBreakpoints(m.path, at)
+		for k, err := range s.d.SetBreakpoints(m.path, set) {
+			if err != nil {
+				out[setAt[k]]["verified"] = false
+				out[setAt[k]]["message"] = err.Error()
+			}
+		}
 	}
 	s.reply(req, map[string]any{"breakpoints": out})
 }

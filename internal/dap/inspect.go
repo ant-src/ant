@@ -3,6 +3,7 @@ package dap
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -240,4 +241,41 @@ func (s *server) exceptionInfo(req *request) {
 		"breakMode":   "always",
 		"details":     map[string]any{"message": p.Message, "stackTrace": sb.String()},
 	})
+}
+
+// fieldPath is what hover evaluates: a name, or a name followed by fields.
+var fieldPath = regexp.MustCompile(`^\s*[A-Za-z_][A-Za-z0-9_]*(\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*$`)
+
+func (s *server) evaluate(req *request) {
+	var args struct {
+		Expression string `json:"expression"`
+		FrameID    int    `json:"frameId"`
+		Context    string `json:"context"`
+	}
+	json.Unmarshal(req.Arguments, &args)
+	if args.Context == "hover" && !fieldPath.MatchString(args.Expression) {
+		s.fail(req, "hover shows only a name or a field path")
+		return
+	}
+	s.hmu.Lock()
+	if s.d == nil || args.FrameID < 1 || args.FrameID > len(s.frames) {
+		s.hmu.Unlock()
+		s.fail(req, "the program is not stopped in a frame")
+		return
+	}
+	f := s.frames[args.FrameID-1]
+	s.hmu.Unlock()
+	v, err := s.d.Evaluate(f, args.Expression)
+	if err != nil {
+		s.fail(req, err.Error())
+		return
+	}
+	shown := s.variable(interp.Var{Name: args.Expression, Value: v})
+	body := map[string]any{"result": shown["value"], "type": shown["type"], "variablesReference": shown["variablesReference"]}
+	for _, k := range []string{"namedVariables", "indexedVariables"} {
+		if n, ok := shown[k]; ok {
+			body[k] = n
+		}
+	}
+	s.reply(req, body)
 }

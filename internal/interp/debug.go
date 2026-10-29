@@ -21,6 +21,8 @@ type Debugger struct {
 	// OnStop is called once every goroutine has stopped, from the goroutine that stopped or, for
 	// a pause, from one of its own.
 	OnStop func(Stop)
+	// OnLog is called with what a logpoint writes, or the error of a breakpoint's condition.
+	OnLog func(text string)
 	// OnGoroutine is called as a goroutine starts and as it ends.
 	OnGoroutine func(id int, started bool)
 	// StopOnEntry stops before the first statement of the root module.
@@ -42,7 +44,7 @@ type Debugger struct {
 	entry    bool   // StopOnEntry, until the entry stop
 	step     *step
 	stop     Stop
-	bps      map[bpKey]bool
+	bps      map[bpKey]*bp
 	uncaught bool
 	all      bool
 }
@@ -91,21 +93,28 @@ func (d *Debugger) attach(in *Instance) {
 
 // ---- configuration
 
-// SetBreakpoints replaces the breakpoints of the module at path with stops at the stop points
-// at the given positions.
-func (d *Debugger) SetBreakpoints(path string, at []ast.Pos) {
+// SetBreakpoints replaces the breakpoints of the module at path. It returns, for each, why it is
+// not set, or nil.
+func (d *Debugger) SetBreakpoints(path string, list []Breakpoint) []error {
+	errs := make([]error, len(list))
+	bps := map[bpKey]*bp{}
+	for i, b := range list {
+		p, err := newBP(b)
+		if err != nil {
+			errs[i] = err
+			continue
+		}
+		bps[bpKey{path, b.Pos}] = p
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	bps := map[bpKey]bool{}
-	for k := range d.bps {
+	for k, p := range d.bps {
 		if k.path != path {
-			bps[k] = true
+			bps[k] = p
 		}
 	}
-	for _, p := range at {
-		bps[bpKey{path, p}] = true
-	}
 	d.bps = bps
+	return errs
 }
 
 // SetPanicFilters sets which panics stop the run (dap.md section 5).
@@ -350,7 +359,17 @@ func (g *Goroutine) stagePoint(env *Env, pos ast.Pos, piped value.Value) {
 
 func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
 	d := g.d
-	if reason := d.reason(g, env, pos); reason != "" {
+	reason, p := d.reason(g, env, pos)
+	if p != nil && (p.Condition != "" || p.hitOp != "" || p.log != nil) {
+		stop, log := d.hit(g, p, env)
+		if log != "" && d.OnLog != nil {
+			d.OnLog(log)
+		}
+		if !stop {
+			reason = ""
+		}
+	}
+	if reason != "" {
 		d.stopAt(g, reason, nil)
 		return
 	}
@@ -359,20 +378,22 @@ func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
 	}
 }
 
-// reason says why g stops at the stop point, or "" when it does not.
-func (d *Debugger) reason(g *Goroutine, env *Env, pos ast.Pos) string {
+// reason says why g stops at the stop point, or "" when it does not, with the breakpoint there,
+// whose expressions may still keep it from stopping.
+func (d *Debugger) reason(g *Goroutine, env *Env, pos ast.Pos) (string, *bp) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	switch {
 	case d.entry && g.id == 1 && env.mod == d.root:
 		d.entry = false
-		return "entry"
+		return "entry", nil
 	case d.step != nil && d.step.g == g && (d.step.any || d.step.frames[env.frame]):
-		return "step"
-	case d.bps[bpKey{env.mod.path, pos}]:
-		return "breakpoint"
+		return "step", nil
 	}
-	return ""
+	if p := d.bps[bpKey{env.mod.path, pos}]; p != nil {
+		return "breakpoint", p
+	}
+	return "", nil
 }
 
 // panicked is the hook as a panic starts, at pos, before anything unwinds.

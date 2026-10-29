@@ -302,3 +302,51 @@ func TestLaunchErrorsAndStdin(t *testing.T) {
 		t.Errorf("args: %q", got)
 	}
 }
+
+func TestEvaluateAndLogpoints(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `var xs = [1, 2, 3]
+var sum = 0
+for x in xs {
+  sum += x
+}
+println(sum)
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	caps := ok(t, c.request("initialize", nil))
+	for _, k := range []string{"supportsEvaluateForHovers", "supportsConditionalBreakpoints", "supportsHitConditionalBreakpoints", "supportsLogPoints"} {
+		if caps[k] != true {
+			t.Errorf("%s: %v", k, caps[k])
+		}
+	}
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	bps := ok(t, c.request("setBreakpoints", map[string]any{
+		"source": map[string]any{"path": main},
+		"breakpoints": []map[string]any{
+			{"line": 4, "logMessage": "x is {x}"},
+			{"line": 6, "condition": "sum > 5"},
+			{"line": 2, "hitCondition": "sometimes"},
+		},
+	}))["breakpoints"].([]any)
+	if b := bps[2].(map[string]any); b["verified"] != false || !strings.Contains(b["message"].(string), "hit condition") {
+		t.Errorf("a bad hit condition: %v", b)
+	}
+	ok(t, c.request("configurationDone", nil))
+	stop := c.event("stopped")
+	if got := c.output("console"); got != "x is 1\nx is 2\nx is 3\n" {
+		t.Errorf("logpoint output %q", got)
+	}
+	frame := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)[0].(map[string]any)
+	res := ok(t, c.request("evaluate", map[string]any{"expression": "xs | Array.map({ x * sum })", "frameId": frame["id"], "context": "repl"}))
+	if res["result"] != "[6, 12, 18]" || res["indexedVariables"] != 3.0 {
+		t.Errorf("evaluate: %v", res)
+	}
+	if r := c.request("evaluate", map[string]any{"expression": "len(xs)", "frameId": frame["id"], "context": "hover"}); r["success"] != false {
+		t.Errorf("hover called a function: %v", r)
+	}
+	if res := ok(t, c.request("evaluate", map[string]any{"expression": "sum", "frameId": frame["id"], "context": "hover"})); res["result"] != "6" {
+		t.Errorf("hover: %v", res)
+	}
+	ok(t, c.request("continue", nil))
+	c.event("terminated")
+}

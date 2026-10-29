@@ -51,21 +51,33 @@ func debug(t *testing.T, src string, setup func(r *debugRun)) *debugRun {
 
 // breakAt sets breakpoints on the first stop point of each line.
 func (r *debugRun) breakAt(lines ...int) {
-	var at []ast.Pos
+	var bps []interp.Breakpoint
 	for _, l := range lines {
-		found := false
-		for _, sp := range interp.StopPoints(r.prog.Root.File) {
-			if sp.Pos.Line == l {
-				at = append(at, sp.Pos)
-				found = true
-				break
-			}
-		}
-		if !found {
-			r.t.Fatalf("no stop point on line %d", l)
+		bps = append(bps, interp.Breakpoint{Pos: r.pointOn(l)})
+	}
+	r.set(bps...)
+}
+
+// set sets breakpoints in main.ant and fails on any that is not set.
+func (r *debugRun) set(bps ...interp.Breakpoint) {
+	r.t.Helper()
+	for _, err := range r.d.SetBreakpoints(r.prog.Root.File.Path, bps) {
+		if err != nil {
+			r.t.Fatal(err)
 		}
 	}
-	r.d.SetBreakpoints(r.prog.Root.File.Path, at)
+}
+
+// pointOn is the first stop point on line.
+func (r *debugRun) pointOn(line int) ast.Pos {
+	r.t.Helper()
+	for _, sp := range interp.StopPoints(r.prog.Root.File) {
+		if sp.Pos.Line == line {
+			return sp.Pos
+		}
+	}
+	r.t.Fatalf("no stop point on line %d", line)
+	return ast.Pos{}
 }
 
 // wait waits for the next stop and checks its reason and line.
@@ -289,4 +301,97 @@ while true {
 	if fs := r.frames(gs[1].ID); fs[0].Pos.Line != 3 {
 		t.Errorf("the blocked goroutine's frames: %+v", fs)
 	}
+}
+
+func TestDebugEvaluate(t *testing.T) {
+	r := debug(t, `type User = { name: string, tags: Array[string] }
+
+func show(u: User, n: int): string {
+  var label = u.name + "#" + String.from(n)
+  return label
+}
+
+var ch = Channel.new()
+var u = User { name: "ada", tags: ["x", "y"] }
+println(show(u, 2))
+`, func(r *debugRun) { r.breakAt(5) })
+	r.wait("breakpoint", 5)
+	top := r.frames(r.stop.Goroutine)[0]
+	for src, want := range map[string]string{
+		"label":  `"ada#2"`,
+		"n * 10": "20",
+		"u.tags | Array.map({ x + String.from(n) })": `["x2", "y2"]`,
+		"len(u.tags)": "2",
+		"show(u, 3)":  `"ada#3"`,
+	} {
+		v, err := r.d.Evaluate(top, src)
+		if err != nil {
+			t.Errorf("%s: %v", src, err)
+			continue
+		}
+		if got := value.RenderQuoted(v); got != want {
+			t.Errorf("%s = %s, want %s", src, got, want)
+		}
+	}
+	for src, want := range map[string]string{
+		"nope + 1":            "nope is not defined here",
+		"n = 3":               "cannot be assigned",
+		"u.tags[9]":           "panic: index 9 out of range",
+		"Channel.receive(ch)": "did not finish within a second",
+		"n +":                 "",
+	} {
+		_, err := r.d.Evaluate(top, src)
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: error %v, want one with %q", src, err, want)
+		}
+	}
+	// the caller's frame sees its own names
+	if v, err := r.d.Evaluate(r.frames(r.stop.Goroutine)[1], "u.name"); err != nil || value.Render(v) != "ada" {
+		t.Errorf("u.name in the caller: %v %v", v, err)
+	}
+	r.finish()
+}
+
+func TestDebugConditionsHitsAndLogpoints(t *testing.T) {
+	var logs []string
+	r := debug(t, `var total = 0
+for i in [1, 2, 3, 4, 5, 6] {
+  total += i
+}
+println(total)
+`, func(r *debugRun) {
+		r.d.OnLog = func(s string) { logs = append(logs, s) }
+		r.set(interp.Breakpoint{Pos: r.pointOn(3), Condition: "i % 2 == 0", HitCondition: "2"})
+	})
+	r.wait("breakpoint", 3)
+	if got := r.locals(); got != "i=4" {
+		t.Errorf("the second even i: %s", got)
+	}
+	r.set(interp.Breakpoint{Pos: r.pointOn(3), LogMessage: "i={i} total={total} {{ok}}"})
+	r.finish()
+	want := []string{"i=5 total=10 {ok}\n", "i=6 total=15 {ok}\n"}
+	if strings.Join(logs, "|") != strings.Join(want, "|") {
+		t.Errorf("logs %q, want %q", logs, want)
+	}
+	for _, bad := range []interp.Breakpoint{{HitCondition: "often"}, {Condition: "i +"}, {LogMessage: "{i"}} {
+		bad.Pos = r.pointOn(3)
+		if errs := r.d.SetBreakpoints(r.prog.Root.File.Path, []interp.Breakpoint{bad}); errs[0] == nil {
+			t.Errorf("%+v was set", bad)
+		}
+	}
+}
+
+func TestDebugConditionError(t *testing.T) {
+	var logs []string
+	r := debug(t, `var x = 1
+println(x)
+`, func(r *debugRun) {
+		r.d.OnLog = func(s string) { logs = append(logs, s) }
+		r.set(interp.Breakpoint{Pos: r.pointOn(2), Condition: "x + 1"})
+	})
+	r.wait("breakpoint", 2)
+	if len(logs) != 1 || !strings.Contains(logs[0], "not a bool") {
+		t.Errorf("logs: %q", logs)
+	}
+	r.finish()
 }
