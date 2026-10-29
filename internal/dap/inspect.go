@@ -204,6 +204,9 @@ func (s *server) variable(v item, frame interp.StackFrame) map[string]any {
 		text = string(r[:maxValue]) + "…"
 	}
 	m := map[string]any{"name": v.name, "value": text, "type": typeName(v.value), "variablesReference": 0}
+	if v.set == nil {
+		m["presentationHint"] = map[string]any{"attributes": []string{"readOnly"}}
+	}
 	ref := func() int { return s.handle(handle{value: v.value, frame: frame}) }
 	switch x := v.value.(type) {
 	case *value.Record:
