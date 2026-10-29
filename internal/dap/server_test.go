@@ -422,3 +422,59 @@ println(Point.sum(p) + n + scores["ada"])
 		t.Errorf("output %q", got)
 	}
 }
+
+func TestLaunchRelativeProgram(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": "println(1)\n"})
+	parent := filepath.Dir(dir)
+	rel := filepath.Join(filepath.Base(dir), "main.ant")
+	wd, _ := os.Getwd()
+	if err := os.Chdir(parent); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(wd) })
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": rel})) // relative to the adapter's directory, with no cwd
+	ok(t, c.request("configurationDone", nil))
+	c.event("terminated")
+	if got := c.output("stdout"); got != "1\n" {
+		t.Errorf("stdout: %q", got)
+	}
+}
+
+func TestSequenceBodyFrameIsInTheLoopsModule(t *testing.T) {
+	dir := write(t, map[string]string{
+		"main.ant": `import "./lib.ant" { count }
+
+var seen = 0
+for n in count {
+  seen += n
+}
+println(seen)
+`,
+		"lib.ant": `export func count(yield: func(int): bool) {
+  for i in [1, 2] {
+    if !yield(i) { return }
+  }
+}
+`,
+	})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{{"line": 5}}}))
+	ok(t, c.request("configurationDone", nil))
+	stop := c.event("stopped")
+	frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)
+	top := frames[0].(map[string]any)
+	if top["name"] != "count" || top["line"] != 5.0 || top["source"].(map[string]any)["path"] != main {
+		t.Errorf("the body's frame: %v", top)
+	}
+	ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{}}))
+	ok(t, c.request("continue", nil))
+	c.event("terminated")
+	if got := c.output("stdout"); got != "3\n" {
+		t.Errorf("stdout: %q", got)
+	}
+}

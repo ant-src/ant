@@ -447,3 +447,38 @@ println(a + b)
 		r.finish()
 	}
 }
+
+func TestDebugStepOnGoroutineWithoutFrames(t *testing.T) {
+	for range 20 { // the go block's goroutine has a frame in some runs, waits to enter in others
+		r := debug(t, `var ch = Channel.new()
+go { Channel.receive(ch) }
+var x = 1
+println(x)
+`, func(r *debugRun) { r.breakAt(3) })
+		r.wait("breakpoint", 3)
+		gs := r.d.Goroutines()
+		if len(gs) != 2 {
+			t.Fatalf("goroutines: %+v", gs)
+		}
+		r.d.Step(gs[1].ID, interp.StepOver) // must not panic on an empty stack
+		r.finish()
+	}
+}
+
+func TestDebugLogpointWhereAStepEnds(t *testing.T) {
+	var logs []string
+	r := debug(t, `var i = 1
+var j = 2
+println(i + j)
+`, func(r *debugRun) {
+		r.d.OnLog = func(s string) { logs = append(logs, s) }
+		r.set(interp.Breakpoint{Pos: r.pointOn(1)}, interp.Breakpoint{Pos: r.pointOn(2), LogMessage: "i={i}"})
+	})
+	r.wait("breakpoint", 1)
+	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.wait("step", 2)
+	if strings.Join(logs, "|") != "i=1\n" {
+		t.Errorf("logs %q", logs)
+	}
+	r.finish()
+}

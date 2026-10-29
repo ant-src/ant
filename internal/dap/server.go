@@ -278,14 +278,22 @@ func (s *server) launch(raw json.RawMessage) error {
 	if args.Program == "" {
 		return errors.New("launch needs a program")
 	}
-	cwd := args.Cwd
+	// A relative program is resolved against cwd, which defaults to the program's directory
+	// (dap.md section 2); without a cwd, a relative program is relative to the adapter's.
+	cwd, program := args.Cwd, args.Program
 	if cwd == "" {
-		cwd = filepath.Dir(args.Program)
+		program, _ = filepath.Abs(program)
+		cwd = filepath.Dir(program)
+	} else {
+		cwd, _ = filepath.Abs(cwd)
+		if !filepath.IsAbs(program) {
+			program = filepath.Join(cwd, program)
+		}
 	}
 	if err := os.Chdir(cwd); err != nil {
 		return err
 	}
-	prog, diags := loader.Load(args.Program, loader.Config{Mode: parser.Program})
+	prog, diags := loader.Load(program, loader.Config{Mode: parser.Program})
 	if len(diags) > 0 {
 		msgs := make([]string, len(diags))
 		for i, d := range diags {

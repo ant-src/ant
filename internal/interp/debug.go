@@ -41,6 +41,7 @@ type Debugger struct {
 	ids      int
 	active   int    // goroutines in Ant code, not parked
 	stopping bool   // a stop is under way or the run is stopped
+	stopped  bool   // every goroutine has parked: the stacks can be read
 	gen      uint64 // counts resumes, which parked goroutines wait for
 	entry    bool   // StopOnEntry, until the entry stop
 	step     *step
@@ -179,19 +180,23 @@ func (d *Debugger) Step(id int, kind StepKind) {
 		return
 	}
 	s := &step{g: g, any: kind == StepIn, frames: map[uint64]bool{}}
-	cur := g.frameID()
-	i := len(g.stack) - 1
-	for i >= 0 && g.stack[i].id != cur {
-		i--
-	}
-	if i < 0 {
-		i = len(g.stack) - 1
-	}
-	if kind == StepOver {
-		s.frames[cur] = true
-	}
-	for _, f := range g.stack[:i] {
-		s.frames[f.id] = true
+	// A goroutine with no frame yet, waiting to enter Ant code, has nothing to step over or out
+	// of: a step in stops at its first stop point, the others run on.
+	if len(g.stack) > 0 {
+		cur := g.frameID()
+		i := len(g.stack) - 1
+		for i >= 0 && g.stack[i].id != cur {
+			i--
+		}
+		if i < 0 {
+			i = len(g.stack) - 1
+		}
+		if kind == StepOver {
+			s.frames[cur] = true
+		}
+		for _, f := range g.stack[:i] {
+			s.frames[f.id] = true
+		}
 	}
 	d.resume(s)
 }
@@ -215,7 +220,7 @@ func (d *Debugger) Pause(id int) {
 			d.cond.Wait()
 		}
 		st := Stop{Goroutine: id, Reason: "pause"}
-		d.stop = st
+		d.stop, d.stopped = st, true
 		d.mu.Unlock()
 		d.Flush()
 		d.OnStop(st)
@@ -225,7 +230,7 @@ func (d *Debugger) Pause(id int) {
 // resume ends a stop, with the step to take or nil. mu is held.
 func (d *Debugger) resume(s *step) {
 	d.step = s
-	d.stopping = false
+	d.stopping, d.stopped = false, false
 	d.halt.Store(false)
 	d.gen++
 	d.cond.Broadcast()
@@ -328,6 +333,10 @@ func (d *Debugger) stopAt(g *Goroutine, reason string, p *AntPanic) {
 			return
 		}
 	}
+	if in := d.in.Load(); in != nil && in.done.Load() {
+		d.mu.Unlock() // the run is ending: nothing stops it any more
+		return
+	}
 	d.stopping = true
 	d.halt.Store(true)
 	d.step = nil
@@ -339,7 +348,7 @@ func (d *Debugger) stopAt(g *Goroutine, reason string, p *AntPanic) {
 		d.cond.Wait()
 	}
 	st := Stop{Goroutine: g.id, Reason: reason, Panic: p}
-	d.stop = st
+	d.stop, d.stopped = st, true
 	gen := d.gen
 	d.mu.Unlock()
 	d.Flush() // what the program wrote before the stop shows at the stop
@@ -391,17 +400,20 @@ func (g *Goroutine) stagePoint(env *Env, pos ast.Pos, piped value.Value) {
 
 func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
 	d := g.d
-	reason, p := d.reason(g, env, pos)
+	p, kind := d.breakpointAt(env, pos)
+	hit := p != nil
 	if p != nil && (p.Condition != "" || p.hitOp != "" || p.log != nil) {
+		// The expressions run with g outside Ant code, so that a stop under way does not wait
+		// for one that blocks; they run at every reach, also one that ends a step.
+		g.leaveAnt()
 		stop, log := d.hit(g, p, env)
+		g.enterAnt()
 		if log != "" && d.OnLog != nil {
 			d.OnLog(log)
 		}
-		if !stop {
-			reason = ""
-		}
+		hit = stop
 	}
-	if reason != "" {
+	if reason := d.reason(g, env, hit, kind); reason != "" {
 		d.stopAt(g, reason, nil)
 		return
 	}
@@ -410,25 +422,34 @@ func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
 	}
 }
 
-// reason says why g stops at the stop point, or "" when it does not, with the breakpoint there,
-// whose expressions may still keep it from stopping.
-func (d *Debugger) reason(g *Goroutine, env *Env, pos ast.Pos) (string, *bp) {
+// breakpointAt returns the breakpoint bound to the stop point, with its kind, or nil.
+func (d *Debugger) breakpointAt(env *Env, pos ast.Pos) (*bp, string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if p := d.bps[bpKey{env.mod.path, pos}]; p != nil {
+		return p, "breakpoint"
+	}
+	if p := d.fbps[bpKey{env.mod.path, pos}]; p != nil {
+		return p, "function breakpoint"
+	}
+	return nil, ""
+}
+
+// reason says why g stops at the stop point, or "" when it does not: hit says whether the
+// breakpoint there, of the kind, stops it.
+func (d *Debugger) reason(g *Goroutine, env *Env, hit bool, kind string) string {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	switch {
 	case d.entry && g.id == 1 && env.mod == d.root:
 		d.entry = false
-		return "entry", nil
+		return "entry"
 	case d.step != nil && d.step.g == g && (d.step.any || d.step.frames[env.frame]):
-		return "step", nil
+		return "step"
+	case hit:
+		return kind
 	}
-	if p := d.bps[bpKey{env.mod.path, pos}]; p != nil {
-		return "breakpoint", p
-	}
-	if p := d.fbps[bpKey{env.mod.path, pos}]; p != nil {
-		return "function breakpoint", p
-	}
-	return "", nil
+	return ""
 }
 
 // panicked is the hook as a panic starts, at pos, before anything unwinds.
@@ -441,8 +462,12 @@ func (g *Goroutine) panicked(p *AntPanic) {
 		return
 	}
 	if len(g.stack) > 0 && len(p.Trace) > 0 {
+		// Under mu: a builtin panics with g outside Ant code, while the run may be stopped and
+		// its stack read.
+		d.mu.Lock()
 		f := &g.stack[len(g.stack)-1]
 		f.at, f.piped = p.Trace[0].Pos, nil
+		d.mu.Unlock()
 	}
 	d.stopAt(g, "exception", p)
 }
@@ -488,17 +513,23 @@ func (d *Debugger) Frames(id int) ([]StackFrame, bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	g := d.gs[id]
-	if g == nil || !d.stopping {
+	if g == nil || !d.stopped {
 		return nil, false
 	}
 	var out []StackFrame
 	var pos ast.Pos
 	for i := len(g.stack) - 1; i >= 0; i-- {
 		f := g.stack[i]
+		path := f.Path
 		if i == len(g.stack)-1 {
 			pos = f.at
+			if f.atStop && f.env != nil && f.env.mod != nil {
+				// The stop point's module: a loop body over a sequence runs on the sequence's
+				// frame, in the loop's module.
+				path = f.env.mod.path
+			}
 		}
-		out = append(out, StackFrame{Function: f.Function, Path: f.Path, Pos: pos, g: g, i: i})
+		out = append(out, StackFrame{Function: f.Function, Path: path, Pos: pos, g: g, i: i})
 		pos = f.Pos // the call site, in the caller
 	}
 	return out, true
@@ -519,7 +550,7 @@ func (v Var) Settable() bool { return v.set != nil }
 func (d *Debugger) SetVar(v Var, x value.Value) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if !d.stopping {
+	if !d.stopped {
 		return errors.New("the program is not stopped")
 	}
 	if v.set == nil {
@@ -533,7 +564,7 @@ func (d *Debugger) SetVar(v Var, x value.Value) error {
 func (d *Debugger) Scopes(sf StackFrame) (locals, closure, module []Var) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if sf.g == nil || sf.i >= len(sf.g.stack) {
+	if !d.stopped || sf.g == nil || sf.i >= len(sf.g.stack) {
 		return nil, nil, nil
 	}
 	f := sf.g.stack[sf.i]
@@ -584,7 +615,7 @@ func (e *Env) vars(out []Var, seen map[string]bool) []Var {
 func (d *Debugger) Panic() *AntPanic {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if !d.stopping {
+	if !d.stopped {
 		return nil
 	}
 	return d.stop.Panic

@@ -32,11 +32,12 @@ type compiled struct {
 }
 
 // visible lists the names env sees, innermost first, with their values: the bindings of its
-// environments, then the module's declarations, then its imports.
+// environments, then the module's declarations, then its imports. A binding whose declaration
+// has not run is not seen (dap.md section 3, Scopes).
 func visible(env *Env) (names []string, vals []value.Value) {
 	seen := map[string]bool{}
 	add := func(n string, v value.Value) {
-		if n == "" || n == "_" || seen[n] {
+		if n == "" || n == "_" || seen[n] || v == value.Uninitialized {
 			return
 		}
 		seen[n] = true
@@ -137,7 +138,7 @@ func (in *Instance) run(c *compiled, vals []value.Value) (v value.Value, err err
 // Evaluate evaluates src in a frame of the stopped run (dap.md section 6, Expressions).
 func (d *Debugger) Evaluate(sf StackFrame, src string) (value.Value, error) {
 	d.mu.Lock()
-	if !d.stopping || sf.g == nil || sf.i >= len(sf.g.stack) || sf.g.stack[sf.i].env == nil {
+	if !d.stopped || sf.g == nil || sf.i >= len(sf.g.stack) || sf.g.stack[sf.i].env == nil {
 		d.mu.Unlock()
 		return nil, errors.New("the program is not stopped in this frame")
 	}

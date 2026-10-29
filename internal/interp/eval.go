@@ -1208,9 +1208,17 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 	}()
 	g.runSeq(seq, e.Pos, func(v value.Value) bool {
 		if g.d != nil {
-			// yield is a builtin, so the body comes back into Ant code
+			// yield is a builtin, so the body comes back into Ant code, on top of the frame that
+			// called yield; its stop points move that frame's position, which is put back after.
 			g.enterAnt()
 			defer g.leaveAnt()
+			if n := len(g.stack); n > 0 {
+				top := g.stack[n-1]
+				defer func() {
+					f := &g.stack[len(g.stack)-1]
+					f.env, f.at, f.piped, f.atStop = top.env, top.at, top.piped, top.atStop
+				}()
+			}
 		}
 		rv, c, stop := run(v)
 		if c == ctlReturn {
