@@ -45,7 +45,13 @@ func (a *analysis) at(path string, pos ast.Pos) *target {
 				}
 			}
 		case *ast.NameTarget:
-			return &target{obj: in.Decls[n], node: n, from: n.Pos, to: n.End, path: path}
+			obj := in.Decls[n]
+			if obj == nil && i > 0 {
+				if vd, ok := nodes[i-1].(*ast.VarDecl); ok {
+					obj = in.Decls[vd] // a declaration file's constant is declared by its var
+				}
+			}
+			return &target{obj: obj, node: n, from: n.Pos, to: n.End, path: path}
 		case *ast.Param:
 			if within(pos, n.Pos, n.Name) {
 				return &target{obj: in.Decls[n], node: n, from: n.Pos, to: after(n.Pos, n.Name), path: path}
@@ -59,11 +65,18 @@ func (a *analysis) at(path string, pos ast.Pos) *target {
 				return &target{obj: in.Decls[n], node: n, from: n.NamePos, to: after(n.NamePos, n.Name), path: path}
 			}
 			if n.Owner != "" && within(pos, n.OwnerPos, n.Owner) {
-				return &target{obj: a.named(path, n.Owner), node: n, from: n.OwnerPos, to: after(n.OwnerPos, n.Owner), path: path}
+				return &target{obj: a.owner(path, n.Owner), node: n, from: n.OwnerPos, to: after(n.OwnerPos, n.Owner), path: path}
 			}
 		case *ast.TypeDecl:
 			if within(pos, n.NamePos, n.Name) {
 				return &target{obj: in.Decls[n], node: n, from: n.NamePos, to: after(n.NamePos, n.Name), path: path}
+			}
+			if n.Owner != "" && within(pos, n.OwnerPos, n.Owner) {
+				return &target{obj: a.owner(path, n.Owner), node: n, from: n.OwnerPos, to: after(n.OwnerPos, n.Owner), path: path}
+			}
+		case *ast.VarDecl:
+			if n.Owner != "" && within(pos, n.OwnerPos, n.Owner) {
+				return &target{obj: a.owner(path, n.Owner), node: n, from: n.OwnerPos, to: after(n.OwnerPos, n.Owner), path: path}
 			}
 		case *ast.FieldType:
 			if within(pos, n.Pos, n.Name) {
@@ -111,6 +124,22 @@ func within(pos, p ast.Pos, name string) bool {
 
 // after is the position just after the name written at p.
 func after(p ast.Pos, name string) ast.Pos { return ast.Pos{Line: p.Line, Col: p.Col + len(name)} }
+
+// owner finds the type or namespace a declaration at path is qualified by: a top-level name of
+// the module, or, in a declaration file, whose names join the prelude, a prelude name.
+func (a *analysis) owner(path, name string) *check.Object {
+	if o := a.named(path, name); o != nil {
+		return o
+	}
+	if f := a.file(path); f != nil && f.Declarations {
+		for _, o := range a.info.Prelude {
+			if o.Name == name {
+				return o
+			}
+		}
+	}
+	return nil
+}
 
 // named finds a top-level object of the module at path by name.
 func (a *analysis) named(path, name string) *check.Object {

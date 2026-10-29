@@ -23,3 +23,5 @@ type Db.Limits = { rows: int = "many" }                // ERR: cannot use string
 func Db.limit(db: Db.Handle, rows: int = "many"): void // ERR: cannot use string where int is expected
 func Db.log(db: Db.Handle, to: File.Handle = Os.stdout(), tags: Array[string] = []): void
 func Db.pick[T: Ordered](a: T, b: T = a): T
+func Cache(): int // ERR: Cache is declared as a function and owns declarations as a namespace
+func Cache.get(key: string): string | null

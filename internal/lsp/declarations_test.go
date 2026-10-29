@@ -86,7 +86,37 @@ func TestPreludeDocument(t *testing.T) {
 		{"textDocument/inlayHint", InlayHintParams{TextDocument: id, Range: Range{End: Position{Line: 2000}}}},
 		{"textDocument/codeAction", CodeActionParams{TextDocument: id}},
 	} {
-		c.call(r.method, r.params, &raw)
+		err := c.call(r.method, r.params, &raw)
+		if r.method == "textDocument/prepareRename" {
+			if err == nil || err.Message != "a name of the prelude cannot be renamed" {
+				t.Errorf("prepareRename on the prelude: %v", err)
+			}
+		} else if err != nil {
+			t.Errorf("%s on the prelude: %v", r.method, err.Message)
+		}
+	}
+	// A constant's name and a declaration's owner resolve.
+	h = nil
+	c.call("textDocument/hover", c.pos(preludeURI, at(src, "var Math.PI", 1, 9)), &h)
+	if h == nil || !strings.Contains(h.Contents.Value, "var Math.PI: float64") {
+		t.Errorf("hover on the constant Math.PI: %+v", h)
+	}
+	h = nil
+	c.call("textDocument/hover", c.pos(preludeURI, at(src, "type Panic.Frame", 1, 6)), &h)
+	if h == nil || !strings.Contains(h.Contents.Value, "type Panic = {") {
+		t.Errorf("hover on the owner Panic of Panic.Frame: %+v", h)
+	}
+	locs = nil
+	c.call("textDocument/definition", c.pos(preludeURI, at(src, "type Panic.Frame", 1, 6)), &locs)
+	if len(locs) != 1 || locs[0].Range.Start != at(src, "type Panic = ", 1, 5) {
+		t.Errorf("definition of the owner Panic: %+v", locs)
+	}
+	var ws []SymbolInformation
+	c.call("workspace/symbol", WorkspaceSymbolParams{Query: "Frame"}, &ws)
+	for _, w := range ws {
+		if w.Name == "Frame" && w.ContainerName != "Panic" {
+			t.Errorf("workspace symbol Frame: %+v", w)
+		}
 	}
 	h = nil
 	c.call("textDocument/hover", c.pos(preludeURI, at(src, "trace: Array[Panic.Frame]", 1, 19)), &h)
@@ -132,5 +162,22 @@ func TestDeclarationFileDocument(t *testing.T) {
 	if len(syms) != 1 || syms[0].Name != "Db" || syms[0].Kind != SymbolNamespace || len(syms[0].Children) != 3 ||
 		syms[0].Children[0].Name != "Row" || syms[0].Children[1].Name != "query" || syms[0].Children[1].Detail != "(sql: string): Result[Array[Db.Row], Error]" {
 		t.Errorf("symbols of a declaration file: %+v", syms)
+	}
+	h = nil
+	c.call("textDocument/hover", c.pos(uri, at(src, "type Db.Row", 1, 5)), &h)
+	if h == nil || !strings.Contains(h.Contents.Value, "Db") {
+		t.Errorf("hover on the namespace Db: %+v", h)
+	}
+	// A namespace whose members are interrupted is listed once per run, each holding only its own.
+	split := "func Db.a(): int\ntype Point = { x: int }\nvar Point.ORIGIN: Point\nfunc Db.b(): int\n"
+	uri2 := c.open("split.d.ant", split)
+	syms = nil
+	c.call("textDocument/documentSymbol", DocumentSymbolParams{TextDocument: TextDocumentIdentifier{URI: uri2}}, &syms)
+	var names []string
+	for _, s := range syms {
+		names = append(names, s.Name)
+	}
+	if strings.Join(names, " ") != "Db Point Db" || syms[0].Range.End.Line != 0 || len(syms[1].Children) != 2 || syms[1].Children[1].Name != "ORIGIN" {
+		t.Errorf("symbols of a split namespace: %v %+v", names, syms)
 	}
 }

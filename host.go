@@ -3,6 +3,7 @@ package ant
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -35,7 +36,8 @@ type Namespace struct {
 	// Name is the namespace's name, bound in every module like a prelude name.
 	Name string
 	// Signatures declares the functions and types as a declaration file does (section 10,
-	// Declaration files), every name qualified by the namespace, for example:
+	// Declaration files), every name qualified by the namespace, though without constants or
+	// field defaults, which only the standard library fills, for example:
 	//
 	//	func Db.query(sql: string, args: Array[string]): Result[Array[Db.Row], Error]
 	//	type Db.Row = Map[string, string]
@@ -100,8 +102,14 @@ func (ns Namespace) build() (value.Value, *ast.File, error) {
 			if d.Owner != ns.Name {
 				return nil, nil, fmt.Errorf("namespace %s: type %s must be declared as %s.%s", ns.Name, d.Name, ns.Name, d.Name)
 			}
+			if rt, ok := d.Body.(*ast.RecordType); ok && slices.ContainsFunc(rt.Fields, func(f ast.FieldType) bool { return f.Default != nil }) {
+				// only the standard library fills field defaults natively
+				return nil, nil, fmt.Errorf("namespace %s: type %s.%s gives a field a default, which a host namespace cannot fill", ns.Name, ns.Name, d.Name)
+			}
 			fields = append(fields, d.Name)
 			vals = append(vals, interp.TypeValue(d))
+		case *ast.VarDecl:
+			return nil, nil, fmt.Errorf("namespace %s: a host namespace declares no constants; declare a function that returns the value", ns.Name)
 		default:
 			return nil, nil, fmt.Errorf("namespace %s: only func and type declarations are allowed", ns.Name)
 		}

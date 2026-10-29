@@ -48,7 +48,7 @@ func (s *Server) analyze(doc *document) *analysis {
 		// The prelude is a program of its own: a declaration file the checker has declared
 		// already, parsed once for every program.
 		f, _ := prelude.Decls()
-		m := &loader.Module{Path: prelude.Path, File: f, Src: doc.text}
+		m := &loader.Module{Path: prelude.Path, File: f, Src: doc.text, Layout: prelude.Layout()}
 		prog = &loader.Program{Modules: []*loader.Module{m}, Root: m}
 		open[prelude.Path] = doc
 	} else {

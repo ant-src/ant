@@ -48,33 +48,46 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 			}
 		}
 	}
-	listed := map[string]bool{}
-	namespace := func(owner string) {
-		if !isType[owner] && !listed[owner] {
-			listed[owner] = true
-			out = append(out, namespaceSymbol(owner, onOwner[owner]))
-		}
-	}
+	// A namespace is listed once per run of consecutive declarations it owns, so that its range
+	// holds its members and nothing else.
+	run := -1 // the index in out of the namespace the previous declaration went into
 	for _, decl := range f.Decls {
+		owner, member := "", []DocumentSymbol(nil)
+		switch x := decl.(type) {
+		case *ast.FuncDecl:
+			owner, member = x.Owner, []DocumentSymbol{s.funcSymbol(a, d, x)}
+		case *ast.TypeDecl:
+			owner, member = x.Owner, []DocumentSymbol{s.typeSymbol(a, d, x, nil)}
+		case *ast.VarDecl:
+			owner, member = x.Owner, s.varSymbols(a, d, x)
+		}
+		if owner != "" && !isType[owner] {
+			if run < 0 || out[run].Name != owner {
+				out = append(out, DocumentSymbol{Name: owner, Kind: SymbolNamespace})
+				run = len(out) - 1
+			}
+			out[run].Children = append(out[run].Children, member...)
+			continue
+		}
+		run = -1
 		switch x := decl.(type) {
 		case *ast.FuncDecl:
 			if x.Owner == "" {
-				out = append(out, s.funcSymbol(a, d, x))
-			} else {
-				namespace(x.Owner)
+				out = append(out, member...)
 			}
 		case *ast.TypeDecl:
 			if x.Owner == "" {
 				out = append(out, s.typeSymbol(a, d, x, onOwner[x.Name]))
-			} else {
-				namespace(x.Owner)
 			}
 		case *ast.VarDecl:
 			if x.Owner == "" {
-				out = append(out, s.varSymbols(a, d, x)...)
-			} else {
-				namespace(x.Owner)
+				out = append(out, member...)
 			}
+		}
+	}
+	for i := range out {
+		if out[i].Kind == SymbolNamespace && len(out[i].Children) > 0 {
+			out[i] = namespaceSymbol(out[i].Name, out[i].Children)
 		}
 	}
 	return out
@@ -200,8 +213,13 @@ func (s *Server) workspaceSymbols(p *WorkspaceSymbolParams) []SymbolInformation 
 				continue
 			}
 			container := ""
-			if fd, ok := decl.(*ast.FuncDecl); ok && fd.Owner != "" {
-				container = fd.Owner
+			switch x := decl.(type) {
+			case *ast.FuncDecl:
+				container = x.Owner
+			case *ast.TypeDecl:
+				container = x.Owner
+			case *ast.VarDecl:
+				container = x.Owner
 			}
 			out = append(out, SymbolInformation{Name: name, Kind: kind, ContainerName: container,
 				Location: Location{URI: d.uri, Range: s.rng(d, pos, end)}})

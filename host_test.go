@@ -531,3 +531,19 @@ func TestDeclarationFileProgram(t *testing.T) {
 		t.Errorf("defaults of a declaration file: %v", diags)
 	}
 }
+
+// TestHostSignatureLimits: a host namespace's signatures take no field defaults and no
+// constants, which only the standard library fills.
+func TestHostSignatureLimits(t *testing.T) {
+	row := map[string]ant.HostFunc{"run": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil }}
+	for sigs, want := range map[string]string{
+		"type Db.Opts = { limit: int = 1 }\nfunc Db.run(o: Db.Opts): string": "namespace Db: type Db.Opts gives a field a default, which a host namespace cannot fill",
+		"var Db.VERSION: string\nfunc Db.run(): string":                      "namespace Db: a host namespace declares no constants",
+	} {
+		ns := ant.Namespace{Name: "Db", Signatures: sigs, Funcs: row}
+		_, err := ant.Load("main.ant", ant.WithSource("main.ant", "println(1)\n"), ant.WithFS(fstest.MapFS{}), ant.WithNamespace(ns))
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %v", sigs, err)
+		}
+	}
+}

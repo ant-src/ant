@@ -25,6 +25,12 @@ var (
 // Source is the text of prelude.d.ant, which an editor shows for a prelude declaration.
 func Source() string { return source }
 
+// Layout returns the prelude's layout, for an editor that shows its document, made once.
+var Layout = sync.OnceValue(func() *parser.Layout {
+	_, l, _ := parser.ParseLayout(Path, source)
+	return l
+})
+
 // Decls returns the prelude's declarations, parsed once.
 func Decls() (*ast.File, error) {
 	once.Do(func() { file, err = parser.Parse(Path, source, parser.Declarations) })

@@ -270,6 +270,12 @@ func (c *Checker) loadPrelude(cfg Config) {
 	for _, ns := range cfg.Namespaces {
 		c.declareFile(ns.Decls)
 	}
+	c.markBuiltins()
+}
+
+// markBuiltins marks the prelude functions the checker treats specially: the conversions, len,
+// and println (section 11, Prelude).
+func (c *Checker) markBuiltins() {
 	for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {
 		if e, ok := c.prelude[name]; ok {
 			e.isConv = true
@@ -305,6 +311,17 @@ func (c *Checker) declarationFile(f *ast.File) {
 	saved := c.mod
 	c.mod = &moduleInfo{path: f.Path, names: map[string]*entity{}}
 	seen := map[string]bool{}
+	owners := map[string]bool{}
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			owners[d.Owner] = true
+		case *ast.TypeDecl:
+			owners[d.Owner] = true
+		case *ast.VarDecl:
+			owners[d.Owner] = true
+		}
+	}
 	kept := &ast.File{Path: f.Path, Declarations: true}
 	for _, d := range f.Decls {
 		var owner, name string
@@ -345,11 +362,19 @@ func (c *Checker) declarationFile(f *ast.File) {
 			c.errorf(pos, "%s is already declared", full)
 			continue
 		}
+		if _, isFunc := d.(*ast.FuncDecl); isFunc && owner == "" && owners[name] {
+			// a type may own declarations; a function cannot
+			c.errorf(pos, "%s is declared as a function and owns declarations as a namespace", name)
+			continue
+		}
 		seen[full] = true
 		kept.Decls = append(kept.Decls, d)
 	}
 	c.mod = saved
 	decls, fns := c.declareFile(kept)
+	if isPrelude {
+		c.markBuiltins() // its conversions, len, and println replaced the built-in ones
+	}
 	for _, ti := range decls {
 		c.checkDefaults(ti)
 	}
