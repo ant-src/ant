@@ -764,6 +764,7 @@ func (r *resolver) finalize() {
 			continue
 		}
 		plain, shared := 0, 0
+		var names []ast.SlotName
 		for _, b := range s.order {
 			if b.captured {
 				b.shared = true
@@ -773,9 +774,10 @@ func (r *resolver) finalize() {
 				b.index = plain
 				plain++
 			}
+			names = append(names, ast.SlotName{Name: b.name, Index: b.index, Shared: b.shared, Type: b.isType})
 		}
 		s.alloc = s.fn || len(s.order) > 0
-		bs := ast.BlockScope{Plain: plain, Shared: shared}
+		bs := ast.BlockScope{Plain: plain, Shared: shared, Names: names}
 		switch {
 		case s.fnScope != nil:
 			s.fnScope.BlockScope = bs
@@ -783,7 +785,7 @@ func (r *resolver) finalize() {
 				s.fnScope.X = ast.Slot{Index: s.xBinding.index, Shared: s.xBinding.shared, Reassigned: s.xBinding.reassigned, AssignedNested: s.xBinding.assignedNested}
 			}
 		case s.loop != nil:
-			s.loop.Scope = &ast.BlockScope{Plain: plain, Shared: shared}
+			s.loop.Scope = &ast.BlockScope{Plain: plain, Shared: shared, Names: names}
 			if !s.alloc {
 				s.loop.Scope = nil
 			}

@@ -615,6 +615,16 @@ type Slot struct {
 type BlockScope struct {
 	Plain  int // number of plain slots
 	Shared int // number of shared slots
+	// Names lists the bindings that have a slot, in declaration order, for a debugger to show.
+	Names []SlotName
+}
+
+// SlotName names one slot of a BlockScope.
+type SlotName struct {
+	Name   string
+	Index  int
+	Shared bool
+	Type   bool // a type declared in the block, which a debugger leaves out
 }
 
 // FuncScope describes a function body, lambda, go block, or defer block.
