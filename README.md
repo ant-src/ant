@@ -112,6 +112,10 @@ Server Protocol on standard input and output. The VS Code extension in
 [vscode-ant](https://github.com/ant-src/vscode-ant) and the IntelliJ IDEA plugin in
 [intellij-ant](https://github.com/ant-src/intellij-ant) start it; any other editor's LSP client can.
 
+`ant dap` is the debugger, over the Debug Adapter Protocol: breakpoints, stepping that walks a
+pipeline one stage at a time, pause, every goroutine's stack and variables, and a stop at a panic.
+Both editors debug through it.
+
 ## API
 
 Ant can be used as a lib too:
