@@ -133,14 +133,14 @@ var ErrInterrupted = errors.New("interrupted")
 func Run(ctx context.Context, prog *loader.Program, cfg Config) error {
 	in := New(ctx, prog, cfg)
 	g := in.newGoroutine(true)
-	if in.dbg != nil {
-		in.dbg.register(g)
+	if g.d != nil {
+		g.d.register(g)
 	}
 	in.active.Add(1)
 	go func() {
 		defer in.active.Done()
 		defer in.recoverRoot(g)
-		if in.dbg != nil {
+		if g.d != nil {
 			g.enterAnt()
 		}
 		in.initModules(g)
@@ -291,8 +291,8 @@ func (in *Instance) finish(err error) {
 // recoverRoot handles whatever ends a goroutine: a panic, Os.exit, cancellation, or a normal
 // return of the main goroutine.
 func (in *Instance) recoverRoot(g *Goroutine) {
-	if in.dbg != nil {
-		defer in.dbg.unregister(g)
+	if g.d != nil {
+		defer g.d.unregister(g)
 	}
 	r := recover()
 	if r == nil {
@@ -548,6 +548,7 @@ func (in *Instance) Exit(status int) {
 // Goroutine is the per-goroutine interpreter state: its call stack, whose length is the depth.
 type Goroutine struct {
 	in    *Instance
+	d     *Debugger // the run's debugger, nil without one and for an evaluation (debug.go)
 	main  bool
 	stack []frame
 	pos   ast.Pos // the call site of the builtin in progress, for its panics
@@ -578,7 +579,7 @@ type frame struct {
 const maxDepth = 10000
 
 func (in *Instance) newGoroutine(main bool) *Goroutine {
-	return &Goroutine{in: in, main: main}
+	return &Goroutine{in: in, main: main, d: in.dbg}
 }
 
 // Instance returns the run this goroutine belongs to.
@@ -597,9 +598,9 @@ func (g *Goroutine) Spawn(body func(*Goroutine)) {
 // spawn starts a goroutine that a go block, or a builtin called at pos, starts.
 func (g *Goroutine) spawn(path string, pos ast.Pos, body func(*Goroutine)) {
 	ng := g.in.newGoroutine(false)
-	if g.in.dbg != nil {
+	if ng.d != nil {
 		ng.startPath, ng.startPos = path, pos
-		g.in.dbg.register(ng)
+		ng.d.register(ng)
 	}
 	g.in.active.Add(1)
 	go func() {
@@ -616,7 +617,7 @@ func (g *Goroutine) Panic(format string, args ...any) {
 
 func (g *Goroutine) panicf(pos ast.Pos, format string, args ...any) {
 	p := &AntPanic{Message: fmt.Sprintf(format, args...), Trace: g.trace(pos)}
-	if g.in.dbg != nil {
+	if g.d != nil {
 		g.panicked(p)
 	}
 	panic(p)
@@ -638,7 +639,7 @@ func (g *Goroutine) check() {
 	if g.in.done.Load() {
 		panic(&cancelSignal{})
 	}
-	if d := g.in.dbg; d != nil && d.halt.Load() && g.outside == 0 {
+	if d := g.d; d != nil && d.halt.Load() && g.outside == 0 {
 		d.park(g)
 	}
 }
@@ -654,7 +655,7 @@ func (g *Goroutine) AfterWait() {
 
 // Repanic raises a caught Ant panic again.
 func (g *Goroutine) Repanic(p *AntPanic) {
-	if g.in.dbg != nil {
+	if g.d != nil {
 		g.panicked(p)
 	}
 	panic(p)

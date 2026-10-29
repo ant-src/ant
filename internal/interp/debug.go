@@ -228,7 +228,7 @@ func (d *Debugger) unregister(g *Goroutine) {
 
 // enterAnt marks g as running Ant code, after the stop under way if there is one.
 func (g *Goroutine) enterAnt() {
-	d := g.in.dbg
+	d := g.d
 	d.mu.Lock()
 	g.outside--
 	if g.outside == 0 {
@@ -243,7 +243,7 @@ func (g *Goroutine) enterAnt() {
 
 // leaveAnt marks g as running outside Ant code, where a stop does not wait for it.
 func (g *Goroutine) leaveAnt() {
-	d := g.in.dbg
+	d := g.d
 	d.mu.Lock()
 	g.outside++
 	if g.outside == 1 && g.dActive {
@@ -349,7 +349,7 @@ func (g *Goroutine) stagePoint(env *Env, pos ast.Pos, piped value.Value) {
 }
 
 func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
-	d := g.in.dbg
+	d := g.d
 	if reason := d.reason(g, env, pos); reason != "" {
 		d.stopAt(g, reason, nil)
 		return
@@ -377,7 +377,7 @@ func (d *Debugger) reason(g *Goroutine, env *Env, pos ast.Pos) string {
 
 // panicked is the hook as a panic starts, at pos, before anything unwinds.
 func (g *Goroutine) panicked(p *AntPanic) {
-	d := g.in.dbg
+	d := g.d
 	d.mu.Lock()
 	stop := d.all || d.uncaught && g.catching == 0
 	d.mu.Unlock()

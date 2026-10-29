@@ -242,7 +242,7 @@ func (in *Instance) initModules(g *Goroutine) {
 
 func (in *Instance) initModule(g *Goroutine, m *module) {
 	g.push("module "+m.m.File.Path, m.m.File.Path, ast.Pos{})
-	if in.dbg != nil {
+	if g.d != nil {
 		m.root.frame = g.stack[len(g.stack)-1].id
 	}
 	if m.m.File.Script {
@@ -255,7 +255,7 @@ func (in *Instance) initModule(g *Goroutine, m *module) {
 		if !ok {
 			continue
 		}
-		if in.dbg != nil {
+		if g.d != nil {
 			g.stopPoint(m.root, ast.Start(vd))
 		}
 		v := g.evalValue(vd.Init, m.root)
