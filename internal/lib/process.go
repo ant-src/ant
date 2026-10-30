@@ -529,12 +529,6 @@ func (h *Handle) file() *os.File {
 	return f
 }
 
-// viaReader is a pipe's reading end as its handle reads it, so the source can become a pump,
-// under the read slot, once the end is handed to a child.
-type viaReader struct{ r io.Reader }
-
-func (v *viaReader) Read(b []byte) (int, error) { return v.r.Read(b) }
-
 // handleReader reads what h read ahead and then the rest of its input, for a copy into a child.
 type handleReader struct{ h *Handle }
 
