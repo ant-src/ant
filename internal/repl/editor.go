@@ -50,6 +50,11 @@ type editor struct {
 	mu        sync.Mutex
 	prompting bool // the prompt and the line are drawn, and waiting for keys
 	partial   bool // output last written did not end its line
+
+	// bracketed turns on the terminal's bracketed paste mode while a line is read, in which
+	// it marks pasted text; pasting is set between the marks.
+	bracketed bool
+	pasting   bool
 }
 
 // writer returns a writer to w, the terminal stdout or stderr is, that keeps the prompt whole:
@@ -105,6 +110,11 @@ func (e *editor) readLine(prompt, pending string) (string, error) {
 		e.partial = false
 	}
 	e.prompting = true
+	if e.bracketed {
+		io.WriteString(e.out, "\x1b[?2004h")
+		defer io.WriteString(e.out, "\x1b[?2004l")
+	}
+	e.pasting = false
 	e.prompt, e.pending = prompt, pending
 	e.buf, e.cur = e.buf[:0], 0
 	e.histIdx = len(e.hist.lines)
@@ -143,14 +153,18 @@ func (e *editor) key(k key, err error) (line string, _ error, done bool) {
 		line := string(e.buf)
 		e.hist.add(line)
 		return line, nil, true
+	case keyPasteStart:
+		e.pasting = true
+	case keyPasteEnd:
+		e.pasting = false
 	case keyTab:
-		if e.moreKeys() {
+		if e.pasting || e.moreKeys() {
 			e.insert([]rune("  ")) // a tab in pasted text indents
 		} else {
 			e.completeKey(1)
 		}
 	case keyShiftTab:
-		if !e.moreKeys() {
+		if !e.pasting && !e.moreKeys() {
 			e.completeKey(-1)
 		}
 	case keyBackspace:
@@ -215,7 +229,7 @@ func (e *editor) key(k key, err error) (line string, _ error, done bool) {
 		e.cursorRow = 0
 	case keyEscape, keyNone:
 	}
-	if e.moreKeys() {
+	if e.pasting || e.moreKeys() {
 		return "", nil, false // pasted text is drawn once, at its end
 	}
 	e.updateCompletion()

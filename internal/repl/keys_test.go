@@ -37,6 +37,8 @@ func TestDecodeKey(t *testing.T) {
 		{"\x1b[F", false, keyEnd, 0, 3},
 		{"\x1b[Z", false, keyShiftTab, 0, 3},
 		{"\x1b[5~", false, keyNone, 0, 4},
+		{"\x1b[200~", false, keyPasteStart, 0, 6},
+		{"\x1b[201~", false, keyPasteEnd, 0, 6},
 		{"\x1bOH", false, keyHome, 0, 3},
 		{"\x1bb", false, keyWordLeft, 0, 2},
 		{"\x1bf", false, keyWordRight, 0, 2},

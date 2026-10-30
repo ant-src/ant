@@ -38,6 +38,8 @@ const (
 	keyInterrupt   // Ctrl-C
 	keyEOF         // Ctrl-D
 	keyEscape
+	keyPasteStart // a terminal in bracketed paste mode marks pasted text with these
+	keyPasteEnd
 )
 
 // decodeKey reads one key from the start of b and returns it with the bytes it took. It returns
@@ -164,6 +166,10 @@ func decodeEscape(b []byte, final bool) (key, int) {
 				return key{kind: keyEnd}, n
 			case "3":
 				return key{kind: keyDelete}, n
+			case "200":
+				return key{kind: keyPasteStart}, n
+			case "201":
+				return key{kind: keyPasteEnd}, n
 			}
 		}
 		return key{kind: keyNone}, n

@@ -209,6 +209,7 @@ func TestEditorCompletion(t *testing.T) {
 		{"\t\t\r", "print"},                               // Tab on an empty line opens the menu: functions, then namespaces, then keywords
 		{"\x1b[Z\r", "var"},                               // Shift-Tab starts at the last reply
 		{"xyz\t\r", "xyz"},                                // no reply
+		{"\x1b[200~xs | Arra\x1b[201~\t\r", "xs | Array"}, // Tab typed after a bracketed paste completes
 		{"tw(1)\x1b[D\x1b[D\x1b[D\t\r", "twice(1)"},       // Tab in the middle of the line keeps what follows
 		{"tw(1)\x1b[D\x1b[D\x1b[D\tX\r", "twiceX(1)"},     // and leaves the cursor after the reply
 		{"tx(1)\x01\x1b[C\t\r", "twice(1)"},               // the rest of the word after the cursor is replaced
@@ -238,6 +239,8 @@ func TestEditorPaste(t *testing.T) {
 		{"if x {\r\tprintln(x)\r", 2, "  println(x)"}, // a pasted tab indents instead of completing
 		{"a\tb\x1b[Zc\r", 1, "a  bc"},                 // and a pasted Shift-Tab does nothing
 		{"var x = 1\r\nx\r\n", 2, "x"},                // CRLF is one line break
+		{"\x1b[200~a\tb\x1b[201~\r", 1, "a  b"},       // a bracketed paste: the tab indents
+
 	}
 	for _, tc := range tests {
 		e, _, in := fakeTerminal(t, 80, complete)
