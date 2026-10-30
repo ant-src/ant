@@ -8,7 +8,7 @@ func parseAll(xs: Array[string]): Result[Array[int], Error] {
 }
 
 func parseOne(s: string): Result[int, Error] {
-  var n = String.toInt(s) ?? return Result.err(Error{ message: `not a number: ${s}` })
+  var n = String.toInt(s) ?? return Result.err(Error{ message: "not a number: ${s}" })
   Result.ok(n)
 }
 
@@ -35,7 +35,7 @@ println(Ok{ value: 1 } == one)
 var failed: Result[int, Error] = Result.err(Error{ message: "m" })
 println(Err{ error: Error{ message: "m" } } == failed)
 var e: Result[int, Error] = Result.err(Error{ message: "e" })
-println(Result.mapErr(e, { Error{ message: `wrapped: ${x.message}` } }))
+println(Result.mapErr(e, { Error{ message: "wrapped: ${x.message}" } }))
 
 // expect
 // out: Ok{ value: [1, 2, 3] }

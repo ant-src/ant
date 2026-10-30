@@ -23,11 +23,11 @@ func rethrow(yield: func(int): bool) {
 
 func message[T](r: Result[T, Panic]): Result[T, string] { Result.mapErr(r, { x.message }) }
 
-println(message(Panic.catch({ for x in keep { panic(`body ${x}`) } })))
+println(message(Panic.catch({ for x in keep { panic("body ${x}") } })))
 println(message(Panic.catch({ saved(2) })))
-println(message(Panic.catch({ for x in swallow { panic(`body ${x}`) } })))
-println(message(Panic.catch({ for x in Iter.map(swallow, { x * 10 }) { panic(`body ${x}`) } })))
-println(message(Panic.catch({ for x in rethrow { panic(`body ${x}`) } })))
+println(message(Panic.catch({ for x in swallow { panic("body ${x}") } })))
+println(message(Panic.catch({ for x in Iter.map(swallow, { x * 10 }) { panic("body ${x}") } })))
+println(message(Panic.catch({ for x in rethrow { panic("body ${x}") } })))
 
 // expect
 // out: Err{ error: "body 1" }

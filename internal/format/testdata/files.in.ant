@@ -2,13 +2,13 @@
 
 // spec: fmt 4.1 Files   
 // Tabs become the prescribed spacing, lines lose their trailing spaces, and the file starts
-// with its first comment and ends with one newline. Inside a string, a regular expression, or
-// a template, a tab stays. Line endings are in TestBytes, since a golden file shows no \r.
+// with its first comment and ends with one newline. Inside a string or a regular expression, a
+// tab stays. Line endings are in TestBytes, since a golden file shows no \r.
 func main() {
 	var x =	1   
 	if x > 0 {
 		println("a	b")		// a tab before a comment
-		println(/a	b/, `c	d`)
+		println(/a	b/, "c	d")
 	}
 }
 

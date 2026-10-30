@@ -1,2 +1,2 @@
 go test fuzz v1
-string("func A(){(`${\n\t0}`)}")
+string("func A(){(\"${\n\t0}\")}")

@@ -47,7 +47,7 @@ println(Cmd.wait(grep))
 
 // A file as output, written after what the program wrote first, and as input, after what the
 // program read from it.
-var path = `${dir}/dump.txt`
+var path = "${dir}/dump.txt"
 var dump = Result.unwrap(File.create(path))
 File.writeLine(dump, "header")
 println(Cmd.wait(Result.unwrap(Cmd.start(Cmd.new("echo", ["body"]), stdout: dump))))

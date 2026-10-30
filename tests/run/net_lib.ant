@@ -13,7 +13,7 @@ go {
   var conn = Result.unwrap(Net.accept(listener))
   var line = Result.unwrap(File.readLine(conn))
   while line != null {
-    Result.unwrap(File.writeLine(conn, `echo: ${line}`))
+    Result.unwrap(File.writeLine(conn, "echo: ${line}"))
     line = Result.unwrap(File.readLine(conn))
   }
   File.close(conn)

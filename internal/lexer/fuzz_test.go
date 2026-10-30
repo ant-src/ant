@@ -11,7 +11,7 @@ import (
 // that positions never go backwards.
 func FuzzLex(f *testing.F) {
 	for _, seed := range []string{
-		"", "var x = 1\n", "func f(a: int): int { return a + 1 }", "`a${1 + `${2}`}b`",
+		"", "var x = 1\n", "func f(a: int): int { return a + 1 }", `"a${1 + "${2}"}b`,
 		"0x1f 0b101 1_000 1.5e3 'a'", "// comment\n/* block */ x", "\"unterminated", "`",
 		"x |> f(_) ?? y?.z", "type T = { a: int, b: Array[T] }",
 	} {
@@ -44,7 +44,7 @@ func FuzzLex(f *testing.F) {
 func FuzzRegexDivision(f *testing.F) {
 	for _, seed := range []string{
 		"a / b / c", "f(x) / 2", "{ x } / 2", "xs[0] / 2", "x /= 2", "(total\n  / count)",
-		"[total\n  / count, 1]", "x = 1\n/a/", "return /x/", "f(/x/i)", "`${ /x/ }`", "(/=/)",
+		"[total\n  / count, 1]", "x = 1\n/a/", "return /x/", "f(/x/i)", `"${ /x/ }"`, "(/=/)",
 		"/[/]/", "/a\\/b/", "a /\n b", "x // comment\n/ y", "x /* c */ / y", "true / false",
 		"}\n/ 2", "null / 1", "x = /a/ / 2",
 	} {

@@ -10,7 +10,7 @@ func keeps(line: string, needles: Array[string]): bool {
 
 var needles = Array.map(Os.args(), { String.toLower(x) })
 if Array.length(needles) == 0 {
-  eprintln(`usage: ant run ${Os.program()} word... < file`)
+  eprintln("usage: ant run ${Os.program()} word... < file")
   Os.exit(2)
 }
 var input = Os.stdin()
@@ -21,8 +21,8 @@ while line != null {
   number += 1
   if keeps(line, needles) {
     kept += 1
-    println(`${number}: ${line}`)
+    println("${number}: ${line}")
   }
   line = Result.unwrap(File.readLine(input))
 }
-eprintln(`${kept} of ${number} lines`)
+eprintln("${kept} of ${number} lines")

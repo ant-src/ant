@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var s = "a string may span lines,
+but this one is never closed
+
+// expect
+// exit: 2
+// err: 2:9: unterminated string

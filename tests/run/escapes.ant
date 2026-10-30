@@ -1,20 +1,20 @@
 // spec: 2 Literals
-// Every escape, \u{...} up to the last scalar value, a plain string on one line, a template over
-// several lines with lambdas and record literals inside ${...}, and the literal forms of numbers.
+// Every escape, \u{...} up to the last scalar value, a string over several lines with lambdas and
+// record literals inside ${...}, and the literal forms of numbers.
 type P = { x: int }
 
 println("tab:\t|")
 println("quote:\" backslash:\\")
-println("backtick:\` dollar:\$")
+println("backtick:` dollar:\$")
 println("line\nbreak")
 println("a\rb" == "a" + "\r" + "b")
 println("\u{41}\u{e9}\u{1F600}")
 println(String.length("\u{1F600}\u{10FFFF}"))
 println("\u{10FFFF}" == "\u{10ffff}")
-println(`backtick: \` dollar: \$ brace: \${x}`)
-println(`doubled: ${Array.map([1, 2], { x * 2 })} point: ${P{ x: 5 }.x} nested: ${`in ${1 + 1}`}`)
-println(`multi
-line template`)
+println("backtick: ` dollar: \$ brace: \${x}")
+println("doubled: ${Array.map([1, 2], { x * 2 })} point: ${P{ x: 5 }.x} nested: ${"in ${1 + 1}"}")
+println("multi
+line string")
 println(1_000 + 0x10 + 0b11)
 println(0xff == 255 && 0b1 == 1 && 0x1 == 1)
 println(1e3)
@@ -45,7 +45,7 @@ println(nothing)
 // out: backtick: ` dollar: $ brace: ${x}
 // out: doubled: [2, 4] point: 5 nested: in 2
 // out: multi
-// out: line template
+// out: line string
 // out: 1019
 // out: true
 // out: 1000.0

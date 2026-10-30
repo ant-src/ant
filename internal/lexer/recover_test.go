@@ -128,8 +128,11 @@ func TestRecoverCases(t *testing.T) {
 		{"unterminated string", "var s = \"abc\nvar t = 1", []string{"unterminated string"},
 			`var s = "abc" var t = 1`},
 		{"bad escape kept", `var s = "a\qb"`, []string{"bad escape"}, `var s = "a\qb"`},
-		{"unterminated template", "var s = `a ${x} b", []string{"unterminated template string"}, "var s = `…`"},
-		{"unterminated interpolation", "var s = `a ${x", []string{"unterminated ${ in template string"}, "var s = `…`"},
+		{"unterminated interpolating string", "var s = \"a ${x} b", []string{"unterminated string"}, "var s = `…`"},
+		{"unterminated interpolation", "var s = \"a ${x", []string{"unterminated ${ in string"}, "var s = `…`"},
+		{"unterminated string ends its line", "var s = \"a ${x} b\nvar y = 1", []string{"unterminated string"}, "var s = `…` var y = 1"},
+		{"unterminated raw string ends its line", "var s = `a\\\nvar y = 1", []string{"unterminated raw string"}, `var s = "a\" var y = 1`},
+		{"escaped backtick", "var s = \"a\\`b\"", []string{"a backtick needs no escape"}, "var s = \"a`b\""},
 		{"unterminated comment", "var x = 1 /* open\nvar y", []string{"unterminated block comment"}, `var x = 1`},
 		{"unexpected char", "var x = 1 @ 2", []string{"unexpected character"}, `var x = 1 @ 2`},
 		{"malformed number", "var x = 0x", []string{"malformed hexadecimal literal"}, `var x = 0x`},
@@ -146,7 +149,7 @@ func TestRecoverCases(t *testing.T) {
 		{"markup single quotes", "var h = <p class='a'>x</p>", []string{"double quotes"}, `var h = <p>`},
 		{"markup code attribute", "var h = <p onclick={f}>x</p>", []string{"takes only literal text"}, `var h = <p>`},
 		{"markup unterminated start then tag", "var h = <div\n<p>x</p>", []string{"unexpected '<' in the start tag <div>", "<div> is never closed"}, `var h = <div>`},
-		{"two errors", "var s = \"a\nvar t = \"b\nvar u = 1", []string{"unterminated string", "unterminated string"}, `var s = "a" var t = "b" var u = 1`},
+		{"two errors", "var s = `a\nvar t = \"b\nvar u = 1", []string{"unterminated raw string", "unterminated string"}, `var s = "a" var t = "b" var u = 1`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -171,7 +174,7 @@ func TestRecoverCases(t *testing.T) {
 }
 
 // describe renders tokens for the recovery cases: words and operators as written, strings
-// quoted, templates as `…`, regexes between slashes, markup as its root tag, Bad as the text.
+// quoted, strings with interpolations as `…`, regexes between slashes, markup as its root tag, Bad as the text.
 func describe(toks []token.Token) string {
 	var parts []string
 	for _, t := range toks {

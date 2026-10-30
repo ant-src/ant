@@ -7,7 +7,7 @@ println(Os.platform() != "" && Os.platform() == String.toLower(Os.platform()))
 println(Os.arch() != "" && Os.arch() == String.toLower(Os.arch()))
 if len(Os.args()) == 0 {
   eprint("usage: ")
-  eprintln(`${Path.base(Os.program())} <file>...`)
+  eprintln("${Path.base(Os.program())} <file>...")
   eprintln()
   eprintln([1, 2])
 }

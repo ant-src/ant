@@ -9,7 +9,7 @@ import "./lib/geometry.ant" { Point, origin, make }
 import "./lib/shapes/shapes.ant" { Shape, Circle, Rect, Triangle, unitSquare }
 
 func describe(s: Shape): string {
-  `${Shape.name(s)}: area ${round(Shape.area(s))}, perimeter ${round(Shape.perimeter(s))}`
+  "${Shape.name(s)}: area ${round(Shape.area(s))}, perimeter ${round(Shape.perimeter(s))}"
 }
 
 func round(x: float64): float64 { Math.round(x * 1000.0) / 1000.0 }
@@ -22,13 +22,13 @@ var shapes: Array[Shape] = [
 ]
 for s in shapes { println(describe(s)) }
 var largest = Array.reduce(shapes, shapes[0], func(best: Shape, s: Shape): Shape { if Shape.area(s) > Shape.area(best) { s } else { best } })
-println(`largest: ${Shape.name(largest)}`)
+println("largest: ${Shape.name(largest)}")
 var byArea = Array.sortBy(shapes, { Shape.area(x) })
 println(Array.map(byArea, Shape.name))
-println(`points made: ${Geometry.created} ${Geometry.created == Geometry.created}`)
+println("points made: ${Geometry.created} ${Geometry.created == Geometry.created}")
 var p = Point.add(make(1.0, 2.0), Point.scale(Geometry.origin, 5.0))
 println(p)
 println(Geometry.distance(p, origin))
-println(`points made: ${Geometry.created}`)
+println("points made: ${Geometry.created}")
 var circles = Array.filter(shapes, { x is Circle })
 println(Array.length(circles))

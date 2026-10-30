@@ -85,12 +85,12 @@ println(<svg viewBox="0 0 10 10"><circle cx="5" r="4" /><style>a > b</style><tit
 println(card(title: "Tasks", children: <p>{len(tasks)} tasks</p>))
 println(card(title: "x", children: <></>, footer: <a href="/">home</a>))
 
-// Html in containers, as a map key, and in a template string.
+// Html in containers, as a map key, and in a string interpolation.
 println([<></>, <br />, badge(1)])
 var seen: Map[Html, string] = Map{}
 seen[badge(1)] = "one"
 println(seen[<span class="badge">1</span>])
-println(`<!doctype html>${<html lang="en"></html>}`)
+println("<!doctype html>${<html lang="en"></html>}")
 var h: Html | string = <p />
 println(h is Html)
 println(String.from(<></>) == "")

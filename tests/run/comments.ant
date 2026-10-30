@@ -1,6 +1,6 @@
 // spec: 2 Comments
 // Line comments run to the end of the line, block comments to the first */ and do not nest, and
-// neither is seen inside a string or a template.
+// neither is seen inside a string or a raw string.
 /* a block comment
    spanning lines */
 // trailing comment
@@ -9,7 +9,7 @@ println(x) // prints 3
 /* block comments do not nest: /* this does not open another */
 println("after the comment")
 println("// not a comment")
-println(`/* not a comment either */`)
+println("/* not a comment either */")
 /**/ println("empty comment")
 
 // expect

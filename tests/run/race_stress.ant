@@ -15,11 +15,11 @@ for i in Iter.range(0, 1000) {
     Array.push(xs, i)
     _ = Array.get(xs, i / 2)
     if i % 3 == 0 { _ = Array.pop(xs) }
-    m[i % 50] = `v${i}`
+    m[i % 50] = "v${i}"
     _ = m[i % 25]
     if i % 7 == 0 { _ = Map.remove(m, i % 50) }
     box.n = i
-    box.label = `${i}`
+    box.label = "${i}"
     _ = box.n + 1
     for _ in m { break }
     for _ in xs { break }

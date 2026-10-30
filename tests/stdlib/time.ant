@@ -4,9 +4,9 @@
 // types, gaps and overlaps resolved by disambiguation, equality by value and compare by
 // instant, with the examples of Temporal's documentation.
 func describe(t: Time.Dated): string {
-  if t is Time.PlainDate { `date ${t}` }
-  else if t is Time.ZonedDateTime { `zoned in ${Time.zoneId(Time.zoneOf(t))}` }
-  else { `date-time on ${Time.toPlainDate(t)}` }
+  if t is Time.PlainDate { "date ${t}" }
+  else if t is Time.ZonedDateTime { "zoned in ${Time.zoneId(Time.zoneOf(t))}" }
+  else { "date-time on ${Time.toPlainDate(t)}" }
 }
 var ny = Result.unwrap(Time.zone("America/New_York"))
 ny                                            // => America/New_York

@@ -8,7 +8,7 @@ func fail[T](message: string): Result[T, Error] { Result.err(Error{ message }) }
 
 func getJson(url: string): Result[Json.Value, Error] {
   var r = try Http.get(url, headers: Map{ "Accept": "application/json" }, timeout: Time.duration(seconds: 10))
-  if r.status != 200 { return fail(`status ${r.status}`) }
+  if r.status != 200 { return fail("status ${r.status}") }
   Json.parse(r.body)
 }
 
@@ -17,14 +17,14 @@ func lookup(doc: Json.Value, path: string): Result[Json.Value, Error] {
   var at = doc
   for key in String.split(path, ".") {
     if at is Map {
-      if !Map.has(at, key) { return fail(`no field ${key}`) }
+      if !Map.has(at, key) { return fail("no field ${key}") }
       at = at[key]
     } else if at is Array {
-      var i = String.toInt(key) ?? return fail(`${key} is not an index`)
-      if i < 0 || i >= len(at) { return fail(`no index ${i}`) }
+      var i = String.toInt(key) ?? return fail("${key} is not an index")
+      if i < 0 || i >= len(at) { return fail("no index ${i}") }
       at = at[i]
     } else {
-      return fail(`cannot look up ${key} in ${Json.stringify(at)}`)
+      return fail("cannot look up ${key} in ${Json.stringify(at)}")
     }
   }
   Result.ok(at)
@@ -37,12 +37,12 @@ func fetch(url: string, path: string | null): Result[Json.Value, Error] {
 
 var args = Os.args()
 if len(args) == 0 || len(args) > 2 {
-  eprintln(`usage: ant run ${Os.program()} <url> [path]`)
+  eprintln("usage: ant run ${Os.program()} <url> [path]")
   Os.exit(2)
 }
 var result = fetch(args[0], Array.get(args, 1))
 if result is Err {
-  eprintln(`${args[0]}: ${result.error.message}`)
+  eprintln("${args[0]}: ${result.error.message}")
   Os.exit(1)
 }
 var v = result.value

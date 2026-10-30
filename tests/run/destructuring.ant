@@ -15,7 +15,7 @@ println(rest)
 var [c, _, d] = [9, 8, 7]
 println(c + d)
 [a, b] = [b, a]
-println(`${a} ${b}`)
+println("${a} ${b}")
 var [[p], [q]] = [[10], [20]]
 println(p + q)
 var [first] = [1, 2, 3]

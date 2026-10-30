@@ -16,7 +16,7 @@ func tally(words: Array[string]): Array[string] {
     c.n += 1
     counts[w] = c
   }
-  Map.values(counts) | Array.sortBy({ -x.n }) | Array.map({ `${x.word}: ${x.n}` })
+  Map.values(counts) | Array.sortBy({ -x.n }) | Array.map({ "${x.word}: ${x.n}" })
 }
 
 func pair(a: int, b: int) {
@@ -38,7 +38,7 @@ func declaresOnly() {
 println(tally(["a", "b", "a", "c", "a", "b"]))
 println(pair(1, 2) == pair(1, 2))
 println(pair(1, 2))
-println(`${shadow()} ${Point{ x: 1, y: 2 }}`)
+println("${shadow()} ${Point{ x: 1, y: 2 }}")
 if true {
   type Node = { value: int, next: Link }
   type Link = Node | null
@@ -46,12 +46,12 @@ if true {
   var list = Node{ value: 1, next: Node{ value: 2, next: null } }
   println(list.next?.value)
   var m: Meters | float64 = Meters(1.5) + Meters(2.0)
-  println(`${m} ${m is Meters}`)
+  println("${m} ${m is Meters}")
 }
 var tags: Array[string] = []
 for i in [1, 2] {
   type Tagged = { i: int }
-  Array.push(tags, `${Tagged{ i }}`)
+  Array.push(tags, "${Tagged{ i }}")
 }
 println(tags)
 println(Array.map([1, 2], { type Wrap = { v: int }; Wrap{ v: x } }))

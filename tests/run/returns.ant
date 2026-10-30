@@ -3,8 +3,8 @@
 // return takes the whole expression to its right unless parenthesized; panic is a function of
 // type never; return leaves the innermost boundary, so inside a lambda it leaves the lambda.
 func describe(n: int | null, extra: int): string {
-  var v = n ?? return `none plus ${extra + 1}`
-  `${v}`
+  var v = n ?? return "none plus ${extra + 1}"
+  "${v}"
 }
 
 func describeShort(n: int | null): int {

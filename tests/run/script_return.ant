@@ -7,7 +7,7 @@ if len(args) == 0 {
   println("usage: script_return NAME")
   return
 }
-var name = Array.get(args, 1) ?? return Result.err(`no second argument after ${args[0]}`)
+var name = Array.get(args, 1) ?? return Result.err("no second argument after ${args[0]}")
 println(name)
 
 // expect

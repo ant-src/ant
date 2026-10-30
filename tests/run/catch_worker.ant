@@ -10,7 +10,7 @@ var results: Channel[string] = Channel.new(3)
 go {
   for job in jobs {
     var done = Panic.catch({ job.items[0] * 10 })
-    Channel.send(results, if done is Ok { `job ${job.id}: ${done.value}` } else { `job ${job.id}: ${done.error.message}` })
+    Channel.send(results, if done is Ok { "job ${job.id}: ${done.value}" } else { "job ${job.id}: ${done.error.message}" })
   }
 }
 for i in Array.range(0, 3) { println(Channel.receive(results)) }

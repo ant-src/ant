@@ -9,7 +9,7 @@ var config = Once.value({
 
 func describe(r: Result[void, Panic]): string {
   if r is Ok { return "ok" }
-  `${r.error.message} at ${r.error.trace[0].line}:${r.error.trace[0].column}, called on ${r.error.trace[2].line}`
+  "${r.error.message} at ${r.error.trace[0].line}:${r.error.trace[0].column}, called on ${r.error.trace[2].line}"
 }
 
 println(describe(Panic.catch({ config() })))

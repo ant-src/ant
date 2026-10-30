@@ -25,7 +25,7 @@ func build(): string {
   if true {
     type Deep = { outer: Outer = Outer{}, n: int = next() }
     var d = Deep{}
-    return `${o.id} ${o.inner.v} ${o.make().v} ${d.outer.inner.v} ${d.n}`
+    return "${o.id} ${o.inner.v} ${o.make().v} ${d.outer.inner.v} ${d.n}"
   }
   ""
 }

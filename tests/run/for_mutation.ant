@@ -14,14 +14,14 @@ var m = Map{ a: 1, b: 2, c: 3, d: 4 }
 for { key, value } in m {
   if key == "a" { m["e"] = 5; _ = Map.remove(m, "c") }
   if key == "b" { _ = Map.remove(m, "a"); m["a"] = 10 }
-  println(`${key}=${value}`)
+  println("${key}=${value}")
 }
 println(m)
 var count = 0
 var grow = Map{ x: 0 }
 for { key, value } in grow {
   count += 1
-  if count < 5 { grow[`${key}${count}`] = count }
+  if count < 5 { grow["${key}${count}"] = count }
 }
 println(count)
 println(Map.size(grow))

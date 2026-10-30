@@ -8,7 +8,7 @@ func trace(s: string): int { log = log + s; 1 }
 
 func f(a: int = trace("a"), b: int = trace("b")): int { a + b }
 
-func connect(host: string, port: int = 443, tls: bool = true): string { `${host}:${port}:${tls}` }
+func connect(host: string, port: int = 443, tls: bool = true): string { "${host}:${port}:${tls}" }
 
 func clamp(value: int, low: int, high: int): int {
   if value < low { return low }

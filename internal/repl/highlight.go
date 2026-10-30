@@ -16,7 +16,7 @@ const (
 	clsPlain    class = iota
 	clsKeyword        // a keyword
 	clsConstant       // true, false, null, void
-	clsString         // a string or template literal, including the braces of its interpolations
+	clsString         // a string or raw string, including the braces of its interpolations
 	clsNumber         // a number literal
 	clsRegex          // a regular expression literal
 	clsComment        // a comment

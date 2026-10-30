@@ -23,7 +23,7 @@ for n in grow {
 }
 var v: Set[int] | Array[int] = grow
 if v is Set { println(Set.size(v)) } else { println(Array.length(v)) }
-println(`members: ${Set.of(["x", "y"])}`)
+println("members: ${Set.of(["x", "y"])}")
 println(Json.stringify(Set.of([P{ x: 1 }, P{ x: 2 }])))
 var nest: Set[Array[int]] = Set.of([[1], [1], [2]])
 println(Set.size(nest))

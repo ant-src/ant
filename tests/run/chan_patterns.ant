@@ -35,7 +35,7 @@ for event in Channel.values(events) {
   else if event is Said { said = event.text }
   else if event is Quit { break }
 }
-println(`${ticks} ${said}`)
+println("${ticks} ${said}")
 var ctx = Context.new()
 var race: Channel[string] = Channel.new()
 go { Time.sleep(Time.duration(seconds: 10), ctx); Channel.send(race, "slow", ctx) }

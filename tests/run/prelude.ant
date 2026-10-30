@@ -25,7 +25,7 @@ var e: Error = Error{ message: "m" }
 println(e.message)
 var entry: Entry[string, int] = Entry{ key: "k", value: 1 }
 var indexed = Indexed{ index: 0, value: "v" }
-println(`${entry.key}${entry.value}${indexed.index}${indexed.value}`)
+println("${entry.key}${entry.value}${indexed.index}${indexed.value}")
 println(Iter.toArray(twice(Iter.range(1, 4))))
 println(total([1.5, 2.5]))
 println(smallest("b", "a"))

@@ -124,9 +124,9 @@ func checkProperties(t *testing.T, path, src string) {
 	}
 }
 
-// verbatim reports whether the byte at off lies inside the text of a template string or inside
-// a block comment, which are kept as written (fmt.md 4.8, 4.9). The code of an interpolation is
-// not.
+// verbatim reports whether the byte at off lies inside the text of a string or a raw string or
+// inside a block comment, which are kept as written (fmt.md 4.8, 4.9). The code of an
+// interpolation is not.
 func verbatim(src string, off int) bool {
 	toks, comments, err := lexer.LexLayout(src, true)
 	if err != nil {
@@ -135,6 +135,9 @@ func verbatim(src string, off int) bool {
 	var inText func([]token.Token) bool
 	inText = func(toks []token.Token) bool {
 		for _, t := range toks {
+			if t.Kind == token.String && t.Off < off && off < t.End {
+				return true
+			}
 			for _, part := range t.Parts {
 				if part.Tokens == nil && part.Off <= off && off < part.End || inText(part.Tokens) {
 					return true
@@ -159,8 +162,8 @@ func verbatim(src string, off int) bool {
 	return false
 }
 
-// inInterpolation reports whether the line starting at off starts inside the code of a template's
-// interpolation, whose indentation belongs to the template and is kept as written (fmt.md 4.9).
+// inInterpolation reports whether the line starting at off starts inside the code of a string's
+// interpolation, whose indentation belongs to the string and is kept as written (fmt.md 4.9).
 func inInterpolation(src string, off int) bool {
 	toks, _, err := lexer.LexLayout(src, true)
 	if err != nil {
@@ -209,7 +212,7 @@ func significant(t *testing.T, src string) []string {
 			case tok.Kind == token.Template:
 				for _, part := range tok.Parts {
 					if part.Tokens == nil {
-						out = append(out, "text:"+src[part.Off:part.End])
+						out = append(out, "text:"+lineFeeds(src[part.Off:part.End]))
 					} else {
 						out = append(out, "${")
 						walk(part.Tokens)
@@ -217,12 +220,20 @@ func significant(t *testing.T, src string) []string {
 					}
 				}
 				continue
+			case tok.Kind == token.String:
+				out = append(out, lineFeeds(src[tok.Off:tok.End]))
+				continue
 			}
 			out = append(out, src[tok.Off:tok.End])
 		}
 	}
 	walk(toks)
 	return out
+}
+
+// lineFeeds writes every line break of a string's source \n, which keeps its value (fmt.md 4.1).
+func lineFeeds(s string) string {
+	return strings.ReplaceAll(lexer.NormalizeBreaks(s), "\r\n", "\n")
 }
 
 // commentTexts lists the comments of src, with the whitespace at the end of each line removed

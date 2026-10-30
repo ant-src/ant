@@ -7,12 +7,12 @@ type Circle = { radius: float64 }
 type Rect = { width: float64 }
 type Shape = Circle | Rect
 
-func connect(host: string, port: int = 443, tls: bool = true): string { `${host}:${port}:${tls}` }
+func connect(host: string, port: int = 443, tls: bool = true): string { "${host}:${port}:${tls}" }
 func makeCircle(): Circle { Circle{ radius: 1.0 } }
 func anyArea(s: Shape): float64 { if s is Circle { s.radius } else { s.width } }
 func circleArea(c: Circle): float64 { c.radius }
 func port(n: int = 443): int { n }
-func plain(host: string, port: int, tls: bool): string { `${host}:${port}:${tls}` }
+func plain(host: string, port: int, tls: bool): string { "${host}:${port}:${tls}" }
 
 var f1: func(string): string = connect
 var f2: func(string, int): string = connect

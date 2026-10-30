@@ -5,7 +5,7 @@ type Point = { x: int, y: int }
 
 var p = Point{ x: 1, y: 2 }
 if p.x == (Point{ x: 1, y: 2 }).x { println("same x") }
-for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}=${value}`) }
+for { key, value } in (Map{ a: 1, b: 2 }) { println("${key}=${value}") }
 var n = 0
 while n < (Point{ x: 3, y: 0 }).x { n += 1 }
 println(n)

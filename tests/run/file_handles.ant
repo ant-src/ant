@@ -2,7 +2,7 @@
 // Handles (stdlib.md): writeText and flush on a file being written, readAll on one being read,
 // and every function on a closed handle is an Err.
 var dir = Os.args()[0]
-var path = `${dir}/log.txt`
+var path = "${dir}/log.txt"
 var out = Result.unwrap(File.create(path))
 println(File.writeText(out, "a"))
 println(File.read(path))

@@ -9,10 +9,10 @@ import (
 )
 
 // TestSpans checks that every token's span slices back to the token as written, for each kind,
-// including the tokens of an interpolation and a template's parts.
+// including the tokens of an interpolation and the parts of a string with interpolations.
 func TestSpans(t *testing.T) {
 	src := "var x = 0xFF + 1_000 * 1e9 // trailing\n" +
-		"/* block\n   comment */ f(\"a\\n\", /^\\d+$/i, `t ${ a+b } u`)\n" +
+		"/* block\n   comment */ f(\"a\\n\", /^\\d+$/i, \"t ${ a+b } u\", `r\\`)\n" +
 		"  e.y ?. z ... !q\n"
 	toks, comments, err := LexLayout(src, false)
 	if err != nil {
@@ -38,8 +38,8 @@ func TestSpans(t *testing.T) {
 	walk(toks)
 	want := []string{
 		"var", "x", "=", "0xFF", "+", "1_000", "*", "1e9",
-		"f", "(", `"a\n"`, ",", `/^\d+$/i`, ",", "`t ${ a+b } u`",
-		"part:t ", "part:${ a+b }", "a", "+", "b", "part: u", ")",
+		"f", "(", `"a\n"`, ",", `/^\d+$/i`, ",", `"t ${ a+b } u"`,
+		"part:t ", "part:${ a+b }", "a", "+", "b", "part: u", ",", "`r\\`", ")",
 		"e", ".", "y", "?.", "z", "...", "!", "q",
 	}
 	if strings.Join(got, " | ") != strings.Join(want, " | ") {
@@ -87,9 +87,24 @@ func TestLoneCR(t *testing.T) {
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
-	for _, src := range []string{"\"a\rb\"", "/a\rb/"} {
-		if _, err := Lex(src); err == nil || !strings.Contains(err.Error(), "unterminated") {
-			t.Errorf("%q: got %v, want unterminated", src, err)
+	if _, err := Lex("/a\rb/"); err == nil || !strings.Contains(err.Error(), "unterminated") {
+		t.Errorf("a lone \\r in a regular expression: got %v, want unterminated", err)
+	}
+	// In a string and a raw string, each line break is one \n.
+	for _, src := range []string{"\"a\rb\r\nc\"", "`a\rb\r\nc`", "\"a\rb${1}\r\nc\""} {
+		toks, err := Lex(src)
+		if err != nil {
+			t.Errorf("%q: %v", src, err)
+			continue
+		}
+		var text string
+		if toks[0].Kind == token.Template {
+			text = toks[0].Parts[0].Text + toks[0].Parts[2].Text
+		} else {
+			text = toks[0].Text
+		}
+		if text != "a\nb\nc" {
+			t.Errorf("%q: the text is %q, want %q", src, text, "a\nb\nc")
 		}
 	}
 }

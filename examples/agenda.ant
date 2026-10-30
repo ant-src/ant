@@ -12,7 +12,7 @@ var weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 func text(object: Map[string, Json.Value], name: string): Result[string, Error] {
   var v = object[name]
-  if v is string { Result.ok(v) } else { Result.err(Error{ message: `${name} must be a string` }) }
+  if v is string { Result.ok(v) } else { Result.err(Error{ message: "${name} must be a string" }) }
 }
 
 func meetingOf(object: Map[string, Json.Value]): Result[Meeting, Error] {
@@ -26,20 +26,20 @@ func meeting(v: Json.Value): Result[Meeting, Error] {
   if v is Map { meetingOf(v) } else { Result.err(Error{ message: "a meeting must be an object" }) }
 }
 
-func pad(n: int): string { if n < 10 { `0${n}` } else { String.from(n) } }
+func pad(n: int): string { if n < 10 { "0${n}" } else { String.from(n) } }
 
-func clock(t: Time.ZonedDateTime): string { `${pad(Time.hour(t))}:${pad(Time.minute(t))}` }
+func clock(t: Time.ZonedDateTime): string { "${pad(Time.hour(t))}:${pad(Time.minute(t))}" }
 
 func byMoment(a: Meeting, b: Meeting): int { Time.compare(a.when, b.when) }
 
 func zoneOrExit(id: string): Time.Zone {
   var z = Time.zone(id)
-  if z is Ok { z.value } else { println(`unknown zone: ${id}`); Os.exit(2) }
+  if z is Ok { z.value } else { println("unknown zone: ${id}"); Os.exit(2) }
 }
 
 func dateOrExit(s: string): Time.PlainDate {
   var d = Time.parsePlainDate(s)
-  if d is Ok { d.value } else { println(`not a date: ${s}`); Os.exit(2) }
+  if d is Ok { d.value } else { println("not a date: ${s}"); Os.exit(2) }
 }
 
 func listOrExit(parsed: Result[Json.Value, Error]): Array[Json.Value] {
@@ -47,7 +47,7 @@ func listOrExit(parsed: Result[Json.Value, Error]): Array[Json.Value] {
     var v = parsed.value
     if v is Array { v } else { println("the meetings must be an array"); Os.exit(2) }
   } else {
-    println(`bad input: ${parsed.error.message}`)
+    println("bad input: ${parsed.error.message}")
     Os.exit(2)
   }
 }
@@ -64,11 +64,11 @@ var meetings: Array[Meeting] = []
 for item in items {
   var m = meeting(item)
   if m is Ok { Array.push(meetings, m.value) }
-  else { eprintln(`skipped: ${m.error.message}`) }
+  else { eprintln("skipped: ${m.error.message}") }
 }
 for m in Array.sortWith(meetings, byMoment) {
   var local = Time.withZone(m.when, reader)
   var days = Time.part(Time.until(today, local, Time.Day{}), Time.Day{})
-  var from = `${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}`
-  println(`${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days`)
+  var from = "${clock(m.when)} in ${Time.zoneId(Time.zoneOf(m.when))}"
+  println("${weekdays[Time.dayOfWeek(local) - 1]} ${Time.toPlainDate(local)} ${clock(local)} ${Time.offset(local)}  ${m.title} (${from}), in ${days} days")
 }

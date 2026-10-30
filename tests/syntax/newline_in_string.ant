@@ -1,7 +1,0 @@
-// spec: 2 Literals
-var s = "a
-b"
-
-// expect
-// exit: 2
-// err: unterminated string

@@ -477,7 +477,7 @@ func TestCompletion(t *testing.T) {
 	got = labels(src, at(src, "{s.", 1, 3))
 	has("markup interpolation", got, "name", "area")
 	// inside a template string's interpolation: members and names; nothing in its text
-	src = strings.Replace(mainSrc, "if s.area > 0.0 { label } else { \"none\" }", "var t = `hello ${s.} and ${lab}`", 1)
+	src = strings.Replace(mainSrc, "if s.area > 0.0 { label } else { \"none\" }", "var t = \"hello ${s.} and ${lab}\"", 1)
 	got = labels(src, at(src, "${s.", 1, 4))
 	has("template members", got, "name", "area")
 	lacks("template members", got, "describe")

@@ -75,7 +75,7 @@ var joined: Outcome = select {
 println(joined)
 Channel.send(nums, 1)
 select {
-  var n = Channel.receive(nums) { println(`took ${n ?? 0}`) }
+  var n = Channel.receive(nums) { println("took ${n ?? 0}") }
   else { println("nothing") }
 }
 var order: Array[string] = []

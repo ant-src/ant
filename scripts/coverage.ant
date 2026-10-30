@@ -35,13 +35,13 @@ func packageOf(block: string): string {
 
 func threshold(arg: string | null, fallback: int): int {
   var text = arg ?? return fallback
-  String.toInt(text) ?? fail(`not a number: ${text}`)
+  String.toInt(text) ?? fail("not a number: ${text}")
 }
 
 // runTests writes the profile by running the suite, and ends the program when the suite fails.
 func runTests(profile: string): void {
-  var run = Cmd.capture(Cmd.new("go", ["test", "-coverpkg=./...", `-coverprofile=${profile}`, "./..."]))
-  var output = if run is Ok { run.value } else { fail(`cannot run go test: ${run.error.message}`) }
+  var run = Cmd.capture(Cmd.new("go", ["test", "-coverpkg=./...", "-coverprofile=${profile}", "./..."]))
+  var output = if run is Ok { run.value } else { fail("cannot run go test: ${run.error.message}") }
   File.writeText(Os.stdout(), output.stdout)
   File.writeText(Os.stderr(), output.stderr)
   if output.status != 0 { Os.exit(output.status) }
@@ -49,7 +49,7 @@ func runTests(profile: string): void {
 
 func readFile(path: string): string {
   var read = File.read(path)
-  if read is Ok { read.value } else { fail(`cannot read ${path}: ${read.error.message}`) }
+  if read is Ok { read.value } else { fail("cannot read ${path}: ${read.error.message}") }
 }
 
 func percent(hit: int, total: int): float64 {
@@ -59,7 +59,7 @@ func percent(hit: int, total: int): float64 {
 // fixed1 renders x with one decimal, as printf "%.1f" would.
 func fixed1(x: float64): string {
   var tenths = Math.toInt(Math.round(x * 10.0)) ?? 0
-  `${tenths / 10}.${tenths % 10}`
+  "${tenths / 10}.${tenths % 10}"
 }
 
 func padRight(s: string, width: int): string {
@@ -88,10 +88,10 @@ var allHit = 0
 for line in String.split(readFile(profile), "\n") {
   if line != "" && !String.startsWith(line, "mode:") {
     var fields = String.split(line, " ")
-    if Array.length(fields) != 3 { fail(`malformed profile line: ${line}`) }
+    if Array.length(fields) != 3 { fail("malformed profile line: ${line}") }
     var block = fields[0]
-    var n = String.toInt(fields[1]) ?? fail(`malformed profile line: ${line}`)
-    var count = String.toInt(fields[2]) ?? fail(`malformed profile line: ${line}`)
+    var n = String.toInt(fields[1]) ?? fail("malformed profile line: ${line}")
+    var count = String.toInt(fields[2]) ?? fail("malformed profile line: ${line}")
     var pkg = packageOf(block)
     if !Map.has(seen, block) {
       seen[block] = true
@@ -110,7 +110,7 @@ var below = false
 var report = func(name: string, pct: float64, min: int): void {
   var mark = ""
   if pct + 0.05 < float64(min) {
-    mark = `  BELOW ${min}%`
+    mark = "  BELOW ${min}%"
     below = true
   }
   println(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)

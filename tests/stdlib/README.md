@@ -36,7 +36,7 @@ file starts with the same tag line as any program in the corpus (`../README.md`)
 ## Inputs
 
 The file is read as the REPL reads what is typed: one input at a time, an input being one line, or
-as many lines as it takes to close an open brace, bracket, string, or template. Each input is a
+as many lines as it takes to close an open brace, bracket, string, or raw string. Each input is a
 setup or a case.
 
 - **A case** is an expression whose last line ends in `// =>` and what the case expects: the text

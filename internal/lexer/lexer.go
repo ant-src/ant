@@ -28,7 +28,7 @@ type lexer struct {
 	line    int
 	col     int
 	toks    []token.Token
-	nesting int             // template interpolations entered, bounded by maxNesting
+	nesting int             // interpolations entered, bounded by maxNesting
 	noRegex bool            // read / as the operator always, for the differential test of the operand rule
 	lines   []int           // the byte offset at which each line starts
 	layout  bool            // keep the comments, for the formatter
@@ -43,14 +43,14 @@ type lexer struct {
 	recover bool
 	errs    []*Error
 	// unclosed is set when an interpolation ended at the end of the source while recovering, so
-	// that the template around it reports nothing more.
+	// that the string around it reports nothing more.
 	unclosed bool
 	// open holds the names of the markup elements being read, outermost first, so that an end
 	// tag that closes an outer one can be left for it when recovering.
 	open []string
 }
 
-// maxNesting bounds the nesting of template interpolations, so that no input can overflow the
+// maxNesting bounds the nesting of interpolations, so that no input can overflow the
 // Go stack in the lexer.
 const maxNesting = 1000
 
@@ -73,8 +73,8 @@ func LexLayout(src string, shebang bool) ([]token.Token, []token.Comment, error)
 }
 
 // LexRecover tokenizes src as LexLayout does but goes on past every error, for an editor, and
-// returns the errors found in source order. A string, template, or comment left open ends where
-// its error is reported; a construct that cannot be read at all becomes a Bad token; and markup
+// returns the errors found in source order. A string or raw string left open ends at the end of
+// its first line, and a comment left open at the end of the source; a construct that cannot be read at all becomes a Bad token; and markup
 // that is malformed is read as far as it goes. Tokens come out as they would once the errors
 // were fixed, as far as the lexer can tell.
 func LexRecover(src string, shebang bool) ([]token.Token, []token.Comment, []*Error) {
@@ -415,7 +415,7 @@ func (l *lexer) scan(stop func(token.Token) bool) (more bool) {
 	case c == '"':
 		l.string()
 	case c == '`':
-		l.template()
+		l.raw()
 	case c == '.' && isDigit(l.peek(1)):
 		l.fail(pos, "a float literal needs a digit before the point")
 	case c == '/' && !l.noRegex && l.regexAllowed():
@@ -645,9 +645,14 @@ func (l *lexer) escape() string {
 	case 'r':
 		l.advance(1)
 		return "\r"
-	case '\\', '"', '`', '$':
+	case '\\', '"', '$':
 		l.advance(1)
 		return string(c)
+	case '`':
+		if l.soft(pos, "bad escape '\\`': a backtick needs no escape in a string") {
+			l.advance(1)
+			return "`"
+		}
 	case 'u':
 		if l.peek(1) != '{' {
 			if l.soft(pos, "bad escape: \\u needs a {...} code") {
@@ -686,32 +691,27 @@ func (l *lexer) escape() string {
 	return ""
 }
 
+// string scans a string at its opening quote (section 2): text with escapes and ${...}
+// interpolations, which may span lines, each line break one \n in the value. A string without an
+// interpolation is a String token, and one with them a Template token. When recovering, a string
+// left open to the end of the source ends at the end of its first line instead, so that an editor
+// reads the code after a stray quote as code.
 func (l *lexer) string() {
-	pos := l.here()
-	l.advance(1)
-	var sb strings.Builder
-	for {
-		c := l.peek(0)
-		switch {
-		case l.atEnd(0) || c == '\n' || c == '\r':
-			if l.soft(pos, "unterminated string") {
-				l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
-				return
-			}
-		case c == '"':
-			l.advance(1)
-			l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
-			return
-		case c == '\\':
-			sb.WriteString(l.escape())
-		default:
-			sb.WriteByte(c)
-			l.advance(1)
-		}
+	if !l.recover {
+		l.stringUntil(false)
+		return
+	}
+	saved := l.save()
+	if !l.stringUntil(false) {
+		l.restore(saved)
+		l.stringUntil(true)
 	}
 }
 
-func (l *lexer) template() {
+// stringUntil scans a string, ending it at its first line break when oneLine is set. It returns
+// false, having emitted nothing, when a recovering lexer reaches the end of the source with the
+// string still open and oneLine is not set.
+func (l *lexer) stringUntil(oneLine bool) bool {
 	pos := l.here()
 	l.advance(1)
 	var parts []token.Part
@@ -723,30 +723,48 @@ func (l *lexer) template() {
 			sb.Reset()
 		}
 	}
+	finish := func() {
+		flush()
+		switch {
+		case len(parts) == 0:
+			l.emit(token.Token{Kind: token.String, Pos: pos})
+		case len(parts) == 1 && parts[0].Tokens == nil:
+			l.emit(token.Token{Kind: token.String, Text: parts[0].Text, Pos: pos})
+		default:
+			l.emit(token.Token{Kind: token.Template, Parts: parts, Pos: pos})
+		}
+	}
 	for {
 		c := l.peek(0)
 		switch {
-		case l.atEnd(0):
-			if l.unclosed || l.soft(pos, "unterminated template string") {
-				l.unclosed = false
-				flush()
-				l.emit(token.Token{Kind: token.Template, Parts: parts, Pos: pos})
-				return
+		case l.atEnd(0) || oneLine && l.lineBreak(0):
+			if l.recover && !oneLine && !l.unclosed {
+				return false
 			}
-		case c == '`':
+			if l.unclosed || l.soft(pos, "unterminated string") {
+				l.unclosed = false
+				finish()
+				return true
+			}
+		case c == '"':
 			flush()
 			l.advance(1)
-			l.emit(token.Token{Kind: token.Template, Parts: parts, Pos: pos})
-			return
+			finish()
+			return true
 		case c == '\\':
 			sb.WriteString(l.escape())
 		case c == '$' && l.peek(1) == '{':
 			flush()
 			exprPos := l.here()
 			l.advance(2)
-			toks := l.interpolation(exprPos)
+			toks := l.interpolationOf(exprPos, "unterminated ${ in string")
 			parts = append(parts, token.Part{Tokens: toks, Pos: exprPos, EndPos: l.here(), Off: l.offset(exprPos), End: l.pos})
 			textPos = l.here()
+		case l.lineBreak(0):
+			sb.WriteByte('\n')
+			l.advance(1)
+		case c == '\r':
+			l.advance(1) // the \r of a \r\n
 		default:
 			sb.WriteByte(c)
 			l.advance(1)
@@ -754,9 +772,49 @@ func (l *lexer) template() {
 	}
 }
 
-// interpolation lexes the tokens of a ${...} up to its matching brace, which it consumes.
-func (l *lexer) interpolation(pos token.Pos) []token.Token {
-	return l.interpolationOf(pos, "unterminated ${ in template string")
+// raw scans a raw string at its opening backtick (section 2): the text up to the next backtick
+// as written, with no escapes, each line break one \n. When recovering, a raw string with no
+// closing backtick ends at the end of its first line, as a string does.
+func (l *lexer) raw() {
+	pos := l.here()
+	oneLine := l.recover && !strings.Contains(l.src[l.pos+1:], "`")
+	l.advance(1)
+	var sb strings.Builder
+	for {
+		c := l.peek(0)
+		switch {
+		case l.atEnd(0) || oneLine && l.lineBreak(0):
+			l.soft(pos, "unterminated raw string")
+			l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
+			return
+		case c == '`':
+			l.advance(1)
+			l.emit(token.Token{Kind: token.String, Text: sb.String(), Pos: pos})
+			return
+		case l.lineBreak(0):
+			sb.WriteByte('\n')
+		case c == '\r':
+			// the \r of a \r\n
+		default:
+			sb.WriteByte(c)
+		}
+		l.advance(1)
+	}
+}
+
+// state is where a recovering lexer stands, saved so that it can read a construct again.
+type state struct {
+	pos, line, col, lines, errs, comments int
+	unclosed                              bool
+}
+
+func (l *lexer) save() state {
+	return state{l.pos, l.line, l.col, len(l.lines), len(l.errs), len(l.comment), l.unclosed}
+}
+
+func (l *lexer) restore(s state) {
+	l.pos, l.line, l.col, l.unclosed = s.pos, s.line, s.col, s.unclosed
+	l.lines, l.errs, l.comment = l.lines[:s.lines], l.errs[:s.errs], l.comment[:s.comments]
 }
 
 // interpolationOf lexes the tokens of an interpolation up to its matching brace, which it

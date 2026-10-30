@@ -54,7 +54,7 @@ setDefaultPort(9000)
 var d = Config{ ...c, retries: 5 }
 var e = Config{ host: "example.org" }
 c.headers["accept"] = "text/html"
-println(`${c.port} ${d.port} ${e.port} ${len(d.headers)} ${len(e.headers)}`)
+println("${c.port} ${d.port} ${e.port} ${len(d.headers)} ${len(e.headers)}")
 
 println(Point3{ ...Point{ x: 1.0, y: 2.0 } })
 var b: Bag[int] = Bag{}

@@ -10,7 +10,7 @@ func compute(): int { println("init a"); 41 }
 
 type Later = { n: int }
 
-func describe(l: Later): string { `later ${l.n}` }
+func describe(l: Later): string { "later ${l.n}" }
 
 println(b)
 println(c)

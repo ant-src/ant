@@ -295,7 +295,8 @@ type (
 		Pattern *value.Regex
 	}
 	VoidLit struct{ Pos, End Pos }
-	// Template is a template string; each part is literal text or an interpolated expression.
+	// Template is a string with interpolations; each part is literal text or an interpolated
+	// expression.
 	Template struct {
 		Pos   Pos
 		End   Pos

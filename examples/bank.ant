@@ -60,8 +60,8 @@ for g in Iter.range(0, 1000) {
   }
 }
 WaitGroup.wait(wg)
-println(`transfers: ${Atomic.load(bank.transfers)}`)
-println(`audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}`)
-println(`total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}`)
-println(`rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}`)
+println("transfers: ${Atomic.load(bank.transfers)}")
+println("audits: ${Atomic.load(bank.audits)}, mismatches: ${Atomic.load(bank.mismatches)}")
+println("total ${Bank.total(bank)} of ${expected}, balances ${Array.map(bank.accounts, { x.balance })}")
+println("rates loaded ${Atomic.load(loads)} time(s), leaders elected ${Atomic.load(leaders)}")
 println(Bank.transfer(bank, 0, 1, 5000))

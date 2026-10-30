@@ -4,24 +4,24 @@
 // their tag, on one line or indented; a map key must be a string, a named primitive over one written without its tag.
 type Server = { host: string, port: int }
 func decodeServer(v: Json.Value, path: string): Result[Server, Error] {
-  if !(v is Map) { return Result.err(Error{ message: `${path}: not an object` }) }
-  var host = v["host"] ?? return Result.err(Error{ message: `${path}.host: missing` })
-  if !(host is string) { return Result.err(Error{ message: `${path}.host: not a string` }) }
-  var port = v["port"] ?? return Result.err(Error{ message: `${path}.port: missing` })
-  if !(port is float64) { return Result.err(Error{ message: `${path}.port: not a number` }) }
-  var p = Math.toInt(port) ?? return Result.err(Error{ message: `${path}.port: not an integer` })
+  if !(v is Map) { return Result.err(Error{ message: "${path}: not an object" }) }
+  var host = v["host"] ?? return Result.err(Error{ message: "${path}.host: missing" })
+  if !(host is string) { return Result.err(Error{ message: "${path}.host: not a string" }) }
+  var port = v["port"] ?? return Result.err(Error{ message: "${path}.port: missing" })
+  if !(port is float64) { return Result.err(Error{ message: "${path}.port: not a number" }) }
+  var p = Math.toInt(port) ?? return Result.err(Error{ message: "${path}.port: not an integer" })
   Result.ok(Server{ host: host, port: p })
 }
-Json.parse(`{"b": 1, "a": [true, null, "x", 2.5], "c": {"d": {}}}`) // => Ok{ value: Map{ "b": 1.0, "a": [true, null, "x", 2.5], "c": Map{ "d": Map{} } } }
+Json.parse("{\"b\": 1, \"a\": [true, null, \"x\", 2.5], \"c\": {\"d\": {}}}") // => Ok{ value: Map{ "b": 1.0, "a": [true, null, "x", 2.5], "c": Map{ "d": Map{} } } }
 Json.parse("[1, 2")                           // => Err{ error: Error{ message: "unexpected end of JSON input" } }
 Json.parse("{} extra") is Err                 // => true
 Json.parse("") is Err                         // => true
-Json.parse(`"abc`)                            // => Err{ error: Error{ message: "unexpected end of JSON input" } }
-Json.parse(`{"a":`)                           // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("\"abc")                            // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("{\"a\":")                           // => Err{ error: Error{ message: "unexpected end of JSON input" } }
 Json.parse("42")                              // => Ok{ value: 42.0 }
-var parsed = Json.parse(`{"host": "example.com", "port": 8080}`)
+var parsed = Json.parse("{\"host\": \"example.com\", \"port\": 8080}")
 decodeServer(Result.unwrap(parsed), "$")      // => Ok{ value: Server{ host: "example.com", port: 8080 } }
-var bad = Json.parse(`{"host": "example.com", "port": 80.5}`)
+var bad = Json.parse("{\"host\": \"example.com\", \"port\": 80.5}")
 decodeServer(Result.unwrap(bad), "$")         // => Err{ error: Error{ message: "$.port: not an integer" } }
 Json.stringify(Server{ host: "h", port: 1 })  // => "{\"host\":\"h\",\"port\":1}"
 Json.stringify([1, "two", 3.5, null, true, Map{ k: [0] }]) // => "[1,\"two\",3.5,null,true,{\"k\":[0]}]"

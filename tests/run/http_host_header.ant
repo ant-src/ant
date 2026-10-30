@@ -7,7 +7,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 
 var listener = Result.unwrap(Net.listen("127.0.0.1:0"))
-var base = `http://${Net.address(listener)}`
+var base = "http://${Net.address(listener)}"
 var stop = Context.new()
 var served: Channel[Result[void, Error]] = Channel.new(1)
 go { Channel.send(served, Http.serve(listener, handle, stop)) }

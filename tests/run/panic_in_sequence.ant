@@ -17,7 +17,7 @@ func numbers(): Seq[int] {
 
 defer { println("main unwound") }
 for n in numbers() {
-  if n == 2 { panic(`boom at ${n}`) }
+  if n == 2 { panic("boom at ${n}") }
   println(n)
 }
 println("not reached")

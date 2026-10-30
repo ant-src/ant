@@ -29,7 +29,7 @@ var b = 0
 [a, b] = [7, 8]
 println(a + b)
 [a, b] = [b, a]
-println(`${a} ${b}`)
+println("${a} ${b}")
 var shadow = "outer"
 if true {
   var shadow = "inner"

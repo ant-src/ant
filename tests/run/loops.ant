@@ -22,7 +22,7 @@ func countdown(from: int): Seq[int] {
 }
 
 func findInSeq(target: int): string {
-  for n in countdown(5) { if n == target { return `found ${n}` } }
+  for n in countdown(5) { if n == target { return "found ${n}" } }
   "not found"
 }
 
@@ -31,7 +31,7 @@ for i in Iter.range(0, 3) {
   for j in Iter.range(0, 3) {
     if j == 1 { continue }
     if j == 2 { break }
-    println(`${i}${j}`)
+    println("${i}${j}")
   }
 }
 var n = 0
@@ -44,7 +44,7 @@ println(findInSeq(9))
 var fs: Array[func(): int] = []
 for k in [1, 2, 3] { Array.push(fs, func(): int { k * 10 }) }
 println(Array.map(fs, { x() }))
-for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}${value}`) }
+for { key, value } in (Map{ a: 1, b: 2 }) { println("${key}${value}") }
 for ch in "añ😀" { println(String.length(ch)) }
 var none: Array[int] = []
 for _ in none { println("never") }

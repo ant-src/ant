@@ -2,7 +2,7 @@
 // File.close returns a Result: Ok when the flush and the close succeed, Ok again on a handle
 // already closed, which stays closed, and Ok on a standard stream, which it leaves open.
 var dir = Os.args()[0]
-var path = `${dir}/out.txt`
+var path = "${dir}/out.txt"
 var out = Result.unwrap(File.create(path))
 println(File.writeLine(out, "kept"))
 println(File.close(out))

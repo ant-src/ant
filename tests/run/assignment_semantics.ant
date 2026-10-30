@@ -15,7 +15,7 @@ var a = 0
 var b = 0
 var rest: Array[int] = []
 [a, b, ...rest] = [t("1", 1), t("2", 2), t("3", 3), t("4", 4)]
-println(`${a} ${b} ${rest} ${log}`)
+println("${a} ${b} ${rest} ${log}")
 var m: Map[string, int] = Map{}
 m["k"] = 1
 m["k"] += 1

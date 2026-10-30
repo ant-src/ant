@@ -24,7 +24,7 @@ var src = "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n\t\"path/
   "func main() {\n\twd, _ := os.Getwd()\n\tline, _ := bufio.NewReader(os.Stdin).ReadString('\\n')\n" +
   "\tfmt.Print(filepath.Base(wd) == os.Args[1], \" \", os.Getenv(\"ANT_EXEC_TEST\"), \" \", strings.TrimSpace(line))\n" +
   "\tfmt.Fprintln(os.Stderr, \"warned\")\n}\n"
-println(File.write(`${dir}/echo.go`, src))
+println(File.write("${dir}/echo.go", src))
 var env = Os.environ()
 env["ANT_EXEC_TEST"] = "seen"
 var out = Result.unwrap(Cmd.capture(Cmd.new("go", ["run", "echo.go", base], dir: dir, env: env), input: "typed\n"))

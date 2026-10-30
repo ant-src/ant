@@ -32,7 +32,7 @@ keyed[[1, 2]] = "pair"
 keyed[[1, 2]]                                 // => "pair"
 Map.has(keyed, [1, 2])                        // => true
 Map.same(m, m) && !Map.same(m, Map.merge(m, none)) // => true
-Map.map(Map{ x: "a" }, { `${x.key}=${x.value}` }) // => Map{ "x": "x=a" }
+Map.map(Map{ x: "a" }, { "${x.key}=${x.value}" }) // => Map{ "x": "x=a" }
 
 // A map key's hash depends on a bounded prefix of its structure, so hashing terminates on a
 // cyclic value and agrees with ==: a cyclic record finds itself as a key, and a second cycle of

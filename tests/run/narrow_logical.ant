@@ -15,7 +15,7 @@ for v in items {
   var origin = v is Point && v.x == 0 && v.y == 0
   var longLabel = v is Label && String.length(v.text) > 0
   var notPositive = !(v is Point) || v.x <= 0
-  println(`${v}: ${origin} ${longLabel} ${notPositive} ${isOrigin(v)} ${isNullOrEmpty(v)}`)
+  println("${v}: ${origin} ${longLabel} ${notPositive} ${isOrigin(v)} ${isNullOrEmpty(v)}")
 }
 var p: Point | null = Point{ x: 3, y: 4 }
 println(p != null && p.x + p.y == 7)

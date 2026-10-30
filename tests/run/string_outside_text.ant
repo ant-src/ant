@@ -1,7 +1,7 @@
 // spec: 11 String; stdlib File; stdlib Os
 // Every string holds only scalar values: text read from outside is decoded as UTF-8, each maximal
 // subpart of an ill-formed sequence replaced by U+FFFD, while the bytes stay as they were.
-var path = `${Os.args()[0]}/bad.txt`
+var path = "${Os.args()[0]}/bad.txt"
 // Unicode's table 3-8, then a line of two stray bytes and a truncated euro sign.
 var bytes = [0x61, 0xF1, 0x80, 0x80, 0xE1, 0x80, 0xC2, 0x62, 0x80, 0x63, 0x80, 0xBF, 0x64, 0x0A, 0xFF, 0xFE, 0x0A, 0xE2, 0x82]
 println(File.writeBytes(path, Bytes.fromArray(bytes)))
@@ -15,7 +15,7 @@ println(len(String.toBytes(text)))
 var f = Result.unwrap(File.open(path))
 var line = Result.unwrap(File.readLine(f))
 while line != null {
-  println(`${String.from([line])} ${len(String.toBytes(line))}`)
+  println("${String.from([line])} ${len(String.toBytes(line))}")
   line = Result.unwrap(File.readLine(f))
 }
 File.close(f)
@@ -29,7 +29,7 @@ println(String.fromBytes(Result.unwrap(File.readBytes(path))))
 
 // A child's output is outside text too.
 var out = Result.unwrap(Cmd.capture(Cmd.new("printf", ["a\\377b"])))
-println(`${String.from([out.stdout])} ${len(String.toBytes(out.stdout))}`)
+println("${String.from([out.stdout])} ${len(String.toBytes(out.stdout))}")
 println(out.stdoutBytes)
 
 // expect

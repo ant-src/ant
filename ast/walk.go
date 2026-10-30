@@ -42,7 +42,7 @@ func Contains(n Node, p Pos) bool {
 // Inspect walks the tree under n in source order, calling f for each node, children included
 // when f returns true. Besides the expressions, statements, types, and targets, it visits the
 // parts a node is made of that carry a position: imports' names, type and value parameters, the
-// fields of a record type or destructuring, the entries of literals, call arguments, template
+// fields of a record type or destructuring, the entries of literals, call arguments, string
 // parts, select clauses, and the nodes, elements, and attributes of markup.
 func Inspect(n Node, f func(Node) bool) {
 	if n == nil || !f(n) {

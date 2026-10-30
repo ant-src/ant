@@ -4,7 +4,7 @@
 //! error.
 func loadConfig(path: string): Result[Json.Value, Error] {
   var text = try File.read(path)
-  var json = try (Json.parse(text) | Result.wrapErr(`parse ${Path.base(path)}`))
+  var json = try (Json.parse(text) | Result.wrapErr("parse ${Path.base(path)}"))
   Result.ok(json)
 }
 

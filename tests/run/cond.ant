@@ -19,7 +19,7 @@ go {
     received += 1
     total += item
   }
-  println(`received ${received} items, total ${total}`)
+  println("received ${received} items, total ${total}")
 }
 for i in Iter.range(1, 6) {
   Mutex.lock(lock)

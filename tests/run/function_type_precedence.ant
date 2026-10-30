@@ -6,7 +6,7 @@ type Thunk = func(): int | Meters
 type ThunkOrMeters = (func(): int) | Meters
 
 func describe(v: ThunkOrMeters): string {
-  if v is Meters { `meters ${int(v)}` } else { `thunk ${v()}` }
+  if v is Meters { "meters ${int(v)}" } else { "thunk ${v()}" }
 }
 
 var t: Thunk = func(): int | Meters { Meters(7) }

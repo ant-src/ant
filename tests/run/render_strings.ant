@@ -1,13 +1,15 @@
 // spec: 11 String
 // String.from on strings, bools, null, and void (section 11): a string renders as itself at the
 // top level and quoted with escapes inside a container; bool, null, and void render as their
-// literals; a template string renders each interpolation with String.from.
+// literals; a string renders each interpolation with String.from. Quoted, a $ before { is
+// escaped, so the rendering reads back as a literal.
 println("plain")
 println("")
 println("with \"quotes\" and a \\ backslash")
 println(["plain"])
 println(["tab\there", "new\nline", "quote\"", "back\\slash"])
-println(`${"inner"} and ${1}`)
+println(["\${x}", "$5", `${y}$`])
+println("${"inner"} and ${1}")
 println(true)
 println(false)
 println(null)
@@ -21,6 +23,7 @@ println(Map{ k: "v" })
 // out: with "quotes" and a \ backslash
 // out: ["plain"]
 // out: ["tab\there", "new\nline", "quote\"", "back\\slash"]
+// out: ["\${x}", "$5", "\${y}$"]
 // out: inner and 1
 // out: true
 // out: false

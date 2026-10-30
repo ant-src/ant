@@ -15,7 +15,8 @@ func TestClasses(t *testing.T) {
 		{`if x == null { "a" }`, "kk . .. cccc . sss ."},
 		{`println("hi") // say`, "fffffff.ssss. //////"},
 		{"xs | Array.map({ x * 2 })", ".. . NNNNN.fff.. . . n .."},
-		{"`a ${n + 1} b`", "sssss....nssss"}, // the interpolation's tokens keep their classes
+		{`"a ${n + 1} b"`, "sssss....nssss"}, // the interpolation's tokens keep their classes
+		{"`a ${n} \\`", "ssssssssss"},        // a raw string has no interpolations
 		{`/ab+/g`, "rrrrrr"},
 		{`<p class={c}>{n}</p>`, "mmmmmmmmmm.mmm.mmmmm"},
 		{`class`, "bbbbb"},

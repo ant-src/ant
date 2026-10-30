@@ -73,7 +73,7 @@ func TestRoles(t *testing.T) {
 		{"var [a, ...rest] = xs", "["},
 		{"var { x, y: [p, ...q] } = r", "{, ["},
 		{"func f() { [a, b] = [b, a] }", "(, {B [, [,"},
-		{"var s = `${Point{ x: 1 }} ${f(a)}`", "{T, (,"},
+		{`var s = "${Point{ x: 1 }} ${f(a)}"`, "{T, (,"},
 	} {
 		if got := roleString(t, c.src); got != c.want {
 			t.Errorf("%s\n got %s\nwant %s", c.src, got, c.want)
@@ -102,7 +102,7 @@ func TestPrefix(t *testing.T) {
 		{"func f() { a\n-1 }", "-"},
 		{"var x = (a\n- 1)", ""},
 		{"var x = [a,\n-1]", "-"},
-		{"var x = `${a\n  - b} ${-c}`", "-"},
+		{"var x = \"${a\n  - b} ${-c}\"", "-"},
 		{"func g() { try f() }", ""},
 	} {
 		_, l, err := ParseLayout("t.ant", c.src)

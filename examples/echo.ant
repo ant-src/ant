@@ -16,10 +16,10 @@ func session(c: File.Handle, stop: Context): void {
 }
 
 var port = Array.get(Os.args(), 0) ?? "7000"
-var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
+var listener = Result.unwrap(Net.listen("127.0.0.1:${port}"))
 var stop = Context.new(parent: Os.interrupt())
 var sessions = WaitGroup.new()
-println(`listening on ${Net.address(listener)}`)
+println("listening on ${Net.address(listener)}")
 var conn = Net.accept(listener, stop)
 while conn is Ok {
   var c = conn.value

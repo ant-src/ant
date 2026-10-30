@@ -141,10 +141,10 @@ func scanMarkup(src string) markupContext {
 					state = prev
 				}
 			case '"', '`':
-				// skip a string or template inside the interpolation
+				// skip a string or raw string inside the interpolation; only a string has escapes
 				j := i + 1
 				for j < len(src) && src[j] != c {
-					if src[j] == '\\' {
+					if src[j] == '\\' && c == '"' {
 						j++
 					}
 					j++

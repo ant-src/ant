@@ -44,7 +44,7 @@ func signForm(): Html {
 }
 
 func page(list: Array[Signature]): Html {
-  layout(title: `Guestbook (${len(list)})`, children: <>
+  layout(title: "Guestbook (${len(list)})", children: <>
     <h1>Guestbook</h1>
     {if len(list) == 0 { <p>Nobody has signed yet.</p> } else { <ul>{Array.map(list, entry)}</ul> }}
     {signForm()}
@@ -55,7 +55,7 @@ func html(status: int, body: Html): Http.Reply {
   Http.Reply{
     status,
     headers: Map{ "Content-Type": "text/html; charset=utf-8" },
-    body: `<!doctype html>${body}`,
+    body: "<!doctype html>${body}",
   }
 }
 
@@ -85,6 +85,6 @@ func handle(req: Http.Request): Http.Reply {
 }
 
 var port = Array.get(Os.args(), 0) ?? "8080"
-var listener = Result.unwrap(Net.listen(`127.0.0.1:${port}`))
-println(`listening on ${Net.address(listener)}`)
+var listener = Result.unwrap(Net.listen("127.0.0.1:${port}"))
+println("listening on ${Net.address(listener)}")
 Result.unwrap(Http.serve(listener, handle, Os.interrupt()))

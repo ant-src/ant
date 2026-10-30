@@ -3,11 +3,11 @@
 //! function reads a var declared below it once that var is bound, a var declared in a top-level
 //! block is that block's own, the deferred blocks run when the body ends, and the value of the
 //! last expression, an Err here, is discarded, so the program exits 0.
-func report(): string { `${count} after ${steps}` }
+func report(): string { "${count} after ${steps}" }
 
 var count = 0
 defer { println("deferred last") }
-defer { println(`deferred first: ${report()}`) }
+defer { println("deferred first: ${report()}") }
 var steps = 0
 for n in [1, 2, 3] {
   var doubled = n * 2

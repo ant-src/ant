@@ -10,7 +10,7 @@ type Circle = { radius: float64 }
 type Rect = { width: float64 }
 type Shape = Circle | Rect
 
-func connect(host: string, port: int = 443): string { `${host}:${port}` }
+func connect(host: string, port: int = 443): string { "${host}:${port}" }
 
 func Point.norm(p: Point): int { p.x + p.y }
 

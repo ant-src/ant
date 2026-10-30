@@ -19,7 +19,7 @@ for i in Iter.range(0, 8) {
   }
 }
 WaitGroup.wait(wg)
-println(`shared: ${Atomic.load(bad)} bad`)
+println("shared: ${Atomic.load(bad)} bad")
 var root = Random.new(42)
 var streams = Array.map(Array.range(0, 4), { Random.fork(root) })
 var firsts: Array[int] = [0, 0, 0, 0]

@@ -1,0 +1,27 @@
+// spec: 2 Literals
+// String interpolation (section 2): any expression interpolates through String.from, braces
+// nest, strings nest inside an interpolation, a string may span lines, and the escapes.
+type Point = { x: int, y: int }
+
+var count = 3
+println("total: ${count} items")
+println("${1 + 2} ${"s"} ${true} ${null} ${[1, 2]} ${Point{ x: 1, y: 2 }}")
+println("nested: ${"inner ${count}"}")
+println("multi
+line")
+println("escapes: ` \${not} \\ \u{41}")
+println("$ alone and ${count}$")
+var f: func(int): string = { "${x * 2}" }
+println(f(21))
+println("a var inside: ${func(): int { var a = 1; a + 1 }()}")
+
+// expect
+// out: total: 3 items
+// out: 3 s true null [1, 2] Point{ x: 1, y: 2 }
+// out: nested: inner 3
+// out: multi
+// out: line
+// out: escapes: ` ${not} \ A
+// out: $ alone and 3$
+// out: 42
+// out: a var inside: 2

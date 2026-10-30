@@ -14,15 +14,15 @@ func area(s: Shape): float64 {
 }
 
 func describe(v: int | string | null | Array[int] | Map[string, int] | (func(): int) | Meters | float64 | bool | void): string {
-  if v is int { `int ${v}` }
-  else if v is string { `string ${v}` }
+  if v is int { "int ${v}" }
+  else if v is string { "string ${v}" }
   else if v is null { "null" }
-  else if v is Array { `array ${v}` }
-  else if v is Map { `map ${v}` }
-  else if v is func { `func giving ${v()}` }
-  else if v is Meters { `meters ${float64(v)}` }
-  else if v is float64 { `float ${v}` }
-  else if v is bool { `bool ${v}` }
+  else if v is Array { "array ${v}" }
+  else if v is Map { "map ${v}" }
+  else if v is func { "func giving ${v()}" }
+  else if v is Meters { "meters ${float64(v)}" }
+  else if v is float64 { "float ${v}" }
+  else if v is bool { "bool ${v}" }
   else { "void" }
 }
 

@@ -152,15 +152,14 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 	return p.file(path), l, nil
 }
 
-// incompleteLex reports whether a lexer error means the source ended too early: an open
-// template string or block comment, which may span lines, or a plain string or regular
-// expression open on the last line. Those stay on one line, so a line break ends them in an
-// error instead.
+// incompleteLex reports whether a lexer error means the source ended too early: an open string,
+// raw string, or block comment, which may span lines, or a regular expression open on the last
+// line. A regular expression stays on one line, so a line break ends it in an error instead.
 func incompleteLex(src string, le *lexer.Error) bool {
 	if !strings.HasPrefix(le.Msg, "unterminated") {
 		return false
 	}
-	if le.Msg == "unterminated string" || le.Msg == "unterminated regular expression" {
+	if le.Msg == "unterminated regular expression" {
 		return le.Pos.Line == strings.Count(lexer.NormalizeBreaks(src), "\n")+1
 	}
 	return true
@@ -1810,7 +1809,7 @@ func (p *parser) template(t token.Token) *ast.Template {
 			n.Parts = append(n.Parts, ast.TemplatePart{Pos: cpos(part.Pos), End: cpos(part.EndPos), Text: part.Text})
 			continue
 		}
-		e := p.subExpression(part.Tokens, "a template expression")
+		e := p.subExpression(part.Tokens, "an interpolation")
 		if bad, ok := e.(*ast.BadExpr); ok && bad.Pos == (ast.Pos{}) {
 			bad.Pos, bad.End = cpos(part.Pos), cpos(part.EndPos)
 		}
@@ -1820,7 +1819,7 @@ func (p *parser) template(t token.Token) *ast.Template {
 }
 
 // markup converts the content the lexer read, parsing each interpolation on its own tokens as
-// template does.
+// template does for a string.
 func (p *parser) markup(m *token.Markup) []ast.HtmlNode {
 	p.nest()
 	defer p.unnest()

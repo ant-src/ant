@@ -56,7 +56,7 @@ func NewSession(ctx context.Context, opts ...Option) (*Session, error) {
 }
 
 // Incomplete reports whether src ends too early to be one input, so a REPL should keep
-// reading: an open brace, bracket, string, or template.
+// reading: an open brace, bracket, string, or raw string.
 func Incomplete(src string) bool {
 	_, err := parser.Parse("<input>", src, parser.Session)
 	if err == nil {

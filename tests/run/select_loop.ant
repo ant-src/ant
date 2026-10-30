@@ -15,7 +15,7 @@ func generating(s: Session, ctx: Context, speech: Channel[void], messages: Chann
       }
       var offset = Channel.receive(interrupts) {
         if offset != null { s.interrupted = true }
-        return `interrupted at ${offset ?? -1}`
+        return "interrupted at ${offset ?? -1}"
       }
     }
   }

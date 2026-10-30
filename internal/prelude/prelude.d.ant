@@ -696,9 +696,9 @@ func String.fromInt[T: Integer](x: T, base: int = 10): string
 //     String.fromFloat(0.125, 2)   // "0.12"
 func String.fromFloat(x: float64, digits: int): string
 
-// String.from renders any value as text, in the format print, println, and template strings use. A
-// string renders as itself at the top level and quoted with escapes inside a container; a float
-// renders as the shortest decimal that reads back to it, with .0 when integral.
+// String.from renders any value as text, in the format print, println, and string interpolation
+// use. A string renders as itself at the top level and quoted with escapes inside a container; a
+// float renders as the shortest decimal that reads back to it, with .0 when integral.
 //
 //     String.from(["a", "b"])   // "[\"a\", \"b\"]"
 //     String.from(1.0)          // "1.0"

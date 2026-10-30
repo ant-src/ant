@@ -16,7 +16,7 @@ func readFrame(f: File.Handle): Bytes | null {
 }
 
 var dir = Os.args()[0]
-var path = `${dir}/data.bin`
+var path = "${dir}/data.bin"
 
 // A header line, then binary that is not UTF-8.
 var w = Result.unwrap(File.create(path))
@@ -74,7 +74,7 @@ var stop = Context.new()
 go {
   Http.serve(server, { Http.Reply{ status: 200, headers: Map{}, body: Bytes.concat([Crypto.sha256(x.bytes), x.bytes]) } }, stop)
 }
-var base = `http://${Net.address(server)}`
+var base = "http://${Net.address(server)}"
 var sent = Bytes.fromArray([0x7b, 0xff, 0x7d])
 var r = Result.unwrap(Http.post(base, sent))
 println(Bytes.slice(r.bytes, 0, 32) == Crypto.sha256(sent))

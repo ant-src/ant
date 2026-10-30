@@ -98,4 +98,4 @@ String.padEnd("7", 3, "0")                    // => "700"
 String.padEnd("7", 4, "ab")                   // => "7aba"
 String.padEnd("ñ", 3)                         // => "ñ  "
 String.padEnd("7", 3, "")                     // => panic: String.padEnd needs a pad that is not empty
-`${String.fromFloat(1234.5678, 2)} ${String.padStart(String.fromInt(255, 16), 8, "0")}` // => "1234.57 000000ff"
+"${String.fromFloat(1234.5678, 2)} ${String.padStart(String.fromInt(255, 16), 8, "0")}" // => "1234.57 000000ff"

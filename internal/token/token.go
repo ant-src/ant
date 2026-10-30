@@ -15,7 +15,7 @@ const (
 	Int           // an integer literal; Value holds the int64
 	Float         // a float literal; Float holds the float64
 	String        // a string literal; Text holds the unescaped value
-	Template      // a template string; Parts holds its pieces
+	Template      // a string with interpolations; Parts holds its pieces
 	Op            // an operator or punctuation; Text holds it
 	Regex         // a regular expression literal; Text holds the source as written, Flags the sorted flags
 	Html          // an HTML expression; Markup holds its tree
@@ -43,7 +43,7 @@ func (k Kind) String() string {
 	case String:
 		return "string"
 	case Template:
-		return "template string"
+		return "string"
 	case Op:
 		return "operator"
 	case Regex:
@@ -79,7 +79,7 @@ type Token struct {
 	Off, End int
 }
 
-// Part is one piece of a template string: literal text, or the tokens of an interpolation
+// Part is one piece of a string with interpolations: literal text, or the tokens of an interpolation
 // (ending with EOF).
 type Part struct {
 	Text   string
@@ -167,7 +167,7 @@ func (t Token) String() string {
 	case String:
 		return "string literal"
 	case Template:
-		return "template string"
+		return "string literal"
 	case Regex:
 		return "regular expression literal"
 	case Html:

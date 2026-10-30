@@ -6,18 +6,18 @@ func copy(src: string, dst: string): Result[void, Error] {
   var input = try File.open(src)
   defer { println("closing input"); File.close(input) }
   var output = try File.create(dst)
-  defer { println(`closing output again: ${File.close(output)}`) }
+  defer { println("closing output again: ${File.close(output)}") }
   try File.pipe(input, output)
   File.close(output)
 }
 
 var dir = Os.args()[0]
-println(File.write(`${dir}/a.txt`, "payload\n"))
-println(copy(`${dir}/a.txt`, `${dir}/b.txt`))
-println(File.read(`${dir}/b.txt`))
-println(copy(`${dir}/missing.txt`, `${dir}/c.txt`) is Err)
-println(File.exists(`${dir}/c.txt`))
-println(copy(`${dir}/a.txt`, `${dir}/nodir/c.txt`) is Err)
+println(File.write("${dir}/a.txt", "payload\n"))
+println(copy("${dir}/a.txt", "${dir}/b.txt"))
+println(File.read("${dir}/b.txt"))
+println(copy("${dir}/missing.txt", "${dir}/c.txt") is Err)
+println(File.exists("${dir}/c.txt"))
+println(copy("${dir}/a.txt", "${dir}/nodir/c.txt") is Err)
 
 // expect
 // out: Ok{ value: void }

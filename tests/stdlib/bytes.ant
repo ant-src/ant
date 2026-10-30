@@ -4,7 +4,7 @@
 var png = Bytes.fromArray([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 png                                           // => Bytes(89 50 4e 47 0d 0a 1a 0a)
 [png, String.toBytes("")]                     // => [Bytes(89 50 4e 47 0d 0a 1a 0a), Bytes()]
-`magic ${Bytes.slice(png, 1, 4)}`             // => "magic Bytes(50 4e 47)"
+"magic ${Bytes.slice(png, 1, 4)}"             // => "magic Bytes(50 4e 47)"
 
 // len, b[i], and for.
 len(png)                                      // => 8
@@ -32,7 +32,7 @@ Set.of([String.toBytes("a"), String.toBytes("a"), String.toBytes("b")]) // => Se
 
 // is tests the kind, so string | Bytes narrows either way.
 func describe(body: string | Bytes): string {
-  if body is Bytes { `${len(body)} bytes` } else { `text: ${body}` }
+  if body is Bytes { "${len(body)} bytes" } else { "text: ${body}" }
 }
 describe(png)                                 // => "8 bytes"
 describe("ok")                                // => "text: ok"

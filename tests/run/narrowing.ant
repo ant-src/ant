@@ -15,7 +15,7 @@ func load(): Config | null {
 
 func find(id: int): User | null {
   if id <= 0 { return null }
-  User{ name: `u${id}`, address: if id == 1 { Address{ city: "Paris" } } else { null } }
+  User{ name: "u${id}", address: if id == 1 { Address{ city: "Paris" } } else { null } }
 }
 
 func firstName(id: int): string {

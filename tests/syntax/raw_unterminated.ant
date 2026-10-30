@@ -1,0 +1,7 @@
+// spec: 2 Literals
+var s = `a raw string
+that is never closed
+
+// expect
+// exit: 2
+// err: 2:9: unterminated raw string

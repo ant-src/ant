@@ -13,7 +13,7 @@ import (
 // Running a program from a string, with its output captured.
 func Example_run() {
 	src := `
-for name in Os.args() { println(` + "`hello, ${name}`" + `) }
+for name in Os.args() { println("hello, ${name}") }
 `
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src))
 	if err != nil {

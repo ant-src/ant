@@ -3,19 +3,19 @@
 // Random, File.Handle, and Net.Listener, which compare by identity, render as their type's name,
 // and are narrowed in a union by testing the other members.
 func body(b: string | Bytes): string {
-  if b is Bytes { `${Bytes.length(b)} bytes` } else { b }
+  if b is Bytes { "${Bytes.length(b)} bytes" } else { b }
 }
 
 func done(r: int | void): string {
-  if r is void { "void" } else { `${r}` }
+  if r is void { "void" } else { "${r}" }
 }
 
 func draw(g: Random | null): string {
-  if g != null { `${g}` } else { "none" }
+  if g != null { "${g}" } else { "none" }
 }
 
 func handle(h: File.Handle | int): string {
-  if h is int { "int" } else { `${h} ${h == Os.stdout()} ${h == Os.stderr()}` }
+  if h is int { "int" } else { "${h} ${h == Os.stdout()} ${h == Os.stderr()}" }
 }
 
 println(body(Bytes.fromArray([104, 105])))
@@ -32,7 +32,7 @@ println(handle(1))
 var listened = Net.listen("127.0.0.1:0")
 if listened is Ok {
   var l = listened.value
-  println(`${l} ${l == l}`)
+  println("${l} ${l == l}")
   Net.close(l)
 }
 

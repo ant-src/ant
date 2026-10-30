@@ -6,7 +6,7 @@ type Vec = { x: float64, y: float64 }
 type Named = { name: string }
 type Person = { name: string, age: int }
 
-func greet(n: { name: string }): string { `hi ${n.name}` }
+func greet(n: { name: string }): string { "hi ${n.name}" }
 
 var x = 1.0
 var y = 2.0

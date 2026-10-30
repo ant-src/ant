@@ -30,7 +30,7 @@ func tokenize(src: string): Result[Array[Token], Error] {
       var start = i
       while i < Array.length(chars) && isDigit(chars[i]) { i += 1 }
       var text = String.join(Array.slice(chars, start, i), "")
-      var n = String.toFloat(text) ?? return Result.err(Error{ message: `bad number ${text}` })
+      var n = String.toFloat(text) ?? return Result.err(Error{ message: "bad number ${text}" })
       Array.push(tokens, Num{ value: n })
     } else if isLetter(ch) {
       var start = i
@@ -40,7 +40,7 @@ func tokenize(src: string): Result[Array[Token], Error] {
       Array.push(tokens, Punct{ text: ch })
       i += 1
     } else {
-      return Result.err(Error{ message: `unexpected character ${ch} at ${i}` })
+      return Result.err(Error{ message: "unexpected character ${ch} at ${i}" })
     }
   }
   Result.ok(tokens)
@@ -105,14 +105,14 @@ func Parser.primary(p: Parser): Result[Expr, Error] {
     _ = Parser.next(p)
     return Result.ok(inner)
   }
-  Result.err(Error{ message: `unexpected ${t.text}` })
+  Result.err(Error{ message: "unexpected ${t.text}" })
 }
 
 func parse(src: string): Result[Expr, Error] {
   var p = Parser{ tokens: try tokenize(src), pos: 0 }
   var e = try Parser.expr(p)
   var rest = Parser.peek(p)
-  if rest != null { return Result.err(Error{ message: `unexpected ${show(rest)} after the expression` }) }
+  if rest != null { return Result.err(Error{ message: "unexpected ${show(rest)} after the expression" }) }
   Result.ok(e)
 }
 
@@ -123,7 +123,7 @@ func show(t: Token): string {
 func eval(e: Expr, env: Map[string, float64]): Result[float64, Error] {
   if e is Lit { return Result.ok(e.value) }
   if e is Ref {
-    var v = env[e.name] ?? return Result.err(Error{ message: `unknown variable ${e.name}` })
+    var v = env[e.name] ?? return Result.err(Error{ message: "unknown variable ${e.name}" })
     return Result.ok(v)
   }
   if e is Neg { return Result.ok(-(try eval(e.operand, env))) }
@@ -139,16 +139,16 @@ func eval(e: Expr, env: Map[string, float64]): Result[float64, Error] {
 func format(e: Expr): string {
   if e is Lit { String.from(e.value) }
   else if e is Ref { e.name }
-  else if e is Neg { `(-${format(e.operand)})` }
-  else { `(${format(e.left)} ${e.op} ${format(e.right)})` }
+  else if e is Neg { "(-${format(e.operand)})" }
+  else { "(${format(e.left)} ${e.op} ${format(e.right)})" }
 }
 
 func calculate(src: string, env: Map[string, float64]): string {
   var parsed = parse(src)
-  if parsed is Err { return `${src} => error: ${parsed.error.message}` }
+  if parsed is Err { return "${src} => error: ${parsed.error.message}" }
   var result = eval(parsed.value, env)
-  if result is Err { return `${format(parsed.value)} => error: ${result.error.message}` }
-  `${format(parsed.value)} => ${result.value}`
+  if result is Err { return "${format(parsed.value)} => error: ${result.error.message}" }
+  "${format(parsed.value)} => ${result.value}"
 }
 
 var env = Map{ pi: 3.141592653589793, e: 2.718281828459045 }

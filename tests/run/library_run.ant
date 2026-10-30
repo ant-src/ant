@@ -1,7 +1,7 @@
 // spec: 10 Scripts
 //! A library given to ant run is initialized, and the program exits 0: its initializers run,
 //! though nothing else does.
-func greet(name: string): string { `hello, ${name}` }
+func greet(name: string): string { "hello, ${name}" }
 
 var greeting = greet("init")
 var printed = println(greeting)

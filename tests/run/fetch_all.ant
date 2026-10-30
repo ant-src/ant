@@ -18,7 +18,7 @@ func fetchAll(urls: Array[string]): Array[Result[Http.Response, Error]] {
 }
 
 var base = Os.args()[0]
-var results = fetchAll([`${base}/hello`, `${base}/status/404`, "http://127.0.0.1:1/", `${base}/status/500`])
+var results = fetchAll(["${base}/hello", "${base}/status/404", "http://127.0.0.1:1/", "${base}/status/500"])
 for r in results {
   if r is Ok { println(r.value.status) } else { println("error") }
 }

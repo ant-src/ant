@@ -1,9 +1,9 @@
 // spec: 2 Literals; 5 HTML expressions; 4 Type declarations
-// Inside an interpolation, of a template string or of markup, line breaks end no statement, so a
+// Inside an interpolation, of a string or of markup, line breaks end no statement, so a
 // < at the start of a line there is a comparison. A reference that a comment splits is not one.
 var x = 2
-var s = `${x
-  < 3}`
+var s = "${x
+  < 3}"
 println(s)
 println(<p>{if x
   < 3 { "less" }}</p>)

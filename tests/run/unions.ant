@@ -10,7 +10,7 @@ type Pending = {}
 type Status = Empty | Pending
 type Handler = func(request: int): string
 
-func describe(u: A | B): string { `${u.id} ${u.name}` }
+func describe(u: A | B): string { "${u.id} ${u.name}" }
 
 func onlyEmpty(e: Empty): string { "empty" }
 
@@ -41,7 +41,7 @@ println(parse("x"))
 var f = positive()
 println(f(1))
 println(f(-1))
-var h: Handler = { `request ${x}` }
+var h: Handler = { "request ${x}" }
 println(h(7))
 var n: int | float64 = 2.5
 println(n is float64)

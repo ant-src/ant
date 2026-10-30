@@ -36,7 +36,7 @@ while n < 10 {
 }
 println(n)
 for ch in "añb" { println(ch) }
-for { key, value } in (Map{ a: 1, b: 2 }) { println(`${key}=${value}`) }
+for { key, value } in (Map{ a: 1, b: 2 }) { println("${key}=${value}") }
 for e in (Map{ c: 3 }) { println(e) }
 for v in evens(6) { println(v) }
 for v in evens(100) {

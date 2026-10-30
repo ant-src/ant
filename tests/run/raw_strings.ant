@@ -1,0 +1,27 @@
+// spec: 2 Literals
+// A raw string, between backticks as in Go, holds the text between them: no escapes and no
+// interpolation, and it may span lines, each line break one \n.
+var path = `C:\temp\new`
+println(path)
+println(String.length(path))
+println(`say "hi" for $5 and ${x}`)
+println(Regex.replace(/(\w+)@(\w+)/, "ada@home", `${2}:$1`))
+var script = `#!/bin/sh
+  echo "deploying ${APP}"
+`
+print(script)
+println(`` == "")
+println(`a` + "`" + `b`)
+println(`multi
+line` == "multi\nline")
+
+// expect
+// out: C:\temp\new
+// out: 11
+// out: say "hi" for $5 and ${x}
+// out: home:ada
+// out: #!/bin/sh
+// out:   echo "deploying ${APP}"
+// out: true
+// out: a`b
+// out: true

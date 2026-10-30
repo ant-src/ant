@@ -31,7 +31,7 @@ func Box.map[T, U](b: Box[T], f: func(T): U): Box[U] { Box{ value: f(b.value) } 
 func Tree.size(t: Tree): int { 1 + (Array.sum(Array.map(t.children, Tree.size)) ?? 0) }
 func swap[A, B](p: Pair[A, B]): Pair[B, A] { Pair{ first: p.second, second: p.first } }
 func max[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
-func describe(id: Id): string { if id is int { `number ${id}` } else { `text ${id}` } }
+func describe(id: Id): string { if id is int { "number ${id}" } else { "text ${id}" } }
 func clamp(value: int, low: int, high: int): int {
   if value < low { return low }
   if value > high { return high }
@@ -50,7 +50,7 @@ func evens(limit: int): Seq[int] {
     }
   }
 }
-func connect(host: string, port: int = 443, tls: bool = true): string { `${host}:${port}:${tls}` }
+func connect(host: string, port: int = 443, tls: bool = true): string { "${host}:${port}:${tls}" }
 func fetchAll(urls: Array[string]): Array[Result[Http.Response, Error]] {
   var results: Array[Result[Http.Response, Error]] = Array.filled(Array.length(urls), Result.err(Error{ message: "pending" }))
   var lock = Mutex.new()
@@ -71,12 +71,12 @@ func loadConfig(path: string): Result[Json.Value, Error] {
   var json = try Json.parse(text)
   Result.ok(json)
 }
-func label(s: string | null): string { `value: ${s ?? return "missing"}` }
+func label(s: string | null): string { "value: ${s ?? return "missing"}" }
 
 var p = Point{ x: 1.0, y: 2.0 }
 var moved = Point{ ...p, x: 0.0 }
 var v = Vec{ ...p }
-println(`${moved} ${v} ${Point.norm(p)}`)
+println("${moved} ${v} ${Point.norm(p)}")
 var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }, Empty{}]
 println(Array.map(shapes, Shape.area))
 println(Array.filter(shapes, { x is Circle }))

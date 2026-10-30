@@ -30,7 +30,7 @@ for _ in Iter.range(0, 5) {
   }
 }
 WaitGroup.wait(wg2)
-println(`incomplete: ${Atomic.load(incomplete)}`)
+println("incomplete: ${Atomic.load(incomplete)}")
 var calls = Atomic.new(0)
 var v = Once.value({ _ = Atomic.add(calls, 1); "cached" })
 println(v() + v())

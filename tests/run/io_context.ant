@@ -4,15 +4,15 @@
 // context the earlier wins; Cmd.capture kills its child when the context ends; a read of a regular
 // file never waits, so the context is looked at only before the read.
 var base = Os.args()[0]
-println(Http.get(`${base}/slow`, ctx: Context.new(Time.duration(milliseconds: 100))))
+println(Http.get("${base}/slow", ctx: Context.new(Time.duration(milliseconds: 100))))
 var ctx = Context.new()
 go { Time.sleep(Time.duration(milliseconds: 50)); Context.cancel(ctx) }
-println(Http.get(`${base}/slow`, ctx: ctx))
+println(Http.get("${base}/slow", ctx: ctx))
 var early = Context.new()
 Context.cancel(early)
-println(Http.get(`${base}/hello`, ctx: early))
-println(Http.request("GET", `${base}/slow`, timeout: Time.duration(seconds: 5), ctx: Context.new(Time.duration(milliseconds: 50))))
-println(Result.isOk(Http.get(`${base}/hello`, ctx: Context.new(Time.duration(seconds: 5)))))
+println(Http.get("${base}/hello", ctx: early))
+println(Http.request("GET", "${base}/slow", timeout: Time.duration(seconds: 5), ctx: Context.new(Time.duration(milliseconds: 50))))
+println(Result.isOk(Http.get("${base}/hello", ctx: Context.new(Time.duration(seconds: 5)))))
 var before = Time.monotonic()
 println(Cmd.capture(Cmd.new("sleep", ["10"]), ctx: Context.new(Time.duration(milliseconds: 100))))
 println(Time.monotonic() - before < 5000)

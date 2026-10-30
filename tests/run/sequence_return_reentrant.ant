@@ -16,7 +16,7 @@ func walk(n: int): int {
     if v == 2 { return 200 }
     if n == 0 {
       var got = walk(1)
-      println(`inner walk returned ${got}`)
+      println("inner walk returned ${got}")
       return 100
     }
   }

@@ -7,7 +7,7 @@ func div(a: int, b: int): int {
   a / b
 }
 
-func describe(f: Panic.Frame): string { `${f.function} ${Path.base(f.path)}:${f.line}:${f.column}` }
+func describe(f: Panic.Frame): string { "${f.function} ${Path.base(f.path)}:${f.line}:${f.column}" }
 
 println(Panic.catch({ div(6, 3) }))
 

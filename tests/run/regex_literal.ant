@@ -15,7 +15,7 @@ println([/c/, /d/])
 var q = null ?? /e/
 println(q)
 println(pick())
-println(`${/f/} and ${/g/i}`)
+println("${/f/} and ${/g/i}")
 println((/=/))
 println(/[/]/)
 println(/a\/b/)

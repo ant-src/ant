@@ -34,7 +34,7 @@ println(sum("12", "30"))
 var bad = sum("1x", "3")
 if bad is Err {
   var e = bad.error
-  if e is BadDigit { println(`bad digit at ${e.at}`) } else { println("empty") }
+  if e is BadDigit { println("bad digit at ${e.at}") } else { println("empty") }
 }
 println(Result.isOk(sum("", "1")))
 println(Result.unwrapOr(sum("a", "1"), -1))

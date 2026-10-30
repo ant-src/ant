@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var s = "a \` b"
+
+// expect
+// exit: 2
+// err: a backtick needs no escape in a string

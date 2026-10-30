@@ -35,4 +35,4 @@ var either: Point | Label = Label{ x: "l" }
 p = Point{ x: 0, y: 0 }
 _ = n
 bump()
-println(`${p} ${xs} ${m} ${s} ${n} ${count}`)
+println("${p} ${xs} ${m} ${s} ${n} ${count}")

@@ -9,14 +9,14 @@
 type Task = { id: int, title: string, done: bool }
 
 func decodeTask(v: Json.Value, path: string): Result[Task, Error] {
-  if !(v is Map) { return Result.err(Error{ message: `${path}: expected an object` }) }
+  if !(v is Map) { return Result.err(Error{ message: "${path}: expected an object" }) }
   var id = v["id"]
   var title = v["title"]
   var done = v["done"]
-  if !(id is float64) { return Result.err(Error{ message: `${path}.id: expected a number` }) }
-  var n = Math.toInt(id) ?? return Result.err(Error{ message: `${path}.id: expected an integer` })
-  if !(title is string) { return Result.err(Error{ message: `${path}.title: expected a string` }) }
-  if !(done is bool) { return Result.err(Error{ message: `${path}.done: expected a bool` }) }
+  if !(id is float64) { return Result.err(Error{ message: "${path}.id: expected a number" }) }
+  var n = Math.toInt(id) ?? return Result.err(Error{ message: "${path}.id: expected an integer" })
+  if !(title is string) { return Result.err(Error{ message: "${path}.title: expected a string" }) }
+  if !(done is bool) { return Result.err(Error{ message: "${path}.done: expected a bool" }) }
   Result.ok(Task{ id: n, title: title, done: done })
 }
 
@@ -25,7 +25,7 @@ func load(path: string): Result[Array[Task], Error] {
   var tree = try Json.parse(try File.read(path))
   if !(tree is Array) { return Result.err(Error{ message: "$: expected an array" }) }
   var tasks: Array[Task] = []
-  for { index, value } in Array.entries(tree) { Array.push(tasks, try decodeTask(value, `$[${index}]`)) }
+  for { index, value } in Array.entries(tree) { Array.push(tasks, try decodeTask(value, "$[${index}]")) }
   Result.ok(tasks)
 }
 
@@ -33,8 +33,8 @@ func save(path: string, tasks: Array[Task]): Result[void, Error] { File.write(pa
 
 func find(tasks: Array[Task], arg: string | null): Result[Task, Error] {
   var text = arg ?? return Result.err(Error{ message: "an id is required" })
-  var id = String.toInt(text) ?? return Result.err(Error{ message: `${text} is not an id` })
-  var task = Array.find(tasks, { x.id == id }) ?? return Result.err(Error{ message: `no task ${id}` })
+  var id = String.toInt(text) ?? return Result.err(Error{ message: "${text} is not an id" })
+  var task = Array.find(tasks, { x.id == id }) ?? return Result.err(Error{ message: "no task ${id}" })
   Result.ok(task)
 }
 
@@ -45,18 +45,18 @@ func execute(path: string, command: string, args: Array[string]): Result[string,
     var next = Array.reduce(tasks, 0, func(high: int, t: Task): int { Math.max(high, t.id) }) + 1
     Array.push(tasks, Task{ id: next, title: String.join(args, " "), done: false })
     try save(path, tasks)
-    return Result.ok(`added ${next}`)
+    return Result.ok("added ${next}")
   }
   if command == "done" {
     var task = try find(tasks, Array.get(args, 0))
     task.done = true
     try save(path, tasks)
-    return Result.ok(`done ${task.id}`)
+    return Result.ok("done ${task.id}")
   }
   if command == "remove" {
     var task = try find(tasks, Array.get(args, 0))
     try save(path, Array.filter(tasks, { x.id != task.id }))
-    return Result.ok(`removed ${task.id}`)
+    return Result.ok("removed ${task.id}")
   }
   if command == "clear" {
     if File.exists(path) { try File.remove(path) }
@@ -65,10 +65,10 @@ func execute(path: string, command: string, args: Array[string]): Result[string,
   if command == "list" {
     if Array.isEmpty(tasks) { return Result.ok("nothing to do") }
     var lines: Array[string] = []
-    for { id, title, done } in tasks { Array.push(lines, `${if done { "[x]" } else { "[ ]" }} ${id} ${title}`) }
+    for { id, title, done } in tasks { Array.push(lines, "${if done { "[x]" } else { "[ ]" }} ${id} ${title}") }
     return Result.ok(String.join(lines, "\n"))
   }
-  Result.err(Error{ message: `unknown command ${command}; use add, done, remove, list, or clear` })
+  Result.err(Error{ message: "unknown command ${command}; use add, done, remove, list, or clear" })
 }
 
 var path = Os.env("TODO_FILE") ?? "todo.json"
@@ -78,6 +78,6 @@ var outcome = execute(path, command, Array.slice(argv, Math.min(1, len(argv)), l
 if outcome is Ok {
   println(outcome.value)
 } else {
-  eprintln(`error: ${outcome.error.message}`)
+  eprintln("error: ${outcome.error.message}")
   Os.exit(1)
 }

@@ -301,7 +301,7 @@ func (g *generator) gen(t *gtype, depth int) string {
 		case 4:
 			return "String.from(" + g.gen(g.pickType(), d) + ")"
 		}
-		return "`${" + g.gen(g.pickBase(), d) + "}`"
+		return "\"${" + g.gen(g.pickBase(), d) + "}\""
 	case "bool":
 		switch g.pick(9) {
 		case 0:

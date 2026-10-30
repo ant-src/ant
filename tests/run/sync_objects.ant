@@ -28,7 +28,7 @@ var c = Cond.new(a)
 var at = Atomic.new([1])
 println(Atomic.load(at))
 println(once == once && c == c)
-println(`${a} ${once} ${c} ${wg} ${rw} ${at}`)
+println("${a} ${once} ${c} ${wg} ${rw} ${at}")
 
 // expect
 // out: true

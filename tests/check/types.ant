@@ -10,7 +10,7 @@ type AccountId = string
 type Meters = float64
 type Alias = int | string
 
-func greet(n: { name: string }): string { `hi ${n.name}` }
+func greet(n: { name: string }): string { "hi ${n.name}" }
 
 var user = Person{ name: "ada", age: 36 }
 println(greet(user))

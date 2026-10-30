@@ -12,7 +12,7 @@ for i in Iter.range(0, 400) {
   go {
     defer { WaitGroup.done(wg) }
     if i % 4 == 0 { box.v = i }
-    else if i % 4 == 1 { box.v = `s${i}` }
+    else if i % 4 == 1 { box.v = "s${i}" }
     else if i % 4 == 2 { box.v = [i, i] }
     else { box.v = null }
     var seen = box.v
@@ -34,8 +34,8 @@ for i in Iter.range(0, 300) {
     _ = Array.sort(xs)
     _ = Array.get(xs, i)
     if i % 5 == 0 { _ = Array.pop(xs) }
-    m[`k${i % 20}`] = i
-    if i % 3 == 0 { _ = Map.remove(m, `k${i % 20}`) }
+    m["k${i % 20}"] = i
+    if i % 3 == 0 { _ = Map.remove(m, "k${i % 20}") }
     var total = 0
     for { key, value } in m { total += value }
     _ = Map.keys(m)

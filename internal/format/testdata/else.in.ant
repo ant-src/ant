@@ -3,8 +3,8 @@ type NoAccount = { id: string }
 type Insufficient = { id: string, short: int }
 
 func explain(e: NoAccount | Insufficient): string {
-  if e is NoAccount { `no account named ${e.id}` }
-      else if e is Insufficient { `${e.id} is short by ${e.short}` }
+  if e is NoAccount { "no account named ${e.id}" }
+      else if e is Insufficient { "${e.id} is short by ${e.short}" }
   else { "unknown" }
 }
 

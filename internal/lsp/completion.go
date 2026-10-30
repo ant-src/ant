@@ -79,7 +79,7 @@ type completer struct {
 	wordStart int // where the identifier under the cursor starts
 	wordEnd   int // where it ends, past the cursor when it goes on
 	// toks is the token stream the cursor is in: the document's, or an interpolation's inside a
-	// template string.
+	// string.
 	toks  []token.Token
 	items []CompletionItem
 	seen  map[string]bool
@@ -121,7 +121,7 @@ func (c *completer) run() {
 			case token.Template:
 				part := c.interpolation(t)
 				if part == nil {
-					return // in the text of the template
+					return // in the text of the string
 				}
 				c.toks = part.Tokens
 			}
@@ -169,7 +169,7 @@ func (c *completer) tokenBefore(toks []token.Token, off int) *token.Token {
 	return prev
 }
 
-// interpolation is the ${...} of a template string the cursor is in, or nil in its text.
+// interpolation is the ${...} of a string the cursor is in, or nil in its text.
 func (c *completer) interpolation(t *token.Token) *token.Part {
 	for i := range t.Parts {
 		part := &t.Parts[i]

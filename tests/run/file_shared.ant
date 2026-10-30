@@ -5,7 +5,7 @@ func serve(l: Net.Listener): void {
   var c = Result.unwrap(Net.accept(l))
   for i in [1, 2, 3] {
     var got = Result.unwrap(File.readLine(c))
-    var x = File.writeLine(c, `echo ${got ?? ""}`)
+    var x = File.writeLine(c, "echo ${got ?? ""}")
   }
   Result.unwrap(File.close(c))
 }
@@ -42,7 +42,7 @@ go {
 }
 Time.sleep(Time.duration(milliseconds: 50))
 File.close(c2)
-println(`read ended: ${Channel.receive(ended) ?? false}`)
+println("read ended: ${Channel.receive(ended) ?? false}")
 println(File.readLine(c2))
 var sent = Channel.send(done, true)
 

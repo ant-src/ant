@@ -7,7 +7,7 @@ export func Point.sum(a: Point, b: Point): Point { Point{ x: a.x + b.x, y: a.y +
 
 func Point.secret(p: Point): string { "private" }
 
-export func Point.describe(p: Point): string { `${p.x},${p.y} (${Point.secret(p)})` }
+export func Point.describe(p: Point): string { "${p.x},${p.y} (${Point.secret(p)})" }
 
 export type Circle = { radius: float64 }
 export type Rect = { width: float64, height: float64 }

@@ -4,16 +4,16 @@
 // in; return inside a deferred block returns from the deferred block only.
 func f(): int {
   var x = 1
-  defer { println(`deferred sees ${x}`) }
+  defer { println("deferred sees ${x}") }
   x = 2
   return x
 }
 
 println(f())
 for i in [1, 2] {
-  defer { println(`end of iteration ${i}`) }
+  defer { println("end of iteration ${i}") }
   if i == 1 { continue }
-  println(`body ${i}`)
+  println("body ${i}")
 }
 if true {
   defer { println("block done") }
@@ -34,7 +34,7 @@ println(h())
 var n = 0
 while n < 3 {
   n += 1
-  defer { println(`loop ${n}`) }
+  defer { println("loop ${n}") }
   if n == 2 { break }
 }
 println("done")

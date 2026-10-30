@@ -6,12 +6,12 @@ var results: Channel[string] = Channel.new()
 go {
   var r = Net.accept(l, Context.new(Time.duration(milliseconds: 50)))
   var text = if r is Ok { "connection" } else { r.error.message }
-  Channel.send(results, `short: ${text}`)
+  Channel.send(results, "short: ${text}")
 }
 go {
   var r = Net.accept(l, Context.new(Time.duration(seconds: 5)))
   var text = if r is Ok { "connection" } else { r.error.message }
-  Channel.send(results, `long: ${text}`)
+  Channel.send(results, "long: ${text}")
 }
 println(Channel.receive(results))
 var c = Result.unwrap(Net.dial(Net.address(l)))

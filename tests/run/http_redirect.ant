@@ -6,7 +6,7 @@ func handle(r: Http.Request): Http.Reply {
   if r.path == "/old" {
     Http.Reply{ status: 302, headers: Map{ Location: "/new" }, body: "" }
   } else {
-    Http.Reply{ status: 200, headers: Map{}, body: `${r.method} ${r.path} ${r.headers["Host"] ?? "no host"}` }
+    Http.Reply{ status: 200, headers: Map{}, body: "${r.method} ${r.path} ${r.headers["Host"] ?? "no host"}" }
   }
 }
 
@@ -17,13 +17,13 @@ go {
   var r = Http.serve(l, handle, ctx)
   Channel.send(served, r is Ok)
 }
-var base = `http://${Net.address(l)}`
-var got = Result.unwrap(Http.get(`${base}/old`))
+var base = "http://${Net.address(l)}"
+var got = Result.unwrap(Http.get("${base}/old"))
 println([got.status, got.headers["Location"] ?? ""])
-var posted = Result.unwrap(Http.post(`${base}/old`, "payload"))
+var posted = Result.unwrap(Http.post("${base}/old", "payload"))
 println(posted.status)
-println(Result.unwrap(Http.get(`${base}/new`)).body == `GET /new ${Net.address(l)}`)
-println(Http.request("", `${base}/new`))
+println(Result.unwrap(Http.get("${base}/new")).body == "GET /new ${Net.address(l)}")
+println(Http.request("", "${base}/new"))
 Context.cancel(ctx)
 println(Channel.receive(served))
 println(Net.accept(l))

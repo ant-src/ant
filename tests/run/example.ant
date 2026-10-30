@@ -38,7 +38,7 @@ func report(accounts: Map[AccountId, Account]): string {
   Map.values(accounts)
     | Array.filter({ x.status is Active })
     | Array.sortBy({ x.balance })
-    | Array.map({ `${x.owner}: ${x.balance}` })
+    | Array.map({ "${x.owner}: ${x.balance}" })
     | String.join("\n")
 }
 
@@ -52,9 +52,9 @@ var result = transfer(accounts, ada, linus, 50.0)
 if result is Ok { println("ok") }
 else {
   var error = result.error
-  if error is NotFound { println(`unknown account ${int(error.id)}`) }
-  else if error is Insufficient { println(`short by ${error.needed}`) }
-  else { println(`account ${int(error.id)} is suspended: ${error.reason}`) }
+  if error is NotFound { println("unknown account ${int(error.id)}") }
+  else if error is Insufficient { println("short by ${error.needed}") }
+  else { println("account ${int(error.id)} is suspended: ${error.reason}") }
 }
 
 println(report(accounts))

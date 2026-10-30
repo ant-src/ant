@@ -18,7 +18,7 @@ var event = Event{ type: "click", class: 3 }
 println(event.type)
 println(event.class)
 var { type: kind, class: level } = event
-println(`${kind} ${level}`)
+println("${kind} ${level}")
 var byClass = Map{ class: "a", if: "b" }
 println(byClass["class"])
 println(byClass["if"])

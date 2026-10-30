@@ -1,0 +1,26 @@
+// spec: fmt 4.9 Strings
+// The text of a string and a raw string is kept as written, and so is the indentation of the
+// lines inside one; only the code of an interpolation is formatted.
+type Point = { x: int }
+
+func main() {
+  var a = 1
+  var b = 2
+  var xs = [1]
+  println("total: ${a + b} items, first ${Array.map(xs, { x * 2 })[0]}")
+  println("kept   as   written ${Point{ x: 1 }}   ")
+  println("a ${"inner ${a} "} b")
+  println("${a
+    - b} subtracts across the break")
+  println("multi
+    line ${a +
+          b} text")
+  println("a tab ${a +
+	b} after a break in an interpolation is kept")
+  var raw = `C:\temp\${a}   ` + "x"
+  var lines = `
+    kept
+	as written
+`
+  println(raw, lines)
+}

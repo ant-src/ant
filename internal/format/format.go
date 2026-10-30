@@ -87,7 +87,7 @@ func (e elem) isNewline() bool { return e.tok != nil && e.tok.Kind == token.Newl
 
 type printer struct {
 	src      string // with every line break holding a \n (lexer.NormalizeBreaks)
-	text     string // as written, for the text of template strings, which is kept byte for byte
+	text     string // as written, for the markup of HTML expressions, which is kept byte for byte
 	roles    map[int]parser.Role
 	prefix   map[int]bool // the offsets of the - and ! the parser read as prefix
 	comments []token.Comment
@@ -128,7 +128,7 @@ func (p *printer) build(toks []token.Token, from, to int) *group {
 			ci++
 		}
 		for ci < len(coms) && coms[ci].Off < t.End {
-			ci++ // inside a template: printed with its interpolation
+			ci++ // inside an interpolation: printed with it
 		}
 		switch {
 		case t.Is("(") || t.Is("[") || t.Is("{"):
@@ -347,6 +347,8 @@ func (p *printer) token(t token.Token) {
 	switch {
 	case t.Kind == token.Template:
 		p.template(t)
+	case t.Kind == token.String:
+		p.write(unixBreaks(p.src[t.Off:t.End]))
 	case t.Kind == token.Html:
 		p.html(t)
 	case t.Off == t.End:
@@ -685,17 +687,21 @@ func (p *printer) space(prev, cur token.Token) int {
 	return 1
 }
 
-// ---- templates
+// ---- strings
 
-// template writes a template string: its text as written, and each interpolation's code with
-// the spacing of 4.7, keeping every line break and the indentation after it as written.
+// unixBreaks returns the source of a string with each line break written \n (4.1), which keeps
+// its value.
+func unixBreaks(s string) string { return strings.ReplaceAll(s, "\r\n", "\n") }
+
+// template writes a string with interpolations: its text as written, and each interpolation's
+// code with the spacing of 4.7, keeping every line break and the indentation after it as written.
 func (p *printer) template(t token.Token) {
 	at := t.Off
 	for _, part := range t.Parts {
 		if part.Tokens == nil {
 			continue
 		}
-		p.write(p.text[at:part.Off])
+		p.write(unixBreaks(p.src[at:part.Off]))
 		p.write("${")
 		g := p.build(part.Tokens, part.Off, part.End)
 		end := p.inline(g.elems, part.Off+2)
@@ -705,7 +711,7 @@ func (p *printer) template(t token.Token) {
 		p.write("}")
 		at = part.End
 	}
-	p.write(p.text[at:t.End])
+	p.write(unixBreaks(p.src[at:t.End]))
 }
 
 // html writes an HTML expression (4.10): its markup as written, and the code inside each
@@ -755,8 +761,8 @@ func (p *printer) html(t token.Token) {
 }
 
 // breaks is the whitespace between two tokens of an interpolation that holds a line break, as
-// written, except that no line ends in spaces, tabs, or a \r (4.1): only the text of a template
-// is kept byte for byte.
+// written, except that no line ends in spaces, tabs, or a \r (4.1): only the text of a string is
+// kept byte for byte.
 func breaks(gap string) string {
 	lines := strings.Split(gap, "\n")
 	for i := range lines[:len(lines)-1] {
