@@ -11,6 +11,8 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -18,6 +20,7 @@ import (
 	"sync"
 	"syscall/js"
 	"testing/fstest"
+	_ "time/tzdata" // the zone database, which js/wasm has no file system to read
 	"unicode/utf16"
 
 	"github.com/ant-src/ant"
@@ -56,7 +59,7 @@ func formatSource(this js.Value, args []js.Value) any {
 // path, whose modules are files, an object from path to source. Lines and columns are 1-based;
 // columns count UTF-16 code units, as JavaScript strings do.
 func check(this js.Value, args []js.Value) any {
-	path, files := args[0].String(), sources(args[1])
+	path, files := root(args[0].String()), sources(args[1])
 	prog, err := ant.Load(path, ant.WithFS(mapFS(files)))
 	var diags []ant.Diagnostic
 	if le, ok := err.(*ant.LoadError); ok {
@@ -72,21 +75,25 @@ func check(this js.Value, args []js.Value) any {
 // run is run(options): it runs a program and returns a Promise of its exit status. The
 // options are path and files, as check takes, and the optional args (an array of strings), env
 // (an object), stdin (a string), stdout and stderr (functions given each write as a
-// Uint8Array), and signal (an AbortSignal, which interrupts the run as Ctrl-C does).
+// Uint8Array), and signal (an AbortSignal, which interrupts the run as Ctrl-C does). An abort
+// reaches the run only when the program waits, as on a channel or a timer, since JavaScript runs
+// only then; a host stops a program that never waits by ending its worker.
 func run(this js.Value, args []js.Value) any {
 	opts := args[0]
-	path, files := opts.Get("path").String(), sources(opts.Get("files"))
+	path, files := root(opts.Get("path").String()), sources(opts.Get("files"))
+	stderr := writer(opts.Get("stderr"))
 	return promise(func() (any, error) {
 		prog, err := ant.Load(path, ant.WithFS(mapFS(files)))
 		if err != nil {
 			if le, ok := err.(*ant.LoadError); ok {
 				return result(ant.ExitStatus(err), diagnostics(le.Diagnostics, files)), nil
 			}
-			return nil, err
+			fmt.Fprintln(stderr, err)
+			return result(ant.ExitStatus(err), js.Global().Get("Array").New()), nil
 		}
 		runOpts := []ant.Option{
 			ant.WithStdout(writer(opts.Get("stdout"))),
-			ant.WithStderr(writer(opts.Get("stderr"))),
+			ant.WithStderr(stderr),
 			ant.WithStdin(strings.NewReader(str(opts.Get("stdin")))),
 			ant.WithArgs(strs(opts.Get("args"))),
 			ant.WithEnvironment(env(opts.Get("env"))),
@@ -109,8 +116,20 @@ func run(this js.Value, args []js.Value) any {
 			runOpts = append(runOpts, ant.WithInterrupts(interrupts))
 		}
 		err = prog.Run(context.Background(), runOpts...)
+		if err != nil && !reported(err) {
+			fmt.Fprintln(stderr, err) // as the ant command does
+		}
 		return result(ant.ExitStatus(err), js.Global().Get("Array").New()), nil
 	})
+}
+
+// reported says whether the runtime has already said what err says, or there is nothing to say:
+// a panic and a returned Err are on stderr, and an exit or an interrupt says nothing.
+func reported(err error) bool {
+	var pe *ant.PanicError
+	var ee *ant.ExitError
+	var re *ant.ResultError
+	return errors.As(err, &pe) || errors.As(err, &ee) || errors.As(err, &re) || errors.Is(err, ant.ErrInterrupted)
 }
 
 func result(status int, diags any) js.Value {
@@ -144,7 +163,7 @@ func languageServer(this js.Value, args []js.Value) any {
 			if err != nil {
 				return
 			}
-			onMessage.Invoke(string(body))
+			call(onMessage, string(body))
 		}
 	}()
 	conn := js.Global().Get("Object").New()
@@ -208,10 +227,10 @@ func promise(f func() (any, error)) js.Value {
 			defer handler.Release()
 			v, err := f()
 			if err != nil {
-				reject.Invoke(js.Global().Get("Error").New(err.Error()))
+				call(reject, js.Global().Get("Error").New(err.Error()))
 				return
 			}
-			resolve.Invoke(v)
+			call(resolve, v)
 		}()
 		return nil
 	})
@@ -227,7 +246,7 @@ func writer(f js.Value) io.Writer {
 	return writeFunc(func(p []byte) {
 		a := js.Global().Get("Uint8Array").New(len(p))
 		js.CopyBytesToJS(a, p)
-		f.Invoke(a)
+		call(f, a)
 	})
 }
 
@@ -244,7 +263,7 @@ func lineWriter(f js.Value) io.Writer {
 			if i < 0 {
 				return
 			}
-			f.Invoke(string(pending[:i]))
+			call(f, string(pending[:i]))
 			pending = pending[i+1:]
 		}
 	})
@@ -257,11 +276,25 @@ func (w writeFunc) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// call calls the JavaScript function f. Invoke panics when f throws, and a panic would end the
+// whole module, every instance of the API with it, so the exception goes to the console instead.
+func call(f js.Value, args ...any) {
+	defer func() {
+		if r := recover(); r != nil {
+			js.Global().Get("console").Call("error", fmt.Sprintf("ant.wasm: a callback threw: %v", r))
+		}
+	}()
+	f.Invoke(args...)
+}
+
+// root is the path of a program's root module in the file system mapFS makes.
+func root(path string) string { return strings.TrimPrefix(path, "/") }
+
 // mapFS is the file system a program is loaded from: its modules, by path.
 func mapFS(files map[string]string) fs.FS {
 	fsys := fstest.MapFS{}
 	for path, src := range files {
-		fsys[strings.TrimPrefix(path, "/")] = &fstest.MapFile{Data: []byte(src)}
+		fsys[root(path)] = &fstest.MapFile{Data: []byte(src)}
 	}
 	return fsys
 }
