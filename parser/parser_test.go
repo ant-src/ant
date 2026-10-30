@@ -136,7 +136,8 @@ func syntaxCases() []syntaxCase {
 		{"break without loop", "func f() { break }", "'break' outside a loop", Program},
 		{"continue in lambda", "func f() { for x in xs { var g = { continue } } }", "'continue' outside a loop", Program},
 		{"break in go", "func f() { for x in xs { go { break } } }", "'break' outside a loop", Program},
-		{"return at top level", "return 1", "'return' outside a function", Session},
+		{"return at top level", "var x = y ?? return 1", "'return' outside a function", Program}, // a library has no body
+		{"try at top level of a library", "var x = try f()", "'try' outside a function", Program},
 		{"return value in defer", "func f() { defer { return 1 } }", "'return' takes no value in a defer block", Program},
 		{"return value in go", "func f() { go { return 1 } }", "'return' takes no value in a go block", Program},
 		{"return value in go template", "func f() { go { println(`${return 1}`) } }", "'return' takes no value in a go block", Program},
@@ -179,7 +180,7 @@ func syntaxCases() []syntaxCase {
 		{"func type missing return", "type F = func(int)", "expected ':'", Program},
 		{"func with two dots", "func A.b.c() {}", "belongs to one type", Program},
 		{"brace after literal", "func f() { 1{ } }", "expected a newline or ';'", Program},
-		{"defer at top level", "defer { 1 }", "defer needs an enclosing block", Session},
+		{"defer at top level", "var x = defer { 1 }", "defer needs an enclosing block", Program},
 		{"empty source with garbage", "@", "unexpected character", Program},
 		{"field default in an annotation", "var a: { port: int = 80 } = b", "belongs in the record body of a type declaration", Program},
 		{"field default in a nested record type", "type A = Array[{ n: int = 1 }]", "belongs in the record body of a type declaration", Program},

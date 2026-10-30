@@ -98,7 +98,7 @@ func loop(ctx context.Context, s *ant.Session, r lineReader, stdout, stderr io.W
 			if v != value.Void {
 				fmt.Fprintln(stdout, value.Render(v))
 			}
-		case *ant.PanicError:
+		case *ant.PanicError, *ant.ResultError:
 			// reported by the runtime already
 		case *ant.ExitError:
 			return ant.ExitStatus(err)

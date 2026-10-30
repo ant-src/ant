@@ -57,7 +57,9 @@ func Incomplete(src string) bool {
 	return err.(*parser.Error).Incomplete
 }
 
-// Eval evaluates one input and returns the value of its last expression, or void. A syntax
+// Eval evaluates one input and returns the value of its last expression, or void. The input
+// is a script body of its own: the value it returns, by return or ?? return, is its result, and
+// an Err it returns, as try does, comes back as a *ResultError after being reported. A syntax
 // or scope error comes back as a *LoadError, a panic as a *PanicError after being reported.
 func (s *Session) Eval(src string) (value.Value, error) {
 	prog, diags := loader.Load("<input>", loader.Config{

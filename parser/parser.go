@@ -645,7 +645,9 @@ func (p *parser) leaveBoundary(s boundary) { p.boundary, p.loops = s.kind, s.loo
 
 func (p *parser) file(path string) *ast.File {
 	f := &ast.File{Path: path, Declarations: p.declarations()}
-	if p.mode == Program {
+	if p.mode == Program || p.mode == Session {
+		// a script's top level, and each input of a session, is a body that try, return, and
+		// defer can leave or register on (section 10, Scripts)
 		p.boundary = "script"
 	}
 	p.skipTerms()

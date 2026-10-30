@@ -97,10 +97,19 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 		for _, m := range fresh {
 			s.in.initModule(g, m)
 		}
+		// the input is a script body of its own (section 10, Scripts): return and try leave
+		// it, defer registers on it, and an Err it returns is reported as a script's is
+		body := &ast.Block{Stmts: root.File.Stmts, HasDefer: true}
 		var c ctl
-		result, c = g.evalStmts(root.File.Stmts, s.mod.root)
-		if c != ctlNone {
-			// The parser keeps return, break, continue and try inside a function or a loop.
+		result, c = g.evalBlock(body, s.mod.root)
+		switch c {
+		case ctlNone:
+		case ctlReturn:
+			if rec, ok := result.(*value.Record); ok && rec.Tag == value.ErrTag {
+				panic(&resultSignal{err: rec.Get(0)})
+			}
+		default:
+			// The parser keeps break and continue inside a loop.
 			g.panicf(ast.Pos{}, "internal error: control left a session input")
 		}
 	})

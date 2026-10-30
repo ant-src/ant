@@ -368,3 +368,53 @@ func BenchmarkSessionComplete(b *testing.B) {
 		s.Complete("xs | Array.", len("xs | Array."))
 	}
 }
+
+// TestSessionTry checks that an input is a script body of its own: try unwraps an Ok and
+// returns an Err from the input, which is reported and leaves the session going; return gives
+// the input's result; defer runs when the input ends.
+func TestSessionTry(t *testing.T) {
+	var out, errOut strings.Builder
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(&out), ant.WithStderr(&errOut))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	eval := func(src string) (value.Value, error) {
+		t.Helper()
+		v, err := s.Eval(src)
+		if _, ok := err.(*ant.LoadError); ok {
+			t.Fatalf("%s: %v", src, err)
+		}
+		return v, err
+	}
+	if _, err := eval("var a = try Ok{ value: 1 }"); err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := eval("a + 1"); v != int64(2) {
+		t.Errorf("a + 1 = %v", v)
+	}
+	_, err = eval("var b = try Err{ error: Error{ message: \"no page\" } }\nprintln(\"unreached\")")
+	if _, ok := err.(*ant.ResultError); !ok || err.Error() != "no page" {
+		t.Errorf("try on Err: %v", err)
+	}
+	if !strings.Contains(errOut.String(), "no page\n") || strings.Contains(out.String(), "unreached") {
+		t.Errorf("stdout %q, stderr %q", out.String(), errOut.String())
+	}
+	if v, err := eval("return a * 10\n99"); err != nil || v != int64(10) {
+		t.Errorf("return: %v, %v", v, err)
+	}
+	if v, err := eval("var x: int | null = null\nx ?? return \"none\""); err != nil || v != "none" {
+		t.Errorf("?? return: %v, %v", v, err)
+	}
+	out.Reset()
+	if _, err := eval("defer { println(\"deferred\") }\nprintln(\"body\")"); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != "body\ndeferred\n" {
+		t.Errorf("defer: %q", out.String())
+	}
+	// the session goes on after an Err
+	if v, _ := eval("a"); v != int64(1) {
+		t.Errorf("a = %v", v)
+	}
+}
