@@ -80,5 +80,8 @@ an error on another line, for errors the checker reports on a declaration rather
 - A panic that a checked program can reach: `run/`, with `// exit: 1` and an `// err:` line.
 - An example: the program under `../examples/`, written to be run by hand, with its tests in
   `examples_test.go`.
+- A result shown in a doc comment of the prelude: the example itself; `prelude_examples_test.go`
+  runs every example that has a `// value` as a library table and type-checks the rest, as the
+  header of `internal/prelude/prelude.d.ant` says.
 - A bug found by an example or a fuzzer: the smallest program under `run/` or `check/` that shows
   it, added before the fix.

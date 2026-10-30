@@ -5,6 +5,13 @@
 // checker; their declarations here give their shape and their docs. A section label that names a
 // namespace, followed by an empty comment line and a paragraph, as in "// Array", holds the
 // namespace's doc.
+//
+// An example is a run of indented lines in a doc (doc.md, section 2). A line that ends in two or
+// more spaces and "// value" is a case: tests/prelude_examples_test.go evaluates the example as a
+// library table (tests/stdlib/README.md), and the value must render as written, so a value that
+// differs between runs goes in the prose instead. An example with no case is only type-checked,
+// as the body of a script, and may use names it does not define, placeholders such as handle or
+// job.
 
 // Ok is the success case of a [Result], holding its value.
 type Ok[T] = { value: T }
@@ -1131,8 +1138,9 @@ func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
 
 // Result.all returns Ok of every value in rs, in order, or the first Err in rs.
 //
-//     Result.all([Result.ok(1), Result.ok(2)])                            // Ok{ value: [1, 2] }
-//     Result.all([Result.ok(1), Result.err("no"), Result.err("later")])   // Err{ error: "no" }
+//     var rs: Array[Result[int, string]] = [Result.ok(1), Result.ok(2)]
+//     Result.all(rs)                                     // Ok{ value: [1, 2] }
+//     Result.all(Array.concat(rs, [Result.err("no")]))   // Err{ error: "no" }
 func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
 
 // Result.wrapErr returns r itself if it is an Ok, and an Err holding Error.wrap(r.error, context)
@@ -1173,8 +1181,9 @@ func Panic.raise(p: Panic): never
 // Record.same reports whether a and b are the same record, not merely equal ones. The bound {}
 // admits any record type.
 //
-//     Record.same(p, p)               // true
-//     Record.same(p, Point{ ...p })   // false
+//     var e = Error{ message: "x" }
+//     Record.same(e, e)               // true
+//     Record.same(e, Error{ ...e })   // false
 func Record.same[T: {}](a: T, b: T): bool
 
 // Synchronization
