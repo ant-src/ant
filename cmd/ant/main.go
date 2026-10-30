@@ -18,6 +18,19 @@
 // file cannot be read, parsed, or written. ant doc exits 1 when there is no such declaration.
 // ant lsp exits 0 when the client sends shutdown and then exit, 1 when the connection ends
 // otherwise. ant dap exits 0 when the client disconnects, 1 when the connection ends first.
+//
+// The REPL evaluates each input on one session and prints every non-void result with
+// String.from; an input goes on over more lines while it is unfinished. On a terminal it edits
+// each line with the keys of readline (arrows, Home and End or Ctrl-A and Ctrl-E, Alt-B and
+// Alt-F or Ctrl-arrows by word, Ctrl-W, Ctrl-K, Ctrl-U, Ctrl-L), highlights it as it is typed,
+// and completes what can be written at the cursor: the names declared so far and the prelude's,
+// members after a dot, the functions that take the left side after a pipe, the parameters of a
+// call, the fields of a record, and import paths. The first completion is suggested after the
+// cursor, where Right or End takes it; Tab writes the only completion or the common prefix,
+// and otherwise lists them and cycles through them, Shift-Tab backwards. Up and Down browse
+// the history, kept in ~/.ant_history. Ctrl-C drops the line, Ctrl-D on an empty line ends the
+// REPL, and Ctrl-C while an input runs ends it with 130, as it ends a run. NO_COLOR or a dumb
+// terminal turns the colors off; without a terminal the REPL reads lines as they come.
 package main
 
 import (

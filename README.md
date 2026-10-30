@@ -81,6 +81,13 @@ ant check main.ant
 ant run main.ant
 ```
 
+Try things out in the REPL, which highlights the code as it is typed, completes names, members,
+and arguments with Tab, and suggests the first completion after the cursor:
+
+```sh
+ant
+```
+
 Format, or check the layout in CI:
 
 ```sh

@@ -52,11 +52,11 @@ func (s *Server) analyze(doc *document) *analysis {
 		prog = &loader.Program{Modules: []*loader.Module{m}, Root: m}
 		open[prelude.Path] = doc
 	} else {
-		prog, a.diags = loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: sources})
+		prog, a.diags = s.loadProgram(doc.path, sources)
 		if prog == nil {
 			// The root could not be read, which cannot happen for an open document; analyze its
 			// text alone.
-			prog, _ = loader.Load(doc.path, loader.Config{Mode: parser.Program, Recover: true, Sources: map[string]string{doc.path: doc.text}})
+			prog, _ = s.loadProgram(doc.path, map[string]string{doc.path: doc.text})
 		}
 	}
 	a.prog = prog
@@ -79,6 +79,15 @@ func (s *Server) analyze(doc *document) *analysis {
 	})
 	s.cache[doc.uri] = a
 	return a
+}
+
+// loadProgram loads the program rooted at path for analysis, through the server's load hook
+// when it has one.
+func (s *Server) loadProgram(path string, sources map[string]string) (*loader.Program, []loader.Diagnostic) {
+	if s.load != nil {
+		return s.load(path, sources)
+	}
+	return loader.Load(path, loader.Config{Mode: parser.Program, Recover: true, Sources: sources})
 }
 
 // module is the root's module.

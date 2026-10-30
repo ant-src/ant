@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -268,5 +269,45 @@ func TestSessionInterrupts(t *testing.T) {
 	time.AfterFunc(50*time.Millisecond, func() { interrupts <- struct{}{} })
 	if _, err := s.Eval("var n = 0\nwhile true { n += 1 }"); !errors.Is(err, ant.ErrInterrupted) {
 		t.Fatalf("an interrupted input ended with %v, want ErrInterrupted", err)
+	}
+}
+
+// TestSessionComplete checks that completion sees what earlier inputs declared, by their latest
+// types, and what the position allows.
+func TestSessionComplete(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	for _, src := range []string{"type Point = { x: int, y: int }", "var p = Point{ x: 1, y: 2 }", "var n = 1", "var n = \"a\"", "func twice(k: int): int { k * 2 }", "p.x + 1"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+	}
+	labels := func(src string) map[string]ant.Completion {
+		out := map[string]ant.Completion{}
+		for _, c := range s.Complete(src, len(src)) {
+			out[c.Label] = c
+		}
+		return out
+	}
+	if got := labels("p."); got["x"].Kind != "field" || got["y"].Detail != "int" {
+		t.Errorf("p.: %v", got)
+	}
+	if got := labels("n | String."); got["length"].Kind != "function" {
+		t.Errorf("n | String.: %v", got)
+	}
+	if got := labels("tw"); got["twice"].Kind != "function" || !strings.Contains(got["twice"].Detail, "k: int") {
+		t.Errorf("tw: %v", got["twice"])
+	}
+	if got := labels("twice("); !got["k:"].Preferred || got["k:"].Insert != "k: " {
+		t.Errorf("twice(: %v", got["k:"])
+	}
+	if got := labels(""); got["Array"].Kind != "namespace" || got["var"].Kind != "keyword" || got["n"].Detail != "string" {
+		t.Errorf("empty: Array %v, var %v, n %v", got["Array"], got["var"], got["n"])
+	}
+	if got := s.Complete("x", 5); got != nil {
+		t.Errorf("offset past the end: %v", got)
 	}
 }

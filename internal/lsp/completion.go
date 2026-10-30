@@ -13,7 +13,6 @@ import (
 	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/parser"
 	"github.com/ant-src/ant/value"
 )
 
@@ -27,13 +26,44 @@ func (s *Server) completion(p *CompletionParams) *CompletionList {
 	if d == nil {
 		return nil
 	}
+	return &CompletionList{Items: s.completeAt(d, d.offset(p.Position, s.utf16))}
+}
+
+// completeAt collects what can be written at byte offset off of d.
+func (s *Server) completeAt(d *document, off int) []CompletionItem {
 	a := s.analyze(d)
-	off := d.offset(p.Position, s.utf16)
 	c := &completer{s: s, a: a, d: d, off: off, toks: a.module().Layout.Tokens, items: []CompletionItem{}, seen: map[string]bool{}}
 	word, start := d.wordAt(off)
 	c.wordStart, c.wordEnd = start, start+len(word)
 	c.run()
-	return &CompletionList{Items: c.items}
+	return c.items
+}
+
+// Complete lists what can be written at byte offset off of text, the input of a session at
+// path, for a REPL: cfg is the session's loader configuration, whose Session scope and Extra
+// names the input is resolved against; the text itself overrides whatever cfg.Sources holds at
+// path. The items are those the language server would offer (spec/lsp.md section 4), unsorted.
+func Complete(cfg loader.Config, path, text string, off int) []CompletionItem {
+	s := &Server{docs: map[string]*document{}, cache: map[string]*analysis{}}
+	s.load = func(p string, sources map[string]string) (*loader.Program, []loader.Diagnostic) {
+		c := cfg
+		c.Recover = true
+		c.Sources = make(map[string]string, len(cfg.Sources)+len(sources))
+		for k, v := range cfg.Sources {
+			c.Sources[k] = v
+		}
+		for k, v := range sources {
+			c.Sources[k] = v
+		}
+		return loader.Load(p, c)
+	}
+	d := newDocument(fileURI(path), 0, text)
+	d.path = path
+	s.docs[d.uri] = d
+	if off < 0 || off > len(text) {
+		return nil
+	}
+	return s.completeAt(d, off)
 }
 
 // completer collects the items for one request.
@@ -172,9 +202,9 @@ func (s *Server) analyzeText(d *document, text string) *analysis {
 	}
 	sources[d.path] = text
 	a := &analysis{root: d, modules: map[string]*loader.Module{}, docs: map[string]*document{}, server: s}
-	prog, diags := loader.Load(d.path, loader.Config{Mode: parser.Program, Recover: true, Sources: sources})
+	prog, diags := s.loadProgram(d.path, sources)
 	if prog == nil {
-		prog, _ = loader.Load(d.path, loader.Config{Mode: parser.Program, Recover: true, Sources: map[string]string{d.path: text}})
+		prog, _ = s.loadProgram(d.path, map[string]string{d.path: text})
 	}
 	a.prog, a.diags = prog, diags
 	for _, m := range prog.Modules {

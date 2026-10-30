@@ -12,6 +12,8 @@ import (
 	"runtime/debug"
 	"slices"
 	"strings"
+
+	"github.com/ant-src/ant/internal/loader"
 )
 
 // Server is one language server, serving one client.
@@ -27,8 +29,12 @@ type Server struct {
 	cacheGen int
 	roots    []string // the workspace folders' paths
 	prelude  *document
-	caps     ClientCapabilities
-	files    map[string]*workspaceFile // the workspace's parsed files, by path
+	// load loads the program rooted at path with the open documents' text as sources, for
+	// analysis; nil loads a program with Recover, as an editor needs. A REPL loads a session
+	// input instead (Complete).
+	load  func(path string, sources map[string]string) (*loader.Program, []loader.Diagnostic)
+	caps  ClientCapabilities
+	files map[string]*workspaceFile // the workspace's parsed files, by path
 
 	initialized bool
 	shutdown    bool
