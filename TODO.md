@@ -132,23 +132,6 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
 
-## Exit status with deferred blocks
-
-**Today:** a script exits with `0`, or `1` on an `Err` (section 10, Scripts). Any other status needs
-`Os.exit`, which skips deferred blocks, so a script that passes on a child's status, as a shell
-wrapper does, leaves its temporary files behind or removes them by hand before exiting.
-
-**Sketch:** one of:
-
-- the script body may return an `int`, the exit status, after its deferred blocks run;
-- an `Os.exitAfterDefers(status)`-style call that unwinds the main goroutine first.
-
-**Open questions:**
-
-- Whether `return 3` in a script body reads as an exit status or as a mistake, given that today
-  `return 5` is a compile error.
-- What happens to other goroutines, as with `Os.exit`.
-
 ## Temporary files and permissions
 
 **Today:** `File.tempDir` exists but there is no temporary file, and no way to set a file's mode, so
@@ -213,7 +196,7 @@ common enough in scripts that it is long.
 **Today:** `Array.push` takes one value, so building an argument list of pairs, such as `-o X`,
 needs `xs = Array.concat(xs, ["-o", x])`.
 
-**Sketch:** `Array.pushAll[T](xs: Array[T], ys: Array[T]): void // mutates`, or a variadic `push`.
+**Sketch:** `Array.extend[T](xs: Array[T], ys: Array[T]): void // mutates`, or a variadic `push`.
 
 **Open questions:**
 
