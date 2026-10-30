@@ -51,7 +51,7 @@ println(Cmd.read(Cmd.pipe([
 var job = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("sleep", ["30"]), Cmd.new("cat")]), stdout: null))
 println(Cmd.pid(job) > 0)
 println(Cmd.stop(job, grace: Time.duration(seconds: 2)))
-var bounded = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("sleep", ["30"]), Cmd.new("sleep", ["30"])]), ctx: Context.new(timeout: Time.duration(milliseconds: 50))))
+var bounded = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("sleep", ["30"]), Cmd.new("sleep", ["30"])]), ctx: Context.new(timeout: Time.duration(milliseconds: 500))))
 println(Cmd.wait(bounded))
 var log = Result.unwrap(Os.openPipe())
 var lines = Result.unwrap(Cmd.start(Cmd.pipe([Cmd.new("printf", ["b\\na\\n"]), Cmd.new("sort")]), stdout: log.write))

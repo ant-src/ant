@@ -79,8 +79,8 @@ type Token struct {
 	Off, End int
 }
 
-// Part is one piece of a string with interpolations: literal text, or the tokens of an interpolation
-// (ending with EOF).
+// Part is one piece of a string with interpolations: literal text, or the tokens of an
+// interpolation (ending with EOF).
 type Part struct {
 	Text   string
 	Tokens []Token
