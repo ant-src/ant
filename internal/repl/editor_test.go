@@ -166,6 +166,10 @@ func complete(src string, off int) []ant.Completion {
 	case strings.HasSuffix(before, "twice("):
 		items = append(items, ant.Completion{Label: "k:", Insert: "k: ", Kind: "field", Preferred: true})
 		items = append(items, ant.Completion{Label: "println", Insert: "println", Kind: "function"})
+	case strings.HasSuffix(before, "get("):
+		for _, n := range []string{"url:", "headers:", "ctx:"} {
+			items = append(items, ant.Completion{Label: n, Insert: n + " ", Kind: "field", Preferred: true})
+		}
 	default:
 		for _, n := range []string{"println", "print", "panic", "Array", "Map", "var", "twice"} {
 			kind := "function"
@@ -182,20 +186,22 @@ func complete(src string, off int) []ant.Completion {
 
 func TestEditorCompletion(t *testing.T) {
 	tests := []struct{ keys, want string }{
-		{"tw\t\r", "twice"},                       // one reply: written
-		{"pr\t\r", "print"},                       // the common prefix (print is a prefix of println)
-		{"printl\t\r", "println"},                 // then the only reply
-		{"print\t\t\r", "println"},                // or the menu, when the word is a reply itself
-		{"Array.f\t\r", "Array.filter"},           // three replies share only the word: the menu opens on the first
-		{"Array.f\t\t\r", "Array.first"},          // Tab cycles... (sorted: filter, first, flatMap)
-		{"Array.f\t\t\t\r", "Array.flatMap"},      // ...through the replies
-		{"Array.f\t\t\t\t\r", "Array.filter"},     // and around
-		{"Array.f\t\x1b[Z\r", "Array.flatMap"},    // Shift-Tab goes back
-		{"Array.f\t\x1b\r", "Array.filter"},       // Escape leaves the menu with the reply
-		{"Array.\x1b[C\r", "Array.filter"},        // Right accepts the ghost after a dot
-		{"Array.\x05\r", "Array.filter"},          // so does End
-		{"Array.\r", "Array."},                    // Enter does not
-		{"twice(\x1b[C\r", "twice(k: "},           // a parameter the call asks for is suggested
+		{"tw\t\r", "twice"},                    // one reply: written
+		{"pr\t\r", "print"},                    // the common prefix (print is a prefix of println)
+		{"printl\t\r", "println"},              // then the only reply
+		{"print\t\t\r", "println"},             // or the menu, when the word is a reply itself
+		{"Array.f\t\r", "Array.filter"},        // three replies share only the word: the menu opens on the first
+		{"Array.f\t\t\r", "Array.first"},       // Tab cycles... (sorted: filter, first, flatMap)
+		{"Array.f\t\t\t\r", "Array.flatMap"},   // ...through the replies
+		{"Array.f\t\t\t\t\r", "Array.filter"},  // and around
+		{"Array.f\t\x1b[Z\r", "Array.flatMap"}, // Shift-Tab goes back
+		{"Array.f\t\x1b\r", "Array.filter"},    // Escape leaves the menu with the reply
+		{"Array.\x1b[C\r", "Array.filter"},     // Right accepts the ghost after a dot
+		{"Array.\x05\r", "Array.filter"},       // so does End
+		{"Array.\r", "Array."},                 // Enter does not
+		{"twice(\x1b[C\r", "twice(k: "},
+		{"get(\x1b[C\r", "get(url: "},             // the parameters come in their order, not alphabetically
+		{"get(\t\t\r", "get(headers: "},           // a parameter the call asks for is suggested
 		{"pa\x1b[C\r", "panic"},                   // the ghost extends the word
 		{"pa\x1b[D\x1b[C\r", "pa"},                // Right in the middle of the line moves the cursor
 		{"\t\t\r", "print"},                       // Tab on an empty line opens the menu: functions, then namespaces, then keywords

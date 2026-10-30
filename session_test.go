@@ -304,6 +304,16 @@ func TestSessionComplete(t *testing.T) {
 	if got := labels("twice("); !got["k:"].Preferred || got["k:"].Insert != "k: " {
 		t.Errorf("twice(: %v", got["k:"])
 	}
+	// the parameters of a call come in their order
+	var params []string
+	for _, c := range s.Complete("Http.get(", len("Http.get(")) {
+		if c.Preferred {
+			params = append(params, c.Label)
+		}
+	}
+	if strings.Join(params, " ") != "url: headers: timeout: ctx:" {
+		t.Errorf("Http.get( parameters: %q", params)
+	}
 	if got := labels(""); got["Array"].Kind != "namespace" || got["var"].Kind != "keyword" || got["n"].Detail != "string" {
 		t.Errorf("empty: Array %v, var %v, n %v", got["Array"], got["var"], got["n"])
 	}

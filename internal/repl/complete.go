@@ -69,6 +69,9 @@ func (e *editor) updateCompletion() {
 		if a.Preferred != b.Preferred {
 			return a.Preferred
 		}
+		if a.Preferred {
+			return false // the parameters and the fields keep their order
+		}
 		if ra, rb := kindRank(a.Kind), kindRank(b.Kind); ra != rb {
 			return ra < rb
 		}

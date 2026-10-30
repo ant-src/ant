@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -863,7 +864,8 @@ func (c *completer) namedArgs(prev *token.Token) {
 		if given[i] {
 			continue
 		}
-		item := CompletionItem{Label: name + ":", Kind: ItemProperty, InsertText: name + ": ", SortText: "0" + name}
+		// sorted first, in the order of the parameters
+		item := CompletionItem{Label: name + ":", Kind: ItemProperty, InsertText: name + ": ", SortText: fmt.Sprintf("0%03d", i)}
 		if i < len(ci.Fn.Params) {
 			item.Detail = types.String(ci.Fn.Params[i])
 		}
@@ -906,11 +908,12 @@ func (c *completer) recordFields(prev *token.Token) {
 			given[lit.Entries[i].Name] = true
 		}
 	}
-	for _, f := range named.FieldsOf() {
+	for i, f := range named.FieldsOf() {
 		if given[f.Name] {
 			continue
 		}
-		item := CompletionItem{Label: f.Name, Kind: ItemField, Detail: types.String(f.Type), InsertText: f.Name + ": ", SortText: "0" + f.Name}
+		// sorted first, in the order of the fields
+		item := CompletionItem{Label: f.Name, Kind: ItemField, Detail: types.String(f.Type), InsertText: f.Name + ": ", SortText: fmt.Sprintf("0%03d", i)}
 		if f.Default {
 			item.LabelDetails = &CompletionLabelDetails{Detail: " = …"}
 		}
