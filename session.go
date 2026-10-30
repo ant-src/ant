@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/internal/lsp"
 	"github.com/ant-src/ant/internal/token"
+	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/parser"
 	"github.com/ant-src/ant/value"
 )
@@ -208,18 +210,8 @@ func (s *Session) Complete(src string, off int) []Completion {
 	if off < 0 || off > len(src) {
 		return nil
 	}
-	var sb strings.Builder
-	for _, d := range s.decls {
-		sb.WriteString(d.src)
-		if !strings.HasSuffix(d.src, "\n") {
-			sb.WriteByte('\n')
-		}
-	}
-	base := sb.Len()
-	sb.WriteString(src)
-	cfg := loader.Config{FS: s.cfg.fsys, Sources: s.cfg.sources, Extra: s.extra,
-		Session: &ast.ModuleScope{Index: map[string]int{}}}
-	items := lsp.Complete(cfg, "<input>", sb.String(), base+off)
+	text, base := s.transcript(src)
+	items := lsp.Complete(s.analysisConfig(), "<input>", text, base+off)
 	out := make([]Completion, 0, len(items))
 	seen := map[string]bool{}
 	for _, it := range items {
@@ -331,6 +323,73 @@ func typeName(v value.Value) string {
 		return rec.Tag.Name
 	}
 	return value.KindOf(v).String()
+}
+
+// transcript is the text of the inputs that declared something, followed by src, and where
+// src begins in it: what Complete and TypeOf analyze, so that the names src uses have types.
+func (s *Session) transcript(src string) (string, int) {
+	var sb strings.Builder
+	for _, d := range s.decls {
+		sb.WriteString(d.src)
+		if !strings.HasSuffix(d.src, "\n") {
+			sb.WriteByte('\n')
+		}
+	}
+	base := sb.Len()
+	sb.WriteString(src)
+	return sb.String(), base
+}
+
+// analysisConfig loads a transcript for analysis: as a script, whose statements the checker
+// types, in a scope where a name may be declared again.
+func (s *Session) analysisConfig() loader.Config {
+	return loader.Config{FS: s.cfg.fsys, Sources: s.cfg.sources, Extra: s.extra,
+		Session: &ast.ModuleScope{Index: map[string]int{}}}
+}
+
+// TypeOf returns the type the checker gives expr, an expression over what the session has
+// declared, as the checker writes it. A syntax error, or a type error in expr, comes back as a
+// *LoadError, positioned in expr.
+func (s *Session) TypeOf(expr string) (string, error) {
+	text, base := s.transcript(expr)
+	baseLine := strings.Count(text[:base], "\n")
+	cfg := s.analysisConfig()
+	cfg.Mode = parser.Program
+	cfg.Sources = withSource(cfg.Sources, "<input>", text)
+	prog, diags := loader.Load("<input>", cfg)
+	inExpr := func(ds []loader.Diagnostic) []Diagnostic {
+		var out []Diagnostic
+		for _, d := range ds {
+			if d.Path == "<input>" && d.Pos.Line > baseLine {
+				d.Pos.Line -= baseLine
+				out = append(out, convert([]loader.Diagnostic{d})...)
+			}
+		}
+		return out
+	}
+	if prog == nil {
+		if ds := inExpr(diags); len(ds) > 0 {
+			return "", &LoadError{Diagnostics: ds}
+		}
+		return "", &LoadError{Diagnostics: convert(diags)}
+	}
+	info := check.NewInfo()
+	if ds := inExpr(check.Program(prog, check.Config{Info: info})); len(ds) > 0 {
+		return "", &LoadError{Diagnostics: ds}
+	}
+	stmts := prog.Root.File.Stmts
+	if len(stmts) == 0 {
+		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "expected an expression"}}}
+	}
+	e, ok := stmts[len(stmts)-1].(ast.Expr)
+	if !ok || ast.Start(e).Line <= baseLine {
+		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "expected an expression"}}}
+	}
+	t := info.Types[e]
+	if t == nil {
+		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "the expression has no type"}}}
+	}
+	return types.String(t), nil
 }
 
 // Value returns a name the session has declared.

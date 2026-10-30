@@ -69,7 +69,18 @@ func (e *editor) computeCompletion() {
 	c.tail = []rune(line[end:])
 	before := strings.TrimRight(line[:start], " \t")
 	c.member = strings.HasSuffix(before, ".") || strings.HasSuffix(before, "|")
-	items := e.complete(src, len(e.pending)+off)
+	var items []ant.Completion
+	if e.pending == "" && isCommand(line) {
+		var csrc string
+		var coff int
+		var ok bool
+		items, csrc, coff, ok = commandCompletions(strings.TrimLeft(line, " "), off-(len(line)-len(strings.TrimLeft(line, " "))))
+		if ok {
+			items = e.complete(csrc, coff)
+		}
+	} else {
+		items = e.complete(src, len(e.pending)+off)
+	}
 	seen := map[string]bool{}
 	for _, it := range items {
 		if i := strings.IndexByte(it.Insert, '.'); i >= 0 {

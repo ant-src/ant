@@ -32,7 +32,9 @@
 // the history, kept in ~/.ant_history. Ctrl-C drops the line, and twice in a row ends the REPL
 // with 130, as Ctrl-D on an empty line ends it with 0; Ctrl-C while an input runs ends it with
 // 130, as it ends a run. NO_COLOR turns the colors off; without a terminal, or on a dumb one,
-// the REPL reads lines as they come.
+// the REPL reads lines as they come. A line that begins with a colon is a command: :type expr
+// prints a type, :doc name a declaration of the standard library, :load file.ant evaluates a
+// file, :reset starts a new session, :quit ends it, and :help lists them with the keys.
 package main
 
 import (

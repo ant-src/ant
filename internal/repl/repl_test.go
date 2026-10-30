@@ -3,6 +3,7 @@ package repl
 import (
 	"context"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -148,7 +149,8 @@ func TestLoopInterrupts(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer s.Close()
-		status := loop(context.Background(), s, &scriptedReader{steps: steps}, &out, &errOut)
+		l := &looper{ctx: context.Background(), s: s, r: &scriptedReader{steps: steps}, stdout: &out, stderr: &errOut}
+		status := l.loop()
 		return status, out.String()
 	}
 	// a line dropped, then a line entered: the REPL goes on
@@ -180,5 +182,47 @@ func TestLoopInterrupts(t *testing.T) {
 	status, out = run(step{"func f() {", nil}, step{"", errInterrupt}, step{"2", nil})
 	if status != 0 || strings.Count(out, hint) != 1 || !strings.Contains(out, "2\n") {
 		t.Errorf("unfinished: status %d, out %q", status, out)
+	}
+}
+
+// TestCommands drives the commands through the plain reader.
+func TestCommands(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "lib.ant")
+	os.WriteFile(file, []byte("var loaded = 41\nloaded + 1\n"), 0o600)
+	input := strings.Join([]string{
+		":help",
+		"var p = { name: \"x\" }",
+		"type Point = { x: int, y: int }",
+		":type Point{ x: 1, y: 2 }.x",
+		":type nope",
+		":doc Array.map",
+		":load " + file,
+		"loaded",
+		":reset",
+		"loaded",
+		":nope",
+		":type",
+		":quit",
+		"println(\"after quit\")",
+	}, "\n") + "\n"
+	var out, errOut strings.Builder
+	status := Run(context.Background(), strings.NewReader(input), &out, &errOut)
+	if status != 0 {
+		t.Errorf("status %d", status)
+	}
+	o, e := out.String(), errOut.String()
+	for _, want := range []string{":type expr", "Ctrl-C", "> int\n", "func Array.map", "> 42\n", "> 41\n"} {
+		if !strings.Contains(o, want) {
+			t.Errorf("stdout lacks %q:\n%s", want, o)
+		}
+	}
+	for _, want := range []string{"nope", "unknown command :nope", "usage: :type expr", "loaded"} {
+		if !strings.Contains(e, want) {
+			t.Errorf("stderr lacks %q:\n%s", want, e)
+		}
+	}
+	if strings.Contains(o, "after quit") {
+		t.Errorf("ran after :quit:\n%s", o)
 	}
 }

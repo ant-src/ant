@@ -473,3 +473,37 @@ func (b *syncBuffer) String() string {
 	defer b.mu.Unlock()
 	return b.sb.String()
 }
+
+// TestSessionTypeOf checks the types :type prints, over what the session declared.
+func TestSessionTypeOf(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	for _, src := range []string{"type Point = { x: int, y: int }", "var p = Point{ x: 1, y: 2 }", "func twice(k: int): int { k * 2 }", "var xs = [1, 2]"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for src, want := range map[string]string{
+		"p":                        "Point",
+		"p.x + 1":                  "int",
+		"twice":                    "func(int): int",
+		"xs | Array.map({ \"\" })": "Array[string]",
+		"Http.get":                 "func(string, Map[string, string] = ..., Time.Duration | null = ..., Context | null = ...): Result[Http.Response, Error]",
+		"Http.get(\"u\")":          "Result[Http.Response, Error]",
+	} {
+		got, err := s.TypeOf(src)
+		if err != nil || got != want {
+			t.Errorf("TypeOf(%q) = %q, %v; want %q", src, got, err, want)
+		}
+	}
+	for _, src := range []string{"p.z", "nope", "1 +", ""} {
+		if got, err := s.TypeOf(src); err == nil {
+			t.Errorf("TypeOf(%q) = %q, want an error", src, got)
+		} else if le, ok := err.(*ant.LoadError); ok && len(le.Diagnostics) > 0 && le.Diagnostics[0].Pos.Line > 1 {
+			t.Errorf("TypeOf(%q): %v is not positioned in the expression", src, err)
+		}
+	}
+}

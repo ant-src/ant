@@ -18,37 +18,53 @@ import (
 // Run reads inputs from stdin until it ends, evaluating each on one session, printing every
 // non-void result with String.from, and reporting errors on stderr. On a terminal it edits each
 // line with the keys of readline, highlights it as it is typed, and completes names, members,
-// and arguments with Tab, suggesting the first after the cursor. It returns the exit status:
-// 130 when ctx ends first, which is an interrupt, as it ends a run, or when Ctrl-C is pressed
-// twice in a row at the prompt.
+// and arguments with Tab, suggesting the first after the cursor. A line that begins with a colon
+// is a command (:help lists them). It returns the exit status: 130 when ctx ends first, which is
+// an interrupt, as it ends a run, or when Ctrl-C is pressed twice in a row at the prompt.
 func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
-	var r lineReader
+	l := &looper{ctx: ctx}
 	var e *editor
 	if in, out, ok := terminal(stdin, stdout); ok {
 		// what the session and the loop write goes through the editor, which keeps the
 		// prompt whole when a goroutine prints while it waits
 		e = newTerminalReader(ctx, in, out)
-		r = e
+		l.r = e
 		stdout, stderr = e.writer(stdout), e.writer(stderr)
+		// the session is replaced by :reset, so completion asks whichever is current
+		e.complete = func(src string, off int) []ant.Completion { return l.s.Complete(src, off) }
 	} else {
-		r = newPlainReader(ctx, stdin, stdout)
+		l.r = newPlainReader(ctx, stdin, stdout)
 	}
-	// The REPL owns standard input, so a program's Os.stdin() is at end of file.
-	s, err := ant.NewSession(ctx, ant.WithStdin(strings.NewReader("")), ant.WithStdout(stdout),
-		ant.WithStderr(stderr))
+	l.stdout, l.stderr = stdout, stderr
+	l.open = func() (*ant.Session, error) {
+		// The REPL owns standard input, so a program's Os.stdin() is at end of file.
+		return ant.NewSession(ctx, ant.WithStdin(strings.NewReader("")), ant.WithStdout(stdout),
+			ant.WithStderr(stderr))
+	}
+	s, err := l.open()
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 2
 	}
-	defer s.Close()
-	if e != nil {
-		e.complete = s.Complete
-	}
-	return loop(ctx, s, r, stdout, stderr)
+	l.s = s
+	defer func() { l.s.Close() }()
+	return l.loop()
 }
 
+// looper is the state of the read-eval-print loop.
+type looper struct {
+	ctx            context.Context
+	s              *ant.Session
+	open           func() (*ant.Session, error) // a new session, for :reset
+	r              lineReader
+	stdout, stderr io.Writer
+}
+
+// errQuit ends the loop from a command, with status 0.
+var errQuit = errors.New("quit")
+
 // loop is the read-eval-print loop over the lines r reads.
-func loop(ctx context.Context, s *ant.Session, r lineReader, stdout, stderr io.Writer) int {
+func (l *looper) loop() int {
 	var pending strings.Builder
 	// armed is set by Ctrl-C: another right after it ends the REPL
 	armed := false
@@ -57,24 +73,24 @@ func loop(ctx context.Context, s *ant.Session, r lineReader, stdout, stderr io.W
 		if pending.Len() > 0 {
 			prompt = ". "
 		}
-		line, err := r.readLine(prompt, pending.String())
+		line, err := l.r.readLine(prompt, pending.String())
 		if errors.Is(err, errInterrupt) {
 			if line == "" && armed {
 				return 130
 			}
-			fmt.Fprintln(stdout, "(press ^C again or ^D to exit)")
+			fmt.Fprintln(l.stdout, "(press ^C again or ^D to exit)")
 			armed = true
 			pending.Reset()
 			continue
 		}
 		armed = false
-		if ctx.Err() != nil {
-			fmt.Fprintln(stdout)
+		if l.ctx.Err() != nil {
+			fmt.Fprintln(l.stdout)
 			return 130
 		}
 		if err != nil && !errors.Is(err, io.EOF) {
 			// the terminal cannot be read, or put into raw mode
-			fmt.Fprintln(stderr, err)
+			fmt.Fprintln(l.stderr, err)
 			return 2
 		}
 		// at the end of input an unfinished input is evaluated as it is, so its error is
@@ -82,6 +98,12 @@ func loop(ctx context.Context, s *ant.Session, r lineReader, stdout, stderr io.W
 		eof := err != nil
 		if eof && pending.Len() == 0 {
 			break
+		}
+		if !eof && pending.Len() == 0 && isCommand(line) {
+			if status, done := l.command(line); done {
+				return status
+			}
+			continue
 		}
 		if !eof {
 			pending.WriteString(line)
@@ -96,31 +118,40 @@ func loop(ctx context.Context, s *ant.Session, r lineReader, stdout, stderr io.W
 			continue
 		}
 		pending.Reset()
-		v, err := s.Eval(src)
-		if ctx.Err() != nil {
-			fmt.Fprintln(stdout)
-			return 130
-		}
-		switch err.(type) {
-		case nil:
-			if v != value.Void {
-				fmt.Fprintln(stdout, value.Render(v))
-			}
-		case *ant.PanicError, *ant.ResultError:
-			// reported by the runtime already
-		case *ant.ExitError:
-			return ant.ExitStatus(err)
-		default:
-			fmt.Fprintln(stderr, err)
+		if status, done := l.eval(src); done {
+			return status
 		}
 		if eof {
 			break
 		}
 	}
-	if _, ok := r.(*plainReader); ok {
-		fmt.Fprintln(stdout)
+	if _, ok := l.r.(*plainReader); ok {
+		fmt.Fprintln(l.stdout)
 	}
 	return 0
+}
+
+// eval evaluates one input and prints its result or its error. done reports that the REPL
+// ends, with status.
+func (l *looper) eval(src string) (status int, done bool) {
+	v, err := l.s.Eval(src)
+	if l.ctx.Err() != nil {
+		fmt.Fprintln(l.stdout)
+		return 130, true
+	}
+	switch err.(type) {
+	case nil:
+		if v != value.Void {
+			fmt.Fprintln(l.stdout, value.Render(v))
+		}
+	case *ant.PanicError, *ant.ResultError:
+		// reported by the runtime already
+	case *ant.ExitError:
+		return ant.ExitStatus(err), true
+	default:
+		fmt.Fprintln(l.stderr, err)
+	}
+	return 0, false
 }
 
 // A lineReader reads the lines of the inputs. readLine returns io.EOF at the end of the input,

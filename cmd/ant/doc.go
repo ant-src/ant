@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/doc"
 	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/parser"
 )
@@ -39,7 +40,7 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 		}
 		// every declaration of a declaration file is visible (section 10, Declaration files)
 		for _, d := range f.Decls {
-			if f.Declarations || exported(d) {
+			if f.Declarations || doc.Exported(d) {
 				decls = append(decls, d)
 			}
 		}
@@ -53,13 +54,13 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 				return 1
 			}
 			if f.Doc != "" {
-				printIndented(stdout, f.Doc)
+				doc.PrintIndented(stdout, f.Doc)
 				if len(decls) > 0 {
 					fmt.Fprintln(stdout)
 				}
 			}
 			for _, d := range decls {
-				fmt.Fprintln(stdout, sig(d))
+				fmt.Fprintln(stdout, doc.Sig(d))
 			}
 			return 0
 		}
@@ -68,109 +69,9 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
-	owner, member, dotted := strings.Cut(name, ".")
-	found := false
-	for _, d := range decls {
-		o, n := declName(d)
-		if dotted && strings.EqualFold(o, owner) && strings.EqualFold(n, member) ||
-			!dotted && o == "" && strings.EqualFold(n, name) {
-			printDoc(stdout, sig(d), docOf(d))
-			found = true
-		}
-	}
-	if !dotted && !found && inPrelude {
-		if ns, doc := prelude.NamespaceDoc(name); doc != "" {
-			printDoc(stdout, ns, doc)
-			found = true
-		}
-	}
-	if !dotted {
-		own := found
-		for _, d := range decls {
-			if o, _ := declName(d); strings.EqualFold(o, name) {
-				if own {
-					fmt.Fprintln(stdout)
-					own = false
-				}
-				fmt.Fprintln(stdout, sig(d))
-				found = true
-			}
-		}
-	}
-	if !found {
+	if !doc.Print(stdout, decls, name, inPrelude) {
 		fmt.Fprintf(stderr, "ant doc: no declaration %s\n", name)
 		return 1
 	}
 	return 0
-}
-
-// printDoc prints a declaration's signature, or a namespace's name, and, indented, its doc.
-func printDoc(w io.Writer, sig, doc string) {
-	fmt.Fprintln(w, sig)
-	if doc != "" {
-		fmt.Fprintln(w)
-		printIndented(w, doc)
-	}
-}
-
-// printIndented prints a doc with every non-empty line indented by four spaces.
-func printIndented(w io.Writer, doc string) {
-	for line := range strings.SplitSeq(doc, "\n") {
-		if line != "" {
-			line = "    " + line
-		}
-		fmt.Fprintln(w, line)
-	}
-}
-
-// declName is the owner and name a declaration is looked up by; a var that destructures has
-// no name.
-func declName(d ast.Decl) (owner, name string) {
-	switch d := d.(type) {
-	case *ast.FuncDecl:
-		return d.Owner, d.Name
-	case *ast.TypeDecl:
-		return d.Owner, d.Name
-	case *ast.VarDecl:
-		if t, ok := d.Target.(*ast.NameTarget); ok {
-			return d.Owner, t.Name
-		}
-	}
-	return "", ""
-}
-
-func sig(d ast.Decl) string {
-	switch d := d.(type) {
-	case *ast.FuncDecl:
-		return d.Sig
-	case *ast.TypeDecl:
-		return d.Sig
-	case *ast.VarDecl:
-		return d.Sig
-	}
-	return ""
-}
-
-func docOf(d ast.Decl) string {
-	switch d := d.(type) {
-	case *ast.FuncDecl:
-		return d.Doc
-	case *ast.TypeDecl:
-		return d.Doc
-	case *ast.VarDecl:
-		return d.Doc
-	}
-	return ""
-}
-
-func exported(d ast.Decl) bool {
-	switch d := d.(type) {
-	case *ast.FuncDecl:
-		return d.Export
-	case *ast.TypeDecl:
-		return d.Export
-	case *ast.VarDecl:
-		return d.Export
-	}
-	return false
 }

@@ -209,6 +209,8 @@ func TestEditorCompletion(t *testing.T) {
 		{"\t\t\r", "print"},                               // Tab on an empty line opens the menu: functions, then namespaces, then keywords
 		{"\x1b[Z\r", "var"},                               // Shift-Tab starts at the last reply
 		{"xyz\t\r", "xyz"},                                // no reply
+		{":ty\t\r", ":type"},                              // commands complete
+		{":type tw\t\r", ":type twice"},                   // and so does the expression after :type
 		{"\x1b[200~xs | Arra\x1b[201~\t\r", "xs | Array"}, // Tab typed after a bracketed paste completes
 		{"tw(1)\x1b[D\x1b[D\x1b[D\t\r", "twice(1)"},       // Tab in the middle of the line keeps what follows
 		{"tw(1)\x1b[D\x1b[D\x1b[D\tX\r", "twiceX(1)"},     // and leaves the cursor after the reply
