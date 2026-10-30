@@ -52,6 +52,8 @@ func (s *Server) foldingRanges(p *FoldingRangeParams) []FoldingRange {
 			}
 		case *ast.Template:
 			add(x.Pos, x.End, "region")
+		case *ast.StringLit:
+			add(x.Pos, x.End, "region")
 		case *ast.Select:
 			add(x.Pos, x.End, "region")
 		}

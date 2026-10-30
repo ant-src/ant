@@ -42,6 +42,8 @@ type lexer struct {
 	// read at all becomes a Bad token.
 	recover bool
 	errs    []*Error
+	// oneLine counts the strings being read again to end at their first line (see string).
+	oneLine int
 	// unclosed is set when an interpolation ended at the end of the source while recovering, so
 	// that the string around it reports nothing more.
 	unclosed bool
@@ -73,9 +75,10 @@ func LexLayout(src string, shebang bool) ([]token.Token, []token.Comment, error)
 }
 
 // LexRecover tokenizes src as LexLayout does but goes on past every error, for an editor, and
-// returns the errors found in source order. A string or raw string left open ends at the end of
-// its first line, and a comment left open at the end of the source; a construct that cannot be read at all becomes a Bad token; and markup
-// that is malformed is read as far as it goes. Tokens come out as they would once the errors
+// returns the errors found in source order. A string or raw string that no later quote or
+// backtick closes ends at the end of its first line, and a comment left open at the end of the
+// source; a construct that cannot be read at all becomes a Bad token; and markup that is
+// malformed is read as far as it goes. Tokens come out as they would once the errors
 // were fixed, as far as the lexer can tell.
 func LexRecover(src string, shebang bool) ([]token.Token, []token.Comment, []*Error) {
 	l := &lexer{src: src, layout: true, shebang: shebang, recover: true}
@@ -683,6 +686,12 @@ func (l *lexer) escape() string {
 	if l.atEnd(0) {
 		l.fail(pos, "unterminated string")
 	}
+	if l.lineBreak(0) || c == '\r' {
+		if l.soft(pos, "bad escape: a \\ before a line break; a string spans lines without one") {
+			l.advance(1)
+			return l.src[start:l.pos]
+		}
+	}
 	if l.soft(pos, "bad escape '\\%c'", c) {
 		_, size := utf8.DecodeRuneInString(l.src[l.pos:])
 		l.advance(size)
@@ -695,16 +704,23 @@ func (l *lexer) escape() string {
 // interpolations, which may span lines, each line break one \n in the value. A string without an
 // interpolation is a String token, and one with them a Template token. When recovering, a string
 // left open to the end of the source ends at the end of its first line instead, so that an editor
-// reads the code after a stray quote as code.
+// reads the code after a stray quote as code. The strings nested in a string read again that way
+// end at their first line too, so that each level is read again at most once.
 func (l *lexer) string() {
 	if !l.recover {
 		l.stringUntil(false)
 		return
 	}
+	if l.oneLine > 0 {
+		l.stringUntil(true)
+		return
+	}
 	saved := l.save()
 	if !l.stringUntil(false) {
 		l.restore(saved)
+		l.oneLine++
 		l.stringUntil(true)
+		l.oneLine--
 	}
 }
 
@@ -749,6 +765,15 @@ func (l *lexer) stringUntil(oneLine bool) bool {
 		case c == '"':
 			flush()
 			l.advance(1)
+			finish()
+			return true
+		case c == '\\' && l.recover && (l.atEnd(1) || oneLine && (l.lineBreak(1) || l.peek(1) == '\r')):
+			// the string is open: at the end of the source, or of its first line read again
+			if !oneLine {
+				return false
+			}
+			l.advance(1)
+			l.record(pos, "unterminated string")
 			finish()
 			return true
 		case c == '\\':

@@ -29,9 +29,9 @@ func TestStrings(t *testing.T) {
 			t.Errorf("%v: %q, want %q", tok, got, want)
 		}
 	}
-	// a string with interpolations reads as any other string literal
-	if got := (Token{Kind: Template}).String(); got != "string literal" {
-		t.Errorf("Template: %q, want %q", got, "string literal")
+	// a string with interpolations is named so, where a plain string literal is expected
+	if got := (Token{Kind: Template}).String(); got != "string with interpolations" {
+		t.Errorf("Template: %q, want %q", got, "string with interpolations")
 	}
 	plus := Token{Kind: Op, Text: "+"}
 	if !plus.Is("+") || plus.Is("-") || (Token{Kind: Ident, Text: "if"}).Is("if") || !(Token{Kind: Keyword, Text: "if"}).Is("if") {

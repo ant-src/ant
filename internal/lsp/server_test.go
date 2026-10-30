@@ -819,6 +819,17 @@ func TestSignatureOffsetsAndFolding(t *testing.T) {
 	if strings.Join(got, " ") != "0-5 1-2 3-4" {
 		t.Errorf("folds: %v", got)
 	}
+	// a multi-line string folds, with or without interpolations
+	src = "var q = `a\nb\nc`\nvar r = \"x\ny\"\nvar s = \"${q}\nz\n\"\n"
+	c.change(uri, 4, src)
+	c.call("textDocument/foldingRange", FoldingRangeParams{TextDocument: TextDocumentIdentifier{URI: uri}}, &folds)
+	got = nil
+	for _, f := range folds {
+		got = append(got, fmt.Sprintf("%d-%d", f.StartLine, f.EndLine))
+	}
+	if strings.Join(got, " ") != "0-2 3-4 5-6" {
+		t.Errorf("string folds: %v", got)
+	}
 }
 
 func toRunes(units []uint16) []rune {

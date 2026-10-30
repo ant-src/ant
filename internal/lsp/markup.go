@@ -141,15 +141,7 @@ func scanMarkup(src string) markupContext {
 					state = prev
 				}
 			case '"', '`':
-				// skip a string or raw string inside the interpolation; only a string has escapes
-				j := i + 1
-				for j < len(src) && src[j] != c {
-					if src[j] == '\\' && c == '"' {
-						j++
-					}
-					j++
-				}
-				i = j
+				i = skipString(src, i)
 			}
 		}
 		i++
@@ -165,4 +157,38 @@ func scanMarkup(src string) markupContext {
 		ctx.element = name.String()
 	}
 	return ctx
+}
+
+// skipString returns the index of the quote or backtick that closes the string or raw string
+// opening at i, or len(src) when none does. A string's escapes and its interpolations, with the
+// strings and braces inside them, are stepped over.
+func skipString(src string, i int) int {
+	if src[i] == '`' {
+		if j := strings.IndexByte(src[i+1:], '`'); j >= 0 {
+			return i + 1 + j
+		}
+		return len(src)
+	}
+	for j := i + 1; j < len(src); j++ {
+		switch {
+		case src[j] == '\\':
+			j++
+		case src[j] == '"':
+			return j
+		case strings.HasPrefix(src[j:], "${"):
+			j++ // at the {
+			for depth := 1; depth > 0 && j+1 < len(src); {
+				j++
+				switch src[j] {
+				case '{':
+					depth++
+				case '}':
+					depth--
+				case '"', '`':
+					j = skipString(src, j)
+				}
+			}
+		}
+	}
+	return len(src)
 }

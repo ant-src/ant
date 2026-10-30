@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ant-src/ant/internal/token"
 )
@@ -119,6 +120,17 @@ func TestRecoverTruncated(t *testing.T) {
 }
 
 // TestRecoverCases checks what the recovering lexer makes of particular errors.
+// TestRecoverNestedOpen checks that strings left open inside the interpolations of strings left
+// open are each read again once, not once for every level around them.
+func TestRecoverNestedOpen(t *testing.T) {
+	src := strings.Repeat(`"${`, 200) + `"x` + strings.Repeat("\n}", 200)
+	start := time.Now()
+	LexRecover(src, false)
+	if d := time.Since(start); d > 2*time.Second {
+		t.Errorf("200 open strings, each in the last one's interpolation, took %v", d)
+	}
+}
+
 func TestRecoverCases(t *testing.T) {
 	cases := []struct {
 		name, src string
@@ -128,6 +140,11 @@ func TestRecoverCases(t *testing.T) {
 		{"unterminated string", "var s = \"abc\nvar t = 1", []string{"unterminated string"},
 			`var s = "abc" var t = 1`},
 		{"bad escape kept", `var s = "a\qb"`, []string{"bad escape"}, `var s = "a\qb"`},
+		{"backslash ends the first line", "var s = \"abc\\\nvar y = 1\nvar z = 2", []string{"unterminated string"},
+			`var s = "abc" var y = 1 var z = 2`},
+		{"backslash ends the source", "var s = \"abc\\", []string{"unterminated string"}, `var s = "abc"`},
+		{"backslash before a line break", "var s = \"a\\\nb\"", []string{"bad escape: a \\ before a line break"},
+			"var s = \"a\\\nb\""},
 		{"unterminated interpolating string", "var s = \"a ${x} b", []string{"unterminated string"}, "var s = `…`"},
 		{"unterminated interpolation", "var s = \"a ${x", []string{"unterminated ${ in string"}, "var s = `…`"},
 		{"unterminated string ends its line", "var s = \"a ${x} b\nvar y = 1", []string{"unterminated string"}, "var s = `…` var y = 1"},

@@ -1146,7 +1146,7 @@ func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
 // Result.wrapErr returns r itself if it is an Ok, and an Err holding Error.wrap(r.error, context)
 // if it is an Err.
 //
-//     try (Json.parse(text) | Result.wrapErr(`parse ${path}`))
+//     try (Json.parse(text) | Result.wrapErr("parse ${path}"))
 func Result.wrapErr[T](r: Result[T, Error], context: string): Result[T, Error]
 
 // Error
@@ -1165,7 +1165,7 @@ func Error.wrap(e: Error, context: string): Error
 // run pass through. It belongs at the edge of a unit of work, not in place of a Result.
 //
 //     var done = Panic.catch({ handle(job) })
-//     if done is Err { println(`job ${job.id}: ${done.error.message}`) }
+//     if done is Err { println("job ${job.id}: ${done.error.message}") }
 func Panic.catch[T](f: func(): T): Result[T, Panic]
 
 // Panic.raise panics with p's message and trace as they are, so a caught panic goes on as though
@@ -1564,7 +1564,7 @@ func Http.post(url: string, body: string | Bytes, headers: Map[string, string] =
 // goroutine.
 //
 //     var l = try Net.listen(":8080")
-//     try Http.serve(l, { Http.Reply{ status: 200, headers: Map{}, body: `hi ${x.path}` } })
+//     try Http.serve(l, { Http.Reply{ status: 200, headers: Map{}, body: "hi ${x.path}" } })
 func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: Context | null = null): Result[void, Error]
 
 // Time

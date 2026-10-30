@@ -116,7 +116,7 @@ interface Shape {
 }
 
 func describe[T: Shape](s: T): string {
-  `${T.name(s)}: ${T.area(s)}`
+  "${T.name(s)}: ${T.area(s)}"
 }
 
 describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circle is a Shape

@@ -167,7 +167,7 @@ func (t Token) String() string {
 	case String:
 		return "string literal"
 	case Template:
-		return "string literal"
+		return "string with interpolations"
 	case Regex:
 		return "regular expression literal"
 	case Html:

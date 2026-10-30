@@ -162,6 +162,7 @@ func syntaxCases() []syntaxCase {
 		{"record string key", `var p = Point{ "x": 1 }`, "must be a name", Program},
 		{"export in block", "func f() { export var x = 1 }", "only allowed at the top level", Program},
 		{"named func in block", "func f() { func g() {} }", "only allowed at the top level", Program},
+		{"import path interpolates", "import \"./${x}.ant\" A", "expected a module path string, got string with interpolations", Program},
 		{"import after declaration", "var x = 1\nimport \"./a.ant\" A", "imports must come before", Program},
 		{"export in a script", "export func f() {}\nprintln(1)", "a module with exports cannot have top-level statements", Program},
 		{"try in a library initializer", "var x = try f()", "'try' outside a function", Program},
