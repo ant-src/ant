@@ -507,3 +507,37 @@ func TestSessionTypeOf(t *testing.T) {
 		}
 	}
 }
+
+// TestSessionLast checks that _ reads the result of the last input that had one, and is still
+// written to as a discard.
+func TestSessionLast(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval("_"); err == nil {
+		t.Error("_ before any result reads")
+	}
+	for _, step := range []struct {
+		src  string
+		want value.Value
+	}{
+		{"40 + 1", int64(41)},
+		{"_ + 1", int64(42)},
+		{"var x = 5", value.Void}, // void leaves _ as it was
+		{"_", int64(42)},
+		{"_ = 7", value.Void}, // a discard still
+		{"_", int64(42)},
+		{"\"s\"", "s"},
+		{"_ + \"t\"", "st"},
+	} {
+		v, err := s.Eval(step.src)
+		if err != nil || v != step.want {
+			t.Errorf("%s = %v, %v; want %v", step.src, v, err, step.want)
+		}
+	}
+	if v, ok := s.Value("_"); !ok || v != "st" {
+		t.Errorf("Value(_) = %v, %v", v, ok)
+	}
+}

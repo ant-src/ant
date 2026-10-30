@@ -307,6 +307,10 @@ func (g *Goroutine) ident(e *ast.Ident, env *Env) value.Value {
 		}
 		return v
 	case ast.RefDiscard:
+		// in a session, _ reads the result of the last input that had one (section 10)
+		if v, ok := g.in.lastResult(); ok {
+			return v
+		}
 		g.panicf(e.Pos, "_ cannot be read")
 	}
 	g.panicf(e.Pos, "%s is not defined", e.Name)

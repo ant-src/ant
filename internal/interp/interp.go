@@ -93,11 +93,15 @@ type Instance struct {
 	localTypes  sync.Map // *ast.Block → the tags and constructors of the types it declares
 	done        atomic.Bool
 	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
-	result      chan error
-	once        sync.Once
-	ctx         context.Context
-	cancel      context.CancelFunc
-	active      sync.WaitGroup
+
+	// last is what _ reads in a session: the result of its last input that had one, or nil
+	lastMu sync.Mutex
+	last   value.Value
+	result chan error
+	once   sync.Once
+	ctx    context.Context
+	cancel context.CancelFunc
+	active sync.WaitGroup
 	// interrupt is the context Os.interrupt returns, made at the first call.
 	interruptMu sync.Mutex
 	interrupt   *value.Context
@@ -273,6 +277,16 @@ func (in *Instance) stop(aborted bool) {
 	in.released = true
 	in.errMu.Unlock()
 	in.outMu.Unlock()
+}
+
+// LastResult is what _ reads in a session, and false before any result.
+func (in *Instance) LastResult() (value.Value, bool) { return in.lastResult() }
+
+// lastResult is what _ reads in a session, and false outside one or before any result.
+func (in *Instance) lastResult() (value.Value, bool) {
+	in.lastMu.Lock()
+	defer in.lastMu.Unlock()
+	return in.last, in.last != nil
 }
 
 // stopErr is the error of a run its context ended: ErrInterrupted when an interrupt did, which

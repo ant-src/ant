@@ -59,7 +59,8 @@ func Incomplete(src string) bool {
 	return err.(*parser.Error).Incomplete
 }
 
-// Eval evaluates one input and returns the value of its last expression, or void. The input
+// Eval evaluates one input and returns the value of its last expression, or void, which _
+// reads in the inputs after it unless it is void (section 10, Scripts). The input
 // is a script body of its own: the value it returns, by return or ?? return, is its result, and
 // an Err it returns, as try does, comes back as a *ResultError after being reported. A syntax
 // or scope error comes back as a *LoadError, a panic as a *PanicError after being reported.
@@ -84,6 +85,9 @@ func (s *Session) Eval(src string) (value.Value, error) {
 	}
 	if err != nil {
 		return nil, convertRunError(err)
+	}
+	if v != value.Void {
+		s.s.SetLast(v)
 	}
 	return v, nil
 }
@@ -392,8 +396,13 @@ func (s *Session) TypeOf(expr string) (string, error) {
 	return types.String(t), nil
 }
 
-// Value returns a name the session has declared.
-func (s *Session) Value(name string) (value.Value, bool) { return s.s.Lookup(name) }
+// Value returns a name the session has declared, or for _ the last result.
+func (s *Session) Value(name string) (value.Value, bool) {
+	if name == "_" {
+		return s.s.Instance().LastResult()
+	}
+	return s.s.Lookup(name)
+}
 
 // Close stops the session's goroutines and flushes its output.
 func (s *Session) Close() { s.s.Instance().Close() }

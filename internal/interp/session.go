@@ -28,6 +28,13 @@ func NewSession(ctx context.Context, cfg Config) *Session {
 	return &Session{in: in, known: map[string]*module{}, Fields: &ast.ModuleScope{Index: map[string]int{}}}
 }
 
+// SetLast makes v what _ reads: the result of the last input that had one.
+func (s *Session) SetLast(v value.Value) {
+	s.in.lastMu.Lock()
+	s.in.last = v
+	s.in.lastMu.Unlock()
+}
+
 // Instance returns the session's instance, for Close.
 func (s *Session) Instance() *Instance { return s.in }
 
