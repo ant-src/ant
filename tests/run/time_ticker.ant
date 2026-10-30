@@ -19,6 +19,12 @@ while beats < 3 {
 }
 println(got)
 println(beats)
+// a loaded machine may be slow to deliver the first tick, so wait for it; more never pile up
+var waits = 0
+while Channel.length(ticks) == 0 && waits < 100 {
+  Time.sleep(Time.duration(milliseconds: 20))
+  waits += 1
+}
 Time.sleep(Time.duration(milliseconds: 100))
 println(Channel.length(ticks))
 Context.cancel(ctx)
