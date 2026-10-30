@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -417,4 +418,42 @@ func TestSessionTry(t *testing.T) {
 	if v, _ := eval("a"); v != int64(1) {
 		t.Errorf("a = %v", v)
 	}
+}
+
+// TestSessionWriteThrough checks that a goroutine's output reaches stdout while the session
+// waits for its next input.
+func TestSessionWriteThrough(t *testing.T) {
+	out := &syncBuffer{}
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(out), ant.WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval("go { Time.sleep(Time.duration(milliseconds: 20)); print(\"late\") }"); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for out.String() != "late" {
+		if time.Now().After(deadline) {
+			t.Fatalf("stdout %q", out.String())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+type syncBuffer struct {
+	mu sync.Mutex
+	sb strings.Builder
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.sb.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.sb.String()
 }

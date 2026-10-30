@@ -4,7 +4,9 @@ import (
 	"context"
 	"io"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ant-src/ant"
 	"github.com/ant-src/ant/internal/token"
@@ -302,5 +304,71 @@ func TestEditorHighlights(t *testing.T) {
 	e.readLine(". ", "/* open\n")
 	if !strings.Contains(out.String(), ". \x1b[90mstill\x1b[0m\r\n") {
 		t.Errorf("in a comment: %q", out.String())
+	}
+}
+
+// lockedBuilder is a strings.Builder safe for the goroutines of a test.
+type lockedBuilder struct {
+	mu sync.Mutex
+	sb strings.Builder
+}
+
+func (b *lockedBuilder) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.sb.Write(p)
+}
+
+func (b *lockedBuilder) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.sb.String()
+}
+
+// TestEditorOutputAtPrompt checks that what is written while the prompt waits goes above it,
+// and the prompt with the line typed so far is drawn again under it.
+func TestEditorOutputAtPrompt(t *testing.T) {
+	in := make(chan []byte, 64)
+	var out lockedBuilder
+	e := &editor{ctx: context.Background(), in: in, out: &out, size: func() (int, int) { return 80, 24 },
+		th: &plainTheme, hist: loadHistory("")}
+	w := e.writer(&out)
+	done := make(chan string)
+	go func() { line, _ := e.readLine("> ", ""); done <- line }()
+	in <- []byte("ab")
+	waitFor(t, func() bool { return strings.HasSuffix(out.String(), "> ab\r\x1b[4C") })
+	w.Write([]byte("hello\n"))
+	w.Write([]byte("no newline"))
+	in <- []byte("c\r")
+	if line := <-done; line != "abc" {
+		t.Errorf("line %q", line)
+	}
+	s := out.String()
+	if !strings.Contains(s, "> ab\r\x1b[4C\r\x1b[Jhello\n\r\x1b[J> ab\r\x1b[4C") {
+		t.Errorf("output with a newline: %q", s)
+	}
+	if !strings.Contains(s, "\r\x1b[Jno newline\r\n\r\x1b[J> ab") {
+		t.Errorf("output without one: %q", s)
+	}
+	// written between lines, without a newline: the next prompt starts a line of its own
+	out.mu.Lock()
+	out.sb.Reset()
+	out.mu.Unlock()
+	w.Write([]byte("partial"))
+	in <- []byte("\r")
+	e.readLine("> ", "")
+	if s := out.String(); !strings.HasPrefix(s, "partial\r\n\r\x1b[J> ") {
+		t.Errorf("partial: %q", s)
+	}
+}
+
+func waitFor(t *testing.T, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatal("timed out")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }

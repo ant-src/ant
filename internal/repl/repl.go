@@ -22,6 +22,17 @@ import (
 // 130 when ctx ends first, which is an interrupt, as it ends a run, or when Ctrl-C is pressed
 // twice in a row at the prompt.
 func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
+	var r lineReader
+	var e *editor
+	if in, out, ok := terminal(stdin, stdout); ok {
+		// what the session and the loop write goes through the editor, which keeps the
+		// prompt whole when a goroutine prints while it waits
+		e = newTerminalReader(ctx, in, out)
+		r = e
+		stdout, stderr = e.writer(stdout), e.writer(stderr)
+	} else {
+		r = newPlainReader(ctx, stdin, stdout)
+	}
 	// The REPL owns standard input, so a program's Os.stdin() is at end of file.
 	s, err := ant.NewSession(ctx, ant.WithStdin(strings.NewReader("")), ant.WithStdout(stdout),
 		ant.WithStderr(stderr))
@@ -30,11 +41,8 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 	defer s.Close()
-	var r lineReader
-	if in, out, ok := terminal(stdin, stdout); ok {
-		r = newTerminalReader(ctx, in, out, s)
-	} else {
-		r = newPlainReader(ctx, stdin, stdout)
+	if e != nil {
+		e.complete = s.Complete
 	}
 	return loop(ctx, s, r, stdout, stderr)
 }
@@ -181,9 +189,9 @@ func (r *plainReader) readLine(prompt, pending string) (string, error) {
 	}
 }
 
-// newTerminalReader is the line editor on the terminal in and out, completing with the
-// session's names, with its history in the user's home directory.
-func newTerminalReader(ctx context.Context, in, out *os.File, s *ant.Session) *editor {
+// newTerminalReader is the line editor on the terminal in and out, with its history in the
+// user's home directory; it completes once given the session's Complete.
+func newTerminalReader(ctx context.Context, in, out *os.File) *editor {
 	chunks := make(chan []byte, 64)
 	go func() {
 		defer close(chunks)
@@ -207,13 +215,12 @@ func newTerminalReader(ctx context.Context, in, out *os.File, s *ant.Session) *e
 		path = filepath.Join(home, ".ant_history")
 	}
 	return &editor{
-		ctx:      ctx,
-		in:       chunks,
-		out:      out,
-		size:     func() (int, int) { cols, rows, _ := windowSize(out); return cols, rows },
-		th:       th,
-		complete: s.Complete,
-		hist:     loadHistory(path),
-		raw:      func() (func(), error) { return makeRaw(in) },
+		ctx:  ctx,
+		in:   chunks,
+		out:  out,
+		size: func() (int, int) { cols, rows, _ := windowSize(out); return cols, rows },
+		th:   th,
+		hist: loadHistory(path),
+		raw:  func() (func(), error) { return makeRaw(in) },
 	}
 }

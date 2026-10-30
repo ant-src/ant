@@ -45,6 +45,9 @@ type Config struct {
 	Foreground func() func(os.Signal) bool
 	// Debugger, when set, stops the run at its breakpoints and steps (dap.md).
 	Debugger *Debugger
+	// WriteThrough writes stdout at every write rather than buffering it: a session's
+	// goroutines may print while the host waits for the next input.
+	WriteThrough bool
 }
 
 // Frame is one entry of a panic trace, innermost first.
@@ -364,6 +367,9 @@ func (in *Instance) report(p *AntPanic) {
 func (in *Instance) Print(s string) {
 	in.outMu.Lock()
 	in.out.WriteString(s)
+	if in.cfg.WriteThrough && !in.released {
+		in.out.Flush()
+	}
 	in.outMu.Unlock()
 }
 
@@ -419,7 +425,11 @@ func (w stdoutWriter) Write(p []byte) (int, error) {
 	if w.in.released {
 		return len(p), nil
 	}
-	return w.in.out.Write(p)
+	n, err := w.in.out.Write(p)
+	if err == nil && w.in.cfg.WriteThrough {
+		err = w.in.out.Flush()
+	}
+	return n, err
 }
 
 // ErrWriter returns a writer to the run's standard error that flushes stdout before each write,

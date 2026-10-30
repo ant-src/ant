@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ant-src/ant"
@@ -43,6 +44,47 @@ type editor struct {
 	cursorRow int // the row of the drawing the cursor is on
 	unread    []byte
 	closed    bool
+
+	// mu guards the terminal between the editor and output: a goroutine may print while the
+	// prompt waits, which then is cleared, and drawn again under what was printed.
+	mu        sync.Mutex
+	prompting bool // the prompt and the line are drawn, and waiting for keys
+	partial   bool // output last written did not end its line
+}
+
+// writer returns a writer to w, the terminal stdout or stderr is, that keeps the prompt whole:
+// what is written while the prompt waits goes above it, which is then drawn again.
+func (e *editor) writer(w io.Writer) io.Writer { return termWriter{e, w} }
+
+type termWriter struct {
+	e *editor
+	w io.Writer
+}
+
+func (t termWriter) Write(p []byte) (int, error) {
+	e := t.e
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if !e.prompting {
+		e.partial = p[len(p)-1] != '\n'
+		return t.w.Write(p)
+	}
+	var sb strings.Builder
+	if e.cursorRow > 0 {
+		fmt.Fprintf(&sb, "\x1b[%dA", e.cursorRow)
+	}
+	sb.WriteString("\r\x1b[J")
+	io.WriteString(t.w, sb.String())
+	n, err := t.w.Write(p)
+	if p[len(p)-1] != '\n' {
+		io.WriteString(t.w, "\r\n") // the prompt goes on a line of its own
+	}
+	e.cursorRow = 0
+	e.draw(false)
+	return n, err
 }
 
 // readLine reads one line after prompt. It returns errInterrupt, with the line, when Ctrl-C
@@ -56,6 +98,13 @@ func (e *editor) readLine(prompt, pending string) (string, error) {
 		}
 		defer restore()
 	}
+	e.mu.Lock()
+	if e.partial {
+		// what was printed last did not end its line: the prompt starts a new one
+		io.WriteString(e.out, "\r\n")
+		e.partial = false
+	}
+	e.prompting = true
 	e.prompt, e.pending = prompt, pending
 	e.buf, e.cur = e.buf[:0], 0
 	e.histIdx = len(e.hist.lines)
@@ -64,100 +113,115 @@ func (e *editor) readLine(prompt, pending string) (string, error) {
 	e.cursorRow = 0
 	e.updateCompletion()
 	e.draw(false)
+	e.mu.Unlock()
 	for {
 		k, err := e.readKey()
-		if err != nil {
-			e.finish()
-			return "", err
+		e.mu.Lock()
+		line, err, done := e.key(k, err)
+		e.mu.Unlock()
+		if done {
+			return line, err
 		}
-		if k.kind != keyTab && k.kind != keyShiftTab {
-			e.closeMenu()
+	}
+}
+
+// key handles one key, or the error reading it, under the lock. done reports that the line
+// ended, with line and err what readLine returns.
+func (e *editor) key(k key, err error) (line string, _ error, done bool) {
+	if err != nil {
+		e.finish()
+		return "", err, true
+	}
+	if k.kind != keyTab && k.kind != keyShiftTab {
+		e.closeMenu()
+	}
+	switch k.kind {
+	case keyRune:
+		e.insert([]rune{k.r})
+	case keyEnter:
+		e.finish()
+		line := string(e.buf)
+		e.hist.add(line)
+		return line, nil, true
+	case keyTab:
+		if e.moreKeys() {
+			e.insert([]rune("  ")) // a tab in pasted text indents
+		} else {
+			e.completeKey(1)
 		}
-		switch k.kind {
-		case keyRune:
-			e.insert([]rune{k.r})
-		case keyEnter:
-			e.finish()
-			line := string(e.buf)
-			e.hist.add(line)
-			return line, nil
-		case keyTab:
-			if e.moreKeys() {
-				e.insert([]rune("  ")) // a tab in pasted text indents
-			} else {
-				e.completeKey(1)
-			}
-		case keyShiftTab:
-			if !e.moreKeys() {
-				e.completeKey(-1)
-			}
-		case keyBackspace:
-			if e.cur > 0 {
-				from := e.prev(e.cur)
-				e.buf = append(e.buf[:from], e.buf[e.cur:]...)
-				e.cur = from
-			}
-		case keyDelete:
-			e.deleteAt()
-		case keyEOF:
-			if len(e.buf) == 0 {
-				e.finish()
-				return "", io.EOF
-			}
-			e.deleteAt()
-		case keyInterrupt:
-			e.comp = completion{}
-			e.draw(true)
-			io.WriteString(e.out, "^C\r\n")
-			return string(e.buf), errInterrupt
-		case keyLeft:
-			if e.cur > 0 {
-				e.cur = e.prev(e.cur)
-			}
-		case keyRight:
-			if e.cur < len(e.buf) {
-				e.cur = e.next(e.cur)
-			} else {
-				e.acceptGhost()
-			}
-		case keyHome:
-			e.cur = 0
-		case keyEnd:
-			if e.cur == len(e.buf) {
-				e.acceptGhost()
-			}
-			e.cur = len(e.buf)
-		case keyWordLeft:
-			e.cur = e.wordStart(e.cur)
-		case keyWordRight:
-			e.cur = e.wordEnd(e.cur)
-		case keyDeleteWordLeft:
-			from := e.wordStart(e.cur)
+	case keyShiftTab:
+		if !e.moreKeys() {
+			e.completeKey(-1)
+		}
+	case keyBackspace:
+		if e.cur > 0 {
+			from := e.prev(e.cur)
 			e.buf = append(e.buf[:from], e.buf[e.cur:]...)
 			e.cur = from
-		case keyDeleteWordRight:
-			to := e.wordEnd(e.cur)
-			e.buf = append(e.buf[:e.cur], e.buf[to:]...)
-		case keyKillToEnd:
-			e.buf = e.buf[:e.cur]
-		case keyKillToStart:
-			e.buf = append([]rune(nil), e.buf[e.cur:]...)
-			e.cur = 0
-		case keyUp:
-			e.browse(-1)
-		case keyDown:
-			e.browse(1)
-		case keyClear:
-			io.WriteString(e.out, "\x1b[H\x1b[2J")
-			e.cursorRow = 0
-		case keyEscape, keyNone:
 		}
-		if e.moreKeys() {
-			continue // pasted text is drawn once, at its end
+	case keyDelete:
+		e.deleteAt()
+	case keyEOF:
+		if len(e.buf) == 0 {
+			e.finish()
+			return "", io.EOF, true
 		}
-		e.updateCompletion()
-		e.draw(false)
+		e.deleteAt()
+	case keyInterrupt:
+		e.comp = completion{}
+		e.draw(true)
+		e.prompting = false
+		io.WriteString(e.out, "^C\r\n")
+		return string(e.buf), errInterrupt, true
+	case keyLeft:
+		if e.cur > 0 {
+			e.cur = e.prev(e.cur)
+		}
+	case keyRight:
+		if e.cur < len(e.buf) {
+			e.cur = e.next(e.cur)
+		} else {
+			e.acceptGhost()
+		}
+	case keyHome:
+		e.cur = 0
+	case keyEnd:
+		if e.cur == len(e.buf) {
+			e.acceptGhost()
+		}
+		e.cur = len(e.buf)
+	case keyWordLeft:
+		e.cur = e.wordStart(e.cur)
+	case keyWordRight:
+		e.cur = e.wordEnd(e.cur)
+	case keyDeleteWordLeft:
+		from := e.wordStart(e.cur)
+		e.buf = append(e.buf[:from], e.buf[e.cur:]...)
+		e.cur = from
+	case keyDeleteWordRight:
+		to := e.wordEnd(e.cur)
+		e.buf = append(e.buf[:e.cur], e.buf[to:]...)
+	case keyKillToEnd:
+		e.buf = e.buf[:e.cur]
+	case keyKillToStart:
+		e.buf = append([]rune(nil), e.buf[e.cur:]...)
+		e.cur = 0
+	case keyUp:
+		e.browse(-1)
+	case keyDown:
+		e.browse(1)
+	case keyClear:
+		io.WriteString(e.out, "\x1b[H\x1b[2J")
+		e.cursorRow = 0
+	case keyEscape, keyNone:
 	}
+	if e.moreKeys() {
+		return "", nil, false // pasted text is drawn once, at its end
+	}
+	e.updateCompletion()
+	e.draw(false)
+	return "", nil, false
+
 }
 
 // moreKeys reports whether a whole key has arrived already, in what the terminal sent last:
@@ -277,6 +341,7 @@ func (e *editor) browse(dir int) {
 func (e *editor) finish() {
 	e.comp = completion{}
 	e.draw(true)
+	e.prompting = false
 	io.WriteString(e.out, "\r\n")
 }
 
