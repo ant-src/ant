@@ -201,10 +201,10 @@ func TestEditorCompletion(t *testing.T) {
 		{"\t\t\r", "print"},                       // Tab on an empty line opens the menu: functions, then namespaces, then keywords
 		{"\x1b[Z\r", "var"},                       // Shift-Tab starts at the last reply
 		{"xyz\t\r", "xyz"},                        // no reply
-		{"xs | Arra\t\r", "xs | Array."},          // after a pipe the namespace is completed first
-		{"xs | A\x1b[C\r", "xs | Array."},         // as the ghost suggests it
+		{"xs | Arra\t\r", "xs | Array"},           // after a pipe the namespace is completed first
+		{"xs | A\x1b[C\r", "xs | Array"},          // as the ghost suggests it
 		{"xs | Array.f\t\r", "xs | Array.filter"}, // then its members
-		{"xs | \t\t\r", "xs | Array."},            // the menu lists each namespace once, after the plain names
+		{"xs | \t\t\r", "xs | Array"},             // the menu lists each namespace once, after the plain names
 	}
 	for _, tc := range tests {
 		e, _, in := fakeTerminal(t, 80, complete)
