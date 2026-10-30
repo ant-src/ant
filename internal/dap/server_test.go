@@ -424,7 +424,9 @@ println(Point.sum(p) + n + scores["ada"])
 }
 
 func TestLaunchRelativeProgram(t *testing.T) {
-	dir := write(t, map[string]string{"main.ant": "println(1)\n"})
+	// Os.program is the resolved path, which still names the program once the adapter has moved
+	// into its directory.
+	dir := write(t, map[string]string{"main.ant": "println(1)\nprintln(Path.isAbs(Os.program()) && File.exists(Os.program()))\n"})
 	parent := filepath.Dir(dir)
 	rel := filepath.Join(filepath.Base(dir), "main.ant")
 	wd, _ := os.Getwd()
@@ -437,7 +439,7 @@ func TestLaunchRelativeProgram(t *testing.T) {
 	ok(t, c.request("launch", map[string]any{"program": rel})) // relative to the adapter's directory, with no cwd
 	ok(t, c.request("configurationDone", nil))
 	c.event("terminated")
-	if got := c.output("stdout"); got != "1\n" {
+	if got := c.output("stdout"); got != "1\ntrue\n" {
 		t.Errorf("stdout: %q", got)
 	}
 }

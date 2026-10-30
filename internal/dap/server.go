@@ -346,7 +346,7 @@ func (s *server) launch(raw json.RawMessage) error {
 		Stdout:  writer{s, "stdout"},
 		Stderr:  writer{s, "stderr"},
 		Args:    args.Args,
-		Program: args.Program,
+		Program: program,
 		Env: func(name string) (string, bool) {
 			v, ok := env[name]
 			return v, ok

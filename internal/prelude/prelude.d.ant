@@ -125,11 +125,11 @@ func Array.first[T](xs: Array[T]): T | null
 func Array.last[T](xs: Array[T]): T | null
 // Array.push appends v to the end of xs. It mutates xs.
 func Array.push[T](xs: Array[T], v: T): void
-// Array.pushAll appends the elements of ys to the end of xs, in order, as ys was at the call, so
-// Array.pushAll(xs, xs) doubles xs. It mutates xs.
+// Array.extend appends the elements of ys to the end of xs, in order, as ys was at the call, so
+// Array.extend(xs, xs) doubles xs. It mutates xs.
 //
-//     Array.pushAll(args, ["-o", out])
-func Array.pushAll[T](xs: Array[T], ys: Array[T]): void
+//     Array.extend(args, ["-o", out])
+func Array.extend[T](xs: Array[T], ys: Array[T]): void
 // Array.pop removes and returns the last element of xs, or returns null when xs is empty. It
 // mutates xs.
 func Array.pop[T](xs: Array[T]): T | null
@@ -1681,7 +1681,8 @@ func Os.interrupt(): Context
 // their output interleaves in program order.
 func Os.stdout(): File.Handle
 // Os.stderr returns the program's standard error, which [eprint] and [eprintln] write to as well.
-// A write to it flushes standard output first.
+// A write to it flushes standard output first, so it waits while standard output cannot be written,
+// as when the reader of a full pipe is not reading.
 func Os.stderr(): File.Handle
 
 // Cmd is a program to run, as a value: a Cmd says what to run, and a function of Cmd says how.

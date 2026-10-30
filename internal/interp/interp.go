@@ -326,10 +326,7 @@ func (in *Instance) endErr(r any) error {
 				msg = m
 			}
 		}
-		in.Flush()
-		in.errMu.Lock()
-		io.WriteString(in.cfg.Stderr, msg+"\n")
-		in.errMu.Unlock()
+		io.WriteString(in.ErrWriter(), msg+"\n")
 		return &ResultError{Message: msg}
 	case *cancelSignal:
 		return in.stopErr()
@@ -345,7 +342,6 @@ func (in *Instance) endErr(r any) error {
 const traceEnds = 10
 
 func (in *Instance) report(p *AntPanic) {
-	in.Flush()
 	var sb strings.Builder
 	sb.WriteString("panic: ")
 	sb.WriteString(p.Message)
@@ -361,9 +357,7 @@ func (in *Instance) report(p *AntPanic) {
 		}
 		fmt.Fprintf(&sb, "  at %s (%s:%d:%d)\n", f.Function, f.Path, f.Pos.Line, f.Pos.Col)
 	}
-	in.errMu.Lock()
-	io.WriteString(in.cfg.Stderr, sb.String())
-	in.errMu.Unlock()
+	io.WriteString(in.ErrWriter(), sb.String())
 }
 
 // Print writes s to the run's stdout.
@@ -428,12 +422,9 @@ func (w stdoutWriter) Write(p []byte) (int, error) {
 	return w.in.out.Write(p)
 }
 
-// Stderr returns the run's standard error.
-func (in *Instance) Stderr() io.Writer { return in.cfg.Stderr }
-
 // ErrWriter returns a writer to the run's standard error that flushes stdout before each write,
 // so that the two streams interleave in program order where they reach one terminal; eprint,
-// eprintln and Os.stderr write through it.
+// eprintln, Os.stderr and the run's reports write through it.
 func (in *Instance) ErrWriter() io.Writer { return errWriter{in} }
 
 type errWriter struct{ in *Instance }
