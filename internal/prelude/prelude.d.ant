@@ -187,6 +187,8 @@ func Array.slice[T](xs: Array[T], from: int, to: int): Array[T]
 func Array.concat[T](xs: Array[T], ys: Array[T]): Array[T]
 
 // Array.map returns a new array holding f applied to each element of xs, in order.
+//
+//     Array.map([1, 2, 3], { x * 2 })   // [2, 4, 6]
 func Array.map[T, U](xs: Array[T], f: func(T): U): Array[U]
 
 // Array.flatMap applies f to each element of xs and returns the arrays it returns, concatenated in
@@ -458,7 +460,7 @@ func String.split(s: string, sep: string): Array[string]
 // String.join returns the strings in parts joined with sep between each two.
 func String.join(parts: Array[string], sep: string): string
 
-// String.repeat returns s repeated n times. It panics if n < 0 or n is above 2^31 − 1.
+// String.repeat returns s repeated n times. It panics if n < 0 or n is above 2^31 - 1.
 func String.repeat(s: string, n: int): string
 
 // String.trim returns s without leading and trailing Unicode white space.
@@ -480,7 +482,7 @@ func String.trimSuffix(s: string, suffix: string): string
 
 // String.padStart returns s with pad repeated on the left until it is width code points long. The
 // padding is cut to the code points s lacks, and s comes back unchanged when it is already at or
-// beyond width. pad defaults to a space. It panics if pad is empty or width is above 2^31 − 1.
+// beyond width. pad defaults to a space. It panics if pad is empty or width is above 2^31 - 1.
 //
 //     String.padStart("7", 4, "ab")   // "aba7"
 func String.padStart(s: string, width: int, pad: string = " "): string
@@ -791,10 +793,15 @@ func Regex.compile(source: string, flags: string = ""): Result[Regex.Pattern, Er
 func Regex.test(p: Regex.Pattern, s: string): bool
 
 // Regex.find returns the leftmost match of p in s, or null when there is none.
+//
+//     Regex.find(/\d+/, "ab12")
+//     // Regex.Match{ text: "12", start: 2, end: 4, groups: ["12"], named: Map{} }
 func Regex.find(p: Regex.Pattern, s: string): Regex.Match | null
 
 // Regex.findAll returns every match of p in s, left to right and without overlap. An empty match
 // that abuts the match before it is skipped.
+//
+//     Regex.findAll(/\d+/, "a1b22") | Array.map({ x.text })   // ["1", "22"]
 func Regex.findAll(p: Regex.Pattern, s: string): Array[Regex.Match]
 
 // Regex.replace returns s with every match of p replaced by replacement. In replacement, $n and
@@ -1128,8 +1135,8 @@ func Result.unwrapOr[T, E](r: Result[T, E], fallback: T): T
 //     Result.all([Result.ok(1), Result.err("no"), Result.err("later")])   // Err{ error: "no" }
 func Result.all[T, E](rs: Array[Result[T, E]]): Result[Array[T], E]
 
-// Result.wrapErr returns r itself if it is an Ok, and an Err holding Error.wrap(r.error, context) if
-// it is an Err.
+// Result.wrapErr returns r itself if it is an Ok, and an Err holding Error.wrap(r.error, context)
+// if it is an Err.
 //
 //     try (Json.parse(text) | Result.wrapErr(`parse ${path}`))
 func Result.wrapErr[T](r: Result[T, Error], context: string): Result[T, Error]
@@ -1139,7 +1146,8 @@ func Result.wrapErr[T](r: Result[T, Error], context: string): Result[T, Error]
 // Error.wrap returns a new Error whose message is context, ": ", and the message of e, leaving e
 // untouched. An empty context is joined like any other.
 //
-//     Error.wrap(Error{ message: "no such file" }, "load config")   // Error{ message: "load config: no such file" }
+//     var e = Error{ message: "no such file" }
+//     Error.wrap(e, "load config")   // Error{ message: "load config: no such file" }
 func Error.wrap(e: Error, context: string): Error
 
 // Panic
@@ -1444,8 +1452,8 @@ func File.readChunk(f: File.Handle, max: int, ctx: Context | null = null): Resul
 
 // File.readExactly reads exactly n bytes from f, waiting until all of them have arrived. It returns
 // null at end of file, is Err with the message "unexpected end of file" when the input ends
-// partway, discarding the bytes it read, and is Err when n is below 0. An n of 0 gives empty Bytes without reading, at the end of
-// the file too.
+// partway, discarding the bytes it read, and is Err when n is below 0. An n of 0 gives empty Bytes
+// without reading, at the end of the file too.
 func File.readExactly(f: File.Handle, n: int, ctx: Context | null = null): Result[Bytes | null, Error]
 
 // File.writeChunk writes bytes to f as they are.
@@ -1545,6 +1553,9 @@ func Http.post(url: string, body: string | Bytes, headers: Map[string, string] =
 // and is Err when l is closed under it. A panic in handler sends status 500, and a reply status
 // outside 200 to 599, or reply header names that differ only in case, panic in the handler's
 // goroutine.
+//
+//     var l = try Net.listen(":8080")
+//     try Http.serve(l, { Http.Reply{ status: 200, headers: Map{}, body: `hi ${x.path}` } })
 func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: Context | null = null): Result[void, Error]
 
 // Time
@@ -2109,7 +2120,8 @@ func Os.exit(status: int): never
 // every writing end is closed, the copies given to children and the program's own.
 func Os.openPipe(): Result[Os.Pipe, Error]
 
-// Os.which returns the path a [Cmd] naming program starts, or null when PATH holds none.
+// Os.which returns the path of the executable in PATH that a [Cmd] naming program starts, or null
+// when PATH holds none.
 func Os.which(program: string): string | null
 
 // Os.stdin returns the program's standard input. A read of it flushes standard output first, so a
@@ -2132,9 +2144,9 @@ func Os.stdout(): File.Handle
 func Os.stderr(): File.Handle
 
 // Cmd is a program to run, as a value: a Cmd says what to run, and a function of Cmd says how.
-// Nothing runs it through a shell. program is looked up in PATH when it has no path separator, and is taken
-// relative to dir otherwise; the child runs in dir and with env as its whole environment when they
-// are given. A child ended by signal n has the status 128 + n, as a shell reports it.
+// Nothing runs it through a shell. program is looked up in PATH when it has no path separator, and
+// is taken relative to dir otherwise; the child runs in dir and with env as its whole environment
+// when they are given. A child ended by signal n has the status 128 + n, as a shell reports it.
 //
 //     var head = try Cmd.read(Cmd.new("git", ["rev-parse", "--short", "HEAD"]))
 type Cmd = { program: string, args: Array[string] = [], dir: string | null = null, env: Map[string, string] | null = null }
@@ -2165,8 +2177,8 @@ func Cmd.new(program: string, args: Array[string] = [], dir: string | null = nul
 func Cmd.pipe(cmds: Array[Cmd]): Cmd.Pipeline
 
 // Cmd.string returns c as a line for a log: the program and its arguments, each quoted as a POSIX
-// shell needs it, and a pipeline's stages joined by " | ". env and dir are left out, so the
-// environment's secrets are not.
+// shell needs it, and a pipeline's stages joined by " | ". env and dir are left out, so a secret in
+// env never reaches the log.
 func Cmd.string(c: Cmd | Cmd.Pipeline): string
 
 // Cmd.run runs c in the foreground, with the program's own standard input, output and error, so a
