@@ -10,11 +10,13 @@ import (
 	"github.com/ant-src/ant/internal/token"
 )
 
-// completion is the state of completing the line being edited: the replies for the text up to
+// completion is the state of completing the line being edited: the replies for the word at
 // the cursor, the menu Tab cycles through, and what the ghost after the cursor shows.
 type completion struct {
 	query    string           // the line the replies are for
+	at       int              // the cursor they are for, in runes
 	start    int              // where the completed word starts in the line, in runes
+	tail     []rune           // what follows the word, which a reply leaves in place
 	word     string           // the word being completed
 	member   bool             // the word follows a dot or a pipe, so an empty word has a ghost
 	replies  []ant.Completion // what can be written, sorted
@@ -25,30 +27,49 @@ type completion struct {
 // completeMaxRows is the most rows the menu takes.
 const completeMaxRows = 10
 
-// update computes the replies for the line, when the cursor is at its end, as fx does: only
-// the end of a line is completed.
+// updateCompletion computes the replies as the line is typed, which the ghost and the list
+// show: only at the end of the line, so that nothing is drawn over the text after the cursor.
+// Tab completes anywhere (computeCompletion).
 func (e *editor) updateCompletion() {
+	if e.comp.menu {
+		return // the menu keeps its replies, wherever the cursor is
+	}
+	if e.cur != len(e.buf) {
+		e.comp = completion{}
+		return
+	}
+	e.computeCompletion()
+}
+
+// computeCompletion computes the replies for the word at the cursor: the identifier before it
+// is what a reply must begin with, and the rest of the identifier after it is replaced too.
+func (e *editor) computeCompletion() {
 	c := &e.comp
 	line := string(e.buf)
-	if e.cur != len(e.buf) || e.complete == nil {
+	if e.complete == nil {
 		*c = completion{}
 		return
 	}
-	if c.menu || c.query == line && c.replies != nil {
+	if c.menu || c.query == line && c.at == e.cur && c.replies != nil {
 		return // the menu keeps its replies; the same line has the same replies
 	}
-	*c = completion{query: line}
+	*c = completion{query: line, at: e.cur}
+	off := len(string(e.buf[:e.cur]))
 	src := e.pending + line
-	// the word being completed is the identifier before the cursor
-	start := len(line)
+	start := off
 	for start > 0 && token.IsIdentByte(line[start-1]) {
 		start--
 	}
-	c.word = line[start:]
+	end := off
+	for end < len(line) && token.IsIdentByte(line[end]) {
+		end++
+	}
+	c.word = line[start:off]
 	c.start = len([]rune(line[:start]))
+	c.tail = []rune(line[end:])
 	before := strings.TrimRight(line[:start], " \t")
 	c.member = strings.HasSuffix(before, ".") || strings.HasSuffix(before, "|")
-	items := e.complete(src, len(src))
+	items := e.complete(src, len(e.pending)+off)
 	seen := map[string]bool{}
 	for _, it := range items {
 		if i := strings.IndexByte(it.Insert, '.'); i >= 0 {
@@ -105,7 +126,7 @@ func kindRank(kind string) int {
 // call asks for a parameter.
 func (e *editor) ghost() string {
 	c := &e.comp
-	if c.menu || e.cur != len(e.buf) || c.query != string(e.buf) {
+	if c.menu || e.cur != len(e.buf) || c.query != string(e.buf) || c.at != e.cur {
 		return ""
 	}
 	for _, r := range c.replies {
@@ -136,11 +157,8 @@ func (e *editor) acceptGhost() bool {
 // replies, and otherwise opens the menu and cycles through them.
 func (e *editor) completeKey(dir int) {
 	c := &e.comp
-	if e.cur != len(e.buf) {
-		return
-	}
 	if !c.menu {
-		e.updateCompletion()
+		e.computeCompletion()
 	}
 	n := len(c.replies)
 	if n == 0 {
@@ -153,12 +171,13 @@ func (e *editor) completeKey(dir int) {
 	}
 	if n == 1 {
 		e.replaceWord(c.replies[0].Insert)
-		c.menu = false
+		*c = completion{}
 		e.updateCompletion()
 		return
 	}
 	if prefix := commonPrefix(c.replies); len(prefix) > len(c.word) {
 		e.replaceWord(prefix)
+		*c = completion{}
 		e.updateCompletion()
 		return
 	}
@@ -170,12 +189,13 @@ func (e *editor) completeKey(dir int) {
 	e.replaceWord(c.replies[c.selected].Insert)
 }
 
-// replaceWord puts text in place of the word being completed. The query and the replies stay
-// those of the word, so that the menu can go on cycling.
+// replaceWord puts text in place of the word being completed, leaving what follows it, and
+// the cursor after text. The query and the replies stay those of the word, so that the menu
+// can go on cycling.
 func (e *editor) replaceWord(text string) {
 	c := &e.comp
-	e.buf = append(e.buf[:c.start], []rune(text)...)
-	e.cur = len(e.buf)
+	e.buf = append(append(e.buf[:c.start], []rune(text)...), c.tail...)
+	e.cur = c.start + len([]rune(text))
 }
 
 // closeMenu ends menu cycling, keeping the reply written; the replies are then computed for

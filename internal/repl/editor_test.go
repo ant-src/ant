@@ -202,17 +202,22 @@ func TestEditorCompletion(t *testing.T) {
 		{"Array.\x05\r", "Array.filter"},       // so does End
 		{"Array.\r", "Array."},                 // Enter does not
 		{"twice(\x1b[C\r", "twice(k: "},
-		{"get(\x1b[C\r", "get(url: "},             // the parameters come in their order, not alphabetically
-		{"get(\t\t\r", "get(headers: "},           // a parameter the call asks for is suggested
-		{"pa\x1b[C\r", "panic"},                   // the ghost extends the word
-		{"pa\x1b[D\x1b[C\r", "pa"},                // Right in the middle of the line moves the cursor
-		{"\t\t\r", "print"},                       // Tab on an empty line opens the menu: functions, then namespaces, then keywords
-		{"\x1b[Z\r", "var"},                       // Shift-Tab starts at the last reply
-		{"xyz\t\r", "xyz"},                        // no reply
-		{"xs | Arra\t\r", "xs | Array"},           // after a pipe the namespace is completed first
-		{"xs | A\x1b[C\r", "xs | Array"},          // as the ghost suggests it
-		{"xs | Array.f\t\r", "xs | Array.filter"}, // then its members
-		{"xs | \t\t\r", "xs | Array"},             // the menu lists each namespace once, after the plain names
+		{"get(\x1b[C\r", "get(url: "},                     // the parameters come in their order, not alphabetically
+		{"get(\t\t\r", "get(headers: "},                   // a parameter the call asks for is suggested
+		{"pa\x1b[C\r", "panic"},                           // the ghost extends the word
+		{"pa\x1b[D\x1b[C\r", "pa"},                        // Right in the middle of the line moves the cursor
+		{"\t\t\r", "print"},                               // Tab on an empty line opens the menu: functions, then namespaces, then keywords
+		{"\x1b[Z\r", "var"},                               // Shift-Tab starts at the last reply
+		{"xyz\t\r", "xyz"},                                // no reply
+		{"tw(1)\x1b[D\x1b[D\x1b[D\t\r", "twice(1)"},       // Tab in the middle of the line keeps what follows
+		{"tw(1)\x1b[D\x1b[D\x1b[D\tX\r", "twiceX(1)"},     // and leaves the cursor after the reply
+		{"tx(1)\x01\x1b[C\t\r", "twice(1)"},               // the rest of the word after the cursor is replaced
+		{"pr + 1\x01\x1b[C\x1b[C\t\t\t\r", "println + 1"}, // the common prefix, then the menu cycles mid-line
+		{"pa + 1\x01\x1b[C\x1b[C\x1b[C\r", "pa + 1"},      // Right mid-line moves; no ghost there
+		{"xs | Arra\t\r", "xs | Array"},                   // after a pipe the namespace is completed first
+		{"xs | A\x1b[C\r", "xs | Array"},                  // as the ghost suggests it
+		{"xs | Array.f\t\r", "xs | Array.filter"},         // then its members
+		{"xs | \t\t\r", "xs | Array"},                     // the menu lists each namespace once, after the plain names
 	}
 	for _, tc := range tests {
 		e, _, in := fakeTerminal(t, 80, complete)
