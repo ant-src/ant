@@ -51,6 +51,12 @@ func (e *editor) updateCompletion() {
 	items := e.complete(src, len(src))
 	seen := map[string]bool{}
 	for _, it := range items {
+		if i := strings.IndexByte(it.Insert, '.'); i >= 0 {
+			// a qualified name, as the functions offered after a pipe are: Array.map,
+			// Array.filter; completed a word at a time, so the namespace comes first
+			ns := it.Insert[:i+1]
+			it = ant.Completion{Label: ns, Insert: ns, Kind: "namespace"}
+		}
 		if !strings.HasPrefix(it.Insert, c.word) || seen[it.Insert] {
 			continue
 		}
