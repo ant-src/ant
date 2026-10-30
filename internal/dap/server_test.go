@@ -253,6 +253,22 @@ println(d)
 	}
 }
 
+func TestServeEndsWithStatus0WhenTheClientClosesAfterTerminated(t *testing.T) {
+	dir := t.TempDir()
+	main := filepath.Join(dir, "main.ant")
+	os.WriteFile(main, []byte("println(1)\n"), 0o644)
+	c := newClient(t)
+	ok(t, c.request("initialize", map[string]any{"adapterID": "ant"}))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	c.event("initialized")
+	ok(t, c.request("configurationDone", nil))
+	c.event("terminated")
+	c.w.(io.Closer).Close() // as nvim-dap does: no disconnect after terminated
+	if s := <-c.status; s != 0 {
+		t.Errorf("status %d, want 0", s)
+	}
+}
+
 func TestPanicStopAndExitCode(t *testing.T) {
 	dir := write(t, map[string]string{"main.ant": `var xs = [1]
 println(xs[3])

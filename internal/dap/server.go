@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ant-src/ant/ast"
@@ -37,6 +38,10 @@ func Serve(ctx context.Context, in io.Reader, out, log io.Writer) int {
 				fmt.Fprintln(log, "ant dap:", err)
 			}
 			s.end()
+			// a client may close the connection once the run has ended, without disconnect
+			if errors.Is(err, frame.ErrClosed) && s.ended.Load() {
+				return 0
+			}
 			return 1
 		}
 		var req request
@@ -77,6 +82,7 @@ type server struct {
 	interrupts chan struct{}
 	terminated int
 	done       chan struct{} // closed when the run has ended
+	ended      atomic.Bool   // the terminated event is sent
 	started    bool
 
 	// handles are the frames and variable containers of the current stop, reset on resume.
@@ -398,6 +404,7 @@ func (s *server) start() {
 		err := interp.Run(s.ctx, s.prog, s.cfg)
 		close(s.done)
 		s.event("exited", map[string]any{"exitCode": exitStatus(err)})
+		s.ended.Store(true)
 		s.event("terminated", nil)
 	}()
 }
