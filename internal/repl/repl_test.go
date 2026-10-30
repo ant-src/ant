@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ant-src/ant"
 )
 
 // TestRun feeds a scripted session through the loop: declarations and expressions across
@@ -111,5 +113,72 @@ func TestRunUnfinishedAtEnd(t *testing.T) {
 	}
 	if !strings.Contains(errOut.String(), "<input>:3:1:") {
 		t.Errorf("stderr lacks the syntax error: %q", errOut.String())
+	}
+}
+
+// scriptedReader answers readLine from a list, as an editor would: a line, or an error with
+// what Ctrl-C dropped.
+type scriptedReader struct {
+	steps []struct {
+		line string
+		err  error
+	}
+}
+
+func (r *scriptedReader) readLine(prompt, pending string) (string, error) {
+	if len(r.steps) == 0 {
+		return "", io.EOF
+	}
+	st := r.steps[0]
+	r.steps = r.steps[1:]
+	return st.line, st.err
+}
+
+// TestLoopInterrupts checks what Ctrl-C does at the prompt: it drops the line, or the input
+// so far, and says how to exit; twice in a row, it ends the REPL.
+func TestLoopInterrupts(t *testing.T) {
+	type step = struct {
+		line string
+		err  error
+	}
+	run := func(steps ...step) (int, string) {
+		var out, errOut strings.Builder
+		s, err := ant.NewSession(context.Background(), ant.WithStdout(&out), ant.WithStderr(&errOut))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer s.Close()
+		status := loop(context.Background(), s, &scriptedReader{steps: steps}, &out, &errOut)
+		return status, out.String()
+	}
+	// a line dropped, then a line entered: the REPL goes on
+	const hint = "(press ^C again or ^D to exit)\n"
+	status, out := run(step{"abc", errInterrupt}, step{"1 + 1", nil})
+	if status != 0 || !strings.Contains(out, "2\n") || strings.Count(out, hint) != 1 {
+		t.Errorf("drop then enter: status %d, out %q", status, out)
+	}
+	// Ctrl-C on an empty prompt tells how to exit; again right after, it exits
+	status, out = run(step{"", errInterrupt}, step{"", errInterrupt}, step{"1 + 1", nil})
+	if status != 130 || strings.Count(out, hint) != 1 || strings.Contains(out, "2\n") {
+		t.Errorf("twice: status %d, out %q", status, out)
+	}
+	// a line dropped, then Ctrl-C again: exits too
+	status, out = run(step{"abc", errInterrupt}, step{"", errInterrupt})
+	if status != 130 || strings.Count(out, hint) != 1 {
+		t.Errorf("drop then again: status %d, out %q", status, out)
+	}
+	// a line typed between two drops: no exit until the third
+	status, out = run(step{"", errInterrupt}, step{"xy", errInterrupt}, step{"", errInterrupt})
+	if status != 130 || strings.Count(out, hint) != 2 {
+		t.Errorf("typed between: status %d, out %q", status, out)
+	}
+	status, _ = run(step{"", errInterrupt}, step{"1", nil}, step{"", errInterrupt})
+	if status != 0 {
+		t.Errorf("entered between: status %d", status)
+	}
+	// Ctrl-C in an unfinished input drops it
+	status, out = run(step{"func f() {", nil}, step{"", errInterrupt}, step{"2", nil})
+	if status != 0 || strings.Count(out, hint) != 1 || !strings.Contains(out, "2\n") {
+		t.Errorf("unfinished: status %d, out %q", status, out)
 	}
 }

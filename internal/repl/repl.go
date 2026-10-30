@@ -19,7 +19,8 @@ import (
 // non-void result with String.from, and reporting errors on stderr. On a terminal it edits each
 // line with the keys of readline, highlights it as it is typed, and completes names, members,
 // and arguments with Tab, suggesting the first after the cursor. It returns the exit status:
-// 130 when ctx ends first, which is an interrupt, as it ends a run.
+// 130 when ctx ends first, which is an interrupt, as it ends a run, or when Ctrl-C is pressed
+// twice in a row at the prompt.
 func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 	// The REPL owns standard input, so a program's Os.stdin() is at end of file.
 	s, err := ant.NewSession(ctx, ant.WithStdin(strings.NewReader("")), ant.WithStdout(stdout),
@@ -35,7 +36,14 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 	} else {
 		r = newPlainReader(ctx, stdin, stdout)
 	}
+	return loop(ctx, s, r, stdout, stderr)
+}
+
+// loop is the read-eval-print loop over the lines r reads.
+func loop(ctx context.Context, s *ant.Session, r lineReader, stdout, stderr io.Writer) int {
 	var pending strings.Builder
+	// armed is set by Ctrl-C: another right after it ends the REPL
+	armed := false
 	for {
 		prompt := "> "
 		if pending.Len() > 0 {
@@ -43,9 +51,15 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		line, err := r.readLine(prompt, pending.String())
 		if errors.Is(err, errInterrupt) {
+			if line == "" && armed {
+				return 130
+			}
+			fmt.Fprintln(stdout, "(press ^C again or ^D to exit)")
+			armed = true
 			pending.Reset()
 			continue
 		}
+		armed = false
 		if ctx.Err() != nil {
 			fmt.Fprintln(stdout)
 			return 130
@@ -102,9 +116,9 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 // A lineReader reads the lines of the inputs. readLine returns io.EOF at the end of the input,
-// errInterrupt when the line was dropped, the context's error when it ends, and another error
-// when the input cannot be read; pending is the input so far, for the continuation prompt's
-// context.
+// errInterrupt with the line Ctrl-C dropped, the context's error when it ends, and another
+// error when the input cannot be read; pending is the input so far, for the continuation
+// prompt's context.
 type lineReader interface {
 	readLine(prompt, pending string) (string, error)
 }

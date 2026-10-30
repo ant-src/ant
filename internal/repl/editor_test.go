@@ -103,8 +103,8 @@ func TestEditorEOFAndInterrupt(t *testing.T) {
 		t.Errorf("Ctrl-D on an empty line: %v", err)
 	}
 	in <- []byte("abc\x03")
-	if _, err := e.readLine("> ", ""); err != errInterrupt {
-		t.Errorf("Ctrl-C: %v", err)
+	if line, err := e.readLine("> ", ""); err != errInterrupt || line != "abc" {
+		t.Errorf("Ctrl-C: %q, %v", line, err)
 	}
 	if !strings.HasSuffix(out.String(), "\r\x1b[J> abc^C\r\n") {
 		t.Errorf("output %q", out.String())

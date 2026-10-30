@@ -45,9 +45,9 @@ type editor struct {
 	closed    bool
 }
 
-// readLine reads one line after prompt. It returns errInterrupt when Ctrl-C drops the line,
-// io.EOF at Ctrl-D on an empty line or the end of the input, and the context's error when it
-// ends; the line is on the screen in every case, with the cursor on the next line.
+// readLine reads one line after prompt. It returns errInterrupt, with the line, when Ctrl-C
+// drops it, io.EOF at Ctrl-D on an empty line or the end of the input, and the context's error
+// when it ends; the line is on the screen in every case, with the cursor on the next line.
 func (e *editor) readLine(prompt, pending string) (string, error) {
 	if e.raw != nil {
 		restore, err := e.raw()
@@ -109,7 +109,7 @@ func (e *editor) readLine(prompt, pending string) (string, error) {
 			e.comp = completion{}
 			e.draw(true)
 			io.WriteString(e.out, "^C\r\n")
-			return "", errInterrupt
+			return string(e.buf), errInterrupt
 		case keyLeft:
 			if e.cur > 0 {
 				e.cur = e.prev(e.cur)
