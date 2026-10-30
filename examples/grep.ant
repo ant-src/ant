@@ -10,7 +10,7 @@ func keeps(line: string, needles: Array[string]): bool {
 
 var needles = Array.map(Os.args(), { String.toLower(x) })
 if Array.length(needles) == 0 {
-  File.writeLine(Os.stderr(), "usage: ant run examples/grep.ant word... < file")
+  eprintln(`usage: ant run ${Os.program()} word... < file`)
   Os.exit(2)
 }
 var input = Os.stdin()
@@ -25,4 +25,4 @@ while line != null {
   }
   line = Result.unwrap(File.readLine(input))
 }
-if File.writeLine(Os.stderr(), `${kept} of ${number} lines`) is Err { Os.exit(1) }
+eprintln(`${kept} of ${number} lines`)

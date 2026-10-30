@@ -44,6 +44,12 @@ func print[T](value: T): void
 // println writes String.from(value) and a newline to standard output. println() with no argument
 // writes only the newline.
 func println[T](value: T): void
+// eprint writes String.from(value) to standard error, with no newline. Standard error is not
+// buffered; a write to it flushes standard output first, so the two interleave in program order.
+func eprint[T](value: T): void
+// eprintln writes String.from(value) and a newline to standard error, for a warning or a usage
+// line. eprintln() with no argument writes only the newline.
+func eprintln[T](value: T): void
 // panic stops the current goroutine with message, running its deferred blocks on the way out,
 // unless a [Panic.catch] on the way stops it. A panic in the main goroutine ends the program with
 // exit status 1.
@@ -119,6 +125,11 @@ func Array.first[T](xs: Array[T]): T | null
 func Array.last[T](xs: Array[T]): T | null
 // Array.push appends v to the end of xs. It mutates xs.
 func Array.push[T](xs: Array[T], v: T): void
+// Array.pushAll appends the elements of ys to the end of xs, in order, as ys was at the call, so
+// Array.pushAll(xs, xs) doubles xs. It mutates xs.
+//
+//     Array.pushAll(args, ["-o", out])
+func Array.pushAll[T](xs: Array[T], ys: Array[T]): void
 // Array.pop removes and returns the last element of xs, or returns null when xs is empty. It
 // mutates xs.
 func Array.pop[T](xs: Array[T]): T | null
@@ -1634,6 +1645,16 @@ func Net.peer(f: File.Handle): string | null
 type Os.Pipe = { read: File.Handle, write: File.Handle }
 // Os.args returns the arguments after the program path: ant run main.ant a b gives ["a", "b"].
 func Os.args(): Array[string]
+// Os.program returns the path of the program's root module as the command was given it, as a
+// shell's $0 is: ./tool.ant when a #! line runs it, tool.ant after ant run tool.ant. It is "" in
+// the REPL.
+func Os.program(): string
+// Os.platform returns the host's operating system by Go's name for it, GOOS: "darwin", "linux",
+// "windows", and so on.
+func Os.platform(): string
+// Os.arch returns the host's processor architecture by Go's name for it, GOARCH: "arm64",
+// "amd64", and so on.
+func Os.arch(): string
 // Os.env returns the value of the environment variable name, or null when it is not set.
 func Os.env(name: string): string | null
 // Os.environ returns every environment variable, keyed by name.
@@ -1659,7 +1680,8 @@ func Os.interrupt(): Context
 // Os.stdout returns the program's standard output. print and println write to the same buffer, so
 // their output interleaves in program order.
 func Os.stdout(): File.Handle
-// Os.stderr returns the program's standard error.
+// Os.stderr returns the program's standard error, which [eprint] and [eprintln] write to as well.
+// A write to it flushes standard output first.
 func Os.stderr(): File.Handle
 
 // Cmd is a program to run, as a value: a Cmd says what to run, and a function of Cmd says how.

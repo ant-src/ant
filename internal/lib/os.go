@@ -2,6 +2,7 @@ package lib
 
 import (
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -18,6 +19,15 @@ func init() {
 					out[i] = value.Text(s)
 				}
 				return value.NewArray(out)
+			}),
+			fn("Os.program", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return value.Text(g.Instance().Program())
+			}),
+			fn("Os.platform", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return value.Text(runtime.GOOS)
+			}),
+			fn("Os.arch", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return value.Text(runtime.GOARCH)
 			}),
 			fn("Os.env", "name", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				v, ok := g.Instance().LookupEnv(stringArg(g, who, a[0]))
@@ -70,7 +80,7 @@ func init() {
 			fn("Os.stderr", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				in := g.Instance()
 				return in.Keep(who, func() any {
-					h := newHandle(nil, nil, in.Stderr())
+					h := newHandle(nil, nil, in.ErrWriter())
 					h.std, h.childOut = true, in.ChildStderr()
 					return h
 				}).(*Handle)

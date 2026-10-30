@@ -1,0 +1,21 @@
+// spec: stdlib Os; 11
+// Os.program is the root module's path as the command was given it, Os.platform and Os.arch are
+// Go's GOOS and GOARCH, and eprint and eprintln write to standard error (stdlib.md, Os; section 11).
+println(Path.base(Os.program()))
+println(String.endsWith(Os.program(), "os_program.ant"))
+println(Os.platform() != "" && Os.platform() == String.toLower(Os.platform()))
+println(Os.arch() != "" && Os.arch() == String.toLower(Os.arch()))
+if len(Os.args()) == 0 {
+  eprint("usage: ")
+  eprintln(`${Path.base(Os.program())} <file>...`)
+  eprintln()
+  eprintln([1, 2])
+}
+
+// expect
+// out: os_program.ant
+// out: true
+// out: true
+// out: true
+// err: usage: os_program.ant <file>...
+// err: [1, 2]

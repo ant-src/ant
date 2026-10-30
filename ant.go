@@ -74,6 +74,7 @@ type config struct {
 	stdout  io.Writer
 	stderr  io.Writer
 	args    []string
+	program string
 	env     func(name string) (string, bool)
 	environ func() []string
 	// host namespaces added and prelude namespaces removed
@@ -98,7 +99,7 @@ func (c config) with(opts []Option) config {
 func (c config) run(prelude map[string]value.Value) interp.Config {
 	return interp.Config{
 		Prelude: prelude, Stdin: c.stdin, Stdout: c.stdout, Stderr: c.stderr,
-		Args: c.args, Env: c.env, Environ: c.environ, Interrupts: c.interrupts,
+		Args: c.args, Program: c.program, Env: c.env, Environ: c.environ, Interrupts: c.interrupts,
 		Foreground: c.foreground,
 	}
 }
@@ -190,6 +191,7 @@ type Program struct {
 // files), which Check checks and Run refuses.
 func Load(path string, opts ...Option) (*Program, error) {
 	cfg := defaultConfig().with(opts)
+	cfg.program = path
 	table, extra, nsDecls, err := cfg.prelude()
 	if err != nil {
 		return nil, &LoadError{Diagnostics: []Diagnostic{{Message: err.Error()}}}

@@ -78,6 +78,6 @@ var outcome = execute(path, command, Array.slice(argv, Math.min(1, len(argv)), l
 if outcome is Ok {
   println(outcome.value)
 } else {
-  File.writeLine(Os.stderr(), `error: ${outcome.error.message}`)
+  eprintln(`error: ${outcome.error.message}`)
   Os.exit(1)
 }

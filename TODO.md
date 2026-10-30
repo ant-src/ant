@@ -1,6 +1,6 @@
 # Work still to do
 
-Ten gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Test framework
@@ -152,52 +152,3 @@ type Info = { name: string, size: int, isDir: bool, modified: Time.Instant, mode
 - Modes on Windows, where only the read-only bit means anything.
 - A mode parameter on `File.write` and `File.create` as well as, or instead of, `chmod`, which
   leaves a moment when the file has the default mode.
-
-## Platform
-
-**Today:** a script that does something different on macOS and Linux runs `uname` through `Cmd.read`.
-
-**Sketch:**
-
-```
-Os.platform(): string   // "darwin", "linux", "windows", as Go's GOOS
-Os.arch(): string       // "arm64", "amd64", as Go's GOARCH
-```
-
-**Open questions:**
-
-- Go's names or a union type of literals; what the JS backend reports.
-
-## The program's name
-
-**Today:** `Os.args()` leaves out the program path, so a usage line cannot name the script, as
-`$(basename "$0")` does, and the name is written into the message by hand.
-
-**Sketch:** `Os.program(): string`, the path of the script as given to `ant run`.
-
-**Open questions:**
-
-- What it is in the REPL, under `ant build`, and when run through a shebang line.
-
-## Writing to standard error
-
-**Today:** `File.writeLine(Os.stderr(), msg)` is the only way, and a warning or a usage line is
-common enough in scripts that it is long.
-
-**Sketch:** `eprint` and `eprintln` in the prelude, as `print` and `println` to standard error.
-
-**Open questions:**
-
-- Whether the two belong in the prelude or as `Os.eprintln`, and how they interleave with buffered
-  standard output.
-
-## Pushing several values
-
-**Today:** `Array.push` takes one value, so building an argument list of pairs, such as `-o X`,
-needs `xs = Array.concat(xs, ["-o", x])`.
-
-**Sketch:** `Array.extend[T](xs: Array[T], ys: Array[T]): void // mutates`, or a variadic `push`.
-
-**Open questions:**
-
-- Ant has no variadic functions, so `pushAll` is the smaller change.

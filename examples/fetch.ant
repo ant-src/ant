@@ -37,12 +37,12 @@ func fetch(url: string, path: string | null): Result[Json.Value, Error] {
 
 var args = Os.args()
 if len(args) == 0 || len(args) > 2 {
-  File.writeLine(Os.stderr(), "usage: ant run examples/fetch.ant <url> [path]")
+  eprintln(`usage: ant run ${Os.program()} <url> [path]`)
   Os.exit(2)
 }
 var result = fetch(args[0], Array.get(args, 1))
 if result is Err {
-  File.writeLine(Os.stderr(), `${args[0]}: ${result.error.message}`)
+  eprintln(`${args[0]}: ${result.error.message}`)
   Os.exit(1)
 }
 var v = result.value

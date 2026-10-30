@@ -45,6 +45,13 @@ func init() {
 				arrayArg(g, who, a[0]).Push(a[1])
 				return value.Void
 			}),
+			fn("Array.pushAll", "xs, ys", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				xs, ys := arrayArg(g, who, a[0]), arrayArg(g, who, a[1])
+				for _, v := range ys.Values() {
+					xs.Push(v)
+				}
+				return value.Void
+			}),
 			fn("Array.pop", "xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				v, ok := arrayArg(g, who, a[0]).Pop()
 				if !ok {

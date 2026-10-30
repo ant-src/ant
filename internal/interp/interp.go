@@ -27,6 +27,7 @@ type Config struct {
 	Stdout  io.Writer
 	Stderr  io.Writer
 	Args    []string
+	Program string // what Os.program returns: the root module's path as the host was given it
 	Env     func(name string) (string, bool)
 	Environ func() []string // every variable as name=value; nil is the process's environment
 	// Grace is how long Run waits, after the script ends, for the other goroutines to finish.
@@ -384,6 +385,9 @@ func (in *Instance) Flush() {
 // Args returns the program's arguments.
 func (in *Instance) Args() []string { return in.cfg.Args }
 
+// Program returns the program's path, "" in a session.
+func (in *Instance) Program() string { return in.cfg.Program }
+
 // Stdin returns the run's standard input, an empty stream when none was given.
 func (in *Instance) Stdin() io.Reader {
 	if in.stdin == nil {
@@ -426,6 +430,18 @@ func (w stdoutWriter) Write(p []byte) (int, error) {
 
 // Stderr returns the run's standard error.
 func (in *Instance) Stderr() io.Writer { return in.cfg.Stderr }
+
+// ErrWriter returns a writer to the run's standard error that flushes stdout before each write,
+// so that the two streams interleave in program order where they reach one terminal; eprint,
+// eprintln and Os.stderr write through it.
+func (in *Instance) ErrWriter() io.Writer { return errWriter{in} }
+
+type errWriter struct{ in *Instance }
+
+func (w errWriter) Write(p []byte) (int, error) {
+	w.in.Flush()
+	return stderrWriter{w.in}.Write(p)
+}
 
 // Keep returns the value stored under key for this run, creating it with create on the first
 // call: a library's per-run state, such as the handles of the standard streams.

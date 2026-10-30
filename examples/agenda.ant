@@ -64,7 +64,7 @@ var meetings: Array[Meeting] = []
 for item in items {
   var m = meeting(item)
   if m is Ok { Array.push(meetings, m.value) }
-  else { File.writeLine(Os.stderr(), `skipped: ${m.error.message}`) }
+  else { eprintln(`skipped: ${m.error.message}`) }
 }
 for m in Array.sortWith(meetings, byMoment) {
   var local = Time.withZone(m.when, reader)

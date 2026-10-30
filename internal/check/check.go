@@ -160,7 +160,7 @@ type entity struct {
 	isConv     bool
 	// isLen marks len, which takes any value with a size.
 	isLen bool
-	// isPrintln marks println, which may also be called with no argument.
+	// isPrintln marks println and eprintln, which may also be called with no argument.
 	isPrintln bool
 }
 
@@ -285,8 +285,10 @@ func (c *Checker) markBuiltins() {
 	if e, ok := c.prelude["len"]; ok {
 		e.isLen = true
 	}
-	if e, ok := c.prelude["println"]; ok {
-		e.isPrintln = true
+	for _, name := range []string{"println", "eprintln"} {
+		if e, ok := c.prelude[name]; ok {
+			e.isPrintln = true
+		}
 	}
 }
 

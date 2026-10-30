@@ -28,6 +28,9 @@ func TestSession(t *testing.T) {
 		}
 		return v
 	}
+	if v := eval("Os.program()"); v != "" {
+		t.Errorf("Os.program() in a session = %v", v)
+	}
 	if v := eval("1 + 2"); v != int64(3) {
 		t.Errorf("1 + 2 = %v", v)
 	}

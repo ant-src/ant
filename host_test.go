@@ -547,3 +547,25 @@ func TestHostSignatureLimits(t *testing.T) {
 		}
 	}
 }
+
+// TestStderrFlushesStdout: a write to standard error flushes standard output first, so where the
+// two reach one writer they interleave in program order (stdlib.md, Os, Streams).
+func TestStderrFlushesStdout(t *testing.T) {
+	prog := loadSrc(t, `print("a"); eprint("b"); println("c"); File.writeText(Os.stderr(), "d"); eprintln(); println("e")`)
+	var both strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&both), ant.WithStderr(&both)); err != nil {
+		t.Fatal(err)
+	}
+	if both.String() != "abc\nd\ne\n" {
+		t.Errorf("got %q", both.String())
+	}
+}
+
+// TestProgram: Os.program is the path given to Load.
+func TestProgram(t *testing.T) {
+	prog := loadSrc(t, `println(Os.program())`)
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&out)); err != nil || out.String() != "main.ant\n" {
+		t.Errorf("got %q, %v", out.String(), err)
+	}
+}
