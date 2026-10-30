@@ -3,12 +3,14 @@ package ant
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/interp"
+	"github.com/ant-src/ant/internal/lexer"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/internal/lsp"
 	"github.com/ant-src/ant/internal/token"
@@ -27,15 +29,19 @@ type Session struct {
 	s           *interp.Session
 	imports     []string      // the imports in force, as text, to keep each once
 	importDecls []*ast.Import // the same, parsed, which every later input takes before its own
-	// decls is the text of every input that declared or imported something, in order, which
-	// Complete analyzes ahead of an input so the names it offers carry their types. An input
-	// whose every name a later input declares again is dropped, so the text stays bounded.
-	decls []declInput
+	// decls holds the latest declaration of each name the session declared, in order, without
+	// imports, which come from importDecls: what Complete and TypeOf analyze ahead of an input
+	// so that the names it uses carry their types. A function or a type is kept as written; a
+	// variable as a stub of the type it had when declared, var s: T = panic(""), since a later
+	// declaration of a name may read the one it replaces, as var s = [s] does.
+	decls []declEntry
+	// lastExpr is the source of the expression whose value _ reads, or "" when the last
+	// result came from elsewhere, as a return; TypeOf puts it in place of _.
+	lastExpr string
 }
 
-type declInput struct {
-	src   string
-	names []string
+type declEntry struct {
+	key, src string
 }
 
 // NewSession creates a session. The options are those of Load and Run.
@@ -64,36 +70,169 @@ func Incomplete(src string) bool {
 // is a script body of its own: the value it returns, by return or ?? return, is its result, and
 // an Err it returns, as try does, comes back as a *ResultError after being reported. A syntax
 // or scope error comes back as a *LoadError, a panic as a *PanicError after being reported.
-func (s *Session) Eval(src string) (value.Value, error) {
-	prog, diags := loader.Load("<input>", loader.Config{
-		FS: s.cfg.fsys, Sources: withSource(s.cfg.sources, "<input>", src),
+func (s *Session) Eval(src string) (value.Value, error) { return s.evalAt("<input>", src) }
+
+// EvalFile evaluates the file at path as an input of the session, its relative imports
+// resolved against its own directory, and returns what Eval returns.
+func (s *Session) EvalFile(path string) (value.Value, error) {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return nil, &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: path}, Message: err.Error()}}}
+	}
+	return s.evalAt(path, string(src))
+}
+
+func (s *Session) evalAt(path, src string) (value.Value, error) {
+	prog, diags := loader.Load(path, loader.Config{
+		FS: s.cfg.fsys, Sources: withSource(s.cfg.sources, path, src),
 		Mode: parser.Session, Extra: s.extra, Session: s.s.Fields, Imports: s.importDecls,
 	})
 	if len(diags) > 0 {
 		return nil, &LoadError{Diagnostics: convert(diags)}
 	}
-	if names := declaredNames(prog.Root.File, len(s.importDecls)); len(names) > 0 {
-		s.decls = slices.DeleteFunc(s.decls, func(d declInput) bool {
-			return !slices.ContainsFunc(d.names, func(n string) bool { return !slices.Contains(names, n) })
-		})
-		s.decls = append(s.decls, declInput{src, names})
+	f := prog.Root.File
+	own := f.Imports[len(s.importDecls):]
+	if len(f.Decls) > 0 {
+		s.record(path, src, f)
 	}
 	v, err := s.s.Eval(prog)
 	// the imports stay in force even when the input fails, as its other declarations do
-	for _, imp := range prog.Root.File.Imports[len(s.importDecls):] {
-		s.remember(imp)
+	for _, imp := range own {
+		s.remember(imp, prog)
 	}
 	if err != nil {
 		return nil, convertRunError(err)
 	}
 	if v != value.Void {
 		s.s.SetLast(v)
+		s.lastExpr = ""
+		if n := len(f.Stmts); n > 0 {
+			if e, ok := f.Stmts[n-1].(ast.Expr); ok {
+				if _, ret := e.(*ast.Return); !ret {
+					s.lastExpr = strings.TrimSpace(src[offsetOf(src, ast.Start(e)):])
+				}
+			}
+		}
 	}
 	return v, nil
 }
 
-// remember keeps an import in force for later inputs.
-func (s *Session) remember(imp *ast.Import) {
+// offsetOf is the byte offset of a position in src.
+func offsetOf(src string, p ast.Pos) int {
+	off := 0
+	for line := 1; line < p.Line; line++ {
+		i := strings.IndexByte(src[off:], '\n')
+		if i < 0 {
+			return len(src)
+		}
+		off += i + 1
+	}
+	return min(off+p.Col-1, len(src))
+}
+
+// record keeps the declarations of an input, f parsed from src, for analysis: each as the
+// latest of its name. The types of its variables come from analyzing it after what the
+// session declared before it.
+func (s *Session) record(path, src string, f *ast.File) {
+	types := s.varTypes(path, src, f)
+	put := func(key, text string) {
+		s.decls = slices.DeleteFunc(s.decls, func(d declEntry) bool { return d.key == key })
+		s.decls = append(s.decls, declEntry{key, text})
+	}
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			key := d.Name
+			if d.Owner != "" {
+				key = d.Owner + "." + d.Name
+			}
+			put(key, src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
+		case *ast.TypeDecl:
+			put(d.Name, src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
+		case *ast.VarDecl:
+			text := src[offsetOf(src, d.Pos):offsetOf(src, d.End)]
+			ast.Inspect(d.Target, func(n ast.Node) bool {
+				nt, ok := n.(*ast.NameTarget)
+				if !ok || nt.Name == "_" {
+					return true
+				}
+				if t, ok := types[nt.Name]; ok {
+					put(nt.Name, fmt.Sprintf("var %s: %s = panic(\"\")", nt.Name, t))
+				} else {
+					put(nt.Name, text) // a type the checker cannot write; the declaration itself
+				}
+				return true
+			})
+		}
+	}
+}
+
+// renamed is the suffix varTypes gives a variable an input declares again, so that what the
+// input reads of the name before is the declaration it replaces, as in var s = [s].
+const renamed = "__ant_new"
+
+// varTypes analyzes src, the input at path parsed as f, after what the session declared, and
+// returns the types the checker gives the variables it declares, where they can be written
+// back.
+func (s *Session) varTypes(path, src string, f *ast.File) map[string]string {
+	known := map[string]bool{}
+	for _, d := range s.decls {
+		known[d.key] = true
+	}
+	var spans [][2]int
+	for _, d := range f.Decls {
+		if v, ok := d.(*ast.VarDecl); ok {
+			ast.Inspect(v.Target, func(n ast.Node) bool {
+				if nt, ok := n.(*ast.NameTarget); ok && known[nt.Name] {
+					end := offsetOf(src, nt.Pos) + len(nt.Name)
+					spans = append(spans, [2]int{offsetOf(src, nt.Pos), end})
+				}
+				return true
+			})
+		}
+	}
+	for i := len(spans) - 1; i >= 0; i-- {
+		src = src[:spans[i][1]] + renamed + src[spans[i][1]:]
+	}
+	text, base := s.transcript(src)
+	baseLine := strings.Count(text[:base], "\n")
+	cfg := s.analysisConfig()
+	cfg.Mode, cfg.Recover = parser.Program, true
+	cfg.Sources = withSource(cfg.Sources, path, text)
+	prog, _ := loader.Load(path, cfg)
+	out := map[string]string{}
+	if prog == nil {
+		return out
+	}
+	info := check.NewInfo()
+	check.Program(prog, check.Config{Info: info})
+	for _, d := range prog.Root.File.Decls {
+		v, ok := d.(*ast.VarDecl)
+		if !ok || v.Pos.Line <= baseLine {
+			continue
+		}
+		ast.Inspect(v.Target, func(n ast.Node) bool {
+			if nt, ok := n.(*ast.NameTarget); ok {
+				if o := info.Decls[nt]; o != nil && o.Type() != nil && !types.IsInvalid(o.Type()) {
+					if t := types.String(o.Type()); !strings.Contains(t, "?") {
+						out[strings.TrimSuffix(nt.Name, renamed)] = t
+					}
+				}
+			}
+			return true
+		})
+	}
+	return out
+}
+
+// remember keeps an import in force for later inputs, by the path of the module it loaded, so
+// that an input read from another directory, as :load reads one, imports the same module.
+func (s *Session) remember(imp *ast.Import, prog *loader.Program) {
+	c := *imp
+	if imp.Module >= 0 && imp.Module < len(prog.Modules) {
+		c.Path = prog.Modules[imp.Module].Path
+	}
+	imp = &c
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "import %q ", imp.Path)
 	if imp.Namespace != "" {
@@ -128,61 +267,6 @@ func withSource(sources map[string]string, path, src string) map[string]string {
 	}
 	out[path] = src
 	return out
-}
-
-// declaredNames lists what an input declares: its functions, with their owner, its types, its
-// variables, and the names its own imports bind, beyond the known imports in force.
-func declaredNames(f *ast.File, known int) []string {
-	var names []string
-	for _, imp := range f.Imports[known:] {
-		if imp.Namespace != "" {
-			names = append(names, imp.Namespace)
-		}
-		for _, n := range imp.Names {
-			names = append(names, n.Alias)
-		}
-	}
-	for _, d := range f.Decls {
-		switch d := d.(type) {
-		case *ast.FuncDecl:
-			if d.Owner != "" {
-				names = append(names, d.Owner+"."+d.Name)
-			} else {
-				names = append(names, d.Name)
-			}
-		case *ast.TypeDecl:
-			names = append(names, d.Name)
-		case *ast.VarDecl:
-			names = targetNames(names, d.Target)
-		}
-	}
-	for _, st := range f.Stmts {
-		if v, ok := st.(*ast.VarDecl); ok {
-			names = targetNames(names, v.Target)
-		}
-	}
-	return names
-}
-
-func targetNames(names []string, t ast.Target) []string {
-	switch t := t.(type) {
-	case *ast.NameTarget:
-		if t.Name != "_" {
-			names = append(names, t.Name)
-		}
-	case *ast.RecordTarget:
-		for _, f := range t.Fields {
-			names = targetNames(names, f.Target)
-		}
-	case *ast.ArrayTarget:
-		for _, e := range t.Elems {
-			names = targetNames(names, e)
-		}
-		if t.Rest != nil {
-			names = targetNames(names, t.Rest)
-		}
-	}
-	return names
 }
 
 // A Completion is one thing that can be written at a position of an input, as Complete lists
@@ -331,13 +415,12 @@ func typeName(v value.Value) string {
 
 // transcript is the text of the inputs that declared something, followed by src, and where
 // src begins in it: what Complete and TypeOf analyze, so that the names src uses have types.
+// The imports in force come with analysisConfig.
 func (s *Session) transcript(src string) (string, int) {
 	var sb strings.Builder
 	for _, d := range s.decls {
 		sb.WriteString(d.src)
-		if !strings.HasSuffix(d.src, "\n") {
-			sb.WriteByte('\n')
-		}
+		sb.WriteByte('\n')
 	}
 	base := sb.Len()
 	sb.WriteString(src)
@@ -345,18 +428,31 @@ func (s *Session) transcript(src string) (string, int) {
 }
 
 // analysisConfig loads a transcript for analysis: as a script, whose statements the checker
-// types, in a scope where a name may be declared again.
+// types, in a scope where a name may be declared again, with the imports in force.
 func (s *Session) analysisConfig() loader.Config {
 	return loader.Config{FS: s.cfg.fsys, Sources: s.cfg.sources, Extra: s.extra,
-		Session: &ast.ModuleScope{Index: map[string]int{}}}
+		Session: &ast.ModuleScope{Index: map[string]int{}}, Imports: s.importDecls}
 }
 
+// typeVar is the variable TypeOf gives the expression to, so that any expression, markup too,
+// is a value used.
+const (
+	typeVar  = "__ant_type__"
+	typeDecl = "var " + typeVar + " = "
+)
+
 // TypeOf returns the type the checker gives expr, an expression over what the session has
-// declared, as the checker writes it. A syntax error, or a type error in expr, comes back as a
-// *LoadError, positioned in expr.
+// declared, as the checker writes it; _ in it stands for the expression whose value it reads.
+// A syntax error, or a type error in expr, comes back as a *LoadError, positioned in expr.
 func (s *Session) TypeOf(expr string) (string, error) {
-	text, base := s.transcript(expr)
-	baseLine := strings.Count(text[:base], "\n")
+	expr, err := s.withLast(expr)
+	if err != nil {
+		return "", err
+	}
+	// a statement first, so that the transcript is a script whose statements the checker
+	// types, and then the expression, which nothing after it can run on into
+	text, base := s.transcript("void\n" + typeDecl + expr)
+	baseLine := strings.Count(text[:base], "\n") + 1
 	cfg := s.analysisConfig()
 	cfg.Mode = parser.Program
 	cfg.Sources = withSource(cfg.Sources, "<input>", text)
@@ -366,6 +462,9 @@ func (s *Session) TypeOf(expr string) (string, error) {
 		for _, d := range ds {
 			if d.Path == "<input>" && d.Pos.Line > baseLine {
 				d.Pos.Line -= baseLine
+				if d.Pos.Line == 1 {
+					d.Pos.Col = max(1, d.Pos.Col-len(typeDecl))
+				}
 				out = append(out, convert([]loader.Diagnostic{d})...)
 			}
 		}
@@ -381,19 +480,42 @@ func (s *Session) TypeOf(expr string) (string, error) {
 	if ds := inExpr(check.Program(prog, check.Config{Info: info})); len(ds) > 0 {
 		return "", &LoadError{Diagnostics: ds}
 	}
-	stmts := prog.Root.File.Stmts
-	if len(stmts) == 0 {
-		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "expected an expression"}}}
+	var init ast.Expr
+	for _, st := range prog.Root.File.Stmts {
+		if v, ok := st.(*ast.VarDecl); ok {
+			if t, ok := v.Target.(*ast.NameTarget); ok && t.Name == typeVar {
+				init = v.Init
+			}
+		}
 	}
-	e, ok := stmts[len(stmts)-1].(ast.Expr)
-	if !ok || ast.Start(e).Line <= baseLine {
-		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "expected an expression"}}}
-	}
-	t := info.Types[e]
-	if t == nil {
+	if init == nil || info.Types[init] == nil {
 		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "the expression has no type"}}}
 	}
-	return types.String(t), nil
+	return types.String(info.Types[init]), nil
+}
+
+// withLast puts the expression whose value _ reads in place of each _ that expr reads.
+func (s *Session) withLast(expr string) (string, error) {
+	toks, _, _ := lexer.LexRecover(expr, false)
+	var uses []token.Token
+	for _, t := range toks {
+		if t.Kind == token.Ident && t.Text == "_" {
+			uses = append(uses, t)
+		}
+	}
+	if len(uses) == 0 {
+		return expr, nil
+	}
+	if s.lastExpr == "" {
+		if v, ok := s.Value("_"); ok && strings.TrimSpace(expr) == "_" {
+			return "", &LoadError{Diagnostics: []Diagnostic{{Message: "_ holds a " + typeName(v) + "; its type is not known, as it was returned"}}}
+		}
+		return "", &LoadError{Diagnostics: []Diagnostic{{Message: "_ holds no result whose type is known"}}}
+	}
+	for i := len(uses) - 1; i >= 0; i-- {
+		expr = expr[:uses[i].Off] + "(" + s.lastExpr + ")" + expr[uses[i].End:]
+	}
+	return expr, nil
 }
 
 // Value returns a name the session has declared, or for _ the last result.

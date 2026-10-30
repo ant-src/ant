@@ -101,6 +101,7 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 	}
 	s.in.linkModule(s.mod, lookup)
 	s.mod.grow.Unlock()
+	s.in.evaluating.Store(true)
 	g := s.in.newGoroutine(true)
 	var result value.Value = value.Void
 	err := s.in.runOn(func() {
@@ -123,6 +124,7 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 			g.panicf(ast.Pos{}, "internal error: control left a session input")
 		}
 	})
+	s.in.evaluating.Store(false)
 	s.in.Flush()
 	return result, err
 }

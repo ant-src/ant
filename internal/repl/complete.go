@@ -83,7 +83,7 @@ func (e *editor) computeCompletion() {
 	}
 	seen := map[string]bool{}
 	for _, it := range items {
-		if i := strings.IndexByte(it.Insert, '.'); i >= 0 {
+		if i := strings.IndexByte(it.Insert, '.'); i >= 0 && it.Kind != "file" && it.Kind != "folder" {
 			// a qualified name, as the functions offered after a pipe are: Array.map,
 			// Array.filter; completed a word at a time, so the namespace comes first, and
 			// the dot is typed

@@ -837,7 +837,11 @@ func (c *completer) namedArgs(prev *token.Token) {
 		id, ok := arg.Value.(*ast.Ident)
 		return arg.Name == placeholder || ok && id.Name == placeholder
 	}
-	for _, extra := range []string{"", ": 0"} {
+	extras := []string{""}
+	if prev.Is(",") && c.afterNamedArg(prev) {
+		extras = append(extras, ": 0")
+	}
+	for _, extra := range extras {
 		a, _ = c.fixup(extra)
 		ast.Inspect(a.module().File, func(n ast.Node) bool {
 			if x, ok := n.(*ast.Call); ok {
@@ -880,6 +884,35 @@ func (c *completer) namedArgs(prev *token.Token) {
 		}
 		c.add(item)
 	}
+}
+
+// afterNamedArg reports whether the comma before the cursor follows a named argument of the
+// call it is in, after which a positional argument cannot come: a name and a colon at the
+// call's own depth, before its opening parenthesis.
+func (c *completer) afterNamedArg(comma *token.Token) bool {
+	toks := c.toks
+	i := -1
+	for j := range toks {
+		if toks[j].Off == comma.Off {
+			i = j
+		}
+	}
+	depth := 0
+	for i--; i >= 0; i-- {
+		t := toks[i]
+		switch {
+		case t.Is(")") || t.Is("]") || t.Is("}"):
+			depth++
+		case t.Is("(") || t.Is("[") || t.Is("{"):
+			if depth == 0 {
+				return false // the call's opening parenthesis, or not a call
+			}
+			depth--
+		case depth == 0 && t.Is(":") && i > 0 && toks[i-1].Kind == token.Ident:
+			return true
+		}
+	}
+	return false
 }
 
 // recordFields completes the fields a record literal does not give yet, when the cursor starts
@@ -938,6 +971,9 @@ func (c *completer) importNames() bool {
 	for _, imp := range c.a.module().File.Imports {
 		if !imp.PathEnd.Before(pos) || imp.End.Before(pos) && !(pos.Line == imp.End.Line) {
 			continue
+		}
+		if off := c.d.offsetOf(imp.Pos); off >= len(c.d.text) || !strings.HasPrefix(c.d.text[off:], "import") {
+			continue // an import a REPL keeps from an earlier input, written elsewhere
 		}
 		if imp.Namespace != "" || imp.Module < 0 || imp.Module >= len(c.a.prog.Modules) {
 			return true

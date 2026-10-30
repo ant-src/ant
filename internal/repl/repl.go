@@ -32,7 +32,7 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		stdout, stderr = e.writer(stdout), e.writer(stderr)
 		// the session is replaced by :reset, so completion asks whichever is current
 		e.complete = func(src string, off int) []ant.Completion { return l.s.Complete(src, off) }
-		l.show = func(v value.Value) string {
+		l.render = func(v value.Value) string {
 			cols, _ := e.size()
 			if cols <= 0 {
 				cols = 80
@@ -65,11 +65,8 @@ type looper struct {
 	open           func() (*ant.Session, error) // a new session, for :reset
 	r              lineReader
 	stdout, stderr io.Writer
-	show           func(value.Value) string // renders a result; nil is String.from
+	render         func(value.Value) string // renders a result; nil is String.from
 }
-
-// errQuit ends the loop from a command, with status 0.
-var errQuit = errors.New("quit")
 
 // loop is the read-eval-print loop over the lines r reads.
 func (l *looper) loop() int {
@@ -142,7 +139,12 @@ func (l *looper) loop() int {
 // eval evaluates one input and prints its result or its error. done reports that the REPL
 // ends, with status.
 func (l *looper) eval(src string) (status int, done bool) {
-	v, err := l.s.Eval(src)
+	return l.show(l.s.Eval(src))
+}
+
+// show prints what an input gave: its result, or its error. done reports that the REPL ends,
+// with status.
+func (l *looper) show(v value.Value, err error) (status int, done bool) {
 	if l.ctx.Err() != nil {
 		fmt.Fprintln(l.stdout)
 		return 130, true
@@ -150,8 +152,8 @@ func (l *looper) eval(src string) (status int, done bool) {
 	switch err.(type) {
 	case nil:
 		if v != value.Void {
-			if l.show != nil {
-				fmt.Fprintln(l.stdout, l.show(v))
+			if l.render != nil {
+				fmt.Fprintln(l.stdout, l.render(v))
 			} else {
 				fmt.Fprintln(l.stdout, value.Render(v))
 			}

@@ -45,8 +45,9 @@ type Config struct {
 	Foreground func() func(os.Signal) bool
 	// Debugger, when set, stops the run at its breakpoints and steps (dap.md).
 	Debugger *Debugger
-	// WriteThrough writes stdout at every write rather than buffering it: a session's
-	// goroutines may print while the host waits for the next input.
+	// WriteThrough writes stdout at every write while no input of a session runs, rather than
+	// buffering it: a session's goroutines may print while the host waits for the next input.
+	// While one runs, its output is buffered and flushed when it ends.
 	WriteThrough bool
 }
 
@@ -93,6 +94,9 @@ type Instance struct {
 	localTypes  sync.Map // *ast.Block → the tags and constructors of the types it declares
 	done        atomic.Bool
 	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
+
+	// evaluating is set while an input of a session runs, whose output is buffered
+	evaluating atomic.Bool
 
 	// last is what _ reads in a session: the result of its last input that had one, or nil
 	lastMu sync.Mutex
@@ -381,7 +385,7 @@ func (in *Instance) report(p *AntPanic) {
 func (in *Instance) Print(s string) {
 	in.outMu.Lock()
 	in.out.WriteString(s)
-	if in.cfg.WriteThrough && !in.released {
+	if in.cfg.WriteThrough && !in.released && !in.evaluating.Load() {
 		in.out.Flush()
 	}
 	in.outMu.Unlock()
@@ -440,7 +444,7 @@ func (w stdoutWriter) Write(p []byte) (int, error) {
 		return len(p), nil
 	}
 	n, err := w.in.out.Write(p)
-	if err == nil && w.in.cfg.WriteThrough {
+	if err == nil && w.in.cfg.WriteThrough && !w.in.evaluating.Load() {
 		err = w.in.out.Flush()
 	}
 	return n, err

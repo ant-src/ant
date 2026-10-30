@@ -2,7 +2,6 @@ package repl
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/ant-src/ant"
@@ -42,7 +41,7 @@ func isCommand(line string) bool {
 
 // command runs a command line. done reports that the REPL ends, with status.
 func (l *looper) command(line string) (status int, done bool) {
-	name, arg, _ := strings.Cut(strings.TrimSpace(line)[1:], " ")
+	name, arg, _ := strings.Cut(strings.TrimSpace(strings.TrimSpace(line)[1:]), " ")
 	arg = strings.TrimSpace(arg)
 	var found *command
 	for i := range commands {
@@ -57,8 +56,12 @@ func (l *looper) command(line string) (status int, done bool) {
 		fmt.Fprintf(l.stderr, "unknown command :%s; :help lists them\n", name)
 		return 0, false
 	}
-	if found.args != "" && arg == "" {
-		fmt.Fprintf(l.stderr, "usage: :%s %s\n", found.name, found.args)
+	if (found.args != "") != (arg != "") {
+		usage := ":" + found.name
+		if found.args != "" {
+			usage += " " + found.args
+		}
+		fmt.Fprintf(l.stderr, "usage: %s\n", usage)
 		return 0, false
 	}
 	switch found.name {
@@ -89,12 +92,7 @@ func (l *looper) command(line string) (status int, done bool) {
 			fmt.Fprintf(l.stderr, "no declaration %s\n", arg)
 		}
 	case "load":
-		src, err := os.ReadFile(arg)
-		if err != nil {
-			fmt.Fprintln(l.stderr, err)
-			return 0, false
-		}
-		return l.eval(string(src))
+		return l.show(l.s.EvalFile(arg))
 	case "reset":
 		s, err := l.open()
 		if err != nil {

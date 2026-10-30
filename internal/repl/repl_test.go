@@ -203,6 +203,8 @@ func TestCommands(t *testing.T) {
 		"loaded",
 		":nope",
 		":type",
+		":help x",
+		":  type 1 + 1",
 		":quit",
 		"println(\"after quit\")",
 	}, "\n") + "\n"
@@ -217,12 +219,31 @@ func TestCommands(t *testing.T) {
 			t.Errorf("stdout lacks %q:\n%s", want, o)
 		}
 	}
-	for _, want := range []string{"nope", "unknown command :nope", "usage: :type expr", "loaded"} {
+	if strings.Count(o, "Commands:") != 1 || strings.Count(o, "> int\n") != 2 {
+		t.Errorf("stdout:\n%s", o)
+	}
+	for _, want := range []string{"nope", "unknown command :nope", "usage: :type expr", "usage: :help\n", "loaded"} {
 		if !strings.Contains(e, want) {
 			t.Errorf("stderr lacks %q:\n%s", want, e)
 		}
 	}
 	if strings.Contains(o, "after quit") {
 		t.Errorf("ran after :quit:\n%s", o)
+	}
+}
+
+// TestCompletePaths checks that an import's path completes as a file or a folder, whole, and
+// is not taken for a qualified name.
+func TestCompletePaths(t *testing.T) {
+	complete := func(src string, off int) []ant.Completion {
+		return []ant.Completion{
+			{Label: "m.ant", Insert: "m.ant", Kind: "file"},
+			{Label: "../", Insert: "../", Kind: "folder"},
+		}
+	}
+	e, _, in := fakeTerminal(t, 80, complete)
+	typeKeys(in, "import \"m\t\r")
+	if line, _ := e.readLine("> ", ""); line != "import \"m.ant" {
+		t.Errorf("line %q", line)
 	}
 }
