@@ -10,6 +10,7 @@ import (
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/internal/lsp"
+	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/parser"
 	"github.com/ant-src/ant/value"
 )
@@ -198,7 +199,9 @@ type Completion struct {
 // language server's completion does (spec/lsp.md section 4): the names the session has
 // declared, with their types, the imports in force, the prelude, and what the position allows,
 // as the members after a dot, the functions that take the left side after a pipe, the
-// parameters of a call, and the keywords. The items are unsorted.
+// parameters of a call, and the keywords. After a dot it also offers the fields of the record
+// a variable of the session holds at runtime, read through its fields, which a union's static
+// type does not promise. The items are unsorted.
 func (s *Session) Complete(src string, off int) []Completion {
 	if off < 0 || off > len(src) {
 		return nil
@@ -216,7 +219,9 @@ func (s *Session) Complete(src string, off int) []Completion {
 		Session: &ast.ModuleScope{Index: map[string]int{}}}
 	items := lsp.Complete(cfg, "<input>", sb.String(), base+off)
 	out := make([]Completion, 0, len(items))
+	seen := map[string]bool{}
 	for _, it := range items {
+		seen[it.Label] = true
 		c := Completion{Label: it.Label, Insert: it.InsertText, Detail: it.Detail, Preferred: it.SortText != ""}
 		if c.Insert == "" {
 			c.Insert = it.Label
@@ -246,7 +251,84 @@ func (s *Session) Complete(src string, off int) []Completion {
 		}
 		out = append(out, c)
 	}
-	return out
+	return s.runtimeFields(src, off, seen, out)
+}
+
+// runtimeFields adds the fields of the record a path of names reaches at runtime: a variable
+// of the session and the fields read from it, before the dot the cursor's word follows. A
+// session evaluates without types, so a field the static type cannot promise, as the value of
+// a Result that is an Ok, is still there to read, and offered with the type it holds.
+func (s *Session) runtimeFields(src string, off int, seen map[string]bool, out []Completion) []Completion {
+	start := off
+	for start > 0 && token.IsIdentByte(src[start-1]) {
+		start--
+	}
+	var names []string
+	i := start
+	for {
+		switch {
+		case i >= 2 && src[i-2:i] == "?.":
+			i -= 2
+		case i >= 1 && src[i-1] == '.':
+			i--
+		default:
+			if len(names) == 0 {
+				return out
+			}
+			if i > 0 && (token.IsIdentByte(src[i-1]) || strings.IndexByte(")]}\"`'", src[i-1]) >= 0) {
+				return out // the path begins in an expression, not at a variable
+			}
+			slices.Reverse(names)
+			rec := s.recordAt(names)
+			if rec == nil {
+				return out
+			}
+			for _, f := range rec.Tag.Fields {
+				if seen[f] {
+					continue
+				}
+				fv, _ := rec.Field(f)
+				out = append(out, Completion{Label: f, Insert: f, Kind: "field", Detail: typeName(fv)})
+			}
+			return out
+		}
+		j := i
+		for j > 0 && token.IsIdentByte(src[j-1]) {
+			j--
+		}
+		if j == i {
+			return out
+		}
+		names = append(names, src[j:i])
+		i = j
+	}
+}
+
+// recordAt is the record the session's variable names[0] holds, read through the fields
+// names[1:], or nil.
+func (s *Session) recordAt(names []string) *value.Record {
+	v, ok := s.Value(names[0])
+	for _, name := range names[1:] {
+		rec, isRec := v.(*value.Record)
+		if !ok || !isRec || rec.Tag.Kind != value.RecordTag {
+			return nil
+		}
+		v, ok = rec.Field(name)
+	}
+	rec, isRec := v.(*value.Record)
+	if !ok || !isRec || rec.Tag.Kind != value.RecordTag {
+		return nil
+	}
+	return rec
+}
+
+// typeName names the type of a value as the checker would: a record by its type, the rest
+// by its kind.
+func typeName(v value.Value) string {
+	if rec, ok := v.(*value.Record); ok && rec.Tag.Kind == value.RecordTag {
+		return rec.Tag.Name
+	}
+	return value.KindOf(v).String()
 }
 
 // Value returns a name the session has declared.

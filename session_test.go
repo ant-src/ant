@@ -310,6 +310,30 @@ func TestSessionComplete(t *testing.T) {
 	if got := s.Complete("x", 5); got != nil {
 		t.Errorf("offset past the end: %v", got)
 	}
+	// a Result is an Ok or an Err, which share no field, so the type promises none; the
+	// value at runtime is an Ok, whose value is read through
+	if _, err := s.Eval("var r: Result[Point, Error] = Ok{ value: p }"); err != nil {
+		t.Fatal(err)
+	}
+	if got := labels("r."); got["value"].Kind != "field" || got["value"].Detail != "Point" || len(got) != 1 {
+		t.Errorf("r.: %v", got)
+	}
+	if got := labels("r.va"); got["value"].Label != "value" {
+		t.Errorf("r.va: %v", got)
+	}
+	if got := labels("r.value."); got["x"].Detail != "int" || got["y"].Detail != "int" {
+		t.Errorf("r.value.: %v", got)
+	}
+	if got := labels("r?.value?."); got["x"].Detail != "int" {
+		t.Errorf("r?.value?.: %v", got)
+	}
+	// not through an expression, and not a field that is not there
+	if got := labels("twice(1).r."); len(got) != 0 {
+		t.Errorf("twice(1).r.: %v", got)
+	}
+	if got := labels("r.nope."); len(got) != 0 {
+		t.Errorf("r.nope.: %v", got)
+	}
 }
 
 // BenchmarkSessionComplete measures one completion on a session with an import and many

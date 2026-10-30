@@ -25,7 +25,8 @@
 // Alt-F or Ctrl-arrows by word, Ctrl-W, Ctrl-K, Ctrl-U, Ctrl-L), highlights it as it is typed,
 // and completes what can be written at the cursor: the names declared so far and the prelude's,
 // members after a dot, the functions that take the left side after a pipe, the parameters of a
-// call, the fields of a record, and import paths. The first completion is suggested after the
+// call, the fields of a record, by its type or by the value a variable holds, and import paths.
+// The first completion is suggested after the
 // cursor, where Right or End takes it; Tab writes the only completion or the common prefix,
 // and otherwise lists them and cycles through them, Shift-Tab backwards. Up and Down browse
 // the history, kept in ~/.ant_history. Ctrl-C drops the line, Ctrl-D on an empty line ends the
