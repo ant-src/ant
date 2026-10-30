@@ -315,6 +315,22 @@ func TestSessionComplete(t *testing.T) {
 	if strings.Join(params, " ") != "url: headers: timeout: ctx:" {
 		t.Errorf("Http.get( parameters: %q", params)
 	}
+	// after a named argument, the parameters not given yet, in their order
+	for _, src := range []string{`Http.get(url: "x", `, `var a = try Http.get(url: "x", `, `Http.get(url: "x", ti`, `Http.get("x", timeout: null, `} {
+		params = nil
+		for _, c := range s.Complete(src, len(src)) {
+			if c.Preferred {
+				params = append(params, c.Label)
+			}
+		}
+		want := "headers: timeout: ctx:"
+		if strings.Contains(src, "timeout: null") {
+			want = "headers: ctx:"
+		}
+		if strings.Join(params, " ") != want {
+			t.Errorf("%s: parameters %q, want %q", src, params, want)
+		}
+	}
 	if got := labels(""); got["Array"].Kind != "namespace" || got["var"].Kind != "keyword" || got["n"].Detail != "string" {
 		t.Errorf("empty: Array %v, var %v, n %v", got["Array"], got["var"], got["n"])
 	}

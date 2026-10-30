@@ -829,21 +829,30 @@ func (c *completer) namedArgs(prev *token.Token) {
 	if prev == nil || !(prev.Is("(") || prev.Is(",")) {
 		return
 	}
-	a, id := c.fixup("")
-	if id == nil {
-		return
-	}
+	// the placeholder as a positional argument, or, after a named one, which a positional
+	// argument cannot follow, as a named one
+	var a *analysis
 	var call *ast.Call
-	ast.Inspect(a.module().File, func(n ast.Node) bool {
-		if x, ok := n.(*ast.Call); ok {
-			for _, arg := range x.Args {
-				if arg.Value == ast.Expr(id) {
-					call = x
+	isPlaceholder := func(arg ast.Arg) bool {
+		id, ok := arg.Value.(*ast.Ident)
+		return arg.Name == placeholder || ok && id.Name == placeholder
+	}
+	for _, extra := range []string{"", ": 0"} {
+		a, _ = c.fixup(extra)
+		ast.Inspect(a.module().File, func(n ast.Node) bool {
+			if x, ok := n.(*ast.Call); ok {
+				for _, arg := range x.Args {
+					if isPlaceholder(arg) {
+						call = x
+					}
 				}
 			}
+			return call == nil
+		})
+		if call != nil {
+			break
 		}
-		return call == nil
-	})
+	}
 	if call == nil {
 		return
 	}
@@ -853,7 +862,7 @@ func (c *completer) namedArgs(prev *token.Token) {
 	}
 	given := map[int]bool{}
 	for i, arg := range call.Args {
-		if arg.Value == ast.Expr(id) {
+		if isPlaceholder(arg) {
 			continue
 		}
 		if i < len(ci.Slots) && ci.Slots[i] >= 0 {
