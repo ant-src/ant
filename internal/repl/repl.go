@@ -246,13 +246,14 @@ func newTerminalReader(ctx context.Context, in, out *os.File) *editor {
 		path = filepath.Join(home, ".ant_history")
 	}
 	return &editor{
-		ctx:       ctx,
-		in:        chunks,
-		out:       out,
-		size:      func() (int, int) { cols, rows, _ := windowSize(out); return cols, rows },
-		th:        th,
-		hist:      loadHistory(path),
-		raw:       func() (func(), error) { return makeRaw(in) },
-		bracketed: true,
+		ctx:        ctx,
+		in:         chunks,
+		out:        out,
+		size:       func() (int, int) { cols, rows, _ := windowSize(out); return cols, rows },
+		th:         th,
+		hist:       loadHistory(path),
+		raw:        func() (func(), error) { return makeRaw(in) },
+		bracketed:  true,
+		incomplete: ant.Incomplete,
 	}
 }

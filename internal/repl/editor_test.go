@@ -3,6 +3,7 @@ package repl
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -86,7 +87,7 @@ func TestEditorKeys(t *testing.T) {
 		{"abc\x1b[1;3D\x1b[1~X\r", "Xabc"},          // Alt-Left, Home
 		{"abc\x1b\x1b[D\r", "abc"},                  // a lone escape does nothing
 		{"\x1bOHX\r", "X"},                          // SS3 home
-		{"ab\x1b[200~c\r", "abc"},                   // an unknown CSI sequence is skipped
+		{"ab\x1b[299~c\r", "abc"},                   // an unknown CSI sequence is skipped
 	}
 	for _, tc := range tests {
 		e, _, in := fakeTerminal(t, 80, nil)
@@ -380,5 +381,46 @@ func waitFor(t *testing.T, cond func() bool) {
 			t.Fatal("timed out")
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// TestEditorMultiline checks an input of several lines: Enter goes on to the next line while
+// the input is unfinished, indenting it, a closing brace takes the indent back, the arrows
+// move between the lines, and the history keeps the input whole.
+func TestEditorMultiline(t *testing.T) {
+	tests := []struct{ keys, want string }{
+		{"func f() {\r1\r}\r", "func f() {\n  1\n}"}, // indent after {, back before }
+		{"[1,\r2\x1b[AX\x05\x1b[B]\r", "[X1,\n2]"},   // Up keeps the column; End, Down
+		{"if true {\rif false {\r1\r}\r}\r", "if true {\n  if false {\n    1\n  }\n}"},
+		{"(1 +\r2)\x1b[A\x01\x1b[3~\x1b[B\r", "1 +\n2)"},               // Home is the line's start; Enter ends a whole input
+		{"\x1b[200~if true {\n  1\n}\x1b[201~\r", "if true {\n  1\n}"}, // a paste keeps its lines
+		{"[1,\r2]\x1b[A\x0b\r", "[1\n2]"},                              // Ctrl-K kills to the line's end
+	}
+	for _, tc := range tests {
+		e, _, in := fakeTerminal(t, 80, nil)
+		e.incomplete = ant.Incomplete
+		in <- []byte(tc.keys)
+		line, err := e.readLine("> ", "")
+		if err != nil || line != tc.want {
+			t.Errorf("%q: line %q, err %v, want %q", tc.keys, line, err, tc.want)
+		}
+	}
+	// the history recalls the input whole, and keeps it so in its file
+	path := filepath.Join(t.TempDir(), "history")
+	e, out, in := fakeTerminal(t, 80, nil)
+	e.incomplete = ant.Incomplete
+	e.hist = loadHistory(path)
+	in <- []byte("func g() {\r1\r}\r")
+	e.readLine("> ", "")
+	in <- []byte("\x1b[A\r")
+	if line, _ := e.readLine("> ", ""); line != "func g() {\n  1\n}" {
+		t.Errorf("recalled %q", line)
+	}
+	if h := loadHistory(path); len(h.lines) != 1 || h.lines[0] != "func g() {\n  1\n}" {
+		t.Errorf("history file: %q", h.lines)
+	}
+	// the lines after the first are drawn after the continuation prompt
+	if !strings.Contains(out.String(), "> func g() {\r\n.   1\r\n. }") {
+		t.Errorf("drawn: %q", out.String())
 	}
 }

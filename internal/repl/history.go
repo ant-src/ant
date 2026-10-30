@@ -8,7 +8,7 @@ import (
 // historySize is how many lines the history keeps, in memory and in its file.
 const historySize = 1000
 
-// A history is the lines entered, oldest first, kept in a file across sessions when it has one.
+// A history is the inputs entered, oldest first, each of one line or more, kept in a file across sessions when it has one.
 type history struct {
 	lines []string
 	path  string
@@ -27,14 +27,18 @@ func loadHistory(path string) *history {
 	}
 	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
 		if line != "" {
-			h.lines = append(h.lines, line)
+			h.lines = append(h.lines, decodeEntry(line))
 		}
 	}
 	if len(h.lines) > historySize {
 		// the file is appended to as lines are entered; it is cut back here, so it never
 		// holds much more than historySize
 		h.lines = h.lines[len(h.lines)-historySize:]
-		os.WriteFile(path, []byte(strings.Join(h.lines, "\n")+"\n"), 0o600)
+		var sb strings.Builder
+		for _, l := range h.lines {
+			sb.WriteString(encodeEntry(l) + "\n")
+		}
+		os.WriteFile(path, []byte(sb.String()), 0o600)
 	}
 	return h
 }
@@ -55,6 +59,12 @@ func (h *history) add(line string) {
 	if err != nil {
 		return
 	}
-	f.WriteString(line + "\n")
+	f.WriteString(encodeEntry(line) + "\n")
 	f.Close()
 }
+
+// An entry of several lines is a line of the file with a carriage return for each line break,
+// which the editor never puts in a line.
+func encodeEntry(s string) string { return strings.ReplaceAll(s, "\n", "\r") }
+
+func decodeEntry(s string) string { return strings.ReplaceAll(s, "\r", "\n") }
