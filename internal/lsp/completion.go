@@ -13,6 +13,7 @@ import (
 	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/internal/types"
+	"github.com/ant-src/ant/parser"
 	"github.com/ant-src/ant/value"
 )
 
@@ -42,12 +43,14 @@ func (s *Server) completeAt(d *document, off int) []CompletionItem {
 // Complete lists what can be written at byte offset off of text, the input of a session at
 // path, for a REPL: cfg is the session's loader configuration, whose Session scope and Extra
 // names the input is resolved against; the text itself overrides whatever cfg.Sources holds at
-// path. The items are those the language server would offer (spec/lsp.md section 4), unsorted.
+// path. The text is parsed as a script, since the checker types the statements of a script
+// and not those of a session input; the scope still lets a name be declared again. The items
+// are those the language server would offer (spec/lsp.md section 4), unsorted.
 func Complete(cfg loader.Config, path, text string, off int) []CompletionItem {
 	s := &Server{docs: map[string]*document{}, cache: map[string]*analysis{}}
 	s.load = func(p string, sources map[string]string) (*loader.Program, []loader.Diagnostic) {
 		c := cfg
-		c.Recover = true
+		c.Mode, c.Recover = parser.Program, true
 		c.Sources = make(map[string]string, len(cfg.Sources)+len(sources))
 		for k, v := range cfg.Sources {
 			c.Sources[k] = v

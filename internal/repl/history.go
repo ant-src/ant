@@ -31,7 +31,10 @@ func loadHistory(path string) *history {
 		}
 	}
 	if len(h.lines) > historySize {
+		// the file is appended to as lines are entered; it is cut back here, so it never
+		// holds much more than historySize
 		h.lines = h.lines[len(h.lines)-historySize:]
+		os.WriteFile(path, []byte(strings.Join(h.lines, "\n")+"\n"), 0o600)
 	}
 	return h
 }

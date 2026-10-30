@@ -8,6 +8,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/token"
 )
 
 // document is an open document: its text and the line table that maps the protocol's positions
@@ -177,9 +178,7 @@ func (d *document) wordAt(off int) (string, int) {
 	return d.text[start:end], start
 }
 
-func isIdentByte(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
-}
+func isIdentByte(c byte) bool { return token.IsIdentByte(c) }
 
 // uriPath turns a file URI into a path, or "" for another scheme, whose document the server
 // does not analyze.

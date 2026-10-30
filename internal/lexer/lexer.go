@@ -514,13 +514,11 @@ func (l *lexer) operator() {
 	l.fail(pos, "unexpected character %q", r)
 }
 
-func isDigit(c byte) bool  { return c >= '0' && c <= '9' }
-func isLetter(c byte) bool { return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' }
-func isHex(c byte) bool    { return isDigit(c) || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F' }
-func isBinary(c byte) bool { return c == '0' || c == '1' }
-func isIdentChar(c byte) bool {
-	return isLetter(c) || isDigit(c) || c == '_'
-}
+func isDigit(c byte) bool     { return c >= '0' && c <= '9' }
+func isLetter(c byte) bool    { return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' }
+func isHex(c byte) bool       { return isDigit(c) || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F' }
+func isBinary(c byte) bool    { return c == '0' || c == '1' }
+func isIdentChar(c byte) bool { return token.IsIdentByte(c) }
 
 // digits scans digit { ["_"] digit }: at least one digit, underscores only between digits.
 func (l *lexer) digits(allowed func(byte) bool, what string) {

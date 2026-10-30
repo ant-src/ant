@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/internal/token"
 )
 
 // completion is the state of completing the line being edited: the replies for the text up to
@@ -40,7 +41,7 @@ func (e *editor) updateCompletion() {
 	src := e.pending + line
 	// the word being completed is the identifier before the cursor
 	start := len(line)
-	for start > 0 && isIdentByte(line[start-1]) {
+	for start > 0 && token.IsIdentByte(line[start-1]) {
 		start--
 	}
 	c.word = line[start:]
@@ -87,10 +88,6 @@ func kindRank(kind string) int {
 		return 4
 	}
 	return 5
-}
-
-func isIdentByte(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
 }
 
 // ghost is the rest of the first reply extending the word, shown dimmed after the cursor: for
@@ -239,7 +236,7 @@ func (e *editor) menuLines(width, height int) []string {
 			}
 			text := truncate(c.replies[i].Label, colWidth-2, "…")
 			if c.menu && i == c.selected {
-				line.WriteString("\x1b[7m" + text + reset)
+				line.WriteString(e.th.selected + text + reset)
 			} else {
 				line.WriteString(text)
 			}
@@ -273,8 +270,8 @@ func (e *editor) menuLines(width, height int) []string {
 // dim renders s in the ghost's color, cut to width.
 func (th *theme) dim(s string, width int) string {
 	s = truncate(s, width, "…")
-	if th[clsGhost] == "" {
+	if th.class[clsGhost] == "" {
 		return s
 	}
-	return th[clsGhost] + s + reset
+	return th.class[clsGhost] + s + reset
 }

@@ -1,6 +1,10 @@
 package repl
 
-import "unicode/utf8"
+import (
+	"strconv"
+	"strings"
+	"unicode/utf8"
+)
 
 // A key is one keystroke as the editor sees it: a rune typed, or a control key.
 type key struct {
@@ -46,7 +50,12 @@ func decodeKey(b []byte, final bool) (k key, n int) {
 	switch c := b[0]; {
 	case c == 0x1b:
 		return decodeEscape(b, final)
-	case c == '\r' || c == '\n':
+	case c == '\r':
+		if len(b) > 1 && b[1] == '\n' {
+			return key{kind: keyEnter}, 2 // a pasted CRLF is one line break
+		}
+		return key{kind: keyEnter}, 1
+	case c == '\n':
 		return key{kind: keyEnter}, 1
 	case c == '\t':
 		return key{kind: keyTab}, 1
@@ -119,9 +128,12 @@ func decodeEscape(b []byte, final bool) (key, int) {
 		}
 		params, fin := string(b[2:i]), b[i]
 		n := i + 1
-		mod := ""
-		if j := indexByte(params, ';'); j >= 0 {
-			params, mod = params[:j], params[j+1:]
+		// the modifier parameter is one more than a bit set: 1 shift, 2 alt, 4 control
+		word := false
+		if j := strings.IndexByte(params, ';'); j >= 0 {
+			mod, _ := strconv.Atoi(params[j+1:])
+			params = params[:j]
+			word = mod > 1 && (mod-1)&6 != 0 // with Alt or Control
 		}
 		switch fin {
 		case 'A':
@@ -129,12 +141,12 @@ func decodeEscape(b []byte, final bool) (key, int) {
 		case 'B':
 			return key{kind: keyDown}, n
 		case 'C':
-			if mod != "" && mod != "1" {
+			if word {
 				return key{kind: keyWordRight}, n
 			}
 			return key{kind: keyRight}, n
 		case 'D':
-			if mod != "" && mod != "1" {
+			if word {
 				return key{kind: keyWordLeft}, n
 			}
 			return key{kind: keyLeft}, n
@@ -188,15 +200,13 @@ func decodeEscape(b []byte, final bool) (key, int) {
 	case 0x1b:
 		return key{kind: keyEscape}, 1
 	}
-	// Alt with another key: the key alone
-	return key{kind: keyEscape}, 1
-}
-
-func indexByte(s string, c byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return i
-		}
+	if b[1] < 0x20 {
+		return key{kind: keyEscape}, 1 // Escape, then a control key of its own
 	}
-	return -1
+	// Alt with a key the editor does not bind: nothing, and not the key alone
+	r, size := utf8.DecodeRune(b[1:])
+	if r == utf8.RuneError && size == 1 && !utf8.FullRune(b[1:]) && !final {
+		return key{}, 0
+	}
+	return key{kind: keyNone}, 1 + size
 }

@@ -311,3 +311,26 @@ func TestSessionComplete(t *testing.T) {
 		t.Errorf("offset past the end: %v", got)
 	}
 }
+
+// BenchmarkSessionComplete measures one completion on a session with an import and many
+// declarations: what a keystroke costs.
+func BenchmarkSessionComplete(b *testing.B) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval(`import "tests/run/lib/geometry.ant" { distance, Point }`); err != nil {
+		b.Fatal(err)
+	}
+	for i := 0; i < 200; i++ {
+		if _, err := s.Eval(fmt.Sprintf("func f%d(n: int): int { n + %d }", i, i)); err != nil {
+			b.Fatal(err)
+		}
+	}
+	s.Eval("var xs = [1, 2, 3]")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Complete("xs | Array.", len("xs | Array."))
+	}
+}

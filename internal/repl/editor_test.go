@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/internal/token"
 )
 
 // fakeTerminal runs an editor over scripted keys on a screen of a given size, with the plain
@@ -25,6 +26,31 @@ func fakeTerminal(t *testing.T, cols int, complete func(string, int) []ant.Compl
 		hist:     loadHistory(""),
 	}
 	return e, &out, in
+}
+
+// typeKeys sends keys as typed: a Tab or a Shift-Tab arrives on its own, the rest in one chunk,
+// as pasted text does.
+func typeKeys(in chan<- []byte, keys string) {
+	for keys != "" {
+		i := strings.IndexAny(keys, "\t")
+		if j := strings.Index(keys, "\x1b[Z"); j >= 0 && (i < 0 || j < i) {
+			if j > 0 {
+				in <- []byte(keys[:j])
+			}
+			in <- []byte("\x1b[Z")
+			keys = keys[j+3:]
+			continue
+		}
+		if i < 0 {
+			in <- []byte(keys)
+			return
+		}
+		if i > 0 {
+			in <- []byte(keys[:i])
+		}
+		in <- []byte("\t")
+		keys = keys[i+1:]
+	}
 }
 
 func TestEditorLine(t *testing.T) {
@@ -125,7 +151,7 @@ func TestEditorHistory(t *testing.T) {
 func complete(src string, off int) []ant.Completion {
 	var items []ant.Completion
 	before := src[:off]
-	for len(before) > 0 && isIdentByte(before[len(before)-1]) {
+	for len(before) > 0 && token.IsIdentByte(before[len(before)-1]) {
 		before = before[:len(before)-1]
 	}
 	switch {
@@ -174,8 +200,33 @@ func TestEditorCompletion(t *testing.T) {
 	}
 	for _, tc := range tests {
 		e, _, in := fakeTerminal(t, 80, complete)
-		in <- []byte(tc.keys)
+		typeKeys(in, tc.keys)
 		line, err := e.readLine("> ", "")
+		if err != nil || line != tc.want {
+			t.Errorf("%q: line %q, err %v, want %q", tc.keys, line, err, tc.want)
+		}
+	}
+}
+
+func TestEditorPaste(t *testing.T) {
+	tests := []struct {
+		keys  string
+		lines int // the lines the keys enter; the last is checked
+		want  string
+	}{
+		{"if x {\r\tprintln(x)\r", 2, "  println(x)"}, // a pasted tab indents instead of completing
+		{"a\tb\x1b[Zc\r", 1, "a  bc"},                 // and a pasted Shift-Tab does nothing
+		{"var x = 1\r\nx\r\n", 2, "x"},                // CRLF is one line break
+	}
+	for _, tc := range tests {
+		e, _, in := fakeTerminal(t, 80, complete)
+		in <- []byte(tc.keys)
+		close(in) // so that a line too many ends with io.EOF rather than waiting
+		var line string
+		var err error
+		for i := 0; i < tc.lines && err == nil; i++ {
+			line, err = e.readLine("> ", "")
+		}
 		if err != nil || line != tc.want {
 			t.Errorf("%q: line %q, err %v, want %q", tc.keys, line, err, tc.want)
 		}
@@ -193,12 +244,12 @@ func TestEditorGhostAndMenuDrawing(t *testing.T) {
 	s := out.String()
 	// after "Array." the ghost shows the first member after the cursor, and the cursor is put
 	// back before it
-	if !strings.Contains(s, "> Array.filter\r\x1b[8C") {
+	if !strings.Contains(s, "> Array.\x1b[2mfilter\x1b[0m\r\x1b[8C") {
 		t.Errorf("ghost: %q", s)
 	}
 	// the menu lists the replies under the line, the selected one reversed, and the selected
 	// reply's detail; then the cursor moves back up to the line
-	if !strings.Contains(s, "> Array.filter\r\n\x1b[7mfilter\x1b[0m   first    flatMap\r\nfilter(xs: Array[T]): Array[U]\r\x1b[2A\x1b[14C") {
+	if !strings.Contains(s, "> Array.filter\r\n\x1b[7mfilter\x1b[0m   first    flatMap\r\n\x1b[2mfilter(xs: Array[T]): Array[U]\x1b[0m\r\x1b[2A\x1b[14C") {
 		t.Errorf("menu: %q", s)
 	}
 }

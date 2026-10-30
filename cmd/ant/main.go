@@ -29,8 +29,8 @@
 // cursor, where Right or End takes it; Tab writes the only completion or the common prefix,
 // and otherwise lists them and cycles through them, Shift-Tab backwards. Up and Down browse
 // the history, kept in ~/.ant_history. Ctrl-C drops the line, Ctrl-D on an empty line ends the
-// REPL, and Ctrl-C while an input runs ends it with 130, as it ends a run. NO_COLOR or a dumb
-// terminal turns the colors off; without a terminal the REPL reads lines as they come.
+// REPL, and Ctrl-C while an input runs ends it with 130, as it ends a run. NO_COLOR turns the
+// colors off; without a terminal, or on a dumb one, the REPL reads lines as they come.
 package main
 
 import (

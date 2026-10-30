@@ -3,6 +3,7 @@ package ant
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -24,8 +25,14 @@ type Session struct {
 	imports     []string      // the imports in force, as text, to keep each once
 	importDecls []*ast.Import // the same, parsed, which every later input takes before its own
 	// decls is the text of every input that declared or imported something, in order, which
-	// Complete analyzes ahead of an input so the names it offers carry their types.
-	decls []string
+	// Complete analyzes ahead of an input so the names it offers carry their types. An input
+	// whose every name a later input declares again is dropped, so the text stays bounded.
+	decls []declInput
+}
+
+type declInput struct {
+	src   string
+	names []string
 }
 
 // NewSession creates a session. The options are those of Load and Run.
@@ -59,8 +66,11 @@ func (s *Session) Eval(src string) (value.Value, error) {
 	if len(diags) > 0 {
 		return nil, &LoadError{Diagnostics: convert(diags)}
 	}
-	if declares(prog.Root.File, len(s.importDecls)) {
-		s.decls = append(s.decls, src)
+	if names := declaredNames(prog.Root.File, len(s.importDecls)); len(names) > 0 {
+		s.decls = slices.DeleteFunc(s.decls, func(d declInput) bool {
+			return !slices.ContainsFunc(d.names, func(n string) bool { return !slices.Contains(names, n) })
+		})
+		s.decls = append(s.decls, declInput{src, names})
 	}
 	v, err := s.s.Eval(prog)
 	// the imports stay in force even when the input fails, as its other declarations do
@@ -111,18 +121,59 @@ func withSource(sources map[string]string, path, src string) map[string]string {
 	return out
 }
 
-// declares reports whether an input declares anything: a function, a type, a variable, or an
-// import of its own beyond the first known inputs in force.
-func declares(f *ast.File, known int) bool {
-	if len(f.Decls) > 0 || len(f.Imports) > known {
-		return true
-	}
-	for _, st := range f.Stmts {
-		if _, ok := st.(*ast.VarDecl); ok {
-			return true
+// declaredNames lists what an input declares: its functions, with their owner, its types, its
+// variables, and the names its own imports bind, beyond the known imports in force.
+func declaredNames(f *ast.File, known int) []string {
+	var names []string
+	for _, imp := range f.Imports[known:] {
+		if imp.Namespace != "" {
+			names = append(names, imp.Namespace)
+		}
+		for _, n := range imp.Names {
+			names = append(names, n.Alias)
 		}
 	}
-	return false
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			if d.Owner != "" {
+				names = append(names, d.Owner+"."+d.Name)
+			} else {
+				names = append(names, d.Name)
+			}
+		case *ast.TypeDecl:
+			names = append(names, d.Name)
+		case *ast.VarDecl:
+			names = targetNames(names, d.Target)
+		}
+	}
+	for _, st := range f.Stmts {
+		if v, ok := st.(*ast.VarDecl); ok {
+			names = targetNames(names, v.Target)
+		}
+	}
+	return names
+}
+
+func targetNames(names []string, t ast.Target) []string {
+	switch t := t.(type) {
+	case *ast.NameTarget:
+		if t.Name != "_" {
+			names = append(names, t.Name)
+		}
+	case *ast.RecordTarget:
+		for _, f := range t.Fields {
+			names = targetNames(names, f.Target)
+		}
+	case *ast.ArrayTarget:
+		for _, e := range t.Elems {
+			names = targetNames(names, e)
+		}
+		if t.Rest != nil {
+			names = targetNames(names, t.Rest)
+		}
+	}
+	return names
 }
 
 // A Completion is one thing that can be written at a position of an input, as Complete lists
@@ -154,14 +205,14 @@ func (s *Session) Complete(src string, off int) []Completion {
 	}
 	var sb strings.Builder
 	for _, d := range s.decls {
-		sb.WriteString(d)
-		if !strings.HasSuffix(d, "\n") {
+		sb.WriteString(d.src)
+		if !strings.HasSuffix(d.src, "\n") {
 			sb.WriteByte('\n')
 		}
 	}
 	base := sb.Len()
 	sb.WriteString(src)
-	cfg := loader.Config{FS: s.cfg.fsys, Sources: s.cfg.sources, Mode: parser.Session, Extra: s.extra,
+	cfg := loader.Config{FS: s.cfg.fsys, Sources: s.cfg.sources, Extra: s.extra,
 		Session: &ast.ModuleScope{Index: map[string]int{}}}
 	items := lsp.Complete(cfg, "<input>", sb.String(), base+off)
 	out := make([]Completion, 0, len(items))

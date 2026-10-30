@@ -82,9 +82,15 @@ func (e *editor) readLine(prompt, pending string) (string, error) {
 			e.hist.add(line)
 			return line, nil
 		case keyTab:
-			e.completeKey(1)
+			if e.moreKeys() {
+				e.insert([]rune("  ")) // a tab in pasted text indents
+			} else {
+				e.completeKey(1)
+			}
 		case keyShiftTab:
-			e.completeKey(-1)
+			if !e.moreKeys() {
+				e.completeKey(-1)
+			}
 		case keyBackspace:
 			if e.cur > 0 {
 				from := e.prev(e.cur)

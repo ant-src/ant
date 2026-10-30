@@ -30,12 +30,9 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	defer s.Close()
 	var r lineReader
-	if in, ok := stdin.(*os.File); ok && isTerminal(in) {
-		if out, ok := stdout.(*os.File); ok && isTerminal(out) {
-			r = newTerminalReader(ctx, in, out, s)
-		}
-	}
-	if r == nil {
+	if in, out, ok := terminal(stdin, stdout); ok {
+		r = newTerminalReader(ctx, in, out, s)
+	} else {
 		r = newPlainReader(ctx, stdin, stdout)
 	}
 	var pending strings.Builder
@@ -52,6 +49,11 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		if ctx.Err() != nil {
 			fmt.Fprintln(stdout)
 			return 130
+		}
+		if err != nil && !errors.Is(err, io.EOF) {
+			// the terminal cannot be read, or put into raw mode
+			fmt.Fprintln(stderr, err)
+			return 2
 		}
 		// at the end of input an unfinished input is evaluated as it is, so its error is
 		// reported rather than the input dropped
@@ -100,10 +102,25 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 // A lineReader reads the lines of the inputs. readLine returns io.EOF at the end of the input,
-// errInterrupt when the line was dropped, and the context's error when it ends; pending is the
-// input so far, for the continuation prompt's context.
+// errInterrupt when the line was dropped, the context's error when it ends, and another error
+// when the input cannot be read; pending is the input so far, for the continuation prompt's
+// context.
 type lineReader interface {
 	readLine(prompt, pending string) (string, error)
+}
+
+// terminal reports whether the REPL is on a terminal it can edit lines on: standard input and
+// output are the same kind of terminal, and not a dumb one, which has no cursor to move.
+func terminal(stdin io.Reader, stdout io.Writer) (in, out *os.File, ok bool) {
+	in, ok = stdin.(*os.File)
+	if !ok || !isTerminal(in) {
+		return nil, nil, false
+	}
+	out, ok = stdout.(*os.File)
+	if !ok || !isTerminal(out) || os.Getenv("TERM") == "dumb" {
+		return nil, nil, false
+	}
+	return in, out, true
 }
 
 // plainReader reads lines as they come, for a pipe or a file, printing the prompt before each.
@@ -156,7 +173,7 @@ func newTerminalReader(ctx context.Context, in, out *os.File, s *ant.Session) *e
 	chunks := make(chan []byte, 64)
 	go func() {
 		defer close(chunks)
-		buf := make([]byte, 256)
+		buf := make([]byte, 4096) // a paste arrives in few chunks, each drawn once
 		for {
 			n, err := in.Read(buf)
 			if n > 0 {
@@ -168,7 +185,7 @@ func newTerminalReader(ctx context.Context, in, out *os.File, s *ant.Session) *e
 		}
 	}()
 	th := &ansiTheme
-	if _, noColor := os.LookupEnv("NO_COLOR"); noColor || os.Getenv("TERM") == "dumb" {
+	if _, noColor := os.LookupEnv("NO_COLOR"); noColor {
 		th = &plainTheme
 	}
 	path := ""

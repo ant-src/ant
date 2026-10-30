@@ -6,7 +6,6 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/parser"
 )
 
 // TestComplete drives Complete as a REPL does: the text is the declarations of earlier inputs
@@ -14,7 +13,7 @@ import (
 // declared again, completes by its latest type.
 func TestComplete(t *testing.T) {
 	labels := func(text string) []string {
-		cfg := loader.Config{Mode: parser.Session, Session: &ast.ModuleScope{Index: map[string]int{}}}
+		cfg := loader.Config{Session: &ast.ModuleScope{Index: map[string]int{}}}
 		var out []string
 		for _, it := range Complete(cfg, "<input>", text, len(text)) {
 			out = append(out, it.Label)

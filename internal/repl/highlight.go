@@ -134,27 +134,38 @@ func capitalized(name string) bool {
 	return unicode.IsUpper(r)
 }
 
-// A theme is the escape sequence that starts each class, or "" for none.
-type theme [clsGhost + 1]string
+// A theme is the escape sequence that starts each class, or "" for none, and the one that
+// marks the reply the menu selected.
+type theme struct {
+	class    [clsGhost + 1]string
+	selected string
+}
 
 // ansiTheme colors with the terminal's own sixteen colors, so that it suits a light or a dark
 // background alike.
 var ansiTheme = theme{
-	clsKeyword:  "\x1b[35m", // magenta
-	clsConstant: "\x1b[33m", // yellow
-	clsString:   "\x1b[32m", // green
-	clsNumber:   "\x1b[33m", // yellow
-	clsRegex:    "\x1b[31m", // red
-	clsComment:  "\x1b[90m", // bright black
-	clsType:     "\x1b[36m", // cyan
-	clsFunction: "\x1b[34m", // blue
-	clsMarkup:   "\x1b[36m", // cyan
-	clsBad:      "\x1b[31m", // red
-	clsGhost:    "\x1b[90m", // bright black
+	class: [clsGhost + 1]string{
+		clsKeyword:  "\x1b[35m", // magenta
+		clsConstant: "\x1b[33m", // yellow
+		clsString:   "\x1b[32m", // green
+		clsNumber:   "\x1b[33m", // yellow
+		clsRegex:    "\x1b[31m", // red
+		clsComment:  "\x1b[90m", // bright black
+		clsType:     "\x1b[36m", // cyan
+		clsFunction: "\x1b[34m", // blue
+		clsMarkup:   "\x1b[36m", // cyan
+		clsBad:      "\x1b[31m", // red
+		clsGhost:    "\x1b[90m", // bright black
+	},
+	selected: "\x1b[7m", // inverse
 }
 
-// plainTheme colors nothing, for NO_COLOR and a dumb terminal.
-var plainTheme theme
+// plainTheme colors nothing, for NO_COLOR; the ghost is still told from the text, and the
+// selected reply from the others, by the attributes that are not colors.
+var plainTheme = theme{
+	class:    [clsGhost + 1]string{clsGhost: "\x1b[2m"}, // faint
+	selected: "\x1b[7m",
+}
 
 const reset = "\x1b[0m"
 
@@ -167,10 +178,10 @@ func (th *theme) paint(sb *strings.Builder, s string, cls []class, base int) {
 		for j < len(s) && classAt(cls, base+j) == c {
 			j++
 		}
-		if th[c] == "" {
+		if th.class[c] == "" {
 			sb.WriteString(s[i:j])
 		} else {
-			sb.WriteString(th[c])
+			sb.WriteString(th.class[c])
 			sb.WriteString(s[i:j])
 			sb.WriteString(reset)
 		}

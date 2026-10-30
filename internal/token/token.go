@@ -197,5 +197,11 @@ var reserved = map[string]bool{
 // IsKeyword reports whether word is a keyword.
 func IsKeyword(word string) bool { return keywords[word] }
 
+// IsIdentByte reports whether c can be part of an identifier: a letter, a digit, or an
+// underscore (section 2).
+func IsIdentByte(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
+}
+
 // IsReserved reports whether word is a reserved word.
 func IsReserved(word string) bool { return reserved[word] }

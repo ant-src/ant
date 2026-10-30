@@ -16,6 +16,8 @@ func TestDecodeKey(t *testing.T) {
 		{"\xc3", true, keyNone, 0, 1},  // or drop it
 		{"\r", false, keyEnter, 0, 1},
 		{"\n", false, keyEnter, 0, 1},
+		{"\r\n", false, keyEnter, 0, 2},
+		{"\n\r", false, keyEnter, 0, 1},
 		{"\t", false, keyTab, 0, 1},
 		{"\x7f", false, keyBackspace, 0, 1},
 		{"\x01", false, keyHome, 0, 1},
@@ -26,8 +28,10 @@ func TestDecodeKey(t *testing.T) {
 		{"\x1b[", false, keyNone, 0, 0},
 		{"\x1b[A", false, keyUp, 0, 3},
 		{"\x1b[Dx", false, keyLeft, 0, 3},
-		{"\x1b[1;5C", false, keyWordRight, 0, 6},
-		{"\x1b[1;3D", false, keyWordLeft, 0, 6},
+		{"\x1b[1;5C", false, keyWordRight, 0, 6}, // Ctrl-Right
+		{"\x1b[1;3D", false, keyWordLeft, 0, 6},  // Alt-Left
+		{"\x1b[1;2C", false, keyRight, 0, 6},     // Shift-Right is Right
+		{"\x1b[1;6D", false, keyWordLeft, 0, 6},  // Shift-Ctrl-Left
 		{"\x1b[3~", false, keyDelete, 0, 4},
 		{"\x1b[1~", false, keyHome, 0, 4},
 		{"\x1b[F", false, keyEnd, 0, 3},
@@ -37,7 +41,11 @@ func TestDecodeKey(t *testing.T) {
 		{"\x1bb", false, keyWordLeft, 0, 2},
 		{"\x1bf", false, keyWordRight, 0, 2},
 		{"\x1b\x7f", false, keyDeleteWordLeft, 0, 2},
-		{"\x1bq", false, keyEscape, 0, 1},
+		{"\x1bq", false, keyNone, 0, 2},    // Alt-Q is not bound: nothing, and no q
+		{"\x1bé", false, keyNone, 0, 3},    // nor Alt with a longer rune
+		{"\x1b\xc3", false, keyNone, 0, 0}, // whose rest has not arrived yet
+		{"\x1b\x1b", false, keyEscape, 0, 1},
+		{"\x1b\r", false, keyEscape, 0, 1}, // Escape, then Enter
 	}
 	for _, tc := range tests {
 		k, n := decodeKey([]byte(tc.in), tc.final)
