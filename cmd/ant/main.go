@@ -20,7 +20,8 @@
 // otherwise. ant dap exits 0 when the client disconnects, 1 when the connection ends first.
 //
 // The REPL evaluates each input on one session and prints every non-void result with
-// String.from; an input goes on over more lines while it is unfinished, which on a terminal
+// String.from, on a terminal colored and, when it does not fit, an element to a line; _ reads
+// the last result. An input goes on over more lines while it is unfinished, which on a terminal
 // are edited together, indented after an opening brace, and recalled whole from the history. On a terminal it edits
 // each line with the keys of readline (arrows, Home and End or Ctrl-A and Ctrl-E, Alt-B and
 // Alt-F or Ctrl-arrows by word, Ctrl-W, Ctrl-K, Ctrl-U, Ctrl-L), highlights it as it is typed,

@@ -32,6 +32,13 @@ func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) int {
 		stdout, stderr = e.writer(stdout), e.writer(stderr)
 		// the session is replaced by :reset, so completion asks whichever is current
 		e.complete = func(src string, off int) []ant.Completion { return l.s.Complete(src, off) }
+		l.show = func(v value.Value) string {
+			cols, _ := e.size()
+			if cols <= 0 {
+				cols = 80
+			}
+			return e.th.pretty(v, cols)
+		}
 	} else {
 		l.r = newPlainReader(ctx, stdin, stdout)
 	}
@@ -58,6 +65,7 @@ type looper struct {
 	open           func() (*ant.Session, error) // a new session, for :reset
 	r              lineReader
 	stdout, stderr io.Writer
+	show           func(value.Value) string // renders a result; nil is String.from
 }
 
 // errQuit ends the loop from a command, with status 0.
@@ -142,7 +150,11 @@ func (l *looper) eval(src string) (status int, done bool) {
 	switch err.(type) {
 	case nil:
 		if v != value.Void {
-			fmt.Fprintln(l.stdout, value.Render(v))
+			if l.show != nil {
+				fmt.Fprintln(l.stdout, l.show(v))
+			} else {
+				fmt.Fprintln(l.stdout, value.Render(v))
+			}
 		}
 	case *ant.PanicError, *ant.ResultError:
 		// reported by the runtime already
