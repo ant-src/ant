@@ -38,8 +38,8 @@ func TestCompanion(t *testing.T) {
 		"tool.ant":      "println(1)",
 		"tool_test.ant": "test \"a\" {}",
 	}})
-	if len(diags) > 0 || len(prog.Root.File.Imports) != 0 {
-		t.Fatalf("beside a script: %v %v", diags, prog)
+	if len(diags) > 0 || len(prog.Root.File.Imports) != 0 || len(prog.Modules) != 1 {
+		t.Fatalf("beside a script: %v %v", diags, prog.Modules)
 	}
 	// and with nothing beside it
 	if prog, diags = Load("api_test.ant", Config{Sources: map[string]string{"api_test.ant": "test \"a\" {}"}}); len(diags) > 0 || len(prog.Root.File.Imports) != 0 {

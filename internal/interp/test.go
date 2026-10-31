@@ -65,7 +65,18 @@ type testFile struct {
 	cfg  TestConfig
 	sem  chan struct{}
 	repo sync.Mutex // Report is called under it
+	// exited is set when a goroutine of a test called Os.exit: no test starts or reports after it.
+	exited atomic.Bool
 }
+
+// exit ends the run with Os.exit's status: the command ends as a program does (test.md).
+func (tf *testFile) exit(status int) {
+	tf.exited.Store(true)
+	tf.in.finish(&ExitError{Status: status})
+}
+
+// over reports whether the run has ended, by its context or by Os.exit.
+func (tf *testFile) over() bool { return tf.exited.Load() || tf.in.ctx.Err() != nil }
 
 func (tf *testFile) report(e TestEvent) {
 	e.File = tf.cfg.File
@@ -103,13 +114,16 @@ type testRun struct {
 	killed   atomic.Bool
 
 	parallel     bool
+	slot         bool           // it holds a slot of -parallel, which it gives back when its body ends
 	wentParallel chan struct{}  // closed when the test calls Test.parallel
 	release      chan struct{}  // closed when its sequential subtests have ended: parallel ones may run
 	children     sync.WaitGroup // its parallel subtests
 }
 
-// skipSignal unwinds a goroutine that called Test.skip.
-type skipSignal struct{}
+// skipSignal unwinds a goroutine that called Test.skip. The test is skipped only when the
+// signal ends the body or the goroutine: one a deferred block raises while a panic unwinds is
+// dropped, and so is its reason.
+type skipSignal struct{ reason string }
 
 // RunTests runs a test file's program: it initializes the modules, then runs the root's tests
 // in source order. It returns nil when the tests ran, whatever their outcomes; a *PanicError
@@ -133,6 +147,7 @@ func RunTests(ctx context.Context, prog *loader.Program, cfg Config, tc TestConf
 			g.enterAnt()
 		}
 		in.initModules(g)
+		in.Flush() // what initialization printed comes before the first test's report
 		root := in.modules[prog.Root.Index]
 		file := &testRun{file: tf, level: -1, release: make(chan struct{})}
 		for _, t := range prog.Root.File.Tests {
@@ -151,7 +166,7 @@ func RunTests(ctx context.Context, prog *loader.Program, cfg Config, tc TestConf
 // and returns when it has ended or called Test.parallel.
 func (g *Goroutine) runTest(parent *testRun, node *ast.Test, name string, env *Env) {
 	tf := parent.file
-	if stop := tf.cfg.Stop; stop != nil && stop.Load() {
+	if stop := tf.cfg.Stop; stop != nil && stop.Load() || tf.over() {
 		return
 	}
 	full := name
@@ -190,7 +205,7 @@ func (g *Goroutine) runTest(parent *testRun, node *ast.Test, name string, env *E
 		if ng.d != nil {
 			ng.leaveAnt() // the body has ended; what follows waits, which a stop does not wait for
 		}
-		if t.parallel {
+		if t.slot {
 			<-tf.sem
 		}
 		close(t.release)
@@ -209,6 +224,9 @@ func (g *Goroutine) runTest(parent *testRun, node *ast.Test, name string, env *E
 	case <-t.wentParallel:
 	case <-in.ctx.Done():
 		panic(&cancelSignal{})
+	}
+	if tf.exited.Load() {
+		panic(&cancelSignal{}) // Os.exit ended the run; the rest of the parent does not run
 	}
 }
 
@@ -243,7 +261,6 @@ func (t *testRun) names() []string {
 // runBody runs the test's body on g, as Panic.catch runs a function (section 12, Running a
 // test): a panic that leaves it is the test's failure, and an Err it returns is too.
 func (t *testRun) runBody(g *Goroutine, node *ast.Test, env *Env) {
-	in := g.in
 	defer func() {
 		t.ctx.Cancel(value.ErrCancelled)
 		r := recover()
@@ -252,8 +269,9 @@ func (t *testRun) runBody(g *Goroutine, node *ast.Test, env *Env) {
 		case *AntPanic:
 			t.fail(true, panicReport(x))
 		case *skipSignal:
+			t.skip(x.reason)
 		case *exitSignal:
-			in.finish(&ExitError{Status: x.status})
+			t.file.exit(x.status)
 		case *cancelSignal:
 		default:
 			panic(r)
@@ -282,31 +300,7 @@ func (g *Goroutine) evalBody(b *ast.Block, env *Env, before func()) (v value.Val
 	if len(b.Types) > 0 {
 		g.in.bindLocalTypes(b, env)
 	}
-	frame := &deferFrame{}
-	g.defers = append(g.defers, frame)
-	defer func() {
-		g.defers = g.defers[:len(g.defers)-1]
-		before()
-		r := recover()
-		if _, exiting := r.(*exitSignal); exiting {
-			panic(r)
-		}
-		for i := len(frame.list) - 1; i >= 0; i-- {
-			if p := g.runDeferred(frame.list[i]); p != nil {
-				if _, skip := p.(*skipSignal); skip && r != nil {
-					continue // Test.skip is not a panic: what is unwinding goes on (section 11, Test)
-				}
-				if _, exiting := p.(*exitSignal); exiting {
-					panic(p)
-				}
-				r = p
-			}
-		}
-		if r != nil {
-			panic(r)
-		}
-	}()
-	return g.evalStmts(b.Stmts, env)
+	return g.evalDeferBlock(b, env, before)
 }
 
 // errorMessage renders the error of an Err as a script's is written: an Error as its message,
@@ -367,16 +361,7 @@ const testGrace = 100 * time.Millisecond
 // grace for the goroutines t owns, ends those that outlive it, removes its temporary
 // directories, and reports the outcome.
 func (t *testRun) end() {
-	deadline := time.Now().Add(testGrace)
-	for {
-		t.mu.Lock()
-		n := len(t.owned)
-		t.mu.Unlock()
-		if n == 0 || time.Now().After(deadline) || t.file.in.ctx.Err() != nil {
-			break
-		}
-		time.Sleep(time.Millisecond)
-	}
+	t.waitOwned()
 	t.mu.Lock()
 	var leaks []*Goroutine
 	for og := range t.owned {
@@ -396,10 +381,15 @@ func (t *testRun) end() {
 	}
 	t.killed.Store(true)
 	t.killStop()
+	if len(leaks) > 0 {
+		// The ended goroutines unwind, running their deferred blocks, before the directories
+		// they may use are removed and before the outcome, which their output belongs to.
+		t.waitOwned()
+	}
 	for _, dir := range t.tempDirs {
 		os.RemoveAll(dir)
 	}
-	if t.file.in.ctx.Err() != nil {
+	if t.file.over() {
 		return // the run ended: the test has no outcome
 	}
 	t.mu.Lock()
@@ -418,6 +408,20 @@ func (t *testRun) end() {
 		t.subtestFailed()
 	}
 	t.file.report(e)
+}
+
+// waitOwned waits up to the grace for the goroutines t owns to end, or for the run to end.
+func (t *testRun) waitOwned() {
+	deadline := time.Now().Add(testGrace)
+	for {
+		t.mu.Lock()
+		n := len(t.owned)
+		t.mu.Unlock()
+		if n == 0 || time.Now().After(deadline) || t.file.over() {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
 }
 
 // output collects what a goroutine of t printed.
@@ -482,8 +486,11 @@ func (t *testRun) ownedEnded(g *Goroutine, r any) bool {
 		t.fail(true, fmt.Sprintf("goroutine started at %s:%d:%d panicked: %s", g.startPath, g.startPos.Line, g.startPos.Col, panicReport(x)))
 		return true
 	case *skipSignal:
-		t.skip("")
+		t.skip(x.reason)
 		return true
+	case *exitSignal:
+		t.file.exited.Store(true) // the run ends with the status, as recoverRoot reports it
+		return false
 	case *cancelSignal:
 		return true
 	}
@@ -511,9 +518,8 @@ func (g *Goroutine) currentTest(who string) *testRun {
 
 // TestSkip ends the current test as skipped (Test.skip).
 func (g *Goroutine) TestSkip(who, reason string) {
-	t := g.currentTest(who)
-	t.skip(reason)
-	panic(&skipSignal{})
+	g.currentTest(who)
+	panic(&skipSignal{reason: reason})
 }
 
 // TestParallel makes the current test a parallel one (Test.parallel): it returns once the
@@ -537,6 +543,7 @@ func (g *Goroutine) TestParallel(who string) {
 	}
 	select {
 	case t.file.sem <- struct{}{}:
+		t.slot = true
 	case <-done:
 		panic(&cancelSignal{})
 	}
@@ -566,4 +573,42 @@ func (g *Goroutine) TestContext(who string) *value.Context {
 // TestName returns the current test's full name (Test.name).
 func (g *Goroutine) TestName(who string) string {
 	return g.currentTest(who).full
+}
+
+// TestPattern compiles a -run or -skip pattern (test.md section 1): one regular expression per
+// level of a full name, split on each / that is not escaped with a backslash or inside brackets
+// or parentheses, so a name holding a / is matched as \/ or [/].
+func TestPattern(s string) ([]*regexp.Regexp, error) {
+	if s == "" {
+		return nil, nil
+	}
+	var parts []string
+	depth, class, start := 0, false, 0
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; {
+		case c == '\\':
+			i++
+		case class:
+			class = c != ']'
+		case c == '[':
+			class = true
+		case c == '(':
+			depth++
+		case c == ')' && depth > 0:
+			depth--
+		case c == '/' && depth == 0:
+			parts = append(parts, s[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, s[start:])
+	out := make([]*regexp.Regexp, len(parts))
+	for i, part := range parts {
+		re, err := value.NewRegex(part, "")
+		if err != nil {
+			return nil, err
+		}
+		out[i] = re.Re
+	}
+	return out, nil
 }

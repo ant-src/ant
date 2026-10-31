@@ -3,6 +3,7 @@ package lsp
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
@@ -70,7 +71,9 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
 				}
 			case *ast.ImportName:
-				if in.Decls[x] == o {
+				// an implicit import, which the loader gives a test file of its companion,
+				// is not written anywhere
+				if in.Decls[x] == o && x.Pos != (ast.Pos{}) {
 					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
 				}
 			case *ast.Call:
@@ -117,7 +120,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), decl: true})
 				}
 			case *ast.Import:
-				if x.Namespace != "" && in.Decls[x] == o {
+				if x.Namespace != "" && in.Decls[x] == o && !x.Implicit {
 					refs = append(refs, reference{path: path, from: x.NamespacePos, to: after(x.NamespacePos, x.Namespace), decl: true})
 				}
 			}
@@ -352,18 +355,41 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 }
 
 // reachesImporters reports whether renaming o changes other modules: an export, or a
-// parameter of an exported function, which named arguments elsewhere spell.
+// parameter of an exported function, which named arguments elsewhere spell; and, since a test
+// file sees every top-level name of its companion (section 10, Tests), any top-level
+// declaration and any parameter of a top-level function.
 func (a *analysis) reachesImporters(o *check.Object) bool {
 	switch o.Kind {
 	case check.Module:
 		return false
 	case check.Param:
-		if fd := a.enclosingFunc(o); fd != nil {
-			return fd.Export
-		}
+		return a.enclosingFunc(o) != nil
+	}
+	return o.Exported || a.topLevel(o)
+}
+
+// topLevel reports whether o is declared at the top level of its module.
+func (a *analysis) topLevel(o *check.Object) bool {
+	f := a.file(a.pathOf(o))
+	if f == nil || o.Decl == nil {
 		return false
 	}
-	return o.Exported
+	for _, d := range f.Decls {
+		if ast.Node(d) == o.Decl {
+			return true
+		}
+		if vd, ok := d.(*ast.VarDecl); ok {
+			found := false
+			ast.Inspect(vd.Target, func(n ast.Node) bool {
+				found = found || n == o.Decl
+				return !found
+			})
+			if found {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // enclosingFunc is the declared function whose parameter o is, or nil.
@@ -471,14 +497,16 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 
 // importers lists the documents, open or in the workspace, whose imports lead to the module at
 // path, other than the one at skip: each becomes the root of a program the rename reaches into.
-// Which files import it is read from their parsed imports, so only those are analyzed.
+// Which files import it is read from their parsed imports, so only those are analyzed; a test
+// file beside the module imports it as its companion (section 10, Tests) without writing so.
 func (s *Server) importers(path, skip string) []*document {
 	var out []*document
 	for _, f := range s.workspaceFiles() {
 		if f.doc.uri == skip || f.doc.path == path {
 			continue
 		}
-		imports := false
+		imports := strings.HasSuffix(f.doc.path, "_test.ant") &&
+			sameFile(strings.TrimSuffix(f.doc.path, "_test.ant")+".ant", path)
 		for _, imp := range f.file.Imports {
 			if sameFile(filepath.Join(filepath.Dir(f.doc.path), filepath.FromSlash(imp.Path)), path) {
 				imports = true

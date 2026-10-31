@@ -44,8 +44,9 @@ func ModeOf(path string) Mode {
 // Tests).
 func IsTestFile(path string) bool { return strings.HasSuffix(path, "_test.ant") }
 
-// testKeywords makes test a keyword in the tokens of a test file, except as a field name after
-// . or ?., where every word is a name (section 2).
+// testKeywords makes test a keyword in the tokens of a test file, except as a name after . or
+// ?. and before :, where every word is a name (section 2), so a field, a named argument, or an
+// export named test can still be written.
 // In the specification's own examples, parsed in Spec mode, test is a keyword where a string
 // follows it.
 func testKeywords(path string, toks []token.Token, mode Mode) {
@@ -56,6 +57,9 @@ func testKeywords(path string, toks []token.Token, mode Mode) {
 	for i := range toks {
 		if toks[i].Kind != token.Ident || toks[i].Text != "test" || i > 0 && (toks[i-1].Is(".") || toks[i-1].Is("?.")) {
 			continue
+		}
+		if i+1 < len(toks) && toks[i+1].Is(":") {
+			continue // a field, a named argument, or an export renamed by an import: a name
 		}
 		if spec && (i+1 >= len(toks) || toks[i+1].Kind != token.String && toks[i+1].Kind != token.Template) {
 			continue

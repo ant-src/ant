@@ -24,7 +24,6 @@ import (
 	"github.com/ant-src/ant/internal/lib"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
 )
 
 // Serve serves one debug session on in and out until the client disconnects, logging to log.
@@ -323,14 +322,12 @@ func (s *server) launch(raw json.RawMessage) error {
 	}
 	if isTest {
 		s.tests = &interp.TestConfig{File: filepath.Base(program), Parallel: runtime.NumCPU(), Report: s.testEvent}
-		if args.Test != nil && *args.Test != "" {
-			for _, part := range strings.Split(*args.Test, "/") {
-				re, err := value.NewRegex(part, "")
-				if err != nil {
-					return fmt.Errorf("test: %s", err)
-				}
-				s.tests.Run = append(s.tests.Run, re.Re)
+		if args.Test != nil {
+			run, err := interp.TestPattern(*args.Test)
+			if err != nil {
+				return fmt.Errorf("test: %s", err)
 			}
+			s.tests.Run = run
 		}
 	}
 	var stdin io.Reader

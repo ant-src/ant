@@ -34,6 +34,7 @@ func TestTestFiles(t *testing.T) {
 	ok := []struct{ name, path, src string }{
 		{"test is a name elsewhere", "a.ant", "var test = 1\nprintln(test)"},
 		{"a field named test", "a_test.ant", "var t = Regex.test\nvar r = Map{ test: 1 }"},
+		{"a named argument and an import named test", "a_test.ant", "import \"./lib.ant\" { test: check }\nvar x = f(test: 3)"},
 		{"exports for other test files", "helpers_test.ant", "export func f(): int { 1 }"},
 		{"try, return, and defer in a body", "a_test.ant", "test \"a\" {\n  defer { println(1) }\n  var x = try Result.ok(1)\n  if x > 0 { return }\n}"},
 		{"subtests in loops and blocks", "a_test.ant", "test \"a\" {\n  for i in [1] {\n    if true { test \"${i}\" { test \"deeper\" {} } }\n  }\n}"},

@@ -68,3 +68,8 @@ func (p *Program) Test(ctx context.Context, cfg TestConfig, opts ...Option) erro
 		}}
 	return convertRunError(interp.RunTests(ctx, p.prog, p.cfg.with(opts).run(p.prelude), tc))
 }
+
+// TestPattern compiles a -run or -skip pattern of ant test: one regular expression per level of
+// a full name, split on each / that is not escaped with a backslash or inside brackets or
+// parentheses.
+func TestPattern(s string) ([]*regexp.Regexp, error) { return interp.TestPattern(s) }

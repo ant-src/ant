@@ -1,0 +1,28 @@
+// spec: 10 Tests; 11 Test
+// What initialization prints comes before the report; a parent that failed by its subtest alone
+// is not reported again, even when it printed; a Test.skip that a panic unwinding past it
+// drops does not skip the test, which goes on when Panic.catch stops the panic.
+
+test "parent" {
+  println("setting up")
+  test "child" {
+    assert(ready == 2)
+  }
+}
+
+test "a dropped skip" {
+  var r = Panic.catch({
+    defer { Test.skip("why") }
+    panic("boom")
+  })
+  assert(r is Err)
+  println("the body goes on")
+}
+
+// expect
+// out: lib init
+// out: --- FAIL: report_test.ant: parent/child (0.00s)
+// out:     assertion failed: ready == 2 (1 == 2)
+// out:       at test "child" (report_test.ant:9:11)
+// out: FAIL  1 failed, 1 passed (0.00s)
+// exit: 1

@@ -105,6 +105,7 @@ func TestTestCommandErrors(t *testing.T) {
 	ok := write("a_test.ant", "test \"a\" {}\n")
 	bad := write("b_test.ant", "test \"b\" { \n")
 	plain := write("c.ant", "println(1)\n")
+	slash := write("s_test.ant", "test \"x/y\" {\n  for i in [1, 2] { test \"c\" {} }\n  test \"d\" { assert(false) }\n}\ntest \"x\" { assert(false) }\n")
 	cases := []struct {
 		args   []string
 		status int
@@ -116,8 +117,11 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", "-run", "(", ok}, 2, "", "-run:"},
 		{[]string{"test", "-parallel", "0", ok}, 2, "", "-parallel must be at least 1"},
 		{[]string{"test", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
-		{[]string{"test", dir}, 2, "FAIL  1 passed", "b_test.ant"},
+		{[]string{"test", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
 		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", ""},
+		// a pattern as a code lens writes it: / in a name escaped, and repeats of a subtest
+		{[]string{"test", "-v", "-run", `^x\/y$/^c( #[0-9]+)?$`, slash}, 0, "--- PASS: " + slash + ": x/y/c #2", ""},
+		{[]string{"test", "-v", "-run", `[/]/c`, slash}, 0, "ok    2 passed", ""},
 	}
 	for _, c := range cases {
 		var stdout, stderr bytes.Buffer

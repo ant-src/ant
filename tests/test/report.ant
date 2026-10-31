@@ -1,0 +1,9 @@
+// spec: 10 Tests
+// A library whose initialization prints, before any test of its companion runs.
+
+func announce(): int {
+  println("lib init")
+  1
+}
+
+var ready = announce()

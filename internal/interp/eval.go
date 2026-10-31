@@ -75,17 +75,21 @@ func (g *Goroutine) evalBlock(b *ast.Block, env *Env) (value.Value, ctl) {
 	if !b.HasDefer {
 		return g.evalStmts(b.Stmts, env)
 	}
-	return g.evalDeferBlock(b, env)
+	return g.evalDeferBlock(b, env, nil)
 }
 
 // evalDeferBlock runs a block that registers deferred blocks, and runs them in reverse order
 // when the block exits, whether normally, by control transfer, or by a panic. A panic in a
-// deferred block replaces the one in progress.
-func (g *Goroutine) evalDeferBlock(b *ast.Block, env *Env) (v value.Value, c ctl) {
+// deferred block replaces the one in progress. before, when set, runs as the block exits, ahead
+// of its deferred blocks: a test's body cancels its context there (section 12, Running a test).
+func (g *Goroutine) evalDeferBlock(b *ast.Block, env *Env, before func()) (v value.Value, c ctl) {
 	frame := &deferFrame{}
 	g.defers = append(g.defers, frame)
 	defer func() {
 		g.defers = g.defers[:len(g.defers)-1]
+		if before != nil {
+			before()
+		}
 		r := recover()
 		if _, exiting := r.(*exitSignal); exiting {
 			panic(r)

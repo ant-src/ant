@@ -112,7 +112,12 @@ func (l *loader) companion(display, raw string) []*ast.Import {
 	libRaw := strings.TrimSuffix(raw, "_test.ant") + ".ant"
 	key, libDisplay := l.canonical(libRaw, "")
 	if l.state[key] == 0 {
-		if _, ok := l.read(key, libRaw); !ok {
+		src, ok := l.read(key, libRaw)
+		if !ok {
+			return nil
+		}
+		// A script is no companion, and is not loaded: its body would run with the tests.
+		if f, err := parser.Parse(libDisplay, src, parser.Program); err == nil && f.Script {
 			return nil
 		}
 	}

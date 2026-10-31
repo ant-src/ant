@@ -23,6 +23,10 @@ test "basics" {
 func helper(): int { 1 }
 
 test "second" {}
+
+test "x/y" {
+  test "c" {}
+}
 `
 	c := start(t, map[string]string{"stack.ant": lib, "helpers_test.ant": "export func h(): int { 1 }\n"})
 	uri := c.open("stack_test.ant", src)
@@ -43,7 +47,7 @@ test "second" {}
 	for _, s := range syms {
 		names = append(names, s.Name)
 	}
-	if got := strings.Join(names, " "); got != "./helpers_test.ant basics helper second" {
+	if got := strings.Join(names, " "); got != "./helpers_test.ant basics helper second x/y" {
 		t.Errorf("symbols: %s", got)
 	}
 	if len(syms) > 1 && (len(syms[1].Children) != 1 || syms[1].Children[0].Name != "a.b" || syms[1].Detail != "test") {
@@ -59,10 +63,14 @@ test "second" {}
 	want := []string{
 		`run test ant.test.run ^basics$`,
 		`debug test ant.test.debug ^basics$`,
-		`run test ant.test.run ^basics$/^a\.b$`,
-		`debug test ant.test.debug ^basics$/^a\.b$`,
+		`run test ant.test.run ^basics$/^a\.b( #[0-9]+)?$`,
+		`debug test ant.test.debug ^basics$/^a\.b( #[0-9]+)?$`,
 		`run test ant.test.run ^second$`,
 		`debug test ant.test.debug ^second$`,
+		`run test ant.test.run ^x\/y$`,
+		`debug test ant.test.debug ^x\/y$`,
+		`run test ant.test.run ^x\/y$/^c( #[0-9]+)?$`,
+		`debug test ant.test.debug ^x\/y$/^c( #[0-9]+)?$`,
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("code lenses:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -76,5 +84,30 @@ test "second" {}
 	c.call("textDocument/codeLens", CodeLensParams{TextDocument: TextDocumentIdentifier{URI: other}}, &lenses)
 	if len(lenses) != 0 {
 		t.Errorf("lenses in a library: %+v", lenses)
+	}
+}
+
+// TestRenameReachesCompanion: a test file sees every top-level name of its companion (section 10,
+// Tests), so renaming one in the library renames its uses in the test file, private or not.
+func TestRenameReachesCompanion(t *testing.T) {
+	lib := "func secret(n: int): int { n }\n\nexport func open(): int { secret(n: 1) }\n"
+	test := "test \"a\" {\n  assert(secret(n: 2) == open())\n}\n"
+	c := start(t, map[string]string{"stack.ant": lib, "stack_test.ant": test, "other.ant": "func secret(): int { 3 }\n"})
+	libURI := c.open("stack.ant", lib)
+	testURI := c.uri("stack_test.ant")
+	cases := []struct{ needle, name string }{
+		{"secret(n:", "hidden"}, // a private function
+		{"n: int", "m"},         // a parameter of one, which a named argument spells
+		{"open()", "opened"},    // an export
+	}
+	for _, k := range cases {
+		var edit WorkspaceEdit
+		c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(libURI, at(lib, k.needle, 1, 0)), NewName: k.name}, &edit)
+		if len(edit.Changes[testURI]) != 1 {
+			t.Errorf("renaming %s: %+v", k.needle, edit.Changes)
+		}
+		if _, touched := edit.Changes[c.uri("other.ant")]; touched {
+			t.Errorf("renaming %s touched an unrelated module", k.needle)
+		}
 	}
 }

@@ -30,11 +30,19 @@ func fileTests(f *ast.File) []*testItem {
 	return out
 }
 
+// quoteName quotes a test's name for a -run pattern: as a literal regular expression, with each /
+// escaped so that it does not split the pattern into levels (test.md section 1).
+func quoteName(name string) string {
+	return strings.ReplaceAll(regexp.QuoteMeta(name), "/", `\/`)
+}
+
 func testTree(t *ast.Test, parent string) *testItem {
 	name := t.Name.(*ast.StringLit).Value
-	pattern := "^" + regexp.QuoteMeta(name) + "$"
+	pattern := "^" + quoteName(name) + "$"
 	if parent != "" {
-		pattern = parent + "/" + pattern
+		// A subtest that runs again, in a loop or under a repeated name, is named with " #2",
+		// " #3" after the first (section 10, Tests); its lens runs every one.
+		pattern = parent + "/^" + quoteName(name) + "( #[0-9]+)?$"
 	}
 	it := &testItem{node: t, name: name, pattern: pattern}
 	ast.Inspect(t.Body, func(n ast.Node) bool {

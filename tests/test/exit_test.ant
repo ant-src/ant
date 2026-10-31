@@ -1,0 +1,21 @@
+// spec: 10 Tests; 12 Running a test
+// Os.exit in a test ends the command with its status, as it ends a program (test.md section 4):
+// the test is not reported, and no test starts after it.
+
+test "before" {}
+
+test "exits" {
+  Os.exit(3)
+}
+
+test "after" {
+  println("after ran")
+  assert(false)
+}
+
+// expect
+// args: -v
+// out: === RUN   exit_test.ant: before
+// out: --- PASS: exit_test.ant: before (0.00s)
+// out: === RUN   exit_test.ant: exits
+// exit: 3

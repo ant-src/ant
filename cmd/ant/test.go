@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -20,7 +19,6 @@ import (
 	"time"
 
 	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
 )
 
 // testCommand is ant test (spec/test.md): it finds the test files under its paths, runs each
@@ -45,12 +43,12 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		return 2
 	}
-	run, err := namePattern(*runPat)
+	run, err := ant.TestPattern(*runPat)
 	if err != nil {
 		fmt.Fprintf(stderr, "ant test: -run: %s\n", err)
 		return 2
 	}
-	skip, err := namePattern(*skipPat)
+	skip, err := ant.TestPattern(*skipPat)
 	if err != nil {
 		fmt.Fprintf(stderr, "ant test: -skip: %s\n", err)
 		return 2
@@ -99,7 +97,13 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			continue
 		}
 		cfg.File = file
-		err = prog.Test(ctx, cfg, ant.WithStdin(stdin), ant.WithStdout(stdout), ant.WithStderr(stderr))
+		// Under -json, standard output holds the events alone; what the program prints
+		// outside a test goes to standard error.
+		progOut := stdout
+		if *jsonOut {
+			progOut = stderr
+		}
+		err = prog.Test(ctx, cfg, ant.WithStdin(stdin), ant.WithStdout(progOut), ant.WithStderr(stderr))
 		var pe *ant.PanicError
 		var ee *ant.ExitError
 		switch {
@@ -138,22 +142,6 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		status = 1
 	}
 	return status
-}
-
-// namePattern splits a -run or -skip pattern on / into one regular expression per level.
-func namePattern(s string) ([]*regexp.Regexp, error) {
-	if s == "" {
-		return nil, nil
-	}
-	var out []*regexp.Regexp
-	for _, part := range strings.Split(s, "/") {
-		re, err := value.NewRegex(part, "")
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, re.Re)
-	}
-	return out, nil
 }
 
 // testFiles lists the test files the paths name: a test file itself, or every test file under a
@@ -267,8 +255,8 @@ func (r *reporter) event(e ant.TestEvent) {
 	case ant.TestFail:
 		out := r.output[key]
 		delete(r.output, key)
-		if !r.verbose && e.Message == "" && (out == nil || out.Len() == 0) {
-			return // failed by a subtest, which is reported
+		if !r.verbose && e.Message == "" {
+			return // failed by its subtests alone, which are reported (test.md section 2)
 		}
 		fmt.Fprintf(r.w, "--- FAIL: %s (%.2fs)\n", key, e.Elapsed.Seconds())
 		if out != nil {
