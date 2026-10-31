@@ -1,8 +1,8 @@
 #!/usr/bin/env ant
 
 //! Release builds the binaries of a release: ant cross-compiled for every target into
-//! dist/ant_<version>_<os>_<arch>, with .exe for windows, next to checksums.txt with their SHA-256
-//! digests in sha256sum's format.
+//! dist/ant_<version>_<os>_<arch>, with .exe for windows. GitHub keeps each release asset's SHA-256
+//! digest, so the release has no checksums file.
 //!
 //!     ant scripts/release.ant <version>
 //!
@@ -39,10 +39,3 @@ for target in targets {
   }
   println(output)
 }
-
-var sums = ""
-for file in try File.list("dist") {
-  var digest = Crypto.sha256(try File.readBytes(Path.join(["dist", file]))) | Encoding.toHex()
-  sums += "${digest}  ${file}\n"
-}
-try File.write("dist/checksums.txt", sums)
