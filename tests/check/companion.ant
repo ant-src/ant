@@ -1,0 +1,11 @@
+// spec: 10 Tests
+// The library companion_test.ant sees: its private names, and the names it imports.
+import "../run/lib/geometry.ant" { Point }
+
+type Counter = { n: int }
+
+func Counter.bump(c: Counter): void { c.n += 1 }
+
+func secret(): int { 42 }
+
+export func open(): int { secret() }
