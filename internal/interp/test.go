@@ -293,6 +293,9 @@ func (g *Goroutine) evalBody(b *ast.Block, env *Env, before func()) (v value.Val
 		}
 		for i := len(frame.list) - 1; i >= 0; i-- {
 			if p := g.runDeferred(frame.list[i]); p != nil {
+				if _, skip := p.(*skipSignal); skip && r != nil {
+					continue // Test.skip is not a panic: what is unwinding goes on (section 11, Test)
+				}
 				if _, exiting := p.(*exitSignal); exiting {
 					panic(p)
 				}

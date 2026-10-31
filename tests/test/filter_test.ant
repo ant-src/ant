@@ -1,0 +1,27 @@
+// spec: 10 Tests; 11 Test
+
+type Row = { name: string, n: int }
+
+test "math" {
+  for r in [Row{ name: "one", n: 1 }, Row{ name: "two", n: 2 }, Row{ name: "ten", n: 10 }] {
+    test "${r.name}" {
+      println("${Test.name()}")
+    }
+  }
+}
+
+test "other" {
+  println("left out by -run")
+}
+
+// expect
+// args: -json -run math -skip math/one
+// out: {"action":"run","file":"filter_test.ant","test":"math"}
+// out: {"action":"run","file":"filter_test.ant","test":"math/two"}
+// out: {"action":"output","file":"filter_test.ant","test":"math/two","output":"math/two\n"}
+// out: {"action":"pass","file":"filter_test.ant","test":"math/two","elapsed":0}
+// out: {"action":"run","file":"filter_test.ant","test":"math/ten"}
+// out: {"action":"output","file":"filter_test.ant","test":"math/ten","output":"math/ten\n"}
+// out: {"action":"pass","file":"filter_test.ant","test":"math/ten","elapsed":0}
+// out: {"action":"pass","file":"filter_test.ant","test":"math","elapsed":0}
+// out: {"action":"done","elapsed":0,"passed":2,"failed":0,"skipped":0}

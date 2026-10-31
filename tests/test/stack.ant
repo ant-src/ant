@@ -1,0 +1,23 @@
+// spec: 10 Tests
+
+// A library with private names, which its companion test file sees.
+
+export type Stack = { items: Array[int] }
+
+export func Stack.new(): Stack { Stack{ items: [] } }
+
+export func Stack.push(s: Stack, x: int): void { Array.push(s.items, x) }
+
+export func Stack.pop(s: Stack): int {
+  assert(len(s.items) > 0, "pop on empty stack")
+  Array.pop(s.items) ?? 0
+}
+
+var created = 0
+
+func parse(s: string): int {
+  if String.startsWith(s, "0x") {
+    return 0 // a bug the table finds
+  }
+  String.toInt(s) ?? -1
+}

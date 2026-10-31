@@ -1,0 +1,76 @@
+// spec: 10 Tests; 11 Test
+
+import "./lib_test.ant" { expectEven }
+import "./stack.ant" { Stack }
+
+test "black box through an import" {
+  var s = Stack.new()
+  Stack.push(s, 2)
+  assert(Stack.pop(s) == 2)
+}
+
+test "a helper skips" {
+  expectEven(3)
+  println("not reached")
+}
+
+test "the full name" {
+  assert(Test.name() == "the full name")
+  test "of a subtest" {
+    assert(Test.name() == "the full name/of a subtest")
+  }
+}
+
+test "a temporary directory" {
+  var dir = Test.tempDir()
+  var path = Path.join([dir, "a.txt"])
+  try File.write(path, "hi")
+  assert(try File.read(path) == "hi")
+}
+
+test "an Err fails the test" {
+  try File.read("/no/such/file")
+}
+
+test "skipped after a failure stays failed" {
+  defer { Test.skip("too late") }
+  assert(1 == 2)
+}
+
+test "dupes" {
+  for i in [1, 2] {
+    test "row" { assert(i > 0) }
+  }
+  test "row" {}
+}
+
+// expect
+// args: -v
+// out: === RUN   api_test.ant: black box through an import
+// out: --- PASS: api_test.ant: black box through an import (0.00s)
+// out: === RUN   api_test.ant: a helper skips
+// out: --- SKIP: api_test.ant: a helper skips (0.00s)
+// out:     3 is odd
+// out: === RUN   api_test.ant: the full name
+// out: === RUN   api_test.ant: the full name/of a subtest
+// out: --- PASS: api_test.ant: the full name/of a subtest (0.00s)
+// out: --- PASS: api_test.ant: the full name (0.00s)
+// out: === RUN   api_test.ant: a temporary directory
+// out: --- PASS: api_test.ant: a temporary directory (0.00s)
+// out: === RUN   api_test.ant: an Err fails the test
+// out: --- FAIL: api_test.ant: an Err fails the test (0.00s)
+// out:     open /no/such/file: no such file or directory
+// out: === RUN   api_test.ant: skipped after a failure stays failed
+// out: --- FAIL: api_test.ant: skipped after a failure stays failed (0.00s)
+// out:     assertion failed: 1 == 2 (1 == 2)
+// out:       at test "skipped after a failure stays failed" (api_test.ant:37:9)
+// out: === RUN   api_test.ant: dupes
+// out: === RUN   api_test.ant: dupes/row
+// out: --- PASS: api_test.ant: dupes/row (0.00s)
+// out: === RUN   api_test.ant: dupes/row #2
+// out: --- PASS: api_test.ant: dupes/row #2 (0.00s)
+// out: === RUN   api_test.ant: dupes/row #3
+// out: --- PASS: api_test.ant: dupes/row #3 (0.00s)
+// out: --- PASS: api_test.ant: dupes (0.00s)
+// out: FAIL  2 failed, 6 passed, 1 skipped (0.00s)
+// exit: 1

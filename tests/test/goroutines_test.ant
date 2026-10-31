@@ -1,0 +1,46 @@
+// spec: 10 Tests; 9 Panics in goroutines; 12 Running a test
+
+test "a goroutine that panics fails its test" {
+  var wg = WaitGroup.new()
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    panic("boom")
+  }
+  WaitGroup.wait(wg)
+  println("the body goes on")
+}
+
+test "a goroutine that outlives its test fails it" {
+  var ch: Channel[int] = Channel.new()
+  go { Channel.receive(ch) }
+}
+
+test "a goroutine that ends with the context passes" {
+  var ctx = Test.context()
+  defer { assert(Context.reason(ctx) == "cancelled") }
+  go {
+    Context.wait(ctx)
+    println("never shown: the test passes")
+  }
+}
+
+test "goroutines of goroutines belong to the test" {
+  go {
+    go { panic("deep") }
+  }
+  Time.sleep(Time.duration(milliseconds: 50))
+}
+
+// expect
+// out: --- FAIL: goroutines_test.ant: a goroutine that panics fails its test (0.00s)
+// out:     the body goes on
+// out:     goroutine started at goroutines_test.ant:6:3 panicked: boom
+// out:       at go block (goroutines_test.ant:8:10)
+// out: --- FAIL: goroutines_test.ant: a goroutine that outlives its test fails it (0.00s)
+// out:     goroutine started at goroutines_test.ant:16:3 outlived the test
+// out: --- FAIL: goroutines_test.ant: goroutines of goroutines belong to the test (0.00s)
+// out:     goroutine started at goroutines_test.ant:30:5 panicked: deep
+// out:       at go block (goroutines_test.ant:30:15)
+// out: FAIL  3 failed, 1 passed (0.00s)
+// exit: 1

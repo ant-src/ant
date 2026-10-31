@@ -238,8 +238,8 @@ type parser struct {
 	// Tests); testNames are the names of those seen so far.
 	testFile  bool
 	testNames map[string]bool
-	errs       []*Error
-	recorded   map[Error]bool // the errors in errs, by position and message
+	errs      []*Error
+	recorded  map[Error]bool // the errors in errs, by position and message
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.

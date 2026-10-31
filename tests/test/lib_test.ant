@@ -1,0 +1,9 @@
+// spec: 10 Tests
+
+// A helper for the other test files, which only a test file can import.
+
+export func expectEven(n: int): void {
+  if n % 2 != 0 {
+    Test.skip("${n} is odd")
+  }
+}

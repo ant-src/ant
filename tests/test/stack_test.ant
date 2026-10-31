@@ -1,0 +1,39 @@
+// spec: 10 Tests; 12 Running a test
+
+test "push then pop returns the value" {
+  var s = Stack.new()
+  Stack.push(s, 1)
+  assert(Stack.pop(s) == 1)
+  assert(created == 0) // a private var of the companion
+}
+
+test "pop on an empty stack panics" {
+  var r = Panic.catch({ Stack.pop(Stack.new()) })
+  assert(r is Err)
+  assert(String.contains(r.error.message, "pop on empty stack"))
+}
+
+type Case = { input: string, want: int }
+
+test "parse" {
+  var cases = [
+    Case{ input: "1", want: 1 },
+    Case{ input: "-7", want: -7 },
+    Case{ input: "0x10", want: 16 },
+  ]
+  for c in cases {
+    test "${c.input}" {
+      println("parsing ${c.input}")
+      assert(parse(c.input) == c.want)
+    }
+  }
+}
+
+// expect
+// out: --- FAIL: stack_test.ant: parse/0x10 (0.00s)
+// out:     parsing 0x10
+// out:     assertion failed: parse(c.input) == c.want (0 == 16)
+// out:       c.input = "0x10"
+// out:       at test "0x10" (stack_test.ant:27:13)
+// out: FAIL  1 failed, 4 passed (0.00s)
+// exit: 1

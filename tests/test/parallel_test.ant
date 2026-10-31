@@ -1,0 +1,46 @@
+// spec: 10 Tests; 11 Test
+
+var log: Array[string] = []
+var mu = Mutex.new()
+
+func note(s: string) { Mutex.withLock(mu, { Array.push(log, s) }) }
+
+test "a" {
+  Test.parallel()
+  Time.sleep(Time.duration(milliseconds: 50))
+  note("a")
+}
+
+test "sequential runs first" {
+  note("seq")
+}
+
+test "b" {
+  Test.parallel()
+  Time.sleep(Time.duration(milliseconds: 50))
+  note("b")
+}
+
+test "subtests" {
+  defer { note("parent deferred") }
+  for i in [1, 2] {
+    test "p${i}" {
+      Test.parallel()
+      note("p")
+    }
+  }
+  note("parent body")
+}
+
+test "parallel tests ran after the sequential ones" {
+  Test.parallel()
+  Time.sleep(Time.duration(milliseconds: 200))
+  assert(log[0] == "seq")
+  assert(log[1] == "parent body")
+  assert(log[2] == "parent deferred")
+  assert(len(log) == 7)
+}
+
+// expect
+// args: -parallel 4
+// out: ok    6 passed (0.00s)
