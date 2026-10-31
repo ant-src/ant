@@ -138,6 +138,9 @@ func RunTests(ctx context.Context, prog *loader.Program, cfg Config, tc TestConf
 		for _, t := range prog.Root.File.Tests {
 			g.runTest(file, t, t.Name.(*ast.StringLit).Value, root.root)
 		}
+		if g.d != nil {
+			g.leaveAnt() // waiting for the parallel tests, which a stop does not wait for
+		}
 		close(file.release)
 		file.children.Wait()
 	}()
@@ -184,6 +187,9 @@ func (g *Goroutine) runTest(parent *testRun, node *ast.Test, name string, env *E
 			ng.enterAnt()
 		}
 		t.runBody(ng, node, env)
+		if ng.d != nil {
+			ng.leaveAnt() // the body has ended; what follows waits, which a stop does not wait for
+		}
 		if t.parallel {
 			<-tf.sem
 		}
@@ -194,6 +200,10 @@ func (g *Goroutine) runTest(parent *testRun, node *ast.Test, name string, env *E
 			parent.children.Done()
 		}
 	}()
+	if g.d != nil {
+		g.leaveAnt()
+		defer g.enterAnt()
+	}
 	select {
 	case <-done:
 	case <-t.wentParallel:

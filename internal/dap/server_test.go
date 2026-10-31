@@ -681,3 +681,57 @@ func TestLaunchDeclarationFile(t *testing.T) {
 		t.Errorf("a declaration file launched: %v", r)
 	}
 }
+
+func TestLaunchTest(t *testing.T) {
+	dir := write(t, map[string]string{
+		"calc.ant": `func double(n: int): int {
+  n * 2
+}
+`,
+		"calc_test.ant": `test "double" {
+  for n in [1, 2] {
+    test "${n}" {
+      var d = double(n)
+      assert(d == n * 3)
+    }
+  }
+}
+
+test "other" {
+  println("not run")
+}
+`,
+	})
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": filepath.Join(dir, "calc_test.ant"), "test": "^double$/^2$"}))
+	ok(t, c.request("setBreakpoints", map[string]any{
+		"source":      map[string]any{"path": filepath.Join(dir, "calc_test.ant")},
+		"breakpoints": []map[string]any{{"line": 5}},
+	}))
+	ok(t, c.request("configurationDone", nil))
+	stop := c.event("stopped")
+	if stop["reason"] != "breakpoint" {
+		t.Fatalf("stopped: %v", stop)
+	}
+	frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)
+	if top := frames[0].(map[string]any); top["name"] != `test "2"` || top["line"] != 5.0 {
+		t.Errorf("top frame: %v", top)
+	}
+	ok(t, c.request("continue", nil))
+	// the panic that fails a test is not caught by the program, so the debugger stops at it
+	if stop := c.event("stopped"); stop["reason"] != "exception" {
+		t.Fatalf("stopped: %v", stop)
+	}
+	ok(t, c.request("continue", nil))
+
+	if code := c.event("exited")["exitCode"]; code != 1.0 {
+		t.Errorf("exit code %v", code)
+	}
+	if out := c.output("stderr"); !strings.Contains(out, "--- FAIL: calc_test.ant: double/2") || !strings.Contains(out, "assertion failed: d == n * 3 (4 == 6)") {
+		t.Errorf("stderr: %q", out)
+	}
+	if out := c.output("console"); strings.Contains(out, "other") || strings.Contains(out, "double/1") {
+		t.Errorf("console ran a test -run leaves out: %q", out)
+	}
+}

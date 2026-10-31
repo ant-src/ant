@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -23,6 +24,7 @@ import (
 	"github.com/ant-src/ant/internal/lib"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/parser"
+	"github.com/ant-src/ant/value"
 )
 
 // Serve serves one debug session on in and out until the client disconnects, logging to log.
@@ -75,15 +77,19 @@ type server struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	d          *interp.Debugger
-	prog       *loader.Program
-	cfg        interp.Config
-	modules    map[string]*module // by absolute path
-	interrupts chan struct{}
-	terminated int
-	done       chan struct{} // closed when the run has ended
-	ended      atomic.Bool   // the terminated event is sent
-	started    bool
+	d    *interp.Debugger
+	prog *loader.Program
+	// tests is set when the program is a test file, whose tests the run runs (dap.md section 2);
+	// testsFailed once one of them fails.
+	tests       *interp.TestConfig
+	testsFailed atomic.Bool
+	cfg         interp.Config
+	modules     map[string]*module // by absolute path
+	interrupts  chan struct{}
+	terminated  int
+	done        chan struct{} // closed when the run has ended
+	ended       atomic.Bool   // the terminated event is sent
+	started     bool
 
 	// handles are the frames and variable containers of the current stop, reset on resume.
 	hmu     sync.Mutex
@@ -274,6 +280,7 @@ func (s *server) launch(raw json.RawMessage) error {
 		Env         map[string]string `json:"env"`
 		Stdin       string            `json:"stdin"`
 		StopOnEntry bool              `json:"stopOnEntry"`
+		Test        *string           `json:"test"`
 	}
 	if err := json.Unmarshal(raw, &args); err != nil {
 		return err
@@ -309,6 +316,22 @@ func (s *server) launch(raw json.RawMessage) error {
 	}
 	if prog.Root.File.Declarations {
 		return fmt.Errorf("%s: a declaration file declares names for the prelude and cannot be run", prog.Root.File.Path)
+	}
+	isTest := parser.IsTestFile(prog.Root.File.Path)
+	if args.Test != nil && !isTest {
+		return fmt.Errorf("%s: test names a test to run, and the program is not a test file", prog.Root.File.Path)
+	}
+	if isTest {
+		s.tests = &interp.TestConfig{File: filepath.Base(program), Parallel: runtime.NumCPU(), Report: s.testEvent}
+		if args.Test != nil && *args.Test != "" {
+			for _, part := range strings.Split(*args.Test, "/") {
+				re, err := value.NewRegex(part, "")
+				if err != nil {
+					return fmt.Errorf("test: %s", err)
+				}
+				s.tests.Run = append(s.tests.Run, re.Re)
+			}
+		}
 	}
 	var stdin io.Reader
 	if args.Stdin != "" {
@@ -370,6 +393,29 @@ func (s *server) launch(raw json.RawMessage) error {
 	return nil
 }
 
+// testEvent reports an event of a test run as ant test -v prints it (test.md section 2): what a
+// test prints on standard output, and its start and outcome on the console.
+func (s *server) testEvent(e interp.TestEvent) {
+	name := e.File + ": " + e.Name
+	switch e.Kind {
+	case interp.TestRun:
+		s.output("console", "=== RUN   "+name+"\n")
+	case interp.TestOutput:
+		s.output("stdout", e.Output)
+	case interp.TestPass:
+		s.output("console", fmt.Sprintf("--- PASS: %s (%.2fs)\n", name, e.Elapsed.Seconds()))
+	case interp.TestSkip:
+		s.output("console", fmt.Sprintf("--- SKIP: %s (%.2fs)\n", name, e.Elapsed.Seconds()))
+	case interp.TestFail:
+		s.testsFailed.Store(true)
+		text := fmt.Sprintf("--- FAIL: %s (%.2fs)\n", name, e.Elapsed.Seconds())
+		if e.Message != "" {
+			text += "    " + strings.ReplaceAll(e.Message, "\n", "\n    ") + "\n"
+		}
+		s.output("stderr", text)
+	}
+}
+
 // writer sends what the program writes as output events.
 type writer struct {
 	s        *server
@@ -401,7 +447,15 @@ func (s *server) start() {
 		}
 	}()
 	go func() {
-		err := interp.Run(s.ctx, s.prog, s.cfg)
+		var err error
+		if s.tests != nil {
+			err = interp.RunTests(s.ctx, s.prog, s.cfg, *s.tests)
+			if err == nil && s.testsFailed.Load() {
+				err = errors.New("a test failed")
+			}
+		} else {
+			err = interp.Run(s.ctx, s.prog, s.cfg)
+		}
 		close(s.done)
 		s.event("exited", map[string]any{"exitCode": exitStatus(err)})
 		s.ended.Store(true)
