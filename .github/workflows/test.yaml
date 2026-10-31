@@ -1,0 +1,69 @@
+name: test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions: {}
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go: ['1.27', stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ant
+          persist-credentials: false
+      # The spec tests read the spec repository, next to this one.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ant-src/spec
+          path: spec
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: test
+        working-directory: ant
+        run: go test -race ./...
+
+  fuzz:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { pkg: ./internal/lexer, name: FuzzLex }
+          - { pkg: ./parser, name: FuzzParse }
+          - { pkg: ., name: FuzzCheck }
+          - { pkg: ., name: FuzzRun }
+          - { pkg: ., name: FuzzStrings }
+          - { pkg: ./internal/lib, name: FuzzJSON }
+    name: fuzz (${{ matrix.target.name }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ant
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ant-src/spec
+          path: spec
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - name: fuzz
+        working-directory: ant
+        env:
+          FUZZ_NAME: ${{ matrix.target.name }}
+          FUZZ_PKG: ${{ matrix.target.pkg }}
+        run: go test -run '^$' -fuzz "^${FUZZ_NAME}\$" -fuzztime 20s "$FUZZ_PKG"
