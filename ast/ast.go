@@ -382,6 +382,9 @@ type (
 		// or more, where a debugger stops before the stage (dap.md section 4).
 		Bar   Pos
 		Stage bool
+		// Assert is set on a call of assert, which the parser recognizes by its name, since no
+		// declaration may shadow a prelude name.
+		Assert *Assert
 	}
 	// Unary is -a, !a, or try a.
 	Unary struct {
@@ -866,3 +869,30 @@ func (*BadType) typeNode()    {}
 func (*NameTarget) targetNode()   {}
 func (*RecordTarget) targetNode() {}
 func (*ArrayTarget) targetNode()  {}
+
+// Assert is what a call of assert needs to report a failure (section 8, assert): its condition
+// and message, and the subexpressions of the condition whose values the report shows, with the
+// source text of each.
+type Assert struct {
+	Cond, Message Expr // Cond is nil, or Bad set, when the arguments do not fit assert
+	// Bad is why the arguments do not fit, for a run that was not checked.
+	Bad string
+	// Text is the condition's source.
+	Text string
+	// Op is the condition's outermost operator when it is a comparison or is, and "" otherwise;
+	// X and Y index its operands in Parts, Y being -1 for is.
+	Op   string
+	X, Y int
+	// Parts are the subexpressions whose values are recorded as the condition evaluates, and
+	// Index finds each one's place in Parts.
+	Parts []AssertPart
+	Index map[Expr]int
+}
+
+// AssertPart is a subexpression of an assert's condition.
+type AssertPart struct {
+	Expr Expr
+	Text string
+	// Shown marks a part listed on a line of its own; the comparison's operands are not.
+	Shown bool
+}

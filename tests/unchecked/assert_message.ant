@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 8 assert
+// panics: assert-kind
+// A failed assert whose message is not a string panics as panic does (section 12); a passing one
+// never evaluates the message.
+assert(true, 1)
+println("passed")
+assert(false, 1)
+
+// expect
+// out: passed
+// exit: 1
+// err: assert needs a string message, got int

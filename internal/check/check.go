@@ -162,6 +162,8 @@ type entity struct {
 	isLen bool
 	// isPrintln marks println and eprintln, which may also be called with no argument.
 	isPrintln bool
+	// isAssert marks assert, whose condition narrows what follows the call.
+	isAssert bool
 }
 
 // sig is a function's signature: its type parameters and function type, in which the
@@ -274,7 +276,7 @@ func (c *Checker) loadPrelude(cfg Config) {
 }
 
 // markBuiltins marks the prelude functions the checker treats specially: the conversions, len,
-// and println (section 11, Prelude).
+// println, and assert (section 11, Prelude).
 func (c *Checker) markBuiltins() {
 	for _, name := range []string{"int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "int", "byte", "string", "bool"} {
 		if e, ok := c.prelude[name]; ok {
@@ -289,6 +291,9 @@ func (c *Checker) markBuiltins() {
 		if e, ok := c.prelude[name]; ok {
 			e.isPrintln = true
 		}
+	}
+	if e, ok := c.prelude["assert"]; ok {
+		e.isAssert = true
 	}
 }
 

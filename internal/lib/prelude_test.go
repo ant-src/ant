@@ -35,6 +35,9 @@ func TestPreludeMatchesLibrary(t *testing.T) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.FuncDecl:
+			if d.Owner == "" && d.Name == "assert" {
+				continue // not a value: the evaluator runs each call of it (section 8, assert)
+			}
 			var v value.Value
 			var ok bool
 			if d.Owner == "" {

@@ -111,6 +111,13 @@ func (g *Goroutine) runDeferred(d deferred) (p any) {
 }
 
 func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
+	if g.rec != nil {
+		return g.evalRecorded(e, env)
+	}
+	return g.evalExpr(e, env)
+}
+
+func (g *Goroutine) evalExpr(e ast.Expr, env *Env) (value.Value, ctl) {
 	switch e := e.(type) {
 	case *ast.Ident:
 		return g.ident(e, env), ctlNone
@@ -398,6 +405,10 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 		}
 		return g.index(recv, idx, x.Pos), ctlNone, false
 	case *ast.Call:
+		if x.Assert != nil {
+			v, c := g.assert(x, env)
+			return v, c, false
+		}
 		var args []value.Value
 		var names []string
 		rest := x.Args

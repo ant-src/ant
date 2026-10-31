@@ -527,6 +527,9 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 	case nil:
 	case *ast.Ident:
 		r.use(e, s)
+		if e.Ref.Kind == ast.RefPrelude && e.Name == "assert" {
+			r.errorf(e.Pos, "assert is not a value; it can only be called, as assert(cond) or assert(cond, message)")
+		}
 	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.RegexLit, *ast.BoolLit, *ast.NullLit, *ast.VoidLit,
 		*ast.Break, *ast.Continue, *ast.Placeholder, *ast.BadExpr:
 	case *ast.Template:
@@ -577,7 +580,11 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 			}
 			return
 		}
-		r.expr(e.Fn, s)
+		if id, ok := e.Fn.(*ast.Ident); ok && e.Assert != nil && !e.Optional {
+			r.use(id, s) // the one place the name assert may stand (section 8, assert)
+		} else {
+			r.expr(e.Fn, s)
+		}
 		for _, a := range e.Args {
 			r.expr(a.Value, s)
 		}

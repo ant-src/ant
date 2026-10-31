@@ -1,0 +1,7 @@
+// spec: 8 assert
+// assert is not a value: the name may only be called (section 8, assert).
+var check = assert
+
+// expect
+// exit: 2
+// err: assert is not a value

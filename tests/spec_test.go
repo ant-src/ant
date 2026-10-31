@@ -342,6 +342,7 @@ var panicRows = [][]string{
 	{"library-kind", "library-value"},        // library function: wrong kind; documented case
 	{"var-init"},                             // var read or assigned before its initializer has run
 	{"panic"},                                // panic
+	{"assert-kind", "assert"},                // assert: not a bool or not a string; false
 	{"depth"},                                // call depth
 	{"count"},                                // a count above 2^31 − 1
 	{"size"},                                 // a string result above 2^31 − 1 bytes

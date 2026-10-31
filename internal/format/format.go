@@ -32,6 +32,20 @@ func Source(path string, src []byte) ([]byte, error) {
 	return []byte(out + "\n"), nil
 }
 
+// Line formats the source of one expression on a single line, as an assert's report quotes it
+// (section 8, assert): the spacing of ant fmt, every line break the author wrote between tokens
+// dropped, and no comments. Line breaks inside a string or markup stay. A source that does not
+// parse is returned as it is.
+func Line(src string) string {
+	_, l, err := parser.ParseLayout("", src)
+	if err != nil {
+		return src
+	}
+	p := &printer{src: lexer.NormalizeBreaks(src), text: src, roles: l.Roles, prefix: l.Prefix, oneLine: true}
+	p.file(p.build(l.Tokens, 0, len(src)))
+	return strings.TrimSpace(p.out.String())
+}
+
 // elem is one thing in a sequence: a token, a comment, or a bracketed group.
 type elem struct {
 	tok *token.Token
@@ -103,6 +117,8 @@ type printer struct {
 	// verbatim counts the enclosing interpolations whose line breaks and indentation are kept as
 	// written: those of a string, and those in the verbatim parts of markup (fmt 4.9, 4.10)
 	verbatim int
+	// oneLine treats the source as written on one line (Line)
+	oneLine bool
 }
 
 // ---- building the tree
@@ -248,7 +264,7 @@ func (p *printer) split(g *group) (afterOpen []elem, units []unit) {
 // newlines counts the line breaks in the source between two offsets, which hold only
 // whitespace and separators.
 func (p *printer) newlines(from, to int) int {
-	if from >= to {
+	if from >= to || p.oneLine {
 		return 0
 	}
 	return strings.Count(p.src[from:to], "\n")

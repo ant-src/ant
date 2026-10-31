@@ -208,6 +208,7 @@ type parser struct {
 	recovering bool
 	errs       []*Error
 	recorded   map[Error]bool // the errors in errs, by position and message
+	lines      []int          // the offset of each line's start, built for text
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -1379,6 +1380,7 @@ func (p *parser) pipe() ast.Expr {
 		}
 		call.Args = append([]ast.Arg{{Pos: ast.Start(left), End: left.EndPosition(), Value: left}}, call.Args...)
 		call.Pipe = true
+		call.Assert = nil // assert(...) on a pipe's right is a use the resolver rejects
 		call.Bar = pos(bar)
 		stages = append(stages, call)
 		left = call
@@ -1596,6 +1598,9 @@ func (p *parser) postfix() ast.Expr {
 			isPath = false
 			call := &ast.Call{Pos: pos(t), Fn: node, Args: p.callArgs()}
 			call.End = p.end()
+			if id, ok := call.Fn.(*ast.Ident); ok && id.Name == "assert" {
+				call.Assert = p.assertInfo(call)
+			}
 			node = call
 		default:
 			return node
@@ -2264,4 +2269,164 @@ func (p *parser) lambda() *ast.Lambda {
 	p.leave(savedN)
 	b.End = p.end()
 	return &ast.Lambda{Pos: pos(t), End: b.End, Body: b}
+}
+
+// ---- assert
+
+// assertInfo records what a call of assert reports when it fails (section 8, assert): which
+// argument is the condition and which the message, and the parts of the condition whose values
+// the report shows.
+func (p *parser) assertInfo(call *ast.Call) *ast.Assert {
+	a := &ast.Assert{X: -1, Y: -1, Index: map[ast.Expr]int{}}
+	positional := 0
+	for _, arg := range call.Args {
+		name := arg.Name
+		if name == "" {
+			switch positional {
+			case 0:
+				name = "cond"
+			case 1:
+				name = "message"
+			default:
+				a.Bad = fmt.Sprintf("assert takes 1 to 2 arguments, got %d", len(call.Args))
+			}
+			positional++
+		}
+		switch name {
+		case "cond":
+			if a.Cond != nil {
+				a.Bad = "the parameter cond is given twice"
+			}
+			a.Cond = arg.Value
+		case "message":
+			if a.Message != nil {
+				a.Bad = "the parameter message is given twice"
+			}
+			a.Message = arg.Value
+		default:
+			if a.Bad == "" {
+				a.Bad = "assert has no parameter " + name
+			}
+		}
+	}
+	if a.Cond == nil && a.Bad == "" {
+		a.Bad = "assert needs an argument for cond"
+	}
+	if a.Bad != "" {
+		return a
+	}
+	a.Text = p.text(a.Cond)
+	add := func(e ast.Expr, shown bool) int {
+		a.Index[e] = len(a.Parts)
+		a.Parts = append(a.Parts, ast.AssertPart{Expr: e, Text: p.text(e), Shown: shown})
+		return len(a.Parts) - 1
+	}
+	var part, inner func(e ast.Expr)
+	// part adds e when it is a name, a field access, an index, or a call, and the parts inside it.
+	part = func(e ast.Expr) {
+		switch e.(type) {
+		case *ast.Ident, *ast.Field, *ast.Index, *ast.Call:
+			if id, ok := e.(*ast.Ident); !ok || id.Name != "_" {
+				add(e, true)
+			}
+		}
+		inner(e)
+	}
+	// inner adds the parts inside e, leaving out a callee and the object of an access.
+	inner = func(e ast.Expr) {
+		switch x := e.(type) {
+		case *ast.Field:
+			inner(x.X)
+		case *ast.Index:
+			inner(x.X)
+			part(x.Index)
+		case *ast.Call:
+			if x.Pipe {
+				part(x.Args[0].Value)
+				inner(x.Fn)
+				for _, arg := range x.Args[1:] {
+					part(arg.Value)
+				}
+				return
+			}
+			inner(x.Fn)
+			for _, arg := range x.Args {
+				part(arg.Value)
+			}
+		case *ast.Unary:
+			part(x.X)
+		case *ast.Binary:
+			part(x.X)
+			part(x.Y)
+		case *ast.Is:
+			part(x.X)
+		case *ast.Template:
+			for _, tp := range x.Parts {
+				if tp.Expr != nil {
+					part(tp.Expr)
+				}
+			}
+		case *ast.ArrayLit:
+			for _, el := range x.Elems {
+				part(el.Value)
+			}
+		case *ast.MapLit:
+			for _, en := range x.Entries {
+				part(en.Key)
+				part(en.Value)
+			}
+		case *ast.RecordLit:
+			for _, en := range x.Entries {
+				if en.Spread != nil {
+					part(en.Spread)
+				} else {
+					part(en.Value)
+				}
+			}
+		}
+	}
+	switch x := a.Cond.(type) {
+	case *ast.Binary:
+		switch x.Op {
+		case "==", "!=", "<", "<=", ">", ">=":
+			a.Op = x.Op
+			a.X = add(x.X, false)
+			inner(x.X)
+			a.Y = add(x.Y, false)
+			inner(x.Y)
+			return a
+		}
+	case *ast.Is:
+		a.Op = "is"
+		a.X = add(x.X, false)
+		inner(x.X)
+		return a
+	}
+	inner(a.Cond)
+	return a
+}
+
+// text is the source of a node, from where it begins on the page to its end.
+func (p *parser) text(n ast.Node) string {
+	from, to := p.offset(ast.Start(n)), p.offset(n.EndPosition())
+	if from < 0 || to < from || to > len(p.src) {
+		return ""
+	}
+	return p.src[from:to]
+}
+
+// offset is the byte offset of a position, columns counting bytes.
+func (p *parser) offset(at ast.Pos) int {
+	if p.lines == nil {
+		p.lines = []int{0}
+		for i := 0; i < len(p.src); i++ {
+			if p.src[i] == '\n' {
+				p.lines = append(p.lines, i+1)
+			}
+		}
+	}
+	if at.Line < 1 || at.Line > len(p.lines) {
+		return -1
+	}
+	return p.lines[at.Line-1] + at.Col - 1
 }

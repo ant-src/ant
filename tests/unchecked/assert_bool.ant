@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; 8 assert
+// panics: assert-kind
+// An assert condition that is not a bool panics as an if condition does (section 12).
+assert(1)
+
+// expect
+// exit: 1
+// err: an assert condition must be a bool, got int

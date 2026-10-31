@@ -13,13 +13,11 @@ trailers that compare output, which suits the implementation, not a user's progr
 ```
 // math_test.ant
 func testAdd(t: Test): void {
-  Test.equal(t, add(1, 2), 3)
+  assert(add(1, 2) == 3)   // a failure shows add(1, 2) == 3 (4 == 3) (section 8, assert)
 }
 ```
 
 ```
-Test.equal[T](t: Test, got: T, want: T): void      // records a failure that shows both values
-Test.true(t: Test, cond: bool, message: string = ""): void
 Test.fail(t: Test, message: string): void          // records a failure and goes on
 Test.stop(t: Test, message: string): never         // records a failure and ends this test
 Test.skip(t: Test, reason: string): never

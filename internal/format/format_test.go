@@ -133,3 +133,22 @@ func TestLayoutAt(t *testing.T) {
 		}
 	}
 }
+
+// TestLine checks the one-line form an assert's report quotes (section 8, assert): fmt's spacing,
+// the author's line breaks and comments dropped, a string's line break kept.
+func TestLine(t *testing.T) {
+	cases := map[string]string{
+		"a==b":                               "a == b",
+		"len( xs )>0":                        "len(xs) > 0",
+		"users[0].name ==   // c\n  \"Bob\"": `users[0].name == "Bob"`,
+		"f(\n  1,\n  2,\n)":                  "f(1, 2)",
+		"Array.every(xs, {\n  x > 0\n})":     "Array.every(xs, { x > 0 })",
+		"a /* c */ && b":                     "a && b",
+		"\"x\ny\" == s":                      "\"x\ny\" == s",
+	}
+	for in, want := range cases {
+		if got := Line(in); got != want {
+			t.Errorf("Line(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

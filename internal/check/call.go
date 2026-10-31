@@ -41,6 +41,9 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isPrintln && len(x.Args) == 0 {
 				return types.Void{}
 			}
+			if ent.isAssert && x.Assert != nil && x.Assert.Bad == "" {
+				return c.assertCall(s, x, sc, c.info.object(ent))
+			}
 			return c.applySig(s, x, sc, expected, c.info.object(ent))
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {
@@ -924,4 +927,34 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 func (c *Checker) isBytes(t types.Type) bool {
 	n, ok := types.Expand(t).(types.Named)
 	return ok && n.Decl == c.bytes
+}
+
+// assertCall checks a call of assert: the condition as an if's, the message where the condition
+// is false, and after the call the flow where it is true, as after if !cond { panic(...) }
+// (section 7, Narrowing).
+func (c *Checker) assertCall(s *sig, x *ast.Call, sc *scope, callee *Object) types.Type {
+	slots, ok := c.argSlots(s, x)
+	if c.info != nil {
+		ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args))}
+		for i := range x.Args {
+			ci.Slots[i] = -1
+			for param, a := range slots {
+				if a == &x.Args[i] {
+					ci.Slots[i] = param
+				}
+			}
+		}
+		c.info.recordCall(x, ci)
+	}
+	if !ok {
+		c.synthArgs(x.Args, sc)
+		return types.Void{}
+	}
+	whenTrue, whenFalse := c.cond(x.Assert.Cond, sc)
+	if x.Assert.Message != nil {
+		c.flow = whenFalse
+		c.check(x.Assert.Message, sc, types.StringType)
+	}
+	c.flow = whenTrue
+	return types.Void{}
 }

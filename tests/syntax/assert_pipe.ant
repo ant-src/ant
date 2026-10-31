@@ -1,0 +1,7 @@
+// spec: 8 assert
+// assert takes its condition between its parentheses, not through a pipe (section 8, assert).
+true | assert("message")
+
+// expect
+// exit: 2
+// err: assert is not a value

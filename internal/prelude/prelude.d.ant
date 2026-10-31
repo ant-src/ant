@@ -77,6 +77,11 @@ func eprintln[T](value: T): void
 // exit status 1.
 func panic(message: string): never
 
+// assert panics when cond is false, with a message that quotes the condition, shows the values
+// it was computed from, and ends with message when it is not empty. message is evaluated only
+// then. assert is not a value: it can only be called by name.
+func assert(cond: bool, message: string = ""): void
+
 // Conversions
 
 // int8 converts x to int8 exactly. It panics if x is out of range, has a fraction, or is NaN or

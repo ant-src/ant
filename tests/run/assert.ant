@@ -1,0 +1,129 @@
+// spec: 8 assert; 7 Narrowing; 11 Prelude
+// panics: assert
+// A failed assert panics with the condition as written, the comparison's two values, the values of
+// the names, fields, indexes and calls inside it, and the message; a passing one does nothing and
+// never evaluates its message, and narrows what follows it (section 8, assert).
+type User = { id: int, name: string }
+
+func find(users: Array[User], id: int): User | null {
+  for u in users {
+    if u.id == id { return u }
+  }
+  null
+}
+
+func isSorted(xs: Array[int]): bool {
+  for i in Array.range(1, len(xs)) {
+    if xs[i - 1] > xs[i] { return false }
+  }
+  true
+}
+
+func positive(n: int): bool {
+  assert(n > 0, "positive")
+  true
+}
+
+var users = [User{ id: 1, name: "Ann" }]
+var calls = 0
+func note(): string {
+  calls += 1
+  "noted"
+}
+
+var found = find(users, 1)
+assert(found != null, note())
+println(found.name)
+assert(calls == 0)
+
+func report(f: func(): void) {
+  var r = Panic.catch(f)
+  if r is Err { println(r.error.message) }
+}
+
+report({
+  var stack: Array[int] = []
+  assert(len(stack) > 0, "pop on empty stack")
+})
+report({
+  var total = 9
+  var expected = 10
+  assert(total == expected)
+})
+report({ assert(isSorted([1, 3, 2])) })
+report({
+  var merged = [1, 3, 2]
+  assert(isSorted(merged))
+})
+report({
+  var lo = 0
+  var mid = 5
+  var hi = 5
+  assert(lo <= mid && mid < hi)
+})
+report({
+  var lo = 6
+  var mid = 5
+  var hi = 5
+  assert(lo <= mid && mid < hi)
+})
+report({
+  var id = 7
+  var user = find(users, id)
+  assert(user != null, "user ${id} seeded above")
+})
+report({
+  var v: User | string = "s"
+  assert(v is User)
+})
+report({
+  var name = "Ann"
+  assert(name == "Anne")
+})
+report({
+  assert(
+    users[0].name == // a comment
+      "Bob",
+  )
+})
+report({
+  var i = 0
+  assert(users[i].id + users[i].id > 3, "")
+})
+report({ assert(positive(-1)) })
+report({ assert(Array.every(users, { x.id > 5 })) })
+println(calls)
+
+var n = 3
+assert(n * 2 == 7, "doubled")
+
+// expect
+// out: Ann
+// out: assertion failed: len(stack) > 0 (0 > 0): pop on empty stack
+// out:   stack = []
+// out: assertion failed: total == expected (9 == 10)
+// out: assertion failed: isSorted([1, 3, 2])
+// out: assertion failed: isSorted(merged)
+// out:   merged = [1, 3, 2]
+// out: assertion failed: lo <= mid && mid < hi
+// out:   lo = 0
+// out:   mid = 5
+// out:   hi = 5
+// out: assertion failed: lo <= mid && mid < hi
+// out:   lo = 6
+// out:   mid = 5
+// out: assertion failed: user != null (user is null): user 7 seeded above
+// out: assertion failed: v is User ("s" is string)
+// out: assertion failed: name == "Anne" ("Ann" == "Anne")
+// out: assertion failed: users[0].name == "Bob" ("Ann" == "Bob")
+// out: assertion failed: users[i].id + users[i].id > 3 (2 > 3)
+// out:   i = 0
+// out:   users[i].id = 1
+// out: assertion failed: n > 0 (-1 > 0): positive
+// out: assertion failed: Array.every(users, { x.id > 5 })
+// out:   users = [User{ id: 1, name: "Ann" }]
+// out: 0
+// exit: 1
+// err: panic: assertion failed: n * 2 == 7 (6 == 7): doubled
+// err:   n = 3
+// err:   at module

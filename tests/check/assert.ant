@@ -1,0 +1,32 @@
+// spec: 8 assert; 7 Narrowing
+// Section 8: assert takes a bool and an optional string, and the rest of the block is narrowed as
+// after if !cond { panic(...) }; the message is checked where the condition is false.
+type Circle = { radius: float64 }
+type Square = { side: float64 }
+type Shape = Circle | Square
+type User = { name: string }
+
+func area(s: Shape): float64 {
+  assert(s is Circle, "only circles")
+  s.radius * s.radius
+}
+
+func both(a: User | null, b: User | null): string {
+  assert(a != null && b != null)
+  a.name + b.name
+}
+
+func message(u: User | null): string {
+  assert(u == null, "u is ${u.name}")
+  "none"
+}
+
+func unnarrowed(u: User | null): string {
+  assert(true)
+  u.name // ERR: User | null has no field name
+}
+
+assert(1)              // ERR: cannot use int where bool is expected
+assert(true, 2)        // ERR: cannot use int where string is expected
+assert(true, "a", "b") // ERR: takes 2 arguments, got more
+var v: void = assert(true)

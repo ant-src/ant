@@ -587,6 +587,8 @@ type Goroutine struct {
 	main  bool
 	stack []frame
 	pos   ast.Pos // the call site of the builtin in progress, for its panics
+	// rec records the values of the parts of the condition of the assert in progress (assert.go)
+	rec *assertRec
 	// frames of blocks that registered deferred blocks, innermost last
 	defers []*deferFrame
 	// catching counts the Panic.catch calls in progress, for a debugger's uncaught panics.
