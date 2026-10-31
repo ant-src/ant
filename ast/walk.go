@@ -54,9 +54,12 @@ func Inspect(n Node, f func(Node) bool) {
 			Inspect(imp, f)
 		}
 		// Decls and Stmts share the top-level vars; walk each item once, in source order.
-		items := make([]Node, 0, len(x.Decls)+len(x.Stmts))
+		items := make([]Node, 0, len(x.Decls)+len(x.Stmts)+len(x.Tests))
 		for _, d := range x.Decls {
 			items = append(items, d)
+		}
+		for _, t := range x.Tests {
+			items = append(items, t)
 		}
 		for _, s := range x.Stmts {
 			if _, ok := s.(*VarDecl); !ok {
@@ -252,6 +255,9 @@ func Inspect(n Node, f func(Node) bool) {
 	case *Go:
 		Inspect(x.Body, f)
 	case *Defer:
+		Inspect(x.Body, f)
+	case *Test:
+		Inspect(x.Name, f)
 		Inspect(x.Body, f)
 	case *Return:
 		inspectExpr(x.Value, f)

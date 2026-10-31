@@ -562,7 +562,7 @@ func (c *Checker) returnExpr(x *ast.Return, sc *scope) types.Type {
 	if fn.kind == "go" || fn.kind == "defer" {
 		return types.Never{}
 	}
-	if fn.kind == "script" {
+	if fn.kind == "script" || fn.kind == "test" {
 		if x.Value != nil {
 			c.scriptResult(x.Value, sc)
 		}

@@ -40,6 +40,30 @@ func ModeOf(path string) Mode {
 	return Program
 }
 
+// IsTestFile reports whether path names a test file, whose name ends in _test.ant (section 10,
+// Tests).
+func IsTestFile(path string) bool { return strings.HasSuffix(path, "_test.ant") }
+
+// testKeywords makes test a keyword in the tokens of a test file, except as a field name after
+// . or ?., where every word is a name (section 2).
+// In the specification's own examples, parsed in Spec mode, test is a keyword where a string
+// follows it.
+func testKeywords(path string, toks []token.Token, mode Mode) {
+	spec := mode == Spec
+	if !IsTestFile(path) && !spec {
+		return
+	}
+	for i := range toks {
+		if toks[i].Kind != token.Ident || toks[i].Text != "test" || i > 0 && (toks[i-1].Is(".") || toks[i-1].Is("?.")) {
+			continue
+		}
+		if spec && (i+1 >= len(toks) || toks[i+1].Kind != token.String && toks[i+1].Kind != token.Template) {
+			continue
+		}
+		toks[i].Kind = token.Keyword
+	}
+}
+
 // declarations reports whether the source holds signatures rather than a program.
 func (p *parser) declarations() bool { return p.mode == Declarations }
 
@@ -68,6 +92,7 @@ type bail struct{}
 func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
 	mode := ModeOf(path)
 	toks, comments, lerrs := lexer.LexRecover(src, mode == Program)
+	testKeywords(path, toks, mode)
 	l := &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
 	parsed := toks
 	if slices.ContainsFunc(toks, func(t token.Token) bool { return t.Kind == token.Bad }) {
@@ -79,7 +104,7 @@ func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
 		}
 	}
 	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: parsed, comments: comments,
-		roles: l.Roles, prefix: l.Prefix, recovering: true, recorded: map[Error]bool{}}
+		roles: l.Roles, prefix: l.Prefix, recovering: true, recorded: map[Error]bool{}, testFile: IsTestFile(path)}
 	for _, e := range lerrs {
 		p.record(&Error{Pos: cpos(e.Pos), Msg: e.Msg})
 	}
@@ -112,7 +137,8 @@ func Parse(path, src string, mode Mode) (f *ast.File, err error) {
 	if lerr != nil {
 		return nil, lexError(src, lerr)
 	}
-	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments}
+	testKeywords(path, toks, mode)
+	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, testFile: IsTestFile(path) && mode == Program}
 	defer p.recover(&err)
 	return p.file(path), nil
 }
@@ -147,8 +173,9 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 	if lerr != nil {
 		return nil, nil, lexError(src, lerr)
 	}
+	testKeywords(path, toks, mode)
 	l = &Layout{Tokens: toks, Comments: comments, Roles: map[int]Role{}, Prefix: map[int]bool{}}
-	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix}
+	p := &parser{mode: mode, src: lexer.NormalizeBreaks(src), toks: toks, comments: comments, roles: l.Roles, prefix: l.Prefix, testFile: IsTestFile(path)}
 	defer p.recover(&err)
 	return p.file(path), l, nil
 }
@@ -207,6 +234,10 @@ type parser struct {
 	// recovering makes the parser go on past an error (ParseRecover): fail records the error
 	// in errs and unwinds to the nearest recovery point, and soft records it and goes on.
 	recovering bool
+	// testFile is set for a test file, whose top level holds test declarations (section 10,
+	// Tests); testNames are the names of those seen so far.
+	testFile  bool
+	testNames map[string]bool
 	errs       []*Error
 	recorded   map[Error]bool // the errors in errs, by position and message
 }
@@ -699,6 +730,8 @@ func (p *parser) item(f *ast.File) bool {
 	switch {
 	case t.Is("import"):
 		p.fail(t.Pos, "imports must come before declarations")
+	case t.Is("test"):
+		f.Tests = append(f.Tests, p.testDecl(t))
 	case t.Is("export"), t.Is("func"), t.Is("type"):
 		doc := p.doc(t)
 		d := p.declaration()
@@ -726,6 +759,9 @@ func (p *parser) item(f *ast.File) bool {
 		s := p.statement()
 		if _, bad := s.(*ast.BadExpr); bad {
 			return false // what did not parse does not make the module a script
+		}
+		if p.testFile && p.mode == Program {
+			p.fail(t.Pos, "a test file cannot have top-level statements: it holds imports, declarations, and tests")
 		}
 		if p.mode == Program && !f.Script {
 			f.Script = true
@@ -1265,9 +1301,68 @@ func (p *parser) statement() ast.Stmt {
 			return p.typeDecl()
 		case "export", "import":
 			p.fail(t.Pos, "'%s' is only allowed at the top level", t.Text)
+		case "test":
+			return p.subtest(t)
 		}
 	}
 	return p.expression()
+}
+
+// testDecl parses a top-level test declaration (section 10, Tests): its name is a string literal
+// without interpolation, not empty, and unique in the file.
+func (p *parser) testDecl(t token.Token) *ast.Test {
+	doc := p.doc(t)
+	p.next()
+	n := p.peek()
+	switch {
+	case n.Kind == token.Template:
+		p.fail(n.Pos, "a top-level test's name is a string without interpolation, so tools know it without running anything")
+	case n.Kind != token.String:
+		p.fail(n.Pos, "expected the test's name, a string, got %s", n)
+	case n.Text == "":
+		p.fail(n.Pos, "a test's name cannot be empty")
+	}
+	p.next()
+	if p.testNames == nil {
+		p.testNames = map[string]bool{}
+	}
+	if p.testNames[n.Text] {
+		p.soft(n.Pos, "test %q is already declared in this file", n.Text)
+	}
+	p.testNames[n.Text] = true
+	d := &ast.Test{Pos: pos(t), Name: &ast.StringLit{Pos: pos(n), End: epos(n), Value: n.Text}, Doc: doc}
+	saved := p.enterBoundary("test")
+	d.Body = p.block()
+	p.leaveBoundary(saved)
+	d.End = p.end()
+	return d
+}
+
+// subtest parses the statement that runs a subtest, which only a test's body holds, outside any
+// nested function, lambda, go block, or defer block (section 10, Tests).
+func (p *parser) subtest(t token.Token) *ast.Test {
+	if p.boundary != "test" {
+		p.fail(t.Pos, "a test is declared at the top level of a test file, or runs as a subtest in a test's body")
+	}
+	p.next()
+	n := p.peek()
+	var name ast.Expr
+	switch n.Kind {
+	case token.String:
+		p.next()
+		name = &ast.StringLit{Pos: pos(n), End: epos(n), Value: n.Text}
+	case token.Template:
+		p.next()
+		name = p.template(n)
+	default:
+		p.fail(n.Pos, "expected the test's name, a string, got %s", n)
+	}
+	d := &ast.Test{Pos: pos(t), Name: name}
+	saved := p.enterBoundary("test")
+	d.Body = p.block()
+	p.leaveBoundary(saved)
+	d.End = p.end()
+	return d
 }
 
 // ---- expressions

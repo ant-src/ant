@@ -36,6 +36,10 @@ func sprint(sb *strings.Builder, n Node) {
 			sb.WriteString(" ")
 			sprint(sb, s)
 		}
+		for _, t := range x.Tests {
+			sb.WriteString(" ")
+			sprint(sb, t)
+		}
 		sb.WriteString(")")
 	case *Import:
 		fmt.Fprintf(sb, "(import %q", x.Path)
@@ -389,6 +393,12 @@ func sprint(sb *strings.Builder, n Node) {
 		sb.WriteString(")")
 	case *Defer:
 		sb.WriteString("(defer ")
+		sprint(sb, x.Body)
+		sb.WriteString(")")
+	case *Test:
+		sb.WriteString("(test ")
+		sprint(sb, x.Name)
+		sb.WriteString(" ")
 		sprint(sb, x.Body)
 		sb.WriteString(")")
 	case *Return:

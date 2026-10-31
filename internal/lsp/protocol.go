@@ -135,6 +135,26 @@ type ServerCapabilities struct {
 	SelectionRangeProvider     bool                    `json:"selectionRangeProvider"`
 	SemanticTokensProvider     *SemanticTokensOptions  `json:"semanticTokensProvider,omitempty"`
 	InlayHintProvider          bool                    `json:"inlayHintProvider"`
+	CodeLensProvider           *CodeLensOptions        `json:"codeLensProvider,omitempty"`
+}
+
+type CodeLensOptions struct {
+	ResolveProvider bool `json:"resolveProvider"`
+}
+
+type CodeLensParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+type CodeLens struct {
+	Range   Range    `json:"range"`
+	Command *Command `json:"command,omitempty"`
+}
+
+type Command struct {
+	Title     string `json:"title"`
+	Command   string `json:"command"`
+	Arguments []any  `json:"arguments,omitempty"`
 }
 
 type TextDocumentSyncOptions struct {

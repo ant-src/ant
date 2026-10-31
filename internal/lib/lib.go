@@ -82,27 +82,27 @@ func Prelude() map[string]value.Value {
 	once.Do(func() {
 		table = map[string]value.Value{}
 		table["print"] = fn("print", "value", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
-			g.Instance().Print(value.Render(args[0]))
+			g.Print(value.Render(args[0]))
 			return value.Void
 		})
 		table["println"] = fn("println", "value?", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 			if args[0] == nil { // println() with no argument, not println(null)
-				g.Instance().Print("\n")
+				g.Print("\n")
 				return value.Void
 			}
-			g.Instance().Print(value.Render(args[0]) + "\n")
+			g.Print(value.Render(args[0]) + "\n")
 			return value.Void
 		})
 		table["eprint"] = fn("eprint", "value", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
-			io.WriteString(g.Instance().ErrWriter(), value.Render(args[0]))
+			io.WriteString(g.ErrWriter(), value.Render(args[0]))
 			return value.Void
 		})
 		table["eprintln"] = fn("eprintln", "value?", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 			if args[0] == nil { // eprintln() with no argument, not eprintln(null)
-				io.WriteString(g.Instance().ErrWriter(), "\n")
+				io.WriteString(g.ErrWriter(), "\n")
 				return value.Void
 			}
-			io.WriteString(g.Instance().ErrWriter(), value.Render(args[0])+"\n")
+			io.WriteString(g.ErrWriter(), value.Render(args[0])+"\n")
 			return value.Void
 		})
 		table["panic"] = fn("panic", "message", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {

@@ -58,6 +58,8 @@ type File struct {
 	// the first one starts.
 	Script    bool
 	FirstStmt Pos
+	// Tests holds a test file's top-level tests in source order (section 10, Tests).
+	Tests []*Test
 	// Declarations is set for a declaration file (section 10, Declaration files), parsed in
 	// the parser's Declarations mode: its funcs have no bodies and its names join the prelude.
 	Declarations bool
@@ -80,6 +82,12 @@ type Import struct {
 	// Module is filled by the loader: the index of the imported module in the program, or -1
 	// when the module could not be loaded and the loader went on (Config.Recover).
 	Module int
+	// Companion marks the import the loader gives a test file of its companion library, which
+	// binds every top-level name of it, exported or not (section 10, Tests).
+	Companion bool
+	// Implicit marks an import the loader added that the file does not write: the companion's,
+	// and copies of the companion's own imports. Its positions are zero.
+	Implicit bool
 }
 
 // ImportName is one entry of an import list: the export, and the local name it binds.
@@ -481,6 +489,17 @@ type (
 		Body  *Block
 		Scope *FuncScope
 	}
+	// Test is a test declaration at the top level of a test file, or the statement that runs a
+	// subtest inside a test's body (section 10, Tests). Name is a *StringLit for a top-level
+	// test, and a *StringLit or a *Template for a subtest.
+	Test struct {
+		Pos   Pos
+		End   Pos
+		Name  Expr
+		Body  *Block
+		Scope *FuncScope
+		Doc   string // the doc comment (section 2) of a top-level test, or ""
+	}
 	Return struct {
 		Pos   Pos
 		End   Pos
@@ -695,6 +714,7 @@ func (n *For) Position() Pos               { return n.Pos }
 func (n *Go) Position() Pos                { return n.Pos }
 func (n *Select) Position() Pos            { return n.Pos }
 func (n *Defer) Position() Pos             { return n.Pos }
+func (n *Test) Position() Pos              { return n.Pos }
 func (n *Return) Position() Pos            { return n.Pos }
 func (n *Break) Position() Pos             { return n.Pos }
 func (n *Continue) Position() Pos          { return n.Pos }
@@ -757,6 +777,7 @@ func (n *For) EndPosition() Pos               { return n.End }
 func (n *Go) EndPosition() Pos                { return n.End }
 func (n *Select) EndPosition() Pos            { return n.End }
 func (n *Defer) EndPosition() Pos             { return n.End }
+func (n *Test) EndPosition() Pos              { return n.End }
 func (n *Return) EndPosition() Pos            { return n.End }
 func (n *Break) EndPosition() Pos             { return n.End }
 func (n *Continue) EndPosition() Pos          { return n.End }
@@ -817,6 +838,7 @@ func (*For) stmtNode()         {}
 func (*Go) stmtNode()          {}
 func (*Select) stmtNode()      {}
 func (*Defer) stmtNode()       {}
+func (*Test) stmtNode()        {}
 func (*Return) stmtNode()      {}
 func (*Break) stmtNode()       {}
 func (*Continue) stmtNode()    {}
@@ -853,6 +875,7 @@ func (*For) exprNode()         {}
 func (*Go) exprNode()          {}
 func (*Select) exprNode()      {}
 func (*Defer) exprNode()       {}
+func (*Test) exprNode()        {}
 func (*Return) exprNode()      {}
 func (*Break) exprNode()       {}
 func (*Continue) exprNode()    {}

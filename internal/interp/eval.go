@@ -261,6 +261,9 @@ func (g *Goroutine) evalExpr(e ast.Expr, env *Env) (value.Value, ctl) {
 			ng.evalBlock(body, genv)
 		})
 		return value.Void, ctlNone
+	case *ast.Test:
+		g.subtest(e, env)
+		return value.Void, ctlNone
 	case *ast.Defer:
 		if len(g.defers) == 0 {
 			g.panicf(e.Pos, "defer outside a block")

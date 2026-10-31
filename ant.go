@@ -227,6 +227,10 @@ func (p *Program) Run(ctx context.Context, opts ...Option) error {
 // runnable is the *LoadError Run and Start return for a root that is a declaration file (section
 // 10, Declaration files), which declares names and holds nothing to run; Check checks one.
 func (p *Program) runnable() error {
+	if root := p.prog.Root; root != nil && parser.IsTestFile(root.File.Path) {
+		return &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: root.File.Path},
+			Message: "a test file holds tests, which ant test runs, and cannot be run"}}}
+	}
 	if root := p.prog.Root; root != nil && root.File.Declarations {
 		return &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: root.File.Path},
 			Message: "a declaration file declares names for the prelude and cannot be run"}}}

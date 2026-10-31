@@ -30,7 +30,7 @@ func (s *Server) publish(d *document) {
 		}
 	}
 	for _, imp := range root.Imports {
-		if imp.Module < 0 || imp.Module >= len(a.prog.Modules) {
+		if imp.Implicit || imp.Module < 0 || imp.Module >= len(a.prog.Modules) {
 			continue
 		}
 		// The module's own first error, else the first error of a module it imports, at any

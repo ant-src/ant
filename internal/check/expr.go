@@ -300,6 +300,9 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 	case *ast.Defer:
 		c.nestedBody(x.Body, sc, "defer")
 		return types.Void{}
+	case *ast.Test:
+		c.testBody(x, sc)
+		return types.Void{}
 	case *ast.Return:
 		return c.returnExpr(x, sc)
 	case *ast.Break:
@@ -477,7 +480,7 @@ func (c *Checker) entityPath(e ast.Expr, sc *scope) *entity {
 // foreignPrivate reports a function declared without export on a type of another module,
 // which is a private field of that module (section 10).
 func (c *Checker) foreignPrivate(m *entity) bool {
-	return m.kind == entFunc && !m.exported && m.fn != nil && m.fn.mod != c.mod
+	return m.kind == entFunc && !m.exported && m.fn != nil && m.fn.mod != c.mod && m.fn.mod != c.mod.companion
 }
 
 // moduleMember reports a member of an imported module, or the reason it is not visible.
@@ -1047,6 +1050,15 @@ func (c *Checker) withNested(ctx *fnCtx, f func() types.Type) types.Type {
 	return t
 }
 
+// testBody checks a test or subtest: its name, a string, and its body, a boundary that returns
+// void or an Err, as a script body does (section 10, Tests).
+func (c *Checker) testBody(t *ast.Test, sc *scope) {
+	c.check(t.Name, sc, types.StringType)
+	ctx := &fnCtx{parent: c.fn, kind: "test", name: "test"}
+	inner := &scope{parent: sc, names: map[string]*local{}}
+	c.withNested(ctx, func() types.Type { c.block(t.Body, inner, nil); return types.Void{} })
+}
+
 // nestedBody checks a go or defer block.
 func (c *Checker) nestedBody(body *ast.Block, sc *scope, kind string) {
 	ctx := &fnCtx{parent: c.fn, kind: kind, name: kind + " block"}
@@ -1222,8 +1234,8 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 		return okT
 	}
 	errRec := types.Named{Decl: c.prelude["Err"].decl, Args: []types.Type{errT}}
-	if fn.kind == "script" {
-		return okT // a script may return any Err (section 10, Scripts)
+	if fn.kind == "script" || fn.kind == "test" {
+		return okT // a script or a test may return any Err (section 10, Scripts and Tests)
 	}
 	if fn.declared != nil {
 		_, declaredErr, isResult := resultParts(types.Without(fn.declared, types.Null{}))

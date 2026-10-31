@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/resolve"
@@ -101,6 +102,40 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 		}
 	}
 	return &Program{Modules: l.modules, Root: m}, l.diags
+}
+
+// companion returns the imports a test file takes from its companion, the library beside it
+// whose name is the test file's without _test (section 10, Tests): the library's own imports,
+// then one import of the library that binds every top-level name of it. A test file with no
+// such library, or with a script there, has none. display and raw are the test file's paths.
+func (l *loader) companion(display, raw string) []*ast.Import {
+	libRaw := strings.TrimSuffix(raw, "_test.ant") + ".ant"
+	key, libDisplay := l.canonical(libRaw, "")
+	if l.state[key] == 0 {
+		if _, ok := l.read(key, libRaw); !ok {
+			return nil
+		}
+	}
+	lib := l.visit(key, libDisplay, libRaw, path.Base(libRaw), Diagnostic{Path: display}, false)
+	if lib == nil || lib.File.Script || lib.File.Declarations || lib.File.Scope == nil {
+		return nil
+	}
+	var imports []*ast.Import
+	for _, imp := range lib.File.Imports {
+		if imp.Implicit {
+			continue // the library is not a test file, so this cannot happen
+		}
+		c := ast.Import{Path: imp.Path, Namespace: imp.Namespace, Module: imp.Module, Implicit: true}
+		for _, n := range imp.Names {
+			c.Names = append(c.Names, ast.ImportName{Name: n.Name, Alias: n.Alias})
+		}
+		imports = append(imports, &c)
+	}
+	own := &ast.Import{Path: "./" + path.Base(filepath.ToSlash(libRaw)), Module: lib.Index, Companion: true, Implicit: true}
+	for _, name := range lib.File.Scope.Fields {
+		own.Names = append(own.Names, ast.ImportName{Name: name, Alias: name})
+	}
+	return append(imports, own)
 }
 
 // canonical returns a module's identity key and the path used in messages. raw is the path as
@@ -210,6 +245,10 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 			return nil
 		}
 	}
+	l.state[key] = 1
+	if parser.IsTestFile(display) && !f.Declarations {
+		f.Imports = append(l.companion(display, raw), f.Imports...)
+	}
 	if root && len(l.cfg.Imports) > 0 {
 		imports := make([]*ast.Import, 0, len(l.cfg.Imports)+len(f.Imports))
 		for _, imp := range l.cfg.Imports {
@@ -234,7 +273,6 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		}
 		info = opts.Info
 	}
-	l.state[key] = 1
 	m := &Module{Path: key, File: f}
 	if l.cfg.Recover {
 		m.Src, m.Layout, m.Resolve = src, layout, info
@@ -244,6 +282,10 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		child := l.visit(childKey, childDisplay, path.Join(path.Dir(raw), imp.Path), imp.Path, Diagnostic{Path: display, Pos: imp.Pos}, false)
 		if child == nil {
 			imp.Module = -1
+		}
+		if child != nil && parser.IsTestFile(childDisplay) && !parser.IsTestFile(display) {
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: imp.Pos, Msg: fmt.Sprintf(
+				"cannot import %q: it is a test file, which only another test file can import", imp.Path)})
 		}
 		if child != nil {
 			imp.Module = child.Index

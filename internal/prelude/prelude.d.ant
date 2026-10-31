@@ -1191,6 +1191,36 @@ func Panic.raise(p: Panic): never
 //     Record.same(e, Error{ ...e })   // false
 func Record.same[T: {}](a: T, b: T): bool
 
+// Test
+//
+// Test holds what a test body needs beyond assert, Panic.catch, and defer (ant test). Each
+// function acts on the current test: the one whose body the calling goroutine runs, or that
+// owns the goroutine. Called outside any test, each panics.
+
+// Test.skip ends the current test as skipped, after its deferred blocks run. It is not a panic,
+// so Panic.catch does not stop it. A test that failed before stays failed.
+//
+//     var home = Os.env("HOME") ?? Test.skip("HOME is not set")
+func Test.skip(reason: string): never
+
+// Test.parallel runs the current test alongside the other parallel tests of its parent, once the
+// tests of that parent that did not call it have ended. It is called once, from the test's body.
+func Test.parallel(): void
+
+// Test.tempDir returns a new directory, removed with its contents when the current test ends.
+// Panics if the directory cannot be made.
+func Test.tempDir(): string
+
+// Test.context returns the current test's context, done when its body ends, before its deferred
+// blocks. Give it to blocking calls that must stop when the test does.
+//
+//     var addr = serve("127.0.0.1:0", Test.context())
+func Test.context(): Context
+
+// Test.name returns the current test's full name, its names from the top-level test down joined
+// with /, as "parse/0x10".
+func Test.name(): string
+
 // Synchronization
 
 // Mutex is a mutual-exclusion lock, held by at most one goroutine at a time. Mutexes compare by

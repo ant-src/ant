@@ -64,4 +64,9 @@ func (in *Instance) Close() {
 }
 
 // Context returns the run's context, for blocking host functions.
-func (g *Goroutine) Context() context.Context { return g.in.ctx }
+func (g *Goroutine) Context() context.Context {
+	if g.test != nil {
+		return g.test.kill
+	}
+	return g.in.ctx
+}

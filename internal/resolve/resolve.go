@@ -181,6 +181,9 @@ func Resolve(f *ast.File, opts Options) []*Error {
 		}
 		r.stmt(s, r.module)
 	}
+	for _, t := range f.Tests {
+		r.test(t, r.module)
+	}
 	r.finalize()
 	if r.session && len(r.errs) == 0 {
 		r.keepTypes(f)
@@ -391,6 +394,14 @@ func (r *resolver) funcDecl(d *ast.FuncDecl) {
 	if d.Body != nil {
 		r.stmts(d.Body, s)
 	}
+}
+
+// test resolves a test's name in s and its body as a function body nested in s (section 10,
+// Tests).
+func (r *resolver) test(t *ast.Test, s *scope) {
+	r.expr(t.Name, s)
+	t.Scope = &ast.FuncScope{}
+	r.body(nil, t.Body, s, t.Scope)
 }
 
 func (r *resolver) params(ps []ast.Param, s *scope) {
@@ -637,6 +648,8 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 	case *ast.Defer:
 		e.Scope = &ast.FuncScope{}
 		r.body(nil, e.Body, s, e.Scope)
+	case *ast.Test:
+		r.test(e, s)
 	case *ast.Return:
 		r.expr(e.Value, s)
 	case *ast.Block:

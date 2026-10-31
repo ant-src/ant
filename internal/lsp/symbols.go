@@ -20,6 +20,9 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 	f := a.module().File
 	out := []DocumentSymbol{}
 	for _, imp := range f.Imports {
+		if imp.Implicit {
+			continue
+		}
 		name := imp.Path
 		if imp.Namespace != "" {
 			name = imp.Namespace
@@ -89,6 +92,10 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 		if out[i].Kind == SymbolNamespace && len(out[i].Children) > 0 {
 			out[i] = namespaceSymbol(out[i].Name, out[i].Children)
 		}
+	}
+	if len(f.Tests) > 0 {
+		out = append(out, s.testSymbols(d, fileTests(f))...)
+		sortSymbols(out)
 	}
 	return out
 }

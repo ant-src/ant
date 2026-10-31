@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -59,7 +60,8 @@ func (s *Server) foldingRanges(p *FoldingRangeParams) []FoldingRange {
 		}
 		return true
 	})
-	if imports := m.File.Imports; len(imports) > 1 {
+	imports := slices.DeleteFunc(slices.Clone(m.File.Imports), func(imp *ast.Import) bool { return imp.Implicit })
+	if len(imports) > 1 {
 		first, last := imports[0], imports[len(imports)-1]
 		out = append(out, FoldingRange{StartLine: first.Pos.Line - 1, EndLine: last.End.Line - 1, Kind: "imports"})
 	}

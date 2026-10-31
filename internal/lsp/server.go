@@ -249,6 +249,12 @@ func (s *Server) dispatch(m *message) (any, *rpcError) {
 			return nil, err
 		}
 		return s.rename(&p)
+	case "textDocument/codeLens":
+		var p CodeLensParams
+		if err := s.params(m, &p); err != nil {
+			return nil, err
+		}
+		return s.codeLenses(&p), nil
 	case "textDocument/documentSymbol":
 		var p DocumentSymbolParams
 		if err := s.params(m, &p); err != nil {
@@ -367,6 +373,7 @@ func (s *Server) initialize(p *InitializeParams) InitializeResult {
 			ReferencesProvider:         true,
 			DocumentHighlightProvider:  true,
 			DocumentSymbolProvider:     true,
+			CodeLensProvider:           &CodeLensOptions{},
 			WorkspaceSymbolProvider:    true,
 			CodeActionProvider:         &CodeActionOptions{CodeActionKinds: []string{"quickfix"}},
 			DocumentFormattingProvider: true,

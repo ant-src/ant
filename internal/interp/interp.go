@@ -323,6 +323,9 @@ func (in *Instance) recoverRoot(g *Goroutine) {
 		}
 		return
 	}
+	if g.test != nil && !g.main && g.test.ownedEnded(g, r) {
+		return
+	}
 	err := in.endErr(r)
 	if _, exit := err.(*ExitError); exit || g.main {
 		in.finish(err)
@@ -379,6 +382,31 @@ func (in *Instance) report(p *AntPanic) {
 		fmt.Fprintf(&sb, "  at %s (%s:%d:%d)\n", f.Function, f.Path, f.Pos.Line, f.Pos.Col)
 	}
 	io.WriteString(in.ErrWriter(), sb.String())
+}
+
+// Print writes s to the run's stdout, or collects it for the test the goroutine belongs to.
+func (g *Goroutine) Print(s string) {
+	if g.test != nil {
+		g.test.output(s)
+		return
+	}
+	g.in.Print(s)
+}
+
+// ErrWriter is the run's ErrWriter, or a writer that collects for the test the goroutine
+// belongs to.
+func (g *Goroutine) ErrWriter() io.Writer {
+	if g.test != nil {
+		return testWriter{g.test}
+	}
+	return g.in.ErrWriter()
+}
+
+type testWriter struct{ t *testRun }
+
+func (w testWriter) Write(p []byte) (int, error) {
+	w.t.output(string(p))
+	return len(p), nil
 }
 
 // Print writes s to the run's stdout.
@@ -595,6 +623,9 @@ type Goroutine struct {
 	defers []*deferFrame
 	// catching counts the Panic.catch calls in progress, for a debugger's uncaught panics.
 	catching int
+	// test is the test the goroutine runs the body of or belongs to, nil outside ant test
+	// (section 10, Tests).
+	test *testRun
 	// Under a debugger: the goroutine's number, where it started, how deep it is outside Ant
 	// code, and whether the debugger counts it as active (debug.go).
 	id        int
@@ -638,13 +669,20 @@ func (g *Goroutine) Spawn(body func(*Goroutine)) {
 // spawn starts a goroutine that a go block, or a builtin called at pos, starts.
 func (g *Goroutine) spawn(path string, pos ast.Pos, body func(*Goroutine)) {
 	ng := g.in.newGoroutine(false)
+	ng.startPath, ng.startPos = path, pos
 	if ng.d != nil {
-		ng.startPath, ng.startPos = path, pos
 		ng.d.register(ng)
+	}
+	if t := g.test; t != nil {
+		ng.test = t
+		t.own(ng)
 	}
 	g.in.active.Add(1)
 	go func() {
 		defer g.in.active.Done()
+		if t := ng.test; t != nil {
+			defer t.disown(ng)
+		}
 		defer g.in.recoverRoot(ng)
 		body(ng)
 	}()
@@ -676,7 +714,7 @@ func (g *Goroutine) trace(pos ast.Pos) []Frame {
 
 // check is the cancellation check at calls and loop back-edges.
 func (g *Goroutine) check() {
-	if g.in.done.Load() {
+	if g.in.done.Load() || g.test != nil && g.test.killed.Load() {
 		panic(&cancelSignal{})
 	}
 	if d := g.d; d != nil && d.halt.Load() && g.outside == 0 {
@@ -688,7 +726,7 @@ func (g *Goroutine) check() {
 // released runs nothing more, whichever path ended the run and whether or not the flag is set
 // yet. Every blocking call calls it as it returns.
 func (g *Goroutine) AfterWait() {
-	if g.in.ctx.Err() != nil {
+	if g.Context().Err() != nil {
 		panic(&cancelSignal{})
 	}
 }

@@ -624,7 +624,7 @@ func (d *Debugger) Panic() *AntPanic {
 // StopPoint is a place a run can stop (dap.md section 4).
 type StopPoint struct {
 	Pos ast.Pos
-	// Body is the function, lambda, go block, defer block, or file the point is in.
+	// Body is the function, lambda, go block, defer block, test, or file the point is in.
 	Body ast.Node
 }
 
@@ -638,7 +638,7 @@ func StopPoints(f *ast.File) []StopPoint {
 				return true
 			}
 			switch x := x.(type) {
-			case *ast.FuncDecl, *ast.FuncLit, *ast.Lambda, *ast.Go, *ast.Defer:
+			case *ast.FuncDecl, *ast.FuncLit, *ast.Lambda, *ast.Go, *ast.Defer, *ast.Test:
 				walk(x, x)
 				return false
 			case *ast.Block:

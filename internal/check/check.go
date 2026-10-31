@@ -198,6 +198,8 @@ type moduleInfo struct {
 	// script is the state of a script's body (section 10): 0 not checked, 1 in progress, 2
 	// done.
 	script int
+	// companion is the library whose private names a test file sees (section 10, Tests).
+	companion *moduleInfo
 }
 
 type typeInfo struct {
@@ -514,11 +516,17 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			c.info.alias(imp, ent)
 			continue
 		}
+		visible := target.exports
+		if imp.Companion {
+			// A test file sees every top-level name of its companion (section 10, Tests).
+			visible = target.names
+			mi.companion = target
+		}
 		for j := range imp.Names {
 			n := &imp.Names[j]
 			// Only the target's own exported declarations are visible: a name the target
 			// imported is not re-exported (section 10).
-			ent, ok := target.exports[n.Name]
+			ent, ok := visible[n.Name]
 			if !ok {
 				if _, declared := target.names[n.Name]; declared {
 					c.errorf(n.Pos, "%s is not exported by %s", n.Name, imp.Path)
@@ -1272,6 +1280,10 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 	for _, fi := range mi.funcs {
 		c.checkFunc(fi)
 	}
+	for _, t := range mi.m.File.Tests {
+		c.mod, c.fn, c.flow, c.rigid = mi, nil, flow{}, nil
+		c.testBody(t, nil)
+	}
 }
 
 // checkDefaults checks the field defaults of a record type against the fields' types, in the
@@ -1349,6 +1361,10 @@ func (c *Checker) scriptVar(d *ast.VarDecl, sc *scope) {
 // scriptResult checks what a script body returns: void or an Err (section 10, Scripts). A call
 // such as Result.err(e) takes its Ok type from the void the script stands for.
 func (c *Checker) scriptResult(e ast.Expr, sc *scope) {
+	what := "a script"
+	if c.fn != nil && c.fn.kind == "test" {
+		what = "a test"
+	}
 	var t types.Type
 	if call, ok := e.(*ast.Call); ok {
 		okT := types.Named{Decl: c.prelude["Ok"].decl, Args: []types.Type{types.Void{}}}
@@ -1372,7 +1388,7 @@ func (c *Checker) scriptResult(e ast.Expr, sc *scope) {
 				continue // Result[void, E], which is void or an Err
 			}
 		}
-		c.errorf(e.Position(), "a script returns void or an Err, not %s", c.typeNames(t)[0])
+		c.errorf(e.Position(), "%s returns void or an Err, not %s", what, c.typeNames(t)[0])
 		return
 	}
 }
