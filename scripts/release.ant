@@ -1,0 +1,77 @@
+#!/usr/bin/env ant
+
+//! Release builds the archives of a release: ant cross-compiled for every target, each build
+//! packed with the license and the README into ant_<version>_<os>_<arch>.tar.gz, or .zip for
+//! windows, in dist/, next to checksums.txt with their SHA-256 digests in sha256sum's format.
+//!
+//!     ant scripts/release.ant <version>
+//!
+//! Run it from the repository root, with go, tar and zip on PATH. The publish workflow runs it
+//! with the tag as the version. Every target is pure Go, so one host builds them all.
+
+var targets = [
+  "linux/amd64",
+  "linux/arm64",
+  "darwin/amd64",
+  "darwin/arm64",
+  "windows/amd64",
+  "windows/arm64",
+]
+
+// fail writes the message to standard error and exits with status 2, the status of a bad
+// invocation.
+func fail(message: string): never {
+  eprintln(message)
+  Os.exit(2)
+}
+
+// run runs the command with the terminal's streams, and is Err when it exits nonzero.
+func run(cmd: Cmd): Result[void, Error] {
+  var status = try Cmd.run(cmd)
+  if status != 0 {
+    return Result.err(Error{ message: "${Cmd.string(cmd)}: exit status ${status}" })
+  }
+  Result.ok(void)
+}
+
+func copy(src: string, dst: string): Result[void, Error] {
+  File.writeBytes(dst, try File.readBytes(src))
+}
+
+var version = Array.get(Os.args(), 0) ?? fail("usage: ${Os.program()} <version>")
+
+try File.removeAll("build")
+try File.removeAll("dist")
+try File.mkdir("dist")
+
+for target in targets {
+  var [os, arch] = String.split(target, "/")
+  var name = "ant_${version}_${os}_${arch}"
+  var dir = Path.join(["build", name])
+  var exe = if os == "windows" { "ant.exe" } else { "ant" }
+  try File.mkdir(dir)
+
+  var env = Os.environ()
+  env["CGO_ENABLED"] = "0"
+  env["GOOS"] = os
+  env["GOARCH"] = arch
+  var output = Path.join([dir, exe])
+  try run(Cmd.new("go", ["build", "-trimpath", "-ldflags=-s -w", "-o", output, "./cmd/ant"], env: env))
+  for file in ["LICENSE", "README.md"] {
+    try copy(file, Path.join([dir, file]))
+  }
+
+  if os == "windows" {
+    try run(Cmd.new("zip", ["-qr", "../dist/${name}.zip", name], dir: "build"))
+  } else {
+    try run(Cmd.new("tar", ["-C", "build", "-czf", "dist/${name}.tar.gz", name]))
+  }
+  println("dist/${name}")
+}
+
+var sums = ""
+for file in try File.list("dist") {
+  var digest = Crypto.sha256(try File.readBytes(Path.join(["dist", file]))) | Encoding.toHex()
+  sums += "${digest}  ${file}\n"
+}
+try File.write("dist/checksums.txt", sums)
