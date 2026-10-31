@@ -47,8 +47,8 @@ the spec, when a heading, library name or panic has no program, or when a pendin
 
 ## Trailers
 
-A program under `run/` or `unchecked/` ends with a trailer that starts with a line
-reading `// expect`:
+A program under `run/` or `unchecked/` ends with a trailer that starts with a line reading
+`// expect`:
 
 ```
 // expect

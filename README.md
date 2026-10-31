@@ -81,8 +81,8 @@ ant check main.ant
 ant run main.ant
 ```
 
-Try things out in the REPL, which highlights the code as it is typed, completes names, members,
-and arguments with Tab, and suggests the first completion after the cursor:
+Try things out in the REPL, which highlights the code as it is typed, completes names, members, and
+arguments with Tab, and suggests the first completion after the cursor:
 
 ```sh
 ant
@@ -113,20 +113,20 @@ ant --comp fish | source   # in ~/.config/fish/config.fish
 
 ## Editor Support
 
-Ant provides code completion, diagnostics, and navigation through the Language Server Protocol (LSP),
-and debugging through the Debug Adapter Protocol (DAP).
+Ant provides code completion, diagnostics, and navigation through the Language Server Protocol
+(LSP), and debugging through the Debug Adapter Protocol (DAP).
 
 Official editor extensions:
 
-- **[Visual Studio Code](https://github.com/ant-src/vscode-ant)** 
+- **[Visual Studio Code](https://github.com/ant-src/vscode-ant)**
 - **[IntelliJ IDEA](https://github.com/ant-src/intellij-ant)**
 
 Other editors can integrate with Ant using LSP and DAP.
 
 ## Go API
 
-Ant can be embedded in Go applications for executing scripts, calling Ant functions,
-and exposing Go functions to Ant.
+Ant can be embedded in Go applications for executing scripts, calling Ant functions, and exposing Go
+functions to Ant.
 
 **Load, check, and run a program:**
 
@@ -163,6 +163,7 @@ s, err := ant.NewSession(ctx, ant.WithStdout(os.Stdout))
 v, err := s.Eval("var x = 2")
 v, err = s.Eval("x * 21")
 ```
+
 ## License
 
 [MIT](LICENSE)
