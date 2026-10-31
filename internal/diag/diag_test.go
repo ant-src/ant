@@ -67,16 +67,24 @@ a.ant:1:11: msg
  2 │   "a"
    │   ^^^
 `},
-		{"a long span elides its middle", "var y = 1 +\n  2 +\n  3 +\n  4 +\n  \"a\"\n", ast.Pos{Line: 4, Col: 5}, `
-a.ant:4:5: msg
+		{"a long span shows the diagnostic's line", "var y = 1 +\n  2 +\n  3 +\n  4 +\n  5 +\n  \"a\"\n", ast.Pos{Line: 5, Col: 5}, `
+a.ant:5:5: msg
    │
  1 │ var y = 1 +
    │         ^^^
  2 │   2 +
    │   ^^^
  ⋮ │
- 5 │   "a"
+ 5 │   5 +
    │   ^^^
+ 6 │   "a"
+   │   ^^^
+`},
+		{"a tab inside the span", "var xyz = 1\t+ \"a\"\n", ast.Pos{Line: 1, Col: 13}, `
+a.ant:1:13: msg
+   │
+ 1 │ var xyz = 1 + "a"
+   │           ^^^^^^^
 `},
 		{"no position", "var a = 1\n", ast.Pos{}, `
 a.ant: msg
@@ -122,5 +130,16 @@ func TestSummary(t *testing.T) {
 	p.Summary(&sb, 3)
 	if got := sb.String(); got != "1 error\n3 errors\n" {
 		t.Errorf("got %q", got)
+	}
+}
+
+func TestShebang(t *testing.T) {
+	// a #! line is a comment in a program, and code the parser rejects in a declaration file
+	for path, comment := range map[string]bool{"a.ant": true, "a.d.ant": false} {
+		var sb strings.Builder
+		(&Printer{Color: true}).code(&sb, NewSource(path, "#!x\n"), "#!x", 0)
+		if got := strings.HasPrefix(sb.String(), "\x1b[90m#!x"); got != comment {
+			t.Errorf("%s: %q", path, sb.String())
+		}
 	}
 }

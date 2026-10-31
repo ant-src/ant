@@ -5,6 +5,7 @@ package diag
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -53,10 +54,14 @@ func Span(f *ast.File, toks []token.Token, text string, lines []int, pos ast.Pos
 	if pos.Line == 0 {
 		return 0, 0
 	}
+	// tokens are in source order: the first at or after the position, past an empty Newline there
 	var tok *token.Token
-	for i := range toks {
-		t := &toks[i]
-		if t.Pos.Line == pos.Line && t.Pos.Col == pos.Col && t.Kind != token.Newline && t.Kind != token.EOF {
+	i := sort.Search(len(toks), func(i int) bool {
+		p := toks[i].Pos
+		return p.Line > pos.Line || p.Line == pos.Line && p.Col >= pos.Col
+	})
+	for ; i < len(toks) && toks[i].Pos.Line == pos.Line && toks[i].Pos.Col == pos.Col; i++ {
+		if t := &toks[i]; t.Kind != token.Newline && t.Kind != token.EOF {
 			tok = t
 			break
 		}
@@ -135,7 +140,12 @@ func (s *Source) Span(pos ast.Pos) (from, to int) {
 
 func (s *Source) classes() []highlight.Class {
 	if s.cls == nil {
-		s.cls = highlight.FileClasses(s.Text)
+		// a #! first line is a comment where the parser takes it as one
+		if parser.ModeOf(s.Path) == parser.Program {
+			s.cls = highlight.FileClasses(s.Text)
+		} else {
+			s.cls = highlight.Classes(s.Text)
+		}
 	}
 	return s.cls
 }
@@ -182,7 +192,8 @@ const (
 	faint = "\x1b[90m"
 	reset = highlight.Reset
 	tab   = 4 // the columns between tab stops
-	// most lines a span shows in full; a longer one shows its first two lines and its last
+	// most lines a span shows in full; a longer one shows its first two, the diagnostic's, and
+	// its last
 	most = 4
 )
 
@@ -229,7 +240,7 @@ func (p *Printer) Print(w io.Writer, path string, pos ast.Pos, msg string) {
 	sb.WriteString("\n")
 	if s := p.source(path); s != nil && pos.Line > 0 && pos.Line <= len(s.lines) {
 		from, to := s.Span(pos)
-		p.snippet(&sb, s, from, to)
+		p.snippet(&sb, s, from, to, pos.Line-1)
 	}
 	sb.WriteString("\n")
 	io.WriteString(w, sb.String())
@@ -248,9 +259,11 @@ func (p *Printer) Summary(w io.Writer, n int) {
 }
 
 // snippet writes the lines that the span [from, to) of s covers, each underlined where the span
-// covers it; an empty span marks the one column where it stands. A span on a blank line, as at the
-// end of the file, shows the last line before it with code, as context.
-func (p *Printer) snippet(sb *strings.Builder, s *Source, from, to int) {
+// covers it; an empty span marks the one column where it stands. A span longer than most lines
+// shows its first two, the line at of the diagnostic, and its last, with ⋮ for the lines between.
+// A span on a blank line, as at the end of the file, shows the last line before it with code, as
+// context.
+func (p *Printer) snippet(sb *strings.Builder, s *Source, from, to, at int) {
 	first, last := s.lineOf(from), s.lineOf(max(from, to-1))
 	var shown []int
 	if text, _ := s.line(first); first == last && strings.TrimSpace(text) == "" {
@@ -262,11 +275,12 @@ func (p *Printer) snippet(sb *strings.Builder, s *Source, from, to int) {
 		}
 	}
 	for i := first; i <= last; i++ {
-		if last-first+1 > most && i == first+2 {
-			shown = append(shown, -1) // the elided lines
-			i = last
+		if last-first+1 <= most || i <= first+1 || i == at || i == last {
+			if n := len(shown); n > 0 && shown[n-1] >= first && shown[n-1] < i-1 {
+				shown = append(shown, -1) // the elided lines
+			}
+			shown = append(shown, i)
 		}
-		shown = append(shown, i)
 	}
 	gutter := len(strconv.Itoa(last + 1))
 	margin := func(label string) {
@@ -307,7 +321,7 @@ func (p *Printer) snippet(sb *strings.Builder, s *Source, from, to int) {
 		}
 		margin("")
 		sb.WriteString(" " + strings.Repeat(" ", columns(text[:a])))
-		p.style(sb, red, strings.Repeat("^", max(columns(text[a:max(a, b)]), 1)))
+		p.style(sb, red, strings.Repeat("^", max(columns(text[:max(a, b)])-columns(text[:a]), 1)))
 		sb.WriteString("\n")
 	}
 }

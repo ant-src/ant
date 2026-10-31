@@ -19,7 +19,7 @@
 // ant lsp exits 0 when the client sends shutdown and then exit, 1 when the connection ends
 // otherwise. ant dap exits 0 when the client disconnects, 1 when the connection ends first.
 //
-// ant check, and ant run when it cannot load a program, print each error as path:line:col:
+// ant check, and ant run when it cannot load or run a program, print each error as path:line:col:
 // message, then the lines of code it is about, numbered, with what it covers underlined (the
 // range the language server reports), then how many errors there were. A span longer than four
 // lines shows its first two and its last. On a terminal the code is highlighted as the REPL
@@ -115,7 +115,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			var pe *ant.PanicError
 			var ee *ant.ExitError
 			var re *ant.ResultError
-			if !errors.As(err, &pe) && !errors.As(err, &ee) && !errors.As(err, &re) {
+			var le *ant.LoadError
+			if errors.As(err, &le) {
+				// a declaration file, which Run refuses
+				printLoadError(stderr, err)
+			} else if !errors.As(err, &pe) && !errors.As(err, &ee) && !errors.As(err, &re) {
 				// A panic or a returned Err has already been reported by the runtime; an exit
 				// says nothing.
 				fmt.Fprintln(stderr, err)

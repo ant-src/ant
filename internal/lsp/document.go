@@ -30,11 +30,8 @@ func newDocument(uri string, version int, text string) *document {
 
 func (d *document) set(text string) {
 	d.text = text
-	d.lines = lineStarts(text)
+	d.lines = diag.LineStarts(text)
 }
-
-// lineStarts returns the offset of each line's start.
-func lineStarts(text string) []int { return diag.LineStarts(text) }
 
 // lineEnd is the offset at which line i's text ends, before its line break.
 func (d *document) lineEnd(i int) int {
@@ -108,12 +105,7 @@ func (d *document) lineOf(off int) int {
 }
 
 // offsetOf converts a parser position, a 1-based line and byte column, to a byte offset.
-func (d *document) offsetOf(p ast.Pos) int {
-	if p.Line < 1 || p.Line > len(d.lines) {
-		return len(d.text)
-	}
-	return min(d.lines[p.Line-1]+p.Col-1, len(d.text))
-}
+func (d *document) offsetOf(p ast.Pos) int { return diag.Offset(d.text, d.lines, p) }
 
 // posOf converts a byte offset to a parser position.
 func (d *document) posOf(off int) ast.Pos {
@@ -154,17 +146,15 @@ func (d *document) lineStartsAt(p ast.Pos) bool {
 // wordAt returns the identifier around off, and where it starts.
 func (d *document) wordAt(off int) (string, int) {
 	start := off
-	for start > 0 && isIdentByte(d.text[start-1]) {
+	for start > 0 && token.IsIdentByte(d.text[start-1]) {
 		start--
 	}
 	end := off
-	for end < len(d.text) && isIdentByte(d.text[end]) {
+	for end < len(d.text) && token.IsIdentByte(d.text[end]) {
 		end++
 	}
 	return d.text[start:end], start
 }
-
-func isIdentByte(c byte) bool { return token.IsIdentByte(c) }
 
 // uriPath turns a file URI into a path, or "" for another scheme, whose document the server
 // does not analyze.

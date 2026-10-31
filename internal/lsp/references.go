@@ -224,7 +224,7 @@ func validName(name string) *rpcError {
 		return &rpcError{Code: codeInvalidParams, Message: "the new name must be an identifier"}
 	}
 	for i := 0; i < len(name); i++ {
-		if !isIdentByte(name[i]) || i == 0 && name[0] >= '0' && name[0] <= '9' {
+		if !token.IsIdentByte(name[i]) || i == 0 && name[0] >= '0' && name[0] <= '9' {
 			return &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%q is not an identifier", name)}
 		}
 	}
