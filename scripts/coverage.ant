@@ -1,36 +1,31 @@
-// coverage.ant reads a Go coverage profile and fails when statement coverage is below the
-// thresholds: the first number is the minimum overall, the second the minimum per package.
-// Usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]
-//
-// With -run the script first runs go test -coverpkg=./... -coverprofile=<profile> ./... in the
-// working directory, passes the test output through, and exits with the test's status when it
-// is not zero.
-//
-// Coverage is statement-weighted, computed from the profile: a package's figure is the share of
-// its statements that some test ran, not an average over its functions. A block that several
-// test binaries report is counted once. The profile comes from
-// go test -coverpkg=./... -coverprofile=cover.out ./... as the check workflow runs it.
+#!/usr/bin/env ant
+
+//! Coverage reads a Go coverage profile and fails when statement coverage is below the
+//! thresholds: the first number is the minimum overall, the second the minimum per package.
+//!
+//!     ant scripts/coverage.ant [-run] <profile> [overall-min] [package-min]
+//!
+//! With -run the script first runs go test -coverpkg=./... -coverprofile=<profile> ./... in the
+//! working directory, with the terminal's streams, and exits with the test's status when it is not
+//! zero. This is how the check workflow runs it.
+//!
+//! Coverage is statement-weighted, computed from the profile: a package's figure is the share of
+//! its statements that some test ran, not an average over its functions. A block that several
+//! test binaries report is counted once.
 
 var modulePath = "github.com/ant-src/ant"
 
-// fail prints the message and exits with status 2, the status of a bad invocation.
-func fail(message: string): never {
-  println(message)
-  Os.exit(2)
-}
+// Block is one line of the profile: a block of statements and how often a test binary ran it.
+type Block = { id: string, statements: int, count: int }
 
-// packageOf gives the package of a profile block such as
-// github.com/ant-src/ant/value/numeric.go:12.30,14.2 relative to the module, or (root) for
-// the module itself.
-func packageOf(block: string): string {
-  var file = String.slice(block, 0, String.indexOf(block, ":") ?? String.length(block))
-  var parts = String.split(file, "/")
-  var dir = String.join(Array.slice(parts, 0, Array.length(parts) - 1), "/")
-  if dir == modulePath { "(root)" }
-  else if String.startsWith(dir, modulePath + "/") {
-    String.slice(dir, String.length(modulePath) + 1, String.length(dir))
-  }
-  else { dir }
+// Tally counts statements, each block once, and those of them some test ran.
+type Tally = { statements: int = 0, covered: int = 0 }
+
+// fail writes the message to standard error and exits with status 2, the status of a bad
+// invocation.
+func fail(message: string): never {
+  eprintln(message)
+  Os.exit(2)
 }
 
 func threshold(arg: string | null, fallback: int): int {
@@ -38,85 +33,78 @@ func threshold(arg: string | null, fallback: int): int {
   String.toInt(text) ?? fail("not a number: ${text}")
 }
 
-// runTests writes the profile by running the suite, and ends the program when the suite fails.
-func runTests(profile: string): void {
-  var run = Cmd.capture(Cmd.new("go", ["test", "-coverpkg=./...", "-coverprofile=${profile}", "./..."]))
-  var output = if run is Ok { run.value } else { fail("cannot run go test: ${run.error.message}") }
-  File.writeText(Os.stdout(), output.stdout)
-  File.writeText(Os.stderr(), output.stderr)
-  if output.status != 0 { Os.exit(output.status) }
+// parseBlock reads a line such as github.com/ant-src/ant/value/numeric.go:12.30,14.2 3 1, or
+// gives null when the line is not one.
+func parseBlock(line: string): Block | null {
+  var fields = String.fields(line)
+  if len(fields) != 3 { return null }
+  var [id, statements, count] = fields
+  Block{
+    id,
+    statements: String.toInt(statements) ?? return null,
+    count: String.toInt(count) ?? return null,
+  }
 }
 
-func readFile(path: string): string {
-  var read = File.read(path)
-  if read is Ok { read.value } else { fail("cannot read ${path}: ${read.error.message}") }
+// packageOf gives the package of a block relative to the module, or (root) for the module itself.
+func packageOf(block: Block): string {
+  var file = String.cut(block.id, ":")?.before ?? block.id
+  var dir = String.slice(file, 0, String.lastIndexOf(file, "/") ?? 0)
+  if dir == modulePath { "(root)" } else { String.trimPrefix(dir, "${modulePath}/") }
 }
 
-func percent(hit: int, total: int): float64 {
-  if total == 0 { 0.0 } else { 100.0 * float64(hit) / float64(total) }
+func percent(t: Tally): float64 {
+  if t.statements == 0 { 0.0 } else { 100.0 * float64(t.covered) / float64(t.statements) }
 }
 
-// fixed1 renders x with one decimal, as printf "%.1f" would.
-func fixed1(x: float64): string {
-  var tenths = Math.toInt(Math.round(x * 10.0)) ?? 0
-  "${tenths / 10}.${tenths % 10}"
-}
-
-func padRight(s: string, width: int): string {
-  s + String.repeat(" ", Math.max(0, width - String.length(s)))
-}
-
-func padLeft(s: string, width: int): string {
-  String.repeat(" ", Math.max(0, width - String.length(s))) + s
+// report prints a row for the tally and gives whether it is below min, as printed with one
+// decimal.
+func report(name: string, t: Tally, min: int): bool {
+  var pct = percent(t)
+  var below = pct + 0.05 < float64(min)
+  var mark = if below { "  BELOW ${min}%" } else { "" }
+  println("${String.padEnd(name, 22)} ${String.padStart(String.fromFloat(pct, 1), 5)}%${mark}")
+  below
 }
 
 var args = Os.args()
-var run = (Array.get(args, 0) ?? "") == "-run"
-if run { args = Array.slice(args, 1, Array.length(args)) }
+var run = Array.first(args) == "-run"
+if run { args = Array.slice(args, 1, len(args)) }
 var profile = Array.get(args, 0) ??
-  fail("usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]")
+  fail("usage: ${Os.program()} [-run] <profile> [overall-min] [package-min]")
 var overallMin = threshold(Array.get(args, 1), 90)
 var packageMin = threshold(Array.get(args, 2), 80)
-if run { runTests(profile) }
 
-var statements: Map[string, int] = Map{} // per package, each block once
-var covered: Map[string, int] = Map{}    // per package, each block once when some run hit it
-var seen: Map[string, bool] = Map{}
-var hit: Map[string, bool] = Map{}
-var all = 0
-var allHit = 0
-for line in String.split(readFile(profile), "\n") {
-  if line != "" && !String.startsWith(line, "mode:") {
-    var fields = String.split(line, " ")
-    if Array.length(fields) != 3 { fail("malformed profile line: ${line}") }
-    var block = fields[0]
-    var n = String.toInt(fields[1]) ?? fail("malformed profile line: ${line}")
-    var count = String.toInt(fields[2]) ?? fail("malformed profile line: ${line}")
-    var pkg = packageOf(block)
-    if !Map.has(seen, block) {
-      seen[block] = true
-      statements[pkg] = (statements[pkg] ?? 0) + n
-      all += n
-    }
-    if count > 0 && !Map.has(hit, block) {
-      hit[block] = true
-      covered[pkg] = (covered[pkg] ?? 0) + n
-      allHit += n
-    }
+if run {
+  var test = Cmd.new("go", ["test", "-coverpkg=./...", "-coverprofile=${profile}", "./..."])
+  var status = try Cmd.run(test)
+  if status != 0 { Os.exit(status) }
+}
+
+var packages: Map[string, Tally] = Map{}
+var total = Tally{}
+var seen: Set[string] = Set.of([])
+var hit: Set[string] = Set.of([])
+for line in String.lines(try File.read(profile)) {
+  if line == "" || String.startsWith(line, "mode:") { continue }
+  var block = parseBlock(line) ??
+    return Result.err(Error{ message: "malformed profile line: ${line}" })
+  var pkg = packageOf(block)
+  var tally = packages[pkg] ?? Tally{}
+  packages[pkg] = tally
+  if Set.add(seen, block.id) {
+    tally.statements += block.statements
+    total.statements += block.statements
+  }
+  if block.count > 0 && Set.add(hit, block.id) {
+    tally.covered += block.statements
+    total.covered += block.statements
   }
 }
 
 var below = false
-var report = func(name: string, pct: float64, min: int): void {
-  var mark = ""
-  if pct + 0.05 < float64(min) {
-    mark = "  BELOW ${min}%"
-    below = true
-  }
-  println(padRight(name, 22) + " " + padLeft(fixed1(pct), 5) + "%" + mark)
+for { key: name, value: tally } in Map.entries(packages) | Array.sortBy({ x.key }) {
+  if report(name, tally, packageMin) { below = true }
 }
-for pkg in Array.sort(Map.keys(statements)) {
-  report(pkg, percent(covered[pkg] ?? 0, statements[pkg] ?? 0), packageMin)
-}
-report("total", percent(allHit, all), overallMin)
-if below { Os.exit(1) }
+if report("total", total, overallMin) { below = true }
+if below { return Result.err(Error{ message: "coverage below the minimum" }) }

@@ -14,8 +14,9 @@ import (
 
 // TestCoverageScript runs scripts/coverage.ant, the coverage gate, on a small profile: a block
 // that two test binaries report counts once, a package below the per-package minimum and a total
-// below the overall minimum are marked, the status is 1 when anything is below and 2 for a bad
-// invocation. The script must also check clean.
+// below the overall minimum are marked, the status is 1 when anything is below or the profile
+// cannot be read and 2 for a bad invocation, and messages go to standard error. The script must
+// also check clean.
 func TestCoverageScript(t *testing.T) {
 	script, err := filepath.Abs("../scripts/coverage.ant")
 	if err != nil {
@@ -46,38 +47,43 @@ func TestCoverageScript(t *testing.T) {
 	row := func(name string, pct float64, mark string) string {
 		return fmt.Sprintf("%-22s %5.1f%%%s", name, pct, mark)
 	}
+	malformed := filepath.Join(t.TempDir(), "malformed.out")
+	if err := os.WriteFile(malformed, []byte("mode: set\n"+module+"ant.go:1.1,2.2 ten 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	missing := filepath.Join(t.TempDir(), "none")
+	usage := "usage: " + script + " [-run] <profile> [overall-min] [package-min]"
 	cases := []struct {
 		name   string
 		args   []string
 		status int
 		out    []string
+		err    string
 	}{
 		{"below", []string{profile, "90", "80"}, 1, []string{
 			row("(root)", 50, "  BELOW 80%"),
 			row("internal/lib", 0, "  BELOW 80%"),
 			row("value", 100, ""),
 			row("total", 100*20.0/31, "  BELOW 90%"),
-		}},
+		}, "coverage below the minimum"},
 		{"within", []string{profile, "60", "0"}, 0, []string{
 			row("(root)", 50, ""),
 			row("internal/lib", 0, ""),
 			row("value", 100, ""),
 			row("total", 100*20.0/31, ""),
-		}},
+		}, ""},
 		{"defaults", []string{profile}, 1, []string{
 			row("(root)", 50, "  BELOW 80%"),
 			row("internal/lib", 0, "  BELOW 80%"),
 			row("value", 100, ""),
 			row("total", 100*20.0/31, "  BELOW 90%"),
-		}},
-		{"usage", nil, 2, []string{
-			"usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]",
-		}},
-		{"run flag needs a profile", []string{"-run"}, 2, []string{ // -run is a flag, not a path
-			"usage: ant run scripts/coverage.ant [-run] <profile> [overall-min] [package-min]",
-		}},
-		{"bad threshold", []string{profile, "ninety"}, 2, []string{"not a number: ninety"}},
-		{"missing profile", []string{filepath.Join(t.TempDir(), "none")}, 2, nil},
+		}, "coverage below the minimum"},
+		{"usage", nil, 2, nil, usage},
+		{"run flag needs a profile", []string{"-run"}, 2, nil, usage}, // -run is a flag, not a path
+		{"bad threshold", []string{profile, "ninety"}, 2, nil, "not a number: ninety"},
+		{"missing profile", []string{missing}, 1, nil, "open " + missing + ": no such file or directory"},
+		{"malformed profile", []string{malformed}, 1, nil,
+			"malformed profile line: " + module + "ant.go:1.1,2.2 ten 1"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -87,15 +93,11 @@ func TestCoverageScript(t *testing.T) {
 			if status := ant.ExitStatus(err); status != c.status {
 				t.Errorf("status %d, want %d\nstdout:\n%s\nstderr:\n%s", status, c.status, &stdout, &stderr)
 			}
-			got := strings.TrimSuffix(stdout.String(), "\n")
-			if c.out == nil {
-				if !strings.HasPrefix(got, "cannot read ") {
-					t.Errorf("stdout:\n%s\nwant a cannot-read message", got)
-				}
-				return
-			}
-			if want := strings.Join(c.out, "\n"); got != want {
+			if got, want := strings.TrimSuffix(stdout.String(), "\n"), strings.Join(c.out, "\n"); got != want {
 				t.Errorf("stdout:\n%s\nwant:\n%s", got, want)
+			}
+			if got := strings.TrimSuffix(stderr.String(), "\n"); got != c.err {
+				t.Errorf("stderr:\n%s\nwant:\n%s", got, c.err)
 			}
 		})
 	}
