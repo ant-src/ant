@@ -124,9 +124,10 @@ func checkProperties(t *testing.T, path, src string) {
 	}
 }
 
-// verbatim reports whether the byte at off lies inside the text of a string or a raw string or
-// inside a block comment, which are kept as written (fmt.md 4.8, 4.9). The code of an
-// interpolation is not.
+// verbatim reports whether the byte at off lies inside the text of a string or a raw string,
+// inside a block comment, or inside a verbatim part of an HTML expression, which are kept as
+// written (fmt.md 4.8, 4.9, 4.10). The code of an interpolation is not, except in markup that is
+// kept as written.
 func verbatim(src string, off int) bool {
 	toks, comments, err := lexer.LexLayout(src, true)
 	if err != nil {
@@ -150,7 +151,7 @@ func verbatim(src string, off int) bool {
 		return true
 	}
 	for _, t := range toks {
-		if t.Kind == token.Html && t.Off < off && off < t.End && !inMarkupCode(t.Markup, off) {
+		if t.Kind == token.Html && t.Off < off && off < t.End && inMarkupVerbatim(src, t.Markup, off) {
 			return true
 		}
 	}
@@ -174,9 +175,6 @@ func inInterpolation(src string, off int) bool {
 			if part.Tokens != nil && part.Off < off && off < part.End {
 				return true
 			}
-		}
-		if t.Kind == token.Html && inMarkupCode(t.Markup, off) {
-			return true
 		}
 	}
 	return false
@@ -303,25 +301,33 @@ func walkMarkup(m *token.Markup, out *[]string, walk func([]token.Token)) {
 	}
 }
 
-// inMarkupCode reports whether off lies inside the code of an interpolation, attribute value, or
-// spread of an HTML expression, whose indentation is kept as written (fmt.md 4.10).
-func inMarkupCode(m *token.Markup, off int) bool {
+// inMarkupVerbatim reports whether off lies inside a part of an HTML expression that is kept as
+// written (fmt.md 4.10): the content of a <pre>, <textarea>, <script>, or <style>, or a start tag
+// outside its code, which holds the quoted attribute values.
+func inMarkupVerbatim(src string, m *token.Markup, off int) bool {
 	for _, n := range m.Nodes {
-		switch n.Kind {
-		case token.MarkupExpr:
-			if n.Off < off && off < n.End {
-				return true
-			}
-		case token.MarkupElement:
+		if n.Kind != token.MarkupElement || off <= n.Off || off >= n.End {
+			continue
+		}
+		if rawElements[strings.ToLower(n.Name)] {
+			return true
+		}
+		tagEnd := strings.LastIndex(src[:n.End], "</")
+		if tagEnd < n.Off {
+			tagEnd = n.End // self-closing
+		}
+		if len(n.Children.Nodes) > 0 {
+			tagEnd = min(tagEnd, n.Children.Nodes[0].Off)
+		}
+		if off < tagEnd {
 			for _, a := range n.Attrs {
 				if (a.Kind == token.AttrExpr || a.Kind == token.AttrSpread) && a.Off < off && off < a.End {
-					return true
+					return false
 				}
 			}
-			if inMarkupCode(n.Children, off) {
-				return true
-			}
+			return true
 		}
+		return inMarkupVerbatim(src, n.Children, off)
 	}
 	return false
 }

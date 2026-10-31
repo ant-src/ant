@@ -1,5 +1,6 @@
 // spec: fmt 4.10 HTML expressions
 type Task = { title: string, done: bool }
+type Post = { title: string, summary: string, tags: Array[string] }
 
 func item(x: Task, attrs: Html.Attributes): Html {
   <li class={ if x.done {"done"} } { ...attrs }>{ x.title+"!" }{/* a note */}</li>
@@ -10,4 +11,54 @@ func list(tasks: Array[Task]): Html {
       {Array.map(tasks,{ item(x, Map{}) })}
     <li>  kept   as   written  </li>
   </ul>
+}
+
+func card(p: Post): Html {
+    <article class = "card"  >
+          <h2>{ p.title }</h2>
+
+
+        <p>{p.summary}   
+   more text</p>
+      <ul>{Array.map(p.tags, {
+            <li>{x}</li>
+        })}</ul>
+    </article>
+}
+
+func form(): Html {
+  var page = <>
+
+	<input
+	    type="text"   name = "q"
+	    disabled/>
+        <pre>
+   keep   this   
+      as is</pre>
+    <a href={
+  "/x"}>go</a ><br/>
+          {/* a
+     comment */}
+
+    </>
+  page
+}
+
+func badge(c: bool, d: bool, x: string): Html {
+  if c {
+<p>{if d {
+<b>{x // shout
+}</b>
+} else {
+<i>{
+// quiet
+x}</i>
+}}</p>
+  } else {
+    var e =
+<span
+  >{x}</span
+>
+    e
+  }
 }

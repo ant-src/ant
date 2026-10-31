@@ -61,6 +61,11 @@ func TestBytes(t *testing.T) {
 		{"an int keeps its space before a dot", "func main() { println(0 .x, 1.5 .y) }\n", "func main() { println(0 .x, 1.5.y) }\n"},
 		{"no trailing spaces in an interpolation", "func main() {\n  println(\"a ${x +   \n    y} b\")\n}\n", "func main() {\n  println(\"a ${x +\n    y} b\")\n}\n"},
 		{"crlf in an interpolation goes", "func main() {\r\n  println(\"a ${x +\r\n    y}\")\r\n}\r\n", "func main() {\n  println(\"a ${x +\n    y}\")\n}\n"},
+		{"crlf and trailing spaces in markup go", "var h = <p>\r\n  a   \r\n</p>\r\n", "var h = <p>\n  a\n</p>\n"},
+		{"crlf and trailing spaces in a pre stay", "var h = <pre>a  \r\nb</pre>\r\n", "var h = <pre>a  \r\nb</pre>\n"},
+		{"crlf in a quoted attribute stays", "var h = <p title=\"a\r\nb\"></p>\n", "var h = <p title=\"a\r\nb\"></p>\n"},
+		{"tabs in markup", "var h = <ul>\n\t<li>a\tb</li>\n</ul>\n", "var h = <ul>\n  <li>a\tb</li>\n</ul>\n"},
+		{"lone cr in markup is a line break", "var h = <p>\ra\r</p>\n", "var h = <p>\n  a\n</p>\n"},
 		{"trailing spaces", "func main() {   \n  println(1)   \n}   \n", "func main() {\n  println(1)\n}\n"},
 	} {
 		got, err := Source("t.ant", []byte(c.src))

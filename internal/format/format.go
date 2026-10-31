@@ -43,6 +43,8 @@ type group struct {
 	open, close token.Token
 	role        parser.Role
 	elems       []elem // Newline tokens only inside a block
+	// bare marks the braces of code in markup, which take no space inside (fmt 4.10)
+	bare bool
 }
 
 func (e elem) off() int {
@@ -268,8 +270,8 @@ func (p *printer) broken(g *group, afterOpen []elem, units []unit) bool {
 		}
 		return p.newlines(prev, g.close.Off) > 0
 	}
-	if len(units) == 0 && len(afterOpen) > 0 {
-		return true // an empty list that holds a comment (fmt 4.4)
+	if len(units) == 0 && len(afterOpen) > 0 && !g.bare {
+		return true // an empty list that holds a comment (fmt 4.4), but not {/* c */} in markup
 	}
 	prev := g.open.End
 	for _, e := range afterOpen {
@@ -614,7 +616,7 @@ func (p *printer) flat(g *group, afterOpen []elem, units []unit) {
 	if g.role.Block {
 		sep = ";"
 	}
-	inner := g.open.Is("{") && (len(afterOpen) > 0 || len(units) > 0)
+	inner := g.open.Is("{") && !g.bare && (len(afterOpen) > 0 || len(units) > 0)
 	if inner {
 		p.write(" ")
 	}
@@ -639,9 +641,12 @@ func (p *printer) flat(g *group, afterOpen []elem, units []unit) {
 			p.comment(c.com)
 		}
 	}
-	if inner {
+	switch {
+	case inner:
 		p.trim()
 		p.write(" ")
+	case g.bare:
+		p.trim() // after a comment of {/* c */}
 	}
 }
 
@@ -714,9 +719,187 @@ func (p *printer) template(t token.Token) {
 	p.write(unixBreaks(p.src[at:t.End]))
 }
 
-// html writes an HTML expression (4.10): its markup as written, and the code inside each
-// interpolation, attribute value, and spread formatted as an expression.
+// html writes an HTML expression (4.10): its markup reindented to the line it starts on, its
+// tags with one space between attributes, and the code inside each interpolation, attribute
+// value, and spread laid out as a parenthesized expression.
 func (p *printer) html(t token.Token) {
+	if p.src[t.Off+1] != '>' {
+		p.element(&t.Markup.Nodes[0])
+		return
+	}
+	line := p.indent
+	p.write("<>")
+	p.content(t.Markup.Nodes, t.Off+2, strings.LastIndex(p.src[:t.End], "</"), line)
+	p.write("</>")
+}
+
+// rawElements keep their content byte for byte (4.10), since the white space rule of
+// ant-lang.md section 5 does not apply inside them.
+var rawElements = map[string]bool{"pre": true, "textarea": true, "script": true, "style": true}
+
+// element writes an element at its <. The lines inside its start tag are one level deeper than
+// the line the tag starts on, and so are the lines of its content.
+func (p *printer) element(n *token.MarkupNode) {
+	line := p.indent
+	p.write("<" + n.Name)
+	at := n.Off + 1 + len(n.Name)
+	for i := range n.Attrs {
+		a := &n.Attrs[i]
+		start := p.skipSpace(at)
+		p.tagSpace(at, start, line+1, " ")
+		if a.Kind == token.AttrSpread {
+			p.code(a.Off, a.End, a.Tokens, true)
+			at = a.End
+			continue
+		}
+		p.write(a.Name)
+		at = start + len(a.Name)
+		if a.Kind == token.AttrBare {
+			continue
+		}
+		eq := p.skipSpace(at)
+		p.tagSpace(at, eq, line+1, "")
+		p.write("=")
+		val := p.skipSpace(eq + 1)
+		p.tagSpace(eq+1, val, line+1, "")
+		if a.Kind == token.AttrExpr {
+			p.code(a.Off, a.End, a.Tokens, false)
+			at = a.End
+			continue
+		}
+		end := val + 1 + strings.IndexByte(p.src[val+1:], p.src[val]) + 1
+		p.write(p.text[val:end]) // a quoted value is kept byte for byte
+		at = end
+	}
+	tagEnd := p.skipSpace(at)
+	if strings.HasPrefix(p.src[tagEnd:], "/>") {
+		p.tagSpace(at, tagEnd, line, " ")
+		p.write("/>")
+		return
+	}
+	p.tagSpace(at, tagEnd, line, "")
+	p.write(">")
+	from, to := tagEnd+1, strings.LastIndex(p.src[:n.End], "</")
+	if rawElements[strings.ToLower(n.Name)] {
+		p.verbatim(n.Children, from, to)
+	} else {
+		p.content(n.Children.Nodes, from, to, line)
+	}
+	p.write("</" + n.Name + ">")
+}
+
+// tagSpace writes the white space of a start tag between from and to: a new line at level when
+// the author broke the line there, and otherwise space.
+func (p *printer) tagSpace(from, to, level int, space string) {
+	if p.newlines(from, to) > 0 {
+		p.newline(level, false)
+	} else {
+		p.write(space)
+	}
+}
+
+func isMarkupSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
+
+// skipSpace returns the offset of the first byte at or after off that is not markup white space.
+func (p *printer) skipSpace(off int) int {
+	for off < len(p.src) && isMarkupSpace(p.src[off]) {
+		off++
+	}
+	return off
+}
+
+// content writes the content of an element or a fragment, from the end of its start tag to the
+// start of its end tag; tag is the level of the line that holds the start tag.
+func (p *printer) content(nodes []token.MarkupNode, from, to, tag int) {
+	at := from
+	for i := range nodes {
+		n := &nodes[i]
+		if n.Kind == token.MarkupText {
+			continue // written from the source with the white space around it
+		}
+		p.markupText(at, n.Off, at == from, false, tag)
+		if n.Kind == token.MarkupElement {
+			p.element(n)
+		} else {
+			p.code(n.Off, n.End, n.Tokens, false)
+		}
+		at = n.End
+	}
+	p.markupText(at, to, at == from, true, tag)
+}
+
+// markupText writes the text between from and to, which holds no element and no interpolation
+// with code. A run of white space with a line break keeps its line breaks, at most one blank line
+// and none right after the start tag (first) or before the end tag (last), and the new line is
+// one level deeper than tag, or at tag before the end tag. Any other run is kept as written.
+func (p *printer) markupText(from, to int, first, last bool, tag int) {
+	for i := from; i < to; {
+		j := i
+		switch {
+		case isMarkupSpace(p.src[i]):
+			for j < to && isMarkupSpace(p.src[j]) {
+				j++
+			}
+			n := p.newlines(i, j)
+			if n == 0 {
+				p.write(p.src[i:j])
+				break
+			}
+			level := tag + 1
+			if last && j == to {
+				level = tag
+			}
+			p.newline(level, n > 1 && !(first && i == from) && !(last && j == to))
+		case p.src[i] == '{':
+			j = p.commentsEnd(i + 1)
+			p.code(i, j, nil, false)
+		default:
+			for j < to && !isMarkupSpace(p.src[j]) && p.src[j] != '{' {
+				j++
+			}
+			p.write(p.src[i:j])
+		}
+		i = j
+	}
+}
+
+// commentsEnd returns the offset after the } of an interpolation that holds only comments,
+// starting after its {.
+func (p *printer) commentsEnd(off int) int {
+	for {
+		off = p.skipSpace(off)
+		if p.src[off] == '}' {
+			return off + 1
+		}
+		k := sort.Search(len(p.comments), func(i int) bool { return p.comments[i].Off >= off })
+		off = p.comments[k].End
+	}
+}
+
+// code writes an interpolation, an attribute value, or a spread, from its { at off to its } just
+// before end, laid out as a parenthesized expression with no space inside the braces (4.10).
+func (p *printer) code(off, end int, toks []token.Token, spread bool) {
+	from, open := off+1, "{"
+	if spread {
+		from += strings.Index(p.src[from:end], "...") + 3
+		open = "{..."
+	}
+	g := &group{
+		open:  token.Token{Kind: token.Op, Text: open, Off: from, End: from}, // written as its Text
+		close: token.Token{Kind: token.Op, Text: "}", Off: end - 1, End: end},
+		bare:  true,
+	}
+	for _, e := range p.build(toks, from, end-1).elems {
+		if !e.isNewline() {
+			g.elems = append(g.elems, e)
+		}
+	}
+	p.group(g)
+}
+
+// verbatim writes the content of a <pre>, <textarea>, <script>, or <style> as written, with the
+// code inside each interpolation, attribute value, and spread formatted as in a string (4.9).
+func (p *printer) verbatim(m *token.Markup, from, to int) {
 	type span struct {
 		off, end int
 		toks     []token.Token
@@ -739,8 +922,8 @@ func (p *printer) html(t token.Token) {
 			}
 		}
 	}
-	walk(t.Markup)
-	at := t.Off
+	walk(m)
+	at := from
 	for _, s := range spans {
 		p.write(p.text[at:s.off])
 		from := s.off + 1
@@ -757,7 +940,7 @@ func (p *printer) html(t token.Token) {
 		p.write("}")
 		at = s.end
 	}
-	p.write(p.text[at:t.End])
+	p.write(p.text[at:to])
 }
 
 // breaks is the whitespace between two tokens of an interpolation that holds a line break, as
