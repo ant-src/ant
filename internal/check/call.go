@@ -41,7 +41,7 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isPrintln && len(x.Args) == 0 {
 				return types.Void{}
 			}
-			if ent.isAssert && x.Assert != nil && x.Assert.Bad == "" {
+			if ent.isAssert && x.Assert != nil {
 				return c.assertCall(s, x, sc, c.info.object(ent))
 			}
 			return c.applySig(s, x, sc, expected, c.info.object(ent))
@@ -247,25 +247,7 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 // Inference) and matching positional and named arguments to its parameters.
 func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object) types.Type {
 	slots, ok := c.argSlots(s, x)
-	if c.info != nil {
-		ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args))}
-		for i := range ci.Slots {
-			ci.Slots[i] = -1
-		}
-		for param, a := range slots {
-			if a != nil {
-				for i := range x.Args {
-					if &x.Args[i] == a {
-						ci.Slots[i] = param
-					}
-				}
-			}
-		}
-		if !ok {
-			ci.Slots = argSlotsLoosely(s, x)
-		}
-		c.info.recordCall(x, ci)
-	}
+	c.recordSlots(s, x, slots, ok, callee)
 	if !ok {
 		c.synthArgs(x.Args, sc)
 		return c.resultOf(s, nil, x.Pos)
@@ -929,31 +911,45 @@ func (c *Checker) isBytes(t types.Type) bool {
 	return ok && n.Decl == c.bytes
 }
 
+// recordSlots records for an editor which parameter each argument of a call fills: by slots
+// when the arguments matched, and as near as they go when they did not.
+func (c *Checker) recordSlots(s *sig, x *ast.Call, slots []*ast.Arg, ok bool, callee *Object) {
+	if c.info == nil {
+		return
+	}
+	ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args))}
+	for i := range ci.Slots {
+		ci.Slots[i] = -1
+	}
+	for param, a := range slots {
+		if a != nil {
+			for i := range x.Args {
+				if &x.Args[i] == a {
+					ci.Slots[i] = param
+				}
+			}
+		}
+	}
+	if !ok {
+		ci.Slots = argSlotsLoosely(s, x)
+	}
+	c.info.recordCall(x, ci)
+}
+
 // assertCall checks a call of assert: the condition as an if's, the message where the condition
 // is false, and after the call the flow where it is true, as after if !cond { panic(...) }
 // (section 7, Narrowing).
 func (c *Checker) assertCall(s *sig, x *ast.Call, sc *scope, callee *Object) types.Type {
 	slots, ok := c.argSlots(s, x)
-	if c.info != nil {
-		ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args))}
-		for i := range x.Args {
-			ci.Slots[i] = -1
-			for param, a := range slots {
-				if a == &x.Args[i] {
-					ci.Slots[i] = param
-				}
-			}
-		}
-		c.info.recordCall(x, ci)
-	}
+	c.recordSlots(s, x, slots, ok, callee)
 	if !ok {
 		c.synthArgs(x.Args, sc)
 		return types.Void{}
 	}
-	whenTrue, whenFalse := c.cond(x.Assert.Cond, sc)
-	if x.Assert.Message != nil {
+	whenTrue, whenFalse := c.cond(slots[0].Value, sc)
+	if slots[1] != nil {
 		c.flow = whenFalse
-		c.check(x.Assert.Message, sc, types.StringType)
+		c.check(slots[1].Value, sc, types.StringType)
 	}
 	c.flow = whenTrue
 	return types.Void{}

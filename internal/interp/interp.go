@@ -587,8 +587,10 @@ type Goroutine struct {
 	main  bool
 	stack []frame
 	pos   ast.Pos // the call site of the builtin in progress, for its panics
-	// rec records the values of the parts of the condition of the assert in progress (assert.go)
-	rec *assertRec
+	// rec records the values of the parts of the condition of the assert in progress, nil inside
+	// the functions the condition calls; spare holds recordings to reuse (assert.go)
+	rec   *assertRec
+	spare []*assertRec
 	// frames of blocks that registered deferred blocks, innermost last
 	defers []*deferFrame
 	// catching counts the Panic.catch calls in progress, for a debugger's uncaught panics.
@@ -611,6 +613,7 @@ type frame struct {
 	at     ast.Pos
 	piped  value.Value
 	atStop bool
+	rec    *assertRec // the caller's recording, which the call suspends
 }
 
 const maxDepth = 10000

@@ -37,13 +37,16 @@ func Source(path string, src []byte) ([]byte, error) {
 // dropped, and no comments. Line breaks inside a string or markup stay. A source that does not
 // parse is returned as it is.
 func Line(src string) string {
-	_, l, err := parser.ParseLayout("", src)
+	// In parentheses, a line break before an operator does not end the expression.
+	wrapped := "(" + src + "\n)"
+	_, l, err := parser.ParseLayout("", wrapped)
 	if err != nil {
 		return src
 	}
-	p := &printer{src: lexer.NormalizeBreaks(src), text: src, roles: l.Roles, prefix: l.Prefix, oneLine: true}
-	p.file(p.build(l.Tokens, 0, len(src)))
-	return strings.TrimSpace(p.out.String())
+	p := &printer{src: lexer.NormalizeBreaks(wrapped), text: wrapped, roles: l.Roles, prefix: l.Prefix, oneLine: true}
+	p.file(p.build(l.Tokens, 0, len(wrapped)))
+	out := strings.TrimSpace(p.out.String())
+	return strings.TrimSpace(out[1 : len(out)-1])
 }
 
 // elem is one thing in a sequence: a token, a comment, or a bracketed group.

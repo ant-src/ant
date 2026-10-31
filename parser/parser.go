@@ -5,6 +5,7 @@ package parser
 import (
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -208,7 +209,6 @@ type parser struct {
 	recovering bool
 	errs       []*Error
 	recorded   map[Error]bool // the errors in errs, by position and message
-	lines      []int          // the offset of each line's start, built for text
 }
 
 // mark records the role of the opening bracket t, for ParseLayout.
@@ -2273,46 +2273,17 @@ func (p *parser) lambda() *ast.Lambda {
 
 // ---- assert
 
-// assertInfo records what a call of assert reports when it fails (section 8, assert): which
-// argument is the condition and which the message, and the parts of the condition whose values
-// the report shows.
+// assertInfo records what a call of assert reports when it fails (section 8, assert): the
+// condition, and the parts of it whose values the report shows.
 func (p *parser) assertInfo(call *ast.Call) *ast.Assert {
 	a := &ast.Assert{X: -1, Y: -1, Index: map[ast.Expr]int{}}
-	positional := 0
-	for _, arg := range call.Args {
-		name := arg.Name
-		if name == "" {
-			switch positional {
-			case 0:
-				name = "cond"
-			case 1:
-				name = "message"
-			default:
-				a.Bad = fmt.Sprintf("assert takes 1 to 2 arguments, got %d", len(call.Args))
-			}
-			positional++
-		}
-		switch name {
-		case "cond":
-			if a.Cond != nil {
-				a.Bad = "the parameter cond is given twice"
-			}
+	for i, arg := range call.Args {
+		if i == 0 && arg.Name == "" || arg.Name == "cond" {
 			a.Cond = arg.Value
-		case "message":
-			if a.Message != nil {
-				a.Bad = "the parameter message is given twice"
-			}
-			a.Message = arg.Value
-		default:
-			if a.Bad == "" {
-				a.Bad = "assert has no parameter " + name
-			}
+			break
 		}
 	}
-	if a.Cond == nil && a.Bad == "" {
-		a.Bad = "assert needs an argument for cond"
-	}
-	if a.Bad != "" {
+	if a.Cond == nil {
 		return a
 	}
 	a.Text = p.text(a.Cond)
@@ -2406,27 +2377,17 @@ func (p *parser) assertInfo(call *ast.Call) *ast.Assert {
 	return a
 }
 
-// text is the source of a node, from where it begins on the page to its end.
+// text is the source of a node, from its first token to its last.
 func (p *parser) text(n ast.Node) string {
-	from, to := p.offset(ast.Start(n)), p.offset(n.EndPosition())
-	if from < 0 || to < from || to > len(p.src) {
+	from, to := ast.Start(n), n.EndPosition()
+	first := sort.Search(len(p.toks), func(i int) bool { return !before(p.toks[i].Pos, from) })
+	last := sort.Search(len(p.toks), func(i int) bool { return !before(p.toks[i].Pos, to) }) - 1
+	if first >= len(p.toks) || last < first {
 		return ""
 	}
-	return p.src[from:to]
+	return p.src[p.toks[first].Off:p.toks[last].End]
 }
 
-// offset is the byte offset of a position, columns counting bytes.
-func (p *parser) offset(at ast.Pos) int {
-	if p.lines == nil {
-		p.lines = []int{0}
-		for i := 0; i < len(p.src); i++ {
-			if p.src[i] == '\n' {
-				p.lines = append(p.lines, i+1)
-			}
-		}
-	}
-	if at.Line < 1 || at.Line > len(p.lines) {
-		return -1
-	}
-	return p.lines[at.Line-1] + at.Col - 1
+func before(a token.Pos, b ast.Pos) bool {
+	return a.Line < b.Line || a.Line == b.Line && a.Col < b.Col
 }

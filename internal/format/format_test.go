@@ -144,6 +144,9 @@ func TestLine(t *testing.T) {
 		"f(\n  1,\n  2,\n)":                  "f(1, 2)",
 		"Array.every(xs, {\n  x > 0\n})":     "Array.every(xs, { x > 0 })",
 		"a /* c */ && b":                     "a && b",
+		"a\n  == 2":                          "a == 2",
+		"a == 1 // first\n  && b == 3":       "a == 1 && b == 3",
+		"x // end":                           "x",
 		"\"x\ny\" == s":                      "\"x\ny\" == s",
 	}
 	for in, want := range cases {

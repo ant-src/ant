@@ -2,6 +2,7 @@ package interp
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -545,14 +546,19 @@ func (g *Goroutine) push(name, path string, pos ast.Pos) {
 	if len(g.stack) >= maxDepth {
 		g.panicf(pos, "call depth exceeded %d", maxDepth)
 	}
-	f := frame{Frame: Frame{Function: name, Path: path, Pos: pos}}
+	f := frame{Frame: Frame{Function: name, Path: path, Pos: pos}, rec: g.rec}
 	if d := g.d; d != nil {
 		f.id = d.frames.Add(1)
 	}
 	g.stack = append(g.stack, f)
+	g.rec = nil // a called function holds no part of the condition being recorded
 }
 
-func (g *Goroutine) pop() { g.stack = g.stack[:len(g.stack)-1] }
+func (g *Goroutine) pop() {
+	n := len(g.stack) - 1
+	g.rec = g.stack[n].rec
+	g.stack = g.stack[:n]
+}
 
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
 	// The arguments are matched to parameters before the frame is pushed, so that an arity
@@ -659,54 +665,64 @@ func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, 
 		g.leaveAnt()
 		defer g.enterAnt()
 	}
-	if names != nil {
+	if names != nil || len(args) != len(f.Params) {
+		params := g.matchBuiltin(f.Name, f.Params, f.Optional, names, len(args), pos)
 		ordered := make([]value.Value, len(f.Params))
-		filled := make([]bool, len(f.Params))
 		for i, a := range args {
-			if names[i] == "" {
-				if i >= len(f.Params) {
-					g.panicf(pos, "%s takes %s, got %d", f.Name, plural(len(f.Params), "argument"), len(args))
-				}
-				ordered[i] = a
-				filled[i] = true
-				continue
-			}
-			idx := -1
-			for j, p := range f.Params {
-				if p == names[i] {
-					idx = j
-					break
-				}
-			}
-			if idx < 0 {
-				g.panicf(pos, "%s has no parameter %s", f.Name, names[i])
-			}
-			if filled[idx] {
-				g.panicf(pos, "the parameter %s is given twice", names[i])
-			}
-			ordered[idx] = a
-			filled[idx] = true
-		}
-		for i, ok := range filled {
-			if !ok && i < len(f.Params)-f.Optional {
-				g.panicf(pos, "%s needs an argument for %s", f.Name, f.Params[i])
-			}
+			ordered[params[i]] = a
 		}
 		args = ordered
-	} else if len(args) < len(f.Params)-f.Optional || len(args) > len(f.Params) {
-		if f.Optional > 0 {
-			g.panicf(pos, "%s takes %d to %d arguments, got %d", f.Name, len(f.Params)-f.Optional, len(f.Params), len(args))
-		}
-		g.panicf(pos, "%s takes %s, got %d", f.Name, plural(len(f.Params), "argument"), len(args))
-	} else if len(args) < len(f.Params) {
-		full := make([]value.Value, len(f.Params))
-		copy(full, args)
-		args = full
 	}
 	saved := g.pos
 	g.pos = pos
 	defer func() { g.pos = saved }()
 	return f.Fn(g, args)
+}
+
+// matchBuiltin matches n arguments, named by names or all positional when names is nil, to the
+// parameters of a builtin whose last optional ones may be left out. It returns the parameter
+// each argument fills, and panics on an argument too many, an unknown or repeated name, or a
+// required parameter left unfilled.
+func (g *Goroutine) matchBuiltin(name string, params []string, optional int, names []string, n int, pos ast.Pos) []int {
+	if names == nil {
+		if n < len(params)-optional || n > len(params) {
+			if optional > 0 {
+				g.panicf(pos, "%s takes %d to %d arguments, got %d", name, len(params)-optional, len(params), n)
+			}
+			g.panicf(pos, "%s takes %s, got %d", name, plural(len(params), "argument"), n)
+		}
+		slots := make([]int, n)
+		for i := range slots {
+			slots[i] = i
+		}
+		return slots
+	}
+	slots := make([]int, n)
+	filled := make([]bool, len(params))
+	for i := range n {
+		idx := i
+		if names[i] == "" {
+			if i >= len(params) {
+				g.panicf(pos, "%s takes %s, got %d", name, plural(len(params), "argument"), n)
+			}
+		} else {
+			idx = slices.Index(params, names[i])
+			if idx < 0 {
+				g.panicf(pos, "%s has no parameter %s", name, names[i])
+			}
+			if filled[idx] {
+				g.panicf(pos, "the parameter %s is given twice", names[i])
+			}
+		}
+		slots[i] = idx
+		filled[idx] = true
+	}
+	for i, ok := range filled {
+		if !ok && i < len(params)-optional {
+			g.panicf(pos, "%s needs an argument for %s", name, params[i])
+		}
+	}
+	return slots
 }
 
 // ---- literals

@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -33,17 +34,14 @@ func (g *Goroutine) evalRecorded(e ast.Expr, env *Env) (value.Value, ctl) {
 // message, then the panic with the report.
 func (g *Goroutine) assert(x *ast.Call, env *Env) (value.Value, ctl) {
 	a := x.Assert
-	if a.Bad != "" {
-		g.panicf(x.Pos, "%s", a.Bad)
+	slots := g.assertSlots(x)
+	var rec *assertRec
+	if len(a.Parts) > 0 {
+		rec = g.newRec(a)
 	}
-	rec := &assertRec{a: a, vals: make([]value.Value, len(a.Parts))}
-	saved := g.rec
-	g.rec = rec
-	v, c := func() (value.Value, ctl) {
-		defer func() { g.rec = saved }()
-		return g.evalExpr(a.Cond, env)
-	}()
+	v, c := g.evalCond(a.Cond, env, rec)
 	if c != ctlNone {
+		g.freeRec(rec)
 		return v, c
 	}
 	ok, isBool := v.(bool)
@@ -51,31 +49,94 @@ func (g *Goroutine) assert(x *ast.Call, env *Env) (value.Value, ctl) {
 		g.panicf(a.Cond.Position(), "an assert condition must be a bool, got %s", value.Describe(v))
 	}
 	if ok {
+		g.freeRec(rec)
 		return value.Void, ctlNone
 	}
 	msg := ""
-	if a.Message != nil {
-		m, c := g.eval(a.Message, env)
+	if slots[1] >= 0 {
+		message := x.Args[slots[1]].Value
+		m, c := g.eval(message, env)
 		if c != ctlNone {
 			return m, c
 		}
 		s, isString := m.(string)
 		if !isString {
-			g.panicf(a.Message.Position(), "assert needs a string message, got %s", value.Describe(m))
+			g.panicf(message.Position(), "assert needs a string message, got %s", value.Describe(m))
 		}
 		msg = s
 	}
-	g.panicf(x.Pos, "%s", rec.report(msg))
+	g.panicf(x.Pos, "%s", report(a, rec, msg))
 	return nil, ctlNone
 }
 
-// report is the panic message of a failed assert (section 8, assert).
-func (rec *assertRec) report(msg string) string {
-	a := rec.a
+// assertParams are assert's parameters, for matching a call's arguments as a builtin's are.
+var assertParams = []string{"cond", "message"}
+
+// assertSlots is the argument that fills each of assert's parameters, -1 for a message left out.
+// It panics as a call of a builtin with these parameters would.
+func (g *Goroutine) assertSlots(x *ast.Call) [2]int {
+	var names []string
+	for i, arg := range x.Args {
+		if arg.Name != "" && names == nil {
+			names = make([]string, len(x.Args))
+		}
+		if names != nil {
+			names[i] = arg.Name
+		}
+	}
+	params := g.matchBuiltin("assert", assertParams, 1, names, len(x.Args), x.Pos)
+	slots := [2]int{-1, -1}
+	for i, p := range params {
+		slots[p] = i
+	}
+	return slots
+}
+
+// evalCond evaluates an assert's condition, recording into rec when it is not nil.
+func (g *Goroutine) evalCond(cond ast.Expr, env *Env, rec *assertRec) (value.Value, ctl) {
+	saved := g.rec
+	g.rec = rec
+	defer g.restoreRec(saved)
+	return g.evalExpr(cond, env)
+}
+
+func (g *Goroutine) restoreRec(r *assertRec) { g.rec = r }
+
+// newRec returns an empty recording for a's parts, reusing one a passing assert gave back.
+func (g *Goroutine) newRec(a *ast.Assert) *assertRec {
+	var rec *assertRec
+	if n := len(g.spare); n > 0 {
+		rec = g.spare[n-1]
+		g.spare = g.spare[:n-1]
+	} else {
+		rec = &assertRec{}
+	}
+	rec.a = a
+	rec.vals = slices.Grow(rec.vals[:0], len(a.Parts))[:len(a.Parts)]
+	clear(rec.vals)
+	rec.order = rec.order[:0]
+	return rec
+}
+
+// freeRec gives back a recording that is no longer needed.
+func (g *Goroutine) freeRec(rec *assertRec) {
+	if rec != nil {
+		rec.a = nil
+		clear(rec.vals)
+		g.spare = append(g.spare, rec)
+	}
+}
+
+// report is the panic message of a failed assert (section 8, assert). rec is nil when the
+// condition has no parts.
+func report(a *ast.Assert, rec *assertRec, msg string) string {
+	if rec == nil {
+		rec = &assertRec{}
+	}
 	var sb strings.Builder
 	sb.WriteString("assertion failed: ")
 	sb.WriteString(format.Line(a.Text))
-	if a.Op != "" && rec.vals[a.X] != nil {
+	if a.Op != "" && rec.vals != nil && rec.vals[a.X] != nil {
 		l := rec.vals[a.X]
 		switch {
 		case a.Op == "is":

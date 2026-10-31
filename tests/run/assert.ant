@@ -90,6 +90,12 @@ report({
   var i = 0
   assert(users[i].id + users[i].id > 3, "")
 })
+report({
+  var a = 1
+  assert(a
+    == 2)
+})
+report({ assert(message: "named", cond: 1 > 2) })
 report({ assert(positive(-1)) })
 report({ assert(Array.every(users, { x.id > 5 })) })
 println(calls)
@@ -119,6 +125,8 @@ assert(n * 2 == 7, "doubled")
 // out: assertion failed: users[i].id + users[i].id > 3 (2 > 3)
 // out:   i = 0
 // out:   users[i].id = 1
+// out: assertion failed: a == 2 (1 == 2)
+// out: assertion failed: 1 > 2 (1 > 2): named
 // out: assertion failed: n > 0 (-1 > 0): positive
 // out: assertion failed: Array.every(users, { x.id > 5 })
 // out:   users = [User{ id: 1, name: "Ann" }]

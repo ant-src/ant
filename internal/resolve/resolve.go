@@ -580,7 +580,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 			}
 			return
 		}
-		if id, ok := e.Fn.(*ast.Ident); ok && e.Assert != nil && !e.Optional {
+		if id, ok := e.Fn.(*ast.Ident); ok && e.Assert != nil {
 			r.use(id, s) // the one place the name assert may stand (section 8, assert)
 		} else {
 			r.expr(e.Fn, s)

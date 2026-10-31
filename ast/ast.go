@@ -870,13 +870,13 @@ func (*NameTarget) targetNode()   {}
 func (*RecordTarget) targetNode() {}
 func (*ArrayTarget) targetNode()  {}
 
-// Assert is what a call of assert needs to report a failure (section 8, assert): its condition
-// and message, and the subexpressions of the condition whose values the report shows, with the
-// source text of each.
+// Assert is what a call of assert needs to report a failure (section 8, assert): its condition,
+// and the subexpressions of the condition whose values the report shows, with the source text
+// of each. The arguments are matched to cond and message as any call's are.
 type Assert struct {
-	Cond, Message Expr // Cond is nil, or Bad set, when the arguments do not fit assert
-	// Bad is why the arguments do not fit, for a run that was not checked.
-	Bad string
+	// Cond is the argument that would fill cond, the first positional one or the one named
+	// cond, or nil when there is none.
+	Cond Expr
 	// Text is the condition's source.
 	Text string
 	// Op is the condition's outermost operator when it is a comparison or is, and "" otherwise;
