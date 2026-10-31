@@ -8,6 +8,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/diag"
 	"github.com/ant-src/ant/internal/token"
 )
 
@@ -32,23 +33,8 @@ func (d *document) set(text string) {
 	d.lines = lineStarts(text)
 }
 
-// lineStarts returns the offset of each line's start. Lines end at the line breaks of section 2:
-// \n, \r\n, or a lone \r.
-func lineStarts(text string) []int {
-	lines := []int{0}
-	for i := 0; i < len(text); i++ {
-		switch text[i] {
-		case '\n':
-			lines = append(lines, i+1)
-		case '\r':
-			if i+1 < len(text) && text[i+1] == '\n' {
-				continue // the \n ends the line
-			}
-			lines = append(lines, i+1)
-		}
-	}
-	return lines
-}
+// lineStarts returns the offset of each line's start.
+func lineStarts(text string) []int { return diag.LineStarts(text) }
 
 // lineEnd is the offset at which line i's text ends, before its line break.
 func (d *document) lineEnd(i int) int {

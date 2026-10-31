@@ -19,6 +19,12 @@
 // ant lsp exits 0 when the client sends shutdown and then exit, 1 when the connection ends
 // otherwise. ant dap exits 0 when the client disconnects, 1 when the connection ends first.
 //
+// ant check, and ant run when it cannot load a program, print each error as path:line:col:
+// message, then the lines of code it is about, numbered, with what it covers underlined (the
+// range the language server reports), then how many errors there were. A span longer than four
+// lines shows its first two and its last. On a terminal the code is highlighted as the REPL
+// highlights it; NO_COLOR or a dumb terminal turns the colors off.
+//
 // The REPL evaluates each input on one session and prints every non-void result with
 // String.from, on a terminal colored and, when it does not fit, an element to a line; _ reads
 // the last result. An input goes on over more lines while it is unfinished, which on a terminal
@@ -91,7 +97,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		prog, err := ant.Load(args[1])
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			printLoadError(stderr, err)
 			return ant.ExitStatus(err)
 		}
 		// An interrupt goes to the program when it asked for one (Os.interrupt), and ends the
@@ -123,14 +129,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		prog, err := ant.Load(args[1])
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			printLoadError(stderr, err)
 			return ant.ExitStatus(err)
 		}
-		diags := prog.Check()
-		for _, d := range diags {
-			fmt.Fprintln(stderr, d)
-		}
-		if len(diags) > 0 {
+		if diags := prog.Check(); len(diags) > 0 {
+			printDiagnostics(stderr, diags)
 			return 1
 		}
 		return 0

@@ -30,6 +30,8 @@ func TestRunCommand(t *testing.T) {
 		{"run nonexistent", []string{"run", "/nonexistent/x.ant"}, "", 2, "", ""},
 		{"check clean", []string{"check", example}, "", 0, "", ""},
 		{"check errors", []string{"check", broken}, "", 1, "", "types.ant:"},
+		{"check shows the code", []string{"check", broken}, "", 1, "", " │ "},
+		{"check counts the errors", []string{"check", broken}, "", 1, "", " errors\n"},
 		{"check wrong arity", []string{"check"}, "", 2, "", "usage"},
 		{"check cannot load", []string{"check", missing}, "", 2, "", "main"},
 		{"help", []string{"help"}, "", 0, "usage", ""},
