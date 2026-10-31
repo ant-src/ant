@@ -1,13 +1,15 @@
 #!/usr/bin/env ant
 
 //! Release builds the binaries of a release: ant cross-compiled for every target into
-//! dist/ant_<version>_<os>_<arch>, with .exe for windows. GitHub keeps each release asset's SHA-256
-//! digest, so the release has no checksums file.
+//! dist/ant_<os>_<arch>, with .exe for windows. The names leave out the version, so
+//! releases/latest/download/ant_<os>_<arch> always names the newest one, which is what
+//! ant-lang.org/install.sh downloads. GitHub keeps each release asset's SHA-256 digest, so the
+//! release has no checksums file.
 //!
-//!     ant scripts/release.ant <version>
+//!     ant scripts/release.ant
 //!
-//! Run it from the repository root, with go on PATH. The publish workflow runs it with the tag as
-//! the version. Every target is pure Go, so one host builds them all.
+//! Run it from the repository root, with go on PATH. Every target is pure Go, so one host builds
+//! them all.
 
 var targets = [
   "linux/amd64",
@@ -18,16 +20,13 @@ var targets = [
   "windows/arm64",
 ]
 
-var version = Array.get(Os.args(), 0) ??
-  return Result.err(Error{ message: "usage: ${Os.program()} <version>" })
-
 try File.removeAll("dist")
 try File.mkdir("dist")
 
 for target in targets {
   var [os, arch] = String.split(target, "/")
   var ext = if os == "windows" { ".exe" } else { "" }
-  var output = "dist/ant_${version}_${os}_${arch}${ext}"
+  var output = "dist/ant_${os}_${arch}${ext}"
   var env = Os.environ()
   env["CGO_ENABLED"] = "0"
   env["GOOS"] = os
