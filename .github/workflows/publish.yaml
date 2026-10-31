@@ -13,7 +13,7 @@ jobs:
   test:
     uses: ./.github/workflows/test.yaml
 
-  # scripts/release.ant cross-compiles every target on one runner and packs the archives.
+  # scripts/release.ant cross-compiles every target on one runner.
   build:
     runs-on: ubuntu-latest
     steps:
