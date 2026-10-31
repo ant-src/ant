@@ -124,60 +124,91 @@ func checkProperties(t *testing.T, path, src string) {
 	}
 }
 
-// verbatim reports whether the byte at off lies inside the text of a string or a raw string,
-// inside a block comment, or inside a verbatim part of an HTML expression, which are kept as
-// written (fmt.md 4.8, 4.9, 4.10). The code of an interpolation is not, except in markup that is
-// kept as written.
+// verbatim reports whether the byte at off lies inside text that ant fmt keeps as written: the
+// text of a string or a raw string, a block comment, or a verbatim part of an HTML expression
+// (fmt.md 4.8, 4.9, 4.10), at any depth of interpolations.
 func verbatim(src string, off int) bool {
-	toks, comments, err := lexer.LexLayout(src, true)
-	if err != nil {
-		return false
-	}
-	var inText func([]token.Token) bool
-	inText = func(toks []token.Token) bool {
-		for _, t := range toks {
-			if t.Kind == token.String && t.Off < off && off < t.End {
-				return true
-			}
-			for _, part := range t.Parts {
-				if part.Tokens == nil && part.Off <= off && off < part.End || inText(part.Tokens) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	if inText(toks) {
-		return true
-	}
-	for _, t := range toks {
-		if t.Kind == token.Html && t.Off < off && off < t.End && inMarkupVerbatim(src, t.Markup, off) {
-			return true
-		}
-	}
-	for _, c := range comments {
-		if c.Off < off && off < c.End {
-			return true
-		}
-	}
-	return false
+	v, _ := layoutAt(src, off)
+	return v
 }
 
 // inInterpolation reports whether the line starting at off starts inside the code of a string's
 // interpolation, whose indentation belongs to the string and is kept as written (fmt.md 4.9).
 func inInterpolation(src string, off int) bool {
-	toks, _, err := lexer.LexLayout(src, true)
+	_, in := layoutAt(src, off)
+	return in
+}
+
+// layoutAt reports whether off lies inside text kept as written, and whether it lies inside the
+// code of a string's interpolation, looking into the code of strings and markup at any depth.
+func layoutAt(src string, off int) (kept, interp bool) {
+	toks, comments, err := lexer.LexLayout(src, true)
 	if err != nil {
-		return false
+		return false, false
 	}
-	for _, t := range toks {
-		for _, part := range t.Parts {
-			if part.Tokens != nil && part.Off < off && off < part.End {
-				return true
+	for _, c := range comments {
+		if c.Off < off && off < c.End {
+			return true, false
+		}
+	}
+	inside := func(from, to int) bool { return from < off && off < to }
+	var code func(toks []token.Token, inString bool)
+	var markup func(m *token.Markup)
+	code = func(toks []token.Token, inString bool) {
+		for _, t := range toks {
+			switch {
+			case !inside(t.Off, t.End):
+			case t.Kind == token.String:
+				kept = true
+			case t.Kind == token.Html && inString:
+				kept = true // markup in a string's interpolation is kept as written (fmt.md 4.9)
+			case t.Kind == token.Html:
+				markup(t.Markup)
+			default:
+				for _, part := range t.Parts {
+					switch {
+					case part.Tokens == nil && part.Off <= off && off < part.End:
+						kept = true
+					case part.Tokens != nil && inside(part.Off, part.End):
+						interp = true
+						code(part.Tokens, true)
+					}
+				}
 			}
 		}
 	}
-	return false
+	markup = func(m *token.Markup) {
+		for i := range m.Nodes {
+			n := &m.Nodes[i]
+			if !inside(n.Off, n.End) {
+				continue
+			}
+			if n.Kind == token.MarkupExpr {
+				code(n.Tokens, false)
+				continue
+			}
+			if n.Kind != token.MarkupElement {
+				continue
+			}
+			attrs, tagEnd := tagLayout(src, n)
+			for j, a := range n.Attrs {
+				l := attrs[j]
+				switch {
+				case a.Kind == token.AttrText && l.val <= off && off < l.end:
+					kept = true
+				case (a.Kind == token.AttrExpr || a.Kind == token.AttrSpread) && inside(a.Off, a.End):
+					code(a.Tokens, false)
+				}
+			}
+			if off > tagEnd && lexer.KeepsWhiteSpace(n.Name) {
+				kept = true
+			} else {
+				markup(n.Children)
+			}
+		}
+	}
+	code(toks, false)
+	return kept, interp
 }
 
 // significant lists the tokens of src as written, without newlines, semicolons, and the commas
@@ -299,35 +330,4 @@ func walkMarkup(m *token.Markup, out *[]string, walk func([]token.Token)) {
 			*out = append(*out, "</"+n.Name+">")
 		}
 	}
-}
-
-// inMarkupVerbatim reports whether off lies inside a part of an HTML expression that is kept as
-// written (fmt.md 4.10): the content of a <pre>, <textarea>, <script>, or <style>, or a start tag
-// outside its code, which holds the quoted attribute values.
-func inMarkupVerbatim(src string, m *token.Markup, off int) bool {
-	for _, n := range m.Nodes {
-		if n.Kind != token.MarkupElement || off <= n.Off || off >= n.End {
-			continue
-		}
-		if rawElements[strings.ToLower(n.Name)] {
-			return true
-		}
-		tagEnd := strings.LastIndex(src[:n.End], "</")
-		if tagEnd < n.Off {
-			tagEnd = n.End // self-closing
-		}
-		if len(n.Children.Nodes) > 0 {
-			tagEnd = min(tagEnd, n.Children.Nodes[0].Off)
-		}
-		if off < tagEnd {
-			for _, a := range n.Attrs {
-				if (a.Kind == token.AttrExpr || a.Kind == token.AttrSpread) && a.Off < off && off < a.End {
-					return false
-				}
-			}
-			return true
-		}
-		return inMarkupVerbatim(src, n.Children, off)
-	}
-	return false
 }

@@ -67,7 +67,7 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 	l.advance(1)
 	name := l.elementName()
 	lower := strings.ToLower(name)
-	if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '/' && c != '>' {
+	if c := l.peek(0); !l.atEnd(0) && !IsMarkupSpace(c) && c != '/' && c != '>' {
 		l.soft(l.here(), "an element name is ASCII letters, digits, and -; unexpected %s after <%s", l.describe(), name)
 	}
 	switch {
@@ -117,10 +117,10 @@ func (l *lexer) element(ctx markupContext) token.MarkupNode {
 	case lower == "script" || lower == "style":
 		n.Children = l.rawText(pos, name, ctx.foreign)
 	default:
-		if lower == "pre" || lower == "textarea" {
+		if KeepsWhiteSpace(name) {
 			inner.preserve = true
 		}
-		n.Children = l.contentOf(pos, name, inner, lower == "pre" || lower == "textarea")
+		n.Children = l.contentOf(pos, name, inner, KeepsWhiteSpace(name))
 		if lower == "iframe" && len(n.Children.Nodes) > 0 {
 			l.soft(pos, "<iframe> takes no content; write <iframe ... />")
 		}
@@ -148,7 +148,19 @@ func (l *lexer) describe() string {
 	return strconv.QuoteRune(r)
 }
 
-func isMarkupSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
+// KeepsWhiteSpace reports whether the content of the element name, matched ignoring ASCII case,
+// is outside the white space rule (section 5, White space): <pre> and <textarea>, and <script> and
+// <style>, whose content is raw text.
+func KeepsWhiteSpace(name string) bool {
+	switch strings.ToLower(name) {
+	case "pre", "textarea", "script", "style":
+		return true
+	}
+	return false
+}
+
+// IsMarkupSpace reports whether c is white space in markup (section 5, White space).
+func IsMarkupSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
 
 // skipPast advances past the next s, or to the end of the source, when recovering.
 func (l *lexer) skipPast(s string) {
@@ -161,7 +173,7 @@ func (l *lexer) skipPast(s string) {
 }
 
 func (l *lexer) skipMarkupSpace() {
-	for !l.atEnd(0) && isMarkupSpace(l.peek(0)) {
+	for !l.atEnd(0) && IsMarkupSpace(l.peek(0)) {
 		l.advance(1)
 	}
 }
@@ -208,7 +220,7 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		}
 		name := l.src[start:l.pos]
 		lower := strings.ToLower(name)
-		if c := l.peek(0); !l.atEnd(0) && !isMarkupSpace(c) && c != '=' && c != '>' && c != '/' {
+		if c := l.peek(0); !l.atEnd(0) && !IsMarkupSpace(c) && c != '=' && c != '>' && c != '/' {
 			l.soft(l.here(), "an attribute name is ASCII letters, digits, -, _, :, and .; unexpected %s after %s", l.describe(), name)
 		}
 		if seen[lower] {
@@ -220,7 +232,7 @@ func (l *lexer) attributes(element string) []token.MarkupAttr {
 		}
 		a := token.MarkupAttr{Kind: token.AttrBare, Name: name, Pos: pos}
 		eq := l.pos
-		for eq < len(l.src) && isMarkupSpace(l.src[eq]) {
+		for eq < len(l.src) && IsMarkupSpace(l.src[eq]) {
 			eq++
 		}
 		if eq == len(l.src) || l.src[eq] != '=' {
@@ -387,7 +399,7 @@ func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup 
 		}
 		if l.has("</") && len(l.src)-l.pos >= 2+len(name) && strings.EqualFold(l.src[l.pos+2:l.pos+2+len(name)], name) {
 			after := l.pos + 2 + len(name)
-			if after >= len(l.src) || l.src[after] == '>' || isMarkupSpace(l.src[after]) || l.src[after] == '/' {
+			if after >= len(l.src) || l.src[after] == '>' || IsMarkupSpace(l.src[after]) || l.src[after] == '/' {
 				break
 			}
 		}
@@ -618,7 +630,7 @@ func collapse(s string, bounds []int, first, last bool) (string, []int) {
 	moved := make([]int, len(bounds))
 	b := 0
 	for i := 0; i < len(s); {
-		if !isMarkupSpace(s[i]) {
+		if !IsMarkupSpace(s[i]) {
 			for b < len(bounds) && bounds[b] <= i {
 				moved[b] = sb.Len()
 				b++
@@ -628,7 +640,7 @@ func collapse(s string, bounds []int, first, last bool) (string, []int) {
 			continue
 		}
 		j := i
-		for j < len(s) && isMarkupSpace(s[j]) {
+		for j < len(s) && IsMarkupSpace(s[j]) {
 			j++
 		}
 		run := s[i:j]

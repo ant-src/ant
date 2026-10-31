@@ -66,6 +66,9 @@ func TestBytes(t *testing.T) {
 		{"crlf in a quoted attribute stays", "var h = <p title=\"a\r\nb\"></p>\n", "var h = <p title=\"a\r\nb\"></p>\n"},
 		{"tabs in markup", "var h = <ul>\n\t<li>a\tb</li>\n</ul>\n", "var h = <ul>\n  <li>a\tb</li>\n</ul>\n"},
 		{"lone cr in markup is a line break", "var h = <p>\ra\r</p>\n", "var h = <p>\n  a\n</p>\n"},
+		{"a comment after the { of code in markup takes no space", "var k = <p>{ /* c */\n}{ // d\n  x}</p>\n", "var k = <p>{/* c */\n}{// d\n  x\n}</p>\n"},
+		{"markup in a string's interpolation stays as written", "var s = \"x ${<p>\n         a</p>} y\"\n", "var s = \"x ${<p>\n         a</p>} y\"\n"},
+		{"markup in the code of a pre stays as written", "var h = <pre>{<b>\n       x</b>}</pre>\n", "var h = <pre>{<b>\n       x</b>}</pre>\n"},
 		{"trailing spaces", "func main() {   \n  println(1)   \n}   \n", "func main() {\n  println(1)\n}\n"},
 	} {
 		got, err := Source("t.ant", []byte(c.src))
@@ -105,5 +108,28 @@ func TestDeclarationFile(t *testing.T) {
 	}
 	if _, err := Source("db.ant", []byte(src)); err == nil {
 		t.Error("a module with a func without a body was formatted")
+	}
+}
+
+// TestLayoutAt checks the helper that exempts text kept as written from the layout checks of
+// checkProperties: it must not exempt markup that ant fmt reindents, and must find verbatim
+// text nested in the code of markup and strings.
+func TestLayoutAt(t *testing.T) {
+	for _, c := range []struct {
+		src, at      string // at marks the byte checked: the first occurrence of it in src
+		kept, interp bool
+	}{
+		{"var h = <div>   \n  <p /></div>\n", "   \n", false, false},
+		{"var h = <pre class={\n\tx}>a</pre>\n", "\tx", false, false},
+		{"var h = <pre>a  \nb</pre>\n", "  \n", true, false},
+		{"var h = <p title=\"a  \nb\"></p>\n", "  \n", true, false},
+		{"var h = <div>{<pre>a  \nb</pre>}</div>\n", "  \n", true, false},
+		{"var h = <p>{\"a ${f(\n\tx)}\"}</p>\n", "\tx", false, true},
+		{"var s = \"a ${<p>\n\tx</p>}\"\n", "\tx", true, true},
+	} {
+		off := strings.Index(c.src, c.at)
+		if kept, interp := layoutAt(c.src, off); kept != c.kept || interp != c.interp {
+			t.Errorf("%q at %q: kept %v, interp %v; want %v, %v", c.src, c.at, kept, interp, c.kept, c.interp)
+		}
 	}
 }
