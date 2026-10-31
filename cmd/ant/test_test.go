@@ -92,3 +92,38 @@ func TestTestCorpus(t *testing.T) {
 		})
 	}
 }
+
+func TestTestCommandErrors(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, src string) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	ok := write("a_test.ant", "test \"a\" {}\n")
+	bad := write("b_test.ant", "test \"b\" { \n")
+	plain := write("c.ant", "println(1)\n")
+	cases := []struct {
+		args   []string
+		status int
+		out    string
+		err    string
+	}{
+		{[]string{"run", ok}, 2, "", "a test file holds tests, which ant test runs"},
+		{[]string{"test", plain}, 2, "", "is not a test file"},
+		{[]string{"test", "-run", "(", ok}, 2, "", "-run:"},
+		{[]string{"test", "-parallel", "0", ok}, 2, "", "-parallel must be at least 1"},
+		{[]string{"test", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
+		{[]string{"test", dir}, 2, "FAIL  1 passed", "b_test.ant"},
+		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", ""},
+	}
+	for _, c := range cases {
+		var stdout, stderr bytes.Buffer
+		status := run(c.args, strings.NewReader(""), &stdout, &stderr)
+		if status != c.status || !strings.Contains(stdout.String(), c.out) || !strings.Contains(stderr.String(), c.err) {
+			t.Errorf("%v: status %d, stdout %q, stderr %q", c.args, status, stdout.String(), stderr.String())
+		}
+	}
+}

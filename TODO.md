@@ -1,36 +1,7 @@
 # Work still to do
 
-Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Four gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
-
-## Test framework
-
-**Today:** the language has no way to write tests. The repository's own corpus uses `// expect`
-trailers that compare output, which suits the implementation, not a user's program.
-
-**Sketch:** an `ant test` command and a `Test` namespace.
-
-```
-// math_test.ant
-func testAdd(t: Test): void {
-  assert(add(1, 2) == 3)   // a failure shows add(1, 2) == 3 (4 == 3) (section 8, assert)
-}
-```
-
-```
-Test.fail(t: Test, message: string): void          // records a failure and goes on
-Test.stop(t: Test, message: string): never         // records a failure and ends this test
-Test.skip(t: Test, reason: string): never
-```
-
-**Open questions:**
-
-- How tests are found: `*_test.ant` files and functions named `test...`, as in Go, or a
-  `test "name" { }` declaration.
-- Whether a test may start goroutines that outlive it. A panic in a test can be a failure of that
-  test only: the runner calls each test through `Panic.catch` (section 8, Catching a panic).
-- Filtering (`-run pattern`), running tests in parallel, the output format, and the exit status.
-- Whether test files can reach a module's unexported names (section 10).
 
 ## Flags
 

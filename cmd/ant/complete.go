@@ -46,6 +46,9 @@ var commands = []command{
 		}
 		return nil
 	}},
+	{name: "test", flags: []string{"-run", "-skip", "-v", "-json", "-failfast", "-parallel", "-timeout"}, args: func(n int, word string) []candidate {
+		return files(word, "_test.ant")
+	}},
 	{name: "fmt", flags: []string{"--check"}, args: func(n int, word string) []candidate {
 		return files(word, ".ant")
 	}},

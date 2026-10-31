@@ -7,13 +7,14 @@ programs naming each.
 
 ## Kinds of program
 
-| Directory      | What the harness proves                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `run/`         | the program's output, exit status and standard error match its trailer, and `ant check` reports nothing           |
-| `unchecked/`   | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out |
-| `check/`       | `ant check` reports exactly the errors the inline markers name, and nothing else                                  |
-| `stdlib/`      | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md`  |
-| `../examples/` | real programs with no trailer; `examples_test.go` runs each as a user would, and talks to the servers             |
+| Directory      | What the harness proves                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `run/`         | the program's output, exit status and standard error match its trailer, and `ant check` reports nothing                        |
+| `unchecked/`   | the program runs as its trailer says, and `ant check` rejects it: these are the kind panics the checker rules out              |
+| `check/`       | `ant check` reports exactly the errors the inline markers name, and nothing else                                               |
+| `stdlib/`      | each line's library call returns the value or raises the panic its `// =>` comment names; see `stdlib/README.md`               |
+| `test/`        | each test file's `ant test` report and exit status match its trailer (`cmd/ant/test_test.go`), and `ant check` reports nothing |
+| `../examples/` | real programs with no trailer; `examples_test.go` runs each as a user would, and talks to the servers                          |
 
 Files under a directory named `lib` are modules the programs import, not tests. An example program,
 and a module under `lib`, says what it does in `//!` lines, its module doc (section 2 of the
