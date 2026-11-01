@@ -436,9 +436,9 @@ func TestSessionTry(t *testing.T) {
 	}
 }
 
-// TestSessionWriteThrough checks that a goroutine's output reaches stdout while the session
+// TestSessionOutputBetweenInputs checks that a goroutine's output reaches stdout while the session
 // waits for its next input.
-func TestSessionWriteThrough(t *testing.T) {
+func TestSessionOutputBetweenInputs(t *testing.T) {
 	out := &syncBuffer{}
 	s, err := ant.NewSession(context.Background(), ant.WithStdout(out), ant.WithStderr(io.Discard))
 	if err != nil {

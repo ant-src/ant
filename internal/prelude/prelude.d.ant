@@ -1486,10 +1486,9 @@ func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): 
 // File.close closes f, and is Err when the close fails; f is closed either way. A buffered handle
 // writes its buffer out first and then closes the handle under it, reporting the first error. When
 // a write of it is in progress on another goroutine, it closes the handle under first, which ends
-// that write, and is Err when what the buffer held is lost. It does
-// nothing and is Ok on a standard stream and on a handle already closed, so a deferred close can
-// follow an explicit one. Called from another goroutine, it ends a read or write in progress on f
-// with an Err.
+// that write, and is Err when what the buffer held is lost. It does nothing and is Ok on a standard
+// stream and on a handle already closed, so a deferred close can follow an explicit one. Called
+// from another goroutine, it ends a read or write in progress on f with an Err.
 func File.close(f: File.Handle): Result[void, Error]
 
 // File.readAll reads the rest of f as text. Bytes that are not valid UTF-8 become U+FFFD.
@@ -2176,8 +2175,8 @@ func Os.cwd(): Result[string, Error]
 func Os.exit(status: int): never
 
 // Os.openPipe returns a pipe, two handles the program closes: what is written to write is read
-// from read. A read waits for data. The reading end is at end of file once
-// every writing end is closed, the copies given to children and the program's own.
+// from read. A read waits for data. The reading end is at end of file once every writing end is
+// closed, the copies given to children and the program's own.
 func Os.openPipe(): Result[Os.Pipe, Error]
 
 // Os.which returns the path of the executable in PATH that a [Cmd] naming program starts, or null
