@@ -16,12 +16,11 @@ import (
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/temporal"
 	"github.com/ant-src/ant/value"
 )
 
-// InfoTag is File.Info: { name: string, size: int, isDir: bool, modified: Time.Instant }.
-var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "modified"})
+// InfoTag is File.Info: { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int }.
+var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "isSymlink", "modified", "mode"})
 
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
@@ -399,19 +398,11 @@ func init() {
 		return namespace("File",
 			constant("Handle", value.NewTag("File.Handle", value.SyncTag, nil)),
 			constant("Info", InfoTag),
-			fn("File.stat", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				fi, err := os.Stat(stringArg(g, who, a[0]))
-				if err != nil {
-					return errResult(err)
-				}
-				modified, err := temporal.NewInstant(fi.ModTime().Unix(), int64(fi.ModTime().Nanosecond()))
-				if err != nil {
-					return errResult(err)
-				}
-				return value.Ok(value.NewRecord(InfoTag, []value.Value{value.Text(fi.Name()), fi.Size(), fi.IsDir(), modified}))
+			fn("File.stat", "path, follow?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return statFile(stringArg(g, who, a[0]), boolOr(a[1], true))
 			}),
 			fn("File.mkdir", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(os.MkdirAll(stringArg(g, who, a[0]), 0o755))
+				return okVoid(os.MkdirAll(stringArg(g, who, a[0]), newDirMode))
 			}),
 			fn("File.removeAll", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(os.RemoveAll(stringArg(g, who, a[0])))
@@ -419,12 +410,12 @@ func init() {
 			fn("File.rename", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(os.Rename(stringArg(g, who, a[0]), stringArg(g, who, a[1])))
 			}),
-			fn("File.tempDir", "prefix", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				dir, err := os.MkdirTemp("", stringArg(g, who, a[0]))
-				if err != nil {
-					return errResult(err)
+			fn("File.tempDir", "pattern, dir?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				dir := ""
+				if given(a[1]) {
+					dir = stringArg(g, who, a[1])
 				}
-				return value.Ok(value.Text(dir))
+				return tempDir(stringArg(g, who, a[0]), dir)
 			}),
 			fn("File.walk", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				dir := stringArg(g, who, a[0])
@@ -460,7 +451,7 @@ func init() {
 				return value.Ok(value.NewArray(files))
 			}),
 			fn("File.append", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				f, err := os.OpenFile(stringArg(g, who, a[0]), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+				f, err := os.OpenFile(stringArg(g, who, a[0]), os.O_APPEND|os.O_CREATE|os.O_WRONLY, newFileMode)
 				if err != nil {
 					return errResult(err)
 				}
@@ -480,11 +471,11 @@ func init() {
 				}
 				return value.Ok(bytesValue(data))
 			}),
-			fn("File.write", "path, text", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(os.WriteFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), 0o644))
+			fn("File.write", "path, text, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return writeFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), boolOr(a[2], true))
 			}),
-			fn("File.writeBytes", "path, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(os.WriteFile(stringArg(g, who, a[0]), view(bytesArg(g, who, a[1])), 0o644))
+			fn("File.writeBytes", "path, bytes, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return writeFile(stringArg(g, who, a[0]), view(bytesArg(g, who, a[1])), boolOr(a[2], true))
 			}),
 			fn("File.exists", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				_, err := os.Stat(stringArg(g, who, a[0]))
@@ -511,8 +502,8 @@ func init() {
 				}
 				return value.Ok(newHandle(f, f, nil))
 			}),
-			fn("File.create", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				f, err := os.Create(stringArg(g, who, a[0]))
+			fn("File.create", "path, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				f, err := os.OpenFile(stringArg(g, who, a[0]), os.O_RDWR|createFlags(boolOr(a[1], true)), newFileMode)
 				if err != nil {
 					return errResult(err)
 				}
@@ -601,6 +592,7 @@ func init() {
 			fn("File.close", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(handleArg(g, who, a[0]).close())
 			}),
+			fileFS,
 		)
 	})
 }

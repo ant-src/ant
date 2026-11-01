@@ -56,6 +56,11 @@ func namespace(name string, entries ...any) *value.Record {
 		case entry:
 			fields = append(fields, x.name)
 			vals = append(vals, x.v)
+		case []*interp.Builtin:
+			for _, b := range x {
+				fields = append(fields, b.Name[strings.LastIndex(b.Name, ".")+1:])
+				vals = append(vals, b)
+			}
 		}
 	}
 	tag := value.NewTag(name, value.RecordTag, fields)

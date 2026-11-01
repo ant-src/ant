@@ -1,0 +1,27 @@
+// spec: stdlib Os; stdlib File
+// Os (stdlib.md): the process's id, effective user id, home, configuration and cache directories,
+// and host name; File.isTerminal is false for the pipe the harness reads standard output through.
+println(Os.pid() > 0)
+println((Os.uid() ?? 0) >= 0)
+println(Os.home() | Result.map({ Path.isAbs(x) }))
+println(Os.configDir() | Result.map({ Path.isAbs(x) }))
+println(Os.cacheDir() | Result.map({ Path.isAbs(x) }))
+println(Os.hostname() | Result.map({ String.length(x) > 0 }))
+println(File.isTerminal(Os.stdout()))
+println(File.isTerminal(File.buffered(Os.stdout())))
+var dir = Os.args()[0]
+var f = Result.unwrap(File.create("${dir}/plain.txt"))
+println(File.isTerminal(f))
+File.close(f)
+
+// expect
+// args: $TMP
+// out: true
+// out: true
+// out: Ok{ value: true }
+// out: Ok{ value: true }
+// out: Ok{ value: true }
+// out: Ok{ value: true }
+// out: false
+// out: false
+// out: false

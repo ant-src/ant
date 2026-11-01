@@ -1,0 +1,96 @@
+// spec: 2 Literals; stdlib File
+// File (stdlib.md, Modes, Temporary files, Not replacing, Times): tempFile and tempDir set 0o600
+// and 0o700 exactly and keep a pattern's suffix; chmod sets the bits exactly and refuses a mode
+// above 0o7777; a write keeps an existing file's mode; replace: false creates only when nothing is
+// there; touch creates without truncating and sets the modified time.
+var dir = Os.args()[0]
+func mode(path: string): string {
+  File.stat(path) | Result.map({ String.fromInt(x.mode, base: 8) }) | Result.unwrapOr("error")
+}
+func hide(r: Result[void, Error]): string {
+  if r is Ok { "Ok" } else { String.replace(r.error.message, dir, "DIR") }
+}
+
+var tmp = Result.unwrap(File.tempFile("report-*.csv", dir: dir))
+println(String.startsWith(Path.base(tmp), "report-"))
+println(Path.ext(tmp))
+println(Path.dir(tmp) == dir)
+println(mode(tmp))
+println(File.read(tmp))
+var sub = Result.unwrap(File.tempDir("work", dir: dir))
+println(String.startsWith(Path.base(sub), "work"))
+println(mode(sub))
+println(File.tempFile("a/b-*", dir: dir) is Err)
+
+println(File.chmod(tmp, 0o640))
+println(mode(tmp))
+println(File.write(tmp, "secret"))
+println(mode(tmp))
+println(File.chmod(tmp, 0o4755))
+println(mode(tmp))
+println(hide(File.chmod(dir, 0o10000)))
+println(File.chmod(tmp, -1) is Err)
+println(File.chmod("${dir}/missing", 0o644) is Err)
+
+var out = "${dir}/out.txt"
+println(File.write(out, "first", replace: false))
+println(hide(File.write(out, "second", replace: false)))
+println(File.read(out))
+println(File.writeBytes(out, Bytes.fromArray([104, 105]), replace: false) is Err)
+println(File.create(out, replace: false) is Err)
+println(File.write(out, "third"))
+println(File.read(out))
+var fresh = Result.unwrap(File.create("${dir}/fresh.txt", replace: false))
+println(File.writeText(fresh, "new"))
+println(File.close(fresh))
+println(File.read("${dir}/fresh.txt"))
+println(File.write(dir, "x", replace: false) is Err)
+
+var stamp = "${dir}/stamp"
+println(File.touch(stamp))
+println(File.read(stamp))
+println(File.touch(stamp, time: Time.fromEpochMillis(86_400_000)))
+println(File.stat(stamp) | Result.map({ x.modified }))
+println(File.touch(out))
+println(File.read(out))
+println(File.stat(dir) | Result.map({ x.isDir }))
+println(0o777 == 511)
+
+// expect
+// args: $TMP
+// out: true
+// out: .csv
+// out: true
+// out: 600
+// out: Ok{ value: "" }
+// out: true
+// out: 700
+// out: true
+// out: Ok{ value: void }
+// out: 640
+// out: Ok{ value: void }
+// out: 640
+// out: Ok{ value: void }
+// out: 4755
+// out: chmod DIR: mode 0o10000 is outside 0o0 ..= 0o7777
+// out: true
+// out: true
+// out: Ok{ value: void }
+// out: open DIR/out.txt: file exists
+// out: Ok{ value: "first" }
+// out: true
+// out: true
+// out: Ok{ value: void }
+// out: Ok{ value: "third" }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: "new" }
+// out: true
+// out: Ok{ value: void }
+// out: Ok{ value: "" }
+// out: Ok{ value: void }
+// out: Ok{ value: 1970-01-02T00:00:00Z }
+// out: Ok{ value: void }
+// out: Ok{ value: "third" }
+// out: Ok{ value: true }
+// out: true

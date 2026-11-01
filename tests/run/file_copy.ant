@@ -1,0 +1,80 @@
+// spec: stdlib File
+// File (stdlib.md, Copies): copy copies contents and mode, replaces a file, refuses a directory,
+// replace: false and itself; copyAll copies a tree with modes and links as links, to a new path or
+// an empty directory that keeps its mode, and refuses anything else and a target inside the source.
+var dir = Os.args()[0]
+func hide(r: Result[void, Error]): string {
+  if r is Ok { "Ok" } else { String.replace(r.error.message, dir, "DIR") }
+}
+func mode(path: string): string {
+  File.stat(path) | Result.map({ String.fromInt(x.mode, base: 8) }) | Result.unwrapOr("error")
+}
+
+var a = "${dir}/a.sh"
+File.write(a, "echo a\n")
+File.chmod(a, 0o750)
+println(hide(File.copy(a, "${dir}/b.sh")))
+println(File.read("${dir}/b.sh"))
+println(mode("${dir}/b.sh"))
+File.write("${dir}/c.txt", "old contents that are longer")
+println(hide(File.copy(a, "${dir}/c.txt")))
+println(File.read("${dir}/c.txt"))
+println(hide(File.copy(a, "${dir}/b.sh", replace: false)))
+println(hide(File.copy(a, "${dir}/./a.sh")))
+println(File.read(a))
+println(hide(File.copy(a, dir)))
+println(hide(File.copy(dir, "${dir}/d")))
+println(File.copy("${dir}/missing", "${dir}/e") is Err)
+
+var src = "${dir}/src"
+File.mkdir("${src}/sub")
+File.write("${src}/top.txt", "top")
+File.write("${src}/sub/deep.txt", "deep")
+File.chmod("${src}/sub", 0o750)
+File.symlink("sub/deep.txt", "${src}/link")
+println(hide(File.copyAll(src, "${dir}/dst")))
+println(File.walk("${dir}/dst"))
+println(File.read("${dir}/dst/sub/deep.txt"))
+println(mode("${dir}/dst/sub"))
+println(File.readLink("${dir}/dst/link"))
+println(File.read("${dir}/dst/link"))
+println(hide(File.copyAll(src, "${dir}/dst")))
+
+var empty = Result.unwrap(File.tempDir("empty", dir: dir))
+println(hide(File.copyAll(src, empty)))
+println(File.walk(empty))
+println(mode(empty))
+println(hide(File.copyAll(src, "${src}/sub/copy")))
+println(File.exists("${src}/sub/copy"))
+println(hide(File.copyAll(a, "${dir}/single.sh")))
+println(mode("${dir}/single.sh"))
+println(hide(File.copyAll(a, "${dir}/single.sh")))
+
+// expect
+// args: $TMP
+// out: Ok
+// out: Ok{ value: "echo a\n" }
+// out: 750
+// out: Ok
+// out: Ok{ value: "echo a\n" }
+// out: open DIR/b.sh: file exists
+// out: copy DIR/a.sh to DIR/./a.sh: the same file
+// out: Ok{ value: "echo a\n" }
+// out: copy DIR/a.sh to DIR: DIR is a directory
+// out: copy DIR: is a directory; File.copyAll copies a tree
+// out: true
+// out: Ok
+// out: Ok{ value: ["link", "sub/deep.txt", "top.txt"] }
+// out: Ok{ value: "deep" }
+// out: 750
+// out: Ok{ value: "sub/deep.txt" }
+// out: Ok{ value: "deep" }
+// out: copy DIR/src to DIR/dst: DIR/dst exists
+// out: Ok
+// out: Ok{ value: ["link", "sub/deep.txt", "top.txt"] }
+// out: 700
+// out: copy DIR/src to DIR/src/sub/copy: DIR/src/sub/copy lies inside DIR/src
+// out: false
+// out: Ok
+// out: 750
+// out: copy DIR/a.sh to DIR/single.sh: DIR/single.sh exists

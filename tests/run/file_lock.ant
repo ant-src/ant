@@ -1,0 +1,41 @@
+// spec: stdlib File; 9 Waiting
+// File (stdlib.md, Locks): tryLock creates the lock file and holds it; a second handle, even in
+// this process, gets null; lock waits until the holder closes, or is Err with the context's reason;
+// the handle reads and writes; the file stays after the close.
+var path = "${Os.args()[0]}/app.lock"
+var first = Result.unwrap(File.tryLock(path))
+println(first == null)
+println(File.exists(path))
+println(File.tryLock(path))
+println(File.lock(path, ctx: Context.new(timeout: Time.duration(milliseconds: 20))))
+var holder = first ?? panic("no lock")
+println(File.writeText(holder, "12345"))
+
+var released: Channel[bool] = Channel.new()
+go {
+  var waited = Result.unwrap(File.lock(path, ctx: Context.new(timeout: Time.duration(seconds: 10))))
+  println(File.readAll(waited))
+  File.close(waited)
+  Channel.send(released, true)
+}
+Time.sleep(Time.duration(milliseconds: 30))
+println("closing")
+println(File.close(holder))
+println(Channel.receive(released))
+println(File.exists(path))
+var again = Result.unwrap(File.tryLock(path))
+println(again != null)
+
+// expect
+// args: $TMP
+// out: false
+// out: true
+// out: Ok{ value: null }
+// out: Err{ error: Error{ message: "timeout" } }
+// out: Ok{ value: void }
+// out: closing
+// out: Ok{ value: void }
+// out: Ok{ value: "12345" }
+// out: true
+// out: true
+// out: true

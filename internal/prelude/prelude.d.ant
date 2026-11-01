@@ -1411,11 +1411,49 @@ func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 type File.Handle
 
 // File.Info describes the file at a path, as [File.stat] reports it. modified is the time of the
-// last write.
-type File.Info = { name: string, size: int, isDir: bool, modified: Time.Instant }
+// last write. mode holds the permission bits and the setuid, setgid and sticky bits, at most
+// 0o7777; on Windows a file is 0o444 when read-only and 0o666 when not, and a directory adds 0o111.
+// isSymlink is true only when stat was told not to follow a link.
+type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int }
 
-// File.stat returns the name, size, kind, and modification time of the file at path.
-func File.stat(path: string): Result[File.Info, Error]
+// File.stat returns the name, size, kind, modification time and mode of the file at path. It
+// follows a symbolic link and describes its target, unless follow is false, when it describes the
+// link itself.
+func File.stat(path: string, follow: bool = true): Result[File.Info, Error]
+
+// File.chmod sets the mode of the file at path to mode exactly, following a symbolic link. It is
+// Err for a mode outside 0 ..= 0o7777. On Windows only 0o200 counts: without it the file becomes
+// read-only.
+//
+//     File.chmod("deploy.ant", 0o755)
+func File.chmod(path: string, mode: int): Result[void, Error]
+
+// File.touch sets the modified and access times of the file at path to time, or to now when time is
+// null, creating an empty file when nothing is there. It never truncates, and it follows a link.
+func File.touch(path: string, time: Time.Instant | null = null): Result[void, Error]
+
+// File.copy copies the contents of the file at from to to, and then sets to's mode to from's. It
+// replaces a file at to unless replace is false, when it is Err if anything is at to; it is Err
+// when to is a directory. It follows a symbolic link at either end, does not copy times, and is Err
+// before changing anything when from and to are the same file.
+func File.copy(from: string, to: string, replace: bool = true): Result[void, Error]
+
+// File.copyAll copies the file or the whole tree at from to to, keeping modes and copying the
+// links inside the tree as links. to must not exist or, for a tree, be an empty directory, which
+// keeps its own mode; anything else is Err before anything is copied, as is a to that lies inside
+// from. An error partway through leaves what was copied.
+func File.copyAll(from: string, to: string): Result[void, Error]
+
+// File.symlink makes a symbolic link at link whose target is target, in the order of ln -s. A
+// relative target is relative to the link's directory. It is Err when anything is at link.
+func File.symlink(target: string, link: string): Result[void, Error]
+
+// File.readLink returns the target of the symbolic link at path, as it is stored.
+func File.readLink(path: string): Result[string, Error]
+
+// File.realPath returns path made absolute and clean, with every symbolic link along it resolved.
+// It is Err when the path leads nowhere.
+func File.realPath(path: string): Result[string, Error]
 
 // File.mkdir creates the directory at path, with any parents it lacks. It is Ok when the directory
 // already exists.
@@ -1428,9 +1466,17 @@ func File.removeAll(path: string): Result[void, Error]
 // File.rename renames or moves the file or directory at from to the path to.
 func File.rename(from: string, to: string): Result[void, Error]
 
-// File.tempDir creates a fresh directory under the host's temporary directory and returns its path.
-// The directory is named prefix followed by a random suffix.
-func File.tempDir(prefix: string): Result[string, Error]
+// File.tempDir creates a new empty directory, mode 0o700, in dir or the host's temporary directory,
+// and returns its path. Its name is pattern with the last * replaced by a random string, or with
+// the string appended when there is no *. Nothing removes it for the program.
+func File.tempDir(pattern: string, dir: string | null = null): Result[string, Error]
+
+// File.tempFile creates a new empty file, mode 0o600, in dir or the host's temporary directory, and
+// returns its path. Its name is pattern with the last * replaced by a random string, or with the
+// string appended when there is no *. Nothing removes it for the program.
+//
+//     var tmp = try File.tempFile("report-*.csv")
+func File.tempFile(pattern: string, dir: string | null = null): Result[string, Error]
 
 // File.walk returns every file below dir, at any depth, as paths relative to dir. It lists files
 // and not directories, does not follow symbolic links, and returns the paths in lexical order.
@@ -1446,14 +1492,16 @@ func File.read(path: string): Result[string, Error]
 // File.readBytes reads the whole file at path as bytes, unchanged.
 func File.readBytes(path: string): Result[Bytes, Error]
 
-// File.write writes text as UTF-8 to the file at path, creating the file or replacing what it held.
-func File.write(path: string, text: string): Result[void, Error]
+// File.write writes text as UTF-8 to the file at path, creating the file or replacing what it held;
+// a file that exists keeps its mode. With replace false it creates the file only when nothing is at
+// path, and is otherwise Err, having changed nothing.
+func File.write(path: string, text: string, replace: bool = true): Result[void, Error]
 
-// File.writeBytes writes bytes as they are to the file at path, creating the file or replacing what
-// it held.
-func File.writeBytes(path: string, bytes: Bytes): Result[void, Error]
+// File.writeBytes writes bytes as they are to the file at path, as [File.write] writes text.
+func File.writeBytes(path: string, bytes: Bytes, replace: bool = true): Result[void, Error]
 
-// File.exists reports whether anything exists at path, a directory included.
+// File.exists reports whether anything exists at path, a directory included. It follows a symbolic
+// link, so a link that leads nowhere is false.
 func File.exists(path: string): bool
 
 // File.remove removes the file or empty directory at path. It is Err on a directory that has
@@ -1467,8 +1515,27 @@ func File.list(dir: string): Result[Array[string], Error]
 // File.open opens the file at path for reading. Close it with [File.close].
 func File.open(path: string): Result[File.Handle, Error]
 
-// File.create opens the file at path for writing, creating it or truncating what it held.
-func File.create(path: string): Result[File.Handle, Error]
+// File.create opens the file at path for writing, creating it or truncating what it held. With
+// replace false it creates the file only when nothing is at path, and is otherwise Err.
+func File.create(path: string, replace: bool = true): Result[File.Handle, Error]
+
+// File.lock opens the file at path for reading and writing, creating it when it is missing and never
+// truncating it, and waits for an exclusive lock on it. It is Err with ctx's reason when ctx is done
+// first. The lock is released when the handle is closed or the process ends, however it ends.
+func File.lock(path: string, ctx: Context | null = null): Result[File.Handle, Error]
+
+// File.tryLock is [File.lock] without the wait: it is Ok(null) when another handle holds the lock.
+//
+//     var lock = try File.tryLock(path)
+//     if lock == null {
+//       eprintln("already running")
+//       Os.exit(1)
+//     }
+func File.tryLock(path: string): Result[File.Handle | null, Error]
+
+// File.isTerminal reports whether f is a terminal, as [[ -t 1 ]] asks of standard output. A buffered
+// handle answers for the handle under it.
+func File.isTerminal(f: File.Handle): bool
 
 // File.readLine reads the next line from f as text, without its \n or \r\n, and returns null at end
 // of file. When ctx is done first it is Err with ctx's reason, and what it had read stays for the
@@ -2170,6 +2237,27 @@ func Os.environ(): Map[string, string]
 
 // Os.cwd returns the working directory.
 func Os.cwd(): Result[string, Error]
+
+// Os.home returns the user's home directory: $HOME on Unix, %USERPROFILE% on Windows.
+func Os.home(): Result[string, Error]
+
+// Os.configDir returns the directory where the user's programs keep their configuration:
+// $XDG_CONFIG_HOME or ~/.config on Unix, ~/Library/Application Support on macOS, %AppData% on
+// Windows. A program keeps its files under a directory of its own name there.
+func Os.configDir(): Result[string, Error]
+
+// Os.cacheDir returns the directory where the user's programs keep what can be made again:
+// $XDG_CACHE_HOME or ~/.cache on Unix, ~/Library/Caches on macOS, %LocalAppData% on Windows.
+func Os.cacheDir(): Result[string, Error]
+
+// Os.pid returns this process's id.
+func Os.pid(): int
+
+// Os.uid returns the effective user id, 0 for root, or null on Windows, which has none.
+func Os.uid(): int | null
+
+// Os.hostname returns the host's name.
+func Os.hostname(): Result[string, Error]
 
 // Os.exit ends the process at once with status. No deferred block runs, in any goroutine.
 func Os.exit(status: int): never

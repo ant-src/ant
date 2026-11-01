@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"errors"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -51,6 +53,27 @@ func init() {
 				}
 				return value.Ok(value.Text(dir))
 			}),
+			fn("Os.home", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return pathResult(userDir(g.Instance().LookupEnv, homeDir))
+			}),
+			fn("Os.configDir", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return pathResult(userDir(g.Instance().LookupEnv, configDir))
+			}),
+			fn("Os.cacheDir", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return pathResult(userDir(g.Instance().LookupEnv, cacheDir))
+			}),
+			fn("Os.pid", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return int64(os.Getpid())
+			}),
+			fn("Os.uid", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if uid := os.Geteuid(); uid >= 0 {
+					return int64(uid)
+				}
+				return value.Null
+			}),
+			fn("Os.hostname", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return pathResult(os.Hostname())
+			}),
 			fn("Os.exit", "status", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				g.Instance().Exit(int(intArg(g, who, a[0])))
 				return nil
@@ -87,4 +110,56 @@ func init() {
 			}),
 		)...)
 	})
+}
+
+// pathResult is Ok of a path, or the Err of err.
+func pathResult(p string, err error) value.Value {
+	if err != nil {
+		return errResult(err)
+	}
+	return value.Ok(value.Text(p))
+}
+
+// The user directories of Os.home, Os.configDir and Os.cacheDir.
+const (
+	homeDir = iota
+	configDir
+	cacheDir
+)
+
+// userDir is Go's os.UserHomeDir, os.UserConfigDir or os.UserCacheDir, by the same rules, but
+// reading the run's environment, which Os.env reads, rather than the process's.
+func userDir(env func(string) (string, bool), which int) (string, error) {
+	get := func(name string) string {
+		v, _ := env(name)
+		return v
+	}
+	if runtime.GOOS == "windows" {
+		name := [...]string{"USERPROFILE", "AppData", "LocalAppData"}[which]
+		if v := get(name); v != "" {
+			return v, nil
+		}
+		return "", errors.New("%" + name + "% is not defined")
+	}
+	if which != homeDir && runtime.GOOS != "darwin" {
+		name := [...]string{"", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"}[which]
+		if v := get(name); v != "" {
+			if !filepath.IsAbs(v) {
+				return "", errors.New("path in $" + name + " is relative")
+			}
+			return v, nil
+		}
+	}
+	home := get("HOME")
+	if home == "" {
+		return "", errors.New("$HOME is not defined")
+	}
+	switch {
+	case which == homeDir:
+		return home, nil
+	case runtime.GOOS == "darwin":
+		return filepath.Join(home, "Library", [...]string{"", "Application Support", "Caches"}[which]), nil
+	default:
+		return filepath.Join(home, [...]string{"", ".config", ".cache"}[which]), nil
+	}
 }

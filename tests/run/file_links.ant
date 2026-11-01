@@ -1,0 +1,62 @@
+// spec: stdlib File
+// File (stdlib.md, Links): symlink stores its target as given, relative to the link's directory;
+// readLink reads it; stat follows unless follow is false; exists is false at a dangling link;
+// realPath resolves every link; remove acts on the link; write follows it; replace: false refuses it.
+var dir = Os.args()[0]
+File.write("${dir}/target.txt", "target")
+println(File.symlink("target.txt", "${dir}/link"))
+println(File.symlink("target.txt", "${dir}/link") is Err)
+println(File.readLink("${dir}/link"))
+println(File.readLink("${dir}/target.txt") is Err)
+println(File.read("${dir}/link"))
+println(File.stat("${dir}/link") | Result.map({ [x.name, "${x.isSymlink}", "${x.size}"] }))
+println(File.stat("${dir}/link", follow: false) | Result.map({ [x.name, "${x.isSymlink}"] }))
+println(File.realPath("${dir}/link") | Result.map({ Path.base(x) }))
+println(File.realPath("${dir}/link") | Result.map({ Path.isAbs(x) }))
+println(File.list(dir))
+println(File.walk(dir))
+
+println(File.write("${dir}/link", "through"))
+println(File.read("${dir}/target.txt"))
+println(File.write("${dir}/link", "refused", replace: false) is Err)
+println(File.read("${dir}/target.txt"))
+
+println(File.symlink("nowhere.txt", "${dir}/dangling"))
+println(File.exists("${dir}/dangling"))
+println(File.stat("${dir}/dangling") is Err)
+println(File.stat("${dir}/dangling", follow: false) | Result.map({ x.isSymlink }))
+println(File.realPath("${dir}/dangling") is Err)
+println(File.write("${dir}/dangling", "made", replace: false) is Err)
+println(File.exists("${dir}/nowhere.txt"))
+
+println(File.remove("${dir}/link"))
+println(File.exists("${dir}/link"))
+println(File.read("${dir}/target.txt"))
+
+// expect
+// args: $TMP
+// out: Ok{ value: void }
+// out: true
+// out: Ok{ value: "target.txt" }
+// out: true
+// out: Ok{ value: "target" }
+// out: Ok{ value: ["link", "false", "6"] }
+// out: Ok{ value: ["link", "true"] }
+// out: Ok{ value: "target.txt" }
+// out: Ok{ value: true }
+// out: Ok{ value: ["link", "target.txt"] }
+// out: Ok{ value: ["link", "target.txt"] }
+// out: Ok{ value: void }
+// out: Ok{ value: "through" }
+// out: true
+// out: Ok{ value: "through" }
+// out: Ok{ value: void }
+// out: false
+// out: true
+// out: Ok{ value: true }
+// out: true
+// out: true
+// out: false
+// out: Ok{ value: void }
+// out: false
+// out: Ok{ value: "through" }
