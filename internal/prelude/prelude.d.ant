@@ -58,7 +58,7 @@ type Ordered = Number | string
 
 // print writes String.from(value) to standard output, with no newline. Output is not buffered, so
 // it comes out in program order. A failed write is ignored, except a broken pipe, which ends the
-// program as SIGPIPE does; File.writeLine(Os.stdout(), …) reports errors.
+// program with status 141 as SIGPIPE does; File.writeLine(Os.stdout(), …) reports other errors.
 func print[T](value: T): void
 
 // println writes String.from(value) and a newline to standard output. println() with no argument
