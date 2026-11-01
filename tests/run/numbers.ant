@@ -4,6 +4,8 @@
 println(1_000_000)
 println(0xFF)
 println(0b1010)
+println(0o755)
+println(0o7_7)
 println(1e3)
 println(2.5e-3)
 println(7 / 2)
@@ -34,6 +36,8 @@ println(uint32(4294967295))
 // out: 1000000
 // out: 255
 // out: 10
+// out: 493
+// out: 63
 // out: 1000.0
 // out: 0.0025
 // out: 3

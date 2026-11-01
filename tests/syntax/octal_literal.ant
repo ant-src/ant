@@ -1,6 +1,0 @@
-// spec: 2 Literals
-var x = 0o17
-
-// expect
-// exit: 2
-// err: malformed number

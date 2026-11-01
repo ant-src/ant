@@ -520,6 +520,7 @@ func (l *lexer) operator() {
 func isDigit(c byte) bool     { return c >= '0' && c <= '9' }
 func isLetter(c byte) bool    { return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' }
 func isHex(c byte) bool       { return isDigit(c) || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F' }
+func isOctal(c byte) bool     { return c >= '0' && c <= '7' }
 func isBinary(c byte) bool    { return c == '0' || c == '1' }
 func isIdentChar(c byte) bool { return token.IsIdentByte(c) }
 
@@ -551,6 +552,10 @@ func (l *lexer) number() {
 		l.advance(2)
 		base = 16
 		l.digits(isHex, "hexadecimal")
+	case l.has("0o"):
+		l.advance(2)
+		base = 8
+		l.digits(isOctal, "octal")
 	case l.has("0b"):
 		l.advance(2)
 		base = 2
@@ -578,7 +583,7 @@ func (l *lexer) number() {
 		}
 	}
 	switch c := l.peek(0); {
-	case (c == 'X' || c == 'B') && l.src[start:l.pos] == "0":
+	case (c == 'X' || c == 'O' || c == 'B') && l.src[start:l.pos] == "0":
 		l.fail(l.here(), "malformed number literal: write the prefix 0%c in lowercase", c+'a'-'A')
 	case c == 'E' && base == 10 && !strings.Contains(l.src[start:l.pos], "e"):
 		l.fail(l.here(), "malformed number literal: write the exponent with a lowercase e")

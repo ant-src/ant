@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 0O17
+
+// expect
+// exit: 2
+// err: prefix 0o in lowercase
