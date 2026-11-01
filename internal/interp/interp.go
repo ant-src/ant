@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -45,10 +44,6 @@ type Config struct {
 	Foreground func() func(os.Signal) bool
 	// Debugger, when set, stops the run at its breakpoints and steps (dap.md).
 	Debugger *Debugger
-	// WriteThrough writes stdout at every write while no input of a session runs, rather than
-	// buffering it: a session's goroutines may print while the host waits for the next input.
-	// While one runs, its output is buffered and flushed when it ends.
-	WriteThrough bool
 }
 
 // Frame is one entry of a panic trace, innermost first.
@@ -86,7 +81,6 @@ type Instance struct {
 	prog        *loader.Program
 	cfg         Config
 	modules     []*module
-	out         *bufio.Writer
 	outMu       sync.Mutex
 	errMu       sync.Mutex
 	keep        map[string]any
@@ -94,9 +88,6 @@ type Instance struct {
 	localTypes  sync.Map // *ast.Block → the tags and constructors of the types it declares
 	done        atomic.Bool
 	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
-
-	// evaluating is set while an input of a session runs, whose output is buffered
-	evaluating atomic.Bool
 
 	// last is what _ reads in a session: the result of its last input that had one, or nil
 	lastMu sync.Mutex
@@ -112,7 +103,7 @@ type Instance struct {
 	// onStop holds what a library runs as the run stops, such as killing its children.
 	onStopMu sync.Mutex
 	onStop   map[*func(aborted bool)]struct{}
-	// released is set once the run has stopped and flushed: the host's writers are the host's
+	// released is set once the run has stopped: the host's writers are the host's
 	// again, and what a child left running writes through the run is dropped.
 	released bool
 	stdin    io.Reader // cfg.Stdin, behind a lock when it is not a file
@@ -171,7 +162,7 @@ func New(ctx context.Context, prog *loader.Program, cfg Config) *Instance {
 	if cfg.Grace == 0 {
 		cfg.Grace = 100 * time.Millisecond
 	}
-	in := &Instance{prog: prog, cfg: cfg, out: bufio.NewWriter(cfg.Stdout), result: make(chan error, 1)}
+	in := &Instance{prog: prog, cfg: cfg, result: make(chan error, 1)}
 	switch r := cfg.Stdin.(type) {
 	case nil:
 	case *os.File:
@@ -255,7 +246,7 @@ func (in *Instance) wait() error {
 // stop ends the run: the flag first, so a goroutine whose wait the cancellation ends finds it
 // at its very next check, then the context, then what the libraries run as the run stops,
 // told whether a cancellation ended it, then the grace period for the goroutines still
-// running, and a last flush.
+// running.
 func (in *Instance) stop(aborted bool) {
 	in.done.Store(true)
 	in.cancel()
@@ -276,7 +267,6 @@ func (in *Instance) stop(aborted bool) {
 	case <-time.After(in.cfg.Grace):
 	}
 	in.outMu.Lock()
-	in.out.Flush()
 	in.errMu.Lock()
 	in.released = true
 	in.errMu.Unlock()
@@ -409,23 +399,11 @@ func (w testWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Print writes s to the run's stdout.
+// Print writes s to the run's stdout, ignoring an error as Go programs ignore what fmt.Println
+// returns. A broken pipe on the process's own standard output ends it with SIGPIPE, which the Go
+// runtime does for a write to file descriptor 1 or 2.
 func (in *Instance) Print(s string) {
-	in.outMu.Lock()
-	in.out.WriteString(s)
-	if in.cfg.WriteThrough && !in.released && !in.evaluating.Load() {
-		in.out.Flush()
-	}
-	in.outMu.Unlock()
-}
-
-// Flush flushes stdout; blocking builtins call it so output is not held back.
-func (in *Instance) Flush() {
-	in.outMu.Lock()
-	if !in.released {
-		in.out.Flush()
-	}
-	in.outMu.Unlock()
+	io.WriteString(in.Stdout(), s)
 }
 
 // Args returns the program's arguments.
@@ -459,8 +437,9 @@ type eofReader struct{}
 
 func (eofReader) Read([]byte) (int, error) { return 0, io.EOF }
 
-// Stdout returns a writer into the buffer print and println write to, locked per write, so that
-// what a program writes through it and what it prints come out in program order.
+// Stdout returns the writer print, println and Os.stdout write to: the host's standard output,
+// written at once under a lock, so that writes from several goroutines and from children do not
+// interleave within one write, until the run is released.
 func (in *Instance) Stdout() io.Writer { return stdoutWriter{in} }
 
 type stdoutWriter struct{ in *Instance }
@@ -471,24 +450,12 @@ func (w stdoutWriter) Write(p []byte) (int, error) {
 	if w.in.released {
 		return len(p), nil
 	}
-	n, err := w.in.out.Write(p)
-	if err == nil && w.in.cfg.WriteThrough && !w.in.evaluating.Load() {
-		err = w.in.out.Flush()
-	}
-	return n, err
+	return w.in.cfg.Stdout.Write(p)
 }
 
-// ErrWriter returns a writer to the run's standard error that flushes stdout before each write,
-// so that the two streams interleave in program order where they reach one terminal; eprint,
-// eprintln, Os.stderr and the run's reports write through it.
-func (in *Instance) ErrWriter() io.Writer { return errWriter{in} }
-
-type errWriter struct{ in *Instance }
-
-func (w errWriter) Write(p []byte) (int, error) {
-	w.in.Flush()
-	return stderrWriter{w.in}.Write(p)
-}
+// ErrWriter returns the writer to the run's standard error that eprint, eprintln, Os.stderr and
+// the run's reports write through.
+func (in *Instance) ErrWriter() io.Writer { return stderrWriter{in} }
 
 // Keep returns the value stored under key for this run, creating it with create on the first
 // call: a library's per-run state, such as the handles of the standard streams.
@@ -565,8 +532,8 @@ func (in *Instance) ChildStdin() io.Reader {
 	return in.stdin
 }
 
-// ChildStdout returns the run's standard output as a child process is given it, once the buffer
-// is flushed: the file itself when it is one, and otherwise the buffer, so what the child writes
+// ChildStdout returns the run's standard output as a child process is given it: the file itself
+// when it is one, and otherwise the writer behind the lock print takes, so what the child writes
 // and what the program prints never write the host's writer at once.
 func (in *Instance) ChildStdout() io.Writer {
 	if f, ok := in.cfg.Stdout.(*os.File); ok {

@@ -1,0 +1,70 @@
+// spec: stdlib File
+// File.buffered (stdlib.md): writes collect in the buffer until it is full, flushed or closed;
+// flush goes through every layer; a handle buffered enough is returned as it is; reads of the
+// buffered handle read the handle under it; close writes out and closes both; a write after
+// close is an Err and a second close is Ok.
+var dir = Os.args()[0]
+var path = "${dir}/out.txt"
+var f = Result.unwrap(File.create(path))
+var out = File.buffered(f)
+println(File.writeLine(out, "one"))
+println(File.read(path))
+println(File.flush(out))
+println(File.read(path))
+
+var small = File.buffered(f, size: 4)
+println(File.writeText(small, "abcdef"))
+println(File.read(path))
+
+var inner = File.buffered(f, size: 64)
+println(File.buffered(inner, size: 16) == inner)
+var outer = File.buffered(inner, size: 128)
+println(outer == inner)
+println(File.writeText(outer, "x"))
+println(File.flush(outer))
+println(File.read(path))
+
+println(File.close(out))
+println(File.writeText(out, "late") is Err)
+println(File.close(out))
+println(File.writeText(f, "late") is Err)
+
+var input = File.buffered(Result.unwrap(File.open(path)))
+println(File.readLine(input))
+println(File.writeText(input, "x") is Err)
+println(File.close(input))
+println(File.readLine(input) is Err)
+
+var std = File.buffered(Os.stdout())
+println(File.writeLine(std, "held"))
+println("printed")
+println(File.close(std))
+println(File.writeLine(Os.stdout(), "stdout is still open") is Ok)
+
+// expect
+// args: $TMP
+// out: Ok{ value: void }
+// out: Ok{ value: "" }
+// out: Ok{ value: void }
+// out: Ok{ value: "one\n" }
+// out: Ok{ value: void }
+// out: Ok{ value: "one\nabcd" }
+// out: true
+// out: false
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: "one\nabcdx" }
+// out: Ok{ value: void }
+// out: true
+// out: Ok{ value: void }
+// out: true
+// out: Ok{ value: "one" }
+// out: true
+// out: Ok{ value: void }
+// out: true
+// out: Ok{ value: void }
+// out: printed
+// out: held
+// out: Ok{ value: void }
+// out: stdout is still open
+// out: true

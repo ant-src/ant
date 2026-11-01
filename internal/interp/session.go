@@ -18,12 +18,9 @@ type Session struct {
 	Fields *ast.ModuleScope
 }
 
-// NewSession creates a session whose module starts empty, writing its output through rather
-// than buffering it. When ctx is done the session's goroutines stop at their next check, as a
+// NewSession creates a session whose module starts empty. When ctx is done the session's goroutines stop at their next check, as a
 // run's do.
 func NewSession(ctx context.Context, cfg Config) *Session {
-	// output reaches the host at once, since a goroutine may print between inputs
-	cfg.WriteThrough = true
 	in := New(ctx, &loader.Program{}, cfg)
 	return &Session{in: in, known: map[string]*module{}, Fields: &ast.ModuleScope{Index: map[string]int{}}}
 }
@@ -101,7 +98,6 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 	}
 	s.in.linkModule(s.mod, lookup)
 	s.mod.grow.Unlock()
-	s.in.evaluating.Store(true)
 	g := s.in.newGoroutine(true)
 	var result value.Value = value.Void
 	err := s.in.runOn(func() {
@@ -124,7 +120,5 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 			g.panicf(ast.Pos{}, "internal error: control left a session input")
 		}
 	})
-	s.in.evaluating.Store(false)
-	s.in.Flush()
 	return result, err
 }

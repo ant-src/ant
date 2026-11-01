@@ -290,7 +290,6 @@ func init() {
 			fn("Time.sleep", "d, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				d := spanArg(g, who, a[0])
 				ctx := waitContext(g, who, a[1])
-				g.Instance().Flush()
 				if ctx.Err() == nil && d > 0 {
 					timer := time.NewTimer(d)
 					defer timer.Stop()

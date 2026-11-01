@@ -147,7 +147,6 @@ func RunTests(ctx context.Context, prog *loader.Program, cfg Config, tc TestConf
 			g.enterAnt()
 		}
 		in.initModules(g)
-		in.Flush() // what initialization printed comes before the first test's report
 		root := in.modules[prog.Root.Index]
 		file := &testRun{file: tf, level: -1, release: make(chan struct{})}
 		for _, t := range prog.Root.File.Tests {

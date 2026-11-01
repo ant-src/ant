@@ -526,5 +526,5 @@ func (s *Session) Value(name string) (value.Value, bool) {
 	return s.s.Lookup(name)
 }
 
-// Close stops the session's goroutines and flushes its output.
+// Close stops the session's goroutines.
 func (s *Session) Close() { s.s.Instance().Close() }

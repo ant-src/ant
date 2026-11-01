@@ -10,7 +10,7 @@ import (
 )
 
 // The Net namespace (stdlib.md): TCP listeners and connections, a connection being a
-// File.Handle whose writes flush and whose reads a context can end through the deadline.
+// File.Handle whose reads a context can end through the deadline.
 
 // Listener is a listening TCP socket: Net.Listener. Connections are accepted by a pump, one
 // goroutine started at the first Net.accept, which hands each over conns to the next caller,
@@ -87,8 +87,8 @@ func listenerArg(g *interp.Goroutine, who string, v value.Value) *Listener {
 	return typedArg[*Listener](g, who, "a Net.Listener", v)
 }
 
-// connHandle wraps a connection as a handle: buffered both ways, writes flushed, reads ended
-// by a context through the deadline.
+// connHandle wraps a connection as a handle: reads buffered and ended by a context through the
+// deadline, writes sent as they are made.
 func connHandle(c net.Conn) *Handle {
 	h := newHandle(c, c, c)
 	h.dl, h.conn, h.peer = c, true, c.RemoteAddr().String()
@@ -139,7 +139,6 @@ func init() {
 			fn("Net.accept", "l, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				l := listenerArg(g, who, a[0])
 				ctx := waitContext(g, who, a[1])
-				g.Instance().Flush()
 				c, err := l.accept(g.Context().Done(), ctx)
 				g.AfterWait()
 				if err != nil {
@@ -165,7 +164,6 @@ func init() {
 			}),
 			fn("Net.dial", "addr, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				ctx := waitContext(g, who, a[1])
-				g.Instance().Flush()
 				var d net.Dialer
 				c, err := d.DialContext(ctx, "tcp", stringArg(g, who, a[0]))
 				g.AfterWait()
@@ -175,7 +173,7 @@ func init() {
 				return value.Ok(connHandle(c))
 			}),
 			fn("Net.peer", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				h := handleArg(g, who, a[0])
+				h := handleArg(g, who, a[0]).source()
 				if !h.conn {
 					return value.Null
 				}

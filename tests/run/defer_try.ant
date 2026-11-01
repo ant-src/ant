@@ -1,7 +1,7 @@
 // spec: 8 defer; 8 try; stdlib File
 // The copy function of section 8: a deferred close runs when try leaves the function early with
 // an Err, and in reverse order of registration when it succeeds. The explicit close of output
-// reports the final flush, and the deferred close after it does nothing and is Ok.
+// reports the close, and the deferred close after it does nothing and is Ok.
 func copy(src: string, dst: string): Result[void, Error] {
   var input = try File.open(src)
   defer { println("closing input"); File.close(input) }

@@ -65,7 +65,7 @@ func init() {
 				return in.Keep(who, func() any {
 					p := &pump{src: in.Stdin(), done: in.Context().Done()}
 					h := newHandle(nil, p, nil)
-					h.std, h.in, h.pump, h.childIn = true, in, p, in.ChildStdin()
+					h.std, h.pump, h.childIn = true, p, in.ChildStdin()
 					return h
 				}).(*Handle)
 			}),

@@ -153,13 +153,6 @@ func (d *Debugger) SetPanicFilters(uncaught, all bool) {
 	d.mu.Unlock()
 }
 
-// Flush writes out what the program has printed, once the run has started.
-func (d *Debugger) Flush() {
-	if in := d.in.Load(); in != nil {
-		in.Flush()
-	}
-}
-
 // ---- control
 
 // Continue resumes every goroutine.
@@ -222,7 +215,6 @@ func (d *Debugger) Pause(id int) {
 		st := Stop{Goroutine: id, Reason: "pause"}
 		d.stop, d.stopped = st, true
 		d.mu.Unlock()
-		d.Flush()
 		d.OnStop(st)
 	}()
 }
@@ -351,7 +343,6 @@ func (d *Debugger) stopAt(g *Goroutine, reason string, p *AntPanic) {
 	d.stop, d.stopped = st, true
 	gen := d.gen
 	d.mu.Unlock()
-	d.Flush() // what the program wrote before the stop shows at the stop
 	d.OnStop(st)
 	d.mu.Lock()
 	for d.gen == gen {

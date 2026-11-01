@@ -306,7 +306,7 @@ func (f *input) end() {
 	}
 }
 
-// startProcess starts the stages, flushing standard output first, each one's standard output
+// startProcess starts the stages, each one's standard output
 // joined to the next one's input, and returns the process, with a goroutine that reaps them and
 // then ends the copy of feed into the first, when there is one. The caller has set the first
 // stage's input, the last one's output, and every standard error. The stages are killed when ctx
@@ -353,7 +353,6 @@ func startProcess(in *interp.Instance, cmds []*exec.Cmd, programs []string, ctx 
 		ends = append(ends, r, w)
 	}
 	serialize(cmds)
-	in.Flush() // what the program printed precedes what the children print
 	for i, cmd := range cmds {
 		if group {
 			leader := 0
@@ -498,20 +497,19 @@ func stdinFor(in *interp.Instance) (*os.File, *input, value.Value) {
 	}
 }
 
-// childOutput gives a child the handle h as an output, flushed first, so what the program wrote
-// to it comes first: a standard stream as the run's own, a file as it is, anything else through
-// a copy the runtime writes into the handle.
+// childOutput gives a child the handle h as an output: a buffered handle written out first, so
+// what the program wrote to it comes first, and the handle under it given; a standard stream as
+// the run's own, a file as it is, anything else through a copy the runtime writes into the
+// handle.
 func childOutput(h *Handle) (io.Writer, value.Value) {
 	if h.w == nil || h.isClosed() {
 		return nil, value.Err(value.ErrorValue(errNotWritable))
 	}
-	h.writes.Lock()
-	err := h.w.Flush()
-	h.writes.Unlock()
-	switch {
-	case err != nil:
+	if err := h.flush(); err != nil {
 		return nil, errResult(err)
-	case h.std:
+	}
+	h = h.sink()
+	if h.std {
 		return h.childOut, nil
 	}
 	if f := h.file(); f != nil {
@@ -539,19 +537,6 @@ func (r handleReader) Read(b []byte) (int, error) {
 		return n, nil
 	}
 	return r.h.r.Read(b)
-}
-
-// handleWriter writes a child's output into h, flushed as it comes.
-type handleWriter struct{ h *Handle }
-
-func (w handleWriter) Write(b []byte) (int, error) {
-	w.h.writes.Lock()
-	defer w.h.writes.Unlock()
-	n, err := w.h.w.Write(b)
-	if err == nil {
-		err = w.h.w.Flush()
-	}
-	return n, err
 }
 
 // capture runs a command for Cmd.read, Cmd.readBytes and Cmd.capture, arguments c, input and ctx:
@@ -656,7 +641,6 @@ func runCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	}
 	<-p.done
 	release(endedBy(p.last().ProcessState))
-	in.Flush()
 	g.AfterWait()
 	return p.outcome()
 }
@@ -681,7 +665,7 @@ func startCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 		}
 	}
 	if v := a[1]; given(v) {
-		file, f, fail := childInput(in, handleArg(g, who, v))
+		file, f, fail := childInput(in, handleArg(g, who, v).source())
 		if fail != nil {
 			return fail
 		}
@@ -853,7 +837,7 @@ func shellQuote(s string, program bool) string {
 }
 
 // openPipe is Os.openPipe: two handles, what is written to one read from the other. A read of
-// the reading end waits, and a context ends it through the deadline; a write is flushed.
+// the reading end waits, and a context ends it through the deadline.
 func openPipe(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -863,7 +847,6 @@ func openPipe(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	read := newHandle(r, via, nil)
 	read.dl, read.via = r, via
 	write := newHandle(w, nil, w)
-	write.pipe = true
 	return value.Ok(value.NewRecord(PipeTag, []value.Value{read, write}))
 }
 

@@ -432,18 +432,6 @@ func (s *server) start() {
 	s.started = true
 	s.done = make(chan struct{})
 	go func() {
-		tick := time.NewTicker(100 * time.Millisecond)
-		defer tick.Stop()
-		for {
-			select {
-			case <-tick.C:
-				s.d.Flush()
-			case <-s.done:
-				return
-			}
-		}
-	}()
-	go func() {
 		var err error
 		if s.tests != nil {
 			err = interp.RunTests(s.ctx, s.prog, s.cfg, *s.tests)

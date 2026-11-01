@@ -109,7 +109,6 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 		}
 	}
 	recv(g.in.ctx.Done(), selectOwner{clause: -1})
-	g.in.Flush()
 	if g.d != nil {
 		g.leaveAnt()
 	}

@@ -1,6 +1,6 @@
 // spec: stdlib Net; stdlib File; 9 Waiting
 // Net: a listener on any free port, its address, a connection dialed to it and one accepted
-// from it, lines exchanged both ways with writes that flush, the peer of each end, a read on
+// from it, lines exchanged both ways, the peer of each end, a read on
 // a connection that a context ends, an accept that a context ends, a dial that fails, and a
 // closed listener whose accept is Err.
 var listener = Result.unwrap(Net.listen("127.0.0.1:0"))

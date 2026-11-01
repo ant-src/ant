@@ -116,7 +116,6 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	if err := headers(g, who, hdrs, req); err != nil {
 		return errResult(err)
 	}
-	g.Instance().Flush()
 	resp, err := client.Do(req)
 	g.AfterWait()
 	if err != nil {
@@ -160,7 +159,6 @@ func serve(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			serveRequest(g, handler, w, r)
 		}),
 	}
-	g.Instance().Flush()
 	done := make(chan error, 1)
 	go func() { done <- srv.Serve(newServeListener(l, g.Context().Done())) }()
 	select {

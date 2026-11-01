@@ -548,9 +548,9 @@ func TestHostSignatureLimits(t *testing.T) {
 	}
 }
 
-// TestStderrFlushesStdout: a write to standard error flushes standard output first, so where the
-// two reach one writer they interleave in program order (stdlib.md, Os, Streams).
-func TestStderrFlushesStdout(t *testing.T) {
+// TestStreamsInProgramOrder: neither stream is buffered, so where the two reach one writer they
+// interleave in program order (stdlib.md, Os, Streams).
+func TestStreamsInProgramOrder(t *testing.T) {
 	prog := loadSrc(t, `print("a"); eprint("b"); println("c"); File.writeText(Os.stderr(), "d"); eprintln(); println("e")`)
 	var both strings.Builder
 	if err := prog.Run(context.Background(), ant.WithStdout(&both), ant.WithStderr(&both)); err != nil {

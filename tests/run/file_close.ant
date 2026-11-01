@@ -1,5 +1,5 @@
 // spec: stdlib File; stdlib Os
-// File.close returns a Result: Ok when the flush and the close succeed, Ok again on a handle
+// File.close returns a Result: Ok when the close succeeds, Ok again on a handle
 // already closed, which stays closed, and Ok on a standard stream, which it leaves open.
 var dir = Os.args()[0]
 var path = "${dir}/out.txt"

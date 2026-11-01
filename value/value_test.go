@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"math"
 	"sync"
 	"testing"
@@ -408,20 +409,18 @@ func TestSlotAndSync(t *testing.T) {
 	o := NewOnce()
 	n := 0
 	for i := 0; i < 3; i++ {
-		o.Do(func() error { n++; return nil }, func() { t.Error("waited with no run in progress") })
+		o.Do(func() error { n++; return nil })
 	}
 	if n != 1 {
 		t.Errorf("once ran %d times", n)
 	}
-	// a call that comes while the run is in progress calls waiting before it waits
+	// a call that comes while the run is in progress waits for it, and does not run f again
 	slow, started, release := NewOnce(), make(chan bool), make(chan bool)
-	go slow.Do(func() error { started <- true; <-release; return nil }, func() {})
+	go slow.Do(func() error { started <- true; <-release; return errors.New("first") })
 	<-started
-	waited := false
 	go func() { time.Sleep(10 * time.Millisecond); release <- true }()
-	slow.Do(func() error { t.Error("ran twice"); return nil }, func() { waited = true })
-	if !waited {
-		t.Error("a waiting call did not call waiting")
+	if err := slow.Do(func() error { t.Error("ran twice"); return nil }); err == nil || err.Error() != "first" {
+		t.Errorf("a waiting call returned %v, not the run's error", err)
 	}
 	c := NewCond(m)
 	if err := c.Wait(); err == nil {

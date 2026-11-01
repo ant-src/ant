@@ -1,6 +1,6 @@
 // spec: stdlib File
-// A pipe ended by its context delivers what it copied: the destination is flushed whatever
-// ended the copy.
+// A pipe ended by its context delivers what it copied: each chunk is written as it is read,
+// whatever ended the copy.
 var l = Result.unwrap(Net.listen("127.0.0.1:0"))
 var done: Channel[bool] = Channel.new()
 go {

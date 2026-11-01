@@ -1,14 +1,15 @@
 // spec: stdlib File
-// Handles (stdlib.md): writeText and flush on a file being written, readAll on one being read,
-// and every function on a closed handle is an Err.
+// Handles (stdlib.md): a write is handed to the OS before it returns, so flush has nothing to
+// do; readAll on a handle being read; every read and write of a closed handle is an Err, and
+// flush of a handle that is not buffered is Ok.
 var dir = Os.args()[0]
 var path = "${dir}/log.txt"
 var out = Result.unwrap(File.create(path))
 println(File.writeText(out, "a"))
 println(File.read(path))
 println(File.flush(out))
-println(File.read(path))
 println(File.writeText(out, "b\n"))
+println(File.read(path))
 File.close(out)
 var input = Result.unwrap(File.open(path))
 println(File.readLine(input))
@@ -18,19 +19,19 @@ println(File.flush(input))
 println(File.writeText(input, "x") is Err)
 File.close(input)
 println(File.readAll(input) is Err)
-println(File.flush(input) is Err)
+println(File.flush(input))
 
 // expect
 // args: $TMP
 // out: Ok{ value: void }
-// out: Ok{ value: "" }
-// out: Ok{ value: void }
 // out: Ok{ value: "a" }
 // out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: "ab\n" }
 // out: Ok{ value: "ab" }
 // out: Ok{ value: "" }
 // out: Ok{ value: "" }
 // out: Ok{ value: void }
 // out: true
 // out: true
-// out: true
+// out: Ok{ value: void }

@@ -111,7 +111,6 @@ func init() {
 			}),
 			fn("Context.wait", "ctx", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := contextArg(g, who, a[0])
-				g.Instance().Flush()
 				<-c.Ctx.Done()
 				g.AfterWait()
 				return value.Void

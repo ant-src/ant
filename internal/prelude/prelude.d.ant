@@ -56,16 +56,17 @@ type Number = Integer | float32 | float64
 // Ordered is any type < and > compare: the numbers and string.
 type Ordered = Number | string
 
-// print writes String.from(value) to standard output, with no newline. Output is buffered and
-// flushed when the program reads standard input, blocks, or exits.
+// print writes String.from(value) to standard output, with no newline. Output is not buffered, so
+// it comes out in program order. A failed write is ignored, except a broken pipe, which ends the
+// program as SIGPIPE does; File.writeLine(Os.stdout(), …) reports errors.
 func print[T](value: T): void
 
 // println writes String.from(value) and a newline to standard output. println() with no argument
 // writes only the newline.
 func println[T](value: T): void
 
-// eprint writes String.from(value) to standard error, with no newline. Standard error is not
-// buffered; a write to it flushes standard output first, so the two interleave in program order.
+// eprint writes String.from(value) to standard error, with no newline. Neither stream is buffered,
+// so the two interleave in program order.
 func eprint[T](value: T): void
 
 // eprintln writes String.from(value) and a newline to standard error, for a warning or a usage
@@ -1403,9 +1404,10 @@ func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 // network connections. Every operation that can fail returns a Result with an Error; a read that
 // waits takes a context.
 
-// File.Handle is an opaque handle to an open file, a standard stream, or a network connection. The
-// reads of a handle share one buffer, so a program can read lines and then bytes from it. One
-// goroutine may read a handle while another writes it.
+// File.Handle is an opaque handle to an open file, a standard stream, a network connection, or a
+// buffer over one ([File.buffered]). The reads of a handle share one buffer, so a program can read
+// lines and then bytes from it. A write is handed to the OS before it returns, all of it or Err,
+// except a write to a buffered handle. One goroutine may read a handle while another writes it.
 type File.Handle
 
 // File.Info describes the file at a path, as [File.stat] reports it. modified is the time of the
@@ -1476,14 +1478,17 @@ func File.readLine(f: File.Handle, ctx: Context | null = null): Result[string | 
 // File.writeLine writes line and a newline to f.
 func File.writeLine(f: File.Handle, line: string): Result[void, Error]
 
-// File.pipe copies the rest of src to dst. What it copied is flushed even when ctx ends the copy,
-// which is then Err with ctx's reason.
+// File.pipe copies the rest of src to dst, writing each chunk as it is read, so a source that waits
+// streams. What it read has been written even when ctx ends the copy, which is then Err with ctx's
+// reason.
 func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): Result[void, Error]
 
-// File.close flushes and closes f, and is Err when the flush or the close fails, as a write can
-// once its buffer is written out; f is closed either way. It does nothing and is Ok on a standard
-// stream and on a handle already closed, so a deferred close can follow an explicit one. Called
-// from another goroutine, it ends a read or write in progress on f with an Err.
+// File.close closes f, and is Err when the close fails; f is closed either way. A buffered handle
+// writes its buffer out first and then closes the handle under it, reporting the first error,
+// unless a write of it is in progress on another goroutine: then the buffer is lost. It does
+// nothing and is Ok on a standard stream and on a handle already closed, so a deferred close can
+// follow an explicit one. Called from another goroutine, it ends a read or write in progress on f
+// with an Err.
 func File.close(f: File.Handle): Result[void, Error]
 
 // File.readAll reads the rest of f as text. Bytes that are not valid UTF-8 become U+FFFD.
@@ -1506,8 +1511,18 @@ func File.writeChunk(f: File.Handle, bytes: Bytes): Result[void, Error]
 // File.writeText writes text to f as UTF-8, without adding a newline.
 func File.writeText(f: File.Handle, text: string): Result[void, Error]
 
-// File.flush writes out what is buffered for f. It is for files: a write to a connection or a
-// standard stream is flushed without it.
+// File.buffered returns a handle over f whose writes collect in a buffer of size bytes, written to f
+// when a write does not fit, at [File.flush], and at [File.close], and at nothing else: a buffered
+// handle neither flushed nor closed when the run ends loses what it holds. It is for a loop of many
+// small writes. f itself is returned when it is buffered with at least size bytes; a size below 1
+// gives the default. Reads of the handle read f. The first error writing the buffer out is kept
+// and returned by every later write and flush, and by the first close. A write to f itself goes
+// past the buffer.
+func File.buffered(f: File.Handle, size: int = 4096): File.Handle
+
+// File.flush writes out the buffer of a buffered handle, and of every buffered handle under it, so
+// that what was written to f has been handed to the OS. On a handle that is not buffered it does
+// nothing and is Ok.
 func File.flush(f: File.Handle): Result[void, Error]
 
 // Path
@@ -2115,7 +2130,7 @@ func Net.accept(l: Net.Listener, ctx: Context | null = null): Result[File.Handle
 func Net.close(l: Net.Listener): void
 
 // Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and
-// written with the File functions, and every write to it is flushed.
+// written with the File functions.
 func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Error]
 
 // Net.peer returns the address of the other end of the connection f, as "ip:port". It is null when
@@ -2160,7 +2175,7 @@ func Os.cwd(): Result[string, Error]
 func Os.exit(status: int): never
 
 // Os.openPipe returns a pipe, two handles the program closes: what is written to write is read
-// from read. A read waits for data, and a write is flushed. The reading end is at end of file once
+// from read. A read waits for data. The reading end is at end of file once
 // every writing end is closed, the copies given to children and the program's own.
 func Os.openPipe(): Result[Os.Pipe, Error]
 
@@ -2168,8 +2183,7 @@ func Os.openPipe(): Result[Os.Pipe, Error]
 // when PATH holds none.
 func Os.which(program: string): string | null
 
-// Os.stdin returns the program's standard input. A read of it flushes standard output first, so a
-// prompt is seen before the program waits.
+// Os.stdin returns the program's standard input.
 func Os.stdin(): File.Handle
 
 // Os.interrupt returns a context that is done, with the reason "interrupt", when the process is
@@ -2178,13 +2192,11 @@ func Os.stdin(): File.Handle
 // program cancels the context itself.
 func Os.interrupt(): Context
 
-// Os.stdout returns the program's standard output. print and println write to the same buffer, so
-// their output interleaves in program order.
+// Os.stdout returns the program's standard output, which [print] and [println] write to as well. It
+// is not buffered; File.buffered(Os.stdout()) buffers a program that writes much.
 func Os.stdout(): File.Handle
 
 // Os.stderr returns the program's standard error, which [eprint] and [eprintln] write to as well.
-// A write to it flushes standard output first, so it waits while standard output cannot be written,
-// as when the reader of a full pipe is not reading.
 func Os.stderr(): File.Handle
 
 // Cmd is a program to run, as a value: a Cmd says what to run, and a function of Cmd says how.

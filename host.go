@@ -195,7 +195,7 @@ func (in *Instance) Func(name string) (*Func, bool) {
 // Value returns a top-level value of the root module, such as a var or a type's tag.
 func (in *Instance) Value(name string) (value.Value, bool) { return in.in.Lookup(name) }
 
-// Close stops the instance's goroutines and flushes its output.
+// Close stops the instance's goroutines.
 func (in *Instance) Close() { in.in.Close() }
 
 // A Func is an Ant function callable from Go.

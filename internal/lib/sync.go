@@ -5,8 +5,7 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// The sync types of section 9 as tags with functions (section 11). A blocking call flushes
-// stdout first, so output is not held back while the program waits.
+// The sync types of section 9 as tags with functions (section 11).
 
 func mutexArg(g *interp.Goroutine, who string, v value.Value) *value.Mutex {
 	return typedArg[*value.Mutex](g, who, "a Mutex", v)
@@ -33,10 +32,6 @@ func atomicArg(g *interp.Goroutine, who string, v value.Value) *value.Atomic {
 }
 
 func lock(g *interp.Goroutine, m *value.Mutex) {
-	if m.TryLock() {
-		return
-	}
-	g.Instance().Flush()
 	m.Lock()
 }
 
@@ -64,7 +59,7 @@ func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.
 		}()
 		keep(g.Call(f))
 		return nil
-	}, g.Instance().Flush)
+	})
 	if p, ok := err.(*interp.AntPanic); ok {
 		g.Repanic(p)
 	}
@@ -100,7 +95,6 @@ func init() {
 		return syncTag("RwMutex",
 			fn("RwMutex.new", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value { return value.NewRwMutex() }),
 			fn("RwMutex.readLock", "m", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				g.Instance().Flush()
 				rwArg(g, who, a[0]).ReadLock()
 				return value.Void
 			}),
@@ -111,7 +105,6 @@ func init() {
 				return value.Void
 			}),
 			fn("RwMutex.writeLock", "m", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				g.Instance().Flush()
 				rwArg(g, who, a[0]).WriteLock()
 				return value.Void
 			}),
@@ -124,7 +117,6 @@ func init() {
 			fn("RwMutex.withRead", "m, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				m := rwArg(g, who, a[0])
 				f := funcArg(g, who, a[1])
-				g.Instance().Flush()
 				m.ReadLock()
 				defer m.ReadUnlock()
 				return g.Call(f)
@@ -132,7 +124,6 @@ func init() {
 			fn("RwMutex.withWrite", "m, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				m := rwArg(g, who, a[0])
 				f := funcArg(g, who, a[1])
-				g.Instance().Flush()
 				m.WriteLock()
 				defer m.WriteUnlock()
 				return g.Call(f)
@@ -157,7 +148,6 @@ func init() {
 			fn("WaitGroup.wait", "wg, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				w := wgArg(g, who, a[0])
 				ctx := waitContext(g, who, a[1])
-				g.Instance().Flush()
 				if ctx.Err() == nil {
 					select {
 					case <-w.Zero():
@@ -198,7 +188,6 @@ func init() {
 			}),
 			fn("Cond.wait", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := condArg(g, who, a[0])
-				g.Instance().Flush()
 				if err := c.Wait(); err != nil {
 					g.Panic("%s", err)
 				}

@@ -1,6 +1,6 @@
 // spec: stdlib Os
 // The standard streams as handles (stdlib.md): input from the harness's stdin trailer, output
-// through the same buffer as print, so the two interleave in program order, and errors on
+// unbuffered, as print is, so the two interleave in program order, and errors on
 // standard error. Os.stdin() is one handle per run, and close does nothing to a stream.
 var input = Os.stdin()
 var out = Os.stdout()
