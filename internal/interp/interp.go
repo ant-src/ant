@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/ant-src/ant/ast"
@@ -105,8 +104,9 @@ type Instance struct {
 	onStopMu sync.Mutex
 	onStop   map[*func(aborted bool)]struct{}
 	// released is set once the run has stopped: the host's writers are the host's
-	// again, and what a child left running writes through the run is dropped.
-	released bool
+	// again, and what a child left running writes through the run is dropped. It is not
+	// behind outMu and errMu, so that a write stuck on a full pipe does not hold up the end.
+	released atomic.Bool
 	stdin    io.Reader // cfg.Stdin, behind a lock when it is not a file
 	dbg      *Debugger
 }
@@ -267,11 +267,21 @@ func (in *Instance) stop(aborted bool) {
 	case <-finished:
 	case <-time.After(in.cfg.Grace):
 	}
-	in.outMu.Lock()
-	in.errMu.Lock()
-	in.released = true
-	in.errMu.Unlock()
-	in.outMu.Unlock()
+	in.released.Store(true)
+	// A write under way finishes before Run returns, unless it is stuck, as on a pipe nobody
+	// reads; that one is waited for no longer than the grace, and may land after Run returns.
+	written := make(chan struct{})
+	go func() {
+		in.outMu.Lock()
+		in.errMu.Lock()
+		in.errMu.Unlock()
+		in.outMu.Unlock()
+		close(written)
+	}()
+	select {
+	case <-written:
+	case <-time.After(in.cfg.Grace):
+	}
 }
 
 // LastResult is what _ reads in a session, and false before any result.
@@ -396,12 +406,13 @@ func (g *Goroutine) Eprint(s string) {
 const brokenPipeStatus = 128 + 13
 
 // brokenPipe ends the run when err is a broken pipe, as SIGPIPE ends a Go program whose
-// standard output's reader is gone. The Go runtime raises the signal itself unless the process
-// inherited SIGPIPE ignored; then the write returns EPIPE, and this ends the run, so a loop of
-// print into a closed pipe does not spin. Any other error is ignored, as Go programs ignore
-// what fmt.Println returns.
+// standard output's reader is gone. On Unix, a write to the process's own fd 1 or 2 never gets
+// here: the Go runtime raises SIGPIPE for it, even when the process inherited SIGPIPE ignored,
+// and the process dies. This is for where no signal comes, Windows and a host's own writer, so
+// that a loop of print into a closed pipe does not spin. Any other error is ignored, as Go
+// programs ignore what fmt.Println returns.
 func (g *Goroutine) brokenPipe(err error) {
-	if errors.Is(err, syscall.EPIPE) {
+	if isBrokenPipe(err) {
 		g.in.Exit(brokenPipeStatus)
 	}
 }
@@ -469,7 +480,7 @@ type stdoutWriter struct{ in *Instance }
 func (w stdoutWriter) Write(p []byte) (int, error) {
 	w.in.outMu.Lock()
 	defer w.in.outMu.Unlock()
-	if w.in.released {
+	if w.in.released.Load() {
 		return len(p), nil
 	}
 	return w.in.cfg.Stdout.Write(p)
@@ -580,7 +591,7 @@ type stderrWriter struct{ in *Instance }
 func (w stderrWriter) Write(p []byte) (int, error) {
 	w.in.errMu.Lock()
 	defer w.in.errMu.Unlock()
-	if w.in.released {
+	if w.in.released.Load() {
 		return len(p), nil
 	}
 	return w.in.cfg.Stderr.Write(p)

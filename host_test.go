@@ -562,8 +562,8 @@ func TestStreamsInProgramOrder(t *testing.T) {
 	}
 }
 
-// brokenPipe is an output whose reader is gone, as a pipe is to a process that inherited
-// SIGPIPE ignored.
+// brokenPipe is an output whose reader is gone, as a host's writer or a pipe on Windows gives
+// it; on Unix the Go runtime kills the process instead.
 type brokenPipe struct{}
 
 func (brokenPipe) Write([]byte) (int, error) { return 0, syscall.EPIPE }
@@ -578,6 +578,33 @@ func TestBrokenPipeEndsRun(t *testing.T) {
 		if !errors.As(err, &ee) || ee.Status != 141 {
 			t.Errorf("%s: %v, want exit status 141", src, err)
 		}
+	}
+}
+
+// stuckWriter is an output nobody reads: a write blocks until release is closed.
+type stuckWriter struct{ release chan struct{} }
+
+func (w stuckWriter) Write(p []byte) (int, error) {
+	<-w.release
+	return len(p), nil
+}
+
+// TestStuckWriteDoesNotHoldRun: a goroutine blocked writing to a full pipe does not keep the
+// run from ending once the script is done.
+func TestStuckWriteDoesNotHoldRun(t *testing.T) {
+	w := stuckWriter{make(chan struct{})}
+	defer close(w.release)
+	prog := loadSrc(t, `go { println("y") }
+Time.sleep(Time.duration(milliseconds: 20))`)
+	done := make(chan error, 1)
+	go func() { done <- prog.Run(context.Background(), ant.WithStdout(w)) }()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the run waited behind the stuck write")
 	}
 }
 
