@@ -1,6 +1,6 @@
 // spec: 10 Tests
 
-// A library with private names, which its companion test file sees.
+// A library with private names, which a test file may import.
 
 export type Stack = { items: Array[int] }
 

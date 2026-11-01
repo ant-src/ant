@@ -688,7 +688,9 @@ func TestLaunchTest(t *testing.T) {
   n * 2
 }
 `,
-		"calc_test.ant": `test "double" {
+		"calc_test.ant": `import "./calc.ant" { double }
+
+test "double" {
   for n in [1, 2] {
     test "${n}" {
       var d = double(n)
@@ -707,7 +709,7 @@ test "other" {
 	ok(t, c.request("launch", map[string]any{"program": filepath.Join(dir, "calc_test.ant"), "test": "^double$/^2$"}))
 	ok(t, c.request("setBreakpoints", map[string]any{
 		"source":      map[string]any{"path": filepath.Join(dir, "calc_test.ant")},
-		"breakpoints": []map[string]any{{"line": 5}},
+		"breakpoints": []map[string]any{{"line": 7}},
 	}))
 	ok(t, c.request("configurationDone", nil))
 	stop := c.event("stopped")
@@ -715,7 +717,7 @@ test "other" {
 		t.Fatalf("stopped: %v", stop)
 	}
 	frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)
-	if top := frames[0].(map[string]any); top["name"] != `test "2"` || top["line"] != 5.0 {
+	if top := frames[0].(map[string]any); top["name"] != `test "2"` || top["line"] != 7.0 {
 		t.Errorf("top frame: %v", top)
 	}
 	ok(t, c.request("continue", nil))

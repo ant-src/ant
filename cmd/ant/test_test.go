@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// corpusDir holds the programs of ant test: test files with the companions and helpers they
+// corpusDir holds the programs of ant test: test files with the libraries and helpers they
 // use, each test file ending in a trailer, as the programs under tests/run do (tests/README.md):
 //
 //	// args: -v -run x     the flags given to ant test before the file
@@ -84,7 +84,7 @@ func TestTestCorpus(t *testing.T) {
 					t.Errorf("stderr lacks %q:\n%s", text, stderr.String())
 				}
 			}
-			// Every test file type-checks, with its companion.
+			// Every test file type-checks, with what it imports.
 			var cout, cerr bytes.Buffer
 			if status := run([]string{"check", path}, strings.NewReader(""), &cout, &cerr); status != 0 {
 				t.Errorf("ant check: status %d\n%s", status, cerr.String())

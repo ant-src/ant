@@ -13,6 +13,7 @@ import (
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/types"
+	"github.com/ant-src/ant/parser"
 	"github.com/ant-src/ant/value"
 )
 
@@ -45,7 +46,8 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 	} else {
 		c.mods = make([]*moduleInfo, len(prog.Modules))
 		for _, m := range prog.Modules {
-			c.mods[m.Index] = &moduleInfo{m: m, path: m.File.Path, index: m.Index, names: map[string]*entity{}, exports: map[string]*entity{}}
+			c.mods[m.Index] = &moduleInfo{m: m, path: m.File.Path, index: m.Index, names: map[string]*entity{}, exports: map[string]*entity{},
+				decls: map[string]*entity{}, test: parser.IsTestFile(m.File.Path)}
 		}
 		for _, m := range prog.Modules {
 			c.declareModule(c.mods[m.Index])
@@ -198,8 +200,12 @@ type moduleInfo struct {
 	// script is the state of a script's body (section 10): 0 not checked, 1 in progress, 2
 	// done.
 	script int
-	// companion is the library whose private names a test file sees (section 10, Tests).
-	companion *moduleInfo
+	// decls holds the module's own top-level declarations, exported or not, without the names
+	// it imports.
+	decls map[string]*entity
+	// test marks a test file, whose imports reach every top-level declaration of a module,
+	// exported or not (section 10, Tests).
+	test bool
 }
 
 type typeInfo struct {
@@ -510,25 +516,23 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			continue
 		}
 		target := c.mods[imp.Module]
+		// Only the target's own exported declarations are visible, and in a test file its
+		// private ones too (section 10, Tests): a name the target imported is not re-exported.
+		visible := target.exports
+		if mi.test {
+			visible = target.decls
+		}
 		if imp.Namespace != "" {
-			ent := &entity{name: imp.Namespace, kind: entModule, mod: target, members: target.exports, pos: imp.Pos}
+			ent := &entity{name: imp.Namespace, kind: entModule, mod: target, members: visible, pos: imp.Pos}
 			mi.names[imp.Namespace] = ent
 			c.info.alias(imp, ent)
 			continue
 		}
-		visible := target.exports
-		if imp.Companion {
-			// A test file sees every top-level name of its companion (section 10, Tests).
-			visible = target.names
-			mi.companion = target
-		}
 		for j := range imp.Names {
 			n := &imp.Names[j]
-			// Only the target's own exported declarations are visible: a name the target
-			// imported is not re-exported (section 10).
 			ent, ok := visible[n.Name]
 			if !ok {
-				if _, declared := target.names[n.Name]; declared {
+				if _, bound := target.names[n.Name]; bound {
 					c.errorf(n.Pos, "%s is not exported by %s", n.Name, imp.Path)
 				} else {
 					c.errorf(n.Pos, "%s has no declaration %s", imp.Path, n.Name)
@@ -550,6 +554,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			}
 			ent := &entity{name: d.Name, kind: entType, decl: decl, exported: d.Export, pos: d.Pos, members: map[string]*entity{}}
 			mi.names[d.Name] = ent
+			mi.decls[d.Name] = ent
 			c.info.declared(ent, d, mi.path, "")
 			mi.types = append(mi.types, &typeInfo{decl: d, t: decl, ent: ent, mod: mi})
 			if d.Export {
@@ -564,6 +569,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			ent := &entity{name: d.Name, kind: entFunc, fn: fi, exported: d.Export, pos: d.Pos}
 			fi.ent = ent
 			mi.names[d.Name] = ent
+			mi.decls[d.Name] = ent
 			c.info.declared(ent, d, mi.path, "")
 			if d.Export {
 				mi.exports[d.Name] = ent
@@ -575,6 +581,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 				mi.vars = append(mi.vars, v)
 				ent := &entity{name: name.Name, kind: entVar, v: v, exported: d.Export, pos: name.Pos}
 				mi.names[name.Name] = ent
+				mi.decls[name.Name] = ent
 				c.info.declared(ent, name, mi.path, "")
 				if d.Export {
 					mi.exports[name.Name] = ent

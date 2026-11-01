@@ -8,6 +8,7 @@ import (
 func TestTestFile(t *testing.T) {
 	lib := "type Stack = { items: Array[int] }\n\nfunc secret(): int { 1 }\n"
 	src := `import "./helpers_test.ant" { h }
+import "./stack.ant" { secret }
 
 // The basics.
 test "basics" {
@@ -47,11 +48,11 @@ test "x/y" {
 	for _, s := range syms {
 		names = append(names, s.Name)
 	}
-	if got := strings.Join(names, " "); got != "./helpers_test.ant basics helper second x/y" {
+	if got := strings.Join(names, " "); got != "./helpers_test.ant ./stack.ant basics helper second x/y" {
 		t.Errorf("symbols: %s", got)
 	}
-	if len(syms) > 1 && (len(syms[1].Children) != 1 || syms[1].Children[0].Name != "a.b" || syms[1].Detail != "test") {
-		t.Errorf("basics: %+v", syms[1])
+	if len(syms) > 2 && (len(syms[2].Children) != 1 || syms[2].Children[0].Name != "a.b" || syms[2].Detail != "test") {
+		t.Errorf("basics: %+v", syms[2])
 	}
 
 	var lenses []CodeLens
@@ -87,23 +88,26 @@ test "x/y" {
 	}
 }
 
-// TestRenameReachesCompanion: a test file sees every top-level name of its companion (section 10,
-// Tests), so renaming one in the library renames its uses in the test file, private or not.
-func TestRenameReachesCompanion(t *testing.T) {
+// TestRenameReachesTestFile: a test file may import any top-level declaration of a module
+// (section 10, Tests), so renaming one in the library renames it in the test file, private or not.
+func TestRenameReachesTestFile(t *testing.T) {
 	lib := "func secret(n: int): int { n }\n\nexport func open(): int { secret(n: 1) }\n"
-	test := "test \"a\" {\n  assert(secret(n: 2) == open())\n}\n"
+	test := "import \"./stack.ant\" { secret, open }\n\ntest \"a\" {\n  assert(secret(n: 2) == open())\n}\n"
 	c := start(t, map[string]string{"stack.ant": lib, "stack_test.ant": test, "other.ant": "func secret(): int { 3 }\n"})
 	libURI := c.open("stack.ant", lib)
 	testURI := c.uri("stack_test.ant")
-	cases := []struct{ needle, name string }{
-		{"secret(n:", "hidden"}, // a private function
-		{"n: int", "m"},         // a parameter of one, which a named argument spells
-		{"open()", "opened"},    // an export
+	cases := []struct {
+		needle, name string
+		edits        int // in the test file
+	}{
+		{"secret(n:", "hidden", 2}, // a private function: its import and its call
+		{"n: int", "m", 1},         // a parameter of one, which a named argument spells
+		{"open()", "opened", 2},    // an export
 	}
 	for _, k := range cases {
 		var edit WorkspaceEdit
 		c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(libURI, at(lib, k.needle, 1, 0)), NewName: k.name}, &edit)
-		if len(edit.Changes[testURI]) != 1 {
+		if len(edit.Changes[testURI]) != k.edits {
 			t.Errorf("renaming %s: %+v", k.needle, edit.Changes)
 		}
 		if _, touched := edit.Changes[c.uri("other.ant")]; touched {

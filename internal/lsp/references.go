@@ -3,7 +3,6 @@ package lsp
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
@@ -71,9 +70,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
 				}
 			case *ast.ImportName:
-				// an implicit import, which the loader gives a test file of its companion,
-				// is not written anywhere
-				if in.Decls[x] == o && x.Pos != (ast.Pos{}) {
+				if in.Decls[x] == o {
 					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
 				}
 			case *ast.Call:
@@ -120,7 +117,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), decl: true})
 				}
 			case *ast.Import:
-				if x.Namespace != "" && in.Decls[x] == o && !x.Implicit {
+				if x.Namespace != "" && in.Decls[x] == o {
 					refs = append(refs, reference{path: path, from: x.NamespacePos, to: after(x.NamespacePos, x.Namespace), decl: true})
 				}
 			}
@@ -356,7 +353,7 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 
 // reachesImporters reports whether renaming o changes other modules: an export, or a
 // parameter of an exported function, which named arguments elsewhere spell; and, since a test
-// file sees every top-level name of its companion (section 10, Tests), any top-level
+// file may import any top-level declaration of a module (section 10, Tests), any top-level
 // declaration and any parameter of a top-level function.
 func (a *analysis) reachesImporters(o *check.Object) bool {
 	switch o.Kind {
@@ -497,16 +494,14 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 
 // importers lists the documents, open or in the workspace, whose imports lead to the module at
 // path, other than the one at skip: each becomes the root of a program the rename reaches into.
-// Which files import it is read from their parsed imports, so only those are analyzed; a test
-// file beside the module imports it as its companion (section 10, Tests) without writing so.
+// Which files import it is read from their parsed imports, so only those are analyzed.
 func (s *Server) importers(path, skip string) []*document {
 	var out []*document
 	for _, f := range s.workspaceFiles() {
 		if f.doc.uri == skip || f.doc.path == path {
 			continue
 		}
-		imports := strings.HasSuffix(f.doc.path, "_test.ant") &&
-			sameFile(strings.TrimSuffix(f.doc.path, "_test.ant")+".ant", path)
+		imports := false
 		for _, imp := range f.file.Imports {
 			if sameFile(filepath.Join(filepath.Dir(f.doc.path), filepath.FromSlash(imp.Path)), path) {
 				imports = true

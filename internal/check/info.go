@@ -44,10 +44,11 @@ type Info struct {
 	tparams map[*types.ParamDecl]*Object
 }
 
-// ModuleInfo lists a module's top-level names and exports.
+// ModuleInfo lists a module's top-level names, its own declarations among them, and its exports.
 type ModuleInfo struct {
 	Path    string
 	Names   []*Object
+	Decls   []*Object
 	Exports []*Object
 }
 
@@ -239,7 +240,8 @@ func (o *Object) Members() []*Object {
 	var out []*Object
 	switch o.ent.kind {
 	case entModule:
-		for _, e := range o.ent.mod.exports {
+		// What the import sees: the exports, or in a test file every declaration.
+		for _, e := range o.ent.members {
 			out = append(out, o.info.object(e))
 		}
 	case entNamespace, entType:
@@ -480,10 +482,14 @@ func (in *Info) finish(c *Checker) {
 		for _, e := range mi.names {
 			m.Names = append(m.Names, in.object(e))
 		}
+		for _, e := range mi.decls {
+			m.Decls = append(m.Decls, in.object(e))
+		}
 		for _, e := range mi.exports {
 			m.Exports = append(m.Exports, in.object(e))
 		}
 		sortObjects(m.Names)
+		sortObjects(m.Decls)
 		sortObjects(m.Exports)
 		in.Modules[mi.path] = m
 	}

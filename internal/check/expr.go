@@ -459,11 +459,7 @@ func (c *Checker) entityPath(e ast.Expr, sc *scope) *entity {
 			return base
 		}
 		if base.kind == entModule {
-			m, ok := base.mod.names[x.Name]
-			if !ok || !m.exported {
-				return nil
-			}
-			return m
+			return base.members[x.Name]
 		}
 		if base.members == nil {
 			return nil
@@ -478,23 +474,22 @@ func (c *Checker) entityPath(e ast.Expr, sc *scope) *entity {
 }
 
 // foreignPrivate reports a function declared without export on a type of another module,
-// which is a private field of that module (section 10).
+// which is a private field of that module (section 10) that only a test file sees (Tests).
 func (c *Checker) foreignPrivate(m *entity) bool {
-	return m.kind == entFunc && !m.exported && m.fn != nil && m.fn.mod != c.mod && m.fn.mod != c.mod.companion
+	return m.kind == entFunc && !m.exported && m.fn != nil && m.fn.mod != c.mod && !c.mod.test
 }
 
 // moduleMember reports a member of an imported module, or the reason it is not visible.
 func (c *Checker) moduleMember(base *entity, name string, pos ast.Pos) *entity {
-	m, ok := base.mod.names[name]
-	if !ok {
-		c.errorf(pos, "%s has no declaration %s", base.name, name)
-		return nil
+	if m, ok := base.members[name]; ok {
+		return m
 	}
-	if !m.exported {
+	if _, ok := base.mod.names[name]; ok {
 		c.errorf(pos, "%s is not exported by %s", name, base.name)
-		return nil
+	} else {
+		c.errorf(pos, "%s has no declaration %s", base.name, name)
 	}
-	return m
+	return nil
 }
 
 func (c *Checker) field(x *ast.Field, sc *scope) types.Type {

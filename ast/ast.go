@@ -82,12 +82,6 @@ type Import struct {
 	// Module is filled by the loader: the index of the imported module in the program, or -1
 	// when the module could not be loaded and the loader went on (Config.Recover).
 	Module int
-	// Companion marks the import the loader gives a test file of its companion library, which
-	// binds every top-level name of it, exported or not (section 10, Tests).
-	Companion bool
-	// Implicit marks an import the loader added that the file does not write: the companion's,
-	// and copies of the companion's own imports. Its positions are zero.
-	Implicit bool
 }
 
 // ImportName is one entry of an import list: the export, and the local name it binds.

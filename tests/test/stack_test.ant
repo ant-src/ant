@@ -1,10 +1,11 @@
 // spec: 10 Tests; 12 Running a test
+import "./stack.ant" { Stack, created, parse }
 
 test "push then pop returns the value" {
   var s = Stack.new()
   Stack.push(s, 1)
   assert(Stack.pop(s) == 1)
-  assert(created == 0) // a private var of the companion
+  assert(created == 0) // a private var, which a test file may import
 }
 
 test "pop on an empty stack panics" {
@@ -34,6 +35,6 @@ test "parse" {
 // out:     parsing 0x10
 // out:     assertion failed: parse(c.input) == c.want (0 == 16)
 // out:       c.input = "0x10"
-// out:       at test "0x10" (stack_test.ant:27:13)
+// out:       at test "0x10" (stack_test.ant:28:13)
 // out: FAIL  1 failed, 4 passed (0.00s)
 // exit: 1

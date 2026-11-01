@@ -2,6 +2,7 @@
 // What initialization prints comes before the report; a parent that failed by its subtest alone
 // is not reported again, even when it printed; a Test.skip that a panic unwinding past it
 // drops does not skip the test, which goes on when Panic.catch stops the panic.
+import "./report.ant" { ready }
 
 test "parent" {
   println("setting up")
@@ -23,6 +24,6 @@ test "a dropped skip" {
 // out: lib init
 // out: --- FAIL: report_test.ant: parent/child (0.00s)
 // out:     assertion failed: ready == 2 (1 == 2)
-// out:       at test "child" (report_test.ant:9:11)
+// out:       at test "child" (report_test.ant:10:11)
 // out: FAIL  1 failed, 1 passed (0.00s)
 // exit: 1

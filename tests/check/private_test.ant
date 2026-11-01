@@ -1,14 +1,19 @@
 // spec: 10 Tests; 11 Test
-// Section 10, Tests: a test file sees its companion's private names and imports, a test body
-// returns void or an Err, a subtest's name is a string, and redeclaring a companion's name is an
-// error.
+// Section 10, Tests: a test file imports a module's private names, through a list or a
+// namespace, but not the names that module imports; a test body returns void or an Err, and a
+// subtest's name is a string.
+import "./private.ant" { Counter, secret, open }
+import "./private.ant" Private
+import "./private.ant" { Point } // ERR: Point is not exported by ./private.ant
 import "../run/lib/geometry.ant" { distance }
 
-test "private names and the companion's imports" {
+test "private names" {
   var c = Counter{ n: 0 }
   Counter.bump(c)
+  Private.Counter.bump(c)
   assert(secret() == open())
-  var p = Point{ x: 0.0, y: 0.0 }
+  assert(Private.secret() == 42)
+  var p = Private.origin()
   assert(distance(p, p) == 0.0)
   var name: string = Test.name()
   var ctx: Context = Test.context()

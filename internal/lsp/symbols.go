@@ -20,9 +20,6 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 	f := a.module().File
 	out := []DocumentSymbol{}
 	for _, imp := range f.Imports {
-		if imp.Implicit {
-			continue
-		}
 		name := imp.Path
 		if imp.Namespace != "" {
 			name = imp.Namespace

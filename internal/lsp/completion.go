@@ -244,10 +244,9 @@ func (c *completer) members(dot *token.Token) {
 	}
 	piped := c.pipedLeft(a, fld)
 	if obj := a.entityOf(fld.X); obj != nil {
+		// A module's members are what the import sees: its exports, or in a test file every
+		// declaration (section 10, Tests).
 		for _, m := range obj.Members() {
-			if obj.Kind == check.Module && !m.Exported {
-				continue
-			}
 			if piped != nil && m.Kind == check.Func && !acceptsFirst(m, piped) {
 				continue
 			}
@@ -311,9 +310,6 @@ func (c *completer) typeMembers(a *analysis) {
 	owner := objs[len(tn.Path)-2]
 	for _, m := range owner.Members() {
 		if m.Kind == check.TypeKind || m.Kind == check.Namespace && hasTypes(m) {
-			if owner.Kind == check.Module && !m.Exported {
-				continue
-			}
 			c.add(c.objectItem(a, m, ""))
 		}
 	}
@@ -398,7 +394,7 @@ func (c *completer) pipe(prev *token.Token) bool {
 	}
 	offer := func(owner *check.Object) {
 		for _, m := range owner.Members() {
-			if m.Kind == check.Func && (owner.Kind != check.Module || m.Exported) && acceptsFirst(m, left) {
+			if m.Kind == check.Func && acceptsFirst(m, left) {
 				item := c.objectItem(a, m, owner.Name+".")
 				c.add(item)
 			}
@@ -987,7 +983,12 @@ func (c *completer) importNames() bool {
 		for _, n := range imp.Names {
 			given[n.Name] = true
 		}
-		for _, o := range mi.Exports {
+		// A test file may import every declaration, exported or not (section 10, Tests).
+		offered := mi.Exports
+		if parser.IsTestFile(c.a.module().File.Path) {
+			offered = mi.Decls
+		}
+		for _, o := range offered {
 			if !given[o.Name] {
 				c.add(c.objectItem(c.a, o, ""))
 			}

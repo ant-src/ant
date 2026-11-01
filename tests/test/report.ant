@@ -1,5 +1,5 @@
 // spec: 10 Tests
-// A library whose initialization prints, before any test of its companion runs.
+// A library whose initialization prints, before any test of the file that imports it runs.
 
 func announce(): int {
   println("lib init")
