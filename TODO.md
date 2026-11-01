@@ -1,6 +1,6 @@
 # Work still to do
 
-Four gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Flags
@@ -103,21 +103,27 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
 
 ## Temporary files and permissions
 
-**Today:** `File.tempDir` exists but there is no temporary file, and no way to set a file's mode, so
-a script that writes a secret cannot keep it `0600`. `File.Info` has no mode either, so a script
-cannot ask whether a directory is writable, as `[[ -w /dev/shm ]]` does.
+**Proposal:** `proposals/files.md` (draft). It covers temporary files, modes and `0o` literals,
+copies, symbolic links, `File.touch`, and `Os.pid`, `Os.uid`, `Os.home` and `Os.hostname`.
+
+## Globbing
+
+**Today:** `File.list` and `File.walk` return every name, and a script filters them by hand. There
+is no `*.txt`.
 
 **Sketch:**
 
 ```
-File.tempFile(prefix: string, dir: string | null = null): Result[string, Error]   // created empty with mode 0600; the host's temporary directory by default
-File.chmod(path: string, mode: int): Result[void, Error]
-type Info = { name: string, size: int, isDir: bool, modified: Time.Instant, mode: int }
+Path.match(pattern: string, name: string): bool              // pure: does name match pattern
+File.glob(pattern: string): Result[Array[string], Error]     // the existing paths that match, in lexical order
 ```
 
 **Open questions:**
 
-- Whether `tempDir` promises mode `0700` too.
-- Modes on Windows, where only the read-only bit means anything.
-- A mode parameter on `File.write` and `File.create` as well as, or instead of, `chmod`, which
-  leaves a moment when the file has the default mode.
+- The syntax: `*`, `?`, `[a-z]`, and whether `**` crosses directories (Go's `filepath.Match` has no
+  `**`; zsh, bash's `globstar`, Python's `glob(recursive=True)` and Node's `fs.glob` do), and
+  `{a,b}` alternatives.
+- Whether a leading `*` matches dot files, which the shell does not.
+- Links: whether `**` descends through them, which `File.walk` does not.
+- Case on case-insensitive file systems, and `\` as an escape versus the Windows separator.
+- No match: an empty array, not the pattern back as the shell gives it.
