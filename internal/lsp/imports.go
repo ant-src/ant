@@ -22,11 +22,12 @@ type export struct {
 	file *workspaceFile
 }
 
-// importable lists the exports of the workspace's modules that the module at path may import
-// (spec/lsp.md section 4, Imports): not its own, nor a script's or a declaration file's, nor a
-// test file's unless the module is a test file too, nor those of a module that imports it,
-// directly or through others, since importing that would make a cycle. Only the names that
-// keep reports are listed.
+// importable lists the top-level declarations of the workspace's modules that the module at path
+// may import (spec/lsp.md section 4, Imports): their exports, and for a test file the private ones
+// too, since its imports reach them (ant-lang.md section 10, Tests); not its own, nor a script's or
+// a declaration file's, nor a test file's unless the module is a test file too, nor those of a
+// module that imports it, directly or through others, since importing that would make a cycle.
+// Only the names that keep reports are listed.
 func (s *Server) importable(path string, keep func(name string) bool) []export {
 	files := s.workspaceFiles()
 	test := strings.HasSuffix(path, "_test.ant")
@@ -61,15 +62,15 @@ func (s *Server) importable(path string, keep func(name string) bool) []export {
 			kind := 0
 			switch x := decl.(type) {
 			case *ast.FuncDecl:
-				if x.Export && x.Owner == "" {
+				if (x.Export || test) && x.Owner == "" {
 					name, kind = x.Name, ItemFunction
 				}
 			case *ast.TypeDecl:
-				if x.Export && x.Owner == "" {
+				if (x.Export || test) && x.Owner == "" {
 					name, kind = x.Name, ItemStruct
 				}
 			case *ast.VarDecl:
-				if nt, ok := x.Target.(*ast.NameTarget); ok && x.Export && x.Owner == "" {
+				if nt, ok := x.Target.(*ast.NameTarget); ok && (x.Export || test) && x.Owner == "" {
 					name, kind = nt.Name, ItemVariable
 				}
 			}

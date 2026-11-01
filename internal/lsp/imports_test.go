@@ -10,7 +10,7 @@ import (
 // The fixes and completions that import a name from another module of the workspace.
 func TestImports(t *testing.T) {
 	files := map[string]string{
-		"lib/math.ant":     "export func sum(a: int, b: int): int { a + b }\n\nexport type Pair = { a: int, b: int }\n\nfunc private(): int { 1 }\n",
+		"lib/math.ant":     "export func sum(a: int, b: int): int { a + b }\n\nexport type Pair = { a: int, b: int }\n\nfunc sumPrivate(): int { 1 }\n",
 		"lib/other.ant":    "export func sum(a: int): int { a }\n",
 		"lib/cycle.ant":    "import \"../sum_test.ant\" { helper }\n\nexport func summit(): int { 1 }\n",
 		"script.ant":       "export func sumScript(): int { 1 }\nprintln(1)\n",
@@ -67,8 +67,15 @@ func TestImports(t *testing.T) {
 		t.Errorf("fixes with a namespace: %s", titles(acts))
 	}
 
-	// completion: exports by the word typed, past what is in scope, each with its import; no
-	// script's, no test file's, no private name, nothing that would make a cycle
+	// a private name is no module's to import but a test file's
+	src = "println(sumPrivate())\n"
+	c.change(uri, 4, src)
+	if acts := fixes(uri, src); len(acts) != 0 {
+		t.Errorf("fixes for a private name: %s", titles(acts))
+	}
+
+	// completion: names by the word typed, past what is in scope, each with its import; in a test
+	// file private ones and a test file's too; no script's, nothing that would make a cycle
 	test := "test \"sums\" {\n  assert(su\n}\n"
 	testURI := c.open("sum_test.ant", test)
 	var list CompletionList
@@ -82,7 +89,7 @@ func TestImports(t *testing.T) {
 			labels = append(labels, item.Label+" "+item.LabelDetails.Description)
 		}
 	}
-	if got := strings.Join(labels, ", "); got != "sum ./lib/math.ant, sum ./lib/other.ant, sumHelper ./helpers_test.ant" {
+	if got := strings.Join(labels, ", "); got != "sum ./lib/math.ant, sum ./lib/other.ant, sumHelper ./helpers_test.ant, sumPrivate ./lib/math.ant" {
 		t.Errorf("importable items: %s", got)
 	}
 	for _, item := range list.Items {
@@ -94,7 +101,7 @@ func TestImports(t *testing.T) {
 	}
 	// where a type is written, only types
 	src = "var p: Pa\n"
-	c.change(uri, 4, src)
+	c.change(uri, 5, src)
 	list = CompletionList{}
 	c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, "Pa\n", 1, 2))}, &list)
 	found := false
@@ -105,6 +112,19 @@ func TestImports(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("no Pair to import where a type is written: %+v", list.Items)
+	}
+
+	// a test file imports a private name, and the checker takes it
+	test = "test \"private\" {\n  assert(sumPrivate() == 1)\n}\n"
+	c.change(testURI, 2, test)
+	acts = fixes(testURI, test)
+	if len(acts) != 1 || acts[0].Title != `Import sumPrivate from "./lib/math.ant"` {
+		t.Fatalf("fixes in a test file: %s", titles(acts))
+	}
+	test = applyAll(test, acts[0].Edit.Changes[testURI])
+	c.change(testURI, 3, test)
+	if diags := c.diagnostics(testURI); len(diags) != 0 {
+		t.Errorf("after the import: %+v", diags)
 	}
 }
 
