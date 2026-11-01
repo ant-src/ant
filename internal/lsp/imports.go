@@ -162,6 +162,9 @@ func (s *Server) importUse(d *document, f *ast.File, e export, use Range) (strin
 // importActions are the fixes for a name that is not defined: one per module of the workspace
 // that exports it, only a type where a type is written, preferred when there is only one.
 func (s *Server) importActions(a *analysis, d *document, name string, types bool, dg Diagnostic) []CodeAction {
+	if d.path == "" {
+		return nil // a document not on disk has no path to import relative to
+	}
 	var exports []export
 	for _, e := range s.importable(d.path, func(n string) bool { return n == name }) {
 		if !types || e.kind == ItemStruct {

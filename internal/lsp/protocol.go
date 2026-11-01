@@ -105,6 +105,11 @@ type ClientCapabilities struct {
 			PrepareSupport bool `json:"prepareSupport"`
 		} `json:"rename"`
 	} `json:"textDocument"`
+	Workspace struct {
+		DidChangeWatchedFiles struct {
+			DynamicRegistration bool `json:"dynamicRegistration"`
+		} `json:"didChangeWatchedFiles"`
+	} `json:"workspace"`
 }
 
 type InitializeResult struct {

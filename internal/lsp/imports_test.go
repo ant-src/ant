@@ -1,6 +1,8 @@
 package lsp
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -103,5 +105,42 @@ func TestImports(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("no Pair to import where a type is written: %+v", list.Items)
+	}
+}
+
+// A walk of the workspace folders stands while the client watches the files and reports no
+// change; without a watching client, each walk sees the files as they are.
+func TestWalkWhileWatching(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("export func f(): int { 1 }\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	names := func(files []*workspaceFile) string {
+		var out []string
+		for _, f := range files {
+			out = append(out, filepath.Base(f.doc.path))
+		}
+		return strings.Join(out, " ")
+	}
+	write("a.ant")
+	s := &Server{docs: map[string]*document{}, roots: []string{dir}}
+	if got := names(s.walk()); got != "a.ant" {
+		t.Fatalf("first walk: %s", got)
+	}
+	write("b.ant")
+	if got := names(s.walk()); got != "a.ant b.ant" {
+		t.Errorf("without watching, a walk sees a new file: %s", got)
+	}
+	s.watching = true
+	s.walk()
+	write("c.ant")
+	if got := names(s.walk()); got != "a.ant b.ant" {
+		t.Errorf("while watching, the last walk stands: %s", got)
+	}
+	s.diskGen++ // workspace/didChangeWatchedFiles
+	if got := names(s.walk()); got != "a.ant b.ant c.ant" {
+		t.Errorf("after a change, a walk sees it: %s", got)
 	}
 }

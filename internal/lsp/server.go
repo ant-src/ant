@@ -34,7 +34,15 @@ type Server struct {
 	// input instead (Complete).
 	load  func(path string, sources map[string]string) (*loader.Program, []loader.Diagnostic)
 	caps  ClientCapabilities
-	files map[string]*workspaceFile // the workspace's parsed files, by path
+	files map[string]*workspaceFile // the open documents, parsed, by path
+	disk  map[string]*workspaceFile // the files under the workspace folders, parsed, by path
+	// walked is what the last walk of the workspace folders found on disk, while diskGen was
+	// walkedGen. It stands while the client watches the files for the server (watching) and
+	// reports no change; otherwise each walk walks again.
+	walked    []*workspaceFile
+	walkedGen int
+	diskGen   int
+	watching  bool
 
 	initialized bool
 	shutdown    bool
@@ -102,6 +110,15 @@ func (s *Server) handle(m *message) (exit bool) {
 		return false
 	case "initialized":
 		s.initialized = true
+		if s.caps.Workspace.DidChangeWatchedFiles.DynamicRegistration {
+			// The client says when a .ant file changes on disk, so a walk of the workspace
+			// folders stands until then (walk).
+			s.watching = true
+			s.conn.request(1, "client/registerCapability", map[string]any{"registrations": []map[string]any{{
+				"id": "ant-files", "method": "workspace/didChangeWatchedFiles",
+				"registerOptions": map[string]any{"watchers": []map[string]any{{"globPattern": "**/*.ant"}}},
+			}}})
+		}
 		return false
 	case "shutdown":
 		s.shutdown = true
@@ -183,6 +200,7 @@ func (s *Server) dispatch(m *message) (any, *rpcError) {
 	case "textDocument/didSave":
 		// The text is the document's; nothing changes.
 	case "workspace/didChangeWatchedFiles":
+		s.diskGen++
 		s.changed()
 		s.publishAll()
 	case "workspace/didChangeWorkspaceFolders":
@@ -201,6 +219,7 @@ func (s *Server) dispatch(m *message) (any, *rpcError) {
 		for _, f := range p.Event.Added {
 			s.roots = append(s.roots, uriPath(f.URI))
 		}
+		s.diskGen++
 	case "textDocument/completion":
 		var p CompletionParams
 		if err := s.params(m, &p); err != nil {

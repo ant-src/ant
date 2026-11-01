@@ -94,6 +94,16 @@ func (c *conn) fail(id json.RawMessage, code int, msg string) error {
 	}{"2.0", id, rpcError{code, msg}})
 }
 
+// request sends a request whose response the server does not wait for.
+func (c *conn) request(id int, method string, params any) error {
+	return c.write(struct {
+		JSONRPC string `json:"jsonrpc"`
+		ID      int    `json:"id"`
+		Method  string `json:"method"`
+		Params  any    `json:"params"`
+	}{"2.0", id, method, params})
+}
+
 // notify sends a notification.
 func (c *conn) notify(method string, params any) error {
 	return c.write(struct {
