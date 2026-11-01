@@ -103,8 +103,9 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
 
 ## Temporary files and permissions
 
-**Proposal:** `proposals/files.md` (draft). It covers temporary files, modes and `0o` literals,
-copies, symbolic links, `File.touch`, and `Os.pid`, `Os.uid`, `Os.home` and `Os.hostname`.
+**Spec:** `proposals/files.md`, accepted and written into the spec (89fd55b): octal literals, modes,
+temporary files, copies, symbolic links, `File.touch`, locks, `File.isTerminal`, and more of `Os`.
+The implementation is still to do.
 
 ## Globbing
 
