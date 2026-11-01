@@ -19,7 +19,8 @@ var (
 
 // codeActions answers textDocument/codeAction with the mechanical fixes for the diagnostics in
 // the range (spec/lsp.md section 4): stating a type the checker inferred where a message asks
-// for an annotation, and adding the fields a record literal leaves out.
+// for an annotation, adding the fields a record literal leaves out, and importing a name that
+// is not defined from a module that exports it.
 func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {
@@ -46,6 +47,10 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 			if act := s.stateReturnType(a, d, dg.Pos, lsp); act != nil {
 				out = append(out, *act)
 			}
+		case notDefined.MatchString(dg.Msg):
+			out = append(out, s.importActions(a, d, notDefined.FindStringSubmatch(dg.Msg)[1], false, lsp)...)
+		case unknownType.MatchString(dg.Msg):
+			out = append(out, s.importActions(a, d, unknownType.FindStringSubmatch(dg.Msg)[1], true, lsp)...)
 		case stateVarType.MatchString(dg.Msg) || annotateResult.MatchString(dg.Msg):
 			if act := s.stateVarType(a, d, dg.Pos, lsp); act != nil {
 				out = append(out, *act)

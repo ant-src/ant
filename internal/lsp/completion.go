@@ -28,17 +28,25 @@ func (s *Server) completion(p *CompletionParams) *CompletionList {
 	if d == nil {
 		return nil
 	}
-	return &CompletionList{Items: s.completeAt(d, d.offset(p.Position, s.utf16))}
+	items, incomplete := s.complete(d, d.offset(p.Position, s.utf16))
+	return &CompletionList{Items: items, IsIncomplete: incomplete}
 }
 
 // completeAt collects what can be written at byte offset off of d.
 func (s *Server) completeAt(d *document, off int) []CompletionItem {
+	items, _ := s.complete(d, off)
+	return items
+}
+
+// complete collects what can be written at byte offset off of d, and whether the list is
+// incomplete: the exports of other modules are offered by the word typed (importNamesOutOfScope).
+func (s *Server) complete(d *document, off int) ([]CompletionItem, bool) {
 	a := s.analyze(d)
 	c := &completer{s: s, a: a, d: d, off: off, toks: a.module().Layout.Tokens, items: []CompletionItem{}, seen: map[string]bool{}}
 	word, start := d.wordAt(off)
 	c.wordStart, c.wordEnd = start, start+len(word)
 	c.run()
-	return c.items
+	return c.items, c.incomplete
 }
 
 // Complete lists what can be written at byte offset off of text, the input of a session at
@@ -83,6 +91,8 @@ type completer struct {
 	toks  []token.Token
 	items []CompletionItem
 	seen  map[string]bool
+	// incomplete is set when the items depend on the word typed so far.
+	incomplete bool
 }
 
 func (c *completer) add(item CompletionItem) {
@@ -141,6 +151,7 @@ func (c *completer) run() {
 	}
 	if c.typePosition(prev) {
 		c.typeNames("")
+		c.importNamesOutOfScope(true)
 		return
 	}
 	if c.pipe(prev) {
@@ -150,6 +161,7 @@ func (c *completer) run() {
 	c.namedArgs(prev)
 	c.scopeNames()
 	c.keywords(prev)
+	c.importNamesOutOfScope(false)
 }
 
 // tokenBefore is the last token that ends at or before off, line breaks left out.

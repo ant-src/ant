@@ -275,6 +275,8 @@ type CompletionItem struct {
 	InsertTextFormat int                     `json:"insertTextFormat,omitempty"` // 1 plain, 2 snippet
 	TextEdit         *TextEdit               `json:"textEdit,omitempty"`
 	CommitCharacters []string                `json:"commitCharacters,omitempty"`
+	// AdditionalTextEdits are made with the item, elsewhere in the document: an import.
+	AdditionalTextEdits []TextEdit `json:"additionalTextEdits,omitempty"`
 }
 
 type CompletionLabelDetails struct {
