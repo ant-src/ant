@@ -2,37 +2,46 @@
 
 Static types, _goroutines_, and nothing left `undefined`.
 
-## Example
+
+## Examples
 
 ```ts
-type Found = { path: string, line: string }
-type Missing = { path: string }
+var result = [5, 2, 8, 1]
+  | Array.filter({ x > 2 })
+  | Array.map({ x * 10 })
+  | Array.sort()
+println(result) // [50, 80]
+```
 
+```ts
+type Ready = { url: string }
+type Pending = {}
+func status(job: Ready | Pending): string {
+  if job is Ready { job.url } else { "pending" }
+}
+```
+
+```ts
 func firstLine(path: string): Result[string | null, Error] {
   var file = try File.open(path)
   defer { File.close(file) }
   File.readLine(file)
 }
+```
 
-func check(path: string): Found | Missing {
-  var line = firstLine(path)
-  if line is Ok && line.value != null { Found{ path, line: line.value } } else { Missing{ path } }
-}
-
-var paths = ["a.txt", "b.txt", "c.txt", "notes.md"] | Array.filter({ String.endsWith(x, ".txt") })
-var results: Channel[Found | Missing] = Channel.new()
-for path in paths { go { Channel.send(results, check(path)) } }
-
-for _ in paths {
-  select {
-    var r = Channel.receive(results) {
-      if r is Found { println("${r.path}: ${r.line}") } else if r is Missing { println("${r.path}: missing") }
-    }
-    Time.sleep(Time.duration(seconds: 1)) { println("timeout") }
-  }
+```ts
+var messages: Channel[string] = Channel.new()
+select {
+  var message = Channel.receive(messages) { println(message) }
+  Time.sleep(Time.duration(seconds: 1)) { println("Timeout") }
 }
 ```
 
+```ts
+var date = Time.plainDate(2024, 8, 31)
+var next = Time.add(date, Time.duration(months: 1))
+println(next) // 2024-09-30
+```
 
 ## Install
 
