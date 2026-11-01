@@ -1,8 +1,9 @@
 // spec: stdlib File
-// A write that enters the buffer and fails when it is written out is reported by File.close,
-// which closes the handle all the same. /dev/full accepts the open and refuses every write, so
-// this runs on Linux only.
-var out = Result.unwrap(File.create("/dev/full"))
+// A write that enters a buffer (File.buffered) and fails when it is written out is reported by
+// File.close, which closes the handle all the same; without the buffer the write itself would be
+// Err, since writes go to the OS before they return. /dev/full accepts the open and refuses every
+// write, so this runs on Linux only.
+var out = File.buffered(Result.unwrap(File.create("/dev/full")))
 println(File.writeLine(out, "lost"))
 println(File.close(out))
 println(File.writeLine(out, "late") is Err)
