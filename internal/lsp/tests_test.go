@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -113,5 +114,39 @@ func TestRenameReachesTestFile(t *testing.T) {
 		if _, touched := edit.Changes[c.uri("other.ant")]; touched {
 			t.Errorf("renaming %s touched an unrelated module", k.needle)
 		}
+	}
+}
+
+// TestCompletionOfPrivateNames: a test file's imports reach every declaration of a module,
+// exported or not, but not the names it imports (section 10, Tests); another file's reach only
+// the exports.
+func TestCompletionOfPrivateNames(t *testing.T) {
+	lib := "import \"./other.ant\" { helper }\n\nexport type Stack = {}\n\nfunc secret(): int { helper() }\n\nexport func open(): int { secret() }\n"
+	c := start(t, map[string]string{"stack.ant": lib, "other.ant": "export func helper(): int { 1 }\n"})
+	labels := func(name, src, after string) []string {
+		uri := c.open(name, src)
+		var list CompletionList
+		c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, after, 1, len(after)))}, &list)
+		var out []string
+		for _, it := range list.Items {
+			out = append(out, it.Label)
+		}
+		return out
+	}
+	offered := func(labels []string, name string) bool { return slices.Contains(labels, name) }
+
+	list := "import \"./stack.ant\" { open, }\n"
+	if got := labels("a_test.ant", list, "open, "); !offered(got, "secret") || !offered(got, "Stack") || offered(got, "helper") {
+		t.Errorf("import names in a test file: %q", got)
+	}
+	if got := labels("a.ant", list, "open, "); offered(got, "secret") || !offered(got, "Stack") {
+		t.Errorf("import names in a library: %q", got)
+	}
+	ns := "import \"./stack.ant\" S\n\nfunc f(): int { S. }\n"
+	if got := labels("b_test.ant", ns, "S."); !offered(got, "secret") || !offered(got, "open") || offered(got, "helper") {
+		t.Errorf("namespace members in a test file: %q", got)
+	}
+	if got := labels("b.ant", ns, "S."); offered(got, "secret") || !offered(got, "open") {
+		t.Errorf("namespace members in a library: %q", got)
 	}
 }
