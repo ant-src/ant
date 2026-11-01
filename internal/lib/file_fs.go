@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -30,12 +31,15 @@ const (
 // maxMode is the largest mode File.chmod takes: the permission bits and setuid, setgid and sticky.
 const maxMode = 0o7777
 
+// modeBits are the bits of a Go mode that File.Info.mode holds, and that a copy carries over.
+const modeBits = fs.ModePerm | fs.ModeSetuid | fs.ModeSetgid | fs.ModeSticky
+
 // boolOr is an optional bool argument, def when the call omitted it.
-func boolOr(v value.Value, def bool) bool {
-	if b, ok := v.(bool); ok {
-		return b
+func boolOr(g *interp.Goroutine, who string, v value.Value, def bool) bool {
+	if !given(v) {
+		return def
 	}
-	return def
+	return boolArg(g, who, v)
 }
 
 // antMode is File.Info.mode: Go's permission bits and its setuid, setgid and sticky flags, as the
@@ -122,14 +126,16 @@ func writeFile(path string, data []byte, replace bool) value.Value {
 // touch is File.touch: an empty file created when nothing is at path, never truncated, and its
 // modified and access times set to t.
 func touch(path string, t time.Time) value.Value {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, newFileMode)
-	if err != nil {
-		// A directory, or a file that cannot be opened for writing, still has times to set.
-		if _, serr := os.Stat(path); serr != nil {
+	// Only a path with nothing at it is opened, to create the file: opening a FIFO for writing
+	// would wait for a reader, and a directory or a device has times to set all the same.
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, newFileMode)
+		if err != nil {
 			return errResult(err)
 		}
-	} else if err := f.Close(); err != nil {
-		return errResult(err)
+		if err := f.Close(); err != nil {
+			return errResult(err)
+		}
 	}
 	return okVoid(os.Chtimes(path, t, t))
 }
@@ -169,19 +175,28 @@ func tempDir(pattern, dir string) value.Value {
 // copyFile is File.copy: from's contents into to, then from's mode, exactly. It is Err before
 // changing anything when to is a directory or the same file as from.
 func copyFile(from, to string, replace bool) value.Value {
-	src, err := os.Open(from)
-	if err != nil {
-		return errResult(err)
-	}
-	defer src.Close()
-	sfi, err := src.Stat()
+	// The source is looked at before it is opened: opening a FIFO would wait for a writer, and a
+	// device such as /dev/zero would never end.
+	sfi, err := os.Stat(from)
 	if err != nil {
 		return errResult(err)
 	}
 	if sfi.IsDir() {
 		return errResult(fmt.Errorf("copy %s: is a directory; File.copyAll copies a tree", from))
 	}
-	if dfi, err := os.Stat(to); err == nil {
+	if !sfi.Mode().IsRegular() {
+		return errResult(fmt.Errorf("copy %s: not a regular file", from))
+	}
+	src, err := os.Open(from)
+	if err != nil {
+		return errResult(err)
+	}
+	defer src.Close()
+	if sfi, err = src.Stat(); err != nil {
+		return errResult(err)
+	}
+	// With replace false, O_EXCL decides, with the OS's message, as File.write's does.
+	if dfi, err := os.Stat(to); err == nil && replace {
 		if dfi.IsDir() {
 			return errResult(fmt.Errorf("copy %s to %s: %s is a directory", from, to, to))
 		}
@@ -200,7 +215,7 @@ func copyContents(src *os.File, sfi fs.FileInfo, to string, flags int) error {
 	}
 	_, err = io.Copy(dst, src)
 	if err == nil {
-		err = dst.Chmod(sfi.Mode() & (fs.ModePerm | fs.ModeSetuid | fs.ModeSetgid | fs.ModeSticky))
+		err = dst.Chmod(sfi.Mode() & modeBits)
 	}
 	if err1 := dst.Close(); err == nil {
 		err = err1
@@ -238,7 +253,9 @@ func within(path, dir string) bool {
 }
 
 // copyAll is File.copyAll: a file, or a tree with its modes and its links as links, to a to that
-// does not exist or is an empty directory. Every check comes before the first change.
+// does not exist or is an empty directory. The checks of from and to come before the first change;
+// an entry that is not a file, a directory or a link is found during the copy, which then stops
+// and leaves what it copied, as an error partway through does.
 func copyAll(from, to string) value.Value {
 	sfi, err := os.Stat(from)
 	if err != nil {
@@ -310,7 +327,7 @@ func copyAll(from, to string) value.Value {
 			if err := os.Mkdir(target, 0o700); err != nil {
 				return err
 			}
-			modes = append(modes, dirMode{target, info.Mode() & (fs.ModePerm | fs.ModeSetuid | fs.ModeSetgid | fs.ModeSticky)})
+			modes = append(modes, dirMode{target, info.Mode() & modeBits})
 		case info.Mode()&fs.ModeSymlink != 0:
 			link, err := os.Readlink(p)
 			if err != nil {
@@ -413,7 +430,7 @@ func handleIsTerminal(h *Handle) bool {
 }
 
 func init() {
-	fileFS = []*interp.Builtin{
+	fileFS = []any{
 		fn("File.chmod", "path, mode", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return chmod(stringArg(g, who, a[0]), intArg(g, who, a[1]))
 		}),
@@ -425,17 +442,13 @@ func init() {
 			return touch(stringArg(g, who, a[0]), t)
 		}),
 		fn("File.copy", "from, to, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-			return copyFile(stringArg(g, who, a[0]), stringArg(g, who, a[1]), boolOr(a[2], true))
+			return copyFile(stringArg(g, who, a[0]), stringArg(g, who, a[1]), boolOr(g, who, a[2], true))
 		}),
 		fn("File.copyAll", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return copyAll(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 		}),
 		fn("File.tempFile", "pattern, dir?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-			dir := ""
-			if given(a[1]) {
-				dir = stringArg(g, who, a[1])
-			}
-			return tempFile(stringArg(g, who, a[0]), dir)
+			return tempFile(stringArg(g, who, a[0]), tempParent(g, who, a[1]))
 		}),
 		fn("File.symlink", "target, link", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return okVoid(os.Symlink(stringArg(g, who, a[0]), stringArg(g, who, a[1])))
@@ -465,4 +478,42 @@ func init() {
 }
 
 // fileFS are the builtins above, which the File namespace appends.
-var fileFS []*interp.Builtin
+var fileFS []any
+
+// tempParent is the directory File.tempFile and File.tempDir create in: dir when given, and
+// otherwise the host's temporary directory as the run's environment names it, which Os.env
+// reads: $TMPDIR, or /tmp, on Unix; %TMP% or %TEMP% on Windows, falling back to Go's answer.
+func tempParent(g *interp.Goroutine, who string, dir value.Value) string {
+	if given(dir) {
+		return stringArg(g, who, dir)
+	}
+	return defaultTempDir(g.Instance().LookupEnv)
+}
+
+// defaultTempDir is the host's temporary directory as env names it.
+func defaultTempDir(env func(string) (string, bool)) string {
+	if runtime.GOOS == "windows" {
+		for _, name := range []string{"TMP", "TEMP"} {
+			if v, ok := lookupEnvFold(env, name); ok && v != "" {
+				return v
+			}
+		}
+		return os.TempDir()
+	}
+	if v, ok := env("TMPDIR"); ok && v != "" {
+		return v
+	}
+	return "/tmp"
+}
+
+// lookupEnvFold looks name up as given and, since Windows matches names in any case, upper-cased,
+// the form a map of the OS's environment holds.
+func lookupEnvFold(env func(string) (string, bool), name string) (string, bool) {
+	if v, ok := env(name); ok {
+		return v, ok
+	}
+	if runtime.GOOS == "windows" {
+		return env(strings.ToUpper(name))
+	}
+	return "", false
+}

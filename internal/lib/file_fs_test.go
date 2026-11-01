@@ -88,3 +88,20 @@ func TestCopyAllReadOnlyDirectory(t *testing.T) {
 		t.Fatalf("copied file = %q, %v", data, err)
 	}
 }
+
+// TestDefaultTempDir: the temporary directory comes from the run's environment, which Os.env
+// reads, not the process's (stdlib.md, File: Temporary files).
+func TestDefaultTempDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the Unix rule")
+	}
+	env := func(vars map[string]string) func(string) (string, bool) {
+		return func(name string) (string, bool) { v, ok := vars[name]; return v, ok }
+	}
+	if got := defaultTempDir(env(map[string]string{"TMPDIR": "/sandbox/tmp"})); got != "/sandbox/tmp" {
+		t.Errorf("with TMPDIR = %q", got)
+	}
+	if got := defaultTempDir(env(nil)); got != "/tmp" {
+		t.Errorf("without TMPDIR = %q", got)
+	}
+}

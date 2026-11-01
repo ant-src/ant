@@ -23,8 +23,10 @@ println("closing")
 println(File.close(holder))
 println(Channel.receive(released))
 println(File.exists(path))
-var again = Result.unwrap(File.tryLock(path))
-println(again != null)
+// lock rather than tryLock: a child process another goroutine forks holds a copy of the closed
+// handle until it execs, which can delay the release by a moment.
+var again = File.lock(path, ctx: Context.new(timeout: Time.duration(seconds: 10)))
+println(again is Ok)
 
 // expect
 // args: $TMP

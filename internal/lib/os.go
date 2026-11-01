@@ -131,7 +131,7 @@ const (
 // reading the run's environment, which Os.env reads, rather than the process's.
 func userDir(env func(string) (string, bool), which int) (string, error) {
 	get := func(name string) string {
-		v, _ := env(name)
+		v, _ := lookupEnvFold(env, name)
 		return v
 	}
 	if runtime.GOOS == "windows" {

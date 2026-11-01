@@ -10,7 +10,9 @@ import (
 
 // tryLockFile takes f's exclusive flock without waiting, and reports held when another open file
 // holds it. A flock belongs to the open file, not the process, so a second open of the same path
-// conflicts with the first even in this process, and closing f releases it.
+// conflicts with the first even in this process, and closing f releases it. A child that another
+// goroutine forks meanwhile holds a copy of the descriptor until it execs, which closes it, so a
+// release can come a moment after the close.
 func tryLockFile(f *os.File) (held bool, err error) {
 	c, err := f.SyscallConn()
 	if err != nil {

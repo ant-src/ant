@@ -395,11 +395,11 @@ func handleArg(g *interp.Goroutine, who string, v value.Value) *Handle {
 
 func init() {
 	register("File", func() value.Value {
-		return namespace("File",
+		return namespace("File", append([]any{
 			constant("Handle", value.NewTag("File.Handle", value.SyncTag, nil)),
 			constant("Info", InfoTag),
 			fn("File.stat", "path, follow?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return statFile(stringArg(g, who, a[0]), boolOr(a[1], true))
+				return statFile(stringArg(g, who, a[0]), boolOr(g, who, a[1], true))
 			}),
 			fn("File.mkdir", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(os.MkdirAll(stringArg(g, who, a[0]), newDirMode))
@@ -411,11 +411,7 @@ func init() {
 				return okVoid(os.Rename(stringArg(g, who, a[0]), stringArg(g, who, a[1])))
 			}),
 			fn("File.tempDir", "pattern, dir?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				dir := ""
-				if given(a[1]) {
-					dir = stringArg(g, who, a[1])
-				}
-				return tempDir(stringArg(g, who, a[0]), dir)
+				return tempDir(stringArg(g, who, a[0]), tempParent(g, who, a[1]))
 			}),
 			fn("File.walk", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				dir := stringArg(g, who, a[0])
@@ -472,10 +468,10 @@ func init() {
 				return value.Ok(bytesValue(data))
 			}),
 			fn("File.write", "path, text, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return writeFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), boolOr(a[2], true))
+				return writeFile(stringArg(g, who, a[0]), []byte(stringArg(g, who, a[1])), boolOr(g, who, a[2], true))
 			}),
 			fn("File.writeBytes", "path, bytes, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return writeFile(stringArg(g, who, a[0]), view(bytesArg(g, who, a[1])), boolOr(a[2], true))
+				return writeFile(stringArg(g, who, a[0]), view(bytesArg(g, who, a[1])), boolOr(g, who, a[2], true))
 			}),
 			fn("File.exists", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				_, err := os.Stat(stringArg(g, who, a[0]))
@@ -503,7 +499,7 @@ func init() {
 				return value.Ok(newHandle(f, f, nil))
 			}),
 			fn("File.create", "path, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				f, err := os.OpenFile(stringArg(g, who, a[0]), os.O_RDWR|createFlags(boolOr(a[1], true)), newFileMode)
+				f, err := os.OpenFile(stringArg(g, who, a[0]), os.O_RDWR|createFlags(boolOr(g, who, a[1], true)), newFileMode)
 				if err != nil {
 					return errResult(err)
 				}
@@ -592,7 +588,6 @@ func init() {
 			fn("File.close", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(handleArg(g, who, a[0]).close())
 			}),
-			fileFS,
-		)
+		}, fileFS...)...)
 	})
 }

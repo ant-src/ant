@@ -57,10 +57,10 @@ func FromEpochNanos(ns int64) Instant {
 	return i
 }
 
-// EpochMillis is the milliseconds since the epoch, rounded down.
 // GoTime is i as a Go time, in UTC.
 func (i Instant) GoTime() time.Time { return time.Unix(i.sec, int64(i.nsec)).UTC() }
 
+// EpochMillis is the milliseconds since the epoch, rounded down.
 func (i Instant) EpochMillis() int64 { return i.sec*1000 + int64(i.nsec)/1_000_000 }
 
 // EpochNanos is the nanoseconds since the epoch, or ErrRange when they do not fit an int64,
