@@ -2,6 +2,7 @@ package lib
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ant-src/ant/value"
@@ -75,7 +76,7 @@ func (f closerFunc) Close() error { return f() }
 
 // TestCloseEndsWaitingBufferedWrite: a close while a flush of the buffered handle waits on
 // another goroutine does not wait behind it: it closes the handle under at once, which ends the
-// flush with an Err.
+// flush with an Err, and reports the loss of what the buffer held.
 func TestCloseEndsWaitingBufferedWrite(t *testing.T) {
 	w := blockingWriter{entered: make(chan struct{}), closed: make(chan struct{})}
 	h := buffered(newHandle(closerFunc(func() error { close(w.closed); return nil }), nil, w), 16)
@@ -83,10 +84,35 @@ func TestCloseEndsWaitingBufferedWrite(t *testing.T) {
 	flushed := make(chan error)
 	go func() { flushed <- h.flush() }()
 	<-w.entered
-	if err := h.close(); err != nil {
-		t.Fatalf("close = %v, want nil", err)
+	if err := h.close(); err == nil {
+		t.Fatal("close = nil, want the lost buffer reported")
 	}
 	if err := <-flushed; err == nil {
 		t.Fatal("the waiting flush returned nil, want an error")
+	}
+}
+
+// shortWriter accepts n bytes, then fails.
+type shortWriter struct{ n int }
+
+func (w *shortWriter) Write(p []byte) (int, error) {
+	k := min(w.n, len(p))
+	w.n -= k
+	if k < len(p) {
+		return k, errors.New("connection reset")
+	}
+	return k, nil
+}
+
+// TestPipeDropsWrittenPending: what File.pipe wrote of what the source had read ahead is dropped
+// from it when the write fails partway, so a later read does not deliver it again.
+func TestPipeDropsWrittenPending(t *testing.T) {
+	h := newHandle(nil, strings.NewReader(""), nil)
+	h.pending = "abcdef"
+	if err := h.copyTo(&shortWriter{n: 2}); err == nil {
+		t.Fatal("copy = nil, want the write's error")
+	}
+	if h.pending != "cdef" {
+		t.Fatalf("pending = %q, want %q", h.pending, "cdef")
 	}
 }

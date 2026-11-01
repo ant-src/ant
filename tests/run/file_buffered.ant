@@ -35,6 +35,13 @@ println(File.writeText(input, "x") is Err)
 println(File.close(input))
 println(File.readLine(input) is Err)
 
+var plain = Result.unwrap(File.open(path))
+println(File.pipe(File.buffered(plain), plain) is Err)
+var closedUnder = Result.unwrap(File.create("${dir}/closed.txt"))
+var overClosed = File.buffered(closedUnder)
+File.close(closedUnder)
+println(Cmd.start(Cmd.new("true"), stdout: overClosed) is Err)
+
 var std = File.buffered(Os.stdout())
 println(File.writeLine(std, "held"))
 println("printed")
@@ -61,6 +68,8 @@ println(File.writeLine(Os.stdout(), "stdout is still open") is Ok)
 // out: Ok{ value: "one" }
 // out: true
 // out: Ok{ value: void }
+// out: true
+// out: true
 // out: true
 // out: Ok{ value: void }
 // out: printed

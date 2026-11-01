@@ -319,10 +319,12 @@ func (h *Handle) flush() error {
 }
 
 // close closes h: a buffered handle writes its buffer out and closes the handle under it,
-// returning the first error of the two. A write or flush in progress on another goroutine,
-// which may wait on a peer that stopped reading, is not waited for: the handle under is closed
-// at once, which ends it, and the buffer is lost. A standard stream and a closed handle give nil,
-// and a close ends a read or a write of a file or a connection in progress on another goroutine.
+// returning the first error of the two. A write or flush in progress on another goroutine, which
+// may wait on a peer that stopped reading, is not waited for: the handle under is closed first,
+// which ends it, and what the buffer still holds is lost and reported. Under a standard stream,
+// which a close leaves open, the close waits for it and then writes out. A standard stream and a
+// closed handle give nil, and a close ends a read or a write of a file or a connection in
+// progress on another goroutine.
 func (h *Handle) close() error {
 	if h.std {
 		return nil
@@ -337,12 +339,19 @@ func (h *Handle) close() error {
 	if h.buf == nil {
 		return h.c.Close()
 	}
-	var err error
 	if h.writes.TryLock() {
-		err = h.buf.Flush()
+		err := h.buf.Flush()
 		h.writes.Unlock()
+		if cerr := h.under.close(); err == nil {
+			err = cerr
+		}
+		return err
 	}
-	if cerr := h.under.close(); err == nil {
+	cerr := h.under.close()
+	h.writes.Lock()
+	err := h.buf.Flush() // Ok when nothing is left; Err when the buffer is lost or the write failed
+	h.writes.Unlock()
+	if err == nil {
 		err = cerr
 	}
 	return err
@@ -362,31 +371,20 @@ func (w handleWriter) Write(b []byte) (int, error) {
 }
 
 // copyTo is File.pipe's copy, the read slot of h and the write mutex of the destination held:
-// what h read ahead, then a chunk at a time until the end of its input, each chunk written as
-// it is read, so a source that waits streams, and what was read before an error or the end of
-// the context has been written.
+// what h read ahead, then the rest of its input. w is not buffered unless File.buffered made it
+// so, so io.Copy writes each chunk as it reads it, and a source that waits streams; between
+// files and sockets it takes the kernel's copy. What was written of pending is dropped from it,
+// so a later read does not deliver it again.
 func (h *Handle) copyTo(w io.Writer) error {
 	if h.pending != "" {
-		if _, err := io.WriteString(w, h.pending); err != nil {
-			return err
-		}
-		h.pending = ""
-	}
-	buf := make([]byte, h.r.Size())
-	for {
-		n, err := h.r.Read(buf)
-		if n > 0 {
-			if _, werr := w.Write(buf[:n]); werr != nil {
-				return werr
-			}
-		}
-		if err == io.EOF {
-			return nil
-		}
+		n, err := io.WriteString(w, h.pending)
+		h.pending = h.pending[n:]
 		if err != nil {
 			return err
 		}
 	}
+	_, err := io.Copy(w, h.r)
+	return err
 }
 
 // SyncName names the handle for rendering.
@@ -578,10 +576,10 @@ func init() {
 				src := handleArg(g, who, a[0])
 				dst := handleArg(g, who, a[1])
 				ctx := waitContext(g, who, a[2])
-				if src == dst {
+				src = src.source()
+				if src == dst.sink() {
 					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
 				}
-				src = src.source()
 				if src.r == nil || src.isClosed() {
 					return value.Err(value.ErrorValue("the source is not open for reading"))
 				}

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/ant-src/ant/ast"
@@ -380,7 +381,29 @@ func (g *Goroutine) Print(s string) {
 		g.test.output(s)
 		return
 	}
-	g.in.Print(s)
+	g.brokenPipe(g.in.Print(s))
+}
+
+// Eprint writes s to the run's standard error, or collects it for the test the goroutine
+// belongs to; eprint and eprintln ignore an error, as Print does.
+func (g *Goroutine) Eprint(s string) {
+	_, err := io.WriteString(g.ErrWriter(), s)
+	g.brokenPipe(err)
+}
+
+// brokenPipeStatus is the status a run ends with when its output's reader is gone: 128 and
+// SIGPIPE's number, as a shell reports a process SIGPIPE killed.
+const brokenPipeStatus = 128 + 13
+
+// brokenPipe ends the run when err is a broken pipe, as SIGPIPE ends a Go program whose
+// standard output's reader is gone. The Go runtime raises the signal itself unless the process
+// inherited SIGPIPE ignored; then the write returns EPIPE, and this ends the run, so a loop of
+// print into a closed pipe does not spin. Any other error is ignored, as Go programs ignore
+// what fmt.Println returns.
+func (g *Goroutine) brokenPipe(err error) {
+	if errors.Is(err, syscall.EPIPE) {
+		g.in.Exit(brokenPipeStatus)
+	}
 }
 
 // ErrWriter is the run's ErrWriter, or a writer that collects for the test the goroutine
@@ -399,11 +422,10 @@ func (w testWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Print writes s to the run's stdout, ignoring an error as Go programs ignore what fmt.Println
-// returns. A broken pipe on the process's own standard output ends it with SIGPIPE, which the Go
-// runtime does for a write to file descriptor 1 or 2.
-func (in *Instance) Print(s string) {
-	io.WriteString(in.Stdout(), s)
+// Print writes s to the run's stdout.
+func (in *Instance) Print(s string) error {
+	_, err := io.WriteString(in.Stdout(), s)
+	return err
 }
 
 // Args returns the program's arguments.

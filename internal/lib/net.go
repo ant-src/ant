@@ -173,7 +173,7 @@ func init() {
 				return value.Ok(connHandle(c))
 			}),
 			fn("Net.peer", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				h := handleArg(g, who, a[0]).source()
+				h := handleArg(g, who, a[0]).sink()
 				if !h.conn {
 					return value.Null
 				}

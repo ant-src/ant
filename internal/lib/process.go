@@ -509,6 +509,9 @@ func childOutput(h *Handle) (io.Writer, value.Value) {
 		return nil, errResult(err)
 	}
 	h = h.sink()
+	if h.isClosed() {
+		return nil, value.Err(value.ErrorValue(errNotWritable))
+	}
 	if h.std {
 		return h.childOut, nil
 	}

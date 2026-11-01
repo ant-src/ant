@@ -3,7 +3,6 @@
 package lib
 
 import (
-	"io"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -94,15 +93,15 @@ func Prelude() map[string]value.Value {
 			return value.Void
 		})
 		table["eprint"] = fn("eprint", "value", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
-			io.WriteString(g.ErrWriter(), value.Render(args[0]))
+			g.Eprint(value.Render(args[0]))
 			return value.Void
 		})
 		table["eprintln"] = fn("eprintln", "value?", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {
 			if args[0] == nil { // eprintln() with no argument, not eprintln(null)
-				io.WriteString(g.ErrWriter(), "\n")
+				g.Eprint("\n")
 				return value.Void
 			}
-			io.WriteString(g.ErrWriter(), value.Render(args[0])+"\n")
+			g.Eprint(value.Render(args[0]) + "\n")
 			return value.Void
 		})
 		table["panic"] = fn("panic", "message", func(g *interp.Goroutine, _ string, args []value.Value) value.Value {

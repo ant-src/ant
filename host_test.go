@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"syscall"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -558,6 +559,25 @@ func TestStreamsInProgramOrder(t *testing.T) {
 	}
 	if both.String() != "abc\nd\ne\n" {
 		t.Errorf("got %q", both.String())
+	}
+}
+
+// brokenPipe is an output whose reader is gone, as a pipe is to a process that inherited
+// SIGPIPE ignored.
+type brokenPipe struct{}
+
+func (brokenPipe) Write([]byte) (int, error) { return 0, syscall.EPIPE }
+
+// TestBrokenPipeEndsRun: print and eprint ignore a failed write, but a broken pipe ends the run
+// with status 141, as SIGPIPE ends a shell's process, so a print loop does not spin.
+func TestBrokenPipeEndsRun(t *testing.T) {
+	for _, src := range []string{`while !false { println("y") }`, `while !false { eprintln("y") }`} {
+		prog := loadSrc(t, src)
+		err := prog.Run(context.Background(), ant.WithStdout(brokenPipe{}), ant.WithStderr(brokenPipe{}))
+		var ee *ant.ExitError
+		if !errors.As(err, &ee) || ee.Status != 141 {
+			t.Errorf("%s: %v, want exit status 141", src, err)
+		}
 	}
 }
 
