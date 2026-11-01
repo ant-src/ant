@@ -1434,8 +1434,9 @@ func File.touch(path: string, time: Time.Instant | null = null): Result[void, Er
 
 // File.copy copies the contents of the file at from to to, and then sets to's mode to from's. It
 // replaces a file at to unless replace is false, when it is Err if anything is at to; it is Err
-// when to is a directory. It follows a symbolic link at either end, does not copy times, and is Err
-// before changing anything when from and to are the same file.
+// when to is a directory, or from is not a regular file, such as a FIFO. It follows a symbolic link
+// at either end, does not copy times, and is Err before changing anything when from and to are the
+// same file.
 func File.copy(from: string, to: string, replace: bool = true): Result[void, Error]
 
 // File.copyAll copies the file or the whole tree at from to to, keeping modes and copying the
@@ -1521,7 +1522,8 @@ func File.create(path: string, replace: bool = true): Result[File.Handle, Error]
 
 // File.lock opens the file at path for reading and writing, creating it when it is missing and never
 // truncating it, and waits for an exclusive lock on it. It is Err with ctx's reason when ctx is done
-// first. The lock is released when the handle is closed or the process ends, however it ends.
+// first. The lock is released when the handle is closed or the process ends, however it ends; a
+// child process starting at that moment can delay the release until its program has started.
 func File.lock(path: string, ctx: Context | null = null): Result[File.Handle, Error]
 
 // File.tryLock is [File.lock] without the wait: it is Ok(null) when another handle holds the lock.

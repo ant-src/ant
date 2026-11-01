@@ -35,6 +35,26 @@ jobs:
         working-directory: ant
         run: go test -race ./...
 
+  # File.lock is flock on Unix and LockFileEx on Windows; Windows has no other job, so its locks
+  # are tested here, beside the two Unix systems.
+  lock:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: lock (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - name: lock
+        run: go test -run '^TestLock' ./internal/lib
+
   fuzz:
     strategy:
       fail-fast: false
