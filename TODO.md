@@ -1,6 +1,6 @@
 # Work still to do
 
-Five gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Four gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Flags
@@ -100,12 +100,6 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
   rule changes.
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
-
-## Temporary files and permissions
-
-**Spec:** `proposals/files.md`, accepted and written into the spec (89fd55b): octal literals, modes,
-temporary files, copies, symbolic links, `File.touch`, locks, `File.isTerminal`, and more of `Os`.
-The implementation is still to do.
 
 ## Globbing
 
