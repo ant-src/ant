@@ -20,10 +20,12 @@ import (
 	"sync"
 	"syscall/js"
 	"testing/fstest"
+	"time"
 	_ "time/tzdata" // the zone database, which js/wasm has no file system to read
 	"unicode/utf16"
 
 	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/internal/batch"
 	"github.com/ant-src/ant/internal/format"
 	"github.com/ant-src/ant/internal/frame"
 	"github.com/ant-src/ant/internal/lsp"
@@ -81,8 +83,13 @@ func check(this js.Value, args []js.Value) any {
 func run(this js.Value, args []js.Value) any {
 	opts := args[0]
 	path, files := root(opts.Get("path").String()), sources(opts.Get("files"))
-	stderr := writer(opts.Get("stderr"))
+	// The program's output goes to the page in batches: a call into JavaScript per print would
+	// make a print loop crawl.
+	sinks := map[string]io.Writer{"stdout": writer(opts.Get("stdout")), "stderr": writer(opts.Get("stderr"))}
+	out := batch.New(outputDelay, func(stream string, p []byte) { sinks[stream].Write(p) })
+	stdout, stderr := out.Stream("stdout"), out.Stream("stderr")
 	return promise(func() (any, error) {
+		defer out.Flush()
 		prog, err := ant.Load(path, ant.WithFS(mapFS(files)))
 		if err != nil {
 			if le, ok := err.(*ant.LoadError); ok {
@@ -92,7 +99,7 @@ func run(this js.Value, args []js.Value) any {
 			return result(ant.ExitStatus(err), js.Global().Get("Array").New()), nil
 		}
 		runOpts := []ant.Option{
-			ant.WithStdout(writer(opts.Get("stdout"))),
+			ant.WithStdout(stdout),
 			ant.WithStderr(stderr),
 			ant.WithStdin(strings.NewReader(str(opts.Get("stdin")))),
 			ant.WithArgs(strs(opts.Get("args"))),
@@ -122,6 +129,9 @@ func run(this js.Value, args []js.Value) any {
 		return result(ant.ExitStatus(err), js.Global().Get("Array").New()), nil
 	})
 }
+
+// outputDelay is the longest the program's output waits for a batch to fill.
+const outputDelay = 50 * time.Millisecond
 
 // reported says whether the runtime has already said what err says, or there is nothing to say:
 // a panic and a returned Err are on stderr, and an exit or an interrupt says nothing.

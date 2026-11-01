@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/batch"
 	"github.com/ant-src/ant/internal/frame"
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/lib"
@@ -30,6 +31,7 @@ import (
 // It returns the command's exit status (dap.md section 1).
 func Serve(ctx context.Context, in io.Reader, out, log io.Writer) int {
 	s := &server{r: bufio.NewReader(in), w: out, log: log, lines1: true, cols1: true}
+	s.out = batch.New(outputDelay, func(category string, p []byte) { s.sendOutput(category, string(p)) })
 	s.ctx, s.cancel = context.WithCancel(ctx)
 	defer s.cancel()
 	for {
@@ -67,6 +69,7 @@ type server struct {
 	r   *bufio.Reader
 	w   io.Writer
 	log io.Writer
+	out *batch.Writer // the program's standard output and error, sent in batches
 
 	wmu sync.Mutex // one writer at a time
 	seq int
@@ -142,7 +145,22 @@ func (s *server) event(name string, body any) {
 	s.send(m)
 }
 
+// outputDelay is the longest the program's output waits for a batch to fill (dap.md, Streams).
+const outputDelay = 50 * time.Millisecond
+
+// output sends text as an output event: the program's standard output and error in batches, so
+// a print loop does not send an event per line, and anything else at once, after the batch
+// that precedes it.
 func (s *server) output(category, text string) {
+	if category == "stdout" || category == "stderr" {
+		io.WriteString(s.out.Stream(category), text)
+		return
+	}
+	s.out.Flush()
+	s.sendOutput(category, text)
+}
+
+func (s *server) sendOutput(category, text string) {
 	s.event("output", map[string]any{"category": category, "output": text})
 }
 
@@ -442,6 +460,7 @@ func (s *server) start() {
 			err = interp.Run(s.ctx, s.prog, s.cfg)
 		}
 		close(s.done)
+		s.out.Flush()
 		s.event("exited", map[string]any{"exitCode": exitStatus(err)})
 		s.ended.Store(true)
 		s.event("terminated", nil)
@@ -494,6 +513,7 @@ func (s *server) end() {
 
 // stopped reports a stop of the run.
 func (s *server) stopped(st interp.Stop) {
+	s.out.Flush() // what the program wrote before the stop shows at the stop
 	body := map[string]any{"reason": st.Reason, "threadId": st.Goroutine, "allThreadsStopped": true}
 	if st.Panic != nil {
 		body["description"] = "panic: " + st.Panic.Message
