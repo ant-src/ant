@@ -32,6 +32,10 @@ println(File.glob("*.none", dir: dir))
 println(File.glob("[a", dir: dir))
 println(File.glob("*", dir: "${dir}/a.txt") is Err)
 println(File.glob("${dir}/*.md") | Result.map({ x | Array.map({ Path.base(x) }) }))
+println(File.glob("**/", dir: dir))
+println(File.glob("**/**/*_test.ant", dir: dir))
+println(File.glob("${dir}/*/") | Result.map({ x | Array.map({ Path.base(x) }) }))
+println(File.glob("${dir}/*/") | Result.map({ x | Array.every({ String.endsWith(x, "/") }) }))
 
 // expect
 // args: $TMP
@@ -53,3 +57,7 @@ println(File.glob("${dir}/*.md") | Result.map({ x | Array.map({ Path.base(x) }) 
 // out: Err{ error: Error{ message: "malformed pattern [a: [ without ]" } }
 // out: true
 // out: Ok{ value: ["c.md"] }
+// out: Ok{ value: ["a/", "a-b/", "link/", "real/", "real/up/", "src/", "src/deep/"] }
+// out: Ok{ value: ["real/r_test.ant", "src/deep/y_test.ant", "src/x_test.ant"] }
+// out: Ok{ value: ["a", "a-b", "link", "real", "src"] }
+// out: Ok{ value: true }

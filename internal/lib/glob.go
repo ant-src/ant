@@ -143,7 +143,10 @@ func parseSet(s string) (globTok, int, error) {
 		if i >= len(s) {
 			return t, 0, errors.New("[ without ]")
 		}
-		if s[i] == ']' && len(t.ranges) > 0 {
+		if s[i] == ']' {
+			if len(t.ranges) == 0 {
+				return t, 0, errors.New("] first in a set; escape it, or the set is empty")
+			}
 			return t, i + 1, nil
 		}
 		lo, w, err := setRune(s[i:])
@@ -171,10 +174,10 @@ func setRune(s string) (rune, int, error) {
 	if s == "" {
 		return 0, 0, errors.New("[ without ]")
 	}
-	if s[0] == '-' || s[0] == ']' {
-		if s[0] == ']' {
-			return 0, 0, errors.New("empty set")
-		}
+	if s[0] == ']' {
+		return 0, 0, errors.New("] ends a range; escape it")
+	}
+	if s[0] == '-' {
 		return 0, 0, errors.New("- outside a range; escape it")
 	}
 	if s[0] == '\\' && escapes {
@@ -279,12 +282,12 @@ func matchElems(elems []globElem, parts []string, hidden bool) bool {
 		return len(parts) > 0 && e.matchName(parts[0], hidden) && matchElems(elems[1:], parts[1:], hidden)
 	}
 	// ** takes zero or more elements, one or more as the last; never one that begins with a dot.
-	min := 0
+	least := 0
 	if len(elems) == 1 {
-		min = 1
+		least = 1
 	}
 	for k := 0; k <= len(parts); k++ {
-		if k >= min && matchElems(elems[1:], parts[k:], hidden) {
+		if k >= least && matchElems(elems[1:], parts[k:], hidden) {
 			return true
 		}
 		if k < len(parts) && !e.matchName(parts[k], hidden) {
@@ -304,9 +307,10 @@ func glob(pattern, dir string, hidden bool) ([]string, error) {
 		return nil, nil
 	}
 	w := &globWalk{g: g, hidden: hidden, seen: map[string]bool{}}
-	if filepath.IsAbs(pattern) {
+	if vol := filepath.VolumeName(pattern); filepath.IsAbs(pattern) || len(pattern) > len(vol) && os.IsPathSeparator(pattern[len(vol)]) {
 		// The volume and the root are where the walk starts, and the rest is matched below them.
-		root := pattern[:len(filepath.VolumeName(pattern))+1]
+		// On Windows \x has a root and no volume: it is on the working directory's drive.
+		root := pattern[:len(vol)+1]
 		if w.g, err = parseGlob(pattern[len(root):]); err != nil {
 			return nil, err
 		}
@@ -341,6 +345,9 @@ type globWalk struct {
 func (w *globWalk) emit(fsPath, out string) error {
 	if w.g.dirOnly {
 		fi, err := os.Stat(fsPath)
+		if err != nil && !missing(err) {
+			return err
+		}
 		if err != nil || !fi.IsDir() {
 			return nil
 		}
@@ -368,11 +375,18 @@ func missing(err error) bool {
 	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)
 }
 
-// readDir lists dir, or nothing when it is missing or not a directory.
+// readDir lists dir, or nothing when it is missing or not a directory. Windows reports a file
+// read as a directory as ERROR_DIRECTORY, not ENOTDIR, so a failure that is not missing asks
+// what is there.
 func readDir(dir string) ([]fs.DirEntry, error) {
 	entries, err := os.ReadDir(dir)
-	if err != nil && missing(err) {
-		return nil, nil
+	if err != nil {
+		if missing(err) {
+			return nil, nil
+		}
+		if fi, serr := os.Stat(dir); serr == nil && !fi.IsDir() {
+			return nil, nil
+		}
 	}
 	return entries, err
 }
@@ -400,6 +414,12 @@ func (w *globWalk) match(fsPath, out string, elems []globElem) error {
 	if err != nil {
 		return err
 	}
+	return w.each(fsPath, out, elems, entries)
+}
+
+// each matches the wildcard element elems[0] against entries, the names in fsPath.
+func (w *globWalk) each(fsPath, out string, elems []globElem, entries []fs.DirEntry) error {
+	e := &elems[0]
 	for _, d := range entries {
 		if !e.matchName(d.Name(), w.hidden) {
 			continue
@@ -419,14 +439,21 @@ func (w *globWalk) match(fsPath, out string, elems []globElem) error {
 // descending only into directories, never through links.
 func (w *globWalk) star(fsPath, out string, elems []globElem) error {
 	last := len(elems) == 1
-	if !last {
-		if err := w.match(fsPath, out, elems[1:]); err != nil {
-			return err
-		}
-	}
 	entries, err := readDir(fsPath)
 	if err != nil {
 		return err
+	}
+	if !last {
+		// The next element matched here, with the entries already read when it is a wildcard.
+		next := &elems[1]
+		if next.literal || next.star {
+			err = w.match(fsPath, out, elems[1:])
+		} else {
+			err = w.each(fsPath, out, elems[1:], entries)
+		}
+		if err != nil {
+			return err
+		}
 	}
 	for _, d := range entries {
 		if !elems[0].matchName(d.Name(), w.hidden) {
