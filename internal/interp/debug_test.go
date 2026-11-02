@@ -272,6 +272,52 @@ boom()
 	<-r.done
 }
 
+// A panic in a Parallel callback that its caller does not catch stops in the callback, with its
+// locals, and once only: raising it again in the caller does not stop a second time. Under
+// Panic.catch it does not stop at all.
+func TestDebugParallelPanic(t *testing.T) {
+	r := debug(t, `var squares = Parallel.map([3], func(n: int, work: Context) {
+  var local = n * 10
+  panic("boom")
+}, limit: 1)
+`, nil)
+	r.wait("exception", 3)
+	if got, want := r.locals(), "n=3 work=Context local=30"; got != want {
+		t.Errorf("locals: %s, want %s", got, want)
+	}
+	r.d.Continue()
+	select {
+	case err := <-r.done:
+		if err == nil {
+			t.Error("the run did not end with the panic")
+		}
+	case s := <-r.stops:
+		t.Fatalf("stopped again: %+v", s)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the run did not end")
+	}
+
+	r = debug(t, `var r = Panic.catch({
+  var _ = Parallel.map([1], func(n: int, work: Context) { panic("caught") }, limit: 1)
+})
+println("after")
+`, nil)
+	r.finish()
+}
+
+// A panic raised again by a builtin stops at the builtin's call site, not at the line in the
+// trace, which belongs to the frame where the panic began.
+func TestDebugRepanicStopsAtCallSite(t *testing.T) {
+	r := debug(t, `var get = Once.value({ panic("once") })
+var first = Panic.catch({ get() })
+println("caught")
+get()
+`, nil)
+	r.wait("exception", 4)
+	r.d.Continue()
+	<-r.done
+}
+
 func TestDebugEntryAndPauseWithBlockedGoroutine(t *testing.T) {
 	r := debug(t, `var ch = Channel.new()
 go {

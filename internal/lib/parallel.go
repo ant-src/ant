@@ -60,7 +60,7 @@ func (s *scope) start(call func(ng *interp.Goroutine) value.Value, done func(val
 			if release != nil {
 				defer release()
 			}
-			v, p := ng.CatchFunc(func() value.Value { return call(ng) })
+			v, p := ng.CatchFor(s.g, func() value.Value { return call(ng) })
 			if p != nil {
 				dropped = s.fail(p)
 				return

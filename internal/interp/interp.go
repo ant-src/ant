@@ -115,6 +115,9 @@ type Instance struct {
 type AntPanic struct {
 	Message string
 	Trace   []Frame
+	// stopped is set once a debugger has stopped for the panic, so that raising it again, in a
+	// Parallel caller or a Once waiter, does not stop a second time.
+	stopped bool
 }
 
 type exitSignal struct {
@@ -696,7 +699,7 @@ func (g *Goroutine) Panic(format string, args ...any) {
 func (g *Goroutine) panicf(pos ast.Pos, format string, args ...any) {
 	p := &AntPanic{Message: fmt.Sprintf(format, args...), Trace: g.trace(pos)}
 	if g.d != nil {
-		g.panicked(p)
+		g.panicked(p, pos)
 	}
 	panic(p)
 }
@@ -731,10 +734,10 @@ func (g *Goroutine) AfterWait() {
 	}
 }
 
-// Repanic raises a caught Ant panic again.
+// Repanic raises a caught Ant panic again, from the call site of the builtin in progress.
 func (g *Goroutine) Repanic(p *AntPanic) {
 	if g.d != nil {
-		g.panicked(p)
+		g.panicked(p, g.pos)
 	}
 	panic(p)
 }
@@ -749,10 +752,23 @@ func (g *Goroutine) Catch(fn value.Value, args ...value.Value) (value.Value, *An
 // CatchFunc runs body as Catch runs a function: it returns body's value, or the Ant panic that
 // left body, which includes the panics of a builtin's own checks inside it.
 func (g *Goroutine) CatchFunc(body func() value.Value) (v value.Value, p *AntPanic) {
+	return g.catch(body, 1)
+}
+
+// CatchFor runs body as CatchFunc does, on a goroutine that works for parent, as a Parallel
+// callback works for its caller: the panic goes back to parent, so a debugger counts it as caught
+// exactly when parent would catch it, and stops at the panic, where the callback's locals are.
+// parent is blocked for the whole call, so its count holds still.
+func (g *Goroutine) CatchFor(parent *Goroutine, body func() value.Value) (v value.Value, p *AntPanic) {
+	return g.catch(body, parent.catching)
+}
+
+// catch runs body with n more Panic.catch calls counted in progress.
+func (g *Goroutine) catch(body func() value.Value, n int) (v value.Value, p *AntPanic) {
 	// The frames and the call site unwind on their own, by the deferred pops and restores.
-	g.catching++
+	g.catching += n
 	defer func() {
-		g.catching--
+		g.catching -= n
 		r := recover()
 		if r == nil {
 			return

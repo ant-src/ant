@@ -444,20 +444,24 @@ func (d *Debugger) reason(g *Goroutine, env *Env, hit bool, kind string) string 
 }
 
 // panicked is the hook as a panic starts, at pos, before anything unwinds.
-func (g *Goroutine) panicked(p *AntPanic) {
+func (g *Goroutine) panicked(p *AntPanic, at ast.Pos) {
 	d := g.d
 	d.mu.Lock()
-	stop := d.all || d.uncaught && g.catching == 0
+	stop := !p.stopped && (d.all || d.uncaught && g.catching == 0)
+	if stop {
+		p.stopped = true
+	}
 	d.mu.Unlock()
 	if !stop {
 		return
 	}
-	if len(g.stack) > 0 && len(p.Trace) > 0 {
+	if len(g.stack) > 0 {
 		// Under mu: a builtin panics with g outside Ant code, while the run may be stopped and
-		// its stack read.
+		// its stack read. at is in the innermost frame: where a panic began, or the call site
+		// of the builtin that raises a caught one again, whose own trace is elsewhere.
 		d.mu.Lock()
 		f := &g.stack[len(g.stack)-1]
-		f.at, f.piped = p.Trace[0].Pos, nil
+		f.at, f.piped = at, nil
 		d.mu.Unlock()
 	}
 	d.stopAt(g, "exception", p)
