@@ -1,0 +1,55 @@
+// spec: stdlib File; stdlib Path
+// File (stdlib.md, Globs): glob returns the paths below dir that match, relative to dir, cleaned,
+// once each, in lexical order element by element; wildcards skip dot files unless hidden; a
+// trailing separator asks for directories; ** does not descend through a link, while a wildcard
+// element goes through one; no match is an empty array; a malformed pattern is Err.
+var dir = Os.args()[0]
+for p in [
+  "a.txt", "b.txt", ".notes.txt", "c.md", "src/main.ant", "src/x_test.ant",
+  "src/deep/y_test.ant", "a-b/x", "a/x", ".git/z_test.ant", "real/r_test.ant",
+] {
+  File.mkdir(Path.dir("${dir}/${p}"))
+  File.write("${dir}/${p}", p)
+}
+File.symlink("real", "${dir}/link")
+File.symlink("..", "${dir}/real/up")
+
+println(File.glob("*.txt", dir: dir))
+println(File.glob("*.txt", dir: dir, hidden: true))
+println(File.glob(".*", dir: dir))
+println(File.glob("**/*_test.ant", dir: dir))
+println(File.glob("**/*_test.ant", dir: dir, hidden: true))
+println(File.glob("link/*.ant", dir: dir))
+println(File.glob("*/*_test.ant", dir: dir))
+println(File.glob("*/", dir: dir))
+println(File.glob("*/x", dir: dir))
+println(File.glob("src/**", dir: dir))
+println(File.glob("**/main.ant", dir: dir))
+println(File.glob("./src/../*.md", dir: dir))
+println(File.glob("missing/*.txt", dir: dir))
+println(File.glob("a.txt/*", dir: dir))
+println(File.glob("*.none", dir: dir))
+println(File.glob("[a", dir: dir))
+println(File.glob("*", dir: "${dir}/a.txt") is Err)
+println(File.glob("${dir}/*.md") | Result.map({ x | Array.map({ Path.base(x) }) }))
+
+// expect
+// args: $TMP
+// out: Ok{ value: ["a.txt", "b.txt"] }
+// out: Ok{ value: [".notes.txt", "a.txt", "b.txt"] }
+// out: Ok{ value: [".git", ".notes.txt"] }
+// out: Ok{ value: ["real/r_test.ant", "src/deep/y_test.ant", "src/x_test.ant"] }
+// out: Ok{ value: [".git/z_test.ant", "real/r_test.ant", "src/deep/y_test.ant", "src/x_test.ant"] }
+// out: Ok{ value: ["link/r_test.ant"] }
+// out: Ok{ value: ["link/r_test.ant", "real/r_test.ant", "src/x_test.ant"] }
+// out: Ok{ value: ["a/", "a-b/", "link/", "real/", "src/"] }
+// out: Ok{ value: ["a/x", "a-b/x"] }
+// out: Ok{ value: ["src/deep", "src/deep/y_test.ant", "src/main.ant", "src/x_test.ant"] }
+// out: Ok{ value: ["src/main.ant"] }
+// out: Ok{ value: ["c.md"] }
+// out: Ok{ value: [] }
+// out: Ok{ value: [] }
+// out: Ok{ value: [] }
+// out: Err{ error: Error{ message: "malformed pattern [a: [ without ]" } }
+// out: true
+// out: Ok{ value: ["c.md"] }

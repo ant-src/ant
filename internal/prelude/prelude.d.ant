@@ -1483,6 +1483,16 @@ func File.tempFile(pattern: string, dir: string | null = null): Result[string, E
 // and not directories, does not follow symbolic links, and returns the paths in lexical order.
 func File.walk(dir: string): Result[Array[string], Error]
 
+// File.glob returns the files and directories below dir whose paths relative to dir match pattern,
+// as paths relative to dir, cleaned, each once, in lexical order. The syntax is [Path.match]'s:
+// wildcards skip names that begin with a dot unless hidden is true, ** does not descend through
+// symbolic links, and a pattern that ends in a separator matches directories only. An absolute
+// pattern ignores dir. Nothing matching is Ok with an empty array; a malformed pattern, and a
+// directory the pattern leads into that cannot be read, is Err.
+//
+//     var tests = try File.glob("**/*_test.ant", dir: root)
+func File.glob(pattern: string, dir: string = ".", hidden: bool = false): Result[Array[string], Error]
+
 // File.append opens the file at path for writing at its end, creating it when it does not exist.
 func File.append(path: string): Result[File.Handle, Error]
 
@@ -1638,6 +1648,17 @@ func Path.abs(p: string): Result[string, Error]
 //
 //     Path.rel("/a/b", "/a/c/d")   // Ok{ value: "../c/d" }
 func Path.rel(base: string, target: string): Result[string, Error]
+
+// Path.match reports whether the whole of path matches the glob pattern, element by element. * is
+// any run of characters within an element, ? one character, [a-z] one of a set, [^a-z] or [!a-z]
+// one outside it, and ** as a whole element zero or more elements (one or more as the last). On
+// Unix \ escapes; on Windows it separates, and [*] escapes. A wildcard does not match a dot that
+// begins an element unless hidden is true. It looks only at the text and is Err on a malformed
+// pattern.
+//
+//     Path.match("**/*.ant", "src/main.ant")   // Ok{ value: true }
+//     Path.match("*", ".env")                  // Ok{ value: false }
+func Path.match(pattern: string, path: string, hidden: bool = false): Result[bool, Error]
 
 // Http
 //

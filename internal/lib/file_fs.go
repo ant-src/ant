@@ -444,6 +444,21 @@ func init() {
 		fn("File.copy", "from, to, replace?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return copyFile(stringArg(g, who, a[0]), stringArg(g, who, a[1]), boolOr(g, who, a[2], true))
 		}),
+		fn("File.glob", "pattern, dir?, hidden?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			dir := "."
+			if given(a[1]) {
+				dir = stringArg(g, who, a[1])
+			}
+			paths, err := glob(stringArg(g, who, a[0]), dir, boolOr(g, who, a[2], false))
+			if err != nil {
+				return errResult(err)
+			}
+			out := make([]value.Value, len(paths))
+			for i, p := range paths {
+				out[i] = value.Text(p)
+			}
+			return value.Ok(value.NewArray(out))
+		}),
 		fn("File.copyAll", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return copyAll(stringArg(g, who, a[0]), stringArg(g, who, a[1]))
 		}),

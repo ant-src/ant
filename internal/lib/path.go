@@ -50,6 +50,13 @@ func init() {
 				}
 				return value.Ok(p)
 			}),
+			fn("Path.match", "pattern, path, hidden?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				p, err := parseGlob(stringArg(g, who, a[0]))
+				if err != nil {
+					return errResult(err)
+				}
+				return value.Ok(p.matchPath(stringArg(g, who, a[1]), boolOr(g, who, a[2], false)))
+			}),
 		)
 	})
 }

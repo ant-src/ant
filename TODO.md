@@ -1,6 +1,6 @@
 # Work still to do
 
-Four gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
+Three gaps in the language, the library and the tooling. Each one is a sketch, not a decision: the
 spec (`spec/ant-lang.md`, `spec/stdlib.md`) is written first, and the code and tests follow it.
 
 ## Flags
@@ -100,25 +100,3 @@ describe(Circle{ radius: 2.0 })   // Circle.area and Circle.name exist, so Circl
   rule changes.
 - Required fields alongside functions, which anonymous record types already cover.
 - Whether `String.from`, equality and ordering become interfaces a user type can implement.
-
-## Globbing
-
-**Today:** `File.list` and `File.walk` return every name, and a script filters them by hand. There
-is no `*.txt`.
-
-**Sketch:**
-
-```
-Path.match(pattern: string, name: string): bool              // pure: does name match pattern
-File.glob(pattern: string): Result[Array[string], Error]     // the existing paths that match, in lexical order
-```
-
-**Open questions:**
-
-- The syntax: `*`, `?`, `[a-z]`, and whether `**` crosses directories (Go's `filepath.Match` has no
-  `**`; zsh, bash's `globstar`, Python's `glob(recursive=True)` and Node's `fs.glob` do), and
-  `{a,b}` alternatives.
-- Whether a leading `*` matches dot files, which the shell does not.
-- Links: whether `**` descends through them, which `File.walk` does not.
-- Case on case-insensitive file systems, and `\` as an escape versus the Windows separator.
-- No match: an empty array, not the pattern back as the shell gives it.
