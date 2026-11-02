@@ -557,11 +557,13 @@ func TestSessionLet(t *testing.T) {
 		}
 	}
 	for src, want := range map[string]string{
-		"var limit = 2":   "limit is bound by let earlier in the session",
-		"let limit = 2":   "limit is bound by let earlier in the session",
-		"limit = 2":       "assignment to let name limit",
-		"count += 1":      "assignment to let name count",
-		"func limit() {}": "limit is bound by let earlier in the session",
+		"var limit = 2":        "limit is bound by let earlier in the session",
+		"let limit = 2":        "limit is bound by let earlier in the session",
+		"limit = 2":            "assignment to let name limit",
+		"count += 1":           "assignment to let name count",
+		"func limit() {}":      "limit is bound by let earlier in the session",
+		"let r = 1\nlet r = 2": "r is already declared in this scope",
+		"var w = 1\nvar w = 2": "w is already declared in this scope",
 	} {
 		if _, err := s.Eval(src); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: error %v, want one containing %q", src, err, want)

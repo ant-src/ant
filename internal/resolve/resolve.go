@@ -285,6 +285,10 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 			}
 			r.noteBinding(s, b)
 			return b
+		case s.module && r.session && old.imp < 0 && old.pos != (ast.Pos{}):
+			// declared earlier in this same input, which is one scope like any other
+			r.errorf(pos, "%s is already declared in this scope", name)
+			return b
 		case s.module && r.session && old.fixed == ast.FixedLet:
 			r.errorf(pos, "%s is bound by let earlier in the session and cannot be declared again", name)
 			return b
