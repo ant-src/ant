@@ -141,7 +141,7 @@ func (a *analysis) describe(o *check.Object) (head, doc string) {
 		}
 		return keyword + o.Name + ": " + typeString(o.Type()), o.Doc()
 	case check.Param:
-		return o.Name + ": " + typeString(o.Type()), "A parameter."
+		return "let " + o.Name + ": " + typeString(o.Type()), "A parameter." // a let binding (section 6)
 	case check.Field:
 		owner := ""
 		if o.Owner != "" {

@@ -267,7 +267,7 @@ func TestHover(t *testing.T) {
 		{"imported function", at(mainSrc, "dist(p", 1, 0), []string{"func distance(a: Point, b: Point): float64", "distance returns the straight-line"}},
 		{"module namespace", at(mainSrc, "Geo.origin", 1, 0), []string{`import "./lib/geometry.ant" Geo`, "Geometry has points"}},
 		{"record field", at(mainSrc, "s.name", 1, 2), []string{"name: string", "A field of Shape"}},
-		{"narrowed parameter", at(mainSrc, "{ v }", 1, 2), []string{"v: int | null", "// here: int"}},
+		{"narrowed parameter", at(mainSrc, "{ v }", 1, 2), []string{"let v: int | null", "// here: int"}},
 		{"local variable", at(mainSrc, "label }", 1, 0), []string{"var label: string"}},
 		{"prelude function", at(mainSrc, "Array.map", 1, 6), []string{"func Array.map[T, U]", "Array.map returns"}},
 		{"type", at(mainSrc, "s: Shape", 1, 3), []string{"type Shape = { name: string, area: float64 }"}},
