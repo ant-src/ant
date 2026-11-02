@@ -1428,8 +1428,8 @@ func Parallel.map[T, U](xs: Array[T], f: func(T, Context): U, limit: int, ctx: C
 func Parallel.each[T, R](xs: Array[T] | Channel[T], f: func(T, Context): R, limit: int, ctx: Context | null = null): void
 
 // Parallel.run calls every function of fs at once with the scope context, or none when ctx is done
-// already. Unlike other callbacks the library ignores, fs returns void, so that the functions need
-// not share a result type; each hands back its result by writing a field.
+// already. Its functions return void, unlike other callbacks whose value the library ignores, so
+// that they need not share a result type; each hands back its result by writing a field.
 //
 //     Parallel.run([
 //       { loaded.user = loadUser(id, x) },
