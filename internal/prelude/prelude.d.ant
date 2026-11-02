@@ -1398,6 +1398,61 @@ func Channel.length[T](c: Channel[T]): int
 // or until ctx is done.
 func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 
+// Parallel
+//
+// Parallel runs work on goroutines and waits for all of it. Each call makes a scope context, a
+// child of ctx, and passes it to every callback; the call cancels it on every exit, success
+// included, and never cancels ctx. A call neither returns nor panics until every callback it
+// started has ended, deferred blocks included, and every action of a callback happens before the
+// call returns, so a value a callback wrote can be read after the call with no lock. If a panic
+// leaves a callback, the call cancels the scope, waits for the others, and raises that panic in the
+// caller with its original message and trace; a later panic in the same call is reported and
+// dropped. A go inside a callback is not owned by the call.
+
+// Parallel.map returns f applied to every element of xs and the scope context, in input order,
+// running at most limit callbacks at once. It admits elements in index order until the scope
+// ends, and returns null when some element was never admitted; otherwise it returns every result,
+// even when ctx ended after the last admission. It panics if limit < 1, even when xs is empty.
+//
+//     Parallel.map([1, 2, 3], func(n: int, work: Context) { n * n }, limit: 2)   // [1, 4, 9]
+func Parallel.map[T, U](xs: Array[T], f: func(T, Context): U, limit: int, ctx: Context | null = null): Array[U] | null
+
+// Parallel.each calls f on every element of xs, or on every value received from xs until it is
+// closed, with the scope context, running at most limit callbacks at once, and discards f's
+// value. Over a channel it receives only when a slot is free and under the scope context, so a
+// value it receives always runs; it neither closes nor drains the channel, and a null value is
+// passed to f like any other. It reports nothing: a done ctx after the call does not say which
+// elements ran. It panics if limit < 1, even when xs is empty.
+//
+//     Parallel.each(jobs, func(job: Job, work: Context) { process(job, work) }, limit: 8, ctx: ctx)
+func Parallel.each[T, R](xs: Array[T] | Channel[T], f: func(T, Context): R, limit: int, ctx: Context | null = null): void
+
+// Parallel.run calls every function of fs at once with the scope context, or none when ctx is done
+// already. Unlike other callbacks the library ignores, fs returns void, so that the functions need
+// not share a result type; each hands back its result by writing a field.
+//
+//     Parallel.run([
+//       { loaded.user = loadUser(id, x) },
+//       { loaded.orders = loadOrders(id, x) },
+//     ], ctx: ctx)
+func Parallel.run(fs: Array[func(Context): void], ctx: Context | null = null): void
+
+// Parallel.race calls every function of fs at once with the scope context and returns the first
+// value one returns, an Err included, cancelling the scope for the rest. It returns null when the
+// scope ends before any function returns, so a T that includes null is wrapped in a record. It
+// panics if fs is empty.
+//
+//     var ended = Parallel.race([{ readLoop(conn, x) }, { writeLoop(conn, outbox, x) }], ctx: ctx)
+func Parallel.race[T](fs: Array[func(Context): T], ctx: Context | null = null): T | null
+
+// Parallel.any calls every function of fs at once with the scope context and returns the first Ok
+// one returns, cancelling the scope for the rest. An Err cancels nothing; when every function
+// returns Err, it returns Err of the errors in input order, and Err([]) when fs is empty. It
+// returns null when the scope ends before an Ok or the last Err.
+//
+//     var reply = Parallel.any([{ Http.get(primary, ctx: x) }, { Http.get(mirror, ctx: x) }], ctx: ctx)
+func Parallel.any[T, E](fs: Array[func(Context): Result[T, E]], ctx: Context | null = null): Result[T, Array[E]] | null
+
 // File
 //
 // File holds the functions of the file system and of handles: open files, the standard streams, and

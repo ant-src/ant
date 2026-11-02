@@ -1,0 +1,49 @@
+// spec: 11 Parallel; 9 Panics in goroutines
+// panics: panic
+// A panic in a Parallel callback cancels the scope, waits for the siblings, and is raised in the
+// caller with its original trace, which Panic.catch sees; it overrides a race already won; a second
+// panic in the same call is reported where it happened and dropped.
+func ms(n: int): Time.Duration { Time.duration(milliseconds: n) }
+
+var sibling: Atomic[string] = Atomic.new("")
+var caught = Panic.catch({
+  var _ = Parallel.map([1, 2], func(n: int, work: Context) {
+    if n == 1 { panic("bad element") }
+    Context.wait(work)
+    Atomic.store(sibling, Context.reason(work) ?? "running")
+    n
+  }, limit: 2)
+})
+if caught is Err { println("${caught.error.message} at ${caught.error.trace[0].line}") }
+println(Atomic.load(sibling))
+
+var late = Panic.catch({
+  Parallel.race([
+    { "won" },
+    {
+      Context.wait(x)
+      panic("loser")
+    },
+  ])
+})
+if late is Err { println(late.error.message) }
+
+var twice = Panic.catch({
+  Parallel.run([
+    { panic("first") },
+    {
+      Time.sleep(ms(20))
+      panic("second")
+    },
+  ])
+})
+if twice is Err { println(twice.error.message) }
+println("still running")
+
+// expect
+// out: bad element at 11
+// out: cancelled
+// out: loser
+// out: first
+// out: still running
+// err: second

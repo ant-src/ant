@@ -1,0 +1,63 @@
+// spec: 11 Parallel; 9 Sharing results
+// Parallel.run hands results back through record fields, read after the call with no lock;
+// Parallel.race takes the first value returned, an Err included, and cancels the others;
+// Parallel.any takes the first Ok, an Err cancelling nothing, and gives every error in input
+// order when all fail; both are null when the context is done already.
+func ms(n: int): Time.Duration { Time.duration(milliseconds: n) }
+
+type Loaded = { user: string | null, orders: Array[int] }
+var loaded = Loaded{ user: null, orders: [] }
+Parallel.run([
+  { loaded.user = "ann" },
+  { loaded.orders = [1, 2] },
+])
+println(loaded)
+
+var loser: Atomic[string] = Atomic.new("")
+var first: Result[string, Error] | null = Parallel.race([
+  {
+    Context.wait(x)
+    Atomic.store(loser, Context.reason(x) ?? "running")
+    Result.ok("slow")
+  },
+  { Result.err(Error{ message: "fast failure" }) },
+])
+println(first)
+println(Atomic.load(loser))
+
+var reply: Result[string, Array[string]] | null = Parallel.any([
+  { Result.err("primary down") },
+  {
+    Time.sleep(ms(10), x)
+    Result.ok("mirror")
+  },
+])
+println(reply)
+
+var failures: Result[string, Array[string]] | null = Parallel.any([
+  {
+    Time.sleep(ms(20), x)
+    Result.err("first")
+  },
+  { Result.err("second") },
+])
+println(failures)
+
+var none: Array[func(Context): Result[int, string]] = []
+println(Parallel.any(none))
+
+var done = Context.new()
+Context.cancel(done)
+println(Parallel.race([{ 1 }], ctx: done))
+var unrun: Result[int, Array[string]] | null = Parallel.any([{ Result.ok(1) }], ctx: done)
+println(unrun)
+
+// expect
+// out: Loaded{ user: "ann", orders: [1, 2] }
+// out: Err{ error: Error{ message: "fast failure" } }
+// out: cancelled
+// out: Ok{ value: "mirror" }
+// out: Err{ error: ["first", "second"] }
+// out: Err{ error: [] }
+// out: null
+// out: null

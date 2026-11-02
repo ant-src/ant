@@ -739,10 +739,16 @@ func (g *Goroutine) Repanic(p *AntPanic) {
 	panic(p)
 }
 
-// Catch calls fn and returns its value, or the Ant panic that left it once the deferred blocks
-// inside it have run (section 8, Catching a panic). Anything else that unwinds, Os.exit or the
-// run's end, goes on.
-func (g *Goroutine) Catch(fn value.Value) (v value.Value, p *AntPanic) {
+// Catch calls fn with args and returns its value, or the Ant panic that left it once the
+// deferred blocks inside it have run (section 8, Catching a panic). Anything else that unwinds,
+// Os.exit or the run's end, goes on.
+func (g *Goroutine) Catch(fn value.Value, args ...value.Value) (value.Value, *AntPanic) {
+	return g.CatchFunc(func() value.Value { return g.Call(fn, args...) })
+}
+
+// CatchFunc runs body as Catch runs a function: it returns body's value, or the Ant panic that
+// left body, which includes the panics of a builtin's own checks inside it.
+func (g *Goroutine) CatchFunc(body func() value.Value) (v value.Value, p *AntPanic) {
 	// The frames and the call site unwind on their own, by the deferred pops and restores.
 	g.catching++
 	defer func() {
@@ -757,7 +763,7 @@ func (g *Goroutine) Catch(fn value.Value) (v value.Value, p *AntPanic) {
 		}
 		p = ap
 	}()
-	return g.Call(fn), nil
+	return body(), nil
 }
 
 func (p *AntPanic) Error() string { return "panic: " + p.Message }

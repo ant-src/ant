@@ -1,0 +1,20 @@
+// spec: 4 Inference
+// A union parameter is solved member by member, a bare type parameter taking the rest; a lambda
+// inside an array literal argument is checked against the element's function type, and its body
+// solves the result, which later lambdas are then checked against.
+func pick[T](xs: Array[T] | Channel[T]): T | null { null }
+func firstOf[T](fs: Array[func(): T]): T { fs[0]() }
+func orElse[T](v: T | null, fallback: T): T { v ?? fallback }
+
+var jobs: Channel[int] = Channel.new()
+var a: int | null = pick([1, 2])
+var b: int | null = pick(jobs)
+var c: string | null = pick(jobs) // ERR: cannot use Channel[int]
+var maybe: string | null = null
+var d: string = orElse(maybe, "x")
+
+var n: int = firstOf([{ 1 }, { 2 }])
+var s: string = firstOf([{ "a" }, { "b" }])
+var mixed = firstOf([{ 1 }, { "b" }]) // ERR: string
+var r = Parallel.race([{ Context.reason(x) }])
+var narrowed: string | null = r ?? null

@@ -1,16 +1,19 @@
-// spec: 9 Synchronization; 9 Sharing results; stdlib Http
-// The fetchAll function of section 9: one goroutine per URL, results shared through an array
-// slot under a mutex, completion through a WaitGroup, and the test server as the first argument.
-func fetchAll(urls: Array[string]): Array[Result[Http.Response, Error]] {
-  var results: Array[Result[Http.Response, Error]] = Array.filled(Array.length(urls), Result.err(Error{ message: "pending" }))
-  var lock = Mutex.new()
+// spec: 9 Synchronization; 9 Sharing results; 11 Parallel; stdlib Http
+// The two fetchAll functions of section 9: Parallel.map, bounded, with results in input order;
+// and the same fan-out by hand, a goroutine per URL writing its own array slot, joined by a
+// WaitGroup. The test server is the first argument.
+func fetchAll(urls: Array[string], ctx: Context): Array[Result[Http.Response, Error]] | null {
+  Parallel.map(urls, func(url: string, work: Context) { Http.get(url, ctx: work) }, limit: 20, ctx: ctx)
+}
+
+func fetchAllByHand(urls: Array[string]): Array[Result[Http.Response, Error] | null] {
+  var results: Array[Result[Http.Response, Error] | null] = Array.filled(len(urls), null)
   var wg = WaitGroup.new()
   for entry in Array.entries(urls) {
     WaitGroup.add(wg, 1)
     go {
       defer { WaitGroup.done(wg) }
-      var response = Http.get(entry.value)
-      Mutex.withLock(lock, { results[entry.index] = response })
+      results[entry.index] = Http.get(entry.value)
     }
   }
   WaitGroup.wait(wg)
@@ -18,12 +21,17 @@ func fetchAll(urls: Array[string]): Array[Result[Http.Response, Error]] {
 }
 
 var base = Os.args()[0]
-var results = fetchAll(["${base}/hello", "${base}/status/404", "http://127.0.0.1:1/", "${base}/status/500"])
+var urls = ["${base}/hello", "${base}/status/404", "http://127.0.0.1:1/", "${base}/status/500"]
+var results = fetchAll(urls, Context.new())
+if results == null { panic("cancelled") }
 for r in results {
   if r is Ok { println(r.value.status) } else { println("error") }
 }
 var first = results[0]
 if first is Ok { println(first.value.body) }
+for r in fetchAllByHand(urls) {
+  if r != null && r is Ok { println(r.value.status) } else { println("error") }
+}
 
 // expect
 // out: 200
@@ -31,4 +39,8 @@ if first is Ok { println(first.value.body) }
 // out: error
 // out: 500
 // out: hello
+// out: 200
+// out: 404
+// out: error
+// out: 500
 // args: $HTTP

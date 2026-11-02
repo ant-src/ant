@@ -1,0 +1,17 @@
+// spec: 11 Parallel
+// panics: Parallel.map; Parallel.each; Parallel.race
+// Results in input order, empty input without consulting the context, and the panics: a limit
+// below 1 even for empty input, and race with no function.
+func square(n: int, work: Context): int { n * n }
+var none: Array[int] = []
+var noRace: Array[func(Context): int] = []
+var noAny: Array[func(Context): Result[int, string]] = []
+
+Parallel.map([1, 2, 3], square, limit: 2)   // => [1, 4, 9]
+Parallel.map([1, 2, 3], square, limit: 100) // => [1, 4, 9]
+Parallel.map(none, square, limit: 1)        // => []
+Parallel.map(none, square, limit: 0)        // => panic: Parallel.map needs a limit of at least 1, got 0
+Parallel.each([1, 2], square, limit: -1)    // => panic: Parallel.each needs a limit of at least 1, got -1
+Parallel.race([{ 7 }])                      // => 7
+Parallel.race(noRace)                       // => panic: Parallel.race needs at least one function
+Parallel.any(noAny)                         // => Err{ error: [] }

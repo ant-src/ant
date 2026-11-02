@@ -1,0 +1,42 @@
+// spec: 11 Parallel; 4 Inference
+// Parallel.each over an array and over a channel: the type parameter comes from whichever member
+// of the union the argument matches; a channel is drained by limit workers until it closes, a null
+// value is passed on like any other, values left in the channel stay there when the context ends,
+// and the callback's value is discarded.
+var total: Atomic[int] = Atomic.new(0)
+Parallel.each([1, 2, 3, 4], func(n: int, work: Context) { Atomic.add(total, n) }, limit: 2)
+println(Atomic.load(total))
+
+var jobs: Channel[string | null] = Channel.new(4)
+Channel.send(jobs, "a")
+Channel.send(jobs, null)
+Channel.send(jobs, "b")
+Channel.close(jobs)
+var seen: Array[string] = []
+var lock = Mutex.new()
+Parallel.each(jobs, func(job: string | null, work: Context) {
+  Mutex.withLock(lock, { Array.push(seen, job ?? "null") })
+}, limit: 3)
+println(Array.sort(seen))
+
+var feed: Channel[int] = Channel.new()
+go {
+  for i in Iter.range(0, 5) { Channel.send(feed, i) }
+  Channel.close(feed)
+}
+var sum: Atomic[int] = Atomic.new(0)
+Parallel.each(feed, func(i: int, work: Context) { Atomic.add(sum, i) }, limit: 2)
+println(Atomic.load(sum))
+
+var waiting: Channel[int] = Channel.new(3)
+Channel.send(waiting, 1)
+Channel.send(waiting, 2)
+var stop = Context.new()
+Parallel.each(waiting, func(i: int, work: Context) { Context.cancel(stop) }, limit: 1, ctx: stop)
+println(Channel.length(waiting))
+
+// expect
+// out: 10
+// out: ["a", "b", "null"]
+// out: 10
+// out: 1

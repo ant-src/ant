@@ -796,7 +796,22 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 		}
 		return c.recordLit(x, sc, nil)
 	case *ast.Lambda:
-		return c.synth(e, sc)
+		// A lambda inside a literal, as in Parallel.race([{ … }, { … }]), is checked against
+		// the element's function type once its parameters are known, and its body solves the
+		// result, as a lambda argument's does.
+		pat, err := types.Subst(pattern, subst)
+		ft, isFunc := types.Expand(pat).(types.Func)
+		if err != nil || !isFunc || len(ft.Params) > 1 || anyParamMentions(ft.Params, unsolved) {
+			return c.synth(e, sc)
+		}
+		got := c.lambda(x, sc, ft)
+		if g, isF := got.(types.Func); isF && c.unify(ft.Return, g.Return, subst) {
+			pruneSolved(unsolved, subst)
+			if solved, err := types.Subst(pattern, subst); err == nil && !types.Mentions(solved, unsolved) {
+				return solved
+			}
+		}
+		return got
 	}
 	solved, err := types.Subst(pattern, subst)
 	if err == nil && !types.Mentions(solved, unsolved) {

@@ -1,0 +1,59 @@
+// spec: 11 Parallel; 9 Visibility
+// Parallel.map: results in input order whatever order the callbacks finish in, at most limit
+// callbacks at once, a deferred block ending before the next element starts under limit 1, and
+// null when the context ends before every element was admitted.
+func ms(n: int): Time.Duration { Time.duration(milliseconds: n) }
+
+var squares = Parallel.map([3, 2, 1], func(n: int, work: Context) {
+  Time.sleep(ms(n * 10), work)
+  n * n
+}, limit: 3)
+println(squares)
+
+var active: Atomic[int] = Atomic.new(0)
+var peak: Atomic[int] = Atomic.new(0)
+var all = Parallel.map(Array.range(0, 12), func(n: int, work: Context) {
+  var now = Atomic.add(active, 1)
+  while true {
+    var seen = Atomic.load(peak)
+    if now <= seen || Atomic.compareAndSwap(peak, seen, now) { break }
+  }
+  Time.sleep(ms(5), work)
+  Atomic.add(active, -1)
+  n
+}, limit: 4)
+println(all != null && len(all) == 12)
+println(Atomic.load(peak) <= 4)
+
+var log: Array[string] = []
+var _ = Parallel.map(["a", "b"], func(s: string, work: Context) {
+  defer { Array.push(log, "end ${s}") }
+  Array.push(log, "start ${s}")
+}, limit: 1)
+println(log)
+
+var none: Array[int] = []
+println(Parallel.map(none, func(n: int, work: Context) { n }, limit: 1))
+
+var done = Context.new()
+Context.cancel(done)
+var ran: Atomic[int] = Atomic.new(0)
+println(Parallel.map([1, 2], func(n: int, work: Context) { Atomic.add(ran, 1) }, limit: 2, ctx: done))
+println(Atomic.load(ran))
+
+var short = Context.new(ms(30))
+var partial = Parallel.map(Array.range(0, 10), func(n: int, work: Context) {
+  Time.sleep(ms(20), work)
+  Context.reason(work)
+}, limit: 1, ctx: short)
+println(partial)
+
+// expect
+// out: [9, 4, 1]
+// out: true
+// out: true
+// out: ["start a", "end a", "start b", "end b"]
+// out: []
+// out: null
+// out: 0
+// out: null
