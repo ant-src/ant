@@ -972,7 +972,7 @@ func (g *Goroutine) assign(e *ast.Assign, env *Env) (value.Value, ctl) {
 	}
 	var cur value.Value
 	if e.Op != "=" {
-		cur = r.load()
+		cur = g.load(&r)
 	}
 	v, c := g.eval(e.Value, env)
 	if c != ctlNone {
@@ -981,7 +981,7 @@ func (g *Goroutine) assign(e *ast.Assign, env *Env) (value.Value, ctl) {
 	if e.Op != "=" {
 		v = g.arith(e.Op[:len(e.Op)-1], cur, v, e.Pos) // "+=" -> "+"
 	}
-	r.store(v)
+	g.store(&r, v)
 	return value.Void, ctlNone
 }
 
@@ -1017,11 +1017,12 @@ func (g *Goroutine) setIndex(recv, idx, v value.Value, pos ast.Pos) {
 	}
 }
 
-// place is an evaluated assignment target of a destructuring assignment.
+// place is an evaluated assignment target of a destructuring assignment: a leaf ref, or nested
+// places and an optional rest.
 type place struct {
-	store  func(value.Value)
+	ref    *ref
 	nested []place
-	rest   func(value.Value)
+	rest   *ref
 	pos    ast.Pos
 }
 
@@ -1043,7 +1044,7 @@ func (g *Goroutine) places(t *ast.AssignArray, env *Env) (place, value.Value, ct
 			if c != ctlNone {
 				return p, v, c
 			}
-			p.nested = append(p.nested, place{store: r.store})
+			p.nested = append(p.nested, place{ref: &r})
 		}
 	}
 	if t.Rest != nil {
@@ -1051,7 +1052,7 @@ func (g *Goroutine) places(t *ast.AssignArray, env *Env) (place, value.Value, ct
 		if c != ctlNone {
 			return p, v, c
 		}
-		p.rest = r.store
+		p.rest = &r
 	}
 	return p, nil, ctlNone
 }
@@ -1059,8 +1060,9 @@ func (g *Goroutine) places(t *ast.AssignArray, env *Env) (place, value.Value, ct
 // ref is an assignment target whose receiver and index are evaluated, so that a compound
 // assignment reads and writes the same place.
 type ref struct {
-	load  func() value.Value
-	store func(value.Value)
+	target    ast.Expr // an *ast.Ident, *ast.Field, or *ast.Index
+	env       *Env
+	recv, idx value.Value
 }
 
 // placeOf evaluates a target's receiver and index. When one transfers control, as a try does,
@@ -1068,19 +1070,13 @@ type ref struct {
 func (g *Goroutine) placeOf(e ast.Expr, env *Env) (ref, value.Value, ctl) {
 	switch x := e.(type) {
 	case *ast.Ident:
-		return ref{
-			load:  func() value.Value { return g.ident(x, env) },
-			store: func(v value.Value) { g.assignIdent(x, v, env) },
-		}, nil, ctlNone
+		return ref{target: x, env: env}, nil, ctlNone
 	case *ast.Field:
 		recv, c := g.eval(x.X, env)
 		if c != ctlNone {
 			return ref{}, recv, c
 		}
-		return ref{
-			load:  func() value.Value { return g.field(recv, x.Name, x.Pos) },
-			store: func(v value.Value) { g.setField(recv, x.Name, v, x.Pos) },
-		}, nil, ctlNone
+		return ref{target: x, recv: recv}, nil, ctlNone
 	case *ast.Index:
 		recv, c := g.eval(x.X, env)
 		if c != ctlNone {
@@ -1090,13 +1086,37 @@ func (g *Goroutine) placeOf(e ast.Expr, env *Env) (ref, value.Value, ctl) {
 		if c != ctlNone {
 			return ref{}, idx, c
 		}
-		return ref{
-			load:  func() value.Value { return g.index(recv, idx, x.Pos) },
-			store: func(v value.Value) { g.setIndex(recv, idx, v, x.Pos) },
-		}, nil, ctlNone
+		return ref{target: x, recv: recv, idx: idx}, nil, ctlNone
 	}
 	g.panicf(e.Position(), "internal error: not a place")
 	return ref{}, nil, ctlNone
+}
+
+// load reads the place r names.
+func (g *Goroutine) load(r *ref) value.Value {
+	switch x := r.target.(type) {
+	case *ast.Ident:
+		return g.ident(x, r.env)
+	case *ast.Field:
+		return g.field(r.recv, x.Name, x.Pos)
+	case *ast.Index:
+		return g.index(r.recv, r.idx, x.Pos)
+	}
+	panic("internal error: not a place")
+}
+
+// store writes v to the place r names.
+func (g *Goroutine) store(r *ref, v value.Value) {
+	switch x := r.target.(type) {
+	case *ast.Ident:
+		g.assignIdent(x, v, r.env)
+	case *ast.Field:
+		g.setField(r.recv, x.Name, v, x.Pos)
+	case *ast.Index:
+		g.setIndex(r.recv, r.idx, v, x.Pos)
+	default:
+		panic("internal error: not a place")
+	}
 }
 
 func (g *Goroutine) storePlaces(p place, v value.Value) {
@@ -1109,14 +1129,14 @@ func (g *Goroutine) storePlaces(p place, v value.Value) {
 		g.panicf(p.pos, "a destructuring needs %s, got %d", plural(len(p.nested), "element"), len(vals))
 	}
 	for i, np := range p.nested {
-		if np.store != nil {
-			np.store(vals[i])
+		if np.ref != nil {
+			g.store(np.ref, vals[i])
 		} else {
 			g.storePlaces(np, vals[i])
 		}
 	}
 	if p.rest != nil {
-		p.rest(value.NewArray(vals[len(p.nested):]))
+		g.store(p.rest, value.NewArray(vals[len(p.nested):]))
 	}
 }
 
