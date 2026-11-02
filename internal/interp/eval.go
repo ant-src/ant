@@ -430,7 +430,7 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 			v, c := g.assert(x, env)
 			return v, c, false
 		}
-		var args []value.Value
+		args := make([]value.Value, 0, len(x.Args))
 		var names []string
 		rest := x.Args
 		if x.Pipe {
@@ -589,6 +589,9 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 		g.push(f.FuncName(), f.Env.mod.path, pos)
 		defer g.pop()
 	}
+	// exact is the common call: positional arguments, one for every parameter, which binds in
+	// order and needs no matching.
+	exact := !f.Lambda && names == nil && len(args) == len(f.Params)
 	var slots []int // the parameter each argument fills
 	var filled []bool
 	if f.Lambda {
@@ -598,7 +601,7 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 		if len(args) > 1 {
 			g.panicf(pos, "a lambda takes at most one argument, got %d", len(args))
 		}
-	} else {
+	} else if !exact {
 		slots, filled = g.matchParams(f, args, names, pos)
 	}
 	if !root {
@@ -609,13 +612,18 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 	if g.d != nil {
 		env.frame = g.stack[len(g.stack)-1].id
 	}
-	if f.Lambda {
+	switch {
+	case f.Lambda:
 		x := value.Void
 		if len(args) == 1 {
 			x = args[0]
 		}
 		env.set(f.Scope.X, x)
-	} else {
+	case exact:
+		for i, a := range args {
+			env.set(f.Params[i].Slot, a)
+		}
+	default:
 		for i, a := range args {
 			env.set(f.Params[slots[i]].Slot, a)
 		}
