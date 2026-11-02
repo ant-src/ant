@@ -357,7 +357,7 @@ func (p *parser) attempt(f func()) (ok bool) {
 
 // statementStart lists the keywords that begin a statement a list cannot hold, so that a list
 // left open above one of them ends there when recovering.
-var statementStart = map[string]bool{"var": true, "type": true, "func": true, "export": true, "import": true,
+var statementStart = map[string]bool{"var": true, "let": true, "type": true, "func": true, "export": true, "import": true,
 	"return": true, "for": true, "while": true, "if": true, "select": true, "go": true, "defer": true, "break": true, "continue": true}
 
 // sync skips to where parsing can go on after an error, when recovering: to a line break or
@@ -748,7 +748,7 @@ func (p *parser) item(f *ast.File) bool {
 			d.Doc = doc
 		}
 		f.Decls = append(f.Decls, d)
-	case t.Is("var"):
+	case t.Is("var"), t.Is("let"):
 		doc := p.doc(t)
 		d := p.varDecl()
 		d.Doc = doc
@@ -854,7 +854,7 @@ func (p *parser) declaration() ast.Decl {
 	}
 	t := p.peek()
 	switch {
-	case t.Is("var"):
+	case t.Is("var"), t.Is("let"):
 		d := p.varDecl()
 		d.Export = export
 		return d
@@ -867,18 +867,22 @@ func (p *parser) declaration() ast.Decl {
 		d.Export = export
 		return d
 	}
-	p.fail(t.Pos, "expected var, func, or type after export, got %s", t)
+	p.fail(t.Pos, "expected var, let, func, or type after export, got %s", t)
 	return nil
 }
 
 func (p *parser) varDecl() *ast.VarDecl {
-	t := p.expect("var")
-	d := &ast.VarDecl{Pos: pos(t)}
+	t := p.next() // var or let
+	d := &ast.VarDecl{Pos: pos(t), Let: t.Is("let")}
+	if p.declarations() && !d.Let {
+		// when recovering, the var is read as a let, so that one error is reported
+		p.soft(t.Pos, "a declaration file declares a constant with let, as let Owner.NAME: T")
+	}
 	switch {
 	case p.at("{") || p.at("["):
 		if p.declarations() {
-			// when recovering, the var is read as written, so that one error is reported
-			p.soft(p.peek().Pos, "a declaration file declares a constant as var Owner.NAME: T")
+			// when recovering, the declaration is read as written, so that one error is reported
+			p.soft(p.peek().Pos, "a declaration file declares a constant as let Owner.NAME: T")
 		}
 		d.Target = p.destructure()
 	case p.atKind(token.Ident):
@@ -896,8 +900,8 @@ func (p *parser) varDecl() *ast.VarDecl {
 			return d
 		}
 		if p.declarations() {
-			// when recovering, the var is read as written, so that one error is reported
-			p.soft(p.peek().Pos, "a declaration file declares a constant as var Owner.NAME: T")
+			// when recovering, the declaration is read as written, so that one error is reported
+			p.soft(p.peek().Pos, "a declaration file declares a constant as let Owner.NAME: T")
 			if p.at(":") {
 				p.next()
 				d.Type = p.parseType()
@@ -919,7 +923,7 @@ func (p *parser) varDecl() *ast.VarDecl {
 		if n.Kind == token.Reserved || n.Kind == token.Keyword {
 			p.fail(n.Pos, "'%s' cannot be a variable name", n.Text)
 		}
-		p.fail(n.Pos, "expected a name or a destructuring after var, got %s", n)
+		p.fail(n.Pos, "expected a name or a destructuring after %s, got %s", t.Text, n)
 	}
 	d.Sig = p.since(t)
 	if p.recovering && !p.at("=") {
@@ -1299,7 +1303,7 @@ func (p *parser) statement() ast.Stmt {
 	t := p.peek()
 	if t.Kind == token.Keyword {
 		switch t.Text {
-		case "var":
+		case "var", "let":
 			return p.varDecl()
 		case "type":
 			return p.typeDecl()
@@ -1791,7 +1795,7 @@ func (p *parser) primary() ast.Expr {
 		case "func":
 			p.next()
 			if p.atKind(token.Ident) {
-				p.fail(p.peek().Pos, "a named function is only allowed at the top level; bind it with var")
+				p.fail(p.peek().Pos, "a named function is only allowed at the top level; bind it with let or var")
 			}
 			params, ret := p.signature()
 			saved := p.enterBoundary("func")
@@ -2124,8 +2128,8 @@ func (p *parser) selectExpr() *ast.Select {
 func (p *parser) selectClause(heads *int, hasElse *bool) *ast.SelectClause {
 	start := p.peek()
 	c := &ast.SelectClause{Pos: pos(start)}
-	if p.at("var") {
-		p.next()
+	if p.at("var") || p.at("let") {
+		c.Let = p.next().Is("let")
 		n := p.expectIdent("a name for the clause's result")
 		c.Target = name(n)
 		p.expect("=")

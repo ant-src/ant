@@ -1,0 +1,56 @@
+// spec: 3; 5 select; 5 Destructuring; 6; 7 Narrowing; 9 Data races; 10
+// A let binds once and reads like a var: in every declaration form, in a select head, through an
+// import, and captured by goroutines. It fixes the name, not the value (section 3), and a
+// top-level or imported let narrows in a function (section 7).
+import "./lib/limits.ant" { Default, Override, Limit }
+import "./lib/limits.ant" Limits
+
+let base = 2
+let { max } = Default
+let [head, ...tail] = [1, 2, 3]
+
+func effective(): int {
+  if Override != null { Override.max } else { Default.max }
+}
+
+func sum(xs: Array[int]): int {
+  var total = 0
+  for x in xs { total += x }
+  total
+}
+
+let xs = [1]
+Array.push(xs, 2)
+xs[0] = 5
+Default.max = 11
+
+let fact: func(int): int = func(n: int): int { if n < 2 { 1 } else { n * fact(n - 1) } }
+
+let c: Channel[int] = Channel.new(1)
+Channel.send(c, 7)
+let got = select {
+  let v = Channel.receive(c) { v ?? 0 }
+}
+
+let results: Channel[int] = Channel.new(3)
+let wg = WaitGroup.new()
+for i in [1, 2, 3] {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    Channel.send(results, i * base)
+  }
+}
+WaitGroup.wait(wg)
+Channel.close(results)
+
+println("${base} ${max} ${head} ${tail}")
+println("${effective()} ${Limits.Default.max}")
+println("${xs} ${sum(xs)} ${fact(5)} ${got}")
+println(sum(Iter.toArray(Channel.values(results))))
+
+// expect
+// out: 2 10 1 [2, 3]
+// out: 3 11
+// out: [5, 2] 7 120 7
+// out: 12

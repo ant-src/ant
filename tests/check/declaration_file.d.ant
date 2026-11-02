@@ -2,7 +2,7 @@
 // Section 10: a declaration file holds signatures that join the prelude, each qualified by the type
 // or namespace that owns it; an owner that is not a type is a namespace needing no declaration of
 // its own, and a member may be declared before the type that owns it, since a name is one
-// namespace throughout; a func has no body, a type without one is opaque, and a var is a typed
+// namespace throughout; a func has no body, a type without one is opaque, and a let is a typed
 // constant. Every
 // type mentioned must resolve, a name may be declared once, and no declaration may take a prelude
 // name.
@@ -11,7 +11,7 @@ type Db.Handle
 type Db.Options = { path: string, readOnly: bool = false }
 func Db.open(options: Db.Options): Result[Db.Handle, Error]
 func Db.query(db: Db.Handle, sql: string, args: Array[string] = []): Result[Array[Db.Row], Error]
-var Db.VERSION: string
+let Db.VERSION: string
 type Point = { x: float64, y: float64 }
 func Point.norm(p: Point): float64
 func describe[T: Ordered](value: T): string
@@ -20,7 +20,7 @@ func Db.scan(db: Db.Handle): Db.Cursor                 // ERR: Db has no type Cu
 func Db.count(db: Db.Handle): Count                    // ERR: unknown type Count
 func Array.sum(xs: Array[int]): int                    // ERR: Array is a prelude name and cannot be redeclared
 type Result = int                                      // ERR: Result is a prelude name and cannot be redeclared
-var Math.TAU: float64                                  // ERR: Math is a prelude name and cannot be redeclared
+let Math.TAU: float64                                  // ERR: Math is a prelude name and cannot be redeclared
 type Db.Limits = { rows: int = "many" }                // ERR: cannot use string where int is expected
 func Db.limit(db: Db.Handle, rows: int = "many"): void // ERR: cannot use string where int is expected
 func Db.log(db: Db.Handle, to: File.Handle = Os.stdout(), tags: Array[string] = []): void

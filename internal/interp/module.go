@@ -76,6 +76,7 @@ func (in *Instance) setupModules() {
 func newModule(lm *loader.Module) *module {
 	f := lm.File
 	tag := value.NewTag(f.Path, value.RecordTag, f.Scope.Fields)
+	tag.Fixed = f.Scope.Let
 	m := &module{m: lm, path: f.Path, rec: value.NewRecord(tag, nil), tags: map[string]*value.Tag{}}
 	m.root = &Env{mod: m}
 	return m

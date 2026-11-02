@@ -60,7 +60,7 @@ func sprint(sb *strings.Builder, n Node) {
 		}
 		sb.WriteString(")")
 	case *VarDecl:
-		sb.WriteString("(var ")
+		sb.WriteString("(" + x.Keyword() + " ")
 		if x.Export {
 			sb.WriteString("export ")
 		}
@@ -373,7 +373,11 @@ func sprint(sb *strings.Builder, n Node) {
 		for _, c := range x.Clauses {
 			sb.WriteString(" (")
 			if c.Target != nil {
-				sb.WriteString("var ")
+				if c.Let {
+					sb.WriteString("let ")
+				} else {
+					sb.WriteString("var ")
+				}
 				sprint(sb, c.Target)
 				sb.WriteString(" = ")
 			}

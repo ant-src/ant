@@ -135,7 +135,7 @@ func syntaxCases() []syntaxCase {
 		{"reserved parameter", "func f(class: int) {}", "'class' is a reserved word and cannot be a parameter name", Program},
 		{"keyword type name", "type if = int", "'if' is a keyword and cannot be a type name", Program},
 		{"js function", "function f() {}", "'function' is a reserved word", Program},
-		{"js let", "func main() { let x = 1 }", "'let' is a reserved word", Program},
+		{"js const", "func main() { const x = 1 }", "'const' is a reserved word", Program},
 		{"break without loop", "func f() { break }", "'break' outside a loop", Program},
 		{"continue in lambda", "func f() { for x in xs { var g = { continue } } }", "'continue' outside a loop", Program},
 		{"break in go", "func f() { for x in xs { go { break } } }", "'break' outside a loop", Program},
@@ -171,8 +171,9 @@ func syntaxCases() []syntaxCase {
 		{"top-level expression in declarations", "println(1)", "expected a declaration", Declarations},
 		{"import in declarations", "import \"./a.ant\" A", "a declaration file takes no imports", Declarations},
 		{"export in declarations", "export func f(): int", "a declaration file takes no export", Declarations},
-		{"var with an initializer in declarations", "var x = 1", "declares a constant as var Owner.NAME: T", Declarations},
-		{"var destructuring in declarations", "var { a } = p", "declares a constant as var Owner.NAME: T", Declarations},
+		{"var in declarations", "var Db.VERSION: string", "declares a constant with let, as let Owner.NAME: T", Declarations},
+		{"let with an initializer in declarations", "let x = 1", "declares a constant as let Owner.NAME: T", Declarations},
+		{"let destructuring in declarations", "let { a } = p", "declares a constant as let Owner.NAME: T", Declarations},
 		{"func body in declarations", "func Db.query(sql: string): string { sql }", "has a signature and no body", Declarations},
 		{"two statements one line", "func f() { a b }", "expected a newline or ';'", Program},
 		{"leading or", "func f() { var t = a\n  || b }", "unexpected '||'", Program},
@@ -521,7 +522,7 @@ func TestRestComma(t *testing.T) {
 func TestDeclarationFile(t *testing.T) {
 	src := "// Db.Row is a row.\ntype Db.Row = { cells: Map[string, string], n: int = 0 }\ntype Db.Handle\n" +
 		"func Db.query(db: Db.Handle, sql: string, args: Array[string] = []): Result[Array[Db.Row], Error]\n" +
-		"var Db.VERSION: string\nfunc print[T](value: T): void\n"
+		"let Db.VERSION: string\nfunc print[T](value: T): void\n"
 	f, err := Parse("db.d.ant", src, Declarations)
 	if err != nil {
 		t.Fatal(err)
@@ -542,7 +543,7 @@ func TestDeclarationFile(t *testing.T) {
 		t.Errorf("func: %+v", fd)
 	}
 	vd := f.Decls[3].(*ast.VarDecl)
-	if vd.Owner != "Db" || vd.Target.(*ast.NameTarget).Name != "VERSION" || vd.Type == nil || vd.Init != nil || vd.Sig != "var Db.VERSION: string" {
+	if vd.Owner != "Db" || vd.Target.(*ast.NameTarget).Name != "VERSION" || vd.Type == nil || vd.Init != nil || vd.Sig != "let Db.VERSION: string" || !vd.Let {
 		t.Errorf("constant: %+v", vd)
 	}
 	if pf := f.Decls[4].(*ast.FuncDecl); pf.Owner != "" || pf.Name != "print" || pf.Body != nil {
@@ -565,9 +566,9 @@ func TestDeclarationFile(t *testing.T) {
 	if _, _, err := ParseLayout("db.ant", src); err == nil {
 		t.Error("ParseLayout read a module as a declaration file")
 	}
-	// Recovery keeps the declarations around an import, a var that is not a constant, and a
+	// Recovery keeps the declarations around an import, a let that is not a constant, and a
 	// func with a body, each reported once.
-	bad := "import \"./a.ant\" A\ntype Db.Row = int\nvar y: int\nfunc Db.q(): Db.Row { 1 }\nfunc Db.r(): Db.Row\n"
+	bad := "import \"./a.ant\" A\ntype Db.Row = int\nlet y: int\nfunc Db.q(): Db.Row { 1 }\nfunc Db.r(): Db.Row\n"
 	rf, _, errs := ParseRecover("db.d.ant", bad)
 	var msgs []string
 	for _, e := range errs {

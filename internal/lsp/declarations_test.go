@@ -97,8 +97,8 @@ func TestPreludeDocument(t *testing.T) {
 	}
 	// A constant's name and a declaration's owner resolve.
 	h = nil
-	c.call("textDocument/hover", c.pos(preludeURI, at(src, "var Math.PI", 1, 9)), &h)
-	if h == nil || !strings.Contains(h.Contents.Value, "var Math.PI: float64") {
+	c.call("textDocument/hover", c.pos(preludeURI, at(src, "let Math.PI", 1, 9)), &h)
+	if h == nil || !strings.Contains(h.Contents.Value, "let Math.PI: float64") {
 		t.Errorf("hover on the constant Math.PI: %+v", h)
 	}
 	h = nil
@@ -169,7 +169,7 @@ func TestDeclarationFileDocument(t *testing.T) {
 		t.Errorf("hover on the namespace Db: %+v", h)
 	}
 	// A namespace whose members are interrupted is listed once per run, each holding only its own.
-	split := "func Db.a(): int\ntype Point = { x: int }\nvar Point.ORIGIN: Point\nfunc Db.b(): int\n"
+	split := "func Db.a(): int\ntype Point = { x: int }\nlet Point.ORIGIN: Point\nfunc Db.b(): int\n"
 	uri2 := c.open("split.d.ant", split)
 	syms = nil
 	c.call("textDocument/documentSymbol", DocumentSymbolParams{TextDocument: TextDocumentIdentifier{URI: uri2}}, &syms)

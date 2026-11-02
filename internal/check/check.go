@@ -239,6 +239,8 @@ type varInfo struct {
 	// reached is set for a script's var once the check of the script body has passed its
 	// declaration, after which the body sees it as a local.
 	reached bool
+	// local stands for a let in the flow, so that a test narrows it as a local (section 7).
+	local *local
 }
 
 // varGroup ties the names a top-level destructuring binds to one initializer.

@@ -1,0 +1,6 @@
+//! Settings exports a let and a var of the same type, for the let tests.
+
+export type Settings = { port: int }
+
+export let Override: Settings | null = null
+export var Mutable: Settings | null = null

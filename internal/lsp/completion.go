@@ -592,7 +592,7 @@ func (c *completer) objectItem(a *analysis, o *check.Object, prefix string) Comp
 // ---- keywords
 
 var exprKeywords = []string{"true", "false", "null", "void", "try", "func", "if", "select", "while", "for", "go", "defer", "return", "break", "continue"}
-var stmtKeywords = []string{"var", "type"}
+var stmtKeywords = []string{"var", "let", "type"}
 var topKeywords = []string{"import", "export"}
 
 // keywords completes the keywords that can start an expression or a statement here.
@@ -709,14 +709,14 @@ func (c *completer) unionAfterColon(bar *token.Token) bool {
 }
 
 // afterParamName reports whether the colon before the cursor follows a name in a parameter list
-// of a function literal, or in a var declaration, which the tree may not hold yet.
+// of a function literal, or in a var or let declaration, which the tree may not hold yet.
 func (c *completer) afterParamName(colon *token.Token) bool {
 	toks := c.toks
 	for i := range toks {
 		if &toks[i] != colon || i < 2 {
 			continue
 		}
-		return toks[i-1].Kind == token.Ident && (toks[i-2].Is("(") || toks[i-2].Is(",") || toks[i-2].Is("var"))
+		return toks[i-1].Kind == token.Ident && (toks[i-2].Is("(") || toks[i-2].Is(",") || toks[i-2].Is("var") || toks[i-2].Is("let"))
 	}
 	return false
 }

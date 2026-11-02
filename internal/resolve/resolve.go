@@ -84,6 +84,7 @@ type binding struct {
 	reassigned     bool
 	assignedNested bool
 	discard        bool // _, which binds nothing
+	fixed          ast.Fixed
 	isType         bool // a type declared in a block
 	module         bool
 	index          int // module field index, or slot index after finalize
@@ -161,7 +162,11 @@ func Resolve(f *ast.File, opts Options) []*Error {
 	r.module = r.push(&scope{module: true, node: f})
 	if opts.Session {
 		for name, idx := range r.fields.Index {
-			r.module.names[name] = &binding{name: name, scope: r.module, module: true, index: idx, imp: -1}
+			b := &binding{name: name, scope: r.module, module: true, index: idx, imp: -1}
+			if r.fields.Let[name] {
+				b.fixed = ast.FixedLet
+			}
+			r.module.names[name] = b
 		}
 	}
 	r.declareModule(f)
@@ -185,10 +190,23 @@ func Resolve(f *ast.File, opts Options) []*Error {
 		r.test(t, r.module)
 	}
 	r.finalize()
+	if !r.session || len(r.errs) == 0 {
+		r.keepLets()
+	}
 	if r.session && len(r.errs) == 0 {
 		r.keepTypes(f)
 	}
 	return r.errs
+}
+
+// keepLets records in the module's fields which top-level names this module, or this input of
+// a session, binds with let, for the interpreter and for a session's later inputs.
+func (r *resolver) keepLets() {
+	for _, b := range r.module.names {
+		if b.pos != (ast.Pos{}) && b.imp < 0 {
+			r.noteLet(b)
+		}
+	}
 }
 
 // keepTypes records in a session's fields which names are now types, so a later input can
@@ -234,14 +252,16 @@ func (r *resolver) noteBinding(s *scope, b *binding) {
 	s.info.Names = append(s.info.Names, Binding{Name: b.name, Pos: b.pos, Node: b.node, Type: b.isType, Import: b.imp >= 0})
 }
 
-// declare binds name in s, enforcing the shadowing rules. node is what declares it.
-func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node) *binding {
-	b := &binding{name: name, pos: pos, scope: s, imp: -1, node: node}
+// declare binds name in s, enforcing the shadowing rules. node is what declares it, and fixed
+// says whether and why the name cannot be reassigned.
+func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fixed ast.Fixed) *binding {
+	b := &binding{name: name, pos: pos, scope: s, imp: -1, node: node, fixed: fixed}
 	if _, isType := node.(*ast.TypeDecl); isType {
 		b.isType = true
 	}
 	if name == "_" {
 		b.discard = true
+		b.fixed = ast.Assignable
 		return b
 	}
 	if r.isPrelude(name) {
@@ -263,6 +283,9 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node) *b
 				r.fields.Index[name] = b.index
 			}
 			r.noteBinding(s, b)
+			return b
+		case s.module && r.session && old.fixed == ast.FixedLet:
+			r.errorf(pos, "%s is bound by let earlier in the session and cannot be declared again", name)
 			return b
 		case s.module && r.session:
 			// A session replaces the binding; the field keeps its index.
@@ -295,6 +318,21 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node) *b
 	return b
 }
 
+// noteLet records in the module's fields whether a top-level binding is a let.
+func (r *resolver) noteLet(b *binding) {
+	if b.discard {
+		return
+	}
+	if b.fixed == ast.FixedLet {
+		if r.fields.Let == nil {
+			r.fields.Let = map[string]bool{}
+		}
+		r.fields.Let[b.name] = true
+	} else {
+		delete(r.fields.Let, b.name)
+	}
+}
+
 func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, impName string, node ast.Node) {
 	if r.isPrelude(name) {
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
@@ -325,14 +363,14 @@ func (r *resolver) declareModule(f *ast.File) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.VarDecl:
-			r.target(d.Target, r.module)
+			r.target(d.Target, r.module, letFixed(d.Let))
 		case *ast.FuncDecl:
 			if d.Owner == "" {
-				r.declare(r.module, d.Name, d.Pos, d)
+				r.declare(r.module, d.Name, d.Pos, d, ast.Assignable)
 			}
 			r.typeParams(d.TypeParams)
 		case *ast.TypeDecl:
-			r.declare(r.module, d.Name, d.Pos, d)
+			r.declare(r.module, d.Name, d.Pos, d, ast.Assignable)
 			types[d.Name] = d
 			r.typeParams(d.TypeParams)
 		}
@@ -406,7 +444,7 @@ func (r *resolver) test(t *ast.Test, s *scope) {
 
 func (r *resolver) params(ps []ast.Param, s *scope) {
 	for i := range ps {
-		b := r.declare(s, ps[i].Name, ps[i].Pos, &ps[i])
+		b := r.declare(s, ps[i].Name, ps[i].Pos, &ps[i], ast.FixedParam)
 		r.paramsOf = append(r.paramsOf, paramBinding{&ps[i], b})
 	}
 	for _, p := range ps {
@@ -416,23 +454,31 @@ func (r *resolver) params(ps []ast.Param, s *scope) {
 	}
 }
 
-// target declares the names a var or for binds.
-func (r *resolver) target(t ast.Target, s *scope) {
+// letFixed is how a var or let declaration fixes its names.
+func letFixed(let bool) ast.Fixed {
+	if let {
+		return ast.FixedLet
+	}
+	return ast.Assignable
+}
+
+// target declares the names a var, let, for, or select clause binds.
+func (r *resolver) target(t ast.Target, s *scope, fixed ast.Fixed) {
 	switch t := t.(type) {
 	case *ast.NameTarget:
-		b := r.declare(s, t.Name, t.Pos, t)
+		b := r.declare(s, t.Name, t.Pos, t, fixed)
 		t.Slot = ast.Slot{} // filled in finalize
 		r.bindTarget(t, b)
 	case *ast.RecordTarget:
 		for _, f := range t.Fields {
-			r.target(f.Target, s)
+			r.target(f.Target, s, fixed)
 		}
 	case *ast.ArrayTarget:
 		for _, e := range t.Elems {
-			r.target(e, s)
+			r.target(e, s, fixed)
 		}
 		if t.Rest != nil {
-			r.target(t.Rest, s)
+			r.target(t.Rest, s, fixed)
 		}
 	}
 }
@@ -490,7 +536,7 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 				r.errorf(td.Pos, "%s is a type parameter of the enclosing function and cannot be redeclared", td.Name)
 			}
 		}
-		b := r.declare(s, td.Name, td.Pos, td)
+		b := r.declare(s, td.Name, td.Pos, td, ast.Assignable)
 		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)
 	}
@@ -507,7 +553,7 @@ func (r *resolver) stmt(st ast.Stmt, s *scope) {
 			r.expr(st.Init, s)
 			return
 		}
-		r.target(st.Target, s)
+		r.target(st.Target, s, letFixed(st.Let))
 		r.expr(st.Init, s)
 	case *ast.TypeDecl:
 		// A local type's defaults are resolved where it is declared, so a variable declared
@@ -528,7 +574,7 @@ func (r *resolver) block(b *ast.Block, parent *scope) {
 func (r *resolver) body(lambda *ast.Lambda, b *ast.Block, parent *scope, fs *ast.FuncScope) {
 	s := r.push(&scope{parent: parent, boundary: true, fn: true, fnScope: fs, node: b})
 	if lambda != nil {
-		s.xBinding = r.declare(s, "x", b.Pos, lambda)
+		s.xBinding = r.declare(s, "x", b.Pos, lambda, ast.FixedX)
 	}
 	r.stmts(b, s)
 }
@@ -627,7 +673,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 	case *ast.For:
 		r.expr(e.Iter, s)
 		it := r.push(&scope{parent: s, loop: e, node: e.Body})
-		r.target(e.Target, it)
+		r.target(e.Target, it, ast.FixedFor)
 		r.loopBody(s, &e.Assigned, func() { r.stmts(e.Body, it) })
 	case *ast.Select:
 		// The heads' operands belong to the enclosing scope; each body is a scope of its own
@@ -638,7 +684,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 			}
 			cs := r.push(&scope{parent: s, clause: c, node: c.Body})
 			if c.Target != nil {
-				r.target(c.Target, cs)
+				r.target(c.Target, cs, letFixed(c.Let))
 			}
 			r.stmts(c.Body, cs)
 		}
@@ -696,8 +742,8 @@ func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
 	crossed := false
 	for sc := s; sc != nil; sc = sc.parent {
 		if b, ok := sc.names[id.Name]; ok {
-			if b.imp >= 0 || b.module && !r.script {
-				return
+			if b.imp >= 0 || b.fixed != ast.Assignable || b.module && !r.script {
+				return // an import or a fixed binding: the checker reports the assignment
 			}
 			b.reassigned = true
 			if crossed {
@@ -744,7 +790,7 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 			case b.imp >= 0:
 				id.Ref = ast.Ref{Kind: ast.RefImport, Index: b.imp, Name: b.impName}
 			case b.module:
-				id.Ref = ast.Ref{Kind: ast.RefModule, Index: b.index, Name: id.Name}
+				id.Ref = ast.Ref{Kind: ast.RefModule, Index: b.index, Fixed: b.fixed, Name: id.Name}
 			default:
 				if crossed {
 					b.captured = true
@@ -772,9 +818,9 @@ func slotOf(b *binding) ast.Slot {
 	case b.discard:
 		return ast.Slot{Discard: true}
 	case b.module:
-		return ast.Slot{Index: b.index, Module: true, Reassigned: b.reassigned, AssignedNested: b.assignedNested}
+		return ast.Slot{Index: b.index, Module: true, Reassigned: b.reassigned, AssignedNested: b.assignedNested, Fixed: b.fixed}
 	}
-	return ast.Slot{Index: b.index, Shared: b.shared, Reassigned: b.reassigned, AssignedNested: b.assignedNested}
+	return ast.Slot{Index: b.index, Shared: b.shared, Reassigned: b.reassigned, AssignedNested: b.assignedNested, Fixed: b.fixed}
 }
 
 func (r *resolver) finalize() {
@@ -794,7 +840,7 @@ func (r *resolver) finalize() {
 				b.index = plain
 				plain++
 			}
-			names = append(names, ast.SlotName{Name: b.name, Index: b.index, Shared: b.shared, Type: b.isType})
+			names = append(names, ast.SlotName{Name: b.name, Index: b.index, Shared: b.shared, Type: b.isType, Fixed: b.fixed})
 		}
 		s.alloc = s.fn || len(s.order) > 0
 		bs := ast.BlockScope{Plain: plain, Shared: shared, Names: names}
@@ -802,7 +848,7 @@ func (r *resolver) finalize() {
 		case s.fnScope != nil:
 			s.fnScope.BlockScope = bs
 			if s.xBinding != nil {
-				s.fnScope.X = ast.Slot{Index: s.xBinding.index, Shared: s.xBinding.shared, Reassigned: s.xBinding.reassigned, AssignedNested: s.xBinding.assignedNested}
+				s.fnScope.X = slotOf(s.xBinding)
 			}
 		case s.loop != nil:
 			s.loop.Scope = &ast.BlockScope{Plain: plain, Shared: shared, Names: names}
@@ -835,7 +881,7 @@ func (r *resolver) finalize() {
 				depth++
 			}
 		}
-		u.id.Ref = ast.Ref{Kind: ast.RefLocal, Depth: depth, Index: u.b.index, Shared: u.b.shared, Name: u.id.Name}
+		u.id.Ref = ast.Ref{Kind: ast.RefLocal, Depth: depth, Index: u.b.index, Shared: u.b.shared, Fixed: u.b.fixed, Name: u.id.Name}
 	}
 }
 

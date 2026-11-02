@@ -20,7 +20,7 @@ func shadowed(n: int): void {
     for k in [1, 2] {
       var w: int = x
       if k > 1 { var x = 0; x = k }
-      println(Array.map([k], { x = 0; x + w }))
+      println(Array.map([k], { x + w }))
     }
   }
 }

@@ -541,3 +541,33 @@ func TestSessionLast(t *testing.T) {
 		t.Errorf("Value(_) = %v, %v", v, ok)
 	}
 }
+
+// TestSessionLet: a let entered in a session holds for the rest of it. A later input may not
+// declare its name again nor assign it, though it may still declare other names again and turn
+// a var into a let (section 10, Scripts).
+func TestSessionLet(t *testing.T) {
+	s, err := ant.NewSession(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	for _, src := range []string{"let limit = 1", "var count = 1", "var count = 2", "let count = 3"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+	}
+	for src, want := range map[string]string{
+		"var limit = 2":   "limit is bound by let earlier in the session",
+		"let limit = 2":   "limit is bound by let earlier in the session",
+		"limit = 2":       "assignment to let name limit",
+		"count += 1":      "assignment to let name count",
+		"func limit() {}": "limit is bound by let earlier in the session",
+	} {
+		if _, err := s.Eval(src); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: error %v, want one containing %q", src, err, want)
+		}
+	}
+	if v, err := s.Eval("limit + count"); err != nil || v != int64(4) {
+		t.Errorf("limit + count = %v, %v", v, err)
+	}
+}

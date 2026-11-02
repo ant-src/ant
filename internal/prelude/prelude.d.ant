@@ -712,7 +712,7 @@ func String.from[T](value: T): string
 
 // String.unicodeVersion is the version of the Unicode tables that grapheme splitting,
 // normalization, case mapping, and the class tests follow, such as "17.0.0".
-var String.unicodeVersion: string
+let String.unicodeVersion: string
 
 // Bytes is an immutable sequence of bytes, for binary data. It compares by contents with ==, so it
 // serves as a map key; b[i] reads one byte and for x in b yields each.
@@ -988,25 +988,25 @@ func Math.random(): float64
 func Math.randomInt(from: int, to: int): int
 
 // Math.PI is π, the ratio of a circle's circumference to its diameter.
-var Math.PI: float64
+let Math.PI: float64
 
 // Math.E is e, the base of the natural logarithm.
-var Math.E: float64
+let Math.E: float64
 
 // Math.NaN is the IEEE 754 not-a-number value. Test for it with [Math.isNaN].
-var Math.NaN: float64
+let Math.NaN: float64
 
 // Math.Infinity is positive infinity; -Math.Infinity is negative infinity.
-var Math.Infinity: float64
+let Math.Infinity: float64
 
 // Math.maxFloat64 is the largest finite float64.
-var Math.maxFloat64: float64
+let Math.maxFloat64: float64
 
 // Math.minInt is the smallest int, -2^63. It cannot be written as a literal.
-var Math.minInt: int
+let Math.minInt: int
 
 // Math.maxInt is the largest int, 2^63 - 1.
-var Math.maxInt: int
+let Math.maxInt: int
 
 // Bits
 //
@@ -1849,7 +1849,7 @@ type Time.RoundingMode = Time.Ceil | Time.Floor | Time.Expand | Time.Trunc | Tim
 
 // Time.utc is the named zone UTC, whose offset is +00:00 at every instant. Being named, it is not
 // == to the offset zone Time.zone("+00:00").
-var Time.utc: Time.Zone
+let Time.utc: Time.Zone
 
 // Time.zone returns the zone named by id, a name of the IANA database in any letter case or a fixed
 // offset. An alias such as Asia/Calcutta is accepted, and an offset may be written ±HH:MM, ±HHMM or

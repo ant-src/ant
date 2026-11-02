@@ -78,10 +78,13 @@ func (s *Server) semanticTokens(p *SemanticTokensParams) *SemanticTokens {
 				typ = tokMethod
 			}
 		case check.Const:
-			typ, mods = tokVariable, modReadonly
+			typ = tokVariable
 		}
 		if typ < 0 {
 			return
+		}
+		if o.Fixed {
+			mods |= modReadonly
 		}
 		if decl {
 			mods |= modDeclaration

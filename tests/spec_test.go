@@ -341,6 +341,7 @@ var panicRows = [][]string{
 	{"underscore"},                           // _ read
 	{"library-kind", "library-value"},        // library function: wrong kind; documented case
 	{"var-init"},                             // var read or assigned before its initializer has run
+	{"let-assign"},                           // assignment to a let, a parameter, x, or a for variable
 	{"panic"},                                // panic
 	{"assert-kind", "assert"},                // assert: not a bool or not a string; false
 	{"depth"},                                // call depth

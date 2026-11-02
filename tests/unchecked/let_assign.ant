@@ -1,0 +1,20 @@
+// spec: 3; 12 Runtime panics; 12 Names and scopes
+// panics: let-assign
+// Assigning a let, a parameter, a lambda's x, or a for variable panics when it is reached, and
+// only then (section 3).
+let limit = 1
+func reset(n: int): int { n = 0; n }
+let message = func(r: Result[int, Panic]): string { if r is Err { r.error.message } else { "no panic" } }
+println(message(Panic.catch({ reset(5) })))
+println(message(Panic.catch({ for i in [1] { i = 2 }; 0 })))
+println(message(Panic.catch({ Array.map([1], { x = 2; x })[0] })))
+println("reached")
+limit = 2
+
+// expect
+// out: assignment to let name n, a parameter
+// out: assignment to let name i, a for variable
+// out: assignment to let name x, a lambda's parameter
+// out: reached
+// exit: 1
+// err: assignment to let name limit

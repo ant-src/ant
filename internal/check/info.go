@@ -101,6 +101,9 @@ type Object struct {
 	Exported bool
 	// Owner names the type or namespace a function, type, or constant belongs to, or "".
 	Owner string
+	// Fixed is set for a variable that cannot be reassigned: a let, a parameter, a lambda's x, a
+	// for variable, or a constant (section 3).
+	Fixed bool
 
 	ent   *entity
 	loc   *local
@@ -282,8 +285,9 @@ func (in *Info) object(e *entity) *Object {
 		o.Kind = Func
 	case entVar:
 		o.Kind = Var
+		o.Fixed = e.v != nil && e.v.decl != nil && e.v.decl.Let
 	case entConst:
-		o.Kind = Const
+		o.Kind, o.Fixed = Const, true
 	case entModule:
 		o.Kind = Module
 		if e.mod != nil {
@@ -325,7 +329,7 @@ func (in *Info) localObject(l *local, path string) *Object {
 	if o, ok := in.locals[l]; ok {
 		return o
 	}
-	o := &Object{Name: l.name, Kind: Var, loc: l, Decl: l.node, Path: path, info: in}
+	o := &Object{Name: l.name, Kind: Var, loc: l, Decl: l.node, Path: path, info: in, Fixed: l.slot.Fixed != ast.Assignable}
 	if _, isParam := l.node.(*ast.Param); isParam {
 		o.Kind = Param
 	}

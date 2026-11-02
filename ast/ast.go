@@ -100,19 +100,28 @@ type Decl interface {
 	Exported() bool
 }
 
-// VarDecl is a var declaration, at the top level or in a block. In declarations mode a
-// constant such as var Math.PI: float64 has an Owner and no Init.
+// VarDecl is a var or let declaration, at the top level or in a block. In declarations mode a
+// constant such as let Math.PI: float64 has an Owner and no Init.
 type VarDecl struct {
 	Pos      Pos
 	End      Pos
 	Export   bool
-	Owner    string // the namespace of a declaration file's constant, var Owner.NAME: T, or ""
+	Let      bool   // declared with let, so its names cannot be reassigned (section 3)
+	Owner    string // the namespace of a declaration file's constant, let Owner.NAME: T, or ""
 	OwnerPos Pos    // where Owner is written, or zero
 	Target   Target
 	Type     Type // nil when inferred; only with a NameTarget
 	Init     Expr
 	Doc      string // the doc comment (section 2) of a top-level var, or ""
-	Sig      string // the source from var through the type, as written, without the initializer
+	Sig      string // the source from var or let through the type, as written, without the initializer
+}
+
+// Keyword is the keyword that declares d: var or let.
+func (d *VarDecl) Keyword() string {
+	if d.Let {
+		return "let"
+	}
+	return "var"
 }
 
 // FuncDecl is a named function, or a function declared on a type when Owner is set.
@@ -466,6 +475,7 @@ type (
 	SelectClause struct {
 		Pos    Pos
 		End    Pos
+		Let    bool // the binding is written let rather than var
 		Target *NameTarget
 		Head   *Call
 		Body   *Block
@@ -616,7 +626,35 @@ type Ref struct {
 	Depth  int  // RefLocal: environments to walk up
 	Index  int  // RefLocal: slot index; RefModule: field index; RefImport: import index
 	Shared bool // RefLocal: the slot is shared (captured by a nested body)
-	Name   string
+	// Fixed, for RefLocal and RefModule, says why the binding cannot be assigned.
+	Fixed Fixed
+	Name  string
+}
+
+// Fixed says whether a binding can be reassigned, and if not, why (section 3).
+type Fixed uint8
+
+const (
+	Assignable Fixed = iota // a var, or _
+	FixedLet                // declared with let
+	FixedParam              // a parameter of a function or anonymous function
+	FixedX                  // the implicit parameter x of a lambda
+	FixedFor                // a name a for binds
+)
+
+// What names the kind of a fixed binding for a message: "a let", "a parameter".
+func (f Fixed) What() string {
+	switch f {
+	case FixedLet:
+		return "a let"
+	case FixedParam:
+		return "a parameter"
+	case FixedX:
+		return "a lambda's parameter"
+	case FixedFor:
+		return "a for variable"
+	}
+	return "a var"
 }
 
 // Slot is where a binding lives in its environment, with the facts narrowing needs.
@@ -630,6 +668,8 @@ type Slot struct {
 	AssignedNested bool
 	// Discard is set for _, which binds nothing: a value stored there is dropped.
 	Discard bool
+	// Fixed says why the binding cannot be reassigned, or is Assignable.
+	Fixed Fixed
 }
 
 // BlockScope describes the environment a block, loop iteration, or function allocates.
@@ -645,7 +685,8 @@ type SlotName struct {
 	Name   string
 	Index  int
 	Shared bool
-	Type   bool // a type declared in the block, which a debugger leaves out
+	Type   bool  // a type declared in the block, which a debugger leaves out
+	Fixed  Fixed // why the binding cannot be reassigned, or Assignable
 }
 
 // FuncScope describes a function body, lambda, go block, or defer block.
@@ -659,6 +700,8 @@ type FuncScope struct {
 type ModuleScope struct {
 	Fields []string
 	Index  map[string]int
+	// Let holds the fields bound by a top-level let, which no assignment may change.
+	Let map[string]bool
 	// Types holds, in a session, the type declared by each field that names one, so a later
 	// input can declare functions on it.
 	Types map[string]*TypeDecl

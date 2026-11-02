@@ -157,7 +157,7 @@ func (s *Session) record(path, src string, f *ast.File) {
 					return true
 				}
 				if t, ok := types[nt.Name]; ok {
-					put(nt.Name, fmt.Sprintf("var %s: %s = panic(\"\")", nt.Name, t))
+					put(nt.Name, fmt.Sprintf("%s %s: %s = panic(\"\")", d.Keyword(), nt.Name, t))
 				} else {
 					put(nt.Name, text) // a type the checker cannot write; the declaration itself
 				}

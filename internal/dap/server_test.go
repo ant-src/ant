@@ -378,7 +378,8 @@ func Point.sum(p: Point): int {
 var p = Point { x: 1, y: 2 }
 var scores = Map{ "ada": 1 }
 var n = 10
-println(Point.sum(p) + n + scores["ada"])
+let limit = 0
+println(Point.sum(p) + n + scores["ada"] + limit)
 `})
 	main := filepath.Join(dir, "main.ant")
 	c := newClient(t)
@@ -422,7 +423,25 @@ println(Point.sum(p) + n + scores["ada"])
 	if r := ok(t, c.request("setVariable", map[string]any{"variablesReference": pRef, "name": "y", "value": "p.x * 100"})); r["value"] != "100" {
 		t.Errorf("p.y: %v", r)
 	}
+	// a parameter and a let are listed read-only and cannot be set (dap.md section 6)
+	readOnly := func(v map[string]any) bool {
+		hint, _ := v["presentationHint"].(map[string]any)
+		attrs, _ := hint["attributes"].([]any)
+		return len(attrs) == 1 && attrs[0] == "readOnly"
+	}
+	if v := vars(locals); !readOnly(v["p"]) || readOnly(v["s"]) {
+		t.Errorf("parameter p and var s: %v, %v", v["p"], v["s"])
+	}
+	if r := c.request("setVariable", map[string]any{"variablesReference": locals, "name": "p", "value": "p"}); r["success"] != false {
+		t.Errorf("set the parameter p: %v", r)
+	}
 	module := scope(frames[1].(map[string]any)["id"], "Module")
+	if v := vars(module); !readOnly(v["limit"]) || readOnly(v["n"]) {
+		t.Errorf("let limit and var n: %v, %v", v["limit"], v["n"])
+	}
+	if r := c.request("setVariable", map[string]any{"variablesReference": module, "name": "limit", "value": "1"}); r["success"] != false {
+		t.Errorf("set the let limit: %v", r)
+	}
 	if r := ok(t, c.request("setVariable", map[string]any{"variablesReference": module, "name": "n", "value": "n + 1"})); r["value"] != "11" {
 		t.Errorf("n: %v", r)
 	}

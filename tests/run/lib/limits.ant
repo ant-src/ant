@@ -1,0 +1,6 @@
+//! Limits exports lets, one of them nullable, for the let tests.
+
+export type Limit = { max: int }
+
+export let Default = Limit{ max: 10 }
+export let Override: Limit | null = Limit{ max: 3 }

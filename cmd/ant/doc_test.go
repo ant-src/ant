@@ -39,7 +39,7 @@ func TestDocCommand(t *testing.T) {
 		{"prelude func", []string{"Array.length"}, 0, "func Array.length[T](xs: Array[T]): int\n\n    Array.length "},
 		{"any case", []string{"array.LENGTH"}, 0, "func Array.length[T](xs: Array[T]): int\n\n    Array.length "},
 		{"namespace", []string{"Mutex"}, 0, "type Mutex\n\n    Mutex "},
-		{"constant", []string{"Math.PI"}, 0, "var Math.PI: float64\n\n    Math.PI "},
+		{"constant", []string{"Math.PI"}, 0, "let Math.PI: float64\n\n    Math.PI "},
 		{"namespace doc", []string{"array"}, 0, "Array\n\n    Array holds "},
 		{"unknown", []string{"Array.nope"}, 1, ""},
 		{"module", []string{mod}, 0, "    Geometry computes distances on the plane.\n\n        Point.norm(Point{ x: 3.0, y: 4.0 })   // 5.0\n\n" +

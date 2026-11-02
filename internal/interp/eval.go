@@ -336,6 +336,13 @@ func (g *Goroutine) ident(e *ast.Ident, env *Env) value.Value {
 }
 
 func (g *Goroutine) assignIdent(e *ast.Ident, v value.Value, env *Env) {
+	switch e.Ref.Fixed {
+	case ast.Assignable:
+	case ast.FixedLet:
+		g.panicf(e.Pos, "assignment to let name %s", e.Name)
+	default:
+		g.panicf(e.Pos, "assignment to let name %s, %s", e.Name, e.Ref.Fixed.What())
+	}
 	switch e.Ref.Kind {
 	case ast.RefLocal:
 		target := env.up(e.Ref.Depth)
@@ -353,6 +360,9 @@ func (g *Goroutine) assignIdent(e *ast.Ident, v value.Value, env *Env) {
 		ir := env.mod.importAt(e.Ref.Index)
 		if ir.namespace {
 			g.panicf(e.Pos, "cannot assign to the namespace %s", e.Name)
+		}
+		if ir.rec.Tag.Fixed[e.Ref.Name] {
+			g.panicf(e.Pos, "assignment to let name %s of %s", e.Name, ir.rec.Tag.Name)
 		}
 		if !ir.rec.SetField(e.Ref.Name, v) {
 			g.panicf(e.Pos, "%s has no export %s", ir.rec.Tag.Name, e.Ref.Name)
@@ -979,6 +989,9 @@ func (g *Goroutine) setField(recv value.Value, name string, v value.Value, pos a
 	rec, ok := recv.(*value.Record)
 	if !ok {
 		g.panicf(pos, "%s is not a record, so it has no field %s", value.Describe(recv), name)
+	}
+	if rec.Tag.Fixed[name] {
+		g.panicf(pos, "assignment to let name %s of %s", name, rec.Tag.Name)
 	}
 	if !rec.SetField(name, v) {
 		g.panicf(pos, "%s has no field %s", rec.Tag.Name, name)

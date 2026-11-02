@@ -513,7 +513,7 @@ func TestDeclarationFileProgram(t *testing.T) {
 	ns := ant.Namespace{Name: "Db", Signatures: "func Db.row(): int", Funcs: map[string]ant.HostFunc{
 		"row": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil },
 	}}
-	fsys = fstest.MapFS{"x.d.ant": {Data: []byte("func Db.query(sql: string): int\nvar Os.LIMIT: int\ntype Cmd.Line = string\n")}}
+	fsys = fstest.MapFS{"x.d.ant": {Data: []byte("func Db.query(sql: string): int\nlet Os.LIMIT: int\ntype Cmd.Line = string\n")}}
 	prog, err = ant.Load("x.d.ant", ant.WithFS(fsys), ant.WithNamespace(ns), ant.WithoutNamespaces("Os"))
 	if err != nil {
 		t.Fatal(err)
@@ -539,7 +539,7 @@ func TestHostSignatureLimits(t *testing.T) {
 	row := map[string]ant.HostFunc{"run": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return value.Null, nil }}
 	for sigs, want := range map[string]string{
 		"type Db.Opts = { limit: int = 1 }\nfunc Db.run(o: Db.Opts): string": "namespace Db: type Db.Opts gives a field a default, which a host namespace cannot fill",
-		"var Db.VERSION: string\nfunc Db.run(): string":                      "namespace Db: a host namespace declares no constants",
+		"let Db.VERSION: string\nfunc Db.run(): string":                      "namespace Db: a host namespace declares no constants",
 	} {
 		ns := ant.Namespace{Name: "Db", Signatures: sigs, Funcs: row}
 		_, err := ant.Load("main.ant", ant.WithSource("main.ant", "println(1)\n"), ant.WithFS(fstest.MapFS{}), ant.WithNamespace(ns))

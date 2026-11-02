@@ -116,7 +116,7 @@ func (c *Checker) cond(e ast.Expr, sc *scope) (whenTrue, whenFalse flow) {
 		}
 	case *ast.Is:
 		if id, ok := x.X.(*ast.Ident); ok {
-			if l, _ := c.lookup(sc, id.Name); l != nil {
+			if l := c.narrowable(sc, id); l != nil {
 				t := c.typeOfLocal(l)
 				target := c.isTarget(x, sc)
 				if target == nil || types.IsInvalid(t) || c.alwaysTrue(l.typ, target, x.Pos) {
@@ -155,11 +155,31 @@ func (c *Checker) nullTest(x *ast.Binary, sc *scope) (*local, bool) {
 	if id == nil {
 		return nil, false
 	}
-	l, _ := c.lookup(sc, id.Name)
+	l := c.narrowable(sc, id)
 	if l == nil {
 		return nil, false
 	}
 	return l, true
+}
+
+// narrowable is what a test of id narrows: a local, or the stand-in local of a top-level or
+// imported let, which nothing can reassign (section 7). It is nil for any other name.
+func (c *Checker) narrowable(sc *scope, id *ast.Ident) *local {
+	l, ent := c.lookup(sc, id.Name)
+	if l != nil {
+		return l
+	}
+	if ent == nil || ent.kind != entVar || !ent.v.decl.Let {
+		return nil
+	}
+	if ent.v.local == nil {
+		t := c.entityValue(ent, id.Pos)
+		if types.IsInvalid(t) {
+			return nil
+		}
+		ent.v.local = &local{name: ent.v.name, typ: t, pos: id.Pos, node: id}
+	}
+	return ent.v.local
 }
 
 // ---- blocks and statements

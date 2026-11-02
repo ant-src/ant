@@ -24,8 +24,8 @@ func TestPreludeParses(t *testing.T) {
 			types++
 		case *ast.VarDecl:
 			consts++
-			if d.Owner == "" || d.Init != nil || d.Type == nil {
-				t.Errorf("constant %v must be var Owner.NAME: T", d.Target)
+			if d.Owner == "" || d.Init != nil || d.Type == nil || !d.Let {
+				t.Errorf("constant %v must be let Owner.NAME: T", d.Target)
 			}
 		}
 	}

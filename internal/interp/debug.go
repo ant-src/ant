@@ -596,6 +596,10 @@ func (e *Env) vars(out []Var, seen map[string]bool) []Var {
 			continue
 		}
 		seen[n.Name] = true
+		if n.Fixed != ast.Assignable {
+			out = append(out, Var{Name: n.Name, Value: v}) // a let, a parameter, x, or a for variable
+			continue
+		}
 		slot := ast.Slot{Index: n.Index, Shared: n.Shared}
 		out = append(out, Var{Name: n.Name, Value: v, set: func(x value.Value) { e.set(slot, x) }})
 	}
@@ -684,7 +688,11 @@ func (m *module) vars() []Var {
 			}
 			if v := m.get(t.Slot.Index); v != value.Uninitialized {
 				i := t.Slot.Index
-				out = append(out, Var{Name: t.Name, Value: v, set: func(x value.Value) { m.rec.Set(i, x) }})
+				mv := Var{Name: t.Name, Value: v}
+				if !vd.Let {
+					mv.set = func(x value.Value) { m.rec.Set(i, x) }
+				}
+				out = append(out, mv)
 			}
 			return true
 		})

@@ -46,7 +46,8 @@ if u != null {
   println(inner() + keep())
 }
 
-func inPlace(c: Config | null): void {
+func inPlace(config: Config | null): void {
+  var c = config
   if c == null { return }
   var seen: Map[void, int] = Map{}
   var k = 0

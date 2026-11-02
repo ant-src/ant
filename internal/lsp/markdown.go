@@ -135,7 +135,11 @@ func (a *analysis) describe(o *check.Object) (head, doc string) {
 	case check.Const:
 		return o.Sig(), o.Doc()
 	case check.Var:
-		return "var " + o.Name + ": " + typeString(o.Type()), o.Doc()
+		keyword := "var "
+		if o.Fixed {
+			keyword = "let "
+		}
+		return keyword + o.Name + ": " + typeString(o.Type()), o.Doc()
 	case check.Param:
 		return o.Name + ": " + typeString(o.Type()), "A parameter."
 	case check.Field:

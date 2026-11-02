@@ -299,8 +299,11 @@ type Tag struct {
 	// Defaults is what the interpreter fills an omitted field of a record literal from, set
 	// before the tag is bound and opaque to this package; nil when no field declares a default.
 	Defaults any
-	index    map[string]int
-	funcs    map[string]Value
+	// Fixed holds the fields of a module record bound by let, which no assignment may change;
+	// nil for any other record.
+	Fixed map[string]bool
+	index map[string]int
+	funcs map[string]Value
 }
 
 // NewTag creates a tag. fields is used for record tags only.

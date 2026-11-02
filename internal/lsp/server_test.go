@@ -271,7 +271,7 @@ func TestHover(t *testing.T) {
 		{"local variable", at(mainSrc, "label }", 1, 0), []string{"var label: string"}},
 		{"prelude function", at(mainSrc, "Array.map", 1, 6), []string{"func Array.map[T, U]", "Array.map returns"}},
 		{"type", at(mainSrc, "s: Shape", 1, 3), []string{"type Shape = { name: string, area: float64 }"}},
-		{"lambda x", at(mainSrc, "x * times", 1, 0), []string{"var x: int"}},
+		{"lambda x", at(mainSrc, "x * times", 1, 0), []string{"let x: int"}},
 		{"import path", at(mainSrc, `"./lib/geometry.ant" Geo`, 1, 3), []string{`import "./lib/geometry.ant"`, "Geometry has points"}},
 	}
 	for _, tc := range cases {
@@ -1005,5 +1005,35 @@ func counter(): int {
 	c.call("textDocument/codeAction", p, &acts)
 	if len(acts) != 1 || acts[0].Title != "State the type "+tickType || !strings.Contains(apply(src, acts[0].Edit.Changes[uri][0]), "var tick: "+tickType+" = ") {
 		t.Errorf("code actions: %+v", acts)
+	}
+}
+
+// TestSemanticReadonly: a let, a parameter, and a for variable carry the readonly modifier and a
+// var does not (lsp.md section 4).
+func TestSemanticReadonly(t *testing.T) {
+	c := start(t, workspace())
+	src := "let a = 1\nvar b = 2\nfunc f(p: int): int {\n  for i in [p] { println(i) }\n  p + a + b\n}\n"
+	uri := c.open("main.ant", src)
+	var toks SemanticTokens
+	c.call("textDocument/semanticTokens/full", SemanticTokensParams{TextDocument: TextDocumentIdentifier{URI: uri}}, &toks)
+	lines := strings.Split(src, "\n")
+	readonly := map[string]bool{}
+	line, col := 0, 0
+	for i := 0; i+4 < len(toks.Data); i += 5 {
+		if toks.Data[i] > 0 {
+			line, col = line+int(toks.Data[i]), 0
+		}
+		col += int(toks.Data[i+1])
+		name := lines[line][col : col+int(toks.Data[i+2])]
+		if toks.Data[i+4]&modReadonly != 0 {
+			readonly[name] = true
+		} else if _, seen := readonly[name]; !seen {
+			readonly[name] = false
+		}
+	}
+	for name, want := range map[string]bool{"a": true, "p": true, "i": true, "b": false} {
+		if got, ok := readonly[name]; !ok || got != want {
+			t.Errorf("%s: readonly %v (listed %v), want %v", name, got, ok, want)
+		}
 	}
 }

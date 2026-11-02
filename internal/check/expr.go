@@ -353,7 +353,12 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 		return types.Invalid{}
 	}
 	c.info.recordIdent(x, c.info.object(ent))
-	return c.entityValue(ent, x.Pos)
+	t := c.entityValue(ent, x.Pos)
+	if ent.kind == entVar && ent.v.local != nil && !types.IsInvalid(t) {
+		// a top-level or imported let narrowed by a test (section 7)
+		return c.typeOfLocal(ent.v.local)
+	}
+	return t
 }
 
 // entityValue is the type of an entity used as a value.
@@ -1184,7 +1189,7 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 	}
 	if types.IsNever(r) {
 		if id, ok := x.X.(*ast.Ident); ok {
-			if l, _ := c.lookup(sc, id.Name); l != nil {
+			if l := c.narrowable(sc, id); l != nil {
 				c.narrowLocal(l, nonNull)
 			}
 		}
@@ -1279,7 +1284,7 @@ func (c *Checker) isExpr(x *ast.Is, sc *scope) types.Type {
 	}
 	declared := t
 	if id, ok := x.X.(*ast.Ident); ok {
-		if l, _ := c.lookup(sc, id.Name); l != nil {
+		if l := c.narrowable(sc, id); l != nil {
 			declared = l.typ
 		}
 	}
@@ -1482,6 +1487,8 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 		switch {
 		case l != nil && c.hiddenX(l, t.Pos):
 			c.synth(x.Value, sc)
+		case c.fixedTarget(t, l, ent):
+			c.synth(x.Value, sc)
 		case l != nil:
 			if x.Op == "=" {
 				v := c.check(x.Value, sc, l.typ)
@@ -1512,6 +1519,28 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 		c.assignArray(t, v, sc)
 	}
 	return types.Void{}
+}
+
+// fixedTarget reports an assignment to a name that cannot be reassigned: a let, a parameter, a
+// lambda's x, or a for variable, local or of the module (section 3). An imported let is
+// reported as any import is.
+func (c *Checker) fixedTarget(t *ast.Ident, l *local, ent *entity) bool {
+	fixed := ast.Assignable
+	switch {
+	case l != nil:
+		fixed = l.slot.Fixed
+	case ent != nil && ent.kind == entVar && ent.v.mod == c.mod && ent.v.decl.Let:
+		fixed = ast.FixedLet
+	}
+	switch fixed {
+	case ast.Assignable:
+		return false
+	case ast.FixedLet:
+		c.errorf(t.Pos, "cannot assign to %s, a let; declare it with var to reassign it", t.Name)
+	default:
+		c.errorf(t.Pos, "cannot assign to %s, %s; declare a var to hold a value that changes", t.Name, fixed.What())
+	}
+	return true
 }
 
 // assignValue checks the right side of x against target, the type its place stores: as an
@@ -1592,6 +1621,7 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 		l, ent := c.lookup(sc, t.Name)
 		switch {
 		case l != nil && c.hiddenX(l, t.Pos):
+		case c.fixedTarget(t, l, ent):
 		case l != nil:
 			c.expect(t.Pos, v, l.typ)
 			c.narrowLocal(l, v)

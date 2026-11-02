@@ -1,0 +1,72 @@
+// spec: 3; 5 Loops; 6; 7 Narrowing; 10
+// Section 3: a let cannot be assigned anywhere, by =, a compound operator, or an array
+// destructuring, nor can a parameter, a lambda's x, or a for variable; _ stays assignable. A let
+// fixes the binding only, so its value can still change. Section 7: a top-level or imported let
+// narrows in any function that tests it; a var does not.
+import "./lib/settings.ant" { Override, Mutable, Settings }
+
+type Pair = { a: int, b: int }
+
+let limit = 100
+let { a, b } = Pair{ a: 1, b: 2 }
+let [first, ...rest] = [1, 2, 3]
+var counter = 0
+let maybe: string | null = if limit > 0 { "set" } else { null }
+var loose: string | null = null
+
+func assignments(p: int, q: Pair): int {
+  limit = 1             // ERR: cannot assign to limit, a let; declare it with var
+  limit += 1            // ERR: cannot assign to limit, a let
+  [counter, a] = [1, 2] // ERR: cannot assign to a, a let
+  rest = [0]            // ERR: cannot assign to rest, a let
+  p = 2                 // ERR: cannot assign to p, a parameter
+  q.a = 3
+  _ = 4
+  counter += 1
+  Override = null                         // ERR: cannot assign to the imported variable Override
+  for i in [1, 2] { i = 3 }               // ERR: cannot assign to i, a for variable
+  for { a: x2 } in [q] { x2 += 1 }        // ERR: cannot assign to x2, a for variable
+  var f: func(int): int = { x = 1; x }    // ERR: cannot assign to x, a lambda's parameter
+  var g = func(n: int): int { n *= 2; n } // ERR: cannot assign to n, a parameter
+  let local = 1
+  go { local = 2 }              // ERR: cannot assign to local, a let
+  defer { local = 3 }           // ERR: cannot assign to local, a let
+  Array.map([1], { local = x }) // ERR: cannot assign to local, a let
+  p + f(1) + g(1) + first
+}
+
+func shallow(): void {
+  let xs = [1]
+  Array.push(xs, 2)
+  xs[0] = 5
+  let m: Map[string, int] = Map{}
+  m["k"] = 1
+}
+
+func ports(): int {
+  if Override != null { return Override.port }
+  if Mutable != null { return Mutable.port } // ERR: Settings | null has no field port
+  0
+}
+
+func lengths(): int {
+  var n = 0
+  if maybe != null { n += String.length(maybe) }
+  if maybe is string { Mutex.withLock(Mutex.new(), { n += String.length(maybe) }) }
+  if loose != null { n += String.length(loose) } // ERR: string | null
+  n
+}
+
+func recursive(): int {
+  let fact: func(int): int = func(k: int): int { if k < 2 { 1 } else { k * fact(k - 1) } }
+  fact(5)
+}
+
+func selectLet(c: Channel[int]): int {
+  select {
+    let v = Channel.receive(c) {
+      v = 0 // ERR: cannot assign to v, a let
+      v ?? 0
+    }
+  }
+}

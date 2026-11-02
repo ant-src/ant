@@ -1,5 +1,5 @@
 // spec: 2 Identifiers and keywords
-let x = 1
+const x = 1
 
 // expect
 // exit: 2
