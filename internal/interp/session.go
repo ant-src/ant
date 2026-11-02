@@ -120,5 +120,21 @@ func (s *Session) Eval(prog *loader.Program) (value.Value, error) {
 			g.panicf(ast.Pos{}, "internal error: control left a session input")
 		}
 	})
+	s.keepLets()
 	return result, err
+}
+
+// keepLets makes each let the input declared fixed for the rest of the session once its
+// declaration has bound it. A let whose initializer panicked or was skipped is not, so a later
+// input can declare its name again.
+func (s *Session) keepLets() {
+	for name := range s.Fields.PendingLet {
+		if s.mod.bound[name] {
+			if s.Fields.Let == nil {
+				s.Fields.Let = map[string]bool{}
+			}
+			s.Fields.Let[name] = true
+		}
+	}
+	s.Fields.PendingLet, s.mod.bound = nil, nil
 }

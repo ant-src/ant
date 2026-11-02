@@ -373,11 +373,7 @@ func sprint(sb *strings.Builder, n Node) {
 		for _, c := range x.Clauses {
 			sb.WriteString(" (")
 			if c.Target != nil {
-				if c.Let {
-					sb.WriteString("let ")
-				} else {
-					sb.WriteString("var ")
-				}
+				sb.WriteString(c.Keyword() + " ")
 				sprint(sb, c.Target)
 				sb.WriteString(" = ")
 			}

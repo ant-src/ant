@@ -990,7 +990,7 @@ func (g *Goroutine) setField(recv value.Value, name string, v value.Value, pos a
 	if !ok {
 		g.panicf(pos, "%s is not a record, so it has no field %s", value.Describe(recv), name)
 	}
-	if rec.Tag.Fixed[name] {
+	if rec.Tag.Fixed != nil && rec.Tag.Fixed[name] { // only a module record has lets
 		g.panicf(pos, "assignment to let name %s of %s", name, rec.Tag.Name)
 	}
 	if !rec.SetField(name, v) {
@@ -1126,6 +1126,12 @@ func (g *Goroutine) bind(t ast.Target, v value.Value, env *Env) {
 	case *ast.NameTarget:
 		if t.Slot.Module {
 			env.mod.set(t.Slot.Index, v)
+			if t.Slot.Fixed == ast.FixedLet && env.mod.grow != nil {
+				if env.mod.bound == nil {
+					env.mod.bound = map[string]bool{}
+				}
+				env.mod.bound[t.Name] = true
+			}
 			return
 		}
 		env.set(t.Slot, v)

@@ -583,6 +583,13 @@ func TestDeclarationFile(t *testing.T) {
 	if _, err := Parse("db.d.ant", bad, Declarations); err == nil || !strings.Contains(err.Error(), "takes no imports") {
 		t.Errorf("strict parse of a declaration file with an import: %v", err)
 	}
+	// A var is reported once, for its keyword, and read as a let.
+	for _, src := range []string{"var y: int\n", "var Db.N: int\n"} {
+		rf, _, errs := ParseRecover("db.d.ant", src)
+		if len(errs) != 1 || !strings.Contains(errs[0].Error(), "declares a constant with let") || !rf.Decls[0].(*ast.VarDecl).Let {
+			t.Errorf("recovering %q: errors %v", src, errs)
+		}
+	}
 	// A shebang line belongs to a program, not a declaration file, for both parsers.
 	shebang := "#!/usr/bin/env ant\ntype Db.Row = int\n"
 	if _, err := Parse("db.d.ant", shebang, Declarations); err == nil {

@@ -135,8 +135,18 @@ func offsetOf(src string, p ast.Pos) int {
 // session declared before it.
 func (s *Session) record(path, src string, f *ast.File) {
 	types := s.varTypes(path, src, f)
+	// put replaces every declaration of the names key lists, comma-separated: a destructuring
+	// kept whole declares several, and a name declared twice would fail a let.
 	put := func(key, text string) {
-		s.decls = slices.DeleteFunc(s.decls, func(d declEntry) bool { return d.key == key })
+		names := strings.Split(key, ",")
+		s.decls = slices.DeleteFunc(s.decls, func(d declEntry) bool {
+			for _, k := range strings.Split(d.key, ",") {
+				if slices.Contains(names, k) {
+					return true
+				}
+			}
+			return false
+		})
 		s.decls = append(s.decls, declEntry{key, text})
 	}
 	for _, d := range f.Decls {
@@ -150,7 +160,9 @@ func (s *Session) record(path, src string, f *ast.File) {
 		case *ast.TypeDecl:
 			put(d.Name, src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
 		case *ast.VarDecl:
-			text := src[offsetOf(src, d.Pos):offsetOf(src, d.End)]
+			// A name whose type the checker cannot write keeps the declaration itself, once for
+			// all such names, since a let may not be declared twice.
+			var untyped []string
 			ast.Inspect(d.Target, func(n ast.Node) bool {
 				nt, ok := n.(*ast.NameTarget)
 				if !ok || nt.Name == "_" {
@@ -159,10 +171,13 @@ func (s *Session) record(path, src string, f *ast.File) {
 				if t, ok := types[nt.Name]; ok {
 					put(nt.Name, fmt.Sprintf("%s %s: %s = panic(\"\")", d.Keyword(), nt.Name, t))
 				} else {
-					put(nt.Name, text) // a type the checker cannot write; the declaration itself
+					untyped = append(untyped, nt.Name)
 				}
 				return true
 			})
+			if len(untyped) > 0 {
+				put(strings.Join(untyped, ","), src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
+			}
 		}
 	}
 }
@@ -177,7 +192,9 @@ const renamed = "__ant_new"
 func (s *Session) varTypes(path, src string, f *ast.File) map[string]string {
 	known := map[string]bool{}
 	for _, d := range s.decls {
-		known[d.key] = true
+		for _, k := range strings.Split(d.key, ",") {
+			known[k] = true
+		}
 	}
 	var spans [][2]int
 	for _, d := range f.Decls {

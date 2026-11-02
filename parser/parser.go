@@ -874,13 +874,16 @@ func (p *parser) declaration() ast.Decl {
 func (p *parser) varDecl() *ast.VarDecl {
 	t := p.next() // var or let
 	d := &ast.VarDecl{Pos: pos(t), Let: t.Is("let")}
+	// In a declaration file, one error is reported for a declaration, so a var is read as a let
+	// when recovering, and its shape is not reported again.
+	reported := false
 	if p.declarations() && !d.Let {
-		// when recovering, the var is read as a let, so that one error is reported
 		p.soft(t.Pos, "a declaration file declares a constant with let, as let Owner.NAME: T")
+		d.Let, reported = true, true
 	}
 	switch {
 	case p.at("{") || p.at("["):
-		if p.declarations() {
+		if p.declarations() && !reported {
 			// when recovering, the declaration is read as written, so that one error is reported
 			p.soft(p.peek().Pos, "a declaration file declares a constant as let Owner.NAME: T")
 		}
@@ -901,7 +904,9 @@ func (p *parser) varDecl() *ast.VarDecl {
 		}
 		if p.declarations() {
 			// when recovering, the declaration is read as written, so that one error is reported
-			p.soft(p.peek().Pos, "a declaration file declares a constant as let Owner.NAME: T")
+			if !reported {
+				p.soft(p.peek().Pos, "a declaration file declares a constant as let Owner.NAME: T")
+			}
 			if p.at(":") {
 				p.next()
 				d.Type = p.parseType()

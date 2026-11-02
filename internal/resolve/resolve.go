@@ -158,6 +158,7 @@ func Resolve(f *ast.File, opts Options) []*Error {
 	if r.fields == nil {
 		r.fields = &ast.ModuleScope{Index: map[string]int{}}
 	}
+	r.fields.PendingLet = nil
 	f.Scope = r.fields
 	r.module = r.push(&scope{module: true, node: f})
 	if opts.Session {
@@ -323,12 +324,18 @@ func (r *resolver) noteLet(b *binding) {
 	if b.discard {
 		return
 	}
-	if b.fixed == ast.FixedLet {
+	switch {
+	case b.fixed == ast.FixedLet && r.session:
+		if r.fields.PendingLet == nil {
+			r.fields.PendingLet = map[string]bool{}
+		}
+		r.fields.PendingLet[b.name] = true
+	case b.fixed == ast.FixedLet:
 		if r.fields.Let == nil {
 			r.fields.Let = map[string]bool{}
 		}
 		r.fields.Let[b.name] = true
-	} else {
+	default:
 		delete(r.fields.Let, b.name)
 	}
 }
@@ -338,8 +345,11 @@ func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, im
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
 		return
 	}
-	if _, ok := s.names[name]; ok && !r.session {
+	if old, ok := s.names[name]; ok && !r.session {
 		r.errorf(pos, "%s is already bound by an import", name)
+		return
+	} else if ok && old.fixed == ast.FixedLet {
+		r.errorf(pos, "%s is bound by let earlier in the session and cannot be declared again", name)
 		return
 	}
 	b := &binding{name: name, pos: pos, scope: s, imp: imp, impName: impName, node: node}

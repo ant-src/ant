@@ -21,6 +21,9 @@ type module struct {
 	// imports under it while goroutines of earlier inputs use them under its read side. Nil
 	// for a program's modules, which never change.
 	grow *sync.RWMutex
+	// bound collects, in a session, the top-level lets the input being run has bound. Only
+	// the input's own goroutine binds top-level names.
+	bound map[string]bool
 }
 
 // get reads the module's variable at i.

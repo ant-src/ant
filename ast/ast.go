@@ -117,8 +117,13 @@ type VarDecl struct {
 }
 
 // Keyword is the keyword that declares d: var or let.
-func (d *VarDecl) Keyword() string {
-	if d.Let {
+func (d *VarDecl) Keyword() string { return bindingKeyword(d.Let) }
+
+// Keyword is the keyword that binds the clause's result: var or let.
+func (c *SelectClause) Keyword() string { return bindingKeyword(c.Let) }
+
+func bindingKeyword(let bool) string {
+	if let {
 		return "let"
 	}
 	return "var"
@@ -702,6 +707,10 @@ type ModuleScope struct {
 	Index  map[string]int
 	// Let holds the fields bound by a top-level let, which no assignment may change.
 	Let map[string]bool
+	// PendingLet holds, in a session, the names the input being run declares with let: each
+	// joins Let once its declaration has bound it, so a let whose initializer fails can be
+	// declared again (section 10, Scripts).
+	PendingLet map[string]bool
 	// Types holds, in a session, the type declared by each field that names one, so a later
 	// input can declare functions on it.
 	Types map[string]*TypeDecl

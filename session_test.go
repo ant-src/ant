@@ -571,3 +571,34 @@ func TestSessionLet(t *testing.T) {
 		t.Errorf("limit + count = %v, %v", v, err)
 	}
 }
+
+// TestSessionLetFailures: a let whose initializer panics is not bound, so a later input may
+// declare its name again; an import may not replace a let; and a let the analysis keeps as
+// written does not break the analysis of later inputs.
+func TestSessionLetFailures(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStderr(io.Discard), ant.WithSource("m.ant", "export var q = 5"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if _, err := s.Eval(`let p: int = panic("boom")`); err == nil {
+		t.Fatal("the panic was not reported")
+	}
+	if v, err := s.Eval("let p = 1\np"); err != nil || v != int64(1) {
+		t.Errorf("let p again after a failed let: %v, %v", v, err)
+	}
+	if _, err := s.Eval("let q = 1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Eval(`import "./m.ant" { q }`); err == nil || !strings.Contains(err.Error(), "q is bound by let earlier in the session") {
+		t.Errorf("an import replacing a let: %v", err)
+	}
+	for _, src := range []string{"let [a, b] = [[], []]", "var c = 2"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+	}
+	if ty, err := s.TypeOf("c"); err != nil || ty != "int" {
+		t.Errorf("TypeOf(c) after an untyped let destructuring = %q, %v", ty, err)
+	}
+}
