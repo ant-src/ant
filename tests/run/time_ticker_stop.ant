@@ -35,6 +35,22 @@ var picked = select {
 }
 println(picked)
 
+// Channel.values over a ticker ends with the context, and gives no tick after it
+var each = Context.new()
+var listed = Time.ticker(Time.duration(milliseconds: 2), each)
+var count = 0
+for at in Channel.values(listed, each) {
+  count += 1
+  if count == 3 { Context.cancel(each) }
+}
+println(count)
+
+// a receive waiting on the ticker and its context returns null when the context ends
+var waiting = Context.new()
+var slow = Time.ticker(Time.duration(hours: 1), waiting)
+go { Time.sleep(Time.duration(milliseconds: 10)); Context.cancel(waiting) }
+println(Channel.receive(slow, waiting))
+
 var late = 0
 for round in Iter.range(0, 10) {
   var ctx = Context.new()
@@ -55,4 +71,6 @@ println(late)
 // out: true
 // out: true
 // out: none
+// out: 3
+// out: null
 // out: 0

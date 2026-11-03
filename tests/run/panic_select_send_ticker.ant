@@ -1,0 +1,15 @@
+// spec: stdlib Time; 5 select; 12 Runtime panics
+// panics: Channel.send
+// A select send clause on a ticker's channel panics, as Channel.send does: only the ticker sends.
+var ctx = Context.new()
+var ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
+println("before")
+var sent = select {
+  var ok = Channel.send(ticks, Time.fromEpochMillis(0)) { ok }
+  Time.sleep(Time.duration(milliseconds: 10)) { false }
+}
+
+// expect
+// exit: 1
+// out: before
+// err: select: Channel.send: a ticker's channel only receives
