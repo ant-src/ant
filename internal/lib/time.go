@@ -307,14 +307,14 @@ func init() {
 					g.Panic("Time.ticker needs a period above zero, got %s", value.Render(a[0]))
 				}
 				ctx := waitContext(g, who, a[1])
-				ticks := value.NewChan(1)
+				ticks := value.NewTickerChan(ctx)
 				if ctx.Err() != nil {
 					return ticks
 				}
 				// As Go's ticker: a beat counted from the call, one tick held, a tick that
 				// finds it full dropped; the goroutine and its timer end with the context,
-				// which is the run's when none was given. The context is checked after every
-				// wake, since select picks at random when a tick and the cancel are both ready.
+				// which is the run's when none was given. A tick it sends as the context ends
+				// is stale, and the channel discards it (value.Chan).
 				t := time.NewTicker(d)
 				go func() {
 					defer t.Stop()
@@ -323,8 +323,6 @@ func init() {
 						select {
 						case at = <-t.C:
 						case <-ctx.Done():
-						}
-						if ctx.Err() != nil {
 							return
 						}
 						select {

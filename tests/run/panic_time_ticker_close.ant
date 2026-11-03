@@ -1,0 +1,12 @@
+// spec: stdlib Time; 12 Runtime panics
+// panics: Channel.close
+// A ticker's channel only receives, as Go's is receive-only: a send panics, and so does a close.
+var ctx = Context.new()
+var ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
+println(Panic.catch({ Channel.send(ticks, Time.fromEpochMillis(0)) }) is Err)
+Channel.close(ticks)
+
+// expect
+// exit: 1
+// out: true
+// err: Channel.close: a ticker's channel only receives

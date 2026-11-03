@@ -1,20 +1,21 @@
 // spec: stdlib Time; 9 Waiting
 // Time.ticker stops with its context whichever way the context ends: done before the call, a
-// parent cancelled, a timeout. Once a tick sent before the end is taken, no more arrive.
+// parent cancelled, a timeout. Once the context is done no receive gets a tick, not the one held
+// and not one the ticker had in flight, even from many tickers on a busy machine.
 func quiet(ticks: Channel[Time.Instant]): bool {
-  var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
-  return Channel.receive(ticks, Context.new(Time.duration(milliseconds: 40))) == null
+  return Channel.length(ticks) == 0 && Channel.receive(ticks, Context.new(Time.duration(milliseconds: 30))) == null
 }
 
 var done = Context.new()
 Context.cancel(done)
 var none = Time.ticker(Time.duration(milliseconds: 1), done)
 Time.sleep(Time.duration(milliseconds: 20))
-println(Channel.length(none))
+println(quiet(none))
 
 var parent = Context.new()
 var child = Time.ticker(Time.duration(milliseconds: 5), Context.new(null, parent))
 println(Channel.receive(child) != null)
+Time.sleep(Time.duration(milliseconds: 20))
 Context.cancel(parent)
 println(quiet(child))
 
@@ -23,8 +24,35 @@ var timed = Time.ticker(Time.duration(milliseconds: 5), short)
 Context.wait(short)
 println(quiet(timed))
 
+// a select clause discards a stale tick too, and waits on
+var held = Context.new()
+var sel = Time.ticker(Time.duration(milliseconds: 2), held)
+Time.sleep(Time.duration(milliseconds: 20))
+Context.cancel(held)
+var picked = select {
+  var at = Channel.receive(sel) { "tick" }
+  Time.sleep(Time.duration(milliseconds: 30)) { "none" }
+}
+println(picked)
+
+var late = 0
+for round in Iter.range(0, 10) {
+  var ctx = Context.new()
+  var many: Array[Channel[Time.Instant]] = []
+  for i in Iter.range(0, 200) { Array.push(many, Time.ticker(Time.duration(milliseconds: 1), ctx)) }
+  Time.sleep(Time.duration(milliseconds: 5))
+  Context.cancel(ctx)
+  for ticks in many {
+    late += Channel.length(ticks)
+    if Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1))) != null { late += 1 }
+  }
+}
+println(late)
+
 // expect
+// out: true
+// out: true
+// out: true
+// out: true
+// out: none
 // out: 0
-// out: true
-// out: true
-// out: true

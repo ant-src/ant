@@ -47,7 +47,9 @@ func init() {
 				return v
 			}),
 			fn("Channel.close", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				if err := chanArg(g, who, a[0]).Close(); err != nil {
+				if err := chanArg(g, who, a[0]).Close(); err == value.ErrTicker {
+					g.Panic("Channel.close: %s", err)
+				} else if err != nil {
 					g.Panic("Channel.close: %s already", err)
 				}
 				return value.Void

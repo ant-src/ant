@@ -1,6 +1,6 @@
 // spec: stdlib Time; 5 select; 9 Waiting
 // Time.ticker: the time every period, read by a select beside a channel of work; a slow reader
-// gets one tick, not a burst; the ticker stops with its context.
+// gets one tick, not a burst; the ticker stops with its context, held tick and all.
 var ctx = Context.new()
 var ticks = Time.ticker(Time.duration(milliseconds: 20), ctx)
 var work: Channel[string] = Channel.new()
@@ -27,13 +27,14 @@ while Channel.length(ticks) == 0 && waits < 100 {
 }
 Time.sleep(Time.duration(milliseconds: 100))
 println(Channel.length(ticks))
+// the held tick goes stale with the context, and no other comes
 Context.cancel(ctx)
-Time.sleep(Time.duration(milliseconds: 50))
-var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
+println(Channel.length(ticks))
 println(Channel.receive(ticks, Context.new(Time.duration(milliseconds: 60))))
 
 // expect
 // out: ["a", "b", "c"]
 // out: 3
 // out: 1
+// out: 0
 // out: null

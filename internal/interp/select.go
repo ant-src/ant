@@ -71,13 +71,16 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 			// select's uniform choice and so chosen twice as often as another.
 			ch := g.selectChan(pos, args[0])
 			if !ch.IsClosed() {
-				recv(ch.Raw(), selectOwner{clause: i})
+				recv(ch.Raw(), selectOwner{clause: i, ch: ch})
 			}
 			recv(ch.Closed(), selectOwner{clause: i, closed: true, ch: ch})
 		case "Channel.send":
 			// A channel closed already has only its signal, so the send is never buffered
 			// after the close; one closed during the wait ends the blocked send the same way.
 			ch := g.selectChan(pos, args[0])
+			if ch.IsTicker() {
+				g.panicf(pos, "select: Channel.send: %s", value.ErrTicker)
+			}
 			if !ch.IsClosed() {
 				add(reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(ch.Raw()), Send: reflect.ValueOf(args[1])}, selectOwner{clause: i})
 			}
@@ -113,6 +116,9 @@ func (g *Goroutine) selectExpr(e *ast.Select, env *Env) (value.Value, ctl) {
 		g.leaveAnt()
 	}
 	chosen, got, ok := reflect.Select(cases)
+	for owners[chosen].ch != nil && !owners[chosen].closed && owners[chosen].ch.Stopped() {
+		chosen, got, ok = reflect.Select(cases) // a stale tick, discarded (value.Chan)
+	}
 	if g.d != nil {
 		g.enterAnt()
 	}
