@@ -317,6 +317,11 @@ func init() {
 					for {
 						select {
 						case <-t.C:
+							// select picks at random when both are ready; a done context wins,
+							// so no tick lands after the cancel
+							if ctx.Err() != nil {
+								return
+							}
 							select {
 							case ticks.Raw() <- temporal.Now():
 							default:
