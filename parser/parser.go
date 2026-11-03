@@ -1493,12 +1493,25 @@ func (p *parser) pipe() ast.Expr {
 		stages = append(stages, call)
 		left = call
 	}
+	if t := p.peek(); len(stages) > 0 && (t.Kind == token.Op || t.Is("is")) && bindsTighterThanPipe(t.Text) {
+		// The grammar ends the expression here; the author meant the stage's result as the operand.
+		p.fail(t.Pos, "'|' binds looser than '%s', so parenthesize the pipe, as in (a | f()) %s b", t.Text, t.Text)
+	}
 	if len(stages) > 1 {
 		for _, c := range stages {
 			c.Stage = true
 		}
 	}
 	return left
+}
+
+// bindsTighterThanPipe reports whether op is a binary operator that binds tighter than '|'.
+func bindsTighterThanPipe(op string) bool {
+	switch op {
+	case "*", "/", "%", "+", "-", "<", "<=", ">", ">=", "is", "==", "!=", "&&", "||", "??":
+		return true
+	}
+	return false
 }
 
 func (p *parser) pipeOperand() ast.Expr {
