@@ -308,26 +308,28 @@ func init() {
 				}
 				ctx := waitContext(g, who, a[1])
 				ticks := value.NewChan(1)
+				if ctx.Err() != nil {
+					return ticks
+				}
 				// As Go's ticker: a beat counted from the call, one tick held, a tick that
 				// finds it full dropped; the goroutine and its timer end with the context,
-				// which is the run's when none was given.
+				// which is the run's when none was given. The context is checked after every
+				// wake, since select picks at random when a tick and the cancel are both ready.
 				t := time.NewTicker(d)
 				go func() {
 					defer t.Stop()
 					for {
+						var at time.Time
 						select {
-						case <-t.C:
-							// select picks at random when both are ready; a done context wins,
-							// so no tick lands after the cancel
-							if ctx.Err() != nil {
-								return
-							}
-							select {
-							case ticks.Raw() <- temporal.Now():
-							default:
-							}
+						case at = <-t.C:
 						case <-ctx.Done():
+						}
+						if ctx.Err() != nil {
 							return
+						}
+						select {
+						case ticks.Raw() <- temporal.FromEpochNanos(at.UnixNano()):
+						default:
 						}
 					}
 				}()

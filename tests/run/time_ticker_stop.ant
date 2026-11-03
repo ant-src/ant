@@ -1,0 +1,30 @@
+// spec: stdlib Time; 9 Waiting
+// Time.ticker stops with its context whichever way the context ends: done before the call, a
+// parent cancelled, a timeout. Once a tick sent before the end is taken, no more arrive.
+func quiet(ticks: Channel[Time.Instant]): bool {
+  var left = Channel.receive(ticks, Context.new(Time.duration(milliseconds: 1)))
+  return Channel.receive(ticks, Context.new(Time.duration(milliseconds: 40))) == null
+}
+
+var done = Context.new()
+Context.cancel(done)
+var none = Time.ticker(Time.duration(milliseconds: 1), done)
+Time.sleep(Time.duration(milliseconds: 20))
+println(Channel.length(none))
+
+var parent = Context.new()
+var child = Time.ticker(Time.duration(milliseconds: 5), Context.new(null, parent))
+println(Channel.receive(child) != null)
+Context.cancel(parent)
+println(quiet(child))
+
+var short = Context.new(Time.duration(milliseconds: 30))
+var timed = Time.ticker(Time.duration(milliseconds: 5), short)
+Context.wait(short)
+println(quiet(timed))
+
+// expect
+// out: 0
+// out: true
+// out: true
+// out: true
