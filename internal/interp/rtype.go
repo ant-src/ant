@@ -171,9 +171,9 @@ func (in *Instance) builtinDecl(name string) *types.Decl {
 	if in.builtinDecls == nil {
 		in.builtinDecls = map[string]*types.Decl{}
 	}
-	d := &types.Decl{Name: name, Kind: types.OpaqueDecl, Tag: value.KindBytes}
+	d := &types.Decl{Name: name, Kind: types.KindOpaqueDecl, Base: value.KindBytes}
 	if name == "Html" {
-		d.Tag = value.KindHtml
+		d.Base = value.KindHtml
 	}
 	in.builtinDecls[name] = d
 	return d

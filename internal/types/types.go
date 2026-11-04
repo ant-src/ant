@@ -75,6 +75,7 @@ const (
 	RecordDecl       DeclKind = iota // a named record type
 	PrimitiveDecl                    // a named primitive type
 	OpaqueDecl                       // a prelude type with no structure, such as Mutex
+	KindOpaqueDecl                   // an opaque prelude type whose values carry a kind of their own, Bytes and Html: Base holds the kind, and is tests it by name
 	TaggedOpaqueDecl                 // an opaque type whose values carry its tag, as the time types of stdlib.md and Regex.Pattern do: is tests it by the tag
 	AliasDecl                        // an alias, interchangeable with its body
 )
@@ -85,16 +86,15 @@ type Decl struct {
 	Kind   DeclKind
 	Params []*ParamDecl
 	Fields []Field    // RecordDecl: the fields, with Params inside
-	Base   value.Kind // PrimitiveDecl: the base kind
+	Base   value.Kind // PrimitiveDecl: the base kind; KindOpaqueDecl: the kind
 	Body   Type       // AliasDecl: the body, with Params inside
 	Funcs  map[string]*Func
 	Pos    any    // the declaration's position, for messages
 	Path   string // the file the declaration is in, for messages
-	// Tag is the run-time identity of the type's values, set by the interpreter on the
-	// declarations it builds for reflection (section 4, Types as values): the *value.Tag of a
-	// record, named primitive, time, regex, or sync type, or the value.Kind of Bytes and Html.
-	// Nil in the checker.
-	Tag any
+	// Tag is the tag the runtime binds the type to, set by the interpreter on the declarations
+	// it builds for reflection (section 4, Types as values); nil in the checker and for a
+	// KindOpaqueDecl, whose values carry no tag.
+	Tag *value.Tag
 }
 
 // Named is a reference to a declared type with type arguments.

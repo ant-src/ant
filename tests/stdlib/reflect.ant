@@ -13,7 +13,7 @@ type Tree = { value: int, children: Array[Tree] }
 
 func declOf(t: Reflect.ErasedType): Reflect.Decl | null {
   var s = Reflect.shape(t)
-  if s is Reflect.Record { s.decl } else if s is Reflect.Named { s.decl } else if s is Reflect.Opaque { s.decl } else { null }
+  if s is Reflect.Record { s.decl } else if s is Reflect.Tagged { s.decl } else if s is Reflect.Opaque { s.decl } else { null }
 }
 
 var intT = Reflect.erase(type(int))
@@ -30,22 +30,22 @@ Reflect.shape(Reflect.erase(type(never)))                   // => Reflect.Never{
 Reflect.shape(Reflect.erase(type(Array[int])))              // => Reflect.Array{ element: int }
 Reflect.shape(Reflect.erase(type(Map[string, int])))        // => Reflect.Map{ key: string, value: int }
 Reflect.shape(Reflect.erase(type(Set[Celsius])))            // => Reflect.Set{ member: Celsius }
-Reflect.shape(serverT)                                      // => Reflect.Record{ name: "Server", decl: Server, args: [], fields: [Reflect.Field{ name: "host", type: string, hasDefault: false }, Reflect.Field{ name: "port", type: int, hasDefault: true }, Reflect.Field{ name: "tags", type: Array[string], hasDefault: true }] }
-Reflect.shape(Reflect.erase(type(Box[int])))                // => Reflect.Record{ name: "Box", decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
-Reflect.shape(Reflect.erase(type({ name: string })))        // => Reflect.Record{ name: null, decl: null, args: [], fields: [Reflect.Field{ name: "name", type: string, hasDefault: false }] }
-Reflect.shape(Reflect.erase(type(Celsius)))                 // => Reflect.Named{ name: "Celsius", decl: Celsius, args: [], base: float64 }
-Reflect.shape(Reflect.erase(type(Id[Server])))              // => Reflect.Named{ name: "Id", decl: Id, args: [Server], base: string }
+Reflect.shape(serverT)                                      // => Reflect.Record{ decl: Server, args: [], fields: [Reflect.Field{ name: "host", type: string, hasDefault: false }, Reflect.Field{ name: "port", type: int, hasDefault: true }, Reflect.Field{ name: "tags", type: Array[string], hasDefault: true }] }
+Reflect.shape(Reflect.erase(type(Box[int])))                // => Reflect.Record{ decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
+Reflect.shape(Reflect.erase(type({ name: string })))        // => Reflect.Record{ decl: null, args: [], fields: [Reflect.Field{ name: "name", type: string, hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Celsius)))                 // => Reflect.Tagged{ decl: Celsius, args: [], base: float64 }
+Reflect.shape(Reflect.erase(type(Id[Server])))              // => Reflect.Tagged{ decl: Id, args: [Server], base: string }
 Reflect.shape(Reflect.erase(type(Shape)))                   // => Reflect.Union{ members: [Circle, Rect] }
 Reflect.shape(Reflect.erase(type(int | null)))              // => Reflect.Union{ members: [int, null] }
 Reflect.shape(Reflect.erase(type(Result[int, Error])))      // => Reflect.Union{ members: [Ok[int], Err[Error]] }
 Reflect.shape(Reflect.erase(type(func(int, string): bool))) // => Reflect.Func{ params: [int, string], result: bool }
-Reflect.shape(Reflect.erase(type(Bytes)))                   // => Reflect.Opaque{ name: "Bytes", decl: Bytes, args: [] }
-Reflect.shape(Reflect.erase(type(Channel[int])))            // => Reflect.Opaque{ name: "Channel[int]", decl: Channel, args: [int] }
-Reflect.shape(Reflect.erase(type(Time.Instant)))            // => Reflect.Opaque{ name: "Time.Instant", decl: Time.Instant, args: [] }
-Reflect.shape(Reflect.erase(type(Reflect.Value)))           // => Reflect.Opaque{ name: "Reflect.Value", decl: Reflect.Value, args: [] }
+Reflect.shape(Reflect.erase(type(Bytes)))                   // => Reflect.Opaque{ decl: Bytes, args: [] }
+Reflect.shape(Reflect.erase(type(Channel[int])))            // => Reflect.Opaque{ decl: Channel, args: [int] }
+Reflect.shape(Reflect.erase(type(Time.Instant)))            // => Reflect.Opaque{ decl: Time.Instant, args: [] }
+Reflect.shape(Reflect.erase(type(Reflect.Value)))           // => Reflect.Opaque{ decl: Reflect.Value, args: [] }
 Reflect.shape(Reflect.erase(type(Json.Value)))              // => Reflect.Union{ members: [null, bool, float64, string, Array[Json.Value], Map[string, Json.Value]] }
-Reflect.shape(Reflect.erase(type(Tree)))                    // => Reflect.Record{ name: "Tree", decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
-Reflect.shape(Reflect.erase(type(Panic)))                   // => Reflect.Record{ name: "Panic", decl: Panic, args: [], fields: [Reflect.Field{ name: "message", type: string, hasDefault: false }, Reflect.Field{ name: "trace", type: Array[Panic.Frame], hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Tree)))                    // => Reflect.Record{ decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Panic)))                   // => Reflect.Record{ decl: Panic, args: [], fields: [Reflect.Field{ name: "message", type: string, hasDefault: false }, Reflect.Field{ name: "trace", type: Array[Panic.Frame], hasDefault: false }] }
 
 declOf(Reflect.erase(type(Box[int]))) == declOf(Reflect.erase(type(Box[string])))         // => true
 declOf(Reflect.erase(type(Box[int]))) == declOf(serverT)                                  // => false
@@ -126,8 +126,3 @@ Reflect.makeRecord(Reflect.erase(type({ host: string })), Map{})                
 Reflect.makeTagged(Reflect.erase(type(Celsius)), Reflect.valueOf(type(float64), 1.5))                                                                                                                                                    // => Reflect.Value(Celsius(1.5): Celsius)
 Reflect.makeTagged(Reflect.erase(type(Celsius)), Reflect.valueOf(type(int), 1))                                                                                                                                                          // => panic: Reflect.makeTagged: a payload of type int is not assignable to the base type float64 of Celsius
 Reflect.makeTagged(intT, Reflect.valueOf(type(int), 1))                                                                                                                                                                                  // => panic: Reflect.makeTagged needs a named primitive type, got int
-Reflect.default(serverT, "port")                                                                                                                                                                                                         // => Reflect.Value(8080: int)
-Reflect.default(serverT, "tags")                                                                                                                                                                                                         // => Reflect.Value([]: Array[string])
-Reflect.default(serverT, "host")                                                                                                                                                                                                         // => panic: Reflect.default: the field host of Server has no default
-Reflect.default(serverT, "color")                                                                                                                                                                                                        // => panic: Reflect.default: Server has no field color
-Reflect.default(intT, "x")                                                                                                                                                                                                               // => panic: Reflect.default needs a named record type, got int

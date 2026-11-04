@@ -757,12 +757,22 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 	}
 	switch body := d.Body.(type) {
 	case nil:
-		// The time types of stdlib.md, the opaque types the prelude declares under Time, and
-		// Regex.Pattern carry their tag, so is tests them; every other opaque type, a host's
-		// included, is a sync type, which is cannot test.
-		if (strings.HasPrefix(decl.Name, "Time.") || decl.Name == "Regex.Pattern") && c.mod != nil && filepath.Base(c.mod.path) == prelude.Path {
+		// The prelude's own bodiless types are the exception the table of Kinds lists (section
+		// 10, Declaration files): Bytes and Html are kinds of their own, and the time types,
+		// the opaque types the prelude declares under Time, and Regex.Pattern carry their tag,
+		// so is tests all of them by name. Every other opaque type, a host's included, is a
+		// sync type, which is cannot test.
+		inPrelude := c.mod != nil && filepath.Base(c.mod.path) == prelude.Path
+		switch {
+		case inPrelude && (decl.Name == "Bytes" || decl.Name == "Html"):
+			decl.Kind = types.KindOpaqueDecl
+			decl.Base = value.KindBytes
+			if decl.Name == "Html" {
+				decl.Base = value.KindHtml
+			}
+		case inPrelude && (strings.HasPrefix(decl.Name, "Time.") || decl.Name == "Regex.Pattern"):
 			decl.Kind = types.TaggedOpaqueDecl
-		} else {
+		default:
 			decl.Kind = types.OpaqueDecl
 		}
 	case *ast.RecordType:

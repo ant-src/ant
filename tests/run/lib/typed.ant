@@ -36,7 +36,7 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflec
   } else if s is Reflect.Int || s is Reflect.Float {
     var n = if v is float64 { Reflect.makeNumber(t, v) } else { null }
     if n == null { fail(path, "want ${t}") } else { Result.ok(n) }
-  } else if s is Reflect.Named {
+  } else if s is Reflect.Tagged {
     Result.ok(Reflect.makeTagged(t, try decodeAt(s.base, v, path)))
   } else if s is Reflect.Array {
     if !(v is Array) { return fail(path, "want an array") }
@@ -62,7 +62,7 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflec
     }
     Result.ok(Reflect.makeMap(t, entries))
   } else if s is Reflect.Record {
-    if s.name == null { return fail(path, "cannot decode into ${t}") }
+    if s.decl == null { return fail(path, "cannot decode into ${t}") }
     if !(v is Map) { return fail(path, "want an object") }
     var fields: Map[string, Reflect.Value] = Map{}
     for f in s.fields {
@@ -96,7 +96,7 @@ func encodeAt(d: Reflect.Value): string {
     "{" + String.join(members, ",") + "}"
   } else if s is Reflect.Array || s is Reflect.Set {
     "[" + String.join(Array.map(Reflect.items(d), encodeAt), ",") + "]"
-  } else if s is Reflect.Named {
+  } else if s is Reflect.Tagged {
     encodeAt(Reflect.payload(d))
   } else {
     Json.stringify(Reflect.scalar(d))

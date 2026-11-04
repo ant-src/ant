@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"strings"
+
 	"github.com/ant-src/ant/internal/interp"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
@@ -26,12 +28,12 @@ var (
 	ShapeArrayTag  = value.NewTag("Reflect.Array", value.RecordTag, []string{"element"})
 	ShapeMapTag    = value.NewTag("Reflect.Map", value.RecordTag, []string{"key", "value"})
 	ShapeSetTag    = value.NewTag("Reflect.Set", value.RecordTag, []string{"member"})
-	ShapeRecordTag = value.NewTag("Reflect.Record", value.RecordTag, []string{"name", "decl", "args", "fields"})
+	ShapeRecordTag = value.NewTag("Reflect.Record", value.RecordTag, []string{"decl", "args", "fields"})
 	ShapeFieldTag  = value.NewTag("Reflect.Field", value.RecordTag, []string{"name", "type", "hasDefault"})
-	ShapeNamedTag  = value.NewTag("Reflect.Named", value.RecordTag, []string{"name", "decl", "args", "base"})
+	ShapeTaggedTag = value.NewTag("Reflect.Tagged", value.RecordTag, []string{"decl", "args", "base"})
 	ShapeUnionTag  = value.NewTag("Reflect.Union", value.RecordTag, []string{"members"})
 	ShapeFuncTag   = value.NewTag("Reflect.Func", value.RecordTag, []string{"params", "result"})
-	ShapeOpaqueTag = value.NewTag("Reflect.Opaque", value.RecordTag, []string{"name", "decl", "args"})
+	ShapeOpaqueTag = value.NewTag("Reflect.Opaque", value.RecordTag, []string{"decl", "args"})
 )
 
 // typeArg takes a type value, a Reflect.Type[T] or a Reflect.ErasedType.
@@ -72,77 +74,85 @@ func box(g *interp.Goroutine, who string, t types.Type, v value.Value) *value.Re
 	return &value.Reflected{Type: typeValue(m), Value: v}
 }
 
-// memberOf resolves t, aliases expanded, to the member v belongs to, by v's kind or tag alone:
-// t itself unless it is a union, and for a union the one member whose discriminator v carries,
-// an anonymous record member taking a record whose tag no named member has (section 4, Unions).
+// memberOf resolves t, aliases expanded, to the member v belongs to, by the discriminators of
+// section 4, Unions, as types.Discriminator keys them: t itself unless it is a union, and for a
+// union the member whose key v carries, an anonymous record member taking any record, and the
+// one member is cannot test taking a value is cannot test either.
 func memberOf(t types.Type, v value.Value) (types.Type, bool) {
 	t = types.Expand(t)
 	u, ok := t.(types.Union)
 	if !ok {
-		return t, belongs(t, v)
+		return t, carries(v, t)
 	}
-	var anonymous types.Type
+	var anonymous, untestable types.Type
 	for _, m := range u.Members {
 		m = types.Expand(m)
-		if _, ok := m.(types.Record); ok {
+		key, _, ok := types.Discriminator(m)
+		switch {
+		case !ok:
+			untestable = m
+		case key == "record":
 			anonymous = m
-			continue
-		}
-		if belongs(m, v) {
+		case carries(v, m):
 			return m, true
 		}
 	}
-	if anonymous != nil && belongs(anonymous, v) {
+	if anonymous != nil && carries(v, anonymous) {
 		return anonymous, true
+	}
+	if untestable != nil && carries(v, untestable) {
+		return untestable, true
 	}
 	return nil, false
 }
 
-// belongs reports whether v carries the discriminator of t, a type that is not a union: its
-// kind, or its tag (section 4, Kinds).
-func belongs(t types.Type, v value.Value) bool {
-	switch x := types.Expand(t).(type) {
-	case types.Prim:
-		return value.KindOf(v) == x.Kind
-	case types.Null:
+// carries reports whether v has the discriminator of t, a type that is not a union: the kind,
+// the class, or the tag types.Discriminator keys it by. A type is cannot test, a sync type or one
+// of the Reflect types, takes any value is cannot test either, which a union holds at most one
+// of; ant run trusts the rest, as it trusts an annotation (section 11, Reflect, Unchecked runs).
+func carries(v value.Value, t types.Type) bool {
+	key, _, ok := types.Discriminator(t)
+	if !ok {
+		switch value.KindOf(v) {
+		case value.KindSync, value.KindType, value.KindDecl, value.KindReflected:
+			return true
+		}
+		return false
+	}
+	switch key {
+	case "null":
 		return value.KindOf(v) == value.KindNull
-	case types.Void:
+	case "void":
 		return value.KindOf(v) == value.KindVoid
-	case types.Array:
+	case "array":
 		return value.KindOf(v) == value.KindArray
-	case types.Map:
+	case "map":
 		return value.KindOf(v) == value.KindMap
-	case types.Set:
+	case "set":
 		return value.KindOf(v) == value.KindSet
-	case types.Func:
+	case "func":
 		return value.KindOf(v) == value.KindFunc
-	case types.Record:
+	case "record":
 		_, ok := v.(*value.Record)
 		return ok
-	case types.Named:
-		switch id := x.Decl.Tag.(type) {
-		case value.Kind:
-			return value.KindOf(v) == id
-		case *value.Tag:
-			switch y := v.(type) {
-			case *value.Record:
-				return y.Tag == id
-			case *value.Tagged:
-				return y.Tag == id
-			case value.Time:
-				return y.TimeType() == id.Name
-			case *value.Regex:
-				return id.Kind == value.RegexTag
-			case value.Sync:
-				return y.SyncName() == id.Name
-			case value.TypeValue:
-				return id == ReflectTypeTag || id == ReflectErasedTypeTag
-			case value.Declaration:
-				return id == ReflectDeclTag
-			case *value.Reflected:
-				return id == ReflectValueTag
-			}
-		}
+	}
+	if strings.HasPrefix(key, "kind:") {
+		return key == "kind:"+value.KindOf(v).String()
+	}
+	// tag:%p, the declaration of a record, tagged primitive, time, or regex type
+	n, ok := types.Expand(t).(types.Named)
+	if !ok || n.Decl.Tag == nil {
+		return false
+	}
+	switch y := v.(type) {
+	case *value.Record:
+		return y.Tag == n.Decl.Tag
+	case *value.Tagged:
+		return y.Tag == n.Decl.Tag
+	case value.Time:
+		return y.TimeType() == n.Decl.Tag.Name
+	case *value.Regex:
+		return n.Decl.Tag.Kind == value.RegexTag
 	}
 	return false
 }
@@ -175,17 +185,17 @@ func shape(t types.Type) value.Value {
 	case types.Set:
 		return value.NewRecord(ShapeSetTag, []value.Value{typeValue(x.Elem)})
 	case types.Record:
-		return value.NewRecord(ShapeRecordTag, []value.Value{value.Null, value.Null, value.NewArray(nil), fieldShapes(x.Fields)})
+		return value.NewRecord(ShapeRecordTag, []value.Value{value.Null, value.NewArray(nil), fieldShapes(x.Fields)})
 	case types.Named:
 		decl := types.DeclValue(x.Decl)
 		args := typeArray(x.Args)
 		switch x.Decl.Kind {
 		case types.RecordDecl:
-			return value.NewRecord(ShapeRecordTag, []value.Value{x.Decl.Name, decl, args, fieldShapes(x.FieldsOf())})
+			return value.NewRecord(ShapeRecordTag, []value.Value{decl, args, fieldShapes(x.FieldsOf())})
 		case types.PrimitiveDecl:
-			return value.NewRecord(ShapeNamedTag, []value.Value{x.Decl.Name, decl, args, typeValue(types.Prim{Kind: x.Decl.Base})})
+			return value.NewRecord(ShapeTaggedTag, []value.Value{decl, args, typeValue(types.Prim{Kind: x.Decl.Base})})
 		}
-		return value.NewRecord(ShapeOpaqueTag, []value.Value{types.String(x), decl, args})
+		return value.NewRecord(ShapeOpaqueTag, []value.Value{decl, args})
 	case types.Union:
 		members := make([]types.Type, len(x.Members))
 		for i, m := range x.Members {
@@ -212,11 +222,10 @@ func namedRecord(g *interp.Goroutine, who string, t types.Type) (types.Named, *v
 	if !ok || n.Decl.Kind != types.RecordDecl {
 		g.Panic("%s needs a named record type, got %s", who, types.String(t))
 	}
-	tag, ok := n.Decl.Tag.(*value.Tag)
-	if !ok {
+	if n.Decl.Tag == nil {
 		g.Panic("%s: %s has no tag to build a value with", who, types.String(t))
 	}
-	return n, tag
+	return n, n.Decl.Tag
 }
 
 // fits panics unless a part's type is assignable to the slot it goes into, naming the part, the
@@ -247,7 +256,7 @@ func init() {
 			constant("Set", ShapeSetTag),
 			constant("Record", ShapeRecordTag),
 			constant("Field", ShapeFieldTag),
-			constant("Named", ShapeNamedTag),
+			constant("Tagged", ShapeTaggedTag),
 			constant("Union", ShapeUnionTag),
 			constant("Func", ShapeFuncTag),
 			constant("Opaque", ShapeOpaqueTag),
@@ -277,20 +286,6 @@ func init() {
 			}),
 			fn("Reflect.assignable", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return types.Assignable(typeArg(g, who, a[0]).T, typeArg(g, who, a[1]).T)
-			}),
-			fn("Reflect.default", "t, name", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				t := typeArg(g, who, a[0]).T
-				name := stringArg(g, who, a[1])
-				n, tag := namedRecord(g, who, t)
-				i, ok := tag.FieldIndex(name)
-				if !ok {
-					g.Panic("%s: %s has no field %s", who, types.String(t), name)
-				}
-				v, ok := g.FieldDefault(tag, i)
-				if !ok {
-					g.Panic("%s: the field %s of %s has no default", who, name, types.String(t))
-				}
-				return box(g, who, n.FieldsOf()[i].Type, v)
 			}),
 			fn("Reflect.valueOf", "t, value", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return box(g, who, typeArg(g, who, a[0]).T, a[1])
@@ -474,10 +469,9 @@ func init() {
 				if !ok || n.Decl.Kind != types.PrimitiveDecl {
 					g.Panic("%s needs a named primitive type, got %s", who, types.String(t))
 				}
-				tag, _ := n.Decl.Tag.(*value.Tag)
 				d := reflectedArg(g, who, a[1])
 				fits(g, who, "a payload", d, types.Prim{Kind: n.Decl.Base}, "base type", n)
-				return &value.Reflected{Type: typeValue(n), Value: &value.Tagged{Tag: tag, Payload: d.Value}}
+				return &value.Reflected{Type: typeValue(n), Value: &value.Tagged{Tag: n.Decl.Tag, Payload: d.Value}}
 			}),
 		)
 	})

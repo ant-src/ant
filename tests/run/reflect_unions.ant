@@ -5,9 +5,8 @@
 type Circle = { r: float64 }
 type Celsius = float64
 type Person = { name: string, age: int }
-type Mixed = int | float64 | bool | string | null | void | Bytes | Array[int] | Map[string, int]
+type Mixed = int | float64 | bool | string | null | void | Bytes | Html | Array[int] | Map[string, int]
   | Set[int] | (func(int): int) | Circle | Celsius | Time.Instant | Regex.Pattern | Mutex
-type Marked = Html | null
 type Loose = { name: string } | null
 
 func kind[T](t: Reflect.Type[T], v: T): string { String.from(Reflect.type(Reflect.valueOf(t, v))) }
@@ -20,7 +19,7 @@ println(kind(type(Mixed), "s"))
 println(kind(type(Mixed), null))
 println(kind(type(Mixed), println("")))
 println(kind(type(Mixed), Bytes.fromArray([1])))
-println(kind(type(Marked), <b>x</b>))
+println(kind(type(Mixed), <b>x</b>))
 println(kind(type(Mixed), [1]))
 println(kind(type(Mixed), Map{ a: 1 }))
 println(kind(type(Mixed), Set.of([1])))

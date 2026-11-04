@@ -1484,7 +1484,7 @@ type Reflect.Value
 
 // Reflect.Shape is one level of a type's structure, as [Reflect.shape] gives it: aliases expanded,
 // unions flattened, and every child a [Reflect.ErasedType].
-type Reflect.Shape = Reflect.Null | Reflect.Void | Reflect.Never | Reflect.Bool | Reflect.Int | Reflect.Float | Reflect.String | Reflect.Array | Reflect.Map | Reflect.Set | Reflect.Record | Reflect.Named | Reflect.Union | Reflect.Func | Reflect.Opaque
+type Reflect.Shape = Reflect.Null | Reflect.Void | Reflect.Never | Reflect.Bool | Reflect.Int | Reflect.Float | Reflect.String | Reflect.Array | Reflect.Map | Reflect.Set | Reflect.Record | Reflect.Tagged | Reflect.Union | Reflect.Func | Reflect.Opaque
 
 // Reflect.Null is the shape of null.
 type Reflect.Null = {}
@@ -1517,18 +1517,19 @@ type Reflect.Map = { key: Reflect.ErasedType, value: Reflect.ErasedType }
 // Reflect.Set is the shape of Set[member].
 type Reflect.Set = { member: Reflect.ErasedType }
 
-// Reflect.Record is the shape of a record type: its declared name and declaration, both null for
-// an anonymous record type, its type arguments, and its fields in declaration order with their
-// types substituted, so that in Box[int] the field value has type int.
-type Reflect.Record = { name: string | null, decl: Reflect.Decl | null, args: Array[Reflect.ErasedType], fields: Array[Reflect.Field] }
+// Reflect.Record is the shape of a record type: its declaration, which renders as the declared name
+// and is null for an anonymous record type, its type arguments, and its fields in declaration order
+// with their types substituted, so that in Box[int] the field value has type int.
+type Reflect.Record = { decl: Reflect.Decl | null, args: Array[Reflect.ErasedType], fields: Array[Reflect.Field] }
 
 // Reflect.Field is one field of a record shape: its name, its type, and whether the declaration
 // gives it a default, so that a literal or [Reflect.makeRecord] may leave it out.
 type Reflect.Field = { name: string, type: Reflect.ErasedType, hasDefault: bool }
 
-// Reflect.Named is the shape of a named primitive type: its name, declaration, type arguments, and
-// base type. Id[User] and Id[Account] share a declaration and differ in args.
-type Reflect.Named = { name: string, decl: Reflect.Decl, args: Array[Reflect.ErasedType], base: Reflect.ErasedType }
+// Reflect.Tagged is the shape of a named primitive type, whose values are tagged primitives: its
+// declaration, type arguments, and base type. Id[User] and Id[Account] share a declaration and
+// differ in args.
+type Reflect.Tagged = { decl: Reflect.Decl, args: Array[Reflect.ErasedType], base: Reflect.ErasedType }
 
 // Reflect.Union is the shape of a union: its members, flattened and deduplicated, in the order
 // written. T | null has a Reflect.Null member, and Result[int, Error] the records Ok[int] and
@@ -1540,10 +1541,10 @@ type Reflect.Func = { params: Array[Reflect.ErasedType], result: Reflect.ErasedT
 
 // Reflect.Opaque is the shape of a type whose values reflection does not take apart: Bytes, Html,
 // Regex.Pattern, the time types, the sync, random, and resource types, and the Reflect types
-// themselves. name renders the type, decl is its declaration, and args are its type arguments.
-// Code that handles a type specially tests for it by comparing type values,
-// t == Reflect.erase(type(Bytes)), not by name.
-type Reflect.Opaque = { name: string, decl: Reflect.Decl, args: Array[Reflect.ErasedType] }
+// themselves. decl is its declaration and args are its type arguments; String.from of the type
+// value renders the type. Code that handles a type specially tests for it by comparing type
+// values, t == Reflect.erase(type(Bytes)), not by name.
+type Reflect.Opaque = { decl: Reflect.Decl, args: Array[Reflect.ErasedType] }
 
 // Reflect.Scalar is what [Reflect.scalar] returns: a leaf value in its own kind.
 type Reflect.Scalar = null | void | bool | int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64 | float32 | float64 | string
@@ -1591,11 +1592,6 @@ func Reflect.shape(t: Reflect.ErasedType): Reflect.Shape
 //     Reflect.assignable(Reflect.erase(type(int)), Reflect.erase(type(int | null)))
 //     // true
 func Reflect.assignable(from: Reflect.ErasedType, to: Reflect.ErasedType): bool
-
-// Reflect.default evaluates the default of the field name of the named record type t, afresh as a
-// literal would and in the scope of the declaration, and boxes it at the field's type. It panics
-// if t is not a named record type, has no field name, or the field has no default.
-func Reflect.default(t: Reflect.ErasedType, name: string): Reflect.Value
 
 // Reflect.valueOf boxes value with its type t. When t is a union, the box's type is the member
 // value belongs to, found from its kind or tag. The type comes first so that it fixes T before the

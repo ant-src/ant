@@ -41,3 +41,6 @@ s.radius = 1.0 // ERR: cannot assign a field through the union
 println(area(s))
 type Sets = Set[int] | Set[string] // ERR: a union may contain each discriminator at most once
 type SetOrArray = Set[int] | Array[int]
+
+// Bytes and Html are kinds of their own, so each counts once beside the one type is cannot test.
+var kinds: Bytes | Html | Mutex | null = null
