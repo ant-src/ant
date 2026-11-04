@@ -379,20 +379,37 @@ func init() {
 				tagged := typedArg[*value.Tagged](g, who, "a tagged value", d.Value)
 				return box(g, who, types.Prim{Kind: n.Decl.Base}, tagged.Payload)
 			}),
-			fn("Reflect.makeNumber", "t, n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				t := typeArg(g, who, a[0]).T
-				p, ok := types.Expand(t).(types.Prim)
-				if !ok || !p.Kind.IsNumber() {
-					g.Panic("%s needs an integer or float type, got %s", who, types.String(t))
+			fn("Reflect.makeScalar", "t, v", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				t := types.Expand(typeArg(g, who, a[0]).T)
+				var kind value.Kind
+				switch x := t.(type) {
+				case types.Prim:
+					kind = x.Kind
+				case types.Null:
+					kind = value.KindNull
+				case types.Void:
+					kind = value.KindVoid
+				default:
+					g.Panic("%s needs a scalar type, got %s", who, types.String(t))
 				}
-				if !value.KindOf(a[1]).IsNumber() {
-					g.Panic("%s needs a number, got %s", who, value.Describe(a[1]))
+				v := a[1]
+				vk := value.KindOf(v)
+				if !vk.IsPrimitive() && vk != value.KindNull && vk != value.KindVoid {
+					g.Panic("%s needs a scalar, got %s", who, value.Describe(v))
 				}
-				v, err := value.Convert(p.Kind, a[1])
-				if err != nil {
+				if kind.IsNumber() {
+					if !vk.IsNumber() {
+						return value.Null
+					}
+					c, err := value.Convert(kind, v)
+					if err != nil {
+						return value.Null
+					}
+					v = c
+				} else if vk != kind {
 					return value.Null
 				}
-				return &value.Reflected{Type: typeValue(p), Value: v}
+				return &value.Reflected{Type: typeValue(t), Value: v}
 			}),
 			fn("Reflect.makeArray", "t, items", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				t := typeArg(g, who, a[0]).T

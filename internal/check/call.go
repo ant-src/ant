@@ -285,6 +285,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		t types.Type
 	}
 	var synthesized []pending
+	mismatch := false
 	for i, a := range slots {
 		if a == nil {
 			continue
@@ -299,6 +300,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				want, _ := types.Subst(pt, subst)
 				n := c.typeNames(got, want)
 				c.errorf(a.Pos, "cannot use %s where %s is expected", n[0], n[1])
+				mismatch = true
+				pruneSolved(unsolved, subst)
+				continue // reported once, not again against the solved types
 			}
 			pruneSolved(unsolved, subst)
 			synthesized = append(synthesized, pending{i, got})
@@ -310,6 +314,16 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			continue
 		}
 		c.check(a.Value, sc, want)
+	}
+	if mismatch {
+		// An argument that does not fit its parameter already explains every type parameter
+		// still open, so those are left unsolved silently instead of reported as uninferable.
+		for _, p := range s.tparams {
+			if _, done := subst[p]; !done {
+				subst[p] = types.Invalid{}
+			}
+		}
+		pruneSolved(unsolved, subst)
 	}
 	for i, a := range slots {
 		if a == nil {

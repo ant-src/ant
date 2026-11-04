@@ -30,5 +30,6 @@ println(Array.map([Label("a")], string))
 var unwrap: func(Count): int = int
 println(unwrap(Count(2)))
 var wrongKind: func(Label): int = int  // ERR: T would be Label
-println(Array.map([Count(1)], string)) // ERR: cannot infer the type parameter U ;; cannot use func(string): string where func(Count): U is expected ;; cannot use func(string): string where func(Count): ? is expected
+println(Array.map([Count(1)], string)) // ERR: cannot use func(string): string where func(Count): U is expected
+println(Array.map(5, { x }))           // ERR: cannot use int where Array[T] is expected
 println(fails())

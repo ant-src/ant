@@ -27,15 +27,9 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflec
       if r is Ok { return r }
     }
     fail(path, "want ${t}")
-  } else if s is Reflect.Null {
-    if v == null { Result.ok(Reflect.valueOf(type(null), null)) } else { fail(path, "want null") }
-  } else if s is Reflect.Bool {
-    if v is bool { Result.ok(Reflect.valueOf(type(bool), v)) } else { fail(path, "want true or false") }
-  } else if s is Reflect.String {
-    if v is string { Result.ok(Reflect.valueOf(type(string), v)) } else { fail(path, "want a string") }
-  } else if s is Reflect.Int || s is Reflect.Float {
-    var n = if v is float64 { Reflect.makeNumber(t, v) } else { null }
-    if n == null { fail(path, "want ${t}") } else { Result.ok(n) }
+  } else if s is Reflect.Null || s is Reflect.Bool || s is Reflect.String || s is Reflect.Int || s is Reflect.Float {
+    var d = if v is Array || v is Map { null } else { Reflect.makeScalar(t, v) }
+    if d == null { fail(path, "want ${t}") } else { Result.ok(d) }
   } else if s is Reflect.Tagged {
     Result.ok(Reflect.makeTagged(t, try decodeAt(s.base, v, path)))
   } else if s is Reflect.Array {

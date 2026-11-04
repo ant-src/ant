@@ -39,3 +39,6 @@ func shape(t: Reflect.ErasedType): string {
 var two: Reflect.Decl | Reflect.Value | null = null // ERR: a union may contain at most one type that is cannot test
 var boxed = Reflect.valueOf(type(Array[int]), [])
 var back: Array[int] = Reflect.to(boxed, type(Array[int]))
+
+// A shape passed where a type value is expected is reported as that, once.
+var shapeNotType = Reflect.erase(Reflect.shape(Reflect.erase(type(int)))) // ERR: cannot use Reflect.Shape where Reflect.Type[T] is expected
