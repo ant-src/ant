@@ -640,7 +640,7 @@ func (c *completer) typePosition(prev *token.Token) bool {
 	pos := c.d.posOf(c.wordStart)
 	for i := len(nodes) - 1; i >= 0; i-- {
 		switch n := nodes[i].(type) {
-		case *ast.TypeName, *ast.RecordType, *ast.FuncType, *ast.UnionType, *ast.BadType:
+		case *ast.TypeName, *ast.RecordType, *ast.FuncType, *ast.UnionType, *ast.BadType, *ast.TypeExpr:
 			return true
 		case *ast.FieldType:
 			return !pos.Before(after(n.Pos, n.Name))
@@ -679,7 +679,36 @@ func (c *completer) tokensSayType(prev *token.Token) bool {
 	case prev.Is("|"):
 		// a union being written: the tokens before the bar are a type that follows the colon
 		// of a parameter or a var, or the = of a type declaration
-		return c.lineStartsWith(prev, "type") || c.unionAfterColon(prev)
+		return c.lineStartsWith(prev, "type") || c.unionAfterColon(prev) || c.insideTypeExpr(prev)
+	case prev.Is("("), prev.Is("["), prev.Is(","):
+		return c.insideTypeExpr(prev)
+	}
+	return false
+}
+
+// insideTypeExpr reports whether the token t lies in the parentheses of a type expression,
+// type(...) (section 4, Types as values), where every name is a type.
+func (c *completer) insideTypeExpr(t *token.Token) bool {
+	toks := c.toks
+	i := -1
+	for j := range toks {
+		if &toks[j] == t {
+			i = j
+		}
+	}
+	depth := 0
+	for ; i >= 0; i-- {
+		switch {
+		case toks[i].Is(")") || toks[i].Is("]"):
+			depth++
+		case toks[i].Is("(") || toks[i].Is("["):
+			if depth == 0 {
+				return toks[i].Is("(") && i > 0 && toks[i-1].Is("type")
+			}
+			depth--
+		case toks[i].Is("{") || toks[i].Is("}") || toks[i].Is(";"):
+			return false
+		}
 	}
 	return false
 }
