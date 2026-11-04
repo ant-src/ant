@@ -252,12 +252,7 @@ type varGroup struct {
 
 // ---- prelude
 
-var builtinKinds = map[string]value.Kind{
-	"int8": value.KindInt8, "int16": value.KindInt16, "int32": value.KindInt32, "int64": value.KindInt64,
-	"uint8": value.KindUint8, "uint16": value.KindUint16, "uint32": value.KindUint32, "uint64": value.KindUint64,
-	"float32": value.KindFloat32, "float64": value.KindFloat64, "int": value.KindInt64, "byte": value.KindUint8,
-	"bool": value.KindBool, "string": value.KindString,
-}
+var builtinKinds = types.BuiltinKinds
 
 // loadPrelude builds the prelude's entities from prelude.d.ant and the host namespaces.
 func (c *Checker) loadPrelude(cfg Config) {

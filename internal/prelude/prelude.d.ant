@@ -1453,6 +1453,216 @@ func Parallel.race[T](fs: Array[func(Context): T], ctx: Context | null = null): 
 //     var reply = Parallel.any([{ Http.get(primary, ctx: x) }, { Http.get(mirror, ctx: x) }], ctx: ctx)
 func Parallel.any[T, E](fs: Array[func(Context): Result[T, E]], ctx: Context | null = null): Result[T, Array[E]] | null
 
+// Reflect
+//
+// Reflect holds reflection: types as values, written type(T) (section 4, Types as values), taken
+// apart one level at a time with Reflect.shape, and values boxed with a type they belong to,
+// Reflect.Value, read along that type and built from checked parts. With these, typed decoding and
+// encoding for a data format are ordinary library code, and the format keeps every policy.
+
+// Reflect.Type is the type T as a value, written type(T). It is opaque: [Reflect.erase] gives the
+// value with its static type forgotten, and [Reflect.valueOf] boxes a T under it. Two type values
+// are == when they denote the same type, aliases expanded, and a type value renders as the type.
+type Reflect.Type[T]
+
+// Reflect.ErasedType is a type value whose static type is not known: what [Reflect.erase] returns,
+// and what [Reflect.shape] takes apart. Code that walks a type recurses on erased types, since the
+// element type of an Array[E] is not known statically one level down.
+type Reflect.ErasedType
+
+// Reflect.Decl is a named type's declaration without its type arguments: Box[int] and Box[string]
+// share one. Two are == when they are the same declaration, and one renders as the declared name.
+// It is the key for anything that applies to every instantiation of a generic type.
+type Reflect.Decl
+
+// Reflect.Value is a value together with a type it belongs to, the one way to hold a value whose
+// type is known only at run time. [Reflect.valueOf] boxes, [Reflect.to] unboxes, the readers take
+// one apart along its type, and the builders make new ones from checked parts. In a checked
+// program the value always belongs to the type, which is never a union or an alias. Two are ==
+// when their types and values are, and one renders as Reflect.Value(42: int).
+type Reflect.Value
+
+// Reflect.Shape is one level of a type's structure, as [Reflect.shape] gives it: aliases expanded,
+// unions flattened, and every child a [Reflect.ErasedType].
+type Reflect.Shape = Reflect.Null | Reflect.Void | Reflect.Never | Reflect.Bool | Reflect.Int | Reflect.Float | Reflect.String | Reflect.Array | Reflect.Map | Reflect.Set | Reflect.Record | Reflect.Named | Reflect.Union | Reflect.Func | Reflect.Opaque
+
+// Reflect.Null is the shape of null.
+type Reflect.Null = {}
+
+// Reflect.Void is the shape of void.
+type Reflect.Void = {}
+
+// Reflect.Never is the shape of never.
+type Reflect.Never = {}
+
+// Reflect.Bool is the shape of bool.
+type Reflect.Bool = {}
+
+// Reflect.Int is the shape of an integer type: its width in bits and whether it is signed. int is
+// { bits: 64, signed: true } and byte is { bits: 8, signed: false }.
+type Reflect.Int = { bits: int, signed: bool }
+
+// Reflect.Float is the shape of float32 or float64: its width in bits.
+type Reflect.Float = { bits: int }
+
+// Reflect.String is the shape of string.
+type Reflect.String = {}
+
+// Reflect.Array is the shape of Array[element].
+type Reflect.Array = { element: Reflect.ErasedType }
+
+// Reflect.Map is the shape of Map[key, value].
+type Reflect.Map = { key: Reflect.ErasedType, value: Reflect.ErasedType }
+
+// Reflect.Set is the shape of Set[member].
+type Reflect.Set = { member: Reflect.ErasedType }
+
+// Reflect.Record is the shape of a record type: its declared name and declaration, both null for
+// an anonymous record type, its type arguments, and its fields in declaration order with their
+// types substituted, so that in Box[int] the field value has type int.
+type Reflect.Record = { name: string | null, decl: Reflect.Decl | null, args: Array[Reflect.ErasedType], fields: Array[Reflect.Field] }
+
+// Reflect.Field is one field of a record shape: its name, its type, and whether the declaration
+// gives it a default, so that a literal or [Reflect.makeRecord] may leave it out.
+type Reflect.Field = { name: string, type: Reflect.ErasedType, hasDefault: bool }
+
+// Reflect.Named is the shape of a named primitive type: its name, declaration, type arguments, and
+// base type. Id[User] and Id[Account] share a declaration and differ in args.
+type Reflect.Named = { name: string, decl: Reflect.Decl, args: Array[Reflect.ErasedType], base: Reflect.ErasedType }
+
+// Reflect.Union is the shape of a union: its members, flattened and deduplicated, in the order
+// written. T | null has a Reflect.Null member, and Result[int, Error] the records Ok[int] and
+// Err[Error].
+type Reflect.Union = { members: Array[Reflect.ErasedType] }
+
+// Reflect.Func is the shape of a function type: its parameter types and its result type.
+type Reflect.Func = { params: Array[Reflect.ErasedType], result: Reflect.ErasedType }
+
+// Reflect.Opaque is the shape of a type whose values reflection does not take apart: Bytes, Html,
+// Regex.Pattern, the time types, the sync, random, and resource types, and the Reflect types
+// themselves. name renders the type, decl is its declaration, and args are its type arguments.
+// Code that handles a type specially tests for it by comparing type values,
+// t == Reflect.erase(type(Bytes)), not by name.
+type Reflect.Opaque = { name: string, decl: Reflect.Decl, args: Array[Reflect.ErasedType] }
+
+// Reflect.Scalar is what [Reflect.scalar] returns: a leaf value in its own kind.
+type Reflect.Scalar = null | void | bool | int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64 | float32 | float64 | string
+
+// Reflect.erase returns t with its static type forgotten, for code that walks types. The
+// conversion is always written: a Reflect.Type[T] is not assignable to a Reflect.ErasedType.
+//
+//     Reflect.erase(type(Array[int]))
+func Reflect.erase[T](t: Reflect.Type[T]): Reflect.ErasedType
+
+// Reflect.arrayOf returns type(Array[T]) for a T held as a type value, which a generic function
+// cannot write itself, since type(...) may not mention a type parameter.
+//
+//     Reflect.arrayOf(type(int)) == type(Array[int])
+func Reflect.arrayOf[T](t: Reflect.Type[T]): Reflect.Type[Array[T]]
+
+// Reflect.setOf returns type(Set[T]) for a T held as a type value.
+func Reflect.setOf[T](t: Reflect.Type[T]): Reflect.Type[Set[T]]
+
+// Reflect.mapOf returns type(Map[K, V]) for a K and a V held as type values.
+func Reflect.mapOf[K, V](k: Reflect.Type[K], v: Reflect.Type[V]): Reflect.Type[Map[K, V]]
+
+// Reflect.nullable returns type(T | null) for a T held as a type value. Unions flatten, so a T that
+// already includes null gives the same type.
+//
+//     Reflect.nullable(type(int | null)) == type(int | null)
+func Reflect.nullable[T](t: Reflect.Type[T]): Reflect.Type[T | null]
+
+// Reflect.shape returns one level of t's structure: aliases expanded, unions flattened, and the
+// children as erased type values, so a recursive type is a finite graph that a program walks as
+// deep as it needs.
+//
+//     Reflect.shape(Reflect.erase(type(Array[int])))
+func Reflect.shape(t: Reflect.ErasedType): Reflect.Shape
+
+// Reflect.assignable reports whether a value of type from may be used where to is expected
+// (section 4, Assignability), on two closed types. It is the relation the readers, the builders,
+// and [Reflect.to] use, exposed so that a library can test before calling a function that would
+// panic.
+//
+//     Reflect.assignable(Reflect.erase(type(int)), Reflect.erase(type(int | null)))
+func Reflect.assignable(from: Reflect.ErasedType, to: Reflect.ErasedType): bool
+
+// Reflect.default evaluates the default of the field name of the named record type t, afresh as a
+// literal would and in the scope of the declaration, and boxes it at the field's type. It panics
+// if t is not a named record type, has no field name, or the field has no default.
+func Reflect.default(t: Reflect.ErasedType, name: string): Reflect.Value
+
+// Reflect.valueOf boxes value with its type t. When t is a union, the box's type is the member
+// value belongs to, found from its kind or tag. The type comes first so that it fixes T before the
+// value is checked against it: Reflect.valueOf(type(Array[int]), []) checks.
+//
+//     Reflect.valueOf(type(int | null), 42)
+func Reflect.valueOf[T](t: Reflect.Type[T], value: T): Reflect.Value
+
+// Reflect.to returns the value in d as a T. It panics if d's type is not assignable to T, which is
+// the check an assignment would have made statically.
+//
+//     Reflect.to(Reflect.valueOf(type(int), 42), type(int | null))
+func Reflect.to[T](d: Reflect.Value, t: Reflect.Type[T]): T
+
+// Reflect.type returns the type of d, never a union or an alias.
+//
+//     Reflect.type(Reflect.valueOf(type(int | null), 42))
+func Reflect.type(d: Reflect.Value): Reflect.ErasedType
+
+// Reflect.scalar returns the value in d in its own kind. It panics if d's type is not null, void,
+// bool, a number, or string.
+func Reflect.scalar(d: Reflect.Value): Reflect.Scalar
+
+// Reflect.items returns an array's elements or a set's members, each boxed at the element type,
+// in a new array read when it is called. It panics if d's type is neither.
+func Reflect.items(d: Reflect.Value): Array[Reflect.Value]
+
+// Reflect.entries returns a map's entries, keys and values boxed at the key and value types, in a
+// new array read when it is called. It panics if d's type is not a map type.
+func Reflect.entries(d: Reflect.Value): Array[Entry[Reflect.Value, Reflect.Value]]
+
+// Reflect.field returns the field name of the record in d, boxed at the field's type. Through an
+// anonymous record type it reaches only the fields that type lists. It panics if d's type is not a
+// record type that lists the field.
+func Reflect.field(d: Reflect.Value, name: string): Reflect.Value
+
+// Reflect.payload returns the base value of the named primitive in d, boxed at the base type. It
+// panics if d's type is not a named primitive type.
+func Reflect.payload(d: Reflect.Value): Reflect.Value
+
+// Reflect.makeNumber converts n to the integer or float type t, as the conversion functions do,
+// and boxes it. It returns null where the conversion would panic: a fraction, a value out of range,
+// NaN, or an infinity for an integer type. It panics if t is not an integer or float type.
+//
+//     Reflect.makeNumber(Reflect.erase(type(int8)), 300)
+func Reflect.makeNumber(t: Reflect.ErasedType, n: Number): Reflect.Value | null
+
+// Reflect.makeArray returns a new array of the array type t holding the values of items. It
+// panics if t is not an array type, or an item's type is not assignable to the element type.
+func Reflect.makeArray(t: Reflect.ErasedType, items: Array[Reflect.Value]): Reflect.Value
+
+// Reflect.makeSet returns a new set of the set type t holding the values of members, duplicates
+// collapsed. It panics if t is not a set type, or a member's type is not assignable to the member
+// type.
+func Reflect.makeSet(t: Reflect.ErasedType, members: Array[Reflect.Value]): Reflect.Value
+
+// Reflect.makeMap returns a new map of the map type t holding entries, a later entry with an ==
+// key replacing an earlier one. It panics if t is not a map type, or a key's or value's type is
+// not assignable to its slot.
+func Reflect.makeMap(t: Reflect.ErasedType, entries: Array[Entry[Reflect.Value, Reflect.Value]]): Reflect.Value
+
+// Reflect.makeRecord returns a new record of the named record type t with the given fields, each
+// field left out taking its default as a literal evaluates it. The record carries the tag, so is
+// and == work on it as on any literal. It panics if t is not a named record type, a key is not one
+// of its fields, a field's type is not assignable to the field's type, or a field with no default
+// is left out.
+func Reflect.makeRecord(t: Reflect.ErasedType, fields: Map[string, Reflect.Value]): Reflect.Value
+
+// Reflect.makeTagged returns a new value of the named primitive type t over payload. It panics if
+// t is not a named primitive type, or payload's type is not its base.
+func Reflect.makeTagged(t: Reflect.ErasedType, payload: Reflect.Value): Reflect.Value
+
 // File
 //
 // File holds the functions of the file system and of handles: open files, the standard streams, and

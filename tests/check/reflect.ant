@@ -1,0 +1,41 @@
+// spec: 4 Types as values; 11 Reflect
+// Section 4, Types as values: type(T) has type Reflect.Type[T], T is closed and takes its type
+// arguments, a value is not a type, and a Reflect.Type[T] is erased only by Reflect.erase.
+type Config = { name: string }
+type Box[T] = { value: T }
+
+var a: Reflect.Type[int] = type(int)
+var b: Reflect.Type[Array[Config]] = type(Array[Config])
+var c: Reflect.Type[int | null] = type(int | null)
+var d: Reflect.Type[string] = type(int) // ERR: cannot use Reflect.Type[int] where Reflect.Type[string] is expected
+var e: Reflect.ErasedType = type(int)   // ERR: cannot use Reflect.Type[int] where Reflect.ErasedType is expected
+var f: Reflect.ErasedType = Reflect.erase(type(int))
+var config = Config{ name: "x" }
+var g = type(config)  // ERR: type(...) takes a type, not a value
+var h = type(Box)     // ERR: Box takes 1 type argument
+var i = type(Unknown) // ERR: unknown type Unknown
+var j = type(Reflect) // ERR: Reflect is a namespace, not a type
+var k = type(Box[int])
+var same = type(int) == type(int64)
+var piped = type(int) | Reflect.erase()
+
+func withToken[T](t: Reflect.Type[T], v: T): T {
+  var bad = type(Array[T]) // ERR: type(...) cannot mention T, a type parameter of the enclosing function or type
+  var wider = Reflect.arrayOf(t)
+  v
+}
+
+var l: Config = withToken(type(Config), config)
+var m = withToken(type(int | null), 42)       // the token fixes T as int | null, and 42 is checked against it
+var m2: int = m                               // ERR: cannot use int | null where int is expected
+var m3: int = withToken(type(int | null), 42) // ERR: cannot use Reflect.Type[int | null] where Reflect.Type[int] is expected
+var n = withToken(type(Array[int]), [])
+
+func shape(t: Reflect.ErasedType): string {
+  var s = Reflect.shape(t)
+  if s is Reflect.Record { s.fields[0].name } else if s is Reflect.Array { String.from(s.element) } else { "other" }
+}
+
+var two: Reflect.Decl | Reflect.Value | null = null // ERR: a union may contain at most one type that is cannot test
+var boxed = Reflect.valueOf(type(Array[int]), [])
+var back: Array[int] = Reflect.to(boxed, type(Array[int]))

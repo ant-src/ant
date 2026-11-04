@@ -284,6 +284,8 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 		return c.binary(x, sc)
 	case *ast.Is:
 		return c.isExpr(x, sc)
+	case *ast.TypeExpr:
+		return c.typeExpr(x, sc)
 	case *ast.Assign:
 		return c.assign(x, sc)
 	case *ast.If:
@@ -1293,6 +1295,54 @@ func (c *Checker) isExpr(x *ast.Is, sc *scope) types.Type {
 	}
 	c.narrowTo(t, target, x.Pos)
 	return types.BoolType
+}
+
+// typeExpr types a type expression type(T) as Reflect.Type[T] (section 4, Types as values). T
+// is closed: a type parameter of the enclosing function or type has nothing bound to it at run
+// time, so the program takes a Reflect.Type[T] parameter instead and builds from it.
+func (c *Checker) typeExpr(x *ast.TypeExpr, sc *scope) types.Type {
+	if tn, ok := x.Type.(*ast.TypeName); ok && len(tn.Path) == 1 && len(tn.Args) == 0 && !types.BuiltinName(tn.Path[0]) {
+		name := tn.Path[0]
+		if p, _ := sc.lookupTypeParam(name); p == nil {
+			l, ent := c.lookup(sc, name)
+			if l != nil || ent != nil && (ent.kind == entVar || ent.kind == entFunc) {
+				c.errorf(tn.Pos, "type(...) takes a type, not a value; %s is a value", name)
+				return types.Invalid{}
+			}
+		}
+	}
+	t := c.resolveType(x.Type, sc)
+	if types.IsInvalid(t) {
+		return types.Invalid{}
+	}
+	var param *types.ParamDecl
+	types.Walk(t, func(t types.Type) {
+		if p, ok := t.(types.Param); ok && param == nil {
+			param = p.Decl
+		}
+	})
+	if param != nil {
+		c.errorf(x.Pos, "type(...) cannot mention %s, a type parameter of the enclosing function or type, since nothing is bound to it at run time; take a Reflect.Type[%s] parameter and build the type from it with Reflect.arrayOf, Reflect.setOf, Reflect.mapOf, or Reflect.nullable", param.Name, param.Name)
+		return types.Invalid{}
+	}
+	decl := c.reflectDecl("Type")
+	if decl == nil {
+		c.errorf(x.Pos, "Reflect is not available in this run, so type(...) cannot be used")
+		return types.Invalid{}
+	}
+	return types.Named{Decl: decl, Args: []types.Type{t}}
+}
+
+// reflectDecl is a type of the prelude's Reflect namespace, or nil when a host removed it.
+func (c *Checker) reflectDecl(name string) *types.Decl {
+	ns, ok := c.prelude["Reflect"]
+	if !ok || ns.members == nil {
+		return nil
+	}
+	if e, ok := ns.members[name]; ok && e.kind == entType {
+		return e.decl
+	}
+	return nil
 }
 
 // isTarget resolves the right side of is: a kind, or a named record or primitive type.

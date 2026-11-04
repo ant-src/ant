@@ -9,6 +9,7 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/prelude"
+	"github.com/ant-src/ant/internal/types"
 )
 
 // Error is a scope error. It is a syntax error in the sense of section 10.
@@ -179,6 +180,7 @@ func Resolve(f *ast.File, opts Options) []*Error {
 			r.funcDecl(d)
 		case *ast.TypeDecl:
 			r.defaults(d, r.module)
+			r.typeNames(d.Body, r.module, typeParamSet(d.TypeParams))
 		}
 	}
 	for _, s := range f.Stmts {
@@ -554,8 +556,55 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)
 	}
+	for _, td := range b.Types {
+		r.typeNames(td.Body, s, typeParamSet(td.TypeParams))
+	}
 	for _, st := range b.Stmts {
 		r.stmt(st, s)
+	}
+}
+
+// typeParamSet is the names of a declaration's type parameters.
+func typeParamSet(tps []ast.TypeParam) map[string]bool {
+	if len(tps) == 0 {
+		return nil
+	}
+	set := make(map[string]bool, len(tps))
+	for _, tp := range tps {
+		set[tp.Name] = true
+	}
+	return set
+}
+
+// typeNames resolves, for the interpreter, the head of every named type in t that neither a
+// built-in name nor a type parameter in params binds (section 4, Types as values): a synthetic
+// identifier the interpreter evaluates as it evaluates the target of is. The bodies of type
+// declarations and the types of type expressions are the types the interpreter resolves.
+func (r *resolver) typeNames(t ast.Type, s *scope, params map[string]bool) {
+	switch x := t.(type) {
+	case *ast.TypeName:
+		name := x.Path[0]
+		if len(x.Path) > 1 || !types.BuiltinName(name) && !params[name] {
+			pos := x.PathPos[0]
+			x.Head = &ast.Ident{Pos: pos, End: ast.Pos{Line: pos.Line, Col: pos.Col + len(name)}, Name: name}
+			r.use(x.Head, s)
+		}
+		for _, a := range x.Args {
+			r.typeNames(a, s, params)
+		}
+	case *ast.RecordType:
+		for _, f := range x.Fields {
+			r.typeNames(f.Type, s, params)
+		}
+	case *ast.FuncType:
+		for _, p := range x.Params {
+			r.typeNames(p.Type, s, params)
+		}
+		r.typeNames(x.Return, s, params)
+	case *ast.UnionType:
+		for _, m := range x.Members {
+			r.typeNames(m, s, params)
+		}
 	}
 }
 
@@ -669,6 +718,8 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 		if e.Path != nil {
 			r.expr(e.Path, s)
 		}
+	case *ast.TypeExpr:
+		r.typeNames(e.Type, s, nil)
 	case *ast.Assign:
 		r.assignTarget(e.Target, s)
 		r.expr(e.Value, s)
