@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 4 Types as values
+// panics: type-expr
+// A name in a type expression that evaluates to neither a tag nor a constructor panics when the
+// expression is reached, as an unknown is target does; the checker rejects it.
+var config = 1
+println("before")
+println(type(Array[config]))
+
+// expect
+// out: before
+// exit: 1
+// err: config is not a type

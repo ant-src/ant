@@ -90,6 +90,11 @@ type Decl struct {
 	Funcs  map[string]*Func
 	Pos    any    // the declaration's position, for messages
 	Path   string // the file the declaration is in, for messages
+	// Tag is the run-time identity of the type's values, set by the interpreter on the
+	// declarations it builds for reflection (section 4, Types as values): the *value.Tag of a
+	// record, named primitive, time, regex, or sync type, or the value.Kind of Bytes and Html.
+	// Nil in the checker.
+	Tag any
 }
 
 // Named is a reference to a declared type with type arguments.

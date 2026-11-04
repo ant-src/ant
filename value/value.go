@@ -62,6 +62,9 @@ const (
 	KindRegex
 	KindBytes
 	KindHtml
+	KindType      // a type as a value (section 4, Types as values)
+	KindDecl      // a type declaration as a value, Reflect.Decl
+	KindReflected // a value with a type it belongs to, Reflect.Value
 )
 
 var kindNames = [...]string{
@@ -71,7 +74,7 @@ var kindNames = [...]string{
 	KindString: "string", KindNull: "null", KindVoid: "void", KindArray: "array", KindMap: "map", KindSet: "set",
 	KindRecord: "record", KindTagged: "tagged primitive", KindFunc: "func", KindTag: "type",
 	KindSync: "sync object", KindTime: "time value", KindRegex: "regular expression", KindBytes: "Bytes",
-	KindHtml: "Html",
+	KindHtml: "Html", KindType: "type value", KindDecl: "declaration", KindReflected: "reflected value",
 }
 
 func (k Kind) String() string { return kindNames[k] }
@@ -208,8 +211,41 @@ func KindOf(v Value) Kind {
 		return KindBytes
 	case *Html:
 		return KindHtml
+	case TypeValue:
+		return KindType
+	case Declaration:
+		return KindDecl
+	case *Reflected:
+		return KindReflected
 	}
 	return KindInvalid
+}
+
+// ---- Reflection
+
+// A TypeValue is a type as a value (section 4, Types as values), the value of a type expression
+// type(T). The runtime implements it over the checker's types, which this package cannot name.
+// Two are == when they denote the same type, and one renders as the type.
+type TypeValue interface {
+	EqualType(other TypeValue) bool
+	HashType() uint64
+	String() string
+}
+
+// Declaration is a named type's declaration as a value, Reflect.Decl (section 11, Reflect). Key
+// identifies the declaration, so two are == when they come from one declaration whatever the
+// type arguments, and Name is the declared name it renders as.
+type Declaration struct {
+	Key  any
+	Name string
+}
+
+// Reflected is a value together with a type it belongs to, Reflect.Value (section 11, Reflect).
+// It is immutable: the library makes a new one for each box. Two are == when their types and
+// values are.
+type Reflected struct {
+	Type  TypeValue
+	Value Value
 }
 
 // ---- Slots
@@ -299,6 +335,10 @@ type Tag struct {
 	// Defaults is what the interpreter fills an omitted field of a record literal from, set
 	// before the tag is bound and opaque to this package; nil when no field declares a default.
 	Defaults any
+	// Body is the declaration the tag came from, with the scope it was declared in, which a
+	// type expression resolves (section 4, Types as values). It is opaque to this package, and
+	// nil for a tag the library made until the runtime attaches its prelude declaration.
+	Body any
 	// Fixed holds the fields of a module record bound by let, which no assignment may change;
 	// nil for any other record.
 	Fixed map[string]bool

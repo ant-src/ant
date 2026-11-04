@@ -2,6 +2,7 @@ package lib
 
 import (
 	"github.com/ant-src/ant/internal/interp"
+	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
 )
 
@@ -32,11 +33,24 @@ var (
 	ShapeOpaqueTag = value.NewTag("Reflect.Opaque", value.RecordTag, []string{"name", "decl", "args"})
 )
 
+// typeArg takes a type value, a Reflect.Type[T] or a Reflect.ErasedType.
+func typeArg(g *interp.Goroutine, who string, v value.Value) *types.TypeValue {
+	return typedArg[*types.TypeValue](g, who, "a type value", v)
+}
+
 func init() {
 	register("Reflect", func() value.Value {
 		notYet := func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			g.Panic("%s is not implemented yet", who)
 			return nil
+		}
+		// A type builder combines closed types, so the union it forms cannot fail.
+		nullable := func(g *interp.Goroutine, who string, t types.Type) types.Type {
+			u, err := types.MakeUnion([]types.Type{t, types.Null{}})
+			if err != nil {
+				g.Panic("%s: %s", who, err)
+			}
+			return u
 		}
 		return namespace("Reflect",
 			constant("Type", ReflectTypeTag),
@@ -61,11 +75,21 @@ func init() {
 			constant("Func", ShapeFuncTag),
 			constant("Opaque", ShapeOpaqueTag),
 			constant("Scalar", value.NewTag("Reflect.Scalar", value.AliasTag, nil)),
-			fn("Reflect.erase", "t", notYet),
-			fn("Reflect.arrayOf", "t", notYet),
-			fn("Reflect.setOf", "t", notYet),
-			fn("Reflect.mapOf", "k, v", notYet),
-			fn("Reflect.nullable", "t", notYet),
+			fn("Reflect.erase", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return typeArg(g, who, a[0])
+			}),
+			fn("Reflect.arrayOf", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return &types.TypeValue{T: types.Array{Elem: typeArg(g, who, a[0]).T}}
+			}),
+			fn("Reflect.setOf", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return &types.TypeValue{T: types.Set{Elem: typeArg(g, who, a[0]).T}}
+			}),
+			fn("Reflect.mapOf", "k, v", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return &types.TypeValue{T: types.Map{Key: typeArg(g, who, a[0]).T, Val: typeArg(g, who, a[1]).T}}
+			}),
+			fn("Reflect.nullable", "t", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return &types.TypeValue{T: nullable(g, who, typeArg(g, who, a[0]).T)}
+			}),
 			fn("Reflect.shape", "t", notYet),
 			fn("Reflect.assignable", "from, to", notYet),
 			fn("Reflect.default", "t, name", notYet),

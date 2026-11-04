@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ant-src/ant/ast"
@@ -109,6 +110,98 @@ func TestPreludeMatchesLibrary(t *testing.T) {
 		default:
 			if !declared[name] {
 				t.Errorf("%s is bound but not declared", name)
+			}
+		}
+	}
+}
+
+// TestPreludeTypesMatchLibrary checks that every type the prelude declares is bound at run
+// time by a value of the matching shape, so that a type expression reaches a tag whose kept
+// body is the prelude's declaration (section 4, Types as values): a record type by a record tag
+// with the declared fields, a primitive type by a constructor, an alias by an alias tag, and
+// an opaque type by a tag that is cannot test. Bytes and Html are kinds, not tags.
+func TestPreludeTypesMatchLibrary(t *testing.T) {
+	f, err := prelude.Decls()
+	if err != nil {
+		t.Fatal(err)
+	}
+	table := Prelude()
+	lookup := func(owner, name string) (value.Value, bool) {
+		if owner == "" {
+			v, ok := table[name]
+			return v, ok
+		}
+		switch x := table[owner].(type) {
+		case *value.Record:
+			return x.Field(name)
+		case *value.Tag:
+			return x.Func(name)
+		}
+		return nil, false
+	}
+	for _, d := range f.Decls {
+		td, ok := d.(*ast.TypeDecl)
+		if !ok {
+			continue
+		}
+		name := td.Name
+		if td.Owner != "" {
+			name = td.Owner + "." + td.Name
+		}
+		if name == "Bytes" || name == "Html" {
+			continue
+		}
+		v, ok := lookup(td.Owner, td.Name)
+		if !ok {
+			t.Errorf("%s is declared but not bound", name)
+			continue
+		}
+		var tag *value.Tag
+		switch x := v.(type) {
+		case *value.Tag:
+			tag = x
+		case *value.Constructor:
+			tag = x.Tag
+		default:
+			t.Errorf("%s is bound to %s, not a type", name, value.Describe(v))
+			continue
+		}
+		if tag.Name != name {
+			t.Errorf("%s is bound to a tag named %s", name, tag.Name)
+		}
+		switch body := td.Body.(type) {
+		case nil:
+			if tag.Kind != value.SyncTag && tag.Kind != value.TimeTag && tag.Kind != value.RegexTag {
+				t.Errorf("%s is opaque but its tag is not", name)
+			}
+		case *ast.RecordType:
+			if tag.Kind != value.RecordTag {
+				t.Errorf("%s is a record type but its tag is not a record tag", name)
+				continue
+			}
+			var fields []string
+			for _, fl := range body.Fields {
+				fields = append(fields, fl.Name)
+			}
+			if strings.Join(fields, ",") != strings.Join(tag.Fields, ",") {
+				t.Errorf("%s declares the fields %v, the tag has %v", name, fields, tag.Fields)
+			}
+			for i, fl := range body.Fields {
+				if (fl.Default != nil) != interp.HasDefault(tag, i) {
+					t.Errorf("%s.%s: default declared %v, implemented %v", name, fl.Name, fl.Default != nil, interp.HasDefault(tag, i))
+				}
+			}
+		case *ast.TypeName:
+			if k, ok := value.KindByName(body.Path[0]); ok && len(body.Path) == 1 && len(body.Args) == 0 && k.IsPrimitive() {
+				if tag.Kind != value.PrimitiveTag || tag.Base != k {
+					t.Errorf("%s is a named primitive type over %s but its tag is not", name, body.Path[0])
+				}
+			} else if tag.Kind != value.AliasTag {
+				t.Errorf("%s is an alias but its tag is not an alias tag", name)
+			}
+		default:
+			if tag.Kind != value.AliasTag {
+				t.Errorf("%s is an alias but its tag is not an alias tag", name)
 			}
 		}
 	}

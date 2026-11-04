@@ -272,7 +272,7 @@ func TestSpecCoverage(t *testing.T) {
 
 // pendingLibrary lists the prelude functions and constants no test program uses yet.
 var pendingLibrary = []string{
-	"Reflect.setOf", "Reflect.mapOf", "Reflect.nullable", "Reflect.assignable", "Reflect.default",
+	"Reflect.assignable", "Reflect.default",
 	"Reflect.type", "Reflect.scalar", "Reflect.items", "Reflect.entries", "Reflect.field", "Reflect.payload",
 	"Reflect.makeNumber", "Reflect.makeArray", "Reflect.makeSet", "Reflect.makeMap", "Reflect.makeRecord",
 	"Reflect.makeTagged",
@@ -361,7 +361,7 @@ var panicRows = [][]string{
 
 // pendingPanics lists the panic keys no test program triggers yet.
 var pendingPanics = []string{
-	"type-expr", "Reflect.default", "Reflect.to", "Reflect.scalar", "Reflect.items", "Reflect.entries",
+	"Reflect.default", "Reflect.to", "Reflect.scalar", "Reflect.items", "Reflect.entries",
 	"Reflect.field", "Reflect.payload", "Reflect.makeNumber", "Reflect.makeArray", "Reflect.makeSet",
 	"Reflect.makeMap", "Reflect.makeRecord", "Reflect.makeTagged",
 }

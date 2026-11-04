@@ -1,0 +1,8 @@
+// spec: 4 Kinds; stdlib Json
+// panics: Json.stringify
+// Json.stringify panics on a type value, as it does on a tag: JSON has no form for a type.
+println(Json.stringify(type(Array[int])))
+
+// expect
+// exit: 1
+// err: a type has no JSON form

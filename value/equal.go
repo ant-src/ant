@@ -56,6 +56,15 @@ func equal(a, b Value, visiting map[pair]bool) bool {
 	case *Html:
 		y, ok := b.(*Html)
 		return ok && equalHtml(x, y, 0)
+	case TypeValue:
+		y, ok := b.(TypeValue)
+		return ok && x.EqualType(y)
+	case Declaration:
+		y, ok := b.(Declaration)
+		return ok && x.Key == y.Key
+	case *Reflected:
+		y, ok := b.(*Reflected)
+		return ok && x.Type.EqualType(y.Type) && equal(x.Value, y.Value, visiting)
 	}
 	return false
 }
@@ -219,6 +228,13 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 		h.WriteString("regex")
 		h.WriteString(x.Source)
 		h.WriteString(x.Flags)
+	case TypeValue:
+		writeUint(h, x.HashType())
+	case Declaration:
+		writeUint(h, identity(x.Key))
+	case *Reflected:
+		writeUint(h, x.Type.HashType())
+		hashInto(h, x.Value, depth)
 	default:
 		// Functions and sync objects compare by identity; hash their identity.
 		writeUint(h, identity(v))

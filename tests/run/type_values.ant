@@ -1,0 +1,130 @@
+// spec: 4 Types as values; 4 Kinds; 12 Expressions; 12 Values
+// A type expression is the type as a value: one value per expression for the run, compared as
+// section 4 compares types, hashed to agree, and rendered in annotation syntax.
+type Config = { name: string, port: int = 80 }
+type Box[T] = { value: T }
+type Id[T] = string
+type Tree = { value: int, children: Array[Tree] }
+type Circle = { r: float64 }
+type Rect = { w: float64, h: float64 }
+type Shape = Circle | Rect
+type Celsius = float64
+
+println(type(int))
+println(type(Array[Config]))
+println(type(int | null))
+println(type(Map[string, Array[int]]))
+println(type(func(int, string): bool))
+println(type({ name: string, tags: Array[string] }))
+println(type(Shape))
+println(type(Json.Value))
+println(type(Box[Id[Config]]))
+println(type(Result[int, Error]))
+println(type(Tree))
+println(type(Celsius))
+println(type(Bytes))
+println(type(Time.Instant))
+println(type(Reflect.Type[int]))
+println(type(void))
+println(type(never))
+
+func erased[T](t: Reflect.Type[T]): Reflect.ErasedType { Reflect.erase(t) }
+
+println(type(int) == type(int64))
+println(type(byte) == type(uint8))
+println(erased(type(int)) == erased(type(int32)))
+println(type(Shape) == type(Circle | Rect))
+println(type(Circle | Rect) == type(Rect | Circle))
+println(type(Circle | Rect | Circle) == type(Shape))
+println(erased(type(Box[int])) == erased(type(Box[string])))
+println(type(Box[int]) == type(Box[int]))
+println(erased(type(Id[Config])) == erased(type(Id[Circle])))
+println(type({ name: string }) == type({ name: string }))
+println(erased(type({ name: string })) == erased(type({ name: string, age: int })))
+println(type(Array[Config]) == type(Array[Config]))
+println(type(func(int): string) == type(func(int): string))
+println(erased(type(func(int): string)) == erased(type(func(string): string)))
+println(type(Json.Value) == type(Json.Value))
+println(type(Tree) == type(Tree))
+println(type(int | null) == type(null | int))
+println(erased(type(Celsius)) == erased(type(float64)))
+println(Reflect.arrayOf(type(int)) == type(Array[int]))
+println(Reflect.setOf(type(Celsius)) == type(Set[Celsius]))
+println(Reflect.mapOf(type(string), type(Array[int])) == type(Map[string, Array[int]]))
+println(Reflect.nullable(type(int)) == type(int | null))
+println(Reflect.nullable(type(int | null)) == type(int | null))
+println(Reflect.nullable(type(Shape)) == type(Circle | null | Rect))
+
+// A type value is a map key: equal types find one entry.
+var codecs: Map[Reflect.Type[Array[int]], string] = Map{}
+codecs[type(Array[int])] = "ints"
+println(codecs[type(Array[int64])])
+println(Map.has(codecs, type(Array[int])))
+var keys: Set[Reflect.Type[int | null]] = Set.of([type(int | null), type(null | int64)])
+println(Set.size(keys))
+
+// A local type has one tag for the run, so each call yields the same type value.
+func local(): Reflect.ErasedType {
+  type Local = { v: int }
+  Reflect.erase(type(Array[Local]))
+}
+var l = local()
+println(l)
+println(l == local())
+
+// The same expression yields one value whatever the call.
+func token(): Reflect.Type[Box[Tree]] { type(Box[Tree]) }
+println(token() == token())
+println(String.from(type(Set[Celsius])))
+println("${type(Map[Id[Config], Box[int | null]])}")
+
+// expect
+// out: int
+// out: Array[Config]
+// out: int | null
+// out: Map[string, Array[int]]
+// out: func(int, string): bool
+// out: { name: string, tags: Array[string] }
+// out: Shape
+// out: Json.Value
+// out: Box[Id[Config]]
+// out: Result[int, Error]
+// out: Tree
+// out: Celsius
+// out: Bytes
+// out: Time.Instant
+// out: Reflect.Type[int]
+// out: void
+// out: never
+// out: true
+// out: true
+// out: false
+// out: true
+// out: true
+// out: true
+// out: false
+// out: true
+// out: false
+// out: true
+// out: false
+// out: true
+// out: true
+// out: false
+// out: true
+// out: true
+// out: true
+// out: false
+// out: true
+// out: true
+// out: true
+// out: true
+// out: true
+// out: true
+// out: ints
+// out: true
+// out: 1
+// out: Array[Local]
+// out: true
+// out: true
+// out: Set[Celsius]
+// out: Map[Id[Config], Box[int | null]]

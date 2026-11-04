@@ -511,8 +511,12 @@ func noJSON(v value.Value) string {
 		return "Html has no JSON form; write String.from of it"
 	case value.Callable, *value.Constructor:
 		return "a function has no JSON form"
-	case *value.Tag:
+	case *value.Tag, value.TypeValue:
 		return "a type has no JSON form"
+	case value.Declaration:
+		return "a declaration has no JSON form"
+	case *value.Reflected:
+		return "a reflected value has no JSON form; take the value out with Reflect.to"
 	case value.Sync:
 		return x.SyncName() + " has no JSON form"
 	}

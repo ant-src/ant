@@ -16,6 +16,7 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
+	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
 )
 
@@ -78,16 +79,23 @@ func (e *ExitError) Error() string { return fmt.Sprintf("exit status %d", e.Stat
 
 // Instance is one run of a program.
 type Instance struct {
-	prog        *loader.Program
-	cfg         Config
-	modules     []*module
-	outMu       sync.Mutex
-	errMu       sync.Mutex
-	keep        map[string]any
-	keepMu      sync.Mutex
-	localTypes  sync.Map // *ast.Block → the tags and constructors of the types it declares
-	done        atomic.Bool
-	interrupted atomic.Bool // the relay ended the run: Run returns ErrInterrupted
+	prog       *loader.Program
+	cfg        Config
+	modules    []*module
+	outMu      sync.Mutex
+	errMu      sync.Mutex
+	keep       map[string]any
+	keepMu     sync.Mutex
+	localTypes sync.Map // *ast.Block → the tags and constructors of the types it declares
+	// typeExprs holds the value of each type expression once it is resolved, one per node for
+	// the whole run (section 4, Types as values), and typeMu serializes the resolution, which
+	// builds a declaration per tag the first time reflection reaches it.
+	typeExprs    sync.Map // *ast.TypeExpr → *types.TypeValue
+	typeMu       sync.Mutex
+	preludeTypes map[string]*ast.TypeDecl // the prelude's type declarations by qualified name, made under typeMu
+	builtinDecls map[string]*types.Decl   // the declarations of Bytes and Html, made under typeMu
+	done         atomic.Bool
+	interrupted  atomic.Bool // the relay ended the run: Run returns ErrInterrupted
 
 	// last is what _ reads in a session: the result of its last input that had one, or nil
 	lastMu sync.Mutex

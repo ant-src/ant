@@ -148,6 +148,16 @@ func renderBody(sb *strings.Builder, v Value, top bool, stack Ancestors) {
 		sb.WriteString(x.String())
 	case *Regex:
 		sb.WriteString(x.String())
+	case TypeValue:
+		sb.WriteString(x.String())
+	case Declaration:
+		sb.WriteString(x.Name)
+	case *Reflected:
+		sb.WriteString("Reflect.Value(")
+		render(sb, x.Value, false, stack)
+		sb.WriteString(": ")
+		sb.WriteString(x.Type.String())
+		sb.WriteString(")")
 	case uninitType:
 		sb.WriteString("<uninitialized>")
 	default:

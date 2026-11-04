@@ -206,6 +206,8 @@ func (g *Goroutine) evalExpr(e ast.Expr, env *Env) (value.Value, ctl) {
 		return g.binary(e, env)
 	case *ast.Is:
 		return g.is(e, env)
+	case *ast.TypeExpr:
+		return g.typeExpr(e, env), ctlNone
 	case *ast.Assign:
 		return g.assign(e, env)
 	case *ast.Select:
@@ -806,21 +808,43 @@ func (g *Goroutine) recordLit(e *ast.RecordLit, env *Env) (value.Value, ctl) {
 // evaluated afresh in the scope of the type's declaration as if called from the literal at pos
 // (section 12, Record literal).
 func (g *Goroutine) fillDefaults(tag *value.Tag, vals []value.Value, pos ast.Pos) {
-	fd, _ := tag.Defaults.(*fieldDefaults)
-	nd, _ := tag.Defaults.(NativeDefaults)
 	for i, v := range vals {
 		if v != nil {
 			continue
 		}
-		if nd != nil && nd[i] != nil {
-			vals[i] = nd[i]()
-			continue
-		}
-		if fd == nil || fd.exprs[i] == nil {
+		d, ok := g.FieldDefault(tag, i, pos)
+		if !ok {
 			g.panicf(pos, "%s literal is missing the field %s", tag.Name, tag.Fields[i])
 		}
-		vals[i] = g.evalDefault(tag.Name+"."+tag.Fields[i], fd.exprs[i], fd.env, pos)
+		vals[i] = d
 	}
+}
+
+// HasDefault reports whether field i of a record tag declares a default.
+func HasDefault(tag *value.Tag, i int) bool {
+	switch d := tag.Defaults.(type) {
+	case *fieldDefaults:
+		return d.exprs[i] != nil
+	case NativeDefaults:
+		return d[i] != nil
+	}
+	return false
+}
+
+// FieldDefault evaluates the default of field i of a record tag afresh, as a literal written at
+// pos would (section 4, Field defaults), or reports that the field has none.
+func (g *Goroutine) FieldDefault(tag *value.Tag, i int, pos ast.Pos) (value.Value, bool) {
+	switch d := tag.Defaults.(type) {
+	case *fieldDefaults:
+		if d.exprs[i] != nil {
+			return g.evalDefault(tag.Name+"."+tag.Fields[i], d.exprs[i], d.env, pos), true
+		}
+	case NativeDefaults:
+		if d[i] != nil {
+			return d[i](), true
+		}
+	}
+	return nil, false
 }
 
 // evalDefault evaluates a field default as a call, so a default that builds its own type
