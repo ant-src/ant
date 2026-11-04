@@ -37,6 +37,7 @@ Reflect.shape(Reflect.erase(type(Celsius)))                 // => Reflect.Tagged
 Reflect.shape(Reflect.erase(type(Id[Server])))              // => Reflect.Tagged{ decl: Id, args: [Server], base: string }
 Reflect.shape(Reflect.erase(type(Shape)))                   // => Reflect.Union{ members: [Circle, Rect] }
 Reflect.shape(Reflect.erase(type(int | null)))              // => Reflect.Union{ members: [int, null] }
+Reflect.shape(Reflect.erase(type(null | int)))              // => Reflect.Union{ members: [null, int] }
 Reflect.shape(Reflect.erase(type(Result[int, Error])))      // => Reflect.Union{ members: [Ok[int], Err[Error]] }
 Reflect.shape(Reflect.erase(type(func(int, string): bool))) // => Reflect.Func{ params: [int, string], result: bool }
 Reflect.shape(Reflect.erase(type(Bytes)))                   // => Reflect.Opaque{ decl: Bytes, args: [] }
@@ -72,6 +73,21 @@ Reflect.valueOf(type(Celsius), Celsius(1.5))                            // => Re
 Reflect.type(Reflect.valueOf(type(int | null), 42))                     // => int
 Reflect.type(Reflect.valueOf(type(Shape), Rect{ w: 1.0, h: 2.0 }))      // => Rect
 Reflect.type(Reflect.valueOf(type(Celsius), Celsius(1.5)))              // => Celsius
+
+// Reflect.same is identity for a record, array, map, or set, and == for the rest.
+var tree = Tree{ value: 1, children: [] }
+var treeD = Reflect.valueOf(type(Tree), tree)
+Reflect.same(treeD, Reflect.valueOf(type(Tree), tree))                              // => true
+Reflect.same(treeD, Reflect.valueOf(type(Tree), Tree{ ...tree }))                   // => false
+Reflect.same(Reflect.items(Reflect.valueOf(type(Array[Tree]), [tree]))[0], treeD)   // => true
+Reflect.same(Reflect.valueOf(type(int), 1), Reflect.valueOf(type(int), 1))          // => true
+Reflect.same(Reflect.valueOf(type(int), 1), Reflect.valueOf(type(int), 2))          // => false
+Reflect.same(Reflect.valueOf(type(string), "a"), Reflect.valueOf(type(string), "a"))   // => true
+
+// Every Reflect.shape call builds a fresh description.
+var s1 = Reflect.shape(intT)
+var s2 = Reflect.shape(intT)
+if s1 is Reflect.Int && s2 is Reflect.Int { Record.same(s1, s2) } else { true }     // => false
 Reflect.to(Reflect.valueOf(type(int), 42), type(int | null))            // => 42
 Reflect.to(Reflect.valueOf(type(Shape), Circle{ r: 1.0 }), type(Shape)) // => Circle{ r: 1.0 }
 Reflect.to(Reflect.valueOf(type(int), 42), type(string))                // => panic: Reflect.to: int is not assignable to string

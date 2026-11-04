@@ -301,6 +301,15 @@ func init() {
 			fn("Reflect.type", "d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return reflectedArg(g, who, a[0]).Type
 			}),
+			fn("Reflect.same", "a, b", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				x := reflectedArg(g, who, a[0]).Value
+				y := reflectedArg(g, who, a[1]).Value
+				switch x.(type) {
+				case *value.Record, *value.Array, *value.Map, *value.Set:
+					return x == y
+				}
+				return value.Equal(x, y)
+			}),
 			fn("Reflect.scalar", "d", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				d := reflectedArg(g, who, a[0])
 				switch types.Expand(typeOf(d)).(type) {

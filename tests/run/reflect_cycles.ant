@@ -1,0 +1,36 @@
+// spec: 11 Reflect; 4 Records
+// A walker over reflected values finds a cycle with Reflect.same, which is identity for a record,
+// array, map, or set, as Record.same and the other three are. The readers never detect one, so
+// the policy is the walker's: here `...`, as String.from prints.
+type Node = { name: string, next: Node | null, tags: Array[string] = [] }
+
+func render(d: Reflect.Value, path: Array[Reflect.Value]): string {
+  if Array.findIndex(path, { Reflect.same(x, d) }) != null {
+    "..."
+  } else {
+    var s = Reflect.shape(Reflect.type(d))
+    var inner = [...path, d]
+    if s is Reflect.Record {
+      var parts = Array.map(s.fields, { "${x.name}=" + render(Reflect.field(d, x.name), inner) })
+      "{" + String.join(parts, " ") + "}"
+    } else if s is Reflect.Array {
+      "[" + String.join(Array.map(Reflect.items(d), { render(x, inner) }), " ") + "]"
+    } else {
+      String.from(Reflect.scalar(d))
+    }
+  }
+}
+
+var a = Node{ name: "a", next: null }
+var b = Node{ name: "b", next: a }
+a.next = b
+println(render(Reflect.valueOf(type(Node), a), []))
+
+// A value shared twice is not a cycle: it is not on its own path.
+var tags = ["x"]
+var c = Node{ name: "c", next: Node{ name: "d", next: null, tags: tags }, tags: tags }
+println(render(Reflect.valueOf(type(Node), c), []))
+
+// expect
+// out: {name=a next={name=b next=... tags=[]} tags=[]}
+// out: {name=c next={name=d next=null tags=[x]} tags=[x]}

@@ -82,15 +82,22 @@ func hashType(h *maphash.Hash, t Type, depth int) {
 			hashType(h, x.Return, depth+1)
 		}
 	case Record:
+		// Field order is not part of an anonymous record's shape, so the
+		// fields' hashes combine in any order, as union members do.
 		h.WriteByte(10)
 		h.WriteByte(byte(len(x.Fields)))
+		var sum uint64
 		for _, f := range x.Fields {
-			h.WriteString(f.Name)
-			h.WriteByte(0)
+			var fh maphash.Hash
+			fh.SetSeed(hashSeed)
+			fh.WriteString(f.Name)
+			fh.WriteByte(0)
 			if depth < hashTypeDepth {
-				hashType(h, f.Type, depth+1)
+				hashType(&fh, f.Type, depth+1)
 			}
+			sum += fh.Sum64()
 		}
+		writeUint(h, sum)
 	case Named:
 		h.WriteByte(11)
 		writeUint(h, uint64(uintptr(unsafe.Pointer(x.Decl))))

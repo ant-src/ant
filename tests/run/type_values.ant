@@ -63,6 +63,11 @@ println(Map.has(codecs, type(Array[int])))
 var keys: Set[Reflect.Type[int | null]] = Set.of([type(int | null), type(null | int64)])
 println(Set.size(keys))
 
+// An anonymous record type hashes by its field names and types, whatever their order.
+var byRecord: Map[Reflect.ErasedType, string] = Map{}
+byRecord[erased(type({ a: int, b: string }))] = "ab"
+println(byRecord[erased(type({ b: string, a: int }))])
+
 // A local type has one tag for the run, so each call yields the same type value.
 func local(): Reflect.ErasedType {
   type Local = { v: int }
@@ -123,6 +128,7 @@ println("${type(Map[Id[Config], Box[int | null]])}")
 // out: ints
 // out: true
 // out: 1
+// out: ab
 // out: Array[Local]
 // out: true
 // out: true
