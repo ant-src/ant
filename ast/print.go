@@ -322,6 +322,10 @@ func sprint(sb *strings.Builder, n Node) {
 			sb.WriteString(x.Kind)
 		}
 		sb.WriteString(")")
+	case *TypeExpr:
+		sb.WriteString("(type-expr ")
+		sprint(sb, x.Type)
+		sb.WriteString(")")
 	case *Assign:
 		sb.WriteString("(" + x.Op + " ")
 		sprint(sb, x.Target)

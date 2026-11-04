@@ -736,7 +736,7 @@ func (p *parser) item(f *ast.File) bool {
 		p.fail(t.Pos, "imports must come before declarations")
 	case t.Is("test"):
 		f.Tests = append(f.Tests, p.testDecl(t))
-	case t.Is("export"), t.Is("func"), t.Is("type"):
+	case t.Is("export"), t.Is("func"), t.Is("type") && !p.peekAfter().Is("("):
 		doc := p.doc(t)
 		d := p.declaration()
 		switch d := d.(type) {
@@ -1311,6 +1311,9 @@ func (p *parser) statement() ast.Stmt {
 		case "var", "let":
 			return p.varDecl()
 		case "type":
+			if p.peekAfter().Is("(") {
+				return p.expression() // a type expression, type(T) (section 4, Types as values)
+			}
 			return p.typeDecl()
 		case "export", "import":
 			p.fail(t.Pos, "'%s' is only allowed at the top level", t.Text)
@@ -1820,6 +1823,17 @@ func (p *parser) primary() ast.Expr {
 			body := p.block()
 			p.leaveBoundary(saved)
 			return &ast.FuncLit{Pos: pos(t), End: p.end(), Params: params, Return: ret, Body: body}
+		case "type":
+			// A type expression, type(T) (section 4, Types as values): the next token decides,
+			// since a declaration cannot start with (.
+			p.next()
+			open := p.expect("(")
+			p.mark(open, Role{})
+			saved := p.enterList()
+			typ := p.parseType()
+			p.expect(")")
+			p.leave(saved)
+			return &ast.TypeExpr{Pos: pos(t), End: p.end(), Type: typ}
 		case "if":
 			return p.ifExpr()
 		case "select":

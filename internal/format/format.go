@@ -714,6 +714,8 @@ func (p *printer) space(prev, cur token.Token) int {
 		return 0
 	case (cur.Is("(") || cur.Is("[")) && (lexer.Operand(prev) || prev.Is("func")):
 		return 0
+	case cur.Is("(") && prev.Is("type"):
+		return 0 // a type expression, type(T)
 	case cur.Is("{") && p.roles[cur.Off].Typed:
 		return 0
 	case p.prefix[prev.Off] && prev.Kind == token.Op:

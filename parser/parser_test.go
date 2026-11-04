@@ -92,6 +92,8 @@ func TestSyntaxErrors(t *testing.T) {
 func syntaxCases() []syntaxCase {
 	return []syntaxCase{
 		{"float leading dot", "var x = .5", "digit before the point", Program},
+		{"type expression takes a type", "var t = type(1)", "expected a type, got 1", Program},
+		{"type expression in a declaration file", "type(int)", "expected a declaration", Declarations},
 		{"module doc after code", "var x = 1\n//! late", "before the first import or declaration", Program},
 		{"module doc in a body", "func f() {\n  //! inside\n}", "before the first import or declaration", Program},
 		{"module doc after a blank line", "//! a\n\n//! b\nvar x = 1", "must be consecutive", Program},
@@ -251,6 +253,13 @@ func TestAST(t *testing.T) {
 		{"[xs[0], p.x, ...rest] = f()", "(= [([] xs 0) (. p x) ...rest] (call f))"},
 		{"count += 1", "(+= count 1)"},
 		{"go { work() }", "(go { (call work) })"},
+		{"type(int)", "(type-expr int)"},
+		{"type(int) | f()", "(pipe f (type-expr int))"},
+		{"type(Map[string, Array[int]] | null)", "(type-expr (| Map[string Array[int]] null))"},
+		{"type(func(int): string)", "(type-expr (func (int):string))"},
+		{"type({ name: string })", "(type-expr {name:string})"},
+		{"type(Geometry.Point) == t", "(== (type-expr Geometry.Point) t)"},
+		{"if wide { type(int64) } else { type(int32) }", "(if wide { (type-expr int64) } { (type-expr int32) })"},
 	}
 	for _, c := range exprs {
 		e, err := ParseExpr(c.src)
@@ -285,6 +294,10 @@ func TestAST(t *testing.T) {
 		{"var { address: { city } } = user", "(file (var {address:{city}} user))"},
 		{"var [head, ...tail] = xs", "(file (var [head ...tail] xs))"},
 		{"func f() {\n  defer { close() }\n  1\n}", "(file (func f() { (defer { (call close) }); 1 }))"},
+		{"func f() {\n  type(int)\n}", "(file (func f() { (type-expr int) }))"},
+		{"func f() {\n  type T = { v: int }\n  type(T)\n}", "(file (func f() { (type T {v:int}); (type-expr T) }))"},
+		{"var t = type(int)\ntype T = {}", "(file (var t (type-expr int)) (type T {}))"},
+		{"type(int) | println()", "(file (pipe println (type-expr int)))"},
 		{"func f() {\n  a /* comment\n  spanning */ + b\n}", "(file (func f() { (+ a b) }))"},
 		{"func f(): string {\n  \"value: ${s ?? return \"missing\"}\"\n}", "(file (func f():string { (template \"value: \" (?? s (return \"missing\"))) }))"},
 		{"func f() {\n  for x in xs {\n    println(\"${x ?? continue}\")\n  }\n}", "(file (func f() { (for x xs { (call println (template (?? x (continue)))) }) }))"},

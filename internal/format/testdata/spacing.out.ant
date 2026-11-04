@@ -27,6 +27,7 @@ func main() {
   var g: func(int): int = { x * 2 }
   var is_a = p is Point && q >= r
   var z = o ?? []
+  var ty = type(Map[string, Array[int]] | null)
   xs[0] += 1
   for x in xs { println(x) }
   println(p, xs, ys, q, first, neg, done, t, m, f(1), g(2), is_a, dist(p, p), max(1, 2), z)

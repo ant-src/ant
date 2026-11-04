@@ -195,6 +195,10 @@ type TypeName struct {
 	Path    []string
 	PathPos []Pos // where each part of Path is written
 	Args    []Type
+	// Head, filled by the resolver for a type the interpreter resolves (section 4, Types as
+	// values), is the identifier that evaluates the first part of Path; nil for a built-in
+	// name or a type parameter.
+	Head *Ident
 }
 
 // RecordType is an anonymous record type { name: T, ... }.
@@ -425,6 +429,13 @@ type (
 		Kind    string
 		KindPos Pos // where Kind is written, or zero
 		Path    Expr
+	}
+	// TypeExpr is a type expression type(T): the type T as a value (section 4, Types as
+	// values). Pos is the type keyword.
+	TypeExpr struct {
+		Pos  Pos
+		End  Pos
+		Type Type
 	}
 	// Assign is target op value. Target is an Ident, Field, Index, or ArrayTarget.
 	Assign struct {
@@ -752,6 +763,7 @@ func (n *Call) Position() Pos              { return n.Pos }
 func (n *Unary) Position() Pos             { return n.Pos }
 func (n *Binary) Position() Pos            { return n.Pos }
 func (n *Is) Position() Pos                { return n.Pos }
+func (n *TypeExpr) Position() Pos          { return n.Pos }
 func (n *Assign) Position() Pos            { return n.Pos }
 func (n *AssignArray) Position() Pos       { return n.Pos }
 func (n *If) Position() Pos                { return n.Pos }
@@ -815,6 +827,7 @@ func (n *Call) EndPosition() Pos              { return n.End }
 func (n *Unary) EndPosition() Pos             { return n.End }
 func (n *Binary) EndPosition() Pos            { return n.End }
 func (n *Is) EndPosition() Pos                { return n.End }
+func (n *TypeExpr) EndPosition() Pos          { return n.End }
 func (n *Assign) EndPosition() Pos            { return n.End }
 func (n *AssignArray) EndPosition() Pos       { return n.End }
 func (n *If) EndPosition() Pos                { return n.End }
@@ -877,6 +890,7 @@ func (*Call) stmtNode()        {}
 func (*Unary) stmtNode()       {}
 func (*Binary) stmtNode()      {}
 func (*Is) stmtNode()          {}
+func (*TypeExpr) stmtNode()    {}
 func (*Assign) stmtNode()      {}
 func (*If) stmtNode()          {}
 func (*While) stmtNode()       {}
@@ -914,6 +928,7 @@ func (*Call) exprNode()        {}
 func (*Unary) exprNode()       {}
 func (*Binary) exprNode()      {}
 func (*Is) exprNode()          {}
+func (*TypeExpr) exprNode()    {}
 func (*Assign) exprNode()      {}
 func (*If) exprNode()          {}
 func (*While) exprNode()       {}

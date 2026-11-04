@@ -217,6 +217,8 @@ func Inspect(n Node, f func(Node) bool) {
 	case *Is:
 		Inspect(x.X, f)
 		inspectExpr(x.Path, f)
+	case *TypeExpr:
+		Inspect(x.Type, f)
 	case *Assign:
 		Inspect(x.Target, f)
 		Inspect(x.Value, f)
