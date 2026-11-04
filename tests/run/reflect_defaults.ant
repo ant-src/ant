@@ -1,0 +1,46 @@
+// spec: 11 Reflect; 4 Field defaults; 4 Type declarations
+// Reflect.default and Reflect.makeRecord evaluate a field default as a literal does: afresh on
+// every call, in the scope of the declaration, for a generic record at each type argument, and
+// for a local type.
+var calls = 0
+func next(): int { calls += 1; calls }
+type Job = { name: string, id: int = next(), tags: Array[string] = [] }
+type Bag[T] = { items: Array[T] = [] }
+
+var jobT = Reflect.erase(type(Job))
+println(Reflect.default(jobT, "id"))
+println(Reflect.default(jobT, "id"))
+var a = Reflect.to(Reflect.default(jobT, "tags"), type(Array[string]))
+var b = Reflect.to(Reflect.default(jobT, "tags"), type(Array[string]))
+println(Array.same(a, b))
+var made = Reflect.to(Reflect.makeRecord(jobT, Map{ name: Reflect.valueOf(type(string), "x") }), type(Job))
+println(made)
+println(Reflect.type(Reflect.default(Reflect.erase(type(Bag[int])), "items")))
+println(Reflect.type(Reflect.default(Reflect.erase(type(Bag[string])), "items")))
+
+func local(): Reflect.ErasedType {
+  type Count = { word: string, n: int = 0 }
+  Reflect.erase(type(Count))
+}
+println(Reflect.default(local(), "n"))
+var local2 = Reflect.makeRecord(local(), Map{ word: Reflect.valueOf(type(string), "w") })
+println(local2)
+
+// A field equal to its default compares equal to Reflect.default, as an encoder leaving out
+// defaults tests.
+var job = Job{ name: "j", id: 7 }
+var d = Reflect.valueOf(type(Job), job)
+println(Reflect.field(d, "tags") == Reflect.default(jobT, "tags"))
+println(Reflect.field(d, "id") == Reflect.default(jobT, "id"))
+
+// expect
+// out: Reflect.Value(1: int)
+// out: Reflect.Value(2: int)
+// out: false
+// out: Job{ name: "x", id: 3, tags: [] }
+// out: Array[int]
+// out: Array[string]
+// out: Reflect.Value(0: int)
+// out: Reflect.Value(Count{ word: "w", n: 0 }: Count)
+// out: true
+// out: false

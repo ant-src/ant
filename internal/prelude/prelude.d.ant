@@ -1552,12 +1552,14 @@ type Reflect.Scalar = null | void | bool | int8 | int16 | int32 | int64 | uint8 
 // conversion is always written: a Reflect.Type[T] is not assignable to a Reflect.ErasedType.
 //
 //     Reflect.erase(type(Array[int]))
+//     // Array[int]
 func Reflect.erase[T](t: Reflect.Type[T]): Reflect.ErasedType
 
 // Reflect.arrayOf returns type(Array[T]) for a T held as a type value, which a generic function
 // cannot write itself, since type(...) may not mention a type parameter.
 //
 //     Reflect.arrayOf(type(int)) == type(Array[int])
+//     // true
 func Reflect.arrayOf[T](t: Reflect.Type[T]): Reflect.Type[Array[T]]
 
 // Reflect.setOf returns type(Set[T]) for a T held as a type value.
@@ -1570,6 +1572,7 @@ func Reflect.mapOf[K, V](k: Reflect.Type[K], v: Reflect.Type[V]): Reflect.Type[M
 // already includes null gives the same type.
 //
 //     Reflect.nullable(type(int | null)) == type(int | null)
+//     // true
 func Reflect.nullable[T](t: Reflect.Type[T]): Reflect.Type[T | null]
 
 // Reflect.shape returns one level of t's structure: aliases expanded, unions flattened, and the
@@ -1577,6 +1580,7 @@ func Reflect.nullable[T](t: Reflect.Type[T]): Reflect.Type[T | null]
 // deep as it needs.
 //
 //     Reflect.shape(Reflect.erase(type(Array[int])))
+//     // Reflect.Array{ element: int }
 func Reflect.shape(t: Reflect.ErasedType): Reflect.Shape
 
 // Reflect.assignable reports whether a value of type from may be used where to is expected
@@ -1585,6 +1589,7 @@ func Reflect.shape(t: Reflect.ErasedType): Reflect.Shape
 // panic.
 //
 //     Reflect.assignable(Reflect.erase(type(int)), Reflect.erase(type(int | null)))
+//     // true
 func Reflect.assignable(from: Reflect.ErasedType, to: Reflect.ErasedType): bool
 
 // Reflect.default evaluates the default of the field name of the named record type t, afresh as a
@@ -1597,17 +1602,20 @@ func Reflect.default(t: Reflect.ErasedType, name: string): Reflect.Value
 // value is checked against it: Reflect.valueOf(type(Array[int]), []) checks.
 //
 //     Reflect.valueOf(type(int | null), 42)
+//     // Reflect.Value(42: int)
 func Reflect.valueOf[T](t: Reflect.Type[T], value: T): Reflect.Value
 
 // Reflect.to returns the value in d as a T. It panics if d's type is not assignable to T, which is
 // the check an assignment would have made statically.
 //
 //     Reflect.to(Reflect.valueOf(type(int), 42), type(int | null))
+//     // 42
 func Reflect.to[T](d: Reflect.Value, t: Reflect.Type[T]): T
 
 // Reflect.type returns the type of d, never a union or an alias.
 //
 //     Reflect.type(Reflect.valueOf(type(int | null), 42))
+//     // int
 func Reflect.type(d: Reflect.Value): Reflect.ErasedType
 
 // Reflect.scalar returns the value in d in its own kind. It panics if d's type is not null, void,
@@ -1636,6 +1644,7 @@ func Reflect.payload(d: Reflect.Value): Reflect.Value
 // NaN, or an infinity for an integer type. It panics if t is not an integer or float type.
 //
 //     Reflect.makeNumber(Reflect.erase(type(int8)), 300)
+//     // null
 func Reflect.makeNumber(t: Reflect.ErasedType, n: Number): Reflect.Value | null
 
 // Reflect.makeArray returns a new array of the array type t holding the values of items. It

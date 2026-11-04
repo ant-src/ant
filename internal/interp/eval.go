@@ -812,7 +812,7 @@ func (g *Goroutine) fillDefaults(tag *value.Tag, vals []value.Value, pos ast.Pos
 		if v != nil {
 			continue
 		}
-		d, ok := g.FieldDefault(tag, i, pos)
+		d, ok := g.fieldDefault(tag, i, pos)
 		if !ok {
 			g.panicf(pos, "%s literal is missing the field %s", tag.Name, tag.Fields[i])
 		}
@@ -831,9 +831,20 @@ func HasDefault(tag *value.Tag, i int) bool {
 	return false
 }
 
-// FieldDefault evaluates the default of field i of a record tag afresh, as a literal written at
-// pos would (section 4, Field defaults), or reports that the field has none.
-func (g *Goroutine) FieldDefault(tag *value.Tag, i int, pos ast.Pos) (value.Value, bool) {
+// FieldDefault evaluates the default of field i of a record tag afresh, as a literal at the
+// current call would (section 4, Field defaults), or reports that the field has none. It is
+// how Reflect.default and Reflect.makeRecord fill a field.
+func (g *Goroutine) FieldDefault(tag *value.Tag, i int) (value.Value, bool) {
+	return g.fieldDefault(tag, i, g.pos)
+}
+
+// FillDefaults fills each nil slot of vals from the tag's defaults, as a record literal at the
+// current call does; a field without a default panics.
+func (g *Goroutine) FillDefaults(tag *value.Tag, vals []value.Value) {
+	g.fillDefaults(tag, vals, g.pos)
+}
+
+func (g *Goroutine) fieldDefault(tag *value.Tag, i int, pos ast.Pos) (value.Value, bool) {
 	switch d := tag.Defaults.(type) {
 	case *fieldDefaults:
 		if d.exprs[i] != nil {

@@ -1,0 +1,62 @@
+// spec: 11 Reflect; 4 Unions; 4 Kinds
+// A box resolves a union to the member the value belongs to, from its kind or tag alone: one
+// member per discriminator of the table of Kinds, the anonymous record member for a record
+// whose tag no named member has, and the one sync member for a sync value.
+type Circle = { r: float64 }
+type Celsius = float64
+type Person = { name: string, age: int }
+type Mixed = int | float64 | bool | string | null | void | Bytes | Array[int] | Map[string, int]
+  | Set[int] | (func(int): int) | Circle | Celsius | Time.Instant | Regex.Pattern | Mutex
+type Marked = Html | null
+type Loose = { name: string } | null
+
+func kind[T](t: Reflect.Type[T], v: T): string { String.from(Reflect.type(Reflect.valueOf(t, v))) }
+func twice(n: int): int { n * 2 }
+
+println(kind(type(Mixed), 1))
+println(kind(type(Mixed), 1.5))
+println(kind(type(Mixed), true))
+println(kind(type(Mixed), "s"))
+println(kind(type(Mixed), null))
+println(kind(type(Mixed), println("")))
+println(kind(type(Mixed), Bytes.fromArray([1])))
+println(kind(type(Marked), <b>x</b>))
+println(kind(type(Mixed), [1]))
+println(kind(type(Mixed), Map{ a: 1 }))
+println(kind(type(Mixed), Set.of([1])))
+println(kind(type(Mixed), twice))
+println(kind(type(Mixed), Circle{ r: 1.0 }))
+println(kind(type(Mixed), Celsius(1.0)))
+println(kind(type(Mixed), Time.now()))
+println(kind(type(Mixed), /a+/))
+println(kind(type(Mixed), Mutex.new()))
+println(kind(type(Loose), Person{ name: "n", age: 1 }))
+println(kind(type(Loose), null))
+println(kind(type(Result[int, Error]), Result.ok(1)))
+println(kind(type(Json.Value), [1.0]))
+println(kind(type(Reflect.Decl | null), null))
+
+// expect
+// out: int
+// out: float64
+// out: bool
+// out: string
+// out: null
+// out:
+// out: void
+// out: Bytes
+// out: Html
+// out: Array[int]
+// out: Map[string, int]
+// out: Set[int]
+// out: func(int): int
+// out: Circle
+// out: Celsius
+// out: Time.Instant
+// out: Regex.Pattern
+// out: Mutex
+// out: { name: string }
+// out: null
+// out: Ok[int]
+// out: Array[Json.Value]
+// out: null

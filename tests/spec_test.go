@@ -271,12 +271,7 @@ func TestSpecCoverage(t *testing.T) {
 }
 
 // pendingLibrary lists the prelude functions and constants no test program uses yet.
-var pendingLibrary = []string{
-	"Reflect.assignable", "Reflect.default",
-	"Reflect.type", "Reflect.scalar", "Reflect.items", "Reflect.entries", "Reflect.field", "Reflect.payload",
-	"Reflect.makeNumber", "Reflect.makeArray", "Reflect.makeSet", "Reflect.makeMap", "Reflect.makeRecord",
-	"Reflect.makeTagged",
-}
+var pendingLibrary = []string{}
 
 // TestLibraryCoverage checks that every function and constant the prelude declares is used by
 // some test program.
@@ -360,11 +355,7 @@ var panicRows = [][]string{
 }
 
 // pendingPanics lists the panic keys no test program triggers yet.
-var pendingPanics = []string{
-	"Reflect.default", "Reflect.to", "Reflect.scalar", "Reflect.items", "Reflect.entries",
-	"Reflect.field", "Reflect.payload", "Reflect.makeNumber", "Reflect.makeArray", "Reflect.makeSet",
-	"Reflect.makeMap", "Reflect.makeRecord", "Reflect.makeTagged",
-}
+var pendingPanics = []string{}
 
 // TestBoundedSleeps checks the corpus's rule that every wait has a bound: a Time.sleep of a
 // literal duration above a second and no context would hold the suite, so none is allowed under

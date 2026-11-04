@@ -154,6 +154,9 @@ func Discriminator(t Type) (key, describe string, ok bool) {
 		return "func", "a function", true
 	case Named:
 		if x.Decl.Kind == OpaqueDecl {
+			if x.Decl.Name == "Bytes" || x.Decl.Name == "Html" {
+				return "kind:" + x.Decl.Name, x.Decl.Name, true // a kind of its own, which is tests by name
+			}
 			return "", "", false // a sync type: is does not accept it
 		}
 		return fmt.Sprintf("tag:%p", x.Decl), "the tag " + x.Decl.Name, true // a record, primitive or time type

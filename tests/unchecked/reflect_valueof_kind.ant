@@ -1,0 +1,13 @@
+// spec: 12 Runtime panics; 11 Reflect
+// panics: library-kind
+// Under ant run, Reflect.valueOf checks only the kind and tag the type's discriminator names,
+// never the contents: a wrong element is found where it is used, as a wrong annotation is.
+var xs = ["a"]
+var d = Reflect.valueOf(type(Array[int]), xs)
+println("boxed")
+var items = Reflect.items(d)
+
+// expect
+// out: boxed
+// exit: 1
+// err: Reflect.items: string does not belong to int

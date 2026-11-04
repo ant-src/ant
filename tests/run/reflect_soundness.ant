@@ -1,0 +1,34 @@
+// spec: 11 Reflect; 4 Assignability; 4 Records
+// The invariant keeps the checker's guarantees: a Person is accepted for an anonymous record
+// slot and read back through it with only the fields that type lists, while a box remembers
+// its container type, so an empty Array[int] never becomes an Array[string].
+type Person = { name: string, age: int }
+type Named = { name: string }
+
+var p = Person{ name: "ada", age: 36 }
+var d = Reflect.valueOf(type({ name: string }), p)
+println(Reflect.type(d))
+println(Reflect.field(d, "name"))
+var back = Reflect.to(d, type({ name: string }))
+println(back.name)
+var slot = Reflect.makeRecord(Reflect.erase(type(Box)), Map{ value: Reflect.valueOf(type(Person), p) })
+type Box = { value: { name: string } }
+println(slot)
+println(Reflect.assignable(Reflect.erase(type(Person)), Reflect.erase(type({ name: string }))))
+
+var xs: Array[int] = []
+var boxed = Reflect.valueOf(type(Array[int]), xs)
+println(Reflect.assignable(Reflect.type(boxed), Reflect.erase(type(Array[string]))))
+var r = Panic.catch({ Reflect.to(boxed, type(Array[string])) })
+if r is Err { println(r.error.message) }
+println(len(xs))
+
+// expect
+// out: { name: string }
+// out: Reflect.Value("ada": string)
+// out: ada
+// out: Reflect.Value(Box{ value: Person{ name: "ada", age: 36 } }: Box)
+// out: true
+// out: false
+// out: Reflect.to: Array[int] is not assignable to Array[string]
+// out: 0

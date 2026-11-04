@@ -1,0 +1,42 @@
+// spec: 11 Reflect; stdlib Json
+// The typed JSON sketch of section 11, Reflect, as library code: decode into declared types,
+// defaults filled, unions resolved, named primitives and Bytes handled, and a round trip through
+// encode that reads the same type.
+import "./lib/typed.ant" { decode, encode }
+
+type Celsius = float64
+type Server = { host: string, port: int = 8080, tags: Array[string] = [] }
+type Config = { servers: Array[Server], debug: bool = false, limit: int | null = null, key: Bytes = String.toBytes("") }
+type Reading = { sensor: string, value: Celsius, seen: Set[int], extra: Map[string, float64] }
+
+var text = `{"servers": [{"host": "a"}, {"host": "b", "port": 1, "tags": ["x"]}], "limit": 3, "key": "aGk=", "unknown": 1}`
+var config = try decode(text, type(Config))
+println(config)
+println(config.servers[0].port)
+println(encode(type(Config), config))
+
+var reading = try decode(`{"sensor": "s1", "value": 21.5, "seen": [1, 1, 2], "extra": {"a": 1.5}}`, type(Reading))
+println(reading)
+println(encode(type(Reading), reading))
+
+var all = try decode(`[1, 2.5, "x", null, true, [1], {"a": null}]`, type(Array[Json.Value]))
+println(all)
+println(encode(type(Array[Json.Value]), all))
+
+println(decode(`{"servers": [{"port": 2}]}`, type(Config)))
+println(decode(`{"servers": [{"host": "a", "port": 2.5}]}`, type(Config)))
+println(decode(`[1, "x"]`, type(Array[int])))
+println(decode(`{"a": 1}`, type({ a: int })))
+
+// expect
+// out: Config{ servers: [Server{ host: "a", port: 8080, tags: [] }, Server{ host: "b", port: 1, tags: ["x"] }], debug: false, limit: 3, key: Bytes(68 69) }
+// out: 8080
+// out: {"servers":[{"host":"a","port":8080,"tags":[]},{"host":"b","port":1,"tags":["x"]}],"debug":false,"limit":3,"key":"aGk="}
+// out: Reading{ sensor: "s1", value: Celsius(21.5), seen: Set.of([1, 2]), extra: Map{ "a": 1.5 } }
+// out: {"sensor":"s1","value":21.5,"seen":[1,2],"extra":{"a":1.5}}
+// out: [1.0, 2.5, "x", null, true, [1.0], Map{ "a": null }]
+// out: [1.0,2.5,"x",null,true,[1.0],{"a":null}]
+// out: Err{ error: Error{ message: "$.servers[0]: missing field host" } }
+// out: Err{ error: Error{ message: "$.servers[0].port: want int" } }
+// out: Err{ error: Error{ message: "$[1]: want int" } }
+// out: Err{ error: Error{ message: "$: cannot decode into { a: int }" } }

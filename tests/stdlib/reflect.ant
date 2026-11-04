@@ -1,0 +1,133 @@
+// spec: 11 Reflect; 4 Types as values; 4 Assignability
+// The Reflect functions one at a time: shapes for every kind of type, declaration identity,
+// assignability, boxes resolved to a union member, the readers along a type, and the builders
+// with their contract panics.
+type Server = { host: string, port: int = 8080, tags: Array[string] = [] }
+type Celsius = float64
+type Box[T] = { value: T }
+type Id[T] = string
+type Circle = { r: float64 }
+type Rect = { w: float64, h: float64 }
+type Shape = Circle | Rect
+type Tree = { value: int, children: Array[Tree] }
+
+func declOf(t: Reflect.ErasedType): Reflect.Decl | null {
+  var s = Reflect.shape(t)
+  if s is Reflect.Record { s.decl } else if s is Reflect.Named { s.decl } else if s is Reflect.Opaque { s.decl } else { null }
+}
+
+var intT = Reflect.erase(type(int))
+var serverT = Reflect.erase(type(Server))
+Reflect.shape(intT)                                         // => Reflect.Int{ bits: 64, signed: true }
+Reflect.shape(Reflect.erase(type(byte)))                    // => Reflect.Int{ bits: 8, signed: false }
+Reflect.shape(Reflect.erase(type(uint32)))                  // => Reflect.Int{ bits: 32, signed: false }
+Reflect.shape(Reflect.erase(type(float32)))                 // => Reflect.Float{ bits: 32 }
+Reflect.shape(Reflect.erase(type(bool)))                    // => Reflect.Bool{}
+Reflect.shape(Reflect.erase(type(string)))                  // => Reflect.String{}
+Reflect.shape(Reflect.erase(type(null)))                    // => Reflect.Null{}
+Reflect.shape(Reflect.erase(type(void)))                    // => Reflect.Void{}
+Reflect.shape(Reflect.erase(type(never)))                   // => Reflect.Never{}
+Reflect.shape(Reflect.erase(type(Array[int])))              // => Reflect.Array{ element: int }
+Reflect.shape(Reflect.erase(type(Map[string, int])))        // => Reflect.Map{ key: string, value: int }
+Reflect.shape(Reflect.erase(type(Set[Celsius])))            // => Reflect.Set{ member: Celsius }
+Reflect.shape(serverT)                                      // => Reflect.Record{ name: "Server", decl: Server, args: [], fields: [Reflect.Field{ name: "host", type: string, hasDefault: false }, Reflect.Field{ name: "port", type: int, hasDefault: true }, Reflect.Field{ name: "tags", type: Array[string], hasDefault: true }] }
+Reflect.shape(Reflect.erase(type(Box[int])))                // => Reflect.Record{ name: "Box", decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
+Reflect.shape(Reflect.erase(type({ name: string })))        // => Reflect.Record{ name: null, decl: null, args: [], fields: [Reflect.Field{ name: "name", type: string, hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Celsius)))                 // => Reflect.Named{ name: "Celsius", decl: Celsius, args: [], base: float64 }
+Reflect.shape(Reflect.erase(type(Id[Server])))              // => Reflect.Named{ name: "Id", decl: Id, args: [Server], base: string }
+Reflect.shape(Reflect.erase(type(Shape)))                   // => Reflect.Union{ members: [Circle, Rect] }
+Reflect.shape(Reflect.erase(type(int | null)))              // => Reflect.Union{ members: [int, null] }
+Reflect.shape(Reflect.erase(type(Result[int, Error])))      // => Reflect.Union{ members: [Ok[int], Err[Error]] }
+Reflect.shape(Reflect.erase(type(func(int, string): bool))) // => Reflect.Func{ params: [int, string], result: bool }
+Reflect.shape(Reflect.erase(type(Bytes)))                   // => Reflect.Opaque{ name: "Bytes", decl: Bytes, args: [] }
+Reflect.shape(Reflect.erase(type(Channel[int])))            // => Reflect.Opaque{ name: "Channel[int]", decl: Channel, args: [int] }
+Reflect.shape(Reflect.erase(type(Time.Instant)))            // => Reflect.Opaque{ name: "Time.Instant", decl: Time.Instant, args: [] }
+Reflect.shape(Reflect.erase(type(Reflect.Value)))           // => Reflect.Opaque{ name: "Reflect.Value", decl: Reflect.Value, args: [] }
+Reflect.shape(Reflect.erase(type(Json.Value)))              // => Reflect.Union{ members: [null, bool, float64, string, Array[Json.Value], Map[string, Json.Value]] }
+Reflect.shape(Reflect.erase(type(Tree)))                    // => Reflect.Record{ name: "Tree", decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Panic)))                   // => Reflect.Record{ name: "Panic", decl: Panic, args: [], fields: [Reflect.Field{ name: "message", type: string, hasDefault: false }, Reflect.Field{ name: "trace", type: Array[Panic.Frame], hasDefault: false }] }
+
+declOf(Reflect.erase(type(Box[int]))) == declOf(Reflect.erase(type(Box[string])))         // => true
+declOf(Reflect.erase(type(Box[int]))) == declOf(serverT)                                  // => false
+declOf(Reflect.erase(type(Id[Server]))) == declOf(Reflect.erase(type(Id[Circle])))        // => true
+declOf(Reflect.erase(type(Channel[int]))) == declOf(Reflect.erase(type(Channel[string]))) // => true
+declOf(serverT)                                                                           // => Server
+
+Reflect.assignable(intT, Reflect.erase(type(int | null)))                                 // => true
+Reflect.assignable(Reflect.erase(type(int | null)), intT)                                 // => false
+Reflect.assignable(serverT, Reflect.erase(type({ host: string })))                        // => true
+Reflect.assignable(Reflect.erase(type({ host: string })), serverT)                        // => false
+Reflect.assignable(Reflect.erase(type(Array[Circle])), Reflect.erase(type(Array[Shape]))) // => false
+Reflect.assignable(Reflect.erase(type(never)), intT)                                      // => true
+Reflect.assignable(Reflect.erase(type(Celsius)), Reflect.erase(type(float64)))            // => false
+Reflect.assignable(Reflect.erase(type(Circle)), Reflect.erase(type(Shape)))               // => true
+
+Reflect.valueOf(type(int), 42)                                          // => Reflect.Value(42: int)
+Reflect.valueOf(type(int | null), 42)                                   // => Reflect.Value(42: int)
+Reflect.valueOf(type(int | null), null)                                 // => Reflect.Value(null: null)
+Reflect.valueOf(type(Shape), Circle{ r: 1.0 })                          // => Reflect.Value(Circle{ r: 1.0 }: Circle)
+Reflect.valueOf(type(string), "a")                                      // => Reflect.Value("a": string)
+Reflect.valueOf(type(Array[int]), [])                                   // => Reflect.Value([]: Array[int])
+Reflect.valueOf(type(Celsius), Celsius(1.5))                            // => Reflect.Value(Celsius(1.5): Celsius)
+Reflect.type(Reflect.valueOf(type(int | null), 42))                     // => int
+Reflect.type(Reflect.valueOf(type(Shape), Rect{ w: 1.0, h: 2.0 }))      // => Rect
+Reflect.type(Reflect.valueOf(type(Celsius), Celsius(1.5)))              // => Celsius
+Reflect.to(Reflect.valueOf(type(int), 42), type(int | null))            // => 42
+Reflect.to(Reflect.valueOf(type(Shape), Circle{ r: 1.0 }), type(Shape)) // => Circle{ r: 1.0 }
+Reflect.to(Reflect.valueOf(type(int), 42), type(string))                // => panic: Reflect.to: int is not assignable to string
+Reflect.to(Reflect.valueOf(type(Array[int]), []), type(Array[string]))  // => panic: Reflect.to: Array[int] is not assignable to Array[string]
+Reflect.valueOf(type(int), 1) == Reflect.valueOf(type(int | null), 1)   // => true
+Reflect.valueOf(type(int), 1) == Reflect.valueOf(type(int), 2)          // => false
+Reflect.valueOf(type(int), 1) == Reflect.valueOf(type(int8), int8(1))   // => false
+
+Reflect.scalar(Reflect.valueOf(type(int8), int8(3)))                  // => 3
+Reflect.scalar(Reflect.valueOf(type(string), "s"))                    // => "s"
+Reflect.scalar(Reflect.valueOf(type(null), null))                     // => null
+Reflect.scalar(Reflect.valueOf(type(Array[int]), [1]))                // => panic: Reflect.scalar needs a value of a scalar type, got one of type Array[int]
+Reflect.items(Reflect.valueOf(type(Array[int | null]), [1, null]))    // => [Reflect.Value(1: int), Reflect.Value(null: null)]
+Reflect.items(Reflect.valueOf(type(Set[string]), Set.of(["a"])))      // => [Reflect.Value("a": string)]
+Reflect.items(Reflect.valueOf(type(int), 1))                          // => panic: Reflect.items needs a value of an array or set type, got one of type int
+Reflect.entries(Reflect.valueOf(type(Map[string, int]), Map{ a: 1 })) // => [Entry{ key: Reflect.Value("a": string), value: Reflect.Value(1: int) }]
+Reflect.entries(Reflect.valueOf(type(int), 1))                        // => panic: Reflect.entries needs a value of a map type, got one of type int
+var s = Server{ host: "h" }
+Reflect.field(Reflect.valueOf(type(Server), s), "port")           // => Reflect.Value(8080: int)
+Reflect.field(Reflect.valueOf(type({ host: string }), s), "host") // => Reflect.Value("h": string)
+Reflect.field(Reflect.valueOf(type({ host: string }), s), "port") // => panic: Reflect.field: { host: string } has no field port
+Reflect.field(Reflect.valueOf(type(int), 1), "x")                 // => panic: Reflect.field needs a value of a record type, got one of type int
+Reflect.payload(Reflect.valueOf(type(Celsius), Celsius(21.5)))    // => Reflect.Value(21.5: float64)
+Reflect.payload(Reflect.valueOf(type(int), 1))                    // => panic: Reflect.payload needs a value of a named primitive type, got one of type int
+
+Reflect.makeNumber(Reflect.erase(type(int8)), 300)                                                                                                                                                                                       // => null
+Reflect.makeNumber(Reflect.erase(type(int8)), 3)                                                                                                                                                                                         // => Reflect.Value(3: int8)
+Reflect.makeNumber(intT, 2.5)                                                                                                                                                                                                            // => null
+Reflect.makeNumber(intT, 2.0)                                                                                                                                                                                                            // => Reflect.Value(2: int)
+Reflect.makeNumber(Reflect.erase(type(float32)), 1)                                                                                                                                                                                      // => Reflect.Value(1.0: float32)
+Reflect.makeNumber(Reflect.erase(type(string)), 1)                                                                                                                                                                                       // => panic: Reflect.makeNumber needs an integer or float type, got string
+Reflect.makeArray(Reflect.erase(type(Array[int])), [Reflect.valueOf(type(int), 1)])                                                                                                                                                      // => Reflect.Value([1]: Array[int])
+Reflect.makeArray(Reflect.erase(type(Array[int | null])), [Reflect.valueOf(type(int), 1), Reflect.valueOf(type(null), null)])                                                                                                            // => Reflect.Value([1, null]: Array[int | null])
+Reflect.makeArray(Reflect.erase(type(Array[Shape])), [Reflect.valueOf(type(Circle), Circle{ r: 1.0 })])                                                                                                                                  // => Reflect.Value([Circle{ r: 1.0 }]: Array[Shape])
+Reflect.makeArray(Reflect.erase(type(Array[int])), [Reflect.valueOf(type(string), "a")])                                                                                                                                                 // => panic: Reflect.makeArray: an item of type string is not assignable to the element type int of Array[int]
+Reflect.makeArray(Reflect.erase(type(Array[Array[Shape]])), [Reflect.valueOf(type(Array[Circle]), [])])                                                                                                                                  // => panic: Reflect.makeArray: an item of type Array[Circle] is not assignable to the element type Array[Shape] of Array[Array[Shape]]
+Reflect.makeArray(intT, [])                                                                                                                                                                                                              // => panic: Reflect.makeArray needs an array type, got int
+Reflect.makeSet(Reflect.erase(type(Set[int])), [Reflect.valueOf(type(int), 1), Reflect.valueOf(type(int), 1)])                                                                                                                           // => Reflect.Value(Set.of([1]): Set[int])
+Reflect.makeSet(intT, [])                                                                                                                                                                                                                // => panic: Reflect.makeSet needs a set type, got int
+Reflect.makeSet(Reflect.erase(type(Set[int])), [Reflect.valueOf(type(string), "a")])                                                                                                                                                     // => panic: Reflect.makeSet: a member of type string is not assignable to the member type int of Set[int]
+Reflect.makeMap(Reflect.erase(type(Map[string, int])), [Entry{ key: Reflect.valueOf(type(string), "a"), value: Reflect.valueOf(type(int), 1) }, Entry{ key: Reflect.valueOf(type(string), "a"), value: Reflect.valueOf(type(int), 2) }]) // => Reflect.Value(Map{ "a": 2 }: Map[string, int])
+Reflect.makeMap(intT, [])                                                                                                                                                                                                                // => panic: Reflect.makeMap needs a map type, got int
+Reflect.makeMap(Reflect.erase(type(Map[string, int])), [Entry{ key: Reflect.valueOf(type(int), 1), value: Reflect.valueOf(type(int), 1) }])                                                                                              // => panic: Reflect.makeMap: a key of type int is not assignable to the key type string of Map[string, int]
+Reflect.makeRecord(serverT, Map{ host: Reflect.valueOf(type(string), "h") })                                                                                                                                                             // => Reflect.Value(Server{ host: "h", port: 8080, tags: [] }: Server)
+Reflect.makeRecord(serverT, Map{ host: Reflect.valueOf(type(string), "h"), port: Reflect.valueOf(type(int), 1) })                                                                                                                        // => Reflect.Value(Server{ host: "h", port: 1, tags: [] }: Server)
+Reflect.makeRecord(Reflect.erase(type(Box[int | null])), Map{ value: Reflect.valueOf(type(null), null) })                                                                                                                                // => Reflect.Value(Box{ value: null }: Box[int | null])
+Reflect.makeRecord(serverT, Map{})                                                                                                                                                                                                       // => panic: Reflect.makeRecord: Server is missing the field host, which has no default
+Reflect.makeRecord(serverT, Map{ host: Reflect.valueOf(type(string), "h"), color: Reflect.valueOf(type(string), "red") })                                                                                                                // => panic: Reflect.makeRecord: Server has no field color
+Reflect.makeRecord(serverT, Map{ host: Reflect.valueOf(type(int), 1) })                                                                                                                                                                  // => panic: Reflect.makeRecord: a value of type int is not assignable to the field host of Server, whose type is string
+Reflect.makeRecord(Reflect.erase(type(Box[int])), Map{ value: Reflect.valueOf(type(string), "x") })                                                                                                                                      // => panic: Reflect.makeRecord: a value of type string is not assignable to the field value of Box[int], whose type is int
+Reflect.makeRecord(Reflect.erase(type({ host: string })), Map{})                                                                                                                                                                         // => panic: Reflect.makeRecord needs a named record type, got { host: string }
+Reflect.makeTagged(Reflect.erase(type(Celsius)), Reflect.valueOf(type(float64), 1.5))                                                                                                                                                    // => Reflect.Value(Celsius(1.5): Celsius)
+Reflect.makeTagged(Reflect.erase(type(Celsius)), Reflect.valueOf(type(int), 1))                                                                                                                                                          // => panic: Reflect.makeTagged: a payload of type int is not assignable to the base type float64 of Celsius
+Reflect.makeTagged(intT, Reflect.valueOf(type(int), 1))                                                                                                                                                                                  // => panic: Reflect.makeTagged needs a named primitive type, got int
+Reflect.default(serverT, "port")                                                                                                                                                                                                         // => Reflect.Value(8080: int)
+Reflect.default(serverT, "tags")                                                                                                                                                                                                         // => Reflect.Value([]: Array[string])
+Reflect.default(serverT, "host")                                                                                                                                                                                                         // => panic: Reflect.default: the field host of Server has no default
+Reflect.default(serverT, "color")                                                                                                                                                                                                        // => panic: Reflect.default: Server has no field color
+Reflect.default(intT, "x")                                                                                                                                                                                                               // => panic: Reflect.default needs a named record type, got int
