@@ -107,7 +107,7 @@ func (ns Namespace) build() (value.Value, *ast.File, error) {
 				return nil, nil, fmt.Errorf("namespace %s: type %s.%s gives a field a default, which a host namespace cannot fill", ns.Name, ns.Name, d.Name)
 			}
 			fields = append(fields, d.Name)
-			vals = append(vals, interp.TypeValue(d))
+			vals = append(vals, interp.TypeValue(d, nil))
 		case *ast.VarDecl:
 			return nil, nil, fmt.Errorf("namespace %s: a host namespace declares no constants; declare a function that returns the value", ns.Name)
 		default:

@@ -92,8 +92,9 @@ type Instance struct {
 	// builds a declaration per tag the first time reflection reaches it.
 	typeExprs    sync.Map // *ast.TypeExpr → *types.TypeValue
 	typeMu       sync.Mutex
-	preludeTypes map[string]*ast.TypeDecl // the prelude's type declarations by qualified name, made under typeMu
-	builtinDecls map[string]*types.Decl   // the declarations of Bytes and Html, made under typeMu
+	decls        map[*value.Tag]*types.Decl // the declaration of each tag reflection has reached, made under typeMu
+	newDecls     []*value.Tag               // the tags whose declarations the current type expression began
+	builtinDecls map[string]*types.Decl     // the declarations of Bytes and Html, made under typeMu
 	done         atomic.Bool
 	interrupted  atomic.Bool // the relay ended the run: Run returns ErrInterrupted
 

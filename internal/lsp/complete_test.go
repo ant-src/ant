@@ -55,6 +55,9 @@ func TestComplete(t *testing.T) {
 	has("type Point = { x: int }\nvar t = type(", "Point", "int", "Array")
 	lacks("type Point = { x: int }\nvar t = type(", "println", "t")
 	has("type Point = { x: int }\nvar t = type(Array[", "Point", "int")
+	has("type Point = { x: int }\nvar t = type(Map[string, ", "Point", "int")
+	has("type Point = { x: int }\nvar t = type(Map[string, Array[", "Point", "int")
+	has("type Point = { x: int }\nvar xs = [type(int), ", "println")
 	has("type Point = { x: int }\nvar t = type(Po", "Point")
 	has("type Point = { x: int }\nvar t = type(Point | ", "int")
 	// declared again: the latest declaration decides

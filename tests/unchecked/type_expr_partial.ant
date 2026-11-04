@@ -1,0 +1,19 @@
+// spec: 12 Runtime panics; 4 Types as values
+// panics: type-expr
+// A panic while a type expression resolves forgets every declaration the expression began, so
+// the next expression that reaches one of them starts over and fails the same way, instead of
+// finding a half-built declaration left behind; the checker rejects the program, since the body
+// of B names a value.
+var bad = 1
+type A = { c: C, b: B }
+type C = { a: A }
+type B = Array[bad]
+println(Panic.catch({ type(A) }) is Err)
+println("again")
+println(type(C))
+
+// expect
+// out: true
+// out: again
+// exit: 1
+// err: bad is not a type

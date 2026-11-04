@@ -100,9 +100,8 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
-			v := TypeValue(d)
+			v := TypeValue(d, m.root)
 			setDefaults(v, d, m.root)
-			setBody(v, d, m.root)
 			m.rec.SetField(d.Name, v)
 			switch x := v.(type) {
 			case *value.Tag:
@@ -131,24 +130,26 @@ func (in *Instance) linkModule(m *module, lookup func(int) *module) {
 
 // bindLocalTypes binds the types a block declares in env, its environment for this run: one
 // value per declaration for the whole run, however often the block runs, so every value it tags
-// has one type (section 4). The first run makes them, and gives their field defaults an
-// environment that keeps only the types visible in the block, since a default may name the
+// has one type (section 4). The first run makes them, and gives their bodies and field defaults
+// an environment that keeps only the types visible in the block, since a default may name the
 // block's types but none of its variables (section 4, Field defaults). The defaults are set
 // before any goroutine can see the types.
 func (in *Instance) bindLocalTypes(b *ast.Block, env *Env) {
 	v, ok := in.localTypes.Load(b)
 	if !ok {
 		fresh := make([]value.Value, len(b.Types))
-		for i, d := range b.Types {
-			fresh[i] = TypeValue(d)
-			env.set(d.Slot, fresh[i])
-		}
 		types := typesOnly(env)
+		for i, d := range b.Types {
+			fresh[i] = TypeValue(d, types)
+			env.set(d.Slot, fresh[i])
+			if types != env {
+				types.set(d.Slot, fresh[i])
+			}
+		}
 		for i, d := range b.Types {
 			if hasDefaults(d) {
 				setDefaults(fresh[i], d, types)
 			}
-			setBody(fresh[i], d, types)
 		}
 		v, _ = in.localTypes.LoadOrStore(b, fresh)
 	}
@@ -218,9 +219,12 @@ func setDefaults(v value.Value, d *ast.TypeDecl, env *Env) {
 }
 
 // TypeValue builds what a type declaration binds: a record tag, a constructor, or an alias tag,
-// which keeps the declaration for a type expression to resolve (section 4, Types as values). A
-// host's opaque type, declared without a body, is a sync tag, which is cannot test.
-func TypeValue(d *ast.TypeDecl) value.Value {
+// which keeps the declaration and env, the environment its body's names resolve in, for a type
+// expression to resolve (section 4, Types as values): the module's root, or for a local type the
+// environment that holds only the types of its block. A nil env resolves the names through the
+// prelude, as a host's declarations do. A host's opaque type, declared without a body, is a sync
+// tag, which is cannot test.
+func TypeValue(d *ast.TypeDecl, env *Env) value.Value {
 	name := d.Name
 	if d.Owner != "" {
 		name = d.Owner + "." + d.Name
@@ -245,20 +249,13 @@ func TypeValue(d *ast.TypeDecl) value.Value {
 	if v == nil {
 		v = value.NewTag(name, value.AliasTag, nil)
 	}
-	setBody(v, d, nil)
-	return v
-}
-
-// setBody keeps on the tag v declares the declaration and the environment its body's names
-// resolve in: the module's root, or for a local type the environment that holds only the types
-// of its block. A nil env resolves the names through the prelude, as a declaration file's do.
-func setBody(v value.Value, d *ast.TypeDecl, env *Env) {
 	switch x := v.(type) {
 	case *value.Tag:
 		x.Body = &typeBody{decl: d, env: env}
 	case *value.Constructor:
 		x.Tag.Body = &typeBody{decl: d, env: env}
 	}
+	return v
 }
 
 // initModules runs every module's top-level initializers in dependency order.

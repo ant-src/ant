@@ -2,6 +2,7 @@ package interp
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/prelude"
@@ -13,14 +14,14 @@ import (
 // declaration, and the runtime turns that syntax into the checker's own types.Type the first
 // time a type expression reaches it, so that equality, unions, substitution, and assignability
 // are the checker's code. Every resolution runs under Instance.typeMu, since it may build the
-// declarations of every type the expression reaches.
+// declarations of every type the expression reaches. The declarations live on the Instance, not
+// on the tags: a tag the library made is shared by every Instance in the process.
 
-// typeBody is what a tag keeps of its declaration: the syntax, the environment its names
-// resolve in, and the declaration built from it when reflection first reaches the tag.
+// typeBody is what a tag keeps of its declaration: the syntax and the environment its names
+// resolve in. A tag the library made in Go keeps none; its declaration is the prelude's.
 type typeBody struct {
-	decl *ast.TypeDecl // nil for a tag the library made that the prelude does not declare
-	env  *Env          // nil for a prelude or host type, whose names resolve through the prelude
-	t    *types.Decl   // cached before its fields, alias body, or base are resolved
+	decl *ast.TypeDecl
+	env  *Env // nil for a host type, whose names resolve through the prelude
 }
 
 // typeExpr evaluates a type expression once per node: names in a type resolve to the same tags
@@ -34,6 +35,18 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 	if v, ok := g.in.typeExprs.Load(e); ok {
 		return v.(value.Value)
 	}
+	defer func() {
+		// A panic leaves every declaration this expression began half built, so they are all
+		// forgotten, and the next expression that reaches one starts over.
+		if r := recover(); r != nil {
+			for _, tag := range g.in.newDecls {
+				delete(g.in.decls, tag)
+			}
+			g.in.newDecls = nil
+			panic(r)
+		}
+		g.in.newDecls = nil
+	}()
 	v := &types.TypeValue{T: g.resolveType(e.Type, env, nil)}
 	g.in.typeExprs.Store(e, v)
 	return v
@@ -87,8 +100,15 @@ func (g *Goroutine) resolveTypeName(x *ast.TypeName, env *Env, params map[string
 			}
 			return p
 		}
-		if t, ok := g.builtinType(x, env, params); ok {
-			return t
+		if n, ok := types.BuiltinArity(name); ok {
+			if len(x.Args) != n {
+				g.panicf(x.Pos, "%s takes %d type arguments, got %d", name, n, len(x.Args))
+			}
+			args := make([]types.Type, len(x.Args))
+			for i, a := range x.Args {
+				args[i] = g.resolveType(a, env, params)
+			}
+			return types.Builtin(name, args, g.in.builtinDecl)
 		}
 	}
 	var v value.Value
@@ -123,47 +143,8 @@ func (g *Goroutine) resolveTypeName(x *ast.TypeName, env *Env, params map[string
 	return types.Named{Decl: d, Args: args}
 }
 
-// builtinType resolves a name no declaration binds: a primitive, null, void, never, Array, Map,
-// Set, Bytes, or Html (section 12, Expressions).
-func (g *Goroutine) builtinType(x *ast.TypeName, env *Env, params map[string]types.Type) (types.Type, bool) {
-	name := x.Path[0]
-	arity := func(n int) {
-		if len(x.Args) != n {
-			g.panicf(x.Pos, "%s takes %d type arguments, got %d", name, n, len(x.Args))
-		}
-	}
-	if k, ok := types.BuiltinKinds[name]; ok {
-		arity(0)
-		return types.Prim{Kind: k}, true
-	}
-	switch name {
-	case "null":
-		arity(0)
-		return types.Null{}, true
-	case "void":
-		arity(0)
-		return types.Void{}, true
-	case "never":
-		arity(0)
-		return types.Never{}, true
-	case "Array":
-		arity(1)
-		return types.Array{Elem: g.resolveType(x.Args[0], env, params)}, true
-	case "Map":
-		arity(2)
-		return types.Map{Key: g.resolveType(x.Args[0], env, params), Val: g.resolveType(x.Args[1], env, params)}, true
-	case "Set":
-		arity(1)
-		return types.Set{Elem: g.resolveType(x.Args[0], env, params)}, true
-	case "Bytes", "Html":
-		arity(0)
-		return types.Named{Decl: g.in.builtinDecl(name)}, true
-	}
-	return nil, false
-}
-
 // builtinDecl is the declaration of Bytes or Html, opaque types whose values carry a kind and no
-// tag; the prelude declares them without a body.
+// tag; the prelude declares them without a body. Made under typeMu, once per Instance.
 func (in *Instance) builtinDecl(name string) *types.Decl {
 	if d, ok := in.builtinDecls[name]; ok {
 		return d
@@ -179,66 +160,64 @@ func (in *Instance) builtinDecl(name string) *types.Decl {
 	return d
 }
 
-// preludeType finds the prelude's declaration of a type by its qualified name, for a tag the
-// library made in Go, whose body exists only in prelude.d.ant.
-func (in *Instance) preludeType(name string) *ast.TypeDecl {
-	if in.preludeTypes == nil {
-		in.preludeTypes = map[string]*ast.TypeDecl{}
-		if f, err := prelude.Decls(); err == nil {
-			for _, d := range f.Decls {
-				if td, ok := d.(*ast.TypeDecl); ok {
-					n := td.Name
-					if td.Owner != "" {
-						n = td.Owner + "." + td.Name
-					}
-					in.preludeTypes[n] = td
-				}
+// preludeTypes is the prelude's type declarations by qualified name, for a tag the library made
+// in Go, whose body exists only in prelude.d.ant. The prelude never changes, so the table is
+// built once per process.
+var preludeTypes = sync.OnceValue(func() map[string]*ast.TypeDecl {
+	table := map[string]*ast.TypeDecl{}
+	f, err := prelude.Decls()
+	if err != nil {
+		return table
+	}
+	for _, d := range f.Decls {
+		if td, ok := d.(*ast.TypeDecl); ok {
+			n := td.Name
+			if td.Owner != "" {
+				n = td.Owner + "." + td.Name
 			}
+			table[n] = td
 		}
 	}
-	return in.preludeTypes[name]
-}
+	return table
+})
 
-// declOf is the declaration of a tag's type, built on the first call and kept on the tag. It is
-// cached before its fields, alias body, or base are resolved, so that a recursive type finds
-// itself, as the checker's resolveTypeOnce does.
+// declOf is the declaration of a tag's type, built the first time a type expression reaches the
+// tag and kept by the Instance. It is cached before its fields, alias body, or base are
+// resolved, so that a recursive type finds itself, as the checker's resolveTypeOnce does.
 func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
+	in := g.in
+	if d, ok := in.decls[tag]; ok {
+		return d
+	}
 	body, _ := tag.Body.(*typeBody)
 	if body == nil {
-		body = &typeBody{decl: g.in.preludeType(tag.Name)}
-		tag.Body = body
-	}
-	if body.t != nil {
-		return body.t
+		td := preludeTypes()[tag.Name]
+		if td == nil {
+			g.panicf(g.pos, "internal error: the prelude does not declare the type %s", tag.Name)
+		}
+		body = &typeBody{decl: td}
 	}
 	d := &types.Decl{Name: tag.Name, Tag: tag}
-	body.t = d
-	defer func() {
-		// A panic leaves the declaration half built; the next type expression starts over.
-		if r := recover(); r != nil {
-			body.t = nil
-			panic(r)
-		}
-	}()
+	if in.decls == nil {
+		in.decls = map[*value.Tag]*types.Decl{}
+	}
+	in.decls[tag] = d
+	in.newDecls = append(in.newDecls, tag)
 	var params map[string]types.Type
-	if body.decl != nil {
-		for _, tp := range body.decl.TypeParams {
-			pd := &types.ParamDecl{Name: tp.Name}
-			d.Params = append(d.Params, pd)
-			if params == nil {
-				params = map[string]types.Type{}
-			}
-			params[tp.Name] = types.Param{Decl: pd}
+	for _, tp := range body.decl.TypeParams {
+		pd := &types.ParamDecl{Name: tp.Name}
+		d.Params = append(d.Params, pd)
+		if params == nil {
+			params = map[string]types.Type{}
 		}
+		params[tp.Name] = types.Param{Decl: pd}
 	}
 	switch tag.Kind {
 	case value.RecordTag:
 		d.Kind = types.RecordDecl
-		if body.decl != nil {
-			if rt, ok := body.decl.Body.(*ast.RecordType); ok {
-				for _, f := range rt.Fields {
-					d.Fields = append(d.Fields, types.Field{Name: f.Name, Type: g.resolveType(f.Type, body.env, params), Default: f.Default != nil})
-				}
+		if rt, ok := body.decl.Body.(*ast.RecordType); ok {
+			for _, f := range rt.Fields {
+				d.Fields = append(d.Fields, types.Field{Name: f.Name, Type: g.resolveType(f.Type, body.env, params), Default: f.Default != nil})
 			}
 		}
 	case value.PrimitiveTag:
@@ -246,7 +225,7 @@ func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
 		d.Base = tag.Base
 	case value.AliasTag:
 		d.Kind = types.AliasDecl
-		if body.decl != nil && body.decl.Body != nil {
+		if body.decl.Body != nil {
 			d.Body = g.resolveType(body.decl.Body, body.env, params)
 		}
 	case value.SyncTag:

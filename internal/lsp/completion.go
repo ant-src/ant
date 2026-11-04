@@ -701,11 +701,16 @@ func (c *completer) insideTypeExpr(t *token.Token) bool {
 		switch {
 		case toks[i].Is(")") || toks[i].Is("]"):
 			depth++
-		case toks[i].Is("(") || toks[i].Is("["):
+		case toks[i].Is("("):
 			if depth == 0 {
-				return toks[i].Is("(") && i > 0 && toks[i-1].Is("type")
+				return i > 0 && toks[i-1].Is("type")
 			}
 			depth--
+		case toks[i].Is("["):
+			if depth > 0 {
+				depth--
+			}
+			// an open type argument list, or an array literal: the parenthesis decides
 		case toks[i].Is("{") || toks[i].Is("}") || toks[i].Is(";"):
 			return false
 		}

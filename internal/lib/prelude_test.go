@@ -185,6 +185,7 @@ func TestPreludeTypesMatchLibrary(t *testing.T) {
 			}
 			if strings.Join(fields, ",") != strings.Join(tag.Fields, ",") {
 				t.Errorf("%s declares the fields %v, the tag has %v", name, fields, tag.Fields)
+				continue
 			}
 			for i, fl := range body.Fields {
 				if (fl.Default != nil) != interp.HasDefault(tag, i) {
