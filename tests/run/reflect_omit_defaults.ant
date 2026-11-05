@@ -1,0 +1,46 @@
+// spec: 11 Reflect; 4 Field defaults
+// Reflection gives no field's default: a default belongs to literals. An encoder that leaves out
+// fields equal to their defaults builds one record per type with Reflect.makeRecord and compares
+// against it, and decoding an omitted field evaluates the default again, at decode time.
+var defaultPort = 8080
+type Server = { host: string, port: int = defaultPort, tags: Array[string] = [] }
+
+// One record of defaults per type, built from the first value's required fields: a default
+// cannot see the other fields, so any required values give the same defaults.
+var defaults: Map[Reflect.ErasedType, Reflect.Value] = Map{}
+
+func encode(d: Reflect.Value): Map[string, Reflect.Value] {
+  var t = Reflect.type(d)
+  var s = Reflect.shape(t)
+  if !(s is Reflect.Record) { panic("not a record") }
+  var base = defaults[t]
+  if base == null {
+    var required: Map[string, Reflect.Value] = Map{}
+    for f in s.fields { if !f.hasDefault { required[f.name] = Reflect.field(d, f.name) } }
+    base = Reflect.makeRecord(t, required)
+    defaults[t] = base
+  }
+  var out: Map[string, Reflect.Value] = Map{}
+  for f in s.fields {
+    var v = Reflect.field(d, f.name)
+    if !f.hasDefault || v != Reflect.field(base, f.name) { out[f.name] = v }
+  }
+  out
+}
+
+var a = encode(Reflect.valueOf(type(Server), Server{ host: "a" }))
+println(Map.keys(a))
+println(Map.keys(encode(Reflect.valueOf(type(Server), Server{ host: "b", port: 1, tags: ["x"] }))))
+println(Map.keys(encode(Reflect.valueOf(type(Server), Server{ host: "c", tags: [] }))))
+println(len(defaults))
+
+// The decoder fills an omitted field from its default as it is now, not as it was at encode time.
+defaultPort = 9090
+println(Reflect.to(Reflect.makeRecord(Reflect.erase(type(Server)), a), type(Server)))
+
+// expect
+// out: ["host"]
+// out: ["host", "port", "tags"]
+// out: ["host"]
+// out: 1
+// out: Server{ host: "a", port: 9090, tags: [] }
