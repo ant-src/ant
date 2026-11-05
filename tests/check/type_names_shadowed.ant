@@ -1,0 +1,46 @@
+// spec: 3; 4 Types as values
+// Types and values share one namespace: a local hides an outer type or namespace in a type, as in
+// an expression, so a type expression, a local type's body, or an annotation cannot name it, and
+// the checker never resolves a name the interpreter would evaluate to something else.
+import "./lib/exports.ant" Geo
+
+type A = int
+type B = string
+type Rec = { v: int }
+
+func typeExprs(Geo: Rec): int {
+  var A = B
+  var a = type(Array[A])  // ERR: A is a variable, not a type; it hides the outer A here
+  var b = type(A | null)  // ERR: A is a variable, not a type; it hides the outer A here
+  var c = type(Geo.Point) // ERR: Geo is a variable, not a namespace; it hides the outer Geo here
+  1
+}
+
+func localBody(): int {
+  var A = 5
+  if true {
+    type L = { v: A } // ERR: A is a variable, not a type; it hides the outer A here
+    0
+  } else {
+    1
+  }
+}
+
+func annotation(Rec: int, r: Rec): Rec { // a signature's annotations are outside the body
+  var s: Rec | null = null // ERR: Rec is a variable, not a type; it hides the outer Rec here
+  r
+}
+
+func noOuter(): int {
+  var n = 1
+  var xs: Array[n] = [] // ERR: n is a variable, not a type
+  len(xs)
+}
+
+func before(): int {
+  type L = { v: Rec } // resolved where the block starts, before the var below
+  var r = Rec{ v: 4 }
+  var Rec = 3
+  var l = L{ v: r }
+  l.v.v + Rec
+}

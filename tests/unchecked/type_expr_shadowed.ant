@@ -1,0 +1,18 @@
+// spec: 12 Runtime panics; 4 Types as values; 3
+// panics: type-expr
+// A local hides an outer type in a type expression as in any expression, so the interpreter
+// evaluates the local; the checker rejects the name, since it is a variable and not a type.
+type A = int
+
+func f(): Reflect.Type[A | null] {
+  var A = 5
+  type(A | null)
+}
+
+println("before")
+println(f())
+
+// expect
+// out: before
+// exit: 1
+// err: A is not a type

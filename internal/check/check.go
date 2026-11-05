@@ -1169,7 +1169,18 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 			return types.Prim{Kind: k}
 		}
 	}
-	ent := c.lookupType(sc, name)
+	l, ent := c.lookup(sc, name)
+	if l != nil {
+		// Types and values share one namespace (section 3): a local hides an outer type or
+		// namespace in a type as in an expression, since the interpreter evaluates the name in
+		// this scope.
+		what := "type"
+		if len(x.Path) > 1 {
+			what = "namespace"
+		}
+		c.errorf(x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
+		return types.Invalid{}
+	}
 	if ent == nil {
 		c.errorf(x.Pos, "unknown type %s", name)
 		return types.Invalid{}
@@ -1250,16 +1261,19 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 	return n
 }
 
-// lookupType finds a type name: one declared in an enclosing block, else a module-level or
-// prelude entity. A local variable does not hide a type here, since a type position holds no
-// value.
-func (c *Checker) lookupType(sc *scope, name string) *entity {
-	for s := sc; s != nil; s = s.parent {
-		if e, ok := s.types[name]; ok {
-			return e
-		}
+// hiddenType notes the type or namespace that the local l hides, if any, for an error.
+func (c *Checker) hiddenType(sc *scope, l *local) string {
+	s := sc
+	for s != nil && s.names[l.name] != l {
+		s = s.parent
 	}
-	return c.lookupEntity(name)
+	if s == nil {
+		return ""
+	}
+	if _, e := c.lookup(s.parent, l.name); e != nil && (e.kind == entType || e.kind == entModule || e.kind == entNamespace) {
+		return "; it hides the outer " + l.name + " here"
+	}
+	return ""
 }
 
 // lookupEntity finds a module-level or prelude name.

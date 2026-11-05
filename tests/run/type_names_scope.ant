@@ -1,0 +1,29 @@
+// spec: 3; 4 Types as values; 12 Names and scopes
+// A name in a type means what it means in an expression at the same place, to the checker and the
+// interpreter alike: a local type's body is resolved where its block starts, before a var of the
+// block that later takes the outer type's name, and a signature's annotations are outside the
+// body, so a parameter does not hide them.
+type Rec = { v: int }
+
+func scoped(): int {
+  type L = { v: Rec }
+  var r = Rec{ v: 4 }
+  var Rec = 3
+  var l = L{ v: r }
+  println(Reflect.shape(Reflect.erase(type(L))))
+  l.v.v + Rec
+}
+
+func signature(Rec: int, r: Rec): Rec {
+  println(Rec)
+  r
+}
+
+println(scoped())
+println(signature(1, Rec{ v: 2 }))
+
+// expect
+// out: Reflect.Record{ decl: L, args: [], fields: [Reflect.Field{ name: "v", type: Rec, hasDefault: false }] }
+// out: 7
+// out: 1
+// out: Rec{ v: 2 }
