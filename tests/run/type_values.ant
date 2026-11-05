@@ -10,6 +10,7 @@ type Rect = { w: float64, h: float64 }
 type Shape = Circle | Rect
 type Celsius = float64
 type Ints[T] = Array[int]
+type Opt[T] = T | null
 
 println(type(int))
 println(type(Array[Config]))
@@ -84,6 +85,7 @@ println(token() == token())
 println(String.from(type(Set[Celsius])))
 println("${type(Map[Id[Config], Box[int | null]])}")
 println(Reflect.erase(type(Ints[string])) == Reflect.erase(type(Ints[bool])))
+println(type(Opt[int] | Opt[string]) == type(int | string | null))
 
 // expect
 // out: int
@@ -136,4 +138,5 @@ println(Reflect.erase(type(Ints[string])) == Reflect.erase(type(Ints[bool])))
 // out: true
 // out: Set[Celsius]
 // out: Map[Id[Config], Box[int | null]]
+// out: true
 // out: true

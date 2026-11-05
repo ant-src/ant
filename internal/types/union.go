@@ -18,6 +18,8 @@ func MakeUnion(members []Type) (Type, error) {
 				if expanding[n.Decl] {
 					continue
 				}
+				// Only while its own body is flattened: a sibling may name the same alias with
+				// other arguments, as in Opt[int] | Opt[string].
 				expanding[n.Decl] = true
 				aliased = true
 			}
@@ -36,6 +38,9 @@ func MakeUnion(members []Type) (Type, error) {
 				if !dup {
 					flat = append(flat, t)
 				}
+			}
+			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
+				delete(expanding, n.Decl)
 			}
 		}
 	}
