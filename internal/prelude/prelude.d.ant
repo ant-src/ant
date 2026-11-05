@@ -1657,11 +1657,11 @@ func Reflect.field(d: Reflect.Value, name: string): Reflect.Value
 func Reflect.payload(d: Reflect.Value): Reflect.Value
 
 // Reflect.makeScalar boxes v at the scalar type t, the inverse of Reflect.scalar: a decoder that
-// holds only a slot's erased type boxes every leaf through it. It returns null where v is not of
-// t's kind. A number converts to any number type as the conversion functions do, except that a
+// holds only a slot's erased type boxes every leaf through it. It returns null where t is not null,
+// void, bool, a number, or string, or where v is not of t's kind, so the one call tests that a leaf
+// fits the slot. A number converts to any number type as the conversion functions do, except that a
 // conversion that would panic returns null: a fraction, a value out of range, NaN, or an infinity
-// for an integer type, and a finite value beyond the range of a float32 for float32. It panics if
-// t is not null, void, bool, a number, or string.
+// for an integer type, and a finite value beyond the range of a float32 for float32.
 //
 //     Reflect.makeScalar(Reflect.erase(type(int8)), 300)
 //     // null

@@ -27,11 +27,10 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflec
       if r is Ok { return r }
     }
     fail(path, "want ${t}")
-  } else if s is Reflect.Null || s is Reflect.Bool || s is Reflect.String || s is Reflect.Int || s is Reflect.Float {
-    var d = if v is Array || v is Map { null } else { Reflect.makeScalar(t, v) }
-    if d == null { fail(path, "want ${t}") } else { Result.ok(d) }
   } else if s is Reflect.Tagged {
-    Result.ok(Reflect.makeTagged(t, try decodeAt(s.base, v, path)))
+    var base = decodeAt(s.base, v, path)
+    if base is Err { return fail(path, "want ${t}") }
+    Result.ok(Reflect.makeTagged(t, base.value))
   } else if s is Reflect.Array {
     if !(v is Array) { return fail(path, "want an array") }
     var items: Array[Reflect.Value] = []
@@ -68,7 +67,10 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflec
     }
     Result.ok(Reflect.makeRecord(t, fields))
   } else {
-    fail(path, "cannot decode ${t}")
+    // Every scalar type ends here, and makeScalar tests the leaf: null for a container value, a
+    // value of another kind, or a type that is not a scalar type.
+    var d = if v is Array || v is Map { null } else { Reflect.makeScalar(t, v) }
+    if d == null { fail(path, "want ${t}") } else { Result.ok(d) }
   }
 }
 

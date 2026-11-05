@@ -391,7 +391,7 @@ func init() {
 				case types.Void:
 					kind = value.KindVoid
 				default:
-					g.Panic("%s needs a scalar type, got %s", who, types.String(t))
+					return value.Null
 				}
 				v := a[1]
 				vk := value.KindOf(v)
