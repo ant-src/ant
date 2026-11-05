@@ -41,6 +41,6 @@ println(decode(`[null]`, type(Array[void])))
 // out: Err{ error: Error{ message: "$.servers[0]: missing field host" } }
 // out: Err{ error: Error{ message: "$.servers[0].port: want int" } }
 // out: Err{ error: Error{ message: "$[1]: want int" } }
-// out: Err{ error: Error{ message: "$: cannot decode into { a: int }" } }
+// out: Err{ error: Error{ message: "$: cannot decode into { a: int }: name a record type for it" } }
 // out: Err{ error: Error{ message: "$.value: want Celsius" } }
 // out: Err{ error: Error{ message: "$[0]: want void" } }

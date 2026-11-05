@@ -1,12 +1,13 @@
 //! typed: JSON into and out of declared types, as library code over Reflect (section 11,
 //! Reflect). The policy here is a placeholder: the first union member that decodes wins,
-//! unknown fields are ignored, and Bytes is base64.
+//! unknown fields are ignored, and Bytes is base64. An anonymous record type is decoded at the named
+//! record type the caller gives for it in `concrete`, since the data does not say which one.
 
 let BytesType = Reflect.erase(type(Bytes))
 
-export func decode[T](text: string, t: Reflect.Type[T]): Result[T, Error] {
+export func decode[T](text: string, t: Reflect.Type[T], concrete: Map[Reflect.ErasedType, Reflect.ErasedType] = Map{}): Result[T, Error] {
   var tree = try Json.parse(text)
-  var d = try decodeAt(Reflect.erase(t), tree, "$")
+  var d = try decodeAt(Reflect.erase(t), tree, "$", concrete)
   Result.ok(Reflect.to(d, t))
 }
 
@@ -14,7 +15,7 @@ func fail(path: string, message: string): Result[Reflect.Value, Error] {
   Result.err(Error{ message: "${path}: ${message}" })
 }
 
-func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflect.Value, Error] {
+func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string, concrete: Map[Reflect.ErasedType, Reflect.ErasedType]): Result[Reflect.Value, Error] {
   if t == BytesType {
     if !(v is string) { return fail(path, "want a base64 string") }
     var b = try (Encoding.fromBase64(v) | Result.wrapErr(path))
@@ -23,44 +24,49 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string): Result[Reflec
   var s = Reflect.shape(t)
   if s is Reflect.Union {
     for m in s.members {
-      var r = decodeAt(m, v, path)
+      var r = decodeAt(m, v, path, concrete)
       if r is Ok { return r }
     }
     fail(path, "want ${t}")
   } else if s is Reflect.Tagged {
-    var base = decodeAt(s.base, v, path)
+    var base = decodeAt(s.base, v, path, concrete)
     if base is Err { return fail(path, "want ${t}") }
     Result.ok(Reflect.makeTagged(t, base.value))
   } else if s is Reflect.Array {
     if !(v is Array) { return fail(path, "want an array") }
     var items: Array[Reflect.Value] = []
     for e in Array.entries(v) {
-      Array.push(items, try decodeAt(s.element, e.value, "${path}[${e.index}]"))
+      Array.push(items, try decodeAt(s.element, e.value, "${path}[${e.index}]", concrete))
     }
     Result.ok(Reflect.makeArray(t, items))
   } else if s is Reflect.Set {
     if !(v is Array) { return fail(path, "want an array") }
     var members: Array[Reflect.Value] = []
     for e in Array.entries(v) {
-      Array.push(members, try decodeAt(s.member, e.value, "${path}[${e.index}]"))
+      Array.push(members, try decodeAt(s.member, e.value, "${path}[${e.index}]", concrete))
     }
     Result.ok(Reflect.makeSet(t, members))
   } else if s is Reflect.Map {
     if !(v is Map) { return fail(path, "want an object") }
     var entries: Array[Entry[Reflect.Value, Reflect.Value]] = []
     for e in v {
-      var k = try decodeAt(s.key, e.key, "${path}.${e.key}")
-      var val = try decodeAt(s.value, e.value, "${path}.${e.key}")
+      var k = try decodeAt(s.key, e.key, "${path}.${e.key}", concrete)
+      var val = try decodeAt(s.value, e.value, "${path}.${e.key}", concrete)
       Array.push(entries, Entry{ key: k, value: val })
     }
     Result.ok(Reflect.makeMap(t, entries))
   } else if s is Reflect.Record {
-    if s.decl == null { return fail(path, "cannot decode into ${t}") }
+    if s.decl == null {
+      var c = concrete[t]
+      if c == null { return fail(path, "cannot decode into ${t}: name a record type for it") }
+      if !Reflect.assignable(c, t) { return fail(path, "${c} is not assignable to ${t}") }
+      return decodeAt(c, v, path, concrete)
+    }
     if !(v is Map) { return fail(path, "want an object") }
     var fields: Map[string, Reflect.Value] = Map{}
     for f in s.fields {
       if Map.has(v, f.name) {
-        fields[f.name] = try decodeAt(f.type, v[f.name], "${path}.${f.name}")
+        fields[f.name] = try decodeAt(f.type, v[f.name], "${path}.${f.name}", concrete)
       } else if !f.hasDefault {
         return fail(path, "missing field ${f.name}")
       }

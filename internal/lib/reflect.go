@@ -219,7 +219,11 @@ func fieldShapes(fields []types.Field) *value.Array {
 
 // namedRecord takes a type that must be a named record type, and gives its declaration and tag.
 func namedRecord(g *interp.Goroutine, who string, t types.Type) (types.Named, *value.Tag) {
-	n, ok := types.Expand(t).(types.Named)
+	e := types.Expand(t)
+	if _, anon := e.(types.Record); anon {
+		g.Panic("%s needs a named record type, got the anonymous record type %s; build a named record type assignable to it", who, types.String(t))
+	}
+	n, ok := e.(types.Named)
 	if !ok || n.Decl.Kind != types.RecordDecl {
 		g.Panic("%s needs a named record type, got %s", who, types.String(t))
 	}

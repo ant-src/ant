@@ -1,0 +1,42 @@
+// spec: 11 Reflect; 4 Records
+// An anonymous record type is a constraint, not a type a value is made at: the data does not say
+// which named record to build, so a decoder takes that choice from its caller, keyed by type value.
+import "./lib/typed.ant" { decode, encode }
+
+type P = { x: int }
+type Q = { x: int, y: int = 0 }
+type Outer = { inner: { x: int } }
+
+var anon = Reflect.erase(type({ x: int }))
+var text = `{"inner": {"x": 1}}`
+
+// No choice given: the decoder reports the slot.
+println(decode(text, type(Outer)))
+
+// The value a program would write by hand, Outer{ inner: P{ x: 1 } }, round-trips.
+var o = try decode(text, type(Outer), Map{ (anon): Reflect.erase(type(P)) })
+println(o)
+println(o == Outer{ inner: P{ x: 1 } })
+println(o.inner is P)
+println(encode(type(Outer), o))
+
+// Any named record assignable to the slot will do; its defaults fill what the data leaves out.
+var q = try decode(text, type(Outer), Map{ (anon): Reflect.erase(type(Q)) })
+println(q)
+
+// The same table serves an anonymous record anywhere, not only in a field.
+println(decode(`[{"x": 2}]`, type(Array[{ x: int }]), Map{ (anon): Reflect.erase(type(P)) }))
+
+// A choice that does not fit is the decoder's error, not a panic.
+type R = { y: int }
+println(decode(text, type(Outer), Map{ (anon): Reflect.erase(type(R)) }))
+
+// expect
+// out: Err{ error: Error{ message: "$.inner: cannot decode into { x: int }: name a record type for it" } }
+// out: Outer{ inner: P{ x: 1 } }
+// out: true
+// out: true
+// out: {"inner":{"x":1}}
+// out: Outer{ inner: Q{ x: 1, y: 0 } }
+// out: Ok{ value: [P{ x: 2 }] }
+// out: Err{ error: Error{ message: "$.inner: R is not assignable to { x: int }" } }
