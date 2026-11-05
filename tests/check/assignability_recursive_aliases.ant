@@ -1,0 +1,12 @@
+// spec: 4 Assignability
+// Section 4: a recursive alias is related as == compares it, so type F = func(): F | null is a
+// G = func(): G | int | null, and a G, whose result may be an int, is not an F.
+type F = func(): F | null
+type G = func(): G | int | null
+
+func stop(): F | null { null }
+func more(): G | int | null { 1 }
+var f: F = stop
+var g: G = f
+var h: G = more
+var back: F = h // ERR: cannot use G where F is expected

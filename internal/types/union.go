@@ -11,21 +11,28 @@ func MakeUnion(members []Type) (Type, error) {
 	var flat []Type
 	expanding := map[*Decl]bool{} // aliases being flattened, so that a cyclic alias terminates
 	aliased := false              // an alias was expanded, so the written form is kept for messages
-	var collect func(ts []Type)
-	collect = func(ts []Type) {
-		for _, t := range ts {
+	// Each written member is expanded once: the written form below needs its discriminator too,
+	// and expanding it again there would expand an alias nested in its own arguments, as in
+	// Opt[Opt[Opt[int]]], twice at every level, which is exponential in the nesting.
+	written := make([]Type, len(members))
+	var collect func(ts []Type, top bool)
+	collect = func(ts []Type, top bool) {
+		for i, t := range ts {
+			alias := false
 			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
 				if expanding[n.Decl] {
 					continue
 				}
-				// Only while its own body is flattened: a sibling may name the same alias with
-				// other arguments, as in Opt[int] | Opt[string].
 				expanding[n.Decl] = true
-				aliased = true
+				alias, aliased = true, true
 			}
-			switch x := expandTop(t).(type) {
+			e := expandTop(t)
+			if top {
+				written[i] = e
+			}
+			switch x := e.(type) {
 			case Union:
-				collect(x.Members)
+				collect(x.Members, false)
 			case Never:
 			default:
 				dup := false
@@ -39,12 +46,14 @@ func MakeUnion(members []Type) (Type, error) {
 					flat = append(flat, t)
 				}
 			}
-			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
-				delete(expanding, n.Decl)
+			if alias {
+				// Only while its own body is flattened: a sibling may name the same alias with
+				// other arguments, as in Opt[int] | Opt[string].
+				delete(expanding, t.(Named).Decl)
 			}
 		}
 	}
-	collect(members)
+	collect(members, true)
 	switch len(flat) {
 	case 0:
 		return Never{}, nil
@@ -56,19 +65,21 @@ func MakeUnion(members []Type) (Type, error) {
 	}
 	u := Union{Members: flat}
 	if aliased {
-		for _, m := range members {
+		var seen []Type // the expansions of u.Written
+		for i, m := range members {
 			if _, never := m.(Never); never {
 				continue
 			}
 			dup := false
-			for _, w := range u.Written {
-				if sameMember(w, m) {
+			for j, w := range u.Written {
+				if sameDiscriminator(seen[j], written[i]) && Equal(w, m) {
 					dup = true
 					break
 				}
 			}
 			if !dup {
 				u.Written = append(u.Written, m)
+				seen = append(seen, written[i])
 			}
 		}
 	}
@@ -78,13 +89,14 @@ func MakeUnion(members []Type) (Type, error) {
 // sameMember reports whether two members of a union are the same type. Only members with one
 // discriminator, or two without one, can be, and comparing that first spares Equal the expansion of an alias whose
 // body holds a union naming the alias itself, which needs this very union.
-func sameMember(a, b Type) bool {
+func sameMember(a, b Type) bool { return sameDiscriminator(a, b) && Equal(a, b) }
+
+// sameDiscriminator reports whether is cannot tell a from b apart: both have one discriminator,
+// or neither has one.
+func sameDiscriminator(a, b Type) bool {
 	ka, _, oka := Discriminator(a)
 	kb, _, okb := Discriminator(b)
-	if oka != okb || oka && ka != kb {
-		return false
-	}
-	return Equal(a, b)
+	return oka == okb && (!oka || ka == kb)
 }
 
 // Join forms the union of branch types where control merges, or returns an error to report.

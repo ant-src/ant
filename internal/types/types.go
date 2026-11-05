@@ -223,28 +223,42 @@ func (n Named) FieldsOf() []Field {
 // Equal reports whether two types are the same type. A recursive alias is compared as the
 // infinite type it stands for: a pair of types already under comparison is assumed equal, as
 // == does for values, so that type L[T] = Array[L[T] | int] ends.
-func Equal(a, b Type) bool { return equal(a, b, &[][2]Type{}) }
+func Equal(a, b Type) bool { return equal(a, b, &[][2]Type{}, 0) }
 
-func equal(a, b Type, assumed *[][2]Type) bool {
-	// The same declaration with equal arguments is the same type. An alias with different
-	// arguments may still be, when its body ignores a parameter, so it is expanded below.
-	if na, ok := a.(Named); ok {
-		if nb, ok := b.(Named); ok && na.Decl == nb.Decl && len(na.Args) == len(nb.Args) {
-			same := true
-			for i := range na.Args {
-				if !equal(na.Args[i], nb.Args[i], assumed) {
-					same = false
-					break
-				}
-			}
-			if same || !isAlias(a) {
-				return same
-			}
+// equal compares two types depth levels into a comparison. It moves to a fresh stack every
+// value.Deep levels, as == on values does, so that a type value nested a million deep, which the
+// builders or a walk of a type such as type R[T] = { next: R[Array[T]] | null } can make,
+// compares without overflowing the Go stack (section 9: the interpreter never crashes).
+func equal(a, b Type, assumed *[][2]Type, depth int) bool {
+	if value.Deep(depth) {
+		return equalOnFreshStack(a, b, assumed, depth)
+	}
+	return equalStep(a, b, assumed, depth)
+}
+
+func equalOnFreshStack(a, b Type, assumed *[][2]Type, depth int) (eq bool) {
+	value.OnFreshStack(func() { eq = equalStep(a, b, assumed, depth) })
+	return eq
+}
+
+// equalStep is equal on the current stack.
+func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
+	// An alias with its arguments written alike is the same type. With other arguments it may
+	// still be, when its body ignores a parameter or the arguments are equal types written
+	// differently, so it is expanded below. Comparing the arguments with equal here as well would
+	// compare those of an alias nested in its own arguments, as in Opt[Opt[Opt[int]]], once here
+	// and once inside the expansion, at every level: exponential in the nesting.
+	if na, ok := a.(Named); ok && isAlias(a) {
+		if nb, ok := b.(Named); ok && na.Decl == nb.Decl && identicalAll(na.Args, nb.Args, 0) {
+			return true
 		}
 	}
-	if isAlias(a) || isAlias(b) {
+	// Only an alias that reaches itself can bring the same pair back, so only its pairs are
+	// recorded: a pair met again under another alias would be compared again, at every level of
+	// a deep type, against every recorded one.
+	if recursiveAlias(a) || recursiveAlias(b) {
 		for _, p := range *assumed {
-			if identical(p[0], a) && identical(p[1], b) {
+			if identical(p[0], a, 0) && identical(p[1], b, 0) {
 				return true
 			}
 		}
@@ -270,24 +284,24 @@ func equal(a, b Type, assumed *[][2]Type) bool {
 		return ok
 	case Array:
 		y, ok := b.(Array)
-		return ok && equal(x.Elem, y.Elem, assumed)
+		return ok && equal(x.Elem, y.Elem, assumed, depth+1)
 	case Map:
 		y, ok := b.(Map)
-		return ok && equal(x.Key, y.Key, assumed) && equal(x.Val, y.Val, assumed)
+		return ok && equal(x.Key, y.Key, assumed, depth+1) && equal(x.Val, y.Val, assumed, depth+1)
 	case Set:
 		y, ok := b.(Set)
-		return ok && equal(x.Elem, y.Elem, assumed)
+		return ok && equal(x.Elem, y.Elem, assumed, depth+1)
 	case Func:
 		y, ok := b.(Func)
 		if !ok || len(x.Params) != len(y.Params) || x.Required != y.Required {
 			return false
 		}
 		for i := range x.Params {
-			if !equal(x.Params[i], y.Params[i], assumed) {
+			if !equal(x.Params[i], y.Params[i], assumed, depth+1) {
 				return false
 			}
 		}
-		return equal(x.Return, y.Return, assumed)
+		return equal(x.Return, y.Return, assumed, depth+1)
 	case Record:
 		y, ok := b.(Record)
 		if !ok || len(x.Fields) != len(y.Fields) {
@@ -298,7 +312,7 @@ func equal(a, b Type, assumed *[][2]Type) bool {
 			found := false
 			for _, g := range y.Fields {
 				if g.Name == f.Name {
-					found = equal(f.Type, g.Type, assumed)
+					found = equal(f.Type, g.Type, assumed, depth+1)
 					break
 				}
 			}
@@ -313,7 +327,7 @@ func equal(a, b Type, assumed *[][2]Type) bool {
 			return false
 		}
 		for i := range x.Args {
-			if !equal(x.Args[i], y.Args[i], assumed) {
+			if !equal(x.Args[i], y.Args[i], assumed, depth+1) {
 				return false
 			}
 		}
@@ -329,7 +343,7 @@ func equal(a, b Type, assumed *[][2]Type) bool {
 		for _, m := range x.Members {
 			found := false
 			for _, n := range y.Members {
-				if equal(m, n, assumed) {
+				if equal(m, n, assumed, depth+1) {
 					found = true
 					break
 				}
@@ -348,12 +362,61 @@ func isAlias(t Type) bool {
 	return ok && n.Decl.Kind == AliasDecl && n.Decl.Body != nil
 }
 
-// identical reports whether two types are written alike, expanding no alias.
-func identical(a, b Type) bool {
+// recursiveAlias reports whether t is an alias whose body leads back to it, directly or through
+// other aliases, as Json.Value's does. Expanding any other alias ends after as many steps as
+// there are aliases written in t and its bodies, so a walk meets the same pair again only
+// through one of these.
+func recursiveAlias(t Type) bool {
+	if !isAlias(t) {
+		return false
+	}
+	d := t.(Named).Decl
+	var seen []*Decl
+	found := false
+	var reach func(Type)
+	reach = func(body Type) {
+		Walk(body, func(x Type) {
+			if found || !isAlias(x) {
+				return
+			}
+			n := x.(Named).Decl
+			if n == d {
+				found = true
+				return
+			}
+			for _, s := range seen {
+				if s == n {
+					return
+				}
+			}
+			seen = append(seen, n)
+			reach(n.Body)
+		})
+	}
+	reach(d.Body)
+	return found
+}
+
+// identical reports whether two types are written alike, expanding no alias. Like equal, it
+// moves to a fresh stack every value.Deep levels.
+func identical(a, b Type, depth int) bool {
+	if value.Deep(depth) {
+		return identicalOnFreshStack(a, b, depth)
+	}
+	return identicalStep(a, b, depth)
+}
+
+func identicalOnFreshStack(a, b Type, depth int) (same bool) {
+	value.OnFreshStack(func() { same = identicalStep(a, b, depth) })
+	return same
+}
+
+// identicalStep is identical on the current stack.
+func identicalStep(a, b Type, depth int) bool {
 	switch x := a.(type) {
 	case Named:
 		y, ok := b.(Named)
-		return ok && x.Decl == y.Decl && identicalAll(x.Args, y.Args)
+		return ok && x.Decl == y.Decl && identicalAll(x.Args, y.Args, depth+1)
 	case Param:
 		y, ok := b.(Param)
 		return ok && x.Decl == y.Decl
@@ -362,42 +425,42 @@ func identical(a, b Type) bool {
 		return ok && x.Kind == y.Kind
 	case Array:
 		y, ok := b.(Array)
-		return ok && identical(x.Elem, y.Elem)
+		return ok && identical(x.Elem, y.Elem, depth+1)
 	case Map:
 		y, ok := b.(Map)
-		return ok && identical(x.Key, y.Key) && identical(x.Val, y.Val)
+		return ok && identical(x.Key, y.Key, depth+1) && identical(x.Val, y.Val, depth+1)
 	case Set:
 		y, ok := b.(Set)
-		return ok && identical(x.Elem, y.Elem)
+		return ok && identical(x.Elem, y.Elem, depth+1)
 	case Func:
 		y, ok := b.(Func)
-		return ok && x.Required == y.Required && identicalAll(x.Params, y.Params) && identical(x.Return, y.Return)
+		return ok && x.Required == y.Required && identicalAll(x.Params, y.Params, depth+1) && identical(x.Return, y.Return, depth+1)
 	case Record:
 		y, ok := b.(Record)
 		if !ok || len(x.Fields) != len(y.Fields) {
 			return false
 		}
 		for i, f := range x.Fields {
-			if f.Name != y.Fields[i].Name || !identical(f.Type, y.Fields[i].Type) {
+			if f.Name != y.Fields[i].Name || !identical(f.Type, y.Fields[i].Type, depth+1) {
 				return false
 			}
 		}
 		return true
 	case Union:
 		y, ok := b.(Union)
-		return ok && identicalAll(x.Members, y.Members)
+		return ok && identicalAll(x.Members, y.Members, depth+1)
 	case Null, Void, Never, Invalid:
 		return a == b
 	}
 	return false
 }
 
-func identicalAll(as, bs []Type) bool {
+func identicalAll(as, bs []Type, depth int) bool {
 	if len(as) != len(bs) {
 		return false
 	}
 	for i := range as {
-		if !identical(as[i], bs[i]) {
+		if !identical(as[i], bs[i], depth) {
 			return false
 		}
 	}

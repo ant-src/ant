@@ -1,0 +1,52 @@
+// spec: 4 Assignability; 4 Types as values; 11 Reflect; 9
+// Section 4: assignability has no depth limit and relates recursive aliases as == compares them,
+// a pair already under test counting as assignable; type values nested far deeper than a Go stack
+// holds, here built by walking a type whose every level has a new argument, compare without a
+// crash; and one alias with two arguments is two members of a union.
+type F = func(): F | null
+type G = func(): G | int | null
+type R[T] = { next: R[Array[T]] | null }
+type Opt[T] = T | null
+
+func stop(): F | null { null }
+var f: F = stop
+var g: G = f
+println(Reflect.assignable(Reflect.erase(type(F)), Reflect.erase(type(G))))
+println(Reflect.assignable(Reflect.erase(type(G)), Reflect.erase(type(F))))
+
+var thunks: func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): int = { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { 0 } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }
+var boxed = Reflect.valueOf(type(func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): int), thunks)
+var wider: func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): int | null = Reflect.to(boxed, type(func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): int | null))
+println(Reflect.assignable(Reflect.type(boxed), Reflect.erase(type(func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): func(): int | null))))
+
+func deepen(t: Reflect.ErasedType, n: int): Reflect.ErasedType {
+  var cur = t
+  for _ in Iter.range(0, n) {
+    var s = Reflect.shape(cur)
+    if s is Reflect.Record {
+      var u = Reflect.shape(s.fields[0].type)
+      if u is Reflect.Union { cur = u.members[0] }
+    }
+  }
+  cur
+}
+var a = deepen(Reflect.erase(type(R[int])), 50000)
+println(a == deepen(Reflect.erase(type(R[int])), 50000))
+println(a == deepen(Reflect.erase(type(R[string])), 50000))
+println(Reflect.assignable(a, a))
+var codecs: Map[Reflect.ErasedType, int] = Map{}
+codecs[a] = 1
+println(codecs[deepen(Reflect.erase(type(R[int])), 50000)])
+
+var o: Opt[int] | Opt[string] = "s"
+println(o)
+
+// expect
+// out: true
+// out: false
+// out: true
+// out: true
+// out: false
+// out: true
+// out: 1
+// out: s
