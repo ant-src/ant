@@ -1,0 +1,65 @@
+// spec: 11 Reflect; 10
+// A declaration renders as the name written after `type`, whatever an import calls it, with its
+// owner for a prelude declaration. The name is not unique: two modules, or two blocks, each declare
+// a Point, and a format that reads a declaration back by name checks the candidates are distinct.
+import "./lib/geometry.ant" { Point: GeoPoint }
+import "./lib/points.ant" { Point: PlainPoint, Box }
+
+func declOf(t: Reflect.ErasedType): Reflect.Decl {
+  var s = Reflect.shape(t)
+  if s is Reflect.Record {
+    var d = s.decl
+    if d != null { return d }
+  }
+  if s is Reflect.Tagged { return s.decl }
+  if s is Reflect.Opaque { return s.decl }
+  panic("no declaration: ${t}")
+}
+
+func localPoint(): Reflect.ErasedType {
+  type Point = { x: float64, y: float64 }
+  Reflect.erase(type(Point))
+}
+
+// names gives each member's name, or an error naming the first one two members share.
+func names(t: Reflect.ErasedType): Result[Map[string, Reflect.Decl], Error] {
+  var s = Reflect.shape(t)
+  var out: Map[string, Reflect.Decl] = Map{}
+  if s is Reflect.Union {
+    for m in s.members {
+      var d = declOf(m)
+      var name = String.from(d)
+      var seen = out[name]
+      if seen != null && seen != d {
+        return Result.err(Error{ message: "${t}: two members are named ${name}" })
+      }
+      out[name] = d
+    }
+  }
+  Result.ok(out)
+}
+
+var geo = declOf(Reflect.erase(type(GeoPoint)))
+var plain = declOf(Reflect.erase(type(PlainPoint)))
+println("${geo} ${plain} ${geo == plain}")
+println(localPoint() == localPoint())
+println(declOf(localPoint()) == geo)
+println(declOf(localPoint()))
+println(declOf(Reflect.erase(type(Panic.Frame))))
+println(declOf(Reflect.erase(type(Box[int]))) == declOf(Reflect.erase(type(Box[string]))))
+
+type Both = GeoPoint | PlainPoint
+println(names(Reflect.erase(type(Both))))
+type Distinct = GeoPoint | Box[int]
+println(names(Reflect.erase(type(Distinct))) | Result.map({ Map.keys(x) }))
+
+// expect
+// out: geometry init
+// out: Point Point false
+// out: true
+// out: false
+// out: Point
+// out: Panic.Frame
+// out: true
+// out: Err{ error: Error{ message: "Both: two members are named Point" } }
+// out: Ok{ value: ["Point", "Box"] }
