@@ -34,7 +34,9 @@ var mixed: Map[UserId | string, int] = Map{ UserId("a"): 1, "a": 2 }
 Json.stringify(mixed)                         // => panic: Json.stringify: map keys UserId("a") and "a" both give the property name "a"
 type Meters = float64
 Json.stringify(Map{ Meters(3.0): 1 })         // => panic: Json.stringify: a map key must be a string, got Meters
-Json.stringify(1.0 / 0.0)                     // => "null"
+Json.stringify(1.0 / 0.0)                     // => panic: Json.stringify: Infinity has no JSON form
+Json.stringify([0.0 / 0.0])                   // => panic: Json.stringify: NaN has no JSON form
+Json.stringify(Map{ "f": -float32(1.0 / 0.0) }) // => panic: Json.stringify: -Infinity has no JSON form
 
 // With an indent, one member per line, ": " after a name, empty containers kept on one line.
 var noEntries: Map[string, int] = Map{}

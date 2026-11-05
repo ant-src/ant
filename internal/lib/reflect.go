@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"math"
 	"strings"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -402,7 +403,7 @@ func init() {
 						return value.Null
 					}
 					c, err := value.Convert(kind, v)
-					if err != nil {
+					if err != nil || overflowsFloat(v, c) {
 						return value.Null
 					}
 					v = c
@@ -501,4 +502,15 @@ func init() {
 			}),
 		)
 	})
+}
+
+// overflowsFloat reports whether converting the finite number v gave c, an infinity: a float64
+// beyond the range of a float32, which Reflect.makeScalar refuses as Go's json and strconv do.
+func overflowsFloat(v, c value.Value) bool {
+	f, ok := c.(float32)
+	if !ok || !math.IsInf(float64(f), 0) {
+		return false
+	}
+	src, ok := v.(float64)
+	return ok && !math.IsInf(src, 0)
 }

@@ -125,6 +125,13 @@ Reflect.makeScalar(Reflect.erase(type(bool)), "true")                           
 Reflect.makeScalar(Reflect.erase(type(null)), null)                                                // => Reflect.Value(null: null)
 Reflect.makeScalar(intT, null)                                                                     // => null
 Reflect.makeScalar(Reflect.erase(type(float64)), 2)                                                // => Reflect.Value(2.0: float64)
+Reflect.makeScalar(Reflect.erase(type(float32)), 1e300)                                            // => null
+Reflect.makeScalar(Reflect.erase(type(float32)), -3.5e38)                                          // => null
+Reflect.makeScalar(Reflect.erase(type(float32)), 3.4e38)                                           // => Reflect.Value(3.4e+38: float32)
+Reflect.makeScalar(Reflect.erase(type(float32)), 1e-50)                                            // => Reflect.Value(0.0: float32)
+Reflect.makeScalar(Reflect.erase(type(float32)), 1.0 / 0.0)                                        // => Reflect.Value(Infinity: float32)
+Reflect.makeScalar(Reflect.erase(type(float32)), Math.maxUint64)                                   // => Reflect.Value(18446744000000000000.0: float32)
+Reflect.makeScalar(Reflect.erase(type(uint64)), String.toUint("18446744073709551615") ?? 0)        // => Reflect.Value(18446744073709551615: uint64)
 Reflect.makeScalar(Reflect.erase(type(Array[int])), 1)                                             // => panic: Reflect.makeScalar needs a scalar type, got Array[int]
 Reflect.makeScalar(Reflect.erase(type(Celsius)), 1.5)                                              // => panic: Reflect.makeScalar needs a scalar type, got Celsius
 Reflect.makeArray(Reflect.erase(type(Array[int])), [Reflect.valueOf(type(int), 1)])                                                                                                                                                      // => Reflect.Value([1]: Array[int])

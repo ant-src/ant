@@ -207,6 +207,17 @@ func digitsOf(s string, base int) bool {
 	return true
 }
 
+// specialFloat reports whether s names a value that is not a number String.toFloat reads, as
+// strconv.ParseFloat does: NaN, and Inf or Infinity with an optional sign, in any case.
+func specialFloat(s string) bool {
+	if s != "" && (s[0] == '+' || s[0] == '-') {
+		s = s[1:]
+	} else if strings.EqualFold(s, "nan") {
+		return true
+	}
+	return strings.EqualFold(s, "inf") || strings.EqualFold(s, "infinity")
+}
+
 // decimalFloat reports whether s is a number as String.toFloat reads one: an optional sign,
 // ASCII digits with an optional fraction after '.', at least one digit in all, and an optional
 // exponent after 'e' or 'E' with its own optional sign and at least one digit.
@@ -497,9 +508,21 @@ func init() {
 				}
 				return n
 			}),
+			fn("String.toUint", "s, base?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				s := stringArg(g, who, a[0])
+				base := baseArg(g, who, a[1])
+				if s == "" || s[0] == '+' || s[0] == '-' || !digitsOf(s, base) {
+					return value.Null
+				}
+				n, err := strconv.ParseUint(s, base, 64)
+				if err != nil {
+					return value.Null
+				}
+				return n
+			}),
 			fn("String.toFloat", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				s := stringArg(g, who, a[0])
-				if !decimalFloat(s) {
+				if !decimalFloat(s) && !specialFloat(s) {
 					return value.Null
 				}
 				f, err := strconv.ParseFloat(s, 64)

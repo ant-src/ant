@@ -384,9 +384,13 @@ func stringifyBody(sb *strings.Builder, v value.Value, stack value.Ancestors, in
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64:
 		sb.WriteString(value.Render(x))
 	case float64:
-		writeFloat(sb, x, 64)
+		if msg := writeFloat(sb, x, 64); msg != "" {
+			return msg
+		}
 	case float32:
-		writeFloat(sb, float64(x), 32)
+		if msg := writeFloat(sb, float64(x), 32); msg != "" {
+			return msg
+		}
 	case string:
 		writeJSONString(sb, x)
 	case bool:
@@ -556,12 +560,14 @@ func renderKey(k value.Value) string {
 	return value.Render(k)
 }
 
-func writeFloat(sb *strings.Builder, f float64, bits int) {
+// writeFloat writes f as JSON, or returns why it has no JSON form: NaN and the infinities, which
+// JSON cannot carry, as Go's encoding/json refuses them.
+func writeFloat(sb *strings.Builder, f float64, bits int) string {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
-		sb.WriteString("null")
-		return
+		return value.FormatFloat(f, bits) + " has no JSON form"
 	}
 	sb.WriteString(value.FormatFloat(f, bits))
+	return ""
 }
 
 // writeJSONString writes s as a JSON string: a quote and a backslash escaped, a control character

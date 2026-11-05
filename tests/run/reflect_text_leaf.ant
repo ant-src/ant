@@ -1,0 +1,49 @@
+// spec: 11 Reflect; 11 String
+// A text codec parses a leaf by its target type with the String parsers and Reflect.makeScalar,
+// which also tests that the value fits: every integer kind through toInt or toUint, and both float
+// kinds through toFloat, which reads what String.from writes, NaN and the infinities among them.
+func parseLeaf(t: Reflect.ErasedType, text: string): Reflect.Value | null {
+  var s = Reflect.shape(t)
+  if s is Reflect.Int {
+    var n = if s.signed { String.toInt(text) } else { String.toUint(text) }
+    if n == null { null } else { Reflect.makeScalar(t, n) }
+  } else if s is Reflect.Float {
+    var f = String.toFloat(text)
+    if f == null { null } else { Reflect.makeScalar(t, f) }
+  } else if s is Reflect.Bool {
+    if text == "true" || text == "false" { Reflect.makeScalar(t, text == "true") } else { null }
+  } else if s is Reflect.String {
+    Reflect.makeScalar(t, text)
+  } else {
+    null
+  }
+}
+
+func show[T](t: Reflect.Type[T], text: string) {
+  println("${t} ${text}: ${parseLeaf(Reflect.erase(t), text)}")
+}
+
+show(type(uint64), String.from(Math.maxUint64))
+show(type(uint64), "-1")
+show(type(int8), "-128")
+show(type(int8), "128")
+show(type(byte), "255")
+show(type(int), String.from(Math.minInt))
+show(type(float32), "3.4e38")
+show(type(float32), "1e300")
+show(type(float32), String.from(-float32(1.0 / 0.0)))
+show(type(float64), String.from(0.0 / 0.0))
+show(type(bool), "true")
+
+// expect
+// out: uint64 18446744073709551615: Reflect.Value(18446744073709551615: uint64)
+// out: uint64 -1: null
+// out: int8 -128: Reflect.Value(-128: int8)
+// out: int8 128: null
+// out: byte 255: Reflect.Value(255: byte)
+// out: int -9223372036854775808: Reflect.Value(-9223372036854775808: int)
+// out: float32 3.4e38: Reflect.Value(3.4e+38: float32)
+// out: float32 1e300: null
+// out: float32 -Infinity: Reflect.Value(-Infinity: float32)
+// out: float64 NaN: Reflect.Value(NaN: float64)
+// out: bool true: Reflect.Value(true: bool)

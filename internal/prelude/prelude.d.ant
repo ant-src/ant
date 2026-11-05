@@ -680,14 +680,23 @@ func String.fromCodePoints(points: Array[int]): string | null
 //     String.toInt("0x10")      // null
 func String.toInt(s: string, base: int = 10): int | null
 
+// String.toUint parses s as an unsigned integer in base, or returns null when it is not one. s is
+// digits of base as for [String.toInt], with no sign. A number that does not fit a uint64 is null
+// too. base defaults to 10, and it panics if base is outside 2 ..= 36.
+//
+//     String.toUint("18446744073709551615")   // 18446744073709551615
+//     String.toUint("-1")                     // null
+func String.toUint(s: string, base: int = 10): uint64 | null
+
 // String.toFloat parses s as a decimal number, or returns null when it is not one. s is ASCII
 // digits with an optional sign, fraction after ., and exponent after e or E; the result is rounded
-// to the nearest float64, and a value beyond its range is null. White space, _, a prefix such as
-// 0x, and Infinity and NaN are not numbers.
+// to the nearest float64, and a value beyond its range is null. It also reads NaN, and Inf or
+// Infinity with an optional sign, in any case, so what [String.from] writes reads back. White
+// space, _, and a prefix such as 0x are not numbers.
 //
-//     String.toFloat(".5")         // 0.5
-//     String.toFloat("1e+3")       // 1000.0
-//     String.toFloat("Infinity")   // null
+//     String.toFloat(".5")          // 0.5
+//     String.toFloat("1e+3")        // 1000.0
+//     String.toFloat("-Infinity")   // -Infinity
 func String.toFloat(s: string): float64 | null
 
 // String.fromInt returns x written in base, with lower-case digits and a - in front when negative.
@@ -1007,6 +1016,9 @@ let Math.minInt: int
 
 // Math.maxInt is the largest int, 2^63 - 1.
 let Math.maxInt: int
+
+// Math.maxUint64 is the largest uint64, 2^64 - 1.
+let Math.maxUint64: uint64
 
 // Bits
 //
@@ -1648,7 +1660,8 @@ func Reflect.payload(d: Reflect.Value): Reflect.Value
 // holds only a slot's erased type boxes every leaf through it. It returns null where v is not of
 // t's kind. A number converts to any number type as the conversion functions do, except that a
 // conversion that would panic returns null: a fraction, a value out of range, NaN, or an infinity
-// for an integer type. It panics if t is not null, void, bool, a number, or string.
+// for an integer type, and a finite value beyond the range of a float32 for float32. It panics if
+// t is not null, void, bool, a number, or string.
 //
 //     Reflect.makeScalar(Reflect.erase(type(int8)), 300)
 //     // null
@@ -2700,8 +2713,8 @@ type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[strin
 func Json.parse(text: string): Result[Json.Value, Error]
 
 // Json.stringify returns the compact JSON text of value. Records become objects without their tag,
-// sets arrays, time values strings, and NaN and the infinities null. It panics with "cyclic value"
-// on a value that contains itself, and panics on what has no JSON form: Bytes, which a program
+// sets arrays, and time values strings. It panics with "cyclic value" on a value that contains
+// itself, and panics on what has no JSON form: NaN and the infinities, Bytes, which a program
 // writes with [Encoding.toBase64] instead, a function, void, a type, or a reference such as a
 // channel or a Random. A map key must be a string or a named primitive over one, which is written
 // without its tag; any other key panics, as do two keys that give one property name.

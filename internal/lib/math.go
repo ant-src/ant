@@ -139,6 +139,7 @@ func init() {
 			constant("maxFloat64", math.MaxFloat64),
 			constant("minInt", int64(math.MinInt64)),
 			constant("maxInt", int64(math.MaxInt64)),
+			constant("maxUint64", uint64(math.MaxUint64)),
 		)
 	})
 }
