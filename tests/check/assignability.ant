@@ -28,6 +28,9 @@ var x: int | null | null = null
 var y: int | null = x
 var z: Shape = Circle{ radius: 1.0 }
 var w: Shape | null = z
+type Ints[T] = Array[int] // an alias whose body ignores T
+var ia: Ints[string] = [1]
+var ib: Ints[bool] = ia // both are Array[int]
 var people: Array[{ name: string, age: int }] = [named()]
 var reordered: Array[{ age: int, name: string }] = people
 println(a + n)

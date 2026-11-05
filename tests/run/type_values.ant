@@ -9,6 +9,7 @@ type Circle = { r: float64 }
 type Rect = { w: float64, h: float64 }
 type Shape = Circle | Rect
 type Celsius = float64
+type Ints[T] = Array[int]
 
 println(type(int))
 println(type(Array[Config]))
@@ -82,6 +83,7 @@ func token(): Reflect.Type[Box[Tree]] { type(Box[Tree]) }
 println(token() == token())
 println(String.from(type(Set[Celsius])))
 println("${type(Map[Id[Config], Box[int | null]])}")
+println(Reflect.erase(type(Ints[string])) == Reflect.erase(type(Ints[bool])))
 
 // expect
 // out: int
@@ -134,3 +136,4 @@ println("${type(Map[Id[Config], Box[int | null]])}")
 // out: true
 // out: Set[Celsius]
 // out: Map[Id[Config], Box[int | null]]
+// out: true

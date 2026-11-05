@@ -222,17 +222,20 @@ func (n Named) FieldsOf() []Field {
 func Equal(a, b Type) bool { return equal(a, b, &[][2]Type{}) }
 
 func equal(a, b Type, assumed *[][2]Type) bool {
+	// The same declaration with equal arguments is the same type. An alias with different
+	// arguments may still be, when its body ignores a parameter, so it is expanded below.
 	if na, ok := a.(Named); ok {
-		if nb, ok := b.(Named); ok && na.Decl == nb.Decl {
-			if len(na.Args) != len(nb.Args) {
-				return false
-			}
+		if nb, ok := b.(Named); ok && na.Decl == nb.Decl && len(na.Args) == len(nb.Args) {
+			same := true
 			for i := range na.Args {
 				if !equal(na.Args[i], nb.Args[i], assumed) {
-					return false
+					same = false
+					break
 				}
 			}
-			return true
+			if same || !isAlias(a) {
+				return same
+			}
 		}
 	}
 	if isAlias(a) || isAlias(b) {
