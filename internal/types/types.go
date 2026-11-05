@@ -200,14 +200,18 @@ func Bindings(params []*ParamDecl, args []Type) map[*ParamDecl]Type {
 	return m
 }
 
-// Fields returns the fields of a named record type with its arguments substituted.
+// FieldsOf returns the fields of a named record type with its arguments substituted. The
+// substitution cannot fail: the checker checks every instantiation a written type reaches,
+// through fields and alias bodies, where its arguments are written (section 4, Unions), and a
+// type value is built only from closed type expressions and builders that keep this (section 4,
+// Types as values).
 func (n Named) FieldsOf() []Field {
 	m := Bindings(n.Decl.Params, n.Args)
 	out := make([]Field, len(n.Decl.Fields))
 	for i, f := range n.Decl.Fields {
 		t, err := Subst(f.Type, m)
 		if err != nil {
-			t = Invalid{}
+			panic("internal error: the fields of " + String(n) + ", which the checker accepted: " + err.Error())
 		}
 		out[i] = Field{Name: f.Name, Type: t, Default: f.Default}
 	}

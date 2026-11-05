@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 // Subst replaces type parameters by their bindings. Unions are formed again after
 // substitution, which can fail where the arguments are written (section 4, Unions).
 func Subst(t Type, m map[*ParamDecl]Type) (Type, error) {
@@ -81,19 +83,24 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			args[i] = b
 		}
-		if x.Decl.Kind == AliasDecl && x.Decl.Body != nil && !s.seen[x.Decl] {
-			// The arguments may form an invalid union inside the alias's body, as
-			// Either[Box[int], Box[string]] does. An alias that reaches itself is checked once,
-			// since it passes its own parameters (section 4, Type declarations).
+		if body := DeclBody(x.Decl); len(body) > 0 && !s.seen[x.Decl] {
+			// The arguments may form an invalid union inside the declaration, as
+			// Either[Box[int], Box[string]] does in an alias's body and Outer[M] does in the field
+			// of the Box[M] it holds, however deep (section 4, Unions). A type that reaches
+			// itself is checked once, since it passes its own parameters (section 4, Type
+			// declarations).
 			if s.seen == nil {
 				s.seen = map[*Decl]bool{}
 			}
 			s.seen[x.Decl] = true
-			_, err := (&substituter{m: Bindings(x.Decl.Params, args), seen: s.seen}).subst(x.Decl.Body)
-			delete(s.seen, x.Decl)
-			if err != nil {
-				return nil, err
+			inner := &substituter{m: Bindings(x.Decl.Params, args), seen: s.seen}
+			for _, t := range body {
+				if _, err := inner.subst(t); err != nil {
+					delete(s.seen, x.Decl)
+					return nil, fmt.Errorf("in %s: %w", String(Named{Decl: x.Decl, Args: args}), err)
+				}
 			}
+			delete(s.seen, x.Decl)
 		}
 		return Named{Decl: x.Decl, Args: args}, nil
 	case Union:
@@ -194,4 +201,51 @@ func Walk(t Type, f func(Type)) {
 			Walk(m, f)
 		}
 	}
+}
+
+// DeclBody returns the types a generic declaration substitutes its arguments into: an alias's
+// body or a record's field types. It is empty for a declaration without type parameters.
+func DeclBody(d *Decl) []Type {
+	if len(d.Params) == 0 {
+		return nil
+	}
+	switch d.Kind {
+	case AliasDecl:
+		if d.Body != nil {
+			return []Type{d.Body}
+		}
+	case RecordDecl:
+		out := make([]Type, len(d.Fields))
+		for i, f := range d.Fields {
+			out[i] = f.Type
+		}
+		return out
+	}
+	return nil
+}
+
+// CheckArgs forms the unions that n's arguments make in its declaration, and in every
+// instantiation that declaration reaches, however deep (section 4, Unions): Outer[M] fails when
+// the Box[M] in its field does.
+func CheckArgs(n Named) error {
+	m := Bindings(n.Decl.Params, n.Args)
+	for _, t := range DeclBody(n.Decl) {
+		if _, err := Subst(t, m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CheckWritten applies CheckArgs to every instantiation written in t.
+func CheckWritten(t Type) error {
+	var first error
+	Walk(t, func(t Type) {
+		if n, ok := t.(Named); ok && first == nil && len(n.Args) > 0 {
+			if err := CheckArgs(n); err != nil {
+				first = fmt.Errorf("%s: %w", String(n), err)
+			}
+		}
+	})
+	return first
 }

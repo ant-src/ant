@@ -48,6 +48,23 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 		g.in.newDecls = nil
 	}()
 	v := &types.TypeValue{T: g.resolveType(e.Type, env, nil)}
+	// The instantiations the expression and the declarations it reached write are checked once
+	// those declarations are complete, as the checker does at each use (section 4, Unions).
+	written := []types.Type{v.T}
+	for _, tag := range g.in.newDecls {
+		d := g.in.decls[tag]
+		for _, f := range d.Fields {
+			written = append(written, f.Type)
+		}
+		if d.Body != nil {
+			written = append(written, d.Body)
+		}
+	}
+	for _, t := range written {
+		if err := types.CheckWritten(t); err != nil {
+			g.panicf(e.Pos, "%s", err)
+		}
+	}
 	g.in.typeExprs.Store(e, v)
 	return v
 }

@@ -1,0 +1,20 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Unions
+// panics: type-expr
+// An unchecked run checks the unions a type expression's arguments form in every record field
+// and alias body they reach, as the checker does, so Outer[M] panics on the Box[M] in its field,
+// and X on the D[M] its declaration writes; a type value never holds such an instantiation.
+type NotFound = {}
+type M = { a: int } | null
+type Box[T] = { v: T | NotFound }
+type Outer[T] = { b: Box[T] }
+type X = { d: D[M] }
+type D[T] = { v: T | NotFound, x: X | null }
+println(Panic.catch({ type(X) }) is Err)
+println(type(Outer[int]))
+println(type(Outer[M]))
+
+// expect
+// out: true
+// out: Outer[int]
+// exit: 1
+// err: Outer[M]: in Box[M]: a union may not contain an anonymous record type

@@ -679,7 +679,7 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	c.resolveTypeDecl(ti)
 	c.info.fieldDecl(ti.t, ti.decl)
 	c.checkAliasCycle(ti)
-	c.checkAliasArgs(ti)
+	c.checkSelfArgs(ti)
 	c.checkCycleUnions(ti)
 }
 
@@ -865,27 +865,32 @@ func (c *Checker) checkAliasCycle(ti *typeInfo) {
 	last.Body = types.Invalid{}
 }
 
-// checkAliasArgs reports a generic alias that refers to itself, directly or through other
-// aliases, with anything but its own type parameters in order (section 4, Type declarations):
-// each level of N[A, B] = Array[N[B, Box[A]]] | ... would be a new instantiation whose unions
-// are never checked. A cycle is complete once its last declaration is resolved, which is ti, so
-// every alias ti reaches is checked again.
-func (c *Checker) checkAliasArgs(ti *typeInfo) {
-	if ti.t.Kind != types.AliasDecl {
+// checkSelfArgs reports a generic type that refers to itself, directly or through other generic
+// types, with anything but its own type parameters in order (section 4, Type declarations):
+// each level of N[A, B] = Array[N[B, Box[A]]] | ... would be a new instantiation, and checking
+// every instantiation a use reaches would never end. A cycle is complete once its last
+// declaration is resolved, which is ti, so every generic type ti reaches is checked again.
+func (c *Checker) checkSelfArgs(ti *typeInfo) {
+	reached := map[*types.Decl]bool{}
+	var reach func(ts []types.Type)
+	reach = func(ts []types.Type) {
+		for _, t := range ts {
+			types.Walk(t, func(t types.Type) {
+				if n, ok := t.(types.Named); ok && !reached[n.Decl] {
+					if body := types.DeclBody(n.Decl); len(body) > 0 {
+						reached[n.Decl] = true
+						reach(body)
+					}
+				}
+			})
+		}
+	}
+	body := types.DeclBody(ti.t)
+	if len(body) == 0 {
 		return
 	}
-	reached := map[*types.Decl]bool{}
-	var reach func(t types.Type)
-	reach = func(t types.Type) {
-		types.Walk(t, func(t types.Type) {
-			if n, ok := t.(types.Named); ok && n.Decl.Kind == types.AliasDecl && n.Decl.Body != nil && !reached[n.Decl] {
-				reached[n.Decl] = true
-				reach(n.Decl.Body)
-			}
-		})
-	}
 	reached[ti.t] = true
-	reach(ti.t.Body)
+	reach(body)
 	type violation struct {
 		decl *types.Decl
 		msg  string
@@ -897,17 +902,20 @@ func (c *Checker) checkAliasArgs(ti *typeInfo) {
 		}
 	}
 	for _, v := range bad {
-		pos, _ := v.decl.Pos.(ast.Pos) // only this module's aliases can still be in a cycle
+		pos, _ := v.decl.Pos.(ast.Pos) // only this module's types can still be in a cycle
 		c.errorf(pos, "%s", v.msg)
-		v.decl.Body = types.Invalid{}
+		if v.decl.Kind == types.AliasDecl {
+			v.decl.Body = types.Invalid{}
+		}
 	}
 }
 
-// selfArgs describes how the generic alias d refers to itself with other type arguments than
-// its own parameters in order, or returns "" when it does not. It follows d's body through the
-// aliases it names, tracking which of their parameters stand for which of d's.
+// selfArgs describes how the generic type d refers to itself with other type arguments than
+// its own parameters in order, or returns "" when it does not. It follows d's body or fields
+// through the generic types they name, tracking which of their parameters stand for which of
+// d's.
 func selfArgs(d *types.Decl) string {
-	if len(d.Params) == 0 || d.Body == nil {
+	if len(types.DeclBody(d)) == 0 {
 		return ""
 	}
 	own := make([]types.Type, len(d.Params))
@@ -922,54 +930,56 @@ func selfArgs(d *types.Decl) string {
 	}
 	visited := map[visit]bool{}
 	var msg string
-	var follow func(t types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl)
-	follow = func(t types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl) {
-		types.Walk(t, func(t types.Type) {
-			n, ok := t.(types.Named)
-			if msg != "" || !ok || n.Decl.Kind != types.AliasDecl || n.Decl.Body == nil {
-				return
-			}
-			next := map[*types.ParamDecl]*types.ParamDecl{}
-			key := ""
-			for i, p := range n.Decl.Params {
-				var stands *types.ParamDecl
-				if i < len(n.Args) {
-					if a, ok := n.Args[i].(types.Param); ok {
-						stands = env[a.Decl]
-					}
+	var follow func(ts []types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl)
+	follow = func(ts []types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl) {
+		for _, t := range ts {
+			types.Walk(t, func(t types.Type) {
+				n, ok := t.(types.Named)
+				if msg != "" || !ok || len(types.DeclBody(n.Decl)) == 0 {
+					return
 				}
-				next[p] = stands
-				key += fmt.Sprintf("%p,", stands)
-			}
-			if n.Decl == d {
-				for i, p := range d.Params {
-					if next[n.Decl.Params[i]] != p {
-						if via == nil {
-							msg = fmt.Sprintf("type %s refers to itself as %s; a generic alias must refer to itself as %s, with its own type parameters in order", d.Name, types.String(n), want)
-						} else {
-							msg = fmt.Sprintf("type %s refers to itself through %s with other type arguments; a generic alias must refer to itself as %s, with its own type parameters in order", d.Name, via.Name, want)
+				next := map[*types.ParamDecl]*types.ParamDecl{}
+				key := ""
+				for i, p := range n.Decl.Params {
+					var stands *types.ParamDecl
+					if i < len(n.Args) {
+						if a, ok := n.Args[i].(types.Param); ok {
+							stands = env[a.Decl]
 						}
-						return
 					}
+					next[p] = stands
+					key += fmt.Sprintf("%p,", stands)
 				}
-				return
-			}
-			if visited[visit{n.Decl, key}] {
-				return
-			}
-			visited[visit{n.Decl, key}] = true
-			if via == nil {
-				follow(n.Decl.Body, next, n.Decl)
-			} else {
-				follow(n.Decl.Body, next, via)
-			}
-		})
+				if n.Decl == d {
+					for i, p := range d.Params {
+						if next[n.Decl.Params[i]] != p {
+							if via == nil {
+								msg = fmt.Sprintf("type %s refers to itself as %s; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, types.String(n), want)
+							} else {
+								msg = fmt.Sprintf("type %s refers to itself through %s with other type arguments; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, via.Name, want)
+							}
+							return
+						}
+					}
+					return
+				}
+				if visited[visit{n.Decl, key}] {
+					return
+				}
+				visited[visit{n.Decl, key}] = true
+				if via == nil {
+					follow(types.DeclBody(n.Decl), next, n.Decl)
+				} else {
+					follow(types.DeclBody(n.Decl), next, via)
+				}
+			})
+		}
 	}
 	env := map[*types.ParamDecl]*types.ParamDecl{}
 	for _, p := range d.Params {
 		env[p] = p
 	}
-	follow(d.Body, env, nil)
+	follow(types.DeclBody(d), env, nil)
 	return msg
 }
 
@@ -1238,25 +1248,15 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 	if ti := c.unresolved[decl]; ti != nil && (len(args) > 0 || decl.Kind == types.AliasDecl) {
 		// A later declaration: its body is needed to check the arguments here, or to form a
 		// union that names the alias. One whose body is being resolved is in a cycle with this
-		// use, which checkAliasCycle and checkAliasArgs cover.
+		// use, which checkAliasCycle and checkSelfArgs cover.
 		c.resolveTypeOnce(ti)
 	}
 	n := types.Named{Decl: decl, Args: args}
-	if decl.Kind == types.AliasDecl && len(args) > 0 {
-		// Substituting arguments forms unions under the same rules, at the use.
-		if _, err := types.Subst(decl.Body, types.Bindings(decl.Params, args)); err != nil {
-			c.errorf(x.Pos, "%s: %s", types.String(n), err)
-			return types.Invalid{}
-		}
-	}
-	if decl.Kind == types.RecordDecl && len(args) > 0 {
-		// The same holds for a field type, as A | B in { v: A | B }.
-		for _, f := range decl.Fields {
-			if _, err := types.Subst(f.Type, types.Bindings(decl.Params, args)); err != nil {
-				c.errorf(x.Pos, "%s: %s", types.String(n), err)
-				return types.Invalid{}
-			}
-		}
+	// Substituting the arguments forms unions under the same rules, at the use, in an alias's
+	// body or a record's fields and in every instantiation they reach.
+	if err := types.CheckArgs(n); err != nil {
+		c.errorf(x.Pos, "%s: %s", types.String(n), err)
+		return types.Invalid{}
 	}
 	return n
 }

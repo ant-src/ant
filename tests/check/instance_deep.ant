@@ -1,0 +1,21 @@
+// spec: 4 Unions; 4 Type declarations; 4 Types as values
+// Section 4: substituting type arguments forms unions where the arguments are written, in the
+// alias bodies and record fields the instantiation reaches however deep, so Outer[M] is an error
+// because the Box[M] in its field is, in an annotation, a type expression, or a call's result. A
+// value of such a type would let a reflective builder or a record spread take any field value.
+type NotFound = {}
+type M = { a: int } | null
+type Box[T] = { v: T | NotFound }
+type Outer[T] = { b: Box[T] }
+type Pair[A, B] = { v: A | B }
+type Holder[A, B] = { p: Pair[A, B] }
+
+func outer[T](x: T): Outer[T] { Outer{ b: Box{ v: x } } }
+func holder[A, B](a: A, b: B): Holder[A, B] { Holder{ p: Pair{ v: a } } }
+
+var m: M = null
+var t = type(Outer[M])                                                    // ERR: Outer[M]: in Box[M]: a union may not contain an anonymous record type
+var o = outer(m)                                                          // ERR: the result of outer: in Outer[M]: in Box[M]
+var h: Holder[Box[string], Box[int]] = holder(Box{ v: "s" }, Box{ v: 1 }) // ERR: Holder[Box[string], Box[int]]: in Pair[Box[string], Box[int]]: a union may contain each discriminator at most once
+var fine = outer(1)
+println(fine.b.v)
