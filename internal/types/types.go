@@ -226,9 +226,9 @@ func (n Named) FieldsOf() []Field {
 func Equal(a, b Type) bool { return equal(a, b, &[][2]Type{}, 0) }
 
 // equal compares two types depth levels into a comparison. It moves to a fresh stack every
-// value.Deep levels, as == on values does, so that a type value nested a million deep, which the
-// builders or a walk of a type such as type R[T] = { next: R[Array[T]] | null } can make,
-// compares without overflowing the Go stack (section 9: the interpreter never crashes).
+// value.Deep levels, as == on values does, so that a type value nested a million deep, as a
+// host or a long type expression can make, compares without overflowing the Go stack (section 9:
+// the interpreter never crashes).
 func equal(a, b Type, assumed *[][2]Type, depth int) bool {
 	if value.Deep(depth) {
 		return equalOnFreshStack(a, b, assumed, depth)
