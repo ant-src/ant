@@ -101,6 +101,13 @@ func AliasCycle(d *Decl) (path []*Decl, cyclic bool) {
 			if walk(x.Decl.Body) {
 				return true
 			}
+			// An argument the alias puts where its body is, as Id[T] = T does, is reached
+			// without a container too: type A[T] = Id[A[T]] is a cycle.
+			for i, a := range x.Args {
+				if i < len(x.Decl.Params) && unguarded(x.Decl, x.Decl.Params[i], map[*Decl]bool{}) && walk(a) {
+					return true
+				}
+			}
 			path = path[:len(path)-1]
 		case Union:
 			// The members as written first: a union flattens the aliases it names, and the
@@ -117,4 +124,38 @@ func AliasCycle(d *Decl) (path []*Decl, cyclic bool) {
 		return nil, false
 	}
 	return path, true
+}
+
+// unguarded reports whether the alias d's body holds its parameter p outside any record, array,
+// map, set, or function: as the body, as a member of a union, or as such an argument of another
+// alias.
+func unguarded(d *Decl, p *ParamDecl, seen map[*Decl]bool) bool {
+	if seen[d] {
+		return false
+	}
+	seen[d] = true
+	var reach func(t Type) bool
+	reach = func(t Type) bool {
+		switch x := t.(type) {
+		case Param:
+			return x.Decl == p
+		case Union:
+			for _, m := range append(x.Written, x.Members...) {
+				if reach(m) {
+					return true
+				}
+			}
+		case Named:
+			if x.Decl.Kind != AliasDecl {
+				return false
+			}
+			for i, a := range x.Args {
+				if i < len(x.Decl.Params) && reach(a) && unguarded(x.Decl, x.Decl.Params[i], seen) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return reach(d.Body)
 }
