@@ -98,6 +98,11 @@ func (g *Goroutine) resolveType(t ast.Type, env *Env, params map[string]types.Ty
 		members := make([]types.Type, len(x.Members))
 		for i, m := range x.Members {
 			members[i] = g.resolveType(m, env, params)
+			// Forming the union expands an alias member, which needs its arguments valid: an
+			// unchecked program may give it ones the checker rejects (section 4, Unions).
+			if err := types.CheckWritten(members[i]); err != nil {
+				g.panicf(x.Pos, "%s", err)
+			}
 		}
 		u, err := types.MakeUnion(members)
 		if err != nil {

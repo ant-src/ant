@@ -1,0 +1,15 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Unions
+// panics: type-expr
+// An unchecked run checks the arguments of an alias written in a union before the union expands
+// it, so a bad instantiation there is an ordinary panic that Panic.catch recovers, in a type
+// expression as in a declaration's body.
+type Box[T] = { v: T }
+type Either[A, B] = A | B
+type Opt[T] = Either[T, Box[string]] | null
+println(Panic.catch({ type(Opt[Box[int]]) }) is Err)
+println(type(Either[Box[int], Box[string]] | int))
+
+// expect
+// out: true
+// exit: 1
+// err: Either[Box[int], Box[string]]: a union may contain each discriminator at most once
