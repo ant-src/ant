@@ -59,6 +59,8 @@ func decodeAt(t: Reflect.ErasedType, v: Json.Value, path: string, concrete: Map[
     if s.decl == null {
       var c = concrete[t]
       if c == null { return fail(path, "cannot decode into ${t}: name a record type for it") }
+      var cs = Reflect.shape(c)
+      if !(cs is Reflect.Record) || cs.decl == null { return fail(path, "${c} is not a named record type") }
       if !Reflect.assignable(c, t) { return fail(path, "${c} is not assignable to ${t}") }
       return decodeAt(c, v, path, concrete)
     }

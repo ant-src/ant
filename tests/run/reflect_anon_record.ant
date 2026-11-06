@@ -30,6 +30,7 @@ println(decode(`[{"x": 2}]`, type(Array[{ x: int }]), Map{ (anon): Reflect.erase
 // A choice that does not fit is the decoder's error, not a panic.
 type R = { y: int }
 println(decode(text, type(Outer), Map{ (anon): Reflect.erase(type(R)) }))
+println(decode(text, type(Outer), Map{ (anon): anon }))
 
 // expect
 // out: Err{ error: Error{ message: "$.inner: cannot decode into { x: int }: name a record type for it" } }
@@ -40,3 +41,4 @@ println(decode(text, type(Outer), Map{ (anon): Reflect.erase(type(R)) }))
 // out: Outer{ inner: Q{ x: 1, y: 0 } }
 // out: Ok{ value: [P{ x: 2 }] }
 // out: Err{ error: Error{ message: "$.inner: R is not assignable to { x: int }" } }
+// out: Err{ error: Error{ message: "$.inner: { x: int } is not a named record type" } }
