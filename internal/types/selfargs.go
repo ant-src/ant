@@ -82,6 +82,12 @@ func AliasCycle(d *Decl) (path []*Decl, cyclic bool) {
 	if d.Kind != AliasDecl {
 		return nil, false
 	}
+	return reachesTop(d.Body, d)
+}
+
+// reachesTop reports whether t reaches the alias d through alias bodies and unions alone, without
+// passing through a record, array, map, set, or function, and the other aliases on the way.
+func reachesTop(t Type, d *Decl) (path []*Decl, found bool) {
 	visited := map[*Decl]bool{}
 	var walk func(t Type) bool
 	walk = func(t Type) bool {
@@ -120,10 +126,48 @@ func AliasCycle(d *Decl) (path []*Decl, cyclic bool) {
 		}
 		return false
 	}
-	if !walk(d.Body) {
+	if !walk(t) {
 		return nil, false
 	}
 	return path, true
+}
+
+// UnionSelf describes how the alias d names itself in a union inside its body, which is an error
+// when the body is a union or names a type, or returns "". The outer union would need the inner
+// one flattened, and the inner one the alias expanded, which forms the outer union again; a body
+// that is an array, map, set, function or record type is not expanded to form a union, so
+// type L[T] = Array[L[T] | int] is fine (section 4, Type declarations).
+func UnionSelf(d *Decl) string {
+	if d.Kind != AliasDecl {
+		return ""
+	}
+	switch d.Body.(type) {
+	case Union, Named:
+	default:
+		return ""
+	}
+	// The body's own members reaching d are a cycle (AliasCycle), so only the unions below them
+	// are looked at.
+	parts := []Type{d.Body}
+	if top, ok := d.Body.(Union); ok {
+		parts = append(top.Written, top.Members...)
+	}
+	var msg string
+	for _, part := range parts {
+		Walk(part, func(t Type) {
+			u, ok := t.(Union)
+			if !ok || msg != "" {
+				return
+			}
+			for _, m := range append(u.Written, u.Members...) {
+				if _, found := reachesTop(m, d); found {
+					msg = fmt.Sprintf("type %s names itself in the union %s; an alias whose body is a union or a type's name may not, so wrap the recursion in a named record type", d.Name, String(u))
+					return
+				}
+			}
+		})
+	}
+	return msg
 }
 
 // unguarded reports whether the alias d's body holds its parameter p outside any record, array,

@@ -62,6 +62,9 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 		if msg := types.SelfArgs(d); msg != "" {
 			g.panicf(e.Pos, "%s", msg)
 		}
+		if msg := types.UnionSelf(d); msg != "" {
+			g.panicf(e.Pos, "%s", msg)
+		}
 		for _, f := range d.Fields {
 			written = append(written, f.Type)
 		}

@@ -1,0 +1,23 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: an alias whose body is a union or names a type may not name itself in a union
+// inside that body, directly or through another alias, generic or not: flattening the outer
+// union would need the inner one, which needs the alias expanded again. Recursion through an
+// array, map, set, function or record type that is the whole body, through a named record type,
+// or outside any inner union is fine.
+type Opt[X] = X | null
+type R[T] = Array[R[T] | int] | null // ERR: type R names itself in the union R[T] | int
+type U[T] = Opt[Array[U[T] | int]]   // ERR: type U names itself in the union U[T] | int
+type V[T] = Array[W[T] | int] | null // ERR: type V names itself in the union W[T] | int
+type W[T] = V[T]
+type P = Array[P | int] | null // ERR: type P names itself in the union P | int
+type L[T] = Array[L[T] | int]
+type G[T] = Array[G[T]] | null
+type Node = { value: int, children: Array[Node | int] }
+type Tree = Node | null
+
+var l: L[int] = [[1], 2]
+var g: G[int] = [[null]]
+var t: Tree = Node{ value: 1, children: [2] }
+println(l)
+println(g)
+println(t)

@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
+// panics: type-expr
+// An unchecked run rejects an alias that names itself in a union inside its union body, as the
+// checker does, when a type expression first reaches it.
+type R[T] = Array[R[T] | int] | null
+println(type(R[int]))
+
+// expect
+// exit: 1
+// err: type R names itself in the union R[T] | int

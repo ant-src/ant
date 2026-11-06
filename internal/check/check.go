@@ -680,7 +680,17 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	c.info.fieldDecl(ti.t, ti.decl)
 	c.checkAliasCycle(ti)
 	c.checkSelfArgs(ti)
+	c.checkUnionSelf(ti)
 	c.checkCycleUnions(ti)
+}
+
+// checkUnionSelf reports a generic alias that names itself in a union inside a body that
+// expansion substitutes (types.UnionSelf), and makes its body invalid, as an alias cycle's is.
+func (c *Checker) checkUnionSelf(ti *typeInfo) {
+	if msg := types.UnionSelf(ti.t); msg != "" {
+		c.errorf(ti.decl.Pos, "%s", msg)
+		ti.t.Body = types.Invalid{}
+	}
 }
 
 // checkCycleUnions checks again the unions and instantiations of the declarations ti reaches in
