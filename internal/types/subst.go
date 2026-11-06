@@ -11,13 +11,26 @@ func Subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 	return (&substituter{m: m}).subst(t)
 }
 
+// substPlain substitutes as Subst does but does not validate the bodies of the declarations
+// the result names. Expanding an alias needs only its body: its arguments were validated where
+// they were written, and validating again from inside a union being formed, as in
+// type A[T] = B[T] | null with B[T] = { next: A[T] | int }, would start each time with fresh
+// guards and never end.
+func substPlain(t Type, m map[*ParamDecl]Type) (Type, error) {
+	if len(m) == 0 {
+		return t, nil
+	}
+	return (&substituter{m: m, plain: true}).subst(t)
+}
+
 // substituter carries the bindings, the declarations whose bodies are being validated, and the
 // instantiations already validated in this walk, so that a type reached along many paths, as
 // T1 is from T0[X] = { a: T1[X], b: T1[X] }, is validated once.
 type substituter struct {
-	m    map[*ParamDecl]Type
-	seen map[*Decl]bool
-	done *map[*Decl][][]Type
+	m     map[*ParamDecl]Type
+	seen  map[*Decl]bool
+	done  *map[*Decl][][]Type
+	plain bool // substPlain: no declaration bodies are validated
 }
 
 // validated reports whether n's body was already validated with these arguments.
@@ -107,7 +120,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 		if s.done == nil {
 			s.done = &map[*Decl][][]Type{}
 		}
-		if body := DeclBody(x.Decl); len(body) > 0 && !s.seen[x.Decl] && !s.validated(n) {
+		if body := DeclBody(x.Decl); len(body) > 0 && !s.plain && !s.seen[x.Decl] && !s.validated(n) {
 			// The arguments may form an invalid union inside the declaration, as
 			// Either[Box[int], Box[string]] does in an alias's body and Outer[M] does in the field
 			// of the Box[M] it holds, however deep (section 4, Unions). A type that reaches

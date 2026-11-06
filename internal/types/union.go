@@ -131,7 +131,7 @@ func expandTop(t Type) Type {
 			// hold a union naming the alias being expanded.
 			args := make([]Type, len(b.Args))
 			for i, a := range b.Args {
-				s, err := Subst(a, m)
+				s, err := substPlain(a, m)
 				if err != nil {
 					panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 				}
@@ -142,7 +142,7 @@ func expandTop(t Type) Type {
 		default:
 			return n.Decl.Body
 		}
-		body, err := Subst(n.Decl.Body, m)
+		body, err := substPlain(n.Decl.Body, m)
 		if err != nil {
 			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}

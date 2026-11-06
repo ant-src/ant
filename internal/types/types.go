@@ -180,7 +180,7 @@ func Expand(t Type) Type {
 			}
 			met[n.Decl] = true
 		}
-		body, err := Subst(n.Decl.Body, Bindings(n.Decl.Params, n.Args))
+		body, err := substPlain(n.Decl.Body, Bindings(n.Decl.Params, n.Args))
 		if err != nil {
 			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}

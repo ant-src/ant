@@ -1,0 +1,15 @@
+// spec: 4 Type declarations; 4 Unions; 4 Types as values
+// Section 4: generic types that reach each other through unions, as A[T] does B[T] and B[T]'s
+// field does A[T], are checked once per instantiation and expand without end.
+type A[T] = B[T] | null
+type B[T] = { v: T, next: A[T] | int }
+
+var b: A[int] = B{ v: 1, next: B{ v: 2, next: 3 } }
+println(b)
+println(type(A[int]))
+println(type(A[int]) == type(B[int] | null))
+
+// expect
+// out: B{ v: 1, next: B{ v: 2, next: 3 } }
+// out: A[int]
+// out: true
