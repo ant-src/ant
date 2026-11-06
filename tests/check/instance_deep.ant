@@ -3,12 +3,14 @@
 // alias bodies and record fields the instantiation reaches however deep, so Outer[M] is an error
 // because the Box[M] in its field is, in an annotation, a type expression, or a call's result. A
 // value of such a type would let a reflective builder or a record spread take any field value.
+// Arguments a record literal infers are checked the same way.
 type NotFound = {}
 type M = { a: int } | null
 type Box[T] = { v: T | NotFound }
 type Outer[T] = { b: Box[T] }
 type Pair[A, B] = { v: A | B }
 type Holder[A, B] = { p: Pair[A, B] }
+type Mix[A, B] = { a: A, b: B, either: A | B }
 
 func outer[T](x: T): Outer[T] { Outer{ b: Box{ v: x } } }
 func holder[A, B](a: A, b: B): Holder[A, B] { Holder{ p: Pair{ v: a } } }
@@ -17,5 +19,11 @@ var m: M = null
 var t = type(Outer[M])                                                    // ERR: Outer[M]: in Box[M]: a union may not contain an anonymous record type
 var o = outer(m)                                                          // ERR: the result of outer: in Outer[M]: in Box[M]
 var h: Holder[Box[string], Box[int]] = holder(Box{ v: "s" }, Box{ v: 1 }) // ERR: Holder[Box[string], Box[int]]: in Pair[Box[string], Box[int]]: a union may contain each discriminator at most once
+var mix = Mix{                                                            // ERR: Mix[Box[int], Box[string]]: a union may contain each discriminator at most once
+  a: Box{ v: 1 },
+  b: Box{ v: "s" },
+  either: Box{ v: 1 }, // ERR: a union may contain each discriminator at most once
+}
+println(mix.either)
 var fine = outer(1)
 println(fine.b.v)
