@@ -1,0 +1,14 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: an instantiation written in a cycle of declarations is checked once the cycle is
+// complete: R[M] in the body of Z is formed while R's fields, which name Z, are still being
+// resolved, and only then shows that M and N share a union in R's field.
+type N = {}
+type M = { a: int } | null
+type R[T] = { next: Z, value: T | N }
+type Z = Array[R[M]] // ERR: type Z: R[M]: a union may not contain an anonymous record type { a: int } alongside the named record type N
+
+func read(z: Z) {
+  for r in z {
+    println(r.value)
+  }
+}

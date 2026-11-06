@@ -683,10 +683,11 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	c.checkCycleUnions(ti)
 }
 
-// checkCycleUnions checks again the unions of the declarations ti reaches in its module. A union
-// that names a declaration of its own cycle was formed before that declaration's body was known,
-// as Array[L[T] | Array[int]] in the body of L, and only now shows whether its members share a
-// discriminator (section 4, Unions).
+// checkCycleUnions checks again the unions and instantiations of the declarations ti reaches in
+// its module. A union that names a declaration of its own cycle was formed before that
+// declaration's body was known, as Array[L[T] | Array[int]] in the body of L, and only now shows
+// whether its members share a discriminator; so was an instantiation such as R[M] in the body of
+// Z while R's fields, which name Z, were still being resolved (section 4, Unions).
 func (c *Checker) checkCycleUnions(ti *typeInfo) {
 	own := map[*types.Decl]bool{}
 	for _, t := range c.mod.types {
@@ -711,12 +712,24 @@ func (c *Checker) checkCycleUnions(ti *typeInfo) {
 		check := func(t types.Type) bool {
 			ok := true
 			types.Walk(t, func(t types.Type) {
-				if u, isUnion := t.(types.Union); isUnion && ok {
-					if err := types.CheckUnion(u.Members); err != nil {
-						pos, _ := d.Pos.(ast.Pos)
-						c.errorf(pos, "type %s: %s", d.Name, err)
-						ok = false
+				if !ok {
+					return
+				}
+				var err error
+				switch x := t.(type) {
+				case types.Union:
+					err = types.CheckUnion(x.Members)
+				case types.Named:
+					if len(x.Args) > 0 {
+						if err = types.CheckArgs(x); err != nil {
+							err = fmt.Errorf("%s: %w", types.String(x), err)
+						}
 					}
+				}
+				if err != nil {
+					pos, _ := d.Pos.(ast.Pos)
+					c.errorf(pos, "type %s: %s", d.Name, err)
+					ok = false
 				}
 			})
 			return ok
