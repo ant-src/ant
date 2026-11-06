@@ -13,6 +13,8 @@ var f: float64 = 1   // ERR: cannot use int where float64 is expected
 var i: int = 1.0     // ERR: cannot use float64 where int is expected
 var v: void = 1      // ERR: cannot use int where void is expected
 var n: never = 1     // ERR: cannot use int where never is expected
+var i64: int64 = 1.0 // ERR: cannot use float64 where int is expected
+var u8: uint8 = 1.0  // ERR: cannot use float64 where byte is expected
 println(string(1))   // ERR: string converts
 println(bool("x"))   // ERR: bool converts
 println(int8(true))  // ERR: int8 converts a number

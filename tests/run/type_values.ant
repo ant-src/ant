@@ -29,6 +29,8 @@ println(type(Time.Instant))
 println(type(Reflect.Type[int]))
 println(type(void))
 println(type(never))
+println(type(int64))
+println(type(Array[uint8]))
 
 func erased[T](t: Reflect.Type[T]): Reflect.ErasedType { Reflect.erase(t) }
 
@@ -105,6 +107,8 @@ println(type(Opt[int] | Opt[string]) == type(int | string | null))
 // out: Reflect.Type[int]
 // out: void
 // out: never
+// out: int
+// out: Array[byte]
 // out: true
 // out: true
 // out: false
