@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-// TestDeepTypes relates types nested far deeper than one small Go stack holds, as a walk of a
-// type such as type R[T] = { next: R[Array[T]] | null } builds at run time, so the walks must
+// TestDeepTypes relates types nested far deeper than one small Go stack holds, so the walks must
 // move to fresh goroutines as they go down (section 9: no crash), and with no depth limit
 // (section 4, Assignability).
 func TestDeepTypes(t *testing.T) {
