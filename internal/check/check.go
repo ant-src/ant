@@ -897,7 +897,7 @@ func (c *Checker) checkSelfArgs(ti *typeInfo) {
 	}
 	var bad []violation
 	for d := range reached {
-		if msg := selfArgs(d); msg != "" {
+		if msg := types.SelfArgs(d); msg != "" {
 			bad = append(bad, violation{d, msg})
 		}
 	}
@@ -908,79 +908,6 @@ func (c *Checker) checkSelfArgs(ti *typeInfo) {
 			v.decl.Body = types.Invalid{}
 		}
 	}
-}
-
-// selfArgs describes how the generic type d refers to itself with other type arguments than
-// its own parameters in order, or returns "" when it does not. It follows d's body or fields
-// through the generic types they name, tracking which of their parameters stand for which of
-// d's.
-func selfArgs(d *types.Decl) string {
-	if len(types.DeclBody(d)) == 0 {
-		return ""
-	}
-	own := make([]types.Type, len(d.Params))
-	for i, p := range d.Params {
-		own[i] = types.Param{Decl: p}
-	}
-	want := types.String(types.Named{Decl: d, Args: own})
-	// env maps a parameter of the alias being followed to the parameter of d it stands for.
-	type visit struct {
-		decl *types.Decl
-		env  string
-	}
-	visited := map[visit]bool{}
-	var msg string
-	var follow func(ts []types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl)
-	follow = func(ts []types.Type, env map[*types.ParamDecl]*types.ParamDecl, via *types.Decl) {
-		for _, t := range ts {
-			types.Walk(t, func(t types.Type) {
-				n, ok := t.(types.Named)
-				if msg != "" || !ok || len(types.DeclBody(n.Decl)) == 0 {
-					return
-				}
-				next := map[*types.ParamDecl]*types.ParamDecl{}
-				key := ""
-				for i, p := range n.Decl.Params {
-					var stands *types.ParamDecl
-					if i < len(n.Args) {
-						if a, ok := n.Args[i].(types.Param); ok {
-							stands = env[a.Decl]
-						}
-					}
-					next[p] = stands
-					key += fmt.Sprintf("%p,", stands)
-				}
-				if n.Decl == d {
-					for i, p := range d.Params {
-						if next[n.Decl.Params[i]] != p {
-							if via == nil {
-								msg = fmt.Sprintf("type %s refers to itself as %s; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, types.String(n), want)
-							} else {
-								msg = fmt.Sprintf("type %s refers to itself through %s with other type arguments; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, via.Name, want)
-							}
-							return
-						}
-					}
-					return
-				}
-				if visited[visit{n.Decl, key}] {
-					return
-				}
-				visited[visit{n.Decl, key}] = true
-				if via == nil {
-					follow(types.DeclBody(n.Decl), next, n.Decl)
-				} else {
-					follow(types.DeclBody(n.Decl), next, via)
-				}
-			})
-		}
-	}
-	env := map[*types.ParamDecl]*types.ParamDecl{}
-	for _, p := range d.Params {
-		env[p] = p
-	}
-	follow(types.DeclBody(d), env, nil)
-	return msg
 }
 
 // resolveSignatures resolves every function's parameter and declared return types.
