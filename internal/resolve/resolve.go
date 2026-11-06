@@ -6,6 +6,7 @@ package resolve
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/prelude"
@@ -269,6 +270,12 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	}
 	if r.isPrelude(name) {
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
+		return b
+	}
+	// A type parameter names one type in its whole function, so nothing in the function may
+	// take its name: not a parameter, a local, or a block's type (section 3).
+	if !s.module && slices.ContainsFunc(r.tparams, func(tp ast.TypeParam) bool { return tp.Name == name }) {
+		r.errorf(pos, "%s is a type parameter of the enclosing function and cannot be redeclared", name)
 		return b
 	}
 	if old, ok := s.names[name]; ok {
@@ -547,11 +554,6 @@ func (r *resolver) defaults(d *ast.TypeDecl, s *scope) {
 // throughout the block (section 4, Type declarations).
 func (r *resolver) stmts(b *ast.Block, s *scope) {
 	for _, td := range b.Types {
-		for _, tp := range r.tparams {
-			if tp.Name == td.Name {
-				r.errorf(td.Pos, "%s is a type parameter of the enclosing function and cannot be redeclared", td.Name)
-			}
-		}
 		b := r.declare(s, td.Name, td.Pos, td, ast.Assignable)
 		r.typesOf = append(r.typesOf, typeBinding{td, b})
 		r.typeParams(td.TypeParams)

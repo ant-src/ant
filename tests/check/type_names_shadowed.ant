@@ -38,12 +38,6 @@ func bound(): int {
   Rec
 }
 
-func typeParam[T](v: T): int {
-  var T = 1
-  var x: T = v // ERR: T is a variable, not a type; it hides the type parameter T here
-  T
-}
-
 func annotation(Rec: int, r: Rec): Rec { // a signature's annotations are outside the body
   var s: Rec | null = null // ERR: Rec is a variable, not a type; it hides the outer Rec here
   r

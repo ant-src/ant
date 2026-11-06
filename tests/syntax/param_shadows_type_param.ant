@@ -1,0 +1,9 @@
+// spec: 3; 4 Type declarations
+// A parameter may not take the name of one of its function's type parameters.
+func first[T](T: Array[int]): int {
+  T[0]
+}
+
+// expect
+// exit: 2
+// err: T is a type parameter of the enclosing function and cannot be redeclared

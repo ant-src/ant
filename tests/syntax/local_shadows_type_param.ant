@@ -1,0 +1,13 @@
+// spec: 3; 4 Type declarations
+// A type parameter names one type in its whole function, so no parameter or local of the
+// function, in any block, may take its name.
+func id[T](v: T): T {
+  if true {
+    var T = 1
+  }
+  v
+}
+
+// expect
+// exit: 2
+// err: T is a type parameter of the enclosing function and cannot be redeclared
