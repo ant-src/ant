@@ -971,13 +971,18 @@ type scope struct {
 }
 
 // lookupTypeParam finds a type parameter. outside names the type declared in a block whose
-// body reaches past its own parameters to those of the enclosing function, or is "".
+// body reaches past its own parameters to those of the enclosing function, or is "". A local
+// declared inside the parameter's scope hides it, as any inner name hides an outer one
+// (section 3), so then there is none.
 func (sc *scope) lookupTypeParam(name string) (p *types.ParamDecl, outside string) {
 	for s := sc; s != nil; s = s.parent {
 		if s.tparams != nil {
 			if p, ok := s.tparams[name]; ok {
 				return p, outside
 			}
+		}
+		if s.names[name] != nil {
+			return nil, ""
 		}
 		if s.typeDecl != "" && outside == "" {
 			outside = s.typeDecl
@@ -1178,6 +1183,9 @@ func (c *Checker) hiddenType(sc *scope, l *local) string {
 	}
 	if s == nil {
 		return ""
+	}
+	if p, _ := s.parent.lookupTypeParam(l.name); p != nil {
+		return "; it hides the type parameter " + l.name + " here"
 	}
 	if _, e := c.lookup(s.parent, l.name); e != nil && (e.kind == entType || e.kind == entModule || e.kind == entNamespace) {
 		return "; it hides the outer " + l.name + " here"

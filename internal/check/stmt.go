@@ -605,8 +605,8 @@ func (c *Checker) returnExpr(x *ast.Return, sc *scope) types.Type {
 	return types.Never{}
 }
 
-// hiddenInBody reports a name in the body of the block type d that a local declared above d in
-// the same block hides. The block's types are resolved before its statements, when no local of
+// hiddenInBody reports a name in the body or a type parameter's bound of the block type d that a
+// local declared above d in the same block hides. The block's types are resolved before its statements, when no local of
 // the block is in scope yet, but a local is visible from its declaration on, so one written
 // above d hides an outer type of that name in d's body (section 3).
 func (c *Checker) hiddenInBody(d *ast.TypeDecl, sc *scope) {
@@ -644,6 +644,11 @@ func (c *Checker) hiddenInBody(d *ast.TypeDecl, sc *scope) {
 			for _, m := range x.Members {
 				walk(m)
 			}
+		}
+	}
+	for _, tp := range d.TypeParams {
+		if tp.Bound != nil {
+			walk(tp.Bound)
 		}
 	}
 	if d.Body != nil {
