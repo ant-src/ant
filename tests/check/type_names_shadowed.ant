@@ -26,6 +26,12 @@ func localBody(): int {
   }
 }
 
+func sameBlock(): int {
+  var A = 5
+  type L = { v: A } // ERR: A is a variable, not a type; it hides the outer A here
+  A
+}
+
 func annotation(Rec: int, r: Rec): Rec { // a signature's annotations are outside the body
   var s: Rec | null = null // ERR: Rec is a variable, not a type; it hides the outer Rec here
   r

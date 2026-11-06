@@ -198,6 +198,7 @@ func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type
 			last = types.Void{}
 		case *ast.TypeDecl:
 			c.checkDefaults(c.localTypes[st])
+			c.hiddenInBody(st, inner)
 			last = types.Void{}
 		case ast.Expr:
 			if isLast && expected != nil {
@@ -602,4 +603,50 @@ func (c *Checker) returnExpr(x *ast.Return, sc *scope) types.Type {
 		fn.returns = append(fn.returns, c.synth(x.Value, sc))
 	}
 	return types.Never{}
+}
+
+// hiddenInBody reports a name in the body of the block type d that a local declared above d in
+// the same block hides. The block's types are resolved before its statements, when no local of
+// the block is in scope yet, but a local is visible from its declaration on, so one written
+// above d hides an outer type of that name in d's body (section 3).
+func (c *Checker) hiddenInBody(d *ast.TypeDecl, sc *scope) {
+	params := map[string]bool{}
+	for _, tp := range d.TypeParams {
+		params[tp.Name] = true
+	}
+	var walk func(t ast.Type)
+	walk = func(t ast.Type) {
+		switch x := t.(type) {
+		case *ast.TypeName:
+			name := x.Path[0]
+			if l := sc.names[name]; l != nil && !params[name] {
+				what := "type"
+				if len(x.Path) > 1 {
+					what = "namespace"
+				}
+				c.errorf(x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
+			}
+			for _, a := range x.Args {
+				walk(a)
+			}
+		case *ast.RecordType:
+			for _, f := range x.Fields {
+				walk(f.Type)
+			}
+		case *ast.FuncType:
+			for _, p := range x.Params {
+				walk(p.Type)
+			}
+			if x.Return != nil {
+				walk(x.Return)
+			}
+		case *ast.UnionType:
+			for _, m := range x.Members {
+				walk(m)
+			}
+		}
+	}
+	if d.Body != nil {
+		walk(d.Body)
+	}
 }
