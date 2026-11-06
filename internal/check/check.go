@@ -734,6 +734,9 @@ func (c *Checker) checkCycleUnions(ti *typeInfo) {
 			})
 			return ok
 		}
+		if _, cyclic := types.AliasCycle(d); cyclic {
+			continue // the cycle is reported, and its unions were flattened through it
+		}
 		if d.Kind == types.AliasDecl && d.Body != nil && !check(d.Body) {
 			d.Body = types.Invalid{}
 		}
@@ -826,42 +829,8 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 // is the one whose body closes the cycle when the declarations are read in order, whichever
 // member a later declaration's use resolved first.
 func (c *Checker) checkAliasCycle(ti *typeInfo) {
-	if ti.t.Kind != types.AliasDecl {
-		return
-	}
-	visited := map[*types.Decl]bool{}
-	var path []*types.Decl
-	var walk func(t types.Type) bool
-	walk = func(t types.Type) bool {
-		switch x := t.(type) {
-		case types.Named:
-			if x.Decl.Kind != types.AliasDecl {
-				return false
-			}
-			if x.Decl == ti.t {
-				return true
-			}
-			if visited[x.Decl] {
-				return false
-			}
-			visited[x.Decl] = true
-			path = append(path, x.Decl)
-			if walk(x.Decl.Body) {
-				return true
-			}
-			path = path[:len(path)-1]
-		case types.Union:
-			// The members as written first: a union flattens the aliases it names, and the
-			// path through them says which declarations are in the cycle.
-			for _, m := range append(x.Written, x.Members...) {
-				if walk(m) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	if !walk(ti.t.Body) {
+	path, cyclic := types.AliasCycle(ti.t)
+	if !cyclic {
 		return
 	}
 	last, lastPos := ti.t, ti.decl.Pos

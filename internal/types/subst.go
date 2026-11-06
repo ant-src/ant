@@ -31,6 +31,18 @@ type substituter struct {
 	seen  map[*Decl]bool
 	done  *map[*Decl][][]Type
 	plain bool // substPlain: no declaration bodies are validated
+	// outer holds the alias instantiations whose union bodies are being expanded, for the
+	// unions formed inside them (makeUnion)
+	outer []Named
+}
+
+// substUnionBody substitutes the body of the alias instantiation n under its bindings m without
+// validating, and forms a union body inside the expansion of n and of outer (makeUnion).
+func substUnionBody(n Named, m map[*ParamDecl]Type, outer []Named) (Type, error) {
+	if _, isUnion := n.Decl.Body.(Union); !isUnion || len(m) == 0 {
+		return substPlain(n.Decl.Body, m)
+	}
+	return (&substituter{m: m, plain: true, outer: append(outer[:len(outer):len(outer)], n)}).subst(n.Decl.Body)
 }
 
 // validated reports whether n's body was already validated with these arguments.
@@ -150,7 +162,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			ms[i] = n
 		}
-		return MakeUnion(ms)
+		return makeUnion(ms, s.outer)
 	}
 	return t, nil
 }

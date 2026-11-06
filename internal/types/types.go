@@ -4,6 +4,7 @@ package types
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/value"
@@ -163,24 +164,23 @@ func IsNever(t Type) bool {
 // are written, and a generic alias reaches itself only with its own parameters (section 4, Type
 // declarations), so no deeper instantiation is left unchecked. Nor can the chain loop, since the
 // checker marks a cyclic alias invalid as soon as its cycle is resolved; past 64 steps the
-// declarations met are tracked to assert it.
+// instantiations met are tracked to assert it.
 func Expand(t Type) Type {
-	var met map[*Decl]bool
+	var met []Named
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
 			return t
 		}
 		if i >= 64 {
-			if met == nil {
-				met = map[*Decl]bool{}
-			}
-			if met[n.Decl] {
+			// A chain such as Id[Id[...Id[int]...]] meets one alias many times, each time with
+			// other arguments; only the same instantiation again is a cycle.
+			if slices.ContainsFunc(met, func(o Named) bool { return identical(o, n, 0) }) {
 				panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
 			}
-			met[n.Decl] = true
+			met = append(met, n)
 		}
-		body, err := substPlain(n.Decl.Body, Bindings(n.Decl.Params, n.Args))
+		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args), nil)
 		if err != nil {
 			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}

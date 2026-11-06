@@ -2,12 +2,18 @@ package types
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
 // MakeUnion forms the union of members: flattened, deduplicated, never dropped. It reports
 // an error when two members share a discriminator (section 4, Unions).
-func MakeUnion(members []Type) (Type, error) {
+func MakeUnion(members []Type) (Type, error) { return makeUnion(members, nil) }
+
+// makeUnion is MakeUnion inside the expansion of the alias instantiations in outer, which a
+// union formed in their bodies leaves out rather than expanding again, so that the cycle
+// A[T] = B[T] | null with B[T] = A[T] | null, which the checker reports, ends.
+func makeUnion(members []Type, outer []Named) (Type, error) {
 	var flat []Type
 	expanding := map[*Decl]bool{} // aliases being flattened, so that a cyclic alias terminates
 	aliased := false              // an alias was expanded, so the written form is kept for messages
@@ -20,13 +26,13 @@ func MakeUnion(members []Type) (Type, error) {
 		for i, t := range ts {
 			alias := false
 			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
-				if expanding[n.Decl] {
+				if expanding[n.Decl] || slices.ContainsFunc(outer, func(o Named) bool { return identical(o, n, 0) }) {
 					continue
 				}
 				expanding[n.Decl] = true
 				alias, aliased = true, true
 			}
-			e := expandTop(t)
+			e := expandTopIn(t, outer)
 			if top {
 				written[i] = e
 			}
@@ -107,21 +113,24 @@ func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
 // its own parameters. Its form and discriminator are those of the full expansion, and nothing
 // inside an array, map, set, function or record is substituted, which for an alias whose body
 // holds a union naming the alias itself, as in type L[T] = Array[L[T] | int], would not end.
-func expandTop(t Type) Type {
-	var met map[*Decl]bool
+func expandTop(t Type) Type { return expandTopIn(t, nil) }
+
+// expandTopIn is expandTop inside the expansion of the alias instantiations in outer. A union
+// body is formed with the instantiation added to them (makeUnion).
+func expandTopIn(t Type, outer []Named) Type {
+	var met []Named
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
 			return t
 		}
 		if i >= 64 {
-			if met == nil {
-				met = map[*Decl]bool{}
-			}
-			if met[n.Decl] {
+			// A chain such as Id[Id[...Id[int]...]] meets one alias many times, each time with
+			// other arguments; only the same instantiation again is a cycle.
+			if slices.ContainsFunc(met, func(o Named) bool { return identical(o, n, 0) }) {
 				panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
 			}
-			met[n.Decl] = true
+			met = append(met, n)
 		}
 		m := Bindings(n.Decl.Params, n.Args)
 		switch b := n.Decl.Body.(type) {
@@ -142,7 +151,9 @@ func expandTop(t Type) Type {
 		default:
 			return n.Decl.Body
 		}
-		body, err := substPlain(n.Decl.Body, m)
+		var body Type
+		var err error
+		body, err = substUnionBody(n, m, outer)
 		if err != nil {
 			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}

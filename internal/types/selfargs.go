@@ -74,3 +74,47 @@ func SelfArgs(d *Decl) string {
 	follow(DeclBody(d), env, nil)
 	return msg
 }
+
+// AliasCycle reports whether the alias d reaches itself through alias bodies and unions alone,
+// without passing through a record, array, map, set, or function (section 4, Type
+// declarations), and the other aliases on the way.
+func AliasCycle(d *Decl) (path []*Decl, cyclic bool) {
+	if d.Kind != AliasDecl {
+		return nil, false
+	}
+	visited := map[*Decl]bool{}
+	var walk func(t Type) bool
+	walk = func(t Type) bool {
+		switch x := t.(type) {
+		case Named:
+			if x.Decl.Kind != AliasDecl {
+				return false
+			}
+			if x.Decl == d {
+				return true
+			}
+			if visited[x.Decl] {
+				return false
+			}
+			visited[x.Decl] = true
+			path = append(path, x.Decl)
+			if walk(x.Decl.Body) {
+				return true
+			}
+			path = path[:len(path)-1]
+		case Union:
+			// The members as written first: a union flattens the aliases it names, and the
+			// path through them says which declarations are in the cycle.
+			for _, m := range append(x.Written, x.Members...) {
+				if walk(m) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if !walk(d.Body) {
+		return nil, false
+	}
+	return path, true
+}

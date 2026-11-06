@@ -1,0 +1,10 @@
+// spec: 4 Type declarations; 4 Types as values
+// Section 4: an alias chain may name one alias many times with other arguments, as seventy
+// nested Id do here, and expands to the end: the phantom K makes both sides Array[int].
+type Id[T] = T
+type K[T] = Array[int]
+
+println(Reflect.erase(type(Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[K[int]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]])) == Reflect.erase(type(Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[Id[K[string]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]])))
+
+// expect
+// out: true

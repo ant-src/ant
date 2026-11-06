@@ -50,11 +50,15 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 	v := &types.TypeValue{T: g.resolveType(e.Type, env, nil)}
 	// The instantiations the expression and the declarations it reached write are checked once
 	// those declarations are complete, as the checker does at each use (section 4, Unions).
-	// A generic type that refers to itself with other arguments, which the checker rejects,
-	// would make the walks over it endless (section 4, Type declarations).
+	// An alias that reaches itself through unions alone, or a generic type that refers to itself
+	// with other arguments, which the checker rejects, would make the walks over it endless
+	// (section 4, Type declarations).
 	written := []types.Type{v.T}
 	for _, tag := range g.in.newDecls {
 		d := g.in.decls[tag]
+		if _, cyclic := types.AliasCycle(d); cyclic {
+			g.panicf(e.Pos, "type %s refers to itself without passing through a record, array, map, set, or function", d.Name)
+		}
 		if msg := types.SelfArgs(d); msg != "" {
 			g.panicf(e.Pos, "%s", msg)
 		}
