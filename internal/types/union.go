@@ -118,19 +118,14 @@ func expandTop(t Type) Type { return expandTopIn(t, nil) }
 // expandTopIn is expandTop inside the expansion of the alias instantiations in outer. A union
 // body is formed with the instantiation added to them (makeUnion).
 func expandTopIn(t Type, outer []Named) Type {
-	var met []Named
+	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
 			return t
 		}
-		if i >= 64 {
-			// A chain such as Id[Id[...Id[int]...]] meets one alias many times, each time with
-			// other arguments; only the same instantiation again is a cycle.
-			if slices.ContainsFunc(met, func(o Named) bool { return identical(o, n, 0) }) {
-				panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
-			}
-			met = append(met, n)
+		if i >= 64 && met.repeats(n) {
+			panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
 		}
 		m := Bindings(n.Decl.Params, n.Args)
 		switch b := n.Decl.Body.(type) {

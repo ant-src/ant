@@ -4,7 +4,6 @@ package types
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/value"
@@ -166,19 +165,14 @@ func IsNever(t Type) bool {
 // checker marks a cyclic alias invalid as soon as its cycle is resolved; past 64 steps the
 // instantiations met are tracked to assert it.
 func Expand(t Type) Type {
-	var met []Named
+	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
 			return t
 		}
-		if i >= 64 {
-			// A chain such as Id[Id[...Id[int]...]] meets one alias many times, each time with
-			// other arguments; only the same instantiation again is a cycle.
-			if slices.ContainsFunc(met, func(o Named) bool { return identical(o, n, 0) }) {
-				panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
-			}
-			met = append(met, n)
+		if i >= 64 && met.repeats(n) {
+			panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
 		}
 		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args), nil)
 		if err != nil {
@@ -186,6 +180,29 @@ func Expand(t Type) Type {
 		}
 		t = body
 	}
+}
+
+// cycleCheck finds a repeated instantiation in a chain of alias expansions by Brent's method: it
+// compares each step with one saved step, saved again at every power of two, so a cycle is
+// found once the saved step is on it and the gap has grown past its length. A chain such as
+// Id[Id[...Id[int]...]] meets one alias many times, each time with other arguments, and is
+// compared in time linear in its length, not quadratic.
+type cycleCheck struct {
+	saved      Named
+	have       bool
+	gap, power int
+}
+
+func (c *cycleCheck) repeats(n Named) bool {
+	if c.have && identical(c.saved, n, 0) {
+		return true
+	}
+	c.gap++
+	if !c.have || c.gap >= c.power {
+		c.saved, c.have, c.gap = n, true, 0
+		c.power = max(2*c.power, 1)
+	}
+	return false
 }
 
 // Bindings pairs type parameters with their arguments; a parameter past the arguments is left
