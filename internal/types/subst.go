@@ -11,10 +11,30 @@ func Subst(t Type, m map[*ParamDecl]Type) (Type, error) {
 	return (&substituter{m: m}).subst(t)
 }
 
-// substituter carries the bindings and the aliases whose bodies are being validated.
+// substituter carries the bindings, the declarations whose bodies are being validated, and the
+// instantiations already validated in this walk, so that a type reached along many paths, as
+// T1 is from T0[X] = { a: T1[X], b: T1[X] }, is validated once.
 type substituter struct {
 	m    map[*ParamDecl]Type
 	seen map[*Decl]bool
+	done *map[*Decl][][]Type
+}
+
+// validated reports whether n's body was already validated with these arguments.
+func (s *substituter) validated(n Named) bool {
+	for _, args := range (*s.done)[n.Decl] {
+		same := true
+		for i := range args {
+			if !Equal(args[i], n.Args[i]) {
+				same = false
+				break
+			}
+		}
+		if same {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *substituter) subst(t Type) (Type, error) {
@@ -83,7 +103,11 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			args[i] = b
 		}
-		if body := DeclBody(x.Decl); len(body) > 0 && !s.seen[x.Decl] {
+		n := Named{Decl: x.Decl, Args: args}
+		if s.done == nil {
+			s.done = &map[*Decl][][]Type{}
+		}
+		if body := DeclBody(x.Decl); len(body) > 0 && !s.seen[x.Decl] && !s.validated(n) {
 			// The arguments may form an invalid union inside the declaration, as
 			// Either[Box[int], Box[string]] does in an alias's body and Outer[M] does in the field
 			// of the Box[M] it holds, however deep (section 4, Unions). A type that reaches
@@ -93,16 +117,17 @@ func (s *substituter) subst(t Type) (Type, error) {
 				s.seen = map[*Decl]bool{}
 			}
 			s.seen[x.Decl] = true
-			inner := &substituter{m: Bindings(x.Decl.Params, args), seen: s.seen}
+			inner := &substituter{m: Bindings(x.Decl.Params, args), seen: s.seen, done: s.done}
 			for _, t := range body {
 				if _, err := inner.subst(t); err != nil {
 					delete(s.seen, x.Decl)
-					return nil, fmt.Errorf("in %s: %w", String(Named{Decl: x.Decl, Args: args}), err)
+					return nil, fmt.Errorf("in %s: %w", String(n), err)
 				}
 			}
 			delete(s.seen, x.Decl)
+			(*s.done)[x.Decl] = append((*s.done)[x.Decl], args)
 		}
-		return Named{Decl: x.Decl, Args: args}, nil
+		return n, nil
 	case Union:
 		ms := make([]Type, len(x.Members))
 		for i, mem := range x.Members {

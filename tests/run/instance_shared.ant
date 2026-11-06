@@ -1,0 +1,50 @@
+// spec: 4 Type declarations; 4 Unions; 9
+// Section 4: checking an instantiation reaches every type its fields name, and a type that
+// several fields share is checked once, so this chain, which has 2^40 paths to T40, checks and
+// runs at once.
+type T0[X] = { a: T1[X], b: T1[X] }
+type T1[X] = { a: T2[X], b: T2[X] }
+type T2[X] = { a: T3[X], b: T3[X] }
+type T3[X] = { a: T4[X], b: T4[X] }
+type T4[X] = { a: T5[X], b: T5[X] }
+type T5[X] = { a: T6[X], b: T6[X] }
+type T6[X] = { a: T7[X], b: T7[X] }
+type T7[X] = { a: T8[X], b: T8[X] }
+type T8[X] = { a: T9[X], b: T9[X] }
+type T9[X] = { a: T10[X], b: T10[X] }
+type T10[X] = { a: T11[X], b: T11[X] }
+type T11[X] = { a: T12[X], b: T12[X] }
+type T12[X] = { a: T13[X], b: T13[X] }
+type T13[X] = { a: T14[X], b: T14[X] }
+type T14[X] = { a: T15[X], b: T15[X] }
+type T15[X] = { a: T16[X], b: T16[X] }
+type T16[X] = { a: T17[X], b: T17[X] }
+type T17[X] = { a: T18[X], b: T18[X] }
+type T18[X] = { a: T19[X], b: T19[X] }
+type T19[X] = { a: T20[X], b: T20[X] }
+type T20[X] = { a: T21[X], b: T21[X] }
+type T21[X] = { a: T22[X], b: T22[X] }
+type T22[X] = { a: T23[X], b: T23[X] }
+type T23[X] = { a: T24[X], b: T24[X] }
+type T24[X] = { a: T25[X], b: T25[X] }
+type T25[X] = { a: T26[X], b: T26[X] }
+type T26[X] = { a: T27[X], b: T27[X] }
+type T27[X] = { a: T28[X], b: T28[X] }
+type T28[X] = { a: T29[X], b: T29[X] }
+type T29[X] = { a: T30[X], b: T30[X] }
+type T30[X] = { a: T31[X], b: T31[X] }
+type T31[X] = { a: T32[X], b: T32[X] }
+type T32[X] = { a: T33[X], b: T33[X] }
+type T33[X] = { a: T34[X], b: T34[X] }
+type T34[X] = { a: T35[X], b: T35[X] }
+type T35[X] = { a: T36[X], b: T36[X] }
+type T36[X] = { a: T37[X], b: T37[X] }
+type T37[X] = { a: T38[X], b: T38[X] }
+type T38[X] = { a: T39[X], b: T39[X] }
+type T39[X] = { a: T40[X], b: T40[X] }
+type T40[X] = { v: X | null }
+
+println(type(T0[int]))
+
+// expect
+// out: T0[int]
