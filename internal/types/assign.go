@@ -12,8 +12,8 @@ func Assignable(s, t Type) bool { return Equal(s, t) || assignable(s, t, &pairs{
 // equal compares it: a pair already under test is assumed assignable (section 4,
 // Assignability). That is what ends the walk, with no depth limit: every other step moves to a
 // part written inside s or t or expands an alias that does not reach itself, and an alias that
-// does reaches itself only with its own parameters (section 4, Type declarations), so the types
-// met are finitely many and a walk that does not end meets one pair twice. A bounded type
+// does takes no type parameters (section 4, Type declarations), so the types met are finitely
+// many and a walk that does not end meets one pair twice. A bounded type
 // parameter, which is related through its bound, is remembered the same way. A pair already
 // decided is not walked again, so a function type built from aliases, as F2 = func(F1): F1
 // is, is related in time linear in its aliases, not in its expansion. Like equal, the walk

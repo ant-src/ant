@@ -695,9 +695,8 @@ func declKind(body ast.Type) types.DeclKind {
 }
 
 // resolveTypeDecls resolves the bodies of type declarations in order, except those a type
-// argument list already resolved. A cyclic alias, or a generic one that refers to itself with
-// other type arguments, is marked invalid as soon as its cycle is resolved, before a later
-// declaration can expand it.
+// argument list already resolved. A cyclic alias, or a generic one on a cycle of aliases, is
+// marked invalid as soon as its cycle is resolved, before a later declaration can expand it.
 func (c *Checker) resolveTypeDecls(tis []*typeInfo) {
 	if c.unresolved == nil {
 		c.unresolved = map[*types.Decl]*typeInfo{}
@@ -841,8 +840,8 @@ func (c *Checker) ownTypes() map[*types.Decl]bool {
 	return c.own
 }
 
-// checkUnionSelf reports a generic alias that names itself in a union inside a body that
-// expansion substitutes (types.UnionSelf), and makes its body invalid, as an alias cycle's is.
+// checkUnionSelf reports an alias that names itself in a union inside a body that expansion
+// substitutes (types.UnionSelf), and makes its body invalid, as an alias cycle's is.
 func (c *Checker) checkUnionSelf(ti *typeInfo, in func(*types.Decl) bool) {
 	if msg := types.UnionSelfIn(ti.t, in); msg != "" {
 		c.errorf(ti.decl.Pos, "%s", msg)
@@ -1090,10 +1089,10 @@ func (c *Checker) checkGenericRecursive(ti *typeInfo, in func(*types.Decl) bool)
 	c.epoch++
 }
 
-// checkSelfArgs reports a generic type that refers to itself, directly or through other generic
-// types, with anything but its own type parameters in order (section 4, Type declarations):
-// each level of N[A, B] = Array[N[B, Box[A]]] | ... would be a new instantiation, and checking
-// every instantiation a use reaches would never end. A cycle is complete once its last
+// checkSelfArgs reports a generic record type that refers to itself, directly or through other
+// generic types, with anything but its own type parameters in order (section 4, Type
+// declarations): each level of N[A, B] = { kids: Array[N[B, Box[A]]] } would be a new
+// instantiation, and checking every instantiation a use reaches would never end. A cycle is complete once its last
 // declaration is resolved, which is ti, so every generic type ti reaches is checked again, but
 // for those checked once everything they reach was resolved (selfArgsDone).
 func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.Decl) bool) {

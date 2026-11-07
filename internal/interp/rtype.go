@@ -338,8 +338,9 @@ func (in *Instance) component(d *types.Decl) func(*types.Decl) bool {
 
 // checkDecl panics where the checker rejects the declaration d itself (section 4, Type
 // declarations). declOf runs it as soon as d is complete, as the checker does, before a union or
-// an instantiation that names d is formed: an alias that reaches itself through unions alone, or
-// a generic type that refers to itself with other arguments, would make expanding it endless.
+// an instantiation that names d is formed: an alias that reaches itself through unions alone, a
+// generic alias on a cycle, or a generic record type that refers to itself with other arguments,
+// would make expanding it endless.
 // A reference of d to itself passes through the declarations of its component alone, which in
 // reports.
 func (g *Goroutine) checkDecl(d *types.Decl, in func(*types.Decl) bool) {

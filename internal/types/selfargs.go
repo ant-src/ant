@@ -159,7 +159,7 @@ func reachesTop(t Type, d *Decl, in func(*Decl) bool) (path []*Decl, found bool)
 // when the body is a union or names a type, or returns "". The outer union would need the inner
 // one flattened, and the inner one the alias expanded, which forms the outer union again; a body
 // that is an array, map, set, function or record type is not expanded to form a union, so
-// type L[T] = Array[L[T] | int] is fine (section 4, Type declarations).
+// type L = Array[L | int] is fine (section 4, Type declarations).
 func UnionSelf(d *Decl) string { return UnionSelfIn(d, nil) }
 
 // UnionSelfIn is UnionSelf following only the bodies of the declarations in reports, which must

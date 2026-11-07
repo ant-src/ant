@@ -106,7 +106,7 @@ func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
 // parameter, or another alias is substituted, and any other body comes back as declared, with
 // its own parameters. Its form and discriminator are those of the full expansion, and nothing
 // inside an array, map, set, function or record is substituted, which for an alias whose body
-// holds a union naming the alias itself, as in type L[T] = Array[L[T] | int], would not end.
+// holds a union naming the alias itself, as in type L = Array[L | int], would not end.
 func expandTop(t Type) Type {
 	var met cycleCheck
 	for i := 0; ; i++ {
