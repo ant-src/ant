@@ -562,21 +562,7 @@ func boundFits(p *types.ParamDecl, t types.Type, subst map[*types.ParamDecl]type
 	if !ok || bound == nil {
 		return true
 	}
-	if tp, ok := t.(types.Param); ok && tp.Decl.Bound != nil && types.Assignable(tp.Decl.Bound, bound) {
-		// A bounded parameter stands for one member of its bound, so it satisfies any bound
-		// that contains its own (section 4, Generics).
-		return true
-	}
-	members := types.Members(bound)
-	if len(members) > 1 {
-		for _, m := range members {
-			if types.Equal(m, t) {
-				return true
-			}
-		}
-		return types.FieldsOf(bound) != nil && types.Assignable(t, bound)
-	}
-	return types.Assignable(t, bound)
+	return types.FitsBound(t, bound)
 }
 
 // unify matches a pattern that may mention type parameters against an actual type, binding

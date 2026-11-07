@@ -1,0 +1,46 @@
+// spec: 4 Generics
+// Section 4: the bound of a generic type's parameter holds wherever the type is written: in an
+// annotation, a type expression, another declaration's body or bound, a nested argument, and a
+// literal whose arguments are inferred. A union bound needs a single member; a bound may name the
+// other type parameters; inside a generic declaration or function a type parameter fits when its
+// own bound does.
+type Ord = int | string
+type B[T: string] = { v: T }
+type O[T: Ord] = { v: T }
+type P[T, U: Array[T]] = { t: T, u: U }
+type Named[T: { name: string }] = { item: T }
+type Person = { name: string }
+type Thing = { id: int }
+
+var b1: B[string] = B{ v: "x" }
+var b2: B[int] | null = null // ERR: B[int]: T would be int, which is not assignable to its bound string
+var b3 = B{ v: 1 }           // ERR: B[int]: T would be int
+var o1: O[int] = O{ v: 1 }
+var o2: Array[O[Ord]] = [] // ERR: O[Ord]: T would be Ord, which is not a single member of its bound Ord
+var p1: P[int, Array[int]] = P{ t: 1, u: [2] }
+var p2: P[int, Array[string]] | null = null // ERR: P[int, Array[string]]: U would be Array[string], which is not assignable to its bound Array[int]
+var n1: Named[Person] = Named{ item: Person{ name: "a" } }
+var n2: Named[Thing] | null = null // ERR: Named[Thing]: T would be Thing, which is not assignable to its bound { name: string }
+println(type(B[string]))
+println(type(Map[string, B[int]])) // ERR: B[int]: T would be int
+
+type Free[X] = { b: B[X] } // ERR: B[X]: T would be X, which is not assignable to its bound string
+type Bounded[X: string] = { b: B[X] }
+type Wider[X: Ord] = { b: B[X] } // ERR: B[X]: T would be X, which is not assignable to its bound string
+type Narrow[X: int] = O[X] | null
+type Alias = B[int] | null               // ERR: B[int]: T would be int
+type InBound[T: B[int]] = { t: T }       // ERR: B[int]: T would be int
+type SelfArg[T: SelfArg[int]] = { t: T } // ERR: SelfArg[int]: T would be int, which is not assignable to its bound SelfArg[int]
+type Rec = { n: Named[Rec], name: string }
+type Bad = { n: Named[Bad], id: int } // ERR: Named[Bad]: T would be Bad
+var bd: Bounded[int] | null = null    // ERR: Bounded[int]: X would be int
+
+func get[T: string](x: B[T]): T { x.v }
+func loose[T](x: B[T]): T { x.v } // ERR: B[T]: T would be T, which is not assignable to its bound string
+println(get(b1))
+
+func block(): int {
+  type L[T: int] = { v: T }
+  var l: L[string] | null = null // ERR: L[string]: T would be string
+  0
+}

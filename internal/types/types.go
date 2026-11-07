@@ -165,18 +165,35 @@ func IsNever(t Type) bool {
 // checker marks a cyclic alias invalid as soon as its cycle is resolved; past 64 steps the
 // instantiations met are tracked to assert it.
 func Expand(t Type) Type {
+	t, msg := expand(t)
+	if msg != "" {
+		panic("internal error: " + msg)
+	}
+	return t
+}
+
+// ExpandOK is Expand for a type the checks of its declarations have not all reached yet, such as
+// a bound read while the declarations are resolved: it reports false where Expand would panic,
+// on an alias cycle or arguments its body rejects, and expands an alias whose body is not yet
+// resolved to itself.
+func ExpandOK(t Type) (Type, bool) {
+	t, msg := expand(t)
+	return t, msg == ""
+}
+
+func expand(t Type) (Type, string) {
 	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
-			return t
+			return t, ""
 		}
 		if i >= 64 && met.repeats(n) {
-			panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
+			return t, "expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted"
 		}
 		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args), nil)
 		if err != nil {
-			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
+			return t, "expanding " + String(n) + ", which the checker accepted: " + err.Error()
 		}
 		t = body
 	}

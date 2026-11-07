@@ -100,6 +100,11 @@ type Checker struct {
 	// localTypes holds the types declared in blocks, made once per declaration however often
 	// the block is checked.
 	localTypes map[*ast.TypeDecl]*typeInfo
+	// resolvingTypes counts the resolveTypeDecls calls in progress. While it is above zero the
+	// bounds of the instantiations met are checked later, in pendingBounds, once every
+	// declaration of the batch is complete (checkWrittenBounds).
+	resolvingTypes int
+	pendingBounds  []pendingBound
 
 	// the context of the function or initializer being checked
 	mod  *moduleInfo
@@ -676,8 +681,65 @@ func (c *Checker) resolveTypeDecls(tis []*typeInfo) {
 	for _, ti := range tis {
 		c.unresolved[ti.t] = ti
 	}
+	c.resolvingTypes++
 	for _, ti := range tis {
 		c.resolveTypeOnce(ti)
+	}
+	c.resolvingTypes--
+	// A bound that is an alias resolved after it shows only now whether it expands to a type
+	// parameter.
+	for _, ti := range tis {
+		c.bareBounds(ti.t.Params, ti.decl.TypeParams)
+	}
+	if c.resolvingTypes == 0 {
+		pending := c.pendingBounds
+		c.pendingBounds = nil
+		saved := c.mod
+		for _, pb := range pending {
+			c.mod = pb.mod
+			c.checkWrittenBounds(pb.n, pb.pos)
+		}
+		c.mod = saved
+	}
+}
+
+// pendingBound is an instantiation whose bounds are checked once the declarations being resolved
+// are complete: until then a record argument may lack the fields its bound asks for.
+type pendingBound struct {
+	n   types.Named
+	pos ast.Pos
+	mod *moduleInfo
+}
+
+// bareBounds reports each type parameter whose bound is itself a type parameter (section 4,
+// Generics) and makes that bound invalid, so that nothing reading bounds follows it from one
+// parameter to the next forever.
+func (c *Checker) bareBounds(params []*types.ParamDecl, syntax []ast.TypeParam) {
+	for i, p := range params {
+		if p.Bound == nil {
+			continue
+		}
+		if q, ok := types.BareBound(p.Bound); ok {
+			pos := syntax[i].Pos
+			if syntax[i].Bound != nil {
+				pos = syntax[i].Bound.Position()
+			}
+			c.errorf(pos, "%s", types.BareBoundError(p, q))
+			p.Bound = types.Invalid{}
+		}
+	}
+}
+
+// checkWrittenBounds checks the arguments of n, written or inferred at pos, against the bounds of
+// its declaration's parameters (section 4, Generics), now or, while type declarations are being
+// resolved, once they are complete.
+func (c *Checker) checkWrittenBounds(n types.Named, pos ast.Pos) {
+	if c.resolvingTypes > 0 {
+		c.pendingBounds = append(c.pendingBounds, pendingBound{n: n, pos: pos, mod: c.mod})
+		return
+	}
+	if err := types.CheckBounds(n); err != nil {
+		c.errorf(pos, "%s: %s", types.String(n), err)
 	}
 }
 
@@ -791,6 +853,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 			decl.Params[i].Bound = c.resolveType(tp.Bound, sc)
 		}
 	}
+	c.bareBounds(decl.Params, d.TypeParams)
 	switch body := d.Body.(type) {
 	case nil:
 		// The prelude's own bodiless types are the exception the table of Kinds lists (section
@@ -953,6 +1016,7 @@ func (c *Checker) signature(d *ast.FuncDecl, parent *scope, owner string) *sig {
 			s.tparams[i].Bound = c.resolveType(tp.Bound, sc)
 		}
 	}
+	c.bareBounds(s.tparams, d.TypeParams)
 	s.fn.Required = len(d.Params)
 	for i, p := range d.Params {
 		s.fn.Params = append(s.fn.Params, c.resolveType(p.Type, sc))
@@ -1182,6 +1246,7 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 		c.errorf(x.Pos, "%s: %s", types.String(n), err)
 		return types.Invalid{}
 	}
+	c.checkWrittenBounds(n, x.Pos)
 	return n
 }
 

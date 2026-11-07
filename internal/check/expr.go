@@ -831,6 +831,7 @@ func (c *Checker) checkInferred(n types.Named, pos ast.Pos) types.Type {
 		c.errorf(pos, "%s: %s", types.String(n), err)
 		return types.Invalid{}
 	}
+	c.checkWrittenBounds(n, pos)
 	return n
 }
 
@@ -1520,6 +1521,10 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 	}
 	n := types.Named{Decl: decl, Args: args}
 	if err := types.CheckArgs(n); err != nil {
+		c.errorf(pos, "%s: %s", types.String(n), err)
+		return nil, false
+	}
+	if err := types.CheckBounds(n); err != nil {
 		c.errorf(pos, "%s: %s", types.String(n), err)
 		return nil, false
 	}

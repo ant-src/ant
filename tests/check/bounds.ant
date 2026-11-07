@@ -53,3 +53,18 @@ println(later(["a"], 2))                      // ERR: U would be Array[string], 
 println(nested([1]))                          // ERR: T would be Array[int], which is not assignable to its bound Array[Array[int]]
 var ws: Array[string] = wrap(1)               // ERR: U would be Array[string], which is not assignable to its bound Array[int]
 var fw: func(int, Array[string]): int = first // ERR: U would be Array[string], which is not assignable to its bound Array[int]
+
+// A bound may not itself be a type parameter, its own or another's, nor an alias that expands to
+// one, in a function, a type, or a block.
+type Same[X] = X
+func self[T: T](x: T): int { 0 }          // ERR: the bound of T is the type parameter T; a bound may not be a type parameter
+func pair[T: U, U: int](x: T): int { 0 }  // ERR: the bound of T is the type parameter U
+func loop[T: U, U: T](x: T): int { 0 }    // ERR: the bound of T is the type parameter U ;; the bound of U is the type parameter T
+func aliased[T: Same[T]](x: T): int { 0 } // ERR: the bound of T is the type parameter T
+func around[T: T | null, U: Array[U]](x: T): int { 0 }
+type SelfBound[T: T] = { v: T }        // ERR: the bound of T is the type parameter T
+type AliasBound[T: Same[T]] = { v: T } // ERR: the bound of T is the type parameter T
+func block(): int {
+  type Local[A: B, B] = { a: A } // ERR: the bound of A is the type parameter B
+  0
+}
