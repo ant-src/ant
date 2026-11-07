@@ -34,9 +34,10 @@ const (
 // remembered reports whether the walk remembers the pairs that t is part of: those of an alias
 // without arguments, which is cheap to find again and which the walk must find again to end
 // when the alias reaches itself, as Json.Value's does. A generic alias is not remembered: it
-// cannot reach itself (section 4, Type declarations), so expanding it ends after as many steps
-// as there are aliases written in it and its bodies, and its instantiations can nest as deep as
-// a value, as Opt[Opt[...]] does, and are rarely met twice.
+// reaches itself only through a record's field (section 4, Type declarations), which no
+// expansion enters, so expanding it ends after as many steps as there are aliases written in it
+// and its bodies, and its instantiations can nest as deep as a value, as Opt[Opt[...]] does, and
+// are rarely met twice.
 func (m *pairs) remembered(t Type) bool {
 	n, ok := t.(Named)
 	return ok && isAlias(t) && len(n.Args) == 0

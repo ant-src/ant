@@ -168,10 +168,10 @@ func IsNever(t Type) bool {
 
 // Expand replaces an alias by its body, repeatedly, and leaves every other type alone. The
 // substitution cannot fail: the checker checks an alias's arguments against its body where they
-// are written, and a generic alias reaches itself only with its own parameters (section 4, Type
-// declarations), so no deeper instantiation is left unchecked. Nor can the chain loop, since the
-// checker marks a cyclic alias invalid as soon as its cycle is resolved; past 64 steps the
-// instantiations met are tracked to assert it.
+// are written, and a generic alias reaches itself only through a record's field (section 4,
+// Type declarations), which expansion never enters, so no deeper instantiation is left
+// unchecked. Nor can the chain loop, since the checker marks a cyclic alias invalid as soon as
+// its cycle is resolved; past 64 steps the instantiations met are tracked to assert it.
 func Expand(t Type) Type {
 	t, msg := expand(t, false)
 	if msg != "" {

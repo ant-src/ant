@@ -1092,9 +1092,10 @@ func (c *Checker) checkGenericRecursive(ti *typeInfo, in func(*types.Decl) bool)
 // checkSelfArgs reports a generic record type that refers to itself, directly or through other
 // generic types, with anything but its own type parameters in order (section 4, Type
 // declarations): each level of N[A, B] = { kids: Array[N[B, Box[A]]] } would be a new
-// instantiation, and checking every instantiation a use reaches would never end. A cycle is complete once its last
-// declaration is resolved, which is ti, so every generic type ti reaches is checked again, but
-// for those checked once everything they reach was resolved (selfArgsDone).
+// instantiation, and checking every instantiation a use reaches would never end. A cycle is
+// complete once its last declaration is resolved, which is ti, so every record ti reaches,
+// through aliases too, is checked again, but for those checked once everything they reach was
+// resolved (selfArgsDone).
 func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.Decl) bool) {
 	reached := map[*types.Decl]bool{}
 	var reach func(ts []types.Type)
@@ -1122,6 +1123,9 @@ func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.D
 	}
 	var bad []violation
 	for d := range reached {
+		if d.Kind != types.RecordDecl {
+			continue
+		}
 		if msg := types.SelfArgsIn(d, in(d)); msg != "" {
 			bad = append(bad, violation{d, msg})
 		}

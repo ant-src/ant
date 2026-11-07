@@ -1,10 +1,10 @@
 // spec: 4 Type declarations
 // Section 4: an alias is recursive when it lies on a cycle of the declarations' graph, whose edges
-// lead from an alias to every declaration its body or its parameters' bounds name, type arguments
-// included, and from a record to nothing. A recursive alias takes no type parameters, and neither
-// does any alias on its cycle: the error is at the generic alias declared first and names the
-// aliases the cycle passes through. A plain recursive alias is fine, as is a generic alias whose
-// cycle passes through a record's field, or that an alias on a cycle merely instantiates.
+// lead from an alias to every declaration its body names, type arguments included, and from a
+// record to nothing. A recursive alias takes no type parameters, and neither does any alias on its
+// cycle: the error is at the generic alias declared first and names the aliases the cycle passes
+// through. A plain recursive alias is fine, as is a generic alias whose cycle passes through a
+// record's field, that an alias on a cycle merely instantiates, or that a parameter's bound names.
 type Box[T] = { value: T }
 type Value = null | bool | float64 | string | Array[Value] | Map[string, Value]
 type Nest[T] = Array[Nest[T]] | Box[T] // ERR: type Nest refers to itself without passing through a record's field; an alias with type parameters may not, so wrap the recursion in a named record type
@@ -19,12 +19,18 @@ type Wrap[T] = Array[A] | Box[T] // ERR: type Wrap refers to itself through A wi
 type First = Second[int] | null
 type Second[T] = Array[Third[T]] | Box[T] // ERR: type Second refers to itself through Third and First without passing through a record's field
 type Third[T] = Map[string, First] | Set[T]
-type Bounded[T: Lim] = Array[T] | null // ERR: type Bounded refers to itself through Lim without passing through a record's field
+type Bounded[T: Lim] = Array[T] | null
 type Lim = func(): Bounded[Lim]
+type Eq[T: Eq[T]] = func(T, T): bool
+type Cmp = func(Cmp, Cmp): bool
 
 var v: Value = [1.5, "a", Map{ "k": null }]
 var n: Nested[int] = NestNode{ items: [Box{ value: 1 }, NestNode{ items: [] }] }
 var d: Doc = [[null]]
+var b: Bounded[Lim] = null
+var e: Eq[Cmp] = func(a: Cmp, b: Cmp): bool { true }
 println(v)
 println(n)
 println(d)
+println(b)
+println(e)

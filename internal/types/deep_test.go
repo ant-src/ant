@@ -238,7 +238,8 @@ func TestFailedAssumption(t *testing.T) {
 }
 
 // TestGenericRecursive reports a generic alias on a cycle of aliases through no record's field,
-// following bodies as written, bounds and type arguments, at the generic alias declared first;
+// following bodies as written, type arguments included and bounds left out, at the generic alias
+// declared first;
 // a plain recursive alias, a generic alias that recurs through a record's field, and one that a
 // plain alias on a cycle merely instantiates are fine, and comparing them ends (section 4, Type
 // declarations).
@@ -295,14 +296,15 @@ func TestGenericRecursive(t *testing.T) {
 	tree := &Decl{Name: "Tree", Kind: AliasDecl, Params: []*ParamDecl{tp}}
 	tree.Body = Union{Members: []Type{Named{Decl: rec, Args: []Type{Named{Decl: tree, Args: []Type{Param{Decl: tp}}}}}, Null{}}}
 	report(tree, tree, "type Tree refers to itself without passing through a record's field")
-	// Bounded[T: Lim] = Array[T] | null with Lim = func(): Bounded[Lim]: a cycle through the bound.
+	// Bounded[T: Lim] = Array[T] | null with Lim = func(): Bounded[Lim] closes only through the
+	// bound, which nothing expands: no cycle.
 	lim := &Decl{Name: "Lim", Kind: AliasDecl, Pos: pos(2)}
 	lp := &ParamDecl{Name: "T", Bound: Named{Decl: lim}}
 	bounded := &Decl{Name: "Bounded", Kind: AliasDecl, Params: []*ParamDecl{lp}, Pos: pos(1)}
 	bounded.Body = Union{Members: []Type{Array{Elem: Param{Decl: lp}}, Null{}}}
 	lim.Body = Func{Return: Named{Decl: bounded, Args: []Type{Named{Decl: lim}}}}
-	report(bounded, bounded, "type Bounded refers to itself through Lim without passing through a record's field")
-	report(lim, bounded, "through Lim")
+	report(bounded, nil, "")
+	report(lim, nil, "")
 	// First = Second[int] | null, formed with Second[int] expanded, with Second[T] = Array[Third[T]]
 	// | Box[T] and Third[T] = Map[string, First] | Set[T]: the cycle follows the union as written,
 	// so Second, declared before Third, is blamed, and the message lists the cycle from it.

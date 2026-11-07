@@ -32,15 +32,20 @@ func AliasCycleErrorIn(d *Decl, in func(*Decl) bool) (blame *Decl, msg string, c
 	if blame != d {
 		members, _ = cycleMembers(blame, in)
 	}
-	var through string
-	if len(members) > 0 {
-		names := make([]string, len(members))
-		for i, m := range members {
-			names[i] = m.Name
-		}
-		through = " through " + list(names)
+	return blame, fmt.Sprintf("type %s refers to itself%s without passing through a record, array, map, set, or function", blame.Name, through(members)), true
+}
+
+// through renders the declarations a cycle passes through as " through A, B, and C", or "" for
+// none.
+func through(decls []*Decl) string {
+	if len(decls) == 0 {
+		return ""
 	}
-	return blame, fmt.Sprintf("type %s refers to itself%s without passing through a record, array, map, set, or function", blame.Name, through), true
+	names := make([]string, len(decls))
+	for i, d := range decls {
+		names[i] = d.Name
+	}
+	return " through " + list(names)
 }
 
 // cycleMembers lists the aliases other than d on the cycle AliasCycle finds from d, in order: the
