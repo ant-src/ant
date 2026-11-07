@@ -51,8 +51,8 @@ type Debugger struct {
 	entry    bool   // StopOnEntry, until the entry stop
 	step     *step
 	stop     Stop
-	bps      map[bpKey]*bp
-	fbps     map[bpKey]*bp // function breakpoints
+	bps      map[bpKey][]*bp // the breakpoints bound to each stop point
+	fbps     map[bpKey][]*bp // function breakpoints
 	uncaught bool
 	all      bool
 }
@@ -105,14 +105,15 @@ func (d *Debugger) attach(in *Instance) {
 // not set, or nil.
 func (d *Debugger) SetBreakpoints(path string, list []Breakpoint) []error {
 	errs := make([]error, len(list))
-	bps := map[bpKey]*bp{}
+	bps := map[bpKey][]*bp{}
 	for i, b := range list {
 		p, err := newBP(b)
 		if err != nil {
 			errs[i] = err
 			continue
 		}
-		bps[bpKey{path, b.Pos}] = p
+		k := bpKey{path, b.Pos}
+		bps[k] = append(bps[k], p)
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -136,14 +137,15 @@ type FunctionBreakpoint struct {
 // set, or nil.
 func (d *Debugger) SetFunctionBreakpoints(list []FunctionBreakpoint) []error {
 	errs := make([]error, len(list))
-	bps := map[bpKey]*bp{}
+	bps := map[bpKey][]*bp{}
 	for i, b := range list {
 		p, err := newBP(b.Breakpoint)
 		if err != nil {
 			errs[i] = err
 			continue
 		}
-		bps[bpKey{b.Path, b.Pos}] = p
+		k := bpKey{b.Path, b.Pos}
+		bps[k] = append(bps[k], p)
 	}
 	d.mu.Lock()
 	d.fbps = bps
@@ -424,22 +426,23 @@ func (g *Goroutine) stagePoint(env *Env, pos ast.Pos, piped value.Value) {
 	g.maybeStop(env, pos)
 }
 
+// maybeStop stops g at the stop point when a step, the entry, or a breakpoint bound to it stops
+// it. Each breakpoint there acts on its own: every one counts and logs, and any one stops g.
 func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
 	d := g.d
-	p, kind := d.breakpointAt(env, pos)
-	hit := p != nil
-	if p != nil && (p.Condition != "" || p.hitOp != "" || p.log != nil) {
-		// The expressions run with g outside Ant code, so that a stop under way does not wait
-		// for one that blocks; they run at every reach, also one that ends a step.
-		g.leaveAnt()
-		stop, log := d.hit(g, p, env)
-		g.enterAnt()
-		if log != "" && d.OnLog != nil {
-			d.OnLog(log)
+	bps, fbps := d.breakpointsAt(env, pos)
+	kind := ""
+	for _, p := range bps {
+		if g.hits(p, env) && kind == "" {
+			kind = "breakpoint"
 		}
-		hit = stop
 	}
-	if reason := d.reason(g, env, hit, kind); reason != "" {
+	for _, p := range fbps {
+		if g.hits(p, env) && kind == "" {
+			kind = "function breakpoint"
+		}
+	}
+	if reason := d.reason(g, env, kind); reason != "" {
 		d.stopAt(g, reason, nil)
 		return
 	}
@@ -448,22 +451,34 @@ func (g *Goroutine) maybeStop(env *Env, pos ast.Pos) {
 	}
 }
 
-// breakpointAt returns the breakpoint bound to the stop point, with its kind, or nil.
-func (d *Debugger) breakpointAt(env *Env, pos ast.Pos) (*bp, string) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if p := d.bps[bpKey{env.mod.path, pos}]; p != nil {
-		return p, "breakpoint"
+// hits reports whether the breakpoint p stops g, writing what it logs.
+func (g *Goroutine) hits(p *bp, env *Env) bool {
+	if p.Condition == "" && p.hitOp == "" && p.log == nil {
+		return true
 	}
-	if p := d.fbps[bpKey{env.mod.path, pos}]; p != nil {
-		return p, "function breakpoint"
+	// The expressions run with g outside Ant code, so that a stop under way does not wait for
+	// one that blocks; they run at every reach, also one that ends a step.
+	d := g.d
+	g.leaveAnt()
+	stop, log := d.hit(g, p, env)
+	g.enterAnt()
+	if log != "" && d.OnLog != nil {
+		d.OnLog(log)
 	}
-	return nil, ""
+	return stop
 }
 
-// reason says why g stops at the stop point, or "" when it does not: hit says whether the
-// breakpoint there, of the kind, stops it.
-func (d *Debugger) reason(g *Goroutine, env *Env, hit bool, kind string) string {
+// breakpointsAt returns the line and function breakpoints bound to the stop point.
+func (d *Debugger) breakpointsAt(env *Env, pos ast.Pos) (bps, fbps []*bp) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	k := bpKey{env.mod.path, pos}
+	return d.bps[k], d.fbps[k]
+}
+
+// reason says why g stops at the stop point, or "" when it does not: kind is that of the
+// breakpoint there that stops it, or "".
+func (d *Debugger) reason(g *Goroutine, env *Env, kind string) string {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	switch {
@@ -472,7 +487,7 @@ func (d *Debugger) reason(g *Goroutine, env *Env, hit bool, kind string) string 
 		return "entry"
 	case d.step != nil && d.step.g == g && (d.step.any || d.step.frames[env.frame]):
 		return "step"
-	case hit:
+	case kind != "":
 		return kind
 	}
 	return ""

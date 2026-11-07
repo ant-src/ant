@@ -528,3 +528,24 @@ println(i + j)
 	}
 	r.finish()
 }
+
+func TestDebugBreakpointsOnOneStopPointActEachOnItsOwn(t *testing.T) {
+	var logs []string
+	r := debug(t, `for i in [1, 2, 3, 4] {
+  println(i)
+}
+`, func(r *debugRun) {
+		r.d.OnLog = func(s string) { logs = append(logs, s) }
+		// Two lines bind to the same stop point: a logpoint and a breakpoint stopping at the
+		// third hit.
+		r.set(interp.Breakpoint{Pos: r.pointOn(2), LogMessage: "i={i}"}, interp.Breakpoint{Pos: r.pointOn(2), HitCondition: "3"})
+	})
+	r.wait("breakpoint", 2)
+	if got := r.locals(); got != "i=3" {
+		t.Errorf("stopped with %s", got)
+	}
+	r.finish()
+	if got := strings.Join(logs, ""); got != "i=1\ni=2\ni=3\ni=4\n" {
+		t.Errorf("logs %q", got)
+	}
+}
