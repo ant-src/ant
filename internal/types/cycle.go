@@ -13,7 +13,13 @@ import (
 // the checker and the runtime blame the same declaration, and lists the other members in the
 // order the cycle passes through them. blame is that member.
 func AliasCycleError(d *Decl) (blame *Decl, msg string, cyclic bool) {
-	members, cyclic := cycleMembers(d)
+	return AliasCycleErrorIn(d, nil)
+}
+
+// AliasCycleErrorIn is AliasCycleError following only the bodies of the declarations in reports,
+// which must hold those of d's strongly connected component (Components); nil follows every body.
+func AliasCycleErrorIn(d *Decl, in func(*Decl) bool) (blame *Decl, msg string, cyclic bool) {
+	members, cyclic := cycleMembers(d, in)
 	if !cyclic {
 		return nil, "", false
 	}
@@ -24,7 +30,7 @@ func AliasCycleError(d *Decl) (blame *Decl, msg string, cyclic bool) {
 		}
 	}
 	if blame != d {
-		members, _ = cycleMembers(blame)
+		members, _ = cycleMembers(blame, in)
 	}
 	var through string
 	if len(members) > 0 {
@@ -40,14 +46,14 @@ func AliasCycleError(d *Decl) (blame *Decl, msg string, cyclic bool) {
 // cycleMembers lists the aliases other than d on the cycle AliasCycle finds from d, in order: the
 // ones whose body reaches d again. An alias the cycle only passes an argument through, as
 // Id[T] = T, is left out.
-func cycleMembers(d *Decl) ([]*Decl, bool) {
-	path, cyclic := AliasCycle(d)
+func cycleMembers(d *Decl, in func(*Decl) bool) ([]*Decl, bool) {
+	path, cyclic := AliasCycleIn(d, in)
 	if !cyclic {
 		return nil, false
 	}
 	var members []*Decl
 	for _, m := range path {
-		if _, ok := reachesTop(m.Body, d); ok {
+		if _, ok := reachesTop(m.Body, d, in); ok {
 			members = append(members, m)
 		}
 	}

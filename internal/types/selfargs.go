@@ -1,64 +1,80 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // SelfArgs describes how the generic type d refers to itself with other type arguments than
 // its own parameters in order, or returns "" when it does not. It follows d's body or fields
 // through the generic types they name, tracking which of their parameters stand for which of
 // d's.
-func SelfArgs(d *Decl) string {
+func SelfArgs(d *Decl) string { return SelfArgsIn(d, nil) }
+
+// SelfArgsIn is SelfArgs following only the declarations in reports, which must hold those of
+// d's strongly connected component (Components); nil follows every declaration. The others
+// cannot lead back to d.
+func SelfArgsIn(d *Decl, in func(*Decl) bool) string {
 	if len(DeclBody(d)) == 0 {
 		return ""
 	}
-	own := make([]Type, len(d.Params))
-	for i, p := range d.Params {
-		own[i] = Param{Decl: p}
+	want := func() string {
+		own := make([]Type, len(d.Params))
+		for i, p := range d.Params {
+			own[i] = Param{Decl: p}
+		}
+		return String(Named{Decl: d, Args: own})
 	}
-	want := String(Named{Decl: d, Args: own})
-	// env maps a parameter of the alias being followed to the parameter of d it stands for.
-	type visit struct {
-		decl *Decl
-		env  string
+	// visited holds, for each generic type followed, the lists of d's parameters its own
+	// stood for.
+	visited := map[*Decl][][]*ParamDecl{}
+	seen := func(decl *Decl, stands []*ParamDecl) bool {
+		for _, s := range visited[decl] {
+			if slices.Equal(s, stands) {
+				return true
+			}
+		}
+		visited[decl] = append(visited[decl], stands)
+		return false
 	}
-	visited := map[visit]bool{}
 	var msg string
+	// env maps a parameter of the type being followed to the parameter of d it stands for.
 	var follow func(ts []Type, env map[*ParamDecl]*ParamDecl, via *Decl)
 	follow = func(ts []Type, env map[*ParamDecl]*ParamDecl, via *Decl) {
 		for _, t := range ts {
 			Walk(t, func(t Type) {
 				n, ok := t.(Named)
-				if msg != "" || !ok || len(DeclBody(n.Decl)) == 0 {
+				if msg != "" || !ok || len(DeclBody(n.Decl)) == 0 || n.Decl != d && in != nil && !in(n.Decl) {
 					return
 				}
-				next := map[*ParamDecl]*ParamDecl{}
-				key := ""
-				for i, p := range n.Decl.Params {
-					var stands *ParamDecl
+				stands := make([]*ParamDecl, len(n.Decl.Params))
+				for i := range n.Decl.Params {
 					if i < len(n.Args) {
 						if a, ok := n.Args[i].(Param); ok {
-							stands = env[a.Decl]
+							stands[i] = env[a.Decl]
 						}
 					}
-					next[p] = stands
-					key += fmt.Sprintf("%p,", stands)
 				}
 				if n.Decl == d {
 					for i, p := range d.Params {
-						if next[n.Decl.Params[i]] != p {
+						if stands[i] != p {
 							if via == nil {
-								msg = fmt.Sprintf("type %s refers to itself as %s; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, String(n), want)
+								msg = fmt.Sprintf("type %s refers to itself as %s; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, String(n), want())
 							} else {
-								msg = fmt.Sprintf("type %s refers to itself through %s with other type arguments; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, via.Name, want)
+								msg = fmt.Sprintf("type %s refers to itself through %s with other type arguments; a generic type must refer to itself as %s, with its own type parameters in order", d.Name, via.Name, want())
 							}
 							return
 						}
 					}
 					return
 				}
-				if visited[visit{n.Decl, key}] {
+				if seen(n.Decl, stands) {
 					return
 				}
-				visited[visit{n.Decl, key}] = true
+				next := make(map[*ParamDecl]*ParamDecl, len(stands))
+				for i, p := range n.Decl.Params {
+					next[p] = stands[i]
+				}
 				if via == nil {
 					follow(DeclBody(n.Decl), next, n.Decl)
 				} else {
@@ -78,16 +94,21 @@ func SelfArgs(d *Decl) string {
 // AliasCycle reports whether the alias d reaches itself through alias bodies and unions alone,
 // without passing through a record, array, map, set, or function (section 4, Type
 // declarations), and the other aliases on the way.
-func AliasCycle(d *Decl) (path []*Decl, cyclic bool) {
+func AliasCycle(d *Decl) (path []*Decl, cyclic bool) { return AliasCycleIn(d, nil) }
+
+// AliasCycleIn is AliasCycle following only the bodies of the declarations in reports, which
+// must hold those of d's strongly connected component (Components); nil follows every body.
+func AliasCycleIn(d *Decl, in func(*Decl) bool) (path []*Decl, cyclic bool) {
 	if d.Kind != AliasDecl {
 		return nil, false
 	}
-	return reachesTop(d.Body, d)
+	return reachesTop(d.Body, d, in)
 }
 
 // reachesTop reports whether t reaches the alias d through alias bodies and unions alone, without
-// passing through a record, array, map, set, or function, and the other aliases on the way.
-func reachesTop(t Type, d *Decl) (path []*Decl, found bool) {
+// passing through a record, array, map, set, or function, and the other aliases on the way. It
+// follows the bodies of the aliases in reports, all if in is nil.
+func reachesTop(t Type, d *Decl, in func(*Decl) bool) (path []*Decl, found bool) {
 	visited := map[*Decl]bool{}
 	var walk func(t Type) bool
 	walk = func(t Type) bool {
@@ -104,7 +125,7 @@ func reachesTop(t Type, d *Decl) (path []*Decl, found bool) {
 			}
 			visited[x.Decl] = true
 			path = append(path, x.Decl)
-			if walk(x.Decl.Body) {
+			if (in == nil || in(x.Decl)) && walk(x.Decl.Body) {
 				return true
 			}
 			// An argument the alias puts where its body is, as Id[T] = T does, is reached
@@ -137,7 +158,11 @@ func reachesTop(t Type, d *Decl) (path []*Decl, found bool) {
 // one flattened, and the inner one the alias expanded, which forms the outer union again; a body
 // that is an array, map, set, function or record type is not expanded to form a union, so
 // type L[T] = Array[L[T] | int] is fine (section 4, Type declarations).
-func UnionSelf(d *Decl) string {
+func UnionSelf(d *Decl) string { return UnionSelfIn(d, nil) }
+
+// UnionSelfIn is UnionSelf following only the bodies of the declarations in reports, which must
+// hold those of d's strongly connected component (Components); nil follows every body.
+func UnionSelfIn(d *Decl, in func(*Decl) bool) string {
 	if d.Kind != AliasDecl {
 		return ""
 	}
@@ -160,7 +185,7 @@ func UnionSelf(d *Decl) string {
 				return
 			}
 			for _, m := range append(u.Written, u.Members...) {
-				if _, found := reachesTop(m, d); found {
+				if _, found := reachesTop(m, d, in); found {
 					msg = fmt.Sprintf("type %s names itself in the union %s; an alias whose body is a union or a type's name may not, so wrap the recursion in a named record type", d.Name, String(u))
 					return
 				}
