@@ -624,6 +624,9 @@ func (c *Checker) hiddenInBody(d *ast.TypeDecl, sc *scope) {
 				if len(x.Path) > 1 {
 					what = "namespace"
 				}
+				// With no outer type of the name, resolving the body reported it unknown;
+				// this error says why.
+				c.retract(x.Pos, "unknown type "+name)
 				c.errorf(x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
 			}
 			for _, a := range x.Args {

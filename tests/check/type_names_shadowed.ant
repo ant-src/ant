@@ -49,6 +49,12 @@ func noOuter(): int {
   len(xs)
 }
 
+func noOuterBody(): int {
+  var n = 1
+  type L = { v: n } // ERR: n is a variable, not a type
+  0
+}
+
 func before(): int {
   type L = { v: Rec } // resolved where the block starts, before the var below
   var r = Rec{ v: 4 }

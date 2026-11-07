@@ -6,6 +6,7 @@ package check
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -126,6 +127,15 @@ func (c *Checker) errorf(pos ast.Pos, format string, args ...any) {
 	}
 	c.seen[key] = true
 	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, Msg: msg})
+}
+
+// retract drops the error msg reported at pos, if there is one.
+func (c *Checker) retract(pos ast.Pos, msg string) {
+	path := ""
+	if c.mod != nil {
+		path = c.mod.path
+	}
+	c.diags = slices.DeleteFunc(c.diags, func(d Diagnostic) bool { return d.Path == path && d.Pos == pos && d.Msg == msg })
 }
 
 // ---- entities
