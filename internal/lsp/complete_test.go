@@ -55,6 +55,8 @@ func TestComplete(t *testing.T) {
 	lacks("var s = \"a\"\ns.", "join", "println") // String.from is offered: it takes anything first (Decision 10)
 	has("var xs = [1, 2]\nxs.", "map", "filter")
 	has("interface Shape { area(s: Self): float64 }\nfunc total(s: Shape): float64 { s.", "area")
+	has("type Point = { x: int }\nfunc Point.scale(p: Point, k: int, j: int = 1): Point { p }\nvar p = Point{ x: 1 }\np.scale(", "k:", "j:")
+	lacks("type Point = { x: int }\nfunc Point.scale(p: Point, k: int, j: int = 1): Point { p }\nvar p = Point{ x: 1 }\np.scale(", "p:")
 	has("interface Shape {\n  area(s: ", "Self", "int")
 	has("interface Shape {\n  area(s: Self): ", "float64", "Shape")
 	lacks("func f(s: ", "Self")

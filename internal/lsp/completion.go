@@ -1084,6 +1084,9 @@ func (c *completer) namedArgs(prev *token.Token) {
 		return
 	}
 	given := map[int]bool{}
+	if ci.Recv {
+		given[0] = true // the receiver of a call through a dot (section 5, Calls through .)
+	}
 	for i, arg := range call.Args {
 		if isPlaceholder(arg) {
 			if i < len(ci.Slots) && ci.Slots[i] >= 0 && ci.Slots[i] < len(ci.Fn.Params) {

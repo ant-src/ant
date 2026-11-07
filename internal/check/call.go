@@ -386,10 +386,14 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 }
 
 // argSlotsLoosely maps each argument of a call that argSlots refused to the parameter it would
-// fill: a positional one by its position, a named one by its name, or -1.
-func argSlotsLoosely(s *sig, x *ast.Call) []int {
+// fill: a positional one by its position, after the receiver when the call has one, a named one
+// by its name, or -1.
+func argSlotsLoosely(s *sig, x *ast.Call, recv bool) []int {
 	out := make([]int, len(x.Args))
 	positional := 0
+	if recv {
+		positional = 1
+	}
 	for i, a := range x.Args {
 		out[i] = -1
 		if a.Name == "" {
@@ -1034,7 +1038,7 @@ func (c *Checker) recordSlots(s *sig, x *ast.Call, slots []*ast.Arg, ok bool, ca
 		}
 	}
 	if !ok {
-		ci.Slots = argSlotsLoosely(s, x)
+		ci.Slots = argSlotsLoosely(s, x, recv)
 	}
 	c.info.recordCall(x, ci)
 }

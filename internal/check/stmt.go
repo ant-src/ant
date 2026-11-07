@@ -23,14 +23,14 @@ func joinFlows(a, b flow) flow {
 	out := flow{}
 	for l, t := range a {
 		if u, ok := b[l]; ok {
-			j, err := types.MakeUnion([]types.Type{t, u})
+			j, err := types.Join(t, u)
 			if err != nil {
 				continue
 			}
 			out[l] = j
 			continue
 		}
-		if j, err := types.MakeUnion([]types.Type{t, l.typ}); err == nil && !types.Equal(j, l.typ) {
+		if j, err := types.Join(t, l.typ); err == nil && !types.Equal(j, l.typ) {
 			out[l] = j
 		}
 	}
@@ -38,7 +38,7 @@ func joinFlows(a, b flow) flow {
 		if _, ok := a[l]; ok {
 			continue
 		}
-		if j, err := types.MakeUnion([]types.Type{u, l.typ}); err == nil && !types.Equal(j, l.typ) {
+		if j, err := types.Join(u, l.typ); err == nil && !types.Equal(j, l.typ) {
 			out[l] = j
 		}
 	}
@@ -408,7 +408,7 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 		}
 		return expected
 	}
-	u, err := types.MakeUnion([]types.Type{thenT, elseT})
+	u, err := types.Join(thenT, elseT)
 	if err != nil {
 		c.errorf(x.Pos, "the branches of this if do not form a valid type: %s", err)
 		return types.Invalid{}
@@ -473,7 +473,7 @@ func (c *Checker) checkSelect(x *ast.Select, sc *scope, expected types.Type) typ
 		}
 		return expected
 	}
-	u, err := types.MakeUnion(bodyTypes)
+	u, err := types.Join(bodyTypes...)
 	if err != nil {
 		c.errorf(x.Pos, "the clauses of this select do not form a valid type: %s", err)
 		return types.Invalid{}

@@ -600,8 +600,21 @@ func TestInterface(t *testing.T) {
 	}
 	var sh SignatureHelp
 	c.call("textDocument/signatureHelp", SignatureHelpParams{TextDocumentPositionParams: c.pos(uri, at(src, "}.area()", 1, 7))}, &sh)
-	if len(sh.Signatures) != 1 || !strings.Contains(sh.Signatures[0].Label, "area(c: Circle): float64") {
+	if len(sh.Signatures) != 1 || !strings.Contains(sh.Signatures[0].Label, "area(c: Circle): float64") || sh.ActiveParameter != 1 {
 		t.Errorf("signature help through .: %+v", sh)
+	}
+	// through a dot the receiver fills the first parameter, so the active one counts from the second
+	src2 := "type Point = { x: float64 }\n\nfunc Point.scale(p: Point, k: float64, j: int = 1): Point { p }\n\nvar p = Point{ x: 1.0 }\nvar q = p.scale(2.0, 3)\n"
+	uri2 := c.open("pt.ant", src2)
+	sh = SignatureHelp{}
+	c.call("textDocument/signatureHelp", SignatureHelpParams{TextDocumentPositionParams: c.pos(uri2, at(src2, "2.0, 3", 1, 0))}, &sh)
+	if len(sh.Signatures) != 1 || sh.ActiveParameter != 1 {
+		t.Errorf("signature help at the first argument of a dot call: %+v", sh)
+	}
+	sh = SignatureHelp{}
+	c.call("textDocument/signatureHelp", SignatureHelpParams{TextDocumentPositionParams: c.pos(uri2, at(src2, "2.0, 3", 1, 5))}, &sh)
+	if len(sh.Signatures) != 1 || sh.ActiveParameter != 2 {
+		t.Errorf("signature help at the second argument of a dot call: %+v", sh)
 	}
 	var edit WorkspaceEdit
 	c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "Shape = Circle", 1, 0)), NewName: "Form"}, &edit)

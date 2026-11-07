@@ -105,11 +105,6 @@ type Checker struct {
 	// okDecl and errDecl are the declarations of Ok and Err, whose namespace is Result (section
 	// 5, Calls through .).
 	okDecl, errDecl *types.Decl
-	// boundRoot is the bound being resolved, which may be an interface that is a bound only, and
-	// aliasHead the body of an alias being resolved when it is a plain type name, which may name
-	// one too and then stands for it; nil otherwise.
-	boundRoot ast.Type
-	aliasHead *ast.TypeName
 	// boundOnly remembers, for each alias asked about, the bound-only interface it stands for or
 	// nil (boundOnlyAlias).
 	boundOnly map[*types.Decl]*types.Decl
@@ -1133,10 +1128,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 		}
 		// An alias may name an interface that is a bound only and stands for it (section 4,
 		// Interfaces); every use of the alias is then checked as a use of the interface.
-		saved := c.aliasHead
-		c.aliasHead = body
-		t := c.resolveType(body, sc)
-		c.aliasHead = saved
+		t := c.resolveTypeName(body, sc, true)
 		if n, ok := t.(types.Named); ok && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
 			c.errorf(d.Pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
 			decl.Kind = types.AliasDecl
@@ -1348,9 +1340,9 @@ func (sc *scope) lookupTypeParam(name string) (p *types.ParamDecl, outside strin
 // resolveBound resolves a type parameter's bound, which alone may be an interface that is a
 // bound only (section 4, Interfaces): the whole bound, not a part of it.
 func (c *Checker) resolveBound(t ast.Type, sc *scope) types.Type {
-	saved := c.boundRoot
-	c.boundRoot = t
-	defer func() { c.boundRoot = saved }()
+	if tn, ok := t.(*ast.TypeName); ok {
+		return c.resolveTypeName(tn, sc, true)
+	}
 	return c.resolveType(t, sc)
 }
 
@@ -1361,7 +1353,7 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 	case nil, *ast.BadType:
 		return types.Invalid{}
 	case *ast.TypeName:
-		return c.resolveTypeName(x, sc)
+		return c.resolveTypeName(x, sc, false)
 	case *ast.RecordType:
 		var fields []types.Field
 		seen := map[string]bool{}
@@ -1396,8 +1388,11 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 	return types.Invalid{}
 }
 
-func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
-	t := c.resolveTypeNameParts(x, sc)
+// resolveTypeName resolves a named type. whole marks a name that is a type parameter's whole
+// bound or an alias's whole body, the two places that may name an interface that is a bound only
+// (section 4, Interfaces).
+func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope, whole bool) types.Type {
+	t := c.resolveTypeNameParts(x, sc, whole)
 	if c.info != nil {
 		if _, ok := c.info.TypeNames[x]; !ok && !types.IsInvalid(t) {
 			// a built-in: a primitive, null, void, never, Array, Map, or Set
@@ -1407,7 +1402,7 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope) types.Type {
 	return t
 }
 
-func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
+func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) types.Type {
 	name := x.Path[0]
 	if len(x.Path) == 1 {
 		if p, outside := sc.lookupTypeParam(name); p != nil {
@@ -1518,7 +1513,7 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 		return types.Invalid{}
 	}
 	decl := ent.decl
-	asType := ast.Type(x) != c.boundRoot && x != c.aliasHead
+	asType := !whole
 	if decl.Kind == types.InterfaceDecl && decl.BoundOnly && asType {
 		c.errorf(x.Pos, "%s mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name)
 		return types.Invalid{}
@@ -1944,7 +1939,7 @@ func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 	}
 	t := c.block(body, sc, nil)
 	all := append([]types.Type{t}, ctx.returns...)
-	u, err := types.MakeUnion(all)
+	u, err := types.Join(all...)
 	if err != nil {
 		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}

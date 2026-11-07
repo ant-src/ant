@@ -151,6 +151,9 @@ func activeParam(ci *check.CallInfo, index int) int {
 	if index < len(ci.Slots) && ci.Slots[index] >= 0 {
 		return ci.Slots[index]
 	}
+	if ci.Recv {
+		index++ // the receiver fills the first parameter (section 5, Calls through .)
+	}
 	if index < len(ci.Fn.Params) {
 		return index
 	}

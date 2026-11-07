@@ -50,7 +50,12 @@ func Heap.push[T: Compare](h: Heap[T], v: T): void {
   }
 }
 
+type Wrapper = { v: int }
+func Wrapper.area(w: Shape): float64 { 0.5 } // takes any Shape, so a Wrapper is one when a Wrapper is one: it holds
+func Wrapper.name(w: Wrapper): string { "wrapper" }
+
 func total(shapes: Array[Shape]): float64 { shapes.map({ x.area() }).sum() ?? 0.0 }
+func pick(s: Shape): Shape { var r = if s is Circle { s } else { s }; r } // the join of Circle and Shape is Shape
 func largest[T: Shape](xs: Array[T]): T | null {
   var best: T | null = null
   for s in xs {
@@ -67,6 +72,8 @@ func sorted[T: Compare](xs: Array[T]): Array[T] { xs.sortWith(func(a: T, b: T): 
 
 var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
 println(total(shapes))
+var w: Shape = Wrapper{ v: 1 }
+println("${w.area()} ${w.name()} ${pick(w).name()}")
 println(largest([Circle{ radius: 1.0 }, Circle{ radius: 2.0 }])?.radius)
 for s in shapes { println(describe(s)) }
 println(sizes(["ab", [1, 2, 3], Bytes.fromArray([1])]))
@@ -89,6 +96,7 @@ println(sh?.name())
 
 // expect
 // out: 9.0
+// out: 0.5 wrapper wrapper
 // out: 2.0
 // out: circle of 1.0
 // out: rect of 6.0

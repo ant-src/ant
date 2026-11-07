@@ -328,7 +328,7 @@ func (c *Checker) satisfies(s types.Type, decl *types.Decl, args []types.Type, r
 			return false
 		}
 		want := wt.(types.Func)
-		got := c.offered(s, name, want)
+		got := c.offered(s, name, want, rel)
 		if got == nil || !rel(*got, want) {
 			return false
 		}
@@ -339,8 +339,10 @@ func (c *Checker) satisfies(s types.Type, decl *types.Decl, args []types.Type, r
 // offered is the function name that a call through a dot reaches on a value of type s, as a
 // function type taking the receiver first, instantiated for s and, where s alone does not fix
 // a type parameter, for the signature want it is to match. It is nil when the call reaches a
-// field, nothing, or a function s does not instantiate.
-func (c *Checker) offered(s types.Type, name string, want types.Func) *types.Func {
+// field, nothing, or a function s does not instantiate. Whether the first parameter takes s is
+// decided by rel, the assignability under way: a first parameter that is the interface itself
+// holds for the pair under test instead of asking again without end.
+func (c *Checker) offered(s types.Type, name string, want types.Func, rel func(a, b types.Type) bool) *types.Func {
 	t := types.Expand(s)
 	var ns *entity
 	switch x := t.(type) {
@@ -377,10 +379,13 @@ func (c *Checker) offered(s types.Type, name string, want types.Func) *types.Fun
 		return nil
 	}
 	sg := c.sigReady(m)
-	if sg == nil || !c.accepts(sg, s) {
+	if sg == nil || len(sg.fn.Params) == 0 {
 		return nil
 	}
 	if len(sg.tparams) == 0 {
+		if !rel(s, sg.fn.Params[0]) {
+			return nil
+		}
 		fn := sg.fn
 		return &fn
 	}

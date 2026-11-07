@@ -1214,7 +1214,7 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 		}
 		return expected
 	}
-	u, err := types.MakeUnion([]types.Type{nonNull, r})
+	u, err := types.Join(nonNull, r)
 	if err != nil {
 		c.errorf(x.Pos, "the sides of ?? do not form a valid type: %s", err)
 		return types.Invalid{}

@@ -113,8 +113,39 @@ func sameDiscriminator(a, b Type) bool {
 	return oka == okb && (!oka || ka == kb)
 }
 
-// Join forms the union of branch types where control merges, or returns an error to report.
-func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
+// Join forms the union of branch types where control merges, or returns an error to report. A
+// member that satisfies an interface among the others is absorbed by it: the join of a Circle
+// and a Shape is the Shape, as the value narrowed in one branch is a Shape still in the other
+// (section 7, Narrowing).
+func Join(ts ...Type) (Type, error) {
+	var ifaces []Type
+	for _, t := range ts {
+		for _, m := range Members(t) {
+			if IsInterface(m) {
+				ifaces = append(ifaces, m)
+			}
+		}
+	}
+	if len(ifaces) == 0 {
+		return MakeUnion(ts)
+	}
+	var kept []Type
+	for _, t := range ts {
+		for _, m := range Members(t) {
+			absorbed := false
+			for _, i := range ifaces {
+				if !IsInterface(m) && Assignable(m, i) {
+					absorbed = true
+					break
+				}
+			}
+			if !absorbed {
+				kept = append(kept, m)
+			}
+		}
+	}
+	return MakeUnion(kept)
+}
 
 // expandTop expands an alias as far as a union needs to see it: a body that is a union, a type
 // parameter, or another alias is substituted, and any other body comes back as declared, with

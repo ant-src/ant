@@ -457,16 +457,12 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 				return recv, c, false
 			}
 			if skipped || (fld.Optional && recv == value.Null) {
-				if !fld.Grouped {
-					return value.Null, ctlNone, true
-				}
-				fn = value.Null
-			} else {
-				var withRecv bool
-				fn, withRecv = g.member(recv, fld.Name, fld.Pos)
-				if withRecv {
-					args = append([]value.Value{recv}, args...)
-				}
+				return value.Null, ctlNone, true
+			}
+			var withRecv bool
+			fn, withRecv = g.member(recv, fld.Name, fld.Pos)
+			if withRecv {
+				args = append([]value.Value{recv}, args...)
 			}
 		} else {
 			var c ctl
