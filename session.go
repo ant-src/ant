@@ -159,6 +159,8 @@ func (s *Session) record(path, src string, f *ast.File) {
 			put(key, src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
 		case *ast.TypeDecl:
 			put(d.Name, src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
+		case *ast.InterfaceDecl:
+			put(d.Name, src[offsetOf(src, d.Pos):offsetOf(src, d.End)])
 		case *ast.VarDecl:
 			// A name whose type the checker cannot write keeps the declaration itself, once for
 			// all such names, since a let may not be declared twice.

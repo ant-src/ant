@@ -15,6 +15,7 @@ println(message(Panic.catch({ (1).abs() })))
 println(message(Panic.catch({ Array.nope() })))
 println(message(Panic.catch({ Point.nrom() })))
 println(message(Panic.catch({ "x".nope() })))
+println(message(Panic.catch({ (p.norm)() })))
 
 // expect
 // out: Point has no field or function nrom
@@ -22,3 +23,4 @@ println(message(Panic.catch({ "x".nope() })))
 // out: Array has no field nope
 // out: Point has no function nrom
 // out: string has no field or function nope
+// out: Point has no field norm

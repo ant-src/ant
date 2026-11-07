@@ -70,6 +70,10 @@ func (s *Server) importable(path string, keep func(name string) bool) []export {
 				if (x.Export || test) && x.Owner == "" {
 					e = export{name: x.Name, kind: ItemStruct, doc: x.Doc}
 				}
+			case *ast.InterfaceDecl:
+				if x.Export || test {
+					e = export{name: x.Name, kind: ItemInterface, doc: x.Doc}
+				}
 			case *ast.VarDecl:
 				if nt, ok := x.Target.(*ast.NameTarget); ok && (x.Export || test) && x.Owner == "" {
 					e = export{name: nt.Name, kind: ItemVariable, doc: x.Doc}

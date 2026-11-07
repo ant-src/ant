@@ -448,9 +448,10 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 		}
 		var fn value.Value
 		var skip bool
-		if fld, ok := x.Fn.(*ast.Field); ok {
+		if fld, ok := x.Fn.(*ast.Field); ok && !fld.Grouped {
 			// A call through a dot: the field when the receiver has one, else the function of
-			// the receiver's namespace with the receiver first (section 5, Calls through .).
+			// the receiver's namespace with the receiver first (section 5, Calls through .). In
+			// parentheses, (x.f)(), it is a field read.
 			recv, c, skipped := g.postfix(fld.X, env)
 			if c != ctlNone {
 				return recv, c, false

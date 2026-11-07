@@ -551,6 +551,45 @@ func TestSignatureHelp(t *testing.T) {
 	}
 }
 
+// TestInterface checks definition, symbols, and references for an interface and a call through
+// it (section 4, Interfaces; section 5, Calls through .).
+func TestInterface(t *testing.T) {
+	src := "interface Shape {\n  area(s: Self): float64\n}\n\ntype Circle = { radius: float64 }\n\nfunc Circle.area(c: Circle): float64 { c.radius }\n\nvar s: Shape = Circle{ radius: 1.0 }\nvar a = s.area()\nvar c = Circle{ radius: 2.0 }.area()\n"
+	c := start(t, map[string]string{"ifc.ant": src})
+	uri := c.open("ifc.ant", src)
+	if diags := c.diagnostics(uri); len(diags) != 0 {
+		t.Fatalf("diagnostics: %v", diags)
+	}
+	var locs []Location
+	c.call("textDocument/definition", c.pos(uri, at(src, "Shape = Circle", 1, 0)), &locs)
+	if len(locs) != 1 || locs[0].URI != uri || locs[0].Range.Start != at(src, "Shape {", 1, 0) {
+		t.Errorf("definition of Shape: %+v", locs)
+	}
+	locs = nil
+	c.call("textDocument/definition", c.pos(uri, at(src, "s.area()", 1, 2)), &locs)
+	if len(locs) != 1 || locs[0].URI != uri || locs[0].Range.Start != at(src, "area(s: Self)", 1, 0) {
+		t.Errorf("definition of s.area: %+v", locs)
+	}
+	locs = nil
+	c.call("textDocument/definition", c.pos(uri, at(src, "}.area()", 1, 2)), &locs)
+	if len(locs) != 1 || locs[0].URI != uri || locs[0].Range.Start != at(src, "area(c: Circle)", 1, 0) {
+		t.Errorf("definition of Circle{}.area: %+v", locs)
+	}
+	var syms []DocumentSymbol
+	c.call("textDocument/documentSymbol", DocumentSymbolParams{TextDocument: TextDocumentIdentifier{URI: uri}}, &syms)
+	if len(syms) < 1 || syms[0].Name != "Shape" || syms[0].Kind != SymbolInterface || len(syms[0].Children) != 1 || syms[0].Children[0].Name != "area" {
+		t.Errorf("symbols: %+v", syms)
+	}
+	var refs []Location
+	var rp ReferenceParams
+	rp.TextDocumentPositionParams = c.pos(uri, at(src, "Shape {", 1, 0))
+	rp.Context.IncludeDeclaration = true
+	c.call("textDocument/references", rp, &refs)
+	if len(refs) != 2 {
+		t.Errorf("references of Shape: %+v", refs)
+	}
+}
+
 func TestSymbolsFoldingSelection(t *testing.T) {
 	c := start(t, workspace())
 	uri := c.open("main.ant", mainSrc)

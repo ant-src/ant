@@ -108,6 +108,14 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 				if in.Decls[x] == o {
 					refs = append(refs, reference{path: path, from: x.NamePos, to: after(x.NamePos, x.Name), decl: true})
 				}
+			case *ast.InterfaceDecl:
+				if in.Decls[x] == o {
+					refs = append(refs, reference{path: path, from: x.NamePos, to: after(x.NamePos, x.Name), decl: true})
+				}
+			case *ast.InterfaceFunc:
+				if in.Decls[x] == o {
+					refs = append(refs, reference{path: path, from: x.NamePos, to: after(x.NamePos, x.Name), decl: true})
+				}
 			case *ast.NameTarget:
 				if in.Decls[x] == o {
 					refs = append(refs, reference{path: path, from: x.Pos, to: x.End, decl: true, shorthand: shortTargets[x]})
@@ -508,6 +516,14 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 				found = a.info.Decls[x]
 			}
 		case *ast.TypeDecl:
+			if x.NamePos == pos {
+				found = a.info.Decls[x]
+			}
+		case *ast.InterfaceDecl:
+			if x.NamePos == pos {
+				found = a.info.Decls[x]
+			}
+		case *ast.InterfaceFunc:
 			if x.NamePos == pos {
 				found = a.info.Decls[x]
 			}

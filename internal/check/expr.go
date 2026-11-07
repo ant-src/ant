@@ -1422,16 +1422,18 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 			yes = append(yes, m)
 			continue
 		}
-		if n, isNamed := target.(types.Named); isNamed && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) && types.IsInterface(m) {
+		if types.IsInterface(m) {
 			// A value of an interface narrows to a satisfying type, and keeps the interface
 			// otherwise, since the set of satisfying types is open (section 4, Interfaces).
-			inst, found := c.instantiateSatisfying(n.Decl, types.Expand(m).(types.Named), pos)
-			if !found {
-				return nil, nil, false
+			if pattern, free, name, ok := narrowPattern(target); ok {
+				inst, found := c.instantiateSatisfying(pattern, free, name, types.Expand(m).(types.Named), pos)
+				if !found {
+					return nil, nil, false
+				}
+				yes = append(yes, inst)
+				no = append(no, m)
+				continue
 			}
-			yes = append(yes, inst)
-			no = append(no, m)
-			continue
 		}
 		no = append(no, m)
 	}

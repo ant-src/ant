@@ -476,6 +476,36 @@ func (b *syncBuffer) String() string {
 }
 
 // TestSessionTypeOf checks the types :type prints, over what the session declared.
+// TestSessionInterface checks that an interface declared in one input stays declared for the
+// analysis of later inputs (section 4, Interfaces).
+func TestSessionInterface(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	for _, src := range []string{"interface Shape { area(s: Self): float64 }", "type Circle = { radius: float64 }",
+		"func Circle.area(c: Circle): float64 { c.radius }", "var s: Shape = Circle{ radius: 2.0 }"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for src, want := range map[string]string{"s": "Shape", "s.area()": "float64"} {
+		if got, err := s.TypeOf(src); err != nil || got != want {
+			t.Errorf("TypeOf(%q) = %q, %v; want %q", src, got, err, want)
+		}
+	}
+	offered := false
+	for _, it := range s.Complete("s.", 2) {
+		if it.Label == "area" {
+			offered = true
+		}
+	}
+	if !offered {
+		t.Errorf("s. does not offer area")
+	}
+}
+
 func TestSessionTypeOf(t *testing.T) {
 	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
 	if err != nil {

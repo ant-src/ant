@@ -61,6 +61,7 @@ func largest[T: Shape](xs: Array[T]): T | null {
 }
 func describe(s: Shape): string { if s is Circle { "circle of ${s.radius}" } else { "${s.name()} of ${s.area()}" } }
 func sizes(xs: Array[Sized]): Array[int] { xs.map({ x.length() }) }
+func kind(s: Sized): string { if s is string { "string ${len(s)}" } else if s is Bytes { "bytes ${s.length()}" } else { "other ${s.length()}" } }
 func first[T: Container[int]](c: T): int { c.get(0) ?? -1 }
 func sorted[T: Compare](xs: Array[T]): Array[T] { xs.sortWith(func(a: T, b: T): int { a.compare(b) }) }
 
@@ -69,6 +70,8 @@ println(total(shapes))
 println(largest([Circle{ radius: 1.0 }, Circle{ radius: 2.0 }])?.radius)
 for s in shapes { println(describe(s)) }
 println(sizes(["ab", [1, 2, 3], Bytes.fromArray([1])]))
+var sized: Array[Sized] = ["ab", [1, 2, 3], Bytes.fromArray([1])]
+println(sized.map(kind))
 println(sorted([Job{ priority: 1, name: "a" }, Job{ priority: 5, name: "b" }]).map({ x.name }))
 var jobs: Heap[Job] = Heap{}
 jobs.push(Job{ priority: 2, name: "build" })
@@ -90,6 +93,7 @@ println(sh?.name())
 // out: circle of 1.0
 // out: rect of 6.0
 // out: [2, 3, 1]
+// out: ["string 2", "other 3", "bytes 1"]
 // out: ["b", "a"]
 // out: ["test", "build"]
 // out: 1 7

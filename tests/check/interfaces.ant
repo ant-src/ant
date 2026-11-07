@@ -30,6 +30,17 @@ func Box.show[T](b: Box[T]): string { String.from(b.v) }
 type Job = { priority: int }
 func Job.compare(a: Job, b: Job): int { b.priority - a.priority }
 type Scene = { shapes: Array[Shape] }
+type Pq = { h: Heap[Task] } // the bound asks whether Task satisfies Compare before Task.compare is checked
+type Heap[T: Compare] = { items: Array[T] = [] }
+type Task = { priority: int }
+func Task.compare(a: Task, b: Task) { a.priority - b.priority + "x" } // ERR: + needs both operands of one type, got int and string
+type Sortable = Compare
+func sortable[T: Sortable](xs: Array[T]): Array[T] { xs }
+var sq2: Array[Sortable] = []                    // ERR: Sortable is Compare, which mentions Self beyond its receiver, so it is a bound only and not a type
+func nested[T: Array[Compare]](x: T): int { 1 }  // ERR: Compare mentions Self beyond its receiver, so it is a bound only and not a type
+func nested2[T: Compare | null](x: T): int { 1 } // ERR: Compare mentions Self beyond its receiver, so it is a bound only and not a type
+interface Sized { length(s: Self): int }
+func sized(s: Sized): int { if s is Array { 1 } else { 2 } } // ERR: Sized does not determine the type parameter T of Array, so the test cannot narrow to it
 
 var s: Shape = Circle{ radius: 1.0 }
 var sq: Shape = Square{ side: 1.0 } // ERR: cannot use Square where Shape is expected

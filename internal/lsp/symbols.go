@@ -58,6 +58,8 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 			owner, member = x.Owner, []DocumentSymbol{s.funcSymbol(a, d, x)}
 		case *ast.TypeDecl:
 			owner, member = x.Owner, []DocumentSymbol{s.typeSymbol(a, d, x, nil)}
+		case *ast.InterfaceDecl:
+			member = []DocumentSymbol{s.interfaceSymbol(a, d, x)}
 		case *ast.VarDecl:
 			owner, member = x.Owner, s.varSymbols(a, d, x)
 		}
@@ -79,6 +81,8 @@ func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {
 			if x.Owner == "" {
 				out = append(out, s.typeSymbol(a, d, x, onOwner[x.Name]))
 			}
+		case *ast.InterfaceDecl:
+			out = append(out, member...)
 		case *ast.VarDecl:
 			if x.Owner == "" {
 				out = append(out, member...)
@@ -113,6 +117,22 @@ func (s *Server) typeSymbol(a *analysis, d *document, x *ast.TypeDecl, on []Docu
 		sym.Detail = typeText(x.Body, d)
 	}
 	sym.Children = append(sym.Children, on...)
+	return sym
+}
+
+// interfaceSymbol is an interface's symbol, with its functions as children.
+func (s *Server) interfaceSymbol(a *analysis, d *document, x *ast.InterfaceDecl) DocumentSymbol {
+	sym := DocumentSymbol{Name: x.Name, Kind: SymbolInterface, Range: s.rng(d, x.Pos, x.End),
+		SelectionRange: s.nameRange(d, x.NamePos, x.Name)}
+	for i := range x.Funcs {
+		f := &x.Funcs[i]
+		child := DocumentSymbol{Name: f.Name, Kind: SymbolMethod, Range: s.rng(d, f.Pos, f.End), SelectionRange: s.nameRange(d, f.NamePos, f.Name)}
+		if o := a.info.Decls[f]; o != nil {
+			child.Detail = strings.TrimPrefix(a.signatureLabel(o), x.Name+"."+f.Name)
+			child.Detail = strings.TrimPrefix(child.Detail, f.Name)
+		}
+		sym.Children = append(sym.Children, child)
+	}
 	return sym
 }
 
@@ -251,6 +271,8 @@ func declInfo(decl ast.Decl) (name string, kind int, pos, end ast.Pos) {
 			kind = SymbolStruct
 		}
 		return x.Name, kind, x.NamePos, after(x.NamePos, x.Name)
+	case *ast.InterfaceDecl:
+		return x.Name, SymbolInterface, x.NamePos, after(x.NamePos, x.Name)
 	case *ast.VarDecl:
 		if nt, ok := x.Target.(*ast.NameTarget); ok {
 			return nt.Name, SymbolVariable, nt.Pos, nt.End

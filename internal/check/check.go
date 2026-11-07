@@ -41,6 +41,9 @@ type Config struct {
 // signatures.
 func Program(prog *loader.Program, cfg Config) []Diagnostic {
 	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}, info: cfg.Info}
+	if c.info != nil {
+		c.info.c = c
+	}
 	c.loadPrelude(cfg)
 	if prog.Root != nil && prog.Root.File.Declarations {
 		c.declarationFile(prog.Root.File)
@@ -53,17 +56,26 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 		for _, m := range prog.Modules {
 			c.declareModule(c.mods[m.Index])
 		}
+		// The bounds of the instantiations the types mention stay pending until every signature
+		// is resolved: an interface bound asks whether a type's functions satisfy it, which
+		// reads their signatures and may infer a return type from a body (satisfies).
+		c.resolvingTypes++
 		for _, m := range prog.Modules {
 			c.resolveTypes(c.mods[m.Index])
 		}
 		for _, m := range prog.Modules {
 			c.resolveSignatures(c.mods[m.Index])
 		}
+		c.resolvingTypes--
+		c.flushPendingBounds()
 		for _, m := range prog.Modules {
 			c.checkModule(c.mods[m.Index])
 		}
 	}
 	c.info.finish(c)
+	// What the check needed only while it ran; the Info keeps the checker for what it alone
+	// can decide (Info.Namespace).
+	c.shorted, c.flow, c.rigid, c.fn, c.pendingBounds = nil, nil, nil, nil, nil
 	sort.SliceStable(c.diags, func(i, j int) bool {
 		a, b := c.diags[i], c.diags[j]
 		if a.Path != b.Path {
@@ -93,9 +105,14 @@ type Checker struct {
 	// okDecl and errDecl are the declarations of Ok and Err, whose namespace is Result (section
 	// 5, Calls through .).
 	okDecl, errDecl *types.Decl
-	// inBound counts the bound resolutions in progress, where an interface that is a bound only
-	// may be named.
-	inBound int
+	// boundRoot is the bound being resolved, which may be an interface that is a bound only, and
+	// aliasHead the body of an alias being resolved when it is a plain type name, which may name
+	// one too and then stands for it; nil otherwise.
+	boundRoot ast.Type
+	aliasHead *ast.TypeName
+	// boundOnly remembers, for each alias asked about, the bound-only interface it stands for or
+	// nil (boundOnlyAlias).
+	boundOnly map[*types.Decl]*types.Decl
 	// preludeTypes and preludeFuncs are the built-in prelude's declarations, checked further
 	// only when the prelude itself is the root (declarationFile).
 	preludeTypes []*typeInfo
@@ -712,8 +729,8 @@ func targetNames(t ast.Target) []*ast.NameTarget {
 // resolveTypes attaches the functions declared on a module's types and resolves the bodies of
 // its type declarations and the signatures of its interfaces. The functions come first, as
 // entities whose signatures are resolved on demand (sigReady): a bound met while the types are
-// resolved may ask whether one of them satisfies an interface, which is decided once the
-// interfaces are resolved too, so the bounds stay pending until then.
+// resolved may ask whether one of them satisfies an interface, which Program decides once every
+// module's signatures are resolved, so the bounds stay pending until then.
 func (c *Checker) resolveTypes(mi *moduleInfo) {
 	c.mod = mi
 	for _, fi := range mi.funcs {
@@ -736,11 +753,8 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 		owner.members[d.Name] = ent
 		c.info.declared(ent, d, mi.path, d.Owner)
 	}
-	c.resolvingTypes++
 	c.resolveTypeDecls(mi.types)
 	c.resolveInterfaces(mi)
-	c.resolvingTypes--
-	c.flushPendingBounds()
 }
 
 // declKind is the kind a type declaration's body gives it, known before any body is resolved, so
@@ -1073,13 +1087,11 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 	for i, tp := range d.TypeParams {
 		sc.tparams[tp.Name] = decl.Params[i]
 	}
-	c.inBound++
 	for i, tp := range d.TypeParams {
 		if tp.Bound != nil {
-			decl.Params[i].Bound = c.resolveType(tp.Bound, sc)
+			decl.Params[i].Bound = c.resolveBound(tp.Bound, sc)
 		}
 	}
-	c.inBound--
 	c.bareBounds(decl.Params, d.TypeParams)
 	switch body := d.Body.(type) {
 	case nil:
@@ -1119,7 +1131,12 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 				return
 			}
 		}
+		// An alias may name an interface that is a bound only and stands for it (section 4,
+		// Interfaces); every use of the alias is then checked as a use of the interface.
+		saved := c.aliasHead
+		c.aliasHead = body
 		t := c.resolveType(body, sc)
+		c.aliasHead = saved
 		if n, ok := t.(types.Named); ok && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
 			c.errorf(d.Pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
 			decl.Kind = types.AliasDecl
@@ -1278,13 +1295,11 @@ func (c *Checker) signature(d *ast.FuncDecl, parent *scope, owner string) *sig {
 			c.info.typeParam(pd, tp, c.mod.path)
 		}
 	}
-	c.inBound++
 	for i, tp := range d.TypeParams {
 		if tp.Bound != nil {
-			s.tparams[i].Bound = c.resolveType(tp.Bound, sc)
+			s.tparams[i].Bound = c.resolveBound(tp.Bound, sc)
 		}
 	}
-	c.inBound--
 	c.bareBounds(s.tparams, d.TypeParams)
 	s.fn.Required = len(d.Params)
 	for i, p := range d.Params {
@@ -1328,6 +1343,15 @@ func (sc *scope) lookupTypeParam(name string) (p *types.ParamDecl, outside strin
 		}
 	}
 	return nil, ""
+}
+
+// resolveBound resolves a type parameter's bound, which alone may be an interface that is a
+// bound only (section 4, Interfaces): the whole bound, not a part of it.
+func (c *Checker) resolveBound(t ast.Type, sc *scope) types.Type {
+	saved := c.boundRoot
+	c.boundRoot = t
+	defer func() { c.boundRoot = saved }()
+	return c.resolveType(t, sc)
 }
 
 // resolveType turns a type expression into a type, reporting unknown names and wrong
@@ -1494,7 +1518,8 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 		return types.Invalid{}
 	}
 	decl := ent.decl
-	if decl.Kind == types.InterfaceDecl && decl.BoundOnly && c.inBound == 0 {
+	asType := ast.Type(x) != c.boundRoot && x != c.aliasHead
+	if decl.Kind == types.InterfaceDecl && decl.BoundOnly && asType {
 		c.errorf(x.Pos, "%s mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name)
 		return types.Invalid{}
 	}
@@ -1520,7 +1545,55 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 		return types.Invalid{}
 	}
 	c.checkWrittenBounds(n, x.Pos)
+	if decl.Kind == types.AliasDecl && asType {
+		if ie := c.boundOnlyAlias(decl); ie != nil {
+			c.errorf(x.Pos, "%s is %s, which mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name, ie.Name)
+			return types.Invalid{}
+		}
+	}
 	return n
+}
+
+// boundOnlyAlias is the interface that is a bound only which an alias stands for, through
+// aliases of aliases, or nil. The bodies are followed without substituting, since whether an
+// interface is a bound only does not depend on its arguments, and the answer is remembered once
+// every body on the way is resolved, so that a long chain of aliases is followed once.
+func (c *Checker) boundOnlyAlias(d *types.Decl) *types.Decl {
+	if ie, ok := c.boundOnly[d]; ok {
+		return ie
+	}
+	var chain []*types.Decl
+	seen := map[*types.Decl]bool{}
+	var found *types.Decl
+	for cur := d; cur != nil && cur.Kind == types.AliasDecl && !seen[cur]; {
+		seen[cur] = true
+		if ie, ok := c.boundOnly[cur]; ok {
+			found = ie
+			break
+		}
+		chain = append(chain, cur)
+		n, ok := cur.Body.(types.Named)
+		if !ok {
+			if cur.Body == nil {
+				return nil // not resolved yet: nothing to remember
+			}
+			break
+		}
+		if n.Decl.Kind == types.InterfaceDecl {
+			if n.Decl.BoundOnly {
+				found = n.Decl
+			}
+			break
+		}
+		cur = n.Decl
+	}
+	if c.boundOnly == nil {
+		c.boundOnly = map[*types.Decl]*types.Decl{}
+	}
+	for _, a := range chain {
+		c.boundOnly[a] = found
+	}
+	return found
 }
 
 // hiddenType notes the type or namespace that the local l hides, if any, for an error.

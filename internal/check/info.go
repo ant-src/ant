@@ -468,6 +468,9 @@ func (in *Info) fieldOf(recv types.Type, name string) *Object {
 // interfaceFunc is the Object of a function of an interface, made once: its type takes the
 // interface itself first, as a call through the interface does.
 func (in *Info) interfaceFunc(decl *types.Decl, name string) *Object {
+	if in == nil {
+		return nil
+	}
 	key := fieldKey{decl, name}
 	if o, ok := in.ifaces[key]; ok {
 		return o
@@ -555,7 +558,6 @@ func (in *Info) finish(c *Checker) {
 	if in == nil {
 		return
 	}
-	in.c = c
 	for _, e := range c.prelude {
 		in.Prelude = append(in.Prelude, in.object(e))
 	}

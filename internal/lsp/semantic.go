@@ -125,6 +125,10 @@ func (s *Server) semanticTokens(p *SemanticTokensParams) *SemanticTokens {
 			}
 		case *ast.TypeDecl:
 			object(x.NamePos, x.Name, in.Decls[x], true)
+		case *ast.InterfaceDecl:
+			object(x.NamePos, x.Name, in.Decls[x], true)
+		case *ast.InterfaceFunc:
+			object(x.NamePos, x.Name, in.Decls[x], true)
 		case *ast.TypeParam:
 			object(x.Pos, x.Name, in.Decls[x], true)
 		case *ast.NameTarget:

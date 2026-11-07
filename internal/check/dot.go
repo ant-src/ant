@@ -281,7 +281,9 @@ func (c *Checker) interfaceCall(self types.Type, n types.Named, x *ast.Call, f *
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
-	return c.applySig(s, x, sc, expected, nil, &receiver{typ: self, pos: f.X.Position(), positional: true})
+	callee := c.info.interfaceFunc(n.Decl, f.Name)
+	c.info.recordMember(f, callee)
+	return c.applySig(s, x, sc, expected, callee, &receiver{typ: self, pos: f.X.Position(), positional: true})
 }
 
 // interfaceSig is the signature of the function name of the interface n read for the satisfying
@@ -425,35 +427,70 @@ func (c *Checker) sigReady(ent *entity) *sig {
 	return s
 }
 
-// instantiateSatisfying finds the type decl, instantiated, that an is test narrows a value of
-// the interface iface to (section 5, is): the one instantiation that satisfies the interface.
-// Each function of the interface, matched against the type's function of that name, fixes the
-// type arguments its receiver mentions, the functions must agree, and together they must fix
-// every argument; a type without type parameters is simply checked.
-func (c *Checker) instantiateSatisfying(decl *types.Decl, iface types.Named, pos ast.Pos) (types.Type, bool) {
-	if len(decl.Params) == 0 {
-		n := types.Named{Decl: decl}
-		if !types.Assignable(n, iface) {
-			c.errorf(pos, "%s does not satisfy %s, so the test is always false", decl.Name, types.String(iface))
+// narrowPattern is the type an is test on an interface narrows to for a target (section 5, is),
+// with the type arguments the target leaves open as free type parameters: a named type with its
+// own, an array, a map, or a set with fresh ones, a primitive, Bytes, or Html with none. The
+// name is the target's, for messages. A function target has no type to narrow to.
+func narrowPattern(target types.Type) (pattern types.Type, free []*types.ParamDecl, name string, ok bool) {
+	fresh := func(name string) types.Type {
+		p := &types.ParamDecl{Name: name}
+		free = append(free, p)
+		return types.Param{Decl: p}
+	}
+	switch t := target.(type) {
+	case types.Named:
+		switch t.Decl.Kind {
+		case types.RecordDecl, types.PrimitiveDecl, types.KindOpaqueDecl, types.TaggedOpaqueDecl:
+		default:
+			return nil, nil, "", false
+		}
+		var args []types.Type
+		for _, p := range t.Decl.Params {
+			args = append(args, types.Param{Decl: p})
+		}
+		return types.Named{Decl: t.Decl, Args: args}, t.Decl.Params, t.Decl.Name, true
+	case types.Prim:
+		return t, nil, types.String(t), true
+	case types.Array:
+		return types.Array{Elem: fresh("T")}, free, "Array", true
+	case types.Map:
+		return types.Map{Key: fresh("K"), Val: fresh("V")}, free, "Map", true
+	case types.Set:
+		return types.Set{Elem: fresh("T")}, free, "Set", true
+	}
+	return nil, nil, "", false
+}
+
+// instantiateSatisfying finds the type an is test narrows a value of the interface iface to
+// (section 5, is): the pattern with its free type parameters solved, the one instantiation that
+// satisfies the interface. Each function of the interface, matched against the function of that
+// name the pattern's namespace offers, fixes the parameters its receiver mentions, the functions
+// must agree, and together they must fix every parameter; a pattern without parameters is
+// simply checked. name names the target in messages.
+func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamDecl, name string, iface types.Named, pos ast.Pos) (types.Type, bool) {
+	if len(free) == 0 {
+		if !types.Assignable(pattern, iface) {
+			c.errorf(pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
 			return nil, false
 		}
-		return n, true
+		return pattern, true
 	}
-	ti := c.typeOf[decl]
-	if ti == nil || ti.ent == nil {
+	ns := c.namespaceOf(pattern)
+	if ns == nil {
+		c.errorf(pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
 		return nil, false
 	}
 	m := types.Bindings(iface.Decl.Params, iface.Args)
-	args := make([]types.Type, len(decl.Params)) // nil where no function has fixed the argument yet
-	for _, name := range iface.Decl.Order {
-		wt, err := types.Subst(*iface.Decl.Funcs[name], m)
+	fixed := map[*types.ParamDecl]types.Type{} // the free parameters some function has fixed
+	for _, fname := range iface.Decl.Order {
+		wt, err := types.Subst(*iface.Decl.Funcs[fname], m)
 		if err != nil {
 			return nil, false
 		}
 		want := wt.(types.Func)
-		ent, ok := ti.ent.members[name]
+		ent, ok := ns.members[fname]
 		if !ok || ent.kind != entFunc || c.foreignPrivate(ent) {
-			c.errorf(pos, "%s has no function %s, so it does not satisfy %s and the test is always false", decl.Name, name, types.String(iface))
+			c.errorf(pos, "%s has no function %s, so it does not satisfy %s and the test is always false", name, fname, types.String(iface))
 			return nil, false
 		}
 		sg := c.sigReady(ent)
@@ -461,7 +498,7 @@ func (c *Checker) instantiateSatisfying(decl *types.Decl, iface types.Named, pos
 			return nil, false
 		}
 		if len(sg.fn.Params) == 0 {
-			c.errorf(pos, "%s takes no argument, so %s does not satisfy %s and the test is always false", sg.fullName(), decl.Name, types.String(iface))
+			c.errorf(pos, "%s takes no argument, so %s does not satisfy %s and the test is always false", sg.fullName(), name, types.String(iface))
 			return nil, false
 		}
 		subst := map[*types.ParamDecl]types.Type{}
@@ -474,49 +511,65 @@ func (c *Checker) instantiateSatisfying(decl *types.Decl, iface types.Named, pos
 			c.errorf(pos, "%s", err)
 			return nil, false
 		}
-		rn, ok := types.Expand(r).(types.Named)
-		if !ok || rn.Decl != decl || len(rn.Args) != len(args) {
-			c.errorf(pos, "%s takes %s first, not a %s, so %s does not satisfy %s and the test is always false", sg.fullName(), types.String(r), decl.Name, decl.Name, types.String(iface))
-			return nil, false
-		}
 		open := map[*types.ParamDecl]bool{}
 		for _, p := range sg.tparams {
 			if _, done := subst[p]; !done {
 				open[p] = true
 			}
 		}
-		for i, a := range rn.Args {
-			if types.Mentions(a, open) {
-				continue // this function leaves the argument open
+		bind := map[*types.ParamDecl]types.Type{}
+		if !c.unify(pattern, r, bind) {
+			c.errorf(pos, "%s takes %s first, not %s, so %s does not satisfy %s and the test is always false", sg.fullName(), types.String(r), withArticle(name), name, types.String(iface))
+			return nil, false
+		}
+		for _, p := range free {
+			t, ok := bind[p]
+			if !ok || types.Mentions(t, open) {
+				continue // this function leaves the parameter open
 			}
-			if args[i] == nil {
-				args[i] = a
-			} else if !types.Equal(args[i], a) {
-				c.errorf(pos, "%s fixes the type parameter %s of %s to %s through one function and to %s through %s, so the test cannot narrow it", types.String(iface), decl.Params[i].Name, decl.Name, types.String(args[i]), types.String(a), name)
+			if prev, done := fixed[p]; !done {
+				fixed[p] = t
+			} else if !types.Equal(prev, t) {
+				c.errorf(pos, "%s fixes the type parameter %s of %s to %s through one function and to %s through %s, so the test cannot narrow it", types.String(iface), p.Name, name, types.String(prev), types.String(t), fname)
 				return nil, false
 			}
 		}
 	}
-	for i, a := range args {
-		if a == nil {
-			c.errorf(pos, "%s does not determine the type parameter %s of %s, so the test cannot narrow to it", types.String(iface), decl.Params[i].Name, decl.Name)
+	for _, p := range free {
+		if _, ok := fixed[p]; !ok {
+			c.errorf(pos, "%s does not determine the type parameter %s of %s, so the test cannot narrow to it", types.String(iface), p.Name, name)
 			return nil, false
 		}
 	}
-	n := types.Named{Decl: decl, Args: args}
-	if err := c.checkArgs(n); err != nil {
-		c.errorf(pos, "%s: %s", types.String(n), err)
+	inst, err := types.Subst(pattern, fixed)
+	if err != nil {
+		c.errorf(pos, "%s", err)
 		return nil, false
 	}
-	if err := types.CheckBounds(n); err != nil {
-		c.errorf(pos, "%s: %s", types.String(n), err)
+	if n, ok := inst.(types.Named); ok {
+		if err := c.checkArgs(n); err != nil {
+			c.errorf(pos, "%s: %s", types.String(n), err)
+			return nil, false
+		}
+		if err := types.CheckBounds(n); err != nil {
+			c.errorf(pos, "%s: %s", types.String(n), err)
+			return nil, false
+		}
+	}
+	if !types.Assignable(inst, iface) {
+		c.errorf(pos, "%s does not satisfy %s, so the test is always false", types.String(inst), types.String(iface))
 		return nil, false
 	}
-	if !types.Assignable(n, iface) {
-		c.errorf(pos, "%s does not satisfy %s, so the test is always false", types.String(n), types.String(iface))
-		return nil, false
+	return inst, true
+}
+
+// withArticle prefixes a type's name with a or an.
+func withArticle(name string) string {
+	switch name[0] {
+	case 'a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U':
+		return "an " + name
 	}
-	return n, true
+	return "a " + name
 }
 
 // reachesInterface is the first interface a type reaches, through the fields and bodies of the
@@ -573,13 +626,11 @@ func (c *Checker) resolveInterfaces(mi *moduleInfo) {
 			sc.tparams[tp.Name] = decl.Params[i]
 		}
 		sc.tparams["Self"] = decl.Self
-		c.inBound++
 		for i, tp := range d.TypeParams {
 			if tp.Bound != nil {
-				decl.Params[i].Bound = c.resolveType(tp.Bound, sc)
+				decl.Params[i].Bound = c.resolveBound(tp.Bound, sc)
 			}
 		}
-		c.inBound--
 		c.bareBounds(decl.Params, d.TypeParams)
 		decl.Funcs = map[string]*types.Func{}
 		for i := range d.Funcs {
@@ -596,6 +647,7 @@ func (c *Checker) resolveInterfaces(mi *moduleInfo) {
 			fn.Return = c.resolveType(f.Return, sc)
 			decl.Funcs[f.Name] = fn
 			decl.Order = append(decl.Order, f.Name)
+			c.info.interfaceFunc(decl, f.Name)
 		}
 	}
 }

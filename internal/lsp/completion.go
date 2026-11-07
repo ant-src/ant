@@ -742,7 +742,7 @@ func (c *completer) atTopLevel() bool {
 	nodes := ast.Path(c.a.module().File, c.d.posOf(c.wordStart))
 	for _, n := range nodes {
 		switch n.(type) {
-		case *ast.FuncDecl, *ast.TypeDecl, *ast.VarDecl, *ast.Block:
+		case *ast.FuncDecl, *ast.TypeDecl, *ast.InterfaceDecl, *ast.VarDecl, *ast.Block:
 			return false
 		}
 	}

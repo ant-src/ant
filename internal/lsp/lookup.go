@@ -74,6 +74,14 @@ func (a *analysis) at(path string, pos ast.Pos) *target {
 			if n.Owner != "" && within(pos, n.OwnerPos, n.Owner) {
 				return &target{obj: a.owner(path, n.Owner), node: n, from: n.OwnerPos, to: after(n.OwnerPos, n.Owner), path: path}
 			}
+		case *ast.InterfaceDecl:
+			if within(pos, n.NamePos, n.Name) {
+				return &target{obj: in.Decls[n], node: n, from: n.NamePos, to: after(n.NamePos, n.Name), path: path}
+			}
+		case *ast.InterfaceFunc:
+			if within(pos, n.NamePos, n.Name) {
+				return &target{obj: in.Decls[n], node: n, from: n.NamePos, to: after(n.NamePos, n.Name), path: path}
+			}
 		case *ast.VarDecl:
 			if n.Owner != "" && within(pos, n.OwnerPos, n.Owner) {
 				return &target{obj: a.owner(path, n.Owner), node: n, from: n.OwnerPos, to: after(n.OwnerPos, n.Owner), path: path}
@@ -165,6 +173,10 @@ func (a *analysis) declRange(o *check.Object) (string, ast.Pos, ast.Pos, bool) {
 	case *ast.FuncDecl:
 		return o.Path, d.NamePos, after(d.NamePos, d.Name), true
 	case *ast.TypeDecl:
+		return o.Path, d.NamePos, after(d.NamePos, d.Name), true
+	case *ast.InterfaceDecl:
+		return o.Path, d.NamePos, after(d.NamePos, d.Name), true
+	case *ast.InterfaceFunc:
 		return o.Path, d.NamePos, after(d.NamePos, d.Name), true
 	case *ast.NameTarget:
 		return o.Path, d.Pos, d.End, true
