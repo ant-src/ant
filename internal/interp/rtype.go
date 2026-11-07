@@ -336,6 +336,18 @@ func (in *Instance) component(d *types.Decl) func(*types.Decl) bool {
 	return func(x *types.Decl) bool { return root[x] }
 }
 
+// writtenAsName reports whether the alias d's body is written as one type name, as in
+// type B = A. Only that spelling mints a second tag for A (section 4, Records); a union such as
+// D | D deduplicates to D when it is formed, but it is not written as D, and the checker accepts it.
+func writtenAsName(d *types.Decl) bool {
+	b, ok := d.Tag.Body.(*typeBody)
+	if !ok || b == nil {
+		return false
+	}
+	_, ok = b.decl.Body.(*ast.TypeName)
+	return ok
+}
+
 // checkDecl panics where the checker rejects the declaration d itself (section 4, Type
 // declarations). declOf runs it as soon as d is complete, as the checker does, before a union or
 // an instantiation that names d is formed: an alias that reaches itself through unions alone, a
@@ -345,7 +357,7 @@ func (in *Instance) component(d *types.Decl) func(*types.Decl) bool {
 // reports.
 func (g *Goroutine) checkDecl(d *types.Decl, in func(*types.Decl) bool) {
 	pos := g.in.typePos
-	if n, ok := d.Body.(types.Named); ok && d.Kind == types.AliasDecl && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
+	if n, ok := d.Body.(types.Named); ok && d.Kind == types.AliasDecl && writtenAsName(d) && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
 		g.panicf(pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
 	}
 	if _, msg, cyclic := types.AliasCycleErrorIn(d, in); cyclic {

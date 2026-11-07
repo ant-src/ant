@@ -1,0 +1,20 @@
+// spec: 4 Records; 4 Unions; 12 Runtime panics
+// Section 4: `type B = A` mints a second tag only when the body is written as the record's name.
+// A union that repeats a member deduplicates to that member when it is formed, so D | D is D,
+// and the alias is fine in both the checker and an unchecked run.
+type D = { f: int }
+type Box[T] = { value: T }
+type A = D | D
+type B = Box[int] | Box[int]
+
+var a: A = D{ f: 1 }
+println(a)
+println(type(A))
+println(type(B))
+println(type(D | D))
+
+// expect
+// out: D{ f: 1 }
+// out: A
+// out: B
+// out: D
