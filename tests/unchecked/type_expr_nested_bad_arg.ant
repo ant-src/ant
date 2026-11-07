@@ -1,0 +1,18 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Unions
+// panics: type-expr
+// An unchecked run checks the arguments of an instantiation before the instantiation that holds
+// them, as the checker does, so the Either inside Opt panics as an ordinary panic that Panic.catch
+// recovers, before the union in the body of Opt would expand it, directly or through a field.
+type Box[T] = { v: T }
+type Either[A, B] = A | B
+type Opt[T] = T | null
+type Wrap[T] = { w: Opt[T] }
+println(Panic.catch({ type(Opt[Either[Box[int], Box[string]]]) }) is Err)
+println(Panic.catch({ type(Wrap[Either[Box[int], Box[string]]]) }) is Err)
+println(type(Opt[Either[Box[int], Box[string]]] | int))
+
+// expect
+// out: true
+// out: true
+// exit: 1
+// err: Either[Box[int], Box[string]]: a union may contain each discriminator at most once

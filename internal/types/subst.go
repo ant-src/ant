@@ -223,33 +223,41 @@ func mentions(t Type, pred func(Param) bool) bool {
 
 // Walk calls f on t and on every type written inside it, the type arguments of a named type
 // included, but not on the bodies or fields of the declarations it names.
-func Walk(t Type, f func(Type)) {
-	f(t)
+func Walk(t Type, f func(Type)) { walk(t, f, nil) }
+
+// walk calls pre on t before the types written inside it and post after them.
+func walk(t Type, pre, post func(Type)) {
+	if pre != nil {
+		pre(t)
+	}
 	switch x := t.(type) {
 	case Array:
-		Walk(x.Elem, f)
+		walk(x.Elem, pre, post)
 	case Map:
-		Walk(x.Key, f)
-		Walk(x.Val, f)
+		walk(x.Key, pre, post)
+		walk(x.Val, pre, post)
 	case Set:
-		Walk(x.Elem, f)
+		walk(x.Elem, pre, post)
 	case Func:
 		for _, p := range x.Params {
-			Walk(p, f)
+			walk(p, pre, post)
 		}
-		Walk(x.Return, f)
+		walk(x.Return, pre, post)
 	case Record:
 		for _, fl := range x.Fields {
-			Walk(fl.Type, f)
+			walk(fl.Type, pre, post)
 		}
 	case Named:
 		for _, a := range x.Args {
-			Walk(a, f)
+			walk(a, pre, post)
 		}
 	case Union:
 		for _, m := range x.Members {
-			Walk(m, f)
+			walk(m, pre, post)
 		}
+	}
+	if post != nil {
+		post(t)
 	}
 }
 
@@ -287,10 +295,12 @@ func CheckArgs(n Named) error {
 	return nil
 }
 
-// CheckWritten applies CheckArgs to every instantiation written in t.
+// CheckWritten applies CheckArgs to every instantiation written in t, its arguments before it, as
+// the checker resolves them: Opt[Either[Box[int], Box[string]]] fails on the Either, which forming
+// the union in the body of Opt would expand.
 func CheckWritten(t Type) error {
 	var first error
-	Walk(t, func(t Type) {
+	walk(t, nil, func(t Type) {
 		if n, ok := t.(Named); ok && first == nil && len(n.Args) > 0 {
 			if err := CheckArgs(n); err != nil {
 				first = fmt.Errorf("%s: %w", String(n), err)
