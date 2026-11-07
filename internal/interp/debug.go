@@ -227,11 +227,11 @@ func (d *Debugger) Step(id int, kind StepKind, ack func()) {
 }
 
 // Pause stops every goroutine. The stop names the goroutine id, or the main goroutine when that
-// one has ended.
+// one has ended. A run that has not started or is ending does not stop.
 func (d *Debugger) Pause(id int) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.stopping {
+	if in := d.in.Load(); d.stopping || in == nil || in.done.Load() {
 		return
 	}
 	if _, ok := d.gs[id]; !ok {
@@ -248,6 +248,10 @@ func (d *Debugger) Pause(id int) {
 		}
 		if d.gen != gen {
 			return // the run resumed, as it ends, before the stop
+		}
+		if d.in.Load().done.Load() {
+			d.resume(nil) // the run ended before the stop: nothing stops it any more
+			return
 		}
 		d.report(Stop{Goroutine: id, Reason: "pause"})
 	}()

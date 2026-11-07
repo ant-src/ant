@@ -906,3 +906,22 @@ println(1)
 	}
 	ok(t, c.request("disconnect", nil))
 }
+
+func TestPauseWhenNothingRuns(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": "println(1)\n"})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	ok(t, c.request("pause", map[string]any{"threadId": 1})) // before configurationDone
+	time.Sleep(20 * time.Millisecond)
+	ok(t, c.request("configurationDone", nil))
+	c.event("terminated")
+	ok(t, c.request("pause", map[string]any{"threadId": 1})) // after terminated
+	time.Sleep(20 * time.Millisecond)
+	ok(t, c.request("threads", nil))
+	if e := c.takeEvent("stopped"); e != nil {
+		t.Errorf("a stopped event: %v", e)
+	}
+	ok(t, c.request("disconnect", nil))
+}

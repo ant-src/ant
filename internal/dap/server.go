@@ -252,7 +252,7 @@ func (s *server) serve(req *request) bool {
 		}
 		json.Unmarshal(req.Arguments, &args)
 		s.reply(req, nil)
-		if s.d != nil {
+		if s.started && !s.ended.Load() { // else nothing runs to pause
 			s.d.Pause(args.ThreadID)
 		}
 	case "exceptionInfo":
