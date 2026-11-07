@@ -86,9 +86,18 @@ func (e *editor) computeCompletion() {
 		if i := strings.IndexByte(it.Insert, '.'); i >= 0 && it.Kind != "file" && it.Kind != "folder" {
 			// a qualified name, as the functions offered after a pipe are: Array.map,
 			// Array.filter; completed a word at a time, so the namespace comes first, and
-			// the dot is typed
+			// the dot is typed; a word that starts the function's name and not the
+			// namespace's, fi for Array.filter, is replaced by the whole name
 			ns := it.Insert[:i]
-			it = ant.Completion{Label: ns, Insert: ns, Kind: "namespace"}
+			if c.word == "" || strings.HasPrefix(ns, c.word) || !strings.HasPrefix(it.Insert[i+1:], c.word) {
+				it = ant.Completion{Label: ns, Insert: ns, Kind: "namespace"}
+			} else if seen[it.Insert] {
+				continue
+			} else {
+				seen[it.Insert] = true
+				c.replies = append(c.replies, it)
+				continue
+			}
 		}
 		if !strings.HasPrefix(it.Insert, c.word) || seen[it.Insert] {
 			continue
@@ -141,7 +150,7 @@ func (e *editor) ghost() string {
 		return ""
 	}
 	for _, r := range c.replies {
-		if len(r.Insert) <= len(c.word) {
+		if len(r.Insert) <= len(c.word) || !strings.HasPrefix(r.Insert, c.word) {
 			continue
 		}
 		if c.word == "" && !c.member && !r.Preferred {

@@ -222,6 +222,10 @@ func TestEditorCompletion(t *testing.T) {
 		{"xs | A\x1b[C\r", "xs | Array"},                  // as the ghost suggests it
 		{"xs | Array.f\t\r", "xs | Array.filter"},         // then its members
 		{"xs | \t\t\r", "xs | Array"},                     // the menu lists each namespace once, after the plain names
+		{"xs | fil\t\r", "xs | Array.filter"},             // a function's own name finds its qualified name
+		{"xs | ma\t\t\r", "xs | Iter.map"},                // and the menu cycles through the namespaces that have it
+		{"xs | ma\x1b[C\r", "xs | ma"},                    // no ghost: the reply does not extend the word
+		{"xs | tw\t\r", "xs | twice"},                     // a plain name as before
 	}
 	for _, tc := range tests {
 		e, _, in := fakeTerminal(t, 80, complete)
