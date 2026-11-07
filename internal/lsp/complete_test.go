@@ -193,3 +193,20 @@ func TestCompletePipeInCall(t *testing.T) {
 		}
 	}
 }
+
+// TestCompleteShadowed: a name an inner scope declares hides the outer one of the same name.
+func TestCompleteShadowed(t *testing.T) {
+	items := completeItems(t, ClientCapabilities{}, "var count = \"s\"\nfunc f(count: int): int { coun|> }\n")
+	n := 0
+	for _, it := range items {
+		if it.Label == "count" {
+			n++
+			if it.Detail != "int" {
+				t.Errorf("count is the outer one: %+v", it)
+			}
+		}
+	}
+	if n != 1 {
+		t.Errorf("count offered %d times: %+v", n, items)
+	}
+}

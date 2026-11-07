@@ -572,6 +572,8 @@ func (c *completer) scopeNames() {
 	a := c.a
 	m := a.module()
 	pos := c.d.posOf(c.wordStart)
+	// the names an inner scope offers, which hide those of the scopes around it and the prelude
+	shadowed := map[string]bool{}
 	if m.Resolve != nil {
 		nodes := ast.Path(m.File, pos)
 		for i := len(nodes) - 1; i >= 0; i-- {
@@ -580,13 +582,15 @@ func (c *completer) scopeNames() {
 				continue
 			}
 			_, module := nodes[i].(*ast.File)
+			var inner []string
 			for _, b := range sc.Names {
 				if !module && !b.Type && !b.Pos.Before(pos) {
 					continue // declared below
 				}
-				if b.Name == "" || b.Name == "_" {
+				if b.Name == "" || b.Name == "_" || shadowed[b.Name] {
 					continue
 				}
+				inner = append(inner, b.Name)
 				o := a.info.Decls[b.Node]
 				if o != nil {
 					item := c.objectItem(a, o, "")
@@ -597,10 +601,15 @@ func (c *completer) scopeNames() {
 					c.add(CompletionItem{Label: b.Name, Kind: ItemVariable})
 				}
 			}
+			for _, n := range inner {
+				shadowed[n] = true
+			}
 		}
 	}
 	for _, o := range a.info.Prelude {
-		c.add(c.objectItem(a, o, ""))
+		if !shadowed[o.Name] {
+			c.add(c.objectItem(a, o, ""))
+		}
 	}
 }
 
