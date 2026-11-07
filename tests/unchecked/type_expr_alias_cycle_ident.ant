@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
+// panics: type-expr
+// An unchecked run leaves an identity alias out of the members of an alias cycle it reports, as
+// the checker does: the cycle only passes an argument through Ident.
+type Ident[T] = T
+type Late[T] = Early[T] | null
+type Early[T] = Ident[Late[T]] | string
+println(type(Early[int]))
+
+// expect
+// exit: 1
+// err: type Late refers to itself through Early without passing through a record, array, map, set, or function

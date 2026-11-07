@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
+// panics: type-expr
+// An unchecked run blames the member of an alias cycle declared first and lists the others, as
+// the checker does, although the type expression reaches the cycle through a later member.
+type A = C | null
+type C = B
+type B = C
+println(type(A))
+
+// expect
+// exit: 1
+// err: type C refers to itself through B without passing through a record, array, map, set, or function

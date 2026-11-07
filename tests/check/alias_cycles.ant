@@ -5,13 +5,13 @@
 // that mentions the cyclic alias does not loop, and an alias may name a later alias. Recursion
 // through a record, an array, a set or a map is fine.
 type Self = Self | null // ERR: without passing through a record, array, map, set, or function
-type Chain = Link | int
-type Link = Chain | string // ERR: refers to itself without passing through
+type Chain = Link | int // ERR: type Chain refers to itself through Link without passing through
+type Link = Chain | string
 type Mentions = Self | Link | bool
-type Same[T] = Same[T] // ERR: type Same refers to itself without passing through
-type Plain = Plain     // ERR: type Plain refers to itself without passing through
-type GenA[T] = GenB[T] | null
-type GenB[T] = GenA[T] | null // ERR: type GenB refers to itself without passing through
+type Same[T] = Same[T]        // ERR: type Same refers to itself without passing through
+type Plain = Plain            // ERR: type Plain refers to itself without passing through
+type GenA[T] = GenB[T] | null // ERR: type GenA refers to itself through GenB without passing through
+type GenB[T] = GenA[T] | null
 type Ident[T] = T
 type ThroughIdent[T] = Ident[ThroughIdent[T]] // ERR: type ThroughIdent refers to itself without passing through
 type Early = Later

@@ -1,0 +1,14 @@
+// spec: 4 Type declarations
+// Section 4: an alias cycle is reported once, at the member declared first, whichever member is
+// resolved first, and the message lists the other members in the order the cycle passes through
+// them, as an unchecked run does. An earlier declaration that names a later member does not move
+// the report, and an identity alias the cycle only passes an argument through is not a member.
+type A = C | null
+type C = B // ERR: type C refers to itself through B without passing through a record, array, map, set, or function
+type B = C
+type R1 = R2 // ERR: type R1 refers to itself through R2 and R3 without passing through
+type R2 = R3
+type R3 = R1 | int
+type Ident[T] = T
+type Late[T] = Early[T] | null // ERR: type Late refers to itself through Early without passing through
+type Early[T] = Ident[Late[T]] | string

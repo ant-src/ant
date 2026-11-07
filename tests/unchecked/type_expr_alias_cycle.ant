@@ -8,4 +8,4 @@ println(Reflect.erase(type(A[int])) == Reflect.erase(type(A[string])))
 
 // expect
 // exit: 1
-// err: type A refers to itself without passing through a record, array, map, set, or function
+// err: type A refers to itself through B without passing through a record, array, map, set, or function

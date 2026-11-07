@@ -227,7 +227,7 @@ func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
 		}
 		body = &typeBody{decl: td}
 	}
-	d := &types.Decl{Name: tag.Name, Tag: tag}
+	d := &types.Decl{Name: tag.Name, Tag: tag, Pos: body.decl.Pos}
 	if in.decls == nil {
 		in.decls = map[*value.Tag]*types.Decl{}
 	}
@@ -276,8 +276,8 @@ func (g *Goroutine) checkDecl(d *types.Decl) {
 	if n, ok := d.Body.(types.Named); ok && d.Kind == types.AliasDecl && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
 		g.panicf(pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
 	}
-	if _, cyclic := types.AliasCycle(d); cyclic {
-		g.panicf(pos, "type %s refers to itself without passing through a record, array, map, set, or function", d.Name)
+	if _, msg, cyclic := types.AliasCycleError(d); cyclic {
+		g.panicf(pos, "%s", msg)
 	}
 	if msg := types.SelfArgs(d); msg != "" {
 		g.panicf(pos, "%s", msg)

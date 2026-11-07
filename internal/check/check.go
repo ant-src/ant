@@ -845,26 +845,17 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 }
 
 // checkAliasCycle reports an alias that reaches itself without passing through a record,
-// array, map, set, or function. The error goes to the member of the cycle declared last, which
-// is the one whose body closes the cycle when the declarations are read in order, whichever
-// member a later declaration's use resolved first.
+// array, map, set, or function. The error goes to the member of the cycle declared first, as the
+// runtime's does, whichever member a later declaration's use resolved first, and its body is
+// dropped so the other members do not report the cycle again.
 func (c *Checker) checkAliasCycle(ti *typeInfo) {
-	path, cyclic := types.AliasCycle(ti.t)
+	blame, msg, cyclic := types.AliasCycleError(ti.t)
 	if !cyclic {
 		return
 	}
-	last, lastPos := ti.t, ti.decl.Pos
-	for _, d := range path {
-		if pos, ok := d.Pos.(ast.Pos); ok && (pos.Line > lastPos.Line || pos.Line == lastPos.Line && pos.Col > lastPos.Col) {
-			last, lastPos = d, pos
-		}
-	}
-	name := last.Name
-	if last == ti.t {
-		name = ti.decl.Name
-	}
-	c.errorf(lastPos, "type %s refers to itself without passing through a record, array, map, set, or function", name)
-	last.Body = types.Invalid{}
+	pos, _ := blame.Pos.(ast.Pos)
+	c.errorf(pos, "%s", msg)
+	blame.Body = types.Invalid{}
 }
 
 // checkSelfArgs reports a generic type that refers to itself, directly or through other generic
