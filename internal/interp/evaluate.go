@@ -99,7 +99,7 @@ func compileExpr(src string, names []string) (*compiled, error) {
 				bad = fmt.Errorf("%s is not defined here", x.Name)
 			}
 		case *ast.Assign:
-			if id, ok := x.Target.(*ast.Ident); ok && id.Ref.Kind == ast.RefModule && bad == nil {
+			if id := frameName(x.Target); id != nil {
 				bad = fmt.Errorf("%s is read as its value at the stop and cannot be assigned", id.Name)
 			}
 		}
@@ -109,6 +109,28 @@ func compileExpr(src string, names []string) (*compiled, error) {
 		return nil, bad
 	}
 	return &compiled{file: f, expr: e, names: names}, nil
+}
+
+// frameName returns a name of the frame an assignment target assigns, directly or by
+// destructuring, or nil; a field or an element of one is the program's own value, and can be
+// assigned.
+func frameName(target ast.Node) *ast.Ident {
+	switch t := target.(type) {
+	case *ast.Ident:
+		if t.Ref.Kind == ast.RefModule {
+			return t
+		}
+	case *ast.AssignArray:
+		for _, e := range t.Elems {
+			if id := frameName(e); id != nil {
+				return id
+			}
+		}
+		if t.Rest != nil {
+			return frameName(t.Rest)
+		}
+	}
+	return nil
 }
 
 // run evaluates c with the values of its names, on a goroutine of the run that no debugger

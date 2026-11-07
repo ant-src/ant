@@ -380,16 +380,26 @@ println(show(u, 2))
 		}
 	}
 	for src, want := range map[string]string{
-		"nope + 1":            "nope is not defined here",
-		"n = 3":               "cannot be assigned",
-		"u.tags[9]":           "panic: index 9 out of range",
-		"Channel.receive(ch)": "did not finish within a second",
-		"n +":                 "",
+		"nope + 1":                             "nope is not defined here",
+		"n = 3":                                "cannot be assigned",
+		"[n, label] = [7, \"x\"]":              "n is read as its value",
+		"[u.name, [label]] = [\"x\", [\"y\"]]": "label is read as its value",
+		"[u.name, ...label] = [\"x\"]":         "label is read as its value",
+		"u.tags[9]":                            "panic: index 9 out of range",
+		"Channel.receive(ch)":                  "did not finish within a second",
+		"n +":                                  "",
 	} {
 		_, err := r.d.Evaluate(top, src)
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: error %v, want one with %q", src, err, want)
 		}
+	}
+	// destructuring into elements changes the program's array
+	if _, err := r.d.Evaluate(top, `[u.tags[0], u.tags[1]] = ["p", "q"]`); err != nil {
+		t.Errorf("assigning elements: %v", err)
+	}
+	if v, err := r.d.Evaluate(top, "u.tags"); err != nil || value.RenderQuoted(v) != `["p", "q"]` {
+		t.Errorf("u.tags after the assignment: %v %v", v, err)
 	}
 	// the caller's frame sees its own names
 	if v, err := r.d.Evaluate(r.frames(r.stop.Goroutine)[1], "u.name"); err != nil || value.Render(v) != "ada" {
