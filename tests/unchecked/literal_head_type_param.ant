@@ -1,0 +1,15 @@
+// spec: 12 Runtime panics; 12 Names and scopes; 3
+// panics: variable
+// A type parameter of a record type hides the top-level type of its name in a field default too,
+// so the default's literal head is unbound and building the record panics.
+type T = { v: int }
+type Box[T] = { u: T | null = T{ v: 1 } }
+
+println("before")
+let b: Box[int] = Box{}
+println(b)
+
+// expect
+// out: before
+// exit: 1
+// err: T is not defined

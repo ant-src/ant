@@ -1,0 +1,37 @@
+// spec: 3; 4 Generics
+// A type parameter hides an outer name of its spelling in every position of its declaration: as
+// the target of is, a literal head, a callee, or the start of a path it is not the top-level type
+// beside it, and reports what it reports with no outer name.
+type T = { v: int }
+type R = { v: int }
+
+func isTarget[T](x: T | null): bool {
+  x is T // ERR: the right side of is must be a type
+}
+
+func isOther[T](x: R | null): bool {
+  x is T // ERR: the right side of is must be a type
+}
+
+func literalHead[T](x: T): void {
+  var a = T{ v: 1 } // ERR: a record literal needs a record type as its head
+}
+
+func callee[T](x: T): void {
+  var a = T(1) // ERR: T is a type parameter, not a value
+}
+
+func path[T](x: T): void {
+  var a = T.of(1)          // ERR: T is a type parameter, not a value
+  var b: T.U | null = null // ERR: T is a type parameter, not a namespace
+}
+
+type Box[T] = { u: T | null = T{ v: 1 } } // ERR: a record literal needs a record type as its head
+
+func noOuter[U](x: U | null): bool {
+  x is U // ERR: the right side of is must be a type
+}
+
+func outside(x: R | T): bool { // without a type parameter, T is the top-level type
+  x is T
+}

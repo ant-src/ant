@@ -21,6 +21,12 @@ func (c *Checker) lookup(sc *scope, name string) (*local, *entity) {
 		if e, ok := s.types[name]; ok {
 			return nil, e
 		}
+		if _, ok := s.tparams[name]; ok {
+			// A type parameter hides an outer name of its spelling throughout its
+			// declaration, and binds nothing a value, a literal head, an is target, or a
+			// path can use (section 3).
+			return nil, nil
+		}
 	}
 	return nil, c.lookupEntity(name)
 }
@@ -351,6 +357,10 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 		return c.typeOfLocal(l)
 	}
 	if ent == nil {
+		if p, _ := sc.lookupTypeParam(x.Name); p != nil {
+			c.errorf(x.Pos, "%s is a type parameter, not a value", x.Name)
+			return types.Invalid{}
+		}
 		c.errorf(x.Pos, "%s is not defined", x.Name)
 		return types.Invalid{}
 	}

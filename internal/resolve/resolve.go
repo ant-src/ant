@@ -155,8 +155,28 @@ type resolver struct {
 	// defaultOf is the block scope of the local type whose field defaults are being resolved,
 	// or nil: a default there may name the block's types but none of its variables.
 	defaultOf *scope
-	extra     map[string]bool
-	info      *Info
+	// hides are the type parameters in scope, innermost last: each hides an outer name of its
+	// spelling from its declaration's scope outward (section 3).
+	hides []hide
+	extra map[string]bool
+	info  *Info
+}
+
+// hide is the type parameters of one declaration and the scope they are declared in.
+type hide struct {
+	names map[string]bool
+	from  *scope
+}
+
+// hidden reports whether a binding of name in sc lies behind a type parameter of that name,
+// which binds nothing at run time and so leaves the name unbound there.
+func (r *resolver) hidden(name string, sc *scope) bool {
+	for _, h := range r.hides {
+		if h.names[name] && encloses(sc, h.from) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *resolver) isPrelude(name string) bool { return prelude.IsName(name) || r.extra[name] }
@@ -459,7 +479,8 @@ func (r *resolver) typeParams(tps []ast.TypeParam) {
 func (r *resolver) funcDecl(d *ast.FuncDecl) {
 	s := r.push(&scope{parent: r.module, boundary: true, fn: true, node: d.Body})
 	r.tparams = d.TypeParams
-	defer func() { r.tparams = nil }()
+	r.hides = append(r.hides, hide{typeParamSet(d.TypeParams), s})
+	defer func() { r.tparams, r.hides = nil, r.hides[:len(r.hides)-1] }()
 	d.Scope = &ast.FuncScope{}
 	s.fnScope = d.Scope
 	r.params(d.Params, s)
@@ -551,11 +572,13 @@ func (r *resolver) defaults(d *ast.TypeDecl, s *scope) {
 		r.defaultOf = s
 	}
 	r.loops = nil
+	r.hides = append(r.hides, hide{typeParamSet(d.TypeParams), s})
 	for _, f := range rt.Fields {
 		if f.Default != nil {
 			r.expr(f.Default, s)
 		}
 	}
+	r.hides = r.hides[:len(r.hides)-1]
 	r.defaultOf, r.loops = savedOf, savedLoops
 }
 
@@ -860,6 +883,9 @@ func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
 	crossed := false
 	for sc := s; sc != nil; sc = sc.parent {
 		if b, ok := sc.names[id.Name]; ok {
+			if r.hidden(id.Name, sc) {
+				return
+			}
 			if b.imp >= 0 || b.fixed != ast.Assignable || b.module && !r.script {
 				return // an import or a fixed binding: the checker reports the assignment
 			}
@@ -900,6 +926,9 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 	crossed := false
 	for sc := s; sc != nil; sc = sc.parent {
 		if b, ok := sc.names[id.Name]; ok {
+			if r.hidden(id.Name, sc) {
+				break
+			}
 			if r.defaultOf != nil && !b.module && b.imp < 0 && !b.isType && encloses(b.scope, r.defaultOf) {
 				r.errorf(id.Pos, "a field default of a local type cannot use %s, a variable or parameter of an enclosing block", id.Name)
 			}

@@ -1,0 +1,17 @@
+// spec: 12 Runtime panics; 12 Names and scopes; 3
+// panics: variable
+// A type parameter hides the top-level type of its name, so x is T inside the function does not
+// test against that type: nothing is bound to T at run time, and evaluating it panics.
+type T = { v: int }
+
+func f[T](x: T | null): bool {
+  x is T
+}
+
+println("before")
+println(f(T{ v: 1 }))
+
+// expect
+// out: before
+// exit: 1
+// err: T is not defined

@@ -1099,6 +1099,10 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 			return types.Prim{Kind: k}
 		}
 	}
+	if p, _ := sc.lookupTypeParam(name); p != nil {
+		c.errorf(x.Pos, "%s is a type parameter, not a namespace", name)
+		return types.Invalid{}
+	}
 	l, ent := c.lookup(sc, name)
 	if l != nil {
 		// Types and values share one namespace (section 3): a local hides an outer type or

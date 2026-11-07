@@ -1,0 +1,37 @@
+// spec: 3; 4 Generics
+// A type parameter hides an outer name of its spelling only in its own declaration: a sibling
+// function, a generic function with another parameter, and the code around them still reach the
+// top-level type, and inside its function the type parameter tests and narrows as itself.
+type T = { v: int }
+
+func plain(x: T | string): bool {
+  x is T
+}
+
+func other[U](x: U, y: T | null): U {
+  if y is T {
+    println(y.v)
+  }
+  x
+}
+
+func orDefault[T](x: T | null, d: T): T {
+  if x is null {
+    return d
+  }
+  x
+}
+
+println(plain(T{ v: 1 }))
+println(plain("t"))
+println(other("u", T{ v: 2 }))
+println(orDefault(null, 3))
+println(orDefault(T{ v: 4 }, T{ v: 5 }))
+
+// expect
+// out: true
+// out: false
+// out: 2
+// out: u
+// out: 3
+// out: T{ v: 4 }
