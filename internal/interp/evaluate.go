@@ -258,28 +258,36 @@ func parseLog(msg string) ([]logPart, error) {
 			text.WriteByte(c)
 			i++
 		case c == '{':
-			depth, j := 1, i+1
-			for ; j < len(msg) && depth > 0; j++ {
-				switch msg[j] {
-				case '{':
-					depth++
-				case '}':
-					depth--
+			// The expression ends at the first } it parses up to, so that a } in a string
+			// or a literal inside it does not end it.
+			var expr string
+			var err error
+			end := -1
+			for j := i + 1; j < len(msg); j++ {
+				if msg[j] != '}' {
+					continue
+				}
+				_, perr := parser.ParseExpr(msg[i+1 : j])
+				if perr == nil {
+					expr, end = msg[i+1:j], j
+					break
+				}
+				if err == nil {
+					err = fmt.Errorf("the log message's {%s}: %v", msg[i+1:j], perr)
 				}
 			}
-			if depth > 0 {
-				return nil, errors.New("the log message has a { without its }")
-			}
-			expr := msg[i+1 : j-1]
-			if _, err := parser.ParseExpr(expr); err != nil {
-				return nil, fmt.Errorf("the log message's {%s}: %v", expr, err)
+			if end < 0 {
+				if err == nil {
+					err = errors.New("the log message has a { without its }")
+				}
+				return nil, err
 			}
 			if text.Len() > 0 {
 				parts = append(parts, logPart{text: text.String()})
 				text.Reset()
 			}
 			parts = append(parts, logPart{expr: expr})
-			i = j - 1
+			i = end
 		default:
 			text.WriteByte(c)
 		}

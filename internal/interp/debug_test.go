@@ -559,3 +559,17 @@ func TestDebugBreakpointsOnOneStopPointActEachOnItsOwn(t *testing.T) {
 		t.Errorf("logs %q", got)
 	}
 }
+
+func TestDebugLogpointWithBracesInStrings(t *testing.T) {
+	var logs []string
+	r := debug(t, `var s = "a"
+println(s)
+`, func(r *debugRun) {
+		r.d.OnLog = func(s string) { logs = append(logs, s) }
+		r.set(interp.Breakpoint{Pos: r.pointOn(2), LogMessage: `v={s + "}"} w={"{"} {{x}}`})
+	})
+	r.finish()
+	if got := strings.Join(logs, ""); got != "v=a} w={ {x}\n" {
+		t.Errorf("logs %q", got)
+	}
+}
