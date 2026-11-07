@@ -659,14 +659,7 @@ func bind(m *module, line int) (interp.StopPoint, bool) {
 			return sp, true
 		}
 	}
-	// The innermost body that spans the line.
-	var body ast.Node
-	size := 0
-	for _, sp := range m.stops {
-		if n := spanOf(sp.Body, len(m.lines)); n > 0 && spans(sp.Body, line) && (body == nil || n < size) {
-			body, size = sp.Body, n
-		}
-	}
+	body := bodyAt(m.file, line)
 	for _, sp := range m.stops {
 		if sp.Pos.Line > line && sp.Body == body {
 			return sp, true
@@ -675,19 +668,21 @@ func bind(m *module, line int) (interp.StopPoint, bool) {
 	return interp.StopPoint{}, false
 }
 
-// spanOf is how many lines n spans; a file spans them all, and one more.
-func spanOf(n ast.Node, lines int) int {
-	if _, file := n.(*ast.File); file {
-		return lines + 1
-	}
-	return n.EndPosition().Line - ast.Start(n).Line + 1
-}
-
-func spans(n ast.Node, line int) bool {
-	if _, file := n.(*ast.File); file {
+// bodyAt is the innermost function, lambda, go block, defer block, or test that spans line in
+// f, or else f.
+func bodyAt(f *ast.File, line int) ast.Node {
+	var body ast.Node = f
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch n.(type) {
+		case *ast.FuncDecl, *ast.FuncLit, *ast.Lambda, *ast.Go, *ast.Defer, *ast.Test:
+			if ast.Start(n).Line > line || n.EndPosition().Line < line {
+				return false
+			}
+			body = n
+		}
 		return true
-	}
-	return ast.Start(n).Line <= line && line <= n.EndPosition().Line
+	})
+	return body
 }
 
 // ---- positions

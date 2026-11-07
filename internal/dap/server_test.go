@@ -885,3 +885,24 @@ while true {
 	c.event("terminated")
 	ok(t, c.request("disconnect", nil))
 }
+
+func TestBreakpointInABodyWithNoStatement(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `func empty() {
+  // nothing
+}
+var f = func() {
+}
+println(1)
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	bps := ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "lines": []int{2, 5, 4}}))["breakpoints"].([]any)
+	for i, want := range []any{false, false, true} {
+		if b := bps[i].(map[string]any); b["verified"] != want {
+			t.Errorf("breakpoint %d: %v", i, b)
+		}
+	}
+	ok(t, c.request("disconnect", nil))
+}
