@@ -936,19 +936,19 @@ func (p *parser) interfaceFunc() *ast.InterfaceFunc {
 		p.fail(p.peek().Pos, "%s takes no type parameters of its own; an interface declares them on the interface", f.Name)
 	}
 	f.Params, f.Return = p.signature()
+	// The rules below are reported softly, so that an editor keeps the signature being written.
 	if len(f.Params) == 0 {
-		p.fail(n.Pos, "%s needs a first parameter of the type Self, the satisfying type", f.Name)
-	}
-	if tn, ok := f.Params[0].Type.(*ast.TypeName); !ok || len(tn.Path) != 1 || tn.Path[0] != "Self" || len(tn.Args) > 0 {
-		p.fail(token.Pos{Line: f.Params[0].Pos.Line, Col: f.Params[0].Pos.Col}, "the first parameter of %s must have the type Self, the satisfying type", f.Name)
+		p.soft(n.Pos, "%s needs a first parameter of the type Self, the satisfying type", f.Name)
+	} else if tn, ok := f.Params[0].Type.(*ast.TypeName); !ok || len(tn.Path) != 1 || tn.Path[0] != "Self" || len(tn.Args) > 0 {
+		p.soft(token.Pos{Line: f.Params[0].Pos.Line, Col: f.Params[0].Pos.Col}, "the first parameter of %s must have the type Self, the satisfying type", f.Name)
 	}
 	for _, prm := range f.Params {
 		if prm.Default != nil {
-			p.fail(token.Pos{Line: prm.Pos.Line, Col: prm.Pos.Col}, "the parameter %s of %s takes no default; an interface lists signatures only", prm.Name, f.Name)
+			p.soft(token.Pos{Line: prm.Pos.Line, Col: prm.Pos.Col}, "the parameter %s of %s takes no default; an interface lists signatures only", prm.Name, f.Name)
 		}
 	}
 	if f.Return == nil {
-		p.fail(p.peek().Pos, "%s needs a return type; an interface states each signature in full", f.Name)
+		p.soft(p.peek().Pos, "%s needs a return type; an interface states each signature in full", f.Name)
 	}
 	f.Sig = p.since(n)
 	f.End = p.end()

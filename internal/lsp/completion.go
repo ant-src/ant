@@ -751,6 +751,49 @@ func (c *completer) atTopLevel() bool {
 
 // ---- types
 
+// inInterfaceBody reports whether the cursor is inside the braces of an interface declaration:
+// the innermost brace open before it follows interface Name, with or without type parameters.
+// The tokens decide, since the declaration being written may not parse up to the cursor.
+func (c *completer) inInterfaceBody() bool {
+	toks := c.toks
+	i := len(toks) - 1
+	for i >= 0 && toks[i].Off >= c.wordStart {
+		i--
+	}
+	depth := 0
+	for ; i >= 0; i-- {
+		t := toks[i]
+		switch {
+		case t.Is("}") || t.Is(")") || t.Is("]"):
+			depth++
+		case t.Is("{") || t.Is("(") || t.Is("["):
+			if depth > 0 {
+				depth--
+				continue
+			}
+			if !t.Is("{") {
+				continue // an open parameter list or type argument list of the signature
+			}
+			j := i - 1
+			if j >= 0 && toks[j].Is("]") {
+				for d := 0; j >= 0; j-- { // skip the type parameters
+					if toks[j].Is("]") {
+						d++
+					} else if toks[j].Is("[") {
+						d--
+						if d == 0 {
+							j--
+							break
+						}
+					}
+				}
+			}
+			return j >= 1 && toks[j].Kind == token.Ident && toks[j-1].Is("interface")
+		}
+	}
+	return false
+}
+
 // typePosition reports whether a type is written at the cursor: inside a type expression, or
 // after the colon of a parameter, a field, a variable's annotation, or a type parameter's bound,
 // or after the = of a type declaration.
@@ -900,6 +943,10 @@ func (c *completer) typeNames(prefix string) {
 	a := c.a
 	for _, name := range builtinTypes {
 		c.add(CompletionItem{Label: name, Kind: ItemClass, Detail: "type"})
+	}
+	if c.inInterfaceBody() {
+		// the satisfying type, in an interface's signatures (section 4, Interfaces)
+		c.add(CompletionItem{Label: "Self", Kind: ItemTypeParameter, Detail: "the satisfying type"})
 	}
 	for _, o := range a.info.Prelude {
 		if o.Kind == check.TypeKind || o.Kind == check.Namespace && hasTypes(o) {

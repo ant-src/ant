@@ -55,6 +55,9 @@ func TestComplete(t *testing.T) {
 	lacks("var s = \"a\"\ns.", "join", "println") // String.from is offered: it takes anything first (Decision 10)
 	has("var xs = [1, 2]\nxs.", "map", "filter")
 	has("interface Shape { area(s: Self): float64 }\nfunc total(s: Shape): float64 { s.", "area")
+	has("interface Shape {\n  area(s: ", "Self", "int")
+	has("interface Shape {\n  area(s: Self): ", "float64", "Shape")
+	lacks("func f(s: ", "Self")
 	has("var xs = [1, 2]\nxs | Array.", "map", "filter")
 	has("var xs = [1, 2]\nxs | ", "Array.map")
 	// an empty literal takes its type from the function: an array or a map of anything
