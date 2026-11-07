@@ -931,7 +931,7 @@ func (p *parser) interfaceDecl() *ast.InterfaceDecl {
 // parameters of its own.
 func (p *parser) interfaceFunc() *ast.InterfaceFunc {
 	n := p.expectName("a function name")
-	f := &ast.InterfaceFunc{Pos: pos(n), Name: n.Text, NamePos: pos(n)}
+	f := &ast.InterfaceFunc{Pos: pos(n), Name: n.Text, NamePos: pos(n), Doc: p.doc(n)}
 	if p.at("[") {
 		p.fail(p.peek().Pos, "%s takes no type parameters of its own; an interface declares them on the interface", f.Name)
 	}

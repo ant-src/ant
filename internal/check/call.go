@@ -44,7 +44,7 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 			if ent.isAssert && x.Assert != nil {
 				return c.assertCall(s, x, sc, c.info.object(ent))
 			}
-			return c.applySig(s, x, sc, expected, c.info.object(ent))
+			return c.applySig(s, x, sc, expected, c.info.object(ent), nil)
 		case entType:
 			if ent.decl.Kind == types.PrimitiveDecl {
 				c.info.recordCall(x, &CallInfo{Fn: constructorType(ent.decl), Callee: c.info.object(ent), Slots: positional(x)})
@@ -60,6 +60,11 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 		case entMissing:
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
+		}
+	}
+	if f, ok := x.Fn.(*ast.Field); ok {
+		if t, done := c.dotCall(x, f, sc, expected); done {
+			return t
 		}
 	}
 	fn, short := c.chainRecv(x.Fn, sc)
@@ -244,15 +249,19 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 }
 
 // applySig checks a call of a declared function, solving its type parameters (section 4,
-// Inference) and matching positional and named arguments to its parameters.
-func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object) types.Type {
-	slots, ok := c.argSlots(s, x)
-	c.recordSlots(s, x, slots, ok, callee)
+// Inference) and matching positional and named arguments to its parameters. A call through a
+// dot passes its receiver, typed already, as the first argument (section 5, Calls through .).
+func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object, recv *receiver) types.Type {
+	slots, ok := c.argSlots(s, x, recv)
+	c.recordSlots(s, x, slots, ok, callee, recv != nil)
 	if !ok {
 		c.synthArgs(x.Args, sc)
 		return c.resultOf(s, nil, x.Pos)
 	}
 	if len(s.tparams) == 0 {
+		if recv != nil {
+			c.expect(recv.pos, recv.typ, s.fn.Params[0])
+		}
 		for i, a := range slots {
 			if a != nil {
 				c.check(a.Value, sc, s.fn.Params[i])
@@ -281,11 +290,31 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 	}
 	type pending struct {
-		i int
-		t types.Type
+		i   int
+		t   types.Type
+		pos ast.Pos
 	}
 	var synthesized []pending
 	mismatch := false
+	if recv != nil {
+		// the receiver, typed already, solves what it mentions first
+		pt := s.fn.Params[0]
+		if types.Mentions(pt, unsolved) {
+			if c.unify(pt, recv.typ, subst) {
+				synthesized = append(synthesized, pending{0, recv.typ, recv.pos})
+			} else {
+				want, _ := types.Subst(pt, subst)
+				n := c.typeNames(recv.typ, want)
+				c.errorf(recv.pos, "cannot use %s where %s is expected", n[0], n[1])
+				mismatch = true
+			}
+			pruneSolved(unsolved, subst)
+		} else if want, err := types.Subst(pt, subst); err != nil {
+			c.errorf(recv.pos, "%s", err)
+		} else {
+			c.expect(recv.pos, recv.typ, want)
+		}
+	}
 	for i, a := range slots {
 		if a == nil {
 			continue
@@ -305,7 +334,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				continue // reported once, not again against the solved types
 			}
 			pruneSolved(unsolved, subst)
-			synthesized = append(synthesized, pending{i, got})
+			synthesized = append(synthesized, pending{i, got, a.Pos})
 			continue
 		}
 		want, err := types.Subst(pt, subst)
@@ -345,12 +374,12 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, pe := range synthesized {
 		want, err := types.Subst(s.fn.Params[pe.i], subst)
 		if err != nil {
-			c.errorf(slots[pe.i].Pos, "%s", err)
+			c.errorf(pe.pos, "%s", err)
 			continue
 		}
 		if !types.Assignable(pe.t, want) {
 			n := c.typeNames(pe.t, want)
-			c.errorf(slots[pe.i].Pos, "cannot use %s where %s is expected", n[0], n[1])
+			c.errorf(pe.pos, "cannot use %s where %s is expected", n[0], n[1])
 		}
 	}
 	return c.resultOf(s, subst, x.Pos)
@@ -381,22 +410,37 @@ func argSlotsLoosely(s *sig, x *ast.Call) []int {
 
 // argSlots matches a call's positional and named arguments to the function's parameters, one
 // slot per parameter and nil where a default applies. It reports an extra, unknown, repeated
-// or missing argument, and then the second result is false.
-func (c *Checker) argSlots(s *sig, x *ast.Call) ([]*ast.Arg, bool) {
+// or missing argument, and then the second result is false. A receiver fills the first
+// parameter, which the slots leave nil, and makes a call through an interface, a type
+// parameter or a union of several namespaces positional (section 5, Calls through .).
+func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, bool) {
 	n := len(s.fn.Params)
 	slots := make([]*ast.Arg, n)
 	ok := true
 	positional := 0
+	first := 0
+	if recv != nil {
+		positional, first = 1, 1
+	}
 	for i := range x.Args {
 		a := &x.Args[i]
 		if a.Name == "" {
 			if positional >= n {
-				c.errorf(a.Pos, "%s takes %s, got more", s.fullName(), plural(n, "argument"))
+				if recv != nil {
+					c.errorf(a.Pos, "%s takes %s after the receiver, got more", s.fullName(), plural(n-1, "argument"))
+				} else {
+					c.errorf(a.Pos, "%s takes %s, got more", s.fullName(), plural(n, "argument"))
+				}
 				ok = false
 				break
 			}
 			slots[positional] = a
 			positional++
+			continue
+		}
+		if recv != nil && recv.positional {
+			c.errorf(a.Pos, "a call through %s is positional, since each implementation names its parameters as it likes", types.String(recv.typ))
+			ok = false
 			continue
 		}
 		idx := -1
@@ -411,6 +455,11 @@ func (c *Checker) argSlots(s *sig, x *ast.Call) ([]*ast.Arg, bool) {
 			ok = false
 			continue
 		}
+		if idx < first {
+			c.errorf(a.Pos, "the parameter %s is the receiver, which the call passes first", a.Name)
+			ok = false
+			continue
+		}
 		if slots[idx] != nil {
 			c.errorf(a.Pos, "the parameter %s is given twice", a.Name)
 			ok = false
@@ -421,7 +470,7 @@ func (c *Checker) argSlots(s *sig, x *ast.Call) ([]*ast.Arg, bool) {
 	if !ok {
 		return nil, false
 	}
-	for i := range slots {
+	for i := first; i < len(slots); i++ {
 		if slots[i] == nil && !(i < len(s.defaults) && s.defaults[i]) {
 			c.errorf(x.Pos, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
 			ok = false
@@ -967,11 +1016,11 @@ func (c *Checker) isBytes(t types.Type) bool {
 
 // recordSlots records for an editor which parameter each argument of a call fills: by slots
 // when the arguments matched, and as near as they go when they did not.
-func (c *Checker) recordSlots(s *sig, x *ast.Call, slots []*ast.Arg, ok bool, callee *Object) {
+func (c *Checker) recordSlots(s *sig, x *ast.Call, slots []*ast.Arg, ok bool, callee *Object, recv bool) {
 	if c.info == nil {
 		return
 	}
-	ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args))}
+	ci := &CallInfo{Fn: s.fn, Names: s.fn.Names, Defaults: s.defaults, Callee: callee, Slots: make([]int, len(x.Args)), Recv: recv}
 	for i := range ci.Slots {
 		ci.Slots[i] = -1
 	}
@@ -994,8 +1043,8 @@ func (c *Checker) recordSlots(s *sig, x *ast.Call, slots []*ast.Arg, ok bool, ca
 // is false, and after the call the flow where it is true, as after if !cond { panic(...) }
 // (section 7, Narrowing).
 func (c *Checker) assertCall(s *sig, x *ast.Call, sc *scope, callee *Object) types.Type {
-	slots, ok := c.argSlots(s, x)
-	c.recordSlots(s, x, slots, ok, callee)
+	slots, ok := c.argSlots(s, x, nil)
+	c.recordSlots(s, x, slots, ok, callee, false)
 	if !ok {
 		c.synthArgs(x.Args, sc)
 		return types.Void{}

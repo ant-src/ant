@@ -42,6 +42,8 @@ type Info struct {
 	fields  map[fieldKey]*Object
 	anon    map[string]*Object // fields of anonymous record types, by the type's text and the name
 	tparams map[*types.ParamDecl]*Object
+	ifaces  map[fieldKey]*Object // the functions of interfaces, by the interface and the name
+	c       *Checker             // the check that filled the Info, for what it alone can decide
 }
 
 // ModuleInfo lists a module's top-level names, its own declarations among them, and its exports.
@@ -65,6 +67,9 @@ type CallInfo struct {
 	// Pipe is set when the call is the right side of a pipe, whose first argument is the left
 	// side (section 5, Pipes).
 	Pipe bool
+	// Recv is set for a call through a dot, x.f(...), whose receiver x fills the first parameter
+	// (section 5, Calls through .).
+	Recv bool
 }
 
 // Kind says what an Object is.
@@ -124,7 +129,7 @@ func NewInfo() *Info {
 		TypeNames: map[*ast.TypeName][]*Object{}, Decls: map[ast.Node]*Object{}, Calls: map[*ast.Call]*CallInfo{},
 		Lambdas: map[*ast.Lambda]types.Type{}, Entries: map[*ast.RecordEntry]*Object{}, Modules: map[string]*ModuleInfo{},
 		objects: map[*entity]*Object{}, locals: map[*local]*Object{}, fields: map[fieldKey]*Object{},
-		anon: map[string]*Object{}, tparams: map[*types.ParamDecl]*Object{},
+		anon: map[string]*Object{}, tparams: map[*types.ParamDecl]*Object{}, ifaces: map[fieldKey]*Object{},
 	}
 }
 
@@ -200,6 +205,10 @@ func (o *Object) Doc() string {
 		return d.Doc
 	case *ast.VarDecl:
 		return d.Doc
+	case *ast.InterfaceDecl:
+		return d.Doc
+	case *ast.InterfaceFunc:
+		return d.Doc
 	}
 	return ""
 }
@@ -212,6 +221,10 @@ func (o *Object) Sig() string {
 	case *ast.TypeDecl:
 		return d.Sig
 	case *ast.VarDecl:
+		return d.Sig
+	case *ast.InterfaceDecl:
+		return d.Sig
+	case *ast.InterfaceFunc:
 		return d.Sig
 	}
 	return ""
@@ -254,6 +267,11 @@ func (o *Object) Members() []*Object {
 		if o.ent.kind == entType && o.ent.decl.Kind == types.RecordDecl {
 			for _, f := range o.ent.decl.Fields {
 				out = append(out, o.info.field(o.ent.decl, f))
+			}
+		}
+		if o.ent.kind == entType && o.ent.decl.Kind == types.InterfaceDecl {
+			for _, name := range o.ent.decl.Order {
+				out = append(out, o.info.interfaceFunc(o.ent.decl, name))
 			}
 		}
 	}
@@ -447,6 +465,66 @@ func (in *Info) fieldOf(recv types.Type, name string) *Object {
 	return nil
 }
 
+// interfaceFunc is the Object of a function of an interface, made once: its type takes the
+// interface itself first, as a call through the interface does.
+func (in *Info) interfaceFunc(decl *types.Decl, name string) *Object {
+	key := fieldKey{decl, name}
+	if o, ok := in.ifaces[key]; ok {
+		return o
+	}
+	o := &Object{Name: name, Kind: Func, Owner: decl.Name, Path: decl.Path, Exported: true, info: in}
+	if fn, ok := decl.Funcs[name]; ok {
+		var args []types.Type
+		for _, p := range decl.Params {
+			args = append(args, types.Param{Decl: p})
+		}
+		if t, err := types.Subst(*fn, map[*types.ParamDecl]types.Type{decl.Self: types.Named{Decl: decl, Args: args}}); err == nil {
+			o.typ = t
+		}
+	}
+	if ii := in.c.ifaces[decl]; ii != nil {
+		for i := range ii.decl.Funcs {
+			if ii.decl.Funcs[i].Name == name {
+				o.Decl = &ii.decl.Funcs[i]
+				in.Decls[o.Decl] = o
+			}
+		}
+	}
+	in.ifaces[key] = o
+	return o
+}
+
+// Namespace is the namespace whose functions a call through a dot reads on a value of type t
+// (section 5, Calls through .): a type, which holds the functions declared on it, a prelude
+// namespace, or an interface; nil when t has none, as a number has, or its members share none.
+func (in *Info) Namespace(t types.Type) *Object {
+	if in == nil || in.c == nil || types.IsInvalid(t) {
+		return nil
+	}
+	c := in.c
+	var ent *entity
+	switch x := types.Expand(t).(type) {
+	case types.Union:
+		ent = c.sharedNamespace(x.Members)
+	case types.Param:
+		if x.Decl.Bound == nil {
+			return nil
+		}
+		return in.Namespace(x.Decl.Bound)
+	case types.Named:
+		if x.Decl.Kind == types.InterfaceDecl {
+			if ii := c.ifaces[x.Decl]; ii != nil {
+				return in.object(ii.ent)
+			}
+			return nil
+		}
+		ent = c.namespaceOf(t)
+	default:
+		ent = c.namespaceOf(t)
+	}
+	return in.object(ent)
+}
+
 func (in *Info) recordType(e ast.Expr, t types.Type) {
 	if in != nil && e != nil && t != nil {
 		in.Types[e] = t
@@ -477,6 +555,7 @@ func (in *Info) finish(c *Checker) {
 	if in == nil {
 		return
 	}
+	in.c = c
 	for _, e := range c.prelude {
 		in.Prelude = append(in.Prelude, in.object(e))
 	}

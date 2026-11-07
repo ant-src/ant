@@ -47,6 +47,14 @@ func TestComplete(t *testing.T) {
 		}
 	}
 	has("type Point = { x: int, y: int }\nvar p = Point{ x: 1, y: 2 }\np.", "x", "y")
+	// after a dot, the functions of the value's namespace that take it first (section 5, Calls
+	// through .)
+	has("type Point = { x: int }\nfunc Point.norm(p: Point): int { p.x }\nfunc Point.origin(): Point { Point{ x: 0 } }\nvar p = Point{ x: 1 }\np.", "x", "norm")
+	lacks("type Point = { x: int }\nfunc Point.norm(p: Point): int { p.x }\nfunc Point.origin(): Point { Point{ x: 0 } }\nvar p = Point{ x: 1 }\np.", "origin")
+	has("var s = \"a\"\ns.", "trim", "length")
+	lacks("var s = \"a\"\ns.", "join", "println") // String.from is offered: it takes anything first (Decision 10)
+	has("var xs = [1, 2]\nxs.", "map", "filter")
+	has("interface Shape { area(s: Self): float64 }\nfunc total(s: Shape): float64 { s.", "area")
 	has("var xs = [1, 2]\nxs | Array.", "map", "filter")
 	has("var xs = [1, 2]\nxs | ", "Array.map")
 	// an empty literal takes its type from the function: an array or a map of anything

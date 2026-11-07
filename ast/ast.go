@@ -190,6 +190,7 @@ type InterfaceFunc struct {
 	NamePos Pos
 	Params  []Param
 	Return  Type
+	Doc     string // the doc comment (section 2), or ""
 	Sig     string // the signature as written
 }
 

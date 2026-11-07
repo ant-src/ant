@@ -90,6 +90,12 @@ type Checker struct {
 	// html is the declaration of Html, the type of an HTML expression, which stays when the host
 	// removes the namespace.
 	html *types.Decl
+	// okDecl and errDecl are the declarations of Ok and Err, whose namespace is Result (section
+	// 5, Calls through .).
+	okDecl, errDecl *types.Decl
+	// inBound counts the bound resolutions in progress, where an interface that is a bound only
+	// may be named.
+	inBound int
 	// preludeTypes and preludeFuncs are the built-in prelude's declarations, checked further
 	// only when the prelude itself is the root (declarationFile).
 	preludeTypes []*typeInfo
@@ -124,6 +130,8 @@ type Checker struct {
 	// localTypes holds the types declared in blocks, made once per declaration however often
 	// the block is checked.
 	localTypes map[*ast.TypeDecl]*typeInfo
+	// ifaces holds every interface declaration (section 4, Interfaces).
+	ifaces map[*types.Decl]*ifaceInfo
 	// resolvingTypes counts the resolveTypeDecls calls in progress. While it is above zero the
 	// bounds of the instantiations met are checked later, in pendingBounds, once every
 	// declaration of the batch is complete (checkWrittenBounds).
@@ -236,6 +244,7 @@ type moduleInfo struct {
 	vars    []*varInfo
 	funcs   []*funcInfo
 	types   []*typeInfo
+	ifaces  []*ifaceInfo
 	// script is the state of a script's body (section 10): 0 not checked, 1 in progress, 2
 	// done.
 	script int
@@ -257,6 +266,14 @@ type typeInfo struct {
 	// defaultsChecked is set once its field defaults are checked, which a block checked again,
 	// as a lambda body may be, does not repeat.
 	defaultsChecked bool
+}
+
+// ifaceInfo is an interface declaration (section 4, Interfaces) and its declaration type.
+type ifaceInfo struct {
+	decl *ast.InterfaceDecl
+	t    *types.Decl
+	ent  *entity
+	mod  *moduleInfo
 }
 
 type funcInfo struct {
@@ -303,6 +320,12 @@ func (c *Checker) loadPrelude(cfg Config) {
 	c.preludeTypes, c.preludeFuncs = c.declareFile(f)
 	c.bytes = c.prelude["Bytes"].decl
 	c.html = c.prelude["Html"].decl
+	if e, ok := c.prelude["Ok"]; ok {
+		c.okDecl = e.decl
+	}
+	if e, ok := c.prelude["Err"]; ok {
+		c.errDecl = e.decl
+	}
 	for _, name := range cfg.Removed {
 		delete(c.prelude, name)
 	}
@@ -596,6 +619,39 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			if d.Export {
 				mi.exports[d.Name] = ent
 			}
+		case *ast.InterfaceDecl:
+			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Path: mi.path, Kind: types.InterfaceDecl, Self: &types.ParamDecl{Name: "Self"}}
+			for i := range d.TypeParams {
+				pd := &types.ParamDecl{Name: d.TypeParams[i].Name}
+				decl.Params = append(decl.Params, pd)
+				c.info.typeParam(pd, &d.TypeParams[i], mi.path)
+			}
+			// Self beyond the receiver makes the interface a bound only, which its signatures
+			// show as written.
+			for _, f := range d.Funcs {
+				for _, p := range f.Params[min(1, len(f.Params)):] {
+					if mentionsSelf(p.Type) {
+						decl.BoundOnly = true
+					}
+				}
+				if mentionsSelf(f.Return) {
+					decl.BoundOnly = true
+				}
+			}
+			decl.Satisfies = c.satisfier(decl)
+			ent := &entity{name: d.Name, kind: entType, decl: decl, exported: d.Export, pos: d.Pos}
+			mi.names[d.Name] = ent
+			mi.decls[d.Name] = ent
+			c.info.declared(ent, d, mi.path, "")
+			ii := &ifaceInfo{decl: d, t: decl, ent: ent, mod: mi}
+			mi.ifaces = append(mi.ifaces, ii)
+			if c.ifaces == nil {
+				c.ifaces = map[*types.Decl]*ifaceInfo{}
+			}
+			c.ifaces[decl] = ii
+			if d.Export {
+				mi.exports[d.Name] = ent
+			}
 		case *ast.FuncDecl:
 			fi := &funcInfo{decl: d, mod: mi}
 			mi.funcs = append(mi.funcs, fi)
@@ -653,11 +709,13 @@ func targetNames(t ast.Target) []*ast.NameTarget {
 	return nil
 }
 
-// resolveTypes resolves the bodies of a module's type declarations and attaches the functions
-// declared on its types.
+// resolveTypes attaches the functions declared on a module's types and resolves the bodies of
+// its type declarations and the signatures of its interfaces. The functions come first, as
+// entities whose signatures are resolved on demand (sigReady): a bound met while the types are
+// resolved may ask whether one of them satisfies an interface, which is decided once the
+// interfaces are resolved too, so the bounds stay pending until then.
 func (c *Checker) resolveTypes(mi *moduleInfo) {
 	c.mod = mi
-	c.resolveTypeDecls(mi.types)
 	for _, fi := range mi.funcs {
 		d := fi.decl
 		if d.Owner == "" {
@@ -667,6 +725,9 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 		if !ok || owner.kind != entType {
 			continue // the resolver reported it
 		}
+		if owner.decl.Kind == types.InterfaceDecl {
+			continue // the resolver reported it: an interface declares its functions in its body
+		}
 		if d.Export && !owner.exported {
 			c.errorf(d.Pos, "%s.%s is exported but %s is not", d.Owner, d.Name, d.Owner)
 		}
@@ -675,6 +736,11 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 		owner.members[d.Name] = ent
 		c.info.declared(ent, d, mi.path, d.Owner)
 	}
+	c.resolvingTypes++
+	c.resolveTypeDecls(mi.types)
+	c.resolveInterfaces(mi)
+	c.resolvingTypes--
+	c.flushPendingBounds()
 }
 
 // declKind is the kind a type declaration's body gives it, known before any body is resolved, so
@@ -720,16 +786,23 @@ func (c *Checker) resolveTypeDecls(tis []*typeInfo) {
 	for _, ti := range tis {
 		c.bareBounds(ti.t.Params, ti.decl.TypeParams)
 	}
-	if c.resolvingTypes == 0 {
-		pending := c.pendingBounds
-		c.pendingBounds = nil
-		saved := c.mod
-		for _, pb := range pending {
-			c.mod = pb.mod
-			c.checkWrittenBounds(pb.n, pb.pos)
-		}
-		c.mod = saved
+	c.flushPendingBounds()
+}
+
+// flushPendingBounds checks the bounds of the instantiations met while declarations were being
+// resolved, once none is.
+func (c *Checker) flushPendingBounds() {
+	if c.resolvingTypes > 0 {
+		return
 	}
+	pending := c.pendingBounds
+	c.pendingBounds = nil
+	saved := c.mod
+	for _, pb := range pending {
+		c.mod = pb.mod
+		c.checkWrittenBounds(pb.n, pb.pos)
+	}
+	c.mod = saved
 }
 
 // pendingBound is an instantiation whose bounds are checked once the declarations being resolved
@@ -1000,11 +1073,13 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 	for i, tp := range d.TypeParams {
 		sc.tparams[tp.Name] = decl.Params[i]
 	}
+	c.inBound++
 	for i, tp := range d.TypeParams {
 		if tp.Bound != nil {
 			decl.Params[i].Bound = c.resolveType(tp.Bound, sc)
 		}
 	}
+	c.inBound--
 	c.bareBounds(decl.Params, d.TypeParams)
 	switch body := d.Body.(type) {
 	case nil:
@@ -1151,31 +1226,42 @@ func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.D
 func (c *Checker) resolveSignatures(mi *moduleInfo) {
 	c.mod = mi
 	for _, fi := range mi.funcs {
-		var owner string
-		var ownerDecl *types.Decl
-		if fi.decl.Owner != "" {
-			owner = fi.decl.Owner
-			if ent, ok := mi.names[owner]; ok && ent.kind == entType {
-				ownerDecl = ent.decl
-			}
-		}
-		fi.sig = c.signature(fi.decl, nil, owner)
-		fi.tparams = map[string]*types.ParamDecl{}
-		for i, tp := range fi.decl.TypeParams {
-			fi.tparams[tp.Name] = fi.sig.tparams[i]
-		}
-		if fi.ent != nil {
-			fi.ent.sig = fi.sig
-		}
-		if ownerDecl != nil {
-			if ownerDecl.Funcs == nil {
-				ownerDecl.Funcs = map[string]*types.Func{}
-			}
-			ownerDecl.Funcs[fi.decl.Name] = &fi.sig.fn
-		}
+		c.resolveSignature(fi)
 		if fi.decl.Export && fi.decl.Return == nil {
 			c.errorf(fi.decl.Pos, "the exported function %s must state its return type", fi.sig.fullName())
 		}
+	}
+}
+
+// resolveSignature resolves a function's signature once, in its module.
+func (c *Checker) resolveSignature(fi *funcInfo) {
+	if fi.sig != nil {
+		return
+	}
+	saved := c.mod
+	c.mod = fi.mod
+	defer func() { c.mod = saved }()
+	var owner string
+	var ownerDecl *types.Decl
+	if fi.decl.Owner != "" {
+		owner = fi.decl.Owner
+		if ent, ok := fi.mod.names[owner]; ok && ent.kind == entType && ent.decl.Kind != types.InterfaceDecl {
+			ownerDecl = ent.decl
+		}
+	}
+	fi.sig = c.signature(fi.decl, nil, owner)
+	fi.tparams = map[string]*types.ParamDecl{}
+	for i, tp := range fi.decl.TypeParams {
+		fi.tparams[tp.Name] = fi.sig.tparams[i]
+	}
+	if fi.ent != nil {
+		fi.ent.sig = fi.sig
+	}
+	if ownerDecl != nil {
+		if ownerDecl.Funcs == nil {
+			ownerDecl.Funcs = map[string]*types.Func{}
+		}
+		ownerDecl.Funcs[fi.decl.Name] = &fi.sig.fn
 	}
 }
 
@@ -1192,11 +1278,13 @@ func (c *Checker) signature(d *ast.FuncDecl, parent *scope, owner string) *sig {
 			c.info.typeParam(pd, tp, c.mod.path)
 		}
 	}
+	c.inBound++
 	for i, tp := range d.TypeParams {
 		if tp.Bound != nil {
 			s.tparams[i].Bound = c.resolveType(tp.Bound, sc)
 		}
 	}
+	c.inBound--
 	c.bareBounds(s.tparams, d.TypeParams)
 	s.fn.Required = len(d.Params)
 	for i, p := range d.Params {
@@ -1406,6 +1494,10 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 		return types.Invalid{}
 	}
 	decl := ent.decl
+	if decl.Kind == types.InterfaceDecl && decl.BoundOnly && c.inBound == 0 {
+		c.errorf(x.Pos, "%s mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name)
+		return types.Invalid{}
+	}
 	if len(x.Args) != len(decl.Params) {
 		c.errorf(x.Pos, "%s takes %s, got %d", decl.Name, plural(len(decl.Params), "type argument"), len(x.Args))
 		return types.Invalid{}

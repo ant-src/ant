@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -300,8 +301,22 @@ func (c *completer) members(dot *token.Token) {
 	if fld.Optional {
 		recv = types.Without(recv, types.Null{})
 	}
-	for _, f := range commonFields(recv) {
+	fields := commonFields(recv)
+	for _, f := range fields {
 		c.add(CompletionItem{Label: f.Name, Kind: ItemField, Detail: types.String(f.Type)})
+	}
+	// the functions a call through the dot reaches: those of the value's namespace that take
+	// it first (section 5, Calls through .)
+	if ns := a.info.Namespace(recv); ns != nil {
+		for _, m := range ns.Members() {
+			if m.Kind != check.Func || !acceptsFirst(m, recv) {
+				continue
+			}
+			if slices.ContainsFunc(fields, func(f types.Field) bool { return f.Name == m.Name }) {
+				continue
+			}
+			c.add(c.objectItem(a, m, ""))
+		}
 	}
 }
 

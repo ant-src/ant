@@ -524,6 +524,10 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 			return c.entityValue(m, x.Pos)
 		case entNamespace, entType:
 			c.notePath(x.X, sc)
+			if base.kind == entType && base.decl.Kind == types.InterfaceDecl {
+				c.errorf(x.Pos, "%s is an interface, not a namespace: call %s on a value, as x.%s(...)", base.name, x.Name, x.Name)
+				return types.Invalid{}
+			}
 			m, ok := base.members[x.Name]
 			if !ok {
 				if base.kind == entType && base.decl.Kind == types.PrimitiveDecl {
@@ -1317,6 +1321,12 @@ func (c *Checker) typeExpr(x *ast.TypeExpr, sc *scope) types.Type {
 	if types.IsInvalid(t) {
 		return types.Invalid{}
 	}
+	if d := reachesInterface(t); d != nil {
+		// An interface has no run-time identity and no members a format could decode into
+		// (section 4, Types as values).
+		c.errorf(x.Pos, "type(...) cannot reach an interface: %s is one, and an interface has no run-time identity", d.Name)
+		return types.Invalid{}
+	}
 	var param *types.ParamDecl
 	types.Walk(t, func(t types.Type) {
 		if p, ok := t.(types.Param); ok && param == nil {
@@ -1392,6 +1402,9 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 	case types.AliasDecl:
 		c.errorf(x.Pos, "%s is an alias and has no run-time identity; test its members instead", ent.decl.Name)
 		return nil
+	case types.InterfaceDecl:
+		c.errorf(x.Pos, "is cannot test %s, an interface: test a type that satisfies it", ent.decl.Name)
+		return nil
 	case types.OpaqueDecl:
 		c.errorf(x.Pos, "is cannot test %s; narrow by testing the other members", ent.decl.Name)
 		return nil
@@ -1407,9 +1420,20 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 	for _, m := range members {
 		if matchesTarget(m, target) {
 			yes = append(yes, m)
-		} else {
-			no = append(no, m)
+			continue
 		}
+		if n, isNamed := target.(types.Named); isNamed && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) && types.IsInterface(m) {
+			// A value of an interface narrows to a satisfying type, and keeps the interface
+			// otherwise, since the set of satisfying types is open (section 4, Interfaces).
+			inst, found := c.instantiateSatisfying(n.Decl, types.Expand(m).(types.Named), pos)
+			if !found {
+				return nil, nil, false
+			}
+			yes = append(yes, inst)
+			no = append(no, m)
+			continue
+		}
+		no = append(no, m)
 	}
 	// an anonymous record type admits a named record type assignable to it
 	if len(yes) == 0 {
