@@ -102,3 +102,33 @@ func TestAliasUsesReferenced(t *testing.T) {
 		t.Errorf("renaming distance from the import: %v %+v", err, edit.Changes)
 	}
 }
+
+func TestRenameCapturedInImporter(t *testing.T) {
+	lib := "export func helper(): int { 1 }\n"
+	main := "import \"./lib.ant\" { helper, helper: h }\n\nfunc f(): int {\n  var bar = 2\n  helper() + h() + bar\n}\n"
+	c := start(t, map[string]string{"lib.ant": lib, "main.ant": main})
+	libURI := c.open("lib.ant", lib)
+	uri := c.open("main.ant", main)
+	// a local of the importer would capture the export's uses
+	if _, err := rename(c, libURI, at(lib, "helper", 1, 0), "bar"); err == nil || !strings.Contains(err.Message, "already declared in main.ant") {
+		t.Errorf("renaming helper to bar from the library: %v", err)
+	}
+	if _, err := rename(c, uri, at(main, "helper()", 1, 0), "bar"); err == nil || !strings.Contains(err.Message, "already declared") {
+		t.Errorf("renaming helper to bar from main: %v", err)
+	}
+	// and the alias's
+	if _, err := rename(c, uri, at(main, "h()", 1, 0), "bar"); err == nil || !strings.Contains(err.Message, "already declared") {
+		t.Errorf("renaming the alias h to bar: %v", err)
+	}
+	// the alias h is a binding of its own, which the export's new name would clash with
+	if _, err := rename(c, libURI, at(lib, "helper", 1, 0), "h"); err == nil || !strings.Contains(err.Message, "already declared") {
+		t.Errorf("renaming helper to h: %v", err)
+	}
+	// a member written through a namespace is not captured by a local
+	ns := "import \"./lib.ant\" L\n\nfunc f(): int {\n  var bar = 2\n  L.helper() + bar\n}\n"
+	c.change(uri, 2, ns)
+	edit, err := rename(c, libURI, at(lib, "helper", 1, 0), "bar")
+	if err != nil || applyAll(ns, edit.Changes[uri]) != strings.Replace(ns, "L.helper", "L.bar", 1) {
+		t.Errorf("renaming helper to bar through a namespace: %v %+v", err, edit.Changes)
+	}
+}

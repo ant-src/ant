@@ -22,6 +22,10 @@ type reference struct {
 	// viaAlias is set for a use through an import's alias, which has a name of its own (section
 	// 10): renaming the export leaves it as it is.
 	viaAlias bool
+	// qualified is set for a name looked up in a type, a module, or a function's parameters
+	// rather than in the scopes around it: a member, a named argument, the export an alias
+	// imports.
+	qualified bool
 }
 
 // newText is what a reference becomes when its name is renamed.
@@ -61,21 +65,21 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 				}
 			case *ast.Field:
 				if in.Members[x] == o && x.Name != "" {
-					refs = append(refs, reference{path: path, from: x.NamePos, to: x.End})
+					refs = append(refs, reference{path: path, from: x.NamePos, to: x.End, qualified: true})
 				}
 			case *ast.TypeName:
 				for i, obj := range in.TypeNames[x] {
 					if obj == o && i < len(x.PathPos) {
-						refs = append(refs, reference{path: path, from: x.PathPos[i], to: after(x.PathPos[i], x.Path[i]), viaAlias: i == 0 && a.aliased(path, x.Path[0])})
+						refs = append(refs, reference{path: path, from: x.PathPos[i], to: after(x.PathPos[i], x.Path[i]), viaAlias: i == 0 && a.aliased(path, x.Path[0]), qualified: i > 0})
 					}
 				}
 			case *ast.RecordEntry:
 				if in.Entries[x] == o && x.Name != "" {
-					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), qualified: true})
 				}
 			case *ast.ImportName:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name)})
+					refs = append(refs, reference{path: path, from: x.Pos, to: after(x.Pos, x.Name), qualified: x.Alias != x.Name})
 				}
 			case *ast.Call:
 				if ci := in.Calls[x]; ci != nil && ci.Callee != nil {
@@ -87,7 +91,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 							}
 							for j := range fd.Params {
 								if fd.Params[j].Name == arg.Name && in.Decls[&fd.Params[j]] == o {
-									refs = append(refs, reference{path: path, from: arg.Pos, to: after(arg.Pos, arg.Name)})
+									refs = append(refs, reference{path: path, from: arg.Pos, to: after(arg.Pos, arg.Name), qualified: true})
 								}
 							}
 						}
@@ -364,24 +368,21 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 	}
 	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
 	if alias := a.aliasAt(t); alias != nil {
-		// the alias and its uses in this module only, which must not clash with its names
-		if sc := a.modules[path].Resolve.Scopes[a.module().File]; sc != nil {
-			for _, b := range sc.Names {
-				if b.Name == p.NewName && b.Node != ast.Node(alias) {
-					return nil, &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared in this module", p.NewName)}
-				}
+		// the alias and its uses in this module only, which must not clash with the names bound
+		// around them
+		refs := a.aliasRefs(path, alias)
+		for _, r := range refs {
+			if a.boundAround(path, r.from, p.NewName, func(b resolve.Binding) bool { return b.Node == ast.Node(alias) }) {
+				return nil, &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared where %s is used", p.NewName, alias.Alias)}
 			}
 		}
-		for _, r := range a.aliasRefs(path, alias) {
+		for _, r := range refs {
 			add2(&edit, s, a, r, p.NewName, alias.Alias)
 		}
 		return edit, nil
 	}
 	if err := a.collides(t.obj, p.NewName); err != nil {
 		return nil, err
-	}
-	if err := a.importerClash(t.obj, p.NewName); err != nil {
-		return nil, err // the module the rename starts from may import the name itself
 	}
 	for _, r := range a.referencesOf(t.obj) {
 		if !r.viaAlias {
@@ -400,7 +401,7 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 				if same == nil {
 					continue
 				}
-				if err := oa.importerClash(same, p.NewName); err != nil {
+				if err := oa.collides(same, p.NewName); err != nil {
 					return nil, err
 				}
 				for _, r := range oa.referencesOf(same) {
@@ -469,37 +470,6 @@ func (a *analysis) enclosingFunc(o *check.Object) *ast.FuncDecl {
 					return fd
 				}
 			}
-		}
-	}
-	return nil
-}
-
-// importerClash reports a name the root module of this analysis, which imports o, already
-// binds, when it imports o under its own name.
-func (a *analysis) importerClash(o *check.Object, name string) *rpcError {
-	m := a.module()
-	if m.Resolve == nil {
-		return nil
-	}
-	sc := m.Resolve.Scopes[m.File]
-	if sc == nil {
-		return nil
-	}
-	imported := false
-	for _, b := range sc.Names {
-		if in, ok := b.Node.(*ast.ImportName); ok && a.info.Decls[in] == o && in.Alias == in.Name {
-			imported = true
-		}
-	}
-	if !imported {
-		return nil
-	}
-	for _, b := range sc.Names {
-		if b.Name == name {
-			if in, ok := b.Node.(*ast.ImportName); ok && a.info.Decls[in] == o {
-				continue
-			}
-			return &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared in %s, which imports %s", name, filepath.Base(m.File.Path), o.Name)}
 		}
 	}
 	return nil
@@ -584,8 +554,9 @@ func (a *analysis) sameBinding(o *check.Object, b resolve.Binding) bool {
 }
 
 // collides reports a name already bound where the renamed binding is declared or used, which
-// the rename would shadow or clash with (section 10): in the scopes around its declaration and
-// around each use in its module, and among the module's top-level names.
+// the rename would shadow or clash with (section 10): among the top-level names of its module,
+// and in the scopes around its declaration and around each use, in every module of the program,
+// an importer's included.
 func (a *analysis) collides(o *check.Object, name string) *rpcError {
 	declPath, from, _, ok := a.declRange(o)
 	if !ok {
@@ -593,10 +564,6 @@ func (a *analysis) collides(o *check.Object, name string) *rpcError {
 	}
 	if declPath == "" {
 		declPath = a.pathOf(o)
-	}
-	m := a.modules[declPath]
-	if m == nil {
-		return nil
 	}
 	clash := &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared where %s is used", name, o.Name)}
 	if mi, ok := a.info.Modules[declPath]; ok {
@@ -606,29 +573,39 @@ func (a *analysis) collides(o *check.Object, name string) *rpcError {
 			}
 		}
 	}
-	if m.Resolve == nil {
-		return nil
+	self := func(b resolve.Binding) bool { return a.sameBinding(o, b) }
+	if a.boundAround(declPath, from, name, self) {
+		return clash
 	}
-	// the scopes around the declaration and around each use
-	var positions []ast.Pos
-	positions = append(positions, from)
 	for _, r := range a.referencesOf(o) {
-		if r.path == declPath && !r.viaAlias {
-			positions = append(positions, r.from)
+		if r.viaAlias || r.qualified || !a.boundAround(r.path, r.from, name, self) {
+			continue
 		}
-	}
-	for _, pos := range positions {
-		for _, n := range ast.Path(m.File, pos) {
-			sc, ok := m.Resolve.Scopes[n]
-			if !ok {
-				continue
-			}
-			for _, b := range sc.Names {
-				if b.Name == name && !a.sameBinding(o, b) {
-					return clash
-				}
-			}
+		if r.path != declPath {
+			return &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared in %s, which imports %s", name, filepath.Base(r.path), o.Name)}
 		}
+		return clash
 	}
 	return nil
+}
+
+// boundAround reports whether name is bound, other than by a binding self accepts, in a scope
+// around pos in the module at path.
+func (a *analysis) boundAround(path string, pos ast.Pos, name string, self func(resolve.Binding) bool) bool {
+	m := a.modules[path]
+	if m == nil || m.Resolve == nil {
+		return false
+	}
+	for _, n := range ast.Path(m.File, pos) {
+		sc, ok := m.Resolve.Scopes[n]
+		if !ok {
+			continue
+		}
+		for _, b := range sc.Names {
+			if b.Name == name && !self(b) {
+				return true
+			}
+		}
+	}
+	return false
 }
