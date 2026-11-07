@@ -33,13 +33,18 @@ func makeUnion(members []Type, outer []Named, raw bool) (Type, error) {
 		for i, t := range ts {
 			alias := false
 			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
-				if expanding[n.Decl] || slices.ContainsFunc(outer, func(o Named) bool { return identical(o, n, 0) }) {
+				if expanding[n.Decl] || inOuter(outer, n) {
 					continue
 				}
 				expanding[n.Decl] = true
 				alias, aliased = true, true
 			}
-			e := expandTopIn(t, outer, raw)
+			e, ok := expandTopOK(t, outer, raw)
+			if !ok {
+				// Through other aliases, as A is with A = B[int] and B[T] = (func(): A | T) | null.
+				delete(expanding, t.(Named).Decl)
+				continue
+			}
 			if top {
 				written[i] = e
 			}
@@ -123,16 +128,29 @@ func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
 // its own parameters. Its form and discriminator are those of the full expansion, and nothing
 // inside an array, map, set, function or record is substituted, which for an alias whose body
 // holds a union naming the alias itself, as in type L[T] = Array[L[T] | int], would not end.
-func expandTop(t Type) Type { return expandTopIn(t, nil, false) }
+func expandTop(t Type) Type {
+	t, _ = expandTopOK(t, nil, false)
+	return t
+}
 
-// expandTopIn is expandTop inside the expansion of the alias instantiations in outer. A union
-// body is formed with the instantiation added to them, raw when raw is set (makeUnion).
-func expandTopIn(t Type, outer []Named, raw bool) Type {
+// inOuter reports whether the alias instantiation n is one of outer.
+func inOuter(outer []Named, n Named) bool {
+	return slices.ContainsFunc(outer, func(o Named) bool { return identical(o, n, 0) })
+}
+
+// expandTopOK is expandTop inside the expansion of the alias instantiations in outer. A union
+// body is formed with the instantiation added to them, raw when raw is set (makeUnion). It
+// reports false when the expansion reaches one of outer through other aliases, which forms a
+// union being formed again: a cycle the checker reports (UnionSelf), which would not end.
+func expandTopOK(t Type, outer []Named, raw bool) (Type, bool) {
 	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
-			return t
+			return t, true
+		}
+		if i > 0 && inOuter(outer, n) {
+			return t, false
 		}
 		if i >= 64 && met.repeats(n) {
 			panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
@@ -157,7 +175,7 @@ func expandTopIn(t Type, outer []Named, raw bool) Type {
 			t = Named{Decl: b.Decl, Args: args}
 			continue
 		default:
-			return n.Decl.Body
+			return n.Decl.Body, true
 		}
 		var body Type
 		var err error

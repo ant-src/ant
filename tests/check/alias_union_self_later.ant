@@ -1,0 +1,20 @@
+// spec: 4 Type declarations; 4 Unions
+// Section 4: an alias whose body is a union may not name itself in a union inside that body
+// through another alias, whichever of the two is declared first and whether the other is generic:
+// the error is at the alias whose body is the union, and checking ends.
+type A = B[int]
+type B[T] = (func(): A | int) | null // ERR: type B names itself in the union A | int
+type C = D
+type D = (func(): C | int) | null // ERR: type D names itself in the union C | int
+type E = F[F[int]]
+type F[T] = (func(): E | T) | null   // ERR: type F names itself in the union E | T
+type H[T] = (func(): G | int) | null // ERR: type H names itself in the union G | int
+type G = H[int]
+type I = (func(): I | int)
+type J = Array[K | int] | null
+type K = { j: J }
+
+var i: I = { 1 }
+var j: J = [K{ j: null }, 2]
+println(i)
+println(j)

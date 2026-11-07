@@ -1,0 +1,11 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
+// panics: type-expr
+// An unchecked run rejects an alias whose union body names it in an inner union through an alias
+// declared before it, as the checker does, when a type expression first reaches it.
+type A = B[B[int]]
+type B[T] = (func(): A | int) | null
+println(type(A))
+
+// expect
+// exit: 1
+// err: type B names itself in the union A | int

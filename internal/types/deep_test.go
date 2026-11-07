@@ -277,3 +277,29 @@ func TestAliasInItsOwnUnion(t *testing.T) {
 		t.Errorf("with A = B[int], A | B[int] is %s (%v), want one member", String(u), err)
 	}
 }
+
+// TestUnionSelfThroughAlias forms the unions of B[T] = (func(): A | int) | null with A = B[int],
+// which names B in a union inside B's union body through A. The checker reports it
+// (UnionSelf), but only once both bodies are known; until then expanding A inside the union
+// being formed for B[int] formed it again, without end. Now the expansion stops at B[int].
+func TestUnionSelfThroughAlias(t *testing.T) {
+	p := &ParamDecl{Name: "T"}
+	a := &Decl{Name: "A", Kind: AliasDecl}
+	b := &Decl{Name: "B", Kind: AliasDecl, Params: []*ParamDecl{p}}
+	b.Body = Union{Members: []Type{Func{Return: Union{Members: []Type{Named{Decl: a}, IntType}}}, Null{}}}
+	a.Body = Named{Decl: b, Args: []Type{IntType}}
+	if UnionSelf(b) == "" {
+		t.Error("B is not reported")
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = CheckArgs(a.Body.(Named))
+		_ = Equal(Named{Decl: a}, a.Body)
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("forming the unions of B[int] does not end")
+	}
+}

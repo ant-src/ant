@@ -874,6 +874,17 @@ func (c *Checker) checkCycleUnions(ti *typeInfo, in func(*types.Decl) func(*type
 		}
 	}
 	epoch := c.epoch
+	// An alias that names itself in a union inside its body through an alias resolved after it,
+	// as B does in B[T] = (func(): A | int) | null with A = B[int] when A is resolved first, is
+	// found only now that every body is known; its unions would form each other without end.
+	for _, d := range order {
+		if msg := types.UnionSelfIn(d, in(d)); msg != "" {
+			pos, _ := d.Pos.(ast.Pos)
+			c.errorf(pos, "%s", msg)
+			d.Body = types.Invalid{}
+			c.epoch++
+		}
+	}
 	for _, d := range order {
 		check := func(t types.Type) bool {
 			ok := true
