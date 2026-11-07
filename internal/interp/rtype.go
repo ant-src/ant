@@ -69,8 +69,10 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 			written = append(written, d.Body)
 		}
 	}
+	// The declarations are complete, so what one check learns holds for the next.
+	var memo types.ArgsMemo
 	for _, t := range written {
-		if err := types.CheckWritten(t); err != nil {
+		if err := memo.CheckWritten(t); err != nil {
 			g.panicf(e.Pos, "%s", err)
 		}
 	}
