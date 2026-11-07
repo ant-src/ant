@@ -99,6 +99,7 @@ type binding struct {
 	discard        bool // _, which binds nothing
 	fixed          ast.Fixed
 	isType         bool // a type declared in a block
+	iface          bool // an interface, which binds nothing at run time (section 4, Interfaces)
 	module         bool
 	index          int // module field index, or slot index after finalize
 	shared         bool
@@ -296,6 +297,9 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	if _, isType := node.(*ast.TypeDecl); isType {
 		b.isType = true
 	}
+	if _, isIface := node.(*ast.InterfaceDecl); isIface {
+		b.iface = true
+	}
 	if name == "_" {
 		b.discard = true
 		b.fixed = ast.Assignable
@@ -356,7 +360,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	}
 	s.names[name] = b
 	s.order = append(s.order, b)
-	if s.module {
+	if s.module && !b.iface {
 		b.module = true
 		if idx, ok := r.fields.Index[name]; ok {
 			b.index = idx
@@ -433,6 +437,9 @@ func (r *resolver) declareModule(f *ast.File) {
 		case *ast.TypeDecl:
 			r.declare(r.module, d.Name, d.Pos, d, ast.Assignable)
 			types[d.Name] = d
+			r.typeParams(d.TypeParams)
+		case *ast.InterfaceDecl:
+			r.declare(r.module, d.Name, d.Pos, d, ast.Assignable)
 			r.typeParams(d.TypeParams)
 		}
 	}
@@ -958,6 +965,10 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 			}
 			r.info.def(id, b.node)
 			switch {
+			case b.iface:
+				// The interpreter discards the declaration, so the name is unbound at run time.
+				id.Ref = ast.Ref{Kind: ast.RefUnbound, Name: id.Name}
+				return
 			case b.imp >= 0:
 				id.Ref = ast.Ref{Kind: ast.RefImport, Index: b.imp, Name: b.impName}
 			case b.module:

@@ -183,15 +183,15 @@ func (t Token) Is(text string) bool {
 
 var keywords = map[string]bool{
 	"break": true, "continue": true, "defer": true, "else": true, "export": true, "false": true,
-	"for": true, "func": true, "go": true, "if": true, "import": true, "in": true, "is": true,
-	"let": true, "null": true, "return": true, "select": true, "true": true, "try": true, "type": true,
-	"var": true, "void": true, "while": true,
+	"for": true, "func": true, "go": true, "if": true, "import": true, "in": true, "interface": true,
+	"is": true, "let": true, "null": true, "return": true, "select": true, "true": true, "try": true,
+	"type": true, "var": true, "void": true, "while": true,
 }
 
 var reserved = map[string]bool{
 	"as": true, "async": true, "await": true, "catch": true, "class": true, "const": true,
-	"enum": true, "finally": true, "function": true, "interface": true,
-	"match": true, "switch": true, "this": true, "throw": true, "undefined": true,
+	"enum": true, "finally": true, "function": true,
+	"match": true, "Self": true, "switch": true, "this": true, "throw": true, "undefined": true,
 }
 
 // IsKeyword reports whether word is a keyword.

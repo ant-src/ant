@@ -225,6 +225,8 @@ type parser struct {
 	header   bool            // inside an if, while, or for header: Path { is not a literal
 	boundary string          // "", "script", "func", "lambda", "go", "defer", or "default" (a field's)
 	loops    int             // loops entered inside the current boundary
+	// inInterface > 0: inside an interface's body, where Self names the satisfying type.
+	inInterface int
 	// inDefault > 0: inside a parameter default, which runs in the callee, so a try there returns
 	// from it
 	inDefault int
@@ -736,7 +738,7 @@ func (p *parser) item(f *ast.File) bool {
 		p.fail(t.Pos, "imports must come before declarations")
 	case t.Is("test"):
 		f.Tests = append(f.Tests, p.testDecl(t))
-	case t.Is("export"), t.Is("func"), t.Is("type") && !p.peekAfter().Is("("):
+	case t.Is("export"), t.Is("func"), t.Is("interface"), t.Is("type") && !p.peekAfter().Is("("):
 		doc := p.doc(t)
 		d := p.declaration()
 		switch d := d.(type) {
@@ -745,6 +747,8 @@ func (p *parser) item(f *ast.File) bool {
 		case *ast.FuncDecl:
 			d.Doc = doc
 		case *ast.TypeDecl:
+			d.Doc = doc
+		case *ast.InterfaceDecl:
 			d.Doc = doc
 		}
 		f.Decls = append(f.Decls, d)
@@ -866,9 +870,89 @@ func (p *parser) declaration() ast.Decl {
 		d := p.typeDecl()
 		d.Export = export
 		return d
+	case t.Is("interface"):
+		d := p.interfaceDecl()
+		d.Export = export
+		return d
 	}
-	p.fail(t.Pos, "expected var, let, func, or type after export, got %s", t)
+	p.fail(t.Pos, "expected var, let, func, type, or interface after export, got %s", t)
 	return nil
+}
+
+// interfaceDecl parses an interface declaration (section 4, Interfaces): a name, optional type
+// parameters, and a body of signatures, one per line, each taking Self first.
+func (p *parser) interfaceDecl() *ast.InterfaceDecl {
+	t := p.expect("interface")
+	if p.declarations() {
+		p.fail(t.Pos, "a declaration file declares no interfaces")
+	}
+	name := p.expectIdent("an interface name")
+	d := &ast.InterfaceDecl{Pos: pos(t), Name: name.Text, NamePos: pos(name)}
+	if p.at("[") {
+		d.TypeParams = p.typeParams()
+	}
+	d.Sig = p.since(t)
+	open := p.expect("{")
+	p.mark(open, Role{Block: true})
+	saved := p.enterBlock(nil)
+	p.inInterface++
+	p.skipTerms()
+	for !p.at("}") {
+		if p.atKind(token.EOF) {
+			if p.recovering {
+				break // expectClose reports it
+			}
+			p.fail(p.peek().Pos, "expected '}', got end of file")
+		}
+		start := p.i
+		var fn *ast.InterfaceFunc
+		if !p.attempt(func() { fn = p.interfaceFunc() }) || p.i == start {
+			p.sync("}", false, start)
+		} else {
+			d.Funcs = append(d.Funcs, *fn)
+		}
+		if p.at("}") {
+			break
+		}
+		p.expectTerm()
+	}
+	p.inInterface--
+	p.leave(saved)
+	p.expectClose()
+	if len(d.Funcs) == 0 && !p.recovering {
+		p.fail(open.Pos, "the interface %s declares no function; an interface lists at least one", d.Name)
+	}
+	d.End = p.end()
+	return d
+}
+
+// interfaceFunc parses one signature of an interface's body: name(s: Self, ...): T. Its first
+// parameter has the type Self, exactly, no parameter has a default, and it declares no type
+// parameters of its own.
+func (p *parser) interfaceFunc() *ast.InterfaceFunc {
+	n := p.expectName("a function name")
+	f := &ast.InterfaceFunc{Pos: pos(n), Name: n.Text, NamePos: pos(n)}
+	if p.at("[") {
+		p.fail(p.peek().Pos, "%s takes no type parameters of its own; an interface declares them on the interface", f.Name)
+	}
+	f.Params, f.Return = p.signature()
+	if len(f.Params) == 0 {
+		p.fail(n.Pos, "%s needs a first parameter of the type Self, the satisfying type", f.Name)
+	}
+	if tn, ok := f.Params[0].Type.(*ast.TypeName); !ok || len(tn.Path) != 1 || tn.Path[0] != "Self" || len(tn.Args) > 0 {
+		p.fail(token.Pos{Line: f.Params[0].Pos.Line, Col: f.Params[0].Pos.Col}, "the first parameter of %s must have the type Self, the satisfying type", f.Name)
+	}
+	for _, prm := range f.Params {
+		if prm.Default != nil {
+			p.fail(token.Pos{Line: prm.Pos.Line, Col: prm.Pos.Col}, "the parameter %s of %s takes no default; an interface lists signatures only", prm.Name, f.Name)
+		}
+	}
+	if f.Return == nil {
+		p.fail(p.peek().Pos, "%s needs a return type; an interface states each signature in full", f.Name)
+	}
+	f.Sig = p.since(n)
+	f.End = p.end()
+	return f
 }
 
 func (p *parser) varDecl() *ast.VarDecl {
@@ -1167,6 +1251,10 @@ func (p *parser) typeTerm() ast.Type {
 		p.expect(")")
 		p.leave(saved)
 		return inner
+	case t.Kind == token.Reserved && t.Text == "Self" && p.inInterface > 0:
+		// the satisfying type, legal only in an interface's signatures (section 4, Interfaces)
+		p.next()
+		return &ast.TypeName{Pos: pos(t), End: epos(t), Path: []string{t.Text}, PathPos: []ast.Pos{pos(t)}}
 	case t.Kind == token.Ident:
 		p.next()
 		tn := &ast.TypeName{Pos: pos(t), Path: []string{t.Text}, PathPos: []ast.Pos{pos(t)}}
@@ -1315,7 +1403,7 @@ func (p *parser) statement() ast.Stmt {
 				return p.expression() // a type expression, type(T) (section 4, Types as values)
 			}
 			return p.typeDecl()
-		case "export", "import":
+		case "export", "import", "interface":
 			p.fail(t.Pos, "'%s' is only allowed at the top level", t.Text)
 		case "test":
 			return p.subtest(t)

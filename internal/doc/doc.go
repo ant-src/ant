@@ -73,6 +73,8 @@ func declName(d ast.Decl) (owner, name string) {
 		return d.Owner, d.Name
 	case *ast.TypeDecl:
 		return d.Owner, d.Name
+	case *ast.InterfaceDecl:
+		return "", d.Name
 	case *ast.VarDecl:
 		if t, ok := d.Target.(*ast.NameTarget); ok {
 			return d.Owner, t.Name
@@ -88,6 +90,8 @@ func Sig(d ast.Decl) string {
 		return d.Sig
 	case *ast.TypeDecl:
 		return d.Sig
+	case *ast.InterfaceDecl:
+		return d.Sig
 	case *ast.VarDecl:
 		return d.Sig
 	}
@@ -99,6 +103,8 @@ func docOf(d ast.Decl) string {
 	case *ast.FuncDecl:
 		return d.Doc
 	case *ast.TypeDecl:
+		return d.Doc
+	case *ast.InterfaceDecl:
 		return d.Doc
 	case *ast.VarDecl:
 		return d.Doc
@@ -112,6 +118,8 @@ func Exported(d ast.Decl) bool {
 	case *ast.FuncDecl:
 		return d.Export
 	case *ast.TypeDecl:
+		return d.Export
+	case *ast.InterfaceDecl:
 		return d.Export
 	case *ast.VarDecl:
 		return d.Export

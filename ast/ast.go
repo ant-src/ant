@@ -166,6 +166,33 @@ type TypeDecl struct {
 	Slot Slot
 }
 
+// InterfaceDecl is an interface declaration (section 4, Interfaces): a named set of function
+// signatures, each taking the satisfying type, Self, first. The checker reads it, and the
+// interpreter discards it, so the name binds nothing at run time.
+type InterfaceDecl struct {
+	Pos        Pos
+	End        Pos
+	Export     bool
+	Name       string
+	NamePos    Pos
+	TypeParams []TypeParam
+	Funcs      []InterfaceFunc
+	Doc        string // the doc comment (section 2), or ""
+	Sig        string // the source from interface through the type parameters, as written
+}
+
+// InterfaceFunc is one signature of an interface: its name, its parameters, the first of which
+// has the type Self, and its return type.
+type InterfaceFunc struct {
+	Pos     Pos
+	End     Pos
+	Name    string
+	NamePos Pos
+	Params  []Param
+	Return  Type
+	Sig     string // the signature as written
+}
+
 // TypeParam is a type parameter with an optional bound.
 type TypeParam struct {
 	Pos   Pos
@@ -735,6 +762,8 @@ func (n *Import) Position() Pos            { return n.Pos }
 func (n *VarDecl) Position() Pos           { return n.Pos }
 func (n *FuncDecl) Position() Pos          { return n.Pos }
 func (n *TypeDecl) Position() Pos          { return n.Pos }
+func (n *InterfaceDecl) Position() Pos     { return n.Pos }
+func (n *InterfaceFunc) Position() Pos     { return n.Pos }
 func (n *TypeName) Position() Pos          { return n.Pos }
 func (n *RecordType) Position() Pos        { return n.Pos }
 func (n *FuncType) Position() Pos          { return n.Pos }
@@ -799,6 +828,8 @@ func (n *Import) EndPosition() Pos            { return n.End }
 func (n *VarDecl) EndPosition() Pos           { return n.End }
 func (n *FuncDecl) EndPosition() Pos          { return n.End }
 func (n *TypeDecl) EndPosition() Pos          { return n.End }
+func (n *InterfaceDecl) EndPosition() Pos     { return n.End }
+func (n *InterfaceFunc) EndPosition() Pos     { return n.End }
 func (n *TypeName) EndPosition() Pos          { return n.End }
 func (n *RecordType) EndPosition() Pos        { return n.End }
 func (n *FuncType) EndPosition() Pos          { return n.End }
@@ -859,13 +890,15 @@ func (n *MapEntry) EndPosition() Pos          { return n.End }
 func (n *Arg) EndPosition() Pos               { return n.End }
 func (n *SelectClause) EndPosition() Pos      { return n.End }
 
-func (*VarDecl) declNode()  {}
-func (*FuncDecl) declNode() {}
-func (*TypeDecl) declNode() {}
+func (*VarDecl) declNode()       {}
+func (*FuncDecl) declNode()      {}
+func (*TypeDecl) declNode()      {}
+func (*InterfaceDecl) declNode() {}
 
-func (n *VarDecl) Exported() bool  { return n.Export }
-func (n *FuncDecl) Exported() bool { return n.Export }
-func (n *TypeDecl) Exported() bool { return n.Export }
+func (n *VarDecl) Exported() bool       { return n.Export }
+func (n *FuncDecl) Exported() bool      { return n.Export }
+func (n *TypeDecl) Exported() bool      { return n.Export }
+func (n *InterfaceDecl) Exported() bool { return n.Export }
 
 func (*VarDecl) stmtNode()     {}
 func (*TypeDecl) stmtNode()    {}

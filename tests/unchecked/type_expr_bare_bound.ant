@@ -5,11 +5,11 @@
 // since a call never reads a bound.
 type Same[X] = X
 type Twice[T: Same[T]] = { v: T }
-type Self[T: T] = { v: T }
+type Box[T: T] = { v: T }
 func f[T: T](x: T): T { x }
 println(f(1))
 println(Panic.catch({ type(Twice[int]) }) is Err)
-println(type(Self[int]))
+println(type(Box[int]))
 
 // expect
 // out: 1

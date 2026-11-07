@@ -4,10 +4,10 @@
 // declaration order the cycle is written in, with or without type parameters; a later declaration
 // that mentions the cyclic alias does not loop, and an alias may name a later alias. Recursion
 // through a record, an array, a set or a map is fine.
-type Self = Self | null // ERR: without passing through a record, array, map, set, or function
+type Loop = Loop | null // ERR: without passing through a record, array, map, set, or function
 type Chain = Link | int // ERR: type Chain refers to itself through Link without passing through
 type Link = Chain | string
-type Mentions = Self | Link | bool
+type Mentions = Loop | Link | bool
 type Same[T] = Same[T]        // ERR: type Same refers to itself without passing through
 type Plain = Plain            // ERR: type Plain refers to itself without passing through
 type GenA[T] = GenB[T] | null // ERR: type GenA refers to itself through GenB without passing through

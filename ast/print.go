@@ -107,6 +107,21 @@ func sprint(sb *strings.Builder, n Node) {
 			sprint(sb, x.Body)
 		}
 		sb.WriteString(")")
+	case *InterfaceDecl:
+		sb.WriteString("(interface ")
+		if x.Export {
+			sb.WriteString("export ")
+		}
+		sb.WriteString(x.Name)
+		typeParams(sb, x.TypeParams)
+		for _, fn := range x.Funcs {
+			sb.WriteString(" (" + fn.Name)
+			params(sb, fn.Params)
+			sb.WriteString(":")
+			sprint(sb, fn.Return)
+			sb.WriteString(")")
+		}
+		sb.WriteString(")")
 	case *TypeName:
 		sb.WriteString(strings.Join(x.Path, "."))
 		if len(x.Args) > 0 {

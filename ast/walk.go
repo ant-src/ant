@@ -95,6 +95,18 @@ func Inspect(n Node, f func(Node) bool) {
 			Inspect(&x.TypeParams[i], f)
 		}
 		inspectType(x.Body, f)
+	case *InterfaceDecl:
+		for i := range x.TypeParams {
+			Inspect(&x.TypeParams[i], f)
+		}
+		for i := range x.Funcs {
+			Inspect(&x.Funcs[i], f)
+		}
+	case *InterfaceFunc:
+		for i := range x.Params {
+			Inspect(&x.Params[i], f)
+		}
+		inspectType(x.Return, f)
 	case *TypeParam:
 		inspectType(x.Bound, f)
 	case *Param:

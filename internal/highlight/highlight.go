@@ -64,6 +64,10 @@ func classify(cls []Class, toks []token.Token) {
 				fill(cls, t.Off, t.End, Keyword)
 			}
 		case token.Reserved, token.Bad:
+			if t.Text == "Self" {
+				fill(cls, t.Off, t.End, Type) // the satisfying type of an interface's signatures
+				continue
+			}
 			fill(cls, t.Off, t.End, Bad)
 		case token.Ident:
 			switch {
