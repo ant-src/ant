@@ -429,8 +429,13 @@ func (c *completer) pipe(prev *token.Token) bool {
 		}
 	}
 	for _, o := range a.info.Prelude {
-		if o.Kind == check.Namespace || o.Kind == check.TypeKind {
+		switch o.Kind {
+		case check.Namespace, check.TypeKind:
 			offer(o)
+		case check.Func:
+			if acceptsFirst(o, left) {
+				c.add(c.objectItem(a, o, ""))
+			}
 		}
 	}
 	if mi, ok := a.info.Modules[a.module().File.Path]; ok {

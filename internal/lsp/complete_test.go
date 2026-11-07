@@ -49,6 +49,10 @@ func TestComplete(t *testing.T) {
 	has("type Point = { x: int, y: int }\nvar p = Point{ x: 1, y: 2 }\np.", "x", "y")
 	has("var xs = [1, 2]\nxs | Array.", "map", "filter")
 	has("var xs = [1, 2]\nxs | ", "Array.map")
+	// the prelude's own functions too, println taking any type
+	has("var xs = [1, 2]\nxs | ", "println", "print")
+	lacks("var xs = [1, 2]\nxs | ", "panic", "int")
+	has("var n = 1\nn | ", "println", "int", "float64")
 	has("func twice(n: int): int { n * 2 }\ntw", "twice")
 	has("var x = 1\nx + ", "x", "println")
 	// a type expression takes a type (section 4, Types as values)
