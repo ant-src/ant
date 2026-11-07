@@ -35,3 +35,14 @@ func TestRenameNamespaceImport(t *testing.T) {
 		t.Errorf("renaming Geo to the local G: %v", err)
 	}
 }
+
+func TestRenameLambdaX(t *testing.T) {
+	c := start(t, workspace())
+	uri := c.open("main.ant", mainSrc)
+	if _, err := rename(c, uri, at(mainSrc, "x * times", 1, 0), "y"); err == nil || !strings.Contains(err.Message, "lambda") {
+		t.Errorf("renaming a lambda's x: %v", err)
+	}
+	if err := c.call("textDocument/prepareRename", c.pos(uri, at(mainSrc, "x * times", 1, 0)), nil); err == nil {
+		t.Error("prepareRename on a lambda's x was allowed")
+	}
+}

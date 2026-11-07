@@ -214,8 +214,15 @@ func renamable(o *check.Object) *rpcError {
 		return &rpcError{Code: codeInvalidParams, Message: "a record field is not renamed"}
 	case o.Kind == check.Namespace:
 		return &rpcError{Code: codeInvalidParams, Message: "a namespace cannot be renamed"}
+	case isLambda(o.Decl):
+		return &rpcError{Code: codeInvalidParams, Message: "a lambda's x cannot be renamed"}
 	}
 	return nil
+}
+
+func isLambda(n ast.Node) bool {
+	_, ok := n.(*ast.Lambda)
+	return ok
 }
 
 // validName says whether name can be given to a declaration: an identifier that is neither a
