@@ -2,9 +2,9 @@
 // panics: type-expr
 // An unchecked run rejects an alias that names itself in a union inside its union body, as the
 // checker does, when a type expression first reaches it.
-type R[T] = Array[R[T] | int] | null
-println(type(R[int]))
+type R = Array[R | int] | null
+println(type(R))
 
 // expect
 // exit: 1
-// err: type R names itself in the union R[T] | int
+// err: type R names itself in the union R | int

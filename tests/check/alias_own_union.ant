@@ -1,33 +1,29 @@
 // spec: 4 Type declarations; 4 Unions
-// Section 4: an alias may be a member of a union inside a function or array type that its own body
-// instantiates, and checking it ends. With A = B[B[B[int]]], B's union A | null | B[B[int]] holds
-// two functions that are not the same type, a compile error at the use, and B's body puts a type
-// parameter beside a function, an error at its declaration; the same through a deeper nesting, an
-// array, a union body, and an alias between. Where the members are one type, or have distinct
-// discriminators, the declarations are fine.
-type A = B[B[B[int]]]                            // ERR: type A: B[B[B[int]]]: a union may contain each discriminator at most once: A and B[B[int]] are both a function
-type B[T] = (func(null): A | null | T)           // ERR: type B: a type parameter may share a union only with null, void, other type parameters, and named types without type arguments, not with A
-type C = Nest[Nest[Nest[Nest[Nest[Nest[int]]]]]] // ERR: C and Nest[Nest[Nest[Nest[Nest[int]]]]] are both an array
-type Nest[T] = Array[C | null | T]               // ERR: type Nest: a type parameter may share a union only with null, void, other type parameters, and named types without type arguments, not with C
-type E = Wrap[Wrap[Wrap[int]]] | null            // ERR: Wrap[Wrap[Wrap[int]]] and Wrap[Wrap[int]] are both a function
-type Wrap[T] = (func(null): E | T)               // ERR: type Wrap: a type parameter may share
-type F = Via[Via[Via[int]]]                      // ERR: in Fn[Via[Via[int]]]: a union may contain each discriminator at most once: F and Via[Via[int]] are both a function
-type Via[T] = Fn[T]                              // ERR: type Via: Fn[T]: a type parameter may share
-type Fn[T] = (func(null): F | null | T)          // ERR: type Fn: a type parameter may share
+// Section 4: an alias may be a member of a union inside a function or record type that its own
+// body reaches, and checking it ends. A generic alias that reaches itself that way, through a
+// plain alias that instantiates it, is on a cycle through no record's field and is rejected once,
+// at the generic alias, however deep the instantiation; the same through a record's field is fine,
+// as are two plain function aliases that unfold to the same type, which are one member of a union.
+type A = B[B[B[int]]]
+type B[T] = (func(null): A | null | T) // ERR: type B refers to itself through A without passing through a record's field
+type C = Nest[Nest[Nest[Nest[Nest[Nest[int]]]]]]
+type Nest[T] = Array[C | null | T] // ERR: type Nest refers to itself through C without passing through a record's field
+type F = Via[Via[Via[int]]]
+type Via[T] = Fn[T] // ERR: type Via refers to itself through Fn and F without passing through a record's field
+type Fn[T] = (func(null): F | null | T)
 type G = Pair[Pair[int]]
-type Pair[T] = (func(Pair[T], T): G | null)
+type Pair[T] = (func(Pair[T], T): G | null) // ERR: type Pair refers to itself without passing through a record's field
 type H = { r: Rec[Rec[Rec[int]]] | null }
 type Rec[T] = { f: H | null | T }
 type I = (func(null): J | null)
 type J = (func(null): I | null)
-type K = Pair[int]
-var k: K | Pair[int] | null = null
-var bad: K | Pair[Pair[int]] | null = null // ERR: a union may contain each discriminator at most once: K and Pair[Pair[int]] are both a function
+type K = Call[int] | null
+type Call[T] = { f: func(Call[T], T): K | null }
+var k: K | Call[int] | null = null
+var bad: K | Call[Call[int]] | null = null // ERR: a union may contain each discriminator at most once: Call[int] and Call[Call[int]] are both tag Call
 
-var g: G | null = null
 var h = H{ r: Rec{ f: Rec{ f: Rec{ f: 1 } } } }
 var ij: I | J | null = null
-println(g)
 println(h)
 println(ij)
 println(k)

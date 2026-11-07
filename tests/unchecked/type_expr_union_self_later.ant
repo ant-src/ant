@@ -2,8 +2,8 @@
 // panics: type-expr
 // An unchecked run rejects an alias whose union body names it in an inner union through an alias
 // declared before it, as the checker does, when a type expression first reaches it.
-type A = B[B[int]]
-type B[T] = (func(): A | int) | null
+type A = B
+type B = (func(): A | int) | null
 println(type(A))
 
 // expect

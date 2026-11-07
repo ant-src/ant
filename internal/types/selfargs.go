@@ -5,17 +5,19 @@ import (
 	"slices"
 )
 
-// SelfArgs describes how the generic type d refers to itself with other type arguments than
-// its own parameters in order, or returns "" when it does not. It follows d's body or fields
-// through the generic types they name, tracking which of their parameters stand for which of
-// d's.
+// SelfArgs describes how the generic record type d refers to itself with other type arguments
+// than its own parameters in order, or returns "" when it does not, or when d is no record. It
+// follows d's fields through the generic types they name, tracking which of their parameters
+// stand for which of d's. Only a record's fields can lead a generic type back to itself, since a
+// generic alias on a cycle through no record's field is rejected (GenericRecursive), so an
+// alias is held to no rule of its own: a record on its cycle is.
 func SelfArgs(d *Decl) string { return SelfArgsIn(d, nil) }
 
 // SelfArgsIn is SelfArgs following only the declarations in reports, which must hold those of
 // d's strongly connected component (Components); nil follows every declaration. The others
 // cannot lead back to d.
 func SelfArgsIn(d *Decl, in func(*Decl) bool) string {
-	if len(DeclBody(d)) == 0 {
+	if d.Kind != RecordDecl || len(DeclBody(d)) == 0 {
 		return ""
 	}
 	want := func() string {

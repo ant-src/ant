@@ -1,7 +1,7 @@
 // spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
 // panics: type-expr
-// An unchecked run rejects a generic type that refers to itself with other type arguments as
-// soon as a type expression completes its declaration, before a union that names the type
+// An unchecked run rejects a generic alias that reaches itself with other type arguments as
+// soon as a type expression completes its declaration, before a union that names the alias
 // compares its ever-growing instantiations.
 type D[T] = { x: string }
 type B[T] = Array[B[D[T]]] | null
@@ -11,4 +11,4 @@ println(type(B[int] | string))
 // expect
 // out: true
 // exit: 1
-// err: type B refers to itself as B[D[T]]; a generic type must refer to itself as B[T], with its own type parameters in order
+// err: type B refers to itself without passing through a record's field; an alias with type parameters may not, so wrap the recursion in a named record type

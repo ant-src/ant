@@ -783,6 +783,7 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	c.resolved[ti.t] = true
 	in := c.components(ti.t)
 	c.checkAliasCycle(ti, in(ti.t))
+	c.checkGenericRecursive(ti, in(ti.t))
 	c.checkSelfArgs(ti, in)
 	c.checkUnionSelf(ti, in(ti.t))
 	c.checkCycleUnions(ti, in)
@@ -1065,6 +1066,21 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 // dropped so the other members do not report the cycle again.
 func (c *Checker) checkAliasCycle(ti *typeInfo, in func(*types.Decl) bool) {
 	blame, msg, cyclic := types.AliasCycleErrorIn(ti.t, in)
+	if !cyclic {
+		return
+	}
+	pos, _ := blame.Pos.(ast.Pos)
+	c.errorf(pos, "%s", msg)
+	blame.Body = types.Invalid{}
+	c.epoch++
+}
+
+// checkGenericRecursive reports a generic alias on a cycle of aliases that passes through no
+// record's field (types.GenericRecursive). The error goes to the generic member of the cycle
+// declared first, as the runtime's does, and its body is dropped so the other members do not
+// report the cycle again.
+func (c *Checker) checkGenericRecursive(ti *typeInfo, in func(*types.Decl) bool) {
+	blame, msg, cyclic := types.GenericRecursiveIn(ti.t, in)
 	if !cyclic {
 		return
 	}

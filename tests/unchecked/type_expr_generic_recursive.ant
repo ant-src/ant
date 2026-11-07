@@ -1,0 +1,16 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
+// panics: type-expr
+// An unchecked run rejects a generic alias that reaches itself without passing through a record's
+// field, as the checker does, as soon as a type expression completes its declaration and before
+// a union that names it expands it, so the panic is an ordinary one that Panic.catch recovers.
+type Box[T] = { value: T }
+type Nest[T] = Array[Nest[T]] | Box[T]
+type Plain = Ring[int]
+type Ring[T] = Array[Plain] | Box[T]
+println(Panic.catch({ type(Nest[int] | null) }) is Err)
+println(type(Plain | string))
+
+// expect
+// out: true
+// exit: 1
+// err: type Ring refers to itself through Plain without passing through a record's field; an alias with type parameters may not, so wrap the recursion in a named record type

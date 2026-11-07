@@ -1,18 +1,19 @@
 // spec: 12 Runtime panics; 4 Types as values; 4 Unions
 // panics: type-expr
-// An unchecked run rejects an alias that is a member of a union inside the function type its own
-// body instantiates, once the union holds two functions that are not the same type, when a type
-// expression first reaches it, and ends; with one function, the type expression is fine.
-type A = B[B[B[int]]]
-type B[T] = (func(null): A | null | T)
-type C = D[int]
-type D[T] = (func(null): C | null | T)
-println(type(C | D[int]))
-println(Panic.catch({ type(Array[C | D[D[int]]]) }) is Err)
-println(type(A))
+// An unchecked run rejects a union of two function aliases that unfold to different types, when a
+// type expression first reaches it, and ends; two that unfold to the same type are one member, as
+// an alias and its own unfolding are.
+type C = (func(null): C | null)
+type D = (func(null): C | null)
+type E = (func(null): C | int | null)
+println(type(C | D))
+println(type(C | (func(null): D | null)))
+println(Panic.catch({ type(Array[C | E]) }) is Err)
+println(type(C | E))
 
 // expect
 // out: C
+// out: C
 // out: true
 // exit: 1
-// err: a union may contain each discriminator at most once: A and B[int] are both a function
+// err: a union may contain each discriminator at most once: C and E are both a function

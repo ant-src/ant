@@ -1,10 +1,10 @@
 // spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
 // panics: type-expr
-// An unchecked run rejects a generic type that refers to itself with other type arguments, as
-// the checker does, when a type expression first reaches it: its arguments would grow at every
+// An unchecked run rejects a generic record type that refers to itself with other type arguments,
+// as the checker does, when a type expression first reaches it: its arguments would grow at every
 // level, so comparing two of its instantiations would never end.
 type Box[T] = { value: T }
-type N[A, B] = Array[N[B, Box[A]]] | Map[string, A]
+type N[A, B] = { kids: Array[N[B, Box[A]]], names: Map[string, A] }
 println(type(N[int, string]) == type(N[string, int]))
 
 // expect

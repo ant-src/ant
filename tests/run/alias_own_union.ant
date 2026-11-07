@@ -1,9 +1,9 @@
 // spec: 4 Type declarations; 4 Unions; 4 Types as values
 // Section 4: an alias may be a member of a union inside a function or record type that its body
-// instantiates; two aliases that unfold to the same function type are one member of a union, and
-// members with distinct tags may share it.
-type G = Pair[Pair[int]]
-type Pair[T] = (func(Pair[T], T): G | null)
+// reaches through a record's field; two aliases that unfold to the same function type are one
+// member of a union, and members with distinct tags may share it.
+type G = Pair[Pair[int]] | null
+type Pair[T] = { call: func(Pair[T], T): G | null }
 type H = { r: Rec[Rec[Rec[int]]] | null }
 type Rec[T] = { f: H | null | T }
 type I = (func(null): J | null)
@@ -16,12 +16,12 @@ ij = i
 println(h)
 println(ij == i)
 println(type(I | J | null))
-println(type(G | Pair[Pair[int]]))
+println(type(G) == type(Pair[Pair[int]] | null))
 println(type(Rec[Rec[Rec[Rec[int]]]] | H))
 
 // expect
 // out: H{ r: Rec{ f: Rec{ f: Rec{ f: 1 } } } }
 // out: true
 // out: I | null
-// out: G
+// out: true
 // out: Rec[Rec[Rec[Rec[int]]]] | H

@@ -52,14 +52,19 @@ func Components(root *Decl, succ func(d *Decl, edge func(*Decl)), skip func(*Dec
 	visit(root)
 }
 
-// DeclRefs calls f with each declaration that d's alias body or field types name, the members
-// of a union as written included.
+// DeclRefs calls f with each declaration that d's alias body, field types, or the bounds of its
+// type parameters name, the members of a union as written included.
 func DeclRefs(d *Decl, f func(*Decl)) {
 	if d.Kind == AliasDecl && d.Body != nil {
 		namedIn(d.Body, f)
 	}
 	for _, fl := range d.Fields {
 		namedIn(fl.Type, f)
+	}
+	for _, p := range d.Params {
+		if p.Bound != nil {
+			namedIn(p.Bound, f)
+		}
 	}
 }
 

@@ -350,6 +350,9 @@ func (g *Goroutine) checkDecl(d *types.Decl, in func(*types.Decl) bool) {
 	if _, msg, cyclic := types.AliasCycleErrorIn(d, in); cyclic {
 		g.panicf(pos, "%s", msg)
 	}
+	if _, msg, cyclic := types.GenericRecursiveIn(d, in); cyclic {
+		g.panicf(pos, "%s", msg)
+	}
 	if msg := types.SelfArgsIn(d, in); msg != "" {
 		g.panicf(pos, "%s", msg)
 	}

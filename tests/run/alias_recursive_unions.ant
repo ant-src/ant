@@ -1,23 +1,26 @@
 // spec: 4 Type declarations; 4 Unions
-// Section 4: a generic alias may hold a union that names the alias itself inside an array or a
-// map, at any depth, and such a type is used like any other: values nest, is narrows the members,
-// and two aliases that unfold to the same type are the same type.
+// Section 4: a plain alias may hold a union that names the alias itself inside an array or a map,
+// at any depth, and a generic alias does the same through a record's field; such a type is used
+// like any other: values nest, is narrows the members, and two aliases that unfold to the same
+// type are the same type.
 type Box[T] = { value: T }
-type Nested[T] = Array[Nested[T] | int]
-type Tree[T] = Array[Tree[T] | Box[T]]
-type Config[T] = Map[string, Config[T] | bool]
-type Deep[T] = Array[Map[string, Deep[T] | Set[T]] | Box[T]]
-type Same[T] = Array[Same[T] | int]
+type Nested = Array[Nested | int]
+type Tree[T] = Array[Branch[T] | Box[T]]
+type Branch[T] = { kids: Tree[T] }
+type Config = Map[string, Config | bool]
+type Deep[T] = Array[Map[string, Sub[T] | Set[T]] | Box[T]]
+type Sub[T] = { deep: Deep[T] }
+type Same = Array[Same | int]
 
 func sum(t: Tree[int]): int {
   var total = 0
   for x in t {
-    if x is Box { total = total + x.value } else { total = total + sum(x) }
+    if x is Box { total = total + x.value } else { total = total + sum(x.kids) }
   }
   total
 }
 
-func depth(n: Nested[string]): int {
+func depth(n: Nested): int {
   var deepest = 0
   for x in n {
     if x is Array {
@@ -28,22 +31,24 @@ func depth(n: Nested[string]): int {
   deepest + 1
 }
 
-var n: Nested[string] = [1, [2, [3]], []]
-var t: Tree[int] = [Box{ value: 1 }, [Box{ value: 2 }, [Box{ value: 3 }]]]
-var c: Config[int] = Map{ "debug": true, "net": Map{ "ipv6": false } }
-var d: Deep[int] = [Box{ value: 1 }, Map{ "k": [Box{ value: 2 }] }]
-var s: Same[string] = n
+var n: Nested = [1, [2, [3]], []]
+var t: Tree[int] = [Box{ value: 1 }, Branch{ kids: [Box{ value: 2 }, Branch{ kids: [Box{ value: 3 }] }] }]
+var c: Config = Map{ "debug": true, "net": Map{ "ipv6": false } }
+var d: Deep[int] = [Box{ value: 1 }, Map{ "k": Sub{ deep: [Box{ value: 2 }] } }]
+var s: Same = n
 println(n)
 println(depth(n))
 println(sum(t))
 println(c)
 println(d)
 println(s == n)
+println(type(Same) == type(Nested))
 
 // expect
 // out: [1, [2, [3]], []]
 // out: 3
 // out: 6
 // out: Map{ "debug": true, "net": Map{ "ipv6": false } }
-// out: [Box{ value: 1 }, Map{ "k": [Box{ value: 2 }] }]
+// out: [Box{ value: 1 }, Map{ "k": Sub{ deep: [Box{ value: 2 }] } }]
+// out: true
 // out: true
