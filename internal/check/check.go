@@ -97,6 +97,23 @@ type Checker struct {
 	// unresolved holds the type declarations whose bodies are not resolved yet, so that a type
 	// argument list naming a later declaration resolves it first and can be checked at the use.
 	unresolved map[*types.Decl]*typeInfo
+	// typeOf holds every type declaration given to resolveTypeDecls, and resolved those whose
+	// bodies are resolved; a declaration's fields are resolved one by one, so a cycle can form
+	// among declarations still being resolved. comps holds the strongly connected component of
+	// each settled declaration: one that reaches only resolved ones, so no later declaration
+	// joins its component (component).
+	typeOf   map[*types.Decl]*typeInfo
+	resolved map[*types.Decl]bool
+	comps    map[*types.Decl]map[*types.Decl]bool
+	// selfArgsDone and cycleUnionsDone hold, as epoch+1, the settled declarations that
+	// checkSelfArgs and checkCycleUnions checked, with everything they reach, since a body last
+	// became invalid, which bumps epoch. Checking one of them again would find the same.
+	epoch                         int
+	selfArgsDone, cycleUnionsDone map[*types.Decl]int
+	// own holds the declarations of ownMod's types, the first ownLen of them.
+	own    map[*types.Decl]bool
+	ownMod *moduleInfo
+	ownLen int
 	// localTypes holds the types declared in blocks, made once per declaration however often
 	// the block is checked.
 	localTypes map[*ast.TypeDecl]*typeInfo
@@ -677,9 +694,15 @@ func declKind(body ast.Type) types.DeclKind {
 func (c *Checker) resolveTypeDecls(tis []*typeInfo) {
 	if c.unresolved == nil {
 		c.unresolved = map[*types.Decl]*typeInfo{}
+		c.typeOf = map[*types.Decl]*typeInfo{}
+		c.resolved = map[*types.Decl]bool{}
+		c.comps = map[*types.Decl]map[*types.Decl]bool{}
+		c.selfArgsDone = map[*types.Decl]int{}
+		c.cycleUnionsDone = map[*types.Decl]int{}
 	}
 	for _, ti := range tis {
 		c.unresolved[ti.t] = ti
+		c.typeOf[ti.t] = ti
 	}
 	c.resolvingTypes++
 	for _, ti := range tis {
@@ -750,18 +773,73 @@ func (c *Checker) resolveTypeOnce(ti *typeInfo) {
 	delete(c.unresolved, ti.t)
 	c.resolveTypeDecl(ti)
 	c.info.fieldDecl(ti.t, ti.decl)
-	c.checkAliasCycle(ti)
-	c.checkSelfArgs(ti)
-	c.checkUnionSelf(ti)
-	c.checkCycleUnions(ti)
+	c.resolved[ti.t] = true
+	in := c.components(ti.t)
+	c.checkAliasCycle(ti, in(ti.t))
+	c.checkSelfArgs(ti, in)
+	c.checkUnionSelf(ti, in(ti.t))
+	c.checkCycleUnions(ti, in)
+}
+
+// components finds the strongly connected components of the declarations root reaches through
+// their bodies and fields as resolved so far (types.Components), and returns, for any of them,
+// the declarations of its component: a reference of a declaration to itself passes through
+// those alone. A settled declaration's component is kept and not searched again, so a chain of
+// declarations is searched once, not once from each link.
+func (c *Checker) components(root *types.Decl) (in func(*types.Decl) func(*types.Decl) bool) {
+	found := map[*types.Decl]map[*types.Decl]bool{}
+	settled := func(d *types.Decl) bool { return c.comps[d] != nil }
+	types.Components(root, types.DeclRefs, settled, func(comp []*types.Decl, _ bool) {
+		set := make(map[*types.Decl]bool, len(comp))
+		for _, d := range comp {
+			set[d] = true
+		}
+		settle := true
+		for _, d := range comp {
+			settle = settle && (c.resolved[d] || c.typeOf[d] == nil)
+			types.DeclRefs(d, func(e *types.Decl) {
+				settle = settle && (set[e] || settled(e))
+			})
+		}
+		for _, d := range comp {
+			found[d] = set
+			if settle {
+				c.comps[d] = set
+			}
+		}
+	})
+	return func(d *types.Decl) func(*types.Decl) bool {
+		set := found[d]
+		if set == nil {
+			set = c.comps[d]
+		}
+		if set == nil {
+			return nil // not reached from root: follow everything
+		}
+		return func(x *types.Decl) bool { return set[x] }
+	}
+}
+
+// ownTypes returns the declarations of the current module's types, kept from one call to the
+// next and extended by the local types declared since.
+func (c *Checker) ownTypes() map[*types.Decl]bool {
+	if c.ownMod != c.mod {
+		c.own, c.ownMod, c.ownLen = map[*types.Decl]bool{}, c.mod, 0
+	}
+	for _, t := range c.mod.types[c.ownLen:] {
+		c.own[t.t] = true
+	}
+	c.ownLen = len(c.mod.types)
+	return c.own
 }
 
 // checkUnionSelf reports a generic alias that names itself in a union inside a body that
 // expansion substitutes (types.UnionSelf), and makes its body invalid, as an alias cycle's is.
-func (c *Checker) checkUnionSelf(ti *typeInfo) {
-	if msg := types.UnionSelf(ti.t); msg != "" {
+func (c *Checker) checkUnionSelf(ti *typeInfo, in func(*types.Decl) bool) {
+	if msg := types.UnionSelfIn(ti.t, in); msg != "" {
 		c.errorf(ti.decl.Pos, "%s", msg)
 		ti.t.Body = types.Invalid{}
+		c.epoch++
 	}
 }
 
@@ -769,12 +847,10 @@ func (c *Checker) checkUnionSelf(ti *typeInfo) {
 // its module. A union that names a declaration of its own cycle was formed before that
 // declaration's body was known, as Array[L[T] | Array[int]] in the body of L, and only now shows
 // whether its members share a discriminator; so was an instantiation such as R[M] in the body of
-// Z while R's fields, which name Z, were still being resolved (section 4, Unions).
-func (c *Checker) checkCycleUnions(ti *typeInfo) {
-	own := map[*types.Decl]bool{}
-	for _, t := range c.mod.types {
-		own[t.t] = true
-	}
+// Z while R's fields, which name Z, were still being resolved (section 4, Unions). A declaration
+// checked once everything it reaches was resolved is not checked again (cycleUnionsDone).
+func (c *Checker) checkCycleUnions(ti *typeInfo, in func(*types.Decl) func(*types.Decl) bool) {
+	own := c.ownTypes()
 	if !own[ti.t] {
 		return
 	}
@@ -783,13 +859,14 @@ func (c *Checker) checkCycleUnions(ti *typeInfo) {
 	for i := 0; i < len(order); i++ {
 		for _, t := range declTypes(order[i]) {
 			types.Walk(t, func(t types.Type) {
-				if n, ok := t.(types.Named); ok && own[n.Decl] && !reached[n.Decl] {
+				if n, ok := t.(types.Named); ok && own[n.Decl] && !reached[n.Decl] && c.cycleUnionsDone[n.Decl] != c.epoch+1 {
 					reached[n.Decl] = true
 					order = append(order, n.Decl)
 				}
 			})
 		}
 	}
+	epoch := c.epoch
 	for _, d := range order {
 		check := func(t types.Type) bool {
 			ok := true
@@ -816,15 +893,24 @@ func (c *Checker) checkCycleUnions(ti *typeInfo) {
 			})
 			return ok
 		}
-		if _, cyclic := types.AliasCycle(d); cyclic {
+		if _, cyclic := types.AliasCycleIn(d, in(d)); cyclic {
 			continue // the cycle is reported, and its unions were flattened through it
 		}
 		if d.Kind == types.AliasDecl && d.Body != nil && !check(d.Body) {
 			d.Body = types.Invalid{}
+			c.epoch++
 		}
 		for i, f := range d.Fields {
 			if !check(f.Type) {
 				d.Fields[i].Type = types.Invalid{}
+				c.epoch++
+			}
+		}
+	}
+	if c.epoch == epoch {
+		for _, d := range order {
+			if c.comps[d] != nil {
+				c.cycleUnionsDone[d] = epoch + 1
 			}
 		}
 	}
@@ -911,28 +997,30 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 // array, map, set, or function. The error goes to the member of the cycle declared first, as the
 // runtime's does, whichever member a later declaration's use resolved first, and its body is
 // dropped so the other members do not report the cycle again.
-func (c *Checker) checkAliasCycle(ti *typeInfo) {
-	blame, msg, cyclic := types.AliasCycleError(ti.t)
+func (c *Checker) checkAliasCycle(ti *typeInfo, in func(*types.Decl) bool) {
+	blame, msg, cyclic := types.AliasCycleErrorIn(ti.t, in)
 	if !cyclic {
 		return
 	}
 	pos, _ := blame.Pos.(ast.Pos)
 	c.errorf(pos, "%s", msg)
 	blame.Body = types.Invalid{}
+	c.epoch++
 }
 
 // checkSelfArgs reports a generic type that refers to itself, directly or through other generic
 // types, with anything but its own type parameters in order (section 4, Type declarations):
 // each level of N[A, B] = Array[N[B, Box[A]]] | ... would be a new instantiation, and checking
 // every instantiation a use reaches would never end. A cycle is complete once its last
-// declaration is resolved, which is ti, so every generic type ti reaches is checked again.
-func (c *Checker) checkSelfArgs(ti *typeInfo) {
+// declaration is resolved, which is ti, so every generic type ti reaches is checked again, but
+// for those checked once everything they reach was resolved (selfArgsDone).
+func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.Decl) bool) {
 	reached := map[*types.Decl]bool{}
 	var reach func(ts []types.Type)
 	reach = func(ts []types.Type) {
 		for _, t := range ts {
 			types.Walk(t, func(t types.Type) {
-				if n, ok := t.(types.Named); ok && !reached[n.Decl] {
+				if n, ok := t.(types.Named); ok && !reached[n.Decl] && c.selfArgsDone[n.Decl] != c.epoch+1 {
 					if body := types.DeclBody(n.Decl); len(body) > 0 {
 						reached[n.Decl] = true
 						reach(body)
@@ -953,8 +1041,15 @@ func (c *Checker) checkSelfArgs(ti *typeInfo) {
 	}
 	var bad []violation
 	for d := range reached {
-		if msg := types.SelfArgs(d); msg != "" {
+		if msg := types.SelfArgsIn(d, in(d)); msg != "" {
 			bad = append(bad, violation{d, msg})
+		}
+	}
+	if len(bad) == 0 {
+		for d := range reached {
+			if c.comps[d] != nil {
+				c.selfArgsDone[d] = c.epoch + 1
+			}
 		}
 	}
 	for _, v := range bad {
@@ -962,6 +1057,7 @@ func (c *Checker) checkSelfArgs(ti *typeInfo) {
 		c.errorf(pos, "%s", v.msg)
 		if v.decl.Kind == types.AliasDecl {
 			v.decl.Body = types.Invalid{}
+			c.epoch++
 		}
 	}
 }
