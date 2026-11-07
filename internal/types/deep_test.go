@@ -138,6 +138,74 @@ func TestSharedAliases(t *testing.T) {
 	}
 }
 
+// TestChainComponents checks each link of long chains of declarations the way the checker and
+// the runtime do, which once followed the whole chain from every link, in time quadratic in its
+// length: the searches stop at the declaration's strongly connected component, and validating
+// the instantiations the links write remembers what an earlier link validated.
+func TestChainComponents(t *testing.T) {
+	start := time.Now()
+	const n = 20000
+	// D<i>[T] = Array[D<i-1>[T]] from D0[T] = T | null, and a ring R<i> = R<i+1> | null closed
+	// at R0, which is a cycle through unions alone.
+	d := make([]*Decl, n+1)
+	for i := range d {
+		p := &ParamDecl{Name: "T"}
+		d[i] = &Decl{Name: fmt.Sprint("D", i), Kind: AliasDecl, Params: []*ParamDecl{p}}
+		if i == 0 {
+			d[i].Body = Nullable(Param{Decl: p})
+		} else {
+			d[i].Body = Array{Elem: Named{Decl: d[i-1], Args: []Type{Param{Decl: p}}}}
+		}
+	}
+	settled := map[*Decl]map[*Decl]bool{}
+	component := func(root *Decl) func(*Decl) bool {
+		Components(root, DeclRefs, func(x *Decl) bool { return settled[x] != nil }, func(comp []*Decl, _ bool) {
+			set := map[*Decl]bool{}
+			for _, x := range comp {
+				set[x] = true
+			}
+			for _, x := range comp {
+				settled[x] = set
+			}
+		})
+		return func(x *Decl) bool { return settled[root][x] }
+	}
+	var memo ArgsMemo
+	for _, x := range d {
+		in := component(x)
+		if msg := SelfArgsIn(x, in); msg != "" {
+			t.Fatal(msg)
+		}
+		if _, cyclic := AliasCycleIn(x, in); cyclic {
+			t.Fatalf("%s is a cycle", x.Name)
+		}
+		if msg := UnionSelfIn(x, in); msg != "" {
+			t.Fatal(msg)
+		}
+		if err := memo.CheckWritten(x.Body); err != nil {
+			t.Fatalf("%s: %v", x.Name, err)
+		}
+	}
+	r := make([]*Decl, n)
+	for i := range r {
+		r[i] = &Decl{Name: fmt.Sprint("R", i), Kind: AliasDecl}
+	}
+	for i := range r {
+		r[i].Body = Union{Written: []Type{Named{Decl: r[(i+1)%n]}, Null{}}, Members: []Type{Null{}}}
+	}
+	settled = map[*Decl]map[*Decl]bool{}
+	in := component(r[0])
+	if len(settled[r[0]]) != n {
+		t.Fatalf("the ring's component has %d declarations, want %d", len(settled[r[0]]), n)
+	}
+	if path, cyclic := AliasCycleIn(r[0], in); !cyclic || len(path) != n-1 {
+		t.Errorf("R0 reaches itself through %d aliases (%v), want %d", len(path), cyclic, n-1)
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Errorf("checking the chains took %v", d)
+	}
+}
+
 // TestFailedAssumption checks that a pair proven only by assuming a pair that then failed is
 // not taken as proven. With A = func(D, int): void, B = func(C, string): void, C = func(): A,
 // and D = func(): B, relating A to B relates C to D by assuming A to B, which then fails on
