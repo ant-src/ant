@@ -62,46 +62,22 @@ func (m *pairs) remembered(t Type) bool {
 // method in time linear in the bodies, so a chain of aliases each naming the one before is not
 // walked again from each of its links.
 func (m *pairs) findRecursive(d *Decl) {
-	index := map[*Decl]int{}
-	low := map[*Decl]int{}
-	self := map[*Decl]bool{}
-	var stack []*Decl
-	var visit func(v *Decl)
-	visit = func(v *Decl) {
-		index[v], low[v] = len(index), len(index)
-		stack = append(stack, v)
+	aliases := func(v *Decl, edge func(*Decl)) {
 		Walk(v.Body, func(x Type) {
-			if !isAlias(x) {
-				return
-			}
-			w := x.(Named).Decl
-			if w == v {
-				self[v] = true
-			}
-			if _, ok := index[w]; !ok {
-				if _, done := m.rec[w]; done {
-					return // decided by an earlier search, so on no cycle through v
-				}
-				visit(w)
-				low[v] = min(low[v], low[w])
-			} else if _, decided := m.rec[w]; !decided {
-				low[v] = min(low[v], index[w]) // still on the stack
+			if isAlias(x) {
+				edge(x.(Named).Decl)
 			}
 		})
-		if low[v] != index[v] {
-			return
-		}
-		i := len(stack) - 1
-		for stack[i] != v {
-			i--
-		}
-		cycle := len(stack)-i > 1 || self[v]
-		for _, w := range stack[i:] {
-			m.rec[w] = cycle
-		}
-		stack = stack[:i]
 	}
-	visit(d)
+	decided := func(w *Decl) bool {
+		_, ok := m.rec[w]
+		return ok // decided by an earlier search, so on no cycle through d
+	}
+	Components(d, aliases, decided, func(comp []*Decl, cyclic bool) {
+		for _, w := range comp {
+			m.rec[w] = cyclic
+		}
+	})
 }
 
 // enter looks up the pair (a, b). Known reports that it is decided or under test, with holds
