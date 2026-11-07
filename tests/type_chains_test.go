@@ -15,7 +15,8 @@ import (
 // TestLongTypeChains checks and runs programs with long chains of type declarations, each naming
 // the one before (section 4, Type declarations). The checks that a declaration does not reach
 // itself through unions alone, or with other type arguments, once followed every declaration a
-// chain reaches from each of its links, which took time quadratic or cubic in its length.
+// chain reaches from each of its links, which took time quadratic or cubic in its length; so did
+// validating the type arguments of each link, in the checker, through every link below it.
 func TestLongTypeChains(t *testing.T) {
 	chain := func(b *strings.Builder, name string, n int, generic bool) {
 		p, arg := "", ""
@@ -41,8 +42,8 @@ func TestLongTypeChains(t *testing.T) {
 		}, true},
 		{"a chain of generic aliases, checked", func() string {
 			var b strings.Builder
-			chain(&b, "D", 1000, true)
-			b.WriteString("println(type(D1000[int]) == type(D1000[int]))\n")
+			chain(&b, "D", 8000, true)
+			b.WriteString("println(type(D8000[int]) == type(D8000[int]))\n")
 			return b.String()
 		}, true},
 		{"a chain of generic aliases, run", func() string {
