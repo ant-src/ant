@@ -318,3 +318,34 @@ func TestGenericRecursive(t *testing.T) {
 	}
 	report(first, second, "type Second refers to itself through Third and First without passing through a record's field")
 }
+
+// TestAliasInUnionOfItsOwnExpansion compares two recursive aliases that meet again, in the other
+// order, in a generic union formed inside their own expansion: F = func(): Opt2[F, G] and
+// G = func(): Opt2[G, F] with Opt2[A, B] = A | B | null. Forming Opt2[F, G] validated would tell
+// F from G with a fresh Equal, which forms it again; Equal expands to raw unions instead, and the
+// pair under test ends the walk, so F is a G (section 4, Types as values).
+func TestAliasInUnionOfItsOwnExpansion(t *testing.T) {
+	a, b := &ParamDecl{Name: "A"}, &ParamDecl{Name: "B"}
+	opt2 := &Decl{Name: "Opt2", Kind: AliasDecl, Params: []*ParamDecl{a, b}, Body: Union{Members: []Type{Param{Decl: a}, Param{Decl: b}, Null{}}}}
+	f := &Decl{Name: "F", Kind: AliasDecl}
+	g := &Decl{Name: "G", Kind: AliasDecl}
+	f.Body = Func{Return: Named{Decl: opt2, Args: []Type{Named{Decl: f}, Named{Decl: g}}}}
+	g.Body = Func{Return: Named{Decl: opt2, Args: []Type{Named{Decl: g}, Named{Decl: f}}}}
+	either := &Decl{Name: "Either", Kind: AliasDecl, Params: []*ParamDecl{a, b}, Body: Union{Members: []Type{Param{Decl: a}, Param{Decl: b}}}}
+	x := &Decl{Name: "X", Kind: AliasDecl}
+	y := &Decl{Name: "Y", Kind: AliasDecl}
+	x.Body = Array{Elem: Named{Decl: either, Args: []Type{Named{Decl: x}, Named{Decl: y}}}}
+	y.Body = Array{Elem: Named{Decl: either, Args: []Type{Named{Decl: y}, Named{Decl: x}}}}
+	done := make(chan [2]bool)
+	go func() {
+		done <- [2]bool{Equal(Named{Decl: f}, Named{Decl: g}) && Assignable(Named{Decl: g}, Named{Decl: f}), Equal(Named{Decl: x}, Named{Decl: y})}
+	}()
+	select {
+	case got := <-done:
+		if got != [2]bool{true, true} {
+			t.Errorf("F = G, X = Y: %v, want both true", got)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("comparing F and G, or X and Y, does not end")
+	}
+}

@@ -23,6 +23,15 @@ func substPlain(t Type, m map[*ParamDecl]Type) (Type, error) {
 	return (&substituter{m: m, plain: true}).subst(t)
 }
 
+// substRaw substitutes as substPlain does but forms each union raw (makeUnion), for Equal.
+func substRaw(t Type, m map[*ParamDecl]Type) Type {
+	if len(m) == 0 {
+		return t
+	}
+	t, _ = (&substituter{m: m, plain: true, raw: true}).subst(t)
+	return t
+}
+
 // substituter carries the bindings, the declarations whose bodies are being validated, and the
 // instantiations already validated in this walk, so that a type reached along many paths, as
 // T1 is from T0[X] = { a: T1[X], b: T1[X] }, is validated once.
@@ -31,6 +40,7 @@ type substituter struct {
 	seen  map[*Decl]bool
 	done  *map[*Decl][][]Type
 	plain bool // substPlain: no declaration bodies are validated
+	raw   bool // substRaw: unions are formed raw (makeUnion), and plain
 	// memo, when set, holds the declarations whose instantiation with distinct type parameters
 	// is known valid, and learned collects those this walk finds valid (ArgsMemo).
 	memo    *ArgsMemo
@@ -38,12 +48,12 @@ type substituter struct {
 }
 
 // substUnionBody substitutes the body of the alias instantiation n under its bindings m without
-// validating.
-func substUnionBody(n Named, m map[*ParamDecl]Type) (Type, error) {
+// validating, forming its unions raw when raw is set (makeUnion).
+func substUnionBody(n Named, m map[*ParamDecl]Type, raw bool) (Type, error) {
 	if len(m) == 0 {
 		return n.Decl.Body, nil
 	}
-	return substPlain(n.Decl.Body, m)
+	return (&substituter{m: m, plain: true, raw: raw}).subst(n.Decl.Body)
 }
 
 // validated reports whether n's body was already validated with these arguments.
@@ -166,7 +176,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			ms[i] = n
 		}
-		return MakeUnion(ms)
+		return makeUnion(ms, s.raw)
 	}
 	return t, nil
 }

@@ -1,12 +1,19 @@
 // spec: 4 Type declarations; 4 Assignability; 4 Types as values
 // Section 4: a plain recursive alias is compared coinductively, so an alias equals a type that
 // unfolds it any number of times, a function type nested one level deeper than the alias's body
-// is still assignable to it, and a plain alias may recur through a generic alias that is not on
-// its cycle.
+// is still assignable to it, a plain alias may recur through a generic alias that is not on its
+// cycle, and two aliases that meet again in a generic union inside their own expansion compare
+// in finite time.
 type A = Array[Array[A]]
 type Handler = func(): Handler | null
 type Opt[T] = T | null
 type Doc = Opt[Array[Doc]]
+type Opt2[A, B] = A | B | null
+type F = func(): Opt2[F, G]
+type G = func(): Opt2[G, F]
+type Either[A, B] = A | B
+type X = Array[Either[X, Y]]
+type Y = Array[Either[Y, X]]
 
 let xs: Array[A] = []
 var a: A = xs
@@ -19,6 +26,8 @@ println(type(A) == type(Array[Array[Array[A]]]))
 println(a)
 println(h())
 println(d)
+println(type(F) == type(G))
+println(type(X) == type(Y))
 
 // expect
 // out: true
@@ -26,3 +35,5 @@ println(d)
 // out: []
 // out: func
 // out: [[null], null]
+// out: true
+// out: true

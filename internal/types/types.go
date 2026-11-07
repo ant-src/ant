@@ -168,12 +168,12 @@ func IsNever(t Type) bool {
 
 // Expand replaces an alias by its body, repeatedly, and leaves every other type alone. The
 // substitution cannot fail: the checker checks an alias's arguments against its body where they
-// are written, and a generic alias never reaches itself (section 4, Type declarations), so no
-// deeper instantiation is left unchecked. Nor can the chain loop, since the checker marks a
-// cyclic alias invalid as soon as its cycle is resolved; past 64 steps the instantiations met
-// are tracked to assert it.
+// are written, and a generic alias reaches itself only with its own parameters (section 4, Type
+// declarations), so no deeper instantiation is left unchecked. Nor can the chain loop, since the
+// checker marks a cyclic alias invalid as soon as its cycle is resolved; past 64 steps the
+// instantiations met are tracked to assert it.
 func Expand(t Type) Type {
-	t, msg := expand(t)
+	t, msg := expand(t, false)
 	if msg != "" {
 		panic("internal error: " + msg)
 	}
@@ -185,12 +185,13 @@ func Expand(t Type) Type {
 // on an alias cycle or arguments its body rejects, and expands an alias whose body is not yet
 // resolved to itself.
 func ExpandOK(t Type) (Type, bool) {
-	t, msg := expand(t)
+	t, msg := expand(t, false)
 	return t, msg == ""
 }
 
-// expand is Expand, reporting what it would panic with.
-func expand(t Type) (Type, string) {
+// expand is Expand, reporting what it would panic with; with raw set, unions are formed raw
+// (makeUnion), as Equal needs them.
+func expand(t Type, raw bool) (Type, string) {
 	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
@@ -200,7 +201,7 @@ func expand(t Type) (Type, string) {
 		if i >= 64 && met.repeats(n) {
 			return t, "expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted"
 		}
-		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args))
+		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args), raw)
 		if err != nil {
 			return t, "expanding " + String(n) + ", which the checker accepted: " + err.Error()
 		}
@@ -303,7 +304,7 @@ func equalStep(a, b Type, met *pairs, depth int) (eq bool) {
 		}
 		defer func() { met.leave(p, mark, eq) }()
 	}
-	a, b = Expand(a), Expand(b)
+	a, b = expandRaw(a), expandRaw(b)
 	switch x := a.(type) {
 	case Prim:
 		y, ok := b.(Prim)
@@ -374,7 +375,7 @@ func equalStep(a, b Type, met *pairs, depth int) (eq bool) {
 		y, ok := b.(Param)
 		return ok && x.Decl == y.Decl
 	case Union:
-		// As sets, since members are not ordered.
+		// As sets: a raw union may hold equal members (makeUnion).
 		y, ok := b.(Union)
 		return ok && within(x, y, met, depth) && within(y, x, met, depth)
 	}
@@ -396,6 +397,15 @@ func within(x, y Union, met *pairs, depth int) bool {
 		}
 	}
 	return true
+}
+
+// expandRaw is Expand with unions formed raw, for Equal (makeUnion).
+func expandRaw(t Type) Type {
+	t, msg := expand(t, true)
+	if msg != "" {
+		panic("internal error: " + msg)
+	}
+	return t
 }
 
 func isAlias(t Type) bool {
