@@ -10,3 +10,10 @@ var f: F = stop
 var g: G = f
 var h: G = more
 var back: F = h // ERR: cannot use G where F is expected
+
+// Arrays and maps are invariant, so a narrower recursive alias of the same shape is not a
+// Json.Value, though every value of it is one.
+type Doc = null | string | Array[Doc] | Map[string, Doc]
+func render(v: Json.Value): string { Json.stringify(v) }
+let d: Doc = ["a", Map{ "k": "v" }]
+println(render(d)) // ERR: cannot use Doc where Json.Value is expected
