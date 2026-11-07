@@ -1,0 +1,20 @@
+// spec: 12 Runtime panics; 4 Types as values; 3
+// panics: type-expr
+// A local declared above a block type in its block hides an outer type of its name in the type's
+// body, so the interpreter evaluates the local there, as the checker reads it, and panics; it does
+// not take the outer type.
+type A = { v: int }
+
+func f(): Reflect.ErasedType {
+  var A = 1
+  type B = Array[A]
+  Reflect.erase(type(B))
+}
+
+println("before")
+println(f())
+
+// expect
+// out: before
+// exit: 1
+// err: A is a variable, not a type

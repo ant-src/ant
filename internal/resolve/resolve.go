@@ -73,6 +73,17 @@ func (in *Info) def(id *ast.Ident, n ast.Node) {
 	in.Uses[n] = append(in.Uses[n], id)
 }
 
+// undef forgets what id was resolved to, before it is resolved again.
+func (in *Info) undef(id *ast.Ident) {
+	if in == nil {
+		return
+	}
+	if n, ok := in.Defs[id]; ok {
+		delete(in.Defs, id)
+		in.Uses[n] = slices.DeleteFunc(in.Uses[n], func(u *ast.Ident) bool { return u == id })
+	}
+}
+
 // NewInfo returns an empty Info.
 func NewInfo() *Info {
 	return &Info{Defs: map[*ast.Ident]ast.Node{}, Uses: map[ast.Node][]*ast.Ident{}, Scopes: map[ast.Node]*Scope{}}
@@ -274,7 +285,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	}
 	// A type parameter names one type in its whole function, so nothing in the function may
 	// take its name: not a parameter, a local, or a block's type (section 3).
-	if !s.module && slices.ContainsFunc(r.tparams, func(tp ast.TypeParam) bool { return tp.Name == name }) {
+	if !s.module && r.isTypeParam(name) {
 		r.errorf(pos, "%s is a type parameter of the enclosing function and cannot be redeclared", name)
 		return b
 	}
@@ -566,6 +577,11 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 	}
 }
 
+// isTypeParam reports whether name is a type parameter of the function being resolved.
+func (r *resolver) isTypeParam(name string) bool {
+	return slices.ContainsFunc(r.tparams, func(tp ast.TypeParam) bool { return tp.Name == name })
+}
+
 // typeParamSet is the names of a declaration's type parameters.
 func typeParamSet(tps []ast.TypeParam) map[string]bool {
 	if len(tps) == 0 {
@@ -579,14 +595,15 @@ func typeParamSet(tps []ast.TypeParam) map[string]bool {
 }
 
 // typeNames resolves, for the interpreter, the head of every named type in t that neither a
-// built-in name nor a type parameter in params binds (section 4, Types as values): a synthetic
-// identifier the interpreter evaluates as it evaluates the target of is. The bodies of type
-// declarations and the types of type expressions are the types the interpreter resolves.
+// built-in name, a type parameter in params, nor one of the enclosing function binds (section
+// 4, Types as values): a synthetic identifier the interpreter evaluates as it evaluates the
+// target of is. The bodies of type declarations and the types of type expressions are the
+// types the interpreter resolves.
 func (r *resolver) typeNames(t ast.Type, s *scope, params map[string]bool) {
 	switch x := t.(type) {
 	case *ast.TypeName:
 		name := x.Path[0]
-		if len(x.Path) > 1 || !types.BuiltinName(name) && !params[name] {
+		if len(x.Path) > 1 || !types.BuiltinName(name) && !params[name] && !r.isTypeParam(name) {
 			pos := x.PathPos[0]
 			x.Head = &ast.Ident{Pos: pos, End: ast.Pos{Line: pos.Line, Col: pos.Col + len(name)}, Name: name}
 			r.use(x.Head, s)
@@ -610,6 +627,39 @@ func (r *resolver) typeNames(t ast.Type, s *scope, params map[string]bool) {
 	}
 }
 
+// hiddenNames resolves again, where the block type whose body holds t is declared, each name
+// of t that a local declared above it in its block hides. The block's types are resolved
+// before its statements, when none of its locals is in scope yet, but a local is visible from
+// its declaration on and hides an outer type of its name there, as the checker reads it
+// (section 3), so the interpreter evaluates the local and panics.
+func (r *resolver) hiddenNames(t ast.Type, s *scope) {
+	switch x := t.(type) {
+	case *ast.TypeName:
+		if x.Head != nil {
+			if b, ok := s.names[x.Head.Name]; ok && !b.isType {
+				r.info.undef(x.Head)
+				r.use(x.Head, s)
+			}
+		}
+		for _, a := range x.Args {
+			r.hiddenNames(a, s)
+		}
+	case *ast.RecordType:
+		for _, f := range x.Fields {
+			r.hiddenNames(f.Type, s)
+		}
+	case *ast.FuncType:
+		for _, p := range x.Params {
+			r.hiddenNames(p.Type, s)
+		}
+		r.hiddenNames(x.Return, s)
+	case *ast.UnionType:
+		for _, m := range x.Members {
+			r.hiddenNames(m, s)
+		}
+	}
+}
+
 func (r *resolver) stmt(st ast.Stmt, s *scope) {
 	switch st := st.(type) {
 	case *ast.VarDecl:
@@ -624,6 +674,7 @@ func (r *resolver) stmt(st ast.Stmt, s *scope) {
 		// A local type's defaults are resolved where it is declared, so a variable declared
 		// above it in its block is in scope and refused, not taken for a top-level name.
 		r.defaults(st, s)
+		r.hiddenNames(st.Body, s)
 	case ast.Expr:
 		r.expr(st, s)
 	}

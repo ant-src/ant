@@ -1,0 +1,20 @@
+// spec: 3; 4 Types as values; 4 Type declarations
+// A block type's body is resolved where the block starts, but a local is visible from its
+// declaration on: one declared below the type does not hide the outer type of its name in the
+// body, so the interpreter takes the outer type, as the checker does, while the block's own types
+// are visible throughout it.
+type A = { v: int }
+
+func f(): Reflect.ErasedType {
+  type B = { a: A, c: C }
+  type C = { b: B | null }
+  var A = 1
+  println(A)
+  Reflect.erase(type(B))
+}
+
+println(Reflect.shape(f()))
+
+// expect
+// out: 1
+// out: Reflect.Record{ decl: B, args: [], fields: [Reflect.Field{ name: "a", type: A, hasDefault: false }, Reflect.Field{ name: "c", type: C, hasDefault: false }] }

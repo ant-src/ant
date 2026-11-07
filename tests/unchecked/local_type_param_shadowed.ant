@@ -1,0 +1,18 @@
+// spec: 12 Runtime panics; 4 Types as values; 3
+// panics: type-expr
+// A parameter hides an outer type of its name in a block type's body too, so evaluating the body
+// panics on the parameter, which is not a type.
+type A = { v: int }
+
+func f(A: int): Reflect.ErasedType {
+  type B = Array[A]
+  Reflect.erase(type(B))
+}
+
+println("before")
+println(f(1))
+
+// expect
+// out: before
+// exit: 1
+// err: A is a variable, not a type

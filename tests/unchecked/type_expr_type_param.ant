@@ -1,0 +1,18 @@
+// spec: 12 Runtime panics; 4 Types as values
+// panics: type-expr
+// A type expression may not mention a type parameter of the enclosing function, which nothing is
+// bound to at run time; the name is the parameter even where a top-level type has it, so evaluating
+// the expression panics rather than taking that type.
+type T = { v: int }
+
+func f[T](x: T): Reflect.ErasedType {
+  Reflect.erase(type(Array[T]))
+}
+
+println("before")
+println(f(1))
+
+// expect
+// out: before
+// exit: 1
+// err: T is a type parameter of the enclosing function

@@ -179,6 +179,25 @@ func typesOnly(e *Env) *Env {
 	return c
 }
 
+// typeHead evaluates the head of a named type as the target of is is evaluated. A local there is
+// a compile error (section 3), and an unchecked program panics, in a local type's body too,
+// whose environment keeps none of the block's variables.
+func (g *Goroutine) typeHead(x *ast.TypeName, env *Env) value.Value {
+	id := x.Head
+	if id.Ref.Kind != ast.RefLocal {
+		return g.ident(id, env)
+	}
+	v := env.up(id.Ref.Depth).get(ast.Slot{Index: id.Ref.Index, Shared: id.Ref.Shared})
+	if !isType(v) {
+		what := "type"
+		if len(x.Path) > 1 {
+			what = "namespace"
+		}
+		g.panicf(x.Pos, "%s is a variable, not a %s", id.Name, what)
+	}
+	return v
+}
+
 func isType(v value.Value) bool {
 	switch v.(type) {
 	case *value.Tag, *value.Constructor:

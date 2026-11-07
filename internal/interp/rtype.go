@@ -147,10 +147,14 @@ func (g *Goroutine) resolveTypeName(x *ast.TypeName, env *Env, params map[string
 	}
 	var v value.Value
 	if x.Head != nil {
-		v = g.ident(x.Head, env)
+		v = g.typeHead(x, env)
 	} else {
 		var ok bool
 		if v, ok = g.in.cfg.Prelude[name]; !ok {
+			if env != nil {
+				// A program's own name left without a head is a type parameter of its function.
+				g.panicf(x.Pos, "%s is a type parameter of the enclosing function, which nothing is bound to at run time", name)
+			}
 			g.panicf(x.Pos, "unknown type %s", name)
 		}
 	}

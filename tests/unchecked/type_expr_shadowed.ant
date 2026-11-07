@@ -15,4 +15,4 @@ println(f())
 // expect
 // out: before
 // exit: 1
-// err: A is not a type
+// err: A is a variable, not a type
