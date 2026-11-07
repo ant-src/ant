@@ -179,7 +179,17 @@ func (a *analysis) zeroValue(path string, t types.Type) (string, bool) {
 		return "[]", true
 	case types.Map:
 		return "Map{}", true
+	case types.Set:
+		return "Set.of([])", true
 	case types.Named:
+		if x.Decl.Kind == types.KindOpaqueDecl {
+			switch x.Decl.Base {
+			case value.KindBytes:
+				return "Bytes.concat([])", true
+			case value.KindHtml:
+				return "<></>", true
+			}
+		}
 		if x.Decl.Kind == types.RecordDecl {
 			name, ok := a.localTypeName(path, x.Decl)
 			if !ok {

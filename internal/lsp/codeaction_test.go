@@ -29,3 +29,26 @@ func TestCodeActionsInRange(t *testing.T) {
 		t.Errorf("code actions on the line: %+v", acts)
 	}
 }
+
+// TestAddFieldsZeroValues: the placeholder of a set, of Bytes, and of Html is a value of the
+// type, so that the fixed literal checks.
+func TestAddFieldsZeroValues(t *testing.T) {
+	c := start(t, map[string]string{})
+	src := "type R = { s: Set[int], b: Bytes, h: Html, n: int }\nvar r = R{ n: 1 }\nprintln(r)\n"
+	uri := c.open("main.ant", src)
+	c.diagnostics(uri)
+	cur := at(src, "R{ n", 1, 0)
+	var acts []CodeAction
+	c.call("textDocument/codeAction", CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: Range{Start: cur, End: cur}}, &acts)
+	if len(acts) != 1 {
+		t.Fatalf("code actions: %+v", acts)
+	}
+	fixed := apply(src, acts[0].Edit.Changes[uri][0])
+	if !strings.Contains(fixed, "R{ n: 1, s: Set.of([]), b: Bytes.concat([]), h: <></> }") {
+		t.Errorf("after the fix:\n%s", fixed)
+	}
+	c.change(uri, 2, fixed)
+	if diags := c.diagnostics(uri); len(diags) != 0 {
+		t.Errorf("the fixed literal does not check: %+v", diags)
+	}
+}
