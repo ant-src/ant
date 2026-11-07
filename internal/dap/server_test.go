@@ -799,3 +799,52 @@ var r = R {}
 		})
 	}
 }
+
+// takeEvent removes and returns the event name read so far, or nil.
+func (c *client) takeEvent(name string) map[string]any {
+	for i, e := range c.events {
+		if e["event"] == name {
+			c.events = append(c.events[:i:i], c.events[i+1:]...)
+			return e
+		}
+	}
+	return nil
+}
+
+func TestPauseThenContinueAtOnce(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `var n = 0
+while true {
+  n += 1
+}
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	ok(t, c.request("configurationDone", nil))
+	for i := 0; i < 200; i++ {
+		ok(t, c.request("pause", map[string]any{"threadId": 1}))
+		ok(t, c.request("continue", map[string]any{"threadId": 1}))
+		if c.takeEvent("stopped") != nil {
+			continue // the continue resumed the reported stop
+		}
+		// The continue came before the stop was reported, so it did nothing: the program is
+		// stopped once it is.
+		c.event("stopped")
+		if r := c.request("stackTrace", map[string]any{"threadId": 1}); r["success"] != true {
+			t.Fatalf("iteration %d: stackTrace after a stopped event: %v", i, r)
+		}
+		ok(t, c.request("continue", map[string]any{"threadId": 1}))
+		if c.takeEvent("stopped") != nil {
+			t.Fatalf("iteration %d: a stopped event after the continue", i)
+		}
+	}
+	time.Sleep(20 * time.Millisecond)
+	if r := c.request("stackTrace", map[string]any{"threadId": 1}); r["success"] != false {
+		t.Errorf("stackTrace while running: %v", r)
+	}
+	if c.takeEvent("stopped") != nil {
+		t.Errorf("a stopped event while running")
+	}
+	ok(t, c.request("disconnect", nil))
+}

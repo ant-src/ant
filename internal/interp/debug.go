@@ -35,6 +35,10 @@ type Debugger struct {
 	halt   atomic.Bool // a stop is under way: every active goroutine parks at its next chance
 	frames atomic.Uint64
 
+	// rmu is held while OnStop reports a stop, so that Continue and Step, which take it before
+	// mu, see a stop either unreported or reported, never in between.
+	rmu sync.Mutex
+
 	mu       sync.Mutex
 	cond     *sync.Cond
 	gs       map[int]*Goroutine
@@ -42,6 +46,7 @@ type Debugger struct {
 	active   int    // goroutines in Ant code, not parked
 	stopping bool   // a stop is under way or the run is stopped
 	stopped  bool   // every goroutine has parked: the stacks can be read
+	reported bool   // OnStop has reported the stop: Continue and Step act on it
 	gen      uint64 // counts resumes, which parked goroutines wait for
 	entry    bool   // StopOnEntry, until the entry stop
 	step     *step
@@ -155,8 +160,20 @@ func (d *Debugger) SetPanicFilters(uncaught, all bool) {
 
 // ---- control
 
-// Continue resumes every goroutine.
+// Continue resumes every goroutine from the stop OnStop reported. Before that report it does
+// nothing: the stop is reported, and the client resumes from it.
 func (d *Debugger) Continue() {
+	d.rmu.Lock()
+	defer d.rmu.Unlock()
+	d.mu.Lock()
+	if d.reported {
+		d.resume(nil)
+	}
+	d.mu.Unlock()
+}
+
+// Resume resumes every goroutine, also from a stop not reported yet, as the run ends.
+func (d *Debugger) Resume() {
 	d.mu.Lock()
 	d.resume(nil)
 	d.mu.Unlock()
@@ -165,10 +182,15 @@ func (d *Debugger) Continue() {
 // Step resumes every goroutine until the goroutine id reaches the stop point the step looks
 // for (dap.md section 4, Stepping).
 func (d *Debugger) Step(id int, kind StepKind) {
+	d.rmu.Lock()
+	defer d.rmu.Unlock()
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if !d.reported {
+		return // as Continue
+	}
 	g := d.gs[id]
-	if g == nil || !d.stopping {
+	if g == nil {
 		d.resume(nil)
 		return
 	}
@@ -207,22 +229,37 @@ func (d *Debugger) Pause(id int) {
 	}
 	d.stopping = true
 	d.halt.Store(true)
+	gen := d.gen
 	go func() {
 		d.mu.Lock()
-		for d.active > 0 {
+		defer d.mu.Unlock()
+		for d.active > 0 && d.gen == gen {
 			d.cond.Wait()
 		}
-		st := Stop{Goroutine: id, Reason: "pause"}
-		d.stop, d.stopped = st, true
-		d.mu.Unlock()
-		d.OnStop(st)
+		if d.gen != gen {
+			return // the run resumed, as it ends, before the stop
+		}
+		d.report(Stop{Goroutine: id, Reason: "pause"})
 	}()
+}
+
+// report makes st the stop, once every goroutine has parked, and reports it. mu is held, and
+// is released while OnStop runs.
+func (d *Debugger) report(st Stop) {
+	d.stop, d.stopped = st, true
+	gen := d.gen
+	d.mu.Unlock()
+	d.rmu.Lock()
+	d.OnStop(st)
+	d.mu.Lock()
+	d.reported = d.gen == gen
+	d.rmu.Unlock()
 }
 
 // resume ends a stop, with the step to take or nil. mu is held.
 func (d *Debugger) resume(s *step) {
 	d.step = s
-	d.stopping, d.stopped = false, false
+	d.stopping, d.stopped, d.reported = false, false, false
 	d.halt.Store(false)
 	d.gen++
 	d.cond.Broadcast()
@@ -336,17 +373,15 @@ func (d *Debugger) stopAt(g *Goroutine, reason string, p *AntPanic) {
 		g.dActive = false
 		d.active--
 	}
-	for d.active > 0 {
+	gen := d.gen
+	for d.active > 0 && d.gen == gen {
 		d.cond.Wait()
 	}
-	st := Stop{Goroutine: g.id, Reason: reason, Panic: p}
-	d.stop, d.stopped = st, true
-	gen := d.gen
-	d.mu.Unlock()
-	d.OnStop(st)
-	d.mu.Lock()
-	for d.gen == gen {
-		d.cond.Wait()
+	if d.gen == gen { // else the run resumed, as it ends, before the stop
+		d.report(Stop{Goroutine: g.id, Reason: reason, Panic: p})
+		for d.gen == gen {
+			d.cond.Wait()
+		}
 	}
 	if g.outside == 0 {
 		g.dActive = true

@@ -495,7 +495,7 @@ func (s *server) terminate() {
 		default:
 		}
 	}
-	s.resume(func() { s.d.Continue() })
+	s.resume(func() { s.d.Resume() })
 }
 
 // end cancels the run, if it started, and waits for it.
@@ -504,7 +504,7 @@ func (s *server) end() {
 	if !s.started {
 		return
 	}
-	s.resume(func() { s.d.Continue() })
+	s.resume(func() { s.d.Resume() })
 	select {
 	case <-s.done:
 	case <-time.After(2 * time.Second):
