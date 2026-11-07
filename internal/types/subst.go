@@ -23,6 +23,15 @@ func substPlain(t Type, m map[*ParamDecl]Type) (Type, error) {
 	return (&substituter{m: m, plain: true}).subst(t)
 }
 
+// substRaw substitutes as substPlain does but forms each union raw (makeUnion), for Equal.
+func substRaw(t Type, m map[*ParamDecl]Type) Type {
+	if len(m) == 0 {
+		return t
+	}
+	t, _ = (&substituter{m: m, plain: true, raw: true}).subst(t)
+	return t
+}
+
 // substituter carries the bindings, the declarations whose bodies are being validated, and the
 // instantiations already validated in this walk, so that a type reached along many paths, as
 // T1 is from T0[X] = { a: T1[X], b: T1[X] }, is validated once.
@@ -31,6 +40,7 @@ type substituter struct {
 	seen  map[*Decl]bool
 	done  *map[*Decl][][]Type
 	plain bool // substPlain: no declaration bodies are validated
+	raw   bool // substRaw: unions are formed raw (makeUnion), and plain
 	// memo, when set, holds the declarations whose instantiation with distinct type parameters
 	// is known valid, and learned collects those this walk finds valid (ArgsMemo).
 	memo    *ArgsMemo
@@ -41,12 +51,17 @@ type substituter struct {
 }
 
 // substUnionBody substitutes the body of the alias instantiation n under its bindings m without
-// validating, and forms a union body inside the expansion of n and of outer (makeUnion).
-func substUnionBody(n Named, m map[*ParamDecl]Type, outer []Named) (Type, error) {
-	if _, isUnion := n.Decl.Body.(Union); !isUnion || len(m) == 0 {
-		return substPlain(n.Decl.Body, m)
+// validating, and forms a union body inside the expansion of n and of outer (makeUnion), raw
+// when raw is set.
+func substUnionBody(n Named, m map[*ParamDecl]Type, outer []Named, raw bool) (Type, error) {
+	if len(m) == 0 {
+		return n.Decl.Body, nil
 	}
-	return (&substituter{m: m, plain: true, outer: append(outer[:len(outer):len(outer)], n)}).subst(n.Decl.Body)
+	s := &substituter{m: m, plain: true, raw: raw}
+	if _, isUnion := n.Decl.Body.(Union); isUnion {
+		s.outer = append(outer[:len(outer):len(outer)], n)
+	}
+	return s.subst(n.Decl.Body)
 }
 
 // validated reports whether n's body was already validated with these arguments.
@@ -169,7 +184,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			ms[i] = n
 		}
-		return makeUnion(ms, s.outer)
+		return makeUnion(ms, s.outer, s.raw)
 	}
 	return t, nil
 }

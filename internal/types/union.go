@@ -8,12 +8,19 @@ import (
 
 // MakeUnion forms the union of members: flattened, deduplicated, never dropped. It reports
 // an error when two members share a discriminator (section 4, Unions).
-func MakeUnion(members []Type) (Type, error) { return makeUnion(members, nil) }
+func MakeUnion(members []Type) (Type, error) { return makeUnion(members, nil, false) }
 
 // makeUnion is MakeUnion inside the expansion of the alias instantiations in outer, which a
 // union formed in their bodies leaves out rather than expanding again, so that the cycle
 // A[T] = B[T] | null with B[T] = A[T] | null, which the checker reports, ends.
-func makeUnion(members []Type, outer []Named) (Type, error) {
+//
+// A raw union, which Equal expands an alias to, is flattened but drops only members written
+// alike, and is never rejected: it may hold equal members, or members that share a
+// discriminator. Telling equal members apart would call Equal from inside Equal, with none of
+// the pairs the outer call assumes to hold, and an alias whose body forms a union with the
+// alias as a member, as B[T] = func(): A | T with A = B[B[int]] does, would expand without end.
+// Equal compares unions as sets, which duplicates do not change.
+func makeUnion(members []Type, outer []Named, raw bool) (Type, error) {
 	var flat []Type
 	expanding := map[*Decl]bool{} // aliases being flattened, so that a cyclic alias terminates
 	aliased := false              // an alias was expanded, so the written form is kept for messages
@@ -32,7 +39,7 @@ func makeUnion(members []Type, outer []Named) (Type, error) {
 				expanding[n.Decl] = true
 				alias, aliased = true, true
 			}
-			e := expandTopIn(t, outer)
+			e := expandTopIn(t, outer, raw)
 			if top {
 				written[i] = e
 			}
@@ -43,7 +50,7 @@ func makeUnion(members []Type, outer []Named) (Type, error) {
 			default:
 				dup := false
 				for _, f := range flat {
-					if sameMember(f, t) {
+					if raw && identical(f, t, 0) || !raw && sameMember(f, t) {
 						dup = true
 						break
 					}
@@ -65,6 +72,9 @@ func makeUnion(members []Type, outer []Named) (Type, error) {
 		return Never{}, nil
 	case 1:
 		return flat[0], nil
+	}
+	if raw {
+		return Union{Members: flat}, nil
 	}
 	if err := checkDiscriminators(flat); err != nil {
 		return Invalid{}, err
@@ -113,11 +123,11 @@ func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
 // its own parameters. Its form and discriminator are those of the full expansion, and nothing
 // inside an array, map, set, function or record is substituted, which for an alias whose body
 // holds a union naming the alias itself, as in type L[T] = Array[L[T] | int], would not end.
-func expandTop(t Type) Type { return expandTopIn(t, nil) }
+func expandTop(t Type) Type { return expandTopIn(t, nil, false) }
 
 // expandTopIn is expandTop inside the expansion of the alias instantiations in outer. A union
-// body is formed with the instantiation added to them (makeUnion).
-func expandTopIn(t Type, outer []Named) Type {
+// body is formed with the instantiation added to them, raw when raw is set (makeUnion).
+func expandTopIn(t Type, outer []Named, raw bool) Type {
 	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
@@ -136,6 +146,9 @@ func expandTopIn(t Type, outer []Named) Type {
 			args := make([]Type, len(b.Args))
 			for i, a := range b.Args {
 				s, err := substPlain(a, m)
+				if raw {
+					s, err = substRaw(a, m), nil
+				}
 				if err != nil {
 					panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 				}
@@ -148,7 +161,7 @@ func expandTopIn(t Type, outer []Named) Type {
 		}
 		var body Type
 		var err error
-		body, err = substUnionBody(n, m, outer)
+		body, err = substUnionBody(n, m, outer, raw)
 		if err != nil {
 			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}

@@ -233,3 +233,47 @@ func TestFailedAssumption(t *testing.T) {
 		t.Error("G equals H")
 	}
 }
+
+// TestAliasInItsOwnUnion relates and checks an alias that is a member of a union formed in the
+// body it expands to, as A is with A = B[B[B[int]]] and B[T] = func(null): A | null | T. Forming
+// that union compares A with B[B[int]], which expands A, which forms the union again; Equal once
+// did this without end, each time with none of the pairs it had assumed. A = B[B[B[int]]] is a
+// union of two functions (section 4, Unions); with A = B[int], A and B[int] are one type, and
+// B[B[int]] forms A | null | B[int] with one function.
+func TestAliasInItsOwnUnion(t *testing.T) {
+	p := &ParamDecl{Name: "T"}
+	a := &Decl{Name: "A", Kind: AliasDecl}
+	b := &Decl{Name: "B", Kind: AliasDecl, Params: []*ParamDecl{p}}
+	b.Body = Func{Params: []Type{Null{}}, Required: 1, Return: Union{Members: []Type{Named{Decl: a}, Null{}, Param{Decl: p}}}}
+	B := func(n int) Type {
+		var t Type = IntType
+		for i := 0; i < n; i++ {
+			t = Named{Decl: b, Args: []Type{t}}
+		}
+		return t
+	}
+	A := Named{Decl: a}
+	a.Body = B(3)
+	if Equal(A, B(2)) || Equal(B(2), A) {
+		t.Error("A = B[B[B[int]]] equals B[B[int]]")
+	}
+	if !Equal(A, B(3)) {
+		t.Error("A is unequal to its body")
+	}
+	if err := CheckArgs(B(3).(Named)); err == nil {
+		t.Error("B[B[B[int]]] forms no invalid union")
+	}
+	if _, err := MakeUnion([]Type{A, B(2)}); err == nil {
+		t.Error("A | B[B[int]] is a valid union")
+	}
+	a.Body = B(1)
+	if !Equal(A, B(1)) || Equal(B(2), B(1)) {
+		t.Error("with A = B[int], A is not B[int], or B[B[int]] is")
+	}
+	if err := CheckArgs(B(2).(Named)); err != nil {
+		t.Errorf("with A = B[int], B[B[int]] forms an invalid union: %v", err)
+	}
+	if u, err := MakeUnion([]Type{A, B(1)}); err != nil || len(Members(u)) != 1 {
+		t.Errorf("with A = B[int], A | B[int] is %s (%v), want one member", String(u), err)
+	}
+}
