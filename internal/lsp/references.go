@@ -19,6 +19,9 @@ type reference struct {
 	from, to  ast.Pos
 	decl      bool // the declaration itself
 	shorthand bool
+	// viaAlias is set for a use through an import's alias, which has a name of its own (section
+	// 10): renaming the export leaves it as it is.
+	viaAlias bool
 }
 
 // newText is what a reference becomes when its name is renamed.
@@ -53,8 +56,8 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 					}
 				}
 			case *ast.Ident:
-				if in.Objects[x] == o && !a.throughAlias(path, x) {
-					refs = append(refs, reference{path, x.Pos, x.End, false, shortIdents[x]})
+				if in.Objects[x] == o {
+					refs = append(refs, reference{path: path, from: x.Pos, to: x.End, shorthand: shortIdents[x], viaAlias: a.throughAlias(path, x)})
 				}
 			case *ast.Field:
 				if in.Members[x] == o && x.Name != "" {
@@ -62,8 +65,8 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 				}
 			case *ast.TypeName:
 				for i, obj := range in.TypeNames[x] {
-					if obj == o && i < len(x.PathPos) && !(i == 0 && a.aliased(path, x.Path[0])) {
-						refs = append(refs, reference{path: path, from: x.PathPos[i], to: after(x.PathPos[i], x.Path[i])})
+					if obj == o && i < len(x.PathPos) {
+						refs = append(refs, reference{path: path, from: x.PathPos[i], to: after(x.PathPos[i], x.Path[i]), viaAlias: i == 0 && a.aliased(path, x.Path[0])})
 					}
 				}
 			case *ast.RecordEntry:
@@ -103,7 +106,7 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 				}
 			case *ast.NameTarget:
 				if in.Decls[x] == o {
-					refs = append(refs, reference{path, x.Pos, x.End, true, shortTargets[x]})
+					refs = append(refs, reference{path: path, from: x.Pos, to: x.End, decl: true, shorthand: shortTargets[x]})
 				}
 			case *ast.Param:
 				if in.Decls[x] == o {
@@ -159,6 +162,48 @@ func (a *analysis) aliased(path, name string) bool {
 	return false
 }
 
+// aliasRefs finds the mentions of an import's alias in the module at path that declares it: the
+// alias, and the identifiers and type names written through it.
+func (a *analysis) aliasRefs(path string, alias *ast.ImportName) []reference {
+	m := a.modules[path]
+	refs := []reference{{path: path, from: alias.AliasPos, to: after(alias.AliasPos, alias.Alias), decl: true}}
+	if m == nil || m.Resolve == nil {
+		return refs
+	}
+	obj := a.info.Decls[alias]
+	short := map[*ast.Ident]bool{}
+	ast.Inspect(m.File, func(n ast.Node) bool {
+		switch x := n.(type) {
+		case *ast.RecordLit:
+			for i := range x.Entries {
+				e := &x.Entries[i]
+				if id, ok := e.Value.(*ast.Ident); ok && e.Name != "" && id.Pos == e.Pos {
+					short[id] = true
+				}
+			}
+		case *ast.Ident:
+			if m.Resolve.Defs[x] == ast.Node(alias) {
+				refs = append(refs, reference{path: path, from: x.Pos, to: x.End, shorthand: short[x]})
+			}
+		case *ast.TypeName:
+			if objs := a.info.TypeNames[x]; len(objs) > 0 && obj != nil && objs[0] == obj && len(x.PathPos) > 0 && x.Path[0] == alias.Alias {
+				refs = append(refs, reference{path: path, from: x.PathPos[0], to: after(x.PathPos[0], x.Path[0])})
+			}
+		}
+		return true
+	})
+	return refs
+}
+
+// refsAt finds the mentions of what the target names: of an alias when it is on one, else of
+// its object.
+func (a *analysis) refsAt(t *target) []reference {
+	if alias := a.aliasAt(t); alias != nil {
+		return a.aliasRefs(t.path, alias)
+	}
+	return a.referencesOf(t.obj)
+}
+
 // references answers textDocument/references.
 func (s *Server) references(p *ReferenceParams) []Location {
 	d := s.doc(p.TextDocument.URI)
@@ -171,7 +216,7 @@ func (s *Server) references(p *ReferenceParams) []Location {
 		return nil
 	}
 	out := []Location{}
-	for _, r := range a.referencesOf(t.obj) {
+	for _, r := range a.refsAt(t) {
 		if r.decl && !p.Context.IncludeDeclaration {
 			continue
 		}
@@ -195,7 +240,7 @@ func (s *Server) highlight(p *TextDocumentPositionParams) []DocumentHighlight {
 		return nil
 	}
 	out := []DocumentHighlight{}
-	for _, r := range a.referencesOf(t.obj) {
+	for _, r := range a.refsAt(t) {
 		if r.path == path {
 			out = append(out, DocumentHighlight{Range: s.rng(d, r.from, r.to), Kind: 1})
 		}
@@ -270,8 +315,22 @@ func (s *Server) prepareRename(p *TextDocumentPositionParams) (any, *rpcError) {
 func (a *analysis) aliasAt(t *target) *ast.ImportName {
 	switch n := t.node.(type) {
 	case *ast.ImportName:
-		if n.Alias != n.Name {
+		if n.Alias != n.Name && t.from == n.AliasPos {
 			return n
+		}
+	case *ast.TypeName:
+		// a type name whose first part is the alias
+		m := a.modules[t.path]
+		objs := a.info.TypeNames[n]
+		if m == nil || m.Resolve == nil || len(objs) == 0 || len(n.PathPos) == 0 || t.from != n.PathPos[0] {
+			return nil
+		}
+		if sc := m.Resolve.Scopes[m.File]; sc != nil {
+			for _, b := range sc.Names {
+				if in, ok := b.Node.(*ast.ImportName); ok && b.Name == n.Path[0] && in.Alias != in.Name && a.info.Decls[in] == objs[0] {
+					return in
+				}
+			}
 		}
 	case *ast.Ident:
 		m := a.modules[t.path]
@@ -304,11 +363,6 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 		return nil, err
 	}
 	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
-	add := func(rpath string, from, to ast.Pos) {
-		if rd := a.doc(rpath); rd != nil {
-			edit.Changes[rd.uri] = append(edit.Changes[rd.uri], TextEdit{Range: s.rng(rd, from, to), NewText: p.NewName})
-		}
-	}
 	if alias := a.aliasAt(t); alias != nil {
 		// the alias and its uses in this module only, which must not clash with its names
 		if sc := a.modules[path].Resolve.Scopes[a.module().File]; sc != nil {
@@ -318,9 +372,8 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 				}
 			}
 		}
-		add(path, alias.AliasPos, after(alias.AliasPos, alias.Alias))
-		for _, id := range a.modules[path].Resolve.Uses[alias] {
-			add(path, id.Pos, id.End)
+		for _, r := range a.aliasRefs(path, alias) {
+			add2(&edit, s, a, r, p.NewName, alias.Alias)
 		}
 		return edit, nil
 	}
@@ -331,7 +384,9 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 		return nil, err // the module the rename starts from may import the name itself
 	}
 	for _, r := range a.referencesOf(t.obj) {
-		add2(&edit, s, a, r, p.NewName, t.obj.Name)
+		if !r.viaAlias {
+			add2(&edit, s, a, r, p.NewName, t.obj.Name)
+		}
 	}
 	if a.reachesImporters(t.obj) {
 		// Every module of the workspace that imports the declaring module (spec/lsp.md
@@ -349,7 +404,7 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 					return nil, err
 				}
 				for _, r := range oa.referencesOf(same) {
-					if r.path != declPath {
+					if r.path != declPath && !r.viaAlias {
 						add2(&edit, s, oa, r, p.NewName, t.obj.Name)
 					}
 				}
@@ -558,7 +613,7 @@ func (a *analysis) collides(o *check.Object, name string) *rpcError {
 	var positions []ast.Pos
 	positions = append(positions, from)
 	for _, r := range a.referencesOf(o) {
-		if r.path == declPath {
+		if r.path == declPath && !r.viaAlias {
 			positions = append(positions, r.from)
 		}
 	}
