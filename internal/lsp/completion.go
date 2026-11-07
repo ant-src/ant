@@ -1179,9 +1179,11 @@ func (c *completer) importPaths(t *token.Token) {
 	if err != nil {
 		return
 	}
+	// the name being completed: after the last / of the path, or the whole path
+	from := t.Off + 1 + strings.LastIndexByte(typed, '/') + 1
 	if typed == "" {
-		c.add(CompletionItem{Label: "./", Kind: ItemFolder})
-		c.add(CompletionItem{Label: "../", Kind: ItemFolder})
+		c.addReplacing(CompletionItem{Label: "./", Kind: ItemFolder}, from)
+		c.addReplacing(CompletionItem{Label: "../", Kind: ItemFolder}, from)
 	}
 	for _, e := range entries {
 		name := e.Name()
@@ -1190,9 +1192,9 @@ func (c *completer) importPaths(t *token.Token) {
 		}
 		switch {
 		case e.IsDir():
-			c.add(CompletionItem{Label: name + "/", Kind: ItemFolder, InsertText: name + "/", CommitCharacters: []string{"/"}})
+			c.addReplacing(CompletionItem{Label: name + "/", Kind: ItemFolder, InsertText: name + "/", CommitCharacters: []string{"/"}}, from)
 		case strings.HasSuffix(name, ".ant") && filepath.Join(full, name) != c.d.path:
-			c.add(CompletionItem{Label: name, Kind: ItemFile})
+			c.addReplacing(CompletionItem{Label: name, Kind: ItemFile}, from)
 		}
 	}
 }
@@ -1203,6 +1205,11 @@ func (c *completer) importPaths(t *token.Token) {
 // element in a start tag, the end tag after </, and expressions in an interpolation.
 func (c *completer) markup(t *token.Token) {
 	ctx := scanMarkup(c.d.text[t.Off:c.off])
+	// the name being completed, which may hold - : and .
+	from := c.off
+	for from > t.Off && isMarkupNameByte(c.d.text[from-1]) {
+		from--
+	}
 	switch ctx.kind {
 	case inTagName:
 		for _, el := range htmldata.Elements {
@@ -1213,7 +1220,7 @@ func (c *completer) markup(t *token.Token) {
 			if value.HtmlVoid[el.Name] {
 				item.Detail = "void element"
 			}
-			c.add(item)
+			c.addReplacing(item, from)
 		}
 	case inAttrs, inAttrName:
 		for _, name := range htmldata.Attributes(ctx.element) {
@@ -1227,16 +1234,34 @@ func (c *completer) markup(t *token.Token) {
 			case value.HtmlURL[name]:
 				item.Detail = "URL attribute"
 			}
-			c.add(item)
+			c.addReplacing(item, from)
 		}
 	case inEndTag:
 		if n := len(ctx.open); n > 0 {
 			name := ctx.open[n-1]
-			c.add(CompletionItem{Label: name + ">", Kind: ItemProperty, FilterText: name, InsertText: name + ">"})
+			c.addReplacing(CompletionItem{Label: name + ">", Kind: ItemProperty, FilterText: name, InsertText: name + ">"}, from)
 		}
 	case inInterp:
 		c.expressionInMarkup()
 	}
+}
+
+// isMarkupNameByte reports whether c can be part of an element or attribute name as completion
+// takes it.
+func isMarkupNameByte(c byte) bool {
+	return token.IsIdentByte(c) || c == '-' || c == ':' || c == '.'
+}
+
+// addReplacing adds an item whose edit replaces the source from byte offset from to the cursor,
+// a name with characters an editor's word may leave out, as - . and /. The insert text stays,
+// for a client that reads it alone (the REPL).
+func (c *completer) addReplacing(item CompletionItem, from int) {
+	text := item.InsertText
+	if text == "" {
+		text = item.Label
+	}
+	item.TextEdit = &TextEdit{Range: Range{Start: c.d.position(from, c.s.utf16), End: c.d.position(c.off, c.s.utf16)}, NewText: text}
+	c.add(item)
 }
 
 // expressionInMarkup completes an expression in an interpolation, where the tokens of the
