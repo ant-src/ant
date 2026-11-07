@@ -1,4 +1,4 @@
-// spec: 4 Generics; 4 Assignability; 4 Unions; 5 is; 4 Types as values
+// spec: 4 Interfaces; 4 Unions; 5 is; 4 Types as values
 // Section 4 (proposals/interfaces.md): a type satisfies an interface when each of its
 // functions is a namespace function on the type whose signature, with Self as the type, is
 // assignable to the interface's; type arguments stay invariant inside. An interface that

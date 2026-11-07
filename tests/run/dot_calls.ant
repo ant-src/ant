@@ -1,4 +1,4 @@
-// spec: 6 Functions on types; 6 Calling; 5 Pipes
+// spec: 5 Calls through .; 6 Functions on types; 5 Pipes
 // Section 5 and 6 (proposals/interfaces.md): x.f(a) reads the field f of x when it has one,
 // and otherwise calls f from the namespace of x's type with x first: the tag of a user type,
 // or the prelude namespace of a built-in value. Named arguments apply when the function is

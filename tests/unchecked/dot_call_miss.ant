@@ -1,4 +1,4 @@
-// spec: 6 Functions on types; 12
+// spec: 5 Calls through .; 12 Runtime panics
 // Section 12 (proposals/interfaces.md): a call x.f(...) on a value with no field or function f
 // panics, naming the value's type, where the checker reports the same; a tag, a constructor, or
 // a namespace keeps the message of a field read, since it holds its functions as fields.

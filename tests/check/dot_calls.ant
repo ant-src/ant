@@ -1,4 +1,4 @@
-// spec: 6 Functions on types; 6 Calling
+// spec: 5 Calls through .; 6 Calling
 // Section 5 and 6 (proposals/interfaces.md): x.f(...) resolves by the static type of x, fields
 // first, then the namespace of the type when f takes x first; numbers have no namespace, a
 // function is reached only by calling it, a union resolves per member unless its members share

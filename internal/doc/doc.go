@@ -15,6 +15,7 @@ import (
 // named anything. A name is matched without regard to case, and Owner.name names a member.
 func Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
 	owner, member, dotted := strings.Cut(name, ".")
+	decls = withInterfaceFuncs(decls)
 	found := false
 	for _, d := range decls {
 		o, n := declName(d)
@@ -44,6 +45,22 @@ func Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
 		}
 	}
 	return found
+}
+
+// withInterfaceFuncs adds, after each interface, its functions as declarations the interface owns
+// (spec/doc.md section 1), so that Shape.area finds one and Shape lists them.
+func withInterfaceFuncs(decls []ast.Decl) []ast.Decl {
+	var out []ast.Decl
+	for _, d := range decls {
+		out = append(out, d)
+		if id, ok := d.(*ast.InterfaceDecl); ok {
+			for _, f := range id.Funcs {
+				out = append(out, &ast.FuncDecl{Pos: f.Pos, End: f.End, Export: id.Export, Owner: id.Name, OwnerPos: id.NamePos,
+					Name: f.Name, NamePos: f.NamePos, Params: f.Params, Return: f.Return, Doc: f.Doc, Sig: f.Sig})
+			}
+		}
+	}
+	return out
 }
 
 // PrintDoc prints a declaration's signature, or a namespace's name, and, indented, its doc.

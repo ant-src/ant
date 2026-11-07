@@ -1,4 +1,4 @@
-// spec: 4 Generics; 4 Assignability; 5 is; 6 Functions on types
+// spec: 4 Interfaces; 4 Generics; 4 Assignability; 5 is
 // Section 4 (proposals/interfaces.md): an interface names a set of functions; a type satisfies
 // it when each call the interface promises checks on the type, with no declaration. It is a
 // type when Self appears only as the receiver, and a bound always. A value of an interface is

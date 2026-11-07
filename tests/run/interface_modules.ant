@@ -1,4 +1,4 @@
-// spec: 10; 4 Assignability
+// spec: 4 Interfaces; 10
 // Section 10 (proposals/interfaces.md): an exported interface is imported like a type, a type
 // of another module satisfies it by having the functions, and visibility is the checker's
 // where it asks: a file handle is a Sink by File.writeLine, with no wrapper.
