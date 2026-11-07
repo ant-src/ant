@@ -49,6 +49,14 @@ func TestComplete(t *testing.T) {
 	has("type Point = { x: int, y: int }\nvar p = Point{ x: 1, y: 2 }\np.", "x", "y")
 	has("var xs = [1, 2]\nxs | Array.", "map", "filter")
 	has("var xs = [1, 2]\nxs | ", "Array.map")
+	// an empty literal takes its type from the function: an array or a map of anything
+	has("[] | Array.", "filter", "map")
+	lacks("[] | Array.", "filled", "range")
+	has("[] | ", "Array.filter", "println")
+	lacks("[] | ", "Array.filled", "String.trim")
+	has("Map{} | Map.", "keys", "filter")
+	// a left side with no type filters nothing
+	has("nope | Array.", "filter", "filled")
 	// a function's name finds its qualified name
 	has("var xs = [1, 2]\nxs | filt", "Array.filter")
 	// the prelude's own functions too, println taking any type

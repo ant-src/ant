@@ -270,6 +270,9 @@ func (c *completer) members(dot *token.Token) {
 		return
 	}
 	piped := c.pipedLeft(a, fld)
+	if piped != nil && types.IsInvalid(piped) {
+		piped = nil // nothing to filter by: every function is offered
+	}
 	if obj := a.entityOf(fld.X); obj != nil {
 		// A module's members are what the import sees: its exports, or in a test file every
 		// declaration (section 10, Tests).
@@ -389,11 +392,32 @@ func (c *completer) pipedLeft(a *analysis, fld *ast.Field) types.Type {
 	var left types.Type
 	ast.Inspect(a.module().File, func(n ast.Node) bool {
 		if call, ok := n.(*ast.Call); ok && call.Pipe && call.Fn == fld && len(call.Args) > 0 {
-			left = a.info.Types[call.Args[0].Value]
+			left = pipeLeft(a, call.Args[0].Value)
 		}
 		return left == nil
 	})
 	return left
+}
+
+// pipeLeft is the type of a pipe's left side, for choosing the functions that take it. An
+// empty literal, which takes its type from the function (section 5, Pipes), is an array or
+// a map of any element; it is invalid while the function is being written.
+func pipeLeft(a *analysis, x ast.Expr) types.Type {
+	t := a.info.Types[x]
+	if t != nil && !types.IsInvalid(t) {
+		return t
+	}
+	switch lit := x.(type) {
+	case *ast.ArrayLit:
+		if len(lit.Elems) == 0 {
+			return types.Array{Elem: types.Invalid{}}
+		}
+	case *ast.MapLit:
+		if len(lit.Entries) == 0 {
+			return types.Map{Key: types.Invalid{}, Val: types.Invalid{}}
+		}
+	}
+	return t
 }
 
 // ---- pipes
@@ -412,7 +436,7 @@ func (c *completer) pipe(prev *token.Token) bool {
 	var left types.Type
 	ast.Inspect(a.module().File, func(n ast.Node) bool {
 		if call, ok := n.(*ast.Call); ok && call.Pipe && call.Fn == id && len(call.Args) > 0 {
-			left = a.info.Types[call.Args[0].Value]
+			left = pipeLeft(a, call.Args[0].Value)
 		}
 		return left == nil
 	})
