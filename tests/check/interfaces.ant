@@ -1,0 +1,57 @@
+// spec: 4 Generics; 4 Assignability; 4 Unions; 5 is; 4 Types as values
+// Section 4 (proposals/interfaces.md): a type satisfies an interface when each of its
+// functions is a namespace function on the type whose signature, with Self as the type, is
+// assignable to the interface's; type arguments stay invariant inside. An interface that
+// mentions Self beyond the receiver is a bound only. An interface is neither a namespace, nor a
+// target of is, nor data, and shares a union only with null and void.
+interface Shape {
+  area(s: Self): float64
+}
+interface Compare {
+  compare(a: Self, b: Self): int
+}
+interface Node {
+  children(n: Self): Array[Node]
+}
+interface Show { show(s: Self): string }
+interface Named { name(s: Self): string }
+
+type Circle = { radius: float64 }
+func Circle.area(c: Circle): float64 { c.radius }
+type Square = { side: float64 }
+func Square.area(s: Square, scale: float64): float64 { s.side * scale }
+type Label = { area: float64 }
+type Tree = { kids: Array[Tree] = [] }
+func Tree.children(t: Tree): Array[Node] { [...t.kids] }
+type Flat = { kids: Array[Flat] = [] }
+func Flat.children(t: Flat): Array[Flat] { t.kids }
+type Box[T] = { v: T }
+func Box.show[T](b: Box[T]): string { String.from(b.v) }
+type Job = { priority: int }
+func Job.compare(a: Job, b: Job): int { b.priority - a.priority }
+type Scene = { shapes: Array[Shape] }
+
+var s: Shape = Circle{ radius: 1.0 }
+var sq: Shape = Square{ side: 1.0 } // ERR: cannot use Square where Shape is expected
+var lb: Shape = Label{ area: 1.0 }  // ERR: cannot use Label where Shape is expected
+var n: Node = Tree{}
+var f: Node = Flat{} // ERR: cannot use Flat where Node is expected
+var show: Show = Box{ v: 1 }
+var nm: Named = s              // ERR: cannot use Shape where Named is expected
+var queue: Array[Compare] = [] // ERR: Compare mentions Self beyond its receiver, so it is a bound only and not a type
+func sorted[T: Compare](xs: Array[T]): Array[T] { xs }
+println(sorted([Job{ priority: 1 }]))
+println(sorted([1])) // ERR: T would be int, which is not assignable to its bound Compare
+var cs: Array[Circle] = []
+var ss: Array[Shape] = cs // ERR: cannot use Array[Circle] where Array[Shape] is expected
+var a = Shape.area        // ERR: Shape is an interface, not a namespace
+var b = s is Shape        // ERR: is cannot test Shape, an interface
+var u: Shape | int = s    // ERR: Shape is an interface, which may share a union only with null and void, not with int
+var u2: Shape | Named = s // ERR: a union may contain at most one interface
+var u3: Shape | null = null
+var t1 = type(Shape)             // ERR: type(...) cannot reach an interface: Shape is one
+var t2 = type(Scene)             // ERR: type(...) cannot reach an interface: Shape is one
+if s is Job { println("never") } // ERR: Job does not satisfy Shape, so the test is always false
+if s is Circle { println(s.radius) } else { println(s.area()) }
+if show is Box { println("never") } // ERR: Show does not determine the type parameter T of Box, so the test cannot narrow to it
+var x: Shape = 1                    // ERR: cannot use int where Shape is expected

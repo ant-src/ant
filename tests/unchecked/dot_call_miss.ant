@@ -1,0 +1,24 @@
+// spec: 6 Functions on types; 12
+// Section 12 (proposals/interfaces.md): a call x.f(...) on a value with no field or function f
+// panics, naming the value's type, where the checker reports the same; a tag, a constructor, or
+// a namespace keeps the message of a field read, since it holds its functions as fields.
+type Point = { x: float64, y: float64 }
+func Point.norm(p: Point): float64 { Math.sqrt(p.x * p.x + p.y * p.y) }
+
+func message(r: Result[void, Panic]): string {
+  if r is Err { r.error.message } else { "no panic" }
+}
+
+var p = Point{ x: 3.0, y: 4.0 }
+println(message(Panic.catch({ p.nrom() })))
+println(message(Panic.catch({ (1).abs() })))
+println(message(Panic.catch({ Array.nope() })))
+println(message(Panic.catch({ Point.nrom() })))
+println(message(Panic.catch({ "x".nope() })))
+
+// expect
+// out: Point has no field or function nrom
+// out: int has no field or function abs
+// out: Array has no field nope
+// out: Point has no function nrom
+// out: string has no field or function nope

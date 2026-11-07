@@ -40,7 +40,7 @@ var zero: func(): int = { x }     // ERR: x is not defined
 var g = connect
 println(g(host: "a"))                                       // ERR: named arguments apply only to a declared function
 println(connect("a", port: 1, tls: false))                  // ERR: no parameter tls
-println(p.norm())                                           // ERR: Point has no field norm
+println(p.norm() + p.nrom())                                // ERR: Point has no field or function nrom
 var h: func(int): int = func(a: int, b: int): int { a + b } // ERR: cannot use func(int, int): int where func(int): int is expected
 println(h(1) + loops() + breaks() + fact(1))
 var twice: func(Array[int]): Array[int] = { Array.map(x, { x + 1 }) }

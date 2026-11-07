@@ -31,7 +31,8 @@ func uses(): void {
   println(apply({ x })) // ERR: a lambda has at most one parameter
   println(apply(func(a: int, b: int): int { a + b }))
   var p = Point{ x: 1.0, y: 2.0 }
-  println(p.distance(p)) // ERR: Point has no field distance
+  println(p.distance(p))
+  println(p.distnace(p)) // ERR: Point has no field or function distnace
   println(Point.distance(a: p, b: p))
   var dist = Point.distance
   println(dist(a: p, b: p)) // ERR: a call through a function value is positional

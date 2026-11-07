@@ -1,0 +1,27 @@
+// spec: 10; 4 Assignability
+// Section 10 (proposals/interfaces.md): an exported interface is imported like a type, a type
+// of another module satisfies it by having the functions, and visibility is the checker's
+// where it asks: a file handle is a Sink by File.writeLine, with no wrapper.
+import "./lib/sink.ant" { Sink, info, quietly }
+
+type Memory = { lines: Array[string] = [] }
+func Memory.writeLine(m: Memory, line: string): Result[void, Error] {
+  m.lines.push(line)
+  Result.ok(void)
+}
+
+var m = Memory{}
+Result.unwrap(info(m, "hi"))
+println(m.lines)
+println(quietly("x"))
+var path = "${Os.args()[0]}/app.log"
+var out = Result.unwrap(File.create(path))
+Result.unwrap(info(out, "started"))
+Result.unwrap(File.close(out))
+print(Result.unwrap(File.read(path)))
+
+// expect
+// args: $TMP
+// out: ["info hi"]
+// out: 1
+// out: info started

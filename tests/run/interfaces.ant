@@ -1,0 +1,99 @@
+// spec: 4 Generics; 4 Assignability; 5 is; 6 Functions on types
+// Section 4 (proposals/interfaces.md): an interface names a set of functions; a type satisfies
+// it when each call the interface promises checks on the type, with no declaration. It is a
+// type when Self appears only as the receiver, and a bound always. A value of an interface is
+// the value itself, narrowed by is to a satisfying type, the else branch keeping the interface.
+interface Shape {
+  area(s: Self): float64
+  name(s: Self): string
+}
+
+interface Compare {
+  compare(a: Self, b: Self): int
+}
+
+interface Sized { length(s: Self): int }
+
+interface Container[T] {
+  get(c: Self, i: int): T | null
+  size(c: Self): int
+}
+
+interface Node { next(n: Self): Node | null }
+
+type Circle = { radius: float64 }
+func Circle.area(c: Circle): float64 { 3.0 * c.radius * c.radius }
+func Circle.name(c: Circle): string { "circle" }
+
+type Rect = { width: float64, height: float64 }
+func Rect.area(r: Rect): float64 { r.width * r.height }
+func Rect.name(r: Rect): string { "rect" }
+
+type Job = { priority: int, name: string }
+func Job.compare(a: Job, b: Job): int { b.priority - a.priority }
+
+type Box[T] = { v: T }
+func Box.get[T](b: Box[T], i: int): T | null { if i == 0 { b.v } else { null } }
+func Box.size[T](b: Box[T]): int { 1 }
+
+type Chain = { rest: Chain | null = null }
+func Chain.next(c: Chain): Chain | null { c.rest }
+
+type Heap[T: Compare] = { items: Array[T] = [] }
+func Heap.push[T: Compare](h: Heap[T], v: T): void {
+  h.items.push(v)
+  var i = len(h.items) - 1
+  while i > 0 && h.items[i].compare(h.items[(i - 1) / 2]) < 0 {
+    var p = (i - 1) / 2
+    [h.items[i], h.items[p]] = [h.items[p], h.items[i]]
+    i = p
+  }
+}
+
+func total(shapes: Array[Shape]): float64 { shapes.map({ x.area() }).sum() ?? 0.0 }
+func largest[T: Shape](xs: Array[T]): T | null {
+  var best: T | null = null
+  for s in xs {
+    var b = best
+    if b == null || s.area() > b.area() { best = s }
+  }
+  best
+}
+func describe(s: Shape): string { if s is Circle { "circle of ${s.radius}" } else { "${s.name()} of ${s.area()}" } }
+func sizes(xs: Array[Sized]): Array[int] { xs.map({ x.length() }) }
+func first[T: Container[int]](c: T): int { c.get(0) ?? -1 }
+func sorted[T: Compare](xs: Array[T]): Array[T] { xs.sortWith(func(a: T, b: T): int { a.compare(b) }) }
+
+var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
+println(total(shapes))
+println(largest([Circle{ radius: 1.0 }, Circle{ radius: 2.0 }])?.radius)
+for s in shapes { println(describe(s)) }
+println(sizes(["ab", [1, 2, 3], Bytes.fromArray([1])]))
+println(sorted([Job{ priority: 1, name: "a" }, Job{ priority: 5, name: "b" }]).map({ x.name }))
+var jobs: Heap[Job] = Heap{}
+jobs.push(Job{ priority: 2, name: "build" })
+jobs.push(Job{ priority: 5, name: "test" })
+println(jobs.items.map({ x.name }))
+var c: Container[int] = Box{ v: 41 }
+println("${c.size()} ${first(Box{ v: 7 })}")
+if c is Box { println(c.v + 1) }
+var n: Node = Chain{ rest: Chain{} }
+println(n.next()?.next())
+var s: Shape = Circle{ radius: 2.0 }
+println("${s == Circle{ radius: 2.0 }} ${String.from(s)}")
+var sh: Shape | null = null
+println(sh?.name())
+
+// expect
+// out: 9.0
+// out: 2.0
+// out: circle of 1.0
+// out: rect of 6.0
+// out: [2, 3, 1]
+// out: ["b", "a"]
+// out: ["test", "build"]
+// out: 1 7
+// out: 42
+// out: null
+// out: true Circle{ radius: 2.0 }
+// out: null

@@ -93,3 +93,71 @@ func TestNamespaceDocs(t *testing.T) {
 		}
 	}
 }
+
+// TestNoFieldShadowsFunction requires that no record type of the prelude has a field named like
+// a function its namespace offers on it, since x.f() reads the field where the author meant the
+// function (section 5, Calls through .). A namespace offers a function on a type when the
+// function's first parameter is that type, a type parameter, or a union naming the type.
+func TestNoFieldShadowsFunction(t *testing.T) {
+	f, err := Decls()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// the record types by full name, with their namespace: Owner for Owner.T, else the type's own name
+	records := map[string]*ast.TypeDecl{}
+	for _, d := range f.Decls {
+		if td, ok := d.(*ast.TypeDecl); ok {
+			if _, isRecord := td.Body.(*ast.RecordType); isRecord {
+				name := td.Name
+				if td.Owner != "" {
+					name = td.Owner + "." + td.Name
+				}
+				records[name] = td
+			}
+		}
+	}
+	for _, d := range f.Decls {
+		fd, ok := d.(*ast.FuncDecl)
+		if !ok || fd.Owner == "" || len(fd.Params) == 0 {
+			continue
+		}
+		tparams := map[string]bool{}
+		for _, tp := range fd.TypeParams {
+			tparams[tp.Name] = true
+		}
+		for name, td := range records {
+			ns := td.Owner
+			if ns == "" {
+				ns = td.Name
+			}
+			if ns == "Ok" || ns == "Err" {
+				ns = "Result"
+			}
+			if ns != fd.Owner || !firstParamTakes(fd.Params[0].Type, name, tparams) {
+				continue
+			}
+			for _, fld := range td.Body.(*ast.RecordType).Fields {
+				if fld.Name == fd.Name {
+					t.Errorf("%s.%s is a field of %s and a function %s.%s offers on it", name, fld.Name, name, fd.Owner, fd.Name)
+				}
+			}
+		}
+	}
+}
+
+// firstParamTakes reports whether a parameter type takes a value of the named type: it names
+// it, is a type parameter, or is a union with such a member.
+func firstParamTakes(t ast.Type, name string, tparams map[string]bool) bool {
+	switch x := t.(type) {
+	case *ast.TypeName:
+		path := strings.Join(x.Path, ".")
+		return path == name || len(x.Path) == 1 && tparams[x.Path[0]]
+	case *ast.UnionType:
+		for _, m := range x.Members {
+			if firstParamTakes(m, name, tparams) {
+				return true
+			}
+		}
+	}
+	return false
+}

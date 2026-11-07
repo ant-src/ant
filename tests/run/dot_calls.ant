@@ -1,0 +1,64 @@
+// spec: 6 Functions on types; 6 Calling; 5 Pipes
+// Section 5 and 6 (proposals/interfaces.md): x.f(a) reads the field f of x when it has one,
+// and otherwise calls f from the namespace of x's type with x first: the tag of a user type,
+// or the prelude namespace of a built-in value. Named arguments apply when the function is
+// known, ?. skips a null receiver, and a pipe's left side follows the receiver.
+type Point = { x: float64, y: float64 }
+func Point.norm(p: Point): float64 { Math.sqrt(p.x * p.x + p.y * p.y) }
+func Point.scale(p: Point, k: float64): Point { Point{ x: p.x * k, y: p.y * k } }
+func Point.translate(p: Point, dx: float64 = 0.0, dy: float64 = 0.0): Point { Point{ x: p.x + dx, y: p.y + dy } }
+
+type UserId = string
+func UserId.shout(id: UserId): string { String.toUpper(string(id)) }
+
+type Writer = { write: func(string): int }
+
+var p = Point{ x: 3.0, y: 4.0 }
+println(p.norm())
+println(p.scale(2.0).norm())
+println(p.scale(k: 0.5).translate(dy: 1.0))
+println(0.5 | p.scale())
+
+println(" hi ".trim().toUpper())
+println([3, 1, 2].sort().map({ x * 10 }).sum())
+println(Map{ "a": 1 }.get("a"))
+println(Set.of([1, 2, 2]).size())
+println(Bytes.fromArray([104, 105]).length())
+println(UserId("bob").shout())
+println(string(UserId("bob")).length())
+
+var r: Result[int, Error] = Result.ok(1)
+println(r.unwrapOr(0))
+println(r.unwrapOr(fallback: 9))
+println(Iter.range(0, 100).filter({ x % 2 == 0 }).take(3).toArray())
+
+var w = Writer{ write: func(s: string): int { len(s) } }
+println(w.write("abc"))
+
+var none: Point | null = null
+println(none?.norm())
+var some: Point | null = p
+println(some?.norm())
+
+var mixed: Array[int] | string = "text"
+println(mixed.length())
+
+// expect
+// out: 5.0
+// out: 10.0
+// out: Point{ x: 1.5, y: 3.0 }
+// out: Point{ x: 1.5, y: 2.0 }
+// out: HI
+// out: 60
+// out: 1
+// out: 2
+// out: 2
+// out: BOB
+// out: 3
+// out: 1
+// out: 1
+// out: [0, 2, 4]
+// out: 3
+// out: null
+// out: 5.0
+// out: 4

@@ -1,0 +1,50 @@
+// spec: 6 Functions on types; 6 Calling
+// Section 5 and 6 (proposals/interfaces.md): x.f(...) resolves by the static type of x, fields
+// first, then the namespace of the type when f takes x first; numbers have no namespace, a
+// function is reached only by calling it, a union resolves per member unless its members share
+// a namespace, and a call through a union of several namespaces or a type parameter is
+// positional.
+type Point = { x: float64, y: float64 }
+func Point.norm(p: Point): float64 { Math.sqrt(p.x * p.x + p.y * p.y) }
+func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
+type Area = { v: float64 }
+type Other = { v: float64 }
+type Circle = { radius: float64 }
+func Circle.area(c: Circle): { v: float64 } { Area{ v: c.radius } }
+type Square = { side: float64 }
+func Square.area(s: Square): Other { Other{ v: s.side } }
+type Shape = Circle | Square
+func Shape.describe(s: Shape): string { "shape" }
+
+var p = Point{ x: 3.0, y: 4.0 }
+println(p.norm())
+println(p.nrom())     // ERR: Point has no field or function nrom
+println(p.origin())   // ERR: Point.origin takes no argument, so it is not a function on Point
+println(p.norm(1.0))  // ERR: Point.norm takes 0 arguments after the receiver, got more
+println(p.norm(p: p)) // ERR: the parameter p is the receiver, which the call passes first
+var g = p.norm        // ERR: Point has no field norm
+println((p.norm)())   // ERR: Point has no field norm
+println((1).abs())    // ERR: int has no field or function abs
+println("abc".nope()) // ERR: string has no field or function nope
+println(true.not())   // ERR: bool has no field or function not
+var h = try File.create("x")
+println(h.write("x"))                               // ERR: File.write is not a function on File.Handle: it takes string first
+func anonymous(a: { x: int }): float64 { a.norm() } // ERR: { x: int } has no field or function norm
+
+var sh: Shape = Circle{ radius: 1.0 }
+println(sh.area())     // ERR: the results of area through Shape do not form a valid type
+println(sh.describe()) // ERR: Shape has no field or function describe on every member: narrow the value first
+println(Shape.describe(sh))
+var cs: Circle | string = "x"
+println(cs.area()) // ERR: Circle | string has no field or function area on every member: narrow the value first
+var r: Result[int, Error] = Result.ok(1)
+println(r.unwrapOr(fallback: 0))
+var ok: Ok[int] = Ok{ value: 1 }
+println(ok.unwrapOr(0))                               // ERR: cannot infer the type parameter E of Result.unwrapOr
+func unbounded[T](x: T): float64 { x.norm() }         // ERR: T has no field or function norm: it has no bound
+func bounded[T: Square](x: T): Other { x.area(s: x) } // ERR: a call through T is positional
+var t: Time.Instant | Time.PlainDate = Time.now()
+println(t.add(Time.duration(seconds: 1))) // ERR: T would be Time.Instant | Time.PlainDate, which is not a single member of its bound Time.Point
+println(Iter.range(0, 9).take(2).toArray())
+var handler = func(n: int): int { n }
+println(handler.take(2)) // ERR: Iter.take is not a function on func(int): int: it takes Seq[T] first

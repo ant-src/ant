@@ -1,0 +1,17 @@
+// Helper module for the interface tests. Not a test itself.
+export interface Sink {
+  writeLine(s: Self, line: string): Result[void, Error]
+}
+
+export func info(sink: Sink, msg: string): Result[void, Error] { sink.writeLine("info ${msg}") }
+
+// Quiet counts lines through a function this module does not export, so it is a Sink here and
+// not in a module that imports it.
+export type Quiet = { lines: int = 0 }
+func Quiet.writeLine(q: Quiet, line: string): Result[void, Error] { q.lines = q.lines + 1; Result.ok(void) }
+
+export func quietly(msg: string): int {
+  var q = Quiet{}
+  Result.unwrap(info(q, msg))
+  q.lines
+}
