@@ -240,26 +240,26 @@ func (n Named) FieldsOf() []Field {
 // Equal reports whether two types are the same type. A recursive alias is compared as the
 // infinite type it stands for: a pair of types already under comparison is assumed equal, as
 // == does for values, so that type L[T] = Array[L[T] | int] ends.
-func Equal(a, b Type) bool { return equal(a, b, &[][2]Type{}, 0) }
+func Equal(a, b Type) bool { return equal(a, b, &pairs{}, 0) }
 
 // equal compares two types depth levels into a comparison. It moves to a fresh stack every
 // value.Deep levels, as == on values does, so that a type value nested a million deep, as a
 // host or a long type expression can make, compares without overflowing the Go stack (section 9:
 // the interpreter never crashes).
-func equal(a, b Type, assumed *[][2]Type, depth int) bool {
+func equal(a, b Type, met *pairs, depth int) bool {
 	if value.Deep(depth) {
-		return equalOnFreshStack(a, b, assumed, depth)
+		return equalOnFreshStack(a, b, met, depth)
 	}
-	return equalStep(a, b, assumed, depth)
+	return equalStep(a, b, met, depth)
 }
 
-func equalOnFreshStack(a, b Type, assumed *[][2]Type, depth int) (eq bool) {
-	value.OnFreshStack(func() { eq = equalStep(a, b, assumed, depth) })
+func equalOnFreshStack(a, b Type, met *pairs, depth int) (eq bool) {
+	value.OnFreshStack(func() { eq = equalStep(a, b, met, depth) })
 	return eq
 }
 
 // equalStep is equal on the current stack.
-func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
+func equalStep(a, b Type, met *pairs, depth int) (eq bool) {
 	// An alias with its arguments written alike is the same type. With other arguments it may
 	// still be, when its body ignores a parameter or the arguments are equal types written
 	// differently, so it is expanded below. Comparing the arguments with equal here as well would
@@ -270,17 +270,12 @@ func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
 			return true
 		}
 	}
-	// Only an alias that reaches itself can bring the same pair back, so only its pairs are
-	// recorded: a pair met again under another alias would be compared again, at every level of
-	// a deep type, against every recorded one.
-	if recursiveAlias(a) || recursiveAlias(b) {
-		for _, p := range *assumed {
-			if identical(p[0], a, 0) && identical(p[1], b, 0) {
-				return true
-			}
+	if met.remembered(a) || met.remembered(b) {
+		p, mark, holds, known := met.enter(a, b)
+		if known {
+			return holds
 		}
-		*assumed = append(*assumed, [2]Type{a, b})
-		defer func() { *assumed = (*assumed)[:len(*assumed)-1] }()
+		defer func() { met.leave(p, mark, eq) }()
 	}
 	a, b = Expand(a), Expand(b)
 	switch x := a.(type) {
@@ -301,24 +296,24 @@ func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
 		return ok
 	case Array:
 		y, ok := b.(Array)
-		return ok && equal(x.Elem, y.Elem, assumed, depth+1)
+		return ok && equal(x.Elem, y.Elem, met, depth+1)
 	case Map:
 		y, ok := b.(Map)
-		return ok && equal(x.Key, y.Key, assumed, depth+1) && equal(x.Val, y.Val, assumed, depth+1)
+		return ok && equal(x.Key, y.Key, met, depth+1) && equal(x.Val, y.Val, met, depth+1)
 	case Set:
 		y, ok := b.(Set)
-		return ok && equal(x.Elem, y.Elem, assumed, depth+1)
+		return ok && equal(x.Elem, y.Elem, met, depth+1)
 	case Func:
 		y, ok := b.(Func)
 		if !ok || len(x.Params) != len(y.Params) || x.Required != y.Required {
 			return false
 		}
 		for i := range x.Params {
-			if !equal(x.Params[i], y.Params[i], assumed, depth+1) {
+			if !equal(x.Params[i], y.Params[i], met, depth+1) {
 				return false
 			}
 		}
-		return equal(x.Return, y.Return, assumed, depth+1)
+		return equal(x.Return, y.Return, met, depth+1)
 	case Record:
 		y, ok := b.(Record)
 		if !ok || len(x.Fields) != len(y.Fields) {
@@ -329,7 +324,7 @@ func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
 			found := false
 			for _, g := range y.Fields {
 				if g.Name == f.Name {
-					found = equal(f.Type, g.Type, assumed, depth+1)
+					found = equal(f.Type, g.Type, met, depth+1)
 					break
 				}
 			}
@@ -344,7 +339,7 @@ func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
 			return false
 		}
 		for i := range x.Args {
-			if !equal(x.Args[i], y.Args[i], assumed, depth+1) {
+			if !equal(x.Args[i], y.Args[i], met, depth+1) {
 				return false
 			}
 		}
@@ -360,7 +355,7 @@ func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
 		for _, m := range x.Members {
 			found := false
 			for _, n := range y.Members {
-				if equal(m, n, assumed, depth+1) {
+				if equal(m, n, met, depth+1) {
 					found = true
 					break
 				}
@@ -377,41 +372,6 @@ func equalStep(a, b Type, assumed *[][2]Type, depth int) bool {
 func isAlias(t Type) bool {
 	n, ok := t.(Named)
 	return ok && n.Decl.Kind == AliasDecl && n.Decl.Body != nil
-}
-
-// recursiveAlias reports whether t is an alias whose body leads back to it, directly or through
-// other aliases, as Json.Value's does. Expanding any other alias ends after as many steps as
-// there are aliases written in t and its bodies, so a walk meets the same pair again only
-// through one of these.
-func recursiveAlias(t Type) bool {
-	if !isAlias(t) {
-		return false
-	}
-	d := t.(Named).Decl
-	var seen []*Decl
-	found := false
-	var reach func(Type)
-	reach = func(body Type) {
-		Walk(body, func(x Type) {
-			if found || !isAlias(x) {
-				return
-			}
-			n := x.(Named).Decl
-			if n == d {
-				found = true
-				return
-			}
-			for _, s := range seen {
-				if s == n {
-					return
-				}
-			}
-			seen = append(seen, n)
-			reach(n.Body)
-		})
-	}
-	reach(d.Body)
-	return found
 }
 
 // identical reports whether two types are written alike, expanding no alias. Like equal, it

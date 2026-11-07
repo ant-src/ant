@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"runtime/debug"
 	"testing"
 	"time"
@@ -84,5 +85,83 @@ func TestRecursiveAliasAssignable(t *testing.T) {
 	}
 	if Assignable(Named{Decl: g}, Named{Decl: f}) {
 		t.Error("G is assignable to F")
+	}
+}
+
+// aliasChain declares n aliases, each built by wrap from the one before, from leaf.
+func aliasChain(name string, n int, leaf Type, wrap func(prev Type) Type) []*Decl {
+	ds := make([]*Decl, n+1)
+	for i := range ds {
+		ds[i] = &Decl{Name: fmt.Sprint(name, i), Kind: AliasDecl, Body: leaf}
+		if i > 0 {
+			ds[i].Body = wrap(Named{Decl: ds[i-1]})
+		}
+	}
+	return ds
+}
+
+// TestSharedAliases relates types that name each alias many times, which once took time
+// exponential or cubic in the number of aliases: a pair met again is not walked again.
+func TestSharedAliases(t *testing.T) {
+	start := time.Now()
+	// F<i> = func(F<i-1>): F<i-1>, and a ring G<i> = func(G<i+1>): G<i+1> | null.
+	fn := func(p Type) Type { return Func{Params: []Type{p}, Return: p, Required: 1} }
+	f := aliasChain("F", 60, IntType, fn)
+	top := Named{Decl: f[60]}
+	if !Assignable(top, Nullable(top)) {
+		t.Error("F60 is not assignable to F60 | null")
+	}
+	if !Assignable(top, Union{Members: []Type{IntType, f[60].Body}}) {
+		t.Error("F60 is not assignable to (func(F59): F59) | int")
+	}
+	g := aliasChain("G", 60, nil, func(p Type) Type { return Func{Params: []Type{p}, Return: Nullable(p), Required: 1} })
+	g[0].Body = g[60].Body
+	if !Assignable(Named{Decl: g[0]}, Nullable(Named{Decl: g[0]})) {
+		t.Error("G0 is not assignable to G0 | null")
+	}
+	// D<i> = Map[D<i-1>, D<i-1>] and its twin E<i>, from int | null and null | int.
+	m := func(p Type) Type { return Map{Key: p, Val: p} }
+	d := aliasChain("D", 60, Nullable(IntType), m)
+	e := aliasChain("E", 60, Union{Members: []Type{Null{}, IntType}}, m)
+	if !Equal(Named{Decl: d[60]}, Named{Decl: e[60]}) || !Assignable(Named{Decl: d[60]}, Named{Decl: e[60]}) {
+		t.Error("D60 is not E60")
+	}
+	// Two chains of 20000 aliases D<i> = Array[D<i-1>].
+	arr := func(p Type) Type { return Array{Elem: p} }
+	a := aliasChain("A", 20000, Nullable(IntType), arr)
+	b := aliasChain("B", 20000, Nullable(IntType), arr)
+	if !Equal(Named{Decl: a[20000]}, Named{Decl: b[20000]}) {
+		t.Error("A20000 is not B20000")
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Errorf("relating shared aliases took %v", d)
+	}
+}
+
+// TestFailedAssumption checks that a pair proven only by assuming a pair that then failed is
+// not taken as proven. With A = func(D, int): void, B = func(C, string): void, C = func(): A,
+// and D = func(): B, relating A to B relates C to D by assuming A to B, which then fails on
+// int and string; C is then related to D again, and fails too.
+func TestFailedAssumption(t *testing.T) {
+	a := &Decl{Name: "A", Kind: AliasDecl}
+	b := &Decl{Name: "B", Kind: AliasDecl}
+	c := &Decl{Name: "C", Kind: AliasDecl, Body: Func{Return: Named{Decl: a}}}
+	d := &Decl{Name: "D", Kind: AliasDecl, Body: Func{Return: Named{Decl: b}}}
+	a.Body = Func{Params: []Type{Named{Decl: d}, IntType}, Return: Void{}, Required: 2}
+	b.Body = Func{Params: []Type{Named{Decl: c}, StringType}, Return: Void{}, Required: 2}
+	thunk := func(d *Decl) Type { return Func{Return: Named{Decl: d}} }
+	if Assignable(Union{Members: []Type{thunk(a), thunk(c)}}, Union{Members: []Type{thunk(b), thunk(d), thunk(a)}}) {
+		t.Error("func(): C is assignable to func(): D")
+	}
+	// The same for Equal, with E = Map[G, int], F = Map[H, string], G = Array[E], H = Array[F].
+	e := &Decl{Name: "E", Kind: AliasDecl}
+	f := &Decl{Name: "F", Kind: AliasDecl}
+	g := &Decl{Name: "G", Kind: AliasDecl, Body: Array{Elem: Named{Decl: e}}}
+	h := &Decl{Name: "H", Kind: AliasDecl, Body: Array{Elem: Named{Decl: f}}}
+	e.Body = Map{Key: Named{Decl: g}, Val: IntType}
+	f.Body = Map{Key: Named{Decl: h}, Val: StringType}
+	E, F, G, H := Named{Decl: e}, Named{Decl: f}, Named{Decl: g}, Named{Decl: h}
+	if Equal(Union{Members: []Type{E, G, F}}, Union{Members: []Type{F, E, H}}) {
+		t.Error("G equals H")
 	}
 }
