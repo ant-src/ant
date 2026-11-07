@@ -1,0 +1,524 @@
+//! xml: XML into and out of declared types, as library code over Reflect (section 11, Reflect).
+//!
+//! Mapping:
+//! - A named record is an element named after its declaration, with one child element per field.
+//! - A field of type `Attr` (a named primitive over string, exported here) is an attribute.
+//! - An `Array[T]` or `Set[T]` field is the field's element repeated once per item; an array nested
+//!   in an array or a map value is a wrapper element with `<item>` children.
+//! - `Map[K, V]` is `<entry key="...">` children; the key is a scalar written as text.
+//! - Scalars are text; `T | null` fields are omitted when null.
+//! - A union with several non-null members wraps the value in an element named after the member:
+//!   the declaration's name for a record or named primitive, else `int`, `string`, `null`, `Array`.
+//! - Bytes is base64 text.
+
+export type Attr = string
+
+let BytesType = Reflect.erase(type(Bytes))
+let NullType = Reflect.erase(type(null))
+let AttrType = Reflect.erase(type(Attr))
+
+// ---------------------------------------------------------------- the tree
+
+type Node = { name: string, attrs: Map[string, string], children: Array[Node], text: string }
+
+type Parser = { cs: Array[string], pos: int }
+
+func perr[T](p: Parser, message: string): Result[T, Error] {
+  Result.err(Error{ message: "xml: offset ${p.pos}: ${message}" })
+}
+
+func peek(p: Parser): string { Array.get(p.cs, p.pos) ?? "" }
+
+func at(p: Parser, s: string): bool {
+  var i = 0
+  for c in s {
+    if (Array.get(p.cs, p.pos + i) ?? "") != c { return false }
+    i += 1
+  }
+  true
+}
+
+func eof(p: Parser): bool { p.pos >= len(p.cs) }
+
+func skipSpace(p: Parser): void {
+  while !eof(p) && (peek(p) == " " || peek(p) == "\n" || peek(p) == "\t" || peek(p) == "\r") {
+    p.pos += 1
+  }
+}
+
+// skipPast moves past the next occurrence of end; false when there is none.
+func skipPast(p: Parser, end: string): bool {
+  while !eof(p) {
+    if at(p, end) {
+      p.pos += len(end)
+      return true
+    }
+    p.pos += 1
+  }
+  false
+}
+
+func isNameChar(c: string): bool {
+  String.isLetter(c) || String.isDigit(c) || c == "_" || c == "-" || c == "." || c == ":"
+}
+
+func readName(p: Parser): Result[string, Error] {
+  var start = p.pos
+  while !eof(p) && isNameChar(peek(p)) { p.pos += 1 }
+  if p.pos == start { return perr(p, "want a name") }
+  var first = p.cs[start]
+  if String.isDigit(first) || first == "-" || first == "." { return perr(p, "bad name start ${first}") }
+  Result.ok(String.concat(Array.slice(p.cs, start, p.pos)))
+}
+
+// readEntity reads after "&" up to and including ";".
+func readEntity(p: Parser): Result[string, Error] {
+  var start = p.pos
+  while !eof(p) && peek(p) != ";" { p.pos += 1 }
+  if eof(p) { return perr(p, "unterminated entity") }
+  var name = String.concat(Array.slice(p.cs, start, p.pos))
+  p.pos += 1
+  if name == "lt" { return Result.ok("<") }
+  if name == "gt" { return Result.ok(">") }
+  if name == "amp" { return Result.ok("&") }
+  if name == "quot" { return Result.ok("\"") }
+  if name == "apos" { return Result.ok("'") }
+  if String.startsWith(name, "#") {
+    var digits = String.trimPrefix(name, "#")
+    var n = if String.startsWith(digits, "x") { String.toInt(String.trimPrefix(digits, "x"), 16) } else { String.toInt(digits) }
+    if n != null {
+      var c = String.fromCodePoint(n)
+      if c != null { return Result.ok(c) }
+    }
+  }
+  perr(p, "unknown entity &${name};")
+}
+
+func readAttrValue(p: Parser): Result[string, Error] {
+  var q = peek(p)
+  if q != "\"" && q != "'" { return perr(p, "want a quoted attribute value") }
+  p.pos += 1
+  var parts: Array[string] = []
+  while !eof(p) && peek(p) != q {
+    var c = peek(p)
+    p.pos += 1
+    if c == "&" {
+      Array.push(parts, try readEntity(p))
+    } else if c == "<" {
+      return perr(p, "< in attribute value")
+    } else if c == "\t" || c == "\n" || c == "\r" {
+      Array.push(parts, " ") // attribute value normalization
+    } else {
+      Array.push(parts, c)
+    }
+  }
+  if eof(p) { return perr(p, "unterminated attribute value") }
+  p.pos += 1
+  Result.ok(String.concat(parts))
+}
+
+// skipMisc skips white space, comments, processing instructions, and a doctype.
+func skipMisc(p: Parser): Result[void, Error] {
+  while true {
+    skipSpace(p)
+    if at(p, "<!--") {
+      if !skipPast(p, "-->") { return perr(p, "unterminated comment") }
+    } else if at(p, "<?") {
+      if !skipPast(p, "?>") { return perr(p, "unterminated processing instruction") }
+    } else if at(p, "<!DOCTYPE") {
+      if !skipPast(p, ">") { return perr(p, "unterminated doctype") }
+    } else {
+      break
+    }
+  }
+  Result.ok(void)
+}
+
+func parseElement(p: Parser): Result[Node, Error] {
+  if peek(p) != "<" { return perr(p, "want <") }
+  p.pos += 1
+  var name = try readName(p)
+  var node = Node{ name: name, attrs: Map{}, children: [], text: "" }
+  while true {
+    skipSpace(p)
+    if at(p, "/>") {
+      p.pos += 2
+      return Result.ok(node)
+    }
+    if peek(p) == ">" {
+      p.pos += 1
+      break
+    }
+    var attr = try readName(p)
+    skipSpace(p)
+    if peek(p) != "=" { return perr(p, "want = after ${attr}") }
+    p.pos += 1
+    skipSpace(p)
+    if Map.has(node.attrs, attr) { return perr(p, "duplicate attribute ${attr}") }
+    node.attrs[attr] = try readAttrValue(p)
+  }
+  var text: Array[string] = []
+  while true {
+    if eof(p) { return perr(p, "unclosed <${name}>") }
+    if at(p, "</") {
+      p.pos += 2
+      var end = try readName(p)
+      if end != name { return perr(p, "</${end}> closes <${name}>") }
+      skipSpace(p)
+      if peek(p) != ">" { return perr(p, "want >") }
+      p.pos += 1
+      break
+    } else if at(p, "<!--") {
+      if !skipPast(p, "-->") { return perr(p, "unterminated comment") }
+    } else if at(p, "<![CDATA[") {
+      p.pos += 9
+      var start = p.pos
+      if !skipPast(p, "]]>") { return perr(p, "unterminated CDATA") }
+      Array.push(text, String.concat(Array.slice(p.cs, start, p.pos - 3)))
+    } else if at(p, "<?") {
+      if !skipPast(p, "?>") { return perr(p, "unterminated processing instruction") }
+    } else if peek(p) == "<" {
+      Array.push(node.children, try parseElement(p))
+    } else if peek(p) == "&" {
+      p.pos += 1
+      Array.push(text, try readEntity(p))
+    } else if at(p, "\r\n") {
+      p.pos += 2
+      Array.push(text, "\n") // end-of-line normalization
+    } else {
+      Array.push(text, if peek(p) == "\r" { "\n" } else { peek(p) })
+      p.pos += 1
+    }
+  }
+  node.text = String.concat(text)
+  Result.ok(node)
+}
+
+func parse(text: string): Result[Node, Error] {
+  var p = Parser{ cs: String.chars(String.trimPrefix(text, "\u{feff}")), pos: 0 }
+  try skipMisc(p)
+  var root = try parseElement(p)
+  try skipMisc(p)
+  if !eof(p) { return perr(p, "content after the root element") }
+  Result.ok(root)
+}
+
+// ---------------------------------------------------------------- types
+
+// nonNull is the union's members other than null, and whether null was one.
+type Members = { types: Array[Reflect.ErasedType], nullable: bool }
+
+func members(t: Reflect.ErasedType): Members {
+  var s = Reflect.shape(t)
+  if s is Reflect.Union {
+    var ts = Array.filter(s.members, { x != NullType })
+    return Members{ types: ts, nullable: len(ts) != len(s.members) }
+  }
+  Members{ types: [t], nullable: false }
+}
+
+// unwrapNull is t without null when that leaves one member, else t.
+func unwrapNull(t: Reflect.ErasedType): Reflect.ErasedType {
+  var m = members(t)
+  if len(m.types) == 1 { m.types[0] } else { t }
+}
+
+// sharedName is a name two members of a union share, which no element could tell apart, as in
+// A.Circle | B.Circle; null when every member has its own name.
+func sharedName(types: Array[Reflect.ErasedType]): string | null {
+  var seen: Set[string] = Set.of([])
+  for t in types {
+    var name = memberName(t)
+    if !Set.add(seen, name) { return name }
+  }
+  null
+}
+
+// memberNamed is the member the element name picks, or an error when two members share a name.
+func memberNamed(m: Members, name: string, union: Reflect.ErasedType): Result[Reflect.ErasedType, string] {
+  var shared = sharedName(m.types)
+  if shared != null { return Result.err("${union} has two members named ${shared}") }
+  var t = Array.find(m.types, { memberName(x) == name }) ?? return Result.err("<${name}> is not a member of ${union}")
+  Result.ok(t)
+}
+
+// memberName is the element name that tells a union member apart.
+func memberName(t: Reflect.ErasedType): string {
+  var s = Reflect.shape(t)
+  if s is Reflect.Record {
+    if s.decl != null { return String.from(s.decl) }
+    return "record"
+  }
+  if s is Reflect.Tagged { return String.from(s.decl) }
+  if s is Reflect.Opaque { return String.from(s.decl) }
+  if s is Reflect.Array { return "Array" }
+  if s is Reflect.Map { return "Map" }
+  if s is Reflect.Set { return "Set" }
+  String.from(t)
+}
+
+func isSequence(t: Reflect.ErasedType): bool {
+  var s = Reflect.shape(t)
+  s is Reflect.Array || s is Reflect.Set
+}
+
+// ---------------------------------------------------------------- encode
+
+export func encode[T](t: Reflect.Type[T], value: T): string {
+  var d = Reflect.valueOf(t, value)
+  var shared = sharedName(members(Reflect.erase(t)).types)
+  if shared != null { panic("xml: ${t} has two members named ${shared}") }
+  var out: Array[string] = []
+  var path: Array[Reflect.Value] = []
+  oneElement(memberName(Reflect.type(d)), Reflect.type(d), d, "", out, path)
+  String.concat(out)
+}
+
+func escape(s: string, attr: bool): string {
+  var r = String.replace(s, "&", "&amp;")
+  r = String.replace(r, "<", "&lt;")
+  r = String.replace(r, ">", "&gt;")
+  r = String.replace(r, "\r", "&#13;")
+  if attr {
+    r = String.replace(r, "\"", "&quot;")
+    r = String.replace(r, "\n", "&#10;")
+    r = String.replace(r, "\t", "&#9;")
+  }
+  r
+}
+
+func scalarText(d: Reflect.Value): string {
+  if Reflect.type(d) == BytesType { return Encoding.toBase64(Reflect.to(d, type(Bytes))) }
+  var s = Reflect.shape(Reflect.type(d))
+  if s is Reflect.Tagged { return scalarText(Reflect.payload(d)) }
+  var v = Reflect.scalar(d)
+  if v is string { v } else if v is null { "" } else { String.from(v) }
+}
+
+// fieldElements writes the elements for one record field: none for null, one per item for an
+// array or set, else one.
+func fieldElements(name: string, slot: Reflect.ErasedType, d: Reflect.Value, out: Array[string], path: Array[Reflect.Value]): void {
+  if Reflect.type(d) == NullType && members(slot).nullable { return }
+  var inner = unwrapNull(slot)
+  if isSequence(inner) {
+    for item in Reflect.items(d) { oneElement(name, elementOf(inner), item, "", out, path) }
+  } else {
+    oneElement(name, inner, d, "", out, path)
+  }
+}
+
+func elementOf(t: Reflect.ErasedType): Reflect.ErasedType {
+  var s = Reflect.shape(t)
+  if s is Reflect.Array { s.element } else if s is Reflect.Set { s.member } else { t }
+}
+
+// oneElement writes <name attrs>content</name> for a value of the slot type.
+func oneElement(name: string, slot: Reflect.ErasedType, d: Reflect.Value, attrs: string, out: Array[string], path: Array[Reflect.Value]): void {
+  if Array.some(path, { Reflect.same(x, d) }) { panic("xml: cycle at <${name}>") }
+  var t = Reflect.type(d)
+  var m = members(slot)
+  if len(m.types) > 1 || m.nullable {
+    // several members, or a nullable value outside a field: an element names the member
+    var shared = sharedName(m.types)
+    if shared != null { panic("xml: ${slot} has two members named ${shared}") }
+    Array.push(out, "<${name}${attrs}>")
+    oneElement(memberName(t), t, d, "", out, path)
+    Array.push(out, "</${name}>")
+    return
+  }
+  var s = Reflect.shape(t)
+  if s is Reflect.Record {
+    var attrText: Array[string] = [attrs]
+    var body: Array[string] = []
+    Array.push(path, d)
+    for f in s.fields {
+      var v = Reflect.field(d, f.name)
+      if unwrapNull(f.type) == AttrType {
+        if Reflect.type(v) != NullType {
+          Array.push(attrText, " ${f.name}=\"${escape(scalarText(v), true)}\"")
+        }
+      } else {
+        fieldElements(f.name, f.type, v, body, path)
+      }
+    }
+    Array.pop(path)
+    Array.push(out, "<${name}${String.concat(attrText)}>")
+    Array.extend(out, body)
+    Array.push(out, "</${name}>")
+  } else if s is Reflect.Array || s is Reflect.Set {
+    Array.push(out, "<${name}${attrs}>")
+    Array.push(path, d)
+    for item in Reflect.items(d) { oneElement("item", elementOf(t), item, "", out, path) }
+    Array.pop(path)
+    Array.push(out, "</${name}>")
+  } else if s is Reflect.Map {
+    Array.push(out, "<${name}${attrs}>")
+    Array.push(path, d)
+    for e in Reflect.entries(d) {
+      oneElement("entry", s.value, e.value, " key=\"${escape(scalarText(e.key), true)}\"", out, path)
+    }
+    Array.pop(path)
+    Array.push(out, "</${name}>")
+  } else {
+    var text = escape(scalarText(d), false)
+    if text == "" {
+      Array.push(out, "<${name}${attrs}/>")
+    } else {
+      Array.push(out, "<${name}${attrs}>${text}</${name}>")
+    }
+  }
+}
+
+// ---------------------------------------------------------------- decode
+
+export func decode[T](text: string, t: Reflect.Type[T]): Result[T, Error] {
+  var root = try parse(text)
+  var et = Reflect.erase(t)
+  var m = members(et)
+  var slot = unwrapNull(et)
+  if m.nullable && root.name == "null" {
+    slot = NullType
+  } else if len(m.types) > 1 {
+    // the root element names the member
+    slot = try (memberNamed(m, root.name, et) | Result.mapErr({ Error{ message: "xml: ${x}" } }))
+  } else if memberName(slot) != root.name {
+    return Result.err(Error{ message: "xml: want <${memberName(slot)}>, got <${root.name}>" })
+  }
+  var d = try decodeContent(slot, root, root.name)
+  Result.ok(Reflect.to(d, t))
+}
+
+func fail(path: string, message: string): Result[Reflect.Value, Error] {
+  Result.err(Error{ message: "xml: ${path}: ${message}" })
+}
+
+func scalarFromText(t: Reflect.ErasedType, text: string, path: string): Result[Reflect.Value, Error] {
+  if t == BytesType {
+    var b = try (Encoding.fromBase64(String.trim(text)) | Result.wrapErr(path))
+    return Result.ok(Reflect.valueOf(type(Bytes), b))
+  }
+  var s = Reflect.shape(t)
+  if s is Reflect.Tagged {
+    return Result.ok(Reflect.makeTagged(t, try scalarFromText(s.base, text, path)))
+  }
+  var v: Reflect.Scalar = null
+  if s is Reflect.String {
+    v = text
+  } else if s is Reflect.Null {
+    if String.trim(text) != "" { return fail(path, "want no content") }
+  } else if s is Reflect.Bool {
+    var b = String.trim(text)
+    if b == "true" { v = true } else if b == "false" { v = false } else { return fail(path, "want true or false") }
+  } else if s is Reflect.Int {
+    var digits = String.trim(text)
+    var n = String.toInt(digits)
+    if n != null {
+      v = n
+    } else if !s.signed && s.bits == 64 {
+      // String.toInt reads only int, so the top half of uint64 is parsed by hand
+      v = parseUint64(digits) ?? return fail(path, "want ${t}, got \"${text}\"")
+    } else {
+      return fail(path, "want ${t}, got \"${text}\"")
+    }
+  } else if s is Reflect.Float {
+    var f = String.trim(text)
+    if f == "NaN" { v = 0.0 / 0.0 } else if f == "Infinity" { v = 1.0 / 0.0 } else if f == "-Infinity" { v = -1.0 / 0.0 } else {
+      v = String.toFloat(f) ?? return fail(path, "want ${t}, got \"${text}\"")
+    }
+  } else {
+    return fail(path, "cannot decode ${t} from text")
+  }
+  var d = Reflect.makeScalar(t, v)
+  if d == null { fail(path, "want ${t}, got \"${text}\"") } else { Result.ok(d) }
+}
+
+func nullValue(): Reflect.Value { Reflect.valueOf(type(null), null) }
+
+// decodeContent decodes the content of one element at the slot type.
+func decodeContent(slot: Reflect.ErasedType, node: Node, path: string): Result[Reflect.Value, Error] {
+  var m = members(slot)
+  if slot != NullType && (len(m.types) > 1 || m.nullable) {
+    if len(node.children) != 1 { return fail(path, "want one element naming a member of ${slot}") }
+    var child = node.children[0]
+    if child.name == "null" && m.nullable { return Result.ok(nullValue()) }
+    var picked = memberNamed(m, child.name, slot)
+    if picked is Err { return fail(path, picked.error) }
+    var member = picked.value
+    return decodeContent(member, child, "${path}/${child.name}")
+  }
+  var t = if len(m.types) == 1 { m.types[0] } else { slot }
+  var s = Reflect.shape(t)
+  if s is Reflect.Record {
+    if s.decl == null { return fail(path, "cannot decode into ${t}") }
+    var fields: Map[string, Reflect.Value] = Map{}
+    for f in s.fields {
+      var fpath = "${path}/${f.name}"
+      var fm = members(f.type)
+      var inner = unwrapNull(f.type)
+      if inner == AttrType {
+        var a = node.attrs[f.name]
+        if a != null {
+          fields[f.name] = Reflect.makeTagged(AttrType, Reflect.valueOf(type(string), a))
+        } else if fm.nullable {
+          fields[f.name] = nullValue()
+        } else if !f.hasDefault {
+          return fail(path, "missing attribute ${f.name}")
+        }
+        continue
+      }
+      var children = Array.filter(node.children, { x.name == f.name })
+      if isSequence(inner) && !(fm.nullable && len(children) == 0) {
+        var items: Array[Reflect.Value] = []
+        for e in Array.entries(children) {
+          Array.push(items, try decodeContent(elementOf(inner), e.value, "${fpath}[${e.index}]"))
+        }
+        fields[f.name] = if Reflect.shape(inner) is Reflect.Array { Reflect.makeArray(inner, items) } else { Reflect.makeSet(inner, items) }
+      } else if len(children) == 0 {
+        if fm.nullable {
+          fields[f.name] = nullValue()
+        } else if !f.hasDefault {
+          return fail(path, "missing <${f.name}>")
+        }
+      } else if len(children) > 1 {
+        return fail(path, "more than one <${f.name}>")
+      } else {
+        fields[f.name] = try decodeContent(inner, children[0], fpath)
+      }
+    }
+    Result.ok(Reflect.makeRecord(t, fields))
+  } else if s is Reflect.Array || s is Reflect.Set {
+    var items: Array[Reflect.Value] = []
+    for e in Array.entries(node.children) {
+      if e.value.name != "item" { return fail(path, "want <item>, got <${e.value.name}>") }
+      Array.push(items, try decodeContent(elementOf(t), e.value, "${path}/item[${e.index}]"))
+    }
+    Result.ok(if s is Reflect.Array { Reflect.makeArray(t, items) } else { Reflect.makeSet(t, items) })
+  } else if s is Reflect.Map {
+    var entries: Array[Entry[Reflect.Value, Reflect.Value]] = []
+    for c in node.children {
+      if c.name != "entry" { return fail(path, "want <entry>, got <${c.name}>") }
+      var key = c.attrs["key"] ?? return fail(path, "<entry> without key")
+      var k = try scalarFromText(s.key, key, "${path}/entry[@key=${key}]")
+      var v = try decodeContent(s.value, c, "${path}/entry[@key=${key}]")
+      Array.push(entries, Entry{ key: k, value: v })
+    }
+    Result.ok(Reflect.makeMap(t, entries))
+  } else {
+    if len(node.children) > 0 { return fail(path, "want text, got <${node.children[0].name}>") }
+    scalarFromText(t, node.text, path)
+  }
+}
+
+func parseUint64(s: string): uint64 | null {
+  if s == "" || len(s) > 20 { return null }
+  var max = uint64(9223372036854775807) * uint64(2) + uint64(1)
+  var n = uint64(0)
+  for c in s {
+    var k = String.codePoint(c) - 48
+    if k < 0 || k > 9 { return null }
+    var d = uint64(k)
+    if n > (max - d) / uint64(10) { return null }
+    n = n * uint64(10) + d
+  }
+  n
+}

@@ -1,0 +1,728 @@
+//! toml: TOML 1.0 into and out of declared types, as library code over Reflect (section 11,
+//! Reflect). The document is parsed into an untyped tree first, then decoded along the type.
+//! Policy: the top level is a named record; unknown keys are errors; a missing field takes its
+//! default, or null when its type admits null; TOML has no null, so a null field is omitted on
+//! encode. Offset date-times decode into Time.Instant or Time.ZonedDateTime (with a fixed-offset
+//! zone), local date-times, dates, and times into the Plain types.
+
+// The untyped tree a document parses into.
+type Value = string | int | float64 | bool | Time.ZonedDateTime | Time.PlainDateTime | Time.PlainDate
+  | Time.PlainTime | Array[Value] | Map[string, Value]
+
+let InstantT = Reflect.erase(type(Time.Instant))
+let ZonedT = Reflect.erase(type(Time.ZonedDateTime))
+let DateTimeT = Reflect.erase(type(Time.PlainDateTime))
+let DateT = Reflect.erase(type(Time.PlainDate))
+let TimeT = Reflect.erase(type(Time.PlainTime))
+let NullT = Reflect.erase(type(null))
+
+// ---------------------------------------------------------------------------------------------
+// Parsing
+
+type Parser = { cs: Array[string], pos: int, line: int, aot: Set[string], defined: Set[string] }
+
+let Sep = "\u{1}"
+
+func peek(p: Parser, k: int): string {
+  var i = p.pos + k
+  if i < len(p.cs) { p.cs[i] } else { "" }
+}
+
+func advance(p: Parser): string {
+  var c = p.cs[p.pos]
+  p.pos += 1
+  if c == "\n" { p.line += 1 }
+  c
+}
+
+func perr(p: Parser, message: string): Error {
+  Error{ message: "line ${p.line}: ${message}" }
+}
+
+func skipWs(p: Parser): void {
+  while peek(p, 0) == " " || peek(p, 0) == "\t" { advance(p) }
+}
+
+func skipComment(p: Parser): Result[void, Error] {
+  while peek(p, 0) != "\n" && peek(p, 0) != "" {
+    var c = advance(p)
+    if c != "\t" && isControl(c) { return Result.err(perr(p, "control character in comment")) }
+  }
+  Result.ok(void)
+}
+
+// White space, newlines, and comments, as inside an array.
+func skipAll(p: Parser): Result[void, Error] {
+  while true {
+    var c = peek(p, 0)
+    if c == " " || c == "\t" || c == "\n" { advance(p) }
+    else if c == "#" { try skipComment(p) }
+    else { break }
+  }
+  Result.ok(void)
+}
+
+func endLine(p: Parser): Result[void, Error] {
+  skipWs(p)
+  if peek(p, 0) == "#" { try skipComment(p) }
+  var c = peek(p, 0)
+  if c == "\n" { advance(p); return Result.ok(void) }
+  if c == "" { return Result.ok(void) }
+  Result.err(perr(p, "unexpected ${quote(c)} at end of line"))
+}
+
+func expect(p: Parser, s: string): Result[void, Error] {
+  for c in s {
+    if peek(p, 0) != c { return Result.err(perr(p, "want ${quote(s)}")) }
+    advance(p)
+  }
+  Result.ok(void)
+}
+
+func isControl(c: string): bool {
+  var n = String.codePoint(c)
+  n < 0x20 || n == 0x7f
+}
+
+func isBare(c: string): bool {
+  c != "" && (Regex.test(/^[A-Za-z0-9_-]$/, c))
+}
+
+func parseSimpleKey(p: Parser): Result[string, Error] {
+  var c = peek(p, 0)
+  if c == "\"" { return parseBasic(p) }
+  if c == "'" { return parseLiteral(p) }
+  var key = ""
+  while isBare(peek(p, 0)) { key += advance(p) }
+  if key == "" { return Result.err(perr(p, "want a key")) }
+  Result.ok(key)
+}
+
+func parseKey(p: Parser): Result[Array[string], Error] {
+  var keys: Array[string] = []
+  while true {
+    skipWs(p)
+    Array.push(keys, try parseSimpleKey(p))
+    skipWs(p)
+    if peek(p, 0) != "." { break }
+    advance(p)
+  }
+  Result.ok(keys)
+}
+
+func pathKey(keys: Array[string]): string { String.join(keys, Sep) }
+
+// A table on the way to a key or header: a missing one is created, and an array of tables leads
+// to its last element.
+func descend(p: Parser, t: Map[string, Value], k: string): Result[Map[string, Value], Error] {
+  var e = t[k]
+  if e == null {
+    var m: Map[string, Value] = Map{}
+    t[k] = m
+    return Result.ok(m)
+  }
+  if e is Map { return Result.ok(e) }
+  if e is Array {
+    var last = Array.last(e)
+    if last is Map { return Result.ok(last) }
+  }
+  Result.err(perr(p, "key ${quote(k)} is not a table"))
+}
+
+func parseKeyValue(p: Parser, table: Map[string, Value]): Result[void, Error] {
+  var keys = try parseKey(p)
+  skipWs(p)
+  try expect(p, "=")
+  skipWs(p)
+  var v = try parseValue(p)
+  var t = table
+  for k in Array.slice(keys, 0, len(keys) - 1) { t = try descend(p, t, k) }
+  var last = keys[len(keys) - 1]
+  if Map.has(t, last) { return Result.err(perr(p, "duplicate key ${quote(last)}")) }
+  t[last] = v
+  Result.ok(void)
+}
+
+func openTable(p: Parser, root: Map[string, Value], keys: Array[string]): Result[Map[string, Value], Error] {
+  var t = root
+  for k in keys { t = try descend(p, t, k) }
+  var path = pathKey(keys)
+  if !Set.add(p.defined, path) { return Result.err(perr(p, "table [${String.join(keys, ".")}] defined twice")) }
+  Result.ok(t)
+}
+
+func openArrayTable(p: Parser, root: Map[string, Value], keys: Array[string]): Result[Map[string, Value], Error] {
+  var t = root
+  for k in Array.slice(keys, 0, len(keys) - 1) { t = try descend(p, t, k) }
+  var last = keys[len(keys) - 1]
+  var path = pathKey(keys)
+  var m: Map[string, Value] = Map{}
+  var e = t[last]
+  if e == null {
+    var a: Array[Value] = [m]
+    t[last] = a
+    Set.add(p.aot, path)
+  } else if e is Array && Set.has(p.aot, path) {
+    Array.push(e, m)
+  } else {
+    return Result.err(perr(p, "key ${quote(last)} is not an array of tables"))
+  }
+  // A new element starts fresh: its sub-tables may be defined again.
+  var prefix = path + Sep
+  p.defined = Set.of(Array.filter(Set.values(p.defined), { !String.startsWith(x, prefix) }))
+  Result.ok(m)
+}
+
+func parseDocument(text: string): Result[Map[string, Value], Error] {
+  var p = Parser{ cs: String.chars(String.replace(text, "\r\n", "\n")), pos: 0, line: 1, aot: Set.of([]), defined: Set.of([]) }
+  var root: Map[string, Value] = Map{}
+  var cur = root
+  while true {
+    skipWs(p)
+    var c = peek(p, 0)
+    if c == "" { break }
+    if c == "#" || c == "\n" {
+      try endLine(p)
+    } else if c == "[" {
+      advance(p)
+      if peek(p, 0) == "[" {
+        advance(p)
+        var keys = try parseKey(p)
+        try expect(p, "]]")
+        cur = try openArrayTable(p, root, keys)
+      } else {
+        var keys = try parseKey(p)
+        try expect(p, "]")
+        cur = try openTable(p, root, keys)
+      }
+      try endLine(p)
+    } else {
+      try parseKeyValue(p, cur)
+      try endLine(p)
+    }
+  }
+  Result.ok(root)
+}
+
+func parseValue(p: Parser): Result[Value, Error] {
+  var c = peek(p, 0)
+  if c == "\"" {
+    if peek(p, 1) == "\"" && peek(p, 2) == "\"" { return Result.ok(try parseMultiBasic(p)) }
+    return Result.ok(try parseBasic(p))
+  }
+  if c == "'" {
+    if peek(p, 1) == "'" && peek(p, 2) == "'" { return Result.ok(try parseMultiLiteral(p)) }
+    return Result.ok(try parseLiteral(p))
+  }
+  if c == "[" { return Result.ok(try parseArray(p)) }
+  if c == "{" { return Result.ok(try parseInline(p)) }
+  parseToken(p)
+}
+
+func parseEscape(p: Parser): Result[string, Error] {
+  var c = advance(p)
+  if c == "b" { return Result.ok("\u{8}") }
+  if c == "t" { return Result.ok("\t") }
+  if c == "n" { return Result.ok("\n") }
+  if c == "f" { return Result.ok("\u{c}") }
+  if c == "r" { return Result.ok("\r") }
+  if c == "\"" { return Result.ok("\"") }
+  if c == "\\" { return Result.ok("\\") }
+  if c == "u" || c == "U" {
+    var n = if c == "u" { 4 } else { 8 }
+    var hex = ""
+    for i in Iter.range(0, n) { hex += advance(p) }
+    var code = String.toInt(hex, 16) ?? -1
+    var s = if Regex.test(/^[0-9A-Fa-f]+$/, hex) { String.fromCodePoint(code) } else { null }
+    if s == null { return Result.err(perr(p, "bad unicode escape \\${c}${hex}")) }
+    return Result.ok(s)
+  }
+  Result.err(perr(p, "bad escape \\${c}"))
+}
+
+func parseBasic(p: Parser): Result[string, Error] {
+  advance(p)
+  var s = ""
+  while true {
+    var c = peek(p, 0)
+    if c == "" || c == "\n" { return Result.err(perr(p, "unterminated string")) }
+    advance(p)
+    if c == "\"" { break }
+    if c == "\\" { s += try parseEscape(p) }
+    else if c != "\t" && isControl(c) { return Result.err(perr(p, "control character in string")) }
+    else { s += c }
+  }
+  Result.ok(s)
+}
+
+func parseMultiBasic(p: Parser): Result[string, Error] {
+  advance(p)
+  advance(p)
+  advance(p)
+  if peek(p, 0) == "\n" { advance(p) }
+  var s = ""
+  while true {
+    var c = peek(p, 0)
+    if c == "" { return Result.err(perr(p, "unterminated string")) }
+    if c == "\"" && peek(p, 1) == "\"" && peek(p, 2) == "\"" {
+      var n = 0
+      while peek(p, 0) == "\"" && n < 5 { advance(p); n += 1 }
+      s += String.repeat("\"", n - 3)
+      break
+    }
+    advance(p)
+    if c == "\\" {
+      // A line-ending backslash trims white space and newlines up to the next character.
+      var k = 0
+      while peek(p, k) == " " || peek(p, k) == "\t" { k += 1 }
+      if peek(p, k) == "\n" {
+        while peek(p, 0) == " " || peek(p, 0) == "\t" || peek(p, 0) == "\n" { advance(p) }
+      } else {
+        s += try parseEscape(p)
+      }
+    } else if c != "\t" && c != "\n" && isControl(c) {
+      return Result.err(perr(p, "control character in string"))
+    } else {
+      s += c
+    }
+  }
+  Result.ok(s)
+}
+
+func parseLiteral(p: Parser): Result[string, Error] {
+  advance(p)
+  var s = ""
+  while true {
+    var c = peek(p, 0)
+    if c == "" || c == "\n" { return Result.err(perr(p, "unterminated string")) }
+    advance(p)
+    if c == "'" { break }
+    if c != "\t" && isControl(c) { return Result.err(perr(p, "control character in string")) }
+    s += c
+  }
+  Result.ok(s)
+}
+
+func parseMultiLiteral(p: Parser): Result[string, Error] {
+  advance(p)
+  advance(p)
+  advance(p)
+  if peek(p, 0) == "\n" { advance(p) }
+  var s = ""
+  while true {
+    var c = peek(p, 0)
+    if c == "" { return Result.err(perr(p, "unterminated string")) }
+    if c == "'" && peek(p, 1) == "'" && peek(p, 2) == "'" {
+      var n = 0
+      while peek(p, 0) == "'" && n < 5 { advance(p); n += 1 }
+      s += String.repeat("'", n - 3)
+      break
+    }
+    advance(p)
+    if c != "\t" && c != "\n" && isControl(c) { return Result.err(perr(p, "control character in string")) }
+    s += c
+  }
+  Result.ok(s)
+}
+
+func parseArray(p: Parser): Result[Value, Error] {
+  advance(p)
+  var items: Array[Value] = []
+  while true {
+    try skipAll(p)
+    if peek(p, 0) == "]" { advance(p); break }
+    Array.push(items, try parseValue(p))
+    try skipAll(p)
+    var c = peek(p, 0)
+    if c == "," { advance(p) }
+    else if c == "]" { advance(p); break }
+    else { return Result.err(perr(p, "want , or ] in array")) }
+  }
+  Result.ok(items)
+}
+
+func parseInline(p: Parser): Result[Value, Error] {
+  advance(p)
+  var m: Map[string, Value] = Map{}
+  skipWs(p)
+  if peek(p, 0) == "}" { advance(p); return Result.ok(m) }
+  while true {
+    try parseKeyValue(p, m)
+    skipWs(p)
+    var c = peek(p, 0)
+    if c == "," { advance(p) }
+    else if c == "}" { advance(p); break }
+    else { return Result.err(perr(p, "want , or } in inline table")) }
+  }
+  Result.ok(m)
+}
+
+let DecInt = /^[+-]?(0|[1-9](_?[0-9])*)$/
+let HexInt = /^0x[0-9A-Fa-f](_?[0-9A-Fa-f])*$/
+let OctInt = /^0o[0-7](_?[0-7])*$/
+let BinInt = /^0b[01](_?[01])*$/
+let Float = /^[+-]?(0|[1-9](_?[0-9])*)(\.[0-9](_?[0-9])*)?([eE][+-]?[0-9](_?[0-9])*)?$/
+let DateRe = /^\d{4}-\d{2}-\d{2}$/
+let TimeRe = /^\d{2}:\d{2}:\d{2}(\.\d+)?$/
+let DateTimeRe = /^(\d{4}-\d{2}-\d{2})[Tt ](\d{2}:\d{2}:\d{2}(\.\d+)?)([Zz]|[+-]\d{2}:\d{2})?$/
+
+func isTokenChar(c: string): bool {
+  c != "" && Regex.test(/^[A-Za-z0-9_+.:-]$/, c)
+}
+
+// A bare value: a boolean, a number, or a date or time.
+func parseToken(p: Parser): Result[Value, Error] {
+  var s = ""
+  while isTokenChar(peek(p, 0)) { s += advance(p) }
+  // A space may separate a date from its time.
+  if Regex.test(DateRe, s) && peek(p, 0) == " " && Regex.test(/^[0-9]$/, peek(p, 1)) {
+    s += advance(p)
+    while isTokenChar(peek(p, 0)) { s += advance(p) }
+  }
+  if s == "" { return Result.err(perr(p, "want a value")) }
+  if s == "true" { return Result.ok(true) }
+  if s == "false" { return Result.ok(false) }
+  if s == "inf" || s == "+inf" { return Result.ok(Math.Infinity) }
+  if s == "-inf" { return Result.ok(-Math.Infinity) }
+  if s == "nan" || s == "+nan" || s == "-nan" { return Result.ok(Math.NaN) }
+  var digits = String.replace(s, "_", "")
+  if Regex.test(DecInt, s) {
+    var n = String.toInt(digits)
+    if n == null { return Result.err(perr(p, "integer ${s} out of range")) }
+    return Result.ok(n)
+  }
+  for b in [Entry{ key: HexInt, value: 16 }, Entry{ key: OctInt, value: 8 }, Entry{ key: BinInt, value: 2 }] {
+    if Regex.test(b.key, s) {
+      var n = String.toInt(String.slice(digits, 2, String.length(digits)), b.value)
+      if n == null { return Result.err(perr(p, "integer ${s} out of range")) }
+      return Result.ok(n)
+    }
+  }
+  if Regex.test(Float, s) {
+    var f = String.toFloat(digits)
+    if f == null { return Result.err(perr(p, "float ${s} out of range")) }
+    return Result.ok(f)
+  }
+  if Regex.test(DateRe, s) {
+    return Result.ok(try (Time.parsePlainDate(s) | Result.wrapErr("line ${p.line}")))
+  }
+  if Regex.test(TimeRe, s) {
+    return Result.ok(try (Time.parsePlainTime(s) | Result.wrapErr("line ${p.line}")))
+  }
+  var m = Regex.find(DateTimeRe, s)
+  if m != null {
+    var date = m.groups[1] ?? ""
+    var time = m.groups[2] ?? ""
+    var offset = m.groups[4]
+    if offset == null {
+      return Result.ok(try (Time.parsePlainDateTime("${date}T${time}") | Result.wrapErr("line ${p.line}")))
+    }
+    var off = String.toUpper(offset)
+    var instant = try (Time.parseInstant("${date}T${time}${off}") | Result.wrapErr("line ${p.line}"))
+    var zone = if off == "Z" { Time.utc } else { try (Time.zone(off) | Result.wrapErr("line ${p.line}")) }
+    return Result.ok(Time.inZone(instant, zone))
+  }
+  Result.err(perr(p, "bad value ${quote(s)}"))
+}
+
+// ---------------------------------------------------------------------------------------------
+// Decoding
+
+export func decode[T](text: string, t: Reflect.Type[T]): Result[T, Error] {
+  var et = Reflect.erase(t)
+  var s = Reflect.shape(et)
+  if !(s is Reflect.Record) || s.decl == null {
+    return Result.err(Error{ message: "toml: the top level must be a named record, not ${et}" })
+  }
+  var tree = try (parseDocument(text) | Result.wrapErr("toml"))
+  var d = try (decodeAt(et, tree, "") | Result.wrapErr("toml"))
+  Result.ok(Reflect.to(d, t))
+}
+
+func fail(path: string, message: string): Result[Reflect.Value, Error] {
+  var at = if path == "" { "top level" } else { path }
+  Result.err(Error{ message: "${at}: ${message}" })
+}
+
+func join(path: string, key: string): string {
+  var k = quoteKey(key)
+  if path == "" { k } else { "${path}.${k}" }
+}
+
+func kindOf(v: Value): string {
+  if v is string { "a string" }
+  else if v is int { "an integer" }
+  else if v is float64 { "a float" }
+  else if v is bool { "a boolean" }
+  else if v is Time.ZonedDateTime { "an offset date-time" }
+  else if v is Time.PlainDateTime { "a local date-time" }
+  else if v is Time.PlainDate { "a local date" }
+  else if v is Time.PlainTime { "a local time" }
+  else if v is Array { "an array" }
+  else { "a table" }
+}
+
+func admitsNull(t: Reflect.ErasedType): bool {
+  var s = Reflect.shape(t)
+  if s is Reflect.Null { return true }
+  if s is Reflect.Union { return Array.some(s.members, { Reflect.shape(x) is Reflect.Null }) }
+  false
+}
+
+func want(path: string, t: Reflect.ErasedType, v: Value): Result[Reflect.Value, Error] {
+  fail(path, "want ${t}, got ${kindOf(v)}")
+}
+
+func decodeAt(t: Reflect.ErasedType, v: Value, path: string): Result[Reflect.Value, Error] {
+  // An Instant takes an offset date-time; the opaque Instant is recognized by its type value.
+  if t == InstantT {
+    if v is Time.ZonedDateTime { return Result.ok(Reflect.valueOf(type(Time.Instant), Time.toInstant(v))) }
+    return want(path, t, v)
+  }
+  var s = Reflect.shape(t)
+  if s is Reflect.Union {
+    // TOML has no null, so a present value tries the other members in order.
+    for m in s.members {
+      if Reflect.shape(m) is Reflect.Null { continue }
+      var r = decodeAt(m, v, path)
+      if r is Ok { return r }
+    }
+    want(path, t, v)
+  } else if s is Reflect.Bool {
+    if v is bool { scalar(t, v, path) } else { want(path, t, v) }
+  } else if s is Reflect.String {
+    if v is string { scalar(t, v, path) } else { want(path, t, v) }
+  } else if s is Reflect.Int {
+    if v is int { scalar(t, v, path) } else { want(path, t, v) }
+  } else if s is Reflect.Float {
+    if v is float64 { scalar(t, v, path) }
+    else if v is int { scalar(t, v, path) }
+    else { want(path, t, v) }
+  } else if s is Reflect.Tagged {
+    Result.ok(Reflect.makeTagged(t, try decodeAt(s.base, v, path)))
+  } else if s is Reflect.Array {
+    if !(v is Array) { return want(path, t, v) }
+    Result.ok(Reflect.makeArray(t, try decodeItems(s.element, v, path)))
+  } else if s is Reflect.Set {
+    if !(v is Array) { return want(path, t, v) }
+    Result.ok(Reflect.makeSet(t, try decodeItems(s.member, v, path)))
+  } else if s is Reflect.Map {
+    if !(v is Map) { return want(path, t, v) }
+    var entries: Array[Entry[Reflect.Value, Reflect.Value]] = []
+    for e in v {
+      var at = join(path, e.key)
+      var k = try decodeAt(s.key, e.key, at)
+      Array.push(entries, Entry{ key: k, value: try decodeAt(s.value, e.value, at) })
+    }
+    Result.ok(Reflect.makeMap(t, entries))
+  } else if s is Reflect.Record {
+    if s.decl == null { return fail(path, "cannot decode into the anonymous record ${t}") }
+    if !(v is Map) { return want(path, t, v) }
+    var fields: Map[string, Reflect.Value] = Map{}
+    for f in s.fields {
+      var x = v[f.name]
+      if x != null {
+        fields[f.name] = try decodeAt(f.type, x, join(path, f.name))
+      } else if f.hasDefault {
+        // left out: makeRecord fills the default
+      } else if admitsNull(f.type) {
+        fields[f.name] = Reflect.valueOf(type(null), null)
+      } else {
+        return fail(path, "missing key ${quoteKey(f.name)}")
+      }
+    }
+    for k in Map.keys(v) {
+      if !Array.some(s.fields, { x.name == k }) { return fail(path, "unknown key ${quoteKey(k)}") }
+    }
+    Result.ok(Reflect.makeRecord(t, fields))
+  } else if s is Reflect.Opaque {
+    // The other time types: box the tree value at its own type, which the union resolves to
+    // the member it holds, and keep it when that type fits the slot.
+    var d = Reflect.valueOf(type(Value), v)
+    if Reflect.assignable(Reflect.type(d), t) { Result.ok(d) } else { want(path, t, v) }
+  } else {
+    fail(path, "cannot decode into ${t}")
+  }
+}
+
+func scalar(t: Reflect.ErasedType, v: Reflect.Scalar, path: string): Result[Reflect.Value, Error] {
+  var d = Reflect.makeScalar(t, v)
+  if d == null { return fail(path, "${String.from(v)} does not fit ${t}") }
+  Result.ok(d)
+}
+
+func decodeItems(t: Reflect.ErasedType, v: Array[Value], path: string): Result[Array[Reflect.Value], Error] {
+  var items: Array[Reflect.Value] = []
+  for e in Array.entries(v) {
+    Array.push(items, try decodeAt(t, e.value, "${path}[${e.index}]"))
+  }
+  Result.ok(items)
+}
+
+// ---------------------------------------------------------------------------------------------
+// Encoding
+
+export func encode[T](t: Reflect.Type[T], value: T): Result[string, Error] {
+  var d = Reflect.valueOf(t, value)
+  var et = Reflect.type(d)
+  var s = Reflect.shape(et)
+  if !(s is Reflect.Record) || s.decl == null {
+    return Result.err(Error{ message: "toml: the top level must be a named record, not ${et}" })
+  }
+  var out: Array[string] = []
+  try (encodeTable(d, [], out) | Result.wrapErr("toml"))
+  Result.ok(String.join(out, "\n") + "\n")
+}
+
+type Kind = Inline | Table | Tables
+type Inline = {}
+type Table = {}
+type Tables = {}
+
+func isTable(d: Reflect.Value): bool {
+  var s = Reflect.shape(Reflect.type(d))
+  s is Reflect.Record || s is Reflect.Map
+}
+
+func kind(d: Reflect.Value): Kind {
+  var t = Reflect.type(d)
+  if isTime(t) { return Inline{} }
+  var s = Reflect.shape(t)
+  if s is Reflect.Record || s is Reflect.Map { return Table{} }
+  if s is Reflect.Array || s is Reflect.Set {
+    var items = Reflect.items(d)
+    if len(items) > 0 && Array.every(items, isTable) { return Tables{} }
+  }
+  Inline{}
+}
+
+func isTime(t: Reflect.ErasedType): bool {
+  t == InstantT || t == ZonedT || t == DateTimeT || t == DateT || t == TimeT
+}
+
+// The key-value pairs of a record or map, nulls left out of a record.
+func members(d: Reflect.Value, path: Array[string]): Result[Array[Entry[string, Reflect.Value]], Error] {
+  var s = Reflect.shape(Reflect.type(d))
+  var out: Array[Entry[string, Reflect.Value]] = []
+  if s is Reflect.Record {
+    for f in s.fields {
+      var v = Reflect.field(d, f.name)
+      if Reflect.type(v) != NullT { Array.push(out, Entry{ key: f.name, value: v }) }
+    }
+  } else {
+    for e in Reflect.entries(d) {
+      var k = try keyString(e.key, path)
+      if Reflect.type(e.value) == NullT {
+        return Result.err(Error{ message: "${render(path)}: TOML has no null, for map key ${quoteKey(k)}" })
+      }
+      Array.push(out, Entry{ key: k, value: e.value })
+    }
+  }
+  Result.ok(out)
+}
+
+func keyString(d: Reflect.Value, path: Array[string]): Result[string, Error] {
+  var s = Reflect.shape(Reflect.type(d))
+  if s is Reflect.Tagged { return keyString(Reflect.payload(d), path) }
+  var v = if s is Reflect.String { Reflect.scalar(d) } else { null }
+  if v is string { return Result.ok(v) }
+  Result.err(Error{ message: "${render(path)}: a map key must be a string, not ${Reflect.type(d)}" })
+}
+
+func render(path: Array[string]): string {
+  if len(path) == 0 { "top level" } else { String.join(Array.map(path, quoteKey), ".") }
+}
+
+// A table's body: its inline pairs first, then its tables and arrays of tables.
+func encodeTable(d: Reflect.Value, path: Array[string], out: Array[string]): Result[void, Error] {
+  var ms = try members(d, path)
+  var later: Array[Entry[string, Reflect.Value]] = []
+  for m in ms {
+    if kind(m.value) is Inline {
+      var at = Array.concat(path, [m.key])
+      Array.push(out, "${quoteKey(m.key)} = ${try inline(m.value, at)}")
+    } else {
+      Array.push(later, m)
+    }
+  }
+  for m in later {
+    var at = Array.concat(path, [m.key])
+    if kind(m.value) is Table {
+      if len(out) > 0 { Array.push(out, "") }
+      Array.push(out, "[${render(at)}]")
+      try encodeTable(m.value, at, out)
+    } else {
+      for item in Reflect.items(m.value) {
+        if len(out) > 0 { Array.push(out, "") }
+        Array.push(out, "[[${render(at)}]]")
+        try encodeTable(item, at, out)
+      }
+    }
+  }
+  Result.ok(void)
+}
+
+func inline(d: Reflect.Value, path: Array[string]): Result[string, Error] {
+  var t = Reflect.type(d)
+  if t == InstantT { return Result.ok(String.from(Reflect.to(d, type(Time.Instant)))) }
+  if t == ZonedT {
+    var z = Reflect.to(d, type(Time.ZonedDateTime))
+    var off = if Time.zoneOf(z) == Time.utc { "Z" } else { Time.offset(z) }
+    return Result.ok(String.from(Time.toPlainDateTime(z)) + off)
+  }
+  if t == DateTimeT { return Result.ok(String.from(Reflect.to(d, type(Time.PlainDateTime)))) }
+  if t == DateT { return Result.ok(String.from(Reflect.to(d, type(Time.PlainDate)))) }
+  if t == TimeT { return Result.ok(String.from(Reflect.to(d, type(Time.PlainTime)))) }
+  var s = Reflect.shape(t)
+  if s is Reflect.Record || s is Reflect.Map {
+    var parts: Array[string] = []
+    for m in try members(d, path) {
+      Array.push(parts, "${quoteKey(m.key)} = ${try inline(m.value, Array.concat(path, [m.key]))}")
+    }
+    if len(parts) == 0 { return Result.ok("{}") }
+    return Result.ok("{ ${String.join(parts, ", ")} }")
+  }
+  if s is Reflect.Array || s is Reflect.Set {
+    var parts: Array[string] = []
+    for e in Array.entries(Reflect.items(d)) {
+      Array.push(parts, try inline(e.value, Array.concat(path, ["${e.index}"])))
+    }
+    return Result.ok("[${String.join(parts, ", ")}]")
+  }
+  if s is Reflect.Tagged { return inline(Reflect.payload(d), path) }
+  if s is Reflect.Bool || s is Reflect.Int || s is Reflect.Float || s is Reflect.String {
+    var v = Reflect.scalar(d)
+    if v is string { return Result.ok(quote(v)) }
+    if v is uint64 && v > uint64(Math.maxInt) {
+      return Result.err(Error{ message: "${render(path)}: ${v} does not fit a TOML integer" })
+    }
+    if v is float64 || v is float32 {
+      var f = String.from(v)
+      if f == "NaN" { return Result.ok("nan") }
+      if f == "Infinity" { return Result.ok("inf") }
+      if f == "-Infinity" { return Result.ok("-inf") }
+      return Result.ok(f)
+    }
+    return Result.ok(String.from(v))
+  }
+  if s is Reflect.Null { return Result.err(Error{ message: "${render(path)}: TOML has no null" }) }
+  Result.err(Error{ message: "${render(path)}: cannot encode ${t}" })
+}
+
+func quoteKey(k: string): string {
+  if Regex.test(/^[A-Za-z0-9_-]+$/, k) { k } else { quote(k) }
+}
+
+func quote(s: string): string {
+  var out = "\""
+  for c in s {
+    if c == "\"" { out += "\\\"" }
+    else if c == "\\" { out += "\\\\" }
+    else if c == "\n" { out += "\\n" }
+    else if c == "\t" { out += "\\t" }
+    else if c == "\r" { out += "\\r" }
+    else if isControl(c) { out += "\\u" + String.padStart(String.fromInt(String.codePoint(c), 16), 4, "0") }
+    else { out += c }
+  }
+  out + "\""
+}

@@ -1,0 +1,111 @@
+// spec: 11 Reflect; 4 Unions; 4 Tagged unions
+// Demo: typed XML through Reflect, with round trips.
+import "./lib/xml.ant" { decode, encode, Attr }
+
+type Celsius = float64
+type UserId = string
+type Circle = { radius: float64 }
+type Rect = { width: float64, height: float64 }
+type Shape = Circle | Rect
+type Box[T] = { label: string, value: T }
+type Tree = { value: int, children: Array[Tree] }
+type Item = { id: Attr, lang: Attr | null = null, name: string, price: float64, qty: int8 }
+type Order = {
+  id: UserId,
+  items: Array[Item],
+  tags: Set[string],
+  meta: Map[string, int],
+  note: string | null = null,
+  shape: Shape,
+  shapes: Array[Shape],
+  maybe: Array[int | null],
+  grid: Array[Array[int]],
+  temp: Celsius,
+  blob: Bytes,
+  urgent: bool = false,
+}
+
+func roundTrip[T](t: Reflect.Type[T], value: T): void {
+  var text = encode(t, value)
+  println(text)
+  var back = decode(text, t)
+  if back is Ok {
+    println("round trip ${t}: ${back.value == value}")
+    if back.value != value { println("  got ${back.value}") }
+  } else {
+    println("round trip ${t} failed: ${back.error.message}")
+  }
+}
+
+var order = Order{
+  id: UserId("o-1"),
+  items: [
+    Item{ id: Attr("a&1"), lang: Attr("en"), name: "Tea <green> & \"chai\"", price: 4.5, qty: int8(2) },
+    Item{ id: Attr("b2"), name: "", price: 0.1, qty: int8(-3) },
+  ],
+  tags: Set.of(["x", "y"]),
+  meta: Map{ "a b": 1, "c<d": 2 },
+  shape: Rect{ width: 2.0, height: 3.0 },
+  shapes: [Circle{ radius: 1.0 }, Rect{ width: 1.0, height: 1.0 }],
+  maybe: [1, null, 3],
+  grid: [[1, 2], [], [3]],
+  temp: Celsius(21.5),
+  blob: String.toBytes("hi\u{0}"),
+}
+roundTrip(type(Order), order)
+roundTrip(type(Shape), Circle{ radius: 2.5 })
+roundTrip(type(Box[Circle]), Box{ label: "b", value: Circle{ radius: 1.0 } })
+roundTrip(type(Box[Array[string]]), Box{ label: "multi", value: ["p", "q"] })
+roundTrip(type(Box[int | string]), Box{ label: "u", value: "s" })
+roundTrip(type(Tree), Tree{ value: 1, children: [Tree{ value: 2, children: [] }, Tree{ value: 3, children: [Tree{ value: 4, children: [] }] }] })
+roundTrip(type(Map[int, Array[float64]]), Map{ 1: [1.5, 2.0], 2: [] })
+roundTrip(type(Array[string]), ["  spaced  ", "line\r\nbreak", "tab\there"])
+
+// Hand-written XML: prolog, comments, CDATA, entities, self-closing, attributes, white space.
+var doc = `<?xml version="1.0" encoding="UTF-8"?>
+<!-- a comment -->
+<Box>
+  <label><![CDATA[<raw> & stuff]]> &#65;&#x42;&lt;</label>
+  <value><Circle><radius> 3.5 </radius></Circle></value>
+</Box>`
+println(decode(doc, type(Box[Shape])))
+
+// Errors.
+println(decode("<Circle><radius>x</radius></Circle>", type(Circle)))
+println(decode("<Circle></Circle>", type(Circle)))
+println(decode("<Rect><width>1</width></Rect>", type(Circle)))
+println(decode("<Item id=\"i\"><name>n</name><price>1</price><qty>300</qty></Item>", type(Item)))
+println(decode("<Circle><radius>1</radius></Circl>", type(Circle)))
+println(decode("<Triangle/>", type(Shape)))
+roundTrip(type(Shape | null), null)
+roundTrip(type(int | null), 5)
+
+// expect
+// out: <Order><id>o-1</id><items id="a&amp;1" lang="en"><name>Tea &lt;green&gt; &amp; "chai"</name><price>4.5</price><qty>2</qty></items><items id="b2"><name/><price>0.1</price><qty>-3</qty></items><tags>x</tags><tags>y</tags><meta><entry key="a b">1</entry><entry key="c&lt;d">2</entry></meta><shape><Rect><width>2.0</width><height>3.0</height></Rect></shape><shapes><Circle><radius>1.0</radius></Circle></shapes><shapes><Rect><width>1.0</width><height>1.0</height></Rect></shapes><maybe><int>1</int></maybe><maybe><null/></maybe><maybe><int>3</int></maybe><grid><item>1</item><item>2</item></grid><grid></grid><grid><item>3</item></grid><temp>21.5</temp><blob>aGkA</blob><urgent>false</urgent></Order>
+// out: round trip Order: true
+// out: <Circle><radius>2.5</radius></Circle>
+// out: round trip Shape: true
+// out: <Box><label>b</label><value><radius>1.0</radius></value></Box>
+// out: round trip Box[Circle]: true
+// out: <Box><label>multi</label><value>p</value><value>q</value></Box>
+// out: round trip Box[Array[string]]: true
+// out: <Box><label>u</label><value><string>s</string></value></Box>
+// out: round trip Box[int | string]: true
+// out: <Tree><value>1</value><children><value>2</value></children><children><value>3</value><children><value>4</value></children></children></Tree>
+// out: round trip Tree: true
+// out: <Map><entry key="1"><item>1.5</item><item>2.0</item></entry><entry key="2"></entry></Map>
+// out: round trip Map[int, Array[float64]]: true
+// out: <Array><item>  spaced  </item><item>line&#13;
+// out: break</item><item>tab	here</item></Array>
+// out: round trip Array[string]: true
+// out: Ok{ value: Box{ label: "<raw> & stuff AB<", value: Circle{ radius: 3.5 } } }
+// out: Err{ error: Error{ message: "xml: Circle/radius: want float64, got \"x\"" } }
+// out: Err{ error: Error{ message: "xml: Circle: missing <radius>" } }
+// out: Err{ error: Error{ message: "xml: want <Circle>, got <Rect>" } }
+// out: Err{ error: Error{ message: "xml: Item/qty: want int8, got \"300\"" } }
+// out: Err{ error: Error{ message: "xml: offset 33: </Circl> closes <Circle>" } }
+// out: Err{ error: Error{ message: "xml: <Triangle> is not a member of Shape" } }
+// out: <null/>
+// out: round trip Shape | null: true
+// out: <int>5</int>
+// out: round trip int | null: true

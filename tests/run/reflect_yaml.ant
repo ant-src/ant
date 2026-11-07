@@ -1,0 +1,245 @@
+// spec: 11 Reflect; 4 Field defaults; 4 Types as values
+// A demo of yaml.ant: decode into declared types, encode, and round-trip.
+import "./lib/yaml.ant" { decode, encode }
+
+type Celsius = float64
+type UserId = string
+type Level = int8
+type Box[T] = { value: T, label: string = "box" }
+type Server = { host: string, port: int = 8080, tags: Array[string] = [] }
+type Limits = { cpu: float64 = 1.0, memory: int | null = null }
+type Config = {
+  name: string,
+  servers: Array[Server],
+  limits: Limits = Limits{},
+  debug: bool = false,
+  owner: UserId | null = null,
+  key: Bytes = String.toBytes(""),
+  env: Map[string, string] = Map{},
+  ports: Set[int] = Set.of([]),
+}
+type Reading = { sensor: string, value: Celsius, seen: Map[int, Celsius] = Map{} }
+type Tree = { value: int, children: Array[Tree] = [] }
+type Mixed = { a: int | string, b: float64 | string, c: bool | string, d: string | null, e: Array[int] | null }
+type Red = {}
+type Green = {}
+type Circle = { radius: float64 }
+type Rect = { width: float64, height: float64 }
+type Drawing = { shapes: Array[Circle | Rect], fill: Red | Green = Red{}, json: Json.Value = null }
+type Link = { value: int, next: Link | null = null }
+type Wide = { small: Level, big: uint64, f: float32, inf: float64 }
+
+var text = `
+# a config
+name: demo
+servers:
+  - host: a.example.com
+  - host: b.example.com   # with a comment
+    port: 9090
+    tags: [web, "edge, east", 'it''s']
+limits: {cpu: 2.5}
+owner: u-1
+key: aGVsbG8=
+env:
+  HOME: /root
+  YES: yes
+  NUM: "123"
+ports: [80, 443, 80]
+`
+var config = try decode(text, type(Config))
+println(config)
+var out = encode(type(Config), config)
+print(out)
+var again = try decode(out, type(Config))
+println("config round trip: ${again == config}")
+
+// Named primitives, generics, map keys that are not strings.
+var reading = try decode("sensor: s1\nvalue: 21.5\nseen: {1: 20.0, 2: 21}\n", type(Reading))
+println(reading)
+print(encode(type(Reading), reading))
+println("reading round trip: ${(try decode(encode(type(Reading), reading), type(Reading))) == reading}")
+
+var boxes = try decode("- value: 1\n- value: 2\n  label: two\n", type(Array[Box[int]]))
+println(boxes)
+var nested = try decode("value:\n  value: [x, y]\nlabel: outer\n", type(Box[Box[Array[string]]]))
+println(nested)
+print(encode(type(Box[Box[Array[string]]]), nested))
+
+// A recursive type, encoded and decoded.
+var tree = Tree{ value: 1, children: [Tree{ value: 2 }, Tree{ value: 3, children: [Tree{ value: 4 }] }] }
+var treeText = encode(type(Tree), tree)
+print(treeText)
+println("tree round trip: ${(try decode(treeText, type(Tree))) == tree}")
+
+// Type-directed scalars and unions.
+var mixed = try decode("a: 12\nb: 1.5\nc: yes\nd: ~\ne: null\n", type(Mixed))
+println(mixed)
+var mixed2 = try decode("a: '12'\nb: 7\nc: true\nd: null value\ne: [1, 2]\n", type(Mixed))
+println(mixed2)
+print(encode(type(Mixed), mixed))
+println("mixed round trip: ${(try decode(encode(type(Mixed), mixed), type(Mixed))) == mixed}")
+var strings = ["yes", "123", "", " pad", "a: b", "- x", "null", "1e3", "#x", "line\nbreak", "日本", "it's", "\u{1F600}", "tab\there", "{}", ".inf"]
+var stext = encode(type(Array[string]), strings)
+print(stext)
+println("strings round trip: ${(try decode(stext, type(Array[string]))) == strings}")
+
+var wide = try decode("small: -128\nbig: 18446744073709551615\nf: 0.1\ninf: -.inf\n", type(Wide))
+println(wide)
+print(encode(type(Wide), wide))
+println("wide round trip: ${(try decode(encode(type(Wide), wide), type(Wide))) == wide}")
+
+var nestedSeq = try decode("- - 1\n  - 2\n- []\n- [3]\n", type(Array[Array[int]]))
+println(nestedSeq)
+print(encode(type(Array[Array[int]]), nestedSeq))
+
+var literal = try decode("text: |\n  one\n    two\n\n  three\nafter: x\n", type(Map[string, string]))
+println(literal)
+
+// Unions of several record types carry the member's name as a one-key mapping.
+var drawing = Drawing{ shapes: [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }], fill: Green{}, json: Map{ a: [1.0, "x", null, true, Map{}] } }
+var dtext = encode(type(Drawing), drawing)
+print(dtext)
+println("drawing round trip: ${(try decode(dtext, type(Drawing))) == drawing}")
+println(decode("Ok: 1\n", type(Result[int, Error])))
+
+// A cyclic value panics in the encoder.
+var link = Link{ value: 1 }
+link.next = link
+println(Panic.catch({ encode(type(Link), link) }) | Result.mapErr({ x.message }))
+
+// Errors.
+println(decode("servers:\n  - port: 1\n", type(Config)))
+println(decode("name: x\nservers: []\nlimits:\n  cpu: lots\n", type(Config)))
+println(decode("name: x\nservers: []\nextra: 1\n", type(Config)))
+println(decode("name: x\nname: y\nservers: []\n", type(Config)))
+println(decode("small: 200\nbig: 1\nf: 1\ninf: 1\n", type(Wide)))
+println(decode("small: 1\nbig: -1\nf: 1\ninf: 1\n", type(Wide)))
+println(decode("[1, 2", type(Array[int])))
+println(decode("a: 1\n  b: 2\n", type(Map[string, int])))
+println(decode("key: '!!'\nname: x\nservers: []\n", type(Config)))
+println(decode("count: \"5\"\n", type(Map[string, int])))
+println(decode("a: 1\n", type({ a: int })))
+println(decode("- x\n", type(Set[int])))
+println(decode("shapes:\n  - Square: {side: 1}\n", type(Drawing)))
+println(decode("shapes:\n  - {radius: 1}\n", type(Drawing)))
+
+// expect
+// out: Config{ name: "demo", servers: [Server{ host: "a.example.com", port: 8080, tags: [] }, Server{ host: "b.example.com", port: 9090, tags: ["web", "edge, east", "it's"] }], limits: Limits{ cpu: 2.5, memory: null }, debug: false, owner: UserId("u-1"), key: Bytes(68 65 6c 6c 6f), env: Map{ "HOME": "/root", "YES": "yes", "NUM": "123" }, ports: Set.of([80, 443]) }
+// out: name: demo
+// out: servers:
+// out:   - host: a.example.com
+// out:     port: 8080
+// out:     tags: []
+// out:   - host: b.example.com
+// out:     port: 9090
+// out:     tags:
+// out:       - web
+// out:       - edge, east
+// out:       - it's
+// out: limits:
+// out:   cpu: 2.5
+// out:   memory: null
+// out: debug: false
+// out: owner: u-1
+// out: key: aGVsbG8=
+// out: env:
+// out:   HOME: /root
+// out:   "YES": "yes"
+// out:   NUM: "123"
+// out: ports:
+// out:   - 80
+// out:   - 443
+// out: config round trip: true
+// out: Reading{ sensor: "s1", value: Celsius(21.5), seen: Map{ 1: Celsius(20.0), 2: Celsius(21.0) } }
+// out: sensor: s1
+// out: value: 21.5
+// out: seen:
+// out:   1: 20.0
+// out:   2: 21.0
+// out: reading round trip: true
+// out: [Box{ value: 1, label: "box" }, Box{ value: 2, label: "two" }]
+// out: Box{ value: Box{ value: ["x", "y"], label: "box" }, label: "outer" }
+// out: value:
+// out:   value:
+// out:     - x
+// out:     - "y"
+// out:   label: box
+// out: label: outer
+// out: value: 1
+// out: children:
+// out:   - value: 2
+// out:     children: []
+// out:   - value: 3
+// out:     children:
+// out:       - value: 4
+// out:         children: []
+// out: tree round trip: true
+// out: Mixed{ a: 12, b: 1.5, c: "yes", d: null, e: null }
+// out: Mixed{ a: "12", b: 7.0, c: true, d: "null value", e: [1, 2] }
+// out: a: 12
+// out: b: 1.5
+// out: c: "yes"
+// out: d: null
+// out: e: null
+// out: mixed round trip: true
+// out: - "yes"
+// out: - "123"
+// out: - ""
+// out: - " pad"
+// out: - "a: b"
+// out: - "- x"
+// out: - "null"
+// out: - "1e3"
+// out: - "#x"
+// out: - "line\nbreak"
+// out: - 日本
+// out: - it's
+// out: - 😀
+// out: - "tab\there"
+// out: - "{}"
+// out: - ".inf"
+// out: strings round trip: true
+// out: Wide{ small: Level(-128), big: 18446744073709551615, f: 0.1, inf: -Infinity }
+// out: small: -128
+// out: big: 18446744073709551615
+// out: f: 0.1
+// out: "inf": -.inf
+// out: wide round trip: true
+// out: [[1, 2], [], [3]]
+// out: - - 1
+// out:   - 2
+// out: - []
+// out: - - 3
+// out: Map{ "text": "one\n  two\n\nthree\n", "after": "x" }
+// out: shapes:
+// out:   - Circle:
+// out:       radius: 1.0
+// out:   - Rect:
+// out:       width: 2.0
+// out:       height: 3.0
+// out: fill:
+// out:   Green: {}
+// out: json:
+// out:   a:
+// out:     - 1.0
+// out:     - x
+// out:     - null
+// out:     - true
+// out:     - {}
+// out: drawing round trip: true
+// out: Err{ error: Error{ message: "$.Ok (line 1): want a mapping for Ok[int], got \"1\"" } }
+// out: Err{ error: "yaml: cannot encode a cyclic value" }
+// out: Err{ error: Error{ message: "$ (line 1): missing field name" } }
+// out: Err{ error: Error{ message: "$.limits.cpu (line 4): want float64, got \"lots\"" } }
+// out: Err{ error: Error{ message: "$ (line 3): unknown field extra in Config" } }
+// out: Err{ error: Error{ message: "line 2: duplicate key name" } }
+// out: Err{ error: Error{ message: "$.small (line 1): \"200\" does not fit int8" } }
+// out: Err{ error: Error{ message: "$.big (line 2): \"-1\" does not fit uint64" } }
+// out: Err{ error: Error{ message: "line 1: want , or ] in a flow sequence" } }
+// out: Err{ error: Error{ message: "line 2: unexpected indentation" } }
+// out: Err{ error: Error{ message: "$.key (line 1): illegal base64 data at input byte 0" } }
+// out: Err{ error: Error{ message: "$.count (line 1): want int, got a quoted string" } }
+// out: Err{ error: Error{ message: "$ (line 1): cannot build the anonymous record type { a: int }" } }
+// out: Err{ error: Error{ message: "$[0] (line 1): want int, got \"x\"" } }
+// out: Err{ error: Error{ message: "$.shapes[0] (line 2): unknown tag Square, want one of Circle, Rect" } }
+// out: Err{ error: Error{ message: "$.shapes[0] (line 2): unknown tag radius, want one of Circle, Rect" } }

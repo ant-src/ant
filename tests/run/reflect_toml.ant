@@ -1,0 +1,253 @@
+// spec: 11 Reflect; 4 Field defaults; stdlib Time
+// Demo of the typed TOML codec in toml.ant.
+import "./lib/toml.ant" { decode, encode }
+
+type Port = int
+type Name = string
+type Box[T] = { value: T, label: string = "box" }
+type Owner = { name: string, dob: Time.Instant, local: Time.ZonedDateTime | null = null }
+type Database = {
+  enabled: bool = true,
+  ports: Array[Port],
+  data: Array[Array[string | float64]] = [],
+  temp_targets: Map[string, float64] = Map{},
+}
+type Server = { ip: string, role: string = "backend", port: Port | null }
+type Product = { name: string, sku: int | null = null, color: string | null = null }
+type Point = { x: int, y: int }
+type Schedule = { day: Time.PlainDate, start: Time.PlainTime, at: Time.PlainDateTime }
+type Config = {
+  title: string,
+  owner: Owner,
+  database: Database,
+  servers: Map[Name, Server],
+  products: Array[Product],
+  tags: Set[string] = Set.of([]),
+  points: Array[Point] = [],
+  boxed: Box[int],
+  boxes: Array[Box[string]] = [],
+  schedule: Schedule,
+  limit: int | null,
+}
+
+var text = `# This is a TOML document
+title = "TOML \"Example\"\u00e9"
+
+[owner]
+name = 'Tom Preston-Werner'
+dob = 1979-05-27T07:32:00-08:00
+local = 1979-05-27 07:32:00.5+02:00
+
+[database]
+ports = [ 8000, 8001, 8002 ]
+data = [ ["delta", "phi"], [3.14] ]
+temp_targets = { cpu = 79.5, case = 72.0 }
+
+[servers]
+
+[servers.alpha]
+ip = "10.0.0.1"
+role = "frontend"
+port = 0x1F90
+
+[servers."beta gamma"]
+ip = "10.0.0.2"
+port = 0o17
+
+[[products]]
+name = "Hammer"
+sku = 738_594_937
+
+[[products]]  # empty table within the array
+name = "Nail"
+color = """
+gray\
+   ish"""
+
+[schedule]
+day = 2026-11-05
+start = 09:30:00
+at = 2026-11-05T09:30:00.250
+
+[boxed]
+value = 42
+
+[[boxes]]
+value = 'C:\temp'
+
+[[boxes]]
+value = '''two
+lines'''
+label = "second"
+`
+
+var config = try decode(text, type(Config))
+println(config)
+println()
+var out = try encode(type(Config), config)
+print(out)
+println()
+var back = try decode(out, type(Config))
+println("round trip equal: ${back == config}")
+println()
+
+// Numbers of every width, named primitives, infinities.
+type Count = uint16
+type Numbers = {
+  a: int8, b: uint16, c: int32, d: uint64, e: float32, f: float64, g: Count,
+  h: float64, i: float64, j: int, k: int, l: float64, m: float64,
+  dotted: Map[string, int] = Map{},
+}
+var nums = try decode(`a = -128
+b = 65_535
+c = 0b1010_1010
+d = 0xdead_BEEF
+e = 0.1
+f = 6.626e-34
+g = 7
+h = inf
+i = -inf
+j = +99
+k = -17
+l = 1e+21
+m = -0.0
+dotted.x = 1
+dotted."y.z" = 2
+`, type(Numbers))
+println(nums)
+var numsOut = try encode(type(Numbers), nums)
+print(numsOut)
+println("numbers round trip equal: ${(try decode(numsOut, type(Numbers))) == nums}")
+println()
+
+type Nan = { x: float64 }
+println(decode("x = nan", type(Nan)))
+println(encode(type(Nan), Nan{ x: Math.NaN }))
+
+// Strings with escapes.
+type Strs = { s: string, t: string }
+var strs = Strs{ s: "tab\there \"q\" back\\slash\nnew \u{1} \u{7f} é 🐜", t: "" }
+var strsOut = try encode(type(Strs), strs)
+print(strsOut)
+println("strings round trip equal: ${(try decode(strsOut, type(Strs))) == strs}")
+println()
+
+// Errors.
+println(decode("title = 1", type(Config)))
+println(decode("a = 300\nb = 1\nc = 1\nd = 1\ne = 1.0\nf = 1.0\ng = 1\nh = 1.0\ni = 1.0\nj = 1\nk = 1\nl = 1.0\nm = 1.0", type(Numbers)))
+println(decode("x = 1\ny = 2\nz = 3", type(Point)))
+println(decode("x = 1", type(Point)))
+println(decode("x = 1\nx = 2", type(Point)))
+println(decode("[a]\n[a]", type(Point)))
+println(decode("x = 01", type(Point)))
+println(decode("x = 1__0", type(Point)))
+println(decode("x = 1", type(Map[string, int])))
+println(decode("x = 1", type({ x: int })))
+println(encode(type(Map[string, int]), Map{ a: 1 }))
+type Unsigned = { u: uint64 }
+println(encode(type(Unsigned), Unsigned{ u: uint64(Math.maxInt) + uint64(1) }))
+type Holes = { xs: Array[int | null] }
+println(encode(type(Holes), Holes{ xs: [1, null] }))
+type Big = { m: Map[string, int | null] }
+println(encode(type(Big), Big{ m: Map{ a: null } }))
+
+// expect
+// out: Config{ title: "TOML \"Example\"é", owner: Owner{ name: "Tom Preston-Werner", dob: 1979-05-27T15:32:00Z, local: 1979-05-27T07:32:00.5+02:00[+02:00] }, database: Database{ enabled: true, ports: [Port(8000), Port(8001), Port(8002)], data: [["delta", "phi"], [3.14]], temp_targets: Map{ "cpu": 79.5, "case": 72.0 } }, servers: Map{ Name("alpha"): Server{ ip: "10.0.0.1", role: "frontend", port: Port(8080) }, Name("beta gamma"): Server{ ip: "10.0.0.2", role: "backend", port: Port(15) } }, products: [Product{ name: "Hammer", sku: 738594937, color: null }, Product{ name: "Nail", sku: null, color: "grayish" }], tags: Set.of([]), points: [], boxed: Box{ value: 42, label: "box" }, boxes: [Box{ value: "C:\\temp", label: "box" }, Box{ value: "two\nlines", label: "second" }], schedule: Schedule{ day: 2026-11-05, start: 09:30:00, at: 2026-11-05T09:30:00.25 }, limit: null }
+// out:
+// out: title = "TOML \"Example\"é"
+// out: tags = []
+// out: points = []
+// out:
+// out: [owner]
+// out: name = "Tom Preston-Werner"
+// out: dob = 1979-05-27T15:32:00Z
+// out: local = 1979-05-27T07:32:00.5+02:00
+// out:
+// out: [database]
+// out: enabled = true
+// out: ports = [8000, 8001, 8002]
+// out: data = [["delta", "phi"], [3.14]]
+// out:
+// out: [database.temp_targets]
+// out: cpu = 79.5
+// out: case = 72.0
+// out:
+// out: [servers]
+// out:
+// out: [servers.alpha]
+// out: ip = "10.0.0.1"
+// out: role = "frontend"
+// out: port = 8080
+// out:
+// out: [servers."beta gamma"]
+// out: ip = "10.0.0.2"
+// out: role = "backend"
+// out: port = 15
+// out:
+// out: [[products]]
+// out: name = "Hammer"
+// out: sku = 738594937
+// out:
+// out: [[products]]
+// out: name = "Nail"
+// out: color = "grayish"
+// out:
+// out: [boxed]
+// out: value = 42
+// out: label = "box"
+// out:
+// out: [[boxes]]
+// out: value = "C:\\temp"
+// out: label = "box"
+// out:
+// out: [[boxes]]
+// out: value = "two\nlines"
+// out: label = "second"
+// out:
+// out: [schedule]
+// out: day = 2026-11-05
+// out: start = 09:30:00
+// out: at = 2026-11-05T09:30:00.25
+// out:
+// out: round trip equal: true
+// out:
+// out: Numbers{ a: -128, b: 65535, c: 170, d: 3735928559, e: 0.1, f: 6.626e-34, g: Count(7), h: Infinity, i: -Infinity, j: 99, k: -17, l: 1e+21, m: -0.0, dotted: Map{ "x": 1, "y.z": 2 } }
+// out: a = -128
+// out: b = 65535
+// out: c = 170
+// out: d = 3735928559
+// out: e = 0.1
+// out: f = 6.626e-34
+// out: g = 7
+// out: h = inf
+// out: i = -inf
+// out: j = 99
+// out: k = -17
+// out: l = 1e+21
+// out: m = -0.0
+// out:
+// out: [dotted]
+// out: x = 1
+// out: "y.z" = 2
+// out: numbers round trip equal: true
+// out:
+// out: Ok{ value: Nan{ x: NaN } }
+// out: Ok{ value: "x = nan\n" }
+// out: s = "tab\there \"q\" back\\slash\nnew \u0001 \u007f é 🐜"
+// out: t = ""
+// out: strings round trip equal: true
+// out:
+// out: Err{ error: Error{ message: "toml: title: want string, got an integer" } }
+// out: Err{ error: Error{ message: "toml: a: 300 does not fit int8" } }
+// out: Err{ error: Error{ message: "toml: top level: unknown key z" } }
+// out: Err{ error: Error{ message: "toml: top level: missing key y" } }
+// out: Err{ error: Error{ message: "toml: line 2: duplicate key \"x\"" } }
+// out: Err{ error: Error{ message: "toml: line 2: table [a] defined twice" } }
+// out: Err{ error: Error{ message: "toml: line 1: bad value \"01\"" } }
+// out: Err{ error: Error{ message: "toml: line 1: bad value \"1__0\"" } }
+// out: Err{ error: Error{ message: "toml: the top level must be a named record, not Map[string, int]" } }
+// out: Err{ error: Error{ message: "toml: the top level must be a named record, not { x: int }" } }
+// out: Err{ error: Error{ message: "toml: the top level must be a named record, not Map[string, int]" } }
+// out: Err{ error: Error{ message: "toml: u: 9223372036854775808 does not fit a TOML integer" } }
+// out: Err{ error: Error{ message: "toml: xs.1: TOML has no null" } }
+// out: Err{ error: Error{ message: "toml: m: TOML has no null, for map key a" } }
