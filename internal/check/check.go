@@ -110,6 +110,13 @@ type Checker struct {
 	// became invalid, which bumps epoch. Checking one of them again would find the same.
 	epoch                         int
 	selfArgsDone, cycleUnionsDone map[*types.Decl]int
+	// argsMemo remembers, for checkArgs, the settled declarations whose instantiation with
+	// distinct type parameters was found valid since argsEpoch, the epoch it was made in; a body
+	// that becomes invalid can make one of them invalid. memoOK holds the settled declarations
+	// the memo may hold (memoable).
+	argsMemo  *types.ArgsMemo
+	argsEpoch int
+	memoOK    map[*types.Decl]bool
 	// own holds the declarations of ownMod's types, the first ownLen of them.
 	own    map[*types.Decl]bool
 	ownMod *moduleInfo
@@ -880,7 +887,7 @@ func (c *Checker) checkCycleUnions(ti *typeInfo, in func(*types.Decl) func(*type
 					err = types.CheckUnion(x.Members)
 				case types.Named:
 					if len(x.Args) > 0 {
-						if err = types.CheckArgs(x); err != nil {
+						if err = c.checkArgs(x); err != nil {
 							err = fmt.Errorf("%s: %w", types.String(x), err)
 						}
 					}
@@ -914,6 +921,54 @@ func (c *Checker) checkCycleUnions(ti *typeInfo, in func(*types.Decl) func(*type
 			}
 		}
 	}
+}
+
+// checkArgs is types.CheckArgs, remembering across calls the settled declarations found valid
+// with distinct type parameters as arguments (types.ArgsMemo), so that a chain of generic
+// declarations, each instantiating the one before with its own parameters, is validated once
+// rather than from each of its links. The memo is dropped whenever a body becomes invalid.
+func (c *Checker) checkArgs(n types.Named) error {
+	if c.argsMemo == nil || c.argsEpoch != c.epoch {
+		c.argsMemo = &types.ArgsMemo{Only: c.memoable}
+		c.argsEpoch = c.epoch
+	}
+	return c.argsMemo.CheckArgs(n)
+}
+
+// memoable reports whether the memo of checkArgs may hold d: d is settled, so its body and those
+// it reaches are complete, and neither its body nor those of the declarations it reaches mention
+// a type parameter but their own declaration's.
+func (c *Checker) memoable(d *types.Decl) bool {
+	if ok, known := c.memoOK[d]; known {
+		return ok
+	}
+	comp := c.comps[d]
+	if comp == nil {
+		return false // not settled yet, so not decided either
+	}
+	if c.memoOK == nil {
+		c.memoOK = map[*types.Decl]bool{}
+	}
+	for e := range comp {
+		c.memoOK[e] = true // a reference within the component is decided with it
+	}
+	ok := true
+	for e := range comp {
+		own := make(map[*types.ParamDecl]bool, len(e.Params))
+		for _, p := range e.Params {
+			own[p] = true
+		}
+		for _, t := range declTypes(e) {
+			ok = ok && !types.MentionsOther(t, own)
+		}
+		types.DeclRefs(e, func(r *types.Decl) {
+			ok = ok && (comp[r] || c.memoable(r))
+		})
+	}
+	for e := range comp {
+		c.memoOK[e] = ok
+	}
+	return ok
 }
 
 // declTypes lists the types a declaration's body consists of.
@@ -1338,7 +1393,7 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope) types.Type {
 	n := types.Named{Decl: decl, Args: args}
 	// Substituting the arguments forms unions under the same rules, at the use, in an alias's
 	// body or a record's fields and in every instantiation they reach.
-	if err := types.CheckArgs(n); err != nil {
+	if err := c.checkArgs(n); err != nil {
 		c.errorf(x.Pos, "%s: %s", types.String(n), err)
 		return types.Invalid{}
 	}

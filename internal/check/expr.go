@@ -827,7 +827,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 // written ones, since they may form an invalid union in a field (section 4, Unions); an error
 // a field already reported is not repeated.
 func (c *Checker) checkInferred(n types.Named, pos ast.Pos) types.Type {
-	if err := types.CheckArgs(n); err != nil {
+	if err := c.checkArgs(n); err != nil {
 		c.errorf(pos, "%s: %s", types.String(n), err)
 		return types.Invalid{}
 	}
@@ -1520,7 +1520,7 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 		args = append(args, t)
 	}
 	n := types.Named{Decl: decl, Args: args}
-	if err := types.CheckArgs(n); err != nil {
+	if err := c.checkArgs(n); err != nil {
 		c.errorf(pos, "%s: %s", types.String(n), err)
 		return nil, false
 	}

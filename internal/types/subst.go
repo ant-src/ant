@@ -155,7 +155,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			delete(s.seen, x.Decl)
 			(*s.done)[x.Decl] = append((*s.done)[x.Decl], args)
-			if s.memo != nil && distinctParams(n) {
+			if s.memo.remembers(n) {
 				*s.learned = append(*s.learned, x.Decl)
 			}
 		}
@@ -304,10 +304,18 @@ func CheckArgs(n Named) error { return (*ArgsMemo)(nil).CheckArgs(n) }
 // their type parameters are their own; a nil memo remembers nothing.
 type ArgsMemo struct {
 	valid map[*Decl]bool
+	// Only, when set, limits the memo to the declarations it accepts, those whose bodies, and
+	// the bodies of all they reach, no longer change and mention no type parameter but their own.
+	Only func(*Decl) bool
 }
 
 func (m *ArgsMemo) knows(n Named) bool {
 	return m != nil && m.valid[n.Decl] && distinctParams(n)
+}
+
+// remembers reports whether m may remember the instantiation n as valid.
+func (m *ArgsMemo) remembers(n Named) bool {
+	return m != nil && distinctParams(n) && (m.Only == nil || m.Only(n.Decl))
 }
 
 // distinctParams reports whether n's arguments are distinct type parameters.
@@ -349,7 +357,7 @@ func (m *ArgsMemo) CheckArgs(n Named) error {
 		for _, d := range learned {
 			m.valid[d] = true
 		}
-		if distinctParams(n) {
+		if m.remembers(n) {
 			m.valid[n.Decl] = true
 		}
 	}
