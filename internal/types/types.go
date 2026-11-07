@@ -78,6 +78,7 @@ const (
 	KindOpaqueDecl                   // an opaque prelude type whose values carry a kind of their own, Bytes and Html: Base holds the kind, and is tests it by name
 	TaggedOpaqueDecl                 // an opaque type whose values carry its tag, as the time types of stdlib.md and Regex.Pattern do: is tests it by the tag
 	AliasDecl                        // an alias, interchangeable with its body
+	InterfaceDecl                    // an interface (section 4, Interfaces): Funcs holds its signatures, each taking Self first
 )
 
 // Decl is a type declaration.
@@ -91,6 +92,16 @@ type Decl struct {
 	Funcs  map[string]*Func
 	Pos    any    // the declaration's position, for messages
 	Path   string // the file the declaration is in, for messages
+	// Self is the type parameter that stands for the satisfying type in an interface's
+	// signatures, and Order lists its functions in declaration order. BoundOnly marks an
+	// interface that mentions Self beyond the receiver, which is a bound and not a type.
+	Self      *ParamDecl
+	Order     []string
+	BoundOnly bool
+	// Satisfies, set by the checker on an interface, reports whether s satisfies the interface
+	// instantiated with args. rel relates two types as the assignability under way does, so that
+	// a pair under test holds (Assignable).
+	Satisfies func(s Type, args []Type, rel func(a, b Type) bool) bool
 	// Tag is the tag the runtime binds the type to, set by the interpreter on the declarations
 	// it builds for reflection (section 4, Types as values); nil in the checker and for a
 	// KindOpaqueDecl, whose values carry no tag.

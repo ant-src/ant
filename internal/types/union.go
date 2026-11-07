@@ -188,8 +188,8 @@ func Discriminator(t Type) (key, describe string, ok bool) {
 		switch x.Decl.Kind {
 		case KindOpaqueDecl:
 			return "kind:" + x.Decl.Base.String(), x.Decl.Base.String(), true // Bytes or Html: a kind of its own
-		case OpaqueDecl:
-			return "", "", false // a sync type: is does not accept it
+		case OpaqueDecl, InterfaceDecl:
+			return "", "", false // a sync type or an interface: is does not accept it
 		}
 		return fmt.Sprintf("tag:%p", x.Decl), "the tag " + x.Decl.Name, true // a record, primitive or time type
 	case Record:
@@ -209,11 +209,17 @@ func checkDiscriminators(members []Type) error {
 	var record Type
 	var namedRecords, params []Type
 
-	var opaque Type
-	for _, m := range members {
+	var opaque, iface Type
+	ifaceAt := -1
+	for i, m := range members {
 		key, desc, ok := Discriminator(m)
 		if !ok {
-			if n, isNamed := expandTop(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
+			if n, isNamed := expandTop(m).(Named); isNamed && n.Decl.Kind == InterfaceDecl {
+				if iface != nil {
+					return fmt.Errorf("a union may contain at most one interface, since is cannot tell %s from %s", String(iface), String(m))
+				}
+				iface, ifaceAt = m, i
+			} else if n, isNamed := expandTop(m).(Named); isNamed && n.Decl.Kind == OpaqueDecl {
 				if opaque != nil {
 					return fmt.Errorf("a union may contain at most one type that is cannot test, since it cannot tell %s from %s", String(opaque), String(m))
 				}
@@ -235,6 +241,20 @@ func checkDiscriminators(members []Type) error {
 			if x.Decl.Kind == RecordDecl {
 				namedRecords = append(namedRecords, m)
 			}
+		}
+	}
+	if iface != nil {
+		// An interface has no discriminator and its satisfying types are open, so it shares a
+		// union only with null and void (section 4, Interfaces).
+		for i, m := range members {
+			switch expandTop(m).(type) {
+			case Null, Void:
+				continue
+			}
+			if i == ifaceAt {
+				continue
+			}
+			return fmt.Errorf("%s is an interface, which may share a union only with null and void, not with %s", String(iface), String(m))
 		}
 	}
 	if record != nil && len(namedRecords) > 0 {

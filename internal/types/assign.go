@@ -35,7 +35,7 @@ func assignableStep(s, t Type, met *pairs, depth int) (ok bool) {
 	if IsInvalid(s) || IsInvalid(t) {
 		return true
 	}
-	if boundedParam(s) || boundedParam(t) || met.remembered(s) || met.remembered(t) {
+	if boundedParam(s) || boundedParam(t) || met.remembered(s) || met.remembered(t) || IsInterface(s) || IsInterface(t) {
 		p, mark, holds, known := met.enter(s, t)
 		if known {
 			return holds
@@ -67,6 +67,12 @@ func assignableStep(s, t Type, met *pairs, depth int) (ok bool) {
 			}
 		}
 		return false
+	}
+	// An interface accepts every type that satisfies it (section 4, Interfaces), which the
+	// checker decides with the namespaces it knows; the pair is under test meanwhile, so an
+	// interface that names itself in a signature is satisfied as a recursive alias is assignable.
+	if n, ok := t.(Named); ok && n.Decl.Kind == InterfaceDecl {
+		return n.Decl.Satisfies != nil && n.Decl.Satisfies(s, n.Args, func(a, b Type) bool { return assignable(a, b, met, depth+1) })
 	}
 	switch x := t.(type) {
 	case Record:
@@ -107,6 +113,12 @@ func assignableStep(s, t Type, met *pairs, depth int) (ok bool) {
 	// Everything else, type parameters and the invariant generic types included, only as the
 	// same type.
 	return Equal(s, t)
+}
+
+// IsInterface reports whether t is an interface, aliases expanded.
+func IsInterface(t Type) bool {
+	n, ok := Expand(t).(Named)
+	return ok && n.Decl.Kind == InterfaceDecl
 }
 
 // boundedParam reports whether t is a type parameter with a bound, which is related through

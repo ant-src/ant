@@ -27,6 +27,13 @@ func FitsBound(t, bound Type) bool {
 	if tp, ok := t.(Param); ok && tp.Decl.Bound != nil && Assignable(tp.Decl.Bound, bound) {
 		return true
 	}
+	if n, ok := Expand(bound).(Named); ok && n.Decl.Kind == InterfaceDecl && n.Decl.BoundOnly {
+		// A union solves an interface bound only when the interface is a type (section 4,
+		// Interfaces): a bound that mentions Self twice would pass two members to one function.
+		if _, isUnion := Expand(t).(Union); isUnion {
+			return false
+		}
+	}
 	members := Members(bound)
 	if len(members) > 1 {
 		for _, m := range members {
