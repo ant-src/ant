@@ -164,3 +164,57 @@ func TestWalkWhileWatching(t *testing.T) {
 		t.Errorf("after a change, a walk sees it: %s", got)
 	}
 }
+
+// TestImportItems: the list is incomplete before a word is typed, so that the importable names
+// come as it grows, and a function's item inserts a call as other function items do, qualified
+// through a namespace import too, with its signature and doc.
+func TestImportItems(t *testing.T) {
+	var snippets ClientCapabilities
+	snippets.TextDocument.Completion.CompletionItem.SnippetSupport = true
+	files := map[string]string{
+		"lib/math.ant": "// sum adds two numbers. It is exact.\nexport func sum(a: int, b: int): int { a + b }\n\nexport func one(): int { 1 }\n",
+	}
+	c := startWith(t, files, snippets)
+	complete := func(uri, src, needle string) CompletionList {
+		t.Helper()
+		var list CompletionList
+		c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, needle, 1, len(needle)))}, &list)
+		return list
+	}
+	find := func(list CompletionList, label string) *CompletionItem {
+		for i := range list.Items {
+			if it := &list.Items[i]; it.Label == label && it.LabelDetails != nil && it.LabelDetails.Description != "" {
+				return it
+			}
+		}
+		return nil
+	}
+	src := "var v = \n"
+	uri := c.open("main.ant", src)
+	if list := complete(uri, src, "= "); !list.IsIncomplete {
+		t.Errorf("with no word typed, the list is complete")
+	}
+	src = "var v = su\n"
+	c.change(uri, 2, src)
+	list := complete(uri, src, "su")
+	it := find(list, "sum")
+	if it == nil {
+		t.Fatalf("no sum to import: %+v", list.Items)
+	}
+	if it.InsertText != "sum($0)" || it.InsertTextFormat != 2 || it.LabelDetails.Detail != "(a: int, b: int): int" || it.Documentation == nil || !strings.Contains(it.Documentation.Value, "sum adds two numbers.") {
+		t.Errorf("sum's item: %+v %+v", it, it.LabelDetails)
+	}
+	src = "var v = on\n"
+	c.change(uri, 3, src)
+	if it := find(complete(uri, src, "on"), "one"); it == nil || it.InsertText != "one()" {
+		t.Errorf("one's item: %+v", it)
+	}
+	// through a namespace import, the edit writes the qualified call
+	src = "import \"./lib/math.ant\" M\n\nvar v = su\n"
+	c.change(uri, 4, src)
+	list = complete(uri, src, "= su")
+	it = find(list, "sum")
+	if it == nil || it.TextEdit == nil || it.TextEdit.NewText != "M.sum($0)" || it.InsertTextFormat != 2 {
+		t.Errorf("sum's qualified item: %+v", it)
+	}
+}

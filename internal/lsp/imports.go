@@ -20,6 +20,8 @@ type export struct {
 	name string
 	kind int // the completion item kind
 	file *workspaceFile
+	fn   *ast.FuncDecl // the declaration of a function, or nil
+	doc  string        // the doc comment
 }
 
 // importable lists the top-level declarations of the workspace's modules that the module at path
@@ -58,24 +60,24 @@ func (s *Server) importable(path string, keep func(name string) bool) []export {
 			continue
 		}
 		for _, decl := range f.file.Decls {
-			var name string
-			kind := 0
+			var e export
 			switch x := decl.(type) {
 			case *ast.FuncDecl:
 				if (x.Export || test) && x.Owner == "" {
-					name, kind = x.Name, ItemFunction
+					e = export{name: x.Name, kind: ItemFunction, fn: x, doc: x.Doc}
 				}
 			case *ast.TypeDecl:
 				if (x.Export || test) && x.Owner == "" {
-					name, kind = x.Name, ItemStruct
+					e = export{name: x.Name, kind: ItemStruct, doc: x.Doc}
 				}
 			case *ast.VarDecl:
 				if nt, ok := x.Target.(*ast.NameTarget); ok && (x.Export || test) && x.Owner == "" {
-					name, kind = nt.Name, ItemVariable
+					e = export{name: nt.Name, kind: ItemVariable, doc: x.Doc}
 				}
 			}
-			if name != "" && keep(name) {
-				out = append(out, export{name: name, kind: kind, file: f})
+			if e.name != "" && keep(e.name) {
+				e.file = f
+				out = append(out, e)
 			}
 		}
 	}
@@ -183,14 +185,17 @@ func (s *Server) importActions(a *analysis, d *document, name string, types bool
 
 // importNamesOutOfScope offers the exports of the modules the module may import whose names start with
 // the word under the cursor, past the names in scope, each with the import it needs; only types
-// where a type is written. With no word typed it offers none, and the list is incomplete so
-// that the editor asks again as the word grows.
+// where a type is written. With no word typed it offers none; either way the list is incomplete
+// so that the editor asks again as the word grows.
 func (c *completer) importNamesOutOfScope(types bool) {
-	word := strings.ToLower(c.d.text[c.wordStart:c.off])
-	if word == "" || c.d.path == "" {
-		return
+	if c.d.path == "" {
+		return // a document not on disk has no path to import relative to
 	}
 	c.incomplete = true
+	word := strings.ToLower(c.d.text[c.wordStart:c.off])
+	if word == "" {
+		return
+	}
 	inScope := map[string]bool{}
 	for _, item := range c.items {
 		inScope[item.Label] = true
@@ -206,8 +211,22 @@ func (c *completer) importNamesOutOfScope(types bool) {
 		path := importPath(c.d.path, e.file.doc.path)
 		item := CompletionItem{Label: e.name, Kind: e.kind, LabelDetails: &CompletionLabelDetails{Description: path},
 			Detail: "import from \"" + path + "\"", SortText: "~" + e.name}
+		if e.fn != nil {
+			if sig := strings.TrimPrefix(e.fn.Sig, "func "+e.name); sig != e.fn.Sig {
+				item.LabelDetails.Detail = sig
+			}
+			c.parens(&item, len(e.fn.Params))
+		}
+		if e.doc != "" {
+			item.Documentation = markdown(summary(e.doc, c.a.knows))
+		}
 		_, edits, qualified := c.s.importUse(c.d, c.a.module().File, e, Range{Start: start, End: end})
 		if qualified {
+			// Namespace.name, with the parentheses of a call after it
+			if item.InsertText != "" {
+				edits[0].NewText += strings.TrimPrefix(item.InsertText, e.name)
+				item.InsertText = edits[0].NewText
+			}
 			item.TextEdit = &edits[0]
 			item.FilterText = e.name
 		} else {

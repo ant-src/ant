@@ -662,10 +662,15 @@ func (c *completer) objectItem(a *analysis, o *check.Object, prefix string) Comp
 // snippet the cursor is left between the parentheses when there are arguments to write. Nothing
 // is added when a parenthesis follows the word already.
 func (c *completer) callParens(item *CompletionItem, ft types.Func) {
+	c.parens(item, len(ft.Params))
+}
+
+// parens is callParens for a function of n parameters.
+func (c *completer) parens(item *CompletionItem, n int) {
 	if strings.HasPrefix(c.d.text[c.wordEnd:], "(") {
 		return
 	}
-	args := len(ft.Params)
+	args := n
 	switch {
 	case c.piped:
 		args-- // the left side is the first

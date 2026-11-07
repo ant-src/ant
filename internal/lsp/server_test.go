@@ -30,6 +30,12 @@ type client struct {
 // start runs a server and a client over pipes, with a workspace of the given files.
 func start(t *testing.T, files map[string]string) *client {
 	t.Helper()
+	return startWith(t, files, ClientCapabilities{})
+}
+
+// startWith is start for a client with the given capabilities.
+func startWith(t *testing.T, files map[string]string, caps ClientCapabilities) *client {
+	t.Helper()
 	dir := t.TempDir()
 	for name, text := range files {
 		path := filepath.Join(dir, filepath.FromSlash(name))
@@ -60,7 +66,7 @@ func start(t *testing.T, files map[string]string) *client {
 		}
 	}()
 	var result InitializeResult
-	c.call("initialize", InitializeParams{RootURI: fileURI(dir), WorkspaceFolders: []WorkspaceFolder{{URI: fileURI(dir), Name: "ws"}}}, &result)
+	c.call("initialize", InitializeParams{RootURI: fileURI(dir), Capabilities: caps, WorkspaceFolders: []WorkspaceFolder{{URI: fileURI(dir), Name: "ws"}}}, &result)
 	if result.Capabilities.PositionEncoding != "utf-16" || !result.Capabilities.HoverProvider {
 		t.Fatalf("capabilities %+v", result.Capabilities)
 	}
