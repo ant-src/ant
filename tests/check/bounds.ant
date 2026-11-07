@@ -2,8 +2,9 @@
 // Section 4: inside a generic body T is known only through its bound: an operator applies when
 // it applies to every member, T is assignable to its bound, a union bound included, the fields
 // of a record bound are usable, a bounded T may be tested against a member of its bound, and an
-// unbounded T is opaque except for == and map keys; a solution must satisfy the bound; a type
-// parameter a primitive body does not mention gives distinct static types over one tag.
+// unbounded T is opaque except for == and map keys; a solution must satisfy the bound, read with
+// the solutions of the type parameters it names; a type parameter a primitive body does not
+// mention gives distinct static types over one tag.
 type Id[T] = string
 type User = {}
 type Account = {}
@@ -40,3 +41,15 @@ println(bigger(o, o)) // ERR: T would be Ordered
 var u: Id[User] = Id("u")
 var a: Id[Account] = u // ERR: cannot use Id[User] where Id[Account] is expected
 println(string(u))
+
+// A bound may name the function's other type parameters, and is read with their solutions.
+func first[T, U: Array[T]](x: T, u: U): T { x }
+func later[U: Array[T], T](u: U, x: T): T { x }
+func nested[T: Array[T]](x: T): int { 0 }
+func wrap[T, U: Array[T]](x: T): U { [x] } // ERR: cannot use Array[T] where U is expected
+println(first(1, [2]))
+println(first(1, ["a"]))                      // ERR: U would be Array[string], which is not assignable to its bound Array[int]
+println(later(["a"], 2))                      // ERR: U would be Array[string], which is not assignable to its bound Array[int]
+println(nested([1]))                          // ERR: T would be Array[int], which is not assignable to its bound Array[Array[int]]
+var ws: Array[string] = wrap(1)               // ERR: U would be Array[string], which is not assignable to its bound Array[int]
+var fw: func(int, Array[string]): int = first // ERR: U would be Array[string], which is not assignable to its bound Array[int]

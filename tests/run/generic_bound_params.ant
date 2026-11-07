@@ -1,0 +1,29 @@
+// spec: 4 Generics; 4 Inference
+// Section 4: the bound is any type, so it may name the function's other type parameters, an
+// earlier or a later one; it is read with their solutions, whether they come from the arguments,
+// the expected type, or a function value's expected type, and inside a generic body the body's
+// own parameters are solutions that fit.
+func first[T, U: Array[T]](x: T, u: U): T { x }
+func later[U: Array[T], T](u: U, x: T): T { x }
+func pick[T, U: Array[T]](x: T, u: U): U { u }
+func again[T, U: Array[T]](x: T, u: U): T { first(x, u) }
+
+type Person = { name: string, age: int }
+func named[T: { name: string }, U: Array[T]](x: T, more: U): string { x.name }
+
+var w: Array[int] = pick(1, [])
+var fv: func(int, Array[int]): int = first
+println(first(1, [2]))
+println(later(["a"], "b"))
+println(w)
+println(fv(3, [4]))
+println(again("x", ["y"]))
+println(named(Person{ name: "Ann", age: 1 }, [Person{ name: "Bo", age: 2 }]))
+
+// expect
+// out: 1
+// out: b
+// out: []
+// out: 3
+// out: x
+// out: Ann

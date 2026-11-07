@@ -270,7 +270,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		trial := map[*types.ParamDecl]types.Type{}
 		if c.unify(s.fn.Return, expectedPart(s.fn.Return, expected), trial) {
 			for p, t := range trial {
-				if !boundFits(p, t) {
+				if !boundFits(p, t, trial, s.tparams) {
 					// An expected union such as Time.Dated is no solution for a bounded T,
 					// which stands for one member; the arguments solve it instead.
 					continue
@@ -501,45 +501,82 @@ func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, pos as
 }
 
 // checkBounds checks each solution against its bound: assignable to it, and when the bound is
-// a union, one member of it rather than a union.
+// a union, one member of it rather than a union. A bound may name the call's type parameters,
+// its own included, and is read with their solutions in place (section 4, Generics).
 func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, pos ast.Pos) {
 	for _, p := range s.tparams {
 		if p.Bound == nil {
 			continue
 		}
 		t := subst[p]
-		if types.IsInvalid(t) || boundFits(p, t) {
+		if types.IsInvalid(t) {
 			continue
 		}
-		if len(types.Members(p.Bound)) > 1 {
-			c.errorf(pos, "%s would be %s, which is not a single member of its bound %s; narrow first", p.Name, types.String(t), types.String(p.Bound))
+		bound, ok := solvedBound(p, subst, s.tparams)
+		if !ok || boundFits(p, t, subst, s.tparams) {
+			continue
+		}
+		if len(types.Members(bound)) > 1 {
+			c.errorf(pos, "%s would be %s, which is not a single member of its bound %s; narrow first", p.Name, types.String(t), types.String(bound))
 		} else {
-			c.errorf(pos, "%s would be %s, which is not assignable to its bound %s", p.Name, types.String(t), types.String(p.Bound))
+			c.errorf(pos, "%s would be %s, which is not assignable to its bound %s", p.Name, types.String(t), types.String(bound))
 		}
 	}
 }
 
-// boundFits reports whether t is a solution the bound of p admits: a single member of a union
-// bound, or a type assignable to any other bound (section 4, Generics).
-func boundFits(p *types.ParamDecl, t types.Type) bool {
+// solvedBound is the bound of p with the solutions in subst put in place of the type
+// parameters of tparams it names. The second result is false when the bound still names one
+// that subst leaves open, or names an invalid solution, so it cannot be judged yet.
+func solvedBound(p *types.ParamDecl, subst map[*types.ParamDecl]types.Type, tparams []*types.ParamDecl) (types.Type, bool) {
 	if p.Bound == nil {
+		return nil, true
+	}
+	named := map[*types.ParamDecl]bool{}
+	for _, q := range tparams {
+		named[q] = true
+	}
+	if !types.Mentions(p.Bound, named) {
+		return p.Bound, true
+	}
+	for _, q := range tparams {
+		if !types.Mentions(p.Bound, map[*types.ParamDecl]bool{q: true}) {
+			continue
+		}
+		if t, done := subst[q]; !done || types.IsInvalid(t) {
+			return nil, false
+		}
+	}
+	bound, err := types.Subst(p.Bound, subst)
+	if err != nil {
+		return nil, false
+	}
+	return bound, true
+}
+
+// boundFits reports whether t is a solution the bound of p admits: a single member of a union
+// bound, or a type assignable to any other bound (section 4, Generics). The bound is read with
+// the solutions in subst for the type parameters of tparams; one that still names an open
+// parameter admits t for now, and checkBounds judges it once every parameter is solved.
+func boundFits(p *types.ParamDecl, t types.Type, subst map[*types.ParamDecl]types.Type, tparams []*types.ParamDecl) bool {
+	bound, ok := solvedBound(p, subst, tparams)
+	if !ok || bound == nil {
 		return true
 	}
-	if tp, ok := t.(types.Param); ok && tp.Decl.Bound != nil && types.Assignable(tp.Decl.Bound, p.Bound) {
+	if tp, ok := t.(types.Param); ok && tp.Decl.Bound != nil && types.Assignable(tp.Decl.Bound, bound) {
 		// A bounded parameter stands for one member of its bound, so it satisfies any bound
 		// that contains its own (section 4, Generics).
 		return true
 	}
-	members := types.Members(p.Bound)
+	members := types.Members(bound)
 	if len(members) > 1 {
 		for _, m := range members {
 			if types.Equal(m, t) {
 				return true
 			}
 		}
-		return types.FieldsOf(p.Bound) != nil && types.Assignable(t, p.Bound)
+		return types.FieldsOf(bound) != nil && types.Assignable(t, bound)
 	}
-	return types.Assignable(t, p.Bound)
+	return types.Assignable(t, bound)
 }
 
 // unify matches a pattern that may mention type parameters against an actual type, binding
