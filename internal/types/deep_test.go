@@ -3,8 +3,11 @@ package types
 import (
 	"fmt"
 	"runtime/debug"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/ant-src/ant/ast"
 )
 
 // TestDeepTypes relates types nested far deeper than one small Go stack holds, so the walks must
@@ -234,72 +237,84 @@ func TestFailedAssumption(t *testing.T) {
 	}
 }
 
-// TestAliasInItsOwnUnion relates and checks an alias that is a member of a union formed in the
-// body it expands to, as A is with A = B[B[B[int]]] and B[T] = func(null): A | null | T. Forming
-// that union compares A with B[B[int]], which expands A, which forms the union again; Equal once
-// did this without end, each time with none of the pairs it had assumed. A = B[B[B[int]]] is a
-// union of two functions (section 4, Unions); with A = B[int], A and B[int] are one type, and
-// B[B[int]] forms A | null | B[int] with one function.
-func TestAliasInItsOwnUnion(t *testing.T) {
-	p := &ParamDecl{Name: "T"}
-	a := &Decl{Name: "A", Kind: AliasDecl}
-	b := &Decl{Name: "B", Kind: AliasDecl, Params: []*ParamDecl{p}}
-	b.Body = Func{Params: []Type{Null{}}, Required: 1, Return: Union{Members: []Type{Named{Decl: a}, Null{}, Param{Decl: p}}}}
-	B := func(n int) Type {
-		var t Type = IntType
-		for i := 0; i < n; i++ {
-			t = Named{Decl: b, Args: []Type{t}}
+// TestGenericRecursive reports a generic alias on a cycle of aliases through no record's field,
+// following bodies as written, bounds and type arguments, at the generic alias declared first;
+// a plain recursive alias, a generic alias that recurs through a record's field, and one that a
+// plain alias on a cycle merely instantiates are fine, and comparing them ends (section 4, Type
+// declarations).
+func TestGenericRecursive(t *testing.T) {
+	pos := func(line int) ast.Pos { return ast.Pos{Line: line, Col: 1} }
+	report := func(d *Decl, wantBlame *Decl, want string) {
+		t.Helper()
+		blame, msg, cyclic := GenericRecursive(d)
+		if want == "" {
+			if cyclic {
+				t.Errorf("%s: reported: %s", d.Name, msg)
+			}
+			return
 		}
-		return t
+		if !cyclic || blame != wantBlame || !strings.Contains(msg, want) {
+			t.Errorf("%s: blame %v, msg %q, want %s and %q", d.Name, blame, msg, wantBlame.Name, want)
+		}
 	}
-	A := Named{Decl: a}
-	a.Body = B(3)
-	if Equal(A, B(2)) || Equal(B(2), A) {
-		t.Error("A = B[B[B[int]]] equals B[B[int]]")
-	}
-	if !Equal(A, B(3)) {
-		t.Error("A is unequal to its body")
-	}
-	if err := CheckArgs(B(3).(Named)); err == nil {
-		t.Error("B[B[B[int]]] forms no invalid union")
-	}
-	if _, err := MakeUnion([]Type{A, B(2)}); err == nil {
-		t.Error("A | B[B[int]] is a valid union")
-	}
-	a.Body = B(1)
-	if !Equal(A, B(1)) || Equal(B(2), B(1)) {
-		t.Error("with A = B[int], A is not B[int], or B[B[int]] is")
-	}
-	if err := CheckArgs(B(2).(Named)); err != nil {
-		t.Errorf("with A = B[int], B[B[int]] forms an invalid union: %v", err)
-	}
-	if u, err := MakeUnion([]Type{A, B(1)}); err != nil || len(Members(u)) != 1 {
-		t.Errorf("with A = B[int], A | B[int] is %s (%v), want one member", String(u), err)
-	}
-}
-
-// TestUnionSelfThroughAlias forms the unions of B[T] = (func(): A | int) | null with A = B[int],
-// which names B in a union inside B's union body through A. The checker reports it
-// (UnionSelf), but only once both bodies are known; until then expanding A inside the union
-// being formed for B[int] formed it again, without end. Now the expansion stops at B[int].
-func TestUnionSelfThroughAlias(t *testing.T) {
+	// A = B[B[B[int]]] with B[T] = func(null): A | null | T: a cycle through A's instantiation.
 	p := &ParamDecl{Name: "T"}
-	a := &Decl{Name: "A", Kind: AliasDecl}
-	b := &Decl{Name: "B", Kind: AliasDecl, Params: []*ParamDecl{p}}
-	b.Body = Union{Members: []Type{Func{Return: Union{Members: []Type{Named{Decl: a}, IntType}}}, Null{}}}
-	a.Body = Named{Decl: b, Args: []Type{IntType}}
-	if UnionSelf(b) == "" {
-		t.Error("B is not reported")
+	a := &Decl{Name: "A", Kind: AliasDecl, Pos: pos(1)}
+	b := &Decl{Name: "B", Kind: AliasDecl, Params: []*ParamDecl{p}, Pos: pos(2)}
+	b.Body = Func{Params: []Type{Null{}}, Required: 1, Return: Union{Members: []Type{Named{Decl: a}, Null{}, Param{Decl: p}}}}
+	a.Body = Named{Decl: b, Args: []Type{Named{Decl: b, Args: []Type{Named{Decl: b, Args: []Type{IntType}}}}}}
+	report(b, b, "type B refers to itself through A without passing through a record's field")
+	report(a, b, "type B refers to itself through A")
+	// The plain shape is fine and compares with itself.
+	a2 := &Decl{Name: "A2", Kind: AliasDecl}
+	a2.Body = Func{Params: []Type{Null{}}, Required: 1, Return: Union{Members: []Type{Named{Decl: a2}, Null{}}}}
+	report(a2, nil, "")
+	if !Equal(Named{Decl: a2}, a2.Body) || !Assignable(a2.Body, Named{Decl: a2}) {
+		t.Error("A2 is not its own body")
 	}
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		_ = CheckArgs(a.Body.(Named))
-		_ = Equal(Named{Decl: a}, a.Body)
-	}()
-	select {
-	case <-done:
-	case <-time.After(10 * time.Second):
-		t.Fatal("forming the unions of B[int] does not end")
+	// N[T] = Array[NBox[T]] | Box[T] recurs through the field of NBox[T] = { items: N[T] }.
+	np, bp := &ParamDecl{Name: "T"}, &ParamDecl{Name: "T"}
+	n := &Decl{Name: "N", Kind: AliasDecl, Params: []*ParamDecl{np}}
+	box := &Decl{Name: "NBox", Kind: RecordDecl, Params: []*ParamDecl{bp}}
+	box.Fields = []Field{{Name: "items", Type: Named{Decl: n, Args: []Type{Param{Decl: bp}}}}}
+	n.Body = Union{Members: []Type{Array{Elem: Named{Decl: box, Args: []Type{Param{Decl: np}}}}, Named{Decl: box, Args: []Type{Param{Decl: np}}}}}
+	report(n, nil, "")
+	// Doc = Opt[Array[Doc]] with Opt[T] = T | null: Opt is not on the cycle.
+	op := &ParamDecl{Name: "T"}
+	opt := &Decl{Name: "Opt", Kind: AliasDecl, Params: []*ParamDecl{op}, Body: Union{Members: []Type{Param{Decl: op}, Null{}}}}
+	doc := &Decl{Name: "Doc", Kind: AliasDecl}
+	doc.Body = Named{Decl: opt, Args: []Type{Array{Elem: Named{Decl: doc}}}}
+	report(doc, nil, "")
+	report(opt, nil, "")
+	if !Equal(Named{Decl: doc}, Expand(Named{Decl: doc})) {
+		t.Error("Doc is not its own expansion")
 	}
+	// Tree[T] = Box[Tree[T]] | null: a record's type argument does not break the cycle.
+	tp, rp := &ParamDecl{Name: "T"}, &ParamDecl{Name: "T"}
+	rec := &Decl{Name: "Box", Kind: RecordDecl, Params: []*ParamDecl{rp}, Fields: []Field{{Name: "value", Type: Param{Decl: rp}}}}
+	tree := &Decl{Name: "Tree", Kind: AliasDecl, Params: []*ParamDecl{tp}}
+	tree.Body = Union{Members: []Type{Named{Decl: rec, Args: []Type{Named{Decl: tree, Args: []Type{Param{Decl: tp}}}}}, Null{}}}
+	report(tree, tree, "type Tree refers to itself without passing through a record's field")
+	// Bounded[T: Lim] = Array[T] | null with Lim = func(): Bounded[Lim]: a cycle through the bound.
+	lim := &Decl{Name: "Lim", Kind: AliasDecl, Pos: pos(2)}
+	lp := &ParamDecl{Name: "T", Bound: Named{Decl: lim}}
+	bounded := &Decl{Name: "Bounded", Kind: AliasDecl, Params: []*ParamDecl{lp}, Pos: pos(1)}
+	bounded.Body = Union{Members: []Type{Array{Elem: Param{Decl: lp}}, Null{}}}
+	lim.Body = Func{Return: Named{Decl: bounded, Args: []Type{Named{Decl: lim}}}}
+	report(bounded, bounded, "type Bounded refers to itself through Lim without passing through a record's field")
+	report(lim, bounded, "through Lim")
+	// First = Second[int] | null, formed with Second[int] expanded, with Second[T] = Array[Third[T]]
+	// | Box[T] and Third[T] = Map[string, First] | Set[T]: the cycle follows the union as written,
+	// so Second, declared before Third, is blamed, and the message lists the cycle from it.
+	sp, thp := &ParamDecl{Name: "T"}, &ParamDecl{Name: "T"}
+	first := &Decl{Name: "First", Kind: AliasDecl, Pos: pos(1)}
+	second := &Decl{Name: "Second", Kind: AliasDecl, Params: []*ParamDecl{sp}, Pos: pos(2)}
+	third := &Decl{Name: "Third", Kind: AliasDecl, Params: []*ParamDecl{thp}, Pos: pos(3)}
+	second.Body = Union{Members: []Type{Array{Elem: Named{Decl: third, Args: []Type{Param{Decl: sp}}}}, Named{Decl: rec, Args: []Type{Param{Decl: sp}}}}}
+	third.Body = Union{Members: []Type{Map{Key: StringType, Val: Named{Decl: first}}, Set{Elem: Param{Decl: thp}}}}
+	first.Body = Union{
+		Members: []Type{Array{Elem: Named{Decl: third, Args: []Type{IntType}}}, Named{Decl: rec, Args: []Type{IntType}}, Null{}},
+		Written: []Type{Named{Decl: second, Args: []Type{IntType}}, Null{}},
+	}
+	report(first, second, "type Second refers to itself through Third and First without passing through a record's field")
 }

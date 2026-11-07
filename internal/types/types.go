@@ -201,7 +201,7 @@ func expand(t Type, raw bool) (Type, string) {
 		if i >= 64 && met.repeats(n) {
 			return t, "expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted"
 		}
-		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args), nil, raw)
+		body, err := substUnionBody(n, Bindings(n.Decl.Params, n.Args), raw)
 		if err != nil {
 			return t, "expanding " + String(n) + ", which the checker accepted: " + err.Error()
 		}

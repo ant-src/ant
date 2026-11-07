@@ -2,17 +2,14 @@ package types
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 )
 
 // MakeUnion forms the union of members: flattened, deduplicated, never dropped. It reports
 // an error when two members share a discriminator (section 4, Unions).
-func MakeUnion(members []Type) (Type, error) { return makeUnion(members, nil, false) }
+func MakeUnion(members []Type) (Type, error) { return makeUnion(members, false) }
 
-// makeUnion is MakeUnion inside the expansion of the alias instantiations in outer, which a
-// union formed in their bodies leaves out rather than expanding again, so that the cycle
-// A[T] = B[T] | null with B[T] = A[T] | null, which the checker reports, ends.
+// makeUnion is MakeUnion, raw when raw is set.
 //
 // A raw union, which Equal expands an alias to, is flattened but drops only members written
 // alike, and is never rejected: it may hold equal members, or members that share a
@@ -20,7 +17,7 @@ func MakeUnion(members []Type) (Type, error) { return makeUnion(members, nil, fa
 // the pairs the outer call assumes to hold, and an alias whose body forms a union with the
 // alias as a member, as B[T] = func(): A | T with A = B[B[int]] does, would expand without end.
 // Equal compares unions as sets, which duplicates do not change.
-func makeUnion(members []Type, outer []Named, raw bool) (Type, error) {
+func makeUnion(members []Type, raw bool) (Type, error) {
 	var flat []Type
 	expanding := map[*Decl]bool{} // aliases being flattened, so that a cyclic alias terminates
 	aliased := false              // an alias was expanded, so the written form is kept for messages
@@ -33,18 +30,13 @@ func makeUnion(members []Type, outer []Named, raw bool) (Type, error) {
 		for i, t := range ts {
 			alias := false
 			if n, ok := t.(Named); ok && n.Decl.Kind == AliasDecl {
-				if expanding[n.Decl] || inOuter(outer, n) {
+				if expanding[n.Decl] {
 					continue
 				}
 				expanding[n.Decl] = true
 				alias, aliased = true, true
 			}
-			e, ok := expandTopOK(t, outer, raw)
-			if !ok {
-				// Through other aliases, as A is with A = B[int] and B[T] = (func(): A | T) | null.
-				delete(expanding, t.(Named).Decl)
-				continue
-			}
+			e := expandTopAs(t, raw)
 			if top {
 				written[i] = e
 			}
@@ -128,29 +120,16 @@ func Join(ts ...Type) (Type, error) { return MakeUnion(ts) }
 // its own parameters. Its form and discriminator are those of the full expansion, and nothing
 // inside an array, map, set, function or record is substituted, which for an alias whose body
 // holds a union naming the alias itself, as in type L[T] = Array[L[T] | int], would not end.
-func expandTop(t Type) Type {
-	t, _ = expandTopOK(t, nil, false)
-	return t
-}
+func expandTop(t Type) Type { return expandTopAs(t, false) }
 
-// inOuter reports whether the alias instantiation n is one of outer.
-func inOuter(outer []Named, n Named) bool {
-	return slices.ContainsFunc(outer, func(o Named) bool { return identical(o, n, 0) })
-}
-
-// expandTopOK is expandTop inside the expansion of the alias instantiations in outer. A union
-// body is formed with the instantiation added to them, raw when raw is set (makeUnion). It
-// reports false when the expansion reaches one of outer through other aliases, which forms a
-// union being formed again: a cycle the checker reports (UnionSelf), which would not end.
-func expandTopOK(t Type, outer []Named, raw bool) (Type, bool) {
+// expandTopAs is expandTop with the union bodies it substitutes formed raw when raw is set
+// (makeUnion).
+func expandTopAs(t Type, raw bool) Type {
 	var met cycleCheck
 	for i := 0; ; i++ {
 		n, ok := t.(Named)
 		if !ok || n.Decl.Kind != AliasDecl || n.Decl.Body == nil {
-			return t, true
-		}
-		if i > 0 && inOuter(outer, n) {
-			return t, false
+			return t
 		}
 		if i >= 64 && met.repeats(n) {
 			panic("internal error: expanding the cyclic alias " + n.Decl.Name + ", which the checker accepted")
@@ -175,11 +154,9 @@ func expandTopOK(t Type, outer []Named, raw bool) (Type, bool) {
 			t = Named{Decl: b.Decl, Args: args}
 			continue
 		default:
-			return n.Decl.Body, true
+			return n.Decl.Body
 		}
-		var body Type
-		var err error
-		body, err = substUnionBody(n, m, outer, raw)
+		body, err := substUnionBody(n, m, raw)
 		if err != nil {
 			panic("internal error: expanding " + String(n) + ", which the checker accepted: " + err.Error())
 		}

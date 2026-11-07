@@ -45,23 +45,15 @@ type substituter struct {
 	// is known valid, and learned collects those this walk finds valid (ArgsMemo).
 	memo    *ArgsMemo
 	learned *[]*Decl
-	// outer holds the alias instantiations whose union bodies are being expanded, for the
-	// unions formed inside them (makeUnion)
-	outer []Named
 }
 
 // substUnionBody substitutes the body of the alias instantiation n under its bindings m without
-// validating, and forms a union body inside the expansion of n and of outer (makeUnion), raw
-// when raw is set.
-func substUnionBody(n Named, m map[*ParamDecl]Type, outer []Named, raw bool) (Type, error) {
+// validating, forming its unions raw when raw is set (makeUnion).
+func substUnionBody(n Named, m map[*ParamDecl]Type, raw bool) (Type, error) {
 	if len(m) == 0 {
 		return n.Decl.Body, nil
 	}
-	s := &substituter{m: m, plain: true, raw: raw}
-	if _, isUnion := n.Decl.Body.(Union); isUnion {
-		s.outer = append(outer[:len(outer):len(outer)], n)
-	}
-	return s.subst(n.Decl.Body)
+	return (&substituter{m: m, plain: true, raw: raw}).subst(n.Decl.Body)
 }
 
 // validated reports whether n's body was already validated with these arguments.
@@ -184,7 +176,7 @@ func (s *substituter) subst(t Type) (Type, error) {
 			}
 			ms[i] = n
 		}
-		return makeUnion(ms, s.outer, s.raw)
+		return makeUnion(ms, s.raw)
 	}
 	return t, nil
 }
