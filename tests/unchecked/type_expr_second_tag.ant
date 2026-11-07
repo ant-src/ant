@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Records
+// panics: type-expr
+// An unchecked run rejects an alias of a record type, which would mint a second tag for one type,
+// when a type expression first reaches it, as the checker does; this one would otherwise refer to
+// itself with growing arguments inside the union.
+type D[T] = { x: string }
+type B[T] = D[B[D[T]]]
+println(type(B[int] | null))
+
+// expect
+// exit: 1
+// err: type B = D would mint a second tag for one type; declare the fields or the base type again

@@ -94,6 +94,7 @@ type Instance struct {
 	typeMu       sync.Mutex
 	decls        map[*value.Tag]*types.Decl // the declaration of each tag reflection has reached, made under typeMu
 	newDecls     []*value.Tag               // the tags whose declarations the current type expression began
+	typePos      ast.Pos                    // the current type expression, where its declarations' errors panic
 	builtinDecls map[string]*types.Decl     // the declarations of Bytes and Html, made under typeMu
 	done         atomic.Bool
 	interrupted  atomic.Bool // the relay ended the run: Run returns ErrInterrupted

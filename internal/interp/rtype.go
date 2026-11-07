@@ -47,24 +47,16 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 		}
 		g.in.newDecls = nil
 	}()
+	g.in.typePos = e.Pos
 	v := &types.TypeValue{T: g.resolveType(e.Type, env, nil)}
 	// The instantiations the expression and the declarations it reached write are checked once
 	// those declarations are complete, as the checker does at each use (section 4, Unions).
-	// An alias that reaches itself through unions alone, or a generic type that refers to itself
-	// with other arguments, which the checker rejects, would make the walks over it endless
-	// (section 4, Type declarations).
+	// Every declaration was checked as it was completed (declOf), but one completed inside a
+	// cycle saw a member of it half built, so all are checked again now that the cycle is whole.
 	written := []types.Type{v.T}
 	for _, tag := range g.in.newDecls {
 		d := g.in.decls[tag]
-		if _, cyclic := types.AliasCycle(d); cyclic {
-			g.panicf(e.Pos, "type %s refers to itself without passing through a record, array, map, set, or function", d.Name)
-		}
-		if msg := types.SelfArgs(d); msg != "" {
-			g.panicf(e.Pos, "%s", msg)
-		}
-		if msg := types.UnionSelf(d); msg != "" {
-			g.panicf(e.Pos, "%s", msg)
-		}
+		g.checkDecl(d)
 		for _, f := range d.Fields {
 			written = append(written, f.Type)
 		}
@@ -271,5 +263,26 @@ func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
 	case value.TimeTag, value.RegexTag:
 		d.Kind = types.TaggedOpaqueDecl
 	}
+	g.checkDecl(d)
 	return d
+}
+
+// checkDecl panics where the checker rejects the declaration d itself (section 4, Type
+// declarations). declOf runs it as soon as d is complete, as the checker does, before a union or
+// an instantiation that names d is formed: an alias that reaches itself through unions alone, or
+// a generic type that refers to itself with other arguments, would make expanding it endless.
+func (g *Goroutine) checkDecl(d *types.Decl) {
+	pos := g.in.typePos
+	if n, ok := d.Body.(types.Named); ok && d.Kind == types.AliasDecl && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
+		g.panicf(pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
+	}
+	if _, cyclic := types.AliasCycle(d); cyclic {
+		g.panicf(pos, "type %s refers to itself without passing through a record, array, map, set, or function", d.Name)
+	}
+	if msg := types.SelfArgs(d); msg != "" {
+		g.panicf(pos, "%s", msg)
+	}
+	if msg := types.UnionSelf(d); msg != "" {
+		g.panicf(pos, "%s", msg)
+	}
 }

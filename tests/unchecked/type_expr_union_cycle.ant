@@ -1,0 +1,14 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Type declarations
+// panics: type-expr
+// An unchecked run rejects an alias that reaches itself through unions alone as soon as a type
+// expression completes its declaration, before a union that names the alias expands it, so the
+// panic is an ordinary one that Panic.catch recovers.
+type B = B
+type N[T] = Array[int] | N[Array[T]]
+println(Panic.catch({ type(Array[B | null]) }) is Err)
+println(type(N[int] | string))
+
+// expect
+// out: true
+// exit: 1
+// err: type N refers to itself without passing through a record, array, map, set, or function
