@@ -88,7 +88,6 @@ type server struct {
 	cfg         interp.Config
 	modules     map[string]*module // by absolute path
 	interrupts  chan struct{}
-	terminated  int
 	done        chan struct{} // closed when the run has ended
 	ended       atomic.Bool   // the terminated event is sent
 	started     bool
@@ -485,19 +484,15 @@ func exitStatus(err error) int {
 	return 1
 }
 
-// terminate interrupts the program, and cancels the run at the second (dap.md section 2).
+// terminate interrupts the program, as Ctrl-C does under ant run (dap.md section 2): the
+// second interrupt cancels the run, with the same exit status.
 func (s *server) terminate() {
 	if !s.started {
 		return
 	}
-	s.terminated++
-	if s.terminated > 1 {
-		s.cancel()
-	} else {
-		select {
-		case s.interrupts <- struct{}{}:
-		default:
-		}
+	select {
+	case s.interrupts <- struct{}{}:
+	default:
 	}
 	s.resume(nil, func() { s.d.Resume() })
 }

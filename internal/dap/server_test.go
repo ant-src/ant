@@ -849,3 +849,26 @@ while true {
 	}
 	ok(t, c.request("disconnect", nil))
 }
+
+func TestSecondTerminateExitsAsAnInterrupt(t *testing.T) {
+	dir := write(t, map[string]string{"main.ant": `var stop = Os.interrupt()
+var n = 0
+while true {
+  n += 1
+}
+`})
+	main := filepath.Join(dir, "main.ant")
+	c := newClient(t)
+	ok(t, c.request("initialize", nil))
+	ok(t, c.request("launch", map[string]any{"program": main}))
+	ok(t, c.request("configurationDone", nil))
+	time.Sleep(20 * time.Millisecond)
+	ok(t, c.request("terminate", nil)) // the program asked for the first and runs on
+	time.Sleep(20 * time.Millisecond)
+	ok(t, c.request("terminate", nil))
+	if code := c.event("exited")["exitCode"]; code != 130.0 {
+		t.Errorf("exit code after a second terminate: %v, want 130 as ant run", code)
+	}
+	c.event("terminated")
+	ok(t, c.request("disconnect", nil))
+}
