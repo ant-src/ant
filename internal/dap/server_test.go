@@ -234,6 +234,9 @@ println(d)
 	if len(elems) != 2 || elems[0].(map[string]any)["name"] != "[1]" || elems[1].(map[string]any)["value"] != "30" {
 		t.Errorf("xs[1:3]: %v", elems)
 	}
+	if elems := ok(t, c.request("variables", map[string]any{"variablesReference": xs["variablesReference"], "start": -2, "count": -1}))["variables"].([]any); len(elems) != 3 {
+		t.Errorf("xs from -2: %v", elems)
+	}
 
 	ok(t, c.request("next", map[string]any{"threadId": tid}))
 	if stop := c.event("stopped"); stop["reason"] != "step" {
@@ -587,6 +590,10 @@ while true {
 	frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"], "startFrame": 0, "levels": 1}))["stackFrames"].([]any)
 	if top := frames[0].(map[string]any); top["line"] != 2.0 {
 		t.Errorf("a frame counted from 0: %v", top)
+	}
+	// negative paging is read as none
+	if all := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"], "startFrame": -1, "levels": -1}))["stackFrames"].([]any); len(all) != 1 {
+		t.Errorf("stackTrace from frame -1: %v", all)
 	}
 	if r := c.request("scopes", map[string]any{"frameId": 99}); r["success"] != false {
 		t.Errorf("scopes of no frame: %v", r)

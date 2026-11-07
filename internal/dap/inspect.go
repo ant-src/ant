@@ -20,6 +20,7 @@ func (s *server) stackTrace(req *request) {
 		Levels     int `json:"levels"`
 	}
 	json.Unmarshal(req.Arguments, &args)
+	args.StartFrame, args.Levels = max(args.StartFrame, 0), max(args.Levels, 0)
 	if s.d == nil {
 		s.fail(req, "the program is not running")
 		return
@@ -142,6 +143,7 @@ func (s *server) variables(req *request) {
 		Count int `json:"count"`
 	}
 	json.Unmarshal(req.Arguments, &args)
+	args.Start, args.Count = max(args.Start, 0), max(args.Count, 0)
 	h, found := s.lookup(args.Ref)
 	if !found {
 		s.fail(req, "no such variable; the program has resumed since")
