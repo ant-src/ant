@@ -49,6 +49,8 @@ func TestComplete(t *testing.T) {
 	has("type Point = { x: int, y: int }\nvar p = Point{ x: 1, y: 2 }\np.", "x", "y")
 	has("var xs = [1, 2]\nxs | Array.", "map", "filter")
 	has("var xs = [1, 2]\nxs | ", "Array.map")
+	// a function's name finds its qualified name
+	has("var xs = [1, 2]\nxs | filt", "Array.filter")
 	// the prelude's own functions too, println taking any type
 	has("var xs = [1, 2]\nxs | ", "println", "print")
 	lacks("var xs = [1, 2]\nxs | ", "panic", "int")

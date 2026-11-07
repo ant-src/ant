@@ -429,6 +429,29 @@ func TestCompletion(t *testing.T) {
 	got = labels(src, at(src, "| ", 1, 2))
 	has("pipe", got, "Array.map", "Array.filter", "Array.length")
 	lacks("pipe", got, "String.trim", "Math.sqrt")
+	// a word typed after a pipe filters by the function's name, and the list is asked for again
+	src = strings.Replace(mainSrc, "| Array.map({ x * times })", "| filt", 1)
+	c.change(uri, 2, src)
+	var piped CompletionList
+	c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, "| filt", 1, 6))}, &piped)
+	filter := ""
+	for _, it := range piped.Items {
+		if it.Label == "Array.filter" {
+			filter = it.FilterText
+		}
+	}
+	if filter != "filter" || !piped.IsIncomplete {
+		t.Errorf("pipe with filt: Array.filter filters by %q, incomplete %v", filter, piped.IsIncomplete)
+	}
+	src = strings.Replace(mainSrc, "| Array.map({ x * times })", "| Arr", 1)
+	c.change(uri, 2, src)
+	piped = CompletionList{}
+	c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, "| Arr", 1, 5))}, &piped)
+	for _, it := range piped.Items {
+		if it.Label == "Array.filter" && it.FilterText != "" {
+			t.Errorf("pipe with Arr: Array.filter filters by %q", it.FilterText)
+		}
+	}
 	// after a pipe and a dot: the namespace's functions that take the left side
 	src = strings.Replace(mainSrc, "| Array.map({ x * times })", "| Array.", 1)
 	got = labels(src, at(src, "| Array.", 1, 8))

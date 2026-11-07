@@ -420,10 +420,19 @@ func (c *completer) pipe(prev *token.Token) bool {
 		c.scopeNames()
 		return true
 	}
+	// A qualified name is found by its function's name as well, filt finding Array.filter: the
+	// editor matches what is typed against the filter text, so the list is asked for again as
+	// the word grows, and a word that does not start the qualified name is matched against the
+	// function's name.
+	word := strings.ToLower(c.d.text[c.wordStart:c.off])
+	c.incomplete = true
 	offer := func(owner *check.Object) {
 		for _, m := range owner.Members() {
 			if m.Kind == check.Func && acceptsFirst(m, left) {
 				item := c.objectItem(a, m, owner.Name+".")
+				if !strings.HasPrefix(strings.ToLower(item.Label), word) {
+					item.FilterText = m.Name
+				}
 				c.add(item)
 			}
 		}
