@@ -184,6 +184,17 @@ func (a *analysis) declRange(o *check.Object) (string, ast.Pos, ast.Pos, bool) {
 	case *ast.Import:
 		return a.importer(d), d.NamespacePos, after(d.NamespacePos, d.Namespace), true
 	}
+	if o.Kind == check.Module {
+		// A module's object is bound by the import that names it (section 10): its Path is the
+		// imported module, which hover and completion read.
+		for path, m := range a.modules {
+			for _, imp := range m.File.Imports {
+				if imp.Namespace != "" && a.info.Decls[imp] == o {
+					return path, imp.NamespacePos, after(imp.NamespacePos, imp.Namespace), true
+				}
+			}
+		}
+	}
 	if o.Kind == check.Module && o.Path != "" {
 		return o.Path, ast.Pos{Line: 1, Col: 1}, ast.Pos{Line: 1, Col: 1}, true
 	}

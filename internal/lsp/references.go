@@ -7,6 +7,7 @@ import (
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/prelude"
+	"github.com/ant-src/ant/internal/resolve"
 	"github.com/ant-src/ant/internal/token"
 )
 
@@ -514,6 +515,12 @@ func (s *Server) importers(path, skip string) []*document {
 	return out
 }
 
+// sameBinding reports whether b binds o under its own name: its declaration, an import that
+// does not rename it, or the import that binds a module's namespace.
+func (a *analysis) sameBinding(o *check.Object, b resolve.Binding) bool {
+	return o.Decl != nil && b.Node == o.Decl || b.Name == o.Name && a.info.Decls[b.Node] == o
+}
+
 // collides reports a name already bound where the renamed binding is declared or used, which
 // the rename would shadow or clash with (section 10): in the scopes around its declaration and
 // around each use in its module, and among the module's top-level names.
@@ -555,7 +562,7 @@ func (a *analysis) collides(o *check.Object, name string) *rpcError {
 				continue
 			}
 			for _, b := range sc.Names {
-				if b.Name == name && b.Node != o.Decl {
+				if b.Name == name && !a.sameBinding(o, b) {
 					return clash
 				}
 			}
