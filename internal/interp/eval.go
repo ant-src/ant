@@ -691,7 +691,14 @@ func (g *Goroutine) matchParams(f *Func, args []value.Value, names []string, pos
 }
 
 func (g *Goroutine) callBuiltin(f *Builtin, args []value.Value, names []string, pos ast.Pos) value.Value {
-	if g.d != nil {
+	if d := g.d; d != nil {
+		// A frame waiting in its first builtin before any stop point, as a parameter's or a
+		// field's default runs, is at the call (dap.md section 4, All-stop).
+		if n := len(g.stack); n > 0 && !g.stack[n-1].atStop {
+			d.mu.Lock()
+			g.stack[n-1].at = pos
+			d.mu.Unlock()
+		}
 		g.leaveAnt()
 		defer g.enterAnt()
 	}

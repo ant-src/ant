@@ -703,7 +703,7 @@ func (s *server) line(l int) int {
 // col converts a byte column to the client's UTF-16 column.
 func (s *server) col(m *module, p ast.Pos) int {
 	c := p.Col
-	if m != nil && p.Line-1 < len(m.lines) {
+	if m != nil && p.Line >= 1 && p.Line-1 < len(m.lines) {
 		line := m.lines[p.Line-1]
 		if b := p.Col - 1; b <= len(line) {
 			c = 1

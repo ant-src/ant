@@ -756,3 +756,39 @@ test "other" {
 		t.Errorf("console ran a test -run leaves out: %q", out)
 	}
 }
+
+func TestPauseInADefaultIsAtTheCall(t *testing.T) {
+	for name, src := range map[string]string{
+		"parameter": `var ch: Channel[int] = Channel.new()
+func f(x: int | null = Channel.receive(ch)) {
+  println(x)
+}
+f()
+`,
+		"field": `var ch: Channel[int] = Channel.new()
+type R = { v: int | null = Channel.receive(ch) }
+
+var r = R {}
+`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := write(t, map[string]string{"main.ant": src})
+			main := filepath.Join(dir, "main.ant")
+			c := newClient(t)
+			ok(t, c.request("initialize", nil))
+			ok(t, c.request("launch", map[string]any{"program": main}))
+			ok(t, c.request("configurationDone", nil))
+			time.Sleep(50 * time.Millisecond)
+			ok(t, c.request("pause", map[string]any{"threadId": 1}))
+			c.event("stopped")
+			frames := ok(t, c.request("stackTrace", map[string]any{"threadId": 1}))["stackFrames"].([]any)
+			if top := frames[0].(map[string]any); top["line"] != 2.0 {
+				t.Errorf("the frame running the default: %v", top)
+			}
+			if caller := frames[1].(map[string]any); caller["line"] != map[string]float64{"parameter": 5, "field": 4}[name] {
+				t.Errorf("the caller: %v", caller)
+			}
+			ok(t, c.request("disconnect", nil))
+		})
+	}
+}
