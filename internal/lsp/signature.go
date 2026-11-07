@@ -6,6 +6,7 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/check"
+	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/internal/types"
 )
 
@@ -58,25 +59,25 @@ func enclosingCall(a *analysis, d *document, off int) (*ast.Call, int) {
 		if off <= open {
 			continue
 		}
-		// count the arguments before the cursor: commas at depth 0 after the (
+		// count the arguments before the cursor: commas at depth 0 after the (, over the tokens,
+		// so that a comma in a comment, a string, a regular expression, or markup is not one
 		index := 0
 		depth := 0
-		for j := open + 1; j < off && j < len(d.text); j++ {
-			switch d.text[j] {
-			case '(', '[', '{':
+		for _, t := range streamAt(a.module().Layout.Tokens, open) {
+			if t.Off <= open || t.Kind != token.Op {
+				continue
+			}
+			if t.Off >= off {
+				break
+			}
+			switch t.Text {
+			case "(", "[", "{":
 				depth++
-			case ')', ']', '}':
+			case ")", "]", "}":
 				depth--
-			case ',':
+			case ",":
 				if depth == 0 {
 					index++
-				}
-			case '"', '`':
-				q := d.text[j]
-				for j++; j < off && j < len(d.text) && d.text[j] != q; j++ {
-					if d.text[j] == '\\' {
-						j++
-					}
 				}
 			}
 		}
@@ -86,6 +87,53 @@ func enclosingCall(a *analysis, d *document, off int) (*ast.Call, int) {
 		return call, index
 	}
 	return nil, 0
+}
+
+// streamAt is the token stream holding a token that starts at byte offset off: the module's, or
+// that of an interpolation in a string or in markup; nil when no token starts there.
+func streamAt(toks []token.Token, off int) []token.Token {
+	for i := range toks {
+		t := &toks[i]
+		if t.Off == off {
+			return toks
+		}
+		if t.Off < off && off < t.End {
+			switch t.Kind {
+			case token.Template:
+				for _, p := range t.Parts {
+					if p.Tokens != nil && p.Off <= off && off < p.End {
+						return streamAt(p.Tokens, off)
+					}
+				}
+			case token.Html:
+				return markupStreamAt(t.Markup, off)
+			}
+			return nil
+		}
+	}
+	return nil
+}
+
+// markupStreamAt is streamAt for the interpolations of markup.
+func markupStreamAt(m *token.Markup, off int) []token.Token {
+	if m == nil {
+		return nil
+	}
+	for _, n := range m.Nodes {
+		if off < n.Off || n.End <= off {
+			continue
+		}
+		if s := streamAt(n.Tokens, off); s != nil {
+			return s
+		}
+		for _, at := range n.Attrs {
+			if s := streamAt(at.Tokens, off); s != nil {
+				return s
+			}
+		}
+		return markupStreamAt(n.Children, off)
+	}
+	return nil
 }
 
 // utf16Len is the length of s in UTF-16 code units.
