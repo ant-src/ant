@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 
@@ -34,8 +35,8 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 			continue
 		}
 		rng := a.diagRange(path, dg.Pos)
-		if rng.End.Line < p.Range.Start.Line || rng.Start.Line > p.Range.End.Line {
-			continue
+		if before(rng.End, p.Range.Start) || before(p.Range.End, rng.Start) {
+			continue // the diagnostic is outside the range
 		}
 		lsp := Diagnostic{Range: rng, Severity: 1, Source: "ant", Message: dg.Msg}
 		switch {
@@ -60,12 +61,16 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 	return dedupeActions(out)
 }
 
+// dedupeActions drops an action that makes the same edit under the same title as one before
+// it, as the fixes of two diagnostics that import the same name do.
 func dedupeActions(acts []CodeAction) []CodeAction {
 	seen := map[string]bool{}
 	out := acts[:0]
 	for _, act := range acts {
-		if !seen[act.Title] {
-			seen[act.Title] = true
+		edit, _ := json.Marshal(act.Edit)
+		key := act.Title + "\x00" + string(edit)
+		if !seen[key] {
+			seen[key] = true
 			out = append(out, act)
 		}
 	}
