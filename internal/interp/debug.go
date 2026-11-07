@@ -573,13 +573,11 @@ func (d *Debugger) Frames(id int) ([]StackFrame, bool) {
 	var pos ast.Pos
 	for i := len(g.stack) - 1; i >= 0; i-- {
 		f := g.stack[i]
-		path := f.Path
+		path := f.path() // a loop body over a sequence runs on the sequence's frame
 		if i == len(g.stack)-1 {
 			pos = f.at
 			if f.atStop && f.env != nil && f.env.mod != nil {
-				// The stop point's module: a loop body over a sequence runs on the sequence's
-				// frame, in the loop's module.
-				path = f.env.mod.path
+				path = f.env.mod.path // the stop point's module
 			}
 		}
 		out = append(out, StackFrame{Function: f.Function, Path: path, Pos: pos, g: g, i: i})

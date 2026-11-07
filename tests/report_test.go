@@ -62,3 +62,34 @@ println(outer())
 		t.Errorf("expected exactly two reports:\n%s", got)
 	}
 }
+
+// TestPanicReportInASequenceBody checks that a loop body over a sequence another module defines
+// is reported in the loop's module, on the frame of the sequence.
+func TestPanicReportInASequenceBody(t *testing.T) {
+	src := `import "./lib.ant" { count }
+
+func boom() {
+  panic("boom")
+}
+
+for n in count {
+  boom()
+}
+`
+	lib := `export func count(yield: func(int): bool) {
+  for i in [1, 2] {
+    if !yield(i) { return }
+  }
+}
+`
+	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src), ant.WithFS(fstest.MapFS{"lib.ant": {Data: []byte(lib)}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var errOut lockedBuffer
+	prog.Run(context.Background(), ant.WithStderr(&errOut))
+	want := regexp.MustCompile(`(?m)^panic: boom\n  at boom \(main\.ant:4:\d+\)\n  at count \(main\.ant:8:\d+\)\n  at module main\.ant \(main\.ant:7:\d+\)\n`)
+	if got := errOut.String(); !want.MatchString(got) {
+		t.Errorf("the report does not match:\n%s", got)
+	}
+}

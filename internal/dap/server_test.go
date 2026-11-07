@@ -489,8 +489,13 @@ func TestSequenceBodyFrameIsInTheLoopsModule(t *testing.T) {
 var seen = 0
 for n in count {
   seen += n
+  note(n)
 }
 println(seen)
+
+func note(n: int) {
+  if n > 1 { println("two") }
+}
 `,
 		"lib.ant": `export func count(yield: func(int): bool) {
   for i in [1, 2] {
@@ -511,10 +516,18 @@ println(seen)
 	if top["name"] != "count" || top["line"] != 5.0 || top["source"].(map[string]any)["path"] != main {
 		t.Errorf("the body's frame: %v", top)
 	}
+	// a call in the body: the sequence's frame below it is at the call, in the loop's module
+	ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{{"line": 11}}}))
+	ok(t, c.request("continue", nil))
+	stop = c.event("stopped")
+	frames = ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)
+	if below := frames[1].(map[string]any); below["name"] != "count" || below["line"] != 6.0 || below["source"].(map[string]any)["path"] != main {
+		t.Errorf("the frame below a call in the body: %v", below)
+	}
 	ok(t, c.request("setBreakpoints", map[string]any{"source": map[string]any{"path": main}, "breakpoints": []map[string]any{}}))
 	ok(t, c.request("continue", nil))
 	c.event("terminated")
-	if got := c.output("stdout"); got != "3\n" {
+	if got := c.output("stdout"); got != "two\n3\n" {
 		t.Errorf("stdout: %q", got)
 	}
 }

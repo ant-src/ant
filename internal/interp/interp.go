@@ -659,6 +659,17 @@ type frame struct {
 	piped  value.Value
 	atStop bool
 	rec    *assertRec // the caller's recording, which the call suspends
+	// body is the module of a loop body over a sequence running on top of the frame, its
+	// positions' module while it runs, or "".
+	body string
+}
+
+// path is the module of the frame's positions.
+func (f *frame) path() string {
+	if f.body != "" {
+		return f.body
+	}
+	return f.Path
 }
 
 const maxDepth = 10000
@@ -720,7 +731,7 @@ func (g *Goroutine) trace(pos ast.Pos) []Frame {
 	var out []Frame
 	for i := len(g.stack) - 1; i >= 0; i-- {
 		f := g.stack[i]
-		out = append(out, Frame{Function: f.Function, Path: f.Path, Pos: pos})
+		out = append(out, Frame{Function: f.Function, Path: f.path(), Pos: pos})
 		pos = f.Pos // the call site, in the caller
 	}
 	return out

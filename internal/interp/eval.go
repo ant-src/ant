@@ -1255,7 +1255,7 @@ func (g *Goroutine) forLoop(e *ast.For, env *Env) (value.Value, ctl) {
 		return nil, ctlNone, false
 	}
 	if seq, ok := iter.(value.Callable); ok {
-		return g.forSeq(e, seq, runOn)
+		return g.forSeq(e, env.mod.path, seq, runOn)
 	}
 	var rv value.Value
 	rc := ctlNone
@@ -1321,7 +1321,9 @@ func each(v value.Value, visit func(value.Value) bool) bool {
 	return true
 }
 
-func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
+// forSeq runs a for loop over a sequence, whose body, in the module at path, runs on top of the
+// frame that calls yield.
+func (g *Goroutine) forSeq(e *ast.For, path string, seq value.Value, run func(value.Value) (value.Value, ctl, bool)) (rv value.Value, rc ctl) {
 	u := &loopUnwind{}
 	defer func() {
 		if r := recover(); r != nil {
@@ -1333,6 +1335,13 @@ func (g *Goroutine) forSeq(e *ast.For, seq value.Value, run func(value.Value) (v
 		}
 	}()
 	g.runSeq(seq, e.Pos, func(v value.Value) bool {
+		if n := len(g.stack); n > 0 {
+			// The frame's positions are in the body's module while the body runs.
+			f := &g.stack[n-1]
+			saved := f.body
+			f.body = path
+			defer func() { g.stack[n-1].body = saved }()
+		}
 		if g.d != nil {
 			// yield is a builtin, so the body comes back into Ant code, on top of the frame that
 			// called yield; its stop points move that frame's position, which is put back after.
