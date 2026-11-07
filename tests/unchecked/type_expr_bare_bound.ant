@@ -1,0 +1,18 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Generics
+// panics: type-expr
+// An unchecked run rejects a type whose parameter's bound is itself a type parameter, directly or
+// through an alias, when a type expression first reaches it, and a function's bounds not at all,
+// since a call never reads a bound.
+type Same[X] = X
+type Twice[T: Same[T]] = { v: T }
+type Self[T: T] = { v: T }
+func f[T: T](x: T): T { x }
+println(f(1))
+println(Panic.catch({ type(Twice[int]) }) is Err)
+println(type(Self[int]))
+
+// expect
+// out: 1
+// out: true
+// exit: 1
+// err: the bound of T is the type parameter T; a bound may not be a type parameter

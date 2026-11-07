@@ -57,6 +57,11 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 	for _, tag := range g.in.newDecls {
 		d := g.in.decls[tag]
 		g.checkDecl(d)
+		for _, p := range d.Params {
+			if p.Bound != nil {
+				written = append(written, p.Bound)
+			}
+		}
 		for _, f := range d.Fields {
 			written = append(written, f.Type)
 		}
@@ -66,6 +71,14 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 	}
 	for _, t := range written {
 		if err := types.CheckWritten(t); err != nil {
+			g.panicf(e.Pos, "%s", err)
+		}
+	}
+	// The bounds of a type's parameters hold wherever it is written, in the expression and in
+	// the declarations it reached (section 4, Generics); they are read once every declaration
+	// is complete, since a record argument may be one still being built.
+	for _, t := range written {
+		if err := types.CheckWrittenBounds(t); err != nil {
 			g.panicf(e.Pos, "%s", err)
 		}
 	}
@@ -242,6 +255,11 @@ func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
 		}
 		params[tp.Name] = types.Param{Decl: pd}
 	}
+	for i, tp := range body.decl.TypeParams {
+		if tp.Bound != nil {
+			d.Params[i].Bound = g.resolveType(tp.Bound, body.env, params)
+		}
+	}
 	switch tag.Kind {
 	case value.RecordTag:
 		d.Kind = types.RecordDecl
@@ -284,5 +302,13 @@ func (g *Goroutine) checkDecl(d *types.Decl) {
 	}
 	if msg := types.UnionSelf(d); msg != "" {
 		g.panicf(pos, "%s", msg)
+	}
+	for _, p := range d.Params {
+		if p.Bound == nil {
+			continue
+		}
+		if q, ok := types.BareBound(p.Bound); ok {
+			g.panicf(pos, "%s", types.BareBoundError(p, q))
+		}
 	}
 }

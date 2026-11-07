@@ -212,7 +212,7 @@ func Resolve(f *ast.File, opts Options) []*Error {
 			r.funcDecl(d)
 		case *ast.TypeDecl:
 			r.defaults(d, r.module)
-			r.typeNames(d.Body, r.module, typeParamSet(d.TypeParams))
+			r.typeDeclNames(d, r.module)
 		}
 	}
 	for _, s := range f.Stmts {
@@ -593,7 +593,7 @@ func (r *resolver) stmts(b *ast.Block, s *scope) {
 		r.typeParams(td.TypeParams)
 	}
 	for _, td := range b.Types {
-		r.typeNames(td.Body, s, typeParamSet(td.TypeParams))
+		r.typeDeclNames(td, s)
 	}
 	for _, st := range b.Stmts {
 		r.stmt(st, s)
@@ -615,6 +615,18 @@ func typeParamSet(tps []ast.TypeParam) map[string]bool {
 		set[tp.Name] = true
 	}
 	return set
+}
+
+// typeDeclNames resolves the names in a type declaration's bounds and body (typeNames): a type
+// expression that reaches the declaration checks its parameters' bounds (section 4, Generics).
+func (r *resolver) typeDeclNames(d *ast.TypeDecl, s *scope) {
+	params := typeParamSet(d.TypeParams)
+	for _, tp := range d.TypeParams {
+		if tp.Bound != nil {
+			r.typeNames(tp.Bound, s, params)
+		}
+	}
+	r.typeNames(d.Body, s, params)
 }
 
 // typeNames resolves, for the interpreter, the head of every named type in t that neither a
@@ -697,6 +709,11 @@ func (r *resolver) stmt(st ast.Stmt, s *scope) {
 		// A local type's defaults are resolved where it is declared, so a variable declared
 		// above it in its block is in scope and refused, not taken for a top-level name.
 		r.defaults(st, s)
+		for _, tp := range st.TypeParams {
+			if tp.Bound != nil {
+				r.hiddenNames(tp.Bound, s)
+			}
+		}
 		r.hiddenNames(st.Body, s)
 	case ast.Expr:
 		r.expr(st, s)

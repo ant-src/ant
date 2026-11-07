@@ -1,0 +1,26 @@
+// spec: 12 Runtime panics; 4 Types as values; 4 Generics
+// panics: type-expr
+// An unchecked run checks the bound of a generic type's parameter wherever a type expression
+// reaches the type: in the expression, nested, and in the body of a declaration it reaches, where
+// a type parameter fits only when its own bound does.
+type Ord = int | string
+type B[T: string] = { v: T }
+type O[T: Ord] = { v: T }
+type Free[X] = { b: B[X] }
+type Bounded[X: string] = { b: B[X] }
+var b: B[int] = B{ v: 1 }
+println(b.v)
+println(type(Bounded[string]))
+println(Panic.catch({ type(O[Ord]) }) is Err)
+println(Panic.catch({ type(Free[string]) }) is Err)
+println(Panic.catch({ type(Bounded[int]) }) is Err)
+println(type(Array[B[int]]))
+
+// expect
+// out: 1
+// out: Bounded[string]
+// out: true
+// out: true
+// out: true
+// exit: 1
+// err: B[int]: T would be int, which is not assignable to its bound string

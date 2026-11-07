@@ -1,0 +1,40 @@
+// spec: 4 Generics; 4 Types as values
+// Section 4: a generic type's parameters may carry bounds, a bound may name the other type
+// parameters, and a type argument that fits its bound is accepted in an annotation, a literal, a
+// type expression, and another declaration, where a type parameter fits when its own bound does.
+type Ord = int | string
+type B[T: string] = { v: T }
+type O[T: Ord] = { v: T }
+type P[T, U: Array[T]] = { t: T, u: U }
+type Named[T: { name: string }] = { item: T }
+type Person = { name: string, age: int }
+type Bounded[X: string] = { b: B[X] }
+type Narrow[X: int] = O[X] | null
+
+var b: B[string] = B{ v: "x" }
+var o = O{ v: 1 }
+var p: P[int, Array[int]] = P{ t: 1, u: [2] }
+var n: Named[Person] = Named{ item: Person{ name: "Ann", age: 3 } }
+var w: Bounded[string] = Bounded{ b: b }
+var r: Narrow[int] = null
+println(b.v)
+println(o.v)
+println(p.u)
+println(n.item.name)
+println(type(Bounded[string]))
+println(type(P[string, Array[string]] | Narrow[int]))
+
+func block(): string {
+  type L[T: { name: string }] = { v: T }
+  String.from(type(L[Person]))
+}
+println(block())
+
+// expect
+// out: x
+// out: 1
+// out: [2]
+// out: Ann
+// out: Bounded[string]
+// out: P[string, Array[string]] | Narrow[int]
+// out: L[Person]
