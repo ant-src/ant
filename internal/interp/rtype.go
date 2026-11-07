@@ -42,10 +42,10 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 			for _, tag := range g.in.newDecls {
 				delete(g.in.decls, tag)
 			}
-			g.in.newDecls = nil
+			g.in.newDecls, g.in.newDeclSCC = nil, nil
 			panic(r)
 		}
-		g.in.newDecls = nil
+		g.in.newDecls, g.in.newDeclSCC = nil, nil
 	}()
 	g.in.typePos = e.Pos
 	v := &types.TypeValue{T: g.resolveType(e.Type, env, nil)}
@@ -56,7 +56,7 @@ func (g *Goroutine) typeExpr(e *ast.TypeExpr, env *Env) value.Value {
 	written := []types.Type{v.T}
 	for _, tag := range g.in.newDecls {
 		d := g.in.decls[tag]
-		g.checkDecl(d)
+		g.checkDecl(d, g.in.component(d))
 		for _, p := range d.Params {
 			if p.Bound != nil {
 				written = append(written, p.Bound)
@@ -246,6 +246,10 @@ func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
 	}
 	in.decls[tag] = d
 	in.newDecls = append(in.newDecls, tag)
+	if in.newDeclSCC == nil {
+		in.newDeclSCC = map[*types.Decl]*declSCC{}
+	}
+	in.newDeclSCC[d] = &declSCC{}
 	var params map[string]types.Type
 	for _, tp := range body.decl.TypeParams {
 		pd := &types.ParamDecl{Name: tp.Name}
@@ -281,26 +285,73 @@ func (g *Goroutine) declOf(tag *value.Tag) *types.Decl {
 	case value.TimeTag, value.RegexTag:
 		d.Kind = types.TaggedOpaqueDecl
 	}
-	g.checkDecl(d)
+	in.newDeclSCC[d].complete = true
+	g.checkDecl(d, in.component(d))
 	return d
+}
+
+// declSCC is what a type expression knows of the strongly connected component of a declaration
+// it began, in the graph of the declarations' bodies and fields.
+type declSCC struct {
+	complete bool
+	comp     map[*types.Decl]bool // the component, once it and every one it reaches are complete
+}
+
+// component returns the declarations of d's strongly connected component as the declarations
+// built so far name each other, which a check of d need follow alone (types.Components). Only
+// the declarations the current type expression began are searched: an earlier one is complete,
+// and so is everything it reaches. A component that is complete and reaches only complete ones
+// is kept, so a chain of declarations is searched once, not once from each link.
+func (in *Instance) component(d *types.Decl) func(*types.Decl) bool {
+	if c := in.newDeclSCC[d]; c == nil {
+		return func(x *types.Decl) bool { return x == d }
+	} else if c.comp != nil {
+		return func(x *types.Decl) bool { return c.comp[x] }
+	}
+	var root map[*types.Decl]bool
+	settled := func(x *types.Decl) bool {
+		c := in.newDeclSCC[x]
+		return c == nil || c.comp != nil
+	}
+	types.Components(d, types.DeclRefs, settled, func(comp []*types.Decl, _ bool) {
+		root = make(map[*types.Decl]bool, len(comp))
+		for _, x := range comp {
+			root[x] = true
+		}
+		settle := true
+		for _, x := range comp {
+			settle = settle && in.newDeclSCC[x].complete
+			types.DeclRefs(x, func(y *types.Decl) {
+				settle = settle && (root[y] || settled(y))
+			})
+		}
+		if settle {
+			for _, x := range comp {
+				in.newDeclSCC[x].comp = root
+			}
+		}
+	})
+	return func(x *types.Decl) bool { return root[x] }
 }
 
 // checkDecl panics where the checker rejects the declaration d itself (section 4, Type
 // declarations). declOf runs it as soon as d is complete, as the checker does, before a union or
 // an instantiation that names d is formed: an alias that reaches itself through unions alone, or
 // a generic type that refers to itself with other arguments, would make expanding it endless.
-func (g *Goroutine) checkDecl(d *types.Decl) {
+// A reference of d to itself passes through the declarations of its component alone, which in
+// reports.
+func (g *Goroutine) checkDecl(d *types.Decl, in func(*types.Decl) bool) {
 	pos := g.in.typePos
 	if n, ok := d.Body.(types.Named); ok && d.Kind == types.AliasDecl && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
 		g.panicf(pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
 	}
-	if _, msg, cyclic := types.AliasCycleError(d); cyclic {
+	if _, msg, cyclic := types.AliasCycleErrorIn(d, in); cyclic {
 		g.panicf(pos, "%s", msg)
 	}
-	if msg := types.SelfArgs(d); msg != "" {
+	if msg := types.SelfArgsIn(d, in); msg != "" {
 		g.panicf(pos, "%s", msg)
 	}
-	if msg := types.UnionSelf(d); msg != "" {
+	if msg := types.UnionSelfIn(d, in); msg != "" {
 		g.panicf(pos, "%s", msg)
 	}
 	for _, p := range d.Params {
