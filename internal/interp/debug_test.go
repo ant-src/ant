@@ -573,3 +573,22 @@ println(s)
 		t.Errorf("logs %q", got)
 	}
 }
+
+func TestDebugModuleScopeListsAShadowedVariable(t *testing.T) {
+	r := debug(t, `var n = 1
+func f() {
+  var n = 2
+  println(n)
+}
+f()
+`, func(r *debugRun) { r.breakAt(4) })
+	r.wait("breakpoint", 4)
+	locals, _, module := r.d.Scopes(r.frames(r.stop.Goroutine)[0])
+	if got := render(locals); got != "n=2" {
+		t.Errorf("locals: %s", got)
+	}
+	if got := render(module); got != "n=1" {
+		t.Errorf("module: %s", got)
+	}
+	r.finish()
+}
