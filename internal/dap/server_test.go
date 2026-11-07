@@ -822,6 +822,7 @@ while true {
 	ok(t, c.request("initialize", nil))
 	ok(t, c.request("launch", map[string]any{"program": main}))
 	ok(t, c.request("configurationDone", nil))
+	c.event("thread") // the main goroutine has started
 	for i := 0; i < 200; i++ {
 		ok(t, c.request("pause", map[string]any{"threadId": 1}))
 		ok(t, c.request("continue", map[string]any{"threadId": 1}))

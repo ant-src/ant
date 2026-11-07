@@ -237,16 +237,16 @@ func (s *server) serve(req *request) bool {
 	case "variables":
 		s.variables(req)
 	case "continue":
-		s.reply(req, map[string]any{"allThreadsContinued": true})
-		s.resume(func() { s.d.Continue() })
+		reply := func() { s.reply(req, map[string]any{"allThreadsContinued": true}) }
+		s.resume(reply, func() { s.d.Continue(reply) })
 	case "next", "stepIn", "stepOut":
 		var args struct {
 			ThreadID int `json:"threadId"`
 		}
 		json.Unmarshal(req.Arguments, &args)
 		kind := map[string]interp.StepKind{"next": interp.StepOver, "stepIn": interp.StepIn, "stepOut": interp.StepOut}[req.Command]
-		s.reply(req, nil)
-		s.resume(func() { s.d.Step(args.ThreadID, kind) })
+		reply := func() { s.reply(req, nil) }
+		s.resume(reply, func() { s.d.Step(args.ThreadID, kind, reply) })
 	case "pause":
 		var args struct {
 			ThreadID int `json:"threadId"`
@@ -277,9 +277,13 @@ func (s *server) serve(req *request) bool {
 	return false
 }
 
-// resume runs f, which resumes the program, once the handles of the stop are dropped.
-func (s *server) resume(f func()) {
+// resume runs f, which resumes the program, once the handles of the stop are dropped; with no
+// program, it runs reply alone.
+func (s *server) resume(reply, f func()) {
 	if s.d == nil {
+		if reply != nil {
+			reply()
+		}
 		return
 	}
 	s.hmu.Lock()
@@ -495,7 +499,7 @@ func (s *server) terminate() {
 		default:
 		}
 	}
-	s.resume(func() { s.d.Resume() })
+	s.resume(nil, func() { s.d.Resume() })
 }
 
 // end cancels the run, if it started, and waits for it.
@@ -504,7 +508,7 @@ func (s *server) end() {
 	if !s.started {
 		return
 	}
-	s.resume(func() { s.d.Resume() })
+	s.resume(nil, func() { s.d.Resume() })
 	select {
 	case <-s.done:
 	case <-time.After(2 * time.Second):

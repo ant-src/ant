@@ -123,7 +123,7 @@ func render(vs []interp.Var) string {
 
 func (r *debugRun) finish() {
 	r.t.Helper()
-	r.d.Continue()
+	r.d.Continue(nil)
 	select {
 	case err := <-r.done:
 		if err != nil {
@@ -175,13 +175,13 @@ var b = inc(a)
 println(b)
 `, func(r *debugRun) { r.breakAt(6) })
 	r.wait("breakpoint", 6)
-	r.d.Step(r.stop.Goroutine, interp.StepIn)
+	r.d.Step(r.stop.Goroutine, interp.StepIn, nil)
 	r.wait("step", 2)
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 3)
-	r.d.Step(r.stop.Goroutine, interp.StepOut)
+	r.d.Step(r.stop.Goroutine, interp.StepOut, nil)
 	r.wait("step", 7)
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 8)
 	r.finish()
 }
@@ -195,24 +195,24 @@ var total = xs
 println(total)
 `, func(r *debugRun) { r.breakAt(2) })
 	r.wait("breakpoint", 2)
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 3)
 	if got, want := r.locals(), "(piped)=[1, 2, 3, 4]"; got != want {
 		t.Errorf("at the filter: %s, want %s", got, want)
 	}
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 4)
 	if got, want := r.locals(), "(piped)=[2, 3, 4]"; got != want {
 		t.Errorf("at the map: %s, want %s", got, want)
 	}
-	r.d.Step(r.stop.Goroutine, interp.StepIn)
+	r.d.Step(r.stop.Goroutine, interp.StepIn, nil)
 	r.wait("step", 4) // the lambda's body
 	if got, want := r.locals(), "x=2"; got != want {
 		t.Errorf("in the lambda: %s, want %s", got, want)
 	}
-	r.d.Step(r.stop.Goroutine, interp.StepOut)
+	r.d.Step(r.stop.Goroutine, interp.StepOut, nil)
 	r.wait("step", 5)
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 6)
 	r.finish()
 }
@@ -231,9 +231,9 @@ for n in count {
 println(seen)
 `, func(r *debugRun) { r.breakAt(9) })
 	r.wait("breakpoint", 9)
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 9) // the next iteration, not the sequence's statements
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 11)
 	r.finish()
 }
@@ -256,7 +256,7 @@ boom()
 	if !strings.Contains(r.out.String(), "after catch") {
 		t.Errorf("a caught panic stopped the run under uncaught: %q", r.out)
 	}
-	r.d.Continue()
+	r.d.Continue(nil)
 	if err := <-r.done; err == nil {
 		t.Error("the run did not end with the panic")
 	}
@@ -266,9 +266,9 @@ boom()
 	if fs := r.frames(r.stop.Goroutine); fs[len(fs)-1].Pos.Line != 3 {
 		t.Errorf("the caught panic should stop first: %+v", fs)
 	}
-	r.d.Continue()
+	r.d.Continue(nil)
 	r.wait("exception", 1)
-	r.d.Continue()
+	r.d.Continue(nil)
 	<-r.done
 }
 
@@ -285,7 +285,7 @@ func TestDebugParallelPanic(t *testing.T) {
 	if got, want := r.locals(), "n=3 work=Context local=30"; got != want {
 		t.Errorf("locals: %s, want %s", got, want)
 	}
-	r.d.Continue()
+	r.d.Continue(nil)
 	select {
 	case err := <-r.done:
 		if err == nil {
@@ -314,7 +314,7 @@ println("caught")
 get()
 `, nil)
 	r.wait("exception", 4)
-	r.d.Continue()
+	r.d.Continue(nil)
 	<-r.done
 }
 
@@ -329,7 +329,7 @@ while true {
 }
 `, func(r *debugRun) { r.d.StopOnEntry = true })
 	r.wait("entry", 1)
-	r.d.Continue()
+	r.d.Continue(nil)
 	time.Sleep(50 * time.Millisecond)
 	r.d.Pause(1)
 	select {
@@ -485,7 +485,7 @@ println(a + b)
 `, func(r *debugRun) { r.breakAt(3) })
 		r.wait("breakpoint", 3)
 		first := r.stop.Goroutine
-		r.d.Continue()
+		r.d.Continue(nil)
 		r.wait("breakpoint", 3)
 		if r.stop.Goroutine == first {
 			t.Fatalf("goroutine %d stopped twice", first)
@@ -506,7 +506,7 @@ println(x)
 		if len(gs) != 2 {
 			t.Fatalf("goroutines: %+v", gs)
 		}
-		r.d.Step(gs[1].ID, interp.StepOver) // must not panic on an empty stack
+		r.d.Step(gs[1].ID, interp.StepOver, nil) // must not panic on an empty stack
 		r.finish()
 	}
 }
@@ -521,7 +521,7 @@ println(i + j)
 		r.set(interp.Breakpoint{Pos: r.pointOn(1)}, interp.Breakpoint{Pos: r.pointOn(2), LogMessage: "i={i}"})
 	})
 	r.wait("breakpoint", 1)
-	r.d.Step(r.stop.Goroutine, interp.StepOver)
+	r.d.Step(r.stop.Goroutine, interp.StepOver, nil)
 	r.wait("step", 2)
 	if strings.Join(logs, "|") != "i=1\n" {
 		t.Errorf("logs %q", logs)

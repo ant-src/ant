@@ -35,8 +35,8 @@ type Debugger struct {
 	halt   atomic.Bool // a stop is under way: every active goroutine parks at its next chance
 	frames atomic.Uint64
 
-	// rmu is held while OnStop reports a stop, so that Continue and Step, which take it before
-	// mu, see a stop either unreported or reported, never in between.
+	// rmu is held while OnStop reports a stop, and by Continue and Step, which take it before
+	// mu: they see a stop either unreported or reported, never in between.
 	rmu sync.Mutex
 
 	mu       sync.Mutex
@@ -162,11 +162,16 @@ func (d *Debugger) SetPanicFilters(uncaught, all bool) {
 
 // ---- control
 
-// Continue resumes every goroutine from the stop OnStop reported. Before that report it does
-// nothing: the stop is reported, and the client resumes from it.
-func (d *Debugger) Continue() {
+// Continue resumes every goroutine from the stop OnStop reported, calling ack, when not nil,
+// first: a stop is reported before ack or after it, never between ack and the resume. Before
+// the report, Continue does nothing but call ack; the stop is reported, and the client resumes
+// from it.
+func (d *Debugger) Continue(ack func()) {
 	d.rmu.Lock()
 	defer d.rmu.Unlock()
+	if ack != nil {
+		ack()
+	}
 	d.mu.Lock()
 	if d.reported {
 		d.resume(nil)
@@ -182,10 +187,13 @@ func (d *Debugger) Resume() {
 }
 
 // Step resumes every goroutine until the goroutine id reaches the stop point the step looks
-// for (dap.md section 4, Stepping).
-func (d *Debugger) Step(id int, kind StepKind) {
+// for (dap.md section 4, Stepping). It calls ack as Continue does.
+func (d *Debugger) Step(id int, kind StepKind, ack func()) {
 	d.rmu.Lock()
 	defer d.rmu.Unlock()
+	if ack != nil {
+		ack()
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if !d.reported {
