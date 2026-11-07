@@ -446,9 +446,33 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 			args = append(args, v)
 			rest = x.Args[1:]
 		}
-		fn, c, skip := g.postfix(x.Fn, env)
-		if c != ctlNone {
-			return fn, c, false
+		var fn value.Value
+		var skip bool
+		if fld, ok := x.Fn.(*ast.Field); ok {
+			// A call through a dot: the field when the receiver has one, else the function of
+			// the receiver's namespace with the receiver first (section 5, Calls through .).
+			recv, c, skipped := g.postfix(fld.X, env)
+			if c != ctlNone {
+				return recv, c, false
+			}
+			if skipped || (fld.Optional && recv == value.Null) {
+				if !fld.Grouped {
+					return value.Null, ctlNone, true
+				}
+				fn = value.Null
+			} else {
+				var withRecv bool
+				fn, withRecv = g.member(recv, fld.Name, fld.Pos)
+				if withRecv {
+					args = append([]value.Value{recv}, args...)
+				}
+			}
+		} else {
+			var c ctl
+			fn, c, skip = g.postfix(x.Fn, env)
+			if c != ctlNone {
+				return fn, c, false
+			}
 		}
 		if skip || (x.Optional && fn == value.Null) {
 			return value.Null, ctlNone, true
@@ -459,7 +483,7 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 				return v, c, false
 			}
 			if a.Name != "" && names == nil {
-				names = make([]string, len(args), len(x.Args))
+				names = make([]string, len(args), len(x.Args)+1)
 			}
 			args = append(args, v)
 			if names != nil {
@@ -498,6 +522,108 @@ func (g *Goroutine) field(recv value.Value, name string, pos ast.Pos) value.Valu
 		return fn
 	}
 	g.panicf(pos, "%s is not a record, so it has no field %s", value.Describe(recv), name)
+	return nil
+}
+
+// member finds what a call x.name(...) calls (section 5, Calls through .): the field name of
+// recv when it has one, as field reads it, or else the function name of recv's namespace, which
+// the call passes recv to first, as the second result reports. A tag, a constructor, a module
+// record or a prelude namespace holds its functions as fields, so a miss on one is field's panic.
+func (g *Goroutine) member(recv value.Value, name string, pos ast.Pos) (value.Value, bool) {
+	if r, ok := recv.(*value.Record); ok {
+		if v, ok := r.Field(name); ok {
+			if v == value.Uninitialized {
+				g.panicf(pos, "%s is read before its initializer has run", name)
+			}
+			return v, false
+		}
+	} else if _, isTag := recv.(*value.Tag); isTag {
+		return g.field(recv, name, pos), false
+	} else if _, isCtor := recv.(*value.Constructor); isCtor {
+		return g.field(recv, name, pos), false
+	}
+	ns := g.namespaceOf(recv)
+	if ns == nil {
+		if _, ok := recv.(*value.Record); ok {
+			return g.field(recv, name, pos), false
+		}
+		g.panicf(pos, "%s has no field or function %s", value.Describe(recv), name)
+	}
+	var fn value.Value
+	var ok bool
+	switch x := ns.(type) {
+	case *value.Record:
+		fn, ok = x.Field(name)
+	case *value.Tag:
+		fn, ok = x.Func(name)
+	}
+	if !ok {
+		g.panicf(pos, "%s has no field or function %s", value.Describe(recv), name)
+	}
+	return fn, true
+}
+
+// namespaceOf is the namespace a call through a dot reads a function from for a value (section
+// 5, Calls through .): the tag of a value of a user type, which holds the functions declared on
+// it, or the prelude namespace the table of section 5 gives a built-in value, nil for a number,
+// bool, null or void, which have none, and nil for a record that is itself a namespace.
+func (g *Goroutine) namespaceOf(recv value.Value) value.Value {
+	prelude := g.in.cfg.Prelude
+	named := func(name string) value.Value {
+		if i := strings.IndexByte(name, '.'); i > 0 {
+			if ns, ok := prelude[name[:i]]; ok {
+				return ns // a type a prelude namespace declares, Time.Instant or File.Handle
+			}
+		}
+		if ns, ok := prelude[name]; ok && ns != recv {
+			return ns
+		}
+		return nil
+	}
+	switch x := recv.(type) {
+	case *value.Record:
+		if x.Tag == value.OkTag || x.Tag == value.ErrTag {
+			return prelude["Result"]
+		}
+		if ns := named(x.Tag.Name); ns != nil {
+			return ns
+		}
+		if x.Tag.Body != nil {
+			return x.Tag // a user type, whose tag holds its functions
+		}
+		return nil // a module record or a prelude namespace: the field read says what is missing
+	case *value.Tagged:
+		if ns := named(x.Tag.Name); ns != nil {
+			return ns
+		}
+		return x.Tag
+	case string:
+		return prelude["String"]
+	case *value.Array:
+		return prelude["Array"]
+	case *value.Map:
+		return prelude["Map"]
+	case *value.Set:
+		return prelude["Set"]
+	case value.Bytes:
+		return prelude["Bytes"]
+	case *value.Html:
+		return prelude["Html"]
+	case *value.Regex:
+		return prelude["Regex"]
+	case value.Time:
+		return named(x.TimeType())
+	case value.Sync:
+		name := x.SyncName()
+		if ns := named(name); ns != nil {
+			return ns
+		}
+		return prelude[name]
+	case value.Callable:
+		return prelude["Iter"] // a sequence (section 11, Iter)
+	case value.TypeValue, value.Declaration, *value.Reflected:
+		return prelude["Reflect"]
+	}
 	return nil
 }
 
