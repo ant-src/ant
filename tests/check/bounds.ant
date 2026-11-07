@@ -68,3 +68,12 @@ func block(): int {
   type Local[A: B, B] = { a: A } // ERR: the bound of A is the type parameter B
   0
 }
+
+// Once a bound is rejected, its type parameter is known through nothing, and what the body does
+// with it reports no more errors; a call still solves it from the arguments.
+func namedBad[T: T](x: T): string { x.name }                       // ERR: the bound of T is the type parameter T
+func bothBad[T: U, U: T](x: T, y: U): string { x.name + y.name }   // ERR: the bound of T is the type parameter U ;; the bound of U is the type parameter T
+func added[T: T](x: T, xs: Array[T]): int { x + xs[0].size }       // ERR: the bound of T is the type parameter T
+func tested[T: Same[T]](x: T): T { if x is int { x } else { x } }  // ERR: the bound of T is the type parameter T
+func passed[T: T](xs: Array[T]): Array[T] { Array.map(xs, { x }) } // ERR: the bound of T is the type parameter T
+var solved: string = passed([1])[0]                                // ERR: cannot use int where string is expected

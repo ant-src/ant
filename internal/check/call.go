@@ -568,11 +568,13 @@ func boundFits(p *types.ParamDecl, t types.Type, subst map[*types.ParamDecl]type
 // unify matches a pattern that may mention type parameters against an actual type, binding
 // the parameters it meets. A parameter already bound must match by equality.
 func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]types.Type) bool {
-	if types.IsInvalid(actual) {
+	// Invalid itself, not a type parameter whose bound is invalid (types.IsInvalid): that one is
+	// still solved and solves others, so that a call is checked as usual.
+	if _, ok := actual.(types.Invalid); ok {
 		bindInvalid(pattern, subst)
 		return true
 	}
-	if types.IsInvalid(pattern) {
+	if _, ok := pattern.(types.Invalid); ok {
 		return true
 	}
 	if p, ok := pattern.(types.Param); ok {

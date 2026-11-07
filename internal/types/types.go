@@ -146,10 +146,18 @@ var (
 	ByteType    Type = Prim{value.KindUint8}
 )
 
-// IsInvalid reports whether t is the error-recovery type.
+// IsInvalid reports whether t is the error-recovery type, or a type parameter whose bound the
+// checker rejected and made invalid, as that of T in func f[T: T] is: the error was reported once,
+// at the bound, and what the body does with a T would only repeat it.
 func IsInvalid(t Type) bool {
-	_, ok := t.(Invalid)
-	return ok
+	switch x := t.(type) {
+	case Invalid:
+		return true
+	case Param:
+		_, ok := x.Decl.Bound.(Invalid)
+		return ok
+	}
+	return false
 }
 
 // IsNever reports whether t is never.
