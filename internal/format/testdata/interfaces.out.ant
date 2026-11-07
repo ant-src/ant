@@ -1,0 +1,15 @@
+// spec: fmt 4.3 Statements and blocks
+// An interface body is a block: flat on one line, else one signature per line.
+export interface Shape[T: Show] {
+  // the area
+  area(s: Self): float64 // trailing
+
+  name(s: Self, prefix: string): string
+  size(s: Self): T
+}
+interface Tiny { t(s: Self): int }
+interface Two { a(s: Self): int; b(s: Self): int }
+interface Broken {
+  a(s: Self): int
+  b(s: Self): int
+}
