@@ -1,0 +1,17 @@
+// spec: 3; 4 Field defaults
+// The rule holds for a generic record declared in a block, in every block of its defaults.
+func main() {
+  type Pair[A, B] = {
+    first: A | null = null,
+    count: (func(): int) = {
+      if true {
+        var B = 1
+      }
+      0
+    },
+  }
+}
+
+// expect
+// exit: 2
+// err: B is a type parameter of the enclosing type and cannot be redeclared

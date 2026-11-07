@@ -1,0 +1,11 @@
+// spec: 3; 4 Field defaults
+// A type parameter names one type throughout its declaration, so no parameter or local of a
+// generic record's field default may take its name.
+type Box[T] = {
+  value: T | null = null,
+  next: (func(int): int) = func(T: int): int { T + 1 },
+}
+
+// expect
+// exit: 2
+// err: T is a type parameter of the enclosing type and cannot be redeclared

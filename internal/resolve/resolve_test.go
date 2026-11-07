@@ -38,6 +38,9 @@ func TestScopeErrors(t *testing.T) {
 		{"block type prelude name", "func f() { type int = string }", "int is a prelude name"},
 		{"block type shadows type param", "func f[T](v: T): T {\n  if true { type T = int }\n  v\n}", "T is a type parameter of the enclosing function"},
 		{"block type in lambda shadows type param", "func f[T](v: T) { g({ type T = int }) }", "T is a type parameter of the enclosing function"},
+		{"default local shadows type param", "type B[T] = { f: (func(): int) = { var T = 1; T } }", "T is a type parameter of the enclosing type"},
+		{"default param shadows type param", "type B[T] = { f: (func(int): int) = func(T: int): int { T } }", "T is a type parameter of the enclosing type"},
+		{"block type default shadows type param", "func f() {\n  type B[T] = { f: (func(): int) = { type T = int; 1 } }\n}", "T is a type parameter of the enclosing type"},
 		{"func on block type", "func f() { type R = {} }\nfunc R.k() {}", "R is not a type declared at the top level of this module"},
 	}
 	for _, c := range cases {

@@ -162,10 +162,12 @@ type resolver struct {
 	info  *Info
 }
 
-// hide is the type parameters of one declaration and the scope they are declared in.
+// hide is the type parameters of one declaration, the scope they are declared in, and what
+// declares them: "function" or "type".
 type hide struct {
 	names map[string]bool
 	from  *scope
+	what  string
 }
 
 // hidden reports whether a binding of name in sc lies behind a type parameter of that name,
@@ -303,11 +305,16 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
 		return b
 	}
-	// A type parameter names one type in its whole function, so nothing in the function may
-	// take its name: not a parameter, a local, or a block's type (section 3).
-	if !s.module && r.isTypeParam(name) {
-		r.errorf(pos, "%s is a type parameter of the enclosing function and cannot be redeclared", name)
-		return b
+	// A type parameter names one type in its whole declaration, so nothing in a generic
+	// function or in a generic record's field defaults may take its name: not a parameter, a
+	// local, or a block's type (section 3).
+	if !s.module {
+		for i := len(r.hides) - 1; i >= 0; i-- {
+			if h := r.hides[i]; h.names[name] && encloses(h.from, s) {
+				r.errorf(pos, "%s is a type parameter of the enclosing %s and cannot be redeclared", name, h.what)
+				return b
+			}
+		}
 	}
 	if old, ok := s.names[name]; ok {
 		switch {
@@ -479,7 +486,7 @@ func (r *resolver) typeParams(tps []ast.TypeParam) {
 func (r *resolver) funcDecl(d *ast.FuncDecl) {
 	s := r.push(&scope{parent: r.module, boundary: true, fn: true, node: d.Body})
 	r.tparams = d.TypeParams
-	r.hides = append(r.hides, hide{typeParamSet(d.TypeParams), s})
+	r.hides = append(r.hides, hide{typeParamSet(d.TypeParams), s, "function"})
 	defer func() { r.tparams, r.hides = nil, r.hides[:len(r.hides)-1] }()
 	d.Scope = &ast.FuncScope{}
 	s.fnScope = d.Scope
@@ -572,7 +579,7 @@ func (r *resolver) defaults(d *ast.TypeDecl, s *scope) {
 		r.defaultOf = s
 	}
 	r.loops = nil
-	r.hides = append(r.hides, hide{typeParamSet(d.TypeParams), s})
+	r.hides = append(r.hides, hide{typeParamSet(d.TypeParams), s, "type"})
 	for _, f := range rt.Fields {
 		if f.Default != nil {
 			r.expr(f.Default, s)

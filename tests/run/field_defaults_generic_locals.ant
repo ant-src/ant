@@ -1,0 +1,23 @@
+// spec: 3; 4 Field defaults
+// A field default of a generic record may declare parameters and locals of its own, under names
+// other than its type parameters, and an outer name the type parameters do not take stays visible.
+let step = 10
+
+type Box[T] = {
+  items: Array[T] = [],
+  next: (func(int): int) = func(n: int): int {
+    var m = n + step
+    m
+  },
+  twice: (func(int): int) = { x * 2 },
+}
+
+var b: Box[string] = Box{}
+println(b.next(1))
+println(b.twice(21))
+println(len(b.items))
+
+// expect
+// out: 11
+// out: 42
+// out: 0
