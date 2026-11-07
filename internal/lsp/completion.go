@@ -43,6 +43,7 @@ func (s *Server) completeAt(d *document, off int) []CompletionItem {
 func (s *Server) complete(d *document, off int) ([]CompletionItem, bool) {
 	a := s.analyze(d)
 	c := &completer{s: s, a: a, d: d, off: off, toks: a.module().Layout.Tokens, items: []CompletionItem{}, seen: map[string]bool{}}
+	c.snippets = s.caps.TextDocument.Completion.CompletionItem.SnippetSupport
 	word, start := d.wordAt(off)
 	c.wordStart, c.wordEnd = start, start+len(word)
 	c.run()
@@ -56,7 +57,12 @@ func (s *Server) complete(d *document, off int) ([]CompletionItem, bool) {
 // and not those of a session input; the scope still lets a name be declared again. The items
 // are those the language server would offer (spec/lsp.md section 4), unsorted.
 func Complete(cfg loader.Config, path, text string, off int) []CompletionItem {
-	s := &Server{docs: map[string]*document{}, cache: map[string]*analysis{}}
+	return completeText(cfg, path, text, off, ClientCapabilities{})
+}
+
+// completeText is Complete for a client with the given capabilities.
+func completeText(cfg loader.Config, path, text string, off int, caps ClientCapabilities) []CompletionItem {
+	s := &Server{docs: map[string]*document{}, cache: map[string]*analysis{}, caps: caps}
 	s.load = func(p string, sources map[string]string) (*loader.Program, []loader.Diagnostic) {
 		c := cfg
 		c.Mode, c.Recover = parser.Program, true
@@ -93,6 +99,14 @@ type completer struct {
 	seen  map[string]bool
 	// incomplete is set when the items depend on the word typed so far.
 	incomplete bool
+	// snippets is set when the client takes snippets, so that a function's item can leave the
+	// cursor between its parentheses.
+	snippets bool
+	// piped is set on the right side of a pipe, which must be a call: a function's item
+	// inserts its parentheses.
+	piped bool
+	// funcArg is set where the argument is a function, which a function's name is passed as.
+	funcArg bool
 }
 
 func (c *completer) add(item CompletionItem) {
@@ -240,6 +254,7 @@ func (c *completer) members(dot *token.Token) {
 	extra := ""
 	if c.inPipeRight(dot) {
 		extra = "()" // the right side of a pipe must be a call for the statement to parse
+		c.piped = true
 	}
 	a, _ := c.fixup(extra)
 	// the field whose name the placeholder is
@@ -393,6 +408,7 @@ func (c *completer) pipe(prev *token.Token) bool {
 	if id == nil {
 		return true
 	}
+	c.piped = true
 	var left types.Type
 	ast.Inspect(a.module().File, func(n ast.Node) bool {
 		if call, ok := n.(*ast.Call); ok && call.Pipe && call.Fn == id && len(call.Args) > 0 {
@@ -527,6 +543,7 @@ func (c *completer) scopeNames() {
 				o := a.info.Decls[b.Node]
 				if o != nil {
 					item := c.objectItem(a, o, "")
+					item.InsertText = strings.Replace(item.InsertText, item.Label, b.Name, 1)
 					item.Label = b.Name // an import's alias
 					c.add(item)
 				} else {
@@ -551,6 +568,9 @@ func (c *completer) objectItem(a *analysis, o *check.Object, prefix string) Comp
 		}
 		item.Detail = strings.TrimPrefix(a.signatureLabel(o), o.Owner+".")
 		item.Detail = strings.TrimPrefix(item.Detail, o.Name)
+		if ft, ok := o.Type().(types.Func); ok {
+			c.callParens(&item, ft)
+		}
 	case check.Var:
 		item.Kind = ItemVariable
 		item.Detail = typeString(o.Type())
@@ -587,6 +607,29 @@ func (c *completer) objectItem(a *analysis, o *check.Object, prefix string) Comp
 		item.Documentation = markdown(summary(doc, a.knows))
 	}
 	return item
+}
+
+// callParens makes a function's item insert the parentheses of a call: on the right side of a
+// pipe always, since it must be a call (section 5, Pipes), and elsewhere when the client takes
+// snippets, unless the argument there is a function, which the name is passed as. With a
+// snippet the cursor is left between the parentheses when there are arguments to write. Nothing
+// is added when a parenthesis follows the word already.
+func (c *completer) callParens(item *CompletionItem, ft types.Func) {
+	if strings.HasPrefix(c.d.text[c.wordEnd:], "(") {
+		return
+	}
+	args := len(ft.Params)
+	switch {
+	case c.piped:
+		args-- // the left side is the first
+	case c.funcArg || !c.snippets:
+		return
+	}
+	if c.snippets && args > 0 {
+		item.InsertText, item.InsertTextFormat = item.Label+"($0)", 2
+		return
+	}
+	item.InsertText = item.Label + "()"
 }
 
 // ---- keywords
@@ -903,12 +946,15 @@ func (c *completer) namedArgs(prev *token.Token) {
 		return
 	}
 	ci := a.info.Calls[call]
-	if ci == nil || len(ci.Names) == 0 {
+	if ci == nil {
 		return
 	}
 	given := map[int]bool{}
 	for i, arg := range call.Args {
 		if isPlaceholder(arg) {
+			if i < len(ci.Slots) && ci.Slots[i] >= 0 && ci.Slots[i] < len(ci.Fn.Params) {
+				_, c.funcArg = types.Expand(ci.Fn.Params[ci.Slots[i]]).(types.Func)
+			}
 			continue
 		}
 		if i < len(ci.Slots) && ci.Slots[i] >= 0 {
