@@ -588,6 +588,26 @@ func TestInterface(t *testing.T) {
 	if len(refs) != 2 {
 		t.Errorf("references of Shape: %+v", refs)
 	}
+	var h Hover
+	c.call("textDocument/hover", c.pos(uri, at(src, "s.area()", 1, 2)), &h)
+	if !strings.Contains(h.Contents.Value, "area(s: Self): float64") {
+		t.Errorf("hover on s.area: %q", h.Contents.Value)
+	}
+	h = Hover{}
+	c.call("textDocument/hover", c.pos(uri, at(src, "Shape = Circle", 1, 0)), &h)
+	if !strings.Contains(h.Contents.Value, "interface Shape") {
+		t.Errorf("hover on Shape: %q", h.Contents.Value)
+	}
+	var sh SignatureHelp
+	c.call("textDocument/signatureHelp", SignatureHelpParams{TextDocumentPositionParams: c.pos(uri, at(src, "}.area()", 1, 7))}, &sh)
+	if len(sh.Signatures) != 1 || !strings.Contains(sh.Signatures[0].Label, "area(c: Circle): float64") {
+		t.Errorf("signature help through .: %+v", sh)
+	}
+	var edit WorkspaceEdit
+	c.call("textDocument/rename", RenameParams{TextDocumentPositionParams: c.pos(uri, at(src, "Shape = Circle", 1, 0)), NewName: "Form"}, &edit)
+	if got := applyAll(src, edit.Changes[uri]); !strings.Contains(got, "interface Form {") || !strings.Contains(got, "var s: Form = Circle") {
+		t.Errorf("renaming Shape:\n%s", got)
+	}
 }
 
 func TestSymbolsFoldingSelection(t *testing.T) {

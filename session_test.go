@@ -504,6 +504,21 @@ func TestSessionInterface(t *testing.T) {
 	if !offered {
 		t.Errorf("s. does not offer area")
 	}
+	// a later input may declare the name again, as any session declaration may, and a variable
+	// declared over an interface gets a field of its own
+	for _, src := range []string{"interface Shape { area(s: Self): float64; name(s: Self): string }", "var Shape = 1", "var t = Shape + 1", "interface Circle { r(c: Self): float64 }", "var c2 = 2"} {
+		if _, err := s.Eval(src); err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+	}
+	for src, want := range map[string]string{"Shape": "int", "t": "int", "c2": "int"} {
+		if got, err := s.TypeOf(src); err != nil || got != want {
+			t.Errorf("TypeOf(%q) = %q, %v; want %q", src, got, err, want)
+		}
+	}
+	if v, ok := s.Value("t"); !ok || v != int64(2) {
+		t.Errorf("t = %v, %v", v, ok)
+	}
 }
 
 func TestSessionTypeOf(t *testing.T) {

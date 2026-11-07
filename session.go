@@ -136,12 +136,20 @@ func offsetOf(src string, p ast.Pos) int {
 func (s *Session) record(path, src string, f *ast.File) {
 	types := s.varTypes(path, src, f)
 	// put replaces every declaration of the names key lists, comma-separated: a destructuring
-	// kept whole declares several, and a name declared twice would fail a let.
+	// kept whole declares several, and a name declared twice would fail a let. A declaration
+	// that is not a type also drops the functions declared on a type of that name, which a type
+	// declared again keeps.
 	put := func(key, text string) {
 		names := strings.Split(key, ",")
+		isType := strings.HasPrefix(text, "type ")
 		s.decls = slices.DeleteFunc(s.decls, func(d declEntry) bool {
 			for _, k := range strings.Split(d.key, ",") {
 				if slices.Contains(names, k) {
+					return true
+				}
+			}
+			if !isType {
+				if owner, _, ok := strings.Cut(d.key, "."); ok && slices.Contains(names, owner) {
 					return true
 				}
 			}

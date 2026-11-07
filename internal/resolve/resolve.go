@@ -326,13 +326,9 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 			// a session declaration replaces an earlier import
 			s.names[name] = b
 			s.order = append(s.order, b)
-			b.module = true
-			if idx, ok := r.fields.Index[name]; ok {
-				b.index = idx
-			} else {
-				b.index = len(r.fields.Fields)
-				r.fields.Fields = append(r.fields.Fields, name)
-				r.fields.Index[name] = b.index
+			if !b.iface {
+				b.module = true
+				r.moduleField(b)
 			}
 			r.noteBinding(s, b)
 			return b
@@ -344,9 +340,16 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 			r.errorf(pos, "%s is bound by let earlier in the session and cannot be declared again", name)
 			return b
 		case s.module && r.session:
-			// A session replaces the binding; the field keeps its index.
-			b.module = true
-			b.index = old.index
+			// A session replaces the binding; the field keeps its index, unless the earlier
+			// binding was an interface, which has none, or the new one is.
+			if !b.iface {
+				b.module = true
+				if old.iface {
+					r.moduleField(b)
+				} else {
+					b.index = old.index
+				}
+			}
 			s.names[name] = b
 			r.noteBinding(s, b)
 			return b
@@ -362,16 +365,22 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	s.order = append(s.order, b)
 	if s.module && !b.iface {
 		b.module = true
-		if idx, ok := r.fields.Index[name]; ok {
-			b.index = idx
-		} else {
-			b.index = len(r.fields.Fields)
-			r.fields.Fields = append(r.fields.Fields, name)
-			r.fields.Index[name] = b.index
-		}
+		r.moduleField(b)
 	}
 	r.noteBinding(s, b)
 	return b
+}
+
+// moduleField gives a top-level binding its field of the module record: the one of its name, or
+// a new one.
+func (r *resolver) moduleField(b *binding) {
+	if idx, ok := r.fields.Index[b.name]; ok {
+		b.index = idx
+		return
+	}
+	b.index = len(r.fields.Fields)
+	r.fields.Fields = append(r.fields.Fields, b.name)
+	r.fields.Index[b.name] = b.index
 }
 
 // noteLet records in the module's fields whether a top-level binding is a let.
