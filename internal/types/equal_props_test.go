@@ -13,7 +13,8 @@ func TestEqualProperties(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	// Declarations: a generic record Box[T], a phantom alias K[T] = Array[int], an identity
 	// alias Id[T] = T, an alias over a union U = int | string, a recursive alias
-	// J = null | float64 | Array[J], its twin J2, and a generic recursive alias N[T] = Array[N[T]] | Box[T].
+	// J = null | float64 | Array[J], its twin J2, and a generic alias N[T] = Array[NBox[T]] | Box[T]
+	// that recurs through the field of the record NBox[T] = { items: N[T] }.
 	p := &ParamDecl{Name: "T"}
 	box := &Decl{Name: "Box", Kind: RecordDecl, Params: []*ParamDecl{p}, Fields: []Field{{Name: "v", Type: Param{Decl: p}}}}
 	kp := &ParamDecl{Name: "T"}
@@ -30,7 +31,10 @@ func TestEqualProperties(t *testing.T) {
 	j2.Body = j2b
 	np := &ParamDecl{Name: "T"}
 	n := &Decl{Name: "N", Kind: AliasDecl, Params: []*ParamDecl{np}}
-	nb, _ := MakeUnion([]Type{Array{Elem: Named{Decl: n, Args: []Type{Param{Decl: np}}}}, Named{Decl: box, Args: []Type{Param{Decl: np}}}})
+	nbp := &ParamDecl{Name: "T"}
+	nbox := &Decl{Name: "NBox", Kind: RecordDecl, Params: []*ParamDecl{nbp}}
+	nbox.Fields = []Field{{Name: "items", Type: Named{Decl: n, Args: []Type{Param{Decl: nbp}}}}}
+	nb, _ := MakeUnion([]Type{Array{Elem: Named{Decl: nbox, Args: []Type{Param{Decl: np}}}}, Named{Decl: box, Args: []Type{Param{Decl: np}}}})
 	n.Body = nb
 	prims := []value.Kind{value.KindInt64, value.KindString, value.KindBool, value.KindFloat64}
 

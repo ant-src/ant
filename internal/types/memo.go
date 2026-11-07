@@ -15,7 +15,6 @@ import "unsafe"
 type pairs struct {
 	byKey map[[2]uint64][]*pair
 	trail []*pair // the pairs put under test, in order; a pair that fails drops those after it
-	rec   map[*Decl]bool
 }
 
 type pair struct {
@@ -33,51 +32,14 @@ const (
 )
 
 // remembered reports whether the walk remembers the pairs that t is part of: those of an alias
-// without arguments, which is cheap to find again, and those of an alias that reaches itself,
-// which the walk must find again to end. A generic alias that does not reach itself is not
-// remembered: its instantiations can nest as deep as a value, as Opt[Opt[...]] does, and are
-// rarely met twice.
+// without arguments, which is cheap to find again and which the walk must find again to end
+// when the alias reaches itself, as Json.Value's does. A generic alias is not remembered: it
+// cannot reach itself (section 4, Type declarations), so expanding it ends after as many steps
+// as there are aliases written in it and its bodies, and its instantiations can nest as deep as
+// a value, as Opt[Opt[...]] does, and are rarely met twice.
 func (m *pairs) remembered(t Type) bool {
-	if !isAlias(t) {
-		return false
-	}
-	n := t.(Named)
-	if len(n.Args) == 0 {
-		return true
-	}
-	if m.rec == nil {
-		m.rec = map[*Decl]bool{}
-	}
-	if _, ok := m.rec[n.Decl]; !ok {
-		m.findRecursive(n.Decl)
-	}
-	return m.rec[n.Decl]
-}
-
-// findRecursive records in m.rec, for d and every alias its body reaches, whether the alias
-// leads back to itself through its body, directly or through other aliases, as Json.Value's
-// does. Expanding any other alias ends after as many steps as there are aliases written in it
-// and its bodies, so a walk meets the same pair again only through one of these. The aliases
-// that lead back to themselves are those of a cycle among the aliases, found by Tarjan's
-// method in time linear in the bodies, so a chain of aliases each naming the one before is not
-// walked again from each of its links.
-func (m *pairs) findRecursive(d *Decl) {
-	aliases := func(v *Decl, edge func(*Decl)) {
-		Walk(v.Body, func(x Type) {
-			if isAlias(x) {
-				edge(x.(Named).Decl)
-			}
-		})
-	}
-	decided := func(w *Decl) bool {
-		_, ok := m.rec[w]
-		return ok // decided by an earlier search, so on no cycle through d
-	}
-	Components(d, aliases, decided, func(comp []*Decl, cyclic bool) {
-		for _, w := range comp {
-			m.rec[w] = cyclic
-		}
-	})
+	n, ok := t.(Named)
+	return ok && isAlias(t) && len(n.Args) == 0
 }
 
 // enter looks up the pair (a, b). Known reports that it is decided or under test, with holds
