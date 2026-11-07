@@ -222,6 +222,15 @@ func (c *completer) fixup(extra string) (*analysis, *ast.Ident) {
 	return a, found
 }
 
+// callFixup is the text fixup adds after the name on the right side of a pipe so that it is a
+// call: parentheses, unless the name has its own already.
+func (c *completer) callFixup() string {
+	if strings.HasPrefix(c.d.text[c.wordEnd:], "(") {
+		return ""
+	}
+	return "()"
+}
+
 // analyzeText analyzes the program rooted at d with text in place of its own, for completion.
 func (s *Server) analyzeText(d *document, text string) *analysis {
 	sources := map[string]string{}
@@ -253,7 +262,7 @@ func (s *Server) analyzeText(d *document, text string) *analysis {
 func (c *completer) members(dot *token.Token) {
 	extra := ""
 	if c.inPipeRight(dot) {
-		extra = "()" // the right side of a pipe must be a call for the statement to parse
+		extra = c.callFixup() // the right side of a pipe must be a call for the statement to parse
 		c.piped = true
 	}
 	a, _ := c.fixup(extra)
@@ -428,7 +437,7 @@ func (c *completer) pipe(prev *token.Token) bool {
 	if prev == nil || !prev.Is("|") {
 		return false
 	}
-	a, id := c.fixup("()")
+	a, id := c.fixup(c.callFixup())
 	if id == nil {
 		return true
 	}

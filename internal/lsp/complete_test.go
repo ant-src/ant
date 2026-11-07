@@ -144,3 +144,52 @@ func TestCompleteParens(t *testing.T) {
 		}
 	}
 }
+
+// completeItems is completeText for a session input with the cursor at the first occurrence of
+// mark, which is removed from text.
+func completeItems(t *testing.T, caps ClientCapabilities, text string) []CompletionItem {
+	t.Helper()
+	off := strings.Index(text, "|>")
+	if off < 0 {
+		t.Fatalf("no cursor in %q", text)
+	}
+	text = text[:off] + text[off+2:]
+	cfg := loader.Config{Session: &ast.ModuleScope{Index: map[string]int{}}}
+	return completeText(cfg, "<input>", text, off, caps)
+}
+
+func itemLabels(items []CompletionItem) []string {
+	var out []string
+	for _, it := range items {
+		out = append(out, it.Label)
+	}
+	return out
+}
+
+func contains(xs []string, x string) bool {
+	for _, y := range xs {
+		if y == x {
+			return true
+		}
+	}
+	return false
+}
+
+// TestCompletePipeInCall: in a pipe's call whose arguments are written, the functions are still
+// those that take the left side.
+func TestCompletePipeInCall(t *testing.T) {
+	const decls = "var xs = [1, 2]\n"
+	for _, tc := range []struct {
+		text       string
+		has, lacks string
+	}{
+		{"xs | Array.fil|>ter({ x > 1 })", "filter", "filled"},
+		{"xs | Array.|>filter({ x > 1 })", "filter", "filled"},
+		{"xs | fil|>({ x > 1 })", "Array.filter", "Array.filled"},
+	} {
+		got := itemLabels(completeItems(t, ClientCapabilities{}, decls+tc.text))
+		if !contains(got, tc.has) || contains(got, tc.lacks) {
+			t.Errorf("%q: want %s and not %s among %q", tc.text, tc.has, tc.lacks, got)
+		}
+	}
+}
