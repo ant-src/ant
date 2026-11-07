@@ -905,7 +905,13 @@ func (c *completer) typeNames(prefix string) {
 			c.add(CompletionItem{Label: tps[i].Name, Kind: ItemTypeParameter, Detail: "type parameter"})
 		}
 	}
-	if m := a.module(); m.Resolve != nil {
+	c.localTypes()
+}
+
+// localTypes completes the types the enclosing blocks and the module declare.
+func (c *completer) localTypes() {
+	nodes := ast.Path(c.a.module().File, c.d.posOf(c.wordStart))
+	if m := c.a.module(); m.Resolve != nil {
 		for i := len(nodes) - 1; i >= 0; i-- {
 			if sc, ok := m.Resolve.Scopes[nodes[i]]; ok {
 				for _, b := range sc.Names {
@@ -956,16 +962,21 @@ var isKinds = []string{"null", "void", "func", "bool", "string", "Bytes", "Html"
 
 // isTargets completes after is: the kinds is tests and the types in scope.
 func (c *completer) isTargets() {
-	for _, k := range isKinds {
-		c.add(CompletionItem{Label: k, Kind: ItemKeyword})
-	}
 	a := c.a
+	prelude := map[string]bool{}
 	for _, o := range a.info.Prelude {
 		if o.Kind == check.TypeKind || o.Kind == check.Namespace && hasTypes(o) {
 			c.add(c.objectItem(a, o, ""))
+			prelude[o.Name] = true
+		}
+	}
+	for _, k := range isKinds {
+		if !prelude[k] {
+			c.add(CompletionItem{Label: k, Kind: ItemKeyword})
 		}
 	}
 	c.moduleTypes()
+	c.localTypes()
 }
 
 // ---- arguments and entries

@@ -210,3 +210,20 @@ func TestCompleteShadowed(t *testing.T) {
 		t.Errorf("count offered %d times: %+v", n, items)
 	}
 }
+
+// TestCompleteIs: after is, the types a block declares too, and each kind once.
+func TestCompleteIs(t *testing.T) {
+	got := itemLabels(completeItems(t, ClientCapabilities{}, "func f(): bool {\n  type Loc = {a: int}\n  var v: Loc | int = 1\n  v is L|>\n}\n"))
+	if !contains(got, "Loc") {
+		t.Errorf("no Loc after is: %q", got)
+	}
+	count := map[string]int{}
+	for _, l := range got {
+		count[l]++
+	}
+	for _, k := range []string{"Bytes", "Html", "int", "null", "Array"} {
+		if count[k] != 1 {
+			t.Errorf("%s offered %d times", k, count[k])
+		}
+	}
+}
