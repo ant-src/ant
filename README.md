@@ -1,7 +1,6 @@
 # Ant
 
-Static types, _goroutines_, and nothing left `undefined`.
-
+Ant is a typed language with errors as values, pipes for data, and goroutines.
 
 ## Examples
 
