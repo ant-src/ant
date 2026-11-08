@@ -1,0 +1,11 @@
+// spec: 4 Inference
+// Section 4, Inference: an empty literal argument is checked against what the other arguments
+// solved, so T comes from [1].
+println(Array.concat([], [1]))
+println(Array.contains([], 1))
+println([1, 2].reduce([], func(acc: Array[int], x: int) { acc.concat([x]) }))
+
+// expect
+// out: [1]
+// out: false
+// out: [1, 2]

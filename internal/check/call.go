@@ -315,6 +315,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.expect(recv.pos, recv.typ, want)
 		}
 	}
+	var empties []int
 	for i, a := range slots {
 		if a == nil {
 			continue
@@ -323,6 +324,11 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			continue
 		}
 		pt := s.fn.Params[i]
+		if types.Mentions(pt, unsolved) && onlyEmpty(a.Value) {
+			// An empty literal fixes nothing; it waits for the other arguments.
+			empties = append(empties, i)
+			continue
+		}
 		if types.Mentions(pt, unsolved) {
 			got := c.synthWithPattern(a.Value, pt, subst, unsolved, sc)
 			if !c.unify(pt, got, subst) {
@@ -340,6 +346,23 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		want, err := types.Subst(pt, subst)
 		if err != nil {
 			c.errorf(a.Pos, "%s", err)
+			continue
+		}
+		c.check(a.Value, sc, want)
+	}
+	for _, i := range empties {
+		a := slots[i]
+		want, err := types.Subst(s.fn.Params[i], subst)
+		if err != nil {
+			c.errorf(a.Pos, "%s", err)
+			continue
+		}
+		if types.Mentions(want, unsolved) {
+			if !mismatch {
+				c.errorf(a.Value.Position(), "%s", emptyError(a.Value))
+			}
+			bindInvalid(s.fn.Params[i], subst)
+			pruneSolved(unsolved, subst)
 			continue
 		}
 		c.check(a.Value, sc, want)
@@ -910,6 +933,38 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 		return c.check(e, sc, solved)
 	}
 	return c.synth(e, sc)
+}
+
+// onlyEmpty reports an empty array or map literal, or an array literal of nothing but those,
+// which only an expected type can give a type.
+func onlyEmpty(e ast.Expr) bool {
+	if isEmptyLiteral(e) {
+		return true
+	}
+	x, ok := e.(*ast.ArrayLit)
+	if !ok {
+		return false
+	}
+	for _, el := range x.Elems {
+		if el.Spread || !onlyEmpty(el.Value) {
+			return false
+		}
+	}
+	return true
+}
+
+// emptyError is the error for what onlyEmpty accepts when nothing gives it a type, worded as
+// for the same literal in a var.
+func emptyError(e ast.Expr) string {
+	switch x := e.(type) {
+	case *ast.MapLit:
+		return "cannot infer the key and value types of an empty map; annotate it"
+	case *ast.ArrayLit:
+		if len(x.Elems) > 0 {
+			return "cannot infer the element type of an array of empty literals; annotate it"
+		}
+	}
+	return "cannot infer the element type of an empty array; annotate it"
 }
 
 // bindInvalid binds every unsolved type parameter a pattern mentions to the invalid type.

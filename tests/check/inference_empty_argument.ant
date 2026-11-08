@@ -1,0 +1,17 @@
+// spec: 4 Inference
+// Section 4, Inference: an empty literal argument fixes nothing; it waits for the other
+// non-lambda arguments, and when they leave its type open it is an error, as var zs = [] is.
+var a = Array.concat([], [1])
+var b = Array.contains([], 1)
+var c = [1, 2].reduce([], func(acc: Array[int], x: int) { acc.concat([x]) })
+var d = Array.concat([[]], [[1]])
+var e: Map[string, int] = Map.merge(Map{}, Map{ "a": 1 })
+var f: Array[int] = Array.concat([], [])
+var g: int = a[0]
+var h: string = a[0] // ERR: cannot use int where string is expected
+
+var v = Array.first([])        // ERR: cannot infer the element type of an empty array
+var m = Array.map([], { x })   // ERR: cannot infer the element type of an empty array
+var n = Array.min([])          // ERR: cannot infer the element type of an empty array
+var k = Map.keys(Map{})        // ERR: cannot infer the key and value types of an empty map
+var w = Array.concat([[]], []) // ERR: cannot infer the element type of an array of empty literals

@@ -237,7 +237,7 @@ var xs = Array.flatten([[1, null], [null]])
 
 An empty literal leaves `T` unsolved. Annotate the argument or the result:
 
-<!-- test: error cannot use Array[never] where Array[Array[T]] is expected -->
+<!-- test: error cannot infer the element type of an empty array; annotate it -->
 
 ```ant
 var xs = Array.flatten([])

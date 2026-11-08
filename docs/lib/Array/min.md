@@ -192,7 +192,7 @@ assert(xs == [3, 1, 2])
 
 An empty array literal gives `T` nothing to infer from, so it is a compile error:
 
-<!-- test: error T would be never, which is not a single member of its bound Ordered -->
+<!-- test: error cannot infer the element type of an empty array; annotate it -->
 
 ```ant
 println(Array.min([]))
