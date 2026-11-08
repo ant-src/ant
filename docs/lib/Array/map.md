@@ -14,8 +14,8 @@ Array.map returns a new array holding f applied to each element of xs, in order.
 ## Details
 
 - The result has one element for each element of `xs`, and element `i` of the result is `f` applied
-  to element `i` of `xs`
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+  to element `i` of `xs`, in order
+  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `f` is called once per element, from the first element to the last, so a callback with a side
   effect sees the elements in order
   ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
