@@ -60,11 +60,12 @@ var commands = []command{
 	}},
 	{name: "lsp"},
 	{name: "dap"},
+	{name: "version"},
 	{name: "help"},
 }
 
 // flags are those ant takes in place of a command, as run's switch accepts them.
-var flags = []string{"-h", "--help", "--comp"}
+var flags = []string{"-h", "--help", "--version", "--comp"}
 
 var shells = []string{"bash", "zsh", "fish"}
 

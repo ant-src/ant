@@ -4,12 +4,18 @@
 //! dist/ant_<os>_<arch>, with .exe for windows. The names leave out the version, so
 //! releases/latest/download/ant_<os>_<arch> always names the newest one, which is what
 //! ant-lang.org/install.sh downloads. GitHub keeps each release asset's SHA-256 digest, so the
-//! release has no checksums file.
+//! release has no checksums file. The version, the release's tag, is built in for ant version.
 //!
-//!     ant scripts/release.ant
+//!     ant scripts/release.ant v0.1.0
 //!
 //! Run it from the repository root, with go on PATH. Every target is pure Go, so one host builds
 //! them all.
+
+var args = Os.args()
+if len(args) != 1 {
+  return Result.err(Error{ message: "usage: ant scripts/release.ant vX.Y.Z" })
+}
+var version = args[0]
 
 var targets = [
   "linux/amd64",
@@ -31,7 +37,7 @@ for target in targets {
   env["CGO_ENABLED"] = "0"
   env["GOOS"] = os
   env["GOARCH"] = arch
-  var build = Cmd.new("go", ["build", "-trimpath", "-ldflags=-s -w", "-o", output, "./cmd/ant"], env: env)
+  var build = Cmd.new("go", ["build", "-trimpath", "-ldflags=-s -w -X main.version=${version}", "-o", output, "./cmd/ant"], env: env)
   var status = try Cmd.run(build)
   if status != 0 {
     return Result.err(Error{ message: "${Cmd.string(build)}: exit status ${status}" })

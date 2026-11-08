@@ -19,10 +19,10 @@ func TestComplete(t *testing.T) {
 		line string
 		want []string
 	}{
-		{"ant ", []string{"run", "check", "test", "fmt", "doc", "lsp", "dap", "help", "lib", "main.ant", "my dir"}},
+		{"ant ", []string{"run", "check", "test", "fmt", "doc", "lsp", "dap", "version", "help", "lib", "main.ant", "my dir"}},
 		{"ant r", []string{"run"}},
 		{"ant m", []string{"main.ant", "my dir"}},
-		{"ant -", []string{"-h", "--help", "--comp"}},
+		{"ant -", []string{"-h", "--help", "--version", "--comp"}},
 		{"FOO=1 ant r", []string{"run"}},
 		{"sudo ./bin/ant run l", []string{"lib"}},
 		{"ant --comp ", []string{"bash", "zsh", "fish"}},

@@ -9,6 +9,7 @@
 //	ant lsp                      serve the Language Server Protocol to an editor
 //	ant dap                      serve the Debug Adapter Protocol to an editor
 //	ant --comp bash|zsh|fish     print the script that completes ant's commands in the shell
+//	ant version                  print the version of ant
 //	ant                          start a REPL
 //
 // Exit status: 0 when the script ends or the check passes, 1 when the script returns an Err, the
@@ -71,6 +72,7 @@ const usage = `usage:
   ant lsp
   ant dap
   ant --comp bash|zsh|fish
+  ant version
   ant`
 
 func main() {
@@ -155,6 +157,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return dapCommand(args[1:], stdin, stdout, stderr)
 	case "--comp":
 		return compCommand(args[1:], stdout, stderr)
+	case "version", "--version":
+		fmt.Fprintln(stdout, "ant", antVersion())
+		return 0
 	case "help", "-h", "--help":
 		fmt.Fprintln(stdout, usage)
 		return 0

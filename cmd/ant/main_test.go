@@ -36,6 +36,8 @@ func TestRunCommand(t *testing.T) {
 		{"check cannot load", []string{"check", missing}, "", 2, "", "main"},
 		{"help", []string{"help"}, "", 0, "usage", ""},
 		{"help flag", []string{"--help"}, "", 0, "usage", ""},
+		{"version", []string{"version"}, "", 0, "ant ", ""},
+		{"version flag", []string{"--version"}, "", 0, "ant ", ""},
 		{"unknown", []string{"frobnicate"}, "", 2, "", "usage"},
 		{"repl", nil, "1 + 1\nvar s = \"x\"\ns + s\n", 0, "2\n", ""},
 		{"repl owns stdin", nil, "File.readLine(Os.stdin())\n", 0, "Ok{ value: null }\n", ""},
