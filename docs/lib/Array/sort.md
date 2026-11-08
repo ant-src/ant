@@ -18,13 +18,18 @@ Array.sort returns a new array holding the elements of xs in ascending order. Th
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - It leaves `xs` unchanged
   ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- Numbers compare by value, and strings by code point, as `<` compares them
+- The order is the one `<` gives
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)): numbers compare by
+  value, and strings by code point
   ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
+- `-0.0` and `0.0` are equal, so they keep their order in `xs`
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `T` must be a single member of `Ordered`, which is `Number | string`: one numeric type, or
-  `string`. A union such as `Number` or `int | null` is not one, nor is a record or `bool`
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). A named
-  primitive type such as `type UserId = string` is not one either: it is assignable only to itself,
-  and library functions take the base kinds
+  `string`. A union of members such as `Number` or `int | string` is not one
+  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). A type
+  outside `Ordered`, such as `int | null`, a record, or `bool`, is not one either. A named primitive
+  type such as `type UserId = string` is not one either: it is assignable only to itself, and
+  library functions take the base kinds
   ([spec: Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)).
 - To sort by a key, or in another order, use [`Array.sortBy`](sortBy.md) or
   [`Array.sortWith`](sortWith.md).
@@ -83,6 +88,13 @@ Infinities take their place as IEEE 754 orders them, and a `NaN` goes after ever
 
 ```ant
 [2.5, Math.NaN, -1.0, Math.Infinity, -Math.Infinity].sort() // [-Infinity, -1.0, 2.5, Infinity, NaN]
+```
+
+`-0.0` and `0.0` are equal to the sort, so each stays where it was among the two:
+
+```ant
+[0.0, -0.0].sort()            // [0.0, -0.0]
+[1.0, 0.0, -0.0, -1.0].sort() // [-1.0, 0.0, -0.0, 1.0]
 ```
 
 Duplicates stay, side by side:
@@ -144,7 +156,7 @@ List the distinct words of a text in order:
 "the cat and the hat" | String.split(" ") | Array.unique() | Array.sort() // ["and", "cat", "hat", "the"]
 ```
 
-Sort ISO 8601 dates as text, which is date order:
+Dates written as zero-padded YYYY-MM-DD sort as text in date order:
 
 ```ant
 ["2026-03-01", "2025-12-31", "2026-11-08"].sort() // ["2025-12-31", "2026-03-01", "2026-11-08"]
@@ -167,15 +179,18 @@ pear: 2
 
 ## Properties and relations
 
-Each element of the result is at most the next one, and the result has the same length and the same
-elements as `xs`:
+Each element of the result is at most the next one, and the result holds each element of `xs` as
+many times as `xs` does:
 
 ```ant
 var xs = [5, 3, 8, 1, 3]
 var s = xs.sort()
 assert(Array.range(1, s.length()).every({ s[x - 1] <= s[x] }))
 assert(s.length() == xs.length())
-assert(xs.every({ s.contains(x) }))
+func sameCount(v: int): bool {
+  xs.countWhere({ x == v }) == s.countWhere({ x == v })
+}
+assert(xs.every(sameCount))
 ```
 
 Sorting twice gives the same result as sorting once, and the order of the input does not matter:
@@ -235,12 +250,30 @@ There is no descending flag. Reverse the sorted array, or sort by a negated key 
 [3, 1, 2].sortBy({ -x })   // [3, 2, 1]
 ```
 
-Uppercase sorts before lowercase. For an order that ignores case, sort by a lowercased key:
+Uppercase sorts before lowercase. For an order that ignores case, sort by a case-folded key with
+[`String.foldCase`](../String/foldCase.md):
 
 ```ant
 var names = ["bob", "alice", "Carol"]
-names.sort()                        // ["Carol", "alice", "bob"]
-names.sortBy({ String.toLower(x) }) // ["alice", "bob", "Carol"]
+names.sort()                         // ["Carol", "alice", "bob"]
+names.sortBy({ String.foldCase(x) }) // ["alice", "bob", "Carol"]
+```
+
+Nothing normalizes strings before they compare. An "é" written as one code point, U+00E9, sorts
+after "z", but the same letter written as "e" and a combining U+0301 sorts with the "e" words
+([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)):
+
+```ant
+var words = ["\u{E9}a", "e\u{301}b", "z"]
+words.sort() == ["e\u{301}b", "z", "\u{E9}a"] // true
+```
+
+Sort by a key in one normal form with [`String.normalize`](../String/normalize.md). Both spellings
+of "é" then sort together, after "z":
+
+```ant
+var words = ["\u{E9}a", "e\u{301}b", "z"]
+words.sortBy({ String.normalize(x, "NFC") }) == ["z", "\u{E9}a", "e\u{301}b"] // true
 ```
 
 Numbers held as strings sort as text. Convert them first, or sort by a numeric key:
@@ -250,8 +283,17 @@ Numbers held as strings sort as text. Convert them first, or sort by a numeric k
 ["10", "9", "100"].sortBy({ String.toInt(x) ?? 0 }) // ["9", "10", "100"]
 ```
 
-An array whose element type is a union, such as `int | null` or `Number`, has no single `T`, so it
+An array whose element type is a union of members, such as `int | string`, has no single `T`, so it
 is a compile error:
+
+<!-- test: error T would be int | string, which is not a single member of its bound Ordered -->
+
+```ant
+var xs: Array[int | string] = [3, "a", 1]
+println(xs.sort())
+```
+
+`null` is not `Ordered`, so an `Array[int | null]` does not sort either:
 
 <!-- test: error T would be int | null, which is not a single member of its bound Ordered -->
 
@@ -260,7 +302,22 @@ var xs: Array[int | null] = [3, null, 1]
 println(xs.sort())
 ```
 
-Records and `bool` are not `Ordered` either:
+Drop the nulls first, then sort:
+
+```ant
+var xs: Array[int | null] = [3, null, 1]
+xs.filter({ x != null }).map({ x ?? 0 }).sort() // [1, 3]
+```
+
+`bool` is not `Ordered`:
+
+<!-- test: error T would be bool, which is not a single member of its bound Ordered -->
+
+```ant
+println([true, false].sort())
+```
+
+Records are not `Ordered` either:
 
 <!-- test: error T would be Player, which is not a single member of its bound Ordered -->
 

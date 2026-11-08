@@ -14,10 +14,12 @@ Array.findLast returns the last element of xs that f accepts, or null when there
 ## Details
 
 - `Array.findLast` returns the last element of `xs` for which `f` returns `true`, and `null` when
-  `f` accepts no element, so an empty array gives `null`
+  `f` accepts no element, so an empty array gives `null`.
+- `f` is called on the elements from the last one back, once each, and the call stops at the first
+  element `f` accepts, so the elements before it are never passed to `f`. When `f` accepts none,
+  every element is tested, from the last to the first
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result has type `T | null`; narrowing or a `??` fallback turns it into a `T`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- The result has type `T | null`; narrowing or a `??` fallback turns it into a `T`.
 - A nullable type is a union with `null`, so when `T` already includes `null` the result type is
   still `T`, and a `null` result does not tell a found `null` from no match
   ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
@@ -106,7 +108,40 @@ In a pipeline, the array is the first argument:
 "a,bb,ccc,dd" | String.split(",") | Array.findLast({ String.length(x) == 2 }) // "dd"
 ```
 
-## Named arguments
+A callback that records its argument shows the order: from the last element back, stopping at the
+first match:
+
+```ant
+var tested: Array[int] = []
+var found = [1, 4, 7, 8, 9].findLast({
+  tested.push(x)
+  x % 2 == 0
+})
+println(found)
+println(tested)
+```
+
+```text
+8
+[9, 8]
+```
+
+With no match, `f` sees every element, last first:
+
+```ant
+var tested: Array[int] = []
+var found = [1, 3, 5].findLast({
+  tested.push(x)
+  x % 2 == 0
+})
+println(found)
+println(tested)
+```
+
+```text
+null
+[5, 3, 1]
+```
 
 Both parameters can be named, in any order:
 
@@ -178,6 +213,22 @@ for limit in [0, 4, 7, 10] {
   var v = xs.findLast({ x < limit })
   assert(v == (if i != null { xs[i] } else { null }))
   assert(v == xs.filter({ x < limit }).last())
+}
+```
+
+`f` runs once for each element from the end through the match, so it runs `length − i` times when
+the match is at index `i`, and `length` times when there is none:
+
+```ant
+var xs = [5, 2, 8, 3, 6]
+for limit in [0, 4, 7, 10] {
+  var calls = 0
+  xs.findLast({
+    calls += 1
+    x < limit
+  })
+  var i = xs.findLastIndex({ x < limit })
+  assert(calls == xs.length() - (i ?? 0))
 }
 ```
 

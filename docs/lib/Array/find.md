@@ -16,15 +16,20 @@ Array.find returns the first element of xs that f accepts, or null when there is
 - `Array.find` returns the first element of `xs`, in index order, for which `f` returns `true`, and
   `null` when `f` accepts none, so an empty array gives `null`
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- `Array.find` calls `f` once per element, from the first element on, and stops at the first element
+  `f` accepts: `f` does not run on the elements after it. With no match, `f` runs once on every
+  element ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - The result type is `T | null`. Read it with `?.` or `??`, or narrow it with `!= null`, before you
   use it as a `T`
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability),
+  [Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
 - When `T` already includes `null`, `T | null` is `T`, so a `null` result does not tell a missing
   element from a found `null`. Ask the array instead, with `Array.findIndex`
   ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
 - `f` is any function value of type `func(T): bool`: a lambda with its implicit `x`, a named
   function, or a closure over local variables
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
+  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions),
+  [Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
 - Arrays and records are references, so the element `Array.find` returns is the one in `xs`, not a
   copy ([spec: Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
 
@@ -64,6 +69,24 @@ Only the first match counts, even when later elements match too:
 
 ```ant
 ["fig", "plum", "pear", "lime"].find({ String.length(x) == 4 }) // "plum"
+```
+
+`f` runs from the first element and stops at the first match. A callback that records each call
+shows it never sees `12`:
+
+```ant
+var seen: Array[int] = []
+var found = [3, 8, 5, 12].find({
+  seen.push(x)
+  x > 4
+})
+println(found)
+println(seen)
+```
+
+```text
+8
+[3, 8]
 ```
 
 Pass a named function instead of a lambda:

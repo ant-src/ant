@@ -13,7 +13,9 @@ Array.flatten returns a new array holding the elements of each array in xs, conc
 
 ## Details
 
-- `Array.flatten` takes an array of arrays and removes one level of nesting
+- `Array.flatten` takes an array of arrays and removes one level of nesting. The result holds the
+  elements of the inner arrays, concatenated in order: every element of the first inner array, in
+  its order, then every element of the second, and so on
   ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `Array.flatten` changes neither `xs` nor its inner arrays, and returns a new array
   ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
@@ -56,13 +58,19 @@ Array.flatten([["é"], ["日本", "🐜"]])                           // ["é", 
 Array.flatten([[Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]]) // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 ```
 
-Inner arrays that hold `null` need an expected type. Without one, `[[1, null], [null]]` would be an
-`Array[int | null] | Array[null]`, and a union may hold only one array member
-([Unions](https://github.com/ant-src/spec/blob/master/ant-lang.md#unions)):
+Inner arrays that differ only in holding `null` need an expected type. Without one,
+`[[1, null], [null]]` would be an `Array[int | null] | Array[null]`, and a union may hold only one
+array member ([Unions](https://github.com/ant-src/spec/blob/master/ant-lang.md#unions)):
 
 ```ant
 var xs: Array[Array[int | null]] = [[1, null], [null]]
 Array.flatten(xs) // [1, null, null]
+```
+
+Inner arrays of the same type need none:
+
+```ant
+Array.flatten([[1, null], [2, null]]) // [1, null, 2, null]
 ```
 
 An expected type fixes `T`, so inner arrays of different element types flatten into a union:
@@ -164,6 +172,15 @@ var b = [3]
 var c = [4]
 assert(Array.flatten([a, b]) == Array.concat(a, b))
 assert(Array.flatten([a, b, c]) == [...a, ...b, ...c])
+```
+
+The result keeps the order of the inner arrays and of the elements within each, so it matches a
+left-to-right [Array.reduce](reduce.md) with [Array.concat](concat.md):
+
+```ant
+var xss = [[3, 1], [], [2], [5, 4]]
+var empty: Array[int] = []
+assert(Array.flatten(xss) == Array.reduce(xss, empty, Array.concat))
 ```
 
 Flattening after a map is [Array.flatMap](flatMap.md):

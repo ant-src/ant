@@ -15,7 +15,8 @@ Array.last returns the last element of xs, or null when xs is empty.
 
 - `Array.last` returns the element at index `length - 1`, and `null` when `xs` is empty
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It leaves `xs` unchanged.
+- It leaves `xs` unchanged, as every prelude function not marked `mutates` does
+  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
 - The result has type `T | null`. Using the result as a `T` needs a narrowing test or a default
   given with `??` first. A nullable type is a union with `null`, so when `T` already includes `null`
   the result type is `T` itself
@@ -102,7 +103,8 @@ String.graphemes("bonjour 👋🏽").last() // "👋🏽"
 ```
 
 The keys of a map and the values of a set are arrays in insertion order, so `Array.last` gives the
-one first inserted most recently. Replacing a map value or re-adding a set member does not move it:
+key or member whose first insertion came last. Replacing a map value or re-adding a set member does
+not move it:
 
 ```ant
 Map.keys(Map{ b: 2, a: 1 }).last() // "a"
@@ -110,6 +112,9 @@ Set.of([3, 1, 2]).values().last()  // 2
 var m = Map{ b: 2, a: 1 }
 m["b"] = 5
 Map.keys(m).last() // "a"
+var s = Set.of([3, 1, 2])
+s.add(3)          // false
+s.values().last() // 2
 ```
 
 In a pipe, the array is the first argument:

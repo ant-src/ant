@@ -16,9 +16,8 @@ Array.entries returns each element of xs paired with its index, in order.
 - `Array.entries` returns one [`Indexed[T]`](types/Indexed.md) record per element of `xs`, in order.
   `Indexed[T]` is the prelude type `{ index: int, value: T }`
   ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- The indices are the array's own: they start at 0 and end one below the length
+- The indices start at 0 and end one below the length, so an empty `xs` gives `[]`
   ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- An empty `xs` gives `[]`.
 - `Array.entries` returns a new array, so pushing, removing, or replacing elements of `xs` later
   does not change it
   ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
@@ -138,7 +137,8 @@ Weight each element by its position:
 [4, 5, 6].entries().map({ x.index * x.value }) // [0, 5, 12]
 ```
 
-Find where the largest element is, together with its value:
+Find the first position of the largest element, together with its value (`Array.maxBy` keeps the
+first of equal keys):
 
 ```ant
 var scores = [70, 95, 88, 95]
@@ -226,6 +226,18 @@ es[0].value.x // 9
 ```
 
 Copy the element first, for example with a record spread, if the entry must stay unchanged.
+
+The other way round, assigning an entry's `value` does not change `xs`:
+
+```ant
+var xs = [5]
+var es = xs.entries()
+es[0].value = 7
+xs // [5]
+```
+
+An entry is a new record, so assigning its `value` replaces the field in the entry only. To change
+the array, write `xs[e.index] = ...`.
 
 `Array.entries` takes an array, not a string:
 

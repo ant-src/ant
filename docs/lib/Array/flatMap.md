@@ -18,8 +18,11 @@ order.
   array after another, in the order of `xs`
   ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `f` may return an empty array, which adds nothing, or an array of any length.
+- `f` is called once per element of `xs`, from the first element to the last, even for the elements
+  whose arrays are empty ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `Array.flatMap` leaves `xs` untouched and returns a new array. It reads the elements of `xs` once,
-  when it is called, so `f` does not see elements it pushes to `xs`
+  when it is called, so it does not call `f` on elements that `f` pushes to `xs`, and an element
+  that `f` sets or removes later is visited with the value it had at the call
   ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
 - `U` is solved from the expected type first, then from the body of `f`. Without an expected type, a
   bare `[]` that `f` returns, in any branch, has no element type, so annotate the result
@@ -54,6 +57,18 @@ An empty `xs` gives an empty array, and `f` is never called:
 ```ant
 var none: Array[int] = []
 Array.flatMap(none, { [x, x] }) // []
+```
+
+`f` runs once per element, in order, including the elements it drops; a side effect shows the calls:
+
+```ant
+var calls: Array[string] = []
+var out = Array.flatMap(["a", "b", "c"], func(s: string): Array[string] {
+  calls.push(s)
+  if s == "b" { [] } else { [s, s] }
+})
+calls // ["a", "b", "c"]
+out   // ["a", "a", "c", "c"]
 ```
 
 An `f` that returns its argument flattens an array of arrays:
@@ -100,12 +115,18 @@ Call it through `.` on an array, or with a pipe:
 ["a b", "c"] | Array.flatMap({ String.split(x, " ") }) // ["a", "b", "c"]
 ```
 
-## Named arguments
-
 Name the arguments to pass them in any order:
 
 ```ant
 Array.flatMap(f: { [x, x] }, xs: [1, 2]) // [1, 1, 2, 2]
+```
+
+`Array.flatMap` visits the elements `xs` had at the call; elements that `f` pushes are not visited:
+
+```ant
+var a = [1, 2]
+Array.flatMap(a, { Array.push(a, x + 10); [x] }) // [1, 2]
+a                                                // [1, 2, 11, 12]
 ```
 
 ## Applications

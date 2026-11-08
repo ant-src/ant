@@ -13,6 +13,13 @@ Array.some reports whether f accepts at least one element of xs.
 
 ## Details
 
+- `Array.some` returns `true` when `f` returns `true` for some element of `xs`, and `false` when it
+  returns `false` for every element. An empty array has no element for `f` to accept, so the result
+  is `false`.
+- `Array.some` calls `f` once per element, from the first, and stops at the first element `f`
+  accepts, since that element decides the result. Elements after it are not tested. When `f` accepts
+  none, it runs once on every element
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `f` has the function type `func(T): bool`: one parameter of the element type, and a `bool` result
   ([spec: Function types](https://github.com/ant-src/spec/blob/master/ant-lang.md#function-types)).
 - `f` is any function value of that type: a lambda with its implicit `x`, a declared function, a
@@ -32,6 +39,23 @@ Call it through `.` on any array:
 var temps = [18, 24, 31]
 temps.some({ x > 30 }) // true
 temps.some({ x < 0 })  // false
+```
+
+The callback runs from the first element and stops at the first element it accepts, so a side effect
+shows which elements it tested:
+
+```ant
+var seen: Array[int] = []
+[1, 3, 4, 5, 6].some({ seen.push(x); x % 2 == 0 }) // true
+seen                                               // [1, 3, 4]
+```
+
+When `f` accepts no element, it tests them all:
+
+```ant
+var seen: Array[int] = []
+[1, 3, 5].some({ seen.push(x); x % 2 == 0 }) // false
+seen                                         // [1, 3, 5]
 ```
 
 ## Scope
@@ -178,6 +202,21 @@ var mine = Set.of(["go", "ant", "zig"])
 ["c", "lua"].some({ mine.has(x) })    // false
 ```
 
+Since the call stops at the first match, an expensive test runs only as far as it must. Here the
+lookup runs until a cached key is found:
+
+```ant
+var cache = Map{ a: 1, c: 3 }
+var lookups = 0
+var cached: func(string): bool = {
+  lookups += 1
+  cache.has(x)
+}
+
+["b", "c", "a", "d"].some(cached) // true
+lookups                           // 2
+```
+
 ## Properties and relations
 
 `Array.some` is true exactly when `Array.every` fails for the opposite test, when `Array.findIndex`
@@ -259,6 +298,16 @@ A lambda stored in an unannotated `var` has no expected function type. Annotate 
 ```ant
 var big = { x > 100 }
 println([1, 200].some(big))
+```
+
+The call reads the elements once, when it is called. A callback that pushes to the array changes it,
+but not which elements `some` visits, unlike a `for` loop, which reads its collection as it goes
+([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)):
+
+```ant
+var xs = [1, 2]
+xs.some({ xs.push(9); x == 9 }) // false
+xs                              // [1, 2, 9, 9]
 ```
 
 `NaN` is not `==` to any value, itself included, because floats compare by IEEE 754 rules

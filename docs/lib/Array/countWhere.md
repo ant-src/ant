@@ -14,14 +14,13 @@ Array.countWhere returns how many elements of xs f accepts.
 ## Details
 
 - `Array.countWhere` calls `f` on the elements of `xs` and returns how many of them `f` returns
-  `true` for. An empty array gives `0`
+  `true` for. An empty array gives `0`. `f` runs once per element, from the first element to the
+  last; unlike `Array.some`, the call never stops early
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `f` must return `bool`. A lambda takes its parameter type from `f`'s type `func(T): bool`, so `x`
   is the element type
   ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
-- `Array.countWhere` reads the elements once, when it is called, so a callback that pushes to `xs`
-  changes the array but not what the call counts. It leaves `xs` untouched and returns an `int`,
-  never `null`
+- `Array.countWhere` leaves `xs` untouched and returns an `int`, never `null`
   ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
 
 ## Basic examples
@@ -78,7 +77,7 @@ scores.countWhere({ x == null })            // 2
 scores.countWhere({ x != null && x >= 80 }) // 1
 ```
 
-Records are tested by their fields:
+The callback can test a record's fields:
 
 ```ant
 type Task = { title: string, done: bool }
@@ -90,7 +89,7 @@ var tasks = [
 tasks.countWhere({ x.done }) // 2
 ```
 
-Members of a union are told apart with `is`:
+The callback tells the members of a union apart with `is`:
 
 ```ant
 type Circle = { r: float64 }
@@ -152,6 +151,19 @@ for f in [func(n: int): bool { n > 3 }, func(n: int): bool { n > 0 }, func(n: in
   assert((c > 0) == xs.some(f))
   assert((c == len(xs)) == xs.every(f))
 }
+```
+
+The callback sees every element, in order, once. `Array.some` with the same callback stops at the
+first element it accepts:
+
+```ant
+var seen: Array[int] = []
+[5, 1, 7].countWhere({ seen.push(x); x > 3 }) // 2
+seen                                          // [5, 1, 7]
+
+var tried: Array[int] = []
+[5, 1, 7].some({ tried.push(x); x > 3 }) // true
+tried                                    // [5]
 ```
 
 A predicate and its negation split the array:

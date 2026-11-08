@@ -14,12 +14,11 @@ a multiple of n. It panics if n \< 1. An empty xs gives \[\].
 
 ## Details
 
-- Every chunk but the last holds `n` elements, and the last holds the elements left over
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The chunks hold the elements of `xs` in order, as in the spec's `[[1, 2], [3, 4], [5]]`
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- An empty `xs` gives `[]`, an array with no chunks
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- The chunks hold the elements of `xs` in order: the first `n` elements, then the next `n`, and so
+  on.
+- Every chunk but the last holds `n` elements. The last holds fewer only when the length is not a
+  multiple of `n`; when it is, the last chunk is full too.
+- An empty `xs` gives `[]`, an array with no chunks.
 - `n` below 1 panics, whether or not `xs` is empty
   ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `Array.chunk` leaves `xs` untouched and returns new arrays
@@ -61,7 +60,7 @@ var empty: Array[int] = []
 Array.chunk(empty, 3) // []
 ```
 
-Chunk the characters of a string by splitting it into graphemes first:
+Chunk a string into groups of three graphemes by splitting it with `String.graphemes` first:
 
 ```ant
 Array.chunk(String.graphemes("🐜🐝🐞🦋🐛"), 3) // [["🐜", "🐝", "🐞"], ["🦋", "🐛"]]

@@ -14,19 +14,27 @@ Array.map returns a new array holding f applied to each element of xs, in order.
 ## Details
 
 - The result has one element for each element of `xs`, and element `i` of the result is `f` applied
-  to element `i` of `xs` ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+  to element `i` of `xs`
+  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- `f` is called once per element, from the first element to the last, so a callback with a side
+  effect sees the elements in order
+  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `Array.map` leaves `xs` untouched and returns a new array. It reads the elements of `xs` once,
   when it is called, so a callback that pushes to `xs` changes `xs` but not what the call visits
   ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
 - `T` comes from `xs` and `U` from what `f` returns, unless an expected type fixes `U` first
   ([Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)).
-- `f` is any value of type `func(T): U`: a lambda, an anonymous function, or a named function
+- `f` is any value of type `func(T): U`: a lambda or an anonymous function
+  ([Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)),
+  a named function
   ([Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)),
   a function on a type
   ([Functions on types](https://github.com/ant-src/spec/blob/master/ant-lang.md#functions-on-types)),
   a conversion such as `byte`
-  ([Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)), or `len`
-  ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
+  ([Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)), a named
+  primitive type such as `UserId`
+  ([Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)),
+  or `len` ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
 - On an array, `.map` is `Array.map` and runs at once; on a sequence it is `Iter.map`, which is lazy
   ([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
 
@@ -161,8 +169,8 @@ Parse every field of a line. `String.toInt` returns `null` for text that is not 
 String.split("4,8,x,15", ",").map(String.toInt) // [4, 8, null, 15]
 ```
 
-Parse every element and stop on the first error: map with a function that returns a `Result`, then
-collect the results with `Result.all`:
+Parse every element and keep the first error: map with a function that returns a `Result`, then
+`Result.all` returns the first `Err`, or `Ok` of every value:
 
 ```ant
 func parse(s: string): Result[int, string] {
@@ -225,7 +233,7 @@ assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
 
-Two maps in a row are one map with the composed function:
+When `f` and `g` have no side effects, two maps in a row are one map with the composed function:
 
 ```ant
 var xs = [1, 2, 3]
@@ -239,6 +247,15 @@ Mapping each element to a one-element array and flattening is the same as mappin
 ```ant
 var xs = [1, 2, 3]
 assert(Array.flatMap(xs, { [x * 2] }) == Array.map(xs, { x * 2 }))
+```
+
+`f` runs once per element, from the first to the last. A callback that logs what it sees shows the
+order:
+
+```ant
+var seen: Array[string] = []
+Array.map(["a", "b", "c"], { Array.push(seen, x); String.toUpper(x) }) // ["A", "B", "C"]
+seen                                                                   // ["a", "b", "c"]
 ```
 
 A callback that pushes to `xs` does not change what the call visits:
@@ -301,6 +318,22 @@ Convert in the lambda instead:
 ```ant
 var halves: Array[float64] = Array.map([1, 2], { float64(x) / 2.0 })
 halves // [0.5, 1.0]
+```
+
+A lambda whose body is an empty literal fixes nothing, so `U` stays unsolved and the call is a
+compile error ([Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)):
+
+<!-- test: error cannot infer the element type of an empty array -->
+
+```ant
+var lists = Array.map([1, 2], { [] })
+```
+
+Annotate the result to fix `U`:
+
+```ant
+var lists: Array[Array[int]] = Array.map([1, 2], { [] })
+lists // [[], []]
 ```
 
 The result holds what `f` returns. When `f` returns an element of `xs` that is itself an array or a

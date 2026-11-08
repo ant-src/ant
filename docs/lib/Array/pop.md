@@ -14,11 +14,8 @@ xs.
 
 ## Details
 
-<!-- pending spec fix: ant-lang.md section 11, Array, says only "mutates; null when empty" for
-Array.pop and does not say which element it removes. The next bullet waits on that line. -->
-
-- `Array.pop` removes the element at index `length - 1` and returns it. When `xs` is empty, it
-  returns `null` and leaves `xs` empty
+- `Array.pop` removes the last element, the one at index `length - 1`, and returns it. When `xs` is
+  empty, it returns `null` and leaves `xs` empty
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - It mutates `xs` in place. An array is a reference value, so every name that shares it sees the
   shorter array ([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
@@ -136,15 +133,6 @@ words | Array.pop() // "c"
 words               // ["a", "b"]
 ```
 
-## Named arguments
-
-The parameter is named `xs`:
-
-```ant
-var xs = [1, 2, 3]
-Array.pop(xs: xs) // 3
-```
-
 ## Applications
 
 Use an array as a stack: `Array.push` adds to the top, and `Array.pop` takes from it. Check that
@@ -206,7 +194,7 @@ var root = Node{
 }
 
 var stack = [root]
-while !stack.isEmpty() {
+while true {
   var node = stack.pop() ?? break
   println(node.name)
   for child in node.children.reverse() {
@@ -313,8 +301,7 @@ var xs = [3, 1, 2]
 (xs.pop() ?? 0) + 1 // 3
 ```
 
-Testing the result of one call and then popping again removes two elements, not one. Bind the result
-to a local first:
+Testing the result of one call and then popping again removes two elements, not one:
 
 ```ant
 var xs = [1, 2, 3]

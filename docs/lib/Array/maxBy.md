@@ -15,8 +15,10 @@ and a NaN key never wins.
 
 ## Details
 
-- `Array.maxBy` calls `key` on the elements of `xs` from the left and returns the element whose key
-  is greatest, and `null` when `xs` is empty.
+- `Array.maxBy` returns the element of `xs` whose key is greatest, and `null` when `xs` is empty.
+- It calls `key` once per element, from the first element to the last, and never stops early. On an
+  empty `xs` it never calls `key`
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - It keeps the element it holds unless a later key is strictly greater by `<`. Of equal keys, the
   first element wins, and a `NaN` key never replaces the element held
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
@@ -181,8 +183,9 @@ var names = ["Ann", "Bob", "Al"]
 assert(names.maxBy({ x }) == names.max())
 ```
 
-Negating a signed or float key turns it into `Array.minBy`, and of equal keys both keep the first
-element. On an unsigned key the negation panics; see Possible issues:
+Negating a float key, or a signed key that is never the most negative value of its kind, turns it
+into `Array.minBy`, and of equal keys both keep the first element. On an unsigned key, or on the
+most negative signed value, the negation panics; see Possible issues:
 
 ```ant
 type Box = { name: string, size: int }
@@ -201,6 +204,14 @@ if item != null {
   item.stock = 0
 }
 assert(items[1].stock == 0)
+```
+
+`key` runs once per element, from the first to the last, even after the greatest key is found:
+
+```ant
+var seen: Array[int] = []
+[9, 1, 5].maxBy({ Array.push(seen, x); x }) // 9
+seen                                        // [9, 1, 5]
 ```
 
 ## Possible issues
@@ -235,14 +246,34 @@ runs.maxBy({ x.ms })?.name         // "a"
 runs.sortBy({ x.ms }).last()?.name // "c"
 ```
 
-Negating an unsigned key to find the least panics, since the negation overflows
+Negating an unsigned key to find the least panics, since the negation overflows. So does negating
+the most negative value of a signed kind
 ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)):
 
 ```ant
 [uint8(1), uint8(2)].maxBy({ -x }) // panic: integer overflow
+[Math.minInt, 0].maxBy({ -x })     // panic: integer overflow
 ```
 
 Use `Array.minBy` instead.
+
+When the elements may be `null`, a `null` result does not say whether `xs` was empty or a `null`
+element won:
+
+```ant
+var a: Array[int | null] = [null]
+a.maxBy({ x ?? 0 }) // null
+var b: Array[int | null] = []
+b.maxBy({ x ?? 0 }) // null
+```
+
+Test `Array.isEmpty` first, or find the index through `Array.entries`:
+
+```ant
+var a: Array[int | null] = [null]
+a.isEmpty()                                     // false
+Array.entries(a).maxBy({ x.value ?? 0 })?.index // 0
+```
 
 On floats, `maxBy({ x })` and `Array.max` can differ. `Array.max` is `NaN` when any element is `NaN`
 and puts `-0.0` below `0.0`, while `Array.maxBy` never lets a `NaN` key win and keeps the first of

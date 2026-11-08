@@ -15,8 +15,12 @@ before b, and the sort is stable.
 ## Details
 
 - `Array.sortWith` returns a new array with the elements of `xs` in the order `cmp` gives:
-  `cmp(a, b) < 0` puts `a` before `b`. The sort is stable, so elements that `cmp` ranks equal keep
-  their order from `xs`
+  `cmp(a, b) < 0` puts `a` before `b`, `cmp(a, b) > 0` puts `a` after `b`, and `cmp(a, b) == 0`
+  keeps their order. The sort is stable, so elements that `cmp` ranks equal keep their order from
+  `xs` ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- `Array.sortWith` calls `cmp` as often as sorting needs, in no promised order
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- When `cmp` is not a consistent order, the result still holds the elements of `xs`, in some order
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `xs` is left untouched, and `Array.sortWith` reads its elements once, when it is called
   ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
@@ -129,8 +133,8 @@ func sorted[T: Compare](xs: Array[T]): Array[T] {
 sorted([Job{ priority: 2, name: "lint" }, Job{ priority: 1, name: "test" }]).map({ x.name }) // ["test", "lint"]
 ```
 
-Members of a union are told apart with `is`. This comparator puts every `Circle` before every
-`Square`, and keeps the rest of the order:
+The comparator tells the members of a union apart with `is`. This one puts every `Circle` before
+every `Square` and keeps the rest of the order:
 
 ```ant
 type Circle = { r: float64 }
@@ -252,8 +256,7 @@ The result has the same elements as `xs`, and sorting it again changes nothing:
 var xs = [4, 1, 3, 1, 2]
 var asc = func(a: int, b: int): int { a - b }
 var ys = xs.sortWith(asc)
-assert(len(ys) == len(xs))
-assert(xs.every({ ys.contains(x) }))
+assert(ys.sort() == xs.sort())
 assert(ys.sortWith(asc) == ys)
 ```
 
@@ -304,6 +307,19 @@ Compare with `<` and `>` and return `-1`, `0`, or `1`:
 ```ant
 [1.5, 0.5].sortWith(func(a: float64, b: float64) { if a < b { -1 } else if a > b { 1 } else { 0 } }) // [0.5, 1.5]
 ```
+
+A comparator that is not a consistent order does not fail, but it promises no order: the result
+holds the elements of `xs` in some order. Here `cmp` says every element goes after every other:
+
+```ant
+var xs = [4, 1, 3, 2]
+var ys = xs.sortWith(func(a: int, b: int) { 1 })
+assert(ys.sort() == xs.sort())
+```
+
+`cmp` runs in no promised order and as often as sorting needs, so a side effect in it, such as
+counting or logging the pairs it sees, shows how one run happened to sort, not a rule to rely on.
+Keep `cmp` a plain comparison.
 
 The rule that puts `NaN` after every number belongs to `Array.sort` and `Array.sortBy`, not to
 `Array.sortWith`: the comparator decides where `NaN` goes. For a plain ascending sort of floats that

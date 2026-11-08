@@ -13,17 +13,21 @@ Array.filter returns a new array holding the elements of xs that f accepts, in o
 
 ## Details
 
-- `Array.filter` keeps each element for which `f` returns `true`
+- `Array.filter` keeps each element for which `f` returns `true`.
+- It calls `f` once per element, from the first element to the last, and never stops early: unlike
+  `Array.find` or `Array.some`, it sees every element whatever `f` returns
   ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It leaves `xs` untouched and returns a new array, even when `f` accepts every element.
+- It leaves `xs` untouched and returns a new array, even when `f` accepts every element
+  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
 - It reads the elements once, when it is called. A callback that pushes to `xs` changes `xs` but not
   what the call visits
   ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
 - `f` is any value of type `func(T): bool`: a lambda, an anonymous function, a named function, or a
   function on a type
   ([Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- The result is an `Array[T]`, the element type of `xs`: a test such as `x is Circle` or `x != null`
-  inside `f` narrows only `x` inside `f`, never the result
+- The result has the type of `xs`, `Array[T]`, whatever `f` tests
+  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)). A test such as
+  `x is Circle` or `x != null` inside `f` narrows `x` inside `f` only
   ([Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
 - On an array, `.filter` is `Array.filter` and runs at once; on a sequence it is `Iter.filter`,
   which is lazy
@@ -226,6 +230,14 @@ all[0] = 9
 assert(xs == [1, 2, 3])
 ```
 
+`f` runs once for each element, in order, even after it has accepted or rejected some:
+
+```ant
+var seen: Array[int] = []
+Array.filter([3, 1, 4, 1], { Array.push(seen, x); x > 1 }) // [3, 4]
+seen                                                       // [3, 1, 4, 1]
+```
+
 A callback that pushes to `xs` does not change what the call visits:
 
 ```ant
@@ -236,8 +248,8 @@ xs                                              // [1, 2, 3, 10, 10, 10]
 
 ## Possible issues
 
-`Array.filter` returns a new array and does not change `xs`. A call whose result is thrown away does
-nothing:
+`Array.filter` returns a new array and leaves `xs` as it was. A call whose result is thrown away
+does not change `xs`; assign the result, as in `xs = xs.filter(...)`:
 
 ```ant
 var xs = [3, 1, 2]

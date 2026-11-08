@@ -16,9 +16,16 @@ stable.
 
 - `Array.sortBy` returns a new array with the elements of `xs` in ascending order of the keys that
   `key` returns for them. It leaves `xs` unchanged.
-- The sort is stable: elements with equal keys keep their order in `xs`.
-- An element whose key is `NaN` goes after every element with a number key
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- The keys are compared by `<`, and the sort is stable: elements with equal keys keep their order in
+  `xs` ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)). Neither of
+  `-0.0` and `0.0` is less than the other by `<`
+  ([spec: Math and Bits](https://github.com/ant-src/spec/blob/master/ant-lang.md#math-and-bits)), so
+  those keys are equal and keep their order.
+- String keys compare by code point
+  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
+- `key` is called once per element, from the first element to the last, so a key with a side effect
+  sees the elements in order.
+- An element whose key is `NaN` goes after every element with a number key.
 - The key type `K` must be a single member of `Ordered` (`Number | string`): one integer or float
   kind, or `string`, never a union such as `int | null`
   ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). A record
@@ -72,10 +79,23 @@ ignore case:
 ["Banana", "apple", "cherry"].sortBy({ String.foldCase(x) }) // ["apple", "Banana", "cherry"]
 ```
 
+An accented letter sorts by its code point, after every ASCII letter:
+
+```ant
+["é", "z", "e", "Z"].sortBy({ x }) // ["Z", "e", "z", "é"]
+```
+
 Negate a numeric key to sort in descending order:
 
 ```ant
 [3, 1, 2].sortBy({ -x }) // [3, 2, 1]
+```
+
+The keys `-0.0` and `0.0` are equal, so their elements keep their order in `xs`:
+
+```ant
+[0.0, -0.0, -1.0].sortBy({ x }) // [-1.0, 0.0, -0.0]
+[-0.0, 0.0, -1.0].sortBy({ x }) // [-1.0, -0.0, 0.0]
 ```
 
 A `NaN` key goes last, after every number, in either direction:
@@ -185,6 +205,15 @@ println(fastest([], 3))
 []
 ```
 
+`key` runs once per element, from the first to the last. A key that logs what it sees shows the
+order:
+
+```ant
+var seen: Array[string] = []
+["pear", "fig", "kiwi"].sortBy({ Array.push(seen, x); String.length(x) }) // ["fig", "pear", "kiwi"]
+seen                                                                      // ["pear", "fig", "kiwi"]
+```
+
 ## Properties and relations
 
 With the identity as the key, `Array.sortBy` gives what `Array.sort` gives:
@@ -279,6 +308,28 @@ var sizes: Array[uint8] = [uint8(1), uint8(2)]
 println(sizes.sortBy({ -x }))
 ```
 
+Convert the keys to `int` before subtracting, because `b - a` on unsigned values panics when
+`b < a`:
+
+```ant
+var sizes: Array[uint8] = [uint8(1), uint8(2)]
+sizes.sortWith(func(a: uint8, b: uint8) { int(b) - int(a) }) // [2, 1]
+```
+
+A key of a named primitive type is not a member of `Ordered`, because a named primitive is
+assignable only to itself, never to its base
+([spec: Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)):
+
+<!-- test: error K would be Celsius, which is not a single member of its bound Ordered -->
+
+```ant
+type Celsius = float64
+var temps = [Celsius(3.0), Celsius(1.0)]
+println(temps.sortBy({ x }))
+```
+
+Unwrap the key with its base type: `temps.sortBy({ float64(x) })`.
+
 When the first key is `NaN`, the first element of the result differs from what `Array.minBy`
 returns: `Array.sortBy` puts the `NaN` key last, while `Array.minBy` keeps the first element unless
 a later key is less by `<`:
@@ -306,4 +357,4 @@ words.sortWith(longerFirst)                  // ["bb", "cc", "a"]
 
 [Array.sort](sort.md) · [Array.sortWith](sortWith.md) · [Array.reverse](reverse.md) ·
 [Array.minBy](minBy.md) · [Array.maxBy](maxBy.md) · [Array.groupBy](groupBy.md) ·
-[Array.entries](entries.md)
+[Map.entries](../Map/entries.md)

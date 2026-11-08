@@ -14,7 +14,9 @@ Array.uniqueBy returns a new array holding the first element of xs for each == k
 ## Details
 
 - `Array.uniqueBy` calls `key` on the elements of `xs` and keeps the first element for each key. The
-  kept elements stay in the order of `xs`
+  kept elements stay in the order of `xs`.
+- It calls `key` once per element, from the first element to the last, even for an element whose key
+  was already seen, and never stops early
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - Keys compare the way `==` does: structurally for records, arrays, maps, and sets, by identity for
   functions, and by IEEE 754 for floats, so `NaN` never matches itself and `-0.0` matches `0.0`
@@ -195,6 +197,23 @@ var firsts = Map.values(xs.groupBy({ x % 3 })).map({ x[0] })
 assert(xs.uniqueBy({ x % 3 }) == firsts)
 ```
 
+`key` runs once per element, in the order of `xs`, so a side effect in it sees every element,
+including the ones that are dropped:
+
+```ant
+var seen: Array[int] = []
+[3, 1, 4, 1].uniqueBy({ seen.push(x); x % 2 }) // [3, 4]
+seen                                           // [3, 1, 4, 1]
+```
+
+A `key` that pushes to `xs` does not add to what it visits:
+
+```ant
+var xs = [1, 2, 1]
+xs.uniqueBy({ xs.push(x + 10); x }) // [1, 2]
+xs                                  // [1, 2, 1, 11, 12, 11]
+```
+
 `Array.uniqueBy` returns a new array no longer than `xs`, and leaves `xs` as it was:
 
 ```ant
@@ -206,6 +225,13 @@ assert(len(xs.uniqueBy({ x % 2 })) <= len(xs))
 ```
 
 ## Possible issues
+
+Strings compare by code points, so two spellings of the same character are two keys
+([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)):
+
+```ant
+["\u{e9}", "e\u{301}"].uniqueBy({ x }) // ["é", "é"]
+```
 
 `NaN` is not `==` to itself, so every `NaN` key is new and keeps its element:
 
@@ -219,7 +245,9 @@ assert(len(xs.uniqueBy({ x % 2 })) <= len(xs))
 [-0.0, 0.0].uniqueBy({ x }) // [-0.0]
 ```
 
-An empty literal without a type has no element type, so `ant check` rejects the call:
+An empty literal with nothing to fix its element type is a compile error, even before the call. The
+checker stops at the first line
+([spec: Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)):
 
 <!-- test: error cannot infer the element type of an empty array -->
 

@@ -18,8 +18,9 @@ first-seen order and each group keeps the order of xs.
   The map's keys are in the order they first appear, and each group keeps the order of `xs`. Each
   key is the key of at least one element, so an empty `xs` gives an empty map
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Keys compare the way `==` does, so a record or an array can be a key, and the map keeps insertion
-  order
+- It calls `key` once per element, from the first element to the last, and never stops early
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- Keys compare the way `==` does, so a record or an array can be a key
   ([spec: Arrays, maps, and sets](https://github.com/ant-src/spec/blob/master/ant-lang.md#arrays-maps-and-sets)).
 - `m[k]` on the result reads `Array[T] | null`: `null` for a key no element has
   ([spec: Map](https://github.com/ant-src/spec/blob/master/ant-lang.md#map)).
@@ -187,6 +188,14 @@ for entry in groups.entries() {
 }
 ```
 
+`key` runs once per element, in the order of `xs`, so a side effect in it sees every element:
+
+```ant
+var seen: Array[int] = []
+[3, 1, 4, 1].groupBy({ seen.push(x); x % 2 }) // Map{ 1: [3, 1, 1], 0: [4] }
+seen                                          // [3, 1, 4, 1]
+```
+
 The groups are new arrays, so changing one leaves `xs` as it was:
 
 ```ant
@@ -253,6 +262,8 @@ var groups = rows.groupBy({ [...x] })
 rows[0].push(9)
 groups[[1]] // [[1, 9], [1]]
 ```
+
+The copy protects the key only. The group holds the elements themselves, so it shows the push.
 
 ## See also
 

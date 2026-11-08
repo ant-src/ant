@@ -17,6 +17,10 @@ is none.
 - `Array.findLastIndex` returns the greatest index `i` for which `f(xs[i])` is `true`, and `null`
   when `f` accepts no element, so an empty array gives `null`
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- `f` runs on the elements from the last back to the first, once each, and `Array.findLastIndex`
+  stops at the first element that `f` accepts: `f` never sees the elements before it. When `f`
+  accepts none, it has run once on every element
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - The result is an `int | null`; a program narrows it, or gives a fallback with `??`, before using
   it as an `int`
   ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
@@ -207,6 +211,35 @@ last over limit: Thu
 
 ## Properties and relations
 
+`f` sees the elements from the last back, and the search stops at the first one it accepts:
+
+```ant
+var xs = [3, 8, 1, 9, 4]
+var i = xs.findLastIndex({
+  println("testing ${x}")
+  x > 5
+})
+println(i)
+```
+
+```text
+testing 4
+testing 9
+3
+```
+
+When `f` accepts no element, it has run once on each, last first:
+
+```ant
+var seen: Array[int] = []
+var i = [1, 2, 3].findLastIndex({
+  seen.push(x)
+  x > 9
+})
+assert(i == null)
+assert(seen == [3, 2, 1])
+```
+
 The element at the index is the one [`Array.findLast`](findLast.md) returns:
 
 ```ant
@@ -303,6 +336,23 @@ println([0, 1, 2].findLastIndex({ x }))
 var xs = [Math.NaN, 1.0, Math.NaN, 2.0]
 xs.findLastIndex({ x == Math.NaN }) // null
 xs.findLastIndex({ Math.isNaN(x) }) // 2
+```
+
+Because the search stops early, a callback is no place to count. Here `f` never sees the first `7`,
+so it counts one; [`Array.countWhere`](countWhere.md) counts both:
+
+```ant
+var sevens = 0
+var xs = [2, 7, 4, 7, 1]
+var i = xs.findLastIndex({
+  if x == 7 {
+    sevens += 1
+  }
+  x == 7
+})
+i                         // 3
+sevens                    // 1
+xs.countWhere({ x == 7 }) // 2
 ```
 
 A callback that pushes to the array does not make `Array.findLastIndex` test the new elements:

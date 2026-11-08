@@ -15,7 +15,11 @@ Array.every reports whether f accepts every element of xs.
 
 - `Array.every` returns `true` when `f` returns `true` for every element of `xs`, and `false` when
   it returns `false` for some element. An empty array has no element for `f` to reject, so `f`
-  accepts every element of it, and the result is `true`.
+  accepts every element of it, and the result is `true`
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- `Array.every` calls `f` once per element, from the first, and stops at the first element `f`
+  rejects, since that element decides the result. Elements after it are not tested
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - `f` has the function type `func(T): bool`: one parameter of the element type, and a `bool` result
   ([spec: Function types](https://github.com/ant-src/spec/blob/master/ant-lang.md#function-types)).
 - A lambda `{ ... }` passed as `f` takes its parameter type from that function type, so `x` is a `T`
@@ -41,6 +45,23 @@ ages.every({ x >= 21 }) // false
 ```
 
 ## Scope
+
+The callback runs from the first element and stops at the first element it rejects, so a side effect
+shows which elements it tested:
+
+```ant
+var seen: Array[int] = []
+[2, 4, 5, 6].every({ seen.push(x); x % 2 == 0 }) // false
+seen                                             // [2, 4, 5]
+```
+
+When `f` accepts every element, it tests them all:
+
+```ant
+var seen: Array[int] = []
+[2, 4, 6].every({ seen.push(x); x % 2 == 0 }) // true
+seen                                          // [2, 4, 6]
+```
 
 An empty array gives `true`, whatever `f` tests. Annotate it so that `T` is known:
 
@@ -258,9 +279,7 @@ var positive = { x > 0 }
 println([1, 2].every(positive))
 ```
 
-An ordered comparison (`<`, `<=`, `>`, `>=`) with `NaN` is false, as IEEE 754 defines
-([spec: Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)), so
-`x > 0.0` rejects it and `!(x <= 0.0)` accepts it. Test for it with `Math.isNaN`:
+A `NaN` element fails `x > 0.0` but passes `!(x <= 0.0)`. Test for it with `Math.isNaN`:
 
 ```ant
 var xs = [1.0, Math.NaN]

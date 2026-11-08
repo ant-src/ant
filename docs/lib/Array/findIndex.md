@@ -15,7 +15,8 @@ none.
 ## Details
 
 - `Array.findIndex` returns the index of the first element for which `f` returns `true`, and `null`
-  when `f` accepts none
+  when `f` accepts none. It calls `f` once per element, from the first, and stops at the first
+  element `f` accepts. `f` does not see the elements after it
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
 - The result is an `int | null`. Test it with `!= null` (or `== null` followed by `return`) to
   narrow it to `int`, or give a default with `??`, before you use it as an index or a number
@@ -42,6 +43,23 @@ names.findIndex({ String.startsWith(x, "B") }) // 1
 ```
 
 ## Scope
+
+The callback runs from the first element and stops at the first match, so a side effect shows which
+elements it tested:
+
+```ant
+var seen: Array[int] = []
+[4, 9, 16, 25].findIndex({ seen.push(x); x > 5 }) // 1
+seen                                              // [4, 9]
+```
+
+With no match, it tests every element:
+
+```ant
+var seen: Array[int] = []
+[4, 9, 16].findIndex({ seen.push(x); x > 30 }) // null
+seen                                           // [4, 9, 16]
+```
 
 An empty array has no index to return. Annotate it so that `T` is known:
 
@@ -208,7 +226,7 @@ assert(e?.index == xs.findIndex({ String.length(x) > 3 }))
 
 ## Possible issues
 
-The result can be `null`, so it cannot be used as an index until it is narrowed:
+The result can be `null`, and the type checker rejects it as an index until you narrow it:
 
 <!-- test: error cannot use int | null where int is expected -->
 
@@ -231,6 +249,37 @@ if [1, 2, 3].findIndex({ x == 2 }) {
 ```ant
 [1, 2, 3].findIndex({ x == 1 }) != null // true
 [1, 2, 3].findIndex({ x == 1 })         // 0
+```
+
+A miss is `null`, not `-1` as in JavaScript, so `i == -1` is never true. This program passes the
+type checker and gives the wrong answer:
+
+```ant
+var i = [1, 2, 3].findIndex({ x == 9 })
+if i == -1 {
+  println("missing")
+} else {
+  println("found")
+}
+```
+
+```text
+found
+```
+
+Compare with `null` instead:
+
+```ant
+var i = [1, 2, 3].findIndex({ x == 9 })
+if i == null {
+  println("missing")
+} else {
+  println("found")
+}
+```
+
+```text
+missing
 ```
 
 `f` must return a `bool`. A callback that computes something else is a compile error:

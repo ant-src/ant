@@ -18,12 +18,14 @@ key never wins.
 - `Array.minBy` calls `key` on the elements and returns the element whose key is least, not the key
   itself. It returns `null` when `xs` is empty.
 - It scans from the left and replaces the element it holds only when a key is strictly less than the
-  held key by `<`. Of equal keys the first wins, and a `NaN` key never replaces the element held
+  held key by `<`. Of equal keys the first wins, and a `NaN` key never replaces the element held.
+- `key` runs once per element, from the first element to the last, and the call never stops early,
+  not even after the element it returns. An empty array never calls `key`
   ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `K` must be a single member of `Ordered`: one numeric type or `string`, the types `<` compares
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics),
-  [spec: Operators](https://github.com/ant-src/spec/blob/master/ant-lang.md#operators)).
-- The result is a `T | null`. Narrow it with `?.`, `??`, or `if` before you use it as a `T`
+- `K` must be a single member of `Ordered`, never a union such as `int | string`
+  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
+- The result is a `T | null`. Read through it with `?.`, give a fallback with `??`, or narrow it
+  with `if` before you use it as a `T`
   ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
 - `key` is any `func(T): K`: a lambda with `x`, an anonymous `func`, or a named function. A closure
   sees the variables it captures
@@ -117,6 +119,19 @@ var target = 20
 [12, 25, 17].minBy({ Math.abs(x - target) }) // 17
 ```
 
+`key` runs once for each element, in order, even after the least key has been seen. A key with a
+side effect shows it, and shows that an empty array never calls it:
+
+```ant
+var seen: Array[int] = []
+[0, 4, 2].minBy({ seen.push(x); x }) // 0
+seen                                 // [0, 4, 2]
+
+var empty: Array[int] = []
+empty.minBy({ seen.push(x); x }) // null
+seen                             // [0, 4, 2]
+```
+
 In a pipeline, the array is the first argument:
 
 ```ant
@@ -167,7 +182,7 @@ go via pass
 
 ## Properties and relations
 
-The key of the element found is the least key, which [`Array.min`](min.md) of the keys gives when no
+The key of the element found equals, by `==`, what [`Array.min`](min.md) of the keys gives when no
 key is `NaN`. With `{ x }` as the key, `Array.minBy` agrees with `Array.min`:
 
 ```ant
@@ -192,7 +207,7 @@ assert(jobs.minBy({ x.cost })?.name == "b")
 
 ## Possible issues
 
-The result can be `null`, so it cannot be used as a `T` until it is narrowed:
+The result can be `null`, and the type checker rejects it as a `T` until you narrow it:
 
 <!-- test: error has no field or function length on every member -->
 
