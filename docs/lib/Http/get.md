@@ -7,7 +7,7 @@
 func Http.get(url: string, headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 ```
 
-Http.get sends a GET request to url and reads the whole response. It is [Http.request](request.md)
+Http.get sends a GET request to url and reads the whole response. It is [`Http.request`](request.md)
 with the method "GET" and an empty body.
 
 <!-- end generated -->

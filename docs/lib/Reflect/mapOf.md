@@ -7,6 +7,6 @@
 func Reflect.mapOf[K, V](k: Reflect.Type[K], v: Reflect.Type[V]): Reflect.Type[Map[K, V]]
 ```
 
-Reflect.mapOf returns type(Map[K, V]) for a K and a V held as type values.
+Reflect.mapOf returns type(Map\[K, V\]) for a K and a V held as type values.
 
 <!-- end generated -->

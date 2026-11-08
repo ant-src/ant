@@ -7,7 +7,7 @@
 func Math.clamp[T: Ordered](x: T, lo: T, hi: T): T
 ```
 
-Math.clamp returns x held within lo ..= hi. It panics if lo > hi or a bound is NaN; a NaN x gives
+Math.clamp returns x held within lo ..= hi. It panics if lo \> hi or a bound is NaN; a NaN x gives
 NaN.
 
 <!-- end generated -->

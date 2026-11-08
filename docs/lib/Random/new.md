@@ -8,7 +8,7 @@ func Random.new(seed: int | null = null): Random
 ```
 
 Random.new returns a generator seeded with seed. Without a seed, or with null, it is seeded from the
-host's secure source, as [Crypto.randomBytes](../Crypto/randomBytes.md) is, and its values differ
+host's secure source, as [`Crypto.randomBytes`](../Crypto/randomBytes.md) is, and its values differ
 from run to run.
 
 <!-- end generated -->

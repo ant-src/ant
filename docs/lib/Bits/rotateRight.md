@@ -8,6 +8,6 @@ func Bits.rotateRight[T: Integer](a: T, n: int): T
 ```
 
 Bits.rotateRight returns a rotated right by n bits. The count is taken modulo the bit width of T, so
-n may exceed it. It panics if n < 0.
+n may exceed it. It panics if n \< 0.
 
 <!-- end generated -->

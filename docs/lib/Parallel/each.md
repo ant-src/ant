@@ -12,6 +12,6 @@ with the scope context, running at most limit callbacks at once, and discards f'
 channel it receives only when a slot is free and under the scope context, so a value it receives
 always runs; it neither closes nor drains the channel, and a null value is passed to f like any
 other. It reports nothing: a done ctx after the call does not say which elements ran. It panics if
-limit < 1, even when xs is empty.
+limit \< 1, even when xs is empty.
 
 <!-- end generated -->

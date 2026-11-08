@@ -8,6 +8,6 @@ func Regex.replaceFirst(p: Regex.Pattern, s: string, replacement: string): strin
 ```
 
 Regex.replaceFirst returns s with the first match of p replaced by replacement, expanded as in
-[Regex.replace](replace.md).
+[`Regex.replace`](replace.md).
 
 <!-- end generated -->

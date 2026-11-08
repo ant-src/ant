@@ -8,6 +8,6 @@ func Iter.range(from: int, to: int): Seq[int]
 ```
 
 Iter.range returns the sequence of integers from from, inclusive, up to to, exclusive. It is empty
-when to <= from.
+when to \<= from.
 
 <!-- end generated -->

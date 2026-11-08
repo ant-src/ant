@@ -7,7 +7,7 @@
 func String.graphemes(s: string): Array[string]
 ```
 
-String.graphemes returns the extended grapheme clusters of s (Unicode UAX #29), the units a reader
+String.graphemes returns the extended grapheme clusters of s (Unicode UAX \#29), the units a reader
 sees as characters.
 
 <!-- end generated -->

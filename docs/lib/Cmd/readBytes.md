@@ -7,6 +7,6 @@
 func Cmd.readBytes(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context | null = null): Result[Bytes, Error]
 ```
 
-Cmd.readBytes is [Cmd.read](read.md) that returns standard output as the command wrote it.
+Cmd.readBytes is [`Cmd.read`](read.md) that returns standard output as the command wrote it.
 
 <!-- end generated -->

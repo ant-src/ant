@@ -8,7 +8,7 @@ func Array.chunk[T](xs: Array[T], n: int): Array[Array[T]]
 ```
 
 Array.chunk splits xs into arrays of n elements each, the last holding fewer when the length is not
-a multiple of n. It panics if n < 1. An empty xs gives [].
+a multiple of n. It panics if n \< 1. An empty xs gives \[\].
 
 <!-- end generated -->
 

@@ -7,6 +7,6 @@
 type Html.Attributes = Map[string, string | bool | null]
 ```
 
-Html.Attributes is what an attribute spread {...attrs} takes.
+Html.Attributes is what an attribute spread \{...attrs\} takes.
 
 <!-- end generated -->

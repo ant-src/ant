@@ -7,7 +7,7 @@
 func Net.close(l: Net.Listener): void
 ```
 
-Net.close closes l, so pending and later [Net.accept](accept.md) calls are Err. Closing it again
+Net.close closes l, so pending and later [`Net.accept`](accept.md) calls are Err. Closing it again
 does nothing.
 
 <!-- end generated -->

@@ -8,7 +8,7 @@ func Bits.rotateLeft[T: Integer](a: T, n: int): T
 ```
 
 Bits.rotateLeft returns a rotated left by n bits. The count is taken modulo the bit width of T, so n
-may exceed it. It panics if n < 0.
+may exceed it. It panics if n \< 0.
 
 <!-- end generated -->
 

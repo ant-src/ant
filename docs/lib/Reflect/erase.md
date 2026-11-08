@@ -8,6 +8,6 @@ func Reflect.erase[T](t: Reflect.Type[T]): Reflect.ErasedType
 ```
 
 Reflect.erase returns t with its static type forgotten, for code that walks types. The conversion is
-always written: a Reflect.Type[T] is not assignable to a Reflect.ErasedType.
+always written: a Reflect.Type\[T\] is not assignable to a Reflect.ErasedType.
 
 <!-- end generated -->

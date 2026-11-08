@@ -3,8 +3,8 @@
 
 # Map
 
-Map holds the functions of the built-in map type Map[K, V], a hash map keyed by == that keeps
-insertion order. m[k] reads V | null and m[k] = v inserts or replaces; a function that builds a map
-from another keeps its order.
+Map holds the functions of the built-in map type Map\[K, V\], a hash map keyed by == that keeps
+insertion order. m\[k\] reads V \| null and m\[k\] = v inserts or replaces; a function that builds a
+map from another keeps its order.
 
 <!-- end generated -->

@@ -8,7 +8,7 @@ type Cmd.Pipeline = { cmds: Array[Cmd] }
 ```
 
 Cmd.Pipeline is commands run at once, each one's standard output the next one's standard input, made
-by [Cmd.pipe](../pipe.md). Every function of Cmd that runs a Cmd runs a pipeline too: the first
+by [`Cmd.pipe`](../pipe.md). Every function of Cmd that runs a Cmd runs a pipeline too: the first
 stage reads its input, the last writes its output, and every stage writes standard error. Its status
 is that of the rightmost stage that failed, or 0; a stage before the last that SIGPIPE ended does
 not count, since only a later stage that stopped reading ends it so. A pipeline of no commands

@@ -8,7 +8,7 @@ func Bits.shiftRight[T: Integer](a: T, n: int): T
 ```
 
 Bits.shiftRight returns a shifted right by n bits. The shift is arithmetic for a signed type and
-logical for an unsigned one. It panics if n < 0 or n is at least the bit width of T.
+logical for an unsigned one. It panics if n \< 0 or n is at least the bit width of T.
 
 <!-- end generated -->
 

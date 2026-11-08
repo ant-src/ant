@@ -7,8 +7,8 @@
 type Html
 ```
 
-Html is the value of an HTML expression, <p>{name}</p>: an immutable list of nodes, each an element,
-a text node, or raw markup from [Html.unsafe](unsafe.md). It compares by its nodes with ==, and
-String.from renders it as markup, escaping text and attribute values.
+Html is the value of an HTML expression, \<p\>\{name\}\</p\>: an immutable list of nodes, each an
+element, a text node, or raw markup from [`Html.unsafe`](unsafe.md). It compares by its nodes with
+==, and String.from renders it as markup, escaping text and attribute values.
 
 <!-- end generated -->

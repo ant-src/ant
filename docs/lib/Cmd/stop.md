@@ -8,7 +8,7 @@ func Cmd.stop(p: Cmd.Process, grace: Time.Duration = Time.duration(seconds: 5)):
 ```
 
 Cmd.stop ends p: SIGTERM, then SIGKILL when it is still running after grace, or SIGKILL alone when
-grace is zero or negative, and returns its status as [Cmd.wait](wait.md) does. It panics when grace
-has years, months or weeks.
+grace is zero or negative, and returns its status as [`Cmd.wait`](wait.md) does. It panics when
+grace has years, months or weeks.
 
 <!-- end generated -->

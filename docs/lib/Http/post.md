@@ -8,6 +8,6 @@ func Http.post(url: string, body: string | Bytes, headers: Map[string, string] =
 ```
 
 Http.post sends body to url in a POST request and reads the whole response. It is
-[Http.request](request.md) with the method "POST".
+[`Http.request`](request.md) with the method "POST".
 
 <!-- end generated -->

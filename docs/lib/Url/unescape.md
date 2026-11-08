@@ -7,7 +7,7 @@
 func Url.unescape(s: string): Result[string, Error]
 ```
 
-Url.unescape reverses [Url.escape](escape.md). It is Err on a bad %XX or on escapes that decode to
+Url.unescape reverses [`Url.escape`](escape.md). It is Err on a bad %XX or on escapes that decode to
 bytes that are not UTF-8.
 
 <!-- end generated -->

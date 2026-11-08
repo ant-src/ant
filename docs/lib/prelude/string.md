@@ -8,6 +8,6 @@ func string(x: string): string
 ```
 
 string returns the string x holds: x is a string or a named primitive over string, which it unwraps.
-It does not format other values; [String.from](../String/from.md) does.
+It does not format other values; [`String.from`](../String/from.md) does.
 
 <!-- end generated -->

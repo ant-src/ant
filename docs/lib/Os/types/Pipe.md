@@ -7,7 +7,7 @@
 type Os.Pipe = { read: File.Handle, write: File.Handle }
 ```
 
-Os.Pipe is a pair of connected handles, made by [Os.openPipe](../openPipe.md): what is written to
+Os.Pipe is a pair of connected handles, made by [`Os.openPipe`](../openPipe.md): what is written to
 write is read from read.
 
 <!-- end generated -->

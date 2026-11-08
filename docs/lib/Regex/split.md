@@ -8,7 +8,7 @@ func Regex.split(p: Regex.Pattern, s: string): Array[string]
 ```
 
 Regex.split returns the pieces of s between the matches of p. A pattern that never matches gives
-[s], an empty s gives [""], and an empty match at the start or end of s adds no empty piece.
+\[s\], an empty s gives \[""\], and an empty match at the start or end of s adds no empty piece.
 
 <!-- end generated -->
 

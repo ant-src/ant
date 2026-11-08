@@ -8,7 +8,7 @@ func String.padEnd(s: string, width: int, pad: string = " "): string
 ```
 
 String.padEnd returns s with pad repeated on the right until it is width code points long. It pads
-and panics as [String.padStart](padStart.md) does.
+and panics as [`String.padStart`](padStart.md) does.
 
 <!-- end generated -->
 

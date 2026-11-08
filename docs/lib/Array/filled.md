@@ -8,6 +8,6 @@ func Array.filled[T](n: int, v: T): Array[T]
 ```
 
 Array.filled returns a new array of n elements, each the same v. Every slot holds v itself, not a
-copy. It panics if n < 0.
+copy. It panics if n \< 0.
 
 <!-- end generated -->

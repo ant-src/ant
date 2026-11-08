@@ -8,7 +8,7 @@ func String.foldCase(s: string): string
 ```
 
 String.foldCase returns s with Unicode's full case folding applied, a key in which case does not
-matter. It does not normalize; see [String.normalize](normalize.md).
+matter. It does not normalize; see [`String.normalize`](normalize.md).
 
 <!-- end generated -->
 

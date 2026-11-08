@@ -8,6 +8,6 @@ func Iter.map[T, U](s: Seq[T], f: func(T): U): Seq[U]
 ```
 
 Iter.map returns a sequence of f applied to each element of s. Like every Iter function but
-[Iter.toArray](toArray.md), it runs nothing until the result is run.
+[`Iter.toArray`](toArray.md), it runs nothing until the result is run.
 
 <!-- end generated -->

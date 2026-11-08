@@ -8,6 +8,6 @@ func Crypto.hmacSha256(key: Bytes, message: Bytes): Bytes
 ```
 
 Crypto.hmacSha256 returns the 32-byte HMAC-SHA-256 of message under key. Compare it with a received
-signature using [Crypto.equal](equal.md).
+signature using [`Crypto.equal`](equal.md).
 
 <!-- end generated -->

@@ -9,7 +9,7 @@ func Parallel.any[T, E](fs: Array[func(Context): Result[T, E]], ctx: Context | n
 
 Parallel.any calls every function of fs at once with the scope context and returns the first Ok one
 returns, cancelling the scope for the rest. An Err cancels nothing; when every function returns Err,
-it returns Err of the errors in input order, and Err([]) when fs is empty. It returns null when the
-scope ends before an Ok or the last Err.
+it returns Err of the errors in input order, and Err(\[\]) when fs is empty. It returns null when
+the scope ends before an Ok or the last Err.
 
 <!-- end generated -->

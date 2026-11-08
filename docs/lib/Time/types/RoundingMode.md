@@ -7,8 +7,8 @@
 type Time.RoundingMode = Time.Ceil | Time.Floor | Time.Expand | Time.Trunc | Time.HalfCeil | Time.HalfFloor | Time.HalfExpand | Time.HalfTrunc | Time.HalfEven
 ```
 
-Time.RoundingMode says how [Time.round](../round.md) and [Time.roundDuration](../roundDuration.md)
-round. The default is Time.HalfExpand.
+Time.RoundingMode says how [`Time.round`](../round.md) and
+[`Time.roundDuration`](../roundDuration.md) round. The default is Time.HalfExpand.
 
 ```ant signature
 type Time.Ceil = {}

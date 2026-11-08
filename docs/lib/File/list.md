@@ -8,6 +8,6 @@ func File.list(dir: string): Result[Array[string], Error]
 ```
 
 File.list returns the names of the entries directly in dir, in lexical order. Unlike
-[File.walk](walk.md) it does not descend, and it returns names rather than paths.
+[`File.walk`](walk.md) it does not descend, and it returns names rather than paths.
 
 <!-- end generated -->

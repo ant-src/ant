@@ -8,6 +8,6 @@ func Net.listen(addr: string): Result[Net.Listener, Error]
 ```
 
 Net.listen listens for TCP connections on addr, written "host:port". A port of 0, as in ":0", takes
-any free port, which [Net.address](address.md) reports.
+any free port, which [`Net.address`](address.md) reports.
 
 <!-- end generated -->

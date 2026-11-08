@@ -8,6 +8,6 @@ type Bytes
 ```
 
 Bytes is an immutable sequence of bytes, for binary data. It compares by contents with ==, so it
-serves as a map key; b[i] reads one byte and for x in b yields each.
+serves as a map key; b\[i\] reads one byte and for x in b yields each.
 
 <!-- end generated -->

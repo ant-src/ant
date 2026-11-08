@@ -7,6 +7,6 @@
 func Result.ok[T, E](value: T): Result[T, E]
 ```
 
-Result.ok returns an Ok carrying value; Result.ok(v) is the same value as Ok{ value: v }.
+Result.ok returns an Ok carrying value; Result.ok(v) is the same value as Ok\{ value: v \}.
 
 <!-- end generated -->

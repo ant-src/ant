@@ -7,7 +7,7 @@
 func Bits.wrapMul[T: Integer](a: T, b: T): T
 ```
 
-Bits.wrapMul returns a * b, wrapping around in two's complement instead of panicking on overflow.
+Bits.wrapMul returns a \* b, wrapping around in two's complement instead of panicking on overflow.
 
 <!-- end generated -->
 

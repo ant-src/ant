@@ -7,6 +7,7 @@
 type String.Cut = { before: string, after: string }
 ```
 
-String.Cut is the two sides of a string around a separator, as [String.cut](../cut.md) returns them.
+String.Cut is the two sides of a string around a separator, as [`String.cut`](../cut.md) returns
+them.
 
 <!-- end generated -->

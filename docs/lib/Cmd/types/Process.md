@@ -7,7 +7,7 @@
 type Cmd.Process
 ```
 
-Cmd.Process is an opaque command started by [Cmd.start](../start.md), waited for with
-[Cmd.wait](../wait.md).
+Cmd.Process is an opaque command started by [`Cmd.start`](../start.md), waited for with
+[`Cmd.wait`](../wait.md).
 
 <!-- end generated -->

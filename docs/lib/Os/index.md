@@ -4,6 +4,6 @@
 # Os
 
 Os holds the process: its arguments, environment, standard streams, exit, interrupts, and pipes.
-[Cmd](../Cmd/index.md) runs other programs.
+[`Cmd`](../Cmd/index.md) runs other programs.
 
 <!-- end generated -->

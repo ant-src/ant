@@ -9,7 +9,7 @@ type Time.Disambiguation = Time.Compatible | Time.Earlier | Time.Later
 
 Time.Disambiguation says which instant to take for a wall-clock time that a daylight-saving change
 skipped or repeated in a zone. Such a time has no instant in a gap and two in an overlap;
-[Time.possibleInstants](../possibleInstants.md) lists them.
+[`Time.possibleInstants`](../possibleInstants.md) lists them.
 
 ```ant signature
 type Time.Compatible = {}

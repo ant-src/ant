@@ -7,6 +7,6 @@
 type Indexed[T] = { index: int, value: T }
 ```
 
-Indexed is an element with its index, as [Array.entries](../entries.md) yields them.
+Indexed is an element with its index, as [`Array.entries`](../entries.md) yields them.
 
 <!-- end generated -->

@@ -7,6 +7,7 @@
 func File.writeBytes(path: string, bytes: Bytes, replace: bool = true): Result[void, Error]
 ```
 
-File.writeBytes writes bytes as they are to the file at path, as [File.write](write.md) writes text.
+File.writeBytes writes bytes as they are to the file at path, as [`File.write`](write.md) writes
+text.
 
 <!-- end generated -->

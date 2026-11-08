@@ -8,7 +8,7 @@ func Time.yearOfWeek(t: Time.Dated): int
 ```
 
 Time.yearOfWeek returns the year that the ISO 8601 week of t belongs to, which differs from
-[Time.year](year.md) around New Year.
+[`Time.year`](year.md) around New Year.
 
 <!-- end generated -->
 

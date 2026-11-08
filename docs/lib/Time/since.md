@@ -9,7 +9,7 @@ func Time.since[T: Time.Point](t: T, other: T, largestUnit: Time.Unit | null = n
 
 Time.since returns the duration from other to t, counted from t. It is Time.negate(Time.until(t,
 other)), and for calendar units can differ from Time.until(other, t), whose anchor is other. It
-panics as [Time.until](until.md) does.
+panics as [`Time.until`](until.md) does.
 
 <!-- end generated -->
 

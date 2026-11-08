@@ -8,6 +8,6 @@ func Crypto.randomBytes(n: int): Bytes
 ```
 
 Crypto.randomBytes returns n bytes from the operating system's secure source of randomness. It
-panics if n < 0 or n is above 2^31 - 1.
+panics if n \< 0 or n is above 2^31 - 1.
 
 <!-- end generated -->

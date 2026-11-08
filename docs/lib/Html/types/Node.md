@@ -7,7 +7,7 @@
 type Html.Node = Html.Element | Html.Text | Html.Raw
 ```
 
-Html.Node is one node of an Html value, as [Html.nodes](../nodes.md) returns it.
+Html.Node is one node of an Html value, as [`Html.nodes`](../nodes.md) returns it.
 
 ```ant signature
 type Html.Element = { name: string, attributes: Array[Html.Attribute], children: Html }
@@ -25,6 +25,6 @@ Html.Text is a text node, holding its text decoded.
 type Html.Raw = { markup: string }
 ```
 
-Html.Raw is a node of trusted markup, made by [Html.unsafe](../unsafe.md).
+Html.Raw is a node of trusted markup, made by [`Html.unsafe`](../unsafe.md).
 
 <!-- end generated -->

@@ -7,7 +7,7 @@
 func Array.sortWith[T](xs: Array[T], cmp: func(T, T): int): Array[T]
 ```
 
-Array.sortWith returns a new array holding the elements of xs ordered by cmp. cmp(a, b) < 0 puts a
+Array.sortWith returns a new array holding the elements of xs ordered by cmp. cmp(a, b) \< 0 puts a
 before b, and the sort is stable.
 
 <!-- end generated -->

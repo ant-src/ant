@@ -7,7 +7,7 @@
 func String.lines(s: string): Array[string]
 ```
 
-String.lines splits s at every \n, dropping a \r just before one. The piece after the last \n is
+String.lines splits s at every \\n, dropping a \\r just before one. The piece after the last \\n is
 omitted when it is empty, so a final newline adds no empty line.
 
 <!-- end generated -->

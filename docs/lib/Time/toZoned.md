@@ -9,7 +9,8 @@ func Time.toZoned(t: Time.PlainDateTime, z: Time.Zone, disambiguation: Time.Disa
 
 Time.toZoned places the wall-clock time t in zone z. A time that a daylight-saving change skipped or
 repeated is resolved by disambiguation, by default Time.Compatible, which takes the later instant in
-a gap and the earlier in an overlap; [Time.possibleInstants](possibleInstants.md) shows the choices.
+a gap and the earlier in an overlap; [`Time.possibleInstants`](possibleInstants.md) shows the
+choices.
 
 <!-- end generated -->
 

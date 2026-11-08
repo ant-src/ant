@@ -7,8 +7,8 @@
 func Record.same[T: {}](a: T, b: T): bool
 ```
 
-Record.same reports whether a and b are the same record, not merely equal ones. The bound {} admits
-any record type.
+Record.same reports whether a and b are the same record, not merely equal ones. The bound \{\}
+admits any record type.
 
 <!-- end generated -->
 

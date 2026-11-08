@@ -8,6 +8,6 @@ func File.removeAll(path: string): Result[void, Error]
 ```
 
 File.removeAll removes path and everything below it. It is Ok when there is nothing to remove;
-[File.remove](remove.md) is the form that refuses a directory with entries.
+[`File.remove`](remove.md) is the form that refuses a directory with entries.
 
 <!-- end generated -->

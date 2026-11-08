@@ -7,6 +7,6 @@
 func Reflect.setOf[T](t: Reflect.Type[T]): Reflect.Type[Set[T]]
 ```
 
-Reflect.setOf returns type(Set[T]) for a T held as a type value.
+Reflect.setOf returns type(Set\[T\]) for a T held as a type value.
 
 <!-- end generated -->

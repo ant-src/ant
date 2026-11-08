@@ -7,7 +7,7 @@
 func Regex.source(p: Regex.Pattern): string
 ```
 
-Regex.source returns the normalized source of p, in which \/ is written /.
+Regex.source returns the normalized source of p, in which \\/ is written /.
 
 <!-- end generated -->
 

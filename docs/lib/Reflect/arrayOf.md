@@ -7,7 +7,7 @@
 func Reflect.arrayOf[T](t: Reflect.Type[T]): Reflect.Type[Array[T]]
 ```
 
-Reflect.arrayOf returns type(Array[T]) for a T held as a type value, which a generic function cannot
-write itself, since type(...) may not mention a type parameter.
+Reflect.arrayOf returns type(Array\[T\]) for a T held as a type value, which a generic function
+cannot write itself, since type(...) may not mention a type parameter.
 
 <!-- end generated -->

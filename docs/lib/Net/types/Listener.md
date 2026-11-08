@@ -7,6 +7,6 @@
 type Net.Listener
 ```
 
-Net.Listener is an opaque listening TCP socket, made by [Net.listen](../listen.md).
+Net.Listener is an opaque listening TCP socket, made by [`Net.listen`](../listen.md).
 
 <!-- end generated -->

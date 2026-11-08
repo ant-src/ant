@@ -9,7 +9,7 @@ func Time.weekOfYear(t: Time.Dated): int
 
 Time.weekOfYear returns the ISO 8601 week of t, 1 to 53. Weeks start on Monday and week 1 holds the
 year's first Thursday, so days around New Year can fall in a week of the neighbouring year;
-[Time.yearOfWeek](yearOfWeek.md) gives that year.
+[`Time.yearOfWeek`](yearOfWeek.md) gives that year.
 
 <!-- end generated -->
 

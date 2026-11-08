@@ -9,7 +9,7 @@ func Reflect.assignable(from: Reflect.ErasedType, to: Reflect.ErasedType): bool
 
 Reflect.assignable reports whether a value of type from may be used where to is expected (section 4,
 Assignability), on two closed types. It is the relation the readers, the builders, and
-[Reflect.to](to.md) use, exposed so that a library can test before calling a function that would
+[`Reflect.to`](to.md) use, exposed so that a library can test before calling a function that would
 panic.
 
 <!-- end generated -->

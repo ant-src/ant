@@ -10,7 +10,7 @@ func Csv.parse(text: string, sep: string = ","): Result[Array[Array[string]], Er
 Csv.parse parses text as RFC 4180 CSV with sep between fields. Each row keeps as many fields as
 written, nothing is trimmed, and empty lines are dropped; it is Err, naming the line, on a quote
 inside an unquoted field or a quoted field that never closes. It panics if sep is not one code point
-other than ", \r, \n, U+0000, and U+FFFD.
+other than ", \\r, \\n, U+0000, and U+FFFD.
 
 <!-- end generated -->
 

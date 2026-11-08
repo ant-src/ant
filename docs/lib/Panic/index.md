@@ -7,7 +7,7 @@
 type Panic = { message: string, trace: Array[Panic.Frame] }
 ```
 
-Panic is a panic that [Panic.catch](catch.md) stopped: its message and the goroutine's stack when it
-began, innermost frame first.
+Panic is a panic that [`Panic.catch`](catch.md) stopped: its message and the goroutine's stack when
+it began, innermost frame first.
 
 <!-- end generated -->

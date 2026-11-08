@@ -7,7 +7,7 @@
 func Os.stderr(): File.Handle
 ```
 
-Os.stderr returns the program's standard error, which [eprint](../prelude/eprint.md) and
-[eprintln](../prelude/eprintln.md) write to as well.
+Os.stderr returns the program's standard error, which [`eprint`](../prelude/eprint.md) and
+[`eprintln`](../prelude/eprintln.md) write to as well.
 
 <!-- end generated -->

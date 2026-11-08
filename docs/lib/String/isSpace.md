@@ -7,7 +7,7 @@
 func String.isSpace(s: string): bool
 ```
 
-String.isSpace reports whether every code point of s has the White_Space property. It is false on
+String.isSpace reports whether every code point of s has the White\_Space property. It is false on
 "".
 
 <!-- end generated -->

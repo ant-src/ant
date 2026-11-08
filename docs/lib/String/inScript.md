@@ -8,7 +8,7 @@ func String.inScript(c: string, script: string): bool
 ```
 
 String.inScript reports whether c has the Unicode Script property script, named in full as in
-Scripts.txt, such as "Latin" or "Common". It reads Script, not Script_Extensions. It panics unless c
-is one code point, or if script names no script.
+Scripts.txt, such as "Latin" or "Common". It reads Script, not Script\_Extensions. It panics unless
+c is one code point, or if script names no script.
 
 <!-- end generated -->

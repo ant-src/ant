@@ -8,7 +8,7 @@ func String.slice(s: string, from: int, to: int): string
 ```
 
 String.slice returns the code points of s from index from up to but excluding index to. It panics if
-from > to, or if either is outside 0 ..= String.length(s). A code point range can cut through a
-grapheme; see [String.graphemes](graphemes.md).
+from \> to, or if either is outside 0 ..= String.length(s). A code point range can cut through a
+grapheme; see [`String.graphemes`](graphemes.md).
 
 <!-- end generated -->

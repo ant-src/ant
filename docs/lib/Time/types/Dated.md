@@ -7,7 +7,7 @@
 type Time.Dated = Time.ZonedDateTime | Time.PlainDate | Time.PlainDateTime
 ```
 
-Time.Dated is the time types with a date, the ones the date fields such as [Time.year](../year.md)
+Time.Dated is the time types with a date, the ones the date fields such as [`Time.year`](../year.md)
 read.
 
 <!-- end generated -->

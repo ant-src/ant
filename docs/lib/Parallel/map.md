@@ -10,7 +10,7 @@ func Parallel.map[T, U](xs: Array[T], f: func(T, Context): U, limit: int, ctx: C
 Parallel.map returns f applied to every element of xs and the scope context, in input order, running
 at most limit callbacks at once. It admits elements in index order until the scope ends, and returns
 null when some element was never admitted; otherwise it returns every result, even when ctx ended
-after the last admission. It panics if limit < 1, even when xs is empty.
+after the last admission. It panics if limit \< 1, even when xs is empty.
 
 <!-- end generated -->
 

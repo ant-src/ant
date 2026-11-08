@@ -8,7 +8,7 @@ func Array.slice[T](xs: Array[T], from: int, to: int): Array[T]
 ```
 
 Array.slice returns a new array of the elements of xs from index from up to but excluding to. It
-panics if from > to, or if either is outside 0 ..= length.
+panics if from \> to, or if either is outside 0 ..= length.
 
 <!-- end generated -->
 

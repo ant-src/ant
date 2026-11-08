@@ -7,6 +7,6 @@
 type Time.Wall = Time.ZonedDateTime | Time.PlainDate | Time.PlainTime | Time.PlainDateTime
 ```
 
-Time.Wall is the time types with fields, the ones [Time.with](../with.md) serves.
+Time.Wall is the time types with fields, the ones [`Time.with`](../with.md) serves.
 
 <!-- end generated -->

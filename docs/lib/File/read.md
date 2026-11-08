@@ -8,6 +8,6 @@ func File.read(path: string): Result[string, Error]
 ```
 
 File.read reads the whole file at path as text. Bytes that are not valid UTF-8 become U+FFFD;
-[File.readBytes](readBytes.md) keeps them as they are.
+[`File.readBytes`](readBytes.md) keeps them as they are.
 
 <!-- end generated -->

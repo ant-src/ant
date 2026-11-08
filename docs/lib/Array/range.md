@@ -8,7 +8,7 @@ func Array.range(from: int, to: int): Array[int]
 ```
 
 Array.range returns the integers from from up to but excluding to. It returns an empty array when to
-<= from.
+\<= from.
 
 <!-- end generated -->
 

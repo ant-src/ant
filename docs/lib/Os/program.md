@@ -8,6 +8,6 @@ func Os.program(): string
 ```
 
 Os.program returns the path of the program's root module as the command was given it, as a shell's
-$0 is: ./tool.ant when a #! line runs it, tool.ant after ant run tool.ant. It is "" in the REPL.
+$0 is: ./tool.ant when a \#! line runs it, tool.ant after ant run tool.ant. It is "" in the REPL.
 
 <!-- end generated -->

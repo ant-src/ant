@@ -8,8 +8,8 @@ func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
 ```
 
 Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as
-[Url.unescape](unescape.md) does. Keys are in order of first appearance, each with its values in
-order, and a key without = has the value "". It is Err where [Url.unescape](unescape.md) is.
+[`Url.unescape`](unescape.md) does. Keys are in order of first appearance, each with its values in
+order, and a key without = has the value "". It is Err where [`Url.unescape`](unescape.md) is.
 
 <!-- end generated -->
 

@@ -8,6 +8,6 @@ func WaitGroup.add(wg: WaitGroup, n: int): void
 ```
 
 WaitGroup.add adds n, which may be negative, to the counter of wg. It panics if the counter would go
-negative or past [Math.maxInt].
+negative or past \[Math.maxInt\].
 
 <!-- end generated -->

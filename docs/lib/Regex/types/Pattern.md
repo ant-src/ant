@@ -8,7 +8,7 @@ type Regex.Pattern
 ```
 
 Regex.Pattern is a compiled regular expression, from a literal /.../flags or
-[Regex.compile](../compile.md). It is immutable and compares by its normalized source and flags, so
-it serves as a map key.
+[`Regex.compile`](../compile.md). It is immutable and compares by its normalized source and flags,
+so it serves as a map key.
 
 <!-- end generated -->

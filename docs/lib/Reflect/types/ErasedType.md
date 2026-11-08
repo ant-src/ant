@@ -7,8 +7,9 @@
 type Reflect.ErasedType
 ```
 
-Reflect.ErasedType is a type value whose static type is not known: what [Reflect.erase](../erase.md)
-returns, and what [Reflect.shape](../shape.md) takes apart. Code that walks a type recurses on
-erased types, since the element type of an Array[E] is not known statically one level down.
+Reflect.ErasedType is a type value whose static type is not known: what
+[`Reflect.erase`](../erase.md) returns, and what [`Reflect.shape`](../shape.md) takes apart. Code
+that walks a type recurses on erased types, since the element type of an Array\[E\] is not known
+statically one level down.
 
 <!-- end generated -->

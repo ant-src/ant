@@ -152,8 +152,9 @@ then the differences that bite. A design note argues one decision.
 ### Links
 
 Link pages with relative paths: `[Array.filter](filter.md)`,
-`[for](../../language/keywords/for.md)`. The test checks that every relative link names a page. Link
-the spec by its GitHub URL and section anchor, such as
+`[for](../../language/keywords/for.md)`. The test checks that every relative link names a file under
+`docs/`, spelled with its exact case, which macOS would forgive and Linux would not. Link the spec
+by its GitHub URL and section anchor, such as
 `https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing`. A link that starts with `/`
 names a page of the site outside the docs, such as `/vscode`.
 
@@ -164,9 +165,10 @@ cases or a program.
 
 ### Cases
 
-A line that starts at the left margin, holds an expression, and ends in a comment is a case: the
-comment is the value the expression renders as, as the REPL shows it. A block with a case is a block
-of cases, like a notebook of inputs and outputs:
+An expression followed by a `//` comment is a case: the comment is the value the expression renders
+as, as the REPL shows it. A block with a case is a block of cases, like a notebook of inputs and
+outputs. The block is read as the REPL reads input, so a case may span lines; its comment goes at
+the end of its last line.
 
 ```ant
 Array.map([1, 2, 3], { x * 2 })              // [2, 4, 6]
@@ -176,8 +178,9 @@ Array.sort(xs) // [1, 2, 3]
 ```
 
 - Lines without a comment are setup, such as a `var` or a `type`, and run in order.
-- A comment after a declaration, an assignment, or an indented line is an ordinary comment, not a
-  case. Put explanations on their own line anyway.
+- A comment after a declaration, an assignment, a loop, or a line inside braces is an ordinary
+  comment, not a case. A comment after any other expression is a case, so `println(x) // prints 3`
+  is a case whose value is void, and fails. Put explanations on their own line.
 - A case may not wait, start a goroutine, or touch `File`, `Http`, `Net`, `Os`, or `Channel`, and
   its value must be the same on every run. Write those examples as programs.
 - A case that panics is written `// panic: <message>`, with the whole message:
@@ -187,8 +190,9 @@ Array.sort(xs) // [1, 2, 3]
 ### Programs
 
 Any other block is a complete program, run as `main.ant` with `ant check` and then `ant run`. A
-` ```text ` block right after it is its standard output, compared exactly. Without one, the program
-must still exit with status 0.
+` ```text ` block right after it is its standard output, compared exactly except for one final line
+break, so output that does not end a line can be shown. Without one, the program must still exit
+with status 0. Problems are reported at the lines of the page.
 
 ````md
 ```ant
@@ -203,27 +207,34 @@ Hello, Ant
 
 A block with a file name, ` ```ant [lib/geo.ant] `, is written into the page's directory instead of
 run, so other blocks of the page can import it. Every named block and `file` directive of a page is
-written before any block runs, in one directory per page. A named library is checked with
-`ant check`.
+written before any block runs, in one directory per page. A named `.ant` file, a test file included,
+is checked with `ant check`; it runs only with `test: cmd`, such as `test: cmd ant test .` on a test
+file. A named block of another kind, such as `data.json`, is only written.
 
 ### Preparation
 
 What the reader does not need to see goes in an HTML comment that starts with `test:`. It applies to
-the next ` ```ant ` block. An unknown directive fails the test.
+the next ` ```ant ` block. A misspelled prefix (`tests:`, `Test:`), an unknown directive, a second
+directive of the same name on one block (`file` aside), and a directive that does not apply to its
+block all fail the test.
 
-| Directive                   | Meaning                                                                       |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| `test: file <path>` + body  | Write the body to `<path>` in the page's directory.                           |
-| `test: stdin` + body        | Feed the body to standard input.                                              |
-| `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                                    |
-| `test: before` + body       | Ant code put in front of the block, hidden from the reader.                   |
-| `test: cmd ant <args>`      | Run this `ant` command in the page's directory instead, such as `ant test .`. |
-| `test: exit <n>`            | Expect exit status `<n>` instead of 0.                                        |
-| `test: panics <text>`       | Expect a panic whose message contains `<text>`.                               |
-| `test: error <text>`        | Expect `ant check` to report an error containing `<text>`; do not run.        |
-| `test: check-only <reason>` | Check and format-check only. For output that changes between runs.            |
+| Directive                   | Meaning                                                                | Applies to                       |
+| --------------------------- | ---------------------------------------------------------------------- | -------------------------------- |
+| `test: file <path>` + body  | Write the body to `<path>` in the page's directory.                    | any block                        |
+| `test: before` + body       | Ant code put in front of the block, hidden from the reader.            | cases, an unnamed program        |
+| `test: stdin` + body        | Feed the body to standard input.                                       | a block that runs                |
+| `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                             | an unnamed program without `cmd` |
+| `test: cmd ant <args>`      | Run this `ant` command in the page's directory, such as `ant test .`.  | a program                        |
+| `test: exit <n>`            | Expect exit status `<n>` instead of 0.                                 | a block that runs                |
+| `test: panics <text>`       | Expect a panic whose message contains `<text>`.                        | a block that runs                |
+| `test: error <text>`        | Expect `ant check` to report an error containing `<text>`; do not run. | an ant program, not with `cmd`   |
+| `test: check-only <reason>` | Check and format-check only. For output that changes between runs.     | an ant program, not with `cmd`   |
 
-A directive with a body puts it on the lines after the first, up to `-->`:
+A block runs when it is an unnamed program, or a named one with `cmd`, and has no `error` or
+`check-only`. `exit` and `panics` exclude each other.
+
+A directive with a body puts it on the lines after the first, up to `-->`; nothing else goes on the
+first line of `stdin` or `before`:
 
 ````md
 <!-- test: file people.csv
@@ -253,7 +264,8 @@ process. Prefer an example that runs: a fixed seed, a fixed instant, a local lis
 
 - It is formatted as `ant fmt` formats it. Run `ant fmt` on it before pasting.
 - It is complete: no `...`, no names it does not define (put setup in `test: before`).
-- ` ```ant signature ` blocks belong to the generated part only.
+- ` ```ant signature ` blocks belong to the generated part only, which holds nothing else.
+- A block may be indented inside a list item, up to three spaces, as Markdown allows.
 - Other languages (` ```sh `, ` ```text ` not after an ant block, ` ````md `) are not run.
 
 ## Testing

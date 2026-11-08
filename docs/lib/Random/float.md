@@ -7,6 +7,6 @@
 func Random.float(r: Random): float64
 ```
 
-Random.float returns a uniformly random number in [0, 1).
+Random.float returns a uniformly random number in \[0, 1).
 
 <!-- end generated -->

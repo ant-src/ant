@@ -7,8 +7,8 @@
 type Reflect.Shape = Reflect.Null | Reflect.Void | Reflect.Never | Reflect.Bool | Reflect.Int | Reflect.Float | Reflect.String | Reflect.Array | Reflect.Map | Reflect.Set | Reflect.Record | Reflect.Tagged | Reflect.Union | Reflect.Func | Reflect.Opaque
 ```
 
-Reflect.Shape is one level of a type's structure, as [Reflect.shape](../shape.md) gives it: aliases
-expanded, unions flattened, and every child a [Reflect.ErasedType](ErasedType.md).
+Reflect.Shape is one level of a type's structure, as [`Reflect.shape`](../shape.md) gives it:
+aliases expanded, unions flattened, and every child a [`Reflect.ErasedType`](ErasedType.md).
 
 ```ant signature
 type Reflect.Null = {}
@@ -38,8 +38,8 @@ Reflect.Bool is the shape of bool.
 type Reflect.Int = { bits: int, signed: bool }
 ```
 
-Reflect.Int is the shape of an integer type: its width in bits and whether it is signed. int is {
-bits: 64, signed: true } and byte is { bits: 8, signed: false }.
+Reflect.Int is the shape of an integer type: its width in bits and whether it is signed. int is \{
+bits: 64, signed: true \} and byte is \{ bits: 8, signed: false \}.
 
 ```ant signature
 type Reflect.Float = { bits: int }
@@ -57,19 +57,19 @@ Reflect.String is the shape of string.
 type Reflect.Array = { element: Reflect.ErasedType }
 ```
 
-Reflect.Array is the shape of Array[element].
+Reflect.Array is the shape of Array\[element\].
 
 ```ant signature
 type Reflect.Map = { key: Reflect.ErasedType, value: Reflect.ErasedType }
 ```
 
-Reflect.Map is the shape of Map[key, value].
+Reflect.Map is the shape of Map\[key, value\].
 
 ```ant signature
 type Reflect.Set = { member: Reflect.ErasedType }
 ```
 
-Reflect.Set is the shape of Set[member].
+Reflect.Set is the shape of Set\[member\].
 
 ```ant signature
 type Reflect.Record = { decl: Reflect.Decl | null, args: Array[Reflect.ErasedType], fields: Array[Reflect.Field] }
@@ -77,24 +77,23 @@ type Reflect.Record = { decl: Reflect.Decl | null, args: Array[Reflect.ErasedTyp
 
 Reflect.Record is the shape of a record type: its declaration, which renders as the declared name
 and is null for an anonymous record type, its type arguments, and its fields in declaration order
-with their types substituted, so that in Box[int](../../prelude/int.md) the field value has type
-int.
+with their types substituted, so that in Box\[int\] the field value has type int.
 
 ```ant signature
 type Reflect.Tagged = { decl: Reflect.Decl, args: Array[Reflect.ErasedType], base: Reflect.ErasedType }
 ```
 
 Reflect.Tagged is the shape of a named primitive type, whose values are tagged primitives: its
-declaration, type arguments, and base type. Id[User] and Id[Account] share a declaration and differ
-in args.
+declaration, type arguments, and base type. Id\[User\] and Id\[Account\] share a declaration and
+differ in args.
 
 ```ant signature
 type Reflect.Union = { members: Array[Reflect.ErasedType] }
 ```
 
 Reflect.Union is the shape of a union: its members, flattened and deduplicated, in the order
-written. T | null has a Reflect.Null member, and Result[int, Error] the records
-Ok[int](../../prelude/int.md) and Err[Error](../../Error/index.md).
+written. T \| null has a Reflect.Null member, and Result\[int, Error\] the records Ok\[int\] and
+Err\[Error\].
 
 ```ant signature
 type Reflect.Func = { params: Array[Reflect.ErasedType], result: Reflect.ErasedType }

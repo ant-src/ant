@@ -8,7 +8,7 @@ func Encoding.toBase64(bytes: Bytes, url: bool = false): string
 ```
 
 Encoding.toBase64 encodes bytes as padded base64 in the standard alphabet, with + and /, or when url
-is true in the URL-safe one, with - and _.
+is true in the URL-safe one, with - and \_.
 
 <!-- end generated -->
 

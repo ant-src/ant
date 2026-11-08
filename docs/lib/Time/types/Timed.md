@@ -8,6 +8,6 @@ type Time.Timed = Time.ZonedDateTime | Time.PlainTime | Time.PlainDateTime
 ```
 
 Time.Timed is the time types with a time of day, the ones the time fields such as
-[Time.hour](../hour.md) read.
+[`Time.hour`](../hour.md) read.
 
 <!-- end generated -->
