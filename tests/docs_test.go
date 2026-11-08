@@ -466,6 +466,8 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		}
 		fake := filepath.Join(dir, "cases.ant")
 		for _, p := range tableProblems(t.Context(), fake, src.String(), docCasesTimeout) {
+			// The table speaks of its own // => marker; a page writes the value after //.
+			p = strings.ReplaceAll(p, "give it a // => or bind it with var", "end its last line with // and its value, or bind it with var")
 			problems = append(problems, pageLines(p, fake, rel, code, hidden))
 		}
 		return problems

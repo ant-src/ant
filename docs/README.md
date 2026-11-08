@@ -137,6 +137,9 @@ The second-level headings are these, in this order, each only when it has conten
 | Neat examples            | Optional: something surprising or pretty.                                                   |
 | See also                 | Related functions, as links.                                                                |
 
+In Details, link the most specific spec section for each rule, once: when every bullet rests on the
+same section, one link at the end of the list is enough.
+
 Third-level headings inside a section are free. Each example teaches something the others do not,
 and the examples use the variety of the language on purpose: lambdas with `x`, named functions,
 records, unions, `null`, calls through `.`, pipes. A reader browsing `Array.map` also learns how Ant
