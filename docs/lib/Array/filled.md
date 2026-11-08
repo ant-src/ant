@@ -1,4 +1,4 @@
-<!-- status: skeleton -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Array.filled
@@ -11,3 +11,209 @@ Array.filled returns a new array of n elements, each the same v. Every slot hold
 copy. It panics if n \< 0.
 
 <!-- end generated -->
+
+## Details
+
+- `Array.filled` returns a new array of `n` elements, and every slot holds the same `v`
+  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- An `n` below 0 panics, and so does an `n` above 2^31 − 1
+  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array),
+  [Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
+- An array, map, set, or record is a reference, so when `v` is one, every slot refers to the one
+  value, and a change through one slot shows in all of them
+  ([Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
+- The parameters are named `n` and `v`; a named argument fills the parameter of that name
+  ([Dynamic semantics](https://github.com/ant-src/spec/blob/master/ant-lang.md#12-dynamic-semantics)).
+
+## Basic examples
+
+Make an array of three zeros:
+
+```ant
+Array.filled(3, 0) // [0, 0, 0]
+```
+
+The result is a new array. Writing a slot changes only that slot:
+
+```ant
+var marks = Array.filled(4, "-")
+marks[1] = "x"
+marks // ["-", "x", "-", "-"]
+```
+
+## Scope
+
+An `n` of 0 gives an empty array:
+
+```ant
+Array.filled(0, "a") // []
+```
+
+`v` can be any value: a string, a float, a `bool`, or a record:
+
+```ant
+type Point = { x: int, y: int }
+Array.filled(2, "ab")                // ["ab", "ab"]
+Array.filled(2, 1.5)                 // [1.5, 1.5]
+Array.filled(3, false)               // [false, false, false]
+Array.filled(2, Point{ x: 0, y: 0 }) // [Point{ x: 0, y: 0 }, Point{ x: 0, y: 0 }]
+```
+
+To fill with `null` and store values later, annotate the element type. The annotation makes the
+array an `Array[int | null]`:
+
+```ant
+var slots: Array[int | null] = Array.filled(3, null)
+slots[0] = 5
+slots // [5, null, null]
+```
+
+The count comes first, so a pipe passes the count:
+
+```ant
+3 | Array.filled("z") // ["z", "z", "z"]
+```
+
+The parameters are named `n` and `v`, and named arguments may come in any order:
+
+```ant
+Array.filled(n: 2, v: "x") // ["x", "x"]
+Array.filled(v: "x", n: 2) // ["x", "x"]
+```
+
+## Applications
+
+Count how often each digit occurs, with one counter per digit:
+
+```ant
+var counts = Array.filled(5, 0)
+for d in [1, 3, 3, 4, 1, 1] {
+  counts[d] += 1
+}
+counts // [0, 3, 0, 2, 1]
+```
+
+Pad an array of digits on the left to a fixed width:
+
+```ant
+func pad(xs: Array[int], width: int): Array[int] {
+  [...Array.filled(width - len(xs), 0), ...xs]
+}
+pad([7, 8], 5) // [0, 0, 0, 7, 8]
+```
+
+Build a grid with a new row per line, then draw it:
+
+```ant
+var grid = Array.range(0, 3).map({ Array.filled(4, ".") })
+grid[1][2] = "#"
+for row in grid {
+  println(String.join(row, ""))
+}
+```
+
+```text
+....
+..#.
+....
+```
+
+Give each goroutine its own slot to write a result into, then read the slots after the wait:
+
+```ant
+var words = ["ant", "bee", "wasp"]
+var lengths: Array[int | null] = Array.filled(len(words), null)
+var wg = WaitGroup.new()
+for entry in Array.entries(words) {
+  WaitGroup.add(wg, 1)
+  go {
+    defer { WaitGroup.done(wg) }
+    lengths[entry.index] = String.length(entry.value)
+  }
+}
+WaitGroup.wait(wg)
+println(lengths)
+```
+
+```text
+[3, 3, 4]
+```
+
+`Parallel.map` does this for a whole array.
+
+## Properties and relations
+
+The result has `n` elements, and every one is `v`:
+
+```ant
+var xs = Array.filled(4, "a")
+assert(len(xs) == 4)
+assert(Array.every(xs, { x == "a" }))
+```
+
+It equals mapping every index of `Array.range(0, n)` to `v`:
+
+```ant
+assert(Array.filled(3, 1) == Array.range(0, 3).map({ 1 }))
+```
+
+Joining `n` copies of a string gives the same string as `String.repeat`:
+
+```ant
+assert(String.join(Array.filled(3, "ab"), "") == String.repeat("ab", 3))
+```
+
+## Possible issues
+
+A negative count panics. Code that computes the count, such as `pad` above, panics when the
+computation goes below 0:
+
+```ant
+Array.filled(-1, 0) // panic: Array.filled needs a count of at least 0, got -1
+```
+
+A count above 2^31 − 1 panics too:
+
+```ant
+Array.filled(3000000000, 0) // panic: Array.filled needs a count of at most 2147483647, got 3000000000
+```
+
+Every slot holds the same `v`, not a copy. When `v` is an array or a record, a change through one
+slot shows in every slot:
+
+```ant
+var rows = Array.filled(2, [0, 0])
+rows[0][0] = 1
+rows                         // [[1, 0], [1, 0]]
+Array.same(rows[0], rows[1]) // true
+```
+
+Build a new value per slot with `Array.map` over `Array.range` instead:
+
+```ant
+var rows = Array.range(0, 2).map({ [0, 0] })
+rows[0][0] = 1
+rows // [[1, 0], [0, 0]]
+```
+
+Without an annotation, `Array.filled(n, null)` is an `Array[null]`, which holds nothing but `null`:
+
+<!-- test: error cannot use int where null is expected -->
+
+```ant
+var slots = Array.filled(3, null)
+slots[0] = 5
+```
+
+An empty array literal as `v` has no element type to infer, so annotate it:
+
+<!-- test: error cannot infer the element type of an empty array -->
+
+```ant
+var rows = Array.filled(2, [])
+```
+
+## See also
+
+[Array.range](range.md), [Array.map](map.md), [Array.same](same.md),
+[String.repeat](../String/repeat.md), [Array.push](push.md), [Parallel.map](../Parallel/map.md)

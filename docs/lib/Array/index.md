@@ -1,4 +1,4 @@
-<!-- status: skeleton -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Array
@@ -9,3 +9,318 @@ are half-open, from inclusive and to exclusive. A function whose doc says it mut
 in place; every other returns a new array.
 
 <!-- end generated -->
+
+The `Array` namespace holds the functions on arrays. Each function that takes an array takes it
+first, so `Array.map(xs, f)`, `xs.map(f)`, and `xs | Array.map(f)` are the same call. `Array.range`
+and `Array.filled` build an array from scratch and are called only through the namespace.
+
+## Details
+
+- `Array[T]` is dense and growable, and every element is a `T`
+  ([Arrays, maps, and sets](https://github.com/ant-src/spec/blob/master/ant-lang.md#arrays-maps-and-sets)).
+- `xs[i]` reads and `xs[i] = v` writes. Both panic when `i` is out of range, and `Array.get` returns
+  `null` instead. Indices are `int`s from `0` up to but excluding the length, and ranges are
+  half-open: `from` inclusive, `to` exclusive
+  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- A function marked `mutates` changes its first argument and returns `void`, the removed element, or
+  whether it changed anything. Every other function leaves its arguments untouched and returns a new
+  value
+  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- An array is a reference: a variable holds a reference, and copying the variable copies the
+  reference ([Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
+- Two arrays are `==` when they have the same length and equal elements in order. An array renders
+  as `[1, 2]` ([Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
+- `len(xs)` and `Array.length(xs)` are the same count
+  ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
+- A call through `.` on an array goes to the `Array` namespace and passes the array first
+  ([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
+
+## Basic examples
+
+Square brackets build an array, `xs[i]` reads an element, and `xs[i] = v` writes one:
+
+```ant
+var xs = [10, 20, 30]
+xs[0]            // 10
+len(xs)          // 3
+Array.get(xs, 5) // null
+xs[1] = 25
+xs // [10, 25, 30]
+```
+
+`Array.push` grows an array in place and returns nothing:
+
+```ant
+var names: Array[string] = []
+Array.push(names, "Ada")
+Array.push(names, "Linus")
+names // ["Ada", "Linus"]
+```
+
+Calls chain through `.`, or the array goes down a pipe:
+
+```ant
+var scores = [72, 95, 88, 40]
+scores.filter({ x >= 50 }).sort()            // [72, 88, 95]
+scores | Array.map({ x / 10 }) | Array.sum() // 28
+```
+
+## Scope
+
+A spread copies the elements of an array into a new literal:
+
+```ant
+var xs = [1, 2]
+[0, ...xs, 3] // [0, 1, 2, 3]
+```
+
+A `for` loop visits the elements in order:
+
+```ant
+var steps = ["mix", "bake"]
+for step in steps {
+  println(step)
+}
+```
+
+```text
+mix
+bake
+```
+
+`Array.entries` pairs each element with its index, for a loop that needs both:
+
+```ant
+var steps = ["mix", "bake"]
+for step in Array.entries(steps) {
+  println("${step.index}: ${step.value}")
+}
+```
+
+```text
+0: mix
+1: bake
+```
+
+Elements may be records, `null` where the type allows it, or other arrays:
+
+```ant
+type Point = { x: int, y: int }
+[Point{ x: 1, y: 2 }] // [Point{ x: 1, y: 2 }]
+var maybe: Array[int | null] = [1, null]
+maybe                        // [1, null]
+Array.flatten([[1, 2], [3]]) // [1, 2, 3]
+```
+
+## Functions by job
+
+### Size and access
+
+- [Array.length](length.md): the number of elements
+- [Array.isEmpty](isEmpty.md): whether there are none
+- [Array.get](get.md): element `i`, or `null` when out of range
+- [Array.first](first.md), [Array.last](last.md): the first or last element, or `null`
+
+### Changing an array in place
+
+- [Array.push](push.md): append a value
+- [Array.extend](extend.md): append the elements of another array
+- [Array.pop](pop.md): remove and return the last element
+- [Array.insert](insert.md): put a value at index `i`
+- [Array.removeAt](removeAt.md): remove and return element `i`
+
+### Building arrays
+
+- [Array.range](range.md): the `int`s from `from` up to `to`
+- [Array.filled](filled.md): `n` copies of one value
+- [Array.concat](concat.md): two arrays, one after the other
+- [Array.slice](slice.md): the elements from `from` up to `to`
+- [Array.flatten](flatten.md): an array of arrays, concatenated
+- [Array.entries](entries.md): each element with its index, as [Indexed](types/Indexed.md)
+
+### Transforming
+
+- [Array.map](map.md): apply a function to each element
+- [Array.flatMap](flatMap.md): map to arrays and concatenate them
+- [Array.filter](filter.md): the elements a predicate accepts
+- [Array.reverse](reverse.md): the elements in reverse order
+- [Array.unique](unique.md), [Array.uniqueBy](uniqueBy.md): the first of each equal value or key
+
+### Searching
+
+- [Array.find](find.md), [Array.findLast](findLast.md): the first or last element a predicate
+  accepts
+- [Array.findIndex](findIndex.md), [Array.findLastIndex](findLastIndex.md): its index
+- [Array.indexOf](indexOf.md), [Array.lastIndexOf](lastIndexOf.md): the first or last index of a
+  value
+- [Array.contains](contains.md): whether a value is an element
+
+### Testing and counting
+
+- [Array.some](some.md): whether a predicate accepts any element
+- [Array.every](every.md): whether it accepts every element
+- [Array.countWhere](countWhere.md): how many elements it accepts
+
+### Ordering
+
+- [Array.sort](sort.md): ascending, stable
+- [Array.sortBy](sortBy.md): ascending by a key
+- [Array.sortWith](sortWith.md): by a comparison function
+- [Array.min](min.md), [Array.max](max.md): the least or greatest element
+- [Array.minBy](minBy.md), [Array.maxBy](maxBy.md): the element with the least or greatest key
+
+### Combining and grouping
+
+- [Array.reduce](reduce.md): fold the elements into one value
+- [Array.sum](sum.md): the sum of numbers, or `null` when empty
+- [Array.chunk](chunk.md): split into arrays of `n` elements
+- [Array.groupBy](groupBy.md): a map from each key to its elements
+
+### Identity
+
+- [Array.same](same.md): whether two arrays are the same array, not only equal
+
+## Applications
+
+Count the words of each length. `Array.groupBy` keeps the keys in first-seen order:
+
+```ant
+var words = ["ant", "bee", "wasp", "fly", "moth"]
+var groups = words.groupBy({ String.length(x) })
+Map.entries(groups).map({ "${x.key}: ${len(x.value)}" }) // ["3: 3", "4: 2"]
+```
+
+Build a list of results in a loop, then summarize it:
+
+```ant
+var squares: Array[int] = []
+for i in Array.range(1, 5) {
+  Array.push(squares, i * i)
+}
+squares            // [1, 4, 9, 16]
+Array.sum(squares) // 30
+Array.max(squares) // 16
+```
+
+## Properties and relations
+
+`len` and `Array.length` agree, and an array is empty when its length is `0`:
+
+```ant
+var xs = [4, 5, 6]
+assert(len(xs) == Array.length(xs))
+assert(Array.isEmpty(xs) == (len(xs) == 0))
+```
+
+A call through `.`, a pipe, and a direct call are the same call:
+
+```ant
+var xs = [3, 1, 2]
+assert(xs.sort() == Array.sort(xs))
+assert((xs | Array.sort()) == Array.sort(xs))
+```
+
+## Possible issues
+
+Copying an array variable copies the reference, not the elements. A push through one name shows
+through the other:
+
+```ant
+var xs = [1, 2]
+var ys = xs
+Array.push(ys, 3)
+xs                 // [1, 2, 3]
+Array.same(xs, ys) // true
+```
+
+A spread into a new literal makes a separate array:
+
+```ant
+var xs = [1, 2]
+var ys = [...xs]
+Array.push(ys, 3)
+xs           // [1, 2]
+xs == [1, 2] // true
+```
+
+Only the functions marked `mutates` change the array. `Array.sort` returns a sorted copy and leaves
+`xs` as it was:
+
+```ant
+var xs = [3, 1, 2]
+var sorted = xs.sort()
+xs     // [3, 1, 2]
+sorted // [1, 2, 3]
+```
+
+`let` fixes the binding, not the elements, so a mutating function works on a `let` array:
+
+```ant
+let xs = [1, 2]
+Array.push(xs, 3)
+xs // [1, 2, 3]
+```
+
+Reading or writing past the end panics. `Array.get` returns `null` for an index that may be out of
+range:
+
+```ant
+var xs = [1, 2, 3]
+xs[3]            // panic: index 3 out of range for an array of length 3
+Array.get(xs, 3) // null
+```
+
+A write past the end panics with the same message:
+
+<!-- test: panics index 3 out of range for an array of length 3 -->
+
+```ant
+var xs = [1, 2, 3]
+xs[3] = 1
+```
+
+Assigning the loop variable is a compile error, since it would not change the array
+([Loops](https://github.com/ant-src/spec/blob/master/ant-lang.md#loops)). `Array.map` returns the
+changed elements:
+
+<!-- test: error cannot assign to x, a for variable -->
+
+```ant
+var xs = [1, 2, 3]
+for x in xs {
+  x = x * 2
+}
+```
+
+```ant
+var xs = [1, 2, 3]
+xs.map({ x * 2 }) // [2, 4, 6]
+```
+
+A `for` loop reads the array as it goes, so it visits an element pushed during the loop. `Array.map`
+and the other functions that take a callback read the elements once, at the call
+([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library),
+[Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)):
+
+```ant
+var a = [1, 2, 3]
+var seen: Array[int] = []
+for x in a {
+  Array.push(seen, x)
+  if x < 3 {
+    Array.push(a, x + 10)
+  }
+}
+seen // [1, 2, 3, 11, 12]
+var b = [1, 2, 3]
+Array.map(b, { Array.push(b, x + 10); x * 2 }) // [2, 4, 6]
+b                                              // [1, 2, 3, 11, 12, 13]
+```
+
+## See also
+
+[Map](../Map/index.md), [Set](../Set/index.md), [Iter](../Iter/index.md),
+[Indexed](types/Indexed.md), [Array type](../../language/types/Array.md),
+[Array literals](../../language/literals/arrays.md),
+[Indexing](../../language/operators/indexing.md), [len](../prelude/len.md),
+[Collections](../guides/collections.md)

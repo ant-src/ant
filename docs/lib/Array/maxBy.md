@@ -1,4 +1,4 @@
-<!-- status: skeleton -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Array.maxBy
@@ -12,3 +12,252 @@ element replaces the one held only when its key is strictly greater, so of equal
 and a NaN key never wins.
 
 <!-- end generated -->
+
+## Details
+
+- `Array.maxBy` calls `key` on the elements of `xs` from the left and returns the element whose key
+  is greatest, and `null` when `xs` is empty.
+- It keeps the element it holds unless a later key is strictly greater by `<`. Of equal keys, the
+  first element wins, and a `NaN` key never replaces the element held
+  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
+- The key type `K` must be one member of `Ordered`: one integer or float kind, or `string`
+  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). Strings
+  compare by code point
+  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
+- `key` is any function value of type `func(T): K`: a lambda with its implicit `x`, a named
+  function, or a closure over local variables
+  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
+- The result type is `T | null`. Read it with `?.` or `??`, or narrow it with `!= null`, before you
+  use it as a `T`
+  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+
+## Basic examples
+
+Find the longest word:
+
+```ant
+Array.maxBy(["fig", "banana", "kiwi"], { String.length(x) }) // "banana"
+```
+
+An empty array has no greatest element, so the result is `null`:
+
+```ant
+var empty: Array[string] = []
+empty.maxBy({ String.length(x) }) // null
+```
+
+Find the oldest person, and read a field of the result with `?.`:
+
+```ant
+type Person = { name: string, age: int }
+var people = [Person{ name: "Ann", age: 31 }, Person{ name: "Bob", age: 45 }]
+people.maxBy({ x.age })?.name // "Bob"
+```
+
+## Scope
+
+The result is the element, not its key:
+
+```ant
+[3, -7, 5].maxBy({ Math.abs(x) }) // -7
+```
+
+Of equal keys, the first element wins:
+
+```ant
+["ab", "cd", "e"].maxBy({ String.length(x) }) // "ab"
+```
+
+A string key compares by code point, so every uppercase ASCII letter comes before every lowercase
+one:
+
+```ant
+["apple", "Banana", "cherry"].maxBy({ x }) // "cherry"
+["Zed", "apple"].maxBy({ x })              // "apple"
+```
+
+A float key works too. To find the least, use `Array.minBy`:
+
+```ant
+var temps = [12.5, -3.0, 21.25]
+temps.maxBy({ x }) // 21.25
+temps.minBy({ x }) // -3.0
+```
+
+A `NaN` key never replaces the element held. A `NaN` in the first element is held to the end, since
+no key is greater than it:
+
+```ant
+[1.0, 0.0 / 0.0, 3.0].maxBy({ x }) // 3.0
+[0.0 / 0.0, 1.0, 3.0].maxBy({ x }) // NaN
+```
+
+Pass a named function instead of a lambda:
+
+```ant
+func vowels(s: string): int {
+  String.graphemes(s).countWhere({ "aeiou".contains(x) })
+}
+
+["sky", "queue", "area"].maxBy(vowels) // "queue"
+```
+
+A key can use the local variables around it. Find the number closest to a target:
+
+```ant
+var target = 10
+[3, 12, 7, 20].maxBy({ -Math.abs(x - target) }) // 12
+```
+
+The element type may include `null`. Give the key a value for it with `??`:
+
+```ant
+var scores: Array[int | null] = [null, 70, 85]
+scores.maxBy({ x ?? 0 }) // 85
+```
+
+Find the greatest grapheme of a string by splitting it first:
+
+```ant
+String.graphemes("hello").maxBy({ x }) // "o"
+```
+
+Call it through `.` or in a pipe:
+
+```ant
+["a", "bbb", "cc"].maxBy({ String.length(x) })         // "bbb"
+["a", "bbb", "cc"] | Array.maxBy({ String.length(x) }) // "bbb"
+```
+
+## Applications
+
+Find the key of the largest value in a map, through its entries:
+
+```ant
+var stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
+stock.entries().maxBy({ x.value })?.key // "bolt"
+```
+
+Find the most frequent word, with `Array.groupBy`:
+
+```ant
+var words = String.split("the ant and the bee and the ant", " ")
+words.groupBy({ x }).entries().maxBy({ x.value.length() })?.key // "the"
+```
+
+Find the index of the greatest element, through `Array.entries`:
+
+```ant
+[4, 9, 2, 9].entries().maxBy({ x.value })?.index // 1
+```
+
+Return early from a function when the array is empty, with `?? return`:
+
+```ant
+type Run = { name: string, ms: float64 }
+
+func slowest(runs: Array[Run]): string {
+  var run = runs.maxBy({ x.ms }) ?? return "no runs"
+  "${run.name} took ${run.ms} ms"
+}
+
+println(slowest([Run{ name: "parse", ms: 12.5 }, Run{ name: "check", ms: 30.0 }]))
+println(slowest([]))
+```
+
+```text
+check took 30.0 ms
+no runs
+```
+
+## Properties and relations
+
+With the identity as the key, `Array.maxBy` gives what `Array.max` gives on integers and strings:
+
+```ant
+var xs = [4, 9, 2, 9]
+assert(xs.maxBy({ x }) == xs.max())
+var names = ["Ann", "Bob", "Al"]
+assert(names.maxBy({ x }) == names.max())
+```
+
+Negating a signed or float key turns it into `Array.minBy`, and of equal keys both keep the first
+element. On an unsigned key the negation panics; see Possible issues:
+
+```ant
+type Box = { name: string, size: int }
+var boxes = [Box{ name: "a", size: 2 }, Box{ name: "b", size: 1 }, Box{ name: "c", size: 1 }]
+assert(boxes.maxBy({ -x.size })?.name == "b")
+assert(boxes.maxBy({ -x.size }) == boxes.minBy({ x.size }))
+```
+
+The element it returns is the one in the array, so a change to it shows in the array:
+
+```ant
+type Item = { name: string, stock: int }
+var items = [Item{ name: "nut", stock: 3 }, Item{ name: "bolt", stock: 12 }]
+var item = items.maxBy({ x.stock })
+if item != null {
+  item.stock = 0
+}
+assert(items[1].stock == 0)
+```
+
+## Possible issues
+
+The result may be `null`, so reading a field of it without narrowing is a compile error:
+
+<!-- test: error has no field name -->
+
+```ant
+type Person = { name: string, age: int }
+var people = [Person{ name: "Ann", age: 31 }]
+println(people.maxBy({ x.age }).name)
+```
+
+Use `?.`, `??`, or a test against `null` first, as in the examples above.
+
+The key must be ordered. A `bool` or a record is not, which is a compile error:
+
+<!-- test: error K would be bool, which is not a single member of its bound Ordered -->
+
+```ant
+println([1, 2, 3].maxBy({ x > 1 }))
+```
+
+Of equal keys, `Array.maxBy` keeps the first, while the last element of a stable ascending sort is
+the last of them:
+
+```ant
+type Run = { name: string, ms: float64 }
+var runs = [Run{ name: "a", ms: 12.5 }, Run{ name: "b", ms: 9.0 }, Run{ name: "c", ms: 12.5 }]
+runs.maxBy({ x.ms })?.name         // "a"
+runs.sortBy({ x.ms }).last()?.name // "c"
+```
+
+Negating an unsigned key to find the least panics, since the negation overflows
+([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)):
+
+```ant
+[uint8(1), uint8(2)].maxBy({ -x }) // panic: integer overflow
+```
+
+Use `Array.minBy` instead.
+
+On floats, `maxBy({ x })` and `Array.max` can differ. `Array.max` is `NaN` when any element is `NaN`
+and puts `-0.0` below `0.0`, while `Array.maxBy` never lets a `NaN` key win and keeps the first of
+equal keys ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)):
+
+```ant
+[1.0, 0.0 / 0.0].maxBy({ x }) // 1.0
+[1.0, 0.0 / 0.0].max()        // NaN
+[-0.0, 0.0].maxBy({ x })      // -0.0
+[-0.0, 0.0].max()             // 0.0
+```
+
+## See also
+
+[Array.minBy](minBy.md) · [Array.max](max.md) · [Array.min](min.md) · [Array.sortBy](sortBy.md) ·
+[Array.find](find.md) · [Array.reduce](reduce.md) · [Array.entries](entries.md) ·
+[?. operator](../../language/operators/optional-chaining.md) ·
+[?? operator](../../language/operators/null-coalescing.md)
