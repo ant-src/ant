@@ -1,4 +1,4 @@
-<!-- status: skeleton -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # String.trimEnd
@@ -10,3 +10,177 @@ func String.trimEnd(s: string): string
 String.trimEnd returns s without trailing Unicode white space.
 
 <!-- end generated -->
+
+## Details
+
+- `String.trimEnd` removes every code point of Unicode white space at the end of `s`, however many
+  there are, and keeps the rest of `s` as it is. White space at the start and in the middle stays
+  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- White space is not only the ASCII space, tab, and line breaks: the no-break space U+00A0 and the
+  ideographic space U+3000 are white space too.
+- A string with no white space at its end comes back unchanged. A string of only white space gives
+  `""`.
+
+## Basic examples
+
+```ant
+String.trimEnd("hello   ") // "hello"
+String.trimEnd("  hi  ")   // "  hi"
+```
+
+Call it through `.` on any string:
+
+```ant
+var line = "total: 42\r\n"
+line.trimEnd() // "total: 42"
+```
+
+## Scope
+
+The empty string, a string with nothing to remove, and a string of only white space:
+
+```ant
+String.trimEnd("")        // ""
+String.trimEnd("ant")     // "ant"
+String.trimEnd(" \t\n\r") // ""
+```
+
+Space between words stays; only the end changes:
+
+```ant
+String.trimEnd("a  b  ") // "a  b"
+```
+
+Every kind of white space at the end goes, the vertical tab, the form feed, the no-break space, and
+the ideographic space among them:
+
+```ant
+String.trimEnd("x\u{B}\u{C}\u{A0}\u{3000}") // "x"
+```
+
+Text in any script stays as it is, and so does a combining accent right before the white space: the
+five code points of `"cafe\u{301}"` remain:
+
+```ant
+String.trimEnd("東京 ")                   // "東京"
+String.trimEnd("cafe\u{301} ").length() // 5
+```
+
+In a pipeline, the string is the first argument:
+
+```ant
+"done\n" | String.trimEnd() // "done"
+```
+
+The parameter is named `s`, so the call can name it:
+
+```ant
+String.trimEnd(s: "ant  ") // "ant"
+```
+
+## Applications
+
+Strip the trailing spaces from each line of a text, as an editor does on save:
+
+```ant
+var text = "func f() {  \n  return 1 \n}\t"
+String.join(String.lines(text).map({ x.trimEnd() }), "\n") // "func f() {\n  return 1\n}"
+```
+
+Compare two versions of a text and ignore trailing white space, as `diff -b` does at line ends:
+
+```ant
+func clean(s: string): Array[string] {
+  String.lines(s).map({ x.trimEnd() })
+}
+
+func sameText(a: string, b: string): bool {
+  clean(a) == clean(b)
+}
+
+sameText("one  \ntwo\n", "one\ntwo \n") // true
+sameText("one\ntwo", "one\n two")       // false
+```
+
+Right-align a column of values that came with padding on the right:
+
+```ant
+var cells = ["12   ", "3    ", "456  "]
+cells.map({ x.trimEnd().padStart(5) }) // ["   12", "    3", "  456"]
+```
+
+## Properties and relations
+
+`String.trimEnd` never adds anything: `s` starts with its result, and the part it removed is all
+white space:
+
+```ant
+for s in ["ant  ", "  ant", " ", "", "a b\t\n"] {
+  var t = s.trimEnd()
+  assert(s.startsWith(t))
+  var rest = s.slice(t.length(), s.length())
+  assert(rest == "" || rest.isSpace())
+}
+```
+
+Trimming twice is the same as trimming once:
+
+```ant
+var s = "x \t "
+assert(s.trimEnd().trimEnd() == s.trimEnd())
+```
+
+[`String.trimStart`](trimStart.md) after `String.trimEnd` is [`String.trim`](trim.md), in either
+order:
+
+```ant
+for s in ["  a b  ", "\ta", "b\n", "", "   "] {
+  assert(s.trimEnd().trimStart() == s.trim())
+  assert(s.trimStart().trimEnd() == s.trim())
+}
+```
+
+## Possible issues
+
+`String.trimEnd` leaves white space at the start. Use [`String.trim`](trim.md) to remove both ends:
+
+```ant
+String.trimEnd("  ant  ") // "  ant"
+String.trim("  ant  ")    // "ant"
+```
+
+It removes white space only. To remove a given ending, such as a period or a `/`, use
+[`String.trimSuffix`](trimSuffix.md):
+
+```ant
+String.trimEnd("end.")         // "end."
+String.trimSuffix("end.", ".") // "end"
+```
+
+It removes every white space code point at the end, not one line break. A blank last line goes too,
+along with trailing spaces you may have meant to keep:
+
+```ant
+String.trimEnd("a  \n\n") // "a"
+```
+
+The zero-width space U+200B and the byte order mark U+FEFF are not white space, so they stay:
+
+```ant
+String.trimEnd("x\u{200B}").length() // 2
+String.trimEnd("x\u{FEFF}").length() // 2
+```
+
+The function takes no set of characters to remove; a second argument is a compile error:
+
+<!-- test: error takes 1 argument -->
+
+```ant
+println(String.trimEnd("x--", "-"))
+```
+
+## See also
+
+[String.trim](trim.md) · [String.trimStart](trimStart.md) · [String.trimSuffix](trimSuffix.md) ·
+[String.isSpace](isSpace.md) · [String.fields](fields.md) · [String.lines](lines.md) ·
+[String.padEnd](padEnd.md)
