@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -387,6 +388,32 @@ func (c *Checker) satisfies(s types.Type, decl *types.Decl, args []types.Type, r
 		}
 	}
 	return true
+}
+
+// unsatisfied explains why s does not satisfy the interface n, for an error: the first function
+// of n that s does not offer, or offers with another type. It is "" when there is none to name.
+func (c *Checker) unsatisfied(s types.Type, n types.Named) string {
+	if _, isUnion := types.Expand(s).(types.Union); isUnion {
+		return ""
+	}
+	m := types.Bindings(n.Decl.Params, n.Args)
+	m[n.Decl.Self] = s
+	for _, name := range n.Decl.Order {
+		wt, err := types.Subst(*n.Decl.Funcs[name], m)
+		if err != nil {
+			return ""
+		}
+		want := wt.(types.Func)
+		got := c.offered(s, name, want, types.Assignable)
+		names := c.typeNames(s, want)
+		switch {
+		case got == nil:
+			return fmt.Sprintf("%s has no function %s of type %s", names[0], name, names[1])
+		case !types.Assignable(*got, want):
+			return fmt.Sprintf("%s.%s has type %s, not %s", names[0], name, c.typeNames(*got)[0], names[1])
+		}
+	}
+	return ""
 }
 
 // offered is the function name that a call through a dot reaches on a value of type s, as a

@@ -211,7 +211,13 @@ func convValue(ent *entity, f types.Func) types.Type {
 func (c *Checker) expect(pos ast.Pos, t, expected types.Type) {
 	if !types.Assignable(t, expected) {
 		n := c.typeNames(t, expected)
-		c.errorf(pos, "cannot use %s where %s is expected", n[0], n[1])
+		why := ""
+		if iface, ok := types.Expand(expected).(types.Named); ok && iface.Decl.Kind == types.InterfaceDecl {
+			if r := c.unsatisfied(t, iface); r != "" {
+				why = ": " + r
+			}
+		}
+		c.errorf(pos, "cannot use %s where %s is expected%s", n[0], n[1], why)
 	}
 }
 

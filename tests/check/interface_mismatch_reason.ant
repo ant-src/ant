@@ -1,0 +1,19 @@
+// spec: 4 Interfaces
+// A type that does not satisfy an interface is reported with the first function it lacks, or
+// offers with another type.
+interface Shape {
+  area(s: Self): float64
+  name(s: Self): string
+}
+type Square = { side: float64 }
+func Square.area(s: Square): float64 {
+  s.side * s.side
+}
+func Square.bad(s: Square): int {
+  1
+}
+interface Bad {
+  bad(s: Self): string
+}
+let shapes: Array[Shape] = [Square{ side: 2.0 }] // ERR: Square has no function name of type func(Square): string
+let b: Bad = Square{ side: 1.0 }                 // ERR: Square.bad has type func(Square): int, not func(Square): string
