@@ -178,7 +178,7 @@ let m = Math.max(1, 2.0) // error: cannot use float64 where int is expected
 `bool` is not ordered:
 
 ```ant
-let m = Math.max(true, false) // error: T would be bool, which is not a single member of its bound Ordered; narrow first
+let m = Math.max(true, false) // error: T would be bool, which is not a member of its bound Ordered
 ```
 
 A named primitive type is not a member, though `<` works on two values of it. Compare the payloads:
@@ -187,7 +187,7 @@ A named primitive type is not a member, though `<` works on two values of it. Co
 type Meters = float64
 let a = Meters(3.0)
 let b = Meters(5.0)
-let closer = Math.min(a, b) // error: T would be Meters, which is not a single member of its bound Ordered; narrow first
+let closer = Math.min(a, b) // error: T would be Meters, which is not a member of its bound Ordered; unwrap it with float64(...)
 ```
 
 Unwrap them with `float64` to call `Math.min`, or compare them with `<` to keep the `Meters` type:

@@ -246,7 +246,7 @@ Records, `bool`, and named primitive types are not `Ordered`:
 type Meters = float64
 let runs = [Meters(5.0), Meters(10.0)]
 println(runs.max())
-// error: T would be Meters, which is not a single member of its bound Ordered; narrow first
+// error: T would be Meters, which is not a member of its bound Ordered; unwrap it with float64(...)
 ```
 
 Unwrap a named primitive with its base type, or pick a record by a key with

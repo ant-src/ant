@@ -192,7 +192,7 @@ A named primitive type is not a member of `Ordered`, so clamp its payload and ta
 type Celsius = float64
 let t = Celsius(40.0)
 let held = Math.clamp(t, Celsius(-10.0), Celsius(35.0))
-// error: T would be Celsius, which is not a single member of its bound Ordered; narrow first
+// error: T would be Celsius, which is not a member of its bound Ordered; unwrap it with float64(...)
 ```
 
 ```ant

@@ -1,0 +1,9 @@
+// spec: 4 Generics
+// A solution outside its bound gets a hint only where something fits: narrow a union with a member
+// in the bound, unwrap a named primitive whose base is in it. A type that cannot fit gets none.
+type P = { x: int }
+type Celsius = float64
+let k: int | string = 1
+let a = Array.min([P{ x: 1 }]) // ERR: T would be P, which is not a member of its bound Ordered
+let b = [Celsius(1.0)].max()   // ERR: T would be Celsius, which is not a member of its bound Ordered; unwrap it with float64(...)
+let c = Math.max(k, k)         // ERR: T would be int | string, which is not a single member of its bound Ordered; narrow first

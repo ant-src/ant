@@ -188,7 +188,7 @@ A float is not an `Integer`, even with no fractional part:
 ```ant
 func double[T: Integer](x: T): T { x + x }
 let c = double(2.0)
-// error: T would be float64, which is not a single member of its bound Integer; narrow first
+// error: T would be float64, which is not a member of its bound Integer
 ```
 
 A named primitive type over an integer is not a member. Unwrap it, then tag the result again:
@@ -197,7 +197,7 @@ A named primitive type over an integer is not a member. Unwrap it, then tag the 
 func double[T: Integer](x: T): T { x + x }
 type Count = int
 let d = double(Count(2))
-// error: T would be Count, which is not a single member of its bound Integer; narrow first
+// error: T would be Count, which is not a member of its bound Integer; unwrap it with int(...)
 ```
 
 ```ant

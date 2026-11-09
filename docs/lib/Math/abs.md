@@ -145,7 +145,7 @@ A named primitive type is not a `Number`. Unwrap it, then tag the result again:
 type Meters = float64
 let drift = Meters(-2.5)
 let bad = Math.abs(drift)
-// error: T would be Meters, which is not a single member of its bound Number; narrow first
+// error: T would be Meters, which is not a member of its bound Number; unwrap it with float64(...)
 ```
 
 ```ant

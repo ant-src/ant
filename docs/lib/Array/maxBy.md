@@ -217,7 +217,7 @@ The key must be ordered. A `bool` or a record is not, which is a compile error:
 
 ```ant
 println([1, 2, 3].maxBy({ x > 1 }))
-// error: K would be bool, which is not a single member of its bound Ordered; narrow first
+// error: K would be bool, which is not a member of its bound Ordered
 ```
 
 Of equal keys, `Array.maxBy` keeps the first, while the last element of a stable ascending sort is

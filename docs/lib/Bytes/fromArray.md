@@ -154,7 +154,7 @@ An array literal is not `Bytes`, and floats are not integers. Both are compile e
 ```ant
 let header: Bytes = [1, 2] // error: cannot use Array[int] where Bytes is expected
 let b = Bytes.fromArray([1.0])
-// error: T would be float64, which is not a single member of its bound Integer; narrow first
+// error: T would be float64, which is not a member of its bound Integer
 ```
 
 A string escape does not write a byte. `"\u{89}"` is a character, which UTF-8 stores as two bytes;

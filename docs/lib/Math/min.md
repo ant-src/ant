@@ -188,7 +188,7 @@ A named primitive type is not `Ordered`. Unwrap it, then tag the result again:
 ```ant
 type Meters = float64
 let n = Math.min(Meters(2.0), Meters(3.0))
-// error: T would be Meters, which is not a single member of its bound Ordered; narrow first
+// error: T would be Meters, which is not a member of its bound Ordered; unwrap it with float64(...)
 ```
 
 ```ant

@@ -678,12 +678,41 @@ func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, pos
 		if !ok || boundFits(p, t, subst, s.tparams) {
 			continue
 		}
-		if len(types.Members(bound)) > 1 {
-			c.errorf(pos, "%s would be %s, which is not a single member of its bound %s; narrow first", p.Name, types.String(t), types.String(bound))
-		} else {
-			c.errorf(pos, "%s would be %s, which is not assignable to its bound %s", p.Name, types.String(t), types.String(bound))
+		c.errorf(pos, "%s would be %s, which is not %s its bound %s%s", p.Name, types.String(t), boundRelation(t, bound), types.String(bound), c.boundHint(p, t, subst, s.tparams))
+	}
+}
+
+// boundRelation is what a solution t must be to a bound: a member of a union bound, a single one
+// when t is a union itself, else assignable to it.
+func boundRelation(t, bound types.Type) string {
+	switch {
+	case len(types.Members(bound)) > 1 && len(types.Members(t)) > 1:
+		return "a single member of"
+	case len(types.Members(bound)) > 1:
+		return "a member of"
+	}
+	return "assignable to"
+}
+
+// boundHint says how to make a solution t fit p's bound, where something can: narrow a union
+// that has a member in the bound, unwrap a named primitive whose base is in it. A type that
+// cannot fit gets no hint.
+func (c *Checker) boundHint(p *types.ParamDecl, t types.Type, subst map[*types.ParamDecl]types.Type, tparams []*types.ParamDecl) string {
+	if ms := types.Members(t); len(ms) > 1 {
+		for _, m := range ms {
+			if boundFits(p, m, subst, tparams) {
+				return "; narrow first"
+			}
+		}
+		return ""
+	}
+	if n, ok := types.Expand(t).(types.Named); ok && n.Decl.Kind == types.PrimitiveDecl {
+		base := types.Prim{Kind: n.Decl.Base}
+		if boundFits(p, base, subst, tparams) {
+			return fmt.Sprintf("; unwrap it with %s(...)", types.String(base))
 		}
 	}
+	return ""
 }
 
 // solvedBound is the bound of p with the solutions in subst put in place of the type

@@ -227,7 +227,7 @@ when it is whole, otherwise with [`Math.round`](../Math/round.md) or
 
 ```ant
 println(String.fromInt(2.5))
-// error: T would be float64, which is not a single member of its bound Integer; narrow first
+// error: T would be float64, which is not a member of its bound Integer
 ```
 
 ```ant
@@ -254,7 +254,7 @@ A named primitive type over `int` is not a member of `Integer`, so passing one i
 type UserId = int
 let id = UserId(42)
 println(String.fromInt(id))
-// error: T would be UserId, which is not a single member of its bound Integer; narrow first
+// error: T would be UserId, which is not a member of its bound Integer; unwrap it with int(...)
 ```
 
 Unwrap it with `int(...)`:

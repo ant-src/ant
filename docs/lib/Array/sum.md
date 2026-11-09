@@ -240,7 +240,7 @@ Named primitive types, strings, and records are not `Number`:
 type Cents = int
 let fees = [Cents(150), Cents(275)]
 println(fees.sum())
-// error: T would be Cents, which is not a single member of its bound Number; narrow first
+// error: T would be Cents, which is not a member of its bound Number; unwrap it with int(...)
 ```
 
 Unwrap a named primitive with its base type, and wrap the total again:

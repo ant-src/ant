@@ -211,7 +211,7 @@ use [`Array.minBy`](minBy.md):
 type Item = { name: string, price: int }
 let items = [Item{ name: "pen", price: 3 }, Item{ name: "ink", price: 2 }]
 println(items.min())
-// error: T would be Item, which is not a single member of its bound Ordered; narrow first
+// error: T would be Item, which is not a member of its bound Ordered
 ```
 
 ```ant
@@ -226,7 +226,7 @@ A named primitive type is not assignable to its base, so it does not fit `Ordere
 type Meters = float64
 let legs = [Meters(3.0), Meters(1.5)]
 println(legs.min())
-// error: T would be Meters, which is not a single member of its bound Ordered; narrow first
+// error: T would be Meters, which is not a member of its bound Ordered; unwrap it with float64(...)
 ```
 
 Unwrap the elements with the base type's name first:

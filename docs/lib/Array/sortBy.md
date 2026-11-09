@@ -258,14 +258,14 @@ The key must be ordered. A `bool` or a record is not, which is a compile error:
 
 ```ant
 println([1, 2, 3].sortBy({ x > 1 }))
-// error: K would be bool, which is not a single member of its bound Ordered; narrow first
+// error: K would be bool, which is not a member of its bound Ordered
 ```
 
 ```ant
 type Point = { x: int, y: int }
 let points = [Point{ x: 2, y: 1 }, Point{ x: 1, y: 5 }]
 println(points.sortBy({ x }))
-// error: K would be Point, which is not a single member of its bound Ordered; narrow first
+// error: K would be Point, which is not a member of its bound Ordered
 ```
 
 Return one field as the key instead, or compare whole records with `Array.sortWith`.
@@ -303,7 +303,7 @@ assignable only to itself, never to its base:
 type Celsius = float64
 let temps = [Celsius(3.0), Celsius(1.0)]
 println(temps.sortBy({ x }))
-// error: K would be Celsius, which is not a single member of its bound Ordered; narrow first
+// error: K would be Celsius, which is not a member of its bound Ordered; unwrap it with float64(...)
 ```
 
 Unwrap the key with its base type: `temps.sortBy({ float64(x) })`.

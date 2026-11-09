@@ -81,7 +81,7 @@ func bigger[T: Ordered](a: T, b: T): T {
 
 println(bigger(1, 2.0)) // error: cannot use float64 where int is expected
 println(bigger(true, false))
-// error: T would be bool, which is not a single member of its bound Ordered
+// error: T would be bool, which is not a member of its bound Ordered
 let zs = [] // error: cannot infer the element type of an empty array; annotate it
 let ys: Array[string] = []
 println(ys)

@@ -174,7 +174,7 @@ A named primitive type is not `Ordered`. Unwrap it, then tag the result again:
 ```ant
 type Score = int
 let m = Math.max(Score(3), Score(5))
-// error: T would be Score, which is not a single member of its bound Ordered; narrow first
+// error: T would be Score, which is not a member of its bound Ordered; unwrap it with int(...)
 ```
 
 ```ant
@@ -187,7 +187,7 @@ best // Score(5)
 
 ```ant
 let m = Math.max(true, false)
-// error: T would be bool, which is not a single member of its bound Ordered; narrow first
+// error: T would be bool, which is not a member of its bound Ordered
 ```
 
 A number has no namespace, so a call through `.` is a compile error. Write `Math.max(n, 4)`, or use

@@ -276,9 +276,9 @@ func double[T: Number](x: T): T {
 }
 
 type Meters = float64
-let e = double("ab") // error: T would be string, which is not a single member of its bound Number
+let e = double("ab") // error: T would be string, which is not a member of its bound Number
 let g = double(Meters(1.0))
-// error: T would be Meters, which is not a single member of its bound Number
+// error: T would be Meters, which is not a member of its bound Number; unwrap it with float64(...)
 ```
 
 Unwrap a named primitive type, then tag the result again:

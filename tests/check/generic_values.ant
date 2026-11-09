@@ -17,8 +17,8 @@ var wrong: func(int): int = Array.length                // ERR: cannot use Array
 var sums: Array[int] = Array.map([[1], [2]], Array.sum) // ERR: cannot use func(Array[int]): int | null where func(Array[int]): int is expected
 var strs: func(string, string): string = bigger
 println(strs("a", "b"))
-var bools: func(bool, bool): bool = bigger      // ERR: T would be bool, which is not a single member of its bound Ordered
-println(apply(bigger))                          // ERR: T would be bool, which is not a single member of its bound Ordered
+var bools: func(bool, bool): bool = bigger      // ERR: T would be bool, which is not a member of its bound Ordered
+println(apply(bigger))                          // ERR: T would be bool, which is not a member of its bound Ordered
 var nums: func(Number, Number): Number = bigger // ERR: T would be Number
 println(bare)
 

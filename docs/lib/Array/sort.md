@@ -295,7 +295,7 @@ xs.filter({ x != null }).map({ x ?? 0 }).sort() // [1, 3]
 
 ```ant
 println([true, false].sort())
-// error: T would be bool, which is not a single member of its bound Ordered; narrow first
+// error: T would be bool, which is not a member of its bound Ordered
 ```
 
 Records are not `Ordered` either:
@@ -304,7 +304,7 @@ Records are not `Ordered` either:
 type Player = { name: string, score: int }
 let players = [Player{ name: "Ann", score: 7 }, Player{ name: "Bob", score: 3 }]
 println(players.sort())
-// error: T would be Player, which is not a single member of its bound Ordered; narrow first
+// error: T would be Player, which is not a member of its bound Ordered
 ```
 
 A named primitive type is not `Ordered`, though `<` works on two of its values:
@@ -313,7 +313,7 @@ A named primitive type is not `Ordered`, though `<` works on two of its values:
 type Cents = int
 let cs = [Cents(5), Cents(2)]
 println(cs.sort())
-// error: T would be Cents, which is not a single member of its bound Ordered; narrow first
+// error: T would be Cents, which is not a member of its bound Ordered; unwrap it with int(...)
 ```
 
 Sort by the base value with [`Array.sortBy`](sortBy.md):
