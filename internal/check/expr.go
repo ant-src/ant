@@ -3,6 +3,7 @@ package check
 import (
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/types"
@@ -671,6 +672,25 @@ func (c *Checker) indexOf(recv types.Type, x *ast.Index, sc *scope) types.Type {
 
 // ---- literals
 
+// undefined reports a name that nothing in scope binds, a type parameter included.
+func (c *Checker) undefined(name string, sc *scope) bool {
+	if p, _ := sc.lookupTypeParam(name); p != nil {
+		return false
+	}
+	l, ent := c.lookup(sc, name)
+	return l == nil && ent == nil
+}
+
+// namespaceHint suggests the prelude type a missing type name may mean, as Panic.Frame for Frame.
+func (c *Checker) namespaceHint(name string) string {
+	for _, ns := range slices.Sorted(maps.Keys(c.prelude)) {
+		if m, ok := c.prelude[ns].members[name]; ok && m.kind == entType {
+			return "; did you mean " + ns + "." + name + "?"
+		}
+	}
+	return ""
+}
+
 func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) types.Type {
 	head := c.entityPath(x.Head, sc)
 	if head == nil {
@@ -692,7 +712,11 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		return types.Invalid{}
 	}
 	if head == nil || head.kind != entType {
-		c.errorf(x.Pos, "a record literal needs a record type as its head")
+		if id, ok := x.Head.(*ast.Ident); ok && head == nil && c.undefined(id.Name, sc) {
+			c.errorf(x.Pos, "unknown type %s%s", id.Name, c.namespaceHint(id.Name))
+		} else {
+			c.errorf(x.Pos, "a record literal needs a record type as its head")
+		}
 		for _, en := range x.Entries {
 			if en.Spread != nil {
 				c.synth(en.Spread, sc)

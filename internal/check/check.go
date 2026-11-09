@@ -1476,7 +1476,7 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 		return types.Invalid{}
 	}
 	if ent == nil {
-		c.errorf(x.Pos, "unknown type %s", name)
+		c.errorf(x.Pos, "unknown type %s%s", name, c.namespaceHint(name))
 		return types.Invalid{}
 	}
 	if ent.kind == entMissing {

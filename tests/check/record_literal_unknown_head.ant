@@ -1,0 +1,7 @@
+// spec: 4 Records
+// A record literal whose head names nothing reports the type as unknown, and names the prelude
+// namespace that holds a type of that name.
+let f = Frame{ function: "a", path: "a.ant", line: 1, column: 1 } // ERR: unknown type Frame; did you mean Panic.Frame?
+let g = Nothing{ a: 1 }                                           // ERR: unknown type Nothing
+let n = 1
+let h = n{ a: 1 } // ERR: a record literal needs a record type as its head
