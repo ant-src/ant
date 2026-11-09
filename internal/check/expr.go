@@ -1245,6 +1245,9 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 	case onlyEmpty(x.Y) && !types.IsInvalid(nonNull):
 		// An empty literal takes the left side's type: m[k] ?? [] (section 4, Inference).
 		r = c.check(x.Y, sc, nonNull)
+	case onlyEmpty(x.Y):
+		// The left side failed and was reported; the empty literal has nothing to add.
+		r = types.Invalid{}
 	case !types.IsInvalid(nonNull):
 		// a call takes the left side's type as a hint: cached ?? Result.ok(0)
 		r = c.synthHinted(x.Y, sc, nonNull)

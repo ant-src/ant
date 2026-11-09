@@ -1,0 +1,5 @@
+// spec: 4 Inference
+// When the left side of ?? fails, an empty right side reports nothing more.
+let a = nope ?? []         // ERR: nope is not defined
+let b = nope ?? Set.of([]) // ERR: nope is not defined
+let c: string = a
