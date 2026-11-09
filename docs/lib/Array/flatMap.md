@@ -207,7 +207,6 @@ assert(evens == Array.filter(xs, { x % 2 == 0 }))
 
 ```ant
 var doubled = Array.flatMap([1, 2], { x * 2 })
-// error: cannot infer the type parameter U of Array.flatMap; annotate the result
 // error: the lambda returns int where Array[U] is expected
 ```
 
@@ -216,8 +215,6 @@ error. Annotate the result:
 
 ```ant
 var odd = Array.flatMap([1, 2, 3], { if x % 2 == 0 { [] } else { [x] } })
-// error: cannot infer the type parameter U of Array.flatMap; annotate the result
-// error: the lambda returns ? | Array[int] where Array[U] is expected
 // error: cannot infer the element type of an empty array; annotate it
 ```
 

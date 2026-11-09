@@ -1,0 +1,5 @@
+// spec: 4 Inference
+// A lambda whose result is an error, or does not fit, is reported once: the type parameter it
+// would solve is not reported as uninferable too, and the invalid type is never printed.
+var odd = Array.flatMap([1, 2, 3], { if x % 2 == 0 { [] } else { [x] } }) // ERR: cannot infer the element type of an empty array; annotate it
+var doubled = Array.flatMap([1, 2], { x * 2 })                            // ERR: the lambda returns int where Array[U] is expected

@@ -532,12 +532,32 @@ func (c *Checker) lambdaArg(a *ast.Arg, lam *ast.Lambda, pt types.Type, sc *scop
 	}
 	got := c.lambda(lam, sc, ft)
 	if g, isF := got.(types.Func); isF {
+		if invalidResult(g.Return) {
+			// The body already reported why; its result says nothing about the type parameters.
+			bindInvalid(ft.Return, subst)
+			pruneSolved(unsolved, subst)
+			return
+		}
 		if !c.unify(ft.Return, g.Return, subst) {
 			want, _ := types.Subst(ft.Return, subst)
 			c.errorf(a.Pos, "the lambda returns %s where %s is expected", types.String(g.Return), types.String(want))
+			bindInvalid(ft.Return, subst) // the error explains the type parameters it left open
 		}
 		pruneSolved(unsolved, subst)
 	}
+}
+
+// invalidResult reports whether a lambda's result is invalid, or a union with an invalid member,
+// as when one branch of an if is an error.
+func invalidResult(t types.Type) bool {
+	if u, ok := t.(types.Union); ok {
+		for _, m := range u.Members {
+			if types.IsInvalid(m) {
+				return true
+			}
+		}
+	}
+	return types.IsInvalid(t)
 }
 
 // pruneSolved removes from unsolved the type parameters subst now solves.
