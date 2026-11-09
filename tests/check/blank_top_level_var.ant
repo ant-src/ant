@@ -1,4 +1,4 @@
-// spec: 3 Variables
+// spec: 10
 // A top-level var that names nothing, var _ = f(), is still checked in a module of declarations.
 var _ = String.count(1, "a") // ERR: cannot use int where string is expected
 func f(): int {
