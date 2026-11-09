@@ -688,7 +688,13 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			}
 		case *ast.VarDecl:
 			group := &varGroup{decl: d}
-			for _, name := range targetNames(d.Target) {
+			names := targetNames(d.Target)
+			if len(names) == 0 && !f.Script {
+				// var _ = f() names nothing, but its initializer is still checked, in order; a
+				// script checks it with its body
+				mi.vars = append(mi.vars, &varInfo{decl: d, mod: mi, name: "_", index: len(mi.vars), group: group})
+			}
+			for _, name := range names {
 				v := &varInfo{decl: d, mod: mi, name: name.Name, index: len(mi.vars), group: group}
 				mi.vars = append(mi.vars, v)
 				ent := &entity{name: name.Name, kind: entVar, v: v, exported: d.Export, pos: name.Pos}
