@@ -12,4 +12,4 @@ println(Iter.toArray(Iter.take(bad, 1)))
 
 // expect
 // exit: 1
-// err: yield called after the sequence ended
+// err: yield called again after it returned false; a sequence must return when yield returns false

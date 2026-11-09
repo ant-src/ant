@@ -19,4 +19,4 @@ println("not reached")
 // expect
 // out: [10]
 // exit: 1
-// err: yield called after the sequence ended
+// err: yield called after its loop ended

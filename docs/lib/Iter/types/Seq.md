@@ -265,7 +265,8 @@ A sequence that ignores what `yield` returns keeps calling it after a `break`, a
 ```ant
 var ab: Seq[string] = func(yield: func(string): bool) {
   for w in ["a", "b"] {
-    yield(w) // panic: yield called after the sequence ended
+    yield(w)
+    // panic: yield called again after it returned false; a sequence must return when yield returns false
   }
 }
 for s in ab {

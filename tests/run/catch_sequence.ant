@@ -31,9 +31,9 @@ println(message(Panic.catch({ for x in rethrow { panic("body ${x}") } })))
 
 // expect
 // out: Err{ error: "body 1" }
-// out: Err{ error: "yield called after the sequence ended" }
-// out: Err{ error: "yield called after the sequence ended" }
+// out: Err{ error: "yield called after its loop ended" }
+// out: Err{ error: "yield called after its loop ended" }
 // out: Err{ error: "the sequence returned after a panic in the loop body: body 1" }
-// out: Err{ error: "yield called after the sequence ended" }
+// out: Err{ error: "yield called after its loop ended" }
 // out: Err{ error: "the sequence returned after a panic in the loop body: body 10" }
 // out: Err{ error: "body 1" }

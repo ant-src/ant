@@ -1505,12 +1505,16 @@ func (g *Goroutine) RunSeq(seq value.Value, push func(value.Value) bool) {
 // sequence, ends the run, so a yield kept past it panics.
 func (g *Goroutine) runSeq(seq value.Value, at ast.Pos, push func(value.Value) bool) {
 	active := true
+	refused := false // the body asked for no more: yield returned false
 	var elsewhere atomic.Bool
 	var bodyPanic *AntPanic // a panic that ended a run of push
 	yield := &Builtin{Name: "yield", Params: []string{"x"}, Fn: func(g2 *Goroutine, args []value.Value) value.Value {
 		if g2 != g {
 			elsewhere.Store(true)
 			g2.Panic(yieldElsewhere)
+		}
+		if !active && refused {
+			g.Panic(yieldAfterFalse)
 		}
 		if !active {
 			g.Panic(yieldAfterEnd)
@@ -1533,9 +1537,10 @@ func (g *Goroutine) runSeq(seq value.Value, at ast.Pos, push func(value.Value) b
 			}
 		}()
 		active = push(args[0])
+		refused = !active
 		return active
 	}}
-	defer func() { active = false }()
+	defer func() { active, refused = false, false }()
 	g.callValue(seq, []value.Value{yield}, nil, at)
 	if bodyPanic != nil {
 		g.panicf(at, "%s: %s", seqCaughtBody, bodyPanic.Message)
@@ -1545,9 +1550,12 @@ func (g *Goroutine) runSeq(seq value.Value, at ast.Pos, push func(value.Value) b
 	}
 }
 
-// yieldAfterEnd is the panic of a yield called after it returned false or after its sequence
-// returned (section 12, for).
-const yieldAfterEnd = "yield called after the sequence ended"
+// yieldAfterFalse is the panic of a yield called again after it returned false, and yieldAfterEnd
+// that of a yield called after its loop ended (section 12, for).
+const (
+	yieldAfterFalse = "yield called again after it returned false; a sequence must return when yield returns false"
+	yieldAfterEnd   = "yield called after its loop ended"
+)
 
 // yieldElsewhere is the panic of a yield called on a goroutine other than its loop's, where a
 // return in the body could not reach the loop's function (section 12, for).
