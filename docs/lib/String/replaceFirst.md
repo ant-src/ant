@@ -198,7 +198,7 @@ assert(r == String.replace(s, "-", "+"))
 An empty `old` panics:
 
 ```ant
-String.replaceFirst("abc", "", "x") // panic: String.replaceFirst needs a pattern that is not empty
+String.replaceFirst("abc", "", "x") // panic: String.replaceFirst needs an old string that is not empty
 ```
 
 `String.replaceFirst` returns a new string. Calling it without using the result changes nothing:

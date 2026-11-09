@@ -189,7 +189,7 @@ Assign the result: `s = s.replace(" ", "_")`.
 An empty `old` panics:
 
 ```ant
-String.replace("abc", "", "-") // panic: String.replace needs a pattern that is not empty
+String.replace("abc", "", "-") // panic: String.replace needs an old string that is not empty
 ```
 
 To put something between every character, join the code points instead:

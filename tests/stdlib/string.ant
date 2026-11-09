@@ -84,10 +84,10 @@ String.trimSuffix("x.ant", ".go")             // => "x.ant"
 // Replacing every copy or the first; the pattern cannot be empty.
 String.replace("a-b-c", "-", "+")             // => "a+b+c"
 String.replace("aaa", "a", "bb")              // => "bbbbbb"
-String.replace("ab", "", "-")                 // => panic: String.replace needs a pattern that is not empty
+String.replace("ab", "", "-")                 // => panic: String.replace needs an old string that is not empty
 String.replaceFirst("a-b-c", "-", "+")        // => "a+b-c"
 String.replaceFirst("abc", "z", "+")          // => "abc"
-String.replaceFirst("a-b", "", "+")           // => panic: String.replaceFirst needs a pattern that is not empty
+String.replaceFirst("a-b", "", "+")           // => panic: String.replaceFirst needs an old string that is not empty
 
 // Case.
 String.toUpper("héllo")                       // => "HÉLLO"

@@ -346,7 +346,7 @@ func init() {
 			fn("String.replace", "s, old, new", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				old := stringArg(g, who, a[1])
 				if old == "" {
-					g.Panic("String.replace needs a pattern that is not empty")
+					g.Panic("String.replace needs an old string that is not empty")
 				}
 				s, new := stringArg(g, who, a[0]), stringArg(g, who, a[2])
 				if len(new) > len(old) {
@@ -358,7 +358,7 @@ func init() {
 			fn("String.replaceFirst", "s, old, new", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				old := stringArg(g, who, a[1])
 				if old == "" {
-					g.Panic("String.replaceFirst needs a pattern that is not empty")
+					g.Panic("String.replaceFirst needs an old string that is not empty")
 				}
 				return strings.Replace(stringArg(g, who, a[0]), old, stringArg(g, who, a[2]), 1)
 			}),
