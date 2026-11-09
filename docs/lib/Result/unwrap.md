@@ -7,7 +7,7 @@
 func Result.unwrap[T, E](r: Result[T, E]): T
 ```
 
-Result.unwrap returns the value of r. It panics if r is an Err.
+Result.unwrap returns the value of r. It panics if r is an Err, with a message that shows r's error.
 
 <!-- end generated -->
 

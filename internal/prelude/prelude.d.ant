@@ -1141,14 +1141,15 @@ func Result.err[T, E](error: E): Result[T, E]
 func Result.isOk[T, E](r: Result[T, E]): bool
 
 // Result.map returns r with f applied to its value if r is an Ok, and r's error unchanged if it is
-// an Err.
+// an Err, without calling f.
 func Result.map[T, U, E](r: Result[T, E], f: func(T): U): Result[U, E]
 
 // Result.mapErr returns r with f applied to its error if r is an Err, and r's value unchanged if it
-// is an Ok. With an identity function, as in Result.mapErr(r, { x }), it widens the error type.
+// is an Ok, without calling f. With an identity function, as in Result.mapErr(r, { x }), it widens the error type.
 func Result.mapErr[T, E, F](r: Result[T, E], f: func(E): F): Result[T, F]
 
-// Result.unwrap returns the value of r. It panics if r is an Err.
+// Result.unwrap returns the value of r. It panics if r is an Err, with a message that shows r's
+// error.
 func Result.unwrap[T, E](r: Result[T, E]): T
 
 // Result.unwrapOr returns the value of r, or fallback if r is an Err.
