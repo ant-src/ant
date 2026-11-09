@@ -278,11 +278,17 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	slots, ok := c.argSlots(s, x, recv)
 	c.recordSlots(s, x, slots, ok, callee, recv != nil)
 	if !ok {
+		if recv.waits() {
+			c.synth(recv.expr, sc)
+		}
 		c.synthArgs(x.Args, sc)
 		return c.resultOf(s, nil, x.Pos)
 	}
 	if len(s.tparams) == 0 {
-		if recv != nil {
+		switch {
+		case recv.waits():
+			c.check(recv.expr, sc, s.fn.Params[0])
+		case recv != nil:
 			c.expect(recv.pos, recv.typ, s.fn.Params[0])
 		}
 		for i, a := range slots {
@@ -319,7 +325,16 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	}
 	var synthesized []pending
 	mismatch := false
-	if recv != nil {
+	// An argument that fixes nothing, an empty literal or a call of only those, waits for the
+	// other arguments; a receiver can be one too.
+	type waiting struct {
+		i int
+		e ast.Expr
+	}
+	var empties []waiting
+	if recv.waits() {
+		empties = append(empties, waiting{0, recv.expr})
+	} else if recv != nil {
 		// the receiver, typed already, solves what it mentions first
 		pt := s.fn.Params[0]
 		if types.Mentions(pt, unsolved) {
@@ -338,7 +353,6 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.expect(recv.pos, recv.typ, want)
 		}
 	}
-	var empties []int
 	for i, a := range slots {
 		if a == nil {
 			continue
@@ -348,8 +362,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 		pt := s.fn.Params[i]
 		if types.Mentions(pt, unsolved) && onlyEmpty(a.Value) {
-			// An empty literal fixes nothing; it waits for the other arguments.
-			empties = append(empties, i)
+			empties = append(empties, waiting{i, a.Value})
 			continue
 		}
 		if types.Mentions(pt, unsolved) {
@@ -373,24 +386,23 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 		c.check(a.Value, sc, want)
 	}
-	for _, i := range empties {
-		a := slots[i]
-		want, err := types.Subst(s.fn.Params[i], subst)
+	for _, w := range empties {
+		want, err := types.Subst(s.fn.Params[w.i], subst)
 		if err != nil {
-			c.errorf(a.Pos, "%s", err)
+			c.errorf(w.e.Position(), "%s", err)
 			continue
 		}
 		if types.Mentions(want, unsolved) {
-			if _, isCall := a.Value.(*ast.Call); isCall && !mismatch {
-				c.synth(a.Value, sc) // reports the empty literal inside it
+			if _, isCall := w.e.(*ast.Call); isCall && !mismatch {
+				c.synth(w.e, sc) // reports the empty literal inside it
 			} else if !mismatch {
-				c.errorf(a.Value.Position(), "%s", emptyError(a.Value))
+				c.errorf(w.e.Position(), "%s", emptyError(w.e))
 			}
-			bindInvalid(s.fn.Params[i], subst)
+			bindInvalid(s.fn.Params[w.i], subst)
 			pruneSolved(unsolved, subst)
 			continue
 		}
-		c.check(a.Value, sc, want)
+		c.check(w.e, sc, want)
 	}
 	if mismatch {
 		// An argument that does not fit its parameter already explains every type parameter

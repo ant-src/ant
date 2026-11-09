@@ -1,0 +1,16 @@
+// spec: 4 Inference
+// An array literal's element type is the union of its elements' types. An element that fixes
+// nothing, [] or Set.of([]), waits and is checked against that union, in either order. An element
+// that fails makes the literal fail quietly: nothing follows from it.
+let nested: Array[Array[int]] = [[], [1]]
+let sets: Array[Set[int]] = [Set.of([]), Set.of([1])]
+let later: Array[Set[int]] = [Set.of([1]), Set.of([])]
+let deep: Array[Array[Set[int]]] = [[Set.of([])], [Set.of([1])]]
+let alone = [Set.of([])] // ERR: cannot infer the element type of an empty array
+let n: string = alone
+let s = Set.of([]) // ERR: cannot infer the element type of an empty array
+let both = [s, Set.of([1])]
+for x in both {
+  println(x.isEmpty())
+}
+let empty = [[], []] // ERR: cannot infer the element type of an array of empty literals

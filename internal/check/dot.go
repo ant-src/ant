@@ -12,11 +12,19 @@ import (
 
 // receiver is the value a call through a dot passes first (section 5, Calls through .): its
 // type, where it is written, and whether the call is positional, as it is through an
-// interface, a type parameter, or a union of several namespaces.
+// interface, a type parameter, or a union of several namespaces. A receiver that fixes nothing,
+// such as Set.of([]), is not typed yet: typ is nil, and expr waits for the other arguments as
+// the first argument of the direct call does.
 type receiver struct {
 	typ        types.Type
+	expr       ast.Expr
 	pos        ast.Pos
 	positional bool
+}
+
+// waits reports a receiver that fixes nothing and so is checked as a waiting argument.
+func (r *receiver) waits() bool {
+	return r != nil && r.expr != nil
 }
 
 // dotCall checks a call x.f(...) whose x is a value rather than a namespace, a type or a module
@@ -31,6 +39,11 @@ func (c *Checker) dotCall(x *ast.Call, f *ast.Field, sc *scope, expected types.T
 		switch base.kind {
 		case entType, entNamespace, entModule, entMissing:
 			return nil, false
+		}
+	}
+	if !f.Optional && onlyEmpty(f.X) {
+		if t, ok := c.waitingCall(x, f, sc, expected); ok {
+			return c.endLink(x, x.Grouped, t, false), true
 		}
 	}
 	recv, short := c.chainRecv(f.X, sc)
@@ -258,6 +271,46 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 	}
 	c.info.recordMember(f, c.info.object(m))
 	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{typ: recv, pos: f.X.Position(), positional: positional})
+}
+
+// waitingCall checks x.f(…) whose receiver fixes nothing, as Set.of([]).isSubset(s) or
+// [].concat([1]). The namespace comes from the receiver's kind alone, and the call is checked as
+// the direct call Set.isSubset(Set.of([]), s), where the receiver waits for the other arguments.
+// It reports false when the namespace has no such function, so that the usual path reports it.
+func (c *Checker) waitingCall(x *ast.Call, f *ast.Field, sc *scope, expected types.Type) (types.Type, bool) {
+	ns := c.kindNamespace(f.X, sc)
+	if ns == nil {
+		return nil, false
+	}
+	m, ok := ns.members[f.Name]
+	if !ok || m.kind != entFunc || c.foreignPrivate(m) {
+		return nil, false
+	}
+	s := c.sigOf(m, f.Pos)
+	if s == nil || len(s.fn.Params) == 0 {
+		return nil, false
+	}
+	c.info.recordMember(f, c.info.object(m))
+	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{expr: f.X, pos: f.X.Position()}), true
+}
+
+// kindNamespace is the namespace of a value that fixes nothing, known without typing it: Array
+// for an array literal, Map for Map{}, and for a call such as Set.of([]) the namespace of its
+// declared result type.
+func (c *Checker) kindNamespace(e ast.Expr, sc *scope) *entity {
+	switch x := e.(type) {
+	case *ast.ArrayLit:
+		return c.prelude["Array"]
+	case *ast.MapLit:
+		return c.prelude["Map"]
+	case *ast.Call:
+		if ent := c.entityPath(x.Fn, sc); ent != nil && ent.kind == entFunc {
+			if s := c.sigOf(ent, x.Pos); s != nil {
+				return c.namespaceOf(s.fn.Return)
+			}
+		}
+	}
+	return nil
 }
 
 // accepts reports whether the first parameter of s takes a value of type recv: any value when

@@ -1,0 +1,9 @@
+// spec: 5 Calls through .
+// A receiver that fixes nothing waits as the first argument of the direct call does, so
+// Set.of([]).isSubset(s) checks as Set.isSubset(Set.of([]), s) does. With nothing to wait for, it
+// is reported once, at the empty literal.
+let sub: bool = Set.of([]).isSubset(Set.of([1, 2]))
+let has: bool = Set.of([]).has("")
+let joined: Array[int] = [].concat([1])
+let merged: Map[string, int] = Map{}.merge(Map{ a: 1 })
+let alone = [].length() // ERR: cannot infer the element type of an empty array

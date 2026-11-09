@@ -863,10 +863,12 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 		c.errorf(x.Pos, "cannot infer the element type of an empty array; annotate it")
 		return types.Invalid{}
 	}
+	// The element type is the union of the elements' types. An element that fixes nothing, such
+	// as [] or Set.of([]), waits and is then checked against that union.
 	var elems []types.Type
 	var empties []ast.Expr
 	for _, el := range x.Elems {
-		if isEmptyLiteral(el.Value) {
+		if !el.Spread && onlyEmpty(el.Value) {
 			empties = append(empties, el.Value)
 			continue
 		}
@@ -882,8 +884,21 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 		elems = append(elems, t)
 	}
 	if len(elems) == 0 {
+		// nothing to wait for: a call such as Set.of([]) reports the empty literal inside it
+		for _, e := range empties {
+			if _, isCall := e.(*ast.Call); isCall {
+				c.synth(e, sc)
+				return types.Invalid{}
+			}
+		}
 		c.errorf(x.Pos, "cannot infer the element type of %s; annotate it", "an array of empty literals")
 		return types.Invalid{}
+	}
+	// An element that failed was reported; the literal is invalid too, so later uses stay quiet.
+	for _, t := range elems {
+		if types.IsInvalid(t) {
+			return types.Invalid{}
+		}
 	}
 	u, err := types.MakeUnion(elems)
 	if err != nil {
