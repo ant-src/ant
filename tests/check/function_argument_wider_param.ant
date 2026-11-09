@@ -1,0 +1,26 @@
+// spec: 4 Assignability; 4 Inference
+// A named function whose parameter is wider than the expected one fits, also where its result
+// solves a type parameter: what it is passed is assignable to what it takes. A narrower one does
+// not fit.
+func f(n: int, ctx: Context | null = null): int {
+  n
+}
+func w(n: int | string): int {
+  1
+}
+func narrow(n: int): int {
+  n
+}
+func apply[U](fn: func(int, Context): U): U {
+  fn(1, Context.new())
+}
+func apply1[U](fn: func(int): U): U {
+  fn(1)
+}
+func applyWide[U](fn: func(int | string): U): U {
+  fn("a")
+}
+let a: int = apply(f)
+let b: int = apply1(w)
+let c: Array[int] | null = Parallel.map([1, 2], f, limit: 2)
+let d = applyWide(narrow) // ERR: cannot use func(int): int where func(int | string)

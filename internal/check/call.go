@@ -792,7 +792,7 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 			if i >= len(a.Params) {
 				break
 			}
-			if !c.unify(pt.Params[i], a.Params[i], subst) {
+			if !c.unifyParam(pt.Params[i], a.Params[i], subst) {
 				return false
 			}
 		}
@@ -825,6 +825,31 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 		return c.unify(pattern, types.Expand(actual), subst)
 	}
 	return types.Assignable(actual, pattern)
+}
+
+// unifyParam matches a parameter of a function argument. Matching solves the type parameters it
+// mentions; once the expected parameter is known, the argument's need only accept it, as
+// assignability has it (section 4): func(int | string): int is a func(int): U.
+func (c *Checker) unifyParam(pattern, actual types.Type, subst map[*types.ParamDecl]types.Type) bool {
+	trial := maps.Clone(subst)
+	if c.unify(pattern, actual, trial) {
+		maps.Copy(subst, trial)
+		return true
+	}
+	want, err := types.Subst(pattern, subst)
+	return err == nil && !c.mentionsOpen(want) && types.Assignable(want, actual)
+}
+
+// mentionsOpen reports whether t names a type parameter still being solved: one that is not
+// rigid, a type the enclosing function's caller chooses.
+func (c *Checker) mentionsOpen(t types.Type) bool {
+	open := false
+	types.Walk(t, func(t types.Type) {
+		if p, ok := t.(types.Param); ok && !c.rigid[p.Decl] {
+			open = true
+		}
+	})
+	return open
 }
 
 // unifyUnion matches the members of a union pattern against the actual type's members by
