@@ -28,5 +28,5 @@ func unnarrowed(u: User | null): string {
 
 assert(1)              // ERR: cannot use int where bool is expected
 assert(true, 2)        // ERR: cannot use int where string is expected
-assert(true, "a", "b") // ERR: takes 2 arguments, got more
+assert(true, "a", "b") // ERR: takes 1 to 2 arguments, got 3
 var v: void = assert(true)

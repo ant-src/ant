@@ -782,6 +782,15 @@ func (g *Goroutine) matchParams(f *Func, args []value.Value, names []string, pos
 		np++
 	}
 	if np > len(f.Params) {
+		required := 0
+		for _, p := range f.Params {
+			if p.Default == nil {
+				required++
+			}
+		}
+		if required < len(f.Params) {
+			g.panicf(pos, "%s takes %d to %d arguments, got %d", f.FuncName(), required, len(f.Params), np)
+		}
 		g.panicf(pos, "%s takes %s, got %d", f.FuncName(), plural(len(f.Params), "argument"), np)
 	}
 	for i := 0; i < np; i++ {

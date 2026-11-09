@@ -152,7 +152,7 @@ var s = ["a", "b"].concat() // error: Array.concat needs an argument for ys
 The parts go in one array. Strings passed as separate arguments are a compile error:
 
 ```ant
-var s = String.concat("a", "b") // error: String.concat takes 1 argument, got more
+var s = String.concat("a", "b") // error: String.concat takes 1 argument, got 2
 ```
 
 Every part must be a string. Convert other values with [String.from](from.md) first:

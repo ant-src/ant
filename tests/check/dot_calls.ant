@@ -20,7 +20,7 @@ var p = Point{ x: 3.0, y: 4.0 }
 println(p.norm())
 println(p.nrom())     // ERR: Point has no field or function nrom
 println(p.origin())   // ERR: Point.origin takes no argument, so it is not a function on Point
-println(p.norm(1.0))  // ERR: Point.norm takes 0 arguments after the receiver, got more
+println(p.norm(1.0))  // ERR: Point.norm takes 0 arguments after the receiver, got 1
 println(p.norm(p: p)) // ERR: the parameter p is the receiver, which the call passes first
 var g = p.norm        // ERR: Point has no field norm
 println((p.norm)())   // ERR: Point has no field norm

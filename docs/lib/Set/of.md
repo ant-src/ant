@@ -225,7 +225,7 @@ var s: Set[int] = Set{} // error: a record literal needs a record type as its he
 `Set.of` takes one array, not the members as separate arguments:
 
 ```ant
-var s = Set.of(1, 2) // error: Set.of takes 1 argument, got more
+var s = Set.of(1, 2) // error: Set.of takes 1 argument, got 2
 ```
 
 A set has no indexing. Use `Set.values` for an array to index:

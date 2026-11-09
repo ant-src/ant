@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics
+// panics: call
+// A call with an argument too many panics, and the message counts a parameter with a default as
+// optional, as ant check does.
+func f(a: int, b: int = 2): int { a + b }
+println(f(1, 2, 3))
+
+// expect
+// exit: 1
+// err: f takes 1 to 2 arguments, got 3

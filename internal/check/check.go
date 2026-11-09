@@ -238,6 +238,8 @@ type sig struct {
 	inferring bool
 	ownerName string
 	name      string
+	// noArgs marks println and eprintln, which may also be called with no argument.
+	noArgs bool
 }
 
 func (s *sig) fullName() string {
@@ -369,6 +371,9 @@ func (c *Checker) markBuiltins() {
 	for _, name := range []string{"println", "eprintln"} {
 		if e, ok := c.prelude[name]; ok {
 			e.isPrintln = true
+			if e.sig != nil {
+				e.sig.noArgs = true
+			}
 		}
 	}
 	if e, ok := c.prelude["assert"]; ok {

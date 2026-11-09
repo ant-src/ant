@@ -171,7 +171,7 @@ String.trimEnd("x\u{FEFF}").length() // 2
 The function takes no set of characters to remove; a second argument is a compile error:
 
 ```ant
-println(String.trimEnd("x--", "-")) // error: String.trimEnd takes 1 argument, got more
+println(String.trimEnd("x--", "-")) // error: String.trimEnd takes 1 argument, got 2
 ```
 
 ## See also

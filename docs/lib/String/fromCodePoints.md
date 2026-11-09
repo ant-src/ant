@@ -200,7 +200,7 @@ String.fromCodePoints([0x1F41C])        // "🐜"
 The argument is an array, not a list of values:
 
 ```ant
-var s = String.fromCodePoints(97, 98) // error: String.fromCodePoints takes 1 argument, got more
+var s = String.fromCodePoints(97, 98) // error: String.fromCodePoints takes 1 argument, got 2
 ```
 
 The array is the subject of a call through `.`, and a value reaches its own type's namespace, so

@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/ant-src/ant/ast"
@@ -121,6 +122,22 @@ func countParams(ft types.Func) string {
 		return plural(ft.Required, "argument") + " to " + plural(n, "argument")
 	}
 	return plural(n, "argument")
+}
+
+// arity says how many arguments a call passes after the first skip parameters: "2 arguments",
+// or "1 to 2 arguments" when some have defaults.
+func (s *sig) arity(skip int) string {
+	hi := len(s.fn.Params) - skip
+	lo := hi
+	for i := skip; i < len(s.fn.Params); i++ {
+		if i < len(s.defaults) && s.defaults[i] || s.noArgs {
+			lo--
+		}
+	}
+	if lo == hi {
+		return plural(hi, "argument")
+	}
+	return fmt.Sprintf("%d to %d arguments", lo, hi)
 }
 
 func plural(n int, noun string) string {
@@ -453,10 +470,16 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 		a := &x.Args[i]
 		if a.Name == "" {
 			if positional >= n {
+				got := 0
+				for _, b := range x.Args {
+					if b.Name == "" {
+						got++
+					}
+				}
 				if recv != nil {
-					c.errorf(a.Pos, "%s takes %s after the receiver, got more", s.fullName(), plural(n-1, "argument"))
+					c.errorf(a.Pos, "%s takes %s after the receiver, got %d", s.fullName(), s.arity(first), got)
 				} else {
-					c.errorf(a.Pos, "%s takes %s, got more", s.fullName(), plural(n, "argument"))
+					c.errorf(a.Pos, "%s takes %s, got %d", s.fullName(), s.arity(first), got)
 				}
 				ok = false
 				break
