@@ -192,6 +192,14 @@ the binding:
 let r = Result.ok(1) // error: cannot infer the type parameter E of Result.ok; annotate the result
 ```
 
+A parameter that fixes the error type, or the left side of `??`, is enough:
+
+```ant
+Result.wrapErr(Result.ok(1), "load") // Ok{ value: 1 }
+let cached: Result[int, Error] | null = null
+cached ?? Result.ok(0) // Ok{ value: 0 }
+```
+
 Type arguments are invariant, so a `Result[int, string]` does not widen to
 `Result[int | string, string]`. Build it at the wider type instead:
 

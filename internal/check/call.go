@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 
 	"github.com/ant-src/ant/ast"
@@ -385,6 +386,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			continue
 		}
 		c.check(a.Value, sc, want)
+	}
+	if hint, ok := c.hints[x]; ok && len(unsolved) > 0 {
+		c.solveFromHint(s, hint, subst, unsolved)
 	}
 	for _, w := range empties {
 		want, err := types.Subst(s.fn.Params[w.i], subst)
@@ -1013,7 +1017,65 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 	if err == nil && !types.Mentions(solved, unsolved) {
 		return c.check(e, sc, solved)
 	}
+	if err == nil {
+		// partly solved, as Result[T, Error]: a call still takes what is known
+		return c.synthHinted(e, sc, solved)
+	}
 	return c.synth(e, sc)
+}
+
+// synthHinted synthesizes e. When e is a call, hint is a type its result should fit, which
+// solves only the type parameters its arguments leave open (section 4, Inference): passed where
+// Result[T, Error] is expected, Result.ok(1) solves E to Error and T to int from its argument.
+// Unlike an expected type, a hint that does not fit is no error, and a part of it that names a
+// type parameter still being solved, as T there, solves nothing.
+func (c *Checker) synthHinted(e ast.Expr, sc *scope, hint types.Type) types.Type {
+	if x, ok := e.(*ast.Call); ok {
+		if c.hints == nil {
+			c.hints = map[*ast.Call]types.Type{}
+		}
+		c.hints[x] = hint
+		defer delete(c.hints, x)
+	}
+	return c.synth(e, sc)
+}
+
+// solveFromHint solves the type parameters of s still open from the hint for its result, as the
+// expected type does but after the arguments.
+func (c *Checker) solveFromHint(s *sig, hint types.Type, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool) {
+	// A type parameter of an enclosing call, still open, is a hole: it matches anything and
+	// solves nothing. Invalid does that in unify.
+	holes := map[*types.ParamDecl]types.Type{}
+	types.Walk(hint, func(t types.Type) {
+		if p, ok := t.(types.Param); ok && !c.rigid[p.Decl] {
+			holes[p.Decl] = types.Invalid{}
+		}
+	})
+	hint, err := types.Subst(hint, holes)
+	if err != nil {
+		return
+	}
+	trial := maps.Clone(subst)
+	if !c.unify(s.fn.Return, expectedPart(s.fn.Return, hint), trial) {
+		return
+	}
+	for p := range unsolved {
+		if t, ok := trial[p]; ok && !hasHole(t) && boundFits(p, t, trial, s.tparams) {
+			subst[p] = t
+		}
+	}
+	pruneSolved(unsolved, subst)
+}
+
+// hasHole reports whether t holds Invalid anywhere, as Result[?, Error] does.
+func hasHole(t types.Type) bool {
+	found := false
+	types.Walk(t, func(t types.Type) {
+		if _, ok := t.(types.Invalid); ok {
+			found = true
+		}
+	})
+	return found
 }
 
 // onlyEmpty reports an empty array or map literal, an array literal of nothing but those, or a

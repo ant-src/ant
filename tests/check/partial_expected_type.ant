@@ -1,0 +1,14 @@
+// spec: 4 Inference
+// A parameter type that is only partly solved, and the left side of ??, are hints for a call:
+// they solve the type parameters its arguments leave open, and a part that is still open, or a
+// hint that does not fit, solves nothing and is no error.
+let wrapped: Result[int, Error] = Result.wrapErr(Result.ok(1), "x")
+func g[T](r: Result[T, Error]): T | null {
+  if r is Ok { r.value } else { null }
+}
+let n: int | null = g(Result.ok(1))
+let cached: Result[int, Error] | null = null
+let a: Result[int, Error] = cached ?? Result.ok(0)
+let maybe: int | null = null
+let either: int | string | null = maybe ?? Array.first(["a"])
+let other = cached ?? Result.ok("s") // ERR: cannot infer the type parameter E of Result.ok
