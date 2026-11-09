@@ -14,9 +14,9 @@ start with prefix.
 
 ## Details
 
-- Removes `prefix` once, when `s` starts with it; otherwise returns `s` unchanged.
-- `prefix` is a string to match exactly, not a set of characters, and it is removed once, not
-  repeatedly.
+- `prefix` is a string, not a set of characters. It is matched code point by code point, with no
+  case folding or normalization, and removed once, not repeatedly.
+- An empty `prefix` returns `s`.
 
 ## Basic examples
 
@@ -231,8 +231,9 @@ Testing the result with `startsWith` does not tell whether a prefix was removed:
 compare the result with `s`:
 
 ```ant
-String.trimPrefix("vv1", "v") // "v1"
-String.trimPrefix("v1", "v")  // "1"
+var s = "vv1"
+s.trimPrefix("v").startsWith("v") // true
+s.trimPrefix("v") != s            // true
 ```
 
 ## See also

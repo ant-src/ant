@@ -14,11 +14,9 @@ base defaults to 10, and it panics if base is outside 2 ..= 36.
 
 ## Details
 
-- Writes lower-case digits, `0` to `9` and then `a` to `z`, with a `-` in front when `x` is
-  negative.
-- `base` defaults to `10`; a base outside `2 ..= 36` panics.
-- `x` can be any integer type, and an unsigned value is written as the number it is. A float or a
-  named type over `int` must be converted first.
+- Writes no prefix such as `0x` and no leading zeros; add them with `+` and `String.padStart`.
+- Writes an unsigned value as the number it is, so `Math.maxUint64` gives `"18446744073709551615"`,
+  never a negative number.
 
 ## Basic examples
 
@@ -38,6 +36,13 @@ A negative number gets a `-` in front of its digits:
 
 ```ant
 String.fromInt(-255, 16) // "-ff"
+```
+
+`+` joins only strings, so a number goes into text through `String.fromInt` or interpolation:
+
+```ant
+var n = 3
+"ants: " + String.fromInt(n) // "ants: 3"
 ```
 
 ## Scope
@@ -66,7 +71,8 @@ String.fromInt(Math.minInt)    // "-9223372036854775808"
 String.fromInt(Math.minInt, 2) // "-1000000000000000000000000000000000000000000000000000000000000000"
 ```
 
-Every integer kind is accepted. An unsigned value is the number it is, never a negative one:
+`String.fromInt` takes every integer kind. An unsigned value is the number it is, never a negative
+one:
 
 ```ant
 String.fromInt(Math.maxUint64)     // "18446744073709551615"
@@ -190,7 +196,7 @@ for n in [0, 7, -42, Math.maxInt] {
 }
 ```
 
-A negative number is its absolute value with a `-` in front:
+`String.fromInt` writes a negative number as its absolute value with a `-` in front:
 
 ```ant
 for n in [1, 255, 4096] {
@@ -207,8 +213,8 @@ String.fromInt(10, 1)  // panic: String.fromInt needs a base from 2 to 36, got 1
 String.fromInt(10, 37) // panic: String.fromInt needs a base from 2 to 36, got 37
 ```
 
-A negative number is written with a sign, not as its two's complement bits, so `-1` in hex is
-`"-1"`, not `"ffffffffffffffff"`:
+`String.fromInt` writes a negative number with a sign, not as its two's complement bits, so `-1` in
+hex is `"-1"`, not `"ffffffffffffffff"`:
 
 ```ant
 String.fromInt(-1, 16)      // "-1"
@@ -228,8 +234,8 @@ println(String.fromInt(2.5))
 String.fromInt(int(Math.round(2.5))) // "3"
 ```
 
-A value that may be `null`, such as the result of [`String.toInt`](toInt.md), must be narrowed
-first:
+A value that may be `null`, such as the result of [`String.toInt`](toInt.md), is a compile error.
+Narrow it first:
 
 ```ant
 var n = String.toInt("42")
@@ -267,9 +273,12 @@ var n = 42
 println(n.fromInt()) // error: int has no field or function fromInt
 ```
 
-There are no leading zeros and no width. Pad the result with [`String.padStart`](padStart.md):
+There is no prefix such as `0x`, no leading zeros, and no width. Add a prefix by concatenation and
+pad with [`String.padStart`](padStart.md):
 
 ```ant
+String.fromInt(255, 16)                          // "ff"
+"0x" + String.fromInt(255, 16)                   // "0xff"
 String.fromInt(7, 2)                             // "111"
 String.padStart(String.fromInt(7, 2), 8, "0")    // "00000111"
 String.padStart(String.fromInt(255, 16), 8, "0") // "000000ff"

@@ -13,7 +13,8 @@ String.split returns the pieces of s between each occurrence of sep. It panics i
 
 ## Details
 
-- Panics if `sep` is empty.
+- `sep` matches code point by code point, as `==` compares, with no case folding or normalization.
+- Occurrences of `sep` are taken from the left and never overlap.
 
 ## Basic examples
 
@@ -59,6 +60,13 @@ Unicode text and separators work like any other:
 ```ant
 String.split("🐜·🐝·🐞", "·") // ["🐜", "🐝", "🐞"]
 String.split("日本,語", ",")  // ["日本", "語"]
+```
+
+Occurrences are taken from the left without overlap, so `"aaa"` holds one `"aa"`, not two:
+
+```ant
+String.split("aaa", "aa")  // ["", "a"]
+String.split("aaaa", "aa") // ["", "", ""]
 ```
 
 Here `"a"` does not match `"A"`, and the combining accent U+0301 on its own is the separator:
@@ -116,12 +124,12 @@ null
 null
 ```
 
-Count how often each word occurs in a sentence:
+Count how often each tag occurs in a comma-separated list:
 
 ```ant
 var counts: Map[string, int] = Map{}
-for word in String.split("ant bee ant ant bee", " ") {
-  counts[word] = (counts[word] ?? 0) + 1
+for tag in String.split("ant,bee,ant,ant,bee", ",") {
+  counts[tag] = (counts[tag] ?? 0) + 1
 }
 println(counts)
 ```
@@ -165,6 +173,15 @@ An empty separator panics. Use [String.chars](chars.md) to take a string apart i
 ```ant
 String.split("abc", "") // panic: String.split needs a separator that is not empty
 String.chars("abc")     // ["a", "b", "c"]
+```
+
+The pieces keep any space next to the separator. Trim each piece, or split at `", "` when the input
+always has the space:
+
+```ant
+String.split("a, b, c", ",")                         // ["a", " b", " c"]
+String.split("a, b, c", ",").map({ String.trim(x) }) // ["a", "b", "c"]
+String.split("a, b, c", ", ")                        // ["a", "b", "c"]
 ```
 
 The empty string gives one empty piece, not an empty array:

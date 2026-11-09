@@ -15,6 +15,7 @@ String.endsWith reports whether s ends with t.
 
 - Compares code points exactly: it does not ignore case and does not normalize, so the two spellings
   of "é" differ.
+- The empty string is a suffix of every string, so `String.endsWith(s, "")` is always true.
 
 ## Basic examples
 
@@ -61,15 +62,6 @@ In a pipeline, the string is the first argument:
 
 ```ant
 "index.html" | String.endsWith(".html") // true
-```
-
-## Named arguments
-
-`String.endsWith` has no defaults, but naming both arguments makes clear which string is the suffix:
-
-```ant
-String.endsWith(s: "photo.jpeg", t: ".jpeg") // true
-String.endsWith(t: ".jpeg", s: "photo.jpeg") // true
 ```
 
 ## Applications
@@ -163,7 +155,8 @@ for t in ["o", "ño", "ñ", ""] {
 
 ## Possible issues
 
-The string comes first and the suffix second. Swapped, the call asks the opposite question:
+The string comes first and the suffix second. Swapped, the call asks whether the suffix ends with
+the string:
 
 ```ant
 String.endsWith(".ant", "main.ant") // false

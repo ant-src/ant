@@ -14,9 +14,8 @@ empty.
 
 ## Details
 
-- Replaces only the first occurrence of `old`; later ones stay. When `old` does not occur, the
-  result equals `s`.
-- Panics if `old` is empty.
+- When `old` does not occur, the result equals `s`.
+- Matching is exact, code point by code point, with no case folding or normalization.
 - To replace every occurrence, use [`String.replace`](replace.md).
 
 ## Basic examples
@@ -179,20 +178,6 @@ for s in ["k=v", "kv", "=", ""] {
 }
 ```
 
-When `new` does not contain `old`, as here, calling it `String.count(s, old)` times replaces every
-occurrence, as `String.replace` does:
-
-```ant
-var s = "a-b-c-d"
-var r = s
-var n = String.count(s, "-")
-while n > 0 {
-  r = String.replaceFirst(r, "-", "+")
-  n = n - 1
-}
-assert(r == String.replace(s, "-", "+"))
-```
-
 ## Possible issues
 
 An empty `old` panics:
@@ -223,20 +208,26 @@ expression, use [`Regex.replaceFirst`](../Regex/replaceFirst.md):
 String.replaceFirst("a1b22", "[0-9]+", "#") // "a1b22"
 ```
 
-The first occurrence can be anywhere in `s`, not only at the start:
+`String.replaceFirst` matches anywhere, not only at the start:
 
 ```ant
-String.replaceFirst("x-a", "a", "b") // "x-b"
+String.replaceFirst("C# # notes", "# ", "## ") // "C## # notes"
 ```
 
-To change only a leading prefix, test it with [`String.startsWith`](startsWith.md), or remove it
-with [`String.trimPrefix`](trimPrefix.md) and concatenate:
+To change only a leading prefix, test it with [`String.startsWith`](startsWith.md) first:
 
 ```ant
-var s = "C# # notes"
-String.replaceFirst(s, "# ", "## ")    // "C## # notes"
-String.startsWith(s, "# ")             // false
-"## " + String.trimPrefix("# x", "# ") // "## x"
+func promote(s: string): string {
+  if String.startsWith(s, "# ") { "#" + s } else { s }
+}
+
+println(promote("C# # notes"))
+println(promote("# x"))
+```
+
+```text
+C# # notes
+## x
 ```
 
 Each call searches the whole string again from the front, including text that an earlier call
@@ -257,11 +248,30 @@ func fill(template: string, values: Array[string]): string {
 fill("? ?", ["?", "x"]) // "x ?"
 ```
 
-A loop that replaces until `old` is gone never ends when `new` contains `old`. Bound the loop by
-`String.count`, as in the properties above, or use [`String.replace`](replace.md).
+A loop that replaces until `old` is gone never ends when `new` contains `old`. To replace every
+occurrence, use [`String.replace`](replace.md).
+
+There is no `String.replaceLast`. To replace the last occurrence, find it with
+[`String.lastIndexOf`](lastIndexOf.md) and rebuild the string around it:
+
+```ant
+func replaceLast(s: string, old: string, new: string): string {
+  var i = String.lastIndexOf(s, old)
+  if i == null {
+    return s
+  }
+  String.slice(s, 0, i) + new + String.slice(s, i + String.length(old), String.length(s))
+}
+
+println(replaceLast("a-b-c", "-", "+"))
+```
+
+```text
+a-b+c
+```
 
 ## See also
 
 [String.replace](replace.md) · [Regex.replaceFirst](../Regex/replaceFirst.md) · [String.cut](cut.md)
-· [String.indexOf](indexOf.md) · [String.trimPrefix](trimPrefix.md) · [String.count](count.md) ·
-[String.contains](contains.md)
+· [String.indexOf](indexOf.md) · [String.lastIndexOf](lastIndexOf.md) ·
+[String.trimPrefix](trimPrefix.md) · [String.count](count.md) · [String.contains](contains.md)

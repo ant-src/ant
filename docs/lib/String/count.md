@@ -11,12 +11,6 @@ String.count returns the number of non-overlapping occurrences of t in s. It pan
 
 <!-- end generated -->
 
-## Details
-
-- Counts occurrences that do not overlap. A `t` that does not occur, or an empty `s`, gives `0`.
-- Panics if `t` is empty.
-- Does not ignore case and does not normalize, so the two spellings of "é" differ.
-
 ## Basic examples
 
 Count the occurrences of a substring:
@@ -43,7 +37,7 @@ String.count("aaaa", "aa")    // 2
 String.count("banana", "ana") // 1
 ```
 
-An empty string holds no occurrences, and a `t` longer than `s` none either:
+An empty string holds no occurrences, a `t` longer than `s` none either, and `s` itself one:
 
 ```ant
 String.count("", "a")        // 0
@@ -117,6 +111,14 @@ Counting a single code point gives the same as `Array.countWhere` over `String.c
 ```ant
 var s = "mississippi"
 assert(String.count(s, "s") == String.chars(s).countWhere({ x == "s" }))
+```
+
+Splitting at `t` gives one piece more than the count:
+
+```ant
+for t in ["a", "an", "x"] {
+  assert(len(String.split("banana", t)) == String.count("banana", t) + 1)
+}
 ```
 
 ## Possible issues

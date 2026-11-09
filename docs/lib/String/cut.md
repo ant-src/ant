@@ -14,9 +14,7 @@ panics if sep is empty.
 
 ## Details
 
-- Splits at the first occurrence of `sep`; `sep` itself is in neither field.
-- Returns `null` when `sep` does not occur in `s`.
-- Panics if `sep` is empty.
+- `sep` is in neither field; any later occurrence of `sep` stays in `after`.
 
 ## Basic examples
 
@@ -230,6 +228,13 @@ println(before)
 
 Use `?.`, `??`, or a test against `null` first, as in the examples above.
 
+To treat a missing separator as an empty `after`, fall back to a `String.Cut` of your own:
+
+```ant
+var s = "key"
+String.cut(s, "=") ?? String.Cut{ before: s, after: "" } // String.Cut{ before: "key", after: "" }
+```
+
 `String.cut` leaves the white space around the separator in place, so `key = value` text keeps the
 spaces on both sides:
 
@@ -250,7 +255,7 @@ file name, use [`String.lastIndexOf`](lastIndexOf.md) and [`String.slice`](slice
 var name = "archive.tar.gz"
 String.cut(name, ".")?.after // "tar.gz"
 var i = String.lastIndexOf(name, ".")
-if i != null { String.slice(name, i + 1, String.length(name)) } // "gz"
+if i != null { String.slice(name, i + 1, String.length(name)) } else { "" } // "gz"
 ```
 
 ## See also

@@ -13,10 +13,7 @@ String.concat returns the strings in parts joined with nothing between them.
 
 ## Details
 
-- Returns a new string; `parts` is unchanged.
 - Takes one array. To join two strings, use `+`.
-- `parts.concat()` on an array is [Array.concat](../Array/concat.md). Use a pipe instead:
-  `parts | String.concat()`.
 
 ## Basic examples
 
@@ -65,32 +62,12 @@ Pass the parts with a pipe, which puts the array in as the first argument:
 ["a", "b"] | String.concat() // "ab"
 ```
 
-The array can come from any expression, such as a map over numbers:
+## Applications
+
+Join digits into one string:
 
 ```ant
 String.concat(Array.map([1, 2, 3], { String.from(x) })) // "123"
-```
-
-## Named arguments
-
-Name the argument `parts`:
-
-```ant
-String.concat(parts: ["x", "y"]) // "xy"
-```
-
-## Applications
-
-Remove every separator from a string:
-
-```ant
-String.concat(String.split("555-0100", "-")) // "5550100"
-```
-
-Reverse a word:
-
-```ant
-String.concat(Array.reverse(String.graphemes("ant"))) // "tna"
 ```
 
 Collect pieces in an array as a loop goes, then join them once:

@@ -15,9 +15,10 @@ does not occur.
 ## Details
 
 - The index counts code points, as [`String.length`](length.md) and [`String.slice`](slice.md) do.
-- When `t` does not occur in `s`, the result is `null`, not `-1`.
-- `t` matches code point by code point, so `é` written as `e` plus a combining accent does not match
-  a precomposed `é`; normalize both with [`String.normalize`](normalize.md) first.
+- `t` matches code point by code point, with no case folding or normalization, so `é` written as `e`
+  plus a combining accent does not match a precomposed `é`; normalize both with
+  [`String.normalize`](normalize.md) first.
+- The empty string occurs at every index, so an empty `t` gives the length of `s`.
 
 ## Basic examples
 
@@ -35,11 +36,19 @@ Call it through `.` on any string:
 
 ## Scope
 
-The last occurrence wins, even when it overlaps an earlier one:
+The last occurrence wins:
 
 ```ant
-String.lastIndexOf("aaa", "aa")    // 1
 String.lastIndexOf("abcabc", "ab") // 3
+String.lastIndexOf("a-b-c", "-")   // 3
+```
+
+The last occurrence may overlap an earlier one, unlike the occurrences [`String.count`](count.md)
+counts:
+
+```ant
+String.lastIndexOf("aaa", "aa") // 1
+String.count("aaa", "aa")       // 1
 ```
 
 `t` may be all of `s`, but not longer:
@@ -49,10 +58,13 @@ String.lastIndexOf("ant", "ant")  // 0
 String.lastIndexOf("ant", "ants") // null
 ```
 
-Nothing occurs in `""`:
+Nothing but `""` occurs in `""`, and `""` occurs at the end of every string:
 
 ```ant
-String.lastIndexOf("", "a") // null
+String.lastIndexOf("", "a")    // null
+String.lastIndexOf("", "")     // 0
+String.lastIndexOf("café", "") // 4
+String.indexOf("café", "")     // 0
 ```
 
 The index counts code points, not bytes. Each of `ï` and `é` is one code point and two bytes:
@@ -159,8 +171,7 @@ for t in ["an", "nab", "a", "x"] {
 }
 ```
 
-When `t` occurs, the slice of `s` at the index is `t`, and `t` does not occur in the text after the
-index:
+When `t` occurs, the slice of `s` at the index is `t`:
 
 ```ant
 var s = "mississippi"
@@ -168,7 +179,6 @@ var t = "ssi"
 var i = String.lastIndexOf(s, t)
 assert(i != null)
 assert(String.slice(s, i, i + String.length(t)) == t)
-assert(!String.contains(String.slice(s, i + 1, String.length(s)), t))
 ```
 
 For a one-code-point `t`, the index is the one [`Array.lastIndexOf`](../Array/lastIndexOf.md) gives

@@ -14,8 +14,9 @@ end with suffix.
 
 ## Details
 
-- Removes `suffix` once, when `s` ends with it; otherwise returns `s` unchanged. It never panics.
-- The match is exact, as in [`String.endsWith`](endsWith.md): it does not ignore case or normalize.
+- An empty `suffix` returns `s`.
+- The match is exact, code point by code point, as in [`String.endsWith`](endsWith.md): it does not
+  ignore case or normalize.
 
 ## Basic examples
 
@@ -70,20 +71,11 @@ A combining accent is a code point of its own, so it can come off alone and leav
 String.trimSuffix("cafe\u{301}", "\u{301}") // "cafe"
 ```
 
-In a pipeline, the string is the first argument:
+In a pipeline, the string is the first argument. Named arguments use `s:` and `suffix:`:
 
 ```ant
-"index.html" | String.trimSuffix(".html") // "index"
-```
-
-## Named arguments
-
-`String.trimSuffix` has no defaults, but naming the arguments makes clear which string is the
-suffix:
-
-```ant
+"index.html" | String.trimSuffix(".html")           // "index"
 String.trimSuffix(s: "photo.jpeg", suffix: ".jpeg") // "photo"
-String.trimSuffix(suffix: ".jpeg", s: "photo.jpeg") // "photo"
 ```
 
 ## Applications

@@ -13,8 +13,9 @@ String.contains reports whether t occurs in s.
 
 ## Details
 
-- Compares code points exactly: it does not ignore case and does not normalize, so `"\u{E9}"` and
-  `"e\u{301}"` are different strings.
+- Matches code point by code point, with no case folding or normalization: `"cafe\u{301}"` does not
+  contain `"\u{E9}"`.
+- The empty string occurs in every string, so `String.contains(s, "")` is `true` for any `s`.
 
 ## Basic examples
 
@@ -154,8 +155,8 @@ assert(s.endsWith(b) && s.contains(b))
 The test is case-sensitive. Fold the case of both sides, as in the `mentions` example above:
 
 ```ant
-String.contains("Ant", "ant")            // false
-String.contains("Ant".foldCase(), "ant") // true
+String.contains("Ant", "ant")               // false
+"Ant".foldCase().contains("ANT".foldCase()) // true
 ```
 
 `String.contains` compares code points, not what a reader sees. An `e` with a combining accent

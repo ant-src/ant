@@ -13,7 +13,7 @@ String.isEmpty reports whether s is "".
 
 ## Details
 
-- `true` only for `""`. A string of white space, or of one invisible code point, is not empty.
+- A string of white space is not empty. Use `s.trim().isEmpty()` to treat it as empty.
 
 ## Basic examples
 
@@ -38,7 +38,7 @@ White space is text. Only `""` is empty:
 "\n".isEmpty() // false
 ```
 
-A code point that shows nothing, such as a zero width space or a lone combining accent, still
+A code point that shows nothing, such as a zero-width space or a lone combining accent, still
 counts:
 
 ```ant
@@ -64,14 +64,6 @@ For a string that may be `null`, `?.` yields `null` instead of calling:
 var nickname: string | null = null
 nickname?.isEmpty()         // null
 nickname?.isEmpty() ?? true // true
-```
-
-## Named arguments
-
-The parameter is named `s`:
-
-```ant
-String.isEmpty(s: "x") // false
 ```
 
 ## Applications
@@ -158,11 +150,18 @@ for a in ["", "x"] {
 
 ## Possible issues
 
-A string is not a condition. Ask `String.isEmpty` explicitly:
+A string is not a condition. Write `!s.isEmpty()` instead:
 
 ```ant
 var s = ""
 if s { // error: cannot use string where bool is expected
+  println("has text")
+}
+```
+
+```ant
+var s = ""
+if !s.isEmpty() {
   println("has text")
 }
 ```

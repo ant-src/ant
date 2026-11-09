@@ -15,8 +15,9 @@ not occur.
 ## Details
 
 - The index counts code points, like [`String.length`](length.md) and [`String.slice`](slice.md).
-- When `t` does not occur in `s`, the result is `null`, not `-1`. Narrow it with `!= null` or give a
-  default with `??` before you use it as an `int`.
+- When `t` does not occur in `s`, the result is `null`, not `-1`.
+- An empty `t` occurs at every index, so the result is `0`.
+- Matching is exact, code point by code point: no case folding and no normalization.
 
 ## Basic examples
 
@@ -37,8 +38,8 @@ Call it through `.` on any string:
 The first occurrence wins, even when a later one overlaps it:
 
 ```ant
-String.indexOf("aaa", "aa")   // 0
-String.indexOf("abcabc", "c") // 2
+String.indexOf("aaa", "aa")      // 0
+String.indexOf("abababa", "aba") // 0
 ```
 
 `t` may be all of `s`, but not longer:
@@ -48,10 +49,12 @@ String.indexOf("ant", "ant")  // 0
 String.indexOf("ant", "ants") // null
 ```
 
-Nothing occurs in an empty string:
+Nothing occurs in an empty string, but the empty string occurs at the start of any string:
 
 ```ant
-String.indexOf("", "a") // null
+String.indexOf("", "a")   // null
+String.indexOf("ant", "") // 0
+String.indexOf("", "")    // 0
 ```
 
 The index counts code points, not bytes. Each of `ï` and `é` is one code point and two bytes:
@@ -78,17 +81,16 @@ String.indexOf(s: "a-b", t: "-") // 1
 
 ## Applications
 
-Take the extension of a file name, the text after the first dot, and return early with `?? return`
-when there is none:
+Take the text after the first dot, and return early with `?? return` when there is none:
 
 ```ant
-func extension(name: string): string {
+func afterFirstDot(name: string): string {
   var i = String.indexOf(name, ".") ?? return ""
   String.slice(name, i + 1, String.length(name))
 }
 
-println(extension("archive.tar.gz"))
-println(extension("README"))
+println(afterFirstDot("archive.tar.gz"))
+println(afterFirstDot("README"))
 ```
 
 ```text
@@ -113,6 +115,9 @@ println(hits)
 ```text
 [0, 12]
 ```
+
+Advancing by one also finds overlapping matches; advance by `String.length(t)` to match
+[`String.count`](count.md).
 
 Narrow the result with `!= null` to split a header line at its colon:
 
@@ -236,6 +241,14 @@ The search is case-sensitive, and a precomposed `é` does not contain the code p
 String.indexOf("Ant", "ant")           // null
 String.indexOf("Ant".toLower(), "ant") // 0
 String.indexOf("café", "e")            // null
+```
+
+The search does not normalize either, so the two spellings of `é` do not find each other. Bring both
+strings to one form with [`String.normalize`](normalize.md) first:
+
+```ant
+String.indexOf("cafe\u{301}", "\u{E9}")                          // null
+String.indexOf(String.normalize("cafe\u{301}", "NFC"), "\u{E9}") // 3
 ```
 
 ## See also

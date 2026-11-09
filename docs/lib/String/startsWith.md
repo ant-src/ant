@@ -14,8 +14,8 @@ String.startsWith reports whether s begins with t.
 ## Details
 
 - Every string starts with `""`.
-- The match is exact, code point by code point: it does not ignore case or normalize, so the two
-  spellings of "é" differ.
+- The match is exact, code point by code point as `==` compares: there is no case folding or
+  normalization, so the two spellings of "é" differ.
 
 ## Basic examples
 
@@ -75,6 +75,13 @@ Naming the arguments makes clear which string is the prefix, in either order:
 ```ant
 String.startsWith(s: "v1.2.0", t: "v") // true
 String.startsWith(t: "v", s: "v1.2.0") // true
+```
+
+On a string that can be null, use `?.` and supply a default with `??`:
+
+```ant
+var name: string | null = null
+name?.startsWith("x") ?? false // false
 ```
 
 ## Applications
@@ -184,7 +191,8 @@ for t in ["a", "añ", "ñ", ""] {
 
 ## Possible issues
 
-The string comes first and the prefix second. Swapped, the call asks the opposite question:
+The string comes first and the prefix second. Swapped, the call asks whether the prefix begins with
+the string, which is false whenever the string is longer:
 
 ```ant
 String.startsWith("http", "http://ant-lang.org") // false
@@ -200,14 +208,20 @@ url.startsWith("http")    // true
 url.startsWith("http://") // false
 ```
 
-Case matters, so lower the string, or fold it with [`String.foldCase`](foldCase.md), and compare it
-with a lower-case prefix:
+Case matters. Fold both sides with [`String.foldCase`](foldCase.md) to compare without regard to
+case:
 
 ```ant
 var header = "Content-Type: text/html"
-header.startsWith("content-type")                  // false
-header.toLower().startsWith("content-type")        // true
-String.foldCase(header).startsWith("content-type") // true
+header.startsWith("content-type")                                   // false
+String.foldCase(header).startsWith(String.foldCase("Content-Type")) // true
+```
+
+Folding changes more than case, so fold the prefix too:
+
+```ant
+String.foldCase("Straße").startsWith("straß")                  // false
+String.foldCase("Straße").startsWith(String.foldCase("STRAß")) // true
 ```
 
 Leading white space is part of the string. Trim it with [`String.trimStart`](trimStart.md) first:

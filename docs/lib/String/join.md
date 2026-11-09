@@ -13,8 +13,8 @@ String.join returns the strings in parts joined with sep between each two.
 
 ## Details
 
-- Returns a new string; `parts` is unchanged.
-- `parts.join(",")` does not work, since there is no `Array.join`. Call `String.join(parts, ",")`.
+- `sep` goes only between two parts, so an empty `parts` gives `""` and an empty part keeps the
+  separators on both sides of it.
 
 ## Basic examples
 
@@ -68,19 +68,16 @@ Pass the parts with a pipe, which puts the array in as the first argument:
 ["x", "y", "z"] | String.join("/") // "x/y/z"
 ```
 
+Name the arguments, in either order:
+
+```ant
+String.join(sep: "+", parts: ["x", "y"]) // "x+y"
+```
+
 The array can come from any expression, such as a map over numbers:
 
 ```ant
 String.join(Array.map([1, 2, 3], { String.from(x) }), " + ") // "1 + 2 + 3"
-```
-
-## Named arguments
-
-Name the arguments `parts` and `sep`, in either order:
-
-```ant
-String.join(parts: ["x", "y"], sep: "+") // "x+y"
-String.join(sep: "+", parts: ["x", "y"]) // "x+y"
 ```
 
 ## Applications
@@ -137,7 +134,7 @@ Ann, Bob and Cy
 
 ## Properties and relations
 
-Joining with `""` matches [String.concat](concat.md) here:
+Joining with `""` gives the same string as [String.concat](concat.md):
 
 ```ant
 var parts = ["a", "bc", "", "d"]
@@ -152,8 +149,8 @@ var s = "a,b,,c"
 assert(String.join(String.split(s, ","), ",") == s)
 ```
 
-Here the length of the result is the sum of the lengths of the parts, plus one separator fewer than
-there are parts:
+For a non-empty `parts`, the length of the result is the sum of the lengths of the parts, plus one
+separator fewer than there are parts:
 
 ```ant
 var parts = ["é", "日本", "", "🐜"]
@@ -197,6 +194,13 @@ Interpolating an array does not join it: it renders the array with its brackets 
 var xs = ["a", "b"]
 "${xs}"                    // "[\"a\", \"b\"]"
 "${String.join(xs, ", ")}" // "a, b"
+```
+
+The separator goes only between parts, so text joined with `"\n"` has no final line break; add
+`+ "\n"` when the text should end a line:
+
+```ant
+String.join(["a", "b"], "\n") // "a\nb"
 ```
 
 [String.split](split.md) does not always undo `String.join`. In these two cases the split gives back

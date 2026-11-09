@@ -13,11 +13,9 @@ String.replace returns s with every occurrence of old replaced by new. It panics
 
 ## Details
 
-- Replaces every occurrence and returns a new string. When `old` does not occur, the result equals
-  `s`.
-- `old` is plain text, not a pattern, and matches exactly: no case folding, no normalization.
-- Panics if `old` is empty.
-- To replace only the first occurrence, use [`String.replaceFirst`](replaceFirst.md).
+- `old` is plain text, not a pattern, and matches exactly, code point by code point: no case
+  folding, no normalization.
+- Occurrences are taken from the left and never overlap: in `"aaa"`, `"aa"` occurs once.
 
 ## Basic examples
 
@@ -219,6 +217,15 @@ String.replace("cafe\u{301}", "e", "E") // "cafÉ"
 String.replace("a.b", ".", "!")                   // "a!b"
 String.replace("ann@home", "@", "$1")             // "ann$1home"
 Regex.replace(/(\w+)@(\w+)/, "ann@home", "$2:$1") // "home:ann"
+```
+
+Occurrences do not overlap. The search goes on after the end of each match, so a run of `old` is cut
+from the left:
+
+```ant
+String.replace("aaa", "aa", "X")  // "Xa"
+String.replace("aaaa", "aa", "X") // "XX"
+String.count("aaa", "aa")         // 1
 ```
 
 The text that `new` inserts is not searched again, so a replacement that contains `old` does not
