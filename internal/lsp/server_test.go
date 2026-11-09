@@ -951,6 +951,13 @@ func TestDocRendering(t *testing.T) {
 	if s := summary("Array.map returns [Array.filter]. More.", known); s != "Array.map returns \\[Array.filter\\]." {
 		t.Errorf("summary: %q", s)
 	}
+	// A bracket right after a name or a bracket holds type arguments, not a link.
+	known = func(name string) bool { return name == "Array.map" || name == "int" || name == "string" }
+	got = docMarkdown("[Array.map] of Array[int], Map[string][int], and ([int]).\n", known)
+	want = "`Array.map` of Array\\[int\\], Map\\[string\\]\\[int\\], and (`int`)."
+	if got != want {
+		t.Errorf("docMarkdown:\n%s\nwant:\n%s", got, want)
+	}
 }
 
 func TestExitStatus(t *testing.T) {

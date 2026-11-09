@@ -65,7 +65,9 @@ func dedent(lines []string) []string {
 	return out
 }
 
-var bracketedName = regexp.MustCompile(`\[([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?)\]`)
+// bracketedName matches a name in brackets. A bracket right after a name or another bracket holds
+// type arguments, as in Array[int] or Map[string][], so it is not one.
+var bracketedName = regexp.MustCompile(`(^|[^\w\]])\[([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?)\]`)
 
 // prose renders a paragraph of plain text as Markdown: a bracketed name that known says is a
 // declaration becomes code, since the editor cannot link to it from a hover, and the characters
@@ -75,11 +77,11 @@ func prose(s string, known func(string) bool) string {
 	var sb strings.Builder
 	last := 0
 	for _, m := range bracketedName.FindAllStringSubmatchIndex(s, -1) {
-		name := s[m[2]:m[3]]
+		name := s[m[4]:m[5]]
 		if known == nil || !known(name) {
 			continue
 		}
-		sb.WriteString(escapeMarkdown(s[last:m[0]]))
+		sb.WriteString(escapeMarkdown(s[last:m[3]]))
 		sb.WriteString("`" + name + "`")
 		last = m[1]
 	}
