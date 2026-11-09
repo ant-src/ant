@@ -14,16 +14,10 @@ The mappings that depend on a language, such as Turkish, are not applied.
 
 ## Details
 
-- `String.toUpper` applies Unicode's full case mappings that hold in every language, so one code
-  point can become several: `"ß"` becomes `"SS"`. Unicode's mappings leave code points without an
-  upper-case form, such as digits and punctuation, as they are.
-- The mappings can depend on context, so a string is mapped whole, not one character at a time. The
-  Greek final sigma in [`String.toLower`](toLower.md) shows where this matters.
+- One code point can become several: `"ß"` becomes `"SS"`. Code points without an upper-case form,
+  such as digits, stay as they are.
 - The rules for Turkish and Lithuanian, which depend on the language, are not applied, so `"i"`
   becomes `"I"`, not `"İ"`.
-
-All of this is in the spec's
-[String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string) section.
 
 ## Basic examples
 

@@ -14,13 +14,10 @@ empty.
 
 ## Details
 
-- `String.replaceFirst` replaces the first occurrence of `old` in `s` only; later occurrences stay
-  as they are.
-- When `old` does not occur in `s`, the result is `s` unchanged.
-- `String.replaceFirst` panics if `old` is empty.
-- A `string` is immutable: `String.replaceFirst` returns a new string and leaves `s` as it was.
-
-All four rest on [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- Replaces only the first occurrence of `old`; later ones stay. When `old` does not occur, the
+  result equals `s`.
+- Panics if `old` is empty.
+- To replace every occurrence, use [`String.replace`](replace.md).
 
 ## Basic examples
 

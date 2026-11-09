@@ -17,21 +17,12 @@ and a prefix such as 0x are not numbers.
 
 ## Details
 
-- `String.toFloat` reads ASCII decimal digits with an optional sign, an optional fraction after `.`,
-  and an optional exponent after `e` or `E` with its own optional sign, so `.5` and `5.` are
-  numbers.
-- It rounds to the nearest `float64`, so a value too small to represent is `0.0`.
-- A value beyond the range of `float64` is `null`, not an infinity.
-- It also reads `NaN`, and `Inf` or `Infinity` with an optional sign, in any case, so every float
-  that `String.from` writes reads back.
-- Anything else is `null`: white space, `_`, a `,`, a prefix such as `0x`, and digits of other
+- Reads ASCII digits with an optional sign, fraction, and exponent, so `.5` and `5.` are numbers. It
+  also reads `NaN`, `Inf`, and `Infinity`, in any case.
+- Anything else is `null`: white space, `_`, `,`, a prefix such as `0x`, and digits of other
   scripts.
-- The result type is `float64 | null`. Remove the `null` with `??`, or narrow it with `!= null`,
-  before you compute with it
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-
-The parsing rules are in
-[spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- A value beyond the range of `float64` is `null`, not an infinity; a value too small to represent
+  is `0.0`.
 
 ## Basic examples
 

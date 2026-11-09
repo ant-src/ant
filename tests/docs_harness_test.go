@@ -54,6 +54,7 @@ func TestDocsHarness(t *testing.T) {
 		{name: "no panic", page: "<!-- test: panics boom -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"does not panic"}},
 		{name: "no error", page: "<!-- test: error cannot use -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"ant check passes"}},
 		{name: "links that name nothing", page: "[a](nope.md \"title\") [b](P.md) [c](../probe) [d](../../outside.md)\n", want: []string{"nope.md names no file", "P.md names no file", "../probe names no file", "outside.md names no file"}},
+		{name: "a link to the spec", page: "[narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)\n", want: []string{"names the spec"}},
 		{name: "mistyped directives", page: "<!-- tests: exit 3 -->\n<!-- Test: exit 3 -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"p.md:3: a directive starts with test: exactly", "p.md:4: a directive starts"}},
 		{name: "unknown directive", page: "<!-- test: frobnicate -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"unknown directive"}},
 		{name: "body on the head line", page: "<!-- test: stdin hello -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"takes no argument"}},

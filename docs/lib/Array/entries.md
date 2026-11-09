@@ -13,18 +13,9 @@ Array.entries returns each element of xs paired with its index, in order.
 
 ## Details
 
-- `Array.entries` returns one [`Indexed[T]`](types/Indexed.md) record per element of `xs`, in order.
-  `Indexed[T]` is the prelude type `{ index: int, value: T }`
-  ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- The indices start at 0 and end one below the length, so an empty `xs` gives `[]`
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.entries` returns a new array, so pushing, removing, or replacing elements of `xs` later
-  does not change it
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-  Each `value` is the element itself, not a copy, so a change inside a record or array element shows
-  through both ([Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
-- `T` is inferred from `xs`, so the type of `value` is the element type
-  ([Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
+- Indices start at 0, so an empty `xs` gives `[]`.
+- Returns a new array, so later pushes or removals on `xs` do not change it. Each `value` is the
+  element itself, not a copy.
 
 ## Basic examples
 

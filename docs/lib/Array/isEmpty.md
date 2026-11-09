@@ -13,12 +13,7 @@ Array.isEmpty reports whether xs has no elements.
 
 ## Details
 
-- `Array.isEmpty` returns `true` when `xs` has no elements, and `false` otherwise
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `len(xs)` and `Array.length(xs)` give the same count, so `Array.isEmpty(xs)` is `len(xs) == 0`
-  ([spec: Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- Ant has no truthiness: a condition must be a `bool`, so an array is never a condition by itself
-  ([spec: Operators](https://github.com/ant-src/spec/blob/master/ant-lang.md#operators)).
+- Ant has no truthiness, so an array is never a condition by itself; use `Array.isEmpty(xs)`.
 
 ## Basic examples
 
@@ -156,9 +151,8 @@ Err{ error: ["name is empty", "age is negative"] }
 ## Properties and relations
 
 `Array.isEmpty` agrees with `len` and `Array.length`, with `==` against an annotated empty array,
-since arrays are equal when they have the same length and `==` elements
-([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)), and, for
-an array whose element type excludes `null`, with `Array.first`:
+since arrays are equal when they have the same length and `==` elements, and, for an array whose
+element type excludes `null`, with `Array.first`:
 
 ```ant
 var none: Array[int] = []
@@ -201,8 +195,7 @@ An empty array literal has no element type to infer. Annotate it:
 println([].isEmpty())
 ```
 
-An operand of `==` gives no expected type, so `xs == []` cannot infer the element type
-([spec: Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)). Use
+An operand of `==` gives no expected type, so `xs == []` cannot infer the element type. Use
 `Array.isEmpty`:
 
 <!-- test: error cannot infer the element type of an empty array -->

@@ -14,19 +14,11 @@ first-seen order and each group keeps the order of xs.
 
 ## Details
 
-- `Array.groupBy` calls `key` on the elements of `xs` and puts each element in the group of its key.
-  The map's keys are in the order they first appear, and each group keeps the order of `xs`. Each
-  key is the key of at least one element, so an empty `xs` gives an empty map
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It calls `key` once per element, from the first element to the last, and never stops early
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Keys compare the way `==` does, so a record or an array can be a key
-  ([spec: Arrays, maps, and sets](https://github.com/ant-src/spec/blob/master/ant-lang.md#arrays-maps-and-sets)).
-- `m[k]` on the result reads `Array[T] | null`: `null` for a key no element has
-  ([spec: Map](https://github.com/ant-src/spec/blob/master/ant-lang.md#map)).
-- `Array.groupBy` reads the elements once, when it is called, leaves `xs` untouched, and returns new
-  arrays
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Keys are in the order they first appear, and each group keeps the order of `xs`. An empty `xs`
+  gives an empty map.
+- Calls `key` once per element, from first to last.
+- Keys compare by `==`, so a record or an array can be a key.
+- Returns a new map of new arrays; `xs` is unchanged.
 
 ## Basic examples
 
@@ -252,9 +244,8 @@ Map.keys(groups).sort() // [0, 1]
 ```
 
 A key is hashed when the map gets it. When `key` returns an element itself, such as an array,
-mutating that element afterwards mutates the key, and the group may become unreachable
-([spec: Arrays, maps, and sets](https://github.com/ant-src/spec/blob/master/ant-lang.md#arrays-maps-and-sets)).
-Return a copy, as in `{ [...x] }`, or do not mutate the elements:
+mutating that element afterwards mutates the key, and the group may become unreachable. Return a
+copy, as in `{ [...x] }`, or do not mutate the elements:
 
 ```ant
 var rows = [[1], [2], [1]]

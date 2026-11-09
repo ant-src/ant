@@ -13,24 +13,9 @@ Array.sort returns a new array holding the elements of xs in ascending order. Th
 
 ## Details
 
-- `Array.sort` returns a new array with the elements of `xs` in ascending order. The sort is stable:
-  equal elements keep their order. A `NaN` goes after every number
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It leaves `xs` unchanged
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- The order is the one `<` gives
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)): numbers compare by
-  value, and strings by code point
-  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- `-0.0` and `0.0` are equal, so they keep their order in `xs`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `T` must be a single member of `Ordered`, which is `Number | string`: one numeric type, or
-  `string`. A union of members such as `Number` or `int | string` is not one
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). A type
-  outside `Ordered`, such as `int | null`, a record, or `bool`, is not one either. A named primitive
-  type such as `type UserId = string` is not one either: it is assignable only to itself, and
-  library functions take the base kinds
-  ([spec: Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)).
+- Returns a new array; `xs` is unchanged.
+- The sort is stable: equal elements keep their order, `-0.0` and `0.0` included.
+- Strings sort by code point, and a `NaN` goes after every number.
 - To sort by a key, or in another order, use [`Array.sortBy`](sortBy.md) or
   [`Array.sortWith`](sortWith.md).
 
@@ -260,8 +245,7 @@ names.sortBy({ String.foldCase(x) }) // ["alice", "bob", "Carol"]
 ```
 
 Nothing normalizes strings before they compare. An "é" written as one code point, U+00E9, sorts
-after "z", but the same letter written as "e" and a combining U+0301 sorts with the "e" words
-([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)):
+after "z", but the same letter written as "e" and a combining U+0301 sorts with the "e" words:
 
 ```ant
 var words = ["\u{E9}a", "e\u{301}b", "z"]

@@ -13,14 +13,10 @@ String.trim returns s without leading and trailing Unicode white space.
 
 ## Details
 
-- White space is Unicode white space, the code points that `String.isSpace` accepts: the ASCII
-  space, tab, line feed, vertical tab, form feed, and carriage return, and others such as the
-  no-break space U+00A0 and the ideographic space U+3000.
-- `String.trim` removes every white space code point at both ends, however many there are.
-- White space between other code points stays as it is.
-- A string that is empty, or holds only white space, gives `""`.
-
-Spec: [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- Removes all white space at both ends; white space in the middle stays.
+- White space is Unicode white space, as [`String.isSpace`](isSpace.md) accepts, so the no-break
+  space U+00A0 and the ideographic space U+3000 are removed too.
+- A string of only white space gives `""`.
 
 ## Basic examples
 

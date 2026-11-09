@@ -14,15 +14,13 @@ sequence with U+FFFD.
 
 ## Details
 
-- `String.fromBytesLossy` decodes `bytes` as UTF-8. Each maximal subpart of an ill-formed sequence
-  becomes one U+FFFD, the replacement character, as Unicode recommends and the WHATWG Encoding
-  standard does. The bytes `FF FE` become two U+FFFD, and `E2 82`, a euro sign cut short, one.
-- It never fails: every `Bytes` value gives a string, and every string holds only scalar values.
-- It decodes the bytes the same way Ant decodes text from outside the program: a file read with
-  `File.read`, standard input, a network peer, a child process.
-- To learn whether the bytes are text at all, use `String.fromBytes`, which returns `null` instead.
-
-All of this rests on [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- Each maximal subpart of an ill-formed sequence becomes one U+FFFD: the bytes `FF FE` become two,
+  and `E2 82`, a euro sign cut short, one.
+- It never fails.
+- It decodes the way Ant decodes text from outside the program: a file read with `File.read`,
+  standard input, a network peer, a child process.
+- To learn whether the bytes are text at all, use [String.fromBytes](fromBytes.md), which returns
+  `null` instead.
 
 ## Basic examples
 

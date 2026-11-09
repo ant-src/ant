@@ -14,17 +14,11 @@ as ½. It is false on "".
 
 ## Details
 
-- `String.isNumber` is `true` when `s` is not empty and every code point of `s` has a Unicode
-  general category in N, number: Nd decimal digit, Nl letter number, or No other number.
-- Nd holds the decimal digits of every script, such as `7` and `٣`. Nl holds numbers written with
-  letter-like signs, such as the Roman numeral `Ⅻ` and the ideographic zero `〇`. No holds the rest,
-  such as the fraction `½`, the superscript `²`, and the circled `①`.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is number characters.
-- It tests characters, not syntax: a sign, a decimal point, and an exponent are not numbers, and a
-  string of number characters need not be a number that `String.toInt` reads.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has a general category in N (Nd, Nl, No); `false` on `""`.
+- Besides decimal digits it accepts letter numbers such as `Ⅻ` and other numbers such as `½`, `²`,
+  and `①`.
+- It tests characters, not syntax: a sign or a decimal point is not a number, and a string that
+  passes need not be one [`String.toInt`](toInt.md) reads.
 
 ## Basic examples
 

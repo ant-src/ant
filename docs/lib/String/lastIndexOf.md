@@ -14,15 +14,10 @@ does not occur.
 
 ## Details
 
-- `String.lastIndexOf` returns the index of the last occurrence of `t` in `s`, counted in code
-  points, the unit [`String.length`](length.md) and [`String.slice`](slice.md) also count.
+- The index counts code points, as [`String.length`](length.md) and [`String.slice`](slice.md) do.
 - When `t` does not occur in `s`, the result is `null`, not `-1`.
-- `t` matches as a sequence of code points, so `é` written as `e` plus a combining accent does not
-  match a precomposed `é`; normalize both with [`String.normalize`](normalize.md) first
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result type is `int | null`. Narrow it with `!= null`, or give a default with `??`, before you
-  use it as an `int`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- `t` matches code point by code point, so `é` written as `e` plus a combining accent does not match
+  a precomposed `é`; normalize both with [`String.normalize`](normalize.md) first.
 
 ## Basic examples
 

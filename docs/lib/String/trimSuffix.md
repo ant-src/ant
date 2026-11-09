@@ -14,14 +14,8 @@ end with suffix.
 
 ## Details
 
-- `String.trimSuffix` removes `suffix` from the end of `s` once, when `s` ends with it, and returns
-  `s` unchanged otherwise. It never panics
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The match is exact, code point by code point, as in [`String.endsWith`](endsWith.md): it does not
-  ignore case and does not normalize
-  ([spec: Dynamic semantics](https://github.com/ant-src/spec/blob/master/ant-lang.md#12-dynamic-semantics)).
-- Both parameters are `string`. A `string | null` must be narrowed first
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Removes `suffix` once, when `s` ends with it; otherwise returns `s` unchanged. It never panics.
+- The match is exact, as in [`String.endsWith`](endsWith.md): it does not ignore case or normalize.
 
 ## Basic examples
 

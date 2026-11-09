@@ -13,16 +13,10 @@ String.toCodePoints returns the scalar value of each code point of s.
 
 ## Details
 
-- `String.toCodePoints` returns one `int` per code point of `s`, in order: the code point's Unicode
-  scalar value. The empty string gives `[]`.
-- Every string holds only scalar values, so each value is from `0` to `0x10FFFF` and never a
-  surrogate from `0xD800` to `0xDFFF`. No documented case makes it panic
-  ([spec: Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
+- Returns one `int` per code point, in order. `""` gives `[]`.
+- Each value is from `0` to `0x10FFFF` and never a surrogate.
 - It counts code points, as `String.length` does, not bytes and not what a reader sees as one
   character.
-
-The code point rules are in
-[spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
 
 ## Basic examples
 

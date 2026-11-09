@@ -14,17 +14,11 @@ base defaults to 10, and it panics if base is outside 2 ..= 36.
 
 ## Details
 
-- `String.fromInt` writes `x` in `base` with lower-case digits, `0` to `9` and then `a` to `z`, and
-  a `-` in front when `x` is negative.
-- `base` defaults to `10`. Any base from 2 to 36 works; a base outside `2 ..= 36` panics.
-- `x` may be any of the eight integer types, the members of `Integer`. An unsigned value is written
-  as the number it is, so the largest `uint64` is `18446744073709551615`
-  ([spec: Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives),
-  [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The solution for `T` must be a single member of `Integer`. A float, a union such as `int | null`,
-  or a named primitive type over `int` is a compile error until you convert or narrow it
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics),
-  [Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)).
+- Writes lower-case digits, `0` to `9` and then `a` to `z`, with a `-` in front when `x` is
+  negative.
+- `base` defaults to `10`; a base outside `2 ..= 36` panics.
+- `x` can be any integer type, and an unsigned value is written as the number it is. A float or a
+  named type over `int` must be converted first.
 
 ## Basic examples
 
@@ -268,9 +262,8 @@ var id = UserId(42)
 String.fromInt(int(id)) // "42"
 ```
 
-A number has no namespace, so a call through `.` fails
-([spec: Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
-Call `String.fromInt(n)` or pipe `n | String.fromInt()`:
+A number has no namespace, so a call through `.` fails. Call `String.fromInt(n)` or pipe
+`n | String.fromInt()`:
 
 <!-- test: error int has no field or function fromInt -->
 

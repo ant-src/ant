@@ -15,21 +15,13 @@ String.foldCase(b).
 ## Details
 
 - `String.equalFold(a, b)` is `String.foldCase(a) == String.foldCase(b)`.
-- `foldCase` applies Unicode's full case folding, so one character can fold to several: `"ß"` and
-  `"ss"` are equal without regard to case, and so are `"Straße"` and `"STRASSE"`.
-- `foldCase` applies the full case folding, which has no Turkish rule: `"İ"` folds to `"i\u{307}"`,
-  not `"i"`, and `"ı"` stays `"ı"`. So `"İ"` and `"i"` are not equal without regard to case, nor are
-  `"ı"` and `"I"`.
-- Folding changes case only, not accents: `"café"` and `"CAFE"` are not equal without regard to
-  case.
-- `equalFold` does not normalize. An accented letter written as one code point and as a letter with
-  a combining mark compares `false`; normalize both with `String.normalize(s, "NFC")` first.
-- Regex's `i` flag folds one code point at a time, so `/straße/i` does not match `"STRASSE"`, which
-  `equalFold` accepts.
-
-All of this is in the spec's
-[String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string) and
-[Regex](https://github.com/ant-src/spec/blob/master/ant-lang.md#regex) sections.
+- Full case folding maps one character to several where Unicode says so: `"Straße"` and `"STRASSE"`
+  are equal.
+- There is no Turkish rule: `"İ"` and `"i"` are not equal, nor are `"ı"` and `"I"`.
+- It changes case only. It does not remove accents, so `"café"` and `"CAFE"` differ, and it does not
+  normalize; use `String.normalize(s, "NFC")` on both first.
+- The `i` flag of a regular expression folds one code point at a time, so `/straße/i` does not match
+  `"STRASSE"`.
 
 ## Basic examples
 

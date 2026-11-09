@@ -13,14 +13,8 @@ String.endsWith reports whether s ends with t.
 
 ## Details
 
-- `String.endsWith` returns `true` when the last code points of `s` are the code points of `t`, in
-  order, and `false` otherwise
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The comparison is exact, code point by code point: it does not ignore case and does not normalize,
-  so the two spellings of "é" differ. Strings are equal when they have the same code points
-  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- Both parameters are `string`. A `string | null` must be narrowed first
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Compares code points exactly: it does not ignore case and does not normalize, so the two spellings
+  of "é" differ.
 
 ## Basic examples
 

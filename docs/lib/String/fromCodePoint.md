@@ -14,14 +14,8 @@ value.
 
 ## Details
 
-- `String.fromCodePoint` returns a string that holds exactly the code point `n`
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- It returns `null` when `n` is not a Unicode scalar value: a negative number, a number above
-  `0x10FFFF`, or a surrogate, `0xD800` to `0xDFFF`. Every string holds only scalar values, so no
-  string could hold such a code point
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result is `string | null`, so narrow it with `??`, `!= null`, or `match` before you use it as
-  a `string` ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Returns `null` when `n` is not a Unicode scalar value: a negative number, a number above
+  `0x10FFFF`, or a surrogate, `0xD800` to `0xDFFF`.
 
 ## Basic examples
 

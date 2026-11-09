@@ -14,16 +14,13 @@ sees as characters.
 
 ## Details
 
-- `String.graphemes` splits `s` into extended grapheme clusters, as Unicode's UAX #29 defines them:
-  the units a reader sees as one character. Joining the elements gives `s` back
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- A grapheme can be several code points: a letter with combining accents, a flag made of two
-  regional indicators, an emoji with a skin tone, or a family emoji joined with zero width joiners.
-  `String.chars` splits all of these apart.
+- Splits `s` into the units a reader sees as one character (UAX #29 extended grapheme clusters).
+  Joining the elements gives `s` back.
+- One grapheme can be several code points: a letter with combining accents, a flag, an emoji with a
+  skin tone. [`String.chars`](chars.md) splits these apart.
 - An empty `s` gives `[]`.
-- The split follows the Unicode version that `String.unicodeVersion` names.
-- `String.graphemes` does not normalize: `"\u{E9}"` and `"e\u{301}"` are each one grapheme, and the
-  two graphemes are still different strings.
+- It does not normalize: `"\u{E9}"` and `"e\u{301}"` are each one grapheme, and still different
+  strings.
 
 ## Basic examples
 

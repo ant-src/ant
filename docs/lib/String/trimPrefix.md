@@ -14,13 +14,9 @@ start with prefix.
 
 ## Details
 
-- When `s` starts with `prefix`, `String.trimPrefix` removes one copy of it from the start of `s`.
-  Otherwise it returns `s` unchanged.
-- `prefix` is a string to match, not a set of characters, and it is removed once, not repeatedly.
-- A string is a sequence of code points, so `prefix` matches when `s` starts with the same code
-  points. To match without regard to case or spelling, fold or normalize both strings first.
-
-Spec: [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- Removes `prefix` once, when `s` starts with it; otherwise returns `s` unchanged.
+- `prefix` is a string to match exactly, not a set of characters, and it is removed once, not
+  repeatedly.
 
 ## Basic examples
 

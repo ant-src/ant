@@ -13,20 +13,9 @@ Array.same reports whether xs and ys are the same array, not merely equal ones.
 
 ## Details
 
-- `Array.same` returns `true` when `xs` and `ys` are one array, and `false` otherwise, even when the
-  two arrays hold `==` elements
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Assigning or passing an array shares it, and a change made through one name is visible through
-  every other ([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
-- `==` on arrays compares the elements, never identity, so `==` cannot tell a shared array from a
-  copy ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- An array literal and a spread make a new array, and so does every library function that returns an
-  array and is not marked `mutates`: it returns a new value
-  ([spec: Arrays, maps, and sets](https://github.com/ant-src/spec/blob/master/ant-lang.md#arrays-maps-and-sets),
-  [spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `xs` and `ys` have the one type `Array[T]`. Array types are invariant, so an `Array[int]` and an
-  `Array[int | null]` cannot be compared
-  ([spec: Assignability](https://github.com/ant-src/spec/blob/master/ant-lang.md#assignability)).
+- Returns `true` only when `xs` and `ys` are one array, even when two different arrays hold `==`
+  elements.
+- `==` compares elements, so use `Array.same` to tell a shared array from a copy.
 
 ## Basic examples
 
@@ -190,8 +179,7 @@ assert(Array.same(xs, xs))
 assert(Array.same(xs, ys) == Array.same(ys, xs))
 ```
 
-The same array is `==` to itself unless it holds a `NaN`, since floats compare with IEEE 754 rules
-([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)):
+The same array is `==` to itself unless it holds a `NaN`, since floats compare with IEEE 754 rules:
 
 ```ant
 var xs = [Math.NaN]

@@ -13,14 +13,9 @@ String.isPunct reports whether every code point of s is punctuation (P). It is f
 
 ## Details
 
-- `String.isPunct` is `true` when `s` is not empty and every code point of `s` has a Unicode general
-  category in P, punctuation: Pc, Pd, Ps, Pe, Pi, Pf, or Po.
-- It is `false` on `""`.
-- Some ASCII characters that look like punctuation are symbols, S, and give `false`: `$`, `+`, `<`,
-  `=`, `>`, `^`, `` ` ``, `|`, and `~`. [`String.isSymbol`](isSymbol.md) tests those.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is punctuation.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has a general category in P; `false` on `""`.
+- Some ASCII signs are symbols, not punctuation: `$`, `+`, `<`, `=`, `>`, `^`, `` ` ``, `|`, `~`.
+  [`String.isSymbol`](isSymbol.md) tests those.
 
 ## Basic examples
 

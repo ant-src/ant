@@ -13,21 +13,10 @@ Array.findLast returns the last element of xs that f accepts, or null when there
 
 ## Details
 
-- `Array.findLast` returns the last element of `xs` for which `f` returns `true`, and `null` when
-  `f` accepts no element, so an empty array gives `null`.
-- `f` is called on the elements from the last one back, once each, and the call stops at the first
-  element `f` accepts, so the elements before it are never passed to `f`. When `f` accepts none,
-  every element is tested, from the last to the first
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result has type `T | null`; narrowing or a `??` fallback turns it into a `T`.
-- A nullable type is a union with `null`, so when `T` already includes `null` the result type is
-  still `T`, and a `null` result does not tell a found `null` from no match
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `f` is any function value of type `func(T): bool`: a lambda, a named function, or a closure over
-  local variables
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- In a lambda passed as `f`, the implicit parameter `x` is the element being tested
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
+- Returns `null` when `f` accepts no element, so an empty array gives `null`.
+- Calls `f` from the last element back and stops at the first element `f` accepts.
+- When `T` includes `null`, a `null` result does not tell a missing element from a found `null`; use
+  [Array.findLastIndex](findLastIndex.md).
 
 ## Basic examples
 

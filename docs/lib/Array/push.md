@@ -13,18 +13,9 @@ Array.push appends v to the end of xs. It mutates xs.
 
 ## Details
 
-- `Array.push` mutates `xs` and returns `void`
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `xs` stays the same array, so every other name for it sees the new element
-  ([Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
-- A `let` fixes the binding, not the elements, so `Array.push` works on a `let` array
-  ([Variables](https://github.com/ant-src/spec/blob/master/ant-lang.md#3-variables)).
-- A `for` loop over `xs` visits elements pushed during the loop
-  ([Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- The parameters are named `xs` and `v`, so a call can name its arguments in any order
-  ([Calling](https://github.com/ant-src/spec/blob/master/ant-lang.md#calling)).
-- Two goroutines that push to one array without a lock are a data race
-  ([Data races](https://github.com/ant-src/spec/blob/master/ant-lang.md#data-races)).
+- Appends `v` to `xs` in place and returns `void`. Every name that shares the array sees the new
+  element.
+- A `for` loop over `xs` visits elements pushed during the loop.
 
 ## Basic examples
 
@@ -294,8 +285,7 @@ xs // [1, 2, 10, 20]
 
 A function that takes an array and a callback reads the elements once, when it is called, while a
 `for` loop reads the array as it goes. A callback that pushes to the array it was given does not see
-its own pushes
-([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)):
+its own pushes:
 
 ```ant
 var a = [1, 2, 3]

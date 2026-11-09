@@ -14,13 +14,9 @@ Array.extend(xs, xs) doubles xs. It mutates xs.
 
 ## Details
 
-- `Array.extend` mutates `xs` and returns `void`. It leaves `ys` untouched
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- It appends the elements of `ys` in order, as `ys` was at the call, so `Array.extend(xs, xs)`
-  doubles `xs` ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Both arrays have the same element type `T`. Type arguments are invariant, so an `Array[int]` does
-  not extend an `Array[int | null]`
-  ([Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
+- Changes `xs` in place and returns `void`; `ys` is unchanged. To get a new array instead, use
+  [Array.concat](concat.md).
+- Appends the elements of `ys` as they were at the call, so `Array.extend(xs, xs)` doubles `xs`.
 
 ## Basic examples
 
@@ -76,8 +72,7 @@ Array.extend(maybe, [null, 2])
 maybe // [1, null, 2]
 ```
 
-A `let` fixes the binding, not the elements, so a `let` array can be extended
-([Variables](https://github.com/ant-src/spec/blob/master/ant-lang.md#3-variables)):
+A `let` fixes the binding, not the elements, so a `let` array can be extended:
 
 ```ant
 let xs = [1]
@@ -213,9 +208,8 @@ grid // [[1], [9]]
 ```
 
 A `for` loop over `xs` iterates by index while the index is below the current length, so it also
-visits the elements that `Array.extend` appends during the loop
-([Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)). Extending `xs`
-with each element it visits never ends. Here a counter stops it after three calls:
+visits the elements that `Array.extend` appends during the loop. Extending `xs` with each element it
+visits never ends. Here a counter stops it after three calls:
 
 ```ant
 var xs = [1, 2]

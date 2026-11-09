@@ -14,31 +14,10 @@ element in turn. It returns init when xs is empty.
 
 ## Details
 
-- `Array.reduce` calls `f(acc, x)` for each element `x` of `xs`, from the first to the last. `acc`
-  is `init` on the first call and the result of the previous call after that. The result of the last
-  call is the result of `reduce`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.reduce` calls `f` once per element, in order, and never stops early, even when the
-  accumulator can no longer change, unlike `Array.some` or `Array.every`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- On an empty array, `f` is never called and the result is `init`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The accumulator type `A` may differ from the element type `T`. A generic call solves its type
-  parameters from the expected type first, then from the non-lambda arguments left to right, then
-  from the lambdas. So an annotated result fixes `A`, otherwise `init` does, and `f` is checked
-  against it. An empty literal such as `[]` or `Map{}` as `init` fixes nothing and leaves `A` to `f`
-  or the expected type, and a lambda as `init` is checked last
-  ([spec: Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)).
-- `f` takes two parameters, so it is any function value of type `func(A, T): A`, such as an
-  anonymous function with annotated parameters, a named function, or a variable holding one. A
-  lambda `{ ... }` has at most one parameter and does not fit
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
-- A call through `Array.reduce` or through `.` may name `init` and `f`; positional arguments fill
-  parameters left to right
-  ([spec: Calling](https://github.com/ant-src/spec/blob/master/ant-lang.md#calling)).
-- `Array.reduce` reads the elements once, when it is called. A callback that pushes to `xs` changes
-  `xs` but not what the call visits
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Calls `f(acc, x)` once per element, from first to last, and never stops early. `acc` starts as
+  `init`.
+- On an empty array, `f` is never called and the result is `init`.
+- `f` takes two parameters, so pass a `func` or a named function; a `{ ... }` lambda has only `x`.
 
 ## Basic examples
 

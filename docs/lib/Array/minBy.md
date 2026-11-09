@@ -15,21 +15,9 @@ key never wins.
 
 ## Details
 
-- `Array.minBy` calls `key` on the elements and returns the element whose key is least, not the key
-  itself. It returns `null` when `xs` is empty.
-- It scans from the left and replaces the element it holds only when a key is strictly less than the
-  held key by `<`. Of equal keys the first wins, and a `NaN` key never replaces the element held.
-- `key` runs once per element, from the first element to the last, and the call never stops early,
-  not even after the element it returns. An empty array never calls `key`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `K` must be a single member of `Ordered`, never a union such as `int | string`
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
-- The result is a `T | null`. Read through it with `?.`, give a fallback with `??`, or narrow it
-  with `if` before you use it as a `T`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `key` is any `func(T): K`: a lambda with `x`, an anonymous `func`, or a named function. A closure
-  sees the variables it captures
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
+- Returns the element, not its key, and `null` when `xs` is empty.
+- Calls `key` once per element, from first to last, and never stops early.
+- Of equal keys, the first element wins, and a `NaN` key never wins.
 
 ## Basic examples
 

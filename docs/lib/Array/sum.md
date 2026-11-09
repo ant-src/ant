@@ -14,20 +14,8 @@ for a zero default. It panics on overflow.
 
 ## Details
 
-- `Array.sum` returns the total of the elements of `xs`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It returns `null` on an empty array, not a zero, because the interpreter never knows `T` and so
-  cannot produce the zero of the right kind
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `T` must be a single member of `Number`: one of the eight integer types, `float32`, or `float64`.
-  A union such as `Number` or `int | null` is not one, and neither is a named primitive type
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
-- Integer overflow panics, as it does for `+`. Float sums follow IEEE 754: a `NaN`, or infinities of
-  both signs, give `NaN`
-  ([spec: Operators](https://github.com/ant-src/spec/blob/master/ant-lang.md#operators),
-  [spec: Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- The result has type `T | null`, so narrow it, or give it a default with `??`, before using it as a
-  `T` ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- Returns `null` when `xs` is empty, not a zero, so give it a default with `??`.
+- Integer overflow panics, as it does for `+`. A `NaN`, or infinities of both signs, give `NaN`.
 
 ## Basic examples
 

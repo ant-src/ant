@@ -14,24 +14,8 @@ is none.
 
 ## Details
 
-- `Array.findLastIndex` returns the greatest index `i` for which `f(xs[i])` is `true`, and `null`
-  when `f` accepts no element, so an empty array gives `null`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `f` runs on the elements from the last back to the first, once each, and `Array.findLastIndex`
-  stops at the first element that `f` accepts: `f` never sees the elements before it. When `f`
-  accepts none, it has run once on every element
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result is an `int | null`; a program narrows it, or gives a fallback with `??`, before using
-  it as an `int`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `Array.findLastIndex` reads the elements once, when it is called. A callback that changes `xs`
-  does not change which values it tests
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `f` is any function value: a lambda with its implicit `x`, a named function, or a function on a
-  type
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- A call can name `f`, as in `Array.findLastIndex(xs, f: { x > 3 })`
-  ([spec: Calling](https://github.com/ant-src/spec/blob/master/ant-lang.md#calling)).
+- Returns `null` when `f` accepts no element, so an empty array gives `null`.
+- Calls `f` from the last element back and stops at the first element `f` accepts.
 
 ## Basic examples
 

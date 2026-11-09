@@ -13,15 +13,10 @@ Array.reverse returns a new array holding the elements of xs in reverse order.
 
 ## Details
 
-- The result holds the elements of `xs` in reverse order: element `i` of the result is element
-  `length - 1 - i` of `xs` ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.reverse` leaves `xs` untouched and returns a new array
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- The new array holds the elements of `xs` themselves, not copies, so an element that is an array,
-  map, set, or record is shared with `xs`
-  ([Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
-- To reverse text a reader sees, reverse its graphemes, not its code points
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- Returns a new array; `xs` is unchanged.
+- The new array holds the same elements, not copies, so a nested array, map, set, or record is
+  shared with `xs`.
+- To reverse text, reverse its graphemes, not its code points.
 
 ## Basic examples
 
@@ -194,8 +189,7 @@ grid // [[1], [9]]
 Array.reverse("noel")
 ```
 
-Reversing the code points of a string moves an accent onto another letter
-([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)). Split with
+Reversing the code points of a string moves an accent onto another letter. Split with
 [String.graphemes](../String/graphemes.md) instead of [String.chars](../String/chars.md), as in
 Applications above:
 
@@ -213,9 +207,8 @@ Array.reverse(Array.sortBy(players, { x.score })).map({ x.name }) // ["Cid", "An
 Array.sortBy(players, { -x.score }).map({ x.name })               // ["Ann", "Cid", "Bob"]
 ```
 
-The sorts treat `-0.0` and `0.0` as equal and keep them in their original order
-([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)), so reversing a sort swaps
-them too. Dividing by each zero shows which is which:
+The sorts treat `-0.0` and `0.0` as equal and keep them in their original order, so reversing a sort
+swaps them too. Dividing by each zero shows which is which:
 
 ```ant
 var zs = [-0.0, 0.0]

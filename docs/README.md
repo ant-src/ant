@@ -63,8 +63,9 @@ Keep the brief while the page is a draft, and remove it once the page is reviewe
 
 The spec (`github.com/ant-src/spec`: `ant-lang.md`, `stdlib.md`, and the tool documents) defines
 Ant. The docs explain and show; they never state a rule the spec does not state. When a page and the
-spec disagree, the page is wrong. Corner cases stay in the spec: a page covers the common path and
-links the spec section for the rest.
+spec disagree, the page is wrong. Corner cases stay in the spec: a page covers what a reader needs
+and leaves the rest out. Pages never link the spec; they are written for people using Ant, not for
+people implementing it.
 
 If an example shows that `ant` does not do what the spec says, or that the spec does not say what a
 page needs, that is a bug in `ant` or a gap in the spec. Report it; do not write around it.
@@ -127,7 +128,7 @@ The second-level headings are these, in this order, each only when it has conten
 
 | Section                  | Holds                                                                                       |
 | ------------------------ | ------------------------------------------------------------------------------------------- |
-| Details                  | Short bullets: edge values, panics, named parameters. Each states a spec rule and links it. |
+| Details                  | A few short bullets a user needs and the examples do not make obvious. No spec links.       |
 | Basic examples           | The two or three calls a newcomer writes first. Required once a page is a draft.            |
 | Scope                    | Every shape of input: empty, Unicode, `null`, records, unions, function values, `.`, pipes. |
 | Named arguments          | Each named parameter with a default, such as `limit:` or `ctx:`.                            |
@@ -137,8 +138,12 @@ The second-level headings are these, in this order, each only when it has conten
 | Neat examples            | Optional: something surprising or pretty.                                                   |
 | See also                 | Related functions, as links.                                                                |
 
-In Details, link the most specific spec section for each rule, once: when every bullet rests on the
-same section, one link at the end of the list is enough.
+Details is short: usually two to five bullets, often fewer. Keep what changes how someone uses the
+function: what an empty or edge input gives, when it panics, whether it changes its argument or
+returns a new value, whether it is lazy, the order it calls a callback in when that matters. Leave
+out what the signature already says, what every function shares (inference, which function values
+can be passed, how `.` resolves, assignability rules), and corner cases few readers hit. Each bullet
+must still be true by the spec. When nothing is worth saying, leave Details out.
 
 Third-level headings inside a section are free. Each example teaches something the others do not,
 and the examples use the variety of the language on purpose: lambdas with `x`, named functions,
@@ -156,10 +161,9 @@ then the differences that bite. A design note argues one decision.
 
 Link pages with relative paths: `[Array.filter](filter.md)`,
 `[for](../../language/keywords/for.md)`. The test checks that every relative link names a file under
-`docs/`, spelled with its exact case, which macOS would forgive and Linux would not. Link the spec
-by its GitHub URL and section anchor, such as
-`https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing`. A link that starts with `/`
-names a page of the site outside the docs, such as `/vscode`.
+`docs/`, spelled with its exact case, which macOS would forgive and Linux would not. Never link the
+spec: link the docs page that explains the topic instead. A link that starts with `/` names a page
+of the site outside the docs, such as `/vscode`.
 
 ## Examples
 

@@ -15,23 +15,9 @@ and a NaN key never wins.
 
 ## Details
 
-- `Array.maxBy` returns the element of `xs` whose key is greatest, and `null` when `xs` is empty.
-- It calls `key` once per element, from the first element to the last, and never stops early. On an
-  empty `xs` it never calls `key`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It keeps the element it holds unless a later key is strictly greater by `<`. Of equal keys, the
-  first element wins, and a `NaN` key never replaces the element held
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The key type `K` must be one member of `Ordered`: one integer or float kind, or `string`
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). Strings
-  compare by code point
-  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- `key` is any function value of type `func(T): K`: a lambda with its implicit `x`, a named
-  function, or a closure over local variables
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- The result type is `T | null`. Read it with `?.` or `??`, or narrow it with `!= null`, before you
-  use it as a `T`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- Returns the element, not its key, and `null` when `xs` is empty.
+- Calls `key` once per element, from first to last, and never stops early.
+- Of equal keys, the first element wins, and a `NaN` key never wins.
 
 ## Basic examples
 
@@ -247,8 +233,7 @@ runs.sortBy({ x.ms }).last()?.name // "c"
 ```
 
 Negating an unsigned key to find the least panics, since the negation overflows. So does negating
-the most negative value of a signed kind
-([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)):
+the most negative value of a signed kind:
 
 ```ant
 [uint8(1), uint8(2)].maxBy({ -x }) // panic: integer overflow
@@ -277,7 +262,7 @@ Array.entries(a).maxBy({ x.value ?? 0 })?.index // 0
 
 On floats, `maxBy({ x })` and `Array.max` can differ. `Array.max` is `NaN` when any element is `NaN`
 and puts `-0.0` below `0.0`, while `Array.maxBy` never lets a `NaN` key win and keeps the first of
-equal keys ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)):
+equal keys:
 
 ```ant
 [1.0, 0.0 / 0.0].maxBy({ x }) // 1.0

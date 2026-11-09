@@ -15,21 +15,12 @@ grapheme; see [`String.graphemes`](graphemes.md).
 
 ## Details
 
-- `String.slice` counts code points, not bytes and not graphemes
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- Like `Array.slice`, the range is half-open: `from` is inclusive and `to` is exclusive, so the
-  result holds `to - from` code points
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It panics as `Array.slice` does: when `from > to`, or when either index is outside
-  `0 ..= String.length(s)`. It does not clamp an index to the string, and a negative index does not
-  count from the end ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `from == to` gives `""`, and `String.slice(s, 0, String.length(s))` gives all of `s`.
-- A string has no `s[i]`. `String.slice` takes part of a string as a string, and `String.chars`
-  gives its characters as an array to index
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- A code point range can end inside what a reader sees as one character, such as an emoji or a
-  letter with a combining accent
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- Counts code points, not bytes and not graphemes, so a slice can end inside what a reader sees as
+  one character, such as an emoji or a letter with a combining accent.
+- `from` is inclusive and `to` is exclusive. `from == to` gives `""`.
+- Panics when `from > to`, or when either index is outside `0 ..= String.length(s)`. It does not
+  clamp, and a negative index does not count from the end.
+- A string has no `s[i]`; use [`String.chars`](chars.md) to get an array of characters to index.
 
 ## Basic examples
 

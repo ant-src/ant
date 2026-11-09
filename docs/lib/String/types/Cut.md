@@ -14,19 +14,9 @@ them.
 
 ## Details
 
-- `String.Cut` is a record type with two `string` fields, `before` and `after`. The prelude declares
-  it in the `String` namespace, so it needs no import and is always written `String.Cut`
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string),
-  [Namespaces](https://github.com/ant-src/spec/blob/master/ant-lang.md#namespaces)).
 - [`String.cut`](../cut.md) returns a `String.Cut` when the separator occurs, with `before` the text
-  in front of its first occurrence and `after` the text behind it, and `null` when it does not occur
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- A literal is written `String.Cut{ before: ..., after: ... }`. Neither field has a default, so a
-  literal gives both, and a field the type does not list is a compile error
-  ([Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
-- The fields are mutable, `==` compares the tag and the fields, and assigning a `String.Cut` shares
-  it, as with every record
-  ([Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
+  in front of its first occurrence and `after` the text behind it, and `null` when it does not.
+- Neither field has a default, so a literal gives both.
 
 ## Basic examples
 

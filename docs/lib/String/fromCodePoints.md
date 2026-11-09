@@ -14,15 +14,9 @@ Unicode scalar value.
 
 ## Details
 
-- `String.fromCodePoints` returns the string whose code points are the values of `points`, in order.
-  An empty array gives `""`
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- It returns `null` when any value is not a Unicode scalar value: a negative number, a number above
-  `0x10FFFF`, or a surrogate from `0xD800` to `0xDFFF`. One such value makes the whole result
-  `null`; there is no partial string and no replacement character
-  ([spec: Literals](https://github.com/ant-src/spec/blob/master/ant-lang.md#literals)).
-- The result is `string | null`, so narrow it before you use it as a `string`
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- An empty array gives `""`.
+- Returns `null` when any value is not a Unicode scalar value: a negative number, a number above
+  `0x10FFFF`, or a surrogate. There is no partial string and no replacement character.
 
 ## Basic examples
 

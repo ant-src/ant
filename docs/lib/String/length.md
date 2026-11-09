@@ -13,18 +13,10 @@ String.length returns the number of code points in s, not the graphemes a reader
 
 ## Details
 
-- `String.length` counts the code points of `s`, and `""` has length `0`. Lengths, indices, and
-  slices of a string all count code points. A string is stored as UTF-8, so its length in bytes,
-  `Bytes.length(String.toBytes(s))`, can be larger than its length in code points
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- What a reader sees as one character can be several code points, such as an `e` followed by a
-  combining accent, or a family emoji joined from three people. `String.graphemes` splits text into
-  those units.
-- The built-in `len` counts a string's code points as `String.length` does
-  ([spec: Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- `String.length` takes a `string`, so a value of a named primitive type over `string` needs
-  `string(id)` first, while `len(id)` unwraps it
-  ([spec: Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)).
+- Counts code points, not bytes and not graphemes. `""` has length `0`.
+- The length in bytes, `Bytes.length(String.toBytes(s))`, can be larger.
+- What a reader sees as one character can be several code points; use
+  [`String.graphemes`](graphemes.md) to count those.
 
 ## Basic examples
 

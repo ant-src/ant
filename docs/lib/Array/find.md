@@ -13,25 +13,11 @@ Array.find returns the first element of xs that f accepts, or null when there is
 
 ## Details
 
-- `Array.find` returns the first element of `xs`, in index order, for which `f` returns `true`, and
-  `null` when `f` accepts none, so an empty array gives `null`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.find` calls `f` once per element, from the first element on, and stops at the first element
-  `f` accepts: `f` does not run on the elements after it. With no match, `f` runs once on every
-  element ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result type is `T | null`. Read it with `?.` or `??`, or narrow it with `!= null`, before you
-  use it as a `T`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability),
-  [Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
-- When `T` already includes `null`, `T | null` is `T`, so a `null` result does not tell a missing
-  element from a found `null`. Ask the array instead, with `Array.findIndex`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `f` is any function value of type `func(T): bool`: a lambda with its implicit `x`, a named
-  function, or a closure over local variables
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions),
-  [Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- Arrays and records are references, so the element `Array.find` returns is the one in `xs`, not a
-  copy ([spec: Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
+- Returns `null` when `f` accepts no element, so an empty array gives `null`.
+- Calls `f` from the first element and stops at the first element `f` accepts.
+- When `T` includes `null`, a `null` result does not tell a missing element from a found `null`; use
+  [Array.findIndex](findIndex.md).
+- The result is the element in `xs`, not a copy.
 
 ## Basic examples
 

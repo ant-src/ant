@@ -13,16 +13,8 @@ Array.flatten returns a new array holding the elements of each array in xs, conc
 
 ## Details
 
-- `Array.flatten` takes an array of arrays and removes one level of nesting. The result holds the
-  elements of the inner arrays, concatenated in order: every element of the first inner array, in
-  its order, then every element of the second, and so on
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.flatten` changes neither `xs` nor its inner arrays, and returns a new array
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- Every inner array has the same element type `T`. Type arguments are never written at a call site:
-  the expected type or the argument fixes `T`, and an empty `[]` with nothing to fix it is a compile
-  error ([Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics),
-  [Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)).
+- Removes one level of nesting, joining the inner arrays in order.
+- Returns a new array; `xs` and its inner arrays are unchanged.
 
 ## Basic examples
 
@@ -60,7 +52,7 @@ Array.flatten([[Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]]) // [Point{ x: 1, y
 
 Inner arrays that differ only in holding `null` need an expected type. Without one,
 `[[1, null], [null]]` would be an `Array[int | null] | Array[null]`, and a union may hold only one
-array member ([Unions](https://github.com/ant-src/spec/blob/master/ant-lang.md#unions)):
+array member:
 
 ```ant
 var xs: Array[Array[int | null]] = [[1, null], [null]]

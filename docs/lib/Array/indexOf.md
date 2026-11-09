@@ -13,21 +13,10 @@ Array.indexOf returns the index of the first element of xs that is == v, or null
 
 ## Details
 
-- `Array.indexOf` compares each element with `v` by `==`, the same test as the
-  [`==` operator](../../language/operators/equality.md), and returns the least index `i` with
-  `xs[i] == v`. It returns `null` when no element is `==` to `v`, so an empty array gives `null`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result is an `int | null`. Narrow it, or give a fallback with `??`, before you use it as an
-  `int`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `==` is structural: arrays, maps, sets, and records are equal when their contents are. Functions,
-  tags, sync objects, generators, handles, and listeners compare by identity
-  ([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
-- Floats compare as IEEE 754 does: `NaN` equals nothing, itself included, and `-0.0 == 0.0`
-  ([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
-- `v` must have the element type `T`. Numeric types never mix
-  ([spec: Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)), and
-  `null` is a valid `v` only when `T` includes `null`.
+- Compares each element with `v` by [`==`](../../language/operators/equality.md) and returns the
+  first matching index.
+- Returns `null` when no element matches, so an empty array gives `null`.
+- `NaN` equals nothing, itself included, so `NaN` is never found.
 
 ## Basic examples
 
@@ -115,8 +104,7 @@ In a pipeline, the array is the first argument:
 "mon tue wed thu fri" | String.split(" ") | Array.indexOf("wed") // 2
 ```
 
-A direct call can name `v`, through `Array` or through `.`
-([spec: Calling](https://github.com/ant-src/spec/blob/master/ant-lang.md#calling)):
+A direct call can name `v`, through `Array` or through `.`:
 
 ```ant
 Array.indexOf(["a", "b"], v: "b") // 1

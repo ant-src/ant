@@ -13,22 +13,10 @@ Indexed is an element with its index, as [`Array.entries`](../entries.md) yields
 
 ## Details
 
-- `Indexed[T]` is a generic record type that the prelude declares in every module, so it needs no
-  import ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- [`Array.entries`](../entries.md) returns one `Indexed[T]` per element, where `index` is the
-  element's position and `value` is the element
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- A literal names the type without type arguments, as `Indexed{ index: 0, value: "a" }`; the checker
-  infers `T` from `value` or from the expected type. Both fields have no default, so a literal gives
-  both ([Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records),
-  [Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
-- An annotation writes the type argument, as `Indexed[int]`. `Indexed` without one is a compile
-  error ([Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics),
-  [Types as values](https://github.com/ant-src/spec/blob/master/ant-lang.md#types-as-values)).
-- Type arguments are invariant: `Indexed[int]` is not an `Indexed[int | string]`
-  ([Assignability](https://github.com/ant-src/spec/blob/master/ant-lang.md#assignability)).
-- The fields are mutable, like the fields of every record
-  ([Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
+- [`Array.entries`](../entries.md) returns one `Indexed[T]` per element: `index` is its position and
+  `value` is the element.
+- A literal leaves out the type argument, as `Indexed{ index: 0, value: "a" }`; an annotation writes
+  it, as `Indexed[int]`.
 
 ## Basic examples
 
@@ -227,7 +215,7 @@ for { key, value } in ["a", "b"].entries() {
 ```
 
 `Array.entries` builds a new array of new `Indexed` records, so assigning to an entry's `value`
-leaves the array unchanged ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)):
+leaves the array unchanged:
 
 ```ant
 var xs = [1, 2]
@@ -247,7 +235,7 @@ xs // [10, 20]
 ```
 
 `for` over an array yields its elements, not `Indexed` records, so destructuring `{ index, value }`
-needs `.entries()` ([Loops](https://github.com/ant-src/spec/blob/master/ant-lang.md#loops)):
+needs `.entries()`:
 
 <!-- test: error a record destructuring needs a record, got string -->
 

@@ -14,19 +14,10 @@ xs. It panics if i is out of range.
 
 ## Details
 
-- `Array.removeAt` removes the element at index `i`, moves every later element down by one, and
-  returns the removed element
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It mutates `xs`: every variable that holds the same array sees the shorter array
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array),
-  [Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
-- `i` must be an `int` from `0` up to but excluding the length. Any other index panics, a negative
-  one included, and so does every index on an empty array
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result has type `T`, not `T | null`: a call that returns has removed an element. It is `null`
-  only when the removed element is `null`.
-- A `for` loop over `xs` reads it by index as it goes, so an element removed during the loop is not
-  visited ([Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
+- Removes the element at `i`, moves every later element down by one, and returns the removed
+  element. It changes `xs` in place.
+- Panics when `i` is negative or not below the length, so it always panics on an empty array.
+- A `for` loop over `xs` does not visit an element removed during the loop.
 
 ## Basic examples
 

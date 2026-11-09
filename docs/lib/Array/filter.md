@@ -13,25 +13,9 @@ Array.filter returns a new array holding the elements of xs that f accepts, in o
 
 ## Details
 
-- `Array.filter` keeps each element for which `f` returns `true`.
-- It calls `f` once per element, from the first element to the last, and never stops early: unlike
-  `Array.find` or `Array.some`, it sees every element whatever `f` returns
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It leaves `xs` untouched and returns a new array, even when `f` accepts every element
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- It reads the elements once, when it is called. A callback that pushes to `xs` changes `xs` but not
-  what the call visits
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `f` is any value of type `func(T): bool`: a lambda, an anonymous function, a named function, or a
-  function on a type
-  ([Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- The result has the type of `xs`, `Array[T]`, whatever `f` tests
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)). A test such as
-  `x is Circle` or `x != null` inside `f` narrows `x` inside `f` only
-  ([Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
-- On an array, `.filter` is `Array.filter` and runs at once; on a sequence it is `Iter.filter`,
-  which is lazy
-  ([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
+- Returns a new array; `xs` is unchanged, even when `f` accepts every element.
+- Calls `f` once per element, from first to last, and never stops early.
+- On a sequence, `.filter` is [`Iter.filter`](../Iter/filter.md), which is lazy.
 
 ## Basic examples
 

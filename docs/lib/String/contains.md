@@ -13,10 +13,8 @@ String.contains reports whether t occurs in s.
 
 ## Details
 
-- `String.contains` returns `true` when `t` occurs somewhere in `s`, and `false` otherwise.
-- `t` occurs in `s` as a run of the same code points. `"\u{E9}"` and `"e\u{301}"` are different
-  strings, because `==` does not normalize
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- Compares code points exactly: it does not ignore case and does not normalize, so `"\u{E9}"` and
+  `"e\u{301}"` are different strings.
 
 ## Basic examples
 
@@ -191,7 +189,7 @@ var user = Map{ name: "Ann" }
 println(String.contains(user["name"], "A"))
 ```
 
-[Narrow](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing) it first:
+Narrow it first:
 
 ```ant
 var user = Map{ name: "Ann" }

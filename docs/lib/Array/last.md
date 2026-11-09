@@ -13,17 +13,10 @@ Array.last returns the last element of xs, or null when xs is empty.
 
 ## Details
 
-- `Array.last` returns the element at index `length - 1`, and `null` when `xs` is empty
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It leaves `xs` unchanged, as every prelude function not marked `mutates` does
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- The result has type `T | null`. Using the result as a `T` needs a narrowing test or a default
-  given with `??` first. A nullable type is a union with `null`, so when `T` already includes `null`
-  the result type is `T` itself
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- The checker narrows only a local variable, a parameter, or a top-level `let`, never a call. A test
-  on the call does not narrow a later call; a test on a local bound to the result does
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Returns `null` when `xs` is empty; `xs` is unchanged. To remove the last element, use
+  [Array.pop](pop.md).
+- When `T` includes `null`, a `null` result does not tell an empty array from a `null` last element;
+  use [Array.isEmpty](isEmpty.md).
 
 ## Basic examples
 

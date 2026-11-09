@@ -13,12 +13,10 @@ String.repeat returns s repeated n times. It panics if n \< 0 or n is above 2^31
 
 ## Details
 
-- `String.repeat` returns `n` copies of `s` joined with nothing between them. An `n` of `0`, or an
-  empty `s`, gives `""` ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- It panics if `n` is below `0`, if `n` is above 2^31 − 1, or if the result would be longer than
-  2^31 − 1 bytes ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- `n` counts copies of `s`, not code points. To fill up to a width, use
-  [String.padStart](padStart.md) or [String.padEnd](padEnd.md).
+- An `n` of `0`, or an empty `s`, gives `""`.
+- Panics if `n` is negative.
+- `n` counts copies, not code points. To fill up to a width, use [`String.padStart`](padStart.md) or
+  [`String.padEnd`](padEnd.md).
 
 ## Basic examples
 

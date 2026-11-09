@@ -14,18 +14,12 @@ String.normalize returns s in the Unicode normalization form form, one of "NFC",
 
 ## Details
 
-- `form` is one of the four normalization forms of Unicode's UAX #15: `"NFC"`, `"NFD"`, `"NFKC"`, or
-  `"NFKD"`, spelled in upper case. Any other string panics.
+- `form` is `"NFC"`, `"NFD"`, `"NFKC"`, or `"NFKD"`, in upper case. Any other string panics.
 - `"NFD"` splits an accented letter into the letter and its combining marks; `"NFC"` joins them back
-  into one code point where Unicode has one.
-- `"NFKD"` and `"NFKC"` also replace compatibility characters with their plain equivalents, such as
-  the ligature `ﬁ` with `fi`.
-- `==` does not normalize, and neither do `String.foldCase` and `String.equalFold`. Text that can
-  arrive in either spelling is compared or used as a key after `String.normalize(s, "NFC")`.
-- Normalization follows the Unicode version that `String.unicodeVersion` names.
-
-All of this is in the spec's
-[String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string) section.
+  where Unicode has one code point. The `K` forms also replace compatibility characters, such as `ﬁ`
+  with `fi`.
+- `==`, [`String.foldCase`](foldCase.md), and [`String.equalFold`](equalFold.md) do not normalize.
+  Normalize text that can arrive in either spelling before you compare it or use it as a key.
 
 ## Basic examples
 

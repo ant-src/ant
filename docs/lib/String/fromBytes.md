@@ -13,18 +13,10 @@ String.fromBytes decodes bytes as UTF-8, or returns null when they are not valid
 
 ## Details
 
-- `String.fromBytes` returns the text that `bytes` encode as UTF-8, or `null` when they are not
-  valid UTF-8 ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- It replaces nothing. Text that reaches a program as a `string` from outside has each maximal
-  subpart of an ill-formed sequence replaced by U+FFFD; a program that reads `Bytes` instead uses
-  `String.fromBytes` to learn whether they are text at all, and
-  [String.fromBytesLossy](fromBytesLossy.md) to decode them the way outside text is decoded.
-- UTF-8 does not encode surrogates, so bytes that encode one give `null`; every string holds only
-  scalar values ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result is `string | null`. Narrow it with `!= null`, or give a fallback with `??`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `String.fromBytes` need not copy the bytes, since neither the `Bytes` nor the `string` can change
-  ([spec: Bytes](https://github.com/ant-src/spec/blob/master/ant-lang.md#bytes)).
+- Returns `null` when `bytes` are not valid UTF-8, including bytes that encode a surrogate. It
+  replaces nothing.
+- To decode with replacement characters, the way text from outside the program is decoded, use
+  [String.fromBytesLossy](fromBytesLossy.md).
 
 ## Basic examples
 

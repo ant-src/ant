@@ -15,32 +15,13 @@ renders as the shortest decimal that reads back to it, with .0 when integral.
 
 ## Details
 
-- `String.from` takes a value of any type. `print`, `println`, `eprint`, `eprintln`, and each
-  `${...}` of a string render through it, so its output is the format of a program's output
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- Integers render in decimal. A float renders as the shortest decimal that reads back to the same
-  value, with `.0` when integral. A float whose magnitude is at or above `1e21` or below `1e-6`
-  takes the exponent form `1e+21`, with no `.0`. `-0.0` keeps its sign, and the non-finite values
-  render as `NaN`, `Infinity`, and `-Infinity`.
+- `print`, `println`, and every `${...}` in a string render through `String.from`.
+- A float renders as the shortest decimal that reads back to the same value, with `.0` when
+  integral. At or above `1e21`, or below `1e-6`, it takes the exponent form, such as `1e+21`.
 - A string renders as itself at the top level. Inside an array, a map, a set, or a record it is
-  quoted, with `"`, `\`, and `${` escaped, `\n`, `\t`, and `\r` written so, and every other code
-  point `String.isPrint` rejects written `\u{...}`, so the text reads back as a literal.
-- `bool`, `null`, and `void` render as their literals; arrays as `[1, 2]`; maps as `Map{ "a": 1 }`;
-  sets as `Set.of([1, 2])`; records as `Point{ x: 1.0, y: 2.0 }` with the tag and the fields in
-  declaration order.
-- A named primitive renders as its constructor call, `UserId("u-1")`; `Bytes` as
-  `Bytes(89 50 4e 47)`; `Html` as its markup; a function as `func`; a constructor or a tag, and a
-  sync object, `Random`, or a handle, as its type's name, `Mutex`; a regular expression as its
-  literal; a time value as its RFC 9557 string, and a zone as its identifier
-  ([Times](https://github.com/ant-src/spec/blob/master/stdlib.md#times)); a type value in annotation
-  syntax, `Array[int]`
-  ([Types as values](https://github.com/ant-src/spec/blob/master/ant-lang.md#types-as-values)).
+  quoted and escaped, so it reads back as a literal.
 - A value already being rendered renders as `...`, so a cyclic structure terminates.
-- A user type cannot change how `String.from` renders it
-  ([Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
-
-The rules are those of the [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
-section unless linked otherwise.
+- A user type cannot change how `String.from` renders it.
 
 ## Basic examples
 
@@ -265,9 +246,8 @@ String.from(Bytes.fromArray([0x89, 0x50, 0x4e, 0x47])) // "Bytes(89 50 4e 47)"
 String.from(Bytes.fromArray(empty))                    // "Bytes()"
 ```
 
-`Html` renders as its markup, with text escaped
-([Html](https://github.com/ant-src/spec/blob/master/ant-lang.md#html)). An empty `Html` renders as
-`<></>` inside a container:
+`Html` renders as its markup, with text escaped. An empty `Html` renders as `<></>` inside a
+container:
 
 ```ant
 var name = "<Ann>"
@@ -290,8 +270,7 @@ String.from(String.length)               // "func"
 String.from(/a\/b/i)                     // "/a\\/b/i"
 ```
 
-A time value renders as its RFC 9557 string
-([Times](https://github.com/ant-src/spec/blob/master/stdlib.md#times)):
+A time value renders as its RFC 9557 string:
 
 ```ant
 println([Time.fromEpochMillis(0), Time.plainDate(2026, 11, 8)])
@@ -309,8 +288,7 @@ A sync object, a `Random`, or a handle renders as its type's name:
 String.from(Mutex.new()) // "Mutex"
 ```
 
-A type value renders in annotation syntax
-([Types as values](https://github.com/ant-src/spec/blob/master/ant-lang.md#types-as-values)):
+A type value renders in annotation syntax:
 
 ```ant
 String.from(type(Array[int])) // "Array[int]"

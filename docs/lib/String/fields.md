@@ -13,12 +13,9 @@ String.fields returns the runs of s between Unicode white space, or \[\] when th
 
 ## Details
 
-- A field is a run of code points with no white space in it. A run of white space between two fields
-  separates them once, however long it is, so no field is empty.
-- White space at the start and at the end of `s` gives no empty field either.
-- A string that is empty, or holds only white space, gives `[]`.
-- White space is Unicode white space, not only the ASCII space, tab, and line breaks
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- Splits at runs of Unicode white space, not only ASCII spaces, tabs, and line breaks. No field is
+  empty, even with white space at the start or end.
+- A string that is empty or holds only white space gives `[]`.
 
 ## Basic examples
 

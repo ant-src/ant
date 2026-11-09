@@ -15,14 +15,9 @@ not applied.
 
 ## Details
 
-- `toLower` applies Unicode's full case mappings that hold in every language, so the result can be
-  longer than `s`: `"İ"` becomes `"i\u{307}"`, an `i` and a combining dot.
-- The string is mapped whole, not one character at a time. A capital sigma at the end of a word
-  becomes the final sigma `ς`; elsewhere it becomes `σ`.
+- The result can be longer than `s`: `"İ"` becomes `"i\u{307}"`, an `i` and a combining dot.
+- The string is mapped whole: a capital sigma at the end of a word becomes `ς`, elsewhere `σ`.
 - The rules for Turkish and Lithuanian, which depend on the language, are not applied.
-
-All of this is in the spec's
-[String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string) section.
 
 ## Basic examples
 

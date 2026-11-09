@@ -13,17 +13,9 @@ Array.first returns the first element of xs, or null when xs is empty.
 
 ## Details
 
-- `Array.first` returns the element at index 0, and `null` when `xs` is empty
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It leaves `xs` unchanged, as every library function not marked `mutates` does
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- The result has type `T | null`, so it must be narrowed, or given a default with `??`, before it is
-  used as a `T`. A nullable type is a union with `null`, so when `T` already includes `null` the
-  result type is `T` itself
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- The checker narrows only a local variable, a parameter, or a top-level `let`, never a call. Bind
-  the result to a local before testing it
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Returns `null` when `xs` is empty; `xs` is unchanged.
+- When `T` includes `null`, a `null` result does not tell an empty array from a `null` first
+  element; use [Array.isEmpty](isEmpty.md).
 
 ## Basic examples
 

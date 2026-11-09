@@ -14,16 +14,9 @@ String.isUpper reports whether every code point of s is an upper-case letter (Lu
 
 ## Details
 
-- `String.isUpper` is `true` when `s` is not empty and every code point of `s` has the Unicode
-  general category Lu, upper-case letter.
-- It is `false` on `""`.
-- Only Lu counts. A space, a digit, an underscore, a combining accent (Mn), a title-case letter (Lt)
-  such as `ǅ`, a Roman numeral (Nl) such as `Ⅻ`, and a circled letter (So) such as `Ⓐ` are not
-  upper-case letters.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is upper-case letters.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has the general category Lu; `false` on `""`.
+- Only Lu counts: a title-case letter such as `ǅ`, a Roman numeral such as `Ⅻ`, and a circled letter
+  such as `Ⓐ` are not upper-case letters.
 
 ## Basic examples
 

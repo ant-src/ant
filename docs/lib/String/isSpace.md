@@ -14,16 +14,9 @@ String.isSpace reports whether every code point of s has the White\_Space proper
 
 ## Details
 
-- `String.isSpace` is `true` when every code point of `s` has the Unicode White_Space property.
-- It is `false` on `""`.
-- White space is more than the space: the tab, the line feed, the carriage return, the no-break
-  space U+00A0, the ideographic space U+3000, the line separator U+2028, and the rest of the
-  property.
-- The zero-width space U+200B and the byte order mark U+FEFF are not white space.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is white space.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has the Unicode White_Space property; `false` on `""`.
+- Tab, line feed, carriage return, the no-break space U+00A0, and the line separator U+2028 all
+  count. The zero-width space U+200B and the byte order mark U+FEFF do not.
 
 ## Basic examples
 

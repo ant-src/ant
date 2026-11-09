@@ -13,13 +13,10 @@ String.trimEnd returns s without trailing Unicode white space.
 
 ## Details
 
-- `String.trimEnd` removes every code point of Unicode white space at the end of `s`, however many
-  there are, and keeps the rest of `s` as it is. White space at the start and in the middle stays
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- White space is not only the ASCII space, tab, and line breaks: the no-break space U+00A0 and the
-  ideographic space U+3000 are white space too.
-- A string with no white space at its end comes back unchanged. A string of only white space gives
-  `""`.
+- Removes all white space at the end; white space at the start and in the middle stays.
+- White space is Unicode white space, as [`String.isSpace`](isSpace.md) accepts, so the no-break
+  space U+00A0 and the ideographic space U+3000 are removed too.
+- A string of only white space gives `""`.
 
 ## Basic examples
 

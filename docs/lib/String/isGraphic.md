@@ -14,16 +14,12 @@ String.isGraphic reports whether every code point of s is in L, M, N, P, S, or Z
 
 ## Details
 
-- `String.isGraphic` is `true` when every code point of `s` has one of the Unicode general
-  categories L (letter), M (mark), N (number), P (punctuation), S (symbol), or Zs (space separator).
-- It returns `false` on the empty string.
-- Every space separator counts, not only the space U+0020: the no-break space U+00A0 and the
-  ideographic space U+3000 are graphic. [`String.isPrint`](isPrint.md) admits the space U+0020 and
-  no other separator.
-- Control characters (Cc), format characters (Cf) such as the zero-width joiner, private use (Co),
-  unassigned code points (Cn), and the line and paragraph separators (Zl, Zp) are not graphic.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` is a letter, mark, number, punctuation, symbol, or space
+  separator (`Zs`); `false` on `""`.
+- Every space separator counts, such as the no-break space U+00A0. [`String.isPrint`](isPrint.md)
+  admits only the space U+0020.
+- Control and format characters, private use, unassigned code points, and the line and paragraph
+  separators are not graphic.
 
 ## Basic examples
 
@@ -243,8 +239,6 @@ String.unicodeVersion       // "17.0.0"
 String.category("\u{378}")  // "Cn"
 String.isGraphic("\u{378}") // false
 ```
-
-See the [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string) section.
 
 ## See also
 

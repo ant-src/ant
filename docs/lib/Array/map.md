@@ -13,30 +13,9 @@ Array.map returns a new array holding f applied to each element of xs, in order.
 
 ## Details
 
-- The result has one element for each element of `xs`, and element `i` of the result is `f` applied
-  to element `i` of `xs`, in order
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `f` is called once per element, from the first element to the last, so a callback with a side
-  effect sees the elements in order
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.map` leaves `xs` untouched and returns a new array. It reads the elements of `xs` once,
-  when it is called, so a callback that pushes to `xs` changes `xs` but not what the call visits
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `T` comes from `xs` and `U` from what `f` returns, unless an expected type fixes `U` first
-  ([Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)).
-- `f` is any value of type `func(T): U`: a lambda or an anonymous function
-  ([Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)),
-  a named function
-  ([Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)),
-  a function on a type
-  ([Functions on types](https://github.com/ant-src/spec/blob/master/ant-lang.md#functions-on-types)),
-  a conversion such as `byte`
-  ([Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)), a named
-  primitive type such as `UserId`
-  ([Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)),
-  or `len` ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- On an array, `.map` is `Array.map` and runs at once; on a sequence it is `Iter.map`, which is lazy
-  ([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
+- Returns a new array; `xs` is unchanged.
+- Calls `f` once per element, from first to last.
+- On a sequence, `.map` is [`Iter.map`](../Iter/map.md), which is lazy.
 
 ## Basic examples
 
@@ -321,7 +300,7 @@ halves // [0.5, 1.0]
 ```
 
 A lambda whose body is an empty literal fixes nothing, so `U` stays unsolved and the call is a
-compile error ([Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)):
+compile error:
 
 <!-- test: error cannot infer the element type of an empty array -->
 

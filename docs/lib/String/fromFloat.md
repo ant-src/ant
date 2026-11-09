@@ -14,19 +14,12 @@ infinities render as [`String.from`](from.md) does. It panics if digits \< 0.
 
 ## Details
 
-- `String.fromFloat` writes `x` in fixed point, never with an exponent, with exactly `digits`
-  decimals after the `.`. With `digits` 0 there is no `.`.
-- It rounds half to even, and it rounds the binary value of `x`, not the decimal it was written as.
+- Writes `x` in fixed point, never with an exponent, with exactly `digits` decimals. With `digits` 0
+  there is no `.`.
+- Rounds half to even, and rounds the binary value of `x`, not the decimal it was written as.
 - A result that is zero has no sign.
-- `NaN`, `Infinity`, and `-Infinity` render as `String.from` renders them, for any valid `digits`.
-- It panics if `digits` is below 0 or above 2^31 − 1
-  ([spec: Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- `x` is a `float64`. Numeric types never mix, so an integer or a `float32` is converted first, as
-  in `float64(n)`
-  ([spec: Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)).
-
-The rules above are in
-[spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- `NaN`, `Infinity`, and `-Infinity` render as `String.from` renders them.
+- Panics if `digits` is negative or above 2^31 − 1.
 
 ## Basic examples
 
@@ -248,8 +241,7 @@ println(String.fromFloat(n, 2))
 
 Convert it with `float64(n)`, or write the literal as `3.0`.
 
-A number has no namespace, so `x.fromFloat(2)` is a compile error
-([spec: Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)):
+A number has no namespace, so `x.fromFloat(2)` is a compile error:
 
 <!-- test: error float64 has no field or function fromFloat -->
 

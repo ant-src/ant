@@ -14,16 +14,12 @@ matter. It does not normalize; see [`String.normalize`](normalize.md).
 
 ## Details
 
-- `String.foldCase` maps every case variant of a string to one form, so it is the key for grouping
-  or deduplicating text without regard to case
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- It applies Unicode's full case folding, so a string can change length: `"ß"` folds to `"ss"`.
-- It does not normalize. `"\u{E9}"` and `"e\u{301}"` fold to different strings; normalize text that
-  can arrive in either spelling with `String.normalize(s, "NFC")` first.
-- `String.equalFold(a, b)` is `String.foldCase(a) == String.foldCase(b)`.
-- The `i` flag of a regular expression folds one code point at a time, so it does not accept every
-  pair that `foldCase` makes equal
-  ([Regex](https://github.com/ant-src/spec/blob/master/ant-lang.md#regex)).
+- Maps every case variant of a string to one form, so it is the key for grouping or deduplicating
+  text without regard to case.
+- Full case folding can change the length: `"ß"` folds to `"ss"`.
+- It does not normalize: `"\u{E9}"` and `"e\u{301}"` fold to different strings. Normalize with
+  `String.normalize(s, "NFC")` first.
+- To compare two strings, use [String.equalFold](equalFold.md).
 
 ## Basic examples
 

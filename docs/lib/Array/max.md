@@ -14,20 +14,9 @@ element is NaN.
 
 ## Details
 
-- `Array.max` returns the greatest element of `xs`, and `null` when `xs` is empty. It returns `NaN`
-  when any element is `NaN`, and holds `-0.0` less than `0.0`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It returns `null` on an empty array, not a zero, because the interpreter never knows `T`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `T` must be a single member of `Ordered`, which is `Number | string`: one numeric type, or
-  `string`. A union such as `Number` or `int | null` is not one, nor is `Ordered` itself
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
-- Elements compare as `<` and `>` compare them
-  ([spec: Operators](https://github.com/ant-src/spec/blob/master/ant-lang.md#operators)).
-- The result has type `T | null`, so narrow it, or give it a default with `??`, before using it as a
-  `T` ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- It leaves `xs` unchanged
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Returns `null` when `xs` is empty, so give it a default with `??` before using it as a `T`.
+- Returns `NaN` when any element is `NaN`, and holds `-0.0` less than `0.0`.
+- Leaves `xs` unchanged.
 
 ## Basic examples
 

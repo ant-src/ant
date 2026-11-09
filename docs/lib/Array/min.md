@@ -14,22 +14,9 @@ is NaN.
 
 ## Details
 
-- `Array.min` returns the least element of `xs`, and `null` when `xs` is empty. It returns `NaN`
-  when any element is `NaN`, and it holds `-0.0` below `0.0`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It returns `null` on an empty array, not a zero, because the interpreter never knows `T`; give a
-  default with `??` ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Apart from `NaN` and `-0.0`, numbers compare by value as `<` compares them, and strings compare by
-  code point
-  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- `T` is bounded by `Ordered`, which is `Number | string`. The element type must be a single member
-  of it: one numeric type, or `string`. A union such as `Number` or `int | null`, a named primitive
-  type, a record, or `bool` is a compile error
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
-- The result has type `T | null`. Narrow it, or give a default with `??`, before you use it as a `T`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
-- `Array.min` leaves `xs` unchanged
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Returns `null` when `xs` is empty, so give it a default with `??` before using it as a `T`.
+- Returns `NaN` when any element is `NaN`, and holds `-0.0` less than `0.0`.
+- Leaves `xs` unchanged.
 
 ## Basic examples
 

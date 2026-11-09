@@ -13,15 +13,10 @@ String.chars returns the code points of s, each as a one-code-point string.
 
 ## Details
 
-- Each element of the result is a string of one code point, in the order the code points appear in
-  `s`. Ant has no character type: a character is a string of one code point
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result holds `String.length(s)` elements, and an empty `s` gives `[]`.
-- The elements are the strings a `for` loop over `s` binds, in the same order
-  ([Loops](https://github.com/ant-src/spec/blob/master/ant-lang.md#loops)).
-- A code point is not always what a reader sees as one character: an accent can be a code point of
-  its own, and a flag or a family emoji is several. `String.graphemes` splits text into those units.
-- `String.chars` returns a new array; changing it leaves `s` as it was, since a string is immutable.
+- Each element is a string of one code point, in the order they appear in `s`: the strings a `for`
+  loop over `s` binds. An empty `s` gives `[]`.
+- A code point is not always one visible character: an accent can be a code point of its own, and a
+  flag is several. [String.graphemes](graphemes.md) splits text into the characters a reader sees.
 
 ## Basic examples
 

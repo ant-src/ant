@@ -14,13 +14,10 @@ xs. It panics if i is outside 0 ..= length, so i equal to the length appends.
 
 ## Details
 
-- `Array.insert` mutates `xs` and returns `void`. After the call, `v` is element `i`, and the
-  elements that were at `i` and after it sit one index higher
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `i` may be any index from `0` to the length, both included. `i` equal to the length appends, like
+- Changes `xs` in place and returns `void`. The elements at `i` and after move up one index.
+- `i` may be any index from `0` to the length, both included; the length appends, like
   [Array.push](push.md). Any other `i`, a negative one included, panics.
-- `v` has the element type `T`, so it inserts one element. To insert several, build a new array with
-  a spread literal.
+- Inserts one element. To insert several, build a new array with a spread literal.
 
 ## Basic examples
 
@@ -74,8 +71,7 @@ Array.insert(rows, 1, [2, 2])
 rows // [[1], [2, 2], [3]]
 ```
 
-A `let` fixes the binding, not the elements, so a `let` array takes inserts
-([Variables](https://github.com/ant-src/spec/blob/master/ant-lang.md#3-variables)):
+A `let` fixes the binding, not the elements, so a `let` array takes inserts:
 
 ```ant
 let xs = [2]
@@ -244,10 +240,9 @@ var ys = [...Array.slice(xs, 0, 1), 2, 3, ...Array.slice(xs, 1, len(xs))]
 ys // [1, 2, 3, 4]
 ```
 
-A `for` loop over `xs` iterates by index while the index is below the current length
-([Dynamic semantics](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-Inserting at or before the current index shifts the current element up, so the next iteration reads
-it again. The loop below never ends without its counter, and `xs` grows on every pass:
+A `for` loop over `xs` iterates by index while the index is below the current length. Inserting at
+or before the current index shifts the current element up, so the next iteration reads it again. The
+loop below never ends without its counter, and `xs` grows on every pass:
 
 ```ant
 var xs = [1, 2]

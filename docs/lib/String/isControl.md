@@ -14,14 +14,9 @@ String.isControl reports whether every code point of s is a control character (C
 
 ## Details
 
-- `String.isControl` is `true` when every code point of `s` has the Unicode general category `Cc`,
-  control. A single code point tests one character; a longer string tests that all of it is control
+- `true` when every code point of `s` has the general category `Cc`; `false` on `""`.
+- Only `Cc` counts. Format characters (`Cf`), such as the zero-width space U+200B, are not control
   characters.
-- It returns `false` on the empty string.
-- Only `Cc` counts. A format character (`Cf`), such as the soft hyphen U+00AD or the zero-width
-  space U+200B, is not a control character, and neither is a line or paragraph separator.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
 
 ## Basic examples
 

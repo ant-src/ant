@@ -16,24 +16,12 @@ and `Array.filled` build an array from scratch and are called only through the n
 
 ## Details
 
-- `Array[T]` is dense and growable, and every element is a `T`
-  ([Arrays, maps, and sets](https://github.com/ant-src/spec/blob/master/ant-lang.md#arrays-maps-and-sets)).
-- `xs[i]` reads and `xs[i] = v` writes. Both panic when `i` is out of range, and `Array.get` returns
-  `null` instead. Indices are `int`s from `0` up to but excluding the length, and ranges are
-  half-open: `from` inclusive, `to` exclusive
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- A function marked `mutates` changes its first argument and returns `void`, the removed element, or
-  whether it changed anything. Every other function leaves its arguments untouched and returns a new
-  value
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- An array is a reference: a variable holds a reference, and copying the variable copies the
-  reference ([Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
-- Two arrays are `==` when they have the same length and equal elements in order. An array renders
-  as `[1, 2]` ([Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
-- `len(xs)` and `Array.length(xs)` are the same count
-  ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- A call through `.` on an array goes to the `Array` namespace and passes the array first
-  ([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
+- `xs[i]` and `xs[i] = v` panic when `i` is out of range; [Array.get](get.md) returns `null`
+  instead. Ranges are half-open: `from` included, `to` excluded.
+- A function that mutates `xs`, such as [Array.push](push.md), changes it in place. Every other
+  function leaves its arguments untouched and returns a new value.
+- An array is a reference: copying a variable shares the array.
+- Two arrays are `==` when they have the same length and equal elements in order.
 
 ## Basic examples
 
@@ -279,9 +267,8 @@ var xs = [1, 2, 3]
 xs[3] = 1
 ```
 
-Assigning the loop variable is a compile error, since it would not change the array
-([Loops](https://github.com/ant-src/spec/blob/master/ant-lang.md#loops)). `Array.map` returns the
-changed elements:
+Assigning the loop variable is a compile error, since it would not change the array. `Array.map`
+returns the changed elements:
 
 <!-- test: error cannot assign to x, a for variable -->
 
@@ -298,9 +285,7 @@ xs.map({ x * 2 }) // [2, 4, 6]
 ```
 
 A `for` loop reads the array as it goes, so it visits an element pushed during the loop. `Array.map`
-and the other functions that take a callback read the elements once, at the call
-([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library),
-[Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)):
+and the other functions that take a callback read the elements once, at the call:
 
 ```ant
 var a = [1, 2, 3]

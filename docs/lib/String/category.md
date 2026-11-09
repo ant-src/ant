@@ -14,18 +14,13 @@ is unassigned. It panics unless c is one code point.
 
 ## Details
 
-- `String.category` returns the two-letter Unicode general category of `c`: `"Lu"` for an upper-case
-  letter, `"Nd"` for a decimal digit, `"Zs"` for a space separator, and so on. The first letter is
-  the major class: L letter, M mark, N number, P punctuation, S symbol, Z separator, C other.
-- A code point that the Unicode tables do not assign gives `"Cn"`. The tables are those of
-  `String.unicodeVersion`.
-- `c` must be exactly one code point. The empty string, two code points, and a single grapheme
-  written with several code points, such as a flag or a letter with a combining accent, all panic.
-- Ant has no character type, so `c` is a `string`. `for c in s` and `String.chars` give one code
-  point at a time, each a valid argument.
-- A string holds only scalar values, so a surrogate is never an argument and `"Cs"` is never a
-  result.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- Returns the two-letter Unicode general category, such as `"Lu"`, `"Nd"`, or `"Zs"`. The first
+  letter is the major class: L letter, M mark, N number, P punctuation, S symbol, Z separator, C
+  other.
+- A code point that Unicode does not assign gives `"Cn"`.
+- Panics unless `c` is exactly one code point. The empty string panics, and so does a character
+  written with several code points, such as a flag or a letter with a combining accent.
+- `for c in s` and [String.chars](chars.md) give one code point at a time.
 
 ## Basic examples
 

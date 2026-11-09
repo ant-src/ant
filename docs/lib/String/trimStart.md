@@ -13,14 +13,10 @@ String.trimStart returns s without leading Unicode white space.
 
 ## Details
 
-- `String.trimStart` removes every Unicode white space code point at the start of `s`, up to the
-  first code point that is not white space. The rest of `s`, white space inside it and at its end
-  included, is kept as it is.
-- White space is more than the space: the tab, the line feed, the carriage return, the no-break
-  space U+00A0, the ideographic space U+3000, and the rest of the Unicode white space set.
-- A string of only white space gives `""`, and `""` gives `""`.
-
-Spec: [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- Removes all white space at the start; white space in the middle and at the end stays.
+- White space is Unicode white space, as [`String.isSpace`](isSpace.md) accepts, so the no-break
+  space U+00A0 and the ideographic space U+3000 are removed too.
+- A string of only white space gives `""`.
 
 ## Basic examples
 

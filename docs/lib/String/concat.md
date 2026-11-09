@@ -13,14 +13,10 @@ String.concat returns the strings in parts joined with nothing between them.
 
 ## Details
 
-- `String.concat` leaves `parts` unchanged and returns a new string
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- It takes one array, not a list of strings. To join two strings, `+` concatenates them
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#operators)).
-- Its subject is an array, and a value reaches its own type's namespace, so `parts.concat()` is
-  [Array.concat](../Array/concat.md), not `String.concat`
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)). Use a pipe
-  instead ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#pipes)).
+- Returns a new string; `parts` is unchanged.
+- Takes one array. To join two strings, use `+`.
+- `parts.concat()` on an array is [Array.concat](../Array/concat.md). Use a pipe instead:
+  `parts | String.concat()`.
 
 ## Basic examples
 

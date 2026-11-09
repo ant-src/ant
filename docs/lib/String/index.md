@@ -17,34 +17,17 @@ functions build a string from another value.
 
 ## Details
 
-- A `string` is immutable and stored as UTF-8. No function changes a string; the ones that edit text
-  return a new one ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- A `string` is immutable. No function changes a string; the ones that edit text return a new one.
 - Lengths, indices, and slices count code points. There is no `s[i]`: `String.chars` gives the code
   points as an array to index, `String.toCodePoints` gives them as integers, and `String.toBytes`
   gives the bytes.
 - There is no character type. A character is a string of one code point, so the class tests such as
-  `String.isDigit` take a string. What a reader sees as one character can be several code points;
-  `String.graphemes` splits text into those units.
-- Every string holds only Unicode scalar values. Text that reaches a program as a `string` from
-  outside it (a file, standard input, the network, an argument, the environment, or a child process)
-  is decoded as UTF-8, with each ill-formed sequence replaced by U+FFFD. To keep the bytes as they
-  are, read them as `Bytes` and test them with `String.fromBytes`.
+  `String.isDigit` take a string. `String.graphemes` splits text into what a reader sees as
+  characters.
 - `String.unicodeVersion` names the version of the Unicode tables that grapheme splitting,
-  normalization, case mapping, and the class tests follow, such as `"17.0.0"`.
-- There is no format string: fixed-point and zero-padded numbers are `String.fromFloat(x, 2)` and
-  `String.padStart(String.fromInt(n, 16), 8, "0")`, put in with interpolation
-  ([String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- `"..."` is a string that takes escapes and `${...}` interpolation; each interpolated value is
-  rendered with `String.from`. A raw string between backticks has neither
-  ([Literals](https://github.com/ant-src/spec/blob/master/ant-lang.md#literals)).
-- `+` concatenates two strings, `==` compares their code points, and `<`, `<=`, `>`, `>=` compare by
-  code point ([Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- `for c in s` visits each code point as a one-code-point string
-  ([Loops](https://github.com/ant-src/spec/blob/master/ant-lang.md#loops)).
-- `len(s)` and `String.length(s)` are the same count
-  ([Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
-- A call through `.` on a string goes to the `String` namespace and passes the string first
-  ([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
+  normalization, case mapping, and the class tests follow.
+- There is no format string: write `String.fromFloat(x, 2)` or
+  `String.padStart(String.fromInt(n, 16), 8, "0")` inside interpolation.
 
 ## Basic examples
 
@@ -344,8 +327,7 @@ String.foldCase("Zebra") < String.foldCase("apple") // false
 ```
 
 `join` is a `String` function, not an `Array` one. A call through `.` on an array goes to the
-`Array` namespace, so `parts.join(",")` does not compile
-([Calls through `.`](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)):
+`Array` namespace, so `parts.join(",")` does not compile:
 
 <!-- test: error has no field or function join -->
 

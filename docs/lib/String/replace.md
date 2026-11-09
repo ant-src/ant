@@ -13,15 +13,11 @@ String.replace returns s with every occurrence of old replaced by new. It panics
 
 ## Details
 
-- `String.replace` returns a new string in which every occurrence of `old` in `s` is replaced by
-  `new`. `s` itself does not change, since a `string` is immutable. When `old` does not occur, the
-  result equals `s`.
-- It compares code points exactly: it does not fold case and does not normalize.
-- It panics if `old` is empty, or if the result would be longer than 2^31 − 1 bytes.
-- `old` is plain text, not a pattern, and `new` is inserted as it is: no character in either has a
-  special meaning.
-
-All four rest on [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- Replaces every occurrence and returns a new string. When `old` does not occur, the result equals
+  `s`.
+- `old` is plain text, not a pattern, and matches exactly: no case folding, no normalization.
+- Panics if `old` is empty.
+- To replace only the first occurrence, use [`String.replaceFirst`](replaceFirst.md).
 
 ## Basic examples
 
@@ -122,9 +118,7 @@ println(escape("a < b && c > d"))
 a &lt; b &amp;&amp; c &gt; d
 ```
 
-To build HTML, use an
-[HTML expression](https://github.com/ant-src/spec/blob/master/ant-lang.md#html-expressions), which
-escapes `{...}` text itself.
+To build HTML, use an [HTML expression](../../guide/html.md), which escapes `{...}` text itself.
 
 Build a slug from a title by chaining calls through `.`:
 

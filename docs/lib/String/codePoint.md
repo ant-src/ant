@@ -13,13 +13,9 @@ String.codePoint returns the scalar value of c. It panics unless c is one code p
 
 ## Details
 
-- `String.codePoint` returns the Unicode scalar value of the one code point in `c`, as an `int`.
-  Every string holds only scalar values, so the result is at most `0x10FFFF` and never a surrogate
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- There is no character type: a character is a string of one code point. `c` must hold exactly one,
-  so `String.codePoint` panics on `""` and on any longer string. A character a reader sees as one,
-  such as an `e` with a combining accent or an emoji with a skin tone, can be several code points
-  and then panics too.
+- Panics unless `c` holds exactly one code point: `""`, a longer string, and a character written
+  with a combining accent all panic.
+- The result is at most `0x10FFFF` and never a surrogate.
 
 ## Basic examples
 

@@ -14,13 +14,9 @@ not occur.
 
 ## Details
 
-- `String.indexOf` returns the index of the first occurrence of `t` in `s`, counted in code points,
-  the unit [`String.length`](length.md) and [`String.slice`](slice.md) also count
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- When `t` does not occur in `s`, the result is `null`, not `-1`.
-- The result type is `int | null`. Narrow it with `!= null`, or give a default with `??`, before you
-  use it as an `int`
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- The index counts code points, like [`String.length`](length.md) and [`String.slice`](slice.md).
+- When `t` does not occur in `s`, the result is `null`, not `-1`. Narrow it with `!= null` or give a
+  default with `??` before you use it as an `int`.
 
 ## Basic examples
 

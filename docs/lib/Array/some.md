@@ -13,18 +13,8 @@ Array.some reports whether f accepts at least one element of xs.
 
 ## Details
 
-- `Array.some` returns `true` when `f` returns `true` for some element of `xs`, and `false` when it
-  returns `false` for every element. An empty array has no element for `f` to accept, so the result
-  is `false`.
-- `Array.some` calls `f` once per element, from the first, and stops at the first element `f`
-  accepts, since that element decides the result. Elements after it are not tested. When `f` accepts
-  none, it runs once on every element
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `f` has the function type `func(T): bool`: one parameter of the element type, and a `bool` result
-  ([spec: Function types](https://github.com/ant-src/spec/blob/master/ant-lang.md#function-types)).
-- `f` is any function value of that type: a lambda with its implicit `x`, a declared function, a
-  library function, or a closure, which sees the current value of the variables it captures
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
+- Returns `false` on an empty array.
+- Calls `f` from the first element and stops at the first one `f` accepts.
 
 ## Basic examples
 
@@ -301,8 +291,7 @@ println([1, 200].some(big))
 ```
 
 The call reads the elements once, when it is called. A callback that pushes to the array changes it,
-but not which elements `some` visits, unlike a `for` loop, which reads its collection as it goes
-([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)):
+but not which elements `some` visits, unlike a `for` loop, which reads its collection as it goes:
 
 ```ant
 var xs = [1, 2]
@@ -310,8 +299,7 @@ xs.some({ xs.push(9); x == 9 }) // false
 xs                              // [1, 2, 9, 9]
 ```
 
-`NaN` is not `==` to any value, itself included, because floats compare by IEEE 754 rules
-([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)), so
+`NaN` is not `==` to any value, itself included, because floats compare by IEEE 754 rules, so
 `x == Math.NaN` never finds it. Test for it with `Math.isNaN`:
 
 ```ant

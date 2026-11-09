@@ -15,21 +15,14 @@ c is one code point, or if script names no script.
 
 ## Details
 
-- `String.inScript` reports whether the code point `c` has the Unicode Script property `script`.
-- `script` is a name from Unicode's `Scripts.txt`, written in full: `"Latin"`, `"Han"`,
-  `"Cyrillic"`, `"Old_Italic"`. A short code such as `"Latn"`, a name in another case such as
-  `"latin"`, and a script that a later Unicode version adds all panic, the last until Ant's tables
-  move to that version; `String.unicodeVersion` names the version they follow.
-- `"Common"` holds the characters that many scripts use: digits, punctuation, symbols, emoji.
-  `"Inherited"` holds marks that many scripts use, such as the acute accent U+0301, which take the
-  script of the letter before them. A mark that belongs to one script, such as the Devanagari vowel
-  sign `ि`, is in that script. `"Unknown"` holds every code point that no other script holds, the
-  unassigned among them.
-- The test reads Script, not Script_Extensions, so a character counts in one script only, even when
-  several scripts use it: `ー`, which Katakana and Hiragana both use, is in `Common`.
-- `c` must be exactly one code point. The empty string, two code points, and a single grapheme
-  written with several code points all panic.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `script` is a full name from Unicode's `Scripts.txt`, such as `"Latin"`, `"Han"`, or
+  `"Old_Italic"`. A short code such as `"Latn"`, another case such as `"latin"`, or an unknown name
+  panics.
+- `"Common"` holds characters many scripts share: digits, punctuation, symbols, emoji. `"Inherited"`
+  holds shared marks, such as U+0301.
+- It reads Script, not Script_Extensions, so `ー`, used by both Katakana and Hiragana, is in
+  `"Common"`.
+- `c` must be exactly one code point; anything else, including `""`, panics.
 
 ## Basic examples
 

@@ -13,15 +13,9 @@ Array.get returns element i of xs, or null when i is out of range. Unlike xs\[i\
 
 ## Details
 
-- Indices are `int`s from `0` up to but excluding the length. `Array.get` returns element `i` when
-  `i` is in that range, and `null` otherwise, so a negative index and any index of an empty array
-  give `null` ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `xs[i]` reads the same element but panics when `i` is out of range
-  ([spec: Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- The result type is `T | null`. Read it with `?.` or `??`, or narrow it with `!= null`, before you
-  use it as a `T`. When `T` already includes `null`, `T | null` is `T`, so a `null` result does not
-  tell a missing element from a stored `null`; compare `i` with `Array.length` instead
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- Returns `null` when `i` is out of range, a negative `i` included. `xs[i]` panics instead.
+- When `T` includes `null`, a `null` result does not tell a missing element from a stored `null`;
+  compare `i` with `len(xs)`.
 
 ## Basic examples
 
@@ -217,8 +211,7 @@ if users.get(0) != null {
 ```
 
 Store the result in a `var` first, then test the variable, as the record example in Properties and
-relations does
-([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+relations does.
 
 `xs[i]` is not the same: it panics where `Array.get` returns `null`:
 

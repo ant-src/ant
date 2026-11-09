@@ -14,19 +14,8 @@ none.
 
 ## Details
 
-- `Array.findIndex` returns the index of the first element for which `f` returns `true`, and `null`
-  when `f` accepts none. It calls `f` once per element, from the first, and stops at the first
-  element `f` accepts. `f` does not see the elements after it
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The result is an `int | null`. Test it with `!= null` (or `== null` followed by `return`) to
-  narrow it to `int`, or give a default with `??`, before you use it as an index or a number
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
-- `f` is any `func(T): bool`: a lambda with `x`, an anonymous `func`, or a named function. A closure
-  sees the variables it captures
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
-- `Array.findIndex` reads the elements once, when it is called. A callback that changes `xs` changes
-  it, but not what the call visits. `Array.findIndex` itself does not change `xs`
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Returns `null` when `f` accepts no element, so an empty array gives `null`.
+- Calls `f` from the first element and stops at the first element `f` accepts.
 
 ## Basic examples
 

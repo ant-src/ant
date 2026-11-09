@@ -13,21 +13,9 @@ Array.every reports whether f accepts every element of xs.
 
 ## Details
 
-- `Array.every` returns `true` when `f` returns `true` for every element of `xs`, and `false` when
-  it returns `false` for some element. An empty array has no element for `f` to reject, so `f`
-  accepts every element of it, and the result is `true`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.every` calls `f` once per element, from the first, and stops at the first element `f`
-  rejects, since that element decides the result. Elements after it are not tested
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `f` has the function type `func(T): bool`: one parameter of the element type, and a `bool` result
-  ([spec: Function types](https://github.com/ant-src/spec/blob/master/ant-lang.md#function-types)).
-- A lambda `{ ... }` passed as `f` takes its parameter type from that function type, so `x` is a `T`
-  inside it
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
-  A declared function, a function on a type, or a function value of the same type works as well, and
-  a closure sees the current value of the variables it captures
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
+- An empty array gives `true`.
+- Calls `f` from the first element and stops at the first element `f` rejects; later elements are
+  not tested.
 
 ## Basic examples
 

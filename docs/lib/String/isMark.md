@@ -14,17 +14,10 @@ false on "".
 
 ## Details
 
-- `String.isMark` is `true` when `s` is not empty and every code point of `s` has a Unicode general
-  category in M, mark: `Mn` nonspacing, such as a combining accent; `Mc` spacing combining, such as
-  a Devanagari vowel sign; or `Me` enclosing, such as a combining circle.
-- It is `false` on `""`.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is marks.
-- A letter with a precomposed accent, such as `é` written as U+00E9, is one code point in L, not a
-  mark. `String.normalize(s, "NFD")` splits it into its letter and a mark, so dropping the code
-  points that `String.isMark` accepts strips accents.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has a general category in M (`Mn`, `Mc`, `Me`); `false` on
+  `""`.
+- A precomposed letter such as `é` (U+00E9) is a letter, not a mark. `String.normalize(s, "NFD")`
+  splits it into a letter and a mark, so dropping the marks strips accents.
 
 ## Basic examples
 

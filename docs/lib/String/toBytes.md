@@ -13,14 +13,8 @@ String.toBytes returns the UTF-8 encoding of s.
 
 ## Details
 
-- `String.toBytes` returns the UTF-8 encoding of `s` as `Bytes`
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- Every string holds only scalar values, so every string has a UTF-8 encoding and `String.toBytes`
-  never fails.
-- A string escape does not write a byte: `"\u{89}"` is the code point U+0089, which encodes as the
-  two bytes `c2 89`.
-- `String.toBytes` need not copy, since neither the `string` nor the `Bytes` can change
-  ([spec: Bytes](https://github.com/ant-src/spec/blob/master/ant-lang.md#bytes)).
+- Returns the UTF-8 encoding of `s`, and never fails.
+- An escape writes a code point, not a byte: `"\u{89}"` encodes as the two bytes `c2 89`.
 
 ## Basic examples
 

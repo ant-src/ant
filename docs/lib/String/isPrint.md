@@ -14,19 +14,12 @@ It is false on "".
 
 ## Details
 
-- `String.isPrint` is `true` when every code point of `s` is a letter (`L`), a mark (`M`), a number
-  (`N`), punctuation (`P`), or a symbol (`S`), or is the space U+0020. A single code point tests one
-  character; a longer string tests that all of it is printable.
-- It returns `false` on the empty string.
-- The space U+0020 is the only space it accepts. Every other space separator (`Zs`), such as the
-  no-break space U+00A0, is not printable; `String.isGraphic` accepts them.
-- Control characters (`Cc`), such as a tab or a line feed, format characters (`Cf`), such as the
-  zero-width joiner, line and paragraph separators, private-use, and unassigned code points are not
-  printable.
-- `String.from` writes every code point that `String.isPrint` rejects inside a quoted string as an
-  escape, such as `\u{a0}`, or as `\n`, `\t`, or `\r`.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` is a letter, mark, number, punctuation, symbol, or the space
+  U+0020; `false` on `""`.
+- U+0020 is the only space it accepts; the no-break space U+00A0 is not printable.
+  [`String.isGraphic`](isGraphic.md) accepts every space separator.
+- Control characters such as tab and line feed, format characters, private use, and unassigned code
+  points are not printable. `String.from` escapes them inside a quoted string.
 
 ## Basic examples
 

@@ -14,16 +14,9 @@ copy. It panics if n \< 0.
 
 ## Details
 
-- `Array.filled` returns a new array of `n` elements, and every slot holds the same `v`
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- An `n` below 0 panics, and so does an `n` above 2^31 − 1
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array),
-  [Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- An array, map, set, or record is a reference, so when `v` is one, every slot refers to the one
-  value, and a change through one slot shows in all of them
-  ([Values](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)).
-- The parameters are named `n` and `v`; a named argument fills the parameter of that name
-  ([Dynamic semantics](https://github.com/ant-src/spec/blob/master/ant-lang.md#12-dynamic-semantics)).
+- Panics when `n` is below 0 or above 2^31 − 1.
+- When `v` is an array, map, set, or record, every slot refers to that one value, so a change
+  through one slot shows in all of them.
 
 ## Basic examples
 

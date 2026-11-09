@@ -14,15 +14,10 @@ Array.range returns the integers from from up to but excluding to. It returns an
 
 ## Details
 
-- The range is half-open: `from` is included and `to` is not
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- When `to` is at or below `from`, the result is empty; it never counts down
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.range` panics when `to − from` is above 2^31 − 1
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array),
-  [Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- `Array.range` builds the whole array at once. `Iter.range` takes the same bounds and yields the
-  integers lazily ([Iter](https://github.com/ant-src/spec/blob/master/ant-lang.md#iter)).
+- The range is half-open: `from` is included and `to` is not.
+- When `to` is at or below `from`, the result is empty; it never counts down.
+- Panics when `to − from` is above 2^31 − 1.
+- Builds the whole array at once. [`Iter.range`](../Iter/range.md) yields the same integers lazily.
 
 ## Basic examples
 

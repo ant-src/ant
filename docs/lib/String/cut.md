@@ -14,16 +14,9 @@ panics if sep is empty.
 
 ## Details
 
-- `String.cut` finds the first occurrence of `sep` in `s` and returns a [`String.Cut`](types/Cut.md)
-  record: `before` holds the text in front of it and `after` the text behind it. `sep` itself is in
-  neither field.
-- When `sep` does not occur in `s`, the result is `null`.
-- `String.cut` panics if `sep` is empty
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result type is `String.Cut | null`. Read it with `?.` or `??`, or narrow it with `!= null`,
-  before you use its fields
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability),
-  [Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Splits at the first occurrence of `sep`; `sep` itself is in neither field.
+- Returns `null` when `sep` does not occur in `s`.
+- Panics if `sep` is empty.
 
 ## Basic examples
 
@@ -91,7 +84,7 @@ String.cut("é", "e")     // null
 ```
 
 `String.cut` matches code points, not graphemes, so a separator can split a letter from its
-combining accent ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)):
+combining accent:
 
 ```ant
 String.cut("e\u{301}x", "\u{301}") // String.Cut{ before: "e", after: "x" }

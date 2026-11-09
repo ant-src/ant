@@ -14,17 +14,10 @@ xs.
 
 ## Details
 
-- `Array.pop` removes the last element, the one at index `length - 1`, and returns it. When `xs` is
-  empty, it returns `null` and leaves `xs` empty
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It mutates `xs` in place. An array is a reference value, so every name that shares it sees the
-  shorter array ([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
-- A `let` fixes the binding, not the elements, so `Array.pop` works on an array bound by `let`
-  ([spec: Variables](https://github.com/ant-src/spec/blob/master/ant-lang.md#3-variables)).
-- The result has type `T | null`. Narrow it, or give a default with `??`, before you use it as a
-  `T`. When `T` already includes `null`, a `null` result does not tell an empty array from a popped
-  `null`; ask the array with [`Array.isEmpty`](isEmpty.md)
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- Removes and returns the last element, changing `xs` in place. Every name that shares the array
+  sees the shorter array.
+- Returns `null` when `xs` is empty. When `T` includes `null`, that does not tell an empty array
+  from a popped `null`; ask with [`Array.isEmpty`](isEmpty.md).
 
 ## Basic examples
 
@@ -342,9 +335,7 @@ answers.isEmpty() // false
 ```
 
 Popping one shared array from two goroutines without synchronization is a data race, a program error
-with no guaranteed result
-([spec: Data races](https://github.com/ant-src/spec/blob/master/ant-lang.md#data-races)). Guard each
-pop with a [Mutex](../Mutex/index.md):
+with no guaranteed result. Guard each pop with a [Mutex](../Mutex/index.md):
 
 ```ant
 var work = [1, 2, 3, 4]

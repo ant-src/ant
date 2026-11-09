@@ -15,17 +15,11 @@ beyond width. pad defaults to a space. It panics if pad is empty or width is abo
 
 ## Details
 
-- `width` counts code points, as every length of a string does, not bytes and not graphemes.
-- The padding is `pad` repeated and cut to the code points `s` lacks, so a `pad` of several code
-  points may end partway through.
-- A string already at or beyond `width` comes back unchanged. It is never cut, so a `width` of `0`
-  or below returns `s` as it is.
-- `pad` defaults to a space.
-- An empty `pad` panics, and so does a `width` above 2^31 − 1, or a result longer than 2^31 − 1
-  bytes.
-
-Spec: [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string),
-[Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics).
+- `width` is the length of the result in code points, not the amount of padding. A string already at
+  or beyond `width` comes back unchanged; it is never cut.
+- The padding is `pad` repeated and cut to fit, so a `pad` of several code points may end partway
+  through.
+- Panics if `pad` is empty.
 
 ## Basic examples
 

@@ -13,13 +13,9 @@ String.startsWith reports whether s begins with t.
 
 ## Details
 
-- `String.startsWith` returns `true` when the first code points of `s` are the code points of `t`,
-  in order, and `false` otherwise. Every string starts with `""`, the empty string included.
-- The comparison is exact, code point by code point: it does not ignore case and does not normalize,
-  so the two spellings of "é" differ
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- Both parameters are `string`. A `string | null` must be narrowed first
-  ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
+- Every string starts with `""`.
+- The match is exact, code point by code point: it does not ignore case or normalize, so the two
+  spellings of "é" differ.
 
 ## Basic examples
 

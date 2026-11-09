@@ -14,19 +14,10 @@ order.
 
 ## Details
 
-- `f` returns an array for each element of `xs`, and the result holds those arrays' elements, one
-  array after another, in the order of `xs`
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `f` may return an empty array, which adds nothing, or an array of any length.
-- `f` is called once per element of `xs`, from the first element to the last, even for the elements
-  whose arrays are empty ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.flatMap` leaves `xs` untouched and returns a new array. It reads the elements of `xs` once,
-  when it is called, so it does not call `f` on elements that `f` pushes to `xs`, and an element
-  that `f` sets or removes later is visited with the value it had at the call
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `U` is solved from the expected type first, then from the body of `f`. Without an expected type, a
-  bare `[]` that `f` returns, in any branch, has no element type, so annotate the result
-  ([Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)).
+- The result holds the arrays `f` returns, joined in the order of `xs`. An empty array from `f` adds
+  nothing.
+- Calls `f` once per element, from first to last.
+- Returns a new array; `xs` is unchanged.
 
 ## Basic examples
 

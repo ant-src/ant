@@ -13,10 +13,7 @@ String.isEmpty reports whether s is "".
 
 ## Details
 
-- `String.isEmpty` returns `true` when `s` is `""`, and `false` for any other string.
-- A string of white space, or of one invisible code point, is not empty.
-- `len(s)` and `String.length(s)` count the code points of `s`
-  ([spec: Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
+- `true` only for `""`. A string of white space, or of one invisible code point, is not empty.
 
 ## Basic examples
 

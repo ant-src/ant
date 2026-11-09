@@ -14,16 +14,10 @@ false on "".
 
 ## Details
 
-- `String.isDigit` is `true` when `s` is not empty and every code point of `s` has the Unicode
-  general category Nd, decimal digit.
-- A decimal digit is one in any script: `0` to `9`, Arabic-Indic `٣`, Devanagari `४`, the full-width
-  `１`, and the rest of Nd.
-- It is `false` on `""`.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is digits.
-- `String.toInt` reads only the ASCII digits `0` to `9`, and the letters `a` to `z` in a base above
-  ten, so a string can pass `String.isDigit` and still give `null` from `String.toInt`.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has the general category Nd; `false` on `""`.
+- Digits of any script count: Arabic-Indic `٣`, Devanagari `४`, full-width `１`.
+  [`String.toInt`](toInt.md) reads only ASCII digits and letters, so it can still return `null` on a
+  string that passes.
 
 ## Basic examples
 

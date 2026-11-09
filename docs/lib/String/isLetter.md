@@ -13,16 +13,9 @@ String.isLetter reports whether every code point of s is a letter (L). It is fal
 
 ## Details
 
-- `String.isLetter` is `true` when `s` is not empty and every code point of `s` has a Unicode
-  general category in L, letter: `Lu`, `Ll`, `Lt`, `Lm`, or `Lo`.
-- A letter can come from any script: Latin, Cyrillic, Greek, Arabic, the Han ideographs, and the
-  rest of L.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is letters.
-- The test is per code point, not per grapheme. A combining accent is a mark, `M`, not a letter.
-- Categories follow the Unicode version `String.unicodeVersion` names; a code point that a later
-  version assigns is unassigned, `Cn`, and is not a letter until then.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has a general category in L; `false` on `""`.
+- Letters of any script count. The test is per code point: a combining accent is a mark, not a
+  letter.
 
 ## Basic examples
 

@@ -13,14 +13,9 @@ String.isSymbol reports whether every code point of s is a symbol (S). It is fal
 
 ## Details
 
-- `String.isSymbol` is `true` when every code point of `s` has a Unicode general category that
-  starts with `S`: a math symbol (`Sm`), a currency symbol (`Sc`), a modifier symbol (`Sk`), or
-  another symbol (`So`), such as `©` or `😀`.
-- It returns `false` on the empty string.
-- Punctuation is a different category, `P`. Many ASCII signs that look like symbols, such as `%`,
-  `#`, `&`, `*`, `@`, and `-`, are punctuation, not symbols.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has a general category in S (`Sm`, `Sc`, `Sk`, `So`); `false`
+  on `""`.
+- Many ASCII signs, such as `%`, `#`, `&`, `*`, `@`, and `-`, are punctuation, not symbols.
 
 ## Basic examples
 
@@ -197,7 +192,7 @@ String.isSymbol("👨‍👩‍👧")                 // false
 
 An emoji that a Unicode version newer than `String.unicodeVersion` adds is unassigned, category
 `"Cn"`, not `"So"`, so `String.isSymbol` is `false` on it until the implementation moves to that
-version. See [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+version.
 
 `String.isSymbol` tests that the whole string is symbols, not that it holds one. To find out whether
 a string contains a symbol, test each code point:

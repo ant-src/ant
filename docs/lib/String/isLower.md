@@ -13,15 +13,9 @@ String.isLower reports whether every code point of s is a lower-case letter (Ll)
 
 ## Details
 
-- `String.isLower` is `true` when `s` is not empty and every code point of `s` has the Unicode
-  general category Ll, lower-case letter.
-- It is `false` on `""`.
-- Only Ll counts. A space, a digit, punctuation, a combining accent (Mn), a modifier letter (Lm)
-  such as `ʰ`, and a title-case letter (Lt) such as `ǅ` are not lower-case letters.
-- Ant has no character type, so `s` is a `string`. On one code point, such as `c` in `for c in s`,
-  it tests a character; on a longer string, it tests that the whole string is lower-case letters.
-- The tables are those of the Unicode version that `String.unicodeVersion` names.
-- [spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)
+- `true` when every code point of `s` has the general category Ll; `false` on `""`.
+- Only Ll counts: a modifier letter such as `ʰ`, a title-case letter such as `ǅ`, and a combining
+  accent are not lower-case letters.
 
 ## Basic examples
 

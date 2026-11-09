@@ -598,6 +598,11 @@ func linkProblems(rel string, prose []docLine, files map[string]bool) []string {
 	for _, l := range prose {
 		for _, m := range mdLink.FindAllStringSubmatch(codeSpan.ReplaceAllString(l.text, ""), -1) {
 			target := m[1]
+			// The docs are for people using Ant; the spec is for people implementing it.
+			if strings.Contains(target, "github.com/ant-src/spec") {
+				problems = append(problems, fmt.Sprintf("%s:%d: the link %s names the spec; link a docs page instead, or none", rel, l.n, m[1]))
+				continue
+			}
 			// A link from the site's root, such as /vscode, names a page of the site, not of docs/.
 			if strings.Contains(target, "://") || strings.HasPrefix(target, "#") || strings.HasPrefix(target, "/") || strings.HasPrefix(target, "mailto:") {
 				continue

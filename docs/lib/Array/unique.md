@@ -13,20 +13,10 @@ Array.unique returns a new array holding the first of each == value in xs, in or
 
 ## Details
 
-- `Array.unique` keeps the first element of each group of `==` values and drops the later ones. The
-  kept elements stay in the order they have in `xs`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- It compares by `==`, the same test as the [`==` operator](../../language/operators/equality.md).
-  Arrays, maps, and sets are equal when their contents are, and records when they carry the same tag
-  and equal fields
-  ([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)); functions,
-  sync objects, and handles compare by identity
-  ([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
-- Floats compare as IEEE 754 does: `NaN` equals nothing, itself included, so every `NaN` is kept,
-  and `-0.0 == 0.0`, so only the first of the two is kept
-  ([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
-- `Array.unique` is not marked `mutates`, so it returns a new array and leaves `xs` untouched
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Keeps the first of each group of `==` values, in the order of `xs`.
+- Every `NaN` is kept, since `NaN` equals nothing; `-0.0 == 0.0`, so only the first of the two is
+  kept.
+- Returns a new array; `xs` is unchanged.
 
 ## Basic examples
 

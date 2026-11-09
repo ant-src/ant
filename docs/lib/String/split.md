@@ -13,8 +13,7 @@ String.split returns the pieces of s between each occurrence of sep. It panics i
 
 ## Details
 
-- `String.split` panics if `sep` is empty
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- Panics if `sep` is empty.
 
 ## Basic examples
 

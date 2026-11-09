@@ -14,22 +14,12 @@ before b, and the sort is stable.
 
 ## Details
 
-- `Array.sortWith` returns a new array with the elements of `xs` in the order `cmp` gives:
-  `cmp(a, b) < 0` puts `a` before `b`, `cmp(a, b) > 0` puts `a` after `b`, and `cmp(a, b) == 0`
-  keeps their order. The sort is stable, so elements that `cmp` ranks equal keep their order from
-  `xs` ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.sortWith` calls `cmp` as often as sorting needs, in no promised order
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- When `cmp` is not a consistent order, the result still holds the elements of `xs`, in some order
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `xs` is left untouched, and `Array.sortWith` reads its elements once, when it is called
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- `cmp` takes two parameters, so it is a `func` or a named function, never a lambda, which has the
-  single parameter `x`
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
-- `T` has no bound: `cmp` decides the order, so records, unions, and any other type sort. For an
-  `Ordered` element or key, [Array.sort](sort.md) and [Array.sortBy](sortBy.md) need no comparator
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)).
+- Returns a new array; `xs` is unchanged.
+- `cmp(a, b) < 0` puts `a` first, `> 0` puts `b` first, and `0` keeps their order: the sort is
+  stable.
+- Calls `cmp` as often as sorting needs, in no promised order. When `cmp` is not a consistent order,
+  the result still holds the elements of `xs`, in some order.
+- `cmp` takes two parameters, so pass a `func` or a named function; a `{ ... }` lambda has only `x`.
 
 ## Basic examples
 
@@ -114,8 +104,7 @@ var jobs = [Job{ priority: 2, name: "lint" }, Job{ priority: 1, name: "test" }]
 jobs.sortWith(Job.compare).map({ x.name }) // ["test", "lint"]
 ```
 
-A generic function can sort any type that has its own `compare`, through an interface bound
-([spec: Interfaces](https://github.com/ant-src/spec/blob/master/ant-lang.md#interfaces)):
+A generic function can sort any type that has its own `compare`, through an interface bound:
 
 ```ant
 interface Compare {
@@ -329,9 +318,8 @@ may hold `NaN`, use `Array.sort`:
 [1.5, Math.NaN, 0.5].sort() // [0.5, 1.5, NaN]
 ```
 
-For any other order, place `NaN` in the comparator with `Math.isNaN`
-([spec: Math and Bits](https://github.com/ant-src/spec/blob/master/ant-lang.md#math-and-bits)). This
-one puts `NaN` last and the other values in descending order:
+For any other order, place `NaN` in the comparator with `Math.isNaN`. This one puts `NaN` last and
+the other values in descending order:
 
 ```ant
 [1.5, Math.NaN, 0.5].sortWith(func(a: float64, b: float64) {

@@ -13,21 +13,10 @@ Array.uniqueBy returns a new array holding the first element of xs for each == k
 
 ## Details
 
-- `Array.uniqueBy` calls `key` on the elements of `xs` and keeps the first element for each key. The
-  kept elements stay in the order of `xs`.
-- It calls `key` once per element, from the first element to the last, even for an element whose key
-  was already seen, and never stops early
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Keys compare the way `==` does: structurally for records, arrays, maps, and sets, by identity for
-  functions, and by IEEE 754 for floats, so `NaN` never matches itself and `-0.0` matches `0.0`
-  ([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
-- `key` is any value of type `func(T): K`: a lambda, an anonymous function, a named function, or a
-  function on a type
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
-- An empty `xs` gives `[]`.
-- `Array.uniqueBy` reads the elements once, when it is called, leaves `xs` untouched, and returns a
-  new array
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Keeps the first element for each key, in the order of `xs`.
+- Calls `key` once per element, from first to last, and never stops early.
+- Keys compare with `==`: a `NaN` key never matches, and `-0.0` matches `0.0`.
+- Returns a new array; `xs` is unchanged.
 
 ## Basic examples
 
@@ -226,8 +215,7 @@ assert(len(xs.uniqueBy({ x % 2 })) <= len(xs))
 
 ## Possible issues
 
-Strings compare by code points, so two spellings of the same character are two keys
-([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)):
+Strings compare by code points, so two spellings of the same character are two keys:
 
 ```ant
 ["\u{e9}", "e\u{301}"].uniqueBy({ x }) // ["é", "é"]
@@ -246,8 +234,7 @@ Strings compare by code points, so two spellings of the same character are two k
 ```
 
 An empty literal with nothing to fix its element type is a compile error, even before the call. The
-checker stops at the first line
-([spec: Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)):
+checker stops at the first line:
 
 <!-- test: error cannot infer the element type of an empty array -->
 

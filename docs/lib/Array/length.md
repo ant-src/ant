@@ -13,15 +13,9 @@ Array.length returns the number of elements in xs.
 
 ## Details
 
-- `Array.length` returns the number of elements in `xs` as an `int`. An empty array has length `0`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- Valid indices run from `0` up to but excluding the length. `xs[i]` panics outside that range
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- An array is growable, so its length changes as `Array.push`, `Array.pop`, and the other mutating
-  functions change it. `Array.length` returns the length at the time of the call
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- The built-in `len(xs)` returns the same count
-  ([spec: Prelude](https://github.com/ant-src/spec/blob/master/ant-lang.md#prelude)).
+- Returns the length at the time of the call; [Array.push](push.md), [Array.pop](pop.md), and the
+  other mutating functions change it.
+- `len(xs)` returns the same count.
 
 ## Basic examples
 
@@ -250,9 +244,8 @@ var xs: Array[int] | null = null
 xs?.length() ?? 0 // 0
 ```
 
-An array is a reference value: assigning or passing one shares it
-([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)). A push through
-one name changes the length seen through the other:
+An array is a reference value: assigning or passing one shares it. A push through one name changes
+the length seen through the other:
 
 ```ant
 var a = [1, 2]
@@ -262,9 +255,7 @@ a.length() // 3
 ```
 
 A `for x in xs` loop reads the length before each step, not once at the start, so elements pushed
-during the loop are visited
-([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)). An
-unconditional `xs.push(x)` in the loop body never ends:
+during the loop are visited. An unconditional `xs.push(x)` in the loop body never ends:
 
 ```ant
 var xs = [1, 2]

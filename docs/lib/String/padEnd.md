@@ -15,15 +15,10 @@ and panics as [`String.padStart`](padStart.md) does.
 ## Details
 
 - `width` is the length of the result in code points, not the amount of padding. A string already at
-  or beyond `width` comes back unchanged, so a zero or negative `width` never changes `s`.
-- The padding is `pad` repeated and cut to the code points `s` lacks, so a pad of several code
-  points may end partway through.
-- `pad` defaults to a space.
-- `String.padEnd` panics if `pad` is empty, if `width` is above 2^31 − 1, or if the result would be
-  longer than 2^31 − 1 bytes.
-
-Spec: [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string),
-[Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics).
+  or beyond `width` comes back unchanged; it is never cut.
+- The padding is `pad` repeated and cut to fit, so a `pad` of several code points may end partway
+  through.
+- Panics if `pad` is empty.
 
 ## Basic examples
 

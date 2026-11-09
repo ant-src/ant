@@ -13,22 +13,10 @@ Array.contains reports whether some element of xs is == v.
 
 ## Details
 
-- `Array.contains` compares each element with `v` by `==`, the same test as the
-  [`==` operator](../../language/operators/equality.md). It returns `true` when some element is `==`
-  to `v`, and `false` otherwise, so an empty array gives `false`
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `==` is structural: arrays, maps, sets, and records are equal when their contents are, never by
-  identity. Functions, tags, sync objects, generators, handles, and listeners are the exception and
-  compare by identity
-  ([spec: Records](https://github.com/ant-src/spec/blob/master/ant-lang.md#records)).
-- Floats compare as IEEE 754 does: `NaN` equals nothing, itself included, and `-0.0 == 0.0`
-  ([spec: Kinds](https://github.com/ant-src/spec/blob/master/ant-lang.md#kinds)).
-- `v` must have the element type `T`. Numeric types never mix, so an `Array[int]` never takes a
-  `float64`
-  ([spec: Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)), and a
-  literal gets no help from context
-  ([spec: Inference](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)). `null` is
-  a valid `v` only when `T` includes `null`.
+- Compares each element with `v` by [`==`](../../language/operators/equality.md), so arrays, maps,
+  sets, and records match by contents.
+- An empty array gives `false`.
+- `NaN` equals nothing, itself included, so an array never contains `NaN`.
 
 ## Basic examples
 

@@ -15,18 +15,10 @@ is null too. base defaults to 10, and it panics if base is outside 2 ..= 36.
 
 ## Details
 
-- `String.toUint` reads the digits that [`String.toInt`](toInt.md) reads: `0` to `9`, and for a base
-  above ten the letters `a` to `z` in either case. It takes no sign, not even `+`, and no prefix
-  such as `0x`. Anything else, the empty string included, gives `null`
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result covers the whole `uint64` range, from `0` up to `Math.maxUint64`. A larger number is
-  `null`.
-- `base` defaults to `10`. A base outside `2 ..= 36` panics.
-- The result is `uint64 | null`. Narrow it with `??`, `?? return`, or `if` before you use it as a
-  number ([spec: Narrowing](https://github.com/ant-src/spec/blob/master/ant-lang.md#narrowing)).
-- For a narrower kind, such as `byte` or `uint16`, convert the result. The conversion panics when
-  the value is out of range
-  ([spec: Primitives](https://github.com/ant-src/spec/blob/master/ant-lang.md#primitives)).
+- Reads the digits that [`String.toInt`](toInt.md) reads, but takes no sign, not even `+`. Anything
+  else, `""` included, gives `null`.
+- Covers the whole `uint64` range; a larger number is `null`.
+- A `base` outside `2 ..= 36` panics.
 
 ## Basic examples
 

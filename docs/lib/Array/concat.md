@@ -13,15 +13,9 @@ Array.concat returns a new array holding the elements of xs followed by those of
 
 ## Details
 
-- The result holds the elements of `xs`, then those of `ys`, each side in its own order. It is not
-  sorted and keeps duplicates
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.concat` changes neither `xs` nor `ys`. To append to `xs` in place, use
-  [Array.extend](extend.md)
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- Both arrays have the same element type `T`. Type arguments are invariant, so an `Array[int]` and
-  an `Array[int | null]` do not mix
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#assignability)).
+- Returns a new array with the elements of `xs`, then those of `ys`, duplicates kept. Neither
+  argument changes.
+- To append to `xs` in place, use [Array.extend](extend.md).
 
 ## Basic examples
 
@@ -182,8 +176,7 @@ assert(Array.flatten([a, b, c]) == Array.concat(Array.concat(a, b), c))
 ## Possible issues
 
 The result holds the elements of `xs` and `ys`, not copies of them. An element that is itself an
-array or a record is the same value in both, so writing to it shows through the original
-([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#values)):
+array or a record is the same value in both, so writing to it shows through the original:
 
 ```ant
 var grid = [[1], [2]]
@@ -192,9 +185,8 @@ more[0][0] = 99
 grid // [[99], [2]]
 ```
 
-`+` joins strings, not arrays, so it does not concatenate two arrays
-([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#operators)). Use `Array.concat` or
-the spread literal `[...xs, ...ys]`:
+`+` joins strings, not arrays, so it does not concatenate two arrays. Use `Array.concat` or the
+spread literal `[...xs, ...ys]`:
 
 <!-- test: error + applies to -->
 
@@ -210,8 +202,7 @@ Two arrays of different element types do not join without an expected type that 
 var both = Array.concat([1], ["x"])
 ```
 
-Two empty literals leave `T` open, which is a compile error. Annotate one side, or the result
-([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#inference)):
+Two empty literals leave `T` open, which is a compile error. Annotate one side, or the result:
 
 <!-- test: error cannot infer the element type -->
 

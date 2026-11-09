@@ -13,15 +13,9 @@ Array.countWhere returns how many elements of xs f accepts.
 
 ## Details
 
-- `Array.countWhere` calls `f` on the elements of `xs` and returns how many of them `f` returns
-  `true` for. An empty array gives `0`. `f` runs once per element, from the first element to the
-  last; unlike `Array.some`, the call never stops early
-  ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `f` must return `bool`. A lambda takes its parameter type from `f`'s type `func(T): bool`, so `x`
-  is the element type
-  ([spec: Anonymous functions](https://github.com/ant-src/spec/blob/master/ant-lang.md#anonymous-functions)).
-- `Array.countWhere` leaves `xs` untouched and returns an `int`, never `null`
-  ([spec: Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- An empty array gives `0`.
+- Calls `f` once per element, from first to last. Unlike [Array.some](some.md), it never stops
+  early.
 
 ## Basic examples
 

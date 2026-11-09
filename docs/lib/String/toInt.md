@@ -16,16 +16,11 @@ outside 2 ..= 36.
 
 ## Details
 
-- `String.toInt` reads `s` as digits of `base` with an optional `+` or `-` in front. The digits are
-  `0` to `9` and, above base ten, the letters `a` to `z` in either case. A decimal digit of another
-  script, such as `٣`, is not a digit here.
-- Anything else makes the result `null`: an empty string, a lone sign, white space, `_`, a `.`, an
-  exponent, or a prefix such as `0x`. A number outside the range of `int` is `null` too.
-- `base` defaults to `10`. A base outside `2 ..= 36` panics
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
-- The result is `int | null`, so a program narrows it, or supplies a default with `??`, before it
-  uses the result as an `int`
-  ([spec: Nullability](https://github.com/ant-src/spec/blob/master/ant-lang.md#7-nullability)).
+- Reads digits of `base` with an optional `+` or `-`. Above base ten the letters `a` to `z` count,
+  in either case. Digits of other scripts, such as `٣`, do not.
+- Anything else is `null`: an empty string, a lone sign, white space, `_`, `.`, an exponent, or a
+  prefix such as `0x`. A number outside the range of `int` is `null` too.
+- A `base` outside `2 ..= 36` panics.
 
 ## Basic examples
 

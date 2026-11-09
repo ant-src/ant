@@ -14,25 +14,10 @@ stable.
 
 ## Details
 
-- `Array.sortBy` returns a new array with the elements of `xs` in ascending order of the keys that
-  `key` returns for them. It leaves `xs` unchanged.
-- The keys are compared by `<`, and the sort is stable: elements with equal keys keep their order in
-  `xs` ([spec: Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)). Neither of
-  `-0.0` and `0.0` is less than the other by `<`
-  ([spec: Math and Bits](https://github.com/ant-src/spec/blob/master/ant-lang.md#math-and-bits)), so
-  those keys are equal and keep their order.
-- String keys compare by code point
-  ([spec: Expressions](https://github.com/ant-src/spec/blob/master/ant-lang.md#expressions)).
-- `key` is called once per element, from the first element to the last, so a key with a side effect
-  sees the elements in order.
-- An element whose key is `NaN` goes after every element with a number key.
-- The key type `K` must be a single member of `Ordered` (`Number | string`): one integer or float
-  kind, or `string`, never a union such as `int | null`
-  ([spec: Generics](https://github.com/ant-src/spec/blob/master/ant-lang.md#generics)). A record
-  sorts through a key that reads one of its fields.
-- `key` is any function value of type `func(T): K`: a lambda with its implicit `x`, a named
-  function, or a closure over local variables
-  ([spec: Closures and first-class values](https://github.com/ant-src/spec/blob/master/ant-lang.md#closures-and-first-class-values)).
+- Returns a new array; `xs` is unchanged.
+- Calls `key` once per element, from first to last.
+- The sort is stable: elements with equal keys keep their order, `-0.0` and `0.0` included.
+- String keys sort by code point, and a `NaN` key goes after every number key.
 
 ## Basic examples
 
@@ -317,8 +302,7 @@ sizes.sortWith(func(a: uint8, b: uint8) { int(b) - int(a) }) // [2, 1]
 ```
 
 A key of a named primitive type is not a member of `Ordered`, because a named primitive is
-assignable only to itself, never to its base
-([spec: Named primitive types](https://github.com/ant-src/spec/blob/master/ant-lang.md#named-primitive-types)):
+assignable only to itself, never to its base:
 
 <!-- test: error K would be Celsius, which is not a single member of its bound Ordered -->
 

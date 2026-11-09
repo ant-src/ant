@@ -13,11 +13,8 @@ String.join returns the strings in parts joined with sep between each two.
 
 ## Details
 
-- `String.join` leaves `parts` unchanged and returns a new string
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
-- Its subject is an array, and a value reaches its own type's namespace, so `parts.join(",")` looks
-  for `Array.join`, which does not exist. Call `String.join(parts, ",")` or use a pipe
-  ([spec](https://github.com/ant-src/spec/blob/master/ant-lang.md#calls-through-)).
+- Returns a new string; `parts` is unchanged.
+- `parts.join(",")` does not work, since there is no `Array.join`. Call `String.join(parts, ",")`.
 
 ## Basic examples
 

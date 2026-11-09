@@ -14,16 +14,10 @@ panics if from \> to, or if either is outside 0 ..= length.
 
 ## Details
 
-- The range is half-open: the result starts at index `from` and stops before index `to`, so it holds
-  `to - from` elements.
-- `from` and `to` may each be anywhere in `0 ..= length`, so `from == to` gives `[]` and
-  `Array.slice(xs, 0, len(xs))` gives every element.
-- It panics if `from > to`, or if either is below 0 or above the length. There are no negative
-  indices counting from the end
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array),
-  [Runtime panics](https://github.com/ant-src/spec/blob/master/ant-lang.md#runtime-panics)).
-- `Array.slice` returns a new array and leaves `xs` untouched
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- The range is half-open: the result starts at `from` and stops before `to`.
+- Panics if `from > to`, or if either is below 0 or above the length. There are no negative indices
+  counting from the end.
+- Returns a new array; `xs` is unchanged.
 
 ## Basic examples
 
@@ -193,9 +187,8 @@ var xs = [1, 2, 3, 4, 5, 6]
 assert(Array.slice(Array.slice(xs, 1, 5), 1, 3) == Array.slice(xs, 2, 4))
 ```
 
-[Destructuring](https://github.com/ant-src/spec/blob/master/ant-lang.md#destructuring) with a rest
-binds everything after the head as a new array, the same as slicing from `1`. Unlike the slice, it
-panics on an empty array:
+Destructuring with a rest binds everything after the head as a new array, the same as slicing from
+`1`. Unlike the slice, it panics on an empty array:
 
 ```ant
 var xs = [1, 2, 3]

@@ -13,11 +13,9 @@ String.count returns the number of non-overlapping occurrences of t in s. It pan
 
 ## Details
 
-- `String.count` returns how many times `t` occurs in `s`, counting occurrences that do not overlap.
-  A `t` that does not occur, or an empty `s`, gives `0`.
-- It panics if `t` is empty.
-- Like `==`, it neither folds case nor normalizes, so the two spellings of "é" differ
-  ([spec: String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string)).
+- Counts occurrences that do not overlap. A `t` that does not occur, or an empty `s`, gives `0`.
+- Panics if `t` is empty.
+- Does not ignore case and does not normalize, so the two spellings of "é" differ.
 
 ## Basic examples
 

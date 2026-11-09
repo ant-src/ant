@@ -14,15 +14,10 @@ omitted when it is empty, so a final newline adds no empty line.
 
 ## Details
 
-- A line ends at `\n`. A `\r` right before the `\n` is dropped with it, so text with Windows line
-  endings gives the same lines as text with Unix ones.
-- A `\r` anywhere else stays in the line. That includes a `\r` at the end of the text.
-- The piece after the last `\n` is a line when it is not empty, so text without a final newline
-  loses nothing, and a final newline adds no empty line.
-- An empty string has no lines, while `"\n"` has one empty line.
-- Only `\n` ends a line: U+0085, U+2028, and U+2029 stay in the line.
-
-See [String](https://github.com/ant-src/spec/blob/master/ant-lang.md#string).
+- A line ends at `\n`, and a `\r` right before it is dropped too, so Windows and Unix line endings
+  give the same lines. A `\r` anywhere else stays.
+- A final newline adds no empty line, and text without one loses nothing.
+- `""` has no lines, while `"\n"` has one empty line.
 
 ## Basic examples
 

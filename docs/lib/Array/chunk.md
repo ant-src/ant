@@ -14,15 +14,10 @@ a multiple of n. It panics if n \< 1. An empty xs gives \[\].
 
 ## Details
 
-- The chunks hold the elements of `xs` in order: the first `n` elements, then the next `n`, and so
-  on.
-- Every chunk but the last holds `n` elements. The last holds fewer only when the length is not a
-  multiple of `n`; when it is, the last chunk is full too.
-- An empty `xs` gives `[]`, an array with no chunks.
-- `n` below 1 panics, whether or not `xs` is empty
-  ([Array](https://github.com/ant-src/spec/blob/master/ant-lang.md#array)).
-- `Array.chunk` leaves `xs` untouched and returns new arrays
-  ([Standard library](https://github.com/ant-src/spec/blob/master/ant-lang.md#11-standard-library)).
+- Every chunk holds `n` elements except the last, which holds what is left. An empty `xs` gives
+  `[]`.
+- `n` below 1 panics, even when `xs` is empty.
+- Returns new arrays; `xs` is unchanged.
 
 ## Basic examples
 
