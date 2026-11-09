@@ -381,7 +381,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			continue
 		}
 		if types.Mentions(want, unsolved) {
-			if !mismatch {
+			if _, isCall := a.Value.(*ast.Call); isCall && !mismatch {
+				c.synth(a.Value, sc) // reports the empty literal inside it
+			} else if !mismatch {
 				c.errorf(a.Value.Position(), "%s", emptyError(a.Value))
 			}
 			bindInvalid(s.fn.Params[i], subst)
@@ -616,6 +618,17 @@ func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, pos as
 			return types.Invalid{}
 		}
 		return s.fn.Return
+	}
+	// A type parameter left invalid was reported where it failed, so a result built from it, such
+	// as Set[T] of Set.of([]), is invalid as a whole and reports nothing further.
+	failed := map[*types.ParamDecl]bool{}
+	for p, t := range subst {
+		if types.IsInvalid(t) {
+			failed[p] = true
+		}
+	}
+	if len(failed) > 0 && types.Mentions(s.fn.Return, failed) {
+		return types.Invalid{}
 	}
 	t, err := types.Subst(s.fn.Return, subst)
 	if err != nil {
@@ -984,11 +997,26 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 	return c.synth(e, sc)
 }
 
-// onlyEmpty reports an empty array or map literal, or an array literal of nothing but those,
-// which only an expected type can give a type.
+// onlyEmpty reports an empty array or map literal, an array literal of nothing but those, or a
+// call whose arguments are only those and lambdas, such as Set.of([]): what only an expected type
+// can give a type.
 func onlyEmpty(e ast.Expr) bool {
 	if isEmptyLiteral(e) {
 		return true
+	}
+	if call, ok := e.(*ast.Call); ok {
+		// A call whose arguments fix nothing, as Set.of([]), takes its type from context too.
+		empty := false
+		for _, a := range call.Args {
+			if _, isLambda := a.Value.(*ast.Lambda); isLambda {
+				continue
+			}
+			if !onlyEmpty(a.Value) {
+				return false
+			}
+			empty = true
+		}
+		return empty
 	}
 	x, ok := e.(*ast.ArrayLit)
 	if !ok {

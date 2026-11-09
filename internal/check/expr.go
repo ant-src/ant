@@ -1190,10 +1190,17 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 	}
 	nonNull := types.Without(l, types.Null{})
 	var r types.Type
-	if expected != nil {
+	switch {
+	case expected != nil:
 		r = c.check(x.Y, sc, expected)
-	} else {
+	case onlyEmpty(x.Y) && !types.IsInvalid(nonNull):
+		// An empty literal takes the left side's type: m[k] ?? [] (section 4, Inference).
+		r = c.check(x.Y, sc, nonNull)
+	default:
 		r = c.synth(x.Y, sc)
+	}
+	if types.IsInvalid(r) && expected == nil {
+		return types.Invalid{} // reported where it failed
 	}
 	if types.IsNever(r) {
 		if id, ok := x.X.(*ast.Ident); ok {

@@ -208,22 +208,14 @@ println(groups[1].length())
 // error: Array[int] | null has no field or function length on every member: narrow the value first
 ```
 
-Supply an empty group with `??`, and annotate the variable so that `[]` has an element type:
+Supply an empty group with `??`; the `[]` takes the element type of the group:
 
 ```ant
 var groups = [1, 2, 3].groupBy({ x % 2 })
-var odd: Array[int] = groups[1] ?? []
-var sevens: Array[int] = groups[7] ?? []
+var odd = groups[1] ?? []
+var sevens = groups[7] ?? []
 odd    // [1, 3]
 sevens // []
-```
-
-Without the annotation, `[]` has no element type, which is a compile error:
-
-```ant
-var groups = [1, 2, 3].groupBy({ x % 2 })
-var odd = groups[1] ?? [] // error: cannot infer the element type of an empty array; annotate it
-println(odd)
 ```
 
 The keys are in first-seen order, not sorted. Sort them when the order matters:

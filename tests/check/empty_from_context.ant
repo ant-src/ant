@@ -1,0 +1,24 @@
+// spec: 4 Inference
+// The right side of ?? that fixes nothing takes the left side's type without null, and a call
+// whose arguments fix nothing, such as Set.of([]), waits for the other arguments as [] does. What
+// still has no type is reported once, at the empty literal, and nothing follows from it.
+var chunks = Array.chunk([1, 2, 3], 2)
+var last = Array.last(chunks) ?? []
+var shown: Array[int] = last
+var edges = Map{ a: ["b"] }
+for next in edges["a"] ?? [] {
+  var name: string = next
+}
+var groups: Map[string, Set[int]] = Map{}
+var none: Set[int] = groups["a"] ?? Set.of([])
+var sub = Set.isSubset(Set.of([]), Set.of([1]))
+var joined: Array[int] = Array.concat(Array.filter([], { true }), [1])
+var maybe: int | null = null
+var mixed = maybe ?? "none"
+var either: int | string = mixed
+var s = Set.of([1])
+var same = s == Set.of([]) // ERR: cannot infer the element type of an empty array
+var t = Set.of([])         // ERR: cannot infer the element type of an empty array
+var u = Set.union(s, t)
+var n: Array[int] | null = null
+Array.push(n ?? [], 9)
