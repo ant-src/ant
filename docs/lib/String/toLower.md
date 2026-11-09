@@ -107,7 +107,7 @@ Check a file name for an image extension however it is spelled:
 
 ```ant
 func isImage(name: string): bool {
-  var lower = String.toLower(name)
+  let lower = String.toLower(name)
   [".png", ".jpg", ".gif"].some({ String.endsWith(lower, x) })
 }
 

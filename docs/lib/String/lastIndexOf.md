@@ -99,7 +99,7 @@ when there is none:
 
 ```ant
 func extension(name: string): string {
-  var i = String.lastIndexOf(name, ".") ?? return ""
+  let i = String.lastIndexOf(name, ".") ?? return ""
   String.slice(name, i + 1, String.length(name))
 }
 
@@ -118,7 +118,7 @@ Split a path into its directory and its base name at the last slash:
 type Split = { dir: string, base: string }
 
 func splitPath(path: string): Split {
-  var i = String.lastIndexOf(path, "/")
+  let i = String.lastIndexOf(path, "/")
   if i != null {
     Split{ dir: String.slice(path, 0, i), base: String.slice(path, i + 1, String.length(path)) }
   } else {
@@ -139,11 +139,11 @@ Find every occurrence from the end, searching again in the text in front of each
 with `?? break`:
 
 ```ant
-var s = "the cat and the hat"
+let s = "the cat and the hat"
 var to = String.length(s)
-var hits: Array[int] = []
+let hits: Array[int] = []
 while true {
-  var i = String.lastIndexOf(String.slice(s, 0, to), "the") ?? break
+  let i = String.lastIndexOf(String.slice(s, 0, to), "the") ?? break
   hits.push(i)
   to = i
 }
@@ -160,10 +160,10 @@ The result is `null` exactly when [`String.contains`](contains.md) is `false`, a
 before the index [`String.indexOf`](indexOf.md) gives:
 
 ```ant
-var s = "banana"
+let s = "banana"
 for t in ["an", "nab", "a", "x"] {
-  var first = String.indexOf(s, t)
-  var last = String.lastIndexOf(s, t)
+  let first = String.indexOf(s, t)
+  let last = String.lastIndexOf(s, t)
   assert((last == null) == !String.contains(s, t))
   if first != null && last != null {
     assert(first <= last)
@@ -174,9 +174,9 @@ for t in ["an", "nab", "a", "x"] {
 When `t` occurs, the slice of `s` at the index is `t`:
 
 ```ant
-var s = "mississippi"
-var t = "ssi"
-var i = String.lastIndexOf(s, t)
+let s = "mississippi"
+let t = "ssi"
+let i = String.lastIndexOf(s, t)
 assert(i != null)
 assert(String.slice(s, i, i + String.length(t)) == t)
 ```
@@ -185,7 +185,7 @@ For a one-code-point `t`, the index is the one [`Array.lastIndexOf`](../Array/la
 on [`String.chars`](chars.md):
 
 ```ant
-var s = "hello"
+let s = "hello"
 for c in ["h", "l", "o", "z"] {
   assert(String.lastIndexOf(s, c) == Array.lastIndexOf(String.chars(s), c))
 }
@@ -213,7 +213,7 @@ String.contains("abc", "z")            // false
 The result is not an `int` until you narrow it, so arithmetic on it is a compile error:
 
 ```ant
-var i = String.lastIndexOf("a.b", ".")
+let i = String.lastIndexOf("a.b", ".")
 println(i + 1) // error: + needs both operands of one type, got int | null and int
 ```
 

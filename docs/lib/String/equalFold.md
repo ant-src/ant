@@ -94,7 +94,7 @@ Accept a yes or no answer however the user typed it:
 
 ```ant
 func confirmed(answer: string): bool {
-  var a = String.trim(answer)
+  let a = String.trim(answer)
   String.equalFold(a, "y") || String.equalFold(a, "yes")
 }
 
@@ -107,7 +107,7 @@ Look up an HTTP header, whose names are case-insensitive:
 
 ```ant
 type Header = { name: string, value: string }
-var headers = [
+let headers = [
   Header{ name: "Content-Type", value: "text/html" },
   Header{ name: "X-Request-Id", value: "42" },
 ]
@@ -118,11 +118,11 @@ Check a file extension without regard to case:
 
 ```ant
 func isImage(name: string): bool {
-  var dot = String.lastIndexOf(name, ".")
+  let dot = String.lastIndexOf(name, ".")
   if dot == null {
     return false
   }
-  var ext = String.slice(name, dot + 1, String.length(name))
+  let ext = String.slice(name, dot + 1, String.length(name))
   ["png", "jpg", "gif"].some({ String.equalFold(ext, x) })
 }
 
@@ -136,8 +136,8 @@ isImage("README")    // false
 `equalFold` is reflexive and symmetric:
 
 ```ant
-var a = "Straße"
-var b = "STRASSE"
+let a = "Straße"
+let b = "STRASSE"
 assert(String.equalFold(a, a))
 assert(String.equalFold(a, b) == String.equalFold(b, a))
 ```
@@ -145,7 +145,7 @@ assert(String.equalFold(a, b) == String.equalFold(b, a))
 It agrees with comparing the folded strings with `==`:
 
 ```ant
-var pairs = [["Ant", "aNT"], ["ß", "ss"], ["İ", "i"], ["a", "b"]]
+let pairs = [["Ant", "aNT"], ["ß", "ss"], ["İ", "i"], ["a", "b"]]
 for p in pairs {
   assert(String.equalFold(p[0], p[1]) == (String.foldCase(p[0]) == String.foldCase(p[1])))
 }
@@ -165,10 +165,10 @@ String.equalFold("Straße", "STRASSE")                 // true
 both are normalized:
 
 ```ant
-var composed = "\u{E9}"
-var decomposed = "e\u{301}"
+let composed = "\u{E9}"
+let decomposed = "e\u{301}"
 String.equalFold(composed, decomposed) // false
-var nfc = String.normalize(decomposed, "NFC")
+let nfc = String.normalize(decomposed, "NFC")
 String.equalFold(composed, nfc) // true
 ```
 
@@ -192,7 +192,7 @@ accepts:
 
 ```ant
 func stripAccents(s: string): string {
-  var letters = String.chars(String.normalize(s, "NFD")).filter({ !String.isMark(x) })
+  let letters = String.chars(String.normalize(s, "NFD")).filter({ !String.isMark(x) })
   String.join(letters, "")
 }
 

@@ -73,21 +73,21 @@ Array.map(["Ant", "BEE", "wasp"], String.foldCase) // ["ant", "bee", "wasp"]
 Remove duplicates without regard to case, keeping the first spelling:
 
 ```ant
-var tags = ["Go", "rust", "GO", "Rust", "ant"]
+let tags = ["Go", "rust", "GO", "Rust", "ant"]
 Array.uniqueBy(tags, String.foldCase) // ["Go", "rust", "ant"]
 ```
 
 Group words by their folded form:
 
 ```ant
-var words = ["Ant", "ant", "ANT", "Bee"]
+let words = ["Ant", "ant", "ANT", "Bee"]
 Array.groupBy(words, String.foldCase) // Map{ "ant": ["Ant", "ant", "ANT"], "bee": ["Bee"] }
 ```
 
 Look up a map whose keys are folded, so that any spelling finds the entry:
 
 ```ant
-var colors = Map{ "red": "#f00", "green": "#0f0" }
+let colors = Map{ "red": "#f00", "green": "#0f0" }
 Map.get(colors, String.foldCase("RED"))   // "#f00"
 Map.get(colors, String.foldCase("Green")) // "#0f0"
 ```
@@ -95,10 +95,10 @@ Map.get(colors, String.foldCase("Green")) // "#0f0"
 Count the words of a text without regard to case:
 
 ```ant
-var text = "The ant and THE bee and the Wasp"
-var counts: Map[string, int] = Map{}
+let text = "The ant and THE bee and the Wasp"
+let counts: Map[string, int] = Map{}
 for w in String.fields(text) {
-  var key = String.foldCase(w)
+  let key = String.foldCase(w)
   Map.set(counts, key, (Map.get(counts, key) ?? 0) + 1)
 }
 println(counts)
@@ -147,8 +147,8 @@ Neither `foldCase` nor `==` normalizes. An `é` written as one code point and an
 accent stay different after folding:
 
 ```ant
-var a = "\u{E9}"
-var b = "E\u{301}"
+let a = "\u{E9}"
+let b = "E\u{301}"
 String.foldCase(a) == String.foldCase(b)                                                   // false
 String.foldCase(String.normalize(a, "NFC")) == String.foldCase(String.normalize(b, "NFC")) // true
 ```

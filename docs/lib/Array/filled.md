@@ -29,7 +29,7 @@ Array.filled(3, 0) // [0, 0, 0]
 The result is a new array. Writing a slot changes only that slot:
 
 ```ant
-var marks = Array.filled(4, "-")
+let marks = Array.filled(4, "-")
 marks[1] = "x"
 marks // ["-", "x", "-", "-"]
 ```
@@ -56,7 +56,7 @@ To fill with `null` and store values later, annotate the element type. The annot
 array an `Array[int | null]`:
 
 ```ant
-var slots: Array[int | null] = Array.filled(3, null)
+let slots: Array[int | null] = Array.filled(3, null)
 slots[0] = 5
 slots // [5, null, null]
 ```
@@ -79,7 +79,7 @@ Array.filled(v: "x", n: 2) // ["x", "x"]
 Count how often each digit occurs, with one counter per digit:
 
 ```ant
-var counts = Array.filled(5, 0)
+let counts = Array.filled(5, 0)
 for d in [1, 3, 3, 4, 1, 1] {
   counts[d] += 1
 }
@@ -98,7 +98,7 @@ pad([7, 8], 5) // [0, 0, 0, 7, 8]
 Build a grid with a new row per line, then draw it:
 
 ```ant
-var grid = Array.range(0, 3).map({ Array.filled(4, ".") })
+let grid = Array.range(0, 3).map({ Array.filled(4, ".") })
 grid[1][2] = "#"
 for row in grid {
   println(String.join(row, ""))
@@ -114,9 +114,9 @@ for row in grid {
 Give each goroutine its own slot to write a result into, then read the slots after the wait:
 
 ```ant
-var words = ["ant", "bee", "wasp"]
-var lengths: Array[int | null] = Array.filled(len(words), null)
-var wg = WaitGroup.new()
+let words = ["ant", "bee", "wasp"]
+let lengths: Array[int | null] = Array.filled(len(words), null)
+let wg = WaitGroup.new()
 for entry in Array.entries(words) {
   WaitGroup.add(wg, 1)
   go {
@@ -139,7 +139,7 @@ println(lengths)
 The result has `n` elements, and every one is `v`:
 
 ```ant
-var xs = Array.filled(4, "a")
+let xs = Array.filled(4, "a")
 assert(len(xs) == 4)
 assert(Array.every(xs, { x == "a" }))
 ```
@@ -175,7 +175,7 @@ Every slot holds the same `v`, not a copy. When `v` is an array or a record, a c
 slot shows in every slot:
 
 ```ant
-var rows = Array.filled(2, [0, 0])
+let rows = Array.filled(2, [0, 0])
 rows[0][0] = 1
 rows                         // [[1, 0], [1, 0]]
 Array.same(rows[0], rows[1]) // true
@@ -184,7 +184,7 @@ Array.same(rows[0], rows[1]) // true
 Build a new value per slot with `Array.map` over `Array.range` instead:
 
 ```ant
-var rows = Array.range(0, 2).map({ [0, 0] })
+let rows = Array.range(0, 2).map({ [0, 0] })
 rows[0][0] = 1
 rows // [[1, 0], [0, 0]]
 ```
@@ -192,14 +192,14 @@ rows // [[1, 0], [0, 0]]
 Without an annotation, `Array.filled(n, null)` is an `Array[null]`, which holds nothing but `null`:
 
 ```ant
-var slots = Array.filled(3, null)
+let slots = Array.filled(3, null)
 slots[0] = 5 // error: cannot use int where null is expected
 ```
 
 An empty array literal as `v` has no element type to infer, so annotate it:
 
 ```ant
-var rows = Array.filled(2, [])
+let rows = Array.filled(2, [])
 // error: cannot infer the element type of an empty array; annotate it
 ```
 

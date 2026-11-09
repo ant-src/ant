@@ -60,14 +60,14 @@ Read a field of each record:
 
 ```ant
 type User = { name: string, age: int }
-var users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
+let users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
 Iter.fromArray(users) | Iter.map({ x.name }) | Iter.toArray() // ["Ann", "Bob"]
 ```
 
 Replace the `null` elements with `??`:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 Iter.fromArray(scores) | Iter.map({ x ?? 0 }) | Iter.toArray() // [90, 0, 75]
 ```
 
@@ -126,7 +126,7 @@ naturals() | Iter.map({ x * x }) | Iter.take(5) | Iter.toArray() // [0, 1, 4, 9,
 Transform the values a goroutine sends on a channel as they arrive:
 
 ```ant
-var c: Channel[int] = Channel.new()
+let c: Channel[int] = Channel.new()
 go {
   for i in Iter.range(1, 4) {
     Channel.send(c, i)
@@ -155,7 +155,7 @@ Iter.range(1, 10) | Iter.map({ x * 3 }) | Iter.filter({ x % 2 == 0 }) | Iter.toA
 On an array, collecting the mapped sequence gives what `Array.map` gives:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 assert(Iter.toArray(Iter.map(Iter.fromArray(xs), { x * 2 })) == Array.map(xs, { x * 2 }))
 ```
 
@@ -164,7 +164,7 @@ Building the sequence calls nothing. Each run calls `f` once per element, and ru
 
 ```ant
 var calls = 0
-var doubled = Iter.map(Iter.range(0, 3), { calls += 1; x * 2 })
+let doubled = Iter.map(Iter.range(0, 3), { calls += 1; x * 2 })
 calls                 // 0
 Iter.toArray(doubled) // [0, 2, 4]
 calls                 // 3
@@ -176,7 +176,7 @@ Followed by `Iter.take(n)`, the map calls `f` only `n` times, however long `s` i
 
 ```ant
 var mapped = 0
-var s = Iter.range(0, 1000000) | Iter.map({ mapped += 1; x })
+let s = Iter.range(0, 1000000) | Iter.map({ mapped += 1; x })
 Iter.take(s, 5) | Iter.toArray() // [0, 1, 2, 3, 4]
 mapped                           // 5
 ```
@@ -184,7 +184,7 @@ mapped                           // 5
 A `break` in a `for` loop stops the calls too. `f` never sees the elements after the break:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 for n in Iter.map(Iter.range(1, 100), { Array.push(seen, x); x * x }) {
   if n > 10 { break }
 }
@@ -198,9 +198,9 @@ println(seen)
 When `f` and `g` have no side effects, two maps in a row are one map with the composed function:
 
 ```ant
-var f: func(int): int = { x + 1 }
-var g: func(int): int = { x * 10 }
-var s = Iter.range(0, 5)
+let f: func(int): int = { x + 1 }
+let g: func(int): int = { x * 10 }
+let s = Iter.range(0, 5)
 assert(Iter.toArray(Iter.map(Iter.map(s, f), g)) == Iter.toArray(Iter.map(s, { g(f(x)) })))
 ```
 
@@ -209,23 +209,23 @@ assert(Iter.toArray(Iter.map(Iter.map(s, f), g)) == Iter.toArray(Iter.map(s, { g
 `Iter.map` takes a sequence, not an array. Pass an array through `Iter.fromArray` first:
 
 ```ant
-var xs = [1, 2, 3]
-var doubled = Iter.map(xs, { x * 2 }) // error: cannot use Array[int] where Seq[T] is expected
+let xs = [1, 2, 3]
+let doubled = Iter.map(xs, { x * 2 }) // error: cannot use Array[int] where Seq[T] is expected
 ```
 
 The result is a sequence, not an array. Collect it with `Iter.toArray` where an array is expected:
 
 ```ant
-var squares: Array[int] = Iter.map(Iter.range(0, 3), { x * x })
+let squares: Array[int] = Iter.map(Iter.range(0, 3), { x * x })
 // error: cannot use Seq[int] where Array[int] is expected
 ```
 
 A panic in `f` comes from the run, not from the line that builds the sequence:
 
 ```ant
-var s = Iter.map(Iter.range(0, 3), { 10 / (x - 1) })
+let s = Iter.map(Iter.range(0, 3), { 10 / (x - 1) })
 println("built")
-var results = Iter.toArray(s) // panic: division by zero
+let results = Iter.toArray(s) // panic: division by zero
 ```
 
 ```text
@@ -243,8 +243,8 @@ Iter.fromArray([1, 2, 3]).map({ x * 2 }) | Iter.toArray() // [2, 4, 6]
 The sequence reads the array when it runs, not when you build it:
 
 ```ant
-var a = [1, 2]
-var s = Iter.fromArray(a) | Iter.map({ x * 10 })
+let a = [1, 2]
+let s = Iter.fromArray(a) | Iter.map({ x * 10 })
 Array.push(a, 3)
 Iter.toArray(s) // [10, 20, 30]
 ```
@@ -252,7 +252,7 @@ Iter.toArray(s) // [10, 20, 30]
 `f` takes one argument, the element. A function of two parameters is a compile error:
 
 ```ant
-var s = Iter.map(Iter.range(0, 2), func(n: int, i: int): int { n + i })
+let s = Iter.map(Iter.range(0, 2), func(n: int, i: int): int { n + i })
 // error: cannot use func(int, int): int where func(int): U is expected
 ```
 

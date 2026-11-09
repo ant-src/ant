@@ -97,7 +97,7 @@ Line up a column of labels so the values start at one place:
 ```ant
 type Item = { name: string, price: int }
 
-var prices = [Item{ name: "tea", price: 3 }, Item{ name: "coffee", price: 4 }, Item{ name: "pie", price: 12 }]
+let prices = [Item{ name: "tea", price: 3 }, Item{ name: "coffee", price: 4 }, Item{ name: "pie", price: 12 }]
 for p in prices {
   println("${p.name.padEnd(8, ".")} ${p.price}")
 }
@@ -137,8 +137,8 @@ plums       140
 Size the column to the longest label instead of a fixed number:
 
 ```ant
-var fields = [["name", "ant"], ["version", "0.4.0"], ["license", "MIT"]]
-var width = fields.map({ x[0].length() }).max() ?? 0
+let fields = [["name", "ant"], ["version", "0.4.0"], ["license", "MIT"]]
+let width = fields.map({ x[0].length() }).max() ?? 0
 for f in fields {
   println("${f[0].padEnd(width)} : ${f[1]}")
 }
@@ -168,7 +168,7 @@ The result is never shorter than `width`, never shorter than `s`, and always sta
 ```ant
 for s in ["", "a", "ant", "antenna"] {
   for width in [-1, 0, 3, 5] {
-    var r = String.padEnd(s, width, "xy")
+    let r = String.padEnd(s, width, "xy")
     assert(r.length() == Math.max(s.length(), width))
     assert(r.startsWith(s))
   }
@@ -179,11 +179,11 @@ The padding is `pad` repeated and then cut, which [`String.repeat`](repeat.md) a
 [`String.slice`](slice.md) can write out:
 
 ```ant
-var s = "ab"
-var pad = "xyz"
-var width = 7
-var lacking = width - s.length()
-var padding = String.repeat(pad, lacking).slice(0, lacking)
+let s = "ab"
+let pad = "xyz"
+let width = 7
+let lacking = width - s.length()
+let padding = String.repeat(pad, lacking).slice(0, lacking)
 assert(String.padEnd(s, width, pad) == s + padding)
 ```
 
@@ -191,9 +191,9 @@ With a one-code-point pad, `String.padEnd` and [`String.padStart`](padStart.md) 
 on opposite sides:
 
 ```ant
-var s = "42"
-var right = String.padEnd(s, 6, "0")
-var left = String.padStart(s, 6, "0")
+let s = "42"
+let right = String.padEnd(s, 6, "0")
+let left = String.padStart(s, 6, "0")
 assert(String.trimSuffix(right, "0000") == s)
 assert(String.trimPrefix(left, "0000") == s)
 ```
@@ -249,7 +249,7 @@ draw each of them two columns wide, so a column padded with `String.padEnd` does
 `width` is an `int`. A `float64` width is a compile error; convert it first:
 
 ```ant
-var w = 6.0
+let w = 6.0
 println(String.padEnd("ant", w)) // error: cannot use float64 where int is expected
 ```
 

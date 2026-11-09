@@ -57,7 +57,7 @@ Records and `null` elements pass through unchanged:
 
 ```ant
 type Task = { title: string, done: bool }
-var tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
+let tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
 Iter.fromArray(tasks) | Iter.take(1) | Iter.toArray() // [Task{ title: "write", done: true }]
 
 Iter.fromArray([null, 2, null]) | Iter.take(2) | Iter.toArray() // [null, 2]
@@ -125,7 +125,7 @@ for n in fibonacci() | Iter.take(6) {
 Read only the first values sent on a channel with [Channel.values](../Channel/values.md):
 
 ```ant
-var c: Channel[string] = Channel.new(capacity: 4)
+let c: Channel[string] = Channel.new(capacity: 4)
 for word in ["one", "two", "three", "four"] {
   Channel.send(c, word)
 }
@@ -145,7 +145,7 @@ two
 Taking `n` elements gives the same array as slicing the first `n`, when there are at least `n`:
 
 ```ant
-var xs = [4, 8, 15, 16, 23, 42]
+let xs = [4, 8, 15, 16, 23, 42]
 assert((Iter.fromArray(xs) | Iter.take(3) | Iter.toArray()) == Array.slice(xs, 0, 3))
 ```
 
@@ -188,7 +188,7 @@ let none = Iter.take(Iter.range(0, 5), -1) // panic: Iter.take needs a count of 
 `Iter.take` returns a sequence, not an array. Run it with [Iter.toArray](toArray.md) to get one:
 
 ```ant
-var first: Array[int] = Iter.range(0, 5) | Iter.take(2)
+let first: Array[int] = Iter.range(0, 5) | Iter.take(2)
 // error: cannot use Seq[int] where Array[int] is expected
 ```
 

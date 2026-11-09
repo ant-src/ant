@@ -30,7 +30,7 @@ Array.maxBy(["fig", "banana", "kiwi"], { String.length(x) }) // "banana"
 An empty array has no greatest element, so the result is `null`:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.maxBy({ String.length(x) }) // null
 ```
 
@@ -38,7 +38,7 @@ Find the oldest person, and read a field of the result with `?.`:
 
 ```ant
 type Person = { name: string, age: int }
-var people = [Person{ name: "Ann", age: 31 }, Person{ name: "Bob", age: 45 }]
+let people = [Person{ name: "Ann", age: 31 }, Person{ name: "Bob", age: 45 }]
 people.maxBy({ x.age })?.name // "Bob"
 ```
 
@@ -67,7 +67,7 @@ one:
 A float key works too. To find the least, use `Array.minBy`:
 
 ```ant
-var temps = [12.5, -3.0, 21.25]
+let temps = [12.5, -3.0, 21.25]
 temps.maxBy({ x }) // 21.25
 temps.minBy({ x }) // -3.0
 ```
@@ -93,14 +93,14 @@ func vowels(s: string): int {
 A key can use the local variables around it. Find the number closest to a target:
 
 ```ant
-var target = 10
+let target = 10
 [3, 12, 7, 20].maxBy({ -Math.abs(x - target) }) // 12
 ```
 
 The element type may include `null`. Give the key a value for it with `??`:
 
 ```ant
-var scores: Array[int | null] = [null, 70, 85]
+let scores: Array[int | null] = [null, 70, 85]
 scores.maxBy({ x ?? 0 }) // 85
 ```
 
@@ -122,14 +122,14 @@ Call it through `.` or in a pipe:
 Find the key of the largest value in a map, through its entries:
 
 ```ant
-var stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
+let stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
 stock.entries().maxBy({ x.value })?.key // "bolt"
 ```
 
 Find the most frequent word, with `Array.groupBy`:
 
 ```ant
-var words = String.split("the ant and the bee and the ant", " ")
+let words = String.split("the ant and the bee and the ant", " ")
 words.groupBy({ x }).entries().maxBy({ x.value.length() })?.key // "the"
 ```
 
@@ -145,7 +145,7 @@ Return early from a function when the array is empty, with `?? return`:
 type Run = { name: string, ms: float64 }
 
 func slowest(runs: Array[Run]): string {
-  var run = runs.maxBy({ x.ms }) ?? return "no runs"
+  let run = runs.maxBy({ x.ms }) ?? return "no runs"
   "${run.name} took ${run.ms} ms"
 }
 
@@ -163,9 +163,9 @@ no runs
 With the identity as the key, `Array.maxBy` gives what `Array.max` gives on integers and strings:
 
 ```ant
-var xs = [4, 9, 2, 9]
+let xs = [4, 9, 2, 9]
 assert(xs.maxBy({ x }) == xs.max())
-var names = ["Ann", "Bob", "Al"]
+let names = ["Ann", "Bob", "Al"]
 assert(names.maxBy({ x }) == names.max())
 ```
 
@@ -175,7 +175,7 @@ most negative signed value, the negation panics; see Possible issues:
 
 ```ant
 type Box = { name: string, size: int }
-var boxes = [Box{ name: "a", size: 2 }, Box{ name: "b", size: 1 }, Box{ name: "c", size: 1 }]
+let boxes = [Box{ name: "a", size: 2 }, Box{ name: "b", size: 1 }, Box{ name: "c", size: 1 }]
 assert(boxes.maxBy({ -x.size })?.name == "b")
 assert(boxes.maxBy({ -x.size }) == boxes.minBy({ x.size }))
 ```
@@ -184,8 +184,8 @@ The element it returns is the one in the array, so a change to it shows in the a
 
 ```ant
 type Item = { name: string, stock: int }
-var items = [Item{ name: "nut", stock: 3 }, Item{ name: "bolt", stock: 12 }]
-var item = items.maxBy({ x.stock })
+let items = [Item{ name: "nut", stock: 3 }, Item{ name: "bolt", stock: 12 }]
+let item = items.maxBy({ x.stock })
 if item != null {
   item.stock = 0
 }
@@ -195,7 +195,7 @@ assert(items[1].stock == 0)
 `key` runs once per element, from the first to the last, even after the greatest key is found:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [9, 1, 5].maxBy({ Array.push(seen, x); x }) // 9
 seen                                        // [9, 1, 5]
 ```
@@ -206,7 +206,7 @@ The result may be `null`, so reading a field of it without narrowing is a compil
 
 ```ant
 type Person = { name: string, age: int }
-var people = [Person{ name: "Ann", age: 31 }]
+let people = [Person{ name: "Ann", age: 31 }]
 println(people.maxBy({ x.age }).name)
 // error: Person | null has no field name: narrow the value first
 ```
@@ -225,7 +225,7 @@ the last of them:
 
 ```ant
 type Run = { name: string, ms: float64 }
-var runs = [Run{ name: "a", ms: 12.5 }, Run{ name: "b", ms: 9.0 }, Run{ name: "c", ms: 12.5 }]
+let runs = [Run{ name: "a", ms: 12.5 }, Run{ name: "b", ms: 9.0 }, Run{ name: "c", ms: 12.5 }]
 runs.maxBy({ x.ms })?.name         // "a"
 runs.sortBy({ x.ms }).last()?.name // "c"
 ```
@@ -244,16 +244,16 @@ When the elements may be `null`, a `null` result does not say whether `xs` was e
 element won:
 
 ```ant
-var a: Array[int | null] = [null]
+let a: Array[int | null] = [null]
 a.maxBy({ x ?? 0 }) // null
-var b: Array[int | null] = []
+let b: Array[int | null] = []
 b.maxBy({ x ?? 0 }) // null
 ```
 
 Test `Array.isEmpty` first, or find the index through `Array.entries`:
 
 ```ant
-var a: Array[int | null] = [null]
+let a: Array[int | null] = [null]
 a.isEmpty()                                     // false
 Array.entries(a).maxBy({ x.value ?? 0 })?.index // 0
 ```

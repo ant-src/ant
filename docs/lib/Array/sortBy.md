@@ -31,7 +31,7 @@ Sort records by a field:
 
 ```ant
 type Person = { name: string, age: int }
-var people = [Person{ name: "Cy", age: 40 }, Person{ name: "Ann", age: 31 }]
+let people = [Person{ name: "Cy", age: 40 }, Person{ name: "Ann", age: 31 }]
 people.sortBy({ x.age }).map({ x.name }) // ["Ann", "Cy"]
 ```
 
@@ -40,7 +40,7 @@ people.sortBy({ x.age }).map({ x.name }) // ["Ann", "Cy"]
 An empty array sorts to an empty array:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.sortBy({ x }) // []
 ```
 
@@ -48,7 +48,7 @@ Elements with equal keys keep their order, so `"Bob"` stays after `"Ann"`:
 
 ```ant
 type Person = { name: string, age: int }
-var people = [
+let people = [
   Person{ name: "Cy", age: 40 },
   Person{ name: "Ann", age: 31 },
   Person{ name: "Bob", age: 31 },
@@ -99,7 +99,7 @@ The elements can be arrays themselves:
 The element type may include `null`. Give the key a value for it with `??`:
 
 ```ant
-var scores: Array[int | null] = [3, null, 1]
+let scores: Array[int | null] = [3, null, 1]
 scores.sortBy({ x ?? -1 }) // [null, 1, 3]
 ```
 
@@ -116,7 +116,7 @@ func vowels(s: string): int {
 A key can use the local variables around it. Sort numbers by their distance from a target:
 
 ```ant
-var target = 10
+let target = 10
 [3, 12, 7, 20].sortBy({ Math.abs(x - target) }) // [12, 7, 3, 20]
 ```
 
@@ -132,14 +132,14 @@ Call it through `.` or in a pipe:
 List the keys of a map from the smallest value to the largest, through its entries:
 
 ```ant
-var stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
+let stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
 stock.entries().sortBy({ x.value }).map({ x.key }) // ["nut", "gear", "bolt"]
 ```
 
 Count words and print them from the most frequent, with `Array.groupBy`:
 
 ```ant
-var words = String.split("the ant and the bee and the ant", " ")
+let words = String.split("the ant and the bee and the ant", " ")
 for entry in words.groupBy({ x }).entries().sortBy({ -x.value.length() }) {
   println("${entry.key}: ${entry.value.length()}")
 }
@@ -157,7 +157,7 @@ keeps the order of the first among equal keys:
 
 ```ant
 type Person = { name: string, age: int }
-var people = [
+let people = [
   Person{ name: "Cy", age: 31 },
   Person{ name: "Bob", age: 40 },
   Person{ name: "Ann", age: 31 },
@@ -171,11 +171,11 @@ Take the names of the fastest runs:
 type Run = { name: string, ms: float64 }
 
 func fastest(runs: Array[Run], n: int): Array[string] {
-  var sorted = runs.sortBy({ x.ms })
+  let sorted = runs.sortBy({ x.ms })
   sorted.slice(0, Math.min(n, sorted.length())).map({ x.name })
 }
 
-var runs = [
+let runs = [
   Run{ name: "parse", ms: 12.5 },
   Run{ name: "check", ms: 30.0 },
   Run{ name: "lex", ms: 4.0 },
@@ -194,7 +194,7 @@ println(fastest([], 3))
 order:
 
 ```ant
-var seen: Array[string] = []
+let seen: Array[string] = []
 ["pear", "fig", "kiwi"].sortBy({ Array.push(seen, x); String.length(x) }) // ["fig", "pear", "kiwi"]
 seen                                                                      // ["pear", "fig", "kiwi"]
 ```
@@ -204,15 +204,15 @@ seen                                                                      // ["p
 With the identity as the key, `Array.sortBy` gives what `Array.sort` gives:
 
 ```ant
-var xs = [4, 9, 2, 9, 1]
+let xs = [4, 9, 2, 9, 1]
 assert(xs.sortBy({ x }) == xs.sort())
 ```
 
 The result has the same length as `xs`, its keys are in ascending order, and `xs` is unchanged:
 
 ```ant
-var xs = [5, -3, 8, -1]
-var ys = xs.sortBy({ Math.abs(x) })
+let xs = [5, -3, 8, -1]
+let ys = xs.sortBy({ Math.abs(x) })
 assert(ys.length() == xs.length())
 assert(xs == [5, -3, 8, -1])
 for i in Array.range(1, ys.length()) {
@@ -224,15 +224,15 @@ When no key is `NaN`, the first element of the result is what `Array.minBy` retu
 the first of equal keys:
 
 ```ant
-var words = ["fig", "kiwi", "pea", "plum"]
+let words = ["fig", "kiwi", "pea", "plum"]
 assert(words.sortBy({ String.length(x) }).first() == words.minBy({ String.length(x) }))
 ```
 
 `Array.sortWith` with a comparison of the keys gives the same order:
 
 ```ant
-var words = ["pear", "fig", "banana", "kiwi"]
-var byLength = words.sortWith(func(a: string, b: string) { String.length(a) - String.length(b) })
+let words = ["pear", "fig", "banana", "kiwi"]
+let byLength = words.sortWith(func(a: string, b: string) { String.length(a) - String.length(b) })
 assert(words.sortBy({ String.length(x) }) == byLength)
 ```
 
@@ -263,7 +263,7 @@ println([1, 2, 3].sortBy({ x > 1 }))
 
 ```ant
 type Point = { x: int, y: int }
-var points = [Point{ x: 2, y: 1 }, Point{ x: 1, y: 5 }]
+let points = [Point{ x: 2, y: 1 }, Point{ x: 1, y: 5 }]
 println(points.sortBy({ x }))
 // error: K would be Point, which is not a single member of its bound Ordered; narrow first
 ```
@@ -273,7 +273,7 @@ Return one field as the key instead, or compare whole records with `Array.sortWi
 A key that can be `null` has the union type `int | null`, which is not a single member of `Ordered`:
 
 ```ant
-var scores: Array[int | null] = [3, null, 1]
+let scores: Array[int | null] = [3, null, 1]
 println(scores.sortBy({ x }))
 // error: K would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
@@ -284,7 +284,7 @@ Negating a key panics when the negation overflows, as it does for any nonzero un
 `Array.sortWith` for descending order on an unsigned key:
 
 ```ant
-var sizes: Array[uint8] = [uint8(1), uint8(2)]
+let sizes: Array[uint8] = [uint8(1), uint8(2)]
 println(sizes.sortBy({ -x })) // panic: integer overflow
 ```
 
@@ -292,7 +292,7 @@ Convert the keys to `int` before subtracting, because `b - a` on unsigned values
 `b < a`:
 
 ```ant
-var sizes: Array[uint8] = [uint8(1), uint8(2)]
+let sizes: Array[uint8] = [uint8(1), uint8(2)]
 sizes.sortWith(func(a: uint8, b: uint8) { int(b) - int(a) }) // [2, 1]
 ```
 
@@ -301,7 +301,7 @@ assignable only to itself, never to its base:
 
 ```ant
 type Celsius = float64
-var temps = [Celsius(3.0), Celsius(1.0)]
+let temps = [Celsius(3.0), Celsius(1.0)]
 println(temps.sortBy({ x }))
 // error: K would be Celsius, which is not a single member of its bound Ordered; narrow first
 ```
@@ -326,7 +326,7 @@ func longerFirst(a: string, b: string): int {
   String.length(b) - String.length(a)
 }
 
-var words = ["bb", "a", "cc"]
+let words = ["bb", "a", "cc"]
 words.sortBy({ String.length(x) }).reverse() // ["cc", "bb", "a"]
 words.sortWith(longerFirst)                  // ["bb", "cc", "a"]
 ```

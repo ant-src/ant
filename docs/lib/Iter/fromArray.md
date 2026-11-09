@@ -44,7 +44,7 @@ Iter.fromArray([5, 6, 7, 8]).take(2).toArray() // [5, 6]
 An empty array gives an empty sequence:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 Iter.fromArray(empty).toArray() // []
 ```
 
@@ -52,14 +52,14 @@ The elements may be records:
 
 ```ant
 type Point = { x: int, y: int }
-var points = [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
+let points = [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 Iter.fromArray(points).map({ x.x + x.y }).toArray() // [3, 7]
 ```
 
 `null` elements pass through like any other:
 
 ```ant
-var marks: Array[int | null] = [90, null, 75]
+let marks: Array[int | null] = [90, null, 75]
 Iter.fromArray(marks).filter({ x != null }).toArray() // [90, 75]
 ```
 
@@ -102,7 +102,7 @@ shows `map` ran on two elements, not five:
 
 ```ant
 var calls = 0
-var big = Iter.fromArray([3, 8, 1, 20, 7])
+let big = Iter.fromArray([3, 8, 1, 20, 7])
   .map({
     calls += 1
     x * 10
@@ -122,7 +122,7 @@ println(calls)
 Stop a loop over the sequence early with `break`:
 
 ```ant
-var lines = ["# title", "text", "", "more"]
+let lines = ["# title", "text", "", "more"]
 for line in Iter.fromArray(lines) {
   if line == "" {
     break
@@ -141,21 +141,21 @@ text
 [`Iter.toArray`](toArray.md) undoes it, giving an array equal to `xs`:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 assert(Iter.fromArray(xs).toArray() == xs)
 ```
 
 Running the same sequence twice gives the same elements:
 
 ```ant
-var s = Iter.fromArray(["a", "b"])
+let s = Iter.fromArray(["a", "b"])
 assert(s.toArray() == s.toArray())
 ```
 
 Mapping lazily and collecting gives what [`Array.map`](../Array/map.md) gives eagerly:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 assert(Iter.fromArray(xs).map({ x * x }).toArray() == xs.map({ x * x }))
 ```
 
@@ -165,7 +165,7 @@ An array is not a `Seq`. Passing one where a sequence is expected is a compile e
 `Iter.fromArray`:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(Iter.take(xs, 2)) // error: cannot use Array[int] where Seq[T] is expected
 ```
 
@@ -173,15 +173,15 @@ An array's `.` reaches `Array` functions, not `Iter` ones, so `xs.fromArray()` i
 Call `Iter.fromArray(xs)` or pipe into it:
 
 ```ant
-var xs = [4, 5, 6]
+let xs = [4, 5, 6]
 println(xs.fromArray().toArray()) // error: Array[int] has no field or function fromArray
 ```
 
 The sequence does not copy `xs`. Changes to the array before the run show up in it:
 
 ```ant
-var xs = [1, 2, 3]
-var s = Iter.fromArray(xs)
+let xs = [1, 2, 3]
+let s = Iter.fromArray(xs)
 xs.push(4)
 s.toArray() // [1, 2, 3, 4]
 ```
@@ -190,7 +190,7 @@ Elements pushed during the run are visited too, unlike [`Array.map`](../Array/ma
 only the elements present when it was called:
 
 ```ant
-var ys = [1, 2]
+let ys = [1, 2]
 for n in Iter.fromArray(ys) {
   if n < 3 {
     ys.push(n + 2)

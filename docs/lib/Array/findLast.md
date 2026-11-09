@@ -35,7 +35,7 @@ Array.findLast([1, 3, 5], { x % 2 == 0 }) // null
 Call it through `.` on any array:
 
 ```ant
-var words = ["ant", "bee", "beetle", "wasp"]
+let words = ["ant", "bee", "beetle", "wasp"]
 words.findLast({ String.startsWith(x, "b") }) // "beetle"
 ```
 
@@ -44,7 +44,7 @@ words.findLast({ String.startsWith(x, "b") }) // "beetle"
 An empty array has no last match. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.findLast({ x != "" }) // null
 ```
 
@@ -58,7 +58,7 @@ When every element matches, the result is the last element:
 
 ```ant
 type Order = { id: int, total: float64 }
-var orders = [Order{ id: 1, total: 9.5 }, Order{ id: 2, total: 42.0 }, Order{ id: 3, total: 7.25 }]
+let orders = [Order{ id: 1, total: 9.5 }, Order{ id: 2, total: 42.0 }, Order{ id: 3, total: 7.25 }]
 orders.findLast({ x.total > 8.0 }) // Order{ id: 2, total: 42.0 }
 ```
 
@@ -69,7 +69,7 @@ not `Circle | null`: the test inside `f` does not narrow the result:
 type Circle = { radius: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Square{ side: 2.0 }, Circle{ radius: 3.0 }]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Square{ side: 2.0 }, Circle{ radius: 3.0 }]
 shapes.findLast({ x is Circle }) // Circle{ radius: 3.0 }
 shapes.findLast({ x is Square }) // Square{ side: 2.0 }
 ```
@@ -87,7 +87,7 @@ String.graphemes("rhythm and blues").findLast(isVowel) // "e"
 A lambda can read local variables:
 
 ```ant
-var limit = 10
+let limit = 10
 [4, 12, 9, 15, 3].findLast({ x < limit }) // 3
 ```
 
@@ -101,8 +101,8 @@ A callback that records its argument shows the order: from the last element back
 first match:
 
 ```ant
-var tested: Array[int] = []
-var found = [1, 4, 7, 8, 9].findLast({
+let tested: Array[int] = []
+let found = [1, 4, 7, 8, 9].findLast({
   tested.push(x)
   x % 2 == 0
 })
@@ -118,8 +118,8 @@ println(tested)
 With no match, `f` sees every element, last first:
 
 ```ant
-var tested: Array[int] = []
-var found = [1, 3, 5].findLast({
+let tested: Array[int] = []
+let found = [1, 3, 5].findLast({
   tested.push(x)
   x % 2 == 0
 })
@@ -144,7 +144,7 @@ Find the most recent error in a log:
 
 ```ant
 type LogLine = { level: string, message: string }
-var log = [
+let log = [
   LogLine{ level: "info", message: "start" },
   LogLine{ level: "error", message: "disk full" },
   LogLine{ level: "info", message: "retry" },
@@ -157,8 +157,8 @@ log.findLast({ x.level == "error" })?.message ?? "no errors" // "timeout"
 Read the last value a setting was given, where later lines override earlier ones:
 
 ```ant
-var lines = ["port=80", "host=localhost", "port=8080"]
-var port = lines.findLast({ String.startsWith(x, "port=") })
+let lines = ["port=80", "host=localhost", "port=8080"]
+let port = lines.findLast({ String.startsWith(x, "port=") })
 if port != null {
   println(String.trimPrefix(port, "port="))
 }
@@ -172,9 +172,9 @@ Find the last stop on a route within driving range:
 
 ```ant
 type Stop = { name: string, km: int }
-var route = [Stop{ name: "Ash", km: 40 }, Stop{ name: "Birch", km: 95 }, Stop{ name: "Cedar", km: 160 }]
-var range = 120
-var stop = route.findLast({ x.km <= range })
+let route = [Stop{ name: "Ash", km: 40 }, Stop{ name: "Birch", km: 95 }, Stop{ name: "Cedar", km: 160 }]
+let range = 120
+let stop = route.findLast({ x.km <= range })
 println(stop?.name ?? "stay home")
 ```
 
@@ -187,7 +187,7 @@ Birch
 `Array.findLast` on an array gives what `Array.find` gives on its reverse:
 
 ```ant
-var xs = [5, 2, 8, 3, 6]
+let xs = [5, 2, 8, 3, 6]
 for limit in [0, 4, 7, 10] {
   assert(xs.findLast({ x > limit }) == xs.reverse().find({ x > limit }))
 }
@@ -196,10 +196,10 @@ for limit in [0, 4, 7, 10] {
 It agrees with `Array.findLastIndex` and with the last element of `Array.filter`:
 
 ```ant
-var xs = [5, 2, 8, 3, 6]
+let xs = [5, 2, 8, 3, 6]
 for limit in [0, 4, 7, 10] {
-  var i = xs.findLastIndex({ x < limit })
-  var v = xs.findLast({ x < limit })
+  let i = xs.findLastIndex({ x < limit })
+  let v = xs.findLast({ x < limit })
   assert(v == (if i != null { xs[i] } else { null }))
   assert(v == xs.filter({ x < limit }).last())
 }
@@ -209,14 +209,14 @@ for limit in [0, 4, 7, 10] {
 the match is at index `i`, and `length` times when there is none:
 
 ```ant
-var xs = [5, 2, 8, 3, 6]
+let xs = [5, 2, 8, 3, 6]
 for limit in [0, 4, 7, 10] {
   var calls = 0
   xs.findLast({
     calls += 1
     x < limit
   })
-  var i = xs.findLastIndex({ x < limit })
+  let i = xs.findLastIndex({ x < limit })
   assert(calls == xs.length() - (i ?? 0))
 }
 ```
@@ -224,7 +224,7 @@ for limit in [0, 4, 7, 10] {
 The result is `null` exactly when `Array.some` is `false`, as long as `T` does not include `null`:
 
 ```ant
-var xs = ["ant", "bee", "wasp"]
+let xs = ["ant", "bee", "wasp"]
 for n in [2, 3, 4, 5] {
   assert((xs.findLast({ String.length(x) == n }) != null) == xs.some({ String.length(x) == n }))
 }
@@ -235,14 +235,14 @@ for n in [2, 3, 4, 5] {
 The result may be `null`, so using it as a `T` is a compile error:
 
 ```ant
-var last = [1, 2, 3].findLast({ x > 1 })
+let last = [1, 2, 3].findLast({ x > 1 })
 println(last + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Narrow it first, or give a fallback with `??`:
 
 ```ant
-var last = [1, 2, 3].findLast({ x > 1 })
+let last = [1, 2, 3].findLast({ x > 1 })
 (last ?? 0) + 1 // 4
 ```
 
@@ -250,7 +250,7 @@ When the element type includes `null`, a `null` result does not say whether `f` 
 found nothing. Use [`Array.findLastIndex`](findLastIndex.md), whose result is an index:
 
 ```ant
-var readings: Array[int | null] = [3, null, 5]
+let readings: Array[int | null] = [3, null, 5]
 readings.findLast({ x == null })      // null
 readings.findLast({ x == 7 })         // null
 readings.findLastIndex({ x == null }) // 1
@@ -261,7 +261,7 @@ readings.findLastIndex({ x == 7 })    // null
 [`Array.lastIndexOf`](lastIndexOf.md) or [`Array.contains`](contains.md):
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs.findLast(2)) // error: cannot use int where func(int): bool is expected
 ```
 

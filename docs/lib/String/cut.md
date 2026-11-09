@@ -101,10 +101,10 @@ String.cut(s: "a-b", sep: "-") // String.Cut{ before: "a", after: "b" }
 Parse `key=value` lines into a map, skipping lines without `=` with `?? continue`:
 
 ```ant
-var text = "name=ant\n# a comment\nversion=0.4\nurl=https://x.org/?a=1\n"
-var config: Map[string, string] = Map{}
+let text = "name=ant\n# a comment\nversion=0.4\nurl=https://x.org/?a=1\n"
+let config: Map[string, string] = Map{}
 for line in String.lines(text) {
-  var kv = String.cut(line, "=") ?? continue
+  let kv = String.cut(line, "=") ?? continue
   config[kv.before] = kv.after
 }
 println(config)
@@ -118,7 +118,7 @@ Narrow the result with `!= null` and fall back when the separator is missing:
 
 ```ant
 func port(address: string): string {
-  var c = String.cut(address, ":")
+  let c = String.cut(address, ":")
   if c != null { c.after } else { "80" }
 }
 
@@ -137,7 +137,7 @@ Return early from a function with `?? return`, then destructure the record:
 type Email = { user: string, domain: string }
 
 func parseEmail(s: string): Email | null {
-  var { before, after } = String.cut(s, "@") ?? return null
+  let { before, after } = String.cut(s, "@") ?? return null
   Email{ user: before, domain: after }
 }
 
@@ -154,9 +154,9 @@ Cut in a loop to take a string apart one field at a time:
 
 ```ant
 var rest = "a/b/c"
-var parts: Array[string] = []
+let parts: Array[string] = []
 while true {
-  var c = String.cut(rest, "/")
+  let c = String.cut(rest, "/")
   if c == null {
     parts.push(rest)
     break
@@ -177,8 +177,8 @@ When the result is not `null`, joining `before`, `sep`, and `after` gives `s` ba
 does not contain `sep`:
 
 ```ant
-var s = "user=ann=admin"
-var c = String.cut(s, "=")
+let s = "user=ann=admin"
+let c = String.cut(s, "=")
 assert(c != null)
 assert(c.before + "=" + c.after == s)
 assert(!String.contains(c.before, "="))
@@ -196,8 +196,8 @@ The length of `before` is the index `String.indexOf` gives, and `before` is the 
 `String.split` gives:
 
 ```ant
-var s = "a,b,c"
-var c = String.cut(s, ",")
+let s = "a,b,c"
+let c = String.cut(s, ",")
 assert(c != null)
 assert(String.length(c.before) == String.indexOf(s, ","))
 assert(c.before == String.split(s, ",")[0])
@@ -215,12 +215,12 @@ The result may be `null`, so reading a field of it without narrowing is a compil
 holds for a destructuring:
 
 ```ant
-var c = String.cut("a=b", "=")
+let c = String.cut("a=b", "=")
 println(c.before) // error: String.Cut | null has no field before: narrow the value first
 ```
 
 ```ant
-var { before, after } = String.cut("a=b", "=")
+let { before, after } = String.cut("a=b", "=")
 // error: String.Cut | null has no field before: narrow the value first
 // error: String.Cut | null has no field after: narrow the value first
 println(before)
@@ -231,7 +231,7 @@ Use `?.`, `??`, or a test against `null` first, as in the examples above.
 To treat a missing separator as an empty `after`, fall back to a `String.Cut` of your own:
 
 ```ant
-var s = "key"
+let s = "key"
 String.cut(s, "=") ?? String.Cut{ before: s, after: "" } // String.Cut{ before: "key", after: "" }
 ```
 
@@ -252,9 +252,9 @@ String.trim(String.cut("key = value", "=")?.after ?? "") // "value"
 file name, use [`String.lastIndexOf`](lastIndexOf.md) and [`String.slice`](slice.md):
 
 ```ant
-var name = "archive.tar.gz"
+let name = "archive.tar.gz"
 String.cut(name, ".")?.after // "tar.gz"
-var i = String.lastIndexOf(name, ".")
+let i = String.lastIndexOf(name, ".")
 if i != null { String.slice(name, i + 1, String.length(name)) } else { "" } // "gz"
 ```
 

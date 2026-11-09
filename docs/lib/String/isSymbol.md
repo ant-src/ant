@@ -99,7 +99,7 @@ Split a price into its currency sign and its amount. The sign is a symbol; the d
 type Price = { currency: string, amount: string }
 
 func parsePrice(s: string): Price | null {
-  var chars = s.chars()
+  let chars = s.chars()
   if chars.isEmpty() || !String.isSymbol(chars[0]) {
     return null
   }
@@ -149,8 +149,8 @@ Count the symbols of a text:
 
 ```ant
 for s in ["", "+", "$5", "😀", "©®", "%", "a", "👍🏽"] {
-  var chars = String.chars(s)
-  var all = !chars.isEmpty() && chars.every({ String.category(x).startsWith("S") })
+  let chars = String.chars(s)
+  let all = !chars.isEmpty() && chars.every({ String.category(x).startsWith("S") })
   assert(String.isSymbol(s) == all)
 }
 ```

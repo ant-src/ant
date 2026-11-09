@@ -27,7 +27,7 @@ Array.every([2, 3, 6], { x % 2 == 0 }) // false
 Call it through `.` on any array:
 
 ```ant
-var ages = [34, 21, 19]
+let ages = [34, 21, 19]
 ages.every({ x >= 18 }) // true
 ages.every({ x >= 21 }) // false
 ```
@@ -38,7 +38,7 @@ The callback runs from the first element and stops at the first element it rejec
 shows which elements it tested:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [2, 4, 5, 6].every({ seen.push(x); x % 2 == 0 }) // false
 seen                                             // [2, 4, 5]
 ```
@@ -46,7 +46,7 @@ seen                                             // [2, 4, 5]
 When `f` accepts every element, it tests them all:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [2, 4, 6].every({ seen.push(x); x % 2 == 0 }) // true
 seen                                          // [2, 4, 6]
 ```
@@ -54,7 +54,7 @@ seen                                          // [2, 4, 6]
 An empty array gives `true`, whatever `f` tests. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.every({ x > 100 }) // true
 ```
 
@@ -81,7 +81,7 @@ Records are read through their fields:
 
 ```ant
 type Task = { title: string, done: bool }
-var tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
+let tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
 tasks.every({ x.done })                      // false
 tasks.every({ String.length(x.title) <= 5 }) // true
 ```
@@ -92,7 +92,7 @@ With a union, test the tag with `is`. Inside `&&`, `x` is narrowed to the member
 type Circle = { radius: float64 }
 type Rect = { width: float64, height: float64 }
 type Shape = Circle | Rect
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Circle{ radius: 2.5 }]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Circle{ radius: 2.5 }]
 shapes.every({ x is Circle })                   // true
 shapes.every({ x is Circle && x.radius > 2.0 }) // false
 ```
@@ -100,7 +100,7 @@ shapes.every({ x is Circle && x.radius > 2.0 }) // false
 An element type that includes `null` needs the `null` case handled before `x` is compared:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 scores.every({ x != null })            // false
 scores.every({ x == null || x >= 50 }) // true
 ```
@@ -108,7 +108,7 @@ scores.every({ x == null || x >= 50 }) // true
 For nested arrays, each nested lambda binds its own `x`:
 
 ```ant
-var grid = [[1, 2, 3], [4, 5, 6]]
+let grid = [[1, 2, 3], [4, 5, 6]]
 grid.every({ x.length() == 3 })    // true
 grid.every({ x.every({ x > 0 }) }) // true
 ```
@@ -117,7 +117,7 @@ grid.every({ x.every({ x > 0 }) }) // true
 through them:
 
 ```ant
-var stock = Map{ apples: 4, pears: 0 }
+let stock = Map{ apples: 4, pears: 0 }
 stock.values().every({ x > 0 })                        // false
 Set.of(["a", "b"]).values().every({ x.length() == 1 }) // true
 ```
@@ -132,7 +132,7 @@ A closure sees later assignments to the variables it captures:
 
 ```ant
 var limit = 10
-var under: func(int): bool = { x < limit }
+let under: func(int): bool = { x < limit }
 [3, 9].every(under) // true
 limit = 5
 [3, 9].every(under) // false
@@ -161,7 +161,7 @@ func validate(fields: Array[Field]): Result[void, string] {
   if fields.every({ !x.required || x.value != "" }) {
     Result.ok(void)
   } else {
-    var missing = fields.filter({ x.required && x.value == "" }).map({ x.name })
+    let missing = fields.filter({ x.required && x.value == "" }).map({ x.name })
     Result.err("missing: ${String.join(missing, ", ")}")
   }
 }
@@ -181,7 +181,7 @@ Err{ error: "missing: email" }
 Check that a string holds only hexadecimal digits:
 
 ```ant
-var hex = Set.of(String.chars("0123456789abcdef"))
+let hex = Set.of(String.chars("0123456789abcdef"))
 String.chars("c0ffee").every({ hex.has(x) }) // true
 String.chars("coffee").every({ hex.has(x) }) // false
 ```
@@ -192,7 +192,7 @@ String.chars("coffee").every({ hex.has(x) }) // false
 finds none, and when `Array.countWhere` and `Array.filter` keep the whole array:
 
 ```ant
-var f: func(int): bool = { x % 3 != 0 }
+let f: func(int): bool = { x % 3 != 0 }
 for xs in [[1, 2, 4], [1, 3, 4], []] {
   assert(xs.every(f) == !xs.some({ !f(x) }))
   assert(xs.every(f) == (xs.findIndex({ !f(x) }) == null))
@@ -204,9 +204,9 @@ for xs in [[1, 2, 4], [1, 3, 4], []] {
 Over a concatenation, `every` holds when it holds on both parts:
 
 ```ant
-var f: func(int): bool = { x > 0 }
-var xs = [1, 2]
-var ys = [3, -4]
+let f: func(int): bool = { x > 0 }
+let xs = [1, 2]
+let ys = [3, -4]
 assert(xs.concat(ys).every(f) == (xs.every(f) && ys.every(f)))
 assert(xs.every(f) && !ys.every(f))
 ```
@@ -214,8 +214,8 @@ assert(xs.every(f) && !ys.every(f))
 Every member of `a` being in `b` is what `Set.isSubset` reports:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([1, 2, 3])
+let a = Set.of([1, 2])
+let b = Set.of([1, 2, 3])
 assert(a.values().every({ b.has(x) }) == a.isSubset(b))
 assert(b.values().every({ a.has(x) }) == b.isSubset(a))
 ```
@@ -226,7 +226,7 @@ An empty array passes every test, so "all checks passed" on no checks at all is 
 emptiness when that matters:
 
 ```ant
-var results: Array[bool] = []
+let results: Array[bool] = []
 results.every({ x })                       // true
 !results.isEmpty() && results.every({ x }) // false
 ```
@@ -235,7 +235,7 @@ results.every({ x })                       // true
 error:
 
 ```ant
-var counts = [1, 2, 3]
+let counts = [1, 2, 3]
 println(counts.every({ x })) // error: cannot use int where bool is expected
 ```
 
@@ -248,7 +248,7 @@ Write the comparison instead:
 `f` takes one parameter. A function of two parameters does not fit `func(T): bool`:
 
 ```ant
-var counts = [1, 2, 3]
+let counts = [1, 2, 3]
 println(counts.every(func(a: int, b: int): bool { a < b }))
 // error: cannot use func(int, int): bool where func(int): bool is expected
 ```
@@ -258,7 +258,7 @@ To compare neighbors, iterate over indices, as `isSorted` above does.
 A lambda stored in an unannotated `var` has no expected function type. Annotate the variable:
 
 ```ant
-var positive = { x > 0 }
+let positive = { x > 0 }
 // error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 println([1, 2].every(positive))
 ```
@@ -266,7 +266,7 @@ println([1, 2].every(positive))
 A `NaN` element fails `x > 0.0` but passes `!(x <= 0.0)`. Test for it with `Math.isNaN`:
 
 ```ant
-var xs = [1.0, Math.NaN]
+let xs = [1.0, Math.NaN]
 xs.every({ x > 0.0 })                   // false
 xs.every({ !(x <= 0.0) })               // true
 xs.every({ !Math.isNaN(x) && x > 0.0 }) // false

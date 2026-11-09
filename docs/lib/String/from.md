@@ -147,7 +147,7 @@ String.from(null) // "null"
 `void` renders as its literal too:
 
 ```ant
-var nothing = println("first")
+let nothing = println("first")
 println(String.from(nothing))
 ```
 
@@ -176,9 +176,9 @@ Set.of(["x", "y"])
 Empty containers render with nothing inside the brackets:
 
 ```ant
-var none: Array[int] = []
-var empty: Map[string, int] = Map{}
-var noTags: Set[string] = Set.of([])
+let none: Array[int] = []
+let empty: Map[string, int] = Map{}
+let noTags: Set[string] = Set.of([])
 println([String.from(none), String.from(empty), String.from(noTags)])
 ```
 
@@ -205,7 +205,7 @@ A value of a union renders as the member it holds, and an empty record keeps its
 type Circle = { radius: float64 }
 type Unknown = {}
 type Shape = Circle | Unknown
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Unknown{}]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Unknown{}]
 println(shapes)
 ```
 
@@ -216,7 +216,7 @@ println(shapes)
 A `Result` is a union of records, so it renders as one:
 
 ```ant
-var parsed: Result[int, string] = Result.ok(1)
+let parsed: Result[int, string] = Result.ok(1)
 String.from(parsed) // "Ok{ value: 1 }"
 ```
 
@@ -241,7 +241,7 @@ String.from(UserId) // "UserId"
 `Bytes` renders as two lower-case hexadecimal digits per byte:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 String.from(Bytes.fromArray([0x89, 0x50, 0x4e, 0x47])) // "Bytes(89 50 4e 47)"
 String.from(Bytes.fromArray(empty))                    // "Bytes()"
 ```
@@ -250,7 +250,7 @@ String.from(Bytes.fromArray(empty))                    // "Bytes()"
 container:
 
 ```ant
-var name = "<Ann>"
+let name = "<Ann>"
 println(<p class="greeting">Hi, {name}</p>)
 println([<b>bold</b>, <></>])
 ```
@@ -300,7 +300,7 @@ A value already being rendered renders as `...`, so a structure that contains it
 
 ```ant
 type Node = { value: int, next: Array[Node] }
-var node = Node{ value: 1, next: [] }
+let node = Node{ value: 1, next: [] }
 node.next = [node]
 println(node)
 ```
@@ -325,7 +325,7 @@ Interpolation renders each `${...}` with `String.from`, so a log line needs no c
 
 ```ant
 type Order = { id: int, total: float64 }
-var order = Order{ id: 7, total: 19.5 }
+let order = Order{ id: 7, total: 19.5 }
 println("order ${order.id}: ${order.total} (${order})")
 ```
 
@@ -336,7 +336,7 @@ order 7: 19.5 (Order{ id: 7, total: 19.5 })
 Pass `String.from` to `Array.map` to turn numbers into text, then join them:
 
 ```ant
-var widths = [3, 14, 159]
+let widths = [3, 14, 159]
 String.join(Array.map(widths, String.from), " | ") // "3 | 14 | 159"
 ```
 
@@ -357,7 +357,7 @@ for n in [7, 42, 1024] {
 Print a debug view of a whole structure, quotes and all, to see where a string has stray spaces:
 
 ```ant
-var fields = String.split("Ann , 31", ",")
+let fields = String.split("Ann , 31", ",")
 println(fields)
 ```
 
@@ -370,7 +370,7 @@ println(fields)
 Interpolation and `String.from` agree on every value:
 
 ```ant
-var values = [1.5, 100.0, -0.0]
+let values = [1.5, 100.0, -0.0]
 for v in values {
   assert("${v}" == String.from(v))
 }
@@ -406,7 +406,7 @@ A string is quoted inside a container, so rendering an array of words is not the
 Use `String.join`:
 
 ```ant
-var words = ["red", "green"]
+let words = ["red", "green"]
 String.from(words)       // "[\"red\", \"green\"]"
 String.join(words, ", ") // "red, green"
 ```
@@ -415,7 +415,7 @@ A named primitive renders as its constructor call. Convert it with `string(...)`
 
 ```ant
 type UserId = string
-var id = UserId("u-1")
+let id = UserId("u-1")
 "user ${id}"         // "user UserId(\"u-1\")"
 "user ${string(id)}" // "user u-1"
 ```
@@ -424,7 +424,7 @@ The rendering of a float shows every digit it needs to read back, so money and m
 with noise. Use `String.fromFloat` for a fixed number of decimals:
 
 ```ant
-var total = 0.1 + 0.2
+let total = 0.1 + 0.2
 "${total}"                 // "0.30000000000000004"
 String.fromFloat(total, 2) // "0.30"
 ```
@@ -435,7 +435,7 @@ interpolation render it. Call it yourself:
 ```ant
 type Point = { x: float64, y: float64 }
 func Point.from(p: Point): string { "(${p.x}, ${p.y})" }
-var p = Point{ x: 1.0, y: 2.0 }
+let p = Point{ x: 1.0, y: 2.0 }
 "${p}"   // "Point{ x: 1.0, y: 2.0 }"
 p.from() // "(1.0, 2.0)"
 ```
@@ -445,7 +445,7 @@ for data another program reads:
 
 ```ant
 type Point = { x: float64, y: float64 }
-var p = Point{ x: 1.0, y: 2.0 }
+let p = Point{ x: 1.0, y: 2.0 }
 String.from(p)    // "Point{ x: 1.0, y: 2.0 }"
 Json.stringify(p) // "{\"x\":1.0,\"y\":2.0}"
 ```
@@ -453,7 +453,7 @@ Json.stringify(p) // "{\"x\":1.0,\"y\":2.0}"
 `T` comes from the argument, so a lambda, which needs an expected function type, cannot be passed:
 
 ```ant
-var text = String.from({ x + 1 })
+let text = String.from({ x + 1 })
 // error: cannot infer the type parameter T of String.from; annotate the result
 // error: a lambda needs an expected function type, but T is expected
 ```
@@ -461,15 +461,15 @@ var text = String.from({ x + 1 })
 An empty literal fixes no element type either. Annotate it first:
 
 ```ant
-var text = String.from([]) // error: cannot infer the element type of an empty array; annotate it
+let text = String.from([]) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 `.from` reaches `String.from` only on a string. On a number it is a compile error; call
 `String.from` directly:
 
 ```ant
-var n = 42
-var text = n.from() // error: int has no field or function from
+let n = 42
+let text = n.from() // error: int has no field or function from
 ```
 
 ## See also

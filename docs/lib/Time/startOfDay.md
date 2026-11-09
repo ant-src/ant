@@ -15,6 +15,6 @@ a day whose midnight a daylight-saving change skipped.
 ## Basic examples
 
 ```ant
-var t = Result.unwrap(Time.parseZoned("2024-09-08T12:00[America/Santiago]"))
+let t = Result.unwrap(Time.parseZoned("2024-09-08T12:00[America/Santiago]"))
 Time.startOfDay(t) // 2024-09-08T01:00:00-03:00[America/Santiago]
 ```

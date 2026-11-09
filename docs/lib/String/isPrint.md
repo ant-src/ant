@@ -125,11 +125,11 @@ value:
 
 ```ant
 func reveal(s: string): string {
-  var parts = s.chars().map({
+  let parts = s.chars().map({
     if String.isPrint(x) {
       x
     } else {
-      var hex = String.fromInt(String.codePoint(x), 16).toUpper()
+      let hex = String.fromInt(String.codePoint(x), 16).toUpper()
       "<U+${hex.padStart(4, "0")}>"
     }
   })
@@ -165,7 +165,7 @@ func printable(c: string): bool {
 }
 
 for s in ["", "abc", "a b", "a\tb", "\u{A0}", "e\u{301}", "½", "\u{200D}", "\u{E000}"] {
-  var chars = String.chars(s)
+  let chars = String.chars(s)
   assert(String.isPrint(s) == (!chars.isEmpty() && chars.every(printable)))
 }
 ```
@@ -185,7 +185,7 @@ No control character is printable:
 
 ```ant
 for n in [0, 9, 10, 13, 27, 127, 133, 159] {
-  var c = String.fromCodePoint(n) ?? ""
+  let c = String.fromCodePoint(n) ?? ""
   assert(String.isControl(c) && !String.isPrint(c))
 }
 ```

@@ -25,14 +25,14 @@ Array.last(["a", "b"])   // "b"
 An empty array gives `null`. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.last(empty) // null
 ```
 
 Call it through `.` on any array:
 
 ```ant
-var history = ["open", "edit", "save"]
+let history = ["open", "edit", "save"]
 history.last() // "save"
 ```
 
@@ -49,8 +49,8 @@ empty array:
 
 ```ant
 type Commit = { hash: string, message: string }
-var commits = [Commit{ hash: "a1f", message: "init" }, Commit{ hash: "9c2", message: "fix typo" }]
-var none: Array[Commit] = []
+let commits = [Commit{ hash: "a1f", message: "init" }, Commit{ hash: "9c2", message: "fix typo" }]
+let none: Array[Commit] = []
 commits.last()                    // Commit{ hash: "9c2", message: "fix typo" }
 commits.last()?.hash              // "9c2"
 none.last()?.hash                 // null
@@ -60,7 +60,7 @@ none.last()?.hash ?? "no commits" // "no commits"
 A nested array gives its last inner array, and `?.[i]` indexes into it:
 
 ```ant
-var rows = [[1, 2], [3, 4, 5]]
+let rows = [[1, 2], [3, 4, 5]]
 rows.last()      // [3, 4, 5]
 rows.last()?.[0] // 3
 ```
@@ -71,7 +71,7 @@ Elements of a union keep their tag, so `is` tells which member came last:
 type Passed = { value: int }
 type Failed = { reason: string }
 type Step = Passed | Failed
-var steps: Array[Step] = [Passed{ value: 1 }, Failed{ reason: "timeout" }]
+let steps: Array[Step] = [Passed{ value: 1 }, Failed{ reason: "timeout" }]
 steps.last()           // Failed{ reason: "timeout" }
 steps.last() is Failed // true
 ```
@@ -79,8 +79,8 @@ steps.last() is Failed // true
 An array of functions gives a function, which `?.(…)` calls when it is there:
 
 ```ant
-var handlers: Array[func(string): string] = [{ x.toUpper() }, { "<${x}>" }]
-var empty: Array[func(string): string] = []
+let handlers: Array[func(string): string] = [{ x.toUpper() }, { "<${x}>" }]
+let empty: Array[func(string): string] = []
 handlers.last()?.("hi") // "<hi>"
 empty.last()?.("hi")    // null
 ```
@@ -104,7 +104,7 @@ A map value that may be missing can default to `[]` with `??`. The `[]` takes th
 so it needs no annotation:
 
 ```ant
-var visits = Map{ ann: ["home", "cart"] }
+let visits = Map{ ann: ["home", "cart"] }
 (visits["ann"] ?? []).last() // "cart"
 (visits["bob"] ?? []).last() // null
 ```
@@ -139,8 +139,8 @@ type.
 Read the top of a stack and leave the stack as it was:
 
 ```ant
-var stack = ["main", "parse", "expr"]
-var top = stack.last()
+let stack = ["main", "parse", "expr"]
+let top = stack.last()
 if top != null {
   println("in ${top}, depth ${stack.length()}")
 }
@@ -156,7 +156,7 @@ Keep the latest reading from a series, and report when there is none:
 type Reading = { at: string, celsius: float64 }
 
 func latest(rs: Array[Reading]): string {
-  var r = rs.last() ?? return "no data"
+  let r = rs.last() ?? return "no data"
   "${r.celsius} at ${r.at}"
 }
 
@@ -172,7 +172,7 @@ no data
 Panic when an array that must have elements is empty:
 
 ```ant
-var results: Array[int] = []
+let results: Array[int] = []
 results.last() ?? panic("no results") // panic: no results
 ```
 
@@ -196,7 +196,7 @@ for xs in [[4, 5, 6], [7], []] {
 After `Array.push`, the pushed value is the last element:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 xs.push(3)
 assert(xs.last() == 3)
 ```
@@ -214,14 +214,14 @@ for xs in [["a"], []] {
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 println(xs.last() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 (xs.last() ?? 0) + 1 // 3
 ```
 
@@ -229,7 +229,7 @@ Testing the call itself does not narrow a second call, because only locals, para
 top-level `let`s narrow:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 if xs.last() != null {
   println(xs.last() * 2) // error: * needs both operands of one type, got int | null and int
 }
@@ -238,8 +238,8 @@ if xs.last() != null {
 Bind the result to a local and test that:
 
 ```ant
-var xs = [3, 1, 2]
-var tail = xs.last()
+let xs = [3, 1, 2]
+let tail = xs.last()
 if tail != null {
   println(tail * 2)
 }
@@ -253,7 +253,7 @@ When the element type includes `null`, a `null` result does not tell an empty ar
 last element is `null`. Ask the array with [`Array.isEmpty`](isEmpty.md) instead:
 
 ```ant
-var answers: Array[string | null] = ["yes", null]
+let answers: Array[string | null] = ["yes", null]
 answers.last()    // null
 answers.isEmpty() // false
 ```
@@ -261,7 +261,7 @@ answers.isEmpty() // false
 Indexing with `[-1]` does not count from the end. It panics, as any index outside the array does:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs.last() // 3
 xs[-1]    // panic: index -1 out of range for an array of length 3
 ```

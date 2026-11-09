@@ -23,7 +23,7 @@ Indexed is an element with its index, as [`Array.entries`](../entries.md) yields
 Get `Indexed` records from `Array.entries`, and read their fields:
 
 ```ant
-var es = ["a", "b"].entries()
+let es = ["a", "b"].entries()
 es[1]       // Indexed{ index: 1, value: "b" }
 es[1].index // 1
 es[1].value // "b"
@@ -32,7 +32,7 @@ es[1].value // "b"
 Write one with a literal. The checker infers `T` from `value`:
 
 ```ant
-var e = Indexed{ index: 2, value: 3.5 }
+let e = Indexed{ index: 2, value: 3.5 }
 e // Indexed{ index: 2, value: 3.5 }
 ```
 
@@ -54,7 +54,7 @@ for { index, value } in ["ant", "bee"].entries() {
 Annotate a variable with the type argument:
 
 ```ant
-var e: Indexed[string] = Indexed{ index: 0, value: "x" }
+let e: Indexed[string] = Indexed{ index: 0, value: "x" }
 e.value // "x"
 ```
 
@@ -62,18 +62,18 @@ The value may be `null`, a record, an array, or a union member:
 
 ```ant
 type Point = { x: int, y: int }
-var n: Indexed[int | null] = Indexed{ index: 0, value: null }
+let n: Indexed[int | null] = Indexed{ index: 0, value: null }
 n                                               // Indexed{ index: 0, value: null }
 Indexed{ index: 1, value: Point{ x: 1, y: 2 } } // Indexed{ index: 1, value: Point{ x: 1, y: 2 } }
 Indexed{ index: 2, value: [1, 2] }              // Indexed{ index: 2, value: [1, 2] }
-var r: Indexed[Result[int, string]] = Indexed{ index: 3, value: Result.err("no") }
+let r: Indexed[Result[int, string]] = Indexed{ index: 3, value: Result.err("no") }
 r.value // Err{ error: "no" }
 ```
 
 Assign to a field, as with any record:
 
 ```ant
-var e = Indexed{ index: 0, value: 8 }
+let e = Indexed{ index: 0, value: 8 }
 e.value = e.value + 1
 e // Indexed{ index: 0, value: 9 }
 ```
@@ -81,7 +81,7 @@ e // Indexed{ index: 0, value: 9 }
 Destructure one record into variables:
 
 ```ant
-var { index, value } = Indexed{ index: 4, value: "d" }
+let { index, value } = Indexed{ index: 4, value: "d" }
 index // 4
 value // "d"
 ```
@@ -123,14 +123,14 @@ none
 Sort the entries by value to get the original positions in sorted order:
 
 ```ant
-var scores = [30, 10, 20]
+let scores = [30, 10, 20]
 scores.entries().sortBy({ x.value }).map({ x.index }) // [1, 2, 0]
 ```
 
 Find the first element a test accepts together with where it is:
 
 ```ant
-var words = ["ant", "beetle", "cicada"]
+let words = ["ant", "beetle", "cicada"]
 words.entries().find({ String.length(x.value) > 3 }) // Indexed{ index: 1, value: "beetle" }
 ```
 
@@ -164,7 +164,7 @@ assert(Indexed{ index: 0, value: 1 } != Indexed{ index: 1, value: 1 })
 Each entry's `value` is the element at its `index`:
 
 ```ant
-var xs = [5, 6, 7]
+let xs = [5, 6, 7]
 assert(xs.entries().every({ xs[x.index] == x.value }))
 ```
 
@@ -173,7 +173,7 @@ assert(xs.entries().every({ xs[x.index] == x.value }))
 A literal gives both fields. Leaving one out is a compile error:
 
 ```ant
-var e = Indexed{ index: 0 }
+let e = Indexed{ index: 0 }
 // error: Indexed literal is missing the field value
 // error: cannot infer the type parameter T of Indexed; annotate the result
 ```
@@ -181,21 +181,21 @@ var e = Indexed{ index: 0 }
 The type argument goes in an annotation, never in a literal:
 
 ```ant
-var e = Indexed[int]{ index: 0, value: 1 } // error: expected a newline or ';' before '{'
+let e = Indexed[int]{ index: 0, value: 1 } // error: expected a newline or ';' before '{'
 ```
 
 `Indexed` without a type argument is not a type:
 
 ```ant
-var e: Indexed = Indexed{ index: 0, value: 1 } // error: Indexed takes 1 type argument, got 0
+let e: Indexed = Indexed{ index: 0, value: 1 } // error: Indexed takes 1 type argument, got 0
 ```
 
 Type arguments are invariant, so an `Indexed[int]` does not fit where an `Indexed[int | string]` is
 expected:
 
 ```ant
-var e = Indexed{ index: 0, value: 1 }
-var f: Indexed[int | string] = e
+let e = Indexed{ index: 0, value: 1 }
+let f: Indexed[int | string] = e
 // error: cannot use Indexed[int] where Indexed[int | string] is expected
 ```
 
@@ -211,8 +211,8 @@ for { key, value } in ["a", "b"].entries() { // error: Indexed[string] has no fi
 leaves the array unchanged:
 
 ```ant
-var xs = [1, 2]
-var es = xs.entries()
+let xs = [1, 2]
+let es = xs.entries()
 es[0].value = 9
 xs // [1, 2]
 ```
@@ -220,7 +220,7 @@ xs // [1, 2]
 Write to the array through the index instead:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 for e in xs.entries() {
   xs[e.index] = e.value * 10
 }

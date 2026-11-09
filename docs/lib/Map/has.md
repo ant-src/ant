@@ -20,7 +20,7 @@ missing key from a stored null.
 ## Basic examples
 
 ```ant
-var ages = Map{ ada: 36, linus: 54 }
+let ages = Map{ ada: 36, linus: 54 }
 Map.has(ages, "ada")   // true
 Map.has(ages, "grace") // false
 ```
@@ -28,7 +28,7 @@ Map.has(ages, "grace") // false
 Call it through `.` on any map:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54 }
+let ages = Map{ ada: 36, linus: 54 }
 ages.has("linus") // true
 ```
 
@@ -37,7 +37,7 @@ ages.has("linus") // true
 An empty map has nothing. Annotate it so that `K` is known:
 
 ```ant
-var empty: Map[string, int] = Map{}
+let empty: Map[string, int] = Map{}
 empty.has("") // false
 ```
 
@@ -45,7 +45,7 @@ When `V` includes `null`, indexing gives `null` both for a stored `null` and for
 `Map.has` tells them apart:
 
 ```ant
-var settings: Map[string, string | null] = Map{ theme: null }
+let settings: Map[string, string | null] = Map{ theme: null }
 settings["theme"]     // null
 settings["font"]      // null
 settings.has("theme") // true
@@ -56,9 +56,9 @@ Keys of any type work. Numbers, records, and arrays compare by value:
 
 ```ant
 type Point = { x: int, y: int }
-var names = Map{ 1: "one", 2: "two" }
-var grid = Map{ (Point{ x: 0, y: 0 }): "origin" }
-var paths = Map{ ([1, 2]): "a/b" }
+let names = Map{ 1: "one", 2: "two" }
+let grid = Map{ (Point{ x: 0, y: 0 }): "origin" }
+let paths = Map{ ([1, 2]): "a/b" }
 names.has(2)                  // true
 grid.has(Point{ x: 0, y: 0 }) // true
 grid.has(Point{ x: 1, y: 0 }) // false
@@ -71,7 +71,7 @@ A tagged union key matches by tag and fields, so equal fields under another tag 
 type Circle = { size: float64 }
 type Square = { size: float64 }
 type Shape = Circle | Square
-var areas: Map[Shape, float64] = Map{ (Circle{ size: 1.0 }): 3.14 }
+let areas: Map[Shape, float64] = Map{ (Circle{ size: 1.0 }): 3.14 }
 areas.has(Circle{ size: 1.0 }) // true
 areas.has(Square{ size: 1.0 }) // false
 ```
@@ -80,14 +80,14 @@ A named primitive type compares its tag and its payload:
 
 ```ant
 type UserId = string
-var roles = Map{ (UserId("u-1")): "admin" }
+let roles = Map{ (UserId("u-1")): "admin" }
 roles.has(UserId("u-1")) // true
 ```
 
 Strings compare by code points, without normalizing:
 
 ```ant
-var words = Map{ "café": 1 }
+let words = Map{ "café": 1 }
 words.has("café")        // true
 words.has("cafe\u{301}") // false
 ```
@@ -95,7 +95,7 @@ words.has("cafe\u{301}") // false
 On a map that may itself be `null`, `?.` gives `null`; `??` turns that into a `bool`:
 
 ```ant
-var m: Map[string, int] | null = null
+let m: Map[string, int] | null = null
 m?.has("a")          // null
 m?.has("a") ?? false // false
 ```
@@ -111,7 +111,7 @@ Map{ a: 1 } | Map.has("a") // true
 Report each field of a JSON object as present, `null`, or missing:
 
 ```ant
-var doc = Result.unwrap(Json.parse("{\"name\": \"ant\", \"license\": null}"))
+let doc = Result.unwrap(Json.parse("{\"name\": \"ant\", \"license\": null}"))
 if doc is Map {
   for key in ["name", "license", "homepage"] {
     if !doc.has(key) {
@@ -135,14 +135,14 @@ Cache a lookup whose answer may be `null`, so that a `null` result is not looked
 
 ```ant
 var lookups = 0
-var cache: Map[int, string | null] = Map{}
+let cache: Map[int, string | null] = Map{}
 
 func nameOf(id: int): string | null {
   if cache.has(id) {
     return cache[id]
   }
   lookups += 1
-  var name = if id == 1 { "ada" } else { null }
+  let name = if id == 1 { "ada" } else { null }
   cache[id] = name
   name
 }
@@ -164,7 +164,7 @@ lookups: 2
 List the required settings a configuration lacks:
 
 ```ant
-var config = Map{ host: "localhost", port: "8080" }
+let config = Map{ host: "localhost", port: "8080" }
 ["host", "port", "user"].filter({ !config.has(x) }) // ["user"]
 ```
 
@@ -173,7 +173,7 @@ var config = Map{ host: "localhost", port: "8080" }
 `Map.has` agrees with `Map.keys`, and with `Map.get` when `V` excludes `null`:
 
 ```ant
-var m = Map{ a: 1, b: 2 }
+let m = Map{ a: 1, b: 2 }
 for k in ["a", "b", "c"] {
   assert(m.has(k) == m.keys().contains(k))
   assert(m.has(k) == Set.of(m.keys()).has(k))
@@ -184,7 +184,7 @@ for k in ["a", "b", "c"] {
 `Map.set` adds the key and `Map.remove` takes it away:
 
 ```ant
-var m: Map[string, int] = Map{}
+let m: Map[string, int] = Map{}
 m.set("x", 1)
 assert(m.has("x"))
 m.remove("x")
@@ -197,9 +197,9 @@ assert(m.isEmpty())
 `Map.has` does not narrow the value that indexing reads. After the test, `m[k]` is still `V | null`:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 if ages.has("ada") {
-  var age: int = ages["ada"] // error: cannot use int | null where int is expected
+  let age: int = ages["ada"] // error: cannot use int | null where int is expected
   println(age)
 }
 ```
@@ -207,8 +207,8 @@ if ages.has("ada") {
 When `V` excludes `null`, read the value once and test it instead:
 
 ```ant
-var ages = Map{ ada: 36 }
-var age = ages["ada"]
+let ages = Map{ ada: 36 }
+let age = ages["ada"]
 if age != null {
   println(age + 1)
 }
@@ -222,7 +222,7 @@ Testing `m[k] != null` instead of `Map.has` is wrong when `V` includes `null`, b
 stored `null` as missing:
 
 ```ant
-var settings: Map[string, string | null] = Map{ theme: null }
+let settings: Map[string, string | null] = Map{ theme: null }
 settings["theme"] != null // false
 settings.has("theme")     // true
 ```
@@ -230,7 +230,7 @@ settings.has("theme")     // true
 The key must have the map's key type:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 println(ages.has(36)) // error: cannot use int where string is expected
 ```
 

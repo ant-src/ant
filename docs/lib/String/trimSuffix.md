@@ -28,7 +28,7 @@ String.trimSuffix("main.ant", ".go")  // "main.ant"
 Call it through `.` on any string:
 
 ```ant
-var name = "report.tar.gz"
+let name = "report.tar.gz"
 name.trimSuffix(".gz")     // "report.tar"
 name.trimSuffix(".tar.gz") // "report"
 name.trimSuffix(".tar")    // "report.tar.gz"
@@ -83,7 +83,7 @@ String.trimSuffix(s: "photo.jpeg", suffix: ".jpeg") // "photo"
 Drop the extension from the names that have it:
 
 ```ant
-var files = ["main.ant", "util.ant", "notes.txt"]
+let files = ["main.ant", "util.ant", "notes.txt"]
 files.map({ x.trimSuffix(".ant") }) // ["main", "util", "notes.txt"]
 ```
 
@@ -91,9 +91,9 @@ Drop whatever extension a file name has, with [`Path.ext`](../Path/ext.md). A na
 back unchanged, since its extension is `""`:
 
 ```ant
-var f = "photo.jpeg"
+let f = "photo.jpeg"
 f.trimSuffix(Path.ext(f)) // "photo"
-var g = "Makefile"
+let g = "Makefile"
 g.trimSuffix(Path.ext(g)) // "Makefile"
 ```
 
@@ -126,8 +126,8 @@ clean("/")      // "/"
 Tell whether the suffix was there by comparing the result with the input:
 
 ```ant
-var word = "walked"
-var stem = word.trimSuffix("ed")
+let word = "walked"
+let stem = word.trimSuffix("ed")
 if stem != word {
   println("past tense of ${stem}")
 }
@@ -153,9 +153,9 @@ When `s` ends with `suffix`, the result and the suffix join back into `s`; other
 unchanged:
 
 ```ant
-var s = "report.tar.gz"
+let s = "report.tar.gz"
 for t in [".gz", ".tar", "", s, "x"] {
-  var r = s.trimSuffix(t)
+  let r = s.trimSuffix(t)
   if s.endsWith(t) {
     assert(r + t == s)
   } else {
@@ -167,11 +167,11 @@ for t in [".gz", ".tar", "", s, "x"] {
 It agrees with slicing off the last code points:
 
 ```ant
-var s = "año.txt"
+let s = "año.txt"
 for t in [".txt", "o.txt", "ñ", ""] {
-  var n = s.length()
-  var m = t.length()
-  var expected = if s.endsWith(t) { s.slice(0, n - m) } else { s }
+  let n = s.length()
+  let m = t.length()
+  let expected = if s.endsWith(t) { s.slice(0, n - m) } else { s }
   assert(s.trimSuffix(t) == expected)
 }
 ```
@@ -184,7 +184,7 @@ func reverse(s: string): string {
 }
 
 for t in ["gz", "tar.gz", "tar", ""] {
-  var s = "report.tar.gz"
+  let s = "report.tar.gz"
   assert(reverse(s.trimSuffix(t)) == reverse(s).trimPrefix(reverse(t)))
 }
 ```
@@ -246,7 +246,7 @@ String.trimSuffix(".ant", "main.ant") // ".ant"
 A nullable suffix is a compile error. Narrow it first:
 
 ```ant
-var ext: string | null = null
+let ext: string | null = null
 println(String.trimSuffix("main.ant", ext))
 // error: cannot use string | null where string is expected
 ```

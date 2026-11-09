@@ -19,14 +19,14 @@ Array.isEmpty reports whether xs has no elements.
 
 ```ant
 Array.isEmpty([1, 2, 3]) // false
-var none: Array[int] = []
+let none: Array[int] = []
 Array.isEmpty(none) // true
 ```
 
 Call it through `.` on any array:
 
 ```ant
-var queue = ["a", "b"]
+let queue = ["a", "b"]
 queue.isEmpty() // false
 ```
 
@@ -43,7 +43,7 @@ An array that holds only empty arrays, empty strings, or `null` still has elemen
 The answer follows the array as it changes:
 
 ```ant
-var stack = [1]
+let stack = [1]
 stack.isEmpty() // false
 stack.pop()     // 1
 stack.isEmpty() // true
@@ -72,7 +72,7 @@ Array.map([[1], [], [2, 3]], Array.isEmpty) // [false, true, false]
 For an array that may be `null`, `?.` yields `null` instead of calling:
 
 ```ant
-var tags: Array[string] | null = null
+let tags: Array[string] | null = null
 tags?.isEmpty()         // null
 tags?.isEmpty() ?? true // true
 ```
@@ -108,10 +108,10 @@ average([])              // null
 Work through a queue until it runs dry:
 
 ```ant
-var todo = ["b", "a"]
-var done: Array[string] = []
+let todo = ["b", "a"]
+let done: Array[string] = []
 while !todo.isEmpty() {
-  var item = todo.pop()
+  let item = todo.pop()
   if item != null {
     done.push(item)
   }
@@ -129,7 +129,7 @@ Collect validation problems and succeed only when there are none:
 type User = { name: string, age: int }
 
 func check(u: User): Result[User, Array[string]] {
-  var problems: Array[string] = []
+  let problems: Array[string] = []
   if String.isEmpty(u.name) {
     problems.push("name is empty")
   }
@@ -155,8 +155,8 @@ since arrays are equal when they have the same length and `==` elements, and, fo
 element type excludes `null`, with `Array.first`:
 
 ```ant
-var none: Array[int] = []
-var cases: Array[Array[int]] = [[], [7], [1, 2]]
+let none: Array[int] = []
+let cases: Array[Array[int]] = [[], [7], [1, 2]]
 for xs in cases {
   assert(xs.isEmpty() == (len(xs) == 0))
   assert(xs.isEmpty() == (Array.length(xs) == 0))
@@ -170,7 +170,7 @@ for xs in cases {
 An array is not a condition. Ask `Array.isEmpty` explicitly:
 
 ```ant
-var xs = [1]
+let xs = [1]
 if xs { // error: cannot use Array[int] where bool is expected
   println("has elements")
 }
@@ -179,7 +179,7 @@ if xs { // error: cannot use Array[int] where bool is expected
 A nullable array must be narrowed or reached through `?.` first:
 
 ```ant
-var xs: Array[int] | null = null
+let xs: Array[int] | null = null
 println(Array.isEmpty(xs)) // error: cannot use Array[int] | null where Array[T] is expected
 ```
 
@@ -193,7 +193,7 @@ An operand of `==` gives no expected type, so `xs == []` cannot infer the elemen
 `Array.isEmpty`:
 
 ```ant
-var xs = [1]
+let xs = [1]
 println(xs == []) // error: cannot infer the element type of an empty array; annotate it
 ```
 
@@ -207,7 +207,7 @@ println(Array.isEmpty("abc")) // error: cannot use string where Array[T] is expe
 `Array.isEmpty` to test for elements:
 
 ```ant
-var n: Array[int | null] = [null]
+let n: Array[int | null] = [null]
 n.first() == null // true
 n.isEmpty()       // false
 ```

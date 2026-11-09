@@ -29,7 +29,7 @@ Array.minBy([3, -5, 2], { Math.abs(x) })            // 2
 Call it through `.` on any array:
 
 ```ant
-var words = ["hill", "ant", "colony"]
+let words = ["hill", "ant", "colony"]
 words.minBy({ String.length(x) }) // "ant"
 ```
 
@@ -38,7 +38,7 @@ words.minBy({ String.length(x) }) // "ant"
 An empty array has no element to return. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.minBy({ String.length(x) }) // null
 ```
 
@@ -52,7 +52,7 @@ Pick a record by one of its fields. The whole record comes back, and `?.` reads 
 
 ```ant
 type Product = { name: string, price: float64 }
-var products = [
+let products = [
   Product{ name: "pen", price: 1.5 },
   Product{ name: "ink", price: 0.9 },
   Product{ name: "pad", price: 2.25 },
@@ -65,7 +65,7 @@ The key can be a `string`:
 
 ```ant
 type User = { name: string, age: int }
-var users = [User{ name: "Bob", age: 27 }, User{ name: "Ann", age: 31 }]
+let users = [User{ name: "Bob", age: 27 }, User{ name: "Ann", age: 31 }]
 users.minBy({ x.name }) // User{ name: "Ann", age: 31 }
 ```
 
@@ -85,7 +85,7 @@ func area(s: Shape): float64 {
   }
 }
 
-var shapes: Array[Shape] = [Square{ side: 2.0 }, Circle{ r: 1.0 }, Square{ side: 2.5 }]
+let shapes: Array[Shape] = [Square{ side: 2.0 }, Circle{ r: 1.0 }, Square{ side: 2.5 }]
 shapes.minBy(area) // Circle{ r: 1.0 }
 ```
 
@@ -103,7 +103,7 @@ func distance(p: int): int {
 A lambda captures the variables around it:
 
 ```ant
-var target = 20
+let target = 20
 [12, 25, 17].minBy({ Math.abs(x - target) }) // 17
 ```
 
@@ -111,11 +111,11 @@ var target = 20
 side effect shows it, and shows that an empty array never calls it:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [0, 4, 2].minBy({ seen.push(x); x }) // 0
 seen                                 // [0, 4, 2]
 
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.minBy({ seen.push(x); x }) // null
 seen                             // [0, 4, 2]
 ```
@@ -132,8 +132,8 @@ Find the cheapest offer and say where it comes from:
 
 ```ant
 type Offer = { shop: string, price: int }
-var offers = [Offer{ shop: "north", price: 120 }, Offer{ shop: "south", price: 95 }]
-var best = offers.minBy({ x.price })
+let offers = [Offer{ shop: "north", price: 120 }, Offer{ shop: "south", price: 95 }]
+let best = offers.minBy({ x.price })
 if best != null {
   println("buy at ${best.shop} for ${best.price}")
 }
@@ -146,8 +146,8 @@ buy at south for 95
 Snap a reading to the nearest allowed value:
 
 ```ant
-var steps = [0.0, 0.25, 0.5, 0.75, 1.0]
-var reading = 0.61
+let steps = [0.0, 0.25, 0.5, 0.75, 1.0]
+let reading = 0.61
 println(steps.minBy({ Math.abs(x - reading) }) ?? 0.0)
 ```
 
@@ -159,8 +159,8 @@ Pick the shortest route, with a clear message when there is none:
 
 ```ant
 type Route = { via: string, km: float64 }
-var routes = [Route{ via: "coast", km: 41.5 }, Route{ via: "pass", km: 33.0 }]
-var route = routes.minBy({ x.km }) ?? panic("no route")
+let routes = [Route{ via: "coast", km: 41.5 }, Route{ via: "pass", km: 33.0 }]
+let route = routes.minBy({ x.km }) ?? panic("no route")
 println("go via ${route.via}")
 ```
 
@@ -174,10 +174,10 @@ The key of the element found equals, by `==`, what [`Array.min`](min.md) of the 
 key is `NaN`. With `{ x }` as the key, `Array.minBy` agrees with `Array.min`:
 
 ```ant
-var xs = ["kiwi", "fig", "banana", "date"]
-var found = xs.minBy({ String.length(x) }) ?? panic("empty")
+let xs = ["kiwi", "fig", "banana", "date"]
+let found = xs.minBy({ String.length(x) }) ?? panic("empty")
 assert(String.length(found) == xs.map({ String.length(x) }).min())
-var ns = [5, 3, 8, 3]
+let ns = [5, 3, 8, 3]
 assert(ns.minBy({ x }) == ns.min())
 ```
 
@@ -187,7 +187,7 @@ type's minimum, gives what [`Array.maxBy`](maxBy.md) finds:
 
 ```ant
 type Job = { name: string, cost: int }
-var jobs = [Job{ name: "a", cost: 4 }, Job{ name: "b", cost: 2 }, Job{ name: "c", cost: 2 }]
+let jobs = [Job{ name: "a", cost: 4 }, Job{ name: "b", cost: 2 }, Job{ name: "c", cost: 2 }]
 assert(jobs.minBy({ x.cost }) == jobs.sortBy({ x.cost }).first())
 assert(jobs.minBy({ -x.cost }) == jobs.maxBy({ x.cost }))
 assert(jobs.minBy({ x.cost })?.name == "b")
@@ -206,13 +206,13 @@ The key must be one ordered type. A record, a `bool`, or a nullable key is a com
 field, or give `null` a number with `??`:
 
 ```ant
-var scores: Array[int | null] = [70, null, 55]
+let scores: Array[int | null] = [70, null, 55]
 println(scores.minBy({ x }))
 // error: K would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
 
 ```ant
-var scores: Array[int | null] = [70, null, 55]
+let scores: Array[int | null] = [70, null, 55]
 scores.minBy({ x ?? 100 }) // 55
 ```
 

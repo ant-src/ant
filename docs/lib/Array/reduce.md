@@ -38,7 +38,7 @@ Multiply instead, starting from 1:
 An empty array gives `init` back:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.reduce(42, func(acc: int, x: int) { acc + x }) // 42
 ```
 
@@ -49,7 +49,7 @@ The fold goes from the left, so an operator that is not associative shows the or
 ```
 
 ```ant
-var calls: Array[string] = []
+let calls: Array[string] = []
 [1, 2, 3].reduce(0, func(acc: int, x: int) {
   calls.push("f(${acc}, ${x})")
   acc + x
@@ -65,8 +65,8 @@ println(calls)
 the second element on, and `f` is still called for the rest:
 
 ```ant
-var seen: Array[int] = []
-var found = [1, 2, 3, 4].reduce(false, func(acc: bool, x: int) {
+let seen: Array[int] = []
+let found = [1, 2, 3, 4].reduce(false, func(acc: bool, x: int) {
   seen.push(x)
   acc || x == 2
 })
@@ -114,7 +114,7 @@ A record accumulator carries several values through one pass:
 
 ```ant
 type Stats = { sum: int, count: int }
-var s = [4, 8, 6].reduce(Stats{ sum: 0, count: 0 }, func(a: Stats, x: int) {
+let s = [4, 8, 6].reduce(Stats{ sum: 0, count: 0 }, func(a: Stats, x: int) {
   Stats{ sum: a.sum + x, count: a.count + 1 }
 })
 s // Stats{ sum: 18, count: 3 }
@@ -124,7 +124,7 @@ A nullable accumulator starts from `null`. Annotate the result so that `A` is `s
 than `null`:
 
 ```ant
-var longest: string | null = ["ant", "termite", "bee"].reduce(null, func(best: string | null, w: string): string | null {
+let longest: string | null = ["ant", "termite", "bee"].reduce(null, func(best: string | null, w: string): string | null {
   if best == null || String.length(w) > String.length(best) { w } else { best }
 })
 longest // "termite"
@@ -133,7 +133,7 @@ longest // "termite"
 A closure reads the variables it captures:
 
 ```ant
-var rate = 2
+let rate = 2
 [1, 2, 3].reduce(0, func(acc: int, x: int) { acc + x * rate }) // 12
 ```
 
@@ -155,7 +155,7 @@ Array.reduce([1, 2, 3], init: 100, f: func(a: int, b: int) { a - b }) // 94
 Count the words of a text in a map. The callback changes the map and returns it:
 
 ```ant
-var counts: Map[string, int] = "the ant and the bee".split(" ").reduce(Map{}, func(m: Map[string, int], w: string) {
+let counts: Map[string, int] = "the ant and the bee".split(" ").reduce(Map{}, func(m: Map[string, int], w: string) {
   m[w] = (m[w] ?? 0) + 1
   m
 })
@@ -166,11 +166,11 @@ Total the lines of an order:
 
 ```ant
 type Line = { item: string, qty: int, price: int }
-var order = [
+let order = [
   Line{ item: "pen", qty: 3, price: 150 },
   Line{ item: "pad", qty: 1, price: 400 },
 ]
-var total = order.reduce(0, func(sum: int, l: Line) { sum + l.qty * l.price })
+let total = order.reduce(0, func(sum: int, l: Line) { sum + l.qty * l.price })
 println("total: ${total} cents")
 ```
 
@@ -184,7 +184,7 @@ Apply a list of changes to a starting state. Each step is a union member:
 type Deposit = { amount: int }
 type Withdraw = { amount: int }
 type Op = Deposit | Withdraw
-var ops: Array[Op] = [Deposit{ amount: 100 }, Withdraw{ amount: 30 }, Deposit{ amount: 5 }]
+let ops: Array[Op] = [Deposit{ amount: 100 }, Withdraw{ amount: 30 }, Deposit{ amount: 5 }]
 ops.reduce(0, func(balance: int, op: Op) {
   if op is Deposit { balance + op.amount } else { balance - op.amount }
 }) // 75
@@ -193,8 +193,8 @@ ops.reduce(0, func(balance: int, op: Op) {
 Compose an array of functions into one:
 
 ```ant
-var steps: Array[func(int): int] = [{ x + 1 }, { x * 10 }, { x - 3 }]
-var pipeline = steps.reduce({ x }, func(f: func(int): int, g: func(int): int): func(int): int {
+let steps: Array[func(int): int] = [{ x + 1 }, { x * 10 }, { x - 3 }]
+let pipeline = steps.reduce({ x }, func(f: func(int): int, g: func(int): int): func(int): int {
   { g(f(x)) }
 })
 pipeline(4) // 47
@@ -205,7 +205,7 @@ pipeline(4) // 47
 Folding with `+` from `0` is what `Array.sum` gives on a non-empty array:
 
 ```ant
-var xs = [3, 1, 4, 1, 5]
+let xs = [3, 1, 4, 1, 5]
 assert(xs.reduce(0, func(a: int, b: int) { a + b }) == Array.sum(xs))
 ```
 
@@ -213,8 +213,8 @@ A fold that appends each element to a new array copies `xs`, and one that puts e
 reverses it:
 
 ```ant
-var xs = [1, 2, 3]
-var empty: Array[int] = []
+let xs = [1, 2, 3]
+let empty: Array[int] = []
 assert(xs.reduce(empty, func(a: Array[int], x: int) { a.concat([x]) }) == xs)
 assert(xs.reduce(empty, func(a: Array[int], x: int) { [x].concat(a) }) == Array.reverse(xs))
 ```
@@ -222,25 +222,25 @@ assert(xs.reduce(empty, func(a: Array[int], x: int) { [x].concat(a) }) == Array.
 `Array.map` is a fold that appends `f(x)`:
 
 ```ant
-var xs = [1, 2, 3]
-var empty: Array[int] = []
-var double: func(int): int = { x * 2 }
+let xs = [1, 2, 3]
+let empty: Array[int] = []
+let double: func(int): int = { x * 2 }
 assert(xs.reduce(empty, func(a: Array[int], x: int) { a.concat([double(x)]) }) == xs.map(double))
 ```
 
 Folding `xs.concat(ys)` is folding `ys` from the result of folding `xs`:
 
 ```ant
-var xs = [1, 2]
-var ys = [3, 4]
-var f = func(a: int, b: int) { a * 10 + b }
+let xs = [1, 2]
+let ys = [3, 4]
+let f = func(a: int, b: int) { a * 10 + b }
 assert(xs.concat(ys).reduce(0, f) == ys.reduce(xs.reduce(0, f), f))
 ```
 
 A callback that pushes to `xs` does not change what the call visits:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs.reduce(0, func(a: int, x: int) { xs.push(x); a + x }) // 6
 xs                                                       // [1, 2, 3, 1, 2, 3]
 ```
@@ -251,7 +251,7 @@ xs                                                       // [1, 2, 3, 1, 2, 3]
 `Array.some`, `Array.every`, or `Array.find`, which call `f` only up to that element:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [1, 2, 3, 4].some({ seen.push(x); x == 2 }) // true
 seen                                        // [1, 2]
 ```
@@ -264,7 +264,7 @@ A lambda has one parameter, `x`, so it cannot be the two-parameter `f`. Write `f
 parameters:
 
 ```ant
-var total = [1, 2, 3].reduce(0, { x })
+let total = [1, 2, 3].reduce(0, { x })
 // error: a lambda has at most one parameter, x; func(int, int): int expects 2: write func with named parameters
 ```
 
@@ -272,7 +272,7 @@ The type of `init` fixes `A`. The integer literal `0` is an `int`, so summing fl
 compile error:
 
 ```ant
-var total = [1.5, 2.5].reduce(0, func(a: float64, b: float64) { a + b })
+let total = [1.5, 2.5].reduce(0, func(a: float64, b: float64) { a + b })
 // error: cannot use func(float64, float64): float64 where func(int, float64): int is expected
 ```
 
@@ -286,7 +286,7 @@ Without an annotation, `null` as `init` makes `A` the type `null`, and a callbac
 anything else does not fit:
 
 ```ant
-var last = [1, 2].reduce(null, func(a: int | null, x: int): int | null { x })
+let last = [1, 2].reduce(null, func(a: int | null, x: int): int | null { x })
 // error: cannot use func(int | null, int): int | null where func(null, int): null is expected
 ```
 
@@ -294,8 +294,8 @@ An array, a map, or a record is a reference. When `f` mutates the accumulator, i
 `init` refers to, so a variable passed as `init` changes too:
 
 ```ant
-var seen: Array[int] = []
-var copy = [1, 2].reduce(seen, func(a: Array[int], x: int) { a.push(x); a })
+let seen: Array[int] = []
+let copy = [1, 2].reduce(seen, func(a: Array[int], x: int) { a.push(x); a })
 seen                   // [1, 2]
 Array.same(copy, seen) // true
 ```

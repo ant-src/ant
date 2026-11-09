@@ -96,7 +96,7 @@ Split a camelCase name into words before each code point that is not a lower-cas
 
 ```ant
 func words(name: string): Array[string] {
-  var out: Array[string] = []
+  let out: Array[string] = []
   var word = ""
   for c in name {
     if word != "" && !String.isLower(c) {
@@ -146,7 +146,7 @@ category `"Ll"`:
 
 ```ant
 for s in ["", "a", "abc", "aB", "ǅ", "ʰ", "π", "a1", "日"] {
-  var byCategory = s != "" && s.chars().every({ String.category(x) == "Ll" })
+  let byCategory = s != "" && s.chars().every({ String.category(x) == "Ll" })
   assert(String.isLower(s) == byCategory)
 }
 ```
@@ -183,7 +183,7 @@ combining accent is a mark, Mn, so the second spelling is not all lower-case let
 NFC first:
 
 ```ant
-var decomposed = String.normalize("été", "NFD")
+let decomposed = String.normalize("été", "NFD")
 String.isLower(decomposed)                          // false
 String.isLower(String.normalize(decomposed, "NFC")) // true
 ```

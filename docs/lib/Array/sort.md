@@ -29,14 +29,14 @@ Array.sort(["pear", "apple", "fig"]) // ["apple", "fig", "pear"]
 Call it through `.` on any array:
 
 ```ant
-var prices = [9.99, 4.5, 12.0]
+let prices = [9.99, 4.5, 12.0]
 prices.sort() // [4.5, 9.99, 12.0]
 ```
 
 An empty array gives an empty array:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.sort() // []
 ```
 
@@ -110,8 +110,8 @@ func median(xs: Array[float64]): float64 | null {
   if xs.isEmpty() {
     return null
   }
-  var s = xs.sort()
-  var mid = s.length() / 2
+  let s = xs.sort()
+  let mid = s.length() / 2
   if s.length() % 2 == 1 {
     s[mid]
   } else {
@@ -131,7 +131,7 @@ println(median([4.0, 1.0, 3.0, 2.0]))
 Take the three highest scores, highest first:
 
 ```ant
-var scores = [70, 92, 85, 64, 99]
+let scores = [70, 92, 85, 64, 99]
 scores.sort().reverse().slice(0, 3) // [99, 92, 85]
 ```
 
@@ -150,7 +150,7 @@ Dates written as zero-padded YYYY-MM-DD sort as text in date order:
 Print the entries of a map with its keys in alphabetical order:
 
 ```ant
-var counts = Map{ pear: 2, apple: 5, fig: 1 }
+let counts = Map{ pear: 2, apple: 5, fig: 1 }
 for k in counts.keys().sort() {
   println("${k}: ${counts[k]}")
 }
@@ -168,8 +168,8 @@ Each element of the result is at most the next one, and the result holds each el
 many times as `xs` does:
 
 ```ant
-var xs = [5, 3, 8, 1, 3]
-var s = xs.sort()
+let xs = [5, 3, 8, 1, 3]
+let s = xs.sort()
 assert(Array.range(1, s.length()).every({ s[x - 1] <= s[x] }))
 assert(s.length() == xs.length())
 func sameCount(v: int): bool {
@@ -181,7 +181,7 @@ assert(xs.every(sameCount))
 Sorting twice gives the same result as sorting once, and the order of the input does not matter:
 
 ```ant
-var xs = ["b", "c", "a"]
+let xs = ["b", "c", "a"]
 assert(xs.sort().sort() == xs.sort())
 assert(xs.reverse().sort() == xs.sort())
 ```
@@ -190,7 +190,7 @@ For an array without `NaN`, the first and last elements of the result equal `Arr
 `Array.max`:
 
 ```ant
-var xs = [4, -2, 9, 0]
+let xs = [4, -2, 9, 0]
 assert(xs.sort().first() == xs.min())
 assert(xs.sort().last() == xs.max())
 ```
@@ -199,7 +199,7 @@ assert(xs.sort().last() == xs.max())
 comparison that returns a negative number, zero, or a positive one:
 
 ```ant
-var xs = [3, 1, 2, 1]
+let xs = [3, 1, 2, 1]
 assert(xs.sort() == xs.sortBy({ x }))
 assert(xs.sort() == xs.sortWith(func(a: int, b: int): int { if a < b { -1 } else if a > b { 1 } else { 0 } }))
 ```
@@ -210,7 +210,7 @@ assert(xs.sort() == xs.sortWith(func(a: int, b: int): int { if a < b { -1 } else
 nothing:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 xs.sort()
 println(xs)
 ```
@@ -239,7 +239,7 @@ Uppercase sorts before lowercase. For an order that ignores case, sort by a case
 [`String.foldCase`](../String/foldCase.md):
 
 ```ant
-var names = ["bob", "alice", "Carol"]
+let names = ["bob", "alice", "Carol"]
 names.sort()                         // ["Carol", "alice", "bob"]
 names.sortBy({ String.foldCase(x) }) // ["alice", "bob", "Carol"]
 ```
@@ -248,7 +248,7 @@ Nothing normalizes strings before they compare. An "é" written as one code poin
 after "z", but the same letter written as "e" and a combining U+0301 sorts with the "e" words:
 
 ```ant
-var words = ["\u{E9}a", "e\u{301}b", "z"]
+let words = ["\u{E9}a", "e\u{301}b", "z"]
 words.sort() == ["e\u{301}b", "z", "\u{E9}a"] // true
 ```
 
@@ -256,7 +256,7 @@ Sort by a key in one normal form with [`String.normalize`](../String/normalize.m
 of "é" then sort together, after "z":
 
 ```ant
-var words = ["\u{E9}a", "e\u{301}b", "z"]
+let words = ["\u{E9}a", "e\u{301}b", "z"]
 words.sortBy({ String.normalize(x, "NFC") }) == ["z", "\u{E9}a", "e\u{301}b"] // true
 ```
 
@@ -271,7 +271,7 @@ An array whose element type is a union of members, such as `int | string`, has n
 is a compile error:
 
 ```ant
-var xs: Array[int | string] = [3, "a", 1]
+let xs: Array[int | string] = [3, "a", 1]
 println(xs.sort())
 // error: T would be int | string, which is not a single member of its bound Ordered; narrow first
 ```
@@ -279,7 +279,7 @@ println(xs.sort())
 `null` is not `Ordered`, so an `Array[int | null]` does not sort either:
 
 ```ant
-var xs: Array[int | null] = [3, null, 1]
+let xs: Array[int | null] = [3, null, 1]
 println(xs.sort())
 // error: T would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
@@ -287,7 +287,7 @@ println(xs.sort())
 Drop the nulls first, then sort:
 
 ```ant
-var xs: Array[int | null] = [3, null, 1]
+let xs: Array[int | null] = [3, null, 1]
 xs.filter({ x != null }).map({ x ?? 0 }).sort() // [1, 3]
 ```
 
@@ -302,7 +302,7 @@ Records are not `Ordered` either:
 
 ```ant
 type Player = { name: string, score: int }
-var players = [Player{ name: "Ann", score: 7 }, Player{ name: "Bob", score: 3 }]
+let players = [Player{ name: "Ann", score: 7 }, Player{ name: "Bob", score: 3 }]
 println(players.sort())
 // error: T would be Player, which is not a single member of its bound Ordered; narrow first
 ```
@@ -311,7 +311,7 @@ A named primitive type is not `Ordered`, though `<` works on two of its values:
 
 ```ant
 type Cents = int
-var cs = [Cents(5), Cents(2)]
+let cs = [Cents(5), Cents(2)]
 println(cs.sort())
 // error: T would be Cents, which is not a single member of its bound Ordered; narrow first
 ```
@@ -320,7 +320,7 @@ Sort by the base value with [`Array.sortBy`](sortBy.md):
 
 ```ant
 type Cents = int
-var cs = [Cents(5), Cents(2)]
+let cs = [Cents(5), Cents(2)]
 cs.sortBy({ int(x) }) // [Cents(2), Cents(5)]
 ```
 
@@ -328,7 +328,7 @@ Sort records by a field with [`Array.sortBy`](sortBy.md):
 
 ```ant
 type Player = { name: string, score: int }
-var players = [Player{ name: "Ann", score: 7 }, Player{ name: "Bob", score: 3 }]
+let players = [Player{ name: "Ann", score: 7 }, Player{ name: "Bob", score: 3 }]
 players.sortBy({ x.score }).map({ x.name }) // ["Bob", "Ann"]
 ```
 

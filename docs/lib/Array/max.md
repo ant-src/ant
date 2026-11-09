@@ -28,14 +28,14 @@ Array.max([2.5, -1.0])     // 2.5
 An empty array gives `null`. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.max(empty) // null
 ```
 
 Call it through `.` on any array:
 
 ```ant
-var temps = [18.5, 21.0, 19.25]
+let temps = [18.5, 21.0, 19.25]
 temps.max() // 21.0
 ```
 
@@ -103,7 +103,7 @@ Find the greatest field of a list of records by mapping to the field first:
 
 ```ant
 type Order = { id: string, total: float64 }
-var orders = [Order{ id: "a", total: 12.5 }, Order{ id: "b", total: 40.0 }]
+let orders = [Order{ id: "a", total: 12.5 }, Order{ id: "b", total: 40.0 }]
 orders.map({ x.total }).max() // 40.0
 ```
 
@@ -117,7 +117,7 @@ Scale values to the range 0 to 1 by dividing by the greatest, narrowing a local 
 
 ```ant
 func normalize(xs: Array[float64]): Array[float64] {
-  var top = xs.max()
+  let top = xs.max()
   if top == null || top == 0.0 {
     return xs
   }
@@ -136,7 +136,7 @@ println(normalize([1.0, 2.0, 4.0]))
 `Array.max` agrees with the last element of the sorted array, and with a fold through `Math.max`:
 
 ```ant
-var xs = [3, -7, 4, 1]
+let xs = [3, -7, 4, 1]
 assert(xs.max() == xs.sort().last())
 assert(xs.max() == xs.reduce(xs[0], Math.max))
 ```
@@ -144,8 +144,8 @@ assert(xs.max() == xs.reduce(xs[0], Math.max))
 The result is at least every element, and is one of them:
 
 ```ant
-var xs = ["kiwi", "apple", "plum"]
-var top = xs.max() ?? ""
+let xs = ["kiwi", "apple", "plum"]
+let top = xs.max() ?? ""
 assert(xs.every({ x <= top }))
 assert(xs.contains(top))
 ```
@@ -153,7 +153,7 @@ assert(xs.contains(top))
 The order of the elements does not change the result, and `max` does not change the array:
 
 ```ant
-var xs = [5, 2, 9, 2]
+let xs = [5, 2, 9, 2]
 assert(xs.max() == xs.reverse().max())
 assert(xs == [5, 2, 9, 2])
 ```
@@ -161,9 +161,9 @@ assert(xs == [5, 2, 9, 2])
 `Array.max` is at least `Array.min`:
 
 ```ant
-var xs = [1.5, -2.0, 0.25]
-var hi = xs.max() ?? 0.0
-var lo = xs.min() ?? 0.0
+let xs = [1.5, -2.0, 0.25]
+let hi = xs.max() ?? 0.0
+let lo = xs.min() ?? 0.0
 assert(lo <= hi)
 ```
 
@@ -172,21 +172,21 @@ assert(lo <= hi)
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 println(xs.max() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 (xs.max() ?? 0) + 1 // 4
 ```
 
 One `NaN` makes the result `NaN`, wherever it is. Drop it first with `Math.isNaN`:
 
 ```ant
-var xs = [1.0, Math.NaN, 3.0]
+let xs = [1.0, Math.NaN, 3.0]
 xs.max()                            // NaN
 xs.filter({ !Math.isNaN(x) }).max() // 3.0
 ```
@@ -211,7 +211,7 @@ println([1, 2.5].max())
 Write every element as a float, or annotate the array:
 
 ```ant
-var xs: Array[float64] = [1.0, 2.5]
+let xs: Array[float64] = [1.0, 2.5]
 [1.0, 2.5].max() // 2.5
 xs.max()         // 2.5
 ```
@@ -220,7 +220,7 @@ An array whose element type is a union, such as `int | null` or `Number`, has no
 is a compile error:
 
 ```ant
-var xs: Array[int | null] = [1, null, 3]
+let xs: Array[int | null] = [1, null, 3]
 println(xs.max())
 // error: T would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
@@ -228,8 +228,8 @@ println(xs.max())
 Collect the non-`null` elements into an `Array[int]` first. Testing each one narrows it:
 
 ```ant
-var xs: Array[int | null] = [1, null, 3]
-var ns: Array[int] = []
+let xs: Array[int | null] = [1, null, 3]
+let ns: Array[int] = []
 for v in xs {
   if v != null {
     ns.push(v)
@@ -244,7 +244,7 @@ Records, `bool`, and named primitive types are not `Ordered`:
 
 ```ant
 type Meters = float64
-var runs = [Meters(5.0), Meters(10.0)]
+let runs = [Meters(5.0), Meters(10.0)]
 println(runs.max())
 // error: T would be Meters, which is not a single member of its bound Ordered; narrow first
 ```
@@ -255,8 +255,8 @@ Unwrap a named primitive with its base type, or pick a record by a key with
 ```ant
 type Meters = float64
 type Run = { who: string, distance: float64 }
-var runs = [Meters(5.0), Meters(10.0)]
-var log = [Run{ who: "Ann", distance: 5.0 }, Run{ who: "Bob", distance: 10.0 }]
+let runs = [Meters(5.0), Meters(10.0)]
+let log = [Run{ who: "Ann", distance: 5.0 }, Run{ who: "Bob", distance: 10.0 }]
 runs.map({ float64(x) }).max() // 10.0
 log.maxBy({ x.distance })?.who // "Bob"
 ```

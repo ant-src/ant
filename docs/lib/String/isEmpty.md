@@ -25,7 +25,7 @@ String.isEmpty("ant") // false
 Call it through `.` on any string:
 
 ```ant
-var name = "Ann"
+let name = "Ann"
 name.isEmpty() // false
 ```
 
@@ -61,7 +61,7 @@ Array.map(["", "a", ""], String.isEmpty) // [true, false, true]
 For a string that may be `null`, `?.` yields `null` instead of calling:
 
 ```ant
-var nickname: string | null = null
+let nickname: string | null = null
 nickname?.isEmpty()         // null
 nickname?.isEmpty() ?? true // true
 ```
@@ -86,7 +86,7 @@ Fall back to a default when a name is blank:
 
 ```ant
 func greet(name: string): string {
-  var trimmed = name.trim()
+  let trimmed = name.trim()
   if trimmed.isEmpty() {
     "Hello, stranger"
   } else {
@@ -153,14 +153,14 @@ for a in ["", "x"] {
 A string is not a condition. Write `!s.isEmpty()` instead:
 
 ```ant
-var s = ""
+let s = ""
 if s { // error: cannot use string where bool is expected
   println("has text")
 }
 ```
 
 ```ant
-var s = ""
+let s = ""
 if !s.isEmpty() {
   println("has text")
 }
@@ -169,7 +169,7 @@ if !s.isEmpty() {
 A blank string is not empty. Trim it first to treat white space as nothing:
 
 ```ant
-var input = "   "
+let input = "   "
 input.isEmpty()        // false
 input.trim().isEmpty() // true
 ```
@@ -187,15 +187,15 @@ A nullable string, such as the result of `Map` indexing, is not a `string`, so p
 compile error:
 
 ```ant
-var user = Map{ name: "" }
+let user = Map{ name: "" }
 println(String.isEmpty(user["name"])) // error: cannot use string | null where string is expected
 ```
 
 Narrow it first:
 
 ```ant
-var user = Map{ name: "" }
-var v = user["name"]
+let user = Map{ name: "" }
+let v = user["name"]
 if v != null {
   println(v.isEmpty())
 }
@@ -208,7 +208,7 @@ true
 Or give a default with `??`:
 
 ```ant
-var user = Map{ name: "" }
+let user = Map{ name: "" }
 (user["name"] ?? "").isEmpty() // true
 ```
 
@@ -216,13 +216,13 @@ A named primitive over `string` is not a `string`. Unwrap it with `string(...)`:
 
 ```ant
 type Name = string
-var n = Name("")
+let n = Name("")
 println(String.isEmpty(n)) // error: cannot use Name where string is expected
 ```
 
 ```ant
 type Name = string
-var n = Name("")
+let n = Name("")
 String.isEmpty(string(n)) // true
 ```
 

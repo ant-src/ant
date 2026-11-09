@@ -28,7 +28,7 @@ String.trimEnd("  hi  ")   // "  hi"
 Call it through `.` on any string:
 
 ```ant
-var line = "total: 42\r\n"
+let line = "total: 42\r\n"
 line.trimEnd() // "total: 42"
 ```
 
@@ -80,7 +80,7 @@ String.trimEnd(s: "ant  ") // "ant"
 Strip the trailing spaces from each line of a text, as an editor does on save:
 
 ```ant
-var text = "func f() {  \n  return 1 \n}\t"
+let text = "func f() {  \n  return 1 \n}\t"
 String.join(String.lines(text).map({ x.trimEnd() }), "\n") // "func f() {\n  return 1\n}"
 ```
 
@@ -102,7 +102,7 @@ sameText("one\ntwo", "one\n two")       // false
 Right-align a column of values that came with padding on the right:
 
 ```ant
-var cells = ["12   ", "3    ", "456  "]
+let cells = ["12   ", "3    ", "456  "]
 cells.map({ x.trimEnd().padStart(5) }) // ["   12", "    3", "  456"]
 ```
 
@@ -113,9 +113,9 @@ white space:
 
 ```ant
 for s in ["ant  ", "  ant", " ", "", "a b\t\n"] {
-  var t = s.trimEnd()
+  let t = s.trimEnd()
   assert(s.startsWith(t))
-  var rest = s.slice(t.length(), s.length())
+  let rest = s.slice(t.length(), s.length())
   assert(rest == "" || rest.isSpace())
 }
 ```
@@ -123,7 +123,7 @@ for s in ["ant  ", "  ant", " ", "", "a b\t\n"] {
 Trimming twice is the same as trimming once:
 
 ```ant
-var s = "x \t "
+let s = "x \t "
 assert(s.trimEnd().trimEnd() == s.trimEnd())
 ```
 

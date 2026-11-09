@@ -27,7 +27,7 @@ String.startsWith("https://ant-lang.org", "http://")  // false
 Call it through `.` on any string:
 
 ```ant
-var flag = "--verbose"
+let flag = "--verbose"
 flag.startsWith("--") // true
 flag.startsWith("-")  // true
 flag.startsWith("-v") // false
@@ -80,7 +80,7 @@ String.startsWith(t: "v", s: "v1.2.0") // true
 On a string that can be null, use `?.` and supply a default with `??`:
 
 ```ant
-var name: string | null = null
+let name: string | null = null
 name?.startsWith("x") ?? false // false
 ```
 
@@ -89,16 +89,16 @@ name?.startsWith("x") ?? false // false
 Drop the comment lines of a config file:
 
 ```ant
-var text = "# settings\nport=8080\n# debug=true\nhost=localhost"
+let text = "# settings\nport=8080\n# debug=true\nhost=localhost"
 String.lines(text).filter({ !x.trimStart().startsWith("#") }) // ["port=8080", "host=localhost"]
 ```
 
 Split command-line arguments into flags and operands:
 
 ```ant
-var args = ["-v", "main.ant", "--out", "build", "util.ant"]
-var flags = args.filter({ x.startsWith("-") })
-var operands = args.filter({ !x.startsWith("-") })
+let args = ["-v", "main.ant", "--out", "build", "util.ant"]
+let flags = args.filter({ x.startsWith("-") })
+let operands = args.filter({ !x.startsWith("-") })
 println(flags)
 println(operands)
 ```
@@ -141,9 +141,9 @@ unknown
 `String.startsWith` agrees with slicing the first code points of `s`:
 
 ```ant
-var s = "anthill"
+let s = "anthill"
 for t in ["ant", "anth", "", "anthill", "anthills", "hill"] {
-  var m = t.length()
+  let m = t.length()
   assert(s.startsWith(t) == (m <= s.length() && s.slice(0, m) == t))
 }
 ```
@@ -151,7 +151,7 @@ for t in ["ant", "anth", "", "anthill", "anthills", "hill"] {
 `String.startsWith` holds exactly when [`String.indexOf`](indexOf.md) finds `t` at index 0:
 
 ```ant
-var s = "banana"
+let s = "banana"
 for t in ["ban", "an", "", "x"] {
   assert(s.startsWith(t) == (s.indexOf(t) == 0))
 }
@@ -161,8 +161,8 @@ A string always starts with what is prepended to it, and [`String.trimPrefix`](t
 removes exactly that:
 
 ```ant
-var s = "hill"
-var t = "ant"
+let s = "hill"
+let t = "ant"
 assert((t + s).startsWith(t))
 assert(String.trimPrefix(t + s, t) == s)
 ```
@@ -175,7 +175,7 @@ func reverse(s: string): string {
 }
 
 for t in ["re", "report", "port", ""] {
-  var s = "report.tar.gz"
+  let s = "report.tar.gz"
   assert(s.startsWith(t) == reverse(s).endsWith(reverse(t)))
 }
 ```
@@ -183,7 +183,7 @@ for t in ["re", "report", "port", ""] {
 On the UTF-8 bytes, [`Bytes.startsWith`](../Bytes/startsWith.md) gives the same answer:
 
 ```ant
-var s = "año"
+let s = "año"
 for t in ["a", "añ", "ñ", ""] {
   assert(s.startsWith(t) == Bytes.startsWith(String.toBytes(s), String.toBytes(t)))
 }
@@ -203,7 +203,7 @@ A short prefix also matches longer words. `"http"` matches an `https` URL too, s
 separator when it matters:
 
 ```ant
-var url = "https://ant-lang.org"
+let url = "https://ant-lang.org"
 url.startsWith("http")    // true
 url.startsWith("http://") // false
 ```
@@ -212,7 +212,7 @@ Case matters. Fold both sides with [`String.foldCase`](foldCase.md) to compare w
 case:
 
 ```ant
-var header = "Content-Type: text/html"
+let header = "Content-Type: text/html"
 header.startsWith("content-type")                                   // false
 String.foldCase(header).startsWith(String.foldCase("Content-Type")) // true
 ```
@@ -227,7 +227,7 @@ String.foldCase("Straße").startsWith(String.foldCase("STRAß")) // true
 Leading white space is part of the string. Trim it with [`String.trimStart`](trimStart.md) first:
 
 ```ant
-var line = "  # note"
+let line = "  # note"
 line.startsWith("#")             // false
 line.trimStart().startsWith("#") // true
 ```
@@ -236,7 +236,7 @@ The precomposed "é" and "e" followed by a combining accent are different code p
 sides with [`String.normalize`](normalize.md) when text can arrive in either spelling:
 
 ```ant
-var word = "e\u{301}cole"
+let word = "e\u{301}cole"
 word.startsWith("é")                                                   // false
 String.normalize(word, "NFC").startsWith(String.normalize("é", "NFC")) // true
 ```
@@ -257,7 +257,7 @@ println(String.startsWith("abc", 'a')) // error: unexpected character '\''
 A nullable prefix is a compile error. Narrow it first:
 
 ```ant
-var prefix: string | null = null
+let prefix: string | null = null
 println(String.startsWith("main.ant", prefix))
 // error: cannot use string | null where string is expected
 ```

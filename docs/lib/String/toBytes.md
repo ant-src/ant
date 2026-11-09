@@ -72,7 +72,7 @@ In a pipe, the string is the first argument:
 Index the result to read single bytes as `byte` values:
 
 ```ant
-var b = String.toBytes("é")
+let b = String.toBytes("é")
 b[0]             // 195
 b[1]             // 169
 Bytes.toArray(b) // [195, 169]
@@ -81,7 +81,7 @@ Bytes.toArray(b) // [195, 169]
 A function value works wherever a `func(string): Bytes` is expected:
 
 ```ant
-var encode: func(string): Bytes = String.toBytes
+let encode: func(string): Bytes = String.toBytes
 encode("x") // Bytes(78)
 ```
 
@@ -93,7 +93,7 @@ encode("x") // Bytes(78)
 bytes first:
 
 ```ant
-var digest = Crypto.sha256(String.toBytes("abc")) | Encoding.toHex()
+let digest = Crypto.sha256(String.toBytes("abc")) | Encoding.toHex()
 digest // "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 ```
 
@@ -107,10 +107,10 @@ Keep as many whole code points as fit into `limit` bytes, so the cut never split
 
 ```ant
 func fitBytes(s: string, limit: int): string {
-  var kept: Array[string] = []
+  let kept: Array[string] = []
   var used = 0
   for c in s {
-    var n = Bytes.length(String.toBytes(c))
+    let n = Bytes.length(String.toBytes(c))
     if used + n > limit {
       break
     }
@@ -136,7 +136,7 @@ points:
 
 ```ant
 func field(name: string): Bytes {
-  var data = String.toBytes(name)
+  let data = String.toBytes(name)
   assert(Bytes.length(data) <= 255)
   Bytes.concat([Bytes.fromArray([Bytes.length(data)]), data])
 }
@@ -156,7 +156,7 @@ checks the length first.
 `File.writeBytes` takes `Bytes`, and `File.readBytes` gives back the same bytes:
 
 ```ant
-var body = String.toBytes("name,city\nAnn,Zürich\n")
+let body = String.toBytes("name,city\nAnn,Zürich\n")
 Result.unwrap(File.writeBytes("people.csv", body))
 println(Result.unwrap(File.readBytes("people.csv")) == body)
 ```
@@ -178,8 +178,8 @@ for s in ["", "ant", "straße", "🐜🐜", "e\u{301}", "\u{0}"] {
 The bytes of a string are the bytes of its characters, joined:
 
 ```ant
-var s = "Añ🐜"
-var parts = s.chars().map(String.toBytes)
+let s = "Añ🐜"
+let parts = s.chars().map(String.toBytes)
 assert(Bytes.concat(parts) == String.toBytes(s))
 ```
 
@@ -187,7 +187,7 @@ The byte length is at least the code point length and at most four times it:
 
 ```ant
 for s in ["ant", "naïve", "€uro", "🐜"] {
-  var n = Bytes.length(String.toBytes(s))
+  let n = Bytes.length(String.toBytes(s))
   assert(n >= String.length(s) && n <= 4 * String.length(s))
 }
 ```

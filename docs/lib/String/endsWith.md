@@ -27,7 +27,7 @@ String.endsWith("main.ant", ".go")  // false
 Call it through `.` on any string:
 
 ```ant
-var name = "report.tar.gz"
+let name = "report.tar.gz"
 name.endsWith(".gz")    // true
 name.endsWith(".tar")   // false
 name.endsWith("tar.gz") // true
@@ -69,7 +69,7 @@ In a pipeline, the string is the first argument:
 Keep the files with one extension:
 
 ```ant
-var files = ["main.ant", "notes.txt", "util.ant", "ant.png"]
+let files = ["main.ant", "notes.txt", "util.ant", "ant.png"]
 files.filter({ x.endsWith(".ant") }) // ["main.ant", "util.ant"]
 ```
 
@@ -87,8 +87,8 @@ isImage("ant.svg") // false
 Join shell lines that end with a backslash:
 
 ```ant
-var lines = ["cc -o ant \\", "  main.c \\", "  util.c", "echo done"]
-var commands: Array[string] = []
+let lines = ["cc -o ant \\", "  main.c \\", "  util.c", "echo done"]
+let commands: Array[string] = []
 var pending = ""
 for line in lines {
   if line.endsWith("\\") {
@@ -113,10 +113,10 @@ echo done
 `String.endsWith` agrees with slicing the last code points of `s`:
 
 ```ant
-var s = "report.tar.gz"
+let s = "report.tar.gz"
 for t in [".gz", ".tar", "", "report.tar.gz", "x.report.tar.gz"] {
-  var n = s.length()
-  var m = t.length()
+  let n = s.length()
+  let m = t.length()
   assert(s.endsWith(t) == (m <= n && s.slice(n - m, n) == t))
 }
 ```
@@ -124,8 +124,8 @@ for t in [".gz", ".tar", "", "report.tar.gz", "x.report.tar.gz"] {
 A string always ends with what is appended to it, and `String.trimSuffix` removes exactly that:
 
 ```ant
-var s = "ant"
-var t = "hill"
+let s = "ant"
+let t = "hill"
 assert((s + t).endsWith(t))
 assert(String.trimSuffix(s + t, t) == s)
 ```
@@ -139,7 +139,7 @@ func reverse(s: string): string {
 }
 
 for t in ["gz", "tar.gz", "tar", ""] {
-  var s = "report.tar.gz"
+  let s = "report.tar.gz"
   assert(s.endsWith(t) == reverse(s).startsWith(reverse(t)))
 }
 ```
@@ -147,7 +147,7 @@ for t in ["gz", "tar.gz", "tar", ""] {
 On the UTF-8 bytes, [`Bytes.endsWith`](../Bytes/endsWith.md) gives the same answer:
 
 ```ant
-var s = "año"
+let s = "año"
 for t in ["o", "ño", "ñ", ""] {
   assert(s.endsWith(t) == Bytes.endsWith(String.toBytes(s), String.toBytes(t)))
 }
@@ -166,7 +166,7 @@ String.endsWith("main.ant", ".ant") // true
 Case matters, so lower both sides, or fold them with [`String.foldCase`](foldCase.md), to ignore it:
 
 ```ant
-var name = "PHOTO.JPG"
+let name = "PHOTO.JPG"
 name.endsWith(".jpg")                  // false
 name.toLower().endsWith(".jpg")        // true
 String.foldCase(name).endsWith(".jpg") // true
@@ -177,7 +177,7 @@ The precomposed "é" and "e" followed by a combining accent are different code p
 [`String.normalize`](normalize.md) when text can arrive in either spelling:
 
 ```ant
-var word = "cafe\u{301}"
+let word = "cafe\u{301}"
 word.endsWith("\u{301}")                                             // true
 word.endsWith("é")                                                   // false
 String.normalize(word, "NFC").endsWith(String.normalize("é", "NFC")) // true
@@ -205,7 +205,7 @@ println(String.endsWith("abc", 'c')) // error: unexpected character '\''
 A nullable suffix is a compile error. Narrow it first:
 
 ```ant
-var ext: string | null = null
+let ext: string | null = null
 println(String.endsWith("main.ant", ext))
 // error: cannot use string | null where string is expected
 ```

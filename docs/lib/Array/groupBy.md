@@ -31,7 +31,7 @@ Array.groupBy([1, 2, 3, 4, 5], { x % 2 }) // Map{ 1: [1, 3, 5], 0: [2, 4] }
 Call it through `.` on the array to group words by their first letter:
 
 ```ant
-var fruit = ["apple", "avocado", "banana", "blueberry", "cherry"]
+let fruit = ["apple", "avocado", "banana", "blueberry", "cherry"]
 fruit.groupBy({ String.slice(x, 0, 1) }) // Map{ "a": ["apple", "avocado"], "b": ["banana", "blueberry"], "c": ["cherry"] }
 ```
 
@@ -40,7 +40,7 @@ fruit.groupBy({ String.slice(x, 0, 1) }) // Map{ "a": ["apple", "avocado"], "b":
 An empty array gives an empty map. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.groupBy({ x }) // Map{}
 ```
 
@@ -65,7 +65,7 @@ Group records by a field:
 
 ```ant
 type Person = { name: string, team: string }
-var people = [
+let people = [
   Person{ name: "Ann", team: "red" },
   Person{ name: "Bob", team: "blue" },
   Person{ name: "Cid", team: "red" },
@@ -84,7 +84,7 @@ type Cell = { row: int, col: int }
 `null` is a key like any other, and a nullable element can be grouped on whether it is `null`:
 
 ```ant
-var xs: Array[int | null] = [1, null, 2, null]
+let xs: Array[int | null] = [1, null, 2, null]
 xs.groupBy({ x })         // Map{ 1: [1], null: [null, null], 2: [2] }
 xs.groupBy({ x == null }) // Map{ false: [1, 2], true: [null, null] }
 ```
@@ -95,7 +95,7 @@ Use `is` in the key to group the members of a union by type:
 type Circle = { r: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ r: 1.0 }, Square{ side: 2.0 }, Circle{ r: 3.0 }]
+let shapes: Array[Shape] = [Circle{ r: 1.0 }, Square{ side: 2.0 }, Circle{ r: 3.0 }]
 shapes.groupBy({ if x is Circle { "circle" } else { "square" } }) // Map{ "circle": [Circle{ r: 1.0 }, Circle{ r: 3.0 }], "square": [Square{ side: 2.0 }] }
 ```
 
@@ -110,7 +110,7 @@ String.graphemes("🐜a🐜b").groupBy({ x }) // Map{ "🐜": ["🐜", "🐜"], 
 Count how often each word occurs:
 
 ```ant
-var words = ["the", "ant", "and", "the", "bee"]
+let words = ["the", "ant", "and", "the", "bee"]
 words.groupBy({ x }).map({ len(x.value) }) // Map{ "the": 2, "ant": 1, "and": 1, "bee": 1 }
 ```
 
@@ -118,13 +118,13 @@ Print a roster by team:
 
 ```ant
 type Person = { name: string, team: string }
-var people = [
+let people = [
   Person{ name: "Ann", team: "red" },
   Person{ name: "Bob", team: "blue" },
   Person{ name: "Cid", team: "red" },
 ]
 for entry in people.groupBy({ x.team }).entries() {
-  var names = entry.value.map({ x.name })
+  let names = entry.value.map({ x.name })
   println("${entry.key}: ${String.join(names, ", ")}")
 }
 ```
@@ -138,7 +138,7 @@ Total the amounts of each category:
 
 ```ant
 type Expense = { category: string, amount: int }
-var expenses = [
+let expenses = [
   Expense{ category: "food", amount: 12 },
   Expense{ category: "rent", amount: 900 },
   Expense{ category: "food", amount: 30 },
@@ -151,8 +151,8 @@ expenses.groupBy({ x.category }).map({ x.value.map({ x.amount }).sum() ?? 0 }) /
 Flattening the groups gives every element once. The order changes when keys interleave:
 
 ```ant
-var xs = [5, 3, 8, 1]
-var groups = xs.groupBy({ x > 4 })
+let xs = [5, 3, 8, 1]
+let groups = xs.groupBy({ x > 4 })
 assert(Array.flatten(Map.values(groups)) == [5, 8, 3, 1])
 assert(len(Array.flatten(Map.values(groups))) == len(xs))
 ```
@@ -161,9 +161,9 @@ The keys are the distinct keys of the elements, in first-seen order, and every e
 its own key:
 
 ```ant
-var xs = [5, 3, 8, 1]
-var key = func(n: int): bool { n > 4 }
-var groups = xs.groupBy(key)
+let xs = [5, 3, 8, 1]
+let key = func(n: int): bool { n > 4 }
+let groups = xs.groupBy(key)
 assert(Map.keys(groups) == xs.map(key).unique())
 for entry in groups.entries() {
   assert(entry.value.every({ key(x) == entry.key }))
@@ -173,8 +173,8 @@ for entry in groups.entries() {
 Each group is what `Array.filter` keeps for its key:
 
 ```ant
-var xs = [1, 2, 3, 4, 5, 6]
-var groups = xs.groupBy({ x % 3 })
+let xs = [1, 2, 3, 4, 5, 6]
+let groups = xs.groupBy({ x % 3 })
 for entry in groups.entries() {
   assert(entry.value == xs.filter({ x % 3 == entry.key }))
 }
@@ -183,7 +183,7 @@ for entry in groups.entries() {
 `key` runs once per element, in the order of `xs`, so a side effect in it sees every element:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [3, 1, 4, 1].groupBy({ seen.push(x); x % 2 }) // Map{ 1: [3, 1, 1], 0: [4] }
 seen                                          // [3, 1, 4, 1]
 ```
@@ -191,8 +191,8 @@ seen                                          // [3, 1, 4, 1]
 The groups are new arrays, so changing one leaves `xs` as it was:
 
 ```ant
-var xs = [5, 3, 8, 1]
-var big: Array[int] = xs.groupBy({ x > 4 })[true] ?? []
+let xs = [5, 3, 8, 1]
+let big: Array[int] = xs.groupBy({ x > 4 })[true] ?? []
 big.push(100)
 assert(xs == [5, 3, 8, 1])
 ```
@@ -203,7 +203,7 @@ Indexing the result reads `Array[T] | null`, because a key may have no group. Ca
 it without narrowing is a compile error:
 
 ```ant
-var groups = [1, 2, 3].groupBy({ x % 2 })
+let groups = [1, 2, 3].groupBy({ x % 2 })
 println(groups[1].length())
 // error: Array[int] | null has no field or function length on every member: narrow the value first
 ```
@@ -211,9 +211,9 @@ println(groups[1].length())
 Supply an empty group with `??`; the `[]` takes the element type of the group:
 
 ```ant
-var groups = [1, 2, 3].groupBy({ x % 2 })
-var odd = groups[1] ?? []
-var sevens = groups[7] ?? []
+let groups = [1, 2, 3].groupBy({ x % 2 })
+let odd = groups[1] ?? []
+let sevens = groups[7] ?? []
 odd    // [1, 3]
 sevens // []
 ```
@@ -221,7 +221,7 @@ sevens // []
 The keys are in first-seen order, not sorted. Sort them when the order matters:
 
 ```ant
-var groups = [1, 2, 3, 4, 5].groupBy({ x % 2 })
+let groups = [1, 2, 3, 4, 5].groupBy({ x % 2 })
 Map.keys(groups)        // [1, 0]
 Map.keys(groups).sort() // [0, 1]
 ```
@@ -237,8 +237,8 @@ mutating that element afterwards mutates the key, and the group may become unrea
 copy, as in `{ [...x] }`, or do not mutate the elements:
 
 ```ant
-var rows = [[1], [2], [1]]
-var groups = rows.groupBy({ [...x] })
+let rows = [[1], [2], [1]]
+let groups = rows.groupBy({ [...x] })
 rows[0].push(9)
 groups[[1]] // [[1, 9], [1]]
 ```

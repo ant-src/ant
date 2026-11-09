@@ -16,6 +16,6 @@ date that does not exist, is an Err.
 ## Basic examples
 
 ```ant
-var s = "2026-10-22T16:03:05+02:00[Europe/Stockholm]"
+let s = "2026-10-22T16:03:05+02:00[Europe/Stockholm]"
 Time.parsePlainDate(s) // Ok{ value: 2026-10-22 }
 ```

@@ -86,7 +86,7 @@ Pass it to a higher-order function as a function value:
 Keep only the digits of a phone number:
 
 ```ant
-var phone = "+1 (555) 010-9999"
+let phone = "+1 (555) 010-9999"
 String.concat(phone.chars().filter({ String.isDigit(x) })) // "15550109999"
 ```
 
@@ -104,7 +104,7 @@ type Num = { value: int }
 type Token = Word | Num
 
 func token(field: string): Token {
-  var n = if String.isDigit(field) { String.toInt(field) } else { null }
+  let n = if String.isDigit(field) { String.toInt(field) } else { null }
   if n != null { Num{ value: n } } else { Word{ text: field } }
 }
 
@@ -133,7 +133,7 @@ category `"Nd"`:
 
 ```ant
 for s in ["", "0", "42", "٣", "½", "1.5", "a1", "１２"] {
-  var byCategory = s != "" && s.chars().every({ String.category(x) == "Nd" })
+  let byCategory = s != "" && s.chars().every({ String.category(x) == "Nd" })
   assert(String.isDigit(s) == byCategory)
 }
 ```

@@ -81,7 +81,7 @@ String.isControl("\u{E000}") // false
 A string built with `String.fromCodePoint` works as a literal one does:
 
 ```ant
-var bell = String.fromCodePoint(7) ?? ""
+let bell = String.fromCodePoint(7) ?? ""
 bell.isControl() // true
 ```
 
@@ -123,7 +123,7 @@ func badIndex(name: string): int | null {
 }
 
 for name in ["ant", "an\u{0}t", "colony\n"] {
-  var i = badIndex(name)
+  let i = badIndex(name)
   if i == null {
     println("${name} ok")
   } else {
@@ -150,8 +150,8 @@ Count the control characters of a text:
 
 ```ant
 for s in ["", "\n", "\t\r", "a\n", "\u{85}", "\u{AD}", " "] {
-  var chars = String.chars(s)
-  var all = !chars.isEmpty() && chars.every({ String.category(x) == "Cc" })
+  let chars = String.chars(s)
+  let all = !chars.isEmpty() && chars.every({ String.category(x) == "Cc" })
   assert(String.isControl(s) == all)
 }
 ```
@@ -160,7 +160,7 @@ A control character is neither graphic nor printable:
 
 ```ant
 for n in [0, 9, 10, 13, 27, 127, 128, 133, 159] {
-  var c = String.fromCodePoint(n) ?? ""
+  let c = String.fromCodePoint(n) ?? ""
   assert(String.isControl(c))
   assert(!String.isGraphic(c))
   assert(!String.isPrint(c))

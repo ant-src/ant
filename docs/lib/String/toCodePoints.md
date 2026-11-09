@@ -79,7 +79,7 @@ String.toCodePoints(s: "OK") // [79, 75]
 A function value works wherever a `func(string): Array[int]` is expected:
 
 ```ant
-var points: func(string): Array[int] = String.toCodePoints
+let points: func(string): Array[int] = String.toCodePoints
 ["a", "bc"].map(points) // [[97], [98, 99]]
 ```
 
@@ -111,7 +111,7 @@ utf16Length("ant 🐜") // 6
 Print each code point of a string in `U+` notation:
 
 ```ant
-var codes = "Añ🐜".toCodePoints().map({
+let codes = "Añ🐜".toCodePoints().map({
   "U+" + String.padStart(String.toUpper(String.fromInt(x, 16)), 4, "0")
 })
 println(String.join(codes, " "))
@@ -128,7 +128,7 @@ U+0041 U+00F1 U+1F41C
 
 ```ant
 for s in ["", "ant", "héllo 日本", "e\u{301}", "🐜\u{0}"] {
-  var points = String.toCodePoints(s)
+  let points = String.toCodePoints(s)
   assert(String.fromCodePoints(points) == s)
   assert(len(points) == String.length(s))
 }
@@ -138,9 +138,9 @@ It is [String.codePoint](codePoint.md) of each of [String.chars](chars.md), and 
 `for` loop yields:
 
 ```ant
-var s = "Ant 🐜 é"
+let s = "Ant 🐜 é"
 assert(s.toCodePoints() == s.chars().map(String.codePoint))
-var points: Array[int] = []
+let points: Array[int] = []
 for c in s {
   points.push(String.codePoint(c))
 }
@@ -183,7 +183,7 @@ The argument is a `string`; passing `Bytes` is a compile error. Decode the bytes
 [String.fromBytes](fromBytes.md) first:
 
 ```ant
-var points = String.toCodePoints(String.toBytes("a"))
+let points = String.toCodePoints(String.toBytes("a"))
 // error: cannot use Bytes where string is expected
 ```
 

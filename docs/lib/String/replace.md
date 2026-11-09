@@ -76,7 +76,7 @@ String.replace(s: "a b c", old: " ", new: "_") // "a_b_c"
 Turn Windows line endings into `\n`:
 
 ```ant
-var text = "one\r\ntwo\r\n"
+let text = "one\r\ntwo\r\n"
 String.replace(text, "\r\n", "\n") // "one\ntwo\n"
 ```
 
@@ -129,7 +129,7 @@ Build a slug from a title by chaining calls through `.`:
 Replacing a string with itself, or replacing a string that does not occur, gives `s` back:
 
 ```ant
-var s = "banana"
+let s = "banana"
 assert(String.replace(s, "an", "an") == s)
 assert(String.replace(s, "x", "y") == s)
 assert(!String.contains(s, "x"))
@@ -138,7 +138,7 @@ assert(!String.contains(s, "x"))
 After a replacement, `old` occurs no more, as long as `new` does not bring it back:
 
 ```ant
-var s = "a--b---c"
+let s = "a--b---c"
 assert(!String.contains(String.replace(s, "-", " "), "-"))
 ```
 
@@ -153,12 +153,12 @@ for s in ["a,b,,c", "", ",", "abc"] {
 The length changes by the [`String.count`](count.md) of `old` times the difference in length:
 
 ```ant
-var s = "the cat sat on the mat"
-var old = "at"
-var new = "ug"
-var r = String.replace(s, old, new)
+let s = "the cat sat on the mat"
+let old = "at"
+let new = "ug"
+let r = String.replace(s, old, new)
 assert(r == "the cug sug on the mug")
-var grow = String.length(new) - String.length(old)
+let grow = String.length(new) - String.length(old)
 assert(String.length(r) == String.length(s) + String.count(s, old) * grow)
 ```
 
@@ -177,7 +177,7 @@ A call returns the new string and leaves `s` as it was, so a call whose result i
 nothing:
 
 ```ant
-var s = "a b"
+let s = "a b"
 s.replace(" ", "_") // "a_b"
 s                   // "a b"
 ```
@@ -239,7 +239,7 @@ Chained replacements run one after another, so a swap needs a placeholder that t
 hold:
 
 ```ant
-var s = "left right"
+let s = "left right"
 s.replace("left", "right").replace("right", "left")                           // "left left"
 s.replace("left", "\u{0}").replace("right", "left").replace("\u{0}", "right") // "right left"
 ```

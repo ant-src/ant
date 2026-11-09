@@ -23,7 +23,7 @@ Array.uniqueBy returns a new array holding the first element of xs for each == k
 Keep the first word for each first letter:
 
 ```ant
-var fruit = ["apple", "avocado", "banana", "cherry", "blueberry"]
+let fruit = ["apple", "avocado", "banana", "cherry", "blueberry"]
 Array.uniqueBy(fruit, { String.slice(x, 0, 1) }) // ["apple", "banana", "cherry"]
 ```
 
@@ -38,7 +38,7 @@ Keep the first number of each parity, through `.`:
 An empty array gives an empty array. Annotate it, as Possible issues shows:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.uniqueBy({ x }) // []
 ```
 
@@ -70,7 +70,7 @@ Keep the first record for each value of a field:
 
 ```ant
 type Order = { id: int, customer: string }
-var orders = [
+let orders = [
   Order{ id: 1, customer: "Ann" },
   Order{ id: 2, customer: "Bob" },
   Order{ id: 3, customer: "Ann" },
@@ -83,7 +83,7 @@ A record or an array can be the key, since keys compare by `==`:
 ```ant
 type Cell = { row: int, col: int }
 type Hit = { row: int, col: int, damage: int }
-var hits = [
+let hits = [
   Hit{ row: 0, col: 1, damage: 5 },
   Hit{ row: 2, col: 2, damage: 3 },
   Hit{ row: 0, col: 1, damage: 9 },
@@ -95,7 +95,7 @@ hits.uniqueBy({ [x.row, x.col] }).map({ x.damage })                 // [5, 3]
 `null` is a key like any other:
 
 ```ant
-var xs: Array[int | null] = [1, null, 2, null, 1]
+let xs: Array[int | null] = [1, null, 2, null, 1]
 xs.uniqueBy({ x })         // [1, null, 2]
 xs.uniqueBy({ x == null }) // [1, null]
 ```
@@ -106,7 +106,7 @@ Tell the members of a union apart with `is`:
 type Circle = { r: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ r: 1.0 }, Circle{ r: 3.0 }, Square{ side: 2.0 }]
+let shapes: Array[Shape] = [Circle{ r: 1.0 }, Circle{ r: 3.0 }, Square{ side: 2.0 }]
 shapes.uniqueBy({ x is Circle }) // [Circle{ r: 1.0 }, Square{ side: 2.0 }]
 ```
 
@@ -121,7 +121,7 @@ String.graphemes("Ant ANT ant").uniqueBy({ String.toLower(x) }) // ["A", "n", "t
 Drop repeated email addresses, ignoring case:
 
 ```ant
-var emails = ["ann@example.com", "Bob@example.com", "ANN@example.com", "bob@example.com"]
+let emails = ["ann@example.com", "Bob@example.com", "ANN@example.com", "bob@example.com"]
 emails.uniqueBy(String.toLower) // ["ann@example.com", "Bob@example.com"]
 ```
 
@@ -130,7 +130,7 @@ first, then reverse back:
 
 ```ant
 type Reading = { sensor: string, value: int }
-var readings = [
+let readings = [
   Reading{ sensor: "a", value: 1 },
   Reading{ sensor: "b", value: 2 },
   Reading{ sensor: "a", value: 3 },
@@ -142,7 +142,7 @@ Pick the cheapest offer per product by sorting first, since the first element pe
 
 ```ant
 type Offer = { product: string, price: int, shop: string }
-var offers = [
+let offers = [
   Offer{ product: "pen", price: 3, shop: "A" },
   Offer{ product: "ink", price: 9, shop: "A" },
   Offer{ product: "pen", price: 2, shop: "B" },
@@ -162,7 +162,7 @@ ink: 9 at A
 With the identity as the key, `Array.uniqueBy` is `Array.unique`:
 
 ```ant
-var xs = [3, 1, 3, 2, 1]
+let xs = [3, 1, 3, 2, 1]
 assert(xs.uniqueBy({ x }) == xs.unique())
 ```
 
@@ -170,8 +170,8 @@ The keys of the result are the distinct keys of `xs`, in first-seen order, and e
 the first with its key:
 
 ```ant
-var xs = ["ant", "bee", "wasp", "fly", "moth"]
-var kept = xs.uniqueBy(String.length)
+let xs = ["ant", "bee", "wasp", "fly", "moth"]
+let kept = xs.uniqueBy(String.length)
 assert(kept.map(String.length) == xs.map(String.length).unique())
 for k in kept {
   assert(xs.find({ String.length(x) == String.length(k) }) == k)
@@ -181,8 +181,8 @@ for k in kept {
 Each kept element is the first of its group in `Array.groupBy`:
 
 ```ant
-var xs = [5, 3, 8, 1, 6]
-var firsts = Map.values(xs.groupBy({ x % 3 })).map({ x[0] })
+let xs = [5, 3, 8, 1, 6]
+let firsts = Map.values(xs.groupBy({ x % 3 })).map({ x[0] })
 assert(xs.uniqueBy({ x % 3 }) == firsts)
 ```
 
@@ -190,7 +190,7 @@ assert(xs.uniqueBy({ x % 3 }) == firsts)
 including the ones that are dropped:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [3, 1, 4, 1].uniqueBy({ seen.push(x); x % 2 }) // [3, 4]
 seen                                           // [3, 1, 4, 1]
 ```
@@ -198,7 +198,7 @@ seen                                           // [3, 1, 4, 1]
 A `key` that pushes to `xs` does not add to what it visits:
 
 ```ant
-var xs = [1, 2, 1]
+let xs = [1, 2, 1]
 xs.uniqueBy({ xs.push(x + 10); x }) // [1, 2]
 xs                                  // [1, 2, 1, 11, 12, 11]
 ```
@@ -206,8 +206,8 @@ xs                                  // [1, 2, 1, 11, 12, 11]
 `Array.uniqueBy` returns a new array no longer than `xs`, and leaves `xs` as it was:
 
 ```ant
-var xs = [1, 2, 3, 4]
-var kept = xs.uniqueBy({ x % 2 })
+let xs = [1, 2, 3, 4]
+let kept = xs.uniqueBy({ x % 2 })
 kept.push(100)
 assert(xs == [1, 2, 3, 4])
 assert(len(xs.uniqueBy({ x % 2 })) <= len(xs))
@@ -237,14 +237,14 @@ An empty literal with nothing to fix its element type is a compile error, even b
 checker stops at the first line:
 
 ```ant
-var e = [] // error: cannot infer the element type of an empty array; annotate it
+let e = [] // error: cannot infer the element type of an empty array; annotate it
 e.uniqueBy({ x })
 ```
 
 Annotate the array:
 
 ```ant
-var e: Array[int] = []
+let e: Array[int] = []
 e.uniqueBy({ x }) // []
 ```
 

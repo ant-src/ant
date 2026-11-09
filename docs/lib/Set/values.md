@@ -21,7 +21,7 @@ Set.values returns the members of s in insertion order.
 ## Basic examples
 
 ```ant
-var tags = Set.of(["red", "blue", "red", "green"])
+let tags = Set.of(["red", "blue", "red", "green"])
 Set.values(tags) // ["red", "blue", "green"]
 ```
 
@@ -36,7 +36,7 @@ Set.of([3, 1, 2]).values() // [3, 1, 2]
 An empty set gives an empty array. Annotate the set so that its member type is known:
 
 ```ant
-var empty: Set[int] = Set.of([])
+let empty: Set[int] = Set.of([])
 empty.values() // []
 ```
 
@@ -44,7 +44,7 @@ Adding a member that is already there keeps it where it was. Removing it and add
 it to the end:
 
 ```ant
-var s = Set.of(["a", "b", "c"])
+let s = Set.of(["a", "b", "c"])
 Set.add(s, "a")    // false
 s.values()         // ["a", "b", "c"]
 Set.remove(s, "a") // true
@@ -63,7 +63,7 @@ Set.of([[1], [1], []]).values()                             // [[1], []]
 A set whose member type includes `null` can hold `null`:
 
 ```ant
-var s: Set[string | null] = Set.of([null, "a", null])
+let s: Set[string | null] = Set.of([null, "a", null])
 s.values() // [null, "a"]
 ```
 
@@ -84,14 +84,14 @@ Set.of(["b", "a"]) | Set.values() // ["b", "a"]
 Remove duplicates from an array and keep the first of each, in order:
 
 ```ant
-var visits = ["home", "about", "home", "blog", "about"]
+let visits = ["home", "about", "home", "blog", "about"]
 Set.of(visits).values() // ["home", "about", "blog"]
 ```
 
 Print the members in sorted order. The set keeps insertion order, so sort the array:
 
 ```ant
-var langs = Set.of(["go", "ant", "c"])
+let langs = Set.of(["go", "ant", "c"])
 for lang in langs.values().sort() {
   println(lang)
 }
@@ -106,14 +106,14 @@ go
 Join the members into one line:
 
 ```ant
-var flags = Set.of(["-v", "-x", "-v"])
+let flags = Set.of(["-v", "-x", "-v"])
 String.join(flags.values(), " ") // "-v -x"
 ```
 
 Use the members as a lazy sequence:
 
 ```ant
-var s = Set.of([1, 2, 3, 4])
+let s = Set.of([1, 2, 3, 4])
 Iter.fromArray(s.values()) | Iter.map({ x * 10 }) | Iter.take(2) | Iter.toArray() // [10, 20]
 ```
 
@@ -122,8 +122,8 @@ Iter.fromArray(s.values()) | Iter.map({ x * 10 }) | Iter.take(2) | Iter.toArray(
 There is one element per member, each distinct, and each one is in the set:
 
 ```ant
-var s = Set.of(["a", "b", "c"])
-var vs = s.values()
+let s = Set.of(["a", "b", "c"])
+let vs = s.values()
 assert(len(vs) == s.size())
 assert(vs == vs.unique())
 assert(vs.every({ s.has(x) }))
@@ -133,9 +133,9 @@ assert(vs.every({ s.has(x) }))
 `Array.unique(xs)`:
 
 ```ant
-var s = Set.of([4, 2, 4, 1])
+let s = Set.of([4, 2, 4, 1])
 assert(Set.of(s.values()) == s)
-var xs = [3, 1, 3, 2, 1]
+let xs = [3, 1, 3, 2, 1]
 assert(Set.of(xs).values() == xs.unique())
 ```
 
@@ -143,8 +143,8 @@ The array is a snapshot. Pushing to it leaves the set alone, and adding to the s
 alone:
 
 ```ant
-var s = Set.of(["a"])
-var vs = s.values()
+let s = Set.of(["a"])
+let vs = s.values()
 vs.push("z")
 s.add("b")
 assert(vs == ["a", "z"])
@@ -154,8 +154,8 @@ assert(s.values() == ["a", "b"])
 `for` over a set visits the same members in the same order, so a loop can iterate `s` directly:
 
 ```ant
-var s = Set.of([5, 3, 8])
-var seen: Array[int] = []
+let s = Set.of([5, 3, 8])
+let seen: Array[int] = []
 for x in s {
   seen.push(x)
 }
@@ -168,8 +168,8 @@ Two sets with the same members are `==` in any order, but their values are array
 compare in order:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([2, 1])
+let a = Set.of([1, 2])
+let b = Set.of([2, 1])
 a == b                                 // true
 a.values() == b.values()               // false
 a.values().sort() == b.values().sort() // true
@@ -179,14 +179,14 @@ A loop over the set itself reads the set as it goes, so a member added during th
 loop over `s.values()` sees only the members the set had when it was called:
 
 ```ant
-var s = Set.of([1])
+let s = Set.of([1])
 for x in s {
   if x < 3 {
     s.add(x + 1)
   }
 }
 s.values() // [1, 2, 3]
-var t = Set.of([1])
+let t = Set.of([1])
 for x in t.values() {
   if x < 3 {
     t.add(x + 1)
@@ -204,19 +204,19 @@ Set.of([1.0, Math.NaN, Math.NaN]).values() // [1.0, NaN, NaN]
 A set has no indexing. Take the values first, and read by position there:
 
 ```ant
-var s = Set.of(["x", "y"])
+let s = Set.of(["x", "y"])
 println(s[0]) // error: Set[string] cannot be indexed
 ```
 
 ```ant
-var s = Set.of(["x", "y"])
+let s = Set.of(["x", "y"])
 s.values()[0] // "x"
 ```
 
 `Set.values` is a function, not a field. Without the parentheses it is a compile error:
 
 ```ant
-var tags = Set.of(["x"])
+let tags = Set.of(["x"])
 println(tags.values) // error: Set[string] is not a record, so it has no field values
 ```
 

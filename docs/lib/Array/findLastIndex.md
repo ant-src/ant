@@ -34,7 +34,7 @@ Array.findLastIndex([3, 8, 1], { x > 50 }) // null
 Call it through `.` on any array:
 
 ```ant
-var words = ["ant", "bee", "wasp", "fly"]
+let words = ["ant", "bee", "wasp", "fly"]
 words.findLastIndex({ String.length(x) == 3 })     // 3
 words.findLastIndex({ String.startsWith(x, "b") }) // 1
 ```
@@ -44,7 +44,7 @@ words.findLastIndex({ String.startsWith(x, "b") }) // 1
 An empty array has no last match. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.findLastIndex({ x > 0 }) // null
 ```
 
@@ -64,14 +64,14 @@ When `f` accepts every element, the result is the last index:
 Strings are tested whole. Split them into graphemes to search by character:
 
 ```ant
-var letters = String.graphemes("naïve café")
+let letters = String.graphemes("naïve café")
 letters.findLastIndex({ x == "é" || x == "ï" }) // 9
 ```
 
 An array whose element type includes `null` can look for the last `null`:
 
 ```ant
-var readings: Array[int | null] = [12, null, 15, null, 9]
+let readings: Array[int | null] = [12, null, 15, null, 9]
 readings.findLastIndex({ x == null })           // 3
 readings.findLastIndex({ x != null && x > 10 }) // 2
 ```
@@ -80,7 +80,7 @@ Records are tested through their fields:
 
 ```ant
 type Task = { name: string, done: bool }
-var tasks = [
+let tasks = [
   Task{ name: "plan", done: true },
   Task{ name: "build", done: true },
   Task{ name: "ship", done: false },
@@ -97,7 +97,7 @@ func Task.isOpen(t: Task): bool {
   !t.done
 }
 
-var tasks = [
+let tasks = [
   Task{ name: "plan", done: false },
   Task{ name: "build", done: true },
   Task{ name: "ship", done: false },
@@ -111,7 +111,7 @@ Members of a union are tested with `is`:
 type Circle = { radius: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Square{ side: 2.0 }, Circle{ radius: 3.0 }]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Square{ side: 2.0 }, Circle{ radius: 3.0 }]
 shapes.findLastIndex({ x is Square })                   // 1
 shapes.findLastIndex({ x is Circle && x.radius < 2.0 }) // 0
 ```
@@ -143,8 +143,8 @@ In a pipeline, the array is the first argument:
 Find the last error in a log and read the lines after it:
 
 ```ant
-var log = ["start", "error: disk", "retry", "error: net", "retry", "ok"]
-var i = log.findLastIndex({ String.startsWith(x, "error") })
+let log = ["start", "error: disk", "retry", "error: net", "retry", "ok"]
+let i = log.findLastIndex({ String.startsWith(x, "error") })
 if i != null {
   println(log[i])
   println(Array.slice(log, i + 1, len(log)))
@@ -160,7 +160,7 @@ Trim trailing blank lines from a text:
 
 ```ant
 func trimTrailing(lines: Array[string]): Array[string] {
-  var last = lines.findLastIndex({ String.trim(x) != "" }) ?? -1
+  let last = lines.findLastIndex({ String.trim(x) != "" }) ?? -1
   Array.slice(lines, 0, last + 1)
 }
 
@@ -178,14 +178,14 @@ Find the last day a sensor reported a value above its limit:
 ```ant
 type Reading = { day: string, value: float64 }
 
-var readings = [
+let readings = [
   Reading{ day: "Mon", value: 18.5 },
   Reading{ day: "Tue", value: 31.0 },
   Reading{ day: "Wed", value: 22.0 },
   Reading{ day: "Thu", value: 30.5 },
   Reading{ day: "Fri", value: 19.0 },
 ]
-var i = readings.findLastIndex({ x.value > 30.0 })
+let i = readings.findLastIndex({ x.value > 30.0 })
 println(if i != null { "last over limit: ${readings[i].day}" } else { "never over limit" })
 ```
 
@@ -198,8 +198,8 @@ last over limit: Thu
 `f` sees the elements from the last back, and the search stops at the first one it accepts:
 
 ```ant
-var xs = [3, 8, 1, 9, 4]
-var i = xs.findLastIndex({
+let xs = [3, 8, 1, 9, 4]
+let i = xs.findLastIndex({
   println("testing ${x}")
   x > 5
 })
@@ -215,8 +215,8 @@ testing 9
 When `f` accepts no element, it has run once on each, last first:
 
 ```ant
-var seen: Array[int] = []
-var i = [1, 2, 3].findLastIndex({
+let seen: Array[int] = []
+let i = [1, 2, 3].findLastIndex({
   seen.push(x)
   x > 9
 })
@@ -227,12 +227,12 @@ assert(seen == [3, 2, 1])
 The element at the index is the one [`Array.findLast`](findLast.md) returns:
 
 ```ant
-var xs = [4, 11, 7, 15, 2]
+let xs = [4, 11, 7, 15, 2]
 func f(n: int): bool {
   n > 10
 }
 
-var i = xs.findLastIndex(f)
+let i = xs.findLastIndex(f)
 assert(i != null)
 assert(xs[i] == xs.findLast(f))
 assert(xs.findLastIndex({ x > 100 }) == null && xs.findLast({ x > 100 }) == null)
@@ -242,11 +242,11 @@ No element after the index is accepted, and the result is `null` exactly when
 [`Array.some`](some.md) is `false`:
 
 ```ant
-var xs = [4, 11, 7, 15, 2]
+let xs = [4, 11, 7, 15, 2]
 for limit in [0, 5, 10, 20] {
-  var i = xs.findLastIndex({ x > limit })
+  let i = xs.findLastIndex({ x > limit })
   assert((i != null) == xs.some({ x > limit }))
-  var from = (i ?? -1) + 1
+  let from = (i ?? -1) + 1
   assert(!Array.slice(xs, from, len(xs)).some({ x > limit }))
 }
 ```
@@ -254,8 +254,8 @@ for limit in [0, 5, 10, 20] {
 It mirrors [`Array.findIndex`](findIndex.md) on the reversed array:
 
 ```ant
-var xs = [3, 6, 1, 8, 5]
-var j = xs.reverse().findIndex({ x % 2 == 0 })
+let xs = [3, 6, 1, 8, 5]
+let j = xs.reverse().findIndex({ x % 2 == 0 })
 assert(j != null)
 assert(xs.findLastIndex({ x % 2 == 0 }) == len(xs) - 1 - j)
 ```
@@ -263,7 +263,7 @@ assert(xs.findLastIndex({ x % 2 == 0 }) == len(xs) - 1 - j)
 With an `==` test it agrees with [`Array.lastIndexOf`](lastIndexOf.md):
 
 ```ant
-var xs = ["a", "b", "a", "c"]
+let xs = ["a", "b", "a", "c"]
 for v in ["a", "c", "z"] {
   assert(xs.findLastIndex({ x == v }) == xs.lastIndexOf(v))
 }
@@ -274,14 +274,14 @@ for v in ["a", "c", "z"] {
 The result is nullable, so it cannot index the array as it is:
 
 ```ant
-var xs = [5, 6, 7]
+let xs = [5, 6, 7]
 println(xs[xs.findLastIndex({ x > 5 })]) // error: cannot use int | null where int is expected
 ```
 
 Nor can it go straight into arithmetic:
 
 ```ant
-var xs = [5, 6, 7]
+let xs = [5, 6, 7]
 println(xs.findLastIndex({ x > 5 }) + 1)
 // error: + needs both operands of one type, got int | null and int
 ```
@@ -289,14 +289,14 @@ println(xs.findLastIndex({ x > 5 }) + 1)
 Test it against `null`, not for truth. `0` is a valid index, and an `int | null` is not a condition:
 
 ```ant
-var i = [5, 6].findLastIndex({ x == 5 })
+let i = [5, 6].findLastIndex({ x == 5 })
 if i { // error: cannot use int | null where bool is expected
   println(i)
 }
 ```
 
 ```ant
-var i = [5, 6].findLastIndex({ x == 5 })
+let i = [5, 6].findLastIndex({ x == 5 })
 i != null // true
 i         // 0
 ```
@@ -310,7 +310,7 @@ println([0, 1, 2].findLastIndex({ x })) // error: cannot use int where bool is e
 `NaN` is not `==` to itself, so an `==` test never finds it. Test with `Math.isNaN`:
 
 ```ant
-var xs = [Math.NaN, 1.0, Math.NaN, 2.0]
+let xs = [Math.NaN, 1.0, Math.NaN, 2.0]
 xs.findLastIndex({ x == Math.NaN }) // null
 xs.findLastIndex({ Math.isNaN(x) }) // 2
 ```
@@ -320,8 +320,8 @@ so it counts one; [`Array.countWhere`](countWhere.md) counts both:
 
 ```ant
 var sevens = 0
-var xs = [2, 7, 4, 7, 1]
-var i = xs.findLastIndex({
+let xs = [2, 7, 4, 7, 1]
+let i = xs.findLastIndex({
   if x == 7 {
     sevens += 1
   }
@@ -335,7 +335,7 @@ xs.countWhere({ x == 7 }) // 2
 A callback that pushes to the array does not make `Array.findLastIndex` test the new elements:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs.findLastIndex({ xs.push(x + 10); x > 5 }) // null
 ```
 

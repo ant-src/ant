@@ -24,7 +24,7 @@ Get a `String.Cut` from `String.cut`, check it for `null`, and read its fields:
 
 ```ant
 for line in ["name=ant", "oops"] {
-  var c = String.cut(line, "=")
+  let c = String.cut(line, "=")
   if c != null {
     println("${c.before} -> ${c.after}")
   } else {
@@ -55,7 +55,7 @@ String.Cut{ before: "k", after: "v" } // String.Cut{ before: "k", after: "v" }
 Destructure the fields into variables:
 
 ```ant
-var { before, after } = String.cut("host:8080", ":") ?? return
+let { before, after } = String.cut("host:8080", ":") ?? return
 println(before)
 println(after)
 ```
@@ -70,7 +70,7 @@ host
 Rename the fields while destructuring:
 
 ```ant
-var { before: key, after: value } = String.cut("lang=ant", "=") ?? String.Cut{ before: "", after: "" }
+let { before: key, after: value } = String.cut("lang=ant", "=") ?? String.Cut{ before: "", after: "" }
 key   // "lang"
 value // "ant"
 ```
@@ -82,7 +82,7 @@ func pair(s: string, sep: string): String.Cut {
   String.cut(s, sep) ?? String.Cut{ before: s, after: "" }
 }
 
-var p: String.Cut = pair("a:b", ":")
+let p: String.Cut = pair("a:b", ":")
 println(p)
 println(pair("a", ":"))
 ```
@@ -95,7 +95,7 @@ String.Cut{ before: "a", after: "" }
 Assign to a field, as with any record:
 
 ```ant
-var c = String.Cut{ before: "k", after: "v" }
+let c = String.Cut{ before: "k", after: "v" }
 c.after = "w"
 c // String.Cut{ before: "k", after: "w" }
 ```
@@ -103,7 +103,7 @@ c // String.Cut{ before: "k", after: "w" }
 Copy one with a spread and change a field:
 
 ```ant
-var c = String.Cut{ before: "k", after: "v" }
+let c = String.Cut{ before: "k", after: "v" }
 String.Cut{ ...c, before: "key" } // String.Cut{ before: "key", after: "v" }
 ```
 
@@ -140,7 +140,7 @@ head(String.Cut{ before: "a", after: "b" }) // "a"
 `String.from` and `Json.stringify` show both fields:
 
 ```ant
-var c = String.Cut{ before: "k", after: "v" }
+let c = String.Cut{ before: "k", after: "v" }
 String.from(c)    // "String.Cut{ before: \"k\", after: \"v\" }"
 Json.stringify(c) // "{\"before\":\"k\",\"after\":\"v\"}"
 ```
@@ -150,10 +150,10 @@ Json.stringify(c) // "{\"before\":\"k\",\"after\":\"v\"}"
 Split `user@domain` addresses and group the users by domain:
 
 ```ant
-var users: Map[string, Array[string]] = Map{}
+let users: Map[string, Array[string]] = Map{}
 for address in ["ann@a.org", "bob@b.org", "cat@a.org", "nobody"] {
-  var { before: user, after: domain } = String.cut(address, "@") ?? continue
-  var list = users[domain] ?? []
+  let { before: user, after: domain } = String.cut(address, "@") ?? continue
+  let list = users[domain] ?? []
   list.push(user)
   users[domain] = list
 }
@@ -168,7 +168,7 @@ Return a `String.Cut` from your own function, here one that cuts at the last sep
 
 ```ant
 func cutLast(s: string, sep: string): String.Cut | null {
-  var i = String.lastIndexOf(s, sep) ?? return null
+  let i = String.lastIndexOf(s, sep) ?? return null
   String.Cut{
     before: String.slice(s, 0, i),
     after: String.slice(s, i + String.length(sep), String.length(s)),
@@ -196,9 +196,9 @@ assert(String.Cut{ before: "a", after: "b" } != String.Cut{ before: "b", after: 
 Assigning a `String.Cut` shares it; a spread makes a copy:
 
 ```ant
-var a = String.Cut{ before: "k", after: "v" }
-var b = a
-var copy = String.Cut{ ...a }
+let a = String.Cut{ before: "k", after: "v" }
+let b = a
+let copy = String.Cut{ ...a }
 b.after = "w"
 assert(a.after == "w")
 assert(copy.after == "v")
@@ -211,19 +211,19 @@ assert(!Record.same(a, copy))
 The type lives in the `String` namespace. `Cut` alone is not a type:
 
 ```ant
-var c: Cut = String.Cut{ before: "a", after: "b" } // error: unknown type Cut
+let c: Cut = String.Cut{ before: "a", after: "b" } // error: unknown type Cut
 ```
 
 A literal gives both fields:
 
 ```ant
-var c = String.Cut{ before: "a" } // error: String.Cut literal is missing the field after
+let c = String.Cut{ before: "a" } // error: String.Cut literal is missing the field after
 ```
 
 `String.cut` returns `String.Cut | null`, so reading a field before narrowing is a compile error:
 
 ```ant
-var c = String.cut("a=b", "=")
+let c = String.cut("a=b", "=")
 println(c.before) // error: String.Cut | null has no field before: narrow the value first
 ```
 
@@ -232,14 +232,14 @@ A record of your own with the same fields is a different type. It does not compa
 
 ```ant
 type Pair = { before: string, after: string }
-var p = Pair{ before: "k", after: "v" }
+let p = Pair{ before: "k", after: "v" }
 println(p == String.Cut{ before: "k", after: "v" })
 // error: Pair and String.Cut cannot be compared with ==: neither is assignable to the other
 ```
 
 ```ant
 type Pair = { before: string, after: string }
-var p = Pair{ before: "k", after: "v" }
+let p = Pair{ before: "k", after: "v" }
 String.Cut{ ...p } == String.Cut{ before: "k", after: "v" } // true
 ```
 

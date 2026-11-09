@@ -56,7 +56,7 @@ Each form, on a string with an accent and a ligature. The canonical forms keep t
 compatibility forms replace it with `fi`:
 
 ```ant
-var s = "ﬁancé"
+let s = "ﬁancé"
 String.length(String.normalize(s, "NFC"))  // 5
 String.length(String.normalize(s, "NFD"))  // 6
 String.length(String.normalize(s, "NFKC")) // 6
@@ -89,8 +89,8 @@ String.normalize(String.normalize("한", "NFD"), "NFC") == "한" // true
 order compare equal after normalizing:
 
 ```ant
-var a = "q\u{307}\u{323}"
-var b = "q\u{323}\u{307}"
+let a = "q\u{307}\u{323}"
+let b = "q\u{323}\u{307}"
 a == b                                                   // false
 String.normalize(a, "NFC") == String.normalize(b, "NFC") // true
 ```
@@ -124,7 +124,7 @@ stripAccents("Ångström")     // "Angstrom"
 Key a map by normalized names, so a name typed with a combining accent finds the same entry:
 
 ```ant
-var ages: Map[string, int] = Map{}
+let ages: Map[string, int] = Map{}
 func key(name: string): string {
   String.normalize(name, "NFC")
 }
@@ -137,7 +137,7 @@ Build a search key that ignores case, accents, and compatibility forms by combin
 
 ```ant
 func searchKey(s: string): string {
-  var bare = String.normalize(s, "NFKD").chars().filter({ !String.isMark(x) })
+  let bare = String.normalize(s, "NFKD").chars().filter({ !String.isMark(x) })
   String.foldCase(String.join(bare, ""))
 }
 
@@ -150,9 +150,9 @@ searchKey("ﬁlm") == searchKey("Film")     // true
 Normalizing twice gives the same result as normalizing once, in every form:
 
 ```ant
-var s = "ﬁancé Å 한"
+let s = "ﬁancé Å 한"
 for form in ["NFC", "NFD", "NFKC", "NFKD"] {
-  var once = String.normalize(s, form)
+  let once = String.normalize(s, form)
   assert(String.normalize(once, form) == once)
 }
 ```
@@ -160,7 +160,7 @@ for form in ["NFC", "NFD", "NFKC", "NFKD"] {
 `"NFC"` of the `"NFD"` form is the `"NFC"` form, and the same holds for the compatibility forms:
 
 ```ant
-var s = "ﬁancé Å 한"
+let s = "ﬁancé Å 한"
 assert(String.normalize(String.normalize(s, "NFD"), "NFC") == String.normalize(s, "NFC"))
 assert(String.normalize(String.normalize(s, "NFKD"), "NFKC") == String.normalize(s, "NFKC"))
 ```
@@ -177,7 +177,7 @@ String.normalize("e\u{301}", "nfc") // panic: String.normalize needs the form NF
 character, the marks stay separate; count with `String.graphemes` instead:
 
 ```ant
-var s = String.normalize("q\u{307}\u{323}", "NFC")
+let s = String.normalize("q\u{307}\u{323}", "NFC")
 String.length(s)             // 3
 String.graphemes(s).length() // 1
 ```

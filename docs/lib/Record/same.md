@@ -15,7 +15,7 @@ admits any record type.
 ## Basic examples
 
 ```ant
-var e = Error{ message: "x" }
+let e = Error{ message: "x" }
 Record.same(e, e)             // true
 Record.same(e, Error{ ...e }) // false
 ```

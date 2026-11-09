@@ -27,14 +27,14 @@ Array.first(["a", "b"])   // "a"
 An empty array gives `null`. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.first(empty) // null
 ```
 
 Call it through `.` on any array:
 
 ```ant
-var queue = ["build", "test", "deploy"]
+let queue = ["build", "test", "deploy"]
 queue.first() // "build"
 ```
 
@@ -45,8 +45,8 @@ empty array:
 
 ```ant
 type User = { name: string, age: int }
-var users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
-var nobody: Array[User] = []
+let users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
+let nobody: Array[User] = []
 users.first()                      // User{ name: "Ann", age: 31 }
 users.first()?.name                // "Ann"
 nobody.first()?.name               // null
@@ -56,7 +56,7 @@ nobody.first()?.name ?? "no users" // "no users"
 A nested array gives its first inner array, and `?.[i]` indexes into it:
 
 ```ant
-var grid = [[1, 2], [3]]
+let grid = [[1, 2], [3]]
 grid.first()      // [1, 2]
 grid.first()?.[1] // 2
 ```
@@ -67,7 +67,7 @@ Elements of a union keep their tag, so `is` tells which member came first:
 type Circle = { r: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Square{ side: 2.0 }, Circle{ r: 1.0 }]
+let shapes: Array[Shape] = [Square{ side: 2.0 }, Circle{ r: 1.0 }]
 shapes.first()           // Square{ side: 2.0 }
 shapes.first() is Square // true
 ```
@@ -75,8 +75,8 @@ shapes.first() is Square // true
 An array of functions gives a function, which `?.(…)` calls when it is there:
 
 ```ant
-var steps: Array[func(int): int] = [{ x + 1 }, { x * 2 }]
-var none: Array[func(int): int] = []
+let steps: Array[func(int): int] = [{ x + 1 }, { x * 2 }]
+let none: Array[func(int): int] = []
 steps.first()?.(10) // 11
 none.first()?.(10)  // null
 ```
@@ -112,7 +112,7 @@ Take the first command-line argument, or a default when there is none:
 <!-- test: args Ann -->
 
 ```ant
-var name = Os.args().first() ?? "world"
+let name = Os.args().first() ?? "world"
 println("Hello, ${name}")
 ```
 
@@ -125,7 +125,7 @@ Bind the result to a local and return early when the array is empty. After the t
 
 ```ant
 func greet(names: Array[string]): string {
-  var head = names.first()
+  let head = names.first()
   if head == null {
     return "hello, nobody"
   }
@@ -144,15 +144,15 @@ hello, nobody
 Keep the first word for each initial letter:
 
 ```ant
-var words = ["apple", "avocado", "banana", "blueberry", "cherry"]
-var byLetter = words.groupBy({ String.graphemes(x)[0] })
+let words = ["apple", "avocado", "banana", "blueberry", "cherry"]
+let byLetter = words.groupBy({ String.graphemes(x)[0] })
 byLetter.map({ x.value.first() ?? "" }) // Map{ "a": "apple", "b": "banana", "c": "cherry" }
 ```
 
 Stop with a panic when an array that must not be empty is:
 
 ```ant
-var config: Array[string] = []
+let config: Array[string] = []
 config.first() ?? panic("no config file found") // panic: no config file found
 ```
 
@@ -183,8 +183,8 @@ for xs in [["a"], []] {
 `Array.first` does not change the array:
 
 ```ant
-var xs = [1, 2, 3]
-var head = xs.first()
+let xs = [1, 2, 3]
+let head = xs.first()
 assert(head == 1)
 assert(xs == [1, 2, 3])
 ```
@@ -194,14 +194,14 @@ assert(xs == [1, 2, 3])
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 println(xs.first() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 (xs.first() ?? 0) + 1 // 4
 ```
 
@@ -209,7 +209,7 @@ Testing the call itself does not narrow a second call, because only locals, para
 top-level `let`s narrow:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 if xs.first() != null {
   println(xs.first() * 2) // error: * needs both operands of one type, got int | null and int
 }
@@ -218,8 +218,8 @@ if xs.first() != null {
 Bind the result to a local and test that:
 
 ```ant
-var xs = [3, 1, 2]
-var head = xs.first()
+let xs = [3, 1, 2]
+let head = xs.first()
 if head != null {
   println(head * 2)
 }
@@ -233,7 +233,7 @@ When the element type includes `null`, a `null` result does not tell an empty ar
 first element is `null`. Ask the array with [`Array.isEmpty`](isEmpty.md) instead:
 
 ```ant
-var slots: Array[string | null] = [null, "b"]
+let slots: Array[string | null] = [null, "b"]
 slots.first()   // null
 slots.isEmpty() // false
 ```
@@ -241,7 +241,7 @@ slots.isEmpty() // false
 Indexing with `[0]` panics on an empty array, where `Array.first` gives `null`:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.first() // null
 empty[0]      // panic: index 0 out of range for an array of length 0
 ```

@@ -79,7 +79,7 @@ The search matches code points, not graphemes, so it can strip the first combini
 letter. The code point 769 is the accent U+0301 that stays on `t`:
 
 ```ant
-var s = String.replaceFirst("e\u{301}t\u{301}", "\u{301}", "")
+let s = String.replaceFirst("e\u{301}t\u{301}", "\u{301}", "")
 String.toCodePoints(s) // [101, 116, 769]
 ```
 
@@ -114,7 +114,7 @@ println(fill("? + ? = ?", ["1", "2", "3"]))
 Turn only the first `_` of a `snake_case` name into a space; later underscores stay:
 
 ```ant
-var names = ["first_name", "zip_code_ext", "id"]
+let names = ["first_name", "zip_code_ext", "id"]
 for name in names {
   println(name.replaceFirst("_", " "))
 }
@@ -129,8 +129,8 @@ id
 Mark the first `# ` in a document, in a pipe:
 
 ```ant
-var doc = "# Intro\ntext\n# Usage\n"
-var marked = doc | String.replaceFirst("# ", "# [start] ")
+let doc = "# Intro\ntext\n# Usage\n"
+let marked = doc | String.replaceFirst("# ", "# [start] ")
 print(marked)
 ```
 
@@ -146,8 +146,8 @@ When `old` occurs, the result is the text before it, then `new`, then the text a
 [`String.cut`](cut.md) splits it:
 
 ```ant
-var s = "user=ann=admin"
-var c = String.cut(s, "=")
+let s = "user=ann=admin"
+let c = String.cut(s, "=")
 assert(c != null)
 assert(String.replaceFirst(s, "=", ": ") == c.before + ": " + c.after)
 ```
@@ -155,7 +155,7 @@ assert(String.replaceFirst(s, "=", ": ") == c.before + ": " + c.after)
 When `old` does not occur, the result is `s`:
 
 ```ant
-var s = "plain"
+let s = "plain"
 assert(!String.contains(s, "="))
 assert(String.replaceFirst(s, "=", ": ") == s)
 ```
@@ -164,8 +164,8 @@ The length changes by the difference between `new` and `old` when `old` occurs, 
 otherwise:
 
 ```ant
-var s = "a-b-c"
-var r = String.replaceFirst(s, "-", "--")
+let s = "a-b-c"
+let r = String.replaceFirst(s, "-", "--")
 assert(String.length(r) == String.length(s) - 1 + 2)
 ```
 
@@ -256,7 +256,7 @@ There is no `String.replaceLast`. To replace the last occurrence, find it with
 
 ```ant
 func replaceLast(s: string, old: string, new: string): string {
-  var i = String.lastIndexOf(s, old)
+  let i = String.lastIndexOf(s, old)
   if i == null {
     return s
   }

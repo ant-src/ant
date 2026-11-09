@@ -94,7 +94,7 @@ String.padStart("9", 3, pad: "-=") // "-=9"
 Right-align a column of numbers:
 
 ```ant
-var prices = [5, 120, 42, 1999]
+let prices = [5, 120, 42, 1999]
 for p in prices {
   println(String.padStart(String.from(p), 6))
 }
@@ -147,7 +147,7 @@ Draw a dotted leader in a table of contents:
 ```ant
 type Chapter = { title: string, page: int }
 
-var toc = [Chapter{ title: "Intro", page: 1 }, Chapter{ title: "Strings", page: 14 }]
+let toc = [Chapter{ title: "Intro", page: 1 }, Chapter{ title: "Strings", page: 14 }]
 for e in toc {
   println(e.title + String.padStart(String.from(e.page), 16 - String.length(e.title), "."))
 }
@@ -165,7 +165,7 @@ The result is `width` code points long, or `s` itself when `s` is already that l
 ```ant
 for s in ["", "a", "abc", "日本語"] {
   for w in [0, 2, 5] {
-    var r = String.padStart(s, w, "xy")
+    let r = String.padStart(s, w, "xy")
     assert(String.length(r) == Math.max(w, String.length(s)))
     assert(String.endsWith(r, s))
   }
@@ -175,7 +175,7 @@ for s in ["", "a", "abc", "日本語"] {
 With a `pad` of one code point, the padding is [`String.repeat`](repeat.md) of it:
 
 ```ant
-var s = "42"
+let s = "42"
 assert(String.padStart(s, 6, "0") == String.repeat("0", 4) + s)
 ```
 

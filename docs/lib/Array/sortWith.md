@@ -32,7 +32,7 @@ Array.sortWith([3, 1, 2], func(a: int, b: int) { b - a }) // [3, 2, 1]
 Call it through `.` on any array. `xs` keeps its order:
 
 ```ant
-var xs = [5, 3, 8, 1]
+let xs = [5, 3, 8, 1]
 xs.sortWith(func(a: int, b: int) { a - b }) // [1, 3, 5, 8]
 xs                                          // [5, 3, 8, 1]
 ```
@@ -42,7 +42,7 @@ xs                                          // [5, 3, 8, 1]
 An empty array sorts to an empty array. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.sortWith(func(a: string, b: string) { 0 }) // []
 ```
 
@@ -74,7 +74,7 @@ ties go by name:
 
 ```ant
 type Job = { priority: int, name: string }
-var jobs = [
+let jobs = [
   Job{ priority: 2, name: "lint" },
   Job{ priority: 1, name: "test" },
   Job{ priority: 1, name: "build" },
@@ -100,7 +100,7 @@ type Job = { priority: int, name: string }
 
 func Job.compare(a: Job, b: Job): int { a.priority - b.priority }
 
-var jobs = [Job{ priority: 2, name: "lint" }, Job{ priority: 1, name: "test" }]
+let jobs = [Job{ priority: 2, name: "lint" }, Job{ priority: 1, name: "test" }]
 jobs.sortWith(Job.compare).map({ x.name }) // ["test", "lint"]
 ```
 
@@ -133,7 +133,7 @@ func rank(s: Shape): int {
   if s is Circle { 0 } else { 1 }
 }
 
-var shapes: Array[Shape] = [Square{ side: 2.0 }, Circle{ r: 1.0 }, Square{ side: 1.0 }, Circle{ r: 3.0 }]
+let shapes: Array[Shape] = [Square{ side: 2.0 }, Circle{ r: 1.0 }, Square{ side: 1.0 }, Circle{ r: 3.0 }]
 shapes.sortWith(func(a: Shape, b: Shape) { rank(a) - rank(b) }) // [Circle{ r: 1.0 }, Circle{ r: 3.0 }, Square{ side: 2.0 }, Square{ side: 1.0 }]
 ```
 
@@ -141,7 +141,7 @@ An element type that includes `null` sorts once the comparator says where `null`
 last:
 
 ```ant
-var scores: Array[int | null] = [70, null, 95, 80]
+let scores: Array[int | null] = [70, null, 95, 80]
 scores.sortWith(func(a: int | null, b: int | null) {
   if a == null && b == null {
     0
@@ -159,7 +159,7 @@ The comparator is a closure, so it sees the variables it captures:
 
 ```ant
 var descending = true
-var cmp = func(a: int, b: int): int {
+let cmp = func(a: int, b: int): int {
   if descending { b - a } else { a - b }
 }
 [2, 3, 1].sortWith(cmp) // [3, 2, 1]
@@ -173,8 +173,8 @@ Sort words case-insensitively:
 
 ```ant
 func caseless(a: string, b: string): int {
-  var x = String.toLower(a)
-  var y = String.toLower(b)
+  let x = String.toLower(a)
+  let y = String.toLower(b)
   if x < y { -1 } else if x > y { 1 } else { 0 }
 }
 
@@ -185,7 +185,7 @@ A library function that returns a comparison result fits directly. `Time.compare
 or `1`:
 
 ```ant
-var dates = [Time.plainDate(2026, 3, 1), Time.plainDate(2025, 12, 24), Time.plainDate(2026, 1, 15)]
+let dates = [Time.plainDate(2026, 3, 1), Time.plainDate(2025, 12, 24), Time.plainDate(2026, 1, 15)]
 for d in dates.sortWith(Time.compare) {
   println(d)
 }
@@ -201,7 +201,7 @@ Rank a leaderboard: the highest score first, and players with one score in the o
 
 ```ant
 type Player = { name: string, score: int }
-var players = [
+let players = [
   Player{ name: "Ann", score: 40 },
   Player{ name: "Bob", score: 55 },
   Player{ name: "Cid", score: 40 },
@@ -223,10 +223,10 @@ For `int` elements whose differences do not overflow, the comparator `a - b` mak
 equal to `Array.sort`, and with a comparator on a key it is `Array.sortBy` on that key:
 
 ```ant
-var xs = [4, 1, 3, 1, 2]
+let xs = [4, 1, 3, 1, 2]
 assert(xs.sortWith(func(a: int, b: int) { a - b }) == xs.sort())
 
-var words = ["bee", "ant", "wasp", "fly"]
+let words = ["bee", "ant", "wasp", "fly"]
 assert(words.sortWith(func(a: string, b: string) { String.length(a) - String.length(b) })
   == words.sortBy({ String.length(x) }))
 ```
@@ -235,16 +235,16 @@ Swapping the arguments of `cmp` reverses the order of unequal elements, so for d
 is the reverse of the ascending sort:
 
 ```ant
-var xs = [4, 1, 3, 5, 2]
+let xs = [4, 1, 3, 5, 2]
 assert(xs.sortWith(func(a: int, b: int) { b - a }) == xs.sort().reverse())
 ```
 
 The result has the same elements as `xs`, and sorting it again changes nothing:
 
 ```ant
-var xs = [4, 1, 3, 1, 2]
-var asc = func(a: int, b: int): int { a - b }
-var ys = xs.sortWith(asc)
+let xs = [4, 1, 3, 1, 2]
+let asc = func(a: int, b: int): int { a - b }
+let ys = xs.sortWith(asc)
 assert(ys.sort() == xs.sort())
 assert(ys.sortWith(asc) == ys)
 ```
@@ -298,8 +298,8 @@ A comparator that is not a consistent order does not fail, but it promises no or
 holds the elements of `xs` in some order. Here `cmp` says every element goes after every other:
 
 ```ant
-var xs = [4, 1, 3, 2]
-var ys = xs.sortWith(func(a: int, b: int) { 1 })
+let xs = [4, 1, 3, 2]
+let ys = xs.sortWith(func(a: int, b: int) { 1 })
 assert(ys.sort() == xs.sort())
 ```
 

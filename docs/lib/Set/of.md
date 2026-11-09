@@ -34,7 +34,7 @@ Set.of(["red", "blue"]) // Set.of(["red", "blue"])
 Call functions on the result through `.`:
 
 ```ant
-var tags = Set.of(["ant", "go", "ant"])
+let tags = Set.of(["ant", "go", "ant"])
 tags.size()     // 2
 tags.has("go")  // true
 tags.has("zig") // false
@@ -45,7 +45,7 @@ tags.has("zig") // false
 An empty array gives the empty set. The annotation supplies the element type:
 
 ```ant
-var seen: Set[int] = Set.of([])
+let seen: Set[int] = Set.of([])
 seen        // Set.of([])
 seen.size() // 0
 ```
@@ -71,7 +71,7 @@ members:
 type Circle = { r: int }
 type Square = { r: int }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ r: 1 }, Square{ r: 1 }, Circle{ r: 1 }]
+let shapes: Array[Shape] = [Circle{ r: 1 }, Square{ r: 1 }, Circle{ r: 1 }]
 Set.of(shapes) // Set.of([Circle{ r: 1 }, Square{ r: 1 }])
 ```
 
@@ -86,14 +86,14 @@ Set.of([Set.of(["x", "y"]), Set.of(["y", "x"])]) // Set.of([Set.of(["x", "y"])])
 An element type that includes `null` gives a set that can hold `null` once:
 
 ```ant
-var answers: Array[int | null] = [1, null, null, 1]
+let answers: Array[int | null] = [1, null, null, 1]
 Set.of(answers) // Set.of([1, null])
 ```
 
 An array of mixed values gives a set of their union type:
 
 ```ant
-var mixed = Set.of([1, "a", 1])
+let mixed = Set.of([1, "a", 1])
 mixed // Set.of([1, "a"])
 ```
 
@@ -120,21 +120,21 @@ Set.of(xs: [2, 2, 7]) // Set.of([2, 7])
 Count the distinct words of a sentence:
 
 ```ant
-var words = String.split("the cat and the hat and the bat", " ")
+let words = String.split("the cat and the hat and the bat", " ")
 Set.of(words).size() // 5
 ```
 
 Collect the distinct values of a map:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54, alan: 36 }
+let ages = Map{ ada: 36, linus: 54, alan: 36 }
 Set.of(ages.values()) // Set.of([36, 54])
 ```
 
 Keep a fixed list of allowed values as a set, and check input against it:
 
 ```ant
-var allowed = Set.of(["debug", "info", "warn", "error"])
+let allowed = Set.of(["debug", "info", "warn", "error"])
 for level in ["info", "loud"] {
   if allowed.has(level) {
     println("ok: ${level}")
@@ -152,15 +152,15 @@ unknown level: loud
 Find the letters two words share, in the order of the first word:
 
 ```ant
-var a = Set.of(String.chars("listen"))
-var b = Set.of(String.chars("pistol"))
+let a = Set.of(String.chars("listen"))
+let b = Set.of(String.chars("pistol"))
 Set.intersect(a, b).values() // ["l", "i", "s", "t"]
 ```
 
 Start from a set of known members, then add to it while reading:
 
 ```ant
-var visited = Set.of(["home"])
+let visited = Set.of(["home"])
 for page in ["about", "home", "blog", "about"] {
   if visited.add(page) {
     println("new: ${page}")
@@ -178,9 +178,9 @@ Set.of(["home", "about", "blog"])
 Fall back to an empty set for a missing map key. The right side of `??` takes the map's value type:
 
 ```ant
-var followers: Map[string, Set[string]] = Map{ ada: Set.of(["alan"]) }
+let followers: Map[string, Set[string]] = Map{ ada: Set.of(["alan"]) }
 for name in ["ada", "linus"] {
-  var fs = followers[name] ?? Set.of([])
+  let fs = followers[name] ?? Set.of([])
   println("${name}: ${fs.size()}")
 }
 ```
@@ -195,15 +195,15 @@ linus: 0
 The members of `Set.of(xs)`, in order, are what `Array.unique` returns:
 
 ```ant
-var xs = [4, 2, 4, 9, 2]
+let xs = [4, 2, 4, 9, 2]
 assert(Set.of(xs).values() == xs.unique())
 ```
 
 The set never has more members than `xs` has elements, and every element of `xs` is a member:
 
 ```ant
-var xs = ["a", "b", "a"]
-var s = Set.of(xs)
+let xs = ["a", "b", "a"]
+let s = Set.of(xs)
 assert(s.size() <= len(xs))
 assert(xs.every({ s.has(x) }))
 ```
@@ -211,7 +211,7 @@ assert(xs.every({ s.has(x) }))
 Order does not matter to `==`, so an array and its reverse give equal sets:
 
 ```ant
-var xs = [1, 2, 3, 2]
+let xs = [1, 2, 3, 2]
 assert(Set.of(xs) == Set.of(xs.reverse()))
 assert(Set.of(xs).values() != Set.of(xs.reverse()).values())
 ```
@@ -219,8 +219,8 @@ assert(Set.of(xs).values() != Set.of(xs.reverse()).values())
 Building a set from the values of another gives an equal, separate set:
 
 ```ant
-var s = Set.of([1, 2])
-var t = Set.of(s.values())
+let s = Set.of([1, 2])
+let t = Set.of(s.values())
 assert(s == t)
 assert(!Set.same(s, t))
 t.add(3)
@@ -232,30 +232,30 @@ assert(!s.has(3))
 `Set.of([])` with no expected type has no element type to infer:
 
 ```ant
-var s = Set.of([]) // error: cannot infer the element type of an empty array; annotate it
+let s = Set.of([]) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 There is no set literal. `Set{}` is read as a record literal:
 
 ```ant
-var s: Set[int] = Set{} // error: a record literal needs a record type as its head
+let s: Set[int] = Set{} // error: a record literal needs a record type as its head
 ```
 
 `Set.of` takes one array, not the members as separate arguments:
 
 ```ant
-var s = Set.of(1, 2) // error: Set.of takes 1 argument, got 2
+let s = Set.of(1, 2) // error: Set.of takes 1 argument, got 2
 ```
 
 A set has no indexing. Use `Set.values` for an array to index:
 
 ```ant
-var s = Set.of([10, 20])
+let s = Set.of([10, 20])
 println(s[0]) // error: Set[int] cannot be indexed
 ```
 
 ```ant
-var s = Set.of([10, 20])
+let s = Set.of([10, 20])
 s.values()[0] // 10
 ```
 
@@ -270,7 +270,7 @@ Strings compare by code points, so the two Unicode spellings of "é" are two mem
 with `String.normalize` first:
 
 ```ant
-var names = ["café", "cafe\u{301}"]
+let names = ["café", "cafe\u{301}"]
 Set.of(names).size()                                     // 2
 Set.of(names.map({ String.normalize(x, "NFC") })).size() // 1
 ```

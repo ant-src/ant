@@ -21,8 +21,8 @@ Set.same reports whether a and b are the same set, not merely equal ones.
 A set is the same as itself, and as any other name for it:
 
 ```ant
-var a = Set.of([1, 2])
-var b = a
+let a = Set.of([1, 2])
+let b = a
 Set.same(a, a) // true
 Set.same(a, b) // true
 ```
@@ -30,7 +30,7 @@ Set.same(a, b) // true
 An equal set built separately is not the same set:
 
 ```ant
-var a = Set.of([1, 2])
+let a = Set.of([1, 2])
 a == Set.of([2, 1])         // true
 Set.same(a, Set.of([2, 1])) // false
 ```
@@ -40,8 +40,8 @@ Set.same(a, Set.of([2, 1])) // false
 Two empty sets are equal, and still two sets:
 
 ```ant
-var a: Set[string] = Set.of([])
-var b: Set[string] = Set.of([])
+let a: Set[string] = Set.of([])
+let b: Set[string] = Set.of([])
 a == b         // true
 Set.same(a, b) // false
 ```
@@ -50,8 +50,8 @@ Set.same(a, b) // false
 same members as an argument:
 
 ```ant
-var a = Set.of([1, 2])
-var none: Set[int] = Set.of([])
+let a = Set.of([1, 2])
+let none: Set[int] = Set.of([])
 Set.same(a, a.union(none))      // false
 Set.same(a, a.intersect(a))     // false
 Set.same(a, a.difference(none)) // false
@@ -60,8 +60,8 @@ Set.same(a, a.difference(none)) // false
 `Set.add` and `Set.remove` change the set in place, so it stays the same set:
 
 ```ant
-var a = Set.of(["x"])
-var b = a
+let a = Set.of(["x"])
+let b = a
 a.add("y")     // true
 a.remove("x")  // true
 Set.same(a, b) // true
@@ -73,31 +73,31 @@ which is a reference:
 
 ```ant
 type User = { name: string, roles: Set[string] }
-var u = User{ name: "ann", roles: Set.of(["admin"]) }
-var v = User{ ...u, name: "bob" }
+let u = User{ name: "ann", roles: Set.of(["admin"]) }
+let v = User{ ...u, name: "bob" }
 Set.same(u.roles, v.roles) // true
 ```
 
 In a pipeline, the left side is `a`:
 
 ```ant
-var a = Set.of([1])
-var b = a
+let a = Set.of([1])
+let b = a
 a | Set.same(b) // true
 ```
 
 Call it through `.` on any set:
 
 ```ant
-var a = Set.of(["red"])
-var b = a
+let a = Set.of(["red"])
+let b = a
 a.same(b) // true
 ```
 
 Name the arguments, in any order:
 
 ```ant
-var a = Set.of([1])
+let a = Set.of([1])
 Set.same(a: a, b: a)           // true
 Set.same(b: a, a: Set.of([1])) // false
 ```
@@ -117,8 +117,8 @@ func moveAll(from: Set[string], to: Set[string]) {
   }
 }
 
-var pending = Set.of(["a", "b"])
-var done = Set.of(["z"])
+let pending = Set.of(["a", "b"])
+let done = Set.of(["z"])
 moveAll(pending, done)
 println("${pending} ${done}")
 moveAll(done, done)
@@ -135,8 +135,8 @@ Set.of(["z", "a", "b"])
 `Set.same` is reflexive and symmetric:
 
 ```ant
-var a = Set.of([1])
-var b = a
+let a = Set.of([1])
+let b = a
 assert(Set.same(a, a))
 assert(Set.same(a, b) == Set.same(b, a))
 ```
@@ -145,7 +145,7 @@ A set that holds a `NaN` is not `==` to itself, since floats compare by IEEE 754
 the same set:
 
 ```ant
-var a = Set.of([Math.NaN])
+let a = Set.of([Math.NaN])
 a == a         // false
 Set.same(a, a) // true
 ```
@@ -154,9 +154,9 @@ When two names refer to the same set, a change through one shows through the oth
 does not:
 
 ```ant
-var a = Set.of([1])
-var b = a
-var copy = Set.of(a.values())
+let a = Set.of([1])
+let b = a
+let copy = Set.of(a.values())
 a.add(2)
 assert(Set.same(a, b) && b == Set.of([1, 2]))
 assert(!Set.same(a, copy) && copy == Set.of([1]))
@@ -165,8 +165,8 @@ assert(!Set.same(a, copy) && copy == Set.of([1]))
 `Reflect.same` reports the same for two reflected sets:
 
 ```ant
-var a = Set.of([1])
-var t = type(Set[int])
+let a = Set.of([1])
+let t = type(Set[int])
 assert(Reflect.same(Reflect.valueOf(t, a), Reflect.valueOf(t, a)))
 assert(!Reflect.same(Reflect.valueOf(t, a), Reflect.valueOf(t, Set.of([1]))))
 ```
@@ -177,8 +177,8 @@ Both arguments have the one type `Set[T]`. A `Set[int]` and a `Set[int | null]` 
 so comparing them is a compile error:
 
 ```ant
-var a = Set.of([1])
-var b: Set[int | null] = Set.of([1])
+let a = Set.of([1])
+let b: Set[int | null] = Set.of([1])
 println(Set.same(a, b)) // error: cannot use Set[int | null] where Set[int] is expected
 ```
 

@@ -79,7 +79,7 @@ water plants
 -->
 
 ```ant
-var text = Result.unwrap(File.read("todo.txt"))
+let text = Result.unwrap(File.read("todo.txt"))
 for line in String.lines(text) {
   println("- ${line}")
 }
@@ -102,7 +102,7 @@ Number the lines, starting at 1:
 
 ```ant
 func numbered(text: string): string {
-  var out: Array[string] = []
+  let out: Array[string] = []
   for line in String.lines(text) {
     out.push("${len(out) + 1}: ${line}")
   }
@@ -116,13 +116,13 @@ Parse `key=value` settings, skipping blank lines and comments:
 
 ```ant
 func settings(text: string): Map[string, string] {
-  var m: Map[string, string] = Map{}
+  let m: Map[string, string] = Map{}
   for line in String.lines(text) {
-    var t = String.trim(line)
+    let t = String.trim(line)
     if t == "" || String.startsWith(t, "#") {
       continue
     }
-    var kv = String.cut(t, "=")
+    let kv = String.cut(t, "=")
     if kv != null {
       m[String.trim(kv.before)] = String.trim(kv.after)
     }
@@ -136,7 +136,7 @@ settings("# server\nhost = localhost\n\nport=8080\r\n") // Map{ "host": "localho
 Keep the lines that match, as `grep` does:
 
 ```ant
-var log = "INFO start\nERROR disk full\nINFO retry\nERROR disk full\n"
+let log = "INFO start\nERROR disk full\nINFO retry\nERROR disk full\n"
 String.lines(log).filter({ String.startsWith(x, "ERROR") }) // ["ERROR disk full", "ERROR disk full"]
 ```
 
@@ -146,14 +146,14 @@ For text that ends with `\n` and holds no `\r`, joining the lines with `\n` and 
 newline gives the text back:
 
 ```ant
-var text = "first\n\nthird\n"
+let text = "first\n\nthird\n"
 assert(String.join(String.lines(text), "\n") + "\n" == text)
 ```
 
 For such text, there is one line per `\n`:
 
 ```ant
-var text = "a\nb\n\nc\n"
+let text = "a\nb\n\nc\n"
 assert(len(String.lines(text)) == String.count(text, "\n"))
 ```
 
@@ -161,7 +161,7 @@ Adding a final newline to text that is not empty and does not end with one does 
 lines:
 
 ```ant
-var text = "a\nb"
+let text = "a\nb"
 assert(String.lines(text + "\n") == String.lines(text))
 ```
 
@@ -169,7 +169,7 @@ For text with no `\r`, `String.lines` is [String.split](split.md) at `\n` withou
 after a final newline:
 
 ```ant
-var text = "a\nb\n"
+let text = "a\nb\n"
 String.split(text, "\n") // ["a", "b", ""]
 String.lines(text)       // ["a", "b"]
 ```

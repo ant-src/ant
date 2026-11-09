@@ -55,7 +55,7 @@ for n in evens(7) {
 The `Iter` functions return sequences, and `Iter.toArray` collects one into an array:
 
 ```ant
-var s: Seq[int] = Iter.range(1, 4)
+let s: Seq[int] = Iter.range(1, 4)
 Iter.toArray(s)            // [1, 2, 3]
 s.map({ x * x }).toArray() // [1, 4, 9]
 ```
@@ -65,7 +65,7 @@ s.map({ x * x }).toArray() // [1, 4, 9]
 A sequence of no elements never calls `yield`:
 
 ```ant
-var none: Seq[string] = func(yield: func(string): bool) {}
+let none: Seq[string] = func(yield: func(string): bool) {}
 none.toArray() // []
 ```
 
@@ -73,7 +73,7 @@ Any function of the right type is a sequence. A lambda's `x` here is the `yield`
 stops at the first `false`. The body of a sequence is `void`, so `_ =` discards the `bool`:
 
 ```ant
-var abc: Seq[string] = {
+let abc: Seq[string] = {
   _ = x("a") && x("b") && x("c")
 }
 abc.toArray() // ["a", "b", "c"]
@@ -103,7 +103,7 @@ The elements may be records, and a `for` loop destructures them:
 
 ```ant
 type Point = { x: int, y: int }
-var diagonal = Iter.range(0, 3).map({ Point{ x: x, y: x } })
+let diagonal = Iter.range(0, 3).map({ Point{ x: x, y: x } })
 for { x, y } in diagonal {
   println("(${x}, ${y})")
 }
@@ -137,7 +137,7 @@ Call a sequence directly with your own `yield`. Return `true` to ask for the nex
 `false` to stop:
 
 ```ant
-var words = Iter.fromArray(["ant", "bee", "fly"])
+let words = Iter.fromArray(["ant", "bee", "fly"])
 words({
   println(x)
   x != "bee"
@@ -161,7 +161,7 @@ values as the sequence:
 
 ```ant
 func squares(n: int): Seq[int] {
-  var c: Channel[int] = Channel.new()
+  let c: Channel[int] = Channel.new()
   go {
     for i in Iter.range(1, n + 1) {
       Channel.send(c, i * i)
@@ -198,8 +198,8 @@ func Tree.values(t: Tree): Seq[int] {
   func(yield: func(int): bool) { _ = visit(t, yield) }
 }
 
-var leaf = func(n: int): Tree { Tree{ value: n, children: [] } }
-var t = Tree{ value: 1, children: [leaf(2), Tree{ value: 3, children: [leaf(4)] }] }
+let leaf = func(n: int): Tree { Tree{ value: n, children: [] } }
+let t = Tree{ value: 1, children: [leaf(2), Tree{ value: 3, children: [leaf(4)] }] }
 println(Tree.values(t).toArray())
 println(Tree.values(t).filter({ x % 2 == 0 }).toArray())
 ```
@@ -220,7 +220,7 @@ func firstOver(s: Seq[int], n: int): int | null {
   null
 }
 
-var powers: Seq[int] = func(yield: func(int): bool) {
+let powers: Seq[int] = func(yield: func(int): bool) {
   var p = 1
   while yield(p) { p *= 2 }
 }
@@ -236,8 +236,8 @@ println(firstOver(powers, 1000))
 A `for` loop and `Iter.toArray` see the same elements, in the same order:
 
 ```ant
-var s = Iter.range(0, 5).map({ x * 3 })
-var seen: Array[int] = []
+let s = Iter.range(0, 5).map({ x * 3 })
+let seen: Array[int] = []
 for x in s {
   seen.push(x)
 }
@@ -247,14 +247,14 @@ assert(seen == s.toArray())
 `Iter.fromArray` and `Iter.toArray` round-trip an array:
 
 ```ant
-var xs = ["a", "b", "c"]
+let xs = ["a", "b", "c"]
 assert(Iter.fromArray(xs).toArray() == xs)
 ```
 
 A sequence built from a range gives the same elements every time it runs:
 
 ```ant
-var s = Iter.range(0, 3)
+let s = Iter.range(0, 3)
 assert(s.toArray() == s.toArray())
 ```
 
@@ -263,7 +263,7 @@ assert(s.toArray() == s.toArray())
 A sequence that ignores what `yield` returns keeps calling it after a `break`, and the loop panics:
 
 ```ant
-var ab: Seq[string] = func(yield: func(string): bool) {
+let ab: Seq[string] = func(yield: func(string): bool) {
   for w in ["a", "b"] {
     yield(w)
     // panic: yield called again after it returned false; a sequence must return when yield returns false
@@ -279,11 +279,11 @@ Stop at the first `false` with `if !yield(w) { return }`.
 A channel's values run once. Running the sequence again finds the channel drained:
 
 ```ant
-var c: Channel[int] = Channel.new(2)
+let c: Channel[int] = Channel.new(2)
 Channel.send(c, 1)
 Channel.send(c, 2)
 Channel.close(c)
-var s = Channel.values(c)
+let s = Channel.values(c)
 println(s.toArray())
 println(s.toArray())
 ```
@@ -296,8 +296,8 @@ println(s.toArray())
 `Iter.fromArray(a)` reads `a` again on each run, so a push between runs shows up in the next run:
 
 ```ant
-var a = [1]
-var s = Iter.fromArray(a)
+let a = [1]
+let s = Iter.fromArray(a)
 println(s.toArray())
 a.push(2)
 println(s.toArray())
@@ -311,14 +311,14 @@ println(s.toArray())
 A sequence returns nothing. A function that returns a `bool` is not a `Seq`:
 
 ```ant
-var s: Seq[int] = func(yield: func(int): bool): bool { yield(1) }
+let s: Seq[int] = func(yield: func(int): bool): bool { yield(1) }
 // error: cannot use func(func(int): bool): bool where Seq[int] is expected
 ```
 
 `for` iterates only a function of the sequence's shape:
 
 ```ant
-var positive: func(int): bool = { x > 0 }
+let positive: func(int): bool = { x > 0 }
 for v in positive { // error: for needs an array, a map, a set, a string, Bytes, or a sequence, got func(int): bool
   println(v)
 }

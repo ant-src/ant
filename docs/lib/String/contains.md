@@ -27,7 +27,7 @@ String.contains("seafood", "bar") // false
 Call it through `.` on any string:
 
 ```ant
-var greeting = "hello world"
+let greeting = "hello world"
 greeting.contains("o w")   // true
 greeting.contains("Hello") // false
 ```
@@ -73,7 +73,7 @@ In a pipeline, the string is the first argument:
 Keep the log lines that mention an error:
 
 ```ant
-var log = "ok\nERROR: disk full\nok\nERROR: timeout"
+let log = "ok\nERROR: disk full\nok\nERROR: timeout"
 String.lines(log).filter({ x.contains("ERROR") }) // ["ERROR: disk full", "ERROR: timeout"]
 ```
 
@@ -119,7 +119,7 @@ For a non-empty `t`, `String.contains` agrees with [`String.indexOf`](indexOf.md
 [`String.count`](count.md):
 
 ```ant
-var s = "banana"
+let s = "banana"
 for t in ["an", "nab", "a", "x"] {
   assert(s.contains(t) == (s.indexOf(t) != null))
   assert(s.contains(t) == (s.count(t) > 0))
@@ -129,7 +129,7 @@ for t in ["an", "nab", "a", "x"] {
 A string contains each of its prefixes, suffixes, and slices:
 
 ```ant
-var s = "anthill"
+let s = "anthill"
 for i in Iter.range(0, s.length() + 1) {
   assert(s.contains(s.slice(0, i)))
   assert(s.contains(s.slice(i, s.length())))
@@ -143,9 +143,9 @@ for i in Iter.range(0, s.length() + 1) {
 part:
 
 ```ant
-var a = "ant"
-var b = "hill"
-var s = String.concat([a, b])
+let a = "ant"
+let b = "hill"
+let s = String.concat([a, b])
 assert(s.startsWith(a) && s.contains(a))
 assert(s.endsWith(b) && s.contains(b))
 ```
@@ -164,7 +164,7 @@ contains a plain `e`, and does not contain the single code point `\u{E9}` until
 [`String.normalize`](normalize.md) composes it:
 
 ```ant
-var word = "cafe\u{301}"
+let word = "cafe\u{301}"
 word.contains("e")                               // true
 word.contains("\u{E9}")                          // false
 String.normalize(word, "NFC").contains("\u{E9}") // true
@@ -174,7 +174,7 @@ A substring is not a word. To test for a whole word, split the text first and us
 [`Array.contains`](../Array/contains.md):
 
 ```ant
-var text = "the cat sat"
+let text = "the cat sat"
 text.contains("he")                 // true
 String.fields(text).contains("he")  // false
 String.fields(text).contains("cat") // true
@@ -184,7 +184,7 @@ A nullable string, such as the result of `Map` indexing, is not a `string`, so i
 error:
 
 ```ant
-var user = Map{ name: "Ann" }
+let user = Map{ name: "Ann" }
 println(String.contains(user["name"], "A"))
 // error: cannot use string | null where string is expected
 ```
@@ -192,8 +192,8 @@ println(String.contains(user["name"], "A"))
 Narrow it first:
 
 ```ant
-var user = Map{ name: "Ann" }
-var name = user["name"]
+let user = Map{ name: "Ann" }
+let name = user["name"]
 if name != null {
   println(name.contains("A"))
 }
@@ -206,7 +206,7 @@ true
 Or give a default with `??`:
 
 ```ant
-var user = Map{ name: "Ann" }
+let user = Map{ name: "Ann" }
 (user["name"] ?? "").contains("A") // true
 ```
 

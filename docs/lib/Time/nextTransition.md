@@ -16,6 +16,6 @@ changing.
 ## Basic examples
 
 ```ant
-var t = Result.unwrap(Time.parseZoned("2024-06-01T00:00[America/New_York]"))
+let t = Result.unwrap(Time.parseZoned("2024-06-01T00:00[America/New_York]"))
 Time.nextTransition(t) // 2024-11-03T01:00:00-05:00[America/New_York]
 ```

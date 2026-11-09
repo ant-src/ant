@@ -23,21 +23,21 @@ Map.get returns the value m holds for k, or null when k is missing. It is the sa
 Read the value for a key:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54 }
+let ages = Map{ ada: 36, linus: 54 }
 Map.get(ages, "ada") // 36
 ```
 
 A missing key gives `null`:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54 }
+let ages = Map{ ada: 36, linus: 54 }
 Map.get(ages, "grace") // null
 ```
 
 Give a missing key a default with `??`:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54 }
+let ages = Map{ ada: 36, linus: 54 }
 ages.get("grace") ?? 0 // 0
 ```
 
@@ -46,7 +46,7 @@ ages.get("grace") ?? 0 // 0
 An empty map has no entries. Annotate it so that `K` and `V` are known:
 
 ```ant
-var empty: Map[string, int] = Map{}
+let empty: Map[string, int] = Map{}
 empty.get("a") // null
 ```
 
@@ -54,10 +54,10 @@ Records and arrays are keys by value, so a new record equal to the stored key fi
 
 ```ant
 type Point = { x: int, y: int }
-var labels = Map{ Point{ x: 0, y: 0 }: "origin" }
+let labels = Map{ Point{ x: 0, y: 0 }: "origin" }
 labels.get(Point{ x: 0, y: 0 }) // "origin"
 labels.get(Point{ x: 1, y: 0 }) // null
-var cells = Map{ [0, 1]: "b1" }
+let cells = Map{ [0, 1]: "b1" }
 cells.get([0, 1]) // "b1"
 ```
 
@@ -65,7 +65,7 @@ Keys of a union type tell their members apart, so `1` and `"1"` are two keys:
 
 ```ant
 type Id = int | string
-var ids: Map[Id, string] = Map{ 1: "number", "1": "text" }
+let ids: Map[Id, string] = Map{ 1: "number", "1": "text" }
 ids.get(1)   // "number"
 ids.get("1") // "text"
 ```
@@ -74,7 +74,7 @@ Look up a key of a named primitive type with a value of that type:
 
 ```ant
 type UserId = string
-var owners = Map{ UserId("u-1"): "Ann" }
+let owners = Map{ UserId("u-1"): "Ann" }
 owners.get(UserId("u-1")) // "Ann"
 ```
 
@@ -82,7 +82,7 @@ String keys compare by code points. A precomposed `é` and an `e` followed by a 
 the same but are two keys:
 
 ```ant
-var words = Map{ "café": 1 }
+let words = Map{ "café": 1 }
 words.get("café")        // 1
 words.get("cafe\u{301}") // null
 ```
@@ -90,7 +90,7 @@ words.get("cafe\u{301}") // null
 Call it through `.` or in a pipe:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54 }
+let ages = Map{ ada: 36, linus: 54 }
 ages.get("linus")     // 54
 ages | Map.get("ada") // 36
 ```
@@ -100,7 +100,7 @@ ages | Map.get("ada") // 36
 Count words, starting each count at 0 with `??`:
 
 ```ant
-var counts: Map[string, int] = Map{}
+let counts: Map[string, int] = Map{}
 for word in String.split("to be or not to be", " ") {
   counts[word] = (counts.get(word) ?? 0) + 1
 }
@@ -115,10 +115,10 @@ Return early from a function when a key is missing, with `?? return`:
 
 ```ant
 type User = { name: string, email: string }
-var users = Map{ "u-1": User{ name: "Ann", email: "ann@example.com" } }
+let users = Map{ "u-1": User{ name: "Ann", email: "ann@example.com" } }
 
 func emailOf(id: string): string {
-  var user = users.get(id) ?? return "unknown user ${id}"
+  let user = users.get(id) ?? return "unknown user ${id}"
   user.email
 }
 
@@ -134,17 +134,17 @@ unknown user u-9
 Remember results that are slow to compute:
 
 ```ant
-var cache: Map[int, int] = Map{}
+let cache: Map[int, int] = Map{}
 
 func fib(n: int): int {
   if n < 2 {
     return n
   }
-  var known = cache.get(n)
+  let known = cache.get(n)
   if known != null {
     return known
   }
-  var result = fib(n - 1) + fib(n - 2)
+  let result = fib(n - 1) + fib(n - 2)
   cache[n] = result
   result
 }
@@ -160,14 +160,14 @@ Group records by a field, adding to the array that `Map.get` returns:
 
 ```ant
 type Task = { owner: string, title: string }
-var tasks = [
+let tasks = [
   Task{ owner: "ann", title: "docs" },
   Task{ owner: "bob", title: "tests" },
   Task{ owner: "ann", title: "release" },
 ]
-var byOwner: Map[string, Array[string]] = Map{}
+let byOwner: Map[string, Array[string]] = Map{}
 for task in tasks {
-  var titles = byOwner.get(task.owner)
+  let titles = byOwner.get(task.owner)
   if titles == null {
     byOwner[task.owner] = [task.title]
   } else {
@@ -186,7 +186,7 @@ Map{ "ann": ["docs", "release"], "bob": ["tests"] }
 `Map.get` is the same as indexing with `m[k]`:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 assert(ages.get("ada") == ages["ada"])
 assert(ages.get("grace") == ages["grace"])
 ```
@@ -194,7 +194,7 @@ assert(ages.get("grace") == ages["grace"])
 After `Map.set`, it returns the value just stored; after `Map.remove`, it returns `null`:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 ages.set("ada", 37)
 assert(ages.get("ada") == 37)
 ages.remove("ada")
@@ -204,7 +204,7 @@ assert(ages.get("ada") == null)
 When `V` has no `null`, it returns `null` exactly when `Map.has` is false:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 assert((ages.get("ada") != null) == ages.has("ada"))
 assert((ages.get("grace") != null) == ages.has("grace"))
 ```
@@ -212,7 +212,7 @@ assert((ages.get("grace") != null) == ages.has("grace"))
 It reads without changing the map, so a missing key is not added:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 ages.get("grace")
 assert(ages.size() == 1)
 ```
@@ -222,7 +222,7 @@ assert(ages.size() == 1)
 The result may be `null`, so using it as a `V` without narrowing is a compile error:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 println(ages.get("ada") + 1)
 // error: + needs both operands of one type, got int | null and int
 ```
@@ -233,7 +233,7 @@ When `V` includes `null`, a stored `null` and a missing key look the same. Use [
 to tell them apart:
 
 ```ant
-var scores: Map[string, int | null] = Map{ ann: null }
+let scores: Map[string, int | null] = Map{ ann: null }
 scores.get("ann") // null
 scores.get("bob") // null
 scores.has("ann") // true
@@ -243,7 +243,7 @@ scores.has("bob") // false
 The key must have the map's key type:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 println(ages.get(1)) // error: cannot use int where string is expected
 ```
 
@@ -251,7 +251,7 @@ A key of a named primitive type needs that type; a plain string does not convert
 
 ```ant
 type UserId = string
-var owners = Map{ UserId("u-1"): "Ann" }
+let owners = Map{ UserId("u-1"): "Ann" }
 println(owners.get("u-1")) // error: cannot use string where UserId is expected
 ```
 

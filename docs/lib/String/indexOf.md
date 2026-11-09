@@ -85,7 +85,7 @@ Take the text after the first dot, and return early with `?? return` when there 
 
 ```ant
 func afterFirstDot(name: string): string {
-  var i = String.indexOf(name, ".") ?? return ""
+  let i = String.indexOf(name, ".") ?? return ""
   String.slice(name, i + 1, String.length(name))
 }
 
@@ -101,11 +101,11 @@ tar.gz
 Find every occurrence by searching again after each match, and stop with `?? break`:
 
 ```ant
-var s = "the cat and the hat"
+let s = "the cat and the hat"
 var from = 0
-var hits: Array[int] = []
+let hits: Array[int] = []
 while true {
-  var i = String.indexOf(String.slice(s, from, String.length(s)), "the") ?? break
+  let i = String.indexOf(String.slice(s, from, String.length(s)), "the") ?? break
   hits.push(from + i)
   from = from + i + 1
 }
@@ -125,7 +125,7 @@ Narrow the result with `!= null` to split a header line at its colon:
 type Header = { name: string, value: string }
 
 func parseHeader(line: string): Header | null {
-  var i = String.indexOf(line, ": ")
+  let i = String.indexOf(line, ": ")
   if i != null {
     Header{ name: String.slice(line, 0, i), value: String.slice(line, i + 2, String.length(line)) }
   } else {
@@ -154,7 +154,7 @@ String.cut("Content-Type: text/html", ": ") // String.Cut{ before: "Content-Type
 The result is `null` exactly when [`String.contains`](contains.md) is `false`:
 
 ```ant
-var s = "banana"
+let s = "banana"
 for t in ["an", "nab", "a", "x"] {
   assert((String.indexOf(s, t) == null) == !String.contains(s, t))
 }
@@ -164,9 +164,9 @@ When `t` occurs, the slice of `s` at the index is `t`, and no occurrence of `t` 
 index:
 
 ```ant
-var s = "mississippi"
-var t = "ssi"
-var i = String.indexOf(s, t)
+let s = "mississippi"
+let t = "ssi"
+let i = String.indexOf(s, t)
 assert(i != null)
 assert(String.slice(s, i, i + String.length(t)) == t)
 assert(!String.contains(String.slice(s, 0, i + String.length(t) - 1), t))
@@ -176,8 +176,8 @@ The first index is never after the last one that [`String.lastIndexOf`](lastInde
 
 ```ant
 for s in ["banana", "an", "nana"] {
-  var first = String.indexOf(s, "an")
-  var last = String.lastIndexOf(s, "an")
+  let first = String.indexOf(s, "an")
+  let last = String.lastIndexOf(s, "an")
   assert((first == null) == (last == null))
   if first != null && last != null {
     assert(first <= last)
@@ -189,7 +189,7 @@ On the code points of `s`, a one-code-point `t` has the same index that
 [`Array.indexOf`](../Array/indexOf.md) gives on [`String.chars`](chars.md):
 
 ```ant
-var s = "hello"
+let s = "hello"
 for c in ["h", "l", "o", "z"] {
   assert(String.indexOf(s, c) == Array.indexOf(String.chars(s), c))
 }
@@ -217,7 +217,7 @@ String.contains("abc", "z")        // false
 The result is not an `int` until you narrow it, so arithmetic on it is a compile error:
 
 ```ant
-var i = String.indexOf("abc", "b")
+let i = String.indexOf("abc", "b")
 println(i + 1) // error: + needs both operands of one type, got int | null and int
 ```
 

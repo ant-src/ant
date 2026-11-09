@@ -39,7 +39,7 @@ An empty sequence gives an empty array:
 
 ```ant
 Iter.range(5, 0) | Iter.toArray() // []
-var none: Seq[string] = func(yield: func(string): bool) {}
+let none: Seq[string] = func(yield: func(string): bool) {}
 Iter.toArray(none) // []
 ```
 
@@ -48,7 +48,7 @@ Elements of any type come through as they are, `null` included:
 ```ant
 type Point = { x: int, y: int }
 Iter.fromArray([Point{ x: 1, y: 2 }]) | Iter.toArray() // [Point{ x: 1, y: 2 }]
-var maybe: Seq[int | null] = Iter.fromArray([1, null, 3])
+let maybe: Seq[int | null] = Iter.fromArray([1, null, 3])
 Iter.toArray(maybe) // [1, null, 3]
 ```
 
@@ -76,7 +76,7 @@ Iter.range(1, 4).map({ x * x }).toArray() // [1, 4, 9]
 Collect what a channel delivers until it is closed:
 
 ```ant
-var squares: Channel[int] = Channel.new(3)
+let squares: Channel[int] = Channel.new(3)
 go {
   for i in [1, 2, 3] { Channel.send(squares, i * i) }
   Channel.close(squares)
@@ -129,8 +129,8 @@ label 2
 Collecting `Iter.fromArray(xs)` gives an array equal to `xs`, but not the same array:
 
 ```ant
-var xs = [3, 1, 2]
-var copy = Iter.toArray(Iter.fromArray(xs))
+let xs = [3, 1, 2]
+let copy = Iter.toArray(Iter.fromArray(xs))
 assert(copy == xs)
 Array.push(copy, 4)
 assert(xs == [3, 1, 2])
@@ -139,14 +139,14 @@ assert(xs == [3, 1, 2])
 Collecting a lazy `Iter.map` gives what `Array.map` gives on the same elements:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 assert(Iter.fromArray(xs).map({ x + 1 }).toArray() == Array.map(xs, { x + 1 }))
 ```
 
 A `for` loop over the sequence visits the same elements, in the same order:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 for n in Iter.range(0, 4) { Array.push(seen, n) }
 assert(seen == Iter.toArray(Iter.range(0, 4)))
 ```
@@ -156,7 +156,7 @@ assert(seen == Iter.toArray(Iter.range(0, 4)))
 A sequence over an array reads the array each time it runs, so two calls can differ:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 let seq = Iter.fromArray(xs)
 Iter.toArray(seq) // [1, 2]
 Array.push(xs, 3)
@@ -166,7 +166,7 @@ Iter.toArray(seq) // [1, 2, 3]
 A sequence over a channel gives each value once, so a second run finds nothing:
 
 ```ant
-var c: Channel[int] = Channel.new(3)
+let c: Channel[int] = Channel.new(3)
 Channel.send(c, 1)
 Channel.send(c, 2)
 Channel.close(c)
@@ -183,8 +183,8 @@ println(Iter.toArray(vs))
 An array is not a sequence. Convert it with `Iter.fromArray`, or use the `Array` functions directly:
 
 ```ant
-var xs = [1, 2, 3]
-var ys = Iter.toArray(xs) // error: cannot use Array[int] where Seq[T] is expected
+let xs = [1, 2, 3]
+let ys = Iter.toArray(xs) // error: cannot use Array[int] where Seq[T] is expected
 ```
 
 A panic in the sequence reaches the caller of `Iter.toArray`. `Iter.take` stops the run before the

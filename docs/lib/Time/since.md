@@ -16,8 +16,8 @@ panics as [`Time.until`](until.md) does.
 ## Basic examples
 
 ```ant
-var feb29 = Time.plainDate(2024, 2, 29)
-var mar31 = Time.plainDate(2024, 3, 31)
+let feb29 = Time.plainDate(2024, 2, 29)
+let mar31 = Time.plainDate(2024, 3, 31)
 Time.since(mar31, feb29, largestUnit: Time.Month{}) // P1M
 Time.until(feb29, mar31, largestUnit: Time.Month{}) // P1M2D
 ```

@@ -88,7 +88,7 @@ Check that a user name has between 3 and 16 characters:
 
 ```ant
 func validName(name: string): bool {
-  var n = String.length(String.trim(name))
+  let n = String.length(String.trim(name))
   n >= 3 && n <= 16
 }
 
@@ -120,7 +120,7 @@ String.fields("ants dig long tunnels").maxBy(String.length) // "tunnels"
 Underline a heading with as many characters as it has:
 
 ```ant
-var title = "Größe"
+let title = "Größe"
 println(title)
 println(String.repeat("=", String.length(title)))
 ```
@@ -149,7 +149,7 @@ for s in ["", "ant", "héllo", "👨‍👩‍👧"] {
 The length is the number of elements of `String.chars` and of `String.toCodePoints`:
 
 ```ant
-var s = "e\u{301}🇨🇭 ant"
+let s = "e\u{301}🇨🇭 ant"
 assert(len(String.chars(s)) == String.length(s))
 assert(len(String.toCodePoints(s)) == String.length(s))
 ```
@@ -157,8 +157,8 @@ assert(len(String.toCodePoints(s)) == String.length(s))
 The length of a concatenation is the sum of the lengths:
 
 ```ant
-var a = "ant"
-var b = "hill🐜"
+let a = "ant"
+let b = "hill🐜"
 assert(String.length(a + b) == String.length(a) + String.length(b))
 ```
 
@@ -173,7 +173,7 @@ for s in ["", " ", "ant"] {
 `String.slice` from `0` to the length gives back the whole string:
 
 ```ant
-var s = "anthill 🐜"
+let s = "anthill 🐜"
 assert(String.slice(s, 0, String.length(s)) == s)
 ```
 
@@ -210,7 +210,7 @@ String.length(String.normalize("e\u{301}", "NFC")) // 1
 The length is not the size in bytes. A limit on stored or sent bytes needs the byte count:
 
 ```ant
-var s = "日本語"
+let s = "日本語"
 String.length(s)                // 3
 Bytes.length(String.toBytes(s)) // 9
 ```
@@ -227,7 +227,7 @@ A value of a named primitive type is not a `string`, so passing it is a compile 
 ```ant
 type Name = string
 
-var n = Name("Ann")
+let n = Name("Ann")
 println(String.length(n)) // error: cannot use Name where string is expected
 ```
 
@@ -236,7 +236,7 @@ Convert it with `string(n)`, or use `len`, which unwraps it:
 ```ant
 type Name = string
 
-var n = Name("Ann")
+let n = Name("Ann")
 println(String.length(string(n)))
 println(len(n))
 ```

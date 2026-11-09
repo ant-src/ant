@@ -15,6 +15,6 @@ untouched. An empty context is joined like any other.
 ## Basic examples
 
 ```ant
-var e = Error{ message: "no such file" }
+let e = Error{ message: "no such file" }
 Error.wrap(e, "load config") // Error{ message: "load config: no such file" }
 ```

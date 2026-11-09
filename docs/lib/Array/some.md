@@ -26,7 +26,7 @@ Array.some([1, 3, 5], { x % 2 == 0 }) // false
 Call it through `.` on any array:
 
 ```ant
-var temps = [18, 24, 31]
+let temps = [18, 24, 31]
 temps.some({ x > 30 }) // true
 temps.some({ x < 0 })  // false
 ```
@@ -35,7 +35,7 @@ The callback runs from the first element and stops at the first element it accep
 shows which elements it tested:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [1, 3, 4, 5, 6].some({ seen.push(x); x % 2 == 0 }) // true
 seen                                               // [1, 3, 4]
 ```
@@ -43,7 +43,7 @@ seen                                               // [1, 3, 4]
 When `f` accepts no element, it tests them all:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [1, 3, 5].some({ seen.push(x); x % 2 == 0 }) // false
 seen                                         // [1, 3, 5]
 ```
@@ -79,7 +79,7 @@ Records are read through their fields:
 
 ```ant
 type Order = { id: int, paid: bool }
-var orders = [Order{ id: 1, paid: true }, Order{ id: 2, paid: false }]
+let orders = [Order{ id: 1, paid: true }, Order{ id: 2, paid: false }]
 orders.some({ !x.paid })   // true
 orders.some({ x.id > 10 }) // false
 ```
@@ -90,7 +90,7 @@ With a union, test the tag with `is`. Inside `&&`, `x` is narrowed to the member
 type Circle = { radius: float64 }
 type Rect = { width: float64, height: float64 }
 type Shape = Circle | Rect
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
 shapes.some({ x is Rect })                     // true
 shapes.some({ x is Circle && x.radius > 2.0 }) // false
 ```
@@ -99,7 +99,7 @@ An element type that includes `null` can be searched for `null` itself, or for a
 is ruled out:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 scores.some({ x == null })           // true
 scores.some({ x != null && x > 80 }) // true
 scores.some({ x != null && x > 95 }) // false
@@ -108,7 +108,7 @@ scores.some({ x != null && x > 95 }) // false
 For nested arrays, each nested lambda binds its own `x`:
 
 ```ant
-var grid = [[0, 0], [0, 7]]
+let grid = [[0, 0], [0, 7]]
 grid.some({ x.some({ x != 0 }) }) // true
 grid.some({ x.isEmpty() })        // false
 ```
@@ -116,7 +116,7 @@ grid.some({ x.isEmpty() })        // false
 The values of a map or the members of a set are arrays through `Map.values` and `Set.values`:
 
 ```ant
-var stock = Map{ apples: 4, pears: 0 }
+let stock = Map{ apples: 4, pears: 0 }
 stock.values().some({ x == 0 })                 // true
 Set.of([2, 4, 6]).values().some({ x % 2 == 1 }) // false
 ```
@@ -131,7 +131,7 @@ A closure sees later assignments to the variables it captures:
 
 ```ant
 var target = 3
-var hit: func(int): bool = { x == target }
+let hit: func(int): bool = { x == target }
 [1, 2, 3].some(hit) // true
 target = 9
 [1, 2, 3].some(hit) // false
@@ -157,7 +157,7 @@ type Check = { name: string, ok: bool }
 
 func deploy(checks: Array[Check]): Result[void, string] {
   if checks.some({ !x.ok }) {
-    var failed = checks.filter({ !x.ok }).map({ x.name })
+    let failed = checks.filter({ !x.ok }).map({ x.name })
     Result.err("failed: ${String.join(failed, ", ")}")
   } else {
     Result.ok(void)
@@ -187,7 +187,7 @@ hasDuplicate(["a", "b", "c"]) // false
 Check whether an array shares an element with a set:
 
 ```ant
-var mine = Set.of(["go", "ant", "zig"])
+let mine = Set.of(["go", "ant", "zig"])
 ["rust", "ant"].some({ mine.has(x) }) // true
 ["c", "lua"].some({ mine.has(x) })    // false
 ```
@@ -196,9 +196,9 @@ Since the call stops at the first match, an expensive test runs only as far as i
 lookup runs until a cached key is found:
 
 ```ant
-var cache = Map{ a: 1, c: 3 }
+let cache = Map{ a: 1, c: 3 }
 var lookups = 0
-var cached: func(string): bool = {
+let cached: func(string): bool = {
   lookups += 1
   cache.has(x)
 }
@@ -213,7 +213,7 @@ lookups                           // 2
 finds an index, and when `Array.countWhere` and `Array.filter` keep at least one element:
 
 ```ant
-var f: func(int): bool = { x % 3 == 0 }
+let f: func(int): bool = { x % 3 == 0 }
 for xs in [[1, 2, 4], [1, 3, 4], []] {
   assert(xs.some(f) == !xs.every({ !f(x) }))
   assert(xs.some(f) == (xs.findIndex(f) != null))
@@ -225,7 +225,7 @@ for xs in [[1, 2, 4], [1, 3, 4], []] {
 Testing for a value with `==` is what `Array.contains` does:
 
 ```ant
-var xs = ["a", "b", "c"]
+let xs = ["a", "b", "c"]
 assert(xs.some({ x == "b" }) == xs.contains("b"))
 assert(xs.some({ x == "z" }) == xs.contains("z"))
 ```
@@ -233,9 +233,9 @@ assert(xs.some({ x == "z" }) == xs.contains("z"))
 Over a concatenation, `some` holds when it holds on either part:
 
 ```ant
-var f: func(int): bool = { x < 0 }
-var xs = [1, 2]
-var ys = [3, -4]
+let f: func(int): bool = { x < 0 }
+let xs = [1, 2]
+let ys = [3, -4]
 assert(xs.concat(ys).some(f) == (xs.some(f) || ys.some(f)))
 assert(!xs.some(f) && ys.some(f))
 ```
@@ -246,7 +246,7 @@ An empty array gives `false` for `some`, even for a test that accepts everything
 gives `true`, even for a test that rejects everything:
 
 ```ant
-var errors: Array[string] = []
+let errors: Array[string] = []
 errors.some({ true })   // false
 errors.every({ false }) // true
 ```
@@ -255,7 +255,7 @@ errors.every({ false }) // true
 error:
 
 ```ant
-var counts = [0, 1, 2]
+let counts = [0, 1, 2]
 println(counts.some({ x })) // error: cannot use int where bool is expected
 ```
 
@@ -269,7 +269,7 @@ Write the comparison instead:
 [`Array.contains`](contains.md) to test by `==`:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs.some(2)) // error: cannot use int where func(int): bool is expected
 ```
 
@@ -280,7 +280,7 @@ println(xs.some(2)) // error: cannot use int where func(int): bool is expected
 A lambda stored in an unannotated `var` has no expected function type. Annotate the variable:
 
 ```ant
-var big = { x > 100 }
+let big = { x > 100 }
 // error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 println([1, 200].some(big))
 ```
@@ -289,7 +289,7 @@ The call reads the elements once, when it is called. A callback that pushes to t
 but not which elements `some` visits, unlike a `for` loop, which reads its collection as it goes:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 xs.some({ xs.push(9); x == 9 }) // false
 xs                              // [1, 2, 9, 9]
 ```
@@ -298,7 +298,7 @@ xs                              // [1, 2, 9, 9]
 `x == Math.NaN` never finds it. Test for it with `Math.isNaN`:
 
 ```ant
-var xs = [1.0, Math.NaN]
+let xs = [1.0, Math.NaN]
 xs.some({ x == Math.NaN }) // false
 xs.some({ Math.isNaN(x) }) // true
 ```

@@ -22,7 +22,7 @@ Array.push appends v to the end of xs. It mutates xs.
 Append a value to the end of an array:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 Array.push(xs, 3)
 xs // [1, 2, 3]
 ```
@@ -30,7 +30,7 @@ xs // [1, 2, 3]
 Grow an empty array one element at a time. An empty literal needs its element type:
 
 ```ant
-var names: Array[string] = []
+let names: Array[string] = []
 Array.push(names, "Ada")
 Array.push(names, "Linus")
 names // ["Ada", "Linus"]
@@ -42,13 +42,13 @@ Records, `null` in an array that allows it, and arrays inside arrays push alike:
 
 ```ant
 type Point = { x: int, y: int }
-var points = [Point{ x: 1, y: 2 }]
+let points = [Point{ x: 1, y: 2 }]
 Array.push(points, Point{ x: 3, y: 4 })
 points // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
-var maybe: Array[int | null] = [1]
+let maybe: Array[int | null] = [1]
 Array.push(maybe, null)
 maybe // [1, null]
-var rows = [[1, 2]]
+let rows = [[1, 2]]
 Array.push(rows, [3])
 rows // [[1, 2], [3]]
 ```
@@ -64,7 +64,7 @@ stack // ["a", "b"]
 Call it through `.` on an array, or with a pipe, which passes its left side as the first argument:
 
 ```ant
-var xs = [1]
+let xs = [1]
 xs.push(2)
 xs | Array.push(3)
 xs // [1, 2, 3]
@@ -73,7 +73,7 @@ xs // [1, 2, 3]
 Name the arguments, in any order:
 
 ```ant
-var xs = [1]
+let xs = [1]
 Array.push(v: 2, xs: xs)
 xs // [1, 2]
 ```
@@ -83,7 +83,7 @@ xs // [1, 2]
 Collect the results of a loop that keeps state, here the running total:
 
 ```ant
-var totals: Array[int] = []
+let totals: Array[int] = []
 var sum = 0
 for n in [3, 1, 4, 1, 5] {
   sum += n
@@ -96,12 +96,12 @@ Use an array as a stack with [Array.pop](pop.md), here to check that brackets ba
 
 ```ant
 func balanced(s: string): bool {
-  var open: Array[string] = []
+  let open: Array[string] = []
   for c in s {
     if c == "(" || c == "[" {
       Array.push(open, c)
     } else if c == ")" || c == "]" {
-      var want = if c == ")" { "(" } else { "[" }
+      let want = if c == ")" { "(" } else { "[" }
       if Array.pop(open) != want {
         return false
       }
@@ -120,14 +120,14 @@ Visit a tree breadth-first. The `for` loop reaches the nodes pushed while it run
 ```ant
 type Node = { name: string, children: Array[Node] }
 
-var tree = Node{
+let tree = Node{
   name: "root",
   children: [
     Node{ name: "a", children: [Node{ name: "a1", children: [] }] },
     Node{ name: "b", children: [] },
   ],
 }
-var queue = [tree]
+let queue = [tree]
 for node in queue {
   println(node.name)
   for child in node.children {
@@ -146,9 +146,9 @@ a1
 Push from several goroutines under a [Mutex](../Mutex/index.md), which keeps the pushes from racing:
 
 ```ant
-var results: Array[int] = []
-var mu = Mutex.new()
-var wg = WaitGroup.new()
+let results: Array[int] = []
+let mu = Mutex.new()
+let wg = WaitGroup.new()
 for n in [1, 2, 3, 4] {
   WaitGroup.add(wg, 1)
   go {
@@ -169,8 +169,8 @@ println(Array.sort(results))
 The length grows by one, and the last element is `v`:
 
 ```ant
-var xs = [1, 2]
-var before = len(xs)
+let xs = [1, 2]
+let before = len(xs)
 Array.push(xs, 7)
 assert(len(xs) == before + 1)
 assert(Array.last(xs) == 7)
@@ -179,7 +179,7 @@ assert(Array.last(xs) == 7)
 [Array.pop](pop.md) undoes it:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 Array.push(xs, 3)
 assert(Array.pop(xs) == 3)
 assert(xs == [1, 2])
@@ -188,8 +188,8 @@ assert(xs == [1, 2])
 It does in place what the spread literal `[...xs, v]` does in a new array:
 
 ```ant
-var xs = [1, 2]
-var copy = [...xs, 3]
+let xs = [1, 2]
+let copy = [...xs, 3]
 Array.push(xs, 3)
 assert(xs == copy)
 ```
@@ -197,9 +197,9 @@ assert(xs == copy)
 It is [Array.insert](insert.md) at the length, and [Array.extend](extend.md) with one element:
 
 ```ant
-var a = [1]
-var b = [1]
-var c = [1]
+let a = [1]
+let b = [1]
+let c = [1]
 Array.push(a, 2)
 Array.insert(b, len(b), 2)
 Array.extend(c, [2])
@@ -209,8 +209,8 @@ assert(a == b && b == c)
 Every other name for the array sees the push:
 
 ```ant
-var xs = [1]
-var alias = xs
+let xs = [1]
+let alias = xs
 Array.push(xs, 2)
 assert(Array.same(alias, xs))
 alias // [1, 2]
@@ -228,8 +228,8 @@ xs = Array.push(xs, 2) // error: cannot use void where Array[int] is expected
 To get a new array and keep the old one, use the spread literal:
 
 ```ant
-var xs = [1]
-var ys = [...xs, 2]
+let xs = [1]
+let ys = [...xs, 2]
 xs // [1]
 ys // [1, 2]
 ```
@@ -238,12 +238,12 @@ ys // [1, 2]
 elements, use [Array.extend](extend.md):
 
 ```ant
-var xs = [1]
+let xs = [1]
 Array.push(xs, [2, 3]) // error: cannot use Array[int] where int is expected
 ```
 
 ```ant
-var xs = [1]
+let xs = [1]
 Array.extend(xs, [2, 3])
 xs // [1, 2, 3]
 ```
@@ -251,7 +251,7 @@ xs // [1, 2, 3]
 An empty literal has no element type to infer, so annotate the variable:
 
 ```ant
-var xs = [] // error: cannot infer the element type of an empty array; annotate it
+let xs = [] // error: cannot infer the element type of an empty array; annotate it
 Array.push(xs, 1)
 ```
 
@@ -259,8 +259,8 @@ The value is pushed, not copied. An array or a record pushed in is the same valu
 later change to it shows through both:
 
 ```ant
-var row = [0]
-var grid: Array[Array[int]] = []
+let row = [0]
+let grid: Array[Array[int]] = []
 Array.push(grid, row)
 row[0] = 9
 grid // [[9]]
@@ -270,7 +270,7 @@ A `for` loop over the array visits what the body pushes, so a loop that always p
 Loop over a copy, or push to another array:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 for x in [...xs] {
   Array.push(xs, x * 10)
 }
@@ -282,7 +282,7 @@ A function that takes an array and a callback reads the elements once, when it i
 its own pushes:
 
 ```ant
-var a = [1, 2, 3]
+let a = [1, 2, 3]
 Array.map(a, { Array.push(a, x + 10); x * 2 }) // [2, 4, 6]
 a                                              // [1, 2, 3, 11, 12, 13]
 ```

@@ -27,8 +27,8 @@ Set.isSubset(Set.of([1, 4]), Set.of([3, 2, 1])) // false
 Call it through `.` on any set:
 
 ```ant
-var picked = Set.of(["red", "blue"])
-var palette = Set.of(["red", "green", "blue"])
+let picked = Set.of(["red", "blue"])
+let palette = Set.of(["red", "green", "blue"])
 picked.isSubset(palette) // true
 palette.isSubset(picked) // false
 ```
@@ -42,14 +42,14 @@ annotate it:
 ```ant
 Set.isSubset(Set.of([]), Set.of([1, 2])) // true
 Set.of([1]).isSubset(Set.of([]))         // false
-var none: Set[int] = Set.of([])
+let none: Set[int] = Set.of([])
 none.isSubset(none) // true
 ```
 
 A set is a subset of itself and of any equal set, whatever the order of its members:
 
 ```ant
-var a = Set.of([1, 2, 3])
+let a = Set.of([1, 2, 3])
 a.isSubset(a)                 // true
 a.isSubset(Set.of([3, 2, 1])) // true
 ```
@@ -65,8 +65,8 @@ Records compare by tag and fields:
 
 ```ant
 type Point = { x: int, y: int }
-var corners = Set.of([Point{ x: 0, y: 0 }, Point{ x: 1, y: 1 }])
-var grid = Set.of([Point{ x: 0, y: 0 }, Point{ x: 0, y: 1 }, Point{ x: 1, y: 0 }, Point{ x: 1, y: 1 }])
+let corners = Set.of([Point{ x: 0, y: 0 }, Point{ x: 1, y: 1 }])
+let grid = Set.of([Point{ x: 0, y: 0 }, Point{ x: 0, y: 1 }, Point{ x: 1, y: 0 }, Point{ x: 1, y: 1 }])
 corners.isSubset(grid) // true
 ```
 
@@ -76,9 +76,9 @@ Members of a tagged union compare by tag, so equal fields under another tag do n
 type Circle = { size: float64 }
 type Square = { size: float64 }
 type Shape = Circle | Square
-var drawn: Set[Shape] = Set.of([Circle{ size: 1.0 }, Square{ size: 2.0 }])
-var small: Set[Shape] = Set.of([Circle{ size: 1.0 }])
-var big: Set[Shape] = Set.of([Circle{ size: 2.0 }])
+let drawn: Set[Shape] = Set.of([Circle{ size: 1.0 }, Square{ size: 2.0 }])
+let small: Set[Shape] = Set.of([Circle{ size: 1.0 }])
+let big: Set[Shape] = Set.of([Circle{ size: 2.0 }])
 small.isSubset(drawn) // true
 big.isSubset(drawn)   // false
 ```
@@ -93,8 +93,8 @@ Set.of([Map{ a: 1 }]).isSubset(Set.of([Map{ a: 1 }])) // true
 A set whose element type includes `null` can hold `null` like any other member:
 
 ```ant
-var answers: Set[bool | null] = Set.of([true, null])
-var unanswered: Set[bool | null] = Set.of([null])
+let answers: Set[bool | null] = Set.of([true, null])
+let unanswered: Set[bool | null] = Set.of([null])
 unanswered.isSubset(answers)            // true
 answers.isSubset(Set.of([true, false])) // false
 ```
@@ -114,7 +114,7 @@ func allowed(granted: Set[string], wanted: Array[string]): bool {
   Set.of(wanted).isSubset(granted)
 }
 
-var editor = Set.of(["read", "write", "comment"])
+let editor = Set.of(["read", "write", "comment"])
 println(allowed(editor, ["read", "write"]))
 println(allowed(editor, ["read", "delete"]))
 ```
@@ -127,8 +127,8 @@ false
 Report the required columns a CSV header lacks, and accept it when there are none:
 
 ```ant
-var required = Set.of(["id", "name", "email"])
-var header = Set.of(String.split("id,email,age", ","))
+let required = Set.of(["id", "name", "email"])
+let header = Set.of(String.split("id,email,age", ","))
 if required.isSubset(header) {
   println("ok")
 } else {
@@ -143,7 +143,7 @@ missing: ["name"]
 Test whether a word can be spelled from a set of letters, using each letter any number of times:
 
 ```ant
-var letters = Set.of(String.chars("aenst"))
+let letters = Set.of(String.chars("aenst"))
 for word in ["ants", "nest", "tent", "lens"] {
   println("${word}: ${Set.of(String.chars(word)).isSubset(letters)}")
 }
@@ -164,9 +164,9 @@ lens: false
 `a`, and when their union is `b`:
 
 ```ant
-var b = Set.of([1, 2, 3, 4])
+let b = Set.of([1, 2, 3, 4])
 for a in [Set.of([2, 4]), Set.of([4, 5]), Set.of([1, 2, 3, 4])] {
-  var sub = a.isSubset(b)
+  let sub = a.isSubset(b)
   assert(sub == Set.difference(a, b).isEmpty())
   assert(sub == (Set.intersect(a, b) == a))
   assert(sub == (Set.union(b, a) == b))
@@ -177,8 +177,8 @@ for a in [Set.of([2, 4]), Set.of([4, 5]), Set.of([1, 2, 3, 4])] {
 Two sets are equal exactly when each is a subset of the other:
 
 ```ant
-var a = Set.of(["x", "y"])
-var b = Set.of(["y", "x"])
+let a = Set.of(["x", "y"])
+let b = Set.of(["y", "x"])
 assert((a == b) == (a.isSubset(b) && b.isSubset(a)))
 ```
 
@@ -186,8 +186,8 @@ Every set is a subset of its union with another, its intersection with another i
 and so is its difference with another:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([2, 3])
+let a = Set.of([1, 2])
+let b = Set.of([2, 3])
 assert(a.isSubset(Set.union(a, b)))
 assert(Set.intersect(a, b).isSubset(a))
 assert(Set.difference(a, b).isSubset(a))
@@ -198,8 +198,8 @@ assert(Set.difference(a, b).isSubset(a))
 `Set.isSubset` allows the two sets to be equal. For a proper subset, also compare sizes:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([2, 1])
+let a = Set.of([1, 2])
+let b = Set.of([2, 1])
 a.isSubset(b)                        // true
 a.isSubset(b) && a.size() < b.size() // false
 ```
@@ -207,7 +207,7 @@ a.isSubset(b) && a.size() < b.size() // false
 `NaN` is not `==` to itself, so a set that holds `NaN` is not a subset even of itself:
 
 ```ant
-var xs = Set.of([1.0, Math.NaN])
+let xs = Set.of([1.0, Math.NaN])
 xs.isSubset(xs)            // false
 Set.of([1.0]).isSubset(xs) // true
 ```
@@ -219,7 +219,7 @@ that member, not of the union, and a set of the union is not assignable to it:
 type Circle = { size: float64 }
 type Square = { size: float64 }
 type Shape = Circle | Square
-var drawn: Set[Shape] = Set.of([Circle{ size: 1.0 }, Square{ size: 2.0 }])
+let drawn: Set[Shape] = Set.of([Circle{ size: 1.0 }, Square{ size: 2.0 }])
 println(Set.of([Circle{ size: 1.0 }]).isSubset(drawn))
 // error: cannot use Set[Shape] where Set[Circle] is expected
 ```
@@ -237,7 +237,7 @@ To compare how many times each value occurs, count them in a `Map`.
 Both sets have the same element type. Numeric types never mix:
 
 ```ant
-var ids = Set.of([1, 2])
+let ids = Set.of([1, 2])
 println(ids.isSubset(Set.of([1.0, 2.0]))) // error: cannot use float64 where int is expected
 ```
 
@@ -245,8 +245,8 @@ println(ids.isSubset(Set.of([1.0, 2.0]))) // error: cannot use float64 where int
 build a set from each, or test with [`Array.every`](../Array/every.md):
 
 ```ant
-var xs = [1, 2, 2]
-var ys = [3, 2, 1]
+let xs = [1, 2, 2]
+let ys = [3, 2, 1]
 Set.of(xs).isSubset(Set.of(ys)) // true
 xs.every({ ys.contains(x) })    // true
 ```
@@ -255,8 +255,8 @@ There is no `Set.isSuperset`. Swap the arguments: `palette.isSuperset(picked)` i
 `picked.isSubset(palette)`:
 
 ```ant
-var picked = Set.of(["red", "blue"])
-var palette = Set.of(["red", "green", "blue"])
+let picked = Set.of(["red", "blue"])
+let palette = Set.of(["red", "green", "blue"])
 picked.isSubset(palette) // true
 ```
 

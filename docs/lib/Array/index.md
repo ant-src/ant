@@ -28,7 +28,7 @@ and `Array.filled` build an array from scratch and are called only through the n
 Square brackets build an array, `xs[i]` reads an element, and `xs[i] = v` writes one:
 
 ```ant
-var xs = [10, 20, 30]
+let xs = [10, 20, 30]
 xs[0]            // 10
 len(xs)          // 3
 Array.get(xs, 5) // null
@@ -39,7 +39,7 @@ xs // [10, 25, 30]
 `Array.push` grows an array in place and returns nothing:
 
 ```ant
-var names: Array[string] = []
+let names: Array[string] = []
 Array.push(names, "Ada")
 Array.push(names, "Linus")
 names // ["Ada", "Linus"]
@@ -48,7 +48,7 @@ names // ["Ada", "Linus"]
 Calls chain through `.`, or the array goes down a pipe:
 
 ```ant
-var scores = [72, 95, 88, 40]
+let scores = [72, 95, 88, 40]
 scores.filter({ x >= 50 }).sort()            // [72, 88, 95]
 scores | Array.map({ x / 10 }) | Array.sum() // 28
 ```
@@ -58,14 +58,14 @@ scores | Array.map({ x / 10 }) | Array.sum() // 28
 A spread copies the elements of an array into a new literal:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 [0, ...xs, 3] // [0, 1, 2, 3]
 ```
 
 A `for` loop visits the elements in order:
 
 ```ant
-var steps = ["mix", "bake"]
+let steps = ["mix", "bake"]
 for step in steps {
   println(step)
 }
@@ -79,7 +79,7 @@ bake
 `Array.entries` pairs each element with its index, for a loop that needs both:
 
 ```ant
-var steps = ["mix", "bake"]
+let steps = ["mix", "bake"]
 for step in Array.entries(steps) {
   println("${step.index}: ${step.value}")
 }
@@ -95,7 +95,7 @@ Elements may be records, `null` where the type allows it, or other arrays:
 ```ant
 type Point = { x: int, y: int }
 [Point{ x: 1, y: 2 }] // [Point{ x: 1, y: 2 }]
-var maybe: Array[int | null] = [1, null]
+let maybe: Array[int | null] = [1, null]
 maybe                        // [1, null]
 Array.flatten([[1, 2], [3]]) // [1, 2, 3]
 ```
@@ -173,15 +173,15 @@ Array.flatten([[1, 2], [3]]) // [1, 2, 3]
 Count the words of each length. `Array.groupBy` keeps the keys in first-seen order:
 
 ```ant
-var words = ["ant", "bee", "wasp", "fly", "moth"]
-var groups = words.groupBy({ String.length(x) })
+let words = ["ant", "bee", "wasp", "fly", "moth"]
+let groups = words.groupBy({ String.length(x) })
 Map.entries(groups).map({ "${x.key}: ${len(x.value)}" }) // ["3: 3", "4: 2"]
 ```
 
 Build a list of results in a loop, then summarize it:
 
 ```ant
-var squares: Array[int] = []
+let squares: Array[int] = []
 for i in Array.range(1, 5) {
   Array.push(squares, i * i)
 }
@@ -195,7 +195,7 @@ Array.max(squares) // 16
 `len` and `Array.length` agree, and an array is empty when its length is `0`:
 
 ```ant
-var xs = [4, 5, 6]
+let xs = [4, 5, 6]
 assert(len(xs) == Array.length(xs))
 assert(Array.isEmpty(xs) == (len(xs) == 0))
 ```
@@ -203,7 +203,7 @@ assert(Array.isEmpty(xs) == (len(xs) == 0))
 A call through `.`, a pipe, and a direct call are the same call:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 assert(xs.sort() == Array.sort(xs))
 assert((xs | Array.sort()) == Array.sort(xs))
 ```
@@ -214,8 +214,8 @@ Copying an array variable copies the reference, not the elements. A push through
 through the other:
 
 ```ant
-var xs = [1, 2]
-var ys = xs
+let xs = [1, 2]
+let ys = xs
 Array.push(ys, 3)
 xs                 // [1, 2, 3]
 Array.same(xs, ys) // true
@@ -224,8 +224,8 @@ Array.same(xs, ys) // true
 A spread into a new literal makes a separate array:
 
 ```ant
-var xs = [1, 2]
-var ys = [...xs]
+let xs = [1, 2]
+let ys = [...xs]
 Array.push(ys, 3)
 xs           // [1, 2]
 xs == [1, 2] // true
@@ -235,8 +235,8 @@ Only the functions marked `mutates` change the array. `Array.sort` returns a sor
 `xs` as it was:
 
 ```ant
-var xs = [3, 1, 2]
-var sorted = xs.sort()
+let xs = [3, 1, 2]
+let sorted = xs.sort()
 xs     // [3, 1, 2]
 sorted // [1, 2, 3]
 ```
@@ -253,7 +253,7 @@ Reading or writing past the end panics. `Array.get` returns `null` for an index 
 range:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs[3]            // panic: index 3 out of range for an array of length 3
 Array.get(xs, 3) // null
 ```
@@ -261,7 +261,7 @@ Array.get(xs, 3) // null
 A write past the end panics with the same message:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs[3] = 1 // panic: index 3 out of range for an array of length 3
 ```
 
@@ -269,7 +269,7 @@ Assigning the loop variable is a compile error, since it would not change the ar
 returns the changed elements:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 for x in xs {
   x = x * 2
   // error: cannot assign to x, a for variable; declare a var to hold a value that changes
@@ -277,7 +277,7 @@ for x in xs {
 ```
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs.map({ x * 2 }) // [2, 4, 6]
 ```
 
@@ -285,8 +285,8 @@ A `for` loop reads the array as it goes, so it visits an element pushed during t
 and the other functions that take a callback read the elements once, at the call:
 
 ```ant
-var a = [1, 2, 3]
-var seen: Array[int] = []
+let a = [1, 2, 3]
+let seen: Array[int] = []
 for x in a {
   Array.push(seen, x)
   if x < 3 {
@@ -294,7 +294,7 @@ for x in a {
   }
 }
 seen // [1, 2, 3, 11, 12]
-var b = [1, 2, 3]
+let b = [1, 2, 3]
 Array.map(b, { Array.push(b, x + 10); x * 2 }) // [2, 4, 6]
 b                                              // [1, 2, 3, 11, 12, 13]
 ```

@@ -91,7 +91,7 @@ Read `key: value` pairs, where the value may follow the colon after any number o
 type Header = { key: string, value: string }
 
 func parse(line: string): Header | null {
-  var c = String.cut(line, ":")
+  let c = String.cut(line, ":")
   if c == null {
     return null
   }
@@ -112,8 +112,8 @@ null
 Remove the indentation of every line, and skip the lines that are blank:
 
 ```ant
-var text = "  first\n\n    second\n   \n  third"
-var kept = String.lines(text)
+let text = "  first\n\n    second\n   \n  third"
+let kept = String.lines(text)
   | Array.map(String.trimStart)
   | Array.filter({ !String.isEmpty(x) })
 println(kept)
@@ -129,7 +129,7 @@ println(kept)
 
 ```ant
 for s in ["", "  a ", "\t\nb", "c", "   "] {
-  var t = String.trimStart(s)
+  let t = String.trimStart(s)
   assert(String.endsWith(s, t))
   assert(String.trimStart(t) == t)
 }
@@ -140,7 +140,7 @@ The result is empty or starts with a code point that is not white space, as
 
 ```ant
 for s in ["  a", "\u{3000}b", "   "] {
-  var t = String.trimStart(s)
+  let t = String.trimStart(s)
   assert(String.isEmpty(t) || !String.isSpace(String.slice(t, 0, 1)))
 }
 ```
@@ -148,7 +148,7 @@ for s in ["  a", "\u{3000}b", "   "] {
 [`String.trimEnd`](trimEnd.md) after `String.trimStart` is [`String.trim`](trim.md):
 
 ```ant
-var s = "  both ends  "
+let s = "  both ends  "
 assert(String.trimEnd(String.trimStart(s)) == String.trim(s))
 ```
 
@@ -179,7 +179,7 @@ println("  x" | String.trimStart) // error: the right side of a pipe must be a c
 `s` is a `string`, so a `string | null` needs a check first:
 
 ```ant
-var name: string | null = null
+let name: string | null = null
 println(String.trimStart(name)) // error: cannot use string | null where string is expected
 ```
 

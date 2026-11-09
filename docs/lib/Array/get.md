@@ -27,7 +27,7 @@ Array.get([10, 20, 30], 3) // null
 Call it through `.` on any array:
 
 ```ant
-var fruit = ["apple", "pear", "plum"]
+let fruit = ["apple", "pear", "plum"]
 fruit.get(0) // "apple"
 fruit.get(9) // null
 ```
@@ -37,7 +37,7 @@ fruit.get(9) // null
 The last valid index is the length minus one:
 
 ```ant
-var xs = [10, 20, 30]
+let xs = [10, 20, 30]
 xs.get(xs.length() - 1) // 30
 xs.get(xs.length())     // null
 ```
@@ -51,7 +51,7 @@ A negative index is out of range. Ant does not count from the end:
 An empty array has no index in range. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.get(0) // null
 ```
 
@@ -59,7 +59,7 @@ Records come back as they are stored, and `?.` reads a field of the result:
 
 ```ant
 type User = { id: int, name: string }
-var users = [User{ id: 1, name: "Ann" }, User{ id: 7, name: "Bob" }]
+let users = [User{ id: 1, name: "Ann" }, User{ id: 7, name: "Bob" }]
 users.get(1)       // User{ id: 7, name: "Bob" }
 users.get(1)?.name // "Bob"
 users.get(2)?.name // null
@@ -68,7 +68,7 @@ users.get(2)?.name // null
 Chain it with `?.` to reach into a nested array:
 
 ```ant
-var grid = [[1, 2], [3, 4, 5]]
+let grid = [[1, 2], [3, 4, 5]]
 grid.get(1)?.get(2) // 5
 grid.get(0)?.get(2) // null
 grid.get(5)?.get(0) // null
@@ -91,7 +91,7 @@ In a pipeline, the array is the first argument:
 Fall back to a default with `??`:
 
 ```ant
-var names = ["Ann", "Bob"]
+let names = ["Ann", "Bob"]
 names.get(0) ?? "nobody" // "Ann"
 names.get(4) ?? "nobody" // "nobody"
 ```
@@ -101,9 +101,9 @@ Read optional command-line arguments by position:
 <!-- test: args report.csv -->
 
 ```ant
-var args = Os.args()
-var input = args.get(0) ?? "data.csv"
-var output = args.get(1) ?? "out.txt"
+let args = Os.args()
+let input = args.get(0) ?? "data.csv"
+let output = args.get(1) ?? "out.txt"
 println("${input} -> ${output}")
 ```
 
@@ -114,10 +114,10 @@ report.csv -> out.txt
 Look at the neighbors of an element without testing the bounds by hand:
 
 ```ant
-var temps = [12, 15, 11, 18]
+let temps = [12, 15, 11, 18]
 for i in Array.range(0, temps.length()) {
-  var left = temps.get(i - 1) ?? temps[i]
-  var right = temps.get(i + 1) ?? temps[i]
+  let left = temps.get(i - 1) ?? temps[i]
+  let right = temps.get(i + 1) ?? temps[i]
   println("${i}: ${left} ${temps[i]} ${right}")
 }
 ```
@@ -133,7 +133,7 @@ Return early from a function when the index is out of range, with `?? return`:
 
 ```ant
 func weekday(n: int): string {
-  var name = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].get(n - 1) ?? return "day ${n}?"
+  let name = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].get(n - 1) ?? return "day ${n}?"
   "day ${n} is ${name}"
 }
 
@@ -151,7 +151,7 @@ day 8?
 Inside the range, `Array.get` agrees with `xs[i]`; outside it, the result is `null`:
 
 ```ant
-var xs = [4, 9, 16]
+let xs = [4, 9, 16]
 for i in Array.range(-2, 5) {
   if i >= 0 && i < xs.length() {
     assert(xs.get(i) == xs[i])
@@ -164,8 +164,8 @@ for i in Array.range(-2, 5) {
 Index `0` is `Array.first`, and the length minus one is `Array.last`, for an empty array too:
 
 ```ant
-var xs = ["x", "y", "z"]
-var empty: Array[string] = []
+let xs = ["x", "y", "z"]
+let empty: Array[string] = []
 assert(xs.get(0) == xs.first())
 assert(xs.get(xs.length() - 1) == xs.last())
 assert(empty.get(0) == empty.first())
@@ -176,8 +176,8 @@ A record it returns is the one in the array, not a copy, so a change to it shows
 
 ```ant
 type Item = { name: string, stock: int }
-var items = [Item{ name: "nut", stock: 0 }]
-var item = items.get(0)
+let items = [Item{ name: "nut", stock: 0 }]
+let item = items.get(0)
 if item != null {
   item.stock = 10
 }
@@ -189,8 +189,8 @@ assert(items[0].stock == 10)
 The result may be `null`, so using it as a `T` without narrowing is a compile error:
 
 ```ant
-var xs = [10, 20, 30]
-var v: int = xs.get(1) // error: cannot use int | null where int is expected
+let xs = [10, 20, 30]
+let v: int = xs.get(1) // error: cannot use int | null where int is expected
 println(v)
 ```
 
@@ -200,13 +200,13 @@ Testing the call does not narrow a second call, which is still `User | null`:
 
 ```ant
 type User = { id: int, name: string }
-var users = [User{ id: 1, name: "Ann" }]
+let users = [User{ id: 1, name: "Ann" }]
 if users.get(0) != null {
   println(users.get(0).name) // error: User | null has no field name: narrow the value first
 }
 ```
 
-Store the result in a `var` first, then test the variable, as the record example in Properties and
+Store the result in a `let` first, then test the variable, as the record example in Properties and
 relations does.
 
 `xs[i]` is not the same: it panics where `Array.get` returns `null`:
@@ -219,7 +219,7 @@ When the element type includes `null`, a stored `null` and an index out of range
 Compare the index with the length to tell them apart:
 
 ```ant
-var scores: Array[int | null] = [90, null]
+let scores: Array[int | null] = [90, null]
 scores.get(1)       // null
 scores.get(5)       // null
 1 < scores.length() // true
@@ -229,7 +229,7 @@ scores.get(5)       // null
 The index must be an `int`. Numeric types never mix, so a `float64` is a compile error:
 
 ```ant
-var xs = [10, 20, 30]
+let xs = [10, 20, 30]
 println(xs.get(1.0)) // error: cannot use float64 where int is expected
 ```
 
@@ -237,7 +237,7 @@ println(xs.get(1.0)) // error: cannot use float64 where int is expected
 needs a left side whose type includes `null`. Use `Array.get` for the index:
 
 ```ant
-var xs = [10, 20, 30]
+let xs = [10, 20, 30]
 println(xs?.[5]) // error: ?.[ needs a nullable left side, got Array[int]
 ```
 

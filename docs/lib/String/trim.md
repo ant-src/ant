@@ -87,9 +87,9 @@ NO
 -->
 
 ```ant
-var input = Result.unwrap(File.readAll(Os.stdin()))
+let input = Result.unwrap(File.readAll(Os.stdin()))
 for line in String.lines(input) {
-  var answer = String.toLower(String.trim(line))
+  let answer = String.toLower(String.trim(line))
   if answer == "yes" {
     println("accepted")
   } else if answer == "no" {
@@ -109,8 +109,8 @@ unknown: maybe
 Skip blank lines and comment lines in a configuration text:
 
 ```ant
-var text = "  # settings\n\n  port = 8080  \n   \nhost = example.org\n"
-var kept = String.lines(text)
+let text = "  # settings\n\n  port = 8080  \n   \nhost = example.org\n"
+let kept = String.lines(text)
   | Array.map({ String.trim(x) })
   | Array.filter({ x != "" && !String.startsWith(x, "#") })
 println(kept)
@@ -126,7 +126,7 @@ Read `key = value` pairs, trimming the sides that `String.cut` leaves:
 type Setting = { key: string, value: string }
 
 func parse(line: string): Setting | null {
-  var c = String.cut(line, "=")
+  let c = String.cut(line, "=")
   if c == null {
     return null
   }
@@ -160,7 +160,7 @@ white space:
 
 ```ant
 for s in ["", "  ", " a ", "\u{3000}b\n", "c d"] {
-  var t = String.trim(s)
+  let t = String.trim(s)
   assert(String.trim(t) == t)
   assert(String.contains(s, t))
   if !String.isEmpty(t) {
@@ -174,7 +174,7 @@ for s in ["", "  ", " a ", "\u{3000}b\n", "c d"] {
 either order:
 
 ```ant
-var s = "\t  both ends \n"
+let s = "\t  both ends \n"
 assert(String.trim(s) == String.trimEnd(String.trimStart(s)))
 assert(String.trim(s) == String.trimStart(String.trimEnd(s)))
 ```
@@ -208,13 +208,13 @@ A pipe binds looser than `==`, so compare a piped trim inside parentheses. Witho
 checker reports a compile error:
 
 ```ant
-var s = "  "
+let s = "  "
 println(s | String.trim() == "")
 // error: '|' binds looser than '==', so parenthesize the pipe, as in (a | f()) == b
 ```
 
 ```ant
-var s = "  "
+let s = "  "
 (s | String.trim()) == "" // true
 ```
 

@@ -27,7 +27,7 @@ Array.sum([2.5, 0.25])  // 2.75
 An empty array gives `null`. Give a default with `??`:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.sum(empty)      // null
 Array.sum(empty) ?? 0 // 0
 ```
@@ -35,7 +35,7 @@ Array.sum(empty) ?? 0 // 0
 Call it through `.` on the array:
 
 ```ant
-var prices = [4.5, 12.0, 3.25]
+let prices = [4.5, 12.0, 3.25]
 prices.sum() // 19.75
 ```
 
@@ -73,7 +73,7 @@ Infinities and `NaN` follow IEEE 754:
 The values of a map are an array, so `Array.sum` takes them:
 
 ```ant
-var stock = Map{ apples: 3, pears: 5, plums: 0 }
+let stock = Map{ apples: 3, pears: 5, plums: 0 }
 stock.values().sum() // 8
 ```
 
@@ -89,7 +89,7 @@ Total a field of a list of records by mapping to the field first:
 
 ```ant
 type Item = { name: string, price: float64, qty: int }
-var cart = [
+let cart = [
   Item{ name: "pen", price: 1.5, qty: 4 },
   Item{ name: "pad", price: 3.0, qty: 2 },
 ]
@@ -100,7 +100,7 @@ Average a list of scores, with `null` when there are none:
 
 ```ant
 func average(xs: Array[float64]): float64 | null {
-  var total = xs.sum()
+  let total = xs.sum()
   if total == null {
     return null
   }
@@ -119,17 +119,17 @@ null
 Count the characters of a list of words:
 
 ```ant
-var words = ["ant", "colony", "queen"]
+let words = ["ant", "colony", "queen"]
 words.map({ String.length(x) }).sum() // 14
 ```
 
 Add up the numbers in a line of text, skipping what does not parse:
 
 ```ant
-var line = "12 7 x 30"
-var ns: Array[int] = []
+let line = "12 7 x 30"
+let ns: Array[int] = []
 for part in String.split(line, " ") {
-  var n = String.toInt(part)
+  let n = String.toInt(part)
   if n != null {
     ns.push(n)
   }
@@ -142,7 +142,7 @@ ns.sum() ?? 0 // 49
 On a non-empty array of integers, `Array.sum` agrees with a fold through `+` that starts at zero:
 
 ```ant
-var xs = [3, -7, 4, 1]
+let xs = [3, -7, 4, 1]
 assert(xs.sum() == xs.reduce(0, func(a: int, b: int): int { a + b }))
 ```
 
@@ -164,8 +164,8 @@ When no partial sum overflows, integer sums do not depend on the order of the el
 splitting an array splits its sum:
 
 ```ant
-var xs = [5, 2, 9, 2]
-var ys = [1, 8]
+let xs = [5, 2, 9, 2]
+let ys = [1, 8]
 assert(xs.sum() == xs.reverse().sum())
 assert(xs.concat(ys).sum() == (xs.sum() ?? 0) + (ys.sum() ?? 0))
 ```
@@ -175,14 +175,14 @@ assert(xs.concat(ys).sum() == (xs.sum() ?? 0) + (ys.sum() ?? 0))
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs.sum() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 (xs.sum() ?? 0) + 1 // 7
 ```
 
@@ -190,8 +190,8 @@ The default must have the element type. Numeric types never mix, so `?? 0.0` on 
 not give a `float64`:
 
 ```ant
-var xs = [1, 2, 3]
-var total: float64 = xs.sum() ?? 0.0 // error: cannot use int where float64 is expected
+let xs = [1, 2, 3]
+let total: float64 = xs.sum() ?? 0.0 // error: cannot use int where float64 is expected
 ```
 
 Integer overflow panics. The sum of small types overflows sooner:
@@ -205,7 +205,7 @@ Convert the elements to a wider type first, or wrap on purpose with
 [`Bits.wrapAdd`](../Bits/wrapAdd.md):
 
 ```ant
-var xs = [byte(200), byte(100)]
+let xs = [byte(200), byte(100)]
 xs.map({ int(x) }).sum()         // 300
 xs.reduce(byte(0), Bits.wrapAdd) // 44
 ```
@@ -214,7 +214,7 @@ An array whose element type is a union, such as `int | null` or `Number`, has no
 is a compile error:
 
 ```ant
-var xs: Array[int | null] = [1, null, 3]
+let xs: Array[int | null] = [1, null, 3]
 println(xs.sum())
 // error: T would be int | null, which is not a single member of its bound Number; narrow first
 ```
@@ -222,8 +222,8 @@ println(xs.sum())
 Collect the non-`null` elements into an `Array[int]` first. Testing each one narrows it:
 
 ```ant
-var xs: Array[int | null] = [1, null, 3]
-var ns: Array[int] = []
+let xs: Array[int | null] = [1, null, 3]
+let ns: Array[int] = []
 for v in xs {
   if v != null {
     ns.push(v)
@@ -238,7 +238,7 @@ Named primitive types, strings, and records are not `Number`:
 
 ```ant
 type Cents = int
-var fees = [Cents(150), Cents(275)]
+let fees = [Cents(150), Cents(275)]
 println(fees.sum())
 // error: T would be Cents, which is not a single member of its bound Number; narrow first
 ```
@@ -247,7 +247,7 @@ Unwrap a named primitive with its base type, and wrap the total again:
 
 ```ant
 type Cents = int
-var fees = [Cents(150), Cents(275)]
+let fees = [Cents(150), Cents(275)]
 Cents(fees.map({ int(x) }).sum() ?? 0) // Cents(425)
 ```
 
@@ -260,7 +260,7 @@ String.join(["a", "b", "c"], "") // "abc"
 One `NaN` makes the result `NaN`. Drop it first with `Math.isNaN`:
 
 ```ant
-var xs = [1.0, Math.NaN, 3.0]
+let xs = [1.0, Math.NaN, 3.0]
 xs.filter({ !Math.isNaN(x) }).sum() // 4.0
 ```
 

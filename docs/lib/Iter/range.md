@@ -78,7 +78,7 @@ Iter.range(0, 10).filter({ x % 3 == 0 }).map({ x * x }).toArray() // [0, 9, 36, 
 Loop over the indices of an array; an empty array gives no iterations:
 
 ```ant
-var names = ["Ann", "Bob", "Cy"]
+let names = ["Ann", "Bob", "Cy"]
 for i in Iter.range(0, len(names)) {
   println("${i + 1}. ${names[i]}")
 }
@@ -154,7 +154,7 @@ The work happens only when the sequence runs. A callback in [`Iter.map`](map.md)
 integer the pipeline pulls, and not at all when the sequence is built:
 
 ```ant
-var s = Iter.range(0, 100).map(func(x: int): int {
+let s = Iter.range(0, 100).map(func(x: int): int {
   println("visit ${x}")
   x * 10
 })
@@ -183,15 +183,15 @@ func
 ```
 
 ```ant
-var r = Iter.range(0, 3)
-var n = len(r)
+let r = Iter.range(0, 3)
+let n = len(r)
 // error: len needs an array, a map, a set, a string, Bytes, or a channel, got Seq[int]
 ```
 
 The bounds are `int`; a float is a compile error, even one with no fraction:
 
 ```ant
-var xs = Iter.range(0, 2.0) | Iter.toArray() // error: cannot use float64 where int is expected
+let xs = Iter.range(0, 2.0) | Iter.toArray() // error: cannot use float64 where int is expected
 ```
 
 To count down, map each integer to its distance from the top; the sequence stays lazy:

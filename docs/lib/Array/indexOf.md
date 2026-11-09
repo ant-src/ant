@@ -28,7 +28,7 @@ Array.indexOf([10, 20, 30], 40) // null
 Call it through `.` on any array. A repeated value gives the index of its first occurrence:
 
 ```ant
-var colors = ["red", "green", "blue", "green"]
+let colors = ["red", "green", "blue", "green"]
 colors.indexOf("green") // 1
 colors.indexOf("red")   // 0
 ```
@@ -38,14 +38,14 @@ colors.indexOf("red")   // 0
 An empty array has no index to give. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.indexOf("") // null
 ```
 
 Strings compare whole and by code points, with no normalization and no case folding:
 
 ```ant
-var words = ["Ant", "ant", "café"]
+let words = ["Ant", "ant", "café"]
 words.indexOf("ant")         // 1
 words.indexOf("an")          // null
 words.indexOf("cafe\u{301}") // null
@@ -55,7 +55,7 @@ Records compare by tag and fields, so a fresh record with the same fields is fou
 
 ```ant
 type Card = { rank: int, suit: string }
-var hand = [Card{ rank: 10, suit: "hearts" }, Card{ rank: 1, suit: "spades" }]
+let hand = [Card{ rank: 10, suit: "hearts" }, Card{ rank: 1, suit: "spades" }]
 hand.indexOf(Card{ rank: 1, suit: "spades" }) // 1
 hand.indexOf(Card{ rank: 1, suit: "hearts" }) // null
 ```
@@ -67,7 +67,7 @@ type Pending = {}
 type Done = { code: int }
 type Failed = { code: int }
 type Status = Pending | Done | Failed
-var log: Array[Status] = [Pending{}, Failed{ code: 1 }, Done{ code: 1 }]
+let log: Array[Status] = [Pending{}, Failed{ code: 1 }, Done{ code: 1 }]
 log.indexOf(Done{ code: 1 }) // 2
 log.indexOf(Pending{})       // 0
 ```
@@ -77,7 +77,7 @@ Functions compare by identity, so a lambda with the same body is a different val
 ```ant
 func inc(x: int): int { x + 1 }
 func dec(x: int): int { x - 1 }
-var g: func(int): int = { x + 1 }
+let g: func(int): int = { x + 1 }
 [inc, dec].indexOf(dec) // 1
 [g].indexOf(g)          // 0
 [g].indexOf({ x + 1 })  // null
@@ -93,7 +93,7 @@ Nested arrays and maps compare by contents. Maps are equal in any order:
 An array whose element type includes `null` can look for `null`:
 
 ```ant
-var cells: Array[string | null] = ["a", null, "c", null]
+let cells: Array[string | null] = ["a", null, "c", null]
 cells.indexOf(null) // 1
 cells.indexOf("c")  // 2
 ```
@@ -115,7 +115,7 @@ Array.indexOf(["a", "b"], v: "b") // 1
 Turn a weekday name into its number, with a fallback for unknown names:
 
 ```ant
-var days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+let days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 func dayNumber(name: string): int {
   (days.indexOf(String.toLower(name)) ?? -1) + 1
 }
@@ -133,14 +133,14 @@ Read the value that follows a flag in a list of arguments:
 
 ```ant
 func flag(args: Array[string], name: string): string | null {
-  var i = args.indexOf(name)
+  let i = args.indexOf(name)
   if i == null {
     return null
   }
   args.get(i + 1)
 }
 
-var args = ["build", "--out", "dist", "--verbose"]
+let args = ["build", "--out", "dist", "--verbose"]
 println(flag(args, "--out"))
 println(flag(args, "--verbose"))
 println(flag(args, "--quiet"))
@@ -155,8 +155,8 @@ null
 Remove the first occurrence of a value, and leave the array alone when it is missing:
 
 ```ant
-var queue = ["ann", "bob", "cy", "bob"]
-var i = queue.indexOf("bob")
+let queue = ["ann", "bob", "cy", "bob"]
+let i = queue.indexOf("bob")
 if i != null {
   queue.removeAt(i)
 }
@@ -172,9 +172,9 @@ println(queue)
 The element at the index is `==` to `v`, and no element before it is:
 
 ```ant
-var xs = [5, 3, 5, 8, 3]
+let xs = [5, 3, 5, 8, 3]
 for v in [3, 5, 8] {
-  var i = xs.indexOf(v)
+  let i = xs.indexOf(v)
   assert(i != null)
   assert(xs[i] == v)
   assert(!Array.slice(xs, 0, i).contains(v))
@@ -185,7 +185,7 @@ The result is `null` exactly when [`Array.contains`](contains.md) is `false`, an
 [`Array.findIndex`](findIndex.md) given an `==` test:
 
 ```ant
-var xs = ["a", "b", "a"]
+let xs = ["a", "b", "a"]
 for v in ["a", "b", "z"] {
   assert((xs.indexOf(v) == null) == !xs.contains(v))
   assert(xs.indexOf(v) == xs.findIndex({ x == v }))
@@ -195,7 +195,7 @@ for v in ["a", "b", "z"] {
 With [`Array.lastIndexOf`](lastIndexOf.md), it tells whether a value occurs exactly once:
 
 ```ant
-var xs = [4, 7, 4, 9]
+let xs = [4, 7, 4, 9]
 assert(xs.indexOf(7) == xs.lastIndexOf(7))
 assert(xs.indexOf(4) != xs.lastIndexOf(4))
 ```
@@ -205,14 +205,14 @@ assert(xs.indexOf(4) != xs.lastIndexOf(4))
 The result is nullable, so it cannot index an array as it is:
 
 ```ant
-var xs = ["a", "b"]
+let xs = ["a", "b"]
 println(xs[xs.indexOf("b")]) // error: cannot use int | null where int is expected
 ```
 
 Test it against `null`, not for truth. `0` is a valid index, and an `int | null` is not a condition:
 
 ```ant
-var i = ["a", "b"].indexOf("a")
+let i = ["a", "b"].indexOf("a")
 if i { // error: cannot use int | null where bool is expected
   println(i)
 }
@@ -222,7 +222,7 @@ if i { // error: cannot use int | null where bool is expected
 [`Array.findIndex`](findIndex.md) with `Math.isNaN`:
 
 ```ant
-var xs = [1.0, Math.NaN]
+let xs = [1.0, Math.NaN]
 xs.indexOf(Math.NaN)            // null
 xs.findIndex({ Math.isNaN(x) }) // 1
 ```
@@ -236,7 +236,7 @@ xs.findIndex({ Math.isNaN(x) }) // 1
 Numeric types never mix, so looking for a `float64` in an `Array[int]` is a compile error:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs.indexOf(2.0)) // error: cannot use float64 where int is expected
 ```
 
@@ -244,7 +244,7 @@ println(xs.indexOf(2.0)) // error: cannot use float64 where int is expected
 [`Array.findIndex`](findIndex.md):
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs.indexOf({ x > 1 }))
 // error: a lambda needs an expected function type, but int is expected
 ```

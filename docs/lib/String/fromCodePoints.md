@@ -63,7 +63,7 @@ A combining mark is a code point of its own, so `e` and U+0301 give a string of 
 reads as one character:
 
 ```ant
-var s = String.fromCodePoints([101, 0x301]) ?? ""
+let s = String.fromCodePoints([101, 0x301]) ?? ""
 String.length(s)         // 2
 len(String.graphemes(s)) // 1
 ```
@@ -77,7 +77,7 @@ In a pipe, the array is the first argument:
 A function value works wherever a `func(Array[int]): string | null` is expected:
 
 ```ant
-var decode: func(Array[int]): string | null = String.fromCodePoints
+let decode: func(Array[int]): string | null = String.fromCodePoints
 decode([79, 75]) // "OK"
 ```
 
@@ -102,7 +102,7 @@ it is:
 
 ```ant
 func rot13(s: string): string {
-  var points = s.toCodePoints().map({
+  let points = s.toCodePoints().map({
     if x >= 97 && x <= 122 { (x - 97 + 13) % 26 + 97 } else { x }
   })
   String.fromCodePoints(points) ?? s
@@ -122,7 +122,7 @@ value:
 
 ```ant
 func decode(hex: string): string | null {
-  var points = String.fields(hex).map({ String.toInt(x, 16) ?? -1 })
+  let points = String.fields(hex).map({ String.toInt(x, 16) ?? -1 })
   String.fromCodePoints(points)
 }
 
@@ -158,16 +158,16 @@ for n in [-1, 0, 65, 0xD800, 0xE000, 0x1F41C, 0x10FFFF, 0x110000] {
 A result that is not `null` has one code point per value:
 
 ```ant
-var points = [0x41, 0xE9, 0x65E5, 0x1F41C]
-var s = String.fromCodePoints(points)
+let points = [0x41, 0xE9, 0x65E5, 0x1F41C]
+let s = String.fromCodePoints(points)
 assert(s != null && String.length(s) == len(points))
 ```
 
 It is the [String.concat](concat.md) of each value's one-code-point string:
 
 ```ant
-var points = [97, 0x301, 0x1F41C]
-var parts = points.map({ String.fromCodePoint(x) ?? "" })
+let points = [97, 0x301, 0x1F41C]
+let parts = points.map({ String.fromCodePoint(x) ?? "" })
 assert(String.fromCodePoints(points) == String.concat(parts))
 ```
 
@@ -177,14 +177,14 @@ The result may be `null`, so using it where a `string` is expected is a compile 
 fallback with `??`, or narrow it with `if`:
 
 ```ant
-var s: string = String.fromCodePoints([97])
+let s: string = String.fromCodePoints([97])
 // error: cannot use string | null where string is expected
 ```
 
 One bad value makes the whole result `null`. To keep the valid ones, filter the array first:
 
 ```ant
-var points = [72, 0xD800, 105, -5]
+let points = [72, 0xD800, 105, -5]
 String.fromCodePoints(points)                                             // null
 String.fromCodePoints(points.filter({ String.fromCodePoint(x) != null })) // "Hi"
 ```
@@ -200,21 +200,21 @@ String.fromCodePoints([0x1F41C])        // "🐜"
 The argument is an array, not a list of values:
 
 ```ant
-var s = String.fromCodePoints(97, 98) // error: String.fromCodePoints takes 1 argument, got 2
+let s = String.fromCodePoints(97, 98) // error: String.fromCodePoints takes 1 argument, got 2
 ```
 
 The array is the subject of a call through `.`, and a value reaches its own type's namespace, so
 `points.fromCodePoints()` looks in `Array` and is a compile error. Use a pipe instead:
 
 ```ant
-var s = [97, 98].fromCodePoints() // error: Array[int] has no field or function fromCodePoints
+let s = [97, 98].fromCodePoints() // error: Array[int] has no field or function fromCodePoints
 ```
 
 The result is not normalized. A letter and a combining accent differ from the one-code-point letter
 until [String.normalize](normalize.md) brings both to one form:
 
 ```ant
-var s = String.fromCodePoints([101, 0x301]) ?? ""
+let s = String.fromCodePoints([101, 0x301]) ?? ""
 s == "\u{E9}"                          // false
 String.normalize(s, "NFC") == "\u{E9}" // true
 ```

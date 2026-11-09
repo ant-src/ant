@@ -112,13 +112,13 @@ Split an amount from its unit, where the amount may hold a fraction:
 type Amount = { qty: string, unit: string }
 
 func amount(s: string): Amount {
-  var cs = s.chars()
-  var i = cs.findIndex({ !String.isNumber(x) }) ?? cs.length()
+  let cs = s.chars()
+  let i = cs.findIndex({ !String.isNumber(x) }) ?? cs.length()
   Amount{ qty: String.concat(cs.slice(0, i)), unit: String.trim(String.concat(cs.slice(i, cs.length()))) }
 }
 
 for s in ["1½ cups", "250 g", "¾ tsp", "pinch"] {
-  var a = amount(s)
+  let a = amount(s)
   println("${a.qty}|${a.unit}")
 }
 ```
@@ -154,7 +154,7 @@ point starts with `N`:
 
 ```ant
 for s in ["", "0", "42", "٣", "½", "Ⅻ", "²", "1.5", "a1", "三"] {
-  var byCategory = s != "" && s.chars().every({ String.category(x).startsWith("N") })
+  let byCategory = s != "" && s.chars().every({ String.category(x).startsWith("N") })
   assert(String.isNumber(s) == byCategory)
 }
 ```

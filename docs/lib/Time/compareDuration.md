@@ -17,7 +17,7 @@ weeks and relativeTo is null.
 ## Basic examples
 
 ```ant
-var month = Time.duration(months: 1)
-var feb = Time.plainDate(2026, 2, 1)
+let month = Time.duration(months: 1)
+let feb = Time.plainDate(2026, 2, 1)
 Time.compareDuration(month, Time.duration(days: 30), relativeTo: feb) // -1
 ```

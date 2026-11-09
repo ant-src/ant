@@ -19,6 +19,6 @@ or larger between ZonedDateTimes in different zones.
 ## Basic examples
 
 ```ant
-var jan31 = Time.plainDate(2026, 1, 31)
+let jan31 = Time.plainDate(2026, 1, 31)
 Time.until(jan31, Time.plainDate(2026, 2, 28), largestUnit: Time.Month{}) // P28D
 ```

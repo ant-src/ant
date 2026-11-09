@@ -16,6 +16,6 @@ from run to run.
 ## Basic examples
 
 ```ant
-var r = Random.new(42)
+let r = Random.new(42)
 Random.int(r, 0, 100) // 22
 ```

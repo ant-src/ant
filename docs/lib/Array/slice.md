@@ -30,7 +30,7 @@ Array.slice([10, 20, 30, 40], 1, 3) // [20, 30]
 Take the first two elements, or everything after the first:
 
 ```ant
-var xs = ["a", "b", "c", "d"]
+let xs = ["a", "b", "c", "d"]
 Array.slice(xs, 0, 2)       // ["a", "b"]
 Array.slice(xs, 1, len(xs)) // ["b", "c", "d"]
 ```
@@ -40,7 +40,7 @@ Array.slice(xs, 1, len(xs)) // ["b", "c", "d"]
 An empty range gives `[]`, wherever it sits, the end included:
 
 ```ant
-var xs = [10, 20, 30]
+let xs = [10, 20, 30]
 Array.slice(xs, 0, 0) // []
 Array.slice(xs, 2, 2) // []
 Array.slice(xs, 3, 3) // []
@@ -55,7 +55,7 @@ Array.slice([10, 20, 30], 0, 3) // [10, 20, 30]
 An empty array has one range, `0` to `0`:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.slice(empty, 0, 0) // []
 ```
 
@@ -63,7 +63,7 @@ Records and `null` elements are sliced like any other value:
 
 ```ant
 type Point = { x: int, y: int }
-var path = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
+let path = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 Array.slice(path, 1, 2)               // [Point{ x: 1, y: 2 }]
 Array.slice([1, null, 3, null], 1, 3) // [null, 3]
 ```
@@ -111,7 +111,7 @@ println(take([1, 2], 3))
 Drop a header row and keep the data rows:
 
 ```ant
-var lines = ["name,age", "Ann,31", "Bob,27"]
+let lines = ["name,age", "Ann,31", "Bob,27"]
 for line in Array.slice(lines, 1, len(lines)) {
   println(line)
 }
@@ -126,12 +126,12 @@ Show one page of results, clamping the last page to the length:
 
 ```ant
 func page(items: Array[string], number: int, size: int): Array[string] {
-  var from = Math.min(number * size, len(items))
-  var to = Math.min(from + size, len(items))
+  let from = Math.min(number * size, len(items))
+  let to = Math.min(from + size, len(items))
   Array.slice(items, from, to)
 }
 
-var names = ["Ann", "Bob", "Cid", "Dee", "Eve"]
+let names = ["Ann", "Bob", "Cid", "Dee", "Eve"]
 println(page(names, 0, 2))
 println(page(names, 2, 2))
 println(page(names, 3, 2))
@@ -146,9 +146,9 @@ println(page(names, 3, 2))
 Sum each window of three readings:
 
 ```ant
-var readings = [3, 6, 9, 6, 3]
+let readings = [3, 6, 9, 6, 3]
 for i in Array.range(0, len(readings) - 2) {
-  var window = Array.slice(readings, i, i + 3)
+  let window = Array.slice(readings, i, i + 3)
   println(Array.sum(window) ?? 0)
 }
 ```
@@ -164,10 +164,10 @@ for i in Array.range(0, len(readings) - 2) {
 The result holds `to - from` elements, and element `i` of it is element `from + i` of `xs`:
 
 ```ant
-var xs = [5, 6, 7, 8, 9]
-var from = 1
-var to = 4
-var part = Array.slice(xs, from, to)
+let xs = [5, 6, 7, 8, 9]
+let from = 1
+let to = 4
+let part = Array.slice(xs, from, to)
 assert(len(part) == to - from)
 assert(Array.every(Array.range(0, len(part)), { part[x] == xs[from + x] }))
 ```
@@ -175,15 +175,15 @@ assert(Array.every(Array.range(0, len(part)), { part[x] == xs[from + x] }))
 Two slices that meet at the same index put the array back together:
 
 ```ant
-var xs = [1, 2, 3, 4, 5]
-var i = 2
+let xs = [1, 2, 3, 4, 5]
+let i = 2
 assert(Array.concat(Array.slice(xs, 0, i), Array.slice(xs, i, len(xs))) == xs)
 ```
 
 Slicing a slice is one slice with the offsets added:
 
 ```ant
-var xs = [1, 2, 3, 4, 5, 6]
+let xs = [1, 2, 3, 4, 5, 6]
 assert(Array.slice(Array.slice(xs, 1, 5), 1, 3) == Array.slice(xs, 2, 4))
 ```
 
@@ -191,8 +191,8 @@ Destructuring with a rest binds everything after the head as a new array, the sa
 `1`. Unlike the slice, it panics on an empty array:
 
 ```ant
-var xs = [1, 2, 3]
-var [_, ...tail] = xs
+let xs = [1, 2, 3]
+let [_, ...tail] = xs
 assert(tail == Array.slice(xs, 1, len(xs)))
 ```
 
@@ -200,8 +200,8 @@ A slice of the whole array is a copy: equal, but a new array, so writing to it l
 was:
 
 ```ant
-var xs = [1, 2, 3]
-var copy = Array.slice(xs, 0, len(xs))
+let xs = [1, 2, 3]
+let copy = Array.slice(xs, 0, len(xs))
 assert(copy == xs)
 assert(!Array.same(copy, xs))
 copy[0] = 9
@@ -213,7 +213,7 @@ xs // [1, 2, 3]
 `to` is excluded, so a range that names the last index leaves the last element out:
 
 ```ant
-var xs = [10, 20, 30]
+let xs = [10, 20, 30]
 Array.slice(xs, 0, 2)       // [10, 20]
 Array.slice(xs, 0, len(xs)) // [10, 20, 30]
 ```
@@ -234,7 +234,7 @@ Array.slice([1, 2, 3], -1, 3) // panic: Array.slice: the range -1..3 is not with
 Write the length out to take from the end:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 Array.slice(xs, len(xs) - 1, len(xs)) // [3]
 ```
 
@@ -248,8 +248,8 @@ The new array holds the same elements, not copies of them. Writing into an eleme
 array or a record shows through the original:
 
 ```ant
-var grid = [[1, 2], [3, 4]]
-var top = Array.slice(grid, 0, 1)
+let grid = [[1, 2], [3, 4]]
+let top = Array.slice(grid, 0, 1)
 top[0][0] = 99
 grid // [[99, 2], [3, 4]]
 ```

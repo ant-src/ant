@@ -48,10 +48,10 @@ Each maximal subpart becomes one U+FFFD. Two bytes that are each invalid on thei
 a sequence that starts well and is cut short gives one:
 
 ```ant
-var twoBad = String.fromBytesLossy(Bytes.fromArray([0xFF, 0xFE]))
+let twoBad = String.fromBytesLossy(Bytes.fromArray([0xFF, 0xFE]))
 twoBad          // "��"
 twoBad.length() // 2
-var cutShort = String.fromBytesLossy(Bytes.fromArray([0xE2, 0x82]))
+let cutShort = String.fromBytesLossy(Bytes.fromArray([0xE2, 0x82]))
 cutShort.length() // 1
 ```
 
@@ -100,7 +100,7 @@ In a pipe, the bytes are the first argument:
 A function value works wherever a `func(Bytes): string` is expected:
 
 ```ant
-var decode: func(Bytes): string = String.fromBytesLossy
+let decode: func(Bytes): string = String.fromBytesLossy
 [Bytes.fromArray([0x6f, 0x6b]), Bytes.fromArray([0x80])].map(decode) // ["ok", "�"]
 ```
 
@@ -133,7 +133,7 @@ Result.unwrap(File.writeBytes("name.txt", Bytes.fromArray([0x4a, 0x6f, 0x73, 0xe
 -->
 
 ```ant
-var bytes = Result.unwrap(File.readBytes("name.txt"))
+let bytes = Result.unwrap(File.readBytes("name.txt"))
 println("${len(bytes)} bytes: ${String.fromBytesLossy(bytes)}")
 ```
 
@@ -158,7 +158,7 @@ On valid UTF-8, `String.fromBytesLossy` agrees with `String.fromBytes` and undoe
 
 ```ant
 for s in ["", "ant", "héllo", "🐜 \u{0} \u{10FFFF}"] {
-  var b = String.toBytes(s)
+  let b = String.toBytes(s)
   assert(String.fromBytesLossy(b) == s)
   assert(String.fromBytes(b) == s)
 }
@@ -168,7 +168,7 @@ When `String.fromBytes` returns `null`, the lossy result holds at least one U+FF
 did not encode:
 
 ```ant
-var b = Bytes.fromArray([0x61, 0xFF])
+let b = Bytes.fromArray([0x61, 0xFF])
 assert(String.fromBytes(b) == null)
 assert(String.fromBytesLossy(b) == "a\u{FFFD}")
 ```
@@ -176,8 +176,8 @@ assert(String.fromBytesLossy(b) == "a\u{FFFD}")
 The result is always valid text, so encoding it and decoding again changes nothing:
 
 ```ant
-var b = Bytes.fromArray([0xC0, 0xAF, 0x61, 0xED, 0xA0, 0x80])
-var s = String.fromBytesLossy(b)
+let b = Bytes.fromArray([0xC0, 0xAF, 0x61, 0xED, 0xA0, 0x80])
+let s = String.fromBytesLossy(b)
 assert(String.fromBytes(String.toBytes(s)) == s)
 assert(String.fromBytesLossy(String.toBytes(s)) == s)
 ```
@@ -188,7 +188,7 @@ Decoding is lossy: the bytes that became U+FFFD are gone, and encoding the strin
 give them back. Keep the `Bytes` when you need them as they were:
 
 ```ant
-var b = Bytes.fromArray([0xFF])
+let b = Bytes.fromArray([0xFF])
 String.toBytes(String.fromBytesLossy(b))      // Bytes(ef bf bd)
 String.toBytes(String.fromBytesLossy(b)) == b // false
 ```
@@ -197,7 +197,7 @@ A U+FFFD in the result does not prove the bytes were broken: valid UTF-8 can enc
 Use `String.fromBytes` to tell the two apart:
 
 ```ant
-var real = String.toBytes("\u{FFFD}")
+let real = String.toBytes("\u{FFFD}")
 String.fromBytesLossy(real) == String.fromBytesLossy(Bytes.fromArray([0xFF])) // true
 String.fromBytes(real) == null                                                // false
 ```
@@ -206,7 +206,7 @@ The function is in the `String` namespace and its argument is `Bytes`, so a call
 bytes is a compile error:
 
 ```ant
-var b = String.toBytes("ant")
+let b = String.toBytes("ant")
 println(b.fromBytesLossy()) // error: Bytes has no field or function fromBytesLossy
 ```
 
@@ -216,7 +216,7 @@ A leading byte order mark stays in the result, so the string does not equal the 
 it:
 
 ```ant
-var s = String.fromBytesLossy(Bytes.fromArray([0xEF, 0xBB, 0xBF, 0x61]))
+let s = String.fromBytesLossy(Bytes.fromArray([0xEF, 0xBB, 0xBF, 0x61]))
 s == "a"   // false
 s.length() // 2
 ```

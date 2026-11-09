@@ -112,7 +112,7 @@ A code point that `String.fromCodePoint` builds works as well as a literal one. 
 noncharacter, which Unicode never assigns:
 
 ```ant
-var c = String.fromCodePoint(0xFFFF) ?? "?"
+let c = String.fromCodePoint(0xFFFF) ?? "?"
 c.category() // "Cn"
 ```
 
@@ -127,9 +127,9 @@ Map it over the code points of a string, here in a pipe:
 Count the categories in a text:
 
 ```ant
-var counts: Map[string, int] = Map{}
+let counts: Map[string, int] = Map{}
 for c in "Hi, 2 ants!" {
-  var k = String.category(c)
+  let k = String.category(c)
   counts[k] = (counts[k] ?? 0) + 1
 }
 println(counts)
@@ -144,7 +144,7 @@ it again:
 
 ```ant
 func stripAccents(s: string): string {
-  var kept = String.normalize(s, "NFD") | String.chars() | Array.filter({ String.category(x) != "Mn" })
+  let kept = String.normalize(s, "NFD") | String.chars() | Array.filter({ String.category(x) != "Mn" })
   String.normalize(String.concat(kept), "NFC")
 }
 
@@ -159,7 +159,7 @@ Remove invisible format characters, such as a soft hyphen or a zero-width space,
 web page leaves behind:
 
 ```ant
-var pasted = "co\u{AD}operate\u{200B}"
+let pasted = "co\u{AD}operate\u{200B}"
 String.concat(pasted.chars().filter({ String.category(x) != "Cf" })) // "cooperate"
 ```
 
@@ -167,7 +167,7 @@ Cf also holds the zero-width joiner that binds an emoji sequence, so this filter
 emoji into three emoji:
 
 ```ant
-var family = "👨\u{200D}👩\u{200D}👧"
+let family = "👨\u{200D}👩\u{200D}👧"
 String.concat(family.chars().filter({ String.category(x) != "Cf" })) // "👨👩👧"
 ```
 
@@ -181,10 +181,10 @@ func major(c: string): string {
 }
 
 func runs(s: string): Array[Run] {
-  var out: Array[Run] = []
+  let out: Array[Run] = []
   for c in s {
-    var m = major(c)
-    var last = out.last()
+    let m = major(c)
+    let last = out.last()
     if last != null && last.major == m {
       last.text = last.text + c
     } else {
@@ -212,8 +212,8 @@ Each class test of `String` except `String.isSpace` is a test on the category of
 
 ```ant
 for c in ["A", "a", "ǅ", "7", "Ⅻ", "\u{301}", "-", "€", " ", "\n", "\u{AD}", "\u{378}"] {
-  var k = String.category(c)
-  var m = String.slice(k, 0, 1)
+  let k = String.category(c)
+  let m = String.slice(k, 0, 1)
   assert(String.isUpper(c) == (k == "Lu"))
   assert(String.isLower(c) == (k == "Ll"))
   assert(String.isDigit(c) == (k == "Nd"))

@@ -24,7 +24,7 @@ String.count("banana", "kiwi") // 0
 Call it through `.` on any string:
 
 ```ant
-var path = "/usr/local/bin"
+let path = "/usr/local/bin"
 path.count("/") // 3
 ```
 
@@ -63,7 +63,7 @@ In a pipeline, the string is the first argument:
 Count the lines of a text that ends each line with `\n`:
 
 ```ant
-var text = "one\ntwo\nthree\n"
+let text = "one\ntwo\nthree\n"
 println("${String.count(text, "\n")} lines")
 ```
 
@@ -92,7 +92,7 @@ sameCount("f(g(x)")            // false
 Count a word in any case by folding both sides first:
 
 ```ant
-var text = "Ant, ANT, ant."
+let text = "Ant, ANT, ant."
 String.count(String.foldCase(text), String.foldCase("ant")) // 3
 ```
 
@@ -109,7 +109,7 @@ for t in ["e", "ee", "x"] {
 Counting a single code point gives the same as `Array.countWhere` over `String.chars`:
 
 ```ant
-var s = "mississippi"
+let s = "mississippi"
 assert(String.count(s, "s") == String.chars(s).countWhere({ x == "s" }))
 ```
 
@@ -159,7 +159,7 @@ countOverlapping("abababa", "aba") // 3
 whole words, split the text into fields first:
 
 ```ant
-var text = "other then the"
+let text = "other then the"
 String.count(text, "the")                      // 3
 String.fields(text).countWhere({ x == "the" }) // 1
 ```

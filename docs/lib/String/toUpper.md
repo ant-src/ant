@@ -29,7 +29,7 @@ String.toUpper("straße") // "STRASSE"
 Call it through `.` on any string:
 
 ```ant
-var lang = "ant"
+let lang = "ant"
 lang.toUpper() // "ANT"
 ```
 
@@ -110,7 +110,7 @@ written as its own code point stays with its letter:
 
 ```ant
 func capitalize(s: string): string {
-  var gs = s.graphemes()
+  let gs = s.graphemes()
   if gs.length() == 0 {
     return s
   }
@@ -160,7 +160,7 @@ The length can change, so a code point index found in `s` may not point at the s
 `String.toUpper(s)`:
 
 ```ant
-var s = "straße!"
+let s = "straße!"
 s.indexOf("!")           // 6
 s.toUpper().indexOf("!") // 7
 ```
@@ -195,12 +195,12 @@ A nullable string, such as the result of `Map` indexing, is a compile error. Nar
 give a default with `??`:
 
 ```ant
-var user = Map{ name: "ann" }
+let user = Map{ name: "ann" }
 println(String.toUpper(user["name"])) // error: cannot use string | null where string is expected
 ```
 
 ```ant
-var user = Map{ name: "ann" }
+let user = Map{ name: "ann" }
 (user["name"] ?? "").toUpper() // "ANN"
 ```
 

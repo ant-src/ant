@@ -131,7 +131,7 @@ Name the scripts of a text, skipping the characters that every script shares:
 let scripts = ["Latin", "Greek", "Cyrillic", "Han", "Hiragana", "Katakana"]
 
 func scriptsOf(s: string): Array[string] {
-  var found: Array[string] = []
+  let found: Array[string] = []
   for c in s {
     for name in scripts {
       if String.inScript(c, name) && !found.contains(name) {

@@ -87,7 +87,7 @@ String.isGraphic("🇨🇭") // true
 A string built with `String.fromCodePoint` works as a literal one does:
 
 ```ant
-var nbsp = String.fromCodePoint(0xA0) ?? ""
+let nbsp = String.fromCodePoint(0xA0) ?? ""
 nbsp.isGraphic() // true
 ```
 
@@ -125,7 +125,7 @@ Report each code point that is not graphic, with its position and its category:
 type Bad = { index: int, category: string }
 
 func badCodePoints(s: string): Array[Bad] {
-  var out: Array[Bad] = []
+  let out: Array[Bad] = []
   var i = 0
   for c in s {
     if !c.isGraphic() {
@@ -163,10 +163,10 @@ visible("bell\u{7} tab\t") // "bell� tab�"
 
 ```ant
 for s in ["", "a", "a b", "\u{A0}", "\n", "x\u{AD}", "\u{2028}", "🐜!", "\u{E000}"] {
-  var chars = String.chars(s)
-  var all = !chars.isEmpty() &&
+  let chars = String.chars(s)
+  let all = !chars.isEmpty() &&
     chars.every({
-      var k = String.category(x)
+      let k = String.category(x)
       ["L", "M", "N", "P", "S"].contains(String.slice(k, 0, 1)) || k == "Zs"
     })
   assert(String.isGraphic(s) == all)
@@ -181,7 +181,7 @@ for s in ["a", " ", "\u{A0}", "\u{3000}", "\t", "€", "\u{301}"] {
   if String.isPrint(s) {
     assert(String.isGraphic(s))
   }
-  var differ = String.isGraphic(s) != String.isPrint(s)
+  let differ = String.isGraphic(s) != String.isPrint(s)
   assert(differ == (String.category(s) == "Zs" && s != " "))
 }
 ```

@@ -22,7 +22,7 @@ Set.remove removes x from s and reports whether it was a member. It mutates s.
 Remove a member, and the result says it was there:
 
 ```ant
-var tags = Set.of(["red", "green", "blue"])
+let tags = Set.of(["red", "green", "blue"])
 Set.remove(tags, "green") // true
 tags                      // Set.of(["red", "blue"])
 ```
@@ -30,7 +30,7 @@ tags                      // Set.of(["red", "blue"])
 A value that is not a member gives `false` and leaves the set alone:
 
 ```ant
-var tags = Set.of(["red", "blue"])
+let tags = Set.of(["red", "blue"])
 tags.remove("pink") // false
 tags                // Set.of(["red", "blue"])
 ```
@@ -38,7 +38,7 @@ tags                // Set.of(["red", "blue"])
 Removing the same value twice succeeds only once:
 
 ```ant
-var online = Set.of(["ada", "linus"])
+let online = Set.of(["ada", "linus"])
 online.remove("ada") // true
 online.remove("ada") // false
 ```
@@ -48,7 +48,7 @@ online.remove("ada") // false
 An empty set has nothing to remove. Annotate it so that `T` is known:
 
 ```ant
-var empty: Set[int] = Set.of([])
+let empty: Set[int] = Set.of([])
 empty.remove(1) // false
 ```
 
@@ -56,7 +56,7 @@ Records compare by tag and fields, so a fresh record with the same fields remove
 
 ```ant
 type Point = { x: int, y: int }
-var visited = Set.of([Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }])
+let visited = Set.of([Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }])
 visited.remove(Point{ x: 1, y: 2 }) // true
 visited                             // Set.of([Point{ x: 3, y: 4 }])
 ```
@@ -64,17 +64,17 @@ visited                             // Set.of([Point{ x: 3, y: 4 }])
 Arrays and maps compare by contents. Two maps with the same entries are equal in any order:
 
 ```ant
-var shapes = Set.of([[1, 2], [3]])
+let shapes = Set.of([[1, 2], [3]])
 shapes.remove([1, 2]) // true
 shapes.remove([2, 1]) // false
-var configs = Set.of([Map{ a: 1, b: 2 }])
+let configs = Set.of([Map{ a: 1, b: 2 }])
 configs.remove(Map{ b: 2, a: 1 }) // true
 ```
 
 Strings compare by code points, with no normalization:
 
 ```ant
-var words = Set.of(["café"])
+let words = Set.of(["café"])
 words.remove("cafe\u{301}") // false
 words.remove("café")        // true
 ```
@@ -82,7 +82,7 @@ words.remove("café")        // true
 When `T` includes `null`, `null` can be a member and can be removed:
 
 ```ant
-var answers: Set[string | null] = Set.of(["yes", null])
+let answers: Set[string | null] = Set.of(["yes", null])
 answers.remove(null) // true
 answers              // Set.of(["yes"])
 ```
@@ -90,7 +90,7 @@ answers              // Set.of(["yes"])
 Call it through `.`, with a pipe, or with named arguments in any order:
 
 ```ant
-var s = Set.of([1, 2, 3])
+let s = Set.of([1, 2, 3])
 s.remove(1)            // true
 s | Set.remove(2)      // true
 Set.remove(x: 3, s: s) // true
@@ -101,7 +101,7 @@ A set bound by `let` can still lose members, and every name for it sees the chan
 
 ```ant
 let a = Set.of(["x", "y"])
-var b = a
+let b = a
 b.remove("x") // true
 a             // Set.of(["y"])
 ```
@@ -117,7 +117,7 @@ func toggle(s: Set[string], x: string) {
   }
 }
 
-var selected = Set.of(["bold"])
+let selected = Set.of(["bold"])
 toggle(selected, "bold")
 toggle(selected, "italic")
 println(selected)
@@ -130,7 +130,7 @@ Set.of(["italic"])
 Track work still in flight, and report a task that finishes twice:
 
 ```ant
-var pending = Set.of(["build", "test", "lint"])
+let pending = Set.of(["build", "test", "lint"])
 
 func finish(task: string) {
   if pending.remove(task) {
@@ -159,7 +159,7 @@ func touch(recent: Set[string], file: string) {
   recent.add(file)
 }
 
-var recent = Set.of(["a.ant", "b.ant", "c.ant"])
+let recent = Set.of(["a.ant", "b.ant", "c.ant"])
 touch(recent, "a.ant")
 println(recent.values())
 ```
@@ -173,9 +173,9 @@ println(recent.values())
 The result is what [Set.has](has.md) said before the call, and afterward `x` is not a member:
 
 ```ant
-var s = Set.of([1, 2, 3])
+let s = Set.of([1, 2, 3])
 for x in [2, 9] {
-  var had = s.has(x)
+  let had = s.has(x)
   assert(s.remove(x) == had)
   assert(!s.has(x))
 }
@@ -184,10 +184,10 @@ for x in [2, 9] {
 The size drops by one exactly when the result is `true`:
 
 ```ant
-var s = Set.of(["a", "b"])
+let s = Set.of(["a", "b"])
 for x in ["a", "z"] {
-  var size = s.size()
-  var removed = s.remove(x)
+  let size = s.size()
+  let removed = s.remove(x)
   assert(s.size() == if removed { size - 1 } else { size })
 }
 ```
@@ -195,8 +195,8 @@ for x in ["a", "z"] {
 `Set.remove` undoes a [Set.add](add.md) that returned `true`:
 
 ```ant
-var s = Set.of([1, 2])
-var before = Set.of(s.values())
+let s = Set.of([1, 2])
+let before = Set.of(s.values())
 assert(s.add(3))
 assert(s.remove(3))
 assert(s == before)
@@ -205,8 +205,8 @@ assert(s == before)
 It has the effect of [Set.difference](difference.md) with a one-member set, but in place:
 
 ```ant
-var s = Set.of([1, 2, 3])
-var expected = Set.difference(s, Set.of([2]))
+let s = Set.of([1, 2, 3])
+let expected = Set.difference(s, Set.of([2]))
 s.remove(2)
 assert(s == expected)
 ```
@@ -216,14 +216,14 @@ assert(s == expected)
 The result is a `bool`, not the removed member:
 
 ```ant
-var s = Set.of([1, 2])
-var n: int = s.remove(1) // error: cannot use bool where int is expected
+let s = Set.of([1, 2])
+let n: int = s.remove(1) // error: cannot use bool where int is expected
 ```
 
 The value must have the set's member type. Numeric types never mix:
 
 ```ant
-var prices = Set.of([1.5, 2.0])
+let prices = Set.of([1.5, 2.0])
 prices.remove(2) // error: cannot use int where float64 is expected
 ```
 
@@ -235,7 +235,7 @@ first, change it, then add it again.
 removes the other:
 
 ```ant
-var xs = Set.of([Math.NaN, 0.0])
+let xs = Set.of([Math.NaN, 0.0])
 xs.remove(Math.NaN) // false
 xs.remove(-0.0)     // true
 xs                  // Set.of([NaN])
@@ -244,8 +244,8 @@ xs                  // Set.of([NaN])
 A member removed during a `for` over the set before the loop reaches it is not visited:
 
 ```ant
-var s = Set.of([1, 2, 3, 4])
-var seen: Array[int] = []
+let s = Set.of([1, 2, 3, 4])
+let seen: Array[int] = []
 for v in s {
   if v == 1 {
     s.remove(3)
@@ -259,7 +259,7 @@ seen // [1, 2, 4]
 [Set.values](values.md) with [Array.filter](../Array/filter.md) and build a new set:
 
 ```ant
-var s = Set.of([1, 2, 3, 4])
+let s = Set.of([1, 2, 3, 4])
 Set.of(s.values().filter({ x % 2 == 1 })) // Set.of([1, 3])
 ```
 

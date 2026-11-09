@@ -42,7 +42,7 @@ Set.difference(Set.of([3, 1, 2]), Set.of([1])) // Set.of([3, 2])
 An empty set on either side:
 
 ```ant
-var none: Set[int] = Set.of([])
+let none: Set[int] = Set.of([])
 Set.difference(none, Set.of([1]))    // Set.of([])
 Set.difference(Set.of([1, 2]), none) // Set.of([1, 2])
 ```
@@ -50,7 +50,7 @@ Set.difference(Set.of([1, 2]), none) // Set.of([1, 2])
 A set minus itself is empty:
 
 ```ant
-var s = Set.of([1, 2])
+let s = Set.of([1, 2])
 Set.difference(s, s) // Set.of([])
 ```
 
@@ -59,7 +59,7 @@ contents:
 
 ```ant
 type Point = { x: int, y: int }
-var points = Set.of([Point{ x: 1, y: 2 }, Point{ x: 0, y: 0 }])
+let points = Set.of([Point{ x: 1, y: 2 }, Point{ x: 0, y: 0 }])
 Set.difference(Set.of(["é", "E", "日本"]), Set.of(["e", "日本"])) // Set.of(["é", "E"])
 Set.difference(points, Set.of([Point{ x: 0, y: 0 }]))             // Set.of([Point{ x: 1, y: 2 }])
 Set.difference(Set.of([[1], [2]]), Set.of([[2]]))                 // Set.of([[1]])
@@ -89,8 +89,8 @@ Set.difference(b: Set.of([2]), a: Set.of([1, 2])) // Set.of([1])
 Find what was removed and what was added between two versions of a list:
 
 ```ant
-var before = Set.of(["ann", "bob", "cy"])
-var after = Set.of(["bob", "cy", "dee"])
+let before = Set.of(["ann", "bob", "cy"])
+let after = Set.of(["bob", "cy", "dee"])
 println("removed: ${Set.values(Set.difference(before, after))}")
 println("added: ${Set.values(Set.difference(after, before))}")
 ```
@@ -103,8 +103,8 @@ added: ["dee"]
 Report the required settings that a configuration does not set:
 
 ```ant
-var required = Set.of(["host", "port", "user"])
-var config = Map{ host: "localhost", user: "ann" }
+let required = Set.of(["host", "port", "user"])
+let config = Map{ host: "localhost", user: "ann" }
 for name in Set.difference(required, Set.of(Map.keys(config))) {
   println("missing: ${name}")
 }
@@ -119,9 +119,9 @@ missing: port
 The result has no member of `b`, and every member of it is a member of `a`:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([2, 5])
-var d = Set.difference(a, b)
+let a = Set.of([1, 2, 3])
+let b = Set.of([2, 5])
+let d = Set.difference(a, b)
 assert(Set.isEmpty(Set.intersect(d, b)))
 assert(Set.isSubset(d, a))
 ```
@@ -129,16 +129,16 @@ assert(Set.isSubset(d, a))
 The difference and the intersection split `a` in two:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([2, 5])
+let a = Set.of([1, 2, 3])
+let b = Set.of([2, 5])
 assert(Set.union(Set.difference(a, b), Set.intersect(a, b)) == a)
 ```
 
 The difference is empty exactly when `a` is a subset of `b`:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([1, 2, 3])
+let a = Set.of([1, 2])
+let b = Set.of([1, 2, 3])
 assert(Set.isEmpty(Set.difference(a, b)) == Set.isSubset(a, b))
 assert(!Set.isEmpty(Set.difference(b, a)))
 ```
@@ -146,25 +146,25 @@ assert(!Set.isEmpty(Set.difference(b, a)))
 The members that are in only one of two sets are the union of both differences:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([3, 4])
+let a = Set.of([1, 2, 3])
+let b = Set.of([3, 4])
 Set.union(Set.difference(a, b), Set.difference(b, a)) // Set.of([1, 2, 4])
 ```
 
 It is a filter over the values of `a`:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([2])
+let a = Set.of([1, 2, 3])
+let b = Set.of([2])
 assert(Set.values(Set.difference(a, b)) == Array.filter(Set.values(a), { !Set.has(b, x) }))
 ```
 
 The result is a new set, even when `b` is empty, and adding to it leaves `a` as it was:
 
 ```ant
-var a = Set.of([1, 2])
-var none: Set[int] = Set.of([])
-var d = Set.difference(a, none)
+let a = Set.of([1, 2])
+let none: Set[int] = Set.of([])
+let d = Set.difference(a, none)
 assert(d == a)
 assert(!Set.same(d, a))
 Set.add(d, 3) // true
@@ -177,8 +177,8 @@ d             // Set.of([1, 2, 3])
 `Set.difference` is not symmetric. Swapping the arguments gives the other side:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([2, 3])
+let a = Set.of([1, 2])
+let b = Set.of([2, 3])
 Set.difference(a, b) // Set.of([1])
 Set.difference(b, a) // Set.of([3])
 ```
@@ -193,14 +193,14 @@ println(Set.of([1, 2]) - Set.of([1]))
 Both sets need the same element type:
 
 ```ant
-var d = Set.difference(Set.of([1]), Set.of(["x"])) // error: cannot use string where int is expected
+let d = Set.difference(Set.of([1]), Set.of(["x"])) // error: cannot use string where int is expected
 ```
 
 Two sets built from empty arrays, `Set.of([])`, leave `T` open, which is a compile error. Annotate
 one side, or the result:
 
 ```ant
-var d = Set.difference(Set.of([]), Set.of([]))
+let d = Set.difference(Set.of([]), Set.of([]))
 // error: cannot infer the element type of an empty array; annotate it
 ```
 
@@ -208,7 +208,7 @@ To remove members from a set in place, call [Set.remove](remove.md) for each one
 a new set:
 
 ```ant
-var s = Set.of([1, 2, 3])
+let s = Set.of([1, 2, 3])
 for x in [2, 3] {
   Set.remove(s, x)
 }

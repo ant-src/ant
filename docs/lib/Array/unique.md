@@ -27,7 +27,7 @@ Array.unique([3, 1, 3, 2, 1]) // [3, 1, 2]
 Call it through `.` on any array:
 
 ```ant
-var tags = ["go", "ant", "go", "web", "ant"]
+let tags = ["go", "ant", "go", "web", "ant"]
 tags.unique() // ["go", "ant", "web"]
 ```
 
@@ -36,7 +36,7 @@ tags.unique() // ["go", "ant", "web"]
 An empty array gives an empty array. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.unique() // []
 ```
 
@@ -59,7 +59,7 @@ Records compare by tag and fields, so a second record with the same fields is a 
 
 ```ant
 type Point = { x: int, y: int }
-var path = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Point{ x: 0, y: 0 }]
+let path = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Point{ x: 0, y: 0 }]
 path.unique() // [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }]
 ```
 
@@ -69,7 +69,7 @@ Members of a tagged union compare by tag too, so equal fields under different ta
 type Circle = { size: float64 }
 type Square = { size: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ size: 1.0 }, Square{ size: 1.0 }, Circle{ size: 1.0 }]
+let shapes: Array[Shape] = [Circle{ size: 1.0 }, Square{ size: 1.0 }, Circle{ size: 1.0 }]
 shapes.unique() // [Circle{ size: 1.0 }, Square{ size: 1.0 }]
 ```
 
@@ -84,7 +84,7 @@ Nested arrays compare element by element, and two maps or two sets are equal in 
 `null` is equal to `null`, so an array whose element type includes `null` keeps one:
 
 ```ant
-var answers: Array[string | null] = ["yes", null, "no", null, "yes"]
+let answers: Array[string | null] = ["yes", null, "no", null, "yes"]
 answers.unique() // ["yes", null, "no"]
 ```
 
@@ -99,22 +99,22 @@ In a pipeline, the array is the first argument:
 List the distinct words of a sentence in the order they first appear:
 
 ```ant
-var text = "the ant and the bee and the fly"
+let text = "the ant and the bee and the fly"
 String.split(text, " ").unique() // ["the", "ant", "and", "bee", "fly"]
 ```
 
 Count the distinct visitors in a log:
 
 ```ant
-var visits = ["ann", "bob", "ann", "cid", "bob", "ann"]
+let visits = ["ann", "bob", "ann", "cid", "bob", "ann"]
 len(visits.unique()) // 3
 ```
 
 Merge two lists of email addresses without repeats, keeping the order of the first list:
 
 ```ant
-var team = ["ann@ant.dev", "bob@ant.dev"]
-var guests = ["cid@ant.dev", "ann@ant.dev"]
+let team = ["ann@ant.dev", "bob@ant.dev"]
+let guests = ["cid@ant.dev", "ann@ant.dev"]
 Array.concat(team, guests).unique() // ["ann@ant.dev", "bob@ant.dev", "cid@ant.dev"]
 ```
 
@@ -125,7 +125,7 @@ type Cell = { row: int, col: int }
 
 func visited(moves: string): Array[Cell] {
   var at = Cell{ row: 0, col: 0 }
-  var cells = [at]
+  let cells = [at]
   for m in String.graphemes(moves) {
     if m == "R" {
       at = Cell{ ...at, col: at.col + 1 }
@@ -156,15 +156,15 @@ These hold for every value but `NaN`, which is not `==` to itself, so an array h
 `Array.unique` keeps the same order as `Set.of`, which also holds the first of each `==` value:
 
 ```ant
-var xs = [4, 2, 4, 9, 2, 1]
+let xs = [4, 2, 4, 9, 2, 1]
 assert(xs.unique() == Set.values(Set.of(xs)))
 ```
 
 The result has no repeats, so applying `Array.unique` again changes nothing:
 
 ```ant
-var xs = ["a", "b", "a", "c", "b"]
-var u = xs.unique()
+let xs = ["a", "b", "a", "c", "b"]
+let u = xs.unique()
 assert(u.unique() == u)
 assert(u.every({ u.indexOf(x) == u.lastIndexOf(x) }))
 ```
@@ -172,8 +172,8 @@ assert(u.every({ u.indexOf(x) == u.lastIndexOf(x) }))
 Every element of `xs` is in the result, and the result is no longer than `xs`:
 
 ```ant
-var xs = [5, 3, 5, 5, 8]
-var u = xs.unique()
+let xs = [5, 3, 5, 5, 8]
+let u = xs.unique()
 assert(xs.every({ u.contains(x) }))
 assert(len(u) <= len(xs))
 ```
@@ -181,23 +181,23 @@ assert(len(u) <= len(xs))
 An element is kept exactly when no earlier element is `==` to it:
 
 ```ant
-var xs = [2, 7, 2, 1, 7]
-var kept = xs.entries().filter({ xs.indexOf(x.value) == x.index }).map({ x.value })
+let xs = [2, 7, 2, 1, 7]
+let kept = xs.entries().filter({ xs.indexOf(x.value) == x.index }).map({ x.value })
 assert(kept == xs.unique())
 ```
 
 `Array.unique` is [`Array.uniqueBy`](uniqueBy.md) with the element as its own key:
 
 ```ant
-var xs = [3, 1, 3, 2, 1]
+let xs = [3, 1, 3, 2, 1]
 assert(xs.unique() == xs.uniqueBy({ x }))
 ```
 
 The result is a new array, and `xs` keeps its repeats:
 
 ```ant
-var xs = [1, 1, 2]
-var u = xs.unique()
+let xs = [1, 1, 2]
+let u = xs.unique()
 assert(!Array.same(xs, u))
 assert(xs == [1, 1, 2])
 ```
@@ -216,8 +216,8 @@ the first of the two:
 Functions compare by identity, so two lambdas with the same body both stay:
 
 ```ant
-var inc: func(int): int = { x + 1 }
-var same: func(int): int = { x + 1 }
+let inc: func(int): int = { x + 1 }
+let same: func(int): int = { x + 1 }
 len([inc, inc, same].unique()) // 2
 ```
 
@@ -226,9 +226,9 @@ result changes `xs` as well:
 
 ```ant
 type Point = { x: int, y: int }
-var p = Point{ x: 1, y: 2 }
-var ps = [p, Point{ x: 1, y: 2 }]
-var u = ps.unique()
+let p = Point{ x: 1, y: 2 }
+let ps = [p, Point{ x: 1, y: 2 }]
+let u = ps.unique()
 Record.same(u[0], p) // true
 u[0].x = 9
 ps[0] // Point{ x: 9, y: 2 }
@@ -246,8 +246,8 @@ ps[0] // Point{ x: 9, y: 2 }
 other, compare each element with the one before it:
 
 ```ant
-var xs = [1, 1, 2, 1, 1]
-var runs = xs.entries().filter({ x.index == 0 || xs[x.index - 1] != x.value })
+let xs = [1, 1, 2, 1, 1]
+let runs = xs.entries().filter({ x.index == 0 || xs[x.index - 1] != x.value })
 xs.unique()           // [1, 2]
 runs.map({ x.value }) // [1, 2, 1]
 ```

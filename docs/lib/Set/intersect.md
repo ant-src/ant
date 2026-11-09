@@ -35,7 +35,7 @@ Set.intersect(Set.of(["c", "a", "b"]), Set.of(["b", "c", "x"])) // Set.of(["c", 
 An empty set on either side, or two sets with no member in common, give the empty set:
 
 ```ant
-var none: Set[int] = Set.of([])
+let none: Set[int] = Set.of([])
 Set.intersect(none, Set.of([1, 2]))        // Set.of([])
 Set.intersect(Set.of([1, 2]), none)        // Set.of([])
 Set.intersect(Set.of([1, 2]), Set.of([3])) // Set.of([])
@@ -45,16 +45,16 @@ Records match by their fields, not by identity:
 
 ```ant
 type Point = { x: int, y: int }
-var visited = Set.of([Point{ x: 0, y: 0 }, Point{ x: 1, y: 2 }])
-var targets = Set.of([Point{ x: 1, y: 2 }, Point{ x: 5, y: 5 }])
+let visited = Set.of([Point{ x: 0, y: 0 }, Point{ x: 1, y: 2 }])
+let targets = Set.of([Point{ x: 1, y: 2 }, Point{ x: 5, y: 5 }])
 Set.intersect(visited, targets) // Set.of([Point{ x: 1, y: 2 }])
 ```
 
 `null` is a member like any other value:
 
 ```ant
-var a: Set[string | null] = Set.of(["a", null])
-var b: Set[string | null] = Set.of([null, "b"])
+let a: Set[string | null] = Set.of(["a", null])
+let b: Set[string | null] = Set.of([null, "b"])
 Set.intersect(a, b) // Set.of([null])
 ```
 
@@ -70,24 +70,24 @@ Set.of([1, 2, 3]) | Set.intersect(Set.of([3, 1])) // Set.of([1, 3])
 Find the words two sentences share:
 
 ```ant
-var first = Set.of(String.fields("the quick brown fox"))
-var second = Set.of(String.fields("the lazy brown dog"))
+let first = Set.of(String.fields("the quick brown fox"))
+let second = Set.of(String.fields("the lazy brown dog"))
 Set.intersect(first, second) // Set.of(["the", "brown"])
 ```
 
 Intersect any number of sets by folding with `Array.reduce`:
 
 ```ant
-var sets = [Set.of([1, 2, 3, 4]), Set.of([2, 3, 4]), Set.of([4, 3, 9])]
+let sets = [Set.of([1, 2, 3, 4]), Set.of([2, 3, 4]), Set.of([4, 3, 9])]
 Array.reduce(sets, sets[0], Set.intersect) // Set.of([3, 4])
 ```
 
 Keep only the permissions a role grants:
 
 ```ant
-var grants = Set.of(["read", "write"])
-var asked = Set.of(["read", "delete", "write"])
-var allowed = Set.intersect(asked, grants)
+let grants = Set.of(["read", "write"])
+let asked = Set.of(["read", "delete", "write"])
+let allowed = Set.intersect(asked, grants)
 allowed // Set.of(["read", "write"])
 ```
 
@@ -103,9 +103,9 @@ Check whether two sets share a member:
 The result is a subset of both sets:
 
 ```ant
-var a = Set.of([1, 2, 3, 4])
-var b = Set.of([2, 4, 6])
-var both = Set.intersect(a, b)
+let a = Set.of([1, 2, 3, 4])
+let b = Set.of([2, 4, 6])
+let both = Set.intersect(a, b)
 assert(Set.isSubset(both, a))
 assert(Set.isSubset(both, b))
 ```
@@ -114,8 +114,8 @@ Swapping the arguments gives an equal set, since `==` ignores order, but the mem
 order of the new first argument:
 
 ```ant
-var a = Set.of([3, 1, 2])
-var b = Set.of([1, 3])
+let a = Set.of([3, 1, 2])
+let b = Set.of([1, 3])
 Set.intersect(a, b) == Set.intersect(b, a) // true
 Set.values(Set.intersect(a, b))            // [3, 1]
 Set.values(Set.intersect(b, a))            // [1, 3]
@@ -124,25 +124,25 @@ Set.values(Set.intersect(b, a))            // [1, 3]
 `Set.intersect` keeps the members of `a` that `Set.difference(a, b)` removes:
 
 ```ant
-var a = Set.of(["x", "y", "z"])
-var b = Set.of(["y", "w"])
+let a = Set.of(["x", "y", "z"])
+let b = Set.of(["y", "w"])
 assert(Set.intersect(a, b) == Set.difference(a, Set.difference(a, b)))
 ```
 
 The result is never larger than either set:
 
 ```ant
-var a = Set.of([1, 2, 3, 4, 5])
-var b = Set.of([4, 5, 6])
-var n = Set.size(Set.intersect(a, b))
+let a = Set.of([1, 2, 3, 4, 5])
+let b = Set.of([4, 5, 6])
+let n = Set.size(Set.intersect(a, b))
 assert(n <= Set.size(a) && n <= Set.size(b))
 ```
 
 The result is a new set even when it equals `a`, so adding to it leaves `a` as it was:
 
 ```ant
-var a = Set.of([1, 2])
-var same = Set.intersect(a, a)
+let a = Set.of([1, 2])
+let same = Set.intersect(a, a)
 assert(same == a)
 assert(!Set.same(same, a))
 Set.add(same, 9) // true
@@ -155,7 +155,7 @@ a                // Set.of([1, 2])
 the result:
 
 ```ant
-var tags = Set.of(["red", "green", "blue"])
+let tags = Set.of(["red", "green", "blue"])
 Set.intersect(tags, Set.of(["red"]))
 println(tags)
 ```
@@ -167,16 +167,16 @@ Set.of(["red", "green", "blue"])
 Both arguments must be sets. Turn an array into a set with `Set.of` first:
 
 ```ant
-var ids = Set.of([1, 2, 3])
-var kept = Set.intersect(ids, [2, 3]) // error: cannot use Array[int] where Set[int] is expected
+let ids = Set.of([1, 2, 3])
+let kept = Set.intersect(ids, [2, 3]) // error: cannot use Array[int] where Set[int] is expected
 ```
 
 Both sets must have the same element type. A `Set[int]` is not a `Set[int | null]`:
 
 ```ant
-var a: Set[int | null] = Set.of([1, null])
-var b: Set[int] = Set.of([1])
-var both = Set.intersect(a, b) // error: cannot use Set[int] where Set[int | null] is expected
+let a: Set[int | null] = Set.of([1, null])
+let b: Set[int] = Set.of([1])
+let both = Set.intersect(a, b) // error: cannot use Set[int] where Set[int | null] is expected
 ```
 
 ## See also

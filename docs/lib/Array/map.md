@@ -36,7 +36,7 @@ Array.map(["ant", "beetle", "fly"], { String.length(x) }) // [3, 6, 3]
 An empty array gives an empty array:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.map(empty, { x * 2 }) // []
 ```
 
@@ -50,7 +50,7 @@ Read a field of each record:
 
 ```ant
 type User = { name: string, age: int }
-var users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
+let users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
 Array.map(users, { x.name }) // ["Ann", "Bob"]
 ```
 
@@ -65,7 +65,7 @@ Replace the `null` elements of a nullable array with `??`, which gives an array 
 `null`:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 Array.map(scores, { x ?? 0 }) // [90, 0, 75]
 ```
 
@@ -75,7 +75,7 @@ Handle each member of a union with `is`, which narrows `x` in each branch:
 type Circle = { radius: float64 }
 type Rect = { width: float64, height: float64 }
 type Shape = Circle | Rect
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
 Array.map(shapes, { if x is Circle { 3.0 * x.radius * x.radius } else { x.width * x.height } }) // [3.0, 6.0]
 ```
 
@@ -108,7 +108,7 @@ Array.map([1.5, 2.25], func(price: float64): string { "$${price}" }) // ["$1.5",
 A closure reads the variables it captures:
 
 ```ant
-var rate = 3
+let rate = 3
 Array.map([10, 20], { x * rate }) // [30, 60]
 ```
 
@@ -128,7 +128,7 @@ Array.map(f: { x * x }, xs: [2, 3]) // [4, 9]
 Map an array of arrays with a nested `map`:
 
 ```ant
-var rows = [[1, 2], [3]]
+let rows = [[1, 2], [3]]
 rows.map({ x.map({ x * 10 }) }) // [[10, 20], [30]]
 ```
 
@@ -138,7 +138,7 @@ Format each record as a line of text and join the lines:
 
 ```ant
 type Account = { owner: string, balance: int }
-var accounts = [Account{ owner: "Ann", balance: 120 }, Account{ owner: "Bob", balance: 75 }]
+let accounts = [Account{ owner: "Ann", balance: 120 }, Account{ owner: "Bob", balance: 75 }]
 accounts.map({ "${x.owner}: ${x.balance}" }) | String.join("\n") // "Ann: 120\nBob: 75"
 ```
 
@@ -153,7 +153,7 @@ Parse every element and keep the first error: map with a function that returns a
 
 ```ant
 func parse(s: string): Result[int, string] {
-  var n = String.toInt(s)
+  let n = String.toInt(s)
   if n is int { Result.ok(n) } else { Result.err("not a number: ${s}") }
 }
 ["4", "8", "15"] | Array.map(parse) | Result.all() // Ok{ value: [4, 8, 15] }
@@ -164,14 +164,14 @@ Sort, then project, in one chain:
 
 ```ant
 type Score = { player: string, points: int }
-var scores = [Score{ player: "Ann", points: 7 }, Score{ player: "Bob", points: 12 }]
+let scores = [Score{ player: "Ann", points: 7 }, Score{ player: "Bob", points: 12 }]
 scores | Array.sortBy({ -x.points }) | Array.map({ x.player }) // ["Bob", "Ann"]
 ```
 
 Number the elements with `Array.entries`, which pairs each with its index:
 
 ```ant
-var steps = ["mix", "bake", "serve"]
+let steps = ["mix", "bake", "serve"]
 for line in Array.entries(steps).map({ "${x.index + 1}. ${x.value}" }) {
   println(line)
 }
@@ -186,7 +186,7 @@ for line in Array.entries(steps).map({ "${x.index + 1}. ${x.value}" }) {
 Render a list of HTML elements. An array of nodes renders its elements in order:
 
 ```ant
-var tasks = ["write", "test"]
+let tasks = ["write", "test"]
 println(<ul>{Array.map(tasks, { <li>{x}</li> })}</ul>)
 ```
 
@@ -199,15 +199,15 @@ println(<ul>{Array.map(tasks, { <li>{x}</li> })}</ul>)
 The result has the length of `xs`:
 
 ```ant
-var xs = ["a", "bb", "ccc"]
+let xs = ["a", "bb", "ccc"]
 assert(len(Array.map(xs, { String.length(x) })) == len(xs))
 ```
 
 Mapping with the identity gives an equal array that is not the same array:
 
 ```ant
-var xs = [1, 2, 3]
-var ys = Array.map(xs, { x })
+let xs = [1, 2, 3]
+let ys = Array.map(xs, { x })
 assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
@@ -215,16 +215,16 @@ assert(!Array.same(ys, xs))
 When `f` and `g` have no side effects, two maps in a row are one map with the composed function:
 
 ```ant
-var xs = [1, 2, 3]
-var f: func(int): int = { x + 1 }
-var g: func(int): int = { x * 10 }
+let xs = [1, 2, 3]
+let f: func(int): int = { x + 1 }
+let g: func(int): int = { x * 10 }
 assert(Array.map(Array.map(xs, f), g) == Array.map(xs, { g(f(x)) }))
 ```
 
 Mapping each element to a one-element array and flattening is the same as mapping:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 assert(Array.flatMap(xs, { [x * 2] }) == Array.map(xs, { x * 2 }))
 ```
 
@@ -232,7 +232,7 @@ assert(Array.flatMap(xs, { [x * 2] }) == Array.map(xs, { x * 2 }))
 order:
 
 ```ant
-var seen: Array[string] = []
+let seen: Array[string] = []
 Array.map(["a", "b", "c"], { Array.push(seen, x); String.toUpper(x) }) // ["A", "B", "C"]
 seen                                                                   // ["a", "b", "c"]
 ```
@@ -240,7 +240,7 @@ seen                                                                   // ["a", 
 A callback that pushes to `xs` does not change what the call visits:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 Array.map(xs, { Array.push(xs, x + 10); x * 2 }) // [2, 4, 6]
 xs                                               // [1, 2, 3, 11, 12, 13]
 ```
@@ -251,7 +251,7 @@ xs                                               // [1, 2, 3, 11, 12, 13]
 `xs` as it was:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 Array.map(xs, { x * 2 })
 println(xs)
 ```
@@ -277,8 +277,8 @@ Array.map([1, 2], func(n: int) { Array.map([10, 20], { n + x }) }) // [[11, 21],
 error; use `Array.entries` for the index, as in Applications:
 
 ```ant
-var xs = ["a", "b"]
-var labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
+let xs = ["a", "b"]
+let labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
 // error: cannot use func(string, int): string where func(string): U is expected
 ```
 
@@ -286,14 +286,14 @@ An expected type fixes `U` before the lambda is checked, so a lambda that return
 compile error. Integer literals are always `int`, even where a `float64` is expected:
 
 ```ant
-var halves: Array[float64] = Array.map([1, 2], { x * 2 })
+let halves: Array[float64] = Array.map([1, 2], { x * 2 })
 // error: cannot use int where float64 is expected
 ```
 
 Convert in the lambda instead:
 
 ```ant
-var halves: Array[float64] = Array.map([1, 2], { float64(x) / 2.0 })
+let halves: Array[float64] = Array.map([1, 2], { float64(x) / 2.0 })
 halves // [0.5, 1.0]
 ```
 
@@ -301,14 +301,14 @@ A lambda whose body is an empty literal fixes nothing, so `U` stays unsolved and
 compile error:
 
 ```ant
-var lists = Array.map([1, 2], { [] })
+let lists = Array.map([1, 2], { [] })
 // error: cannot infer the element type of an empty array; annotate it
 ```
 
 Annotate the result to fix `U`:
 
 ```ant
-var lists: Array[Array[int]] = Array.map([1, 2], { [] })
+let lists: Array[Array[int]] = Array.map([1, 2], { [] })
 lists // [[], []]
 ```
 
@@ -316,8 +316,8 @@ The result holds what `f` returns. When `f` returns an element of `xs` that is i
 record, both arrays hold the same value, so writing to it shows through:
 
 ```ant
-var grid = [[1], [2]]
-var copy = Array.map(grid, { x })
+let grid = [[1], [2]]
+let copy = Array.map(grid, { x })
 copy[0][0] = 9
 grid // [[9], [2]]
 ```

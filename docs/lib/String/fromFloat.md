@@ -39,7 +39,7 @@ String.fromFloat(3.14159, 0) // "3"
 Put it in a string with interpolation:
 
 ```ant
-var total = 19.5
+let total = 19.5
 "Total: ${String.fromFloat(total, 2)}" // "Total: 19.50"
 ```
 
@@ -105,8 +105,8 @@ String.fromFloat(x: 1.5, digits: 3) // "1.500"
 Format prices to cents:
 
 ```ant
-var prices = [4.5, 12.0, 0.99]
-var total = Array.sum(prices) ?? 0.0
+let prices = [4.5, 12.0, 0.99]
+let total = Array.sum(prices) ?? 0.0
 for p in prices {
   println(String.fromFloat(p, 2))
 }
@@ -141,7 +141,7 @@ Right-align a column of numbers with [`String.padStart`](padStart.md):
 ```ant
 type Row = { name: string, score: float64 }
 
-var rows = [Row{ name: "ann", score: 9.25 }, Row{ name: "bob", score: 10.0 }, Row{ name: "cy", score: 7.125 }]
+let rows = [Row{ name: "ann", score: 9.25 }, Row{ name: "bob", score: 10.0 }, Row{ name: "cy", score: 7.125 }]
 for row in rows {
   println("${String.padEnd(row.name, 4)}${String.padStart(String.fromFloat(row.score, 2), 6)}")
 }
@@ -156,7 +156,7 @@ cy    7.12
 Format a whole array with [`Array.map`](../Array/map.md) and join it:
 
 ```ant
-var temps = [21.04, 19.96, -3.5]
+let temps = [21.04, 19.96, -3.5]
 Array.map(temps, { String.fromFloat(x, 1) }) | String.join(", ") // "21.0, 20.0, -3.5"
 ```
 
@@ -166,7 +166,7 @@ A finite result has exactly `digits` decimals after the `.`:
 
 ```ant
 for digits in [1, 2, 5] {
-  var c = String.cut(String.fromFloat(Math.PI, digits), ".")
+  let c = String.cut(String.fromFloat(Math.PI, digits), ".")
   assert(c != null)
   assert(String.length(c.after) == digits)
 }
@@ -233,7 +233,7 @@ String.fromFloat(1.5, 2147483648) // panic: String.fromFloat needs a count of di
 An `int` is not a `float64`, so passing one is a compile error:
 
 ```ant
-var n = 3
+let n = 3
 println(String.fromFloat(n, 2)) // error: cannot use int where float64 is expected
 ```
 
@@ -242,14 +242,14 @@ Convert it with `float64(n)`, or write the literal as `3.0`.
 A number has no namespace, so `x.fromFloat(2)` is a compile error:
 
 ```ant
-var price = 1.25
+let price = 1.25
 println(price.fromFloat(2)) // error: float64 has no field or function fromFloat
 ```
 
 Use a pipe instead:
 
 ```ant
-var price = 1.25
+let price = 1.25
 price | String.fromFloat(2) // "1.25"
 ```
 

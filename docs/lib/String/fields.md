@@ -72,7 +72,7 @@ Call it through `.` or in a pipe:
 Count the words of a text:
 
 ```ant
-var text = "It was the best of times,\nit was the worst of times."
+let text = "It was the best of times,\nit was the worst of times."
 len(String.fields(text)) // 12
 ```
 
@@ -89,7 +89,7 @@ squish("  too   many\tspaces \n") // "too many spaces"
 Read a line of numbers separated by any amount of white space:
 
 ```ant
-var line = " 3  14\t15 "
+let line = " 3  14\t15 "
 String.fields(line).map({ String.toInt(x) ?? 0 }) // [3, 14, 15]
 ```
 
@@ -105,16 +105,16 @@ look
 type Command = { name: string, args: Array[string] }
 
 func parse(line: string): Command | null {
-  var words = String.fields(line)
+  let words = String.fields(line)
   if len(words) == 0 {
     return null
   }
   Command{ name: words[0], args: Array.slice(words, 1, len(words)) }
 }
 
-var input = Result.unwrap(File.readAll(Os.stdin()))
+let input = Result.unwrap(File.readAll(Os.stdin()))
 for line in String.lines(input) {
-  var c = parse(line)
+  let c = parse(line)
   if c == null {
     println("empty line")
   } else {
@@ -134,7 +134,7 @@ look []
 No field is empty, and no field holds a code point that `String.isSpace` accepts:
 
 ```ant
-var fields = String.fields(" a\u{A0}bc \t d\n")
+let fields = String.fields(" a\u{A0}bc \t d\n")
 assert(Array.every(fields, { !String.isEmpty(x) }))
 assert(Array.every(fields, { Array.every(String.chars(x), { !String.isSpace(x) }) }))
 ```
@@ -142,14 +142,14 @@ assert(Array.every(fields, { Array.every(String.chars(x), { !String.isSpace(x) }
 Joining the fields with one space and taking the fields again gives the same fields:
 
 ```ant
-var fields = String.fields("  to be\tor  not \n")
+let fields = String.fields("  to be\tor  not \n")
 assert(String.fields(String.join(fields, " ")) == fields)
 ```
 
 White space at the ends does not change the fields, so trimming first is not needed:
 
 ```ant
-var s = "\t one two  "
+let s = "\t one two  "
 assert(String.fields(s) == String.fields(String.trim(s)))
 ```
 

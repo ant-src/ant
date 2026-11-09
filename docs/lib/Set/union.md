@@ -35,7 +35,7 @@ Set.values(Set.union(Set.of([3, 1]), Set.of([2, 1, 0]))) // [3, 1, 2, 0]
 An empty set on either side gives the other one's members:
 
 ```ant
-var none: Set[int] = Set.of([])
+let none: Set[int] = Set.of([])
 Set.union(none, Set.of([1])) // Set.of([1])
 Set.union(Set.of([1]), none) // Set.of([1])
 Set.union(none, none)        // Set.of([])
@@ -44,7 +44,7 @@ Set.union(none, none)        // Set.of([])
 A set joined with itself has the same members:
 
 ```ant
-var xs = Set.of([1, 2])
+let xs = Set.of([1, 2])
 Set.union(xs, xs) // Set.of([1, 2])
 ```
 
@@ -52,7 +52,7 @@ Records and arrays match by `==`, and `null` can be a member like any other valu
 
 ```ant
 type Point = { x: int, y: int }
-var p = Point{ x: 1, y: 2 }
+let p = Point{ x: 1, y: 2 }
 Set.union(Set.of([p]), Set.of([Point{ x: 1, y: 2 }])) // Set.of([Point{ x: 1, y: 2 }])
 Set.union(Set.of([[1], [2]]), Set.of([[1]]))          // Set.of([[1], [2]])
 Set.union(Set.of([1, null]), Set.of([null, 2]))       // Set.of([1, null, 2])
@@ -61,7 +61,7 @@ Set.union(Set.of([1, null]), Set.of([null, 2]))       // Set.of([1, null, 2])
 An expected type fixes `T`, so sets of different member types can join into a union:
 
 ```ant
-var mixed: Set[int | string] = Set.union(Set.of([1]), Set.of(["x"]))
+let mixed: Set[int | string] = Set.union(Set.of([1]), Set.of(["x"]))
 mixed // Set.of([1, "x"])
 ```
 
@@ -83,8 +83,8 @@ Set.union(b: Set.of([2]), a: Set.of([1])) // Set.of([1, 2])
 List every tag used by two posts, each once, in the order they first appear:
 
 ```ant
-var first = Set.of(["ant", "lang", "docs"])
-var second = Set.of(["docs", "tests"])
+let first = Set.of(["ant", "lang", "docs"])
+let second = Set.of(["docs", "tests"])
 println(String.join(Set.values(Set.union(first, second)), ", "))
 ```
 
@@ -95,7 +95,7 @@ ant, lang, docs, tests
 Collect the members of several sets with a loop:
 
 ```ant
-var groups = [Set.of(["ann", "bob"]), Set.of(["bob", "cy"]), Set.of(["ann", "dee"])]
+let groups = [Set.of(["ann", "bob"]), Set.of(["bob", "cy"]), Set.of(["ann", "dee"])]
 var everyone: Set[string] = Set.of([])
 for g in groups {
   everyone = Set.union(everyone, g)
@@ -113,8 +113,8 @@ println(Set.values(everyone))
 differs:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([2, 3])
+let a = Set.of([1, 2])
+let b = Set.of([2, 3])
 assert(Set.union(a, b) == Set.union(b, a))
 assert(Set.values(Set.union(a, b)) != Set.values(Set.union(b, a)))
 ```
@@ -122,9 +122,9 @@ assert(Set.values(Set.union(a, b)) != Set.values(Set.union(b, a)))
 Both arguments are subsets of the result:
 
 ```ant
-var a = Set.of([1, 2])
-var b = Set.of([2, 3])
-var u = Set.union(a, b)
+let a = Set.of([1, 2])
+let b = Set.of([2, 3])
+let u = Set.union(a, b)
 assert(Set.isSubset(a, u))
 assert(Set.isSubset(b, u))
 ```
@@ -132,24 +132,24 @@ assert(Set.isSubset(b, u))
 Its size is the sum of the sizes less the members the two share:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([3, 4])
+let a = Set.of([1, 2, 3])
+let b = Set.of([3, 4])
 assert(Set.size(Set.union(a, b)) == Set.size(a) + Set.size(b) - Set.size(Set.intersect(a, b)))
 ```
 
 The result equals `Set.of` over the values of `a` followed by the values of `b`:
 
 ```ant
-var a = Set.of([3, 1])
-var b = Set.of([1, 2])
+let a = Set.of([3, 1])
+let b = Set.of([1, 2])
 assert(Set.values(Set.union(a, b)) == Set.values(Set.of([...Set.values(a), ...Set.values(b)])))
 ```
 
 The result is a new set, even when one side is empty, and adding to it leaves `a` as it was:
 
 ```ant
-var a = Set.of([1, 2])
-var u = Set.union(a, Set.of([]))
+let a = Set.of([1, 2])
+let u = Set.union(a, Set.of([]))
 assert(u == a)
 assert(!Set.same(u, a))
 Set.add(u, 9) // true
@@ -179,19 +179,19 @@ Set.size(Set.union(Set.of(["é"]), Set.of(["é"]))) // 2
 Two sets of different member types do not join without an expected type that holds both:
 
 ```ant
-var both = Set.union(Set.of([1]), Set.of(["x"])) // error: cannot use string where int is expected
+let both = Set.union(Set.of([1]), Set.of(["x"])) // error: cannot use string where int is expected
 ```
 
 Both arguments are sets. Turn an array into a set with [Set.of](of.md) first:
 
 ```ant
-var more = Set.union(Set.of([1]), [2]) // error: cannot use Array[int] where Set[int] is expected
+let more = Set.union(Set.of([1]), [2]) // error: cannot use Array[int] where Set[int] is expected
 ```
 
 Two empty sets built from literals leave `T` open. Annotate one side, or the result:
 
 ```ant
-var none = Set.union(Set.of([]), Set.of([]))
+let none = Set.union(Set.of([]), Set.of([]))
 // error: cannot infer the element type of an empty array; annotate it
 ```
 

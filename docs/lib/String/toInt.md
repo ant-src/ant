@@ -120,8 +120,8 @@ Read a port from the command line, with a default when the argument is missing o
 <!-- test: args 8080 -->
 
 ```ant
-var args = Os.args()
-var port = if len(args) > 0 { String.toInt(args[0]) ?? 3000 } else { 3000 }
+let args = Os.args()
+let port = if len(args) > 0 { String.toInt(args[0]) ?? 3000 } else { 3000 }
 println("listening on ${port}")
 ```
 
@@ -132,10 +132,10 @@ listening on 8080
 Sum the numbers in a list of fields, skipping the ones that are not numbers:
 
 ```ant
-var fields = ["12", "n/a", "30", "", "-2"]
+let fields = ["12", "n/a", "30", "", "-2"]
 var total = 0
 for f in fields {
-  var n = String.toInt(f)
+  let n = String.toInt(f)
   if n != null {
     total += n
   }
@@ -156,9 +156,9 @@ func parseColor(s: string): Rgb | null {
   if len(s) != 7 || !String.startsWith(s, "#") {
     return null
   }
-  var r = String.toInt(String.slice(s, 1, 3), 16) ?? return null
-  var g = String.toInt(String.slice(s, 3, 5), 16) ?? return null
-  var b = String.toInt(String.slice(s, 5, 7), 16) ?? return null
+  let r = String.toInt(String.slice(s, 1, 3), 16) ?? return null
+  let g = String.toInt(String.slice(s, 3, 5), 16) ?? return null
+  let b = String.toInt(String.slice(s, 5, 7), 16) ?? return null
   Rgb{ r: r, g: g, b: b }
 }
 
@@ -175,9 +175,9 @@ Parse a version such as `1.12.3` and compare two of them:
 
 ```ant
 func version(s: string): Array[int] | null {
-  var parts: Array[int] = []
+  let parts: Array[int] = []
   for p in String.split(s, ".") {
-    var n = String.toInt(p) ?? return null
+    let n = String.toInt(p) ?? return null
     Array.push(parts, n)
   }
   parts
@@ -250,14 +250,14 @@ String.toInt(String.trim(" 42\n")) // 42
 The result may be `null`, so using it as an `int` is a compile error:
 
 ```ant
-var n = String.toInt("42")
+let n = String.toInt("42")
 println(n + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Narrow it, or give a default with [`??`](../../language/operators/null-coalescing.md):
 
 ```ant
-var n = String.toInt("42")
+let n = String.toInt("42")
 if n != null { n + 1 }       // 43
 (String.toInt("x") ?? 0) + 1 // 1
 ```
@@ -275,7 +275,7 @@ result with [`Math.toInt`](../Math/toInt.md) when it is whole:
 
 ```ant
 String.toInt("2.0") // null
-var f = String.toFloat("2.0")
+let f = String.toFloat("2.0")
 if f != null { Math.toInt(f) } // 2
 ```
 

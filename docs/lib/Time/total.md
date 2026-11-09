@@ -17,6 +17,6 @@ relativeTo is null.
 ## Basic examples
 
 ```ant
-var feb = Time.plainDate(2026, 2, 1)
+let feb = Time.plainDate(2026, 2, 1)
 Time.total(Time.duration(months: 1), Time.Day{}, relativeTo: feb) // 28.0
 ```

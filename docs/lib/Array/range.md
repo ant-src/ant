@@ -74,7 +74,7 @@ Array.range(to: 4, from: 1) // [1, 2, 3]
 Visit every index of an array:
 
 ```ant
-var animals = ["ant", "bee", "wasp"]
+let animals = ["ant", "bee", "wasp"]
 for i in Array.range(0, len(animals)) {
   println("${i}: ${animals[i]}")
 }
@@ -95,7 +95,7 @@ Array.sum(Array.range(1, 101)) // 5050
 Take the difference between each pair of neighbors, starting at index 1:
 
 ```ant
-var xs = [3, 1, 4, 1, 5]
+let xs = [3, 1, 4, 1, 5]
 Array.range(1, len(xs)).map({ xs[x] - xs[x - 1] }) // [-2, 3, -3, 4]
 ```
 
@@ -120,7 +120,7 @@ for line in numbered(["dig", "carry", "rest"]) {
 Build a grid with a new row per index, so the rows are separate arrays:
 
 ```ant
-var grid = Array.range(0, 3).map({ [0, 0, 0] })
+let grid = Array.range(0, 3).map({ [0, 0, 0] })
 grid[1][1] = 5
 grid // [[0, 0, 0], [0, 5, 0], [0, 0, 0]]
 ```
@@ -149,7 +149,7 @@ assert(Iter.toArray(Iter.range(2, 6)) == Array.range(2, 6))
 Slicing an array with the same bounds picks the elements at the indices of the range:
 
 ```ant
-var xs = ["a", "b", "c", "d", "e"]
+let xs = ["a", "b", "c", "d", "e"]
 assert(Array.slice(xs, 1, 4) == Array.range(1, 4).map({ xs[x] }))
 ```
 
@@ -185,7 +185,7 @@ Iter.range(0, 3000000000).filter({ x % 7 == 0 }).take(3).toArray() // [0, 7, 14]
 Both bounds must be `int`s:
 
 ```ant
-var xs = Array.range(0, 2.5) // error: cannot use float64 where int is expected
+let xs = Array.range(0, 2.5) // error: cannot use float64 where int is expected
 ```
 
 ## See also

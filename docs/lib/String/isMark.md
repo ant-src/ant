@@ -92,7 +92,7 @@ Remove accents: decompose the text with NFD, drop the marks, and compose the res
 
 ```ant
 func stripAccents(s: string): string {
-  var base = String.normalize(s, "NFD").chars().filter({ !String.isMark(x) })
+  let base = String.normalize(s, "NFD").chars().filter({ !String.isMark(x) })
   String.normalize(String.concat(base), "NFC")
 }
 
@@ -132,7 +132,7 @@ Reject a name that starts with a mark, which has no letter to attach to:
 
 ```ant
 func startsWithMark(s: string): bool {
-  var first = s.chars().first()
+  let first = s.chars().first()
   first != null && String.isMark(first)
 }
 
@@ -148,8 +148,8 @@ that starts with `M`:
 
 ```ant
 for s in ["", "\u{301}", "\u{903}", "\u{20DD}", "é", "e\u{301}", "´", "\u{200D}"] {
-  var chars = String.chars(s)
-  var all = !chars.isEmpty() && chars.every({ String.category(x).startsWith("M") })
+  let chars = String.chars(s)
+  let all = !chars.isEmpty() && chars.every({ String.category(x).startsWith("M") })
   assert(String.isMark(s) == all)
 }
 ```
@@ -169,7 +169,7 @@ NFD leaves the letter in front and puts its marks after it:
 
 ```ant
 for s in ["é", "ṩ", "Å", "ü"] {
-  var chars = String.normalize(s, "NFD").chars()
+  let chars = String.normalize(s, "NFD").chars()
   assert(!String.isMark(chars[0]))
   assert(chars.slice(1, chars.length()).every(String.isMark))
 }
@@ -213,7 +213,7 @@ text instead of emoji:
 
 ```ant
 func stripAccents(s: string): string {
-  var base = String.normalize(s, "NFD").chars().filter({ !String.isMark(x) })
+  let base = String.normalize(s, "NFD").chars().filter({ !String.isMark(x) })
   String.normalize(String.concat(base), "NFC")
 }
 
@@ -226,7 +226,7 @@ Work on graphemes instead, and drop the marks of a grapheme only when it starts 
 func stripAccents(s: string): string {
   var out = ""
   for g in String.graphemes(String.normalize(s, "NFD")) {
-    var chars = g.chars()
+    let chars = g.chars()
     if String.isLetter(chars[0]) {
       out += String.concat(chars.filter({ !String.isMark(x) }))
     } else {

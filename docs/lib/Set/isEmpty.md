@@ -15,14 +15,14 @@ Set.isEmpty reports whether s has no members.
 
 ```ant
 Set.isEmpty(Set.of(["red", "green"])) // false
-var none: Set[string] = Set.of([])
+let none: Set[string] = Set.of([])
 Set.isEmpty(none) // true
 ```
 
 Call it through `.` on any set:
 
 ```ant
-var tags = Set.of(["urgent"])
+let tags = Set.of(["urgent"])
 tags.isEmpty() // false
 ```
 
@@ -37,7 +37,7 @@ Set.of([7, 7, 7]).isEmpty() // false
 The answer follows the set as `Set.add` and `Set.remove` change it:
 
 ```ant
-var open: Set[int] = Set.of([])
+let open: Set[int] = Set.of([])
 open.isEmpty()  // true
 open.add(42)    // true
 open.isEmpty()  // false
@@ -61,14 +61,14 @@ Set.of(["a"]) | Set.isEmpty() // false
 Pass it to `Array.map` to test each set in an array:
 
 ```ant
-var groups: Array[Set[int]] = [Set.of([1]), Set.of([])]
+let groups: Array[Set[int]] = [Set.of([1]), Set.of([])]
 groups.map(Set.isEmpty) // [false, true]
 ```
 
 For a set that may be `null`, `?.` yields `null` instead of calling:
 
 ```ant
-var picked: Set[string] | null = null
+let picked: Set[string] | null = null
 picked?.isEmpty()         // null
 picked?.isEmpty() ?? true // true
 ```
@@ -78,10 +78,10 @@ picked?.isEmpty() ?? true // true
 Reject a post whose tags are not all allowed:
 
 ```ant
-var allowed = Set.of(["ant", "go", "docs"])
+let allowed = Set.of(["ant", "go", "docs"])
 
 func check(tags: Array[string]) {
-  var unknown = Set.of(tags).difference(allowed)
+  let unknown = Set.of(tags).difference(allowed)
   if unknown.isEmpty() {
     println("ok")
   } else {
@@ -101,14 +101,14 @@ unknown tags: ["rust", "zig"]
 Walk a graph level by level until no new nodes turn up:
 
 ```ant
-var edges = Map{ a: ["b", "c"], b: ["d"], c: ["d"], d: [] }
+let edges = Map{ a: ["b", "c"], b: ["d"], c: ["d"], d: [] }
 
-var seen = Set.of(["a"])
+let seen = Set.of(["a"])
 var frontier = Set.of(["a"])
 var depth = 0
 while !frontier.isEmpty() {
   println("${depth}: ${frontier.values()}")
-  var next: Set[string] = Set.of([])
+  let next: Set[string] = Set.of([])
   for node in frontier {
     for to in edges[node] ?? [] {
       if seen.add(to) {
@@ -132,8 +132,8 @@ while !frontier.isEmpty() {
 `Set.isEmpty` agrees with `Set.size`, `len`, `Set.values`, and `==` against the empty set:
 
 ```ant
-var none: Set[int] = Set.of([])
-var cases: Array[Set[int]] = [Set.of([]), Set.of([1]), Set.of([1, 2, 1])]
+let none: Set[int] = Set.of([])
+let cases: Array[Set[int]] = [Set.of([]), Set.of([1]), Set.of([1, 2, 1])]
 for s in cases {
   assert(s.isEmpty() == (s.size() == 0))
   assert(s.isEmpty() == (len(s) == 0))
@@ -145,7 +145,7 @@ for s in cases {
 The empty set is a subset of every set:
 
 ```ant
-var cases: Array[Set[int]] = [Set.of([]), Set.of([1, 2])]
+let cases: Array[Set[int]] = [Set.of([]), Set.of([1, 2])]
 for s in cases {
   assert(Set.isSubset(Set.of([]), s))
 }
@@ -156,7 +156,7 @@ for s in cases {
 A set is not a condition. Ask `Set.isEmpty` explicitly:
 
 ```ant
-var s = Set.of([1])
+let s = Set.of([1])
 if s { // error: cannot use Set[int] where bool is expected
   println("has members")
 }
@@ -171,7 +171,7 @@ println(Set.of([]).isEmpty()) // error: cannot infer the element type of an empt
 A nullable set must be narrowed or reached through `?.` first:
 
 ```ant
-var s: Set[int] | null = null
+let s: Set[int] | null = null
 println(Set.isEmpty(s)) // error: cannot use Set[int] | null where Set[T] is expected
 ```
 

@@ -29,7 +29,7 @@ String.chars("ant") // ["a", "n", "t"]
 Index the array to read a character by position, which a string itself does not allow:
 
 ```ant
-var cs = String.chars("hello")
+let cs = String.chars("hello")
 cs[1]           // "e"
 cs[len(cs) - 1] // "o"
 ```
@@ -96,7 +96,7 @@ Count how often each character occurs:
 
 ```ant
 func counts(s: string): Map[string, int] {
-  var m: Map[string, int] = Map{}
+  let m: Map[string, int] = Map{}
   for c in String.chars(s) {
     m[c] = (m[c] ?? 0) + 1
   }
@@ -109,7 +109,7 @@ counts("banana") // Map{ "b": 1, "a": 3, "n": 2 }
 Compare each character with the next one, which needs indices:
 
 ```ant
-var cs = String.chars("anthill")
+let cs = String.chars("anthill")
 for i in Iter.range(0, len(cs) - 1) {
   if cs[i] == cs[i + 1] {
     println("double ${cs[i]} at ${i}")
@@ -125,7 +125,7 @@ Check whether a phrase reads the same backward, ignoring case and anything but l
 
 ```ant
 func isPalindrome(s: string): bool {
-  var cs = String.chars(String.toLower(s)).filter(String.isLetter)
+  let cs = String.chars(String.toLower(s)).filter(String.isLetter)
   cs == Array.reverse(cs)
 }
 
@@ -138,7 +138,7 @@ Shift each letter by 13 places, and put the characters back together with `Strin
 ```ant
 func rot13(s: string): string {
   String.chars(s).map(func(c: string): string {
-    var n = String.codePoint(c)
+    let n = String.codePoint(c)
     if n >= 97 && n <= 122 {
       return String.fromCodePoint((n - 97 + 13) % 26 + 97) ?? c
     }
@@ -157,8 +157,8 @@ rot13("Hello, Ant") // "Uryyb, Nag"
 The result has `String.length(s)` elements, each of length 1:
 
 ```ant
-var s = "héllo 🐜"
-var cs = String.chars(s)
+let s = "héllo 🐜"
+let cs = String.chars(s)
 assert(len(cs) == String.length(s))
 assert(cs.every({ String.length(x) == 1 }))
 ```
@@ -166,15 +166,15 @@ assert(cs.every({ String.length(x) == 1 }))
 Joining the characters gives back the string:
 
 ```ant
-var s = "e\u{301}🇨🇭 ant"
+let s = "e\u{301}🇨🇭 ant"
 assert(String.join(String.chars(s), "") == s)
 ```
 
 A `for` loop over the string visits the same characters in the same order:
 
 ```ant
-var s = "héllo"
-var seen: Array[string] = []
+let s = "héllo"
+let seen: Array[string] = []
 for c in s {
   Array.push(seen, c)
 }
@@ -184,7 +184,7 @@ assert(seen == String.chars(s))
 Each character's code point is what `String.toCodePoints` gives:
 
 ```ant
-var s = "añt🐜"
+let s = "añt🐜"
 assert(String.chars(s).map(String.codePoint) == String.toCodePoints(s))
 ```
 
@@ -194,7 +194,7 @@ Reversing the characters moves an accent onto another letter, and turns a flag i
 symbols. Reverse the graphemes instead:
 
 ```ant
-var s = "e\u{301}x"
+let s = "e\u{301}x"
 String.join(Array.reverse(String.chars(s)), "") == "x\u{301}e"     // true
 String.join(Array.reverse(String.graphemes(s)), "") == "xe\u{301}" // true
 ```

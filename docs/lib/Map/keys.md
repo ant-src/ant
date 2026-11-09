@@ -21,14 +21,14 @@ Map.keys returns the keys of m in insertion order.
 ## Basic examples
 
 ```ant
-var ages = Map{ ada: 36, linus: 54, grace: 85 }
+let ages = Map{ ada: 36, linus: 54, grace: 85 }
 Map.keys(ages) // ["ada", "linus", "grace"]
 ```
 
 Call it through `.` on the map:
 
 ```ant
-var words = Map{ 3: "three", 1: "one", 2: "two" }
+let words = Map{ 3: "three", 1: "one", 2: "two" }
 words.keys() // [3, 1, 2]
 ```
 
@@ -37,7 +37,7 @@ words.keys() // [3, 1, 2]
 An empty map gives an empty array. Annotate the map so that its types are known:
 
 ```ant
-var empty: Map[string, int] = Map{}
+let empty: Map[string, int] = Map{}
 empty.keys() // []
 ```
 
@@ -45,7 +45,7 @@ Replacing a value keeps the key where it was. Removing a key and setting it agai
 end:
 
 ```ant
-var m = Map{ a: 1, b: 2, c: 3 }
+let m = Map{ a: 1, b: 2, c: 3 }
 m["a"] = 10
 m.keys()      // ["a", "b", "c"]
 m.remove("a") // 10
@@ -57,7 +57,7 @@ Records and arrays can be keys, and come back as they went in:
 
 ```ant
 type Point = { x: int, y: int }
-var names = Map{ Point{ x: 0, y: 0 }: "origin", Point{ x: 1, y: 2 }: "p" }
+let names = Map{ Point{ x: 0, y: 0 }: "origin", Point{ x: 1, y: 2 }: "p" }
 names.keys()              // [Point{ x: 0, y: 0 }, Point{ x: 1, y: 2 }]
 Map{ [1, 2]: "a" }.keys() // [[1, 2]]
 ```
@@ -65,7 +65,7 @@ Map{ [1, 2]: "a" }.keys() // [[1, 2]]
 A map whose key type includes `null` can hold the key `null`. Write it as `(null)` in a literal:
 
 ```ant
-var m: Map[string | null, int] = Map{ (null): 0, "a": 1 }
+let m: Map[string | null, int] = Map{ (null): 0, "a": 1 }
 m.keys() // [null, "a"]
 ```
 
@@ -92,7 +92,7 @@ Map.keys(m: Map{ x: 1 }) // ["x"]
 Print a map in key order. The map keeps insertion order, so sort the keys first:
 
 ```ant
-var stock = Map{ pear: 3, apple: 5, plum: 1 }
+let stock = Map{ pear: 3, apple: 5, plum: 1 }
 for k in stock.keys().sort() {
   println("${k}: ${stock[k]}")
 }
@@ -108,7 +108,7 @@ Remove entries while walking the keys. The array is a copy, so removing from the
 disturb the loop:
 
 ```ant
-var stock = Map{ apple: 0, pear: 3, plum: 0 }
+let stock = Map{ apple: 0, pear: 3, plum: 0 }
 for k in stock.keys() {
   if stock[k] == 0 {
     stock.remove(k)
@@ -124,7 +124,7 @@ Map{ "pear": 3 }
 List the words that appear more than once, in the order they first appear:
 
 ```ant
-var words = ["the", "ant", "and", "the", "bee", "ant"]
+let words = ["the", "ant", "and", "the", "bee", "ant"]
 words.groupBy({ x }).filter({ len(x.value) > 1 }).keys() // ["the", "ant"]
 ```
 
@@ -133,8 +133,8 @@ words.groupBy({ x }).filter({ len(x.value) > 1 }).keys() // ["the", "ant"]
 The keys are the keys of `Map.entries`, one per entry, each distinct, and each one is in the map:
 
 ```ant
-var m = Map{ a: 1, b: 2, c: 3 }
-var ks = m.keys()
+let m = Map{ a: 1, b: 2, c: 3 }
+let ks = m.keys()
 assert(ks == m.entries().map({ x.key }))
 assert(len(ks) == m.size())
 assert(ks == ks.unique())
@@ -144,9 +144,9 @@ assert(ks.every({ m.has(x) }))
 `Map.keys` and `Map.values` line up: the value at each position belongs to the key at that position:
 
 ```ant
-var m = Map{ a: 1, b: 2, c: 3 }
-var ks = m.keys()
-var vs = m.values()
+let m = Map{ a: 1, b: 2, c: 3 }
+let ks = m.keys()
+let vs = m.values()
 for i in Array.range(0, len(ks)) {
   assert(m[ks[i]] == vs[i])
 }
@@ -156,8 +156,8 @@ The array is a snapshot. Pushing to it leaves the map alone, and inserting into 
 array alone:
 
 ```ant
-var m = Map{ a: 1 }
-var ks = m.keys()
+let m = Map{ a: 1 }
+let ks = m.keys()
 ks.push("z")
 m["b"] = 2
 assert(ks == ["a", "z"])
@@ -168,8 +168,8 @@ assert(m.keys() == ["a", "b"])
 iterate `m` directly instead of `m.keys()`:
 
 ```ant
-var m = Map{ a: 1, b: 2, c: 3 }
-var seen: Array[string] = []
+let m = Map{ a: 1, b: 2, c: 3 }
+let seen: Array[string] = []
 for { key } in m {
   seen.push(key)
 }
@@ -181,7 +181,7 @@ assert(seen == m.keys())
 `for k in m` binds each `Entry`, not each key. Read the key as `k.key`:
 
 ```ant
-var m = Map{ a: 1 }
+let m = Map{ a: 1 }
 for k in m {
   println(k)
   println(k.key)
@@ -197,8 +197,8 @@ Two maps with the same entries are `==` in any order, but their keys are arrays,
 in order:
 
 ```ant
-var m = Map{ a: 1, b: 2 }
-var n = Map{ b: 2, a: 1 }
+let m = Map{ a: 1, b: 2 }
+let n = Map{ b: 2, a: 1 }
 m == n                             // true
 m.keys() == n.keys()               // false
 m.keys().sort() == n.keys().sort() // true
@@ -208,7 +208,7 @@ In a map literal, a bare word before `:` is a string key, and `null` is no excep
 for the value `null`:
 
 ```ant
-var m: Map[string | null, int] = Map{ null: 0 }
+let m: Map[string | null, int] = Map{ null: 0 }
 m.keys() // ["null"]
 ```
 
@@ -221,7 +221,7 @@ Map{ 1.0: 1, Math.NaN: 2, Math.NaN: 3 }.keys() // [1.0, NaN, NaN]
 `Map.keys` is a function, not a field. Without the parentheses it is a compile error:
 
 ```ant
-var m = Map{ a: 1 }
+let m = Map{ a: 1 }
 println(m.keys) // error: Map[string, int] is not a record, so it has no field keys
 ```
 

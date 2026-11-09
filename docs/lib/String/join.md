@@ -41,7 +41,7 @@ third
 Join an empty array and an array of one part:
 
 ```ant
-var none: Array[string] = []
+let none: Array[string] = []
 String.join(none, ",")     // ""
 String.join(["only"], ",") // "only"
 ```
@@ -114,7 +114,7 @@ List names in a sentence, with "and" before the last one:
 
 ```ant
 func listing(names: Array[string]): string {
-  var n = len(names)
+  let n = len(names)
   if n < 2 {
     return String.join(names, "")
   }
@@ -137,7 +137,7 @@ Ann, Bob and Cy
 Joining with `""` gives the same string as [String.concat](concat.md):
 
 ```ant
-var parts = ["a", "bc", "", "d"]
+let parts = ["a", "bc", "", "d"]
 assert(String.join(parts, "") == String.concat(parts))
 ```
 
@@ -145,7 +145,7 @@ Splitting this string with [String.split](split.md) and joining it back with the
 gives the string again:
 
 ```ant
-var s = "a,b,,c"
+let s = "a,b,,c"
 assert(String.join(String.split(s, ","), ",") == s)
 ```
 
@@ -153,9 +153,9 @@ For a non-empty `parts`, the length of the result is the sum of the lengths of t
 separator fewer than there are parts:
 
 ```ant
-var parts = ["é", "日本", "", "🐜"]
-var sep = ", "
-var total = Array.sum(Array.map(parts, { String.length(x) })) ?? 0
+let parts = ["é", "日本", "", "🐜"]
+let sep = ", "
+let total = Array.sum(Array.map(parts, { String.length(x) })) ?? 0
 assert(String.length(String.join(parts, sep)) == total + (len(parts) - 1) * String.length(sep))
 ```
 
@@ -165,13 +165,13 @@ assert(String.length(String.join(parts, sep)) == total + (len(parts) - 1) * Stri
 error. Call `String.join(parts, ",")` or use a pipe:
 
 ```ant
-var s = ["a", "b"].join(",") // error: Array[string] has no field or function join
+let s = ["a", "b"].join(",") // error: Array[string] has no field or function join
 ```
 
 A string is not the subject either: `String.join` takes the array first:
 
 ```ant
-var s = ",".join(["a", "b"])
+let s = ",".join(["a", "b"])
 // error: String.join is not a function on string: it takes Array[string] first
 ```
 
@@ -179,19 +179,19 @@ The separator has no default. Leaving it out is a compile error; pass `""` or us
 [String.concat](concat.md):
 
 ```ant
-var s = String.join(["a", "b"]) // error: String.join needs an argument for sep
+let s = String.join(["a", "b"]) // error: String.join needs an argument for sep
 ```
 
 Every part must be a string. Convert other values with [String.from](from.md) first:
 
 ```ant
-var s = String.join(["a", 1], ",") // error: cannot use int where string is expected
+let s = String.join(["a", 1], ",") // error: cannot use int where string is expected
 ```
 
 Interpolating an array does not join it: it renders the array with its brackets and quotes:
 
 ```ant
-var xs = ["a", "b"]
+let xs = ["a", "b"]
 "${xs}"                    // "[\"a\", \"b\"]"
 "${String.join(xs, ", ")}" // "a, b"
 ```
@@ -208,7 +208,7 @@ different parts:
 
 ```ant
 String.split(String.join(["a,b", "c"], ","), ",") // ["a", "b", "c"]
-var none: Array[string] = []
+let none: Array[string] = []
 String.split(String.join(none, ","), ",") // [""]
 ```
 

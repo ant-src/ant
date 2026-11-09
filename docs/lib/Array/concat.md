@@ -44,14 +44,14 @@ An empty array on either side gives the other one's elements:
 ```ant
 Array.concat([1, 2], []) // [1, 2]
 Array.concat([], [1])    // [1]
-var none: Array[int] = []
+let none: Array[int] = []
 Array.concat(none, none) // []
 ```
 
 An array joined with itself repeats it:
 
 ```ant
-var xs = [1, 2]
+let xs = [1, 2]
 Array.concat(xs, xs) // [1, 2, 1, 2]
 ```
 
@@ -67,7 +67,7 @@ Array.concat([1, null], [null])                            // [1, null, null]
 An expected type fixes `T`, so arrays of different element types can join into a union:
 
 ```ant
-var mixed: Array[int | string] = Array.concat([1], ["x"])
+let mixed: Array[int | string] = Array.concat([1], ["x"])
 mixed // [1, "x"]
 ```
 
@@ -89,8 +89,8 @@ Array.concat(ys: [2], xs: [1]) // [1, 2]
 Add a header row in front of data rows without touching the data:
 
 ```ant
-var rows = [["Ann", "31"], ["Bob", "27"]]
-var table = Array.concat([["name", "age"]], rows)
+let rows = [["Ann", "31"], ["Bob", "27"]]
+let table = Array.concat([["name", "age"]], rows)
 for row in table {
   println(String.join(row, ","))
 }
@@ -105,8 +105,8 @@ Bob,27
 Put default flags in front of the ones a user gave:
 
 ```ant
-var defaults = ["--color", "--quiet"]
-var extra = ["--verbose"]
+let defaults = ["--color", "--quiet"]
+let extra = ["--verbose"]
 println(String.join(Array.concat(defaults, extra), " "))
 ```
 
@@ -119,16 +119,16 @@ println(String.join(Array.concat(defaults, extra), " "))
 The length of the result is the sum of the lengths:
 
 ```ant
-var xs = [1, 2, 3]
-var ys = [4, 5]
+let xs = [1, 2, 3]
+let ys = [4, 5]
 assert(Array.length(Array.concat(xs, ys)) == Array.length(xs) + Array.length(ys))
 ```
 
 The result is a new array, even when one side is empty:
 
 ```ant
-var xs = [1, 2]
-var ys = Array.concat(xs, [])
+let xs = [1, 2]
+let ys = Array.concat(xs, [])
 assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
@@ -136,9 +136,9 @@ assert(!Array.same(ys, xs))
 Writing to the result leaves the inputs as they were:
 
 ```ant
-var xs = [1, 2]
-var ys = [3]
-var zs = Array.concat(xs, ys)
+let xs = [1, 2]
+let ys = [3]
+let zs = Array.concat(xs, ys)
 Array.push(zs, 4)
 zs // [1, 2, 3, 4]
 xs // [1, 2]
@@ -148,17 +148,17 @@ ys // [3]
 It is the array literal with two spreads:
 
 ```ant
-var xs = [1, 2]
-var ys = [3]
+let xs = [1, 2]
+let ys = [3]
 assert(Array.concat(xs, ys) == [...xs, ...ys])
 ```
 
 It is a copy of `xs` extended with `ys`:
 
 ```ant
-var xs = [1, 2]
-var ys = [3]
-var copy = [...xs]
+let xs = [1, 2]
+let ys = [3]
+let copy = [...xs]
 Array.extend(copy, ys)
 assert(copy == Array.concat(xs, ys))
 ```
@@ -166,9 +166,9 @@ assert(copy == Array.concat(xs, ys))
 It is associative, and [Array.flatten](flatten.md) joins any number of arrays the same way:
 
 ```ant
-var a = [1]
-var b = [2]
-var c = [3]
+let a = [1]
+let b = [2]
+let c = [3]
 assert(Array.concat(Array.concat(a, b), c) == Array.concat(a, Array.concat(b, c)))
 assert(Array.flatten([a, b, c]) == Array.concat(Array.concat(a, b), c))
 ```
@@ -179,8 +179,8 @@ The result holds the elements of `xs` and `ys`, not copies of them. An element t
 array or a record is the same value in both, so writing to it shows through the original:
 
 ```ant
-var grid = [[1], [2]]
-var more = Array.concat(grid, [[3]])
+let grid = [[1], [2]]
+let more = Array.concat(grid, [[3]])
 more[0][0] = 99
 grid // [[99], [2]]
 ```
@@ -196,13 +196,13 @@ println([1] + [2])
 Two arrays of different element types do not join without an expected type that holds both:
 
 ```ant
-var both = Array.concat([1], ["x"]) // error: cannot use string where int is expected
+let both = Array.concat([1], ["x"]) // error: cannot use string where int is expected
 ```
 
 Two empty literals leave `T` open, which is a compile error. Annotate one side, or the result:
 
 ```ant
-var zs = Array.concat([], [])
+let zs = Array.concat([], [])
 // error: cannot infer the element type of an empty array; annotate it
 ```
 
@@ -210,7 +210,7 @@ Calling `Array.concat` in a loop builds a new array, with every element so far, 
 one array, use [Array.extend](extend.md) or [Array.push](push.md) instead:
 
 ```ant
-var all: Array[int] = []
+let all: Array[int] = []
 for n in Array.range(0, 3) {
   Array.extend(all, [n, n])
 }

@@ -41,7 +41,7 @@ String.fromInt(-255, 16) // "-ff"
 `+` joins only strings, so a number goes into text through `String.fromInt` or interpolation:
 
 ```ant
-var n = 3
+let n = 3
 "ants: " + String.fromInt(n) // "ants: 3"
 ```
 
@@ -142,7 +142,7 @@ for b in [byte(5), byte(160), byte(255)] {
 Make short identifiers from counters in base 36:
 
 ```ant
-var ids = Array.map([35, 36, 1295, 1296, 1000000], { String.fromInt(x, 36) })
+let ids = Array.map([35, 36, 1295, 1296, 1000000], { String.fromInt(x, 36) })
 println(ids)
 ```
 
@@ -183,7 +183,7 @@ for n in [0, 1, -1, 255, -12345, Math.maxInt, Math.minInt] {
 [`String.toUint`](toUint.md) does the same for `uint64`, up to the largest one:
 
 ```ant
-var big = Math.maxUint64
+let big = Math.maxUint64
 assert(String.toUint(String.fromInt(big, 16), 16) == big)
 ```
 
@@ -238,13 +238,13 @@ A value that may be `null`, such as the result of [`String.toInt`](toInt.md), is
 Narrow it first:
 
 ```ant
-var n = String.toInt("42")
+let n = String.toInt("42")
 println(String.fromInt(n))
 // error: T would be int | null, which is not a single member of its bound Integer; narrow first
 ```
 
 ```ant
-var n = String.toInt("42")
+let n = String.toInt("42")
 if n != null { String.fromInt(n, 2) } // "101010"
 ```
 
@@ -252,7 +252,7 @@ A named primitive type over `int` is not a member of `Integer`, so passing one i
 
 ```ant
 type UserId = int
-var id = UserId(42)
+let id = UserId(42)
 println(String.fromInt(id))
 // error: T would be UserId, which is not a single member of its bound Integer; narrow first
 ```
@@ -261,7 +261,7 @@ Unwrap it with `int(...)`:
 
 ```ant
 type UserId = int
-var id = UserId(42)
+let id = UserId(42)
 String.fromInt(int(id)) // "42"
 ```
 
@@ -269,7 +269,7 @@ A number has no namespace, so a call through `.` fails. Call `String.fromInt(n)`
 `n | String.fromInt()`:
 
 ```ant
-var n = 42
+let n = 42
 println(n.fromInt()) // error: int has no field or function fromInt
 ```
 

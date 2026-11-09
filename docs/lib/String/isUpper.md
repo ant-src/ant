@@ -95,7 +95,7 @@ Pass it to a higher-order function as a function value:
 Build an acronym from the capitals of a phrase:
 
 ```ant
-var phrase = "Portable Network Graphics"
+let phrase = "Portable Network Graphics"
 String.concat(phrase.chars().filter({ String.isUpper(x) })) // "PNG"
 ```
 
@@ -103,7 +103,7 @@ Split a PascalCase name into words at each upper-case letter:
 
 ```ant
 func words(name: string): Array[string] {
-  var out: Array[string] = []
+  let out: Array[string] = []
   var word = ""
   for c in name {
     if word != "" && String.isUpper(c) {
@@ -129,7 +129,7 @@ Flag a message whose words are all in capitals:
 
 ```ant
 func shouting(text: string): bool {
-  var ws = String.fields(text)
+  let ws = String.fields(text)
   ws.length() > 0 && ws.every(String.isUpper)
 }
 
@@ -152,7 +152,7 @@ category `"Lu"`:
 
 ```ant
 for s in ["", "A", "ABC", "Ab", "ǅ", "Ⅻ", "Ω", "A1", "日"] {
-  var byCategory = s != "" && s.chars().every({ String.category(x) == "Lu" })
+  let byCategory = s != "" && s.chars().every({ String.category(x) == "Lu" })
   assert(String.isUpper(s) == byCategory)
 }
 ```
@@ -185,7 +185,7 @@ combining accent is a mark, Mn, so the second spelling is not all upper-case let
 NFC first:
 
 ```ant
-var decomposed = String.normalize("ÉTÉ", "NFD")
+let decomposed = String.normalize("ÉTÉ", "NFD")
 String.isUpper(decomposed)                          // false
 String.isUpper(String.normalize(decomposed, "NFC")) // true
 ```

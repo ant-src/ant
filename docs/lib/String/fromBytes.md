@@ -31,7 +31,7 @@ String.fromBytes(Bytes.fromArray([0xff, 0xfe]))       // null
 Empty bytes decode to the empty string:
 
 ```ant
-var empty: Array[byte] = []
+let empty: Array[byte] = []
 String.fromBytes(Bytes.fromArray(empty)) // ""
 ```
 
@@ -52,7 +52,7 @@ String.fromBytes(Bytes.fromArray([0x82, 0xac])) // null
 A slice of the bytes of a string decodes only when it starts and ends between code points:
 
 ```ant
-var b = String.toBytes("€uro")
+let b = String.toBytes("€uro")
 String.fromBytes(Bytes.slice(b, 0, 2)) // null
 String.fromBytes(Bytes.slice(b, 3, 6)) // "uro"
 ```
@@ -96,7 +96,7 @@ Encoding.fromHex("48656c6c6f") | Result.unwrap() | String.fromBytes() // "Hello"
 A function value works wherever a `func(Bytes): string | null` is expected:
 
 ```ant
-var decode: func(Bytes): string | null = String.fromBytes
+let decode: func(Bytes): string | null = String.fromBytes
 decode(Bytes.fromArray([0x6f, 0x6b])) // "ok"
 ```
 
@@ -112,8 +112,8 @@ café
 
 ```ant
 func describe(path: string): string {
-  var bytes = Result.unwrap(File.readBytes(path))
-  var text = String.fromBytes(bytes)
+  let bytes = Result.unwrap(File.readBytes(path))
+  let text = String.fromBytes(bytes)
   if text == null {
     return "${path}: binary, ${Bytes.length(bytes)} bytes"
   }
@@ -137,7 +137,7 @@ logo.png: binary, 4 bytes
 
 ```ant
 func decodeUtf8(bytes: Bytes): Result[string, Error] {
-  var text = String.fromBytes(bytes) ?? return Result.err(Error{ message: "not UTF-8" })
+  let text = String.fromBytes(bytes) ?? return Result.err(Error{ message: "not UTF-8" })
   Result.ok(text)
 }
 
@@ -157,7 +157,7 @@ as `�`:
 
 ```ant
 func decode(raw: Bytes): string {
-  var text = String.fromBytes(raw)
+  let text = String.fromBytes(raw)
   if text != null {
     return text
   }
@@ -190,7 +190,7 @@ when they are not, the lossy result holds at least one U+FFFD:
 
 ```ant
 for b in [String.toBytes("ok"), Bytes.fromArray([0x61, 0xff]), Bytes.fromArray([0xe2, 0x82])] {
-  var strict = String.fromBytes(b)
+  let strict = String.fromBytes(b)
   if strict != null {
     assert(String.fromBytesLossy(b) == strict)
   } else {
@@ -202,8 +202,8 @@ for b in [String.toBytes("ok"), Bytes.fromArray([0x61, 0xff]), Bytes.fromArray([
 The bytes of the result are the input bytes:
 
 ```ant
-var b = Bytes.fromArray([0xc3, 0xa9, 0x21])
-var s = String.fromBytes(b)
+let b = Bytes.fromArray([0xc3, 0xa9, 0x21])
+let s = String.fromBytes(b)
 assert(s != null && String.toBytes(s) == b)
 ```
 
@@ -212,7 +212,7 @@ assert(s != null && String.toBytes(s) == b)
 The result may be `null`, so it cannot be used as a `string` before it is narrowed:
 
 ```ant
-var text: string = String.fromBytes(String.toBytes("hi"))
+let text: string = String.fromBytes(String.toBytes("hi"))
 // error: cannot use string | null where string is expected
 ```
 
@@ -225,20 +225,20 @@ String.fromBytes(Bytes.fromArray([0xef, 0xbb, 0xbf, 0x41])) == "\u{FEFF}A" // tr
 `Bytes` has no `fromBytes` function, so a call through `.` on bytes is a compile error. Use a pipe:
 
 ```ant
-var b = String.toBytes("hi")
+let b = String.toBytes("hi")
 println(b.fromBytes()) // error: Bytes has no field or function fromBytes
 ```
 
 A pipe binds looser than `??`, so a pipeline before `??` needs parentheses:
 
 ```ant
-var b = String.toBytes("hi")
+let b = String.toBytes("hi")
 println(b | String.fromBytes() ?? "binary")
 // error: '|' binds looser than '??', so parenthesize the pipe, as in (a | f()) ?? b
 ```
 
 ```ant
-var b = String.toBytes("hi")
+let b = String.toBytes("hi")
 (b | String.fromBytes()) ?? "binary" // "hi"
 ```
 

@@ -88,7 +88,7 @@ Read the value of a `--name=value` flag:
 
 ```ant
 func flag(arg: string, name: string): string | null {
-  var p = "--${name}="
+  let p = "--${name}="
   if arg.startsWith(p) { arg.trimPrefix(p) } else { null }
 }
 
@@ -104,14 +104,14 @@ null
 Take the token out of an `Authorization` header:
 
 ```ant
-var header = "Bearer abc.def.ghi"
+let header = "Bearer abc.def.ghi"
 header.trimPrefix("Bearer ") // "abc.def.ghi"
 ```
 
 Turn Markdown headings into plain titles, leaving other lines alone:
 
 ```ant
-var text = "# Intro\nSome text.\n# Usage"
+let text = "# Intro\nSome text.\n# Usage"
 for line in String.lines(text) {
   println(line.trimPrefix("# "))
 }
@@ -126,7 +126,7 @@ Usage
 Strip a common directory from a list of paths:
 
 ```ant
-var files = ["src/main.ant", "src/lib/geo.ant", "README.md"]
+let files = ["src/main.ant", "src/lib/geo.ant", "README.md"]
 files.map({ x.trimPrefix("src/") }) // ["main.ant", "lib/geo.ant", "README.md"]
 ```
 
@@ -137,7 +137,7 @@ When `s` starts with `prefix`, putting the prefix back gives `s`. When it does n
 
 ```ant
 for s in ["v1.0", "1.0", "v", ""] {
-  var t = String.trimPrefix(s, "v")
+  let t = String.trimPrefix(s, "v")
   if s.startsWith("v") {
     assert("v" + t == s)
   } else {
@@ -149,8 +149,8 @@ for s in ["v1.0", "1.0", "v", ""] {
 When the prefix is present, the result is the slice of `s` behind it:
 
 ```ant
-var s = "prefix-rest"
-var p = "prefix-"
+let s = "prefix-rest"
+let p = "prefix-"
 assert(s.startsWith(p))
 assert(s.trimPrefix(p) == s.slice(p.length(), s.length()))
 ```
@@ -166,7 +166,7 @@ for s in ["ant", "hill", ""] {
 [`String.trimSuffix`](trimSuffix.md) does the same at the other end:
 
 ```ant
-var s = "<b>"
+let s = "<b>"
 s.trimPrefix("<").trimSuffix(">") // "b"
 ```
 
@@ -204,8 +204,8 @@ String.trimPrefix("Http://Ant-Lang.org".toLower(), "http://") // "ant-lang.org"
 To keep the case of the rest, compare only the start of `s` with [`String.equalFold`](equalFold.md):
 
 ```ant
-var s = "Http://Ant-Lang.org"
-var p = "http://"
+let s = "Http://Ant-Lang.org"
+let p = "http://"
 if s.length() >= p.length() && String.equalFold(s.slice(0, p.length()), p) {
   s.slice(p.length(), s.length())
 } else {
@@ -231,7 +231,7 @@ Testing the result with `startsWith` does not tell whether a prefix was removed:
 compare the result with `s`:
 
 ```ant
-var s = "vv1"
+let s = "vv1"
 s.trimPrefix("v").startsWith("v") // true
 s.trimPrefix("v") != s            // true
 ```

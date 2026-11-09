@@ -68,7 +68,7 @@ len(String.graphemes("\u{301}a")) // 2
 A family emoji is three people and two zero width joiners, five code points in one grapheme:
 
 ```ant
-var family = "👨‍👩‍👧"
+let family = "👨‍👩‍👧"
 String.length(family)         // 5
 len(String.graphemes(family)) // 1
 ```
@@ -136,7 +136,7 @@ Shorten text to a number of characters for display, never cutting one in half:
 
 ```ant
 func truncate(s: string, n: int): string {
-  var gs = String.graphemes(s)
+  let gs = String.graphemes(s)
   if len(gs) <= n {
     return s
   }
@@ -168,7 +168,7 @@ Joining the graphemes gives the string back, and every grapheme is a non-empty s
 
 ```ant
 for s in ["", "ant", "noe\u{308}l", "🇨🇭🇩", "👨‍👩‍👧\r\n"] {
-  var gs = String.graphemes(s)
+  let gs = String.graphemes(s)
   assert(String.concat(gs) == s)
   assert(gs.every({ !String.isEmpty(x) }))
 }
@@ -185,7 +185,7 @@ for s in ["", "ant", "e\u{301}", "👍🏽", "नमस्ते"] {
 For text with no combining marks, joiners, or flags, the graphemes are the code points:
 
 ```ant
-var s = "plain ASCII text"
+let s = "plain ASCII text"
 assert(String.graphemes(s) == String.chars(s))
 ```
 
@@ -202,7 +202,7 @@ A `for` loop over a string steps through its code points, not its graphemes. Loo
 to visit the characters a reader sees:
 
 ```ant
-var s = "e\u{301}"
+let s = "e\u{301}"
 var points = 0
 for c in s {
   points += 1

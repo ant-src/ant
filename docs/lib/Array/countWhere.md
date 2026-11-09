@@ -28,7 +28,7 @@ Array.countWhere([1, 2, 3, 4, 5], { x > 2 }) // 3
 Call it through `.` on any array:
 
 ```ant
-var words = ["ant", "bee", "", "cat", ""]
+let words = ["ant", "bee", "", "cat", ""]
 words.countWhere({ String.isEmpty(x) }) // 2
 ```
 
@@ -37,7 +37,7 @@ words.countWhere({ String.isEmpty(x) }) // 2
 An empty array counts nothing. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 empty.countWhere({ true }) // 0
 ```
 
@@ -66,7 +66,7 @@ String.graphemes("🐜a🐜b🐜").countWhere({ x == "🐜" }) // 3
 An element type that includes `null` lets the callback test for it:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75, null]
+let scores: Array[int | null] = [90, null, 75, null]
 scores.countWhere({ x == null })            // 2
 scores.countWhere({ x != null && x >= 80 }) // 1
 ```
@@ -75,7 +75,7 @@ The callback can test a record's fields:
 
 ```ant
 type Task = { title: string, done: bool }
-var tasks = [
+let tasks = [
   Task{ title: "write", done: true },
   Task{ title: "test", done: false },
   Task{ title: "ship", done: true },
@@ -89,7 +89,7 @@ The callback tells the members of a union apart with `is`:
 type Circle = { r: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ r: 1.0 }, Square{ side: 2.0 }, Circle{ r: 3.0 }]
+let shapes: Array[Shape] = [Circle{ r: 1.0 }, Square{ side: 2.0 }, Circle{ r: 3.0 }]
 shapes.countWhere({ x is Circle }) // 2
 ```
 
@@ -99,8 +99,8 @@ Report how many tests passed:
 
 ```ant
 type Run = { name: string, ok: bool }
-var runs = [Run{ name: "add", ok: true }, Run{ name: "sub", ok: false }, Run{ name: "mul", ok: true }]
-var passed = runs.countWhere({ x.ok })
+let runs = [Run{ name: "add", ok: true }, Run{ name: "sub", ok: false }, Run{ name: "mul", ok: true }]
+let passed = runs.countWhere({ x.ok })
 println("${passed}/${len(runs)} passed")
 ```
 
@@ -111,14 +111,14 @@ println("${passed}/${len(runs)} passed")
 Count the vowels in a word:
 
 ```ant
-var vowels = ["a", "e", "i", "o", "u"]
+let vowels = ["a", "e", "i", "o", "u"]
 String.graphemes("formicidae").countWhere({ vowels.contains(x) }) // 5
 ```
 
 Tally the cells of each row of a grid that are walls:
 
 ```ant
-var grid = ["#..#", "....", "###."]
+let grid = ["#..#", "....", "###."]
 grid.map({ String.graphemes(x).countWhere({ x == "#" }) }) // [2, 0, 3]
 ```
 
@@ -128,8 +128,8 @@ grid.map({ String.graphemes(x).countWhere({ x == "#" }) }) // [2, 0, 3]
 element:
 
 ```ant
-var xs = [3, 8, 1, 9, 4]
-var f = func(n: int): bool { n > 3 }
+let xs = [3, 8, 1, 9, 4]
+let f = func(n: int): bool { n > 3 }
 assert(xs.countWhere(f) == len(xs.filter(f)))
 assert(xs.countWhere(f) == xs.reduce(0, func(n: int, v: int): int { if f(v) { n + 1 } else { n } }))
 ```
@@ -138,9 +138,9 @@ The count lies between 0 and the length. It is above 0 exactly when `Array.some`
 the length exactly when `Array.every` holds:
 
 ```ant
-var xs = [3, 8, 1, 9, 4]
+let xs = [3, 8, 1, 9, 4]
 for f in [func(n: int): bool { n > 3 }, func(n: int): bool { n > 0 }, func(n: int): bool { n > 9 }] {
-  var c = xs.countWhere(f)
+  let c = xs.countWhere(f)
   assert(0 <= c && c <= len(xs))
   assert((c > 0) == xs.some(f))
   assert((c == len(xs)) == xs.every(f))
@@ -151,11 +151,11 @@ The callback sees every element, in order, once. `Array.some` with the same call
 first element it accepts:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [5, 1, 7].countWhere({ seen.push(x); x > 3 }) // 2
 seen                                          // [5, 1, 7]
 
-var tried: Array[int] = []
+let tried: Array[int] = []
 [5, 1, 7].some({ tried.push(x); x > 3 }) // true
 tried                                    // [5]
 ```
@@ -163,7 +163,7 @@ tried                                    // [5]
 A predicate and its negation split the array:
 
 ```ant
-var xs = [3, 8, 1, 9, 4]
+let xs = [3, 8, 1, 9, 4]
 assert(xs.countWhere({ x > 3 }) + xs.countWhere({ !(x > 3) }) == len(xs))
 ```
 
@@ -196,20 +196,20 @@ With a nullable element type, `x` may be `null`, so an operator that needs a num
 error. Test for `null` first:
 
 ```ant
-var xs: Array[int | null] = [1, null, 3]
+let xs: Array[int | null] = [1, null, 3]
 println(xs.countWhere({ x > 0 }))
 // error: > needs both operands of one type, got int | null and int
 ```
 
 ```ant
-var xs: Array[int | null] = [1, null, 3]
+let xs: Array[int | null] = [1, null, 3]
 xs.countWhere({ x != null && x > 0 }) // 2
 ```
 
 `NaN` is not `==` to itself, so counting with `==` misses it. Test with `Math.isNaN`:
 
 ```ant
-var xs = [1.0, Math.NaN, Math.NaN]
+let xs = [1.0, Math.NaN, Math.NaN]
 xs.countWhere({ x == Math.NaN }) // 0
 xs.countWhere({ Math.isNaN(x) }) // 2
 ```
@@ -218,7 +218,7 @@ The call counts the elements as they were when it started. Elements the callback
 counted:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs.countWhere({ xs.push(x); true }) // 3
 xs                                  // [1, 2, 3, 1, 2, 3]
 ```

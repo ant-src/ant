@@ -81,8 +81,8 @@ As a function value, it maps an array of numbers to an array of nullable strings
 Build the lower-case Latin alphabet from the code point of `"a"`:
 
 ```ant
-var a = String.codePoint("a")
-var letters = Iter.range(0, 26) | Iter.map({ String.fromCodePoint(a + x) ?? "" }) | Iter.toArray()
+let a = String.codePoint("a")
+let letters = Iter.range(0, 26) | Iter.map({ String.fromCodePoint(a + x) ?? "" }) | Iter.toArray()
 String.join(letters, "") // "abcdefghijklmnopqrstuvwxyz"
 ```
 
@@ -93,7 +93,7 @@ func parseUPlus(s: string): string | null {
   if !String.startsWith(s, "U+") {
     return null
   }
-  var n = String.toInt(String.slice(s, 2, String.length(s)), 16)
+  let n = String.toInt(String.slice(s, 2, String.length(s)), 16)
   if n == null {
     return null
   }
@@ -122,7 +122,7 @@ The result of a scalar value is one code point long, and `String.codePoint` turn
 
 ```ant
 for n in [0, 65, 233, 0xD7FF, 0xE000, 0x1F41C, 0x10FFFF] {
-  var c = String.fromCodePoint(n)
+  let c = String.fromCodePoint(n)
   assert(c != null && String.length(c) == 1 && String.codePoint(c) == n)
 }
 ```
@@ -142,7 +142,7 @@ assert(String.fromCodePoint(0xDC00) == String.fromCodePoints([0xDC00]))
 The result may be `null`, so passing it where a `string` is expected is a compile error:
 
 ```ant
-var s: string = String.fromCodePoint(65)
+let s: string = String.fromCodePoint(65)
 // error: cannot use string | null where string is expected
 ```
 
@@ -152,7 +152,7 @@ Give a default with `??`, or test against `null` first.
 on a number:
 
 ```ant
-var n = 97
+let n = 97
 println(n.fromCodePoint()) // error: int has no field or function fromCodePoint
 ```
 
@@ -161,7 +161,7 @@ Call it as `String.fromCodePoint(n)`, or in a pipe as `n | String.fromCodePoint(
 A code point held in another integer type, such as a `byte` read from `Bytes`, is not an `int`:
 
 ```ant
-var b = byte(65)
+let b = byte(65)
 String.fromCodePoint(b) // error: cannot use byte where int is expected
 ```
 
@@ -178,7 +178,7 @@ One code point is not always one character as a reader sees it. A combining acce
 before it into one grapheme:
 
 ```ant
-var e = "e" + (String.fromCodePoint(0x301) ?? "")
+let e = "e" + (String.fromCodePoint(0x301) ?? "")
 String.length(e)             // 2
 String.graphemes(e).length() // 1
 ```

@@ -71,7 +71,7 @@ In a pipe, the string is the first argument:
 A function value works wherever a `func(string): int` is expected:
 
 ```ant
-var code: func(string): int = String.codePoint
+let code: func(string): int = String.codePoint
 code("0")                                            // 48
 "ant" | String.chars() | Array.map(String.codePoint) // [97, 110, 116]
 ```
@@ -92,8 +92,8 @@ Shift lower-case Latin letters for a Caesar cipher, and leave everything else as
 
 ```ant
 func shift(c: string, k: int): string {
-  var n = String.codePoint(c)
-  var a = String.codePoint("a")
+  let n = String.codePoint(c)
+  let a = String.codePoint("a")
   if n < a || n > String.codePoint("z") {
     return c
   }
@@ -115,7 +115,7 @@ Print each character of a string with its `U+` code:
 
 ```ant
 for c in "Añ🐜" {
-  var hex = String.padStart(String.toUpper(String.fromInt(String.codePoint(c), 16)), 4, "0")
+  let hex = String.padStart(String.toUpper(String.fromInt(String.codePoint(c), 16)), 4, "0")
   println("${c} U+${hex}")
 }
 ```
@@ -132,7 +132,7 @@ A U+0041
 `String.fromCodePoint` turns the value back into the character:
 
 ```ant
-var s = "Ant 🐜 é"
+let s = "Ant 🐜 é"
 assert(s.chars().map(String.codePoint) == s.toCodePoints())
 for c in s {
   assert(String.fromCodePoint(String.codePoint(c)) == c)
@@ -143,7 +143,7 @@ For a scalar value `n`, `String.fromCodePoint` gives a character whose code poin
 
 ```ant
 for n in [0, 65, 233, 0xD7FF, 0xE000, 0x1F41C, 0x10FFFF] {
-  var c = String.fromCodePoint(n)
+  let c = String.fromCodePoint(n)
   assert(c != null && String.codePoint(c) == n)
 }
 ```
@@ -167,7 +167,7 @@ A letter with a combining accent is two code points as well. `String.normalize` 
 composes it into one when Unicode has a single code point for it:
 
 ```ant
-var e = "e\u{301}"
+let e = "e\u{301}"
 String.length(e)                       // 2
 String.normalize(e, "NFC").codePoint() // 233
 ```

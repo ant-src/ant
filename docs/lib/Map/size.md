@@ -23,14 +23,14 @@ Map.size returns the number of entries in m.
 
 ```ant
 Map.size(Map{ ada: 36, linus: 54 }) // 2
-var none: Map[string, int] = Map{}
+let none: Map[string, int] = Map{}
 Map.size(none) // 0
 ```
 
 Call it through `.` on any map:
 
 ```ant
-var ages = Map{ ada: 36, linus: 54, grace: 85 }
+let ages = Map{ ada: 36, linus: 54, grace: 85 }
 ages.size() // 3
 ```
 
@@ -42,7 +42,7 @@ value:
 ```ant
 type Point = { x: int, y: int }
 
-var labels = Map{ (Point{ x: 1, y: 2 }): "a" }
+let labels = Map{ (Point{ x: 1, y: 2 }): "a" }
 labels[Point{ x: 1, y: 2 }] = "b"
 labels.size() // 1
 ```
@@ -50,14 +50,14 @@ labels.size() // 1
 An entry whose value is `null` counts like any other:
 
 ```ant
-var seen: Map[string, int | null] = Map{ ada: null, linus: 54 }
+let seen: Map[string, int | null] = Map{ ada: null, linus: 54 }
 seen.size() // 2
 ```
 
 The size follows the map as it changes:
 
 ```ant
-var counts: Map[string, int] = Map{}
+let counts: Map[string, int] = Map{}
 counts["go"] = 1
 counts["ant"] = 1
 counts.size() // 2
@@ -84,7 +84,7 @@ As a function value, it maps an array of maps to their sizes:
 For a map that may be `null`, `?.` yields `null` instead of calling:
 
 ```ant
-var headers: Map[string, string] | null = null
+let headers: Map[string, string] | null = null
 headers?.size()      // null
 headers?.size() ?? 0 // 0
 ```
@@ -103,7 +103,7 @@ Count the distinct words of a text:
 
 ```ant
 func distinct(text: string): int {
-  var counts: Map[string, int] = Map{}
+  let counts: Map[string, int] = Map{}
   for word in String.fields(text) {
     counts[word] = (counts[word] ?? 0) + 1
   }
@@ -120,8 +120,8 @@ println(distinct("to be or not to be"))
 Report how many entries pass a test, out of how many:
 
 ```ant
-var stock = Map{ apples: 12, pears: 0, plums: 3, figs: 0 }
-var out = stock.filter({ x.value == 0 })
+let stock = Map{ apples: 12, pears: 0, plums: 3, figs: 0 }
+let out = stock.filter({ x.value == 0 })
 println("${out.size()} of ${stock.size()} items out of stock: ${out.keys()}")
 ```
 
@@ -135,7 +135,7 @@ println("${out.size()} of ${stock.size()} items out of stock: ${out.keys()}")
 `Map.entries`:
 
 ```ant
-var cases: Array[Map[string, int]] = [Map{}, Map{ a: 1 }, Map{ a: 1, b: 2 }]
+let cases: Array[Map[string, int]] = [Map{}, Map{ a: 1 }, Map{ a: 1, b: 2 }]
 for m in cases {
   assert(m.size() == len(m))
   assert(m.isEmpty() == (m.size() == 0))
@@ -149,13 +149,13 @@ for m in cases {
 both maps once:
 
 ```ant
-var m = Map{ a: 1, b: 2, c: 3 }
-var n = Map{ c: 30, d: 40 }
+let m = Map{ a: 1, b: 2, c: 3 }
+let n = Map{ c: 30, d: 40 }
 assert(m.map({ x.value * 10 }).size() == m.size())
-var small = m.filter({ x.value < 2 })
-var large = m.filter({ x.value >= 2 })
+let small = m.filter({ x.value < 2 })
+let large = m.filter({ x.value >= 2 })
 assert(small.size() + large.size() == m.size())
-var shared = m.filter({ n.has(x.key) }).size()
+let shared = m.filter({ n.has(x.key) }).size()
 assert(m.merge(n).size() == m.size() + n.size() - shared)
 ```
 
@@ -164,7 +164,7 @@ assert(m.merge(n).size() == m.size() + n.size() - shared)
 `size` is a function, not a field. Without parentheses it is a compile error:
 
 ```ant
-var m = Map{ a: 1 }
+let m = Map{ a: 1 }
 println(m.size) // error: Map[string, int] is not a record, so it has no field size
 ```
 
@@ -177,7 +177,7 @@ println(Map{}.size()) // error: cannot infer the key and value types of an empty
 A nullable map must be narrowed or reached through `?.` first:
 
 ```ant
-var m: Map[string, int] | null = null
+let m: Map[string, int] | null = null
 println(m.size())
 // error: Map[string, int] | null has no field or function size on every member: narrow the value first
 ```
@@ -201,8 +201,8 @@ A map is a reference value: assigning or passing one shares it. An insert throug
 the size seen through the other:
 
 ```ant
-var a = Map{ x: 1 }
-var b = a
+let a = Map{ x: 1 }
+let b = a
 b["y"] = 2
 a.size() // 2
 ```

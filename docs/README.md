@@ -148,7 +148,8 @@ must still be true by the spec. When nothing is worth saying, leave Details out.
 Third-level headings inside a section are free. Each example teaches something the others do not,
 and the examples use the variety of the language on purpose: lambdas with `x`, named functions,
 records, unions, `null`, calls through `.`, pipes. A reader browsing `Array.map` also learns how Ant
-code looks.
+code looks. Declare with `let`, and with `var` only a name the example reassigns, so the keyword
+tells the reader which names change.
 
 ### Other pages
 
@@ -180,11 +181,11 @@ the end of its last line.
 ```ant
 Array.map([1, 2, 3], { x * 2 })              // [2, 4, 6]
 Array.map(["a", "bb"], { String.length(x) }) // [1, 2]
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 Array.sort(xs) // [1, 2, 3]
 ```
 
-- Lines without a comment are setup, such as a `var` or a `type`, and run in order.
+- Lines without a comment are setup, such as a `let` or a `type`, and run in order.
 - A comment after a declaration, an assignment, a loop, or a line inside braces is an ordinary
   comment, not a case. A comment after any other expression is a case, so `println(x) // prints 3`
   is a case whose value is void, and fails. Put explanations on their own line.
@@ -203,7 +204,7 @@ with status 0. Problems are reported at the lines of the page.
 
 ````md
 ```ant
-var name = "Ant"
+let name = "Ant"
 println("Hello, ${name}")
 ```
 
@@ -224,14 +225,14 @@ An example that does not compile, or that panics, says so where the reader looks
 the line that fails, with the message `ant` prints. Never hide it in a directive.
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs[3] = 1 // panic: index 3 out of range for an array of length 3
 ```
 
 ````md
 ```ant
-var xs = ["a", "b"]
-var labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
+let xs = ["a", "b"]
+let labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
 // error: cannot use func(string, int): string where func(string): U is expected
 ```
 ````
@@ -276,7 +277,7 @@ Bob,27
 -->
 
 ```ant
-var rows = Result.unwrap(Csv.parse(Result.unwrap(File.read("people.csv"))))
+let rows = Result.unwrap(Csv.parse(Result.unwrap(File.read("people.csv"))))
 for row in rows {
   println(row[0])
 }

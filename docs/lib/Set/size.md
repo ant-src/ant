@@ -20,14 +20,14 @@ Set.size returns the number of members of s.
 
 ```ant
 Set.size(Set.of(["red", "green", "blue"])) // 3
-var none: Set[int] = Set.of([])
+let none: Set[int] = Set.of([])
 Set.size(none) // 0
 ```
 
 Call it through `.` on any set:
 
 ```ant
-var tags = Set.of(["go", "ant"])
+let tags = Set.of(["go", "ant"])
 tags.size() // 2
 ```
 
@@ -44,14 +44,14 @@ Equal records are one member:
 ```ant
 type Point = { x: int, y: int }
 
-var points = Set.of([Point{ x: 1, y: 2 }, Point{ x: 1, y: 2 }, Point{ x: 0, y: 0 }])
+let points = Set.of([Point{ x: 1, y: 2 }, Point{ x: 1, y: 2 }, Point{ x: 0, y: 0 }])
 points.size() // 2
 ```
 
 `null` is a member like any other:
 
 ```ant
-var answers: Set[bool | null] = Set.of([true, null, null])
+let answers: Set[bool | null] = Set.of([true, null, null])
 answers.size() // 2
 ```
 
@@ -64,7 +64,7 @@ Set.of(["café", "cafe\u{301}"]).size() // 2
 The size follows the set as it changes:
 
 ```ant
-var seen: Set[string] = Set.of([])
+let seen: Set[string] = Set.of([])
 seen.add("go")     // true
 seen.add("ant")    // true
 seen.size()        // 2
@@ -91,7 +91,7 @@ As a function value, it maps an array of sets to their sizes:
 For a set that may be `null`, `?.` yields `null` instead of calling:
 
 ```ant
-var tags: Set[string] | null = null
+let tags: Set[string] | null = null
 tags?.size()      // null
 tags?.size() ?? 0 // 0
 ```
@@ -131,10 +131,10 @@ true
 Measure how much two sets of tags overlap, as the share of all tags they have in common:
 
 ```ant
-var a = Set.of(["go", "rust", "ant"])
-var b = Set.of(["ant", "zig", "go", "c"])
-var shared = a.intersect(b).size()
-var all = a.union(b).size()
+let a = Set.of(["go", "rust", "ant"])
+let b = Set.of(["ant", "zig", "go", "c"])
+let shared = a.intersect(b).size()
+let all = a.union(b).size()
 println("${shared} of ${all} tags shared")
 ```
 
@@ -147,7 +147,7 @@ println("${shared} of ${all} tags shared")
 `Set.size` agrees with `len`, `Set.isEmpty`, and the length of `Set.values`:
 
 ```ant
-var cases: Array[Set[int]] = [Set.of([]), Set.of([1]), Set.of([1, 2, 2])]
+let cases: Array[Set[int]] = [Set.of([]), Set.of([1]), Set.of([1, 2, 2])]
 for s in cases {
   assert(s.size() == len(s))
   assert(s.isEmpty() == (s.size() == 0))
@@ -158,8 +158,8 @@ for s in cases {
 The sizes of a union, an intersection, and a difference add up:
 
 ```ant
-var a = Set.of([1, 2, 3, 4])
-var b = Set.of([3, 4, 5])
+let a = Set.of([1, 2, 3, 4])
+let b = Set.of([3, 4, 5])
 assert(a.union(b).size() == a.size() + b.size() - a.intersect(b).size())
 assert(a.difference(b).size() + a.intersect(b).size() == a.size())
 assert(a.intersect(b).size() <= a.size())
@@ -170,7 +170,7 @@ assert(a.intersect(b).size() <= a.size())
 `size` is a function, not a field. Without parentheses it is a compile error:
 
 ```ant
-var s = Set.of([1])
+let s = Set.of([1])
 println(s.size) // error: Set[int] is not a record, so it has no field size
 ```
 
@@ -184,7 +184,7 @@ println(Set.of([]).size()) // error: cannot infer the element type of an empty a
 A nullable set must be narrowed or reached through `?.` first:
 
 ```ant
-var s: Set[int] | null = null
+let s: Set[int] | null = null
 println(s.size())
 // error: Set[int] | null has no field or function size on every member: narrow the value first
 ```
@@ -201,8 +201,8 @@ A set is a reference value: assigning or passing one shares it. An add through o
 size seen through the other:
 
 ```ant
-var a = Set.of([1])
-var b = a
+let a = Set.of([1])
+let b = a
 b.add(2) // true
 a.size() // 2
 ```

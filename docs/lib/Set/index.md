@@ -25,7 +25,7 @@ insertion order. There is no literal: the empty set is Set.of(\[\]).
 `Set.of` builds a set from an array and drops the repeats. `Set.has` asks for a member:
 
 ```ant
-var tags = Set.of(["red", "blue", "red"])
+let tags = Set.of(["red", "blue", "red"])
 tags              // Set.of(["red", "blue"])
 tags.has("blue")  // true
 tags.has("green") // false
@@ -35,7 +35,7 @@ len(tags)         // 2
 `Set.add` and `Set.remove` change the set and return whether they did:
 
 ```ant
-var seen = Set.of([1, 2])
+let seen = Set.of([1, 2])
 seen.add(3)    // true
 seen.add(3)    // false
 seen.remove(1) // true
@@ -45,7 +45,7 @@ seen           // Set.of([2, 3])
 A `for` loop visits the members in insertion order:
 
 ```ant
-var langs = Set.of(["go", "ant", "go", "zig"])
+let langs = Set.of(["go", "ant", "go", "zig"])
 for lang in langs {
   println(lang)
 }
@@ -63,7 +63,7 @@ There is no set literal. The empty set is `Set.of([])`, with its element type fr
 from where it goes:
 
 ```ant
-var empty: Set[string] = Set.of([])
+let empty: Set[string] = Set.of([])
 empty           // Set.of([])
 empty.isEmpty() // true
 ```
@@ -72,7 +72,7 @@ Records and arrays are members by contents:
 
 ```ant
 type Point = { x: int, y: int }
-var visited = Set.of([Point{ x: 0, y: 0 }])
+let visited = Set.of([Point{ x: 0, y: 0 }])
 visited.has(Point{ x: 0, y: 0 }) // true
 Set.of([[1, 2], [1, 2], [2, 1]]) // Set.of([[1, 2], [2, 1]])
 ```
@@ -80,7 +80,7 @@ Set.of([[1, 2], [1, 2], [2, 1]]) // Set.of([[1, 2], [2, 1]])
 A set can hold `null` when its element type includes it:
 
 ```ant
-var answers: Set[bool | null] = Set.of([true, null, null])
+let answers: Set[bool | null] = Set.of([true, null, null])
 answers           // Set.of([true, null])
 answers.has(null) // true
 ```
@@ -88,8 +88,8 @@ answers.has(null) // true
 Calls chain through `.`, or the set goes down a pipe:
 
 ```ant
-var a = Set.of([1, 2, 3, 4])
-var b = Set.of([3, 4, 5])
+let a = Set.of([1, 2, 3, 4])
+let b = Set.of([3, 4, 5])
 a.intersect(b).values()            // [3, 4]
 a | Set.difference(b) | Set.size() // 2
 ```
@@ -132,7 +132,7 @@ Print each line the first time it appears. `Set.add` answers the question and re
 one call:
 
 ```ant
-var seen: Set[string] = Set.of([])
+let seen: Set[string] = Set.of([])
 for line in ["b", "a", "b", "c", "a"] {
   if seen.add(line) {
     println(line)
@@ -149,15 +149,15 @@ c
 Find the required settings a map lacks:
 
 ```ant
-var required = Set.of(["host", "port", "user"])
-var given = Map{ host: "localhost", user: "ada" }
+let required = Set.of(["host", "port", "user"])
+let given = Map{ host: "localhost", user: "ada" }
 Set.difference(required, Set.of(given.keys())).values() // ["port"]
 ```
 
 Check that a word uses only allowed letters:
 
 ```ant
-var allowed = Set.of(String.chars("abcdef"))
+let allowed = Set.of(String.chars("abcdef"))
 Set.of(String.chars("faced")).isSubset(allowed)  // true
 Set.of(String.chars("faded!")).isSubset(allowed) // false
 ```
@@ -165,8 +165,8 @@ Set.of(String.chars("faded!")).isSubset(allowed) // false
 Copy a set, so that changing the copy leaves the original alone:
 
 ```ant
-var a = Set.of([1, 2])
-var c = Set.of(a.values())
+let a = Set.of([1, 2])
+let c = Set.of(a.values())
 c.add(3) // true
 a        // Set.of([1, 2])
 ```
@@ -174,7 +174,7 @@ a        // Set.of([1, 2])
 List the members in sorted order:
 
 ```ant
-var tags = Set.of(["red", "blue", "green"])
+let tags = Set.of(["red", "blue", "green"])
 tags.values().sort() // ["blue", "green", "red"]
 ```
 
@@ -183,7 +183,7 @@ tags.values().sort() // ["blue", "green", "red"]
 `len`, `Set.size`, and `Set.values` agree:
 
 ```ant
-var s = Set.of(["x", "y", "x"])
+let s = Set.of(["x", "y", "x"])
 assert(len(s) == Set.size(s))
 assert(len(Set.values(s)) == Set.size(s))
 assert(Set.isEmpty(s) == (Set.size(s) == 0))
@@ -192,15 +192,15 @@ assert(Set.isEmpty(s) == (Set.size(s) == 0))
 The members of `Set.of(xs)`, in order, are what `Array.unique` returns:
 
 ```ant
-var xs = [4, 2, 4, 9, 2]
+let xs = [4, 2, 4, 9, 2]
 assert(Set.of(xs).values() == xs.unique())
 ```
 
 `==` ignores order, while `Set.values` shows it:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([3, 2, 1])
+let a = Set.of([1, 2, 3])
+let b = Set.of([3, 2, 1])
 assert(a == b)
 assert(a.values() != b.values())
 ```
@@ -208,8 +208,8 @@ assert(a.values() != b.values())
 A union holds both sets, and an intersection lies inside each:
 
 ```ant
-var a = Set.of([1, 2, 3])
-var b = Set.of([2, 3, 4])
+let a = Set.of([1, 2, 3])
+let b = Set.of([2, 3, 4])
 assert(a.isSubset(a.union(b)) && b.isSubset(a.union(b)))
 assert(a.intersect(b).isSubset(a) && a.intersect(b).isSubset(b))
 assert(a.difference(b).intersect(b).isEmpty())
@@ -220,26 +220,26 @@ assert(a.difference(b).intersect(b).isEmpty())
 `Set.of([])` with nothing to give it a type is a compile error:
 
 ```ant
-var seen = Set.of([]) // error: cannot infer the element type of an empty array; annotate it
+let seen = Set.of([]) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 A set has no indexing. Take the members as an array first:
 
 ```ant
-var s = Set.of(["a", "b"])
+let s = Set.of(["a", "b"])
 s[0] // error: Set[string] cannot be indexed
 ```
 
 ```ant
-var s = Set.of(["a", "b"])
+let s = Set.of(["a", "b"])
 s.values()[0] // "a"
 ```
 
 Copying a set variable copies the reference. A change through one name shows through the other:
 
 ```ant
-var a = Set.of([1])
-var b = a
+let a = Set.of([1])
+let b = a
 b.add(2)       // true
 a              // Set.of([1, 2])
 Set.same(a, b) // true

@@ -17,7 +17,7 @@ choices.
 ## Basic examples
 
 ```ant
-var ny = Result.unwrap(Time.zone("America/New_York"))
-var t = Result.unwrap(Time.parsePlainDateTime("2024-03-10T02:30"))
+let ny = Result.unwrap(Time.zone("America/New_York"))
+let t = Result.unwrap(Time.parsePlainDateTime("2024-03-10T02:30"))
 Time.toZoned(t, ny) // 2024-03-10T03:30:00-04:00[America/New_York]
 ```

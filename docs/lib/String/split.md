@@ -104,11 +104,11 @@ Parse rows of a simple table into records, checking the number of columns:
 type Person = { name: string, age: int }
 
 func parse(row: string): Person | null {
-  var cols = String.split(row, ";")
+  let cols = String.split(row, ";")
   if len(cols) != 2 {
     return null
   }
-  var age = String.toInt(String.trim(cols[1])) ?? return null
+  let age = String.toInt(String.trim(cols[1])) ?? return null
   Person{ name: String.trim(cols[0]), age }
 }
 
@@ -127,7 +127,7 @@ null
 Count how often each tag occurs in a comma-separated list:
 
 ```ant
-var counts: Map[string, int] = Map{}
+let counts: Map[string, int] = Map{}
 for tag in String.split("ant,bee,ant,ant,bee", ",") {
   counts[tag] = (counts[tag] ?? 0) + 1
 }
@@ -143,8 +143,8 @@ Map{ "ant": 3, "bee": 2 }
 For this `s`, joining the pieces with `","` gives `s` back, and no piece contains `","`:
 
 ```ant
-var s = ",a,,b,"
-var pieces = String.split(s, ",")
+let s = ",a,,b,"
+let pieces = String.split(s, ",")
 assert(String.join(pieces, ",") == s)
 assert(Array.every(pieces, { !String.contains(x, ",") }))
 ```
@@ -160,8 +160,8 @@ for s in ["", "a", "a,b", ",,"] {
 The first piece is the `before` of [`String.cut`](cut.md), when the separator occurs:
 
 ```ant
-var s = "k=v=w"
-var c = String.cut(s, "=")
+let s = "k=v=w"
+let c = String.cut(s, "=")
 assert(c != null)
 assert(String.split(s, "=")[0] == c.before)
 ```

@@ -94,7 +94,7 @@ Pass it to a higher-order function as a function value:
 Keep only the letters of a text:
 
 ```ant
-var code = "A1-B2_c3"
+let code = "A1-B2_c3"
 String.concat(code.chars().filter({ String.isLetter(x) })) // "ABc"
 ```
 
@@ -108,7 +108,7 @@ Split a text into words, where a word is a run of letters:
 
 ```ant
 func words(text: string): Array[string] {
-  var out: Array[string] = []
+  let out: Array[string] = []
   var word = ""
   for c in text {
     if String.isLetter(c) {
@@ -133,7 +133,7 @@ Check that a name starts with a letter before you accept it:
 type Check = { name: string, ok: bool }
 
 func check(name: string): Check {
-  var chars = name.chars()
+  let chars = name.chars()
   Check{ name: name, ok: !chars.isEmpty() && String.isLetter(chars[0]) }
 }
 
@@ -156,7 +156,7 @@ that starts with `L`:
 
 ```ant
 for s in ["", "a", "Ant", "日本", "ǅ", "ʰ", "a1", "Ⅻ", "e\u{301}", "_"] {
-  var byCategory = s != "" && s.chars().every({ String.category(x).startsWith("L") })
+  let byCategory = s != "" && s.chars().every({ String.category(x).startsWith("L") })
   assert(String.isLetter(s) == byCategory)
 }
 ```
@@ -191,7 +191,7 @@ accent is a mark, not a letter. Normalize to NFC first to compose the pair when 
 point for it:
 
 ```ant
-var e = "e\u{301}"
+let e = "e\u{301}"
 String.isLetter(e)                          // false
 String.isMark("\u{301}")                    // true
 String.isLetter(String.normalize(e, "NFC")) // true
@@ -217,7 +217,7 @@ A letter is not only `a` to `z`. To accept ASCII letters only, test the code poi
 
 ```ant
 func isAsciiLetter(c: string): bool {
-  var n = String.codePoint(c)
+  let n = String.codePoint(c)
   (n >= 65 && n <= 90) || (n >= 97 && n <= 122)
 }
 

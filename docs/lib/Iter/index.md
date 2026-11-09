@@ -89,7 +89,7 @@ The elements may be records, and a `for` loop destructures them:
 
 ```ant
 type Item = { name: string, price: int }
-var items = [Item{ name: "tea", price: 3 }, Item{ name: "cake", price: 5 }]
+let items = [Item{ name: "tea", price: 3 }, Item{ name: "cake", price: 5 }]
 for { name, price } in Iter.fromArray(items).filter({ x.price > 4 }) {
   println("${name}: ${price}")
 }
@@ -174,8 +174,8 @@ println(len(collatz(27).toArray()))
 On an array, the `Iter` chain gives what the `Array` functions give:
 
 ```ant
-var xs = [4, 9, 2, 7]
-var lazy = Iter.fromArray(xs).filter({ x > 3 }).map({ x * 10 }).toArray()
+let xs = [4, 9, 2, 7]
+let lazy = Iter.fromArray(xs).filter({ x > 3 }).map({ x * 10 }).toArray()
 assert(lazy == xs.filter({ x > 3 }).map({ x * 10 }))
 ```
 
@@ -188,8 +188,8 @@ assert(Iter.range(2, 6).toArray() == Array.range(2, 6))
 The callbacks run only when the sequence runs, and only as far as the consumer asks:
 
 ```ant
-var seen: Array[int] = []
-var s = Iter.range(0, 100).map({ Array.push(seen, x); x })
+let seen: Array[int] = []
+let s = Iter.range(0, 100).map({ Array.push(seen, x); x })
 seen                // []
 s.take(3).toArray() // [0, 1, 2]
 seen                // [0, 1, 2]
@@ -202,7 +202,7 @@ or have effects:
 
 ```ant
 var calls = 0
-var doubled = Iter.range(0, 3).map({ calls += 1; x * 2 })
+let doubled = Iter.range(0, 3).map({ calls += 1; x * 2 })
 doubled.toArray() // [0, 2, 4]
 doubled.toArray() // [0, 2, 4]
 calls             // 6
@@ -211,13 +211,13 @@ calls             // 6
 The `Iter` functions take a sequence, not an array. Wrap an array with `Iter.fromArray`:
 
 ```ant
-var doubled = Iter.map([1, 2], { x * 2 }) // error: cannot use Array[int] where Seq[T] is expected
+let doubled = Iter.map([1, 2], { x * 2 }) // error: cannot use Array[int] where Seq[T] is expected
 ```
 
 `Iter.take` panics on a negative count as soon as you call it, even if the sequence never runs:
 
 ```ant
-var s = Iter.range(0, 5).take(-1) // panic: Iter.take needs a count of at least 0, got -1
+let s = Iter.range(0, 5).take(-1) // panic: Iter.take needs a count of at least 0, got -1
 ```
 
 A sequence you write must stop when `yield` returns `false`. `Iter.take` and `break` both return

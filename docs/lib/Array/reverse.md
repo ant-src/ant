@@ -29,7 +29,7 @@ Array.reverse([1, 2, 3]) // [3, 2, 1]
 The original array keeps its order:
 
 ```ant
-var xs = ["a", "b", "c"]
+let xs = ["a", "b", "c"]
 Array.reverse(xs) // ["c", "b", "a"]
 xs                // ["a", "b", "c"]
 ```
@@ -39,7 +39,7 @@ xs                // ["a", "b", "c"]
 An empty array and an array of one element come back with the same elements:
 
 ```ant
-var none: Array[int] = []
+let none: Array[int] = []
 Array.reverse(none)  // []
 Array.reverse(["a"]) // ["a"]
 ```
@@ -71,7 +71,7 @@ Array.reverse(xs: [1, 2]) // [2, 1]
 Reverse a string by its graphemes, and join them back:
 
 ```ant
-var reversed = String.join(Array.reverse(String.graphemes("noe\u{301}l")), "")
+let reversed = String.join(Array.reverse(String.graphemes("noe\u{301}l")), "")
 reversed == "le\u{301}on" // true
 ```
 
@@ -79,7 +79,7 @@ Check whether a word is a palindrome:
 
 ```ant
 func isPalindrome(word: string): bool {
-  var gs = String.graphemes(String.toLower(word))
+  let gs = String.graphemes(String.toLower(word))
   gs == Array.reverse(gs)
 }
 
@@ -90,7 +90,7 @@ isPalindrome("Ant")   // false
 Show the latest entries of a log first:
 
 ```ant
-var log = ["start", "load config", "listen on :8080"]
+let log = ["start", "load config", "listen on :8080"]
 for line in Array.reverse(log) {
   println(line)
 }
@@ -105,7 +105,7 @@ start
 Read a path from the leaf up to the root:
 
 ```ant
-var parts = String.split("usr/local/bin", "/")
+let parts = String.split("usr/local/bin", "/")
 String.join(parts.reverse(), " < ") // "bin < local < usr"
 ```
 
@@ -114,15 +114,15 @@ String.join(parts.reverse(), " < ") // "bin < local < usr"
 Reversing twice gives back the original array:
 
 ```ant
-var xs = [1, 2, 3, 4]
+let xs = [1, 2, 3, 4]
 assert(Array.reverse(Array.reverse(xs)) == xs)
 ```
 
 The length stays the same, and element `i` of the result is element `length - 1 - i` of `xs`:
 
 ```ant
-var xs = [5, 6, 7, 8]
-var ys = Array.reverse(xs)
+let xs = [5, 6, 7, 8]
+let ys = Array.reverse(xs)
 assert(len(ys) == len(xs))
 for i in Array.range(0, len(xs)) {
   assert(ys[i] == xs[len(xs) - 1 - i])
@@ -132,8 +132,8 @@ for i in Array.range(0, len(xs)) {
 The result is a new array, even when the order cannot change:
 
 ```ant
-var xs = [1]
-var ys = Array.reverse(xs)
+let xs = [1]
+let ys = Array.reverse(xs)
 assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
@@ -141,15 +141,15 @@ assert(!Array.same(ys, xs))
 The first element of the result is the last element of `xs`:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 assert(Array.first(Array.reverse(xs)) == Array.last(xs))
 ```
 
 Reversing a concatenation reverses each part and swaps them:
 
 ```ant
-var xs = [1, 2]
-var ys = [3, 4, 5]
+let xs = [1, 2]
+let ys = [3, 4, 5]
 assert(Array.reverse(Array.concat(xs, ys)) == Array.concat(Array.reverse(ys), Array.reverse(xs)))
 ```
 
@@ -174,8 +174,8 @@ The result shares its elements with `xs`. Writing into an element that is an arr
 through the original:
 
 ```ant
-var grid = [[1], [2]]
-var flipped = Array.reverse(grid)
+let grid = [[1], [2]]
+let flipped = Array.reverse(grid)
 flipped[0][0] = 9
 grid // [[1], [9]]
 ```
@@ -200,7 +200,7 @@ equal elements in their original order, sort by a negated key or with [Array.sor
 
 ```ant
 type Player = { name: string, score: int }
-var players = [Player{ name: "Ann", score: 2 }, Player{ name: "Bob", score: 1 }, Player{ name: "Cid", score: 2 }]
+let players = [Player{ name: "Ann", score: 2 }, Player{ name: "Bob", score: 1 }, Player{ name: "Cid", score: 2 }]
 Array.reverse(Array.sortBy(players, { x.score })).map({ x.name }) // ["Cid", "Ann", "Bob"]
 Array.sortBy(players, { -x.score }).map({ x.name })               // ["Ann", "Cid", "Bob"]
 ```
@@ -209,7 +209,7 @@ The sorts treat `-0.0` and `0.0` as equal and keep them in their original order,
 swaps them too. Dividing by each zero shows which is which:
 
 ```ant
-var zs = [-0.0, 0.0]
+let zs = [-0.0, 0.0]
 Array.sort(zs).map({ 1.0 / x })                // [-Infinity, Infinity]
 Array.reverse(Array.sort(zs)).map({ 1.0 / x }) // [Infinity, -Infinity]
 ```

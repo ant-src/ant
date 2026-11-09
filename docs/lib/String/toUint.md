@@ -119,7 +119,7 @@ func rgb(hex: string): Array[byte] | null {
   if String.length(hex) != 6 {
     return null
   }
-  var n = String.toUint(hex, 16) ?? return null
+  let n = String.toUint(hex, 16) ?? return null
   [
     byte(Bits.shiftRight(n, 16)),
     byte(Bits.and(Bits.shiftRight(n, 8), uint64(255))),
@@ -140,7 +140,7 @@ Parse a 64-bit identifier written in hex, such as a trace ID, whose high bit is 
 fit an `int`:
 
 ```ant
-var id = String.toUint("9f86d081884c7d65", 16) ?? panic("not hex")
+let id = String.toUint("9f86d081884c7d65", 16) ?? panic("not hex")
 println(id)
 println(String.fromInt(id, 16))
 ```
@@ -154,7 +154,7 @@ Read a port number, checking its range before converting to `uint16`:
 
 ```ant
 func port(s: string): uint16 | null {
-  var n = String.toUint(s) ?? return null
+  let n = String.toUint(s) ?? return null
   if n > uint64(65535) {
     return null
   }
@@ -176,7 +176,7 @@ Read a Unix permission mode in octal, the way `chmod` takes it:
 
 ```ant
 for mode in ["755", "640", "abc"] {
-  var bits = String.toUint(mode, 8)
+  let bits = String.toUint(mode, 8)
   if bits == null {
     println("${mode}: not octal")
   } else {
@@ -208,7 +208,7 @@ fits an `int`:
 
 ```ant
 for s in ["0", "42", "9223372036854775807"] {
-  var u = String.toUint(s) ?? panic("unreachable")
+  let u = String.toUint(s) ?? panic("unreachable")
   assert(String.toInt(s) == int(u))
 }
 ```
@@ -225,19 +225,19 @@ String.toUint("9223372036854775808") // 9223372036854775808
 The result may be `null`, so it is not a `uint64` until you narrow it:
 
 ```ant
-var n: uint64 = String.toUint("5") // error: cannot use uint64 | null where uint64 is expected
+let n: uint64 = String.toUint("5") // error: cannot use uint64 | null where uint64 is expected
 ```
 
 An integer literal is always an `int`, so `?? 0` gives `uint64 | int`, and arithmetic on it is a
 compile error. Write the default as a `uint64`:
 
 ```ant
-var n = String.toUint("5") ?? 0
-var m = n + 1 // error: + needs both operands of one type, got uint64 | int and int
+let n = String.toUint("5") ?? 0
+let m = n + 1 // error: + needs both operands of one type, got uint64 | int and int
 ```
 
 ```ant
-var n = String.toUint("5") ?? uint64(0)
+let n = String.toUint("5") ?? uint64(0)
 println(n + uint64(1))
 ```
 
@@ -249,7 +249,7 @@ Converting the result to a narrower kind panics when it does not fit. Check the 
 `port` does above:
 
 ```ant
-var n = String.toUint("300") ?? panic("not a number")
+let n = String.toUint("300") ?? panic("not a number")
 println(byte(n)) // panic: 300 out of range for byte
 ```
 

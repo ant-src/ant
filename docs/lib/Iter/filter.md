@@ -67,7 +67,7 @@ Test a record through its fields:
 
 ```ant
 type Task = { title: string, done: bool }
-var tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
+let tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
 Iter.fromArray(tasks) | Iter.filter({ !x.done }) | Iter.toArray() // [Task{ title: "test", done: false }]
 ```
 
@@ -136,7 +136,7 @@ Select and then transform, without building an array in between:
 
 ```ant
 type User = { name: string, active: bool }
-var users = [
+let users = [
   User{ name: "Ann", active: true },
   User{ name: "Bob", active: false },
   User{ name: "Cid", active: true },
@@ -147,7 +147,7 @@ Iter.fromArray(users).filter({ x.active }).map({ x.name }).toArray() // ["Ann", 
 Stop at the first match with `break`; the predicate sees nothing after it:
 
 ```ant
-var checked: Array[int] = []
+let checked: Array[int] = []
 for n in Iter.range(10, 100) | Iter.filter({ Array.push(checked, x); x % 13 == 0 }) {
   println(n)
   break
@@ -165,16 +165,16 @@ println(checked)
 On an array, filtering the sequence gives what `Array.filter` gives:
 
 ```ant
-var xs = [5, 8, 1, 9, 4]
-var f: func(int): bool = { x > 4 }
+let xs = [5, 8, 1, 9, 4]
+let f: func(int): bool = { x > 4 }
 assert((Iter.fromArray(xs) | Iter.filter(f) | Iter.toArray()) == Array.filter(xs, f))
 ```
 
 The predicate does not run until the result runs, and then only as far as the consumer asks:
 
 ```ant
-var calls: Array[int] = []
-var evens = Iter.range(0, 10) | Iter.filter({ Array.push(calls, x); x % 2 == 0 })
+let calls: Array[int] = []
+let evens = Iter.range(0, 10) | Iter.filter({ Array.push(calls, x); x % 2 == 0 })
 calls                                 // []
 evens | Iter.take(2) | Iter.toArray() // [0, 2]
 calls                                 // [0, 1, 2]
@@ -183,8 +183,8 @@ calls                                 // [0, 1, 2]
 `filter` and `map` run element by element, interleaved, not one pass after the other:
 
 ```ant
-var log: Array[string] = []
-var kept = Iter.range(1, 5) | Iter.filter({ Array.push(log, "f${x}"); x % 2 == 0 })
+let log: Array[string] = []
+let kept = Iter.range(1, 5) | Iter.filter({ Array.push(log, "f${x}"); x % 2 == 0 })
 kept | Iter.map({ Array.push(log, "m${x}"); x * 10 }) | Iter.toArray() // [20, 40]
 log                                                                    // ["f1", "f2", "m2", "f3", "f4", "m4"]
 ```
@@ -196,7 +196,7 @@ costly or has effects:
 
 ```ant
 var n = 0
-var evens = Iter.range(0, 4).filter({ n += 1; x % 2 == 0 })
+let evens = Iter.range(0, 4).filter({ n += 1; x % 2 == 0 })
 evens.toArray() // [0, 2]
 evens.toArray() // [0, 2]
 n               // 8
@@ -214,28 +214,28 @@ Iter.fromArray([1, 2, 3]).filter({ x > 1 }).toArray() // [2, 3]
 `Array.filter`:
 
 ```ant
-var big = Iter.filter([1, 2, 3], { x > 1 }) // error: cannot use Array[int] where Seq[T] is expected
+let big = Iter.filter([1, 2, 3], { x > 1 }) // error: cannot use Array[int] where Seq[T] is expected
 ```
 
 The predicate must return a `bool`. Ant has no truthy values, so an `int` is a compile error:
 
 ```ant
-var nonZero = Iter.range(0, 3).filter({ x }) // error: cannot use int where bool is expected
+let nonZero = Iter.range(0, 3).filter({ x }) // error: cannot use int where bool is expected
 ```
 
 The result keeps the element type of the source. Filtering out `null` gives a `Seq[int | null]`, not
 a `Seq[int]`:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
-var ints: Array[int] = Iter.fromArray(scores).filter({ x != null }).toArray()
+let scores: Array[int | null] = [90, null, 75]
+let ints: Array[int] = Iter.fromArray(scores).filter({ x != null }).toArray()
 // error: cannot use Seq[int | null] where Seq[int] is expected
 ```
 
 Narrow in a loop instead, where the test on the element narrows it to `int`:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 var total = 0
 for s in Iter.fromArray(scores) {
   if s != null { total += s }

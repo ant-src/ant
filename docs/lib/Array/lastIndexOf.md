@@ -29,7 +29,7 @@ Array.lastIndexOf([1, 2, 3], 5)       // null
 Call it through `.` on any array:
 
 ```ant
-var path = ["home", "docs", "home", "src"]
+let path = ["home", "docs", "home", "src"]
 path.lastIndexOf("home") // 2
 path.indexOf("home")     // 0
 ```
@@ -39,7 +39,7 @@ path.indexOf("home")     // 0
 An empty array has no last match. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.lastIndexOf("") // null
 ```
 
@@ -53,7 +53,7 @@ When the value occurs once, the first and the last index are the same:
 Strings compare by code points. `==` does not normalize, so the two spellings of "é" differ:
 
 ```ant
-var words = ["café", "cafe\u{301}", "café"]
+let words = ["café", "cafe\u{301}", "café"]
 words.lastIndexOf("café")        // 2
 words.lastIndexOf("cafe\u{301}") // 1
 ```
@@ -62,7 +62,7 @@ Records compare by tag and fields, so a fresh record with the same fields is fou
 
 ```ant
 type Point = { x: int, y: int }
-var trail = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Point{ x: 0, y: 0 }, Point{ x: 0, y: 1 }]
+let trail = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 0 }, Point{ x: 0, y: 0 }, Point{ x: 0, y: 1 }]
 trail.lastIndexOf(Point{ x: 0, y: 0 }) // 2
 trail.lastIndexOf(Point{ x: 5, y: 5 }) // null
 ```
@@ -73,7 +73,7 @@ Members of a tagged union compare by tag and fields, so equal fields under anoth
 type Circle = { size: float64 }
 type Square = { size: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Square{ size: 2.0 }, Circle{ size: 2.0 }, Square{ size: 2.0 }]
+let shapes: Array[Shape] = [Square{ size: 2.0 }, Circle{ size: 2.0 }, Square{ size: 2.0 }]
 shapes.lastIndexOf(Square{ size: 2.0 }) // 2
 shapes.lastIndexOf(Circle{ size: 2.0 }) // 1
 ```
@@ -88,7 +88,7 @@ Nested arrays and maps compare by contents:
 An array whose element type includes `null` can look for the last `null`:
 
 ```ant
-var readings: Array[int | null] = [12, null, 15, null, 9]
+let readings: Array[int | null] = [12, null, 15, null, 9]
 readings.lastIndexOf(null) // 3
 readings.lastIndexOf(15)   // 2
 ```
@@ -113,8 +113,8 @@ A command line passes arguments through groups separated by `--`. Keep the last 
 meant for the innermost program:
 
 ```ant
-var args = ["ant", "run", "--", "tool.ant", "--", "-v", "input.txt"]
-var i = args.lastIndexOf("--")
+let args = ["ant", "run", "--", "tool.ant", "--", "-v", "input.txt"]
+let i = args.lastIndexOf("--")
 if i != null {
   println(Array.slice(args, i + 1, len(args)))
 }
@@ -129,8 +129,8 @@ Find which step of an undo history last reached a state:
 ```ant
 type State = { x: int, y: int }
 
-var history = [State{ x: 0, y: 0 }, State{ x: 1, y: 0 }, State{ x: 0, y: 0 }, State{ x: 2, y: 3 }]
-var step = history.lastIndexOf(State{ x: 0, y: 0 })
+let history = [State{ x: 0, y: 0 }, State{ x: 1, y: 0 }, State{ x: 0, y: 0 }, State{ x: 2, y: 3 }]
+let step = history.lastIndexOf(State{ x: 0, y: 0 })
 if step != null {
   println("last at origin: step ${step}")
 }
@@ -160,7 +160,7 @@ println(repeated(["ant", "bee", "ant", "fly", "bee", "wasp"]))
 returns `null` exactly when [`Array.contains`](contains.md) is `false`:
 
 ```ant
-var xs = ["a", "b", "a", "c"]
+let xs = ["a", "b", "a", "c"]
 for v in ["a", "b", "c", "z"] {
   assert(xs.lastIndexOf(v) == xs.findLastIndex({ x == v }))
   assert((xs.lastIndexOf(v) != null) == xs.contains(v))
@@ -170,8 +170,8 @@ for v in ["a", "b", "c", "z"] {
 The element at the index is `==` to `v`, and no later element is:
 
 ```ant
-var xs = [3, 1, 4, 1, 5, 9, 1]
-var i = xs.lastIndexOf(1)
+let xs = [3, 1, 4, 1, 5, 9, 1]
+let i = xs.lastIndexOf(1)
 assert(i != null)
 assert(xs[i] == 1)
 assert(!Array.slice(xs, i + 1, len(xs)).contains(1))
@@ -180,8 +180,8 @@ assert(!Array.slice(xs, i + 1, len(xs)).contains(1))
 It mirrors [`Array.indexOf`](indexOf.md) on the reversed array:
 
 ```ant
-var xs = [3, 1, 4, 1, 5]
-var j = xs.reverse().indexOf(1)
+let xs = [3, 1, 4, 1, 5]
+let j = xs.reverse().indexOf(1)
 assert(j != null)
 assert(xs.lastIndexOf(1) == len(xs) - 1 - j)
 ```
@@ -189,7 +189,7 @@ assert(xs.lastIndexOf(1) == len(xs) - 1 - j)
 The first index never comes after the last:
 
 ```ant
-var xs = [2, 7, 2, 1, 7]
+let xs = [2, 7, 2, 1, 7]
 for v in xs {
   assert((xs.indexOf(v) ?? 0) <= (xs.lastIndexOf(v) ?? 0))
 }
@@ -200,21 +200,21 @@ for v in xs {
 The result is nullable, so it cannot index the array as it is:
 
 ```ant
-var xs = [5, 6, 5]
+let xs = [5, 6, 5]
 println(xs[xs.lastIndexOf(5)]) // error: cannot use int | null where int is expected
 ```
 
 Test it against `null`, not for truth. `0` is a valid index, and an `int | null` is not a condition:
 
 ```ant
-var i = [5, 6].lastIndexOf(5)
+let i = [5, 6].lastIndexOf(5)
 if i { // error: cannot use int | null where bool is expected
   println(i)
 }
 ```
 
 ```ant
-var i = [5, 6].lastIndexOf(5)
+let i = [5, 6].lastIndexOf(5)
 i != null // true
 i         // 0
 ```
@@ -223,7 +223,7 @@ i         // 0
 [`Array.findLastIndex`](findLastIndex.md) with `Math.isNaN`:
 
 ```ant
-var xs = [Math.NaN, 1.0, Math.NaN, 0.0]
+let xs = [Math.NaN, 1.0, Math.NaN, 0.0]
 xs.lastIndexOf(Math.NaN)            // null
 xs.findLastIndex({ Math.isNaN(x) }) // 2
 xs.lastIndexOf(-0.0)                // 3
@@ -232,14 +232,14 @@ xs.lastIndexOf(-0.0)                // 3
 Numeric types never mix, so looking for a `float64` in an `Array[int]` is a compile error:
 
 ```ant
-var counts = [1, 2, 1]
+let counts = [1, 2, 1]
 println(counts.lastIndexOf(1.0)) // error: cannot use float64 where int is expected
 ```
 
 The same holds the other way. Write `2.0`: an integer literal is always an `int`.
 
 ```ant
-var prices = [1.5, 2.0, 1.5]
+let prices = [1.5, 2.0, 1.5]
 println(prices.lastIndexOf(2)) // error: cannot use int where float64 is expected
 ```
 
@@ -247,7 +247,7 @@ println(prices.lastIndexOf(2)) // error: cannot use int where float64 is expecte
 [`Array.findLastIndex`](findLastIndex.md):
 
 ```ant
-var counts = [1, 2, 3]
+let counts = [1, 2, 3]
 println(counts.lastIndexOf({ x > 1 }))
 // error: a lambda needs an expected function type, but int is expected
 ```
@@ -255,8 +255,8 @@ println(counts.lastIndexOf({ x > 1 }))
 Functions compare by identity, so two lambdas with the same body are different values:
 
 ```ant
-var inc: func(int): int = { x + 1 }
-var same: func(int): int = { x + 1 }
+let inc: func(int): int = { x + 1 }
+let same: func(int): int = { x + 1 }
 [inc, same, inc].lastIndexOf(inc)  // 2
 [inc, same, inc].lastIndexOf(same) // 1
 ```

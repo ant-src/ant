@@ -30,7 +30,7 @@ Map.fromEntries([Entry{ key: "ann", value: 31 }, Entry{ key: "bob", value: 27 }]
 A repeated key takes the value of its last entry and keeps its first position:
 
 ```ant
-var votes = [Entry{ key: "red", value: 1 }, Entry{ key: "blue", value: 2 }, Entry{ key: "red", value: 3 }]
+let votes = [Entry{ key: "red", value: 1 }, Entry{ key: "blue", value: 2 }, Entry{ key: "red", value: 3 }]
 Map.fromEntries(votes) // Map{ "red": 3, "blue": 2 }
 ```
 
@@ -39,7 +39,7 @@ Map.fromEntries(votes) // Map{ "red": 3, "blue": 2 }
 An empty array gives an empty map. Annotate the array so its element type is known:
 
 ```ant
-var none: Array[Entry[string, int]] = []
+let none: Array[Entry[string, int]] = []
 Map.fromEntries(none) // Map{}
 ```
 
@@ -55,7 +55,7 @@ Map.fromEntries([Entry{ key: [1, 2], value: "a" }, Entry{ key: [1, 2], value: "b
 A value may be `null` when the value type allows it:
 
 ```ant
-var settings: Map[string, int | null] = Map.fromEntries([Entry{ key: "limit", value: null }])
+let settings: Map[string, int | null] = Map.fromEntries([Entry{ key: "limit", value: null }])
 settings                   // Map{ "limit": null }
 Map.has(settings, "limit") // true
 ```
@@ -84,22 +84,22 @@ Index records by a field:
 
 ```ant
 type User = { id: int, name: string }
-var users = [User{ id: 7, name: "Ann" }, User{ id: 9, name: "Bob" }]
-var byId = Map.fromEntries(users.map({ Entry{ key: x.id, value: x } }))
+let users = [User{ id: 7, name: "Ann" }, User{ id: 9, name: "Bob" }]
+let byId = Map.fromEntries(users.map({ Entry{ key: x.id, value: x } }))
 byId[9] // User{ id: 9, name: "Bob" }
 ```
 
 Swap the keys and values of a map:
 
 ```ant
-var codes = Map{ red: "#f00", green: "#0f0" }
+let codes = Map{ red: "#f00", green: "#0f0" }
 Map.fromEntries(codes.entries().map({ Entry{ key: x.value, value: x.key } })) // Map{ "#f00": "red", "#0f0": "green" }
 ```
 
 Sort a map by value. `Map.entries` gives an array to sort, and the new map keeps the sorted order:
 
 ```ant
-var prices = Map{ pen: 2, ink: 15, pad: 4 }
+let prices = Map{ pen: 2, ink: 15, pad: 4 }
 prices.entries().sortBy({ x.value }) | Map.fromEntries() // Map{ "pen": 2, "pad": 4, "ink": 15 }
 ```
 
@@ -107,7 +107,7 @@ Parse `key=value` settings:
 
 ```ant
 func parsePair(s: string): Entry[string, string] {
-  var parts = String.split(s, "=")
+  let parts = String.split(s, "=")
   Entry{ key: parts[0], value: parts[1] }
 }
 String.split("host=localhost;port=8080", ";").map(parsePair) | Map.fromEntries() // Map{ "host": "localhost", "port": "8080" }
@@ -116,7 +116,7 @@ String.split("host=localhost;port=8080", ";").map(parsePair) | Map.fromEntries()
 Map each word to its last index with `Array.entries`:
 
 ```ant
-var words = ["to", "be", "or", "not", "to", "be"]
+let words = ["to", "be", "or", "not", "to", "be"]
 Map.fromEntries(Array.entries(words).map({ Entry{ key: x.value, value: x.index } })) // Map{ "to": 4, "be": 5, "or": 2, "not": 3 }
 ```
 
@@ -126,8 +126,8 @@ Map.fromEntries(Array.entries(words).map({ Entry{ key: x.value, value: x.index }
 map:
 
 ```ant
-var m = Map{ a: 1, b: 2 }
-var copy = Map.fromEntries(Map.entries(m))
+let m = Map{ a: 1, b: 2 }
+let copy = Map.fromEntries(Map.entries(m))
 assert(copy == m)
 assert(!Map.same(copy, m))
 ```
@@ -136,8 +136,8 @@ The map has at most one entry per element, and its keys are the distinct keys in
 first appear:
 
 ```ant
-var es = [Entry{ key: "a", value: 1 }, Entry{ key: "b", value: 2 }, Entry{ key: "a", value: 3 }]
-var m = Map.fromEntries(es)
+let es = [Entry{ key: "a", value: 1 }, Entry{ key: "b", value: 2 }, Entry{ key: "a", value: 3 }]
+let m = Map.fromEntries(es)
 assert(Map.size(m) <= len(es))
 assert(Map.keys(m) == Array.unique(es.map({ x.key })))
 ```
@@ -148,30 +148,30 @@ A literal for each element names its type, `Entry`. A bare `{ key: ..., value: .
 compile:
 
 ```ant
-var m = Map.fromEntries([{ key: "a", value: 1 }])
+let m = Map.fromEntries([{ key: "a", value: 1 }])
 // error: a record or map literal names its type, as in Point{ x: 1 } or Map{ "a": 1 }
 ```
 
 An empty array literal gives no element type to infer:
 
 ```ant
-var m = Map.fromEntries([]) // error: cannot infer the element type of an empty array; annotate it
+let m = Map.fromEntries([]) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 `fromEntries` belongs to `Map`, not to `Array`, so it cannot be called through `.` on an array. Use
 a pipe instead:
 
 ```ant
-var es = [Entry{ key: "a", value: 1 }]
-var m = es.fromEntries() // error: Array[Entry[string, int]] has no field or function fromEntries
+let es = [Entry{ key: "a", value: 1 }]
+let m = es.fromEntries() // error: Array[Entry[string, int]] has no field or function fromEntries
 ```
 
 A repeated key drops the earlier values without a warning. Swapping a map whose values repeat loses
 keys:
 
 ```ant
-var owners = Map{ pen: "Ann", ink: "Bob", pad: "Ann" }
-var byOwner = Map.fromEntries(owners.entries().map({ Entry{ key: x.value, value: x.key } }))
+let owners = Map{ pen: "Ann", ink: "Bob", pad: "Ann" }
+let byOwner = Map.fromEntries(owners.entries().map({ Entry{ key: x.value, value: x.key } }))
 byOwner           // Map{ "Ann": "pad", "Bob": "ink" }
 Map.size(byOwner) // 2
 ```

@@ -28,14 +28,14 @@ Array.min(["pear", "apple", "fig"]) // "apple"
 Call it through `.` on any array:
 
 ```ant
-var temps = [12.5, -3.0, 7.25]
+let temps = [12.5, -3.0, 7.25]
 temps.min() // -3.0
 ```
 
 An empty array gives `null`. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.min(empty) // null
 ```
 
@@ -44,7 +44,7 @@ Array.min(empty) // null
 Every numeric type works, the sized ones included:
 
 ```ant
-var levels: Array[byte] = [byte(200), byte(7), byte(64)]
+let levels: Array[byte] = [byte(200), byte(7), byte(64)]
 levels.min()               // 7
 [-5, 3].min()              // -5
 [Math.Infinity, 2.0].min() // 2.0
@@ -83,7 +83,7 @@ A `NaN` anywhere makes the result `NaN`, wherever it is:
 The values of a map or a set are an array, so `Array.min` gives the least of them:
 
 ```ant
-var ages = Map{ ann: 31, bob: 27, cy: 45 }
+let ages = Map{ ann: 31, bob: 27, cy: 45 }
 Map.values(ages).min()           // 27
 Set.of([4, 2, 9]).values().min() // 2
 ```
@@ -112,7 +112,7 @@ Report the lowest score, or say there is none:
 
 ```ant
 func lowest(scores: Array[int]): string {
-  var low = scores.min()
+  let low = scores.min()
   if low == null {
     return "no scores yet"
   }
@@ -131,8 +131,8 @@ no scores yet
 Shift every value so that the least becomes zero:
 
 ```ant
-var readings = [14, 9, 21, 12]
-var base = readings.min() ?? 0
+let readings = [14, 9, 21, 12]
+let base = readings.min() ?? 0
 readings.map({ x - base }) // [5, 0, 12, 3]
 ```
 
@@ -142,7 +142,7 @@ The result is an element of the array, and no element is below it:
 
 ```ant
 for xs in [[5, 3, 8], [7], [2, 2, 9]] {
-  var low = xs.min()
+  let low = xs.min()
   assert(low != null)
   assert(xs.contains(low))
   assert(xs.every({ low <= x }))
@@ -170,7 +170,7 @@ for xs in [["a"], []] {
 `Array.min` does not change the array:
 
 ```ant
-var xs = [3, 1, 2]
+let xs = [3, 1, 2]
 assert(xs.min() == 1)
 assert(xs == [3, 1, 2])
 ```
@@ -186,21 +186,21 @@ println(Array.min([])) // error: cannot infer the element type of an empty array
 Annotate the array so that `T` is known:
 
 ```ant
-var empty: Array[int] = []
+let empty: Array[int] = []
 Array.min(empty) // null
 ```
 
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
 ```ant
-var xs = [3, 1]
+let xs = [3, 1]
 println(xs.min() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
 
 ```ant
-var xs = [3, 1]
+let xs = [3, 1]
 (xs.min() ?? 0) + 1 // 2
 ```
 
@@ -209,14 +209,14 @@ use [`Array.minBy`](minBy.md):
 
 ```ant
 type Item = { name: string, price: int }
-var items = [Item{ name: "pen", price: 3 }, Item{ name: "ink", price: 2 }]
+let items = [Item{ name: "pen", price: 3 }, Item{ name: "ink", price: 2 }]
 println(items.min())
 // error: T would be Item, which is not a single member of its bound Ordered; narrow first
 ```
 
 ```ant
 type Item = { name: string, price: int }
-var items = [Item{ name: "pen", price: 3 }, Item{ name: "ink", price: 2 }]
+let items = [Item{ name: "pen", price: 3 }, Item{ name: "ink", price: 2 }]
 items.minBy({ x.price }) // Item{ name: "ink", price: 2 }
 ```
 
@@ -224,7 +224,7 @@ A named primitive type is not assignable to its base, so it does not fit `Ordere
 
 ```ant
 type Meters = float64
-var legs = [Meters(3.0), Meters(1.5)]
+let legs = [Meters(3.0), Meters(1.5)]
 println(legs.min())
 // error: T would be Meters, which is not a single member of its bound Ordered; narrow first
 ```
@@ -233,14 +233,14 @@ Unwrap the elements with the base type's name first:
 
 ```ant
 type Meters = float64
-var legs = [Meters(3.0), Meters(1.5)]
+let legs = [Meters(3.0), Meters(1.5)]
 legs.map(float64).min() // 1.5
 ```
 
 An element type that includes `null` is a union, which is not a single member of `Ordered`:
 
 ```ant
-var cells: Array[int | null] = [4, null, 2]
+let cells: Array[int | null] = [4, null, 2]
 println(cells.min())
 // error: T would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
@@ -248,7 +248,7 @@ println(cells.min())
 Map each `null` to `Math.maxInt` to get an `Array[int]`:
 
 ```ant
-var cells: Array[int | null] = [4, null, 2]
+let cells: Array[int | null] = [4, null, 2]
 cells.map({ x ?? Math.maxInt }).min() // 2
 ```
 
@@ -256,14 +256,14 @@ cells.map({ x ?? Math.maxInt }).min() // 2
 `Math.maxInt` instead of `null`:
 
 ```ant
-var cells: Array[int | null] = [null, null]
+let cells: Array[int | null] = [null, null]
 cells.map({ x ?? Math.maxInt }).min() // 9223372036854775807
 ```
 
 A single `NaN` hides every other value. Drop the `NaN` elements first when they mean "no reading":
 
 ```ant
-var samples = [2.5, Math.NaN, 0.5]
+let samples = [2.5, Math.NaN, 0.5]
 samples.min()                            // NaN
 samples.filter({ !Math.isNaN(x) }).min() // 0.5
 ```

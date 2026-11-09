@@ -19,14 +19,14 @@ Map.isEmpty reports whether m has no entries.
 
 ```ant
 Map.isEmpty(Map{ ada: 36, linus: 54 }) // false
-var none: Map[string, int] = Map{}
+let none: Map[string, int] = Map{}
 Map.isEmpty(none) // true
 ```
 
 Call it through `.` on any map:
 
 ```ant
-var ages = Map{ ada: 36 }
+let ages = Map{ ada: 36 }
 ages.isEmpty() // false
 ```
 
@@ -35,14 +35,14 @@ ages.isEmpty() // false
 An entry whose value is `null` keeps the map from being empty:
 
 ```ant
-var seen: Map[string, int | null] = Map{ ada: null }
+let seen: Map[string, int | null] = Map{ ada: null }
 seen.isEmpty() // false
 ```
 
 The answer follows the map as it changes:
 
 ```ant
-var counts: Map[string, int] = Map{}
+let counts: Map[string, int] = Map{}
 counts.isEmpty() // true
 counts["go"] = 1
 counts.isEmpty()    // false
@@ -65,14 +65,14 @@ Map{ ada: 36 } | Map.isEmpty() // false
 As a function value, it maps an array of maps to an array of `bool`s:
 
 ```ant
-var empty: Map[string, int] = Map{}
+let empty: Map[string, int] = Map{}
 [Map{ a: 1 }, empty].map(Map.isEmpty) // [false, true]
 ```
 
 For a map that may be `null`, `?.` yields `null` instead of calling:
 
 ```ant
-var headers: Map[string, string] | null = null
+let headers: Map[string, string] | null = null
 headers?.isEmpty()         // null
 headers?.isEmpty() ?? true // true
 ```
@@ -83,7 +83,7 @@ Print a word count, or a note when there are no words:
 
 ```ant
 func report(text: string) {
-  var counts: Map[string, int] = Map{}
+  let counts: Map[string, int] = Map{}
   for word in String.fields(text) {
     counts[word] = (counts[word] ?? 0) + 1
   }
@@ -112,7 +112,7 @@ Report the missing fields of a form, or accept it:
 
 ```ant
 func missing(form: Map[string, string], required: Array[string]): Map[string, string] {
-  var problems: Map[string, string] = Map{}
+  let problems: Map[string, string] = Map{}
   for name in required {
     if String.isEmpty(form[name] ?? "") {
       problems[name] = "required"
@@ -121,8 +121,8 @@ func missing(form: Map[string, string], required: Array[string]): Map[string, st
   problems
 }
 
-var form = Map{ name: "Ann", email: "" }
-var problems = missing(form, ["name", "email"])
+let form = Map{ name: "Ann", email: "" }
+let problems = missing(form, ["name", "email"])
 println(if problems.isEmpty() { "ok" } else { "fix: ${problems.keys()}" })
 ```
 
@@ -135,8 +135,8 @@ fix: ["email"]
 `Map.isEmpty` agrees with `Map.size`, `len`, `Map.keys`, and `==` against an annotated empty map:
 
 ```ant
-var none: Map[string, int] = Map{}
-var cases: Array[Map[string, int]] = [Map{}, Map{ a: 1 }, Map{ a: 1, b: 2 }]
+let none: Map[string, int] = Map{}
+let cases: Array[Map[string, int]] = [Map{}, Map{ a: 1 }, Map{ a: 1, b: 2 }]
 for m in cases {
   assert(m.isEmpty() == (m.size() == 0))
   assert(m.isEmpty() == (len(m) == 0))
@@ -150,7 +150,7 @@ for m in cases {
 A map is not a condition. Ask `Map.isEmpty` explicitly:
 
 ```ant
-var m = Map{ a: 1 }
+let m = Map{ a: 1 }
 if m { // error: cannot use Map[string, int] where bool is expected
   println("has entries")
 }
@@ -166,14 +166,14 @@ An operand of `==` gives no expected type, so `m == Map{}` cannot infer the type
 `Map.isEmpty`:
 
 ```ant
-var m = Map{ a: 1 }
+let m = Map{ a: 1 }
 println(m == Map{}) // error: cannot infer the key and value types of an empty map; annotate it
 ```
 
 A nullable map must be narrowed or reached through `?.` first:
 
 ```ant
-var m: Map[string, int] | null = null
+let m: Map[string, int] | null = null
 println(Map.isEmpty(m)) // error: cannot use Map[string, int] | null where Map[K, V] is expected
 ```
 

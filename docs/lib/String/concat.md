@@ -35,7 +35,7 @@ String.join(["a", "b", "c"], ",") // "a,b,c"
 An empty array gives the empty string, and empty parts add nothing:
 
 ```ant
-var none: Array[string] = []
+let none: Array[string] = []
 String.concat(none)          // ""
 String.concat(["", "x", ""]) // "x"
 String.concat(["", ""])      // ""
@@ -51,7 +51,7 @@ A part may be a combining mark, which joins the character before it into one gra
 points:
 
 ```ant
-var s = String.concat(["e", "\u{301}"])
+let s = String.concat(["e", "\u{301}"])
 String.length(s)         // 2
 len(String.graphemes(s)) // 1
 ```
@@ -73,7 +73,7 @@ String.concat(Array.map([1, 2, 3], { String.from(x) })) // "123"
 Collect pieces in an array as a loop goes, then join them once:
 
 ```ant
-var parts: Array[string] = []
+let parts: Array[string] = []
 for i in Array.range(0, 3) {
   parts.push("${i};")
 }
@@ -88,7 +88,7 @@ Build a banner from repeated pieces:
 
 ```ant
 func banner(title: string): string {
-  var rule = String.repeat("=", 3)
+  let rule = String.repeat("=", 3)
   String.concat([rule, " ", title, " ", rule])
 }
 
@@ -104,30 +104,30 @@ println(banner("ant"))
 It is [String.join](join.md) with an empty separator:
 
 ```ant
-var parts = ["a", "bc", "", "d"]
+let parts = ["a", "bc", "", "d"]
 assert(String.concat(parts) == String.join(parts, ""))
 ```
 
 For two parts, it is `+`:
 
 ```ant
-var a = "ant"
-var b = "hill"
+let a = "ant"
+let b = "hill"
 assert(String.concat([a, b]) == a + b)
 ```
 
 The length of the result is the sum of the lengths of the parts:
 
 ```ant
-var parts = ["é", "日本", "", "🐜"]
-var total = Array.sum(Array.map(parts, { String.length(x) })) ?? 0
+let parts = ["é", "日本", "", "🐜"]
+let total = Array.sum(Array.map(parts, { String.length(x) })) ?? 0
 assert(String.length(String.concat(parts)) == total)
 ```
 
 It undoes [String.chars](chars.md) and [String.graphemes](graphemes.md):
 
 ```ant
-var s = "héllo 日本"
+let s = "héllo 日本"
 assert(String.concat(String.chars(s)) == s)
 assert(String.concat(String.graphemes(s)) == s)
 ```
@@ -135,8 +135,8 @@ assert(String.concat(String.graphemes(s)) == s)
 It is associative: joining joined parts gives the same string as joining them all at once:
 
 ```ant
-var a = ["a", "b"]
-var b = ["c"]
+let a = ["a", "b"]
+let b = ["c"]
 assert(String.concat([String.concat(a), String.concat(b)]) == String.concat([...a, ...b]))
 ```
 
@@ -146,26 +146,26 @@ assert(String.concat([String.concat(a), String.concat(b)]) == String.concat([...
 a compile error. Call `String.concat(parts)` or use a pipe:
 
 ```ant
-var s = ["a", "b"].concat() // error: Array.concat needs an argument for ys
+let s = ["a", "b"].concat() // error: Array.concat needs an argument for ys
 ```
 
 The parts go in one array. Strings passed as separate arguments are a compile error:
 
 ```ant
-var s = String.concat("a", "b") // error: String.concat takes 1 argument, got 2
+let s = String.concat("a", "b") // error: String.concat takes 1 argument, got 2
 ```
 
 Every part must be a string. Convert other values with [String.from](from.md) first:
 
 ```ant
-var s = String.concat(["a", 1]) // error: cannot use int where string is expected
+let s = String.concat(["a", 1]) // error: cannot use int where string is expected
 ```
 
 A part that may be `null` is a compile error too. Supply a fallback with `??`:
 
 ```ant
-var x: string | null = null
-var s = String.concat(["a", x]) // error: cannot use string | null where string is expected
+let x: string | null = null
+let s = String.concat(["a", x]) // error: cannot use string | null where string is expected
 ```
 
 The result is not normalized. An `e` joined with a combining accent looks like `é`, but it is not
@@ -173,7 +173,7 @@ equal to the one-code-point `é`, U+00E9, until [String.normalize](normalize.md)
 form:
 
 ```ant
-var s = String.concat(["e", "\u{301}"])
+let s = String.concat(["e", "\u{301}"])
 s == "\u{e9}"                          // false
 String.normalize(s, "NFC") == "\u{e9}" // true
 ```
@@ -182,7 +182,7 @@ Reversing by code points moves a combining mark onto another character. Reverse 
 instead:
 
 ```ant
-var s = "ne\u{301}"
+let s = "ne\u{301}"
 String.toCodePoints(s)                                                 // [110, 101, 769]
 String.toCodePoints(String.concat(Array.reverse(String.chars(s))))     // [769, 101, 110]
 String.toCodePoints(String.concat(Array.reverse(String.graphemes(s)))) // [101, 769, 110]

@@ -110,7 +110,7 @@ Pass it to a higher-order function as a function value:
 Remove the punctuation from a sentence:
 
 ```ant
-var line = "Well, well: who's there?"
+let line = "Well, well: who's there?"
 String.concat(line.chars().filter({ !String.isPunct(x) })) // "Well well whos there"
 ```
 
@@ -124,7 +124,7 @@ Strip the punctuation from both ends of each word, keeping the apostrophe inside
 
 ```ant
 func strip(word: string): string {
-  var cs = word.chars()
+  let cs = word.chars()
   var start = 0
   var end = cs.length()
   while start < end && String.isPunct(cs[start]) {
@@ -150,7 +150,7 @@ that starts with `P`:
 
 ```ant
 for s in ["", "!", "?!", "«»", "$", "a.", "—", "😀"] {
-  var byCategory = s != "" && s.chars().every({ String.category(x).startsWith("P") })
+  let byCategory = s != "" && s.chars().every({ String.category(x).startsWith("P") })
   assert(String.isPunct(s) == byCategory)
 }
 ```
@@ -168,7 +168,7 @@ a symbol:
 
 ```ant
 for n in Iter.range(0x21, 0x7f) {
-  var c = String.fromCodePoint(n)
+  let c = String.fromCodePoint(n)
   if c != null && !String.isLetter(c) && !String.isDigit(c) {
     assert(String.isPunct(c) != String.isSymbol(c))
   }

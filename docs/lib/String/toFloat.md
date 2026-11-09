@@ -132,11 +132,11 @@ Sum the numeric fields of a line and count the ones that do not parse. Narrow wi
 the number:
 
 ```ant
-var line = "3.5, 2, oops, 1e1"
+let line = "3.5, 2, oops, 1e1"
 var total = 0.0
 var bad = 0
 for field in String.split(line, ",") {
-  var n = String.toFloat(String.trim(field))
+  let n = String.toFloat(String.trim(field))
   if n != null {
     total += n
   } else {
@@ -153,7 +153,7 @@ total 15.5, 1 bad
 Read a setting with a fallback when it is missing or malformed:
 
 ```ant
-var settings = Map{ "ratio": "0.75", "scale": "big" }
+let settings = Map{ "ratio": "0.75", "scale": "big" }
 
 func setting(name: string, fallback: float64): float64 {
   String.toFloat(settings[name] ?? "") ?? fallback
@@ -173,7 +173,7 @@ println(setting("depth", 2.0))
 Validate a whole column with [`Array.every`](../Array/every.md):
 
 ```ant
-var column = ["1.5", "2", "-0.25"]
+let column = ["1.5", "2", "-0.25"]
 Array.every(column, { String.toFloat(x) != null }) // true
 ```
 
@@ -192,7 +192,7 @@ for x in [0.1 + 0.2, -1.5, 1e21, 5e-324, 1.7976931348623157e308, Math.Infinity, 
 [`Math.isNaN`](../Math/isNaN.md):
 
 ```ant
-var n = String.toFloat(String.from(Math.NaN))
+let n = String.toFloat(String.from(Math.NaN))
 assert(n != null && Math.isNaN(n))
 ```
 
@@ -215,7 +215,7 @@ String.toFloat(String.fromFloat(2.675, 2)) // 2.67
 The result can be `null`, so arithmetic on it does not compile until you remove the `null`:
 
 ```ant
-var x = String.toFloat("1.5") * 2.0
+let x = String.toFloat("1.5") * 2.0
 // error: * needs both operands of one type, got float64 | null and float64
 ```
 
@@ -242,7 +242,7 @@ String.toFloat("Infinity") // Infinity
 included:
 
 ```ant
-var v = String.toFloat("nan") ?? 0.0
+let v = String.toFloat("nan") ?? 0.0
 v == v // false
 ```
 

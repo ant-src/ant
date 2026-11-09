@@ -37,7 +37,7 @@ Find a record by a field, and read a field of the result with `?.`:
 
 ```ant
 type User = { id: int, name: string }
-var users = [User{ id: 1, name: "Ann" }, User{ id: 7, name: "Bob" }]
+let users = [User{ id: 1, name: "Ann" }, User{ id: 7, name: "Bob" }]
 users.find({ x.id == 7 })?.name // "Bob"
 users.find({ x.id == 9 })?.name // null
 ```
@@ -47,7 +47,7 @@ users.find({ x.id == 9 })?.name // null
 An empty array has no element to find. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.find({ true }) // null
 ```
 
@@ -61,8 +61,8 @@ Only the first match counts, even when later elements match too:
 shows it never sees `12`:
 
 ```ant
-var seen: Array[int] = []
-var found = [3, 8, 5, 12].find({
+let seen: Array[int] = []
+let found = [3, 8, 5, 12].find({
   seen.push(x)
   x > 4
 })
@@ -88,8 +88,8 @@ func isEven(n: int): bool {
 A lambda can use the local variables around it:
 
 ```ant
-var limit = 10
-var prices = [4, 12, 7, 30]
+let limit = 10
+let prices = [4, 12, 7, 30]
 prices.find({ x > limit }) // 12
 ```
 
@@ -106,9 +106,9 @@ Find a member of a union by its type with `is`. The result type stays `Shape | n
 type Circle = { radius: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Square{ side: 2.0 }, Square{ side: 3.0 }]
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Square{ side: 2.0 }, Square{ side: 3.0 }]
 shapes.find({ x is Square }) // Square{ side: 2.0 }
-var s = shapes.find({ x is Square })
+let s = shapes.find({ x is Square })
 if s is Square { s.side } // 2.0
 ```
 
@@ -131,7 +131,7 @@ Look up a record and fall back to a default with `??`:
 
 ```ant
 type User = { id: int, name: string }
-var users = [User{ id: 1, name: "Ann" }, User{ id: 7, name: "Bob" }]
+let users = [User{ id: 1, name: "Ann" }, User{ id: 7, name: "Bob" }]
 
 func nameOf(id: int): string {
   users.find({ x.id == id })?.name ?? "anonymous"
@@ -150,9 +150,9 @@ Narrow the result with `!= null` to work with the whole record:
 
 ```ant
 type Item = { name: string, stock: int }
-var items = [Item{ name: "nut", stock: 0 }, Item{ name: "bolt", stock: 4 }]
+let items = [Item{ name: "nut", stock: 0 }, Item{ name: "bolt", stock: 4 }]
 
-var item = items.find({ x.stock > 0 })
+let item = items.find({ x.stock > 0 })
 if item != null {
   println("${item.name}: ${item.stock} in stock")
 }
@@ -165,7 +165,7 @@ bolt: 4 in stock
 Find the first line that is not blank:
 
 ```ant
-var text = "\n  \nTitle\nBody"
+let text = "\n  \nTitle\nBody"
 String.split(text, "\n").find({ String.trim(x) != "" }) // "Title"
 ```
 
@@ -175,11 +175,11 @@ Return early from a function when nothing matches, with `?? return`:
 type Route = { path: string, handler: string }
 
 func handle(routes: Array[Route], path: string): string {
-  var route = routes.find({ x.path == path }) ?? return "404 not found"
+  let route = routes.find({ x.path == path }) ?? return "404 not found"
   "200 ${route.handler}"
 }
 
-var routes = [Route{ path: "/", handler: "home" }, Route{ path: "/about", handler: "about" }]
+let routes = [Route{ path: "/", handler: "home" }, Route{ path: "/about", handler: "about" }]
 println(handle(routes, "/about"))
 println(handle(routes, "/missing"))
 ```
@@ -194,17 +194,17 @@ println(handle(routes, "/missing"))
 `Array.find` gives the first element of `Array.filter`, and the element at `Array.findIndex`:
 
 ```ant
-var xs = [4, 9, 16, 25]
-var f: func(int): bool = { x > 5 }
+let xs = [4, 9, 16, 25]
+let f: func(int): bool = { x > 5 }
 assert(xs.find(f) == xs.filter(f).first())
-var i = xs.findIndex(f)
+let i = xs.findIndex(f)
 assert(i != null && xs.find(f) == xs[i])
 ```
 
 It finds something exactly when `Array.some` holds, for an element type without `null`:
 
 ```ant
-var xs = [1, 3, 5]
+let xs = [1, 3, 5]
 assert((xs.find({ x > 4 }) != null) == xs.some({ x > 4 }))
 assert((xs.find({ x > 9 }) != null) == xs.some({ x > 9 }))
 ```
@@ -212,7 +212,7 @@ assert((xs.find({ x > 9 }) != null) == xs.some({ x > 9 }))
 On a reversed array, it gives what `Array.findLast` gives on the original:
 
 ```ant
-var xs = [2, 7, 4, 9, 6]
+let xs = [2, 7, 4, 9, 6]
 assert(xs.reverse().find({ x > 5 }) == xs.findLast({ x > 5 }))
 ```
 
@@ -220,8 +220,8 @@ The element it returns is the one in the array, so a change to it shows in the a
 
 ```ant
 type Item = { name: string, stock: int }
-var items = [Item{ name: "nut", stock: 0 }]
-var item = items.find({ x.name == "nut" })
+let items = [Item{ name: "nut", stock: 0 }]
+let item = items.find({ x.name == "nut" })
 if item != null {
   item.stock = 10
 }
@@ -234,7 +234,7 @@ The result may be `null`, so reading a field of it without narrowing is a compil
 
 ```ant
 type User = { id: int, name: string }
-var users = [User{ id: 1, name: "Ann" }]
+let users = [User{ id: 1, name: "Ann" }]
 println(users.find({ x.id == 1 }).name)
 // error: User | null has no field name: narrow the value first
 ```
@@ -245,7 +245,7 @@ When the element type includes `null`, a found `null` and no match look the same
 [`Array.findIndex`](findIndex.md) to tell them apart:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 scores.find({ x == null })      // null
 scores.find({ x == 100 })       // null
 scores.findIndex({ x == null }) // 1
@@ -255,7 +255,7 @@ scores.findIndex({ x == 100 })  // null
 `f` must return a `bool`. Ant has no truthy values, so a number is not a test:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs.find({ x - 2 })) // error: cannot use int where bool is expected
 ```
 

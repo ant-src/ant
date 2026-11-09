@@ -34,7 +34,7 @@ functions build a string from another value.
 Clean up a value and test it:
 
 ```ant
-var name = "  Ada Lovelace "
+let name = "  Ada Lovelace "
 String.trim(name)                   // "Ada Lovelace"
 String.startsWith(name.trim(), "A") // true
 String.length("ant")                // 3
@@ -43,7 +43,7 @@ String.length("ant")                // 3
 Split a line into fields and join them back:
 
 ```ant
-var parts = String.split("red,green,blue", ",")
+let parts = String.split("red,green,blue", ",")
 parts                     // ["red", "green", "blue"]
 String.join(parts, " / ") // "red / green / blue"
 ```
@@ -51,7 +51,7 @@ String.join(parts, " / ") // "red / green / blue"
 Calls chain through `.`, or the string goes down a pipe:
 
 ```ant
-var raw = "  Hello, World  "
+let raw = "  Hello, World  "
 raw.trim().toLower()                                 // "hello, world"
 raw | String.trim() | String.replace("World", "Ant") // "Hello, Ant"
 ```
@@ -61,7 +61,7 @@ raw | String.trim() | String.replace("World", "Ant") // "Hello, Ant"
 Interpolation renders any value with `String.from`, and `+` joins two strings:
 
 ```ant
-var n = 3
+let n = 3
 "${n} ants"         // "3 ants"
 "ant" + "hill"      // "anthill"
 String.from([1, 2]) // "[1, 2]"
@@ -207,10 +207,10 @@ String.cut("novalue", "=")   // null
 Read `key=value` settings, skipping blank lines and lines without `=`:
 
 ```ant
-var text = "host=localhost\n\nport=8080\nverbose\n"
-var settings: Map[string, string] = Map{}
+let text = "host=localhost\n\nport=8080\nverbose\n"
+let settings: Map[string, string] = Map{}
 for line in String.lines(text) {
-  var kv = String.cut(line, "=")
+  let kv = String.cut(line, "=")
   if kv != null {
     settings[String.trim(kv.before)] = String.trim(kv.after)
   }
@@ -231,8 +231,8 @@ row("figs", 300)  // "figs.... 300"
 Build a slug from a title:
 
 ```ant
-var title = "  Hello, Ant World! "
-var slug = String.fields(String.toLower(title))
+let title = "  Hello, Ant World! "
+let slug = String.fields(String.toLower(title))
   | Array.map({ String.chars(x).filter({ String.isLetter(x) }) | String.concat() })
   | String.join("-")
 println(slug)
@@ -247,7 +247,7 @@ hello-ant-world
 `len` and `String.length` agree, and a string is empty when its length is `0`:
 
 ```ant
-var s = "anthill"
+let s = "anthill"
 assert(len(s) == String.length(s))
 assert(String.isEmpty(s) == (len(s) == 0))
 ```
@@ -255,14 +255,14 @@ assert(String.isEmpty(s) == (len(s) == 0))
 Splitting and joining with the same separator gives the string back:
 
 ```ant
-var s = "a,b,,c"
+let s = "a,b,,c"
 assert(String.join(String.split(s, ","), ",") == s)
 ```
 
 The code points of a string, its characters, and its UTF-8 bytes all lead back to it:
 
 ```ant
-var s = "naïve 🐜"
+let s = "naïve 🐜"
 assert(String.concat(String.chars(s)) == s)
 assert(String.fromCodePoints(String.toCodePoints(s)) == s)
 assert(String.fromBytes(String.toBytes(s)) == s)
@@ -272,7 +272,7 @@ assert(len(String.chars(s)) == len(s))
 A call through `.`, a pipe, and a direct call are the same call:
 
 ```ant
-var s = " Ant "
+let s = " Ant "
 assert(s.trim() == String.trim(s))
 assert((s | String.trim()) == String.trim(s))
 ```
@@ -283,12 +283,12 @@ A string cannot be indexed. Take one code point with `String.slice`, or index th
 `String.chars`:
 
 ```ant
-var s = "ant"
+let s = "ant"
 println(s[0]) // error: string cannot be indexed
 ```
 
 ```ant
-var s = "ant"
+let s = "ant"
 String.slice(s, 0, 1) // "a"
 String.chars(s)[0]    // "a"
 ```
@@ -296,12 +296,12 @@ String.chars(s)[0]    // "a"
 `+` joins only two strings; a number goes in through interpolation or `String.fromInt`:
 
 ```ant
-var n = 3
+let n = 3
 println("ants: " + n) // error: + needs both operands of one type, got string and int
 ```
 
 ```ant
-var n = 3
+let n = 3
 "ants: ${n}"                 // "ants: 3"
 "ants: " + String.fromInt(n) // "ants: 3"
 ```
@@ -326,12 +326,12 @@ String.foldCase("Zebra") < String.foldCase("apple") // false
 `Array` namespace, so `parts.join(",")` does not compile:
 
 ```ant
-var parts = ["a", "b"]
+let parts = ["a", "b"]
 println(parts.join(",")) // error: Array[string] has no field or function join
 ```
 
 ```ant
-var parts = ["a", "b"]
+let parts = ["a", "b"]
 String.join(parts, ",")  // "a,b"
 parts | String.join(",") // "a,b"
 ```
@@ -339,12 +339,12 @@ parts | String.join(",") // "a,b"
 `s.length` without parentheses reads a field, and a string has no fields. Call it, or use `len`:
 
 ```ant
-var s = "ab"
+let s = "ab"
 println(s.length) // error: string is not a record, so it has no field length
 ```
 
 ```ant
-var s = "ab"
+let s = "ab"
 s.length() // 2
 len(s)     // 2
 ```

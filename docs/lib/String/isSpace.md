@@ -88,7 +88,7 @@ Pass it to a higher-order function as a function value:
 Drop the lines of a text that hold only white space:
 
 ```ant
-var text = "first\n   \n\t\nsecond"
+let text = "first\n   \n\t\nsecond"
 text.lines().filter({ !String.isSpace(x) }) // ["first", "second"]
 ```
 
@@ -118,11 +118,11 @@ squeeze("one  two\t\n three") // "one two three"
 Report the lines of a text that end in white space:
 
 ```ant
-var source = "let a = 1 \nlet b = 2\nlet c = 3\t"
+let source = "let a = 1 \nlet b = 2\nlet c = 3\t"
 var number = 0
 for line in source.lines() {
   number += 1
-  var last = line.chars().last()
+  let last = line.chars().last()
   if last != null && String.isSpace(last) {
     println("line ${number}: trailing white space")
   }
@@ -140,7 +140,7 @@ line 3: trailing white space
 
 ```ant
 for s in ["", " ", "\t\n", "a", " a ", "\u{A0}", "\u{200B}"] {
-  var all = !s.isEmpty() && s.chars().every({ String.isSpace(x) })
+  let all = !s.isEmpty() && s.chars().every({ String.isSpace(x) })
   assert(String.isSpace(s) == all)
 }
 ```

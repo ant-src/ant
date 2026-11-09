@@ -33,7 +33,7 @@ String.slice("hello", 1, 3) // "el"
 Take a prefix from index 0, or a suffix up to the length:
 
 ```ant
-var s = "anthill"
+let s = "anthill"
 String.slice(s, 0, 3)                // "ant"
 String.slice(s, 3, String.length(s)) // "hill"
 ```
@@ -79,7 +79,7 @@ Read the extension of a file name, from the last `.` to the end:
 
 ```ant
 func extension(name: string): string {
-  var i = String.lastIndexOf(name, ".") ?? return ""
+  let i = String.lastIndexOf(name, ".") ?? return ""
   String.slice(name, i + 1, String.length(name))
 }
 
@@ -103,10 +103,10 @@ Take the text between two markers with `String.indexOf`:
 
 ```ant
 func between(s: string, open: string, close: string): string | null {
-  var start = String.indexOf(s, open) ?? return null
-  var from = start + String.length(open)
-  var rest = String.slice(s, from, String.length(s))
-  var end = String.indexOf(rest, close) ?? return null
+  let start = String.indexOf(s, open) ?? return null
+  let from = start + String.length(open)
+  let rest = String.slice(s, from, String.length(s))
+  let end = String.indexOf(rest, close) ?? return null
   String.slice(rest, 0, end)
 }
 
@@ -137,8 +137,8 @@ Row{ date: "2026-11-08", code: "EUR", amount: "12.50" }
 Take the text around a regular expression match, whose `start` and `end` are code point indices:
 
 ```ant
-var s = "total 42 EUR"
-var m = Regex.find(/\d+/, s)
+let s = "total 42 EUR"
+let m = Regex.find(/\d+/, s)
 if m != null {
   println(String.slice(s, 0, m.start) + "<" + m.text + ">" + String.slice(s, m.end, String.length(s)))
 }
@@ -153,7 +153,7 @@ total <42> EUR
 The result holds `to - from` code points, and the whole range gives `s` back:
 
 ```ant
-var s = "héllo 🐜"
+let s = "héllo 🐜"
 assert(String.length(String.slice(s, 2, 5)) == 3)
 assert(String.slice(s, 0, String.length(s)) == s)
 ```
@@ -161,8 +161,8 @@ assert(String.slice(s, 0, String.length(s)) == s)
 Two adjacent slices join to the slice that spans both:
 
 ```ant
-var s = "e\u{301}🇨🇭 ant"
-var n = String.length(s)
+let s = "e\u{301}🇨🇭 ant"
+let n = String.length(s)
 for i in Iter.range(0, n + 1) {
   assert(String.slice(s, 0, i) + String.slice(s, i, n) == s)
 }
@@ -171,15 +171,15 @@ for i in Iter.range(0, n + 1) {
 A slice is the same code points that `Array.slice` takes from `String.chars`:
 
 ```ant
-var s = "añt🐜hill"
+let s = "añt🐜hill"
 assert(String.slice(s, 2, 6) == String.join(Array.slice(String.chars(s), 2, 6), ""))
 ```
 
 For a match of `Regex.find`, the slice from `start` to `end` is the matched text:
 
 ```ant
-var s = "añt 🐜 42"
-var m = Regex.find(/\d+/, s)
+let s = "añt 🐜 42"
+let m = Regex.find(/\d+/, s)
 assert(m != null)
 assert(String.slice(s, m.start, m.end) == m.text)
 ```
@@ -221,7 +221,7 @@ Code point indices can split a letter from its accent, so a shortened string can
 letter or a broken emoji. Slice the graphemes when the text is for a reader:
 
 ```ant
-var s = "cafe\u{301}!"
+let s = "cafe\u{301}!"
 String.slice(s, 0, 4) == "cafe"                                          // true
 String.join(Array.slice(String.graphemes(s), 0, 4), "") == "cafe\u{301}" // true
 ```

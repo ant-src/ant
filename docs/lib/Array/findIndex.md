@@ -27,7 +27,7 @@ Array.findIndex([4, 9, 16, 25], { x > 30 }) // null
 Call it through `.` on any array:
 
 ```ant
-var names = ["Ann", "Bob", "Cid"]
+let names = ["Ann", "Bob", "Cid"]
 names.findIndex({ String.startsWith(x, "B") }) // 1
 ```
 
@@ -37,7 +37,7 @@ The callback runs from the first element and stops at the first match, so a side
 elements it tested:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [4, 9, 16, 25].findIndex({ seen.push(x); x > 5 }) // 1
 seen                                              // [4, 9]
 ```
@@ -45,7 +45,7 @@ seen                                              // [4, 9]
 With no match, it tests every element:
 
 ```ant
-var seen: Array[int] = []
+let seen: Array[int] = []
 [4, 9, 16].findIndex({ seen.push(x); x > 30 }) // null
 seen                                           // [4, 9, 16]
 ```
@@ -53,7 +53,7 @@ seen                                           // [4, 9, 16]
 An empty array has no index to return. Annotate it so that `T` is known:
 
 ```ant
-var empty: Array[string] = []
+let empty: Array[string] = []
 empty.findIndex({ x == "" }) // null
 ```
 
@@ -66,7 +66,7 @@ Only the first match counts, even when several elements match:
 The index counts elements, so in an array of graphemes it counts characters as the reader sees them:
 
 ```ant
-var chars = String.graphemes("ant 🐜 hill")
+let chars = String.graphemes("ant 🐜 hill")
 chars.findIndex({ x == "🐜" }) // 4
 ```
 
@@ -74,7 +74,7 @@ Test a field of a record:
 
 ```ant
 type User = { name: string, age: int }
-var users = [User{ name: "Ann", age: 15 }, User{ name: "Bob", age: 34 }]
+let users = [User{ name: "Ann", age: 15 }, User{ name: "Bob", age: 34 }]
 users.findIndex({ x.age >= 18 }) // 1
 ```
 
@@ -84,14 +84,14 @@ Test the member of a union with `is`:
 type Circle = { r: float64 }
 type Square = { side: float64 }
 type Shape = Circle | Square
-var shapes: Array[Shape] = [Circle{ r: 1.0 }, Square{ side: 2.0 }, Square{ side: 3.0 }]
+let shapes: Array[Shape] = [Circle{ r: 1.0 }, Square{ side: 2.0 }, Square{ side: 3.0 }]
 shapes.findIndex({ x is Square }) // 1
 ```
 
 An array whose element type includes `null` can look for the first `null`:
 
 ```ant
-var scores: Array[int | null] = [90, null, 75]
+let scores: Array[int | null] = [90, null, 75]
 scores.findIndex({ x == null }) // 1
 ```
 
@@ -109,7 +109,7 @@ func isNegative(n: int): bool {
 A lambda captures the variables around it:
 
 ```ant
-var limit = 10
+let limit = 10
 [4, 12, 7].findIndex({ x > limit }) // 1
 ```
 
@@ -125,8 +125,8 @@ Replace the first element that matches, and leave the array alone when none does
 
 ```ant
 type Task = { title: string, done: bool }
-var tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
-var i = tasks.findIndex({ !x.done })
+let tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
+let i = tasks.findIndex({ !x.done })
 if i != null {
   tasks[i] = Task{ ...tasks[i], done: true }
 }
@@ -140,8 +140,8 @@ println(tasks)
 Remove the first element that matches with [`Array.removeAt`](removeAt.md):
 
 ```ant
-var queue = ["low", "high", "low", "high"]
-var i = queue.findIndex({ x == "high" })
+let queue = ["low", "high", "low", "high"]
+let i = queue.findIndex({ x == "high" })
 if i != null {
   println(queue.removeAt(i))
 }
@@ -156,8 +156,8 @@ high
 Split the lines of a message at the first blank line, into a header and a body:
 
 ```ant
-var lines = ["From: ann", "To: bob", "", "Hello,", "Bob"]
-var at = lines.findIndex({ x == "" }) ?? len(lines)
+let lines = ["From: ann", "To: bob", "", "Hello,", "Bob"]
+let at = lines.findIndex({ x == "" }) ?? len(lines)
 println(lines.slice(0, at))
 println(lines.slice(Math.min(at + 1, len(lines)), len(lines)))
 ```
@@ -170,8 +170,8 @@ println(lines.slice(Math.min(at + 1, len(lines)), len(lines)))
 Stop with a clear message when a required element is missing:
 
 ```ant
-var columns = ["id", "name", "email"]
-var emailAt = columns.findIndex({ x == "email" }) ?? panic("no email column")
+let columns = ["id", "name", "email"]
+let emailAt = columns.findIndex({ x == "email" }) ?? panic("no email column")
 println("email is column ${emailAt + 1}")
 ```
 
@@ -186,12 +186,12 @@ exactly when [`Array.some`](some.md) is `true`, and the element at that index is
 [`Array.find`](find.md) returns:
 
 ```ant
-var xs = [5, 3, 8, 3]
+let xs = [5, 3, 8, 3]
 for v in [3, 8, 7] {
   assert(xs.findIndex({ x == v }) == xs.indexOf(v))
   assert((xs.findIndex({ x == v }) != null) == xs.some({ x == v }))
 }
-var i = xs.findIndex({ x > 4 }) ?? panic("none")
+let i = xs.findIndex({ x > 4 }) ?? panic("none")
 assert(xs[i] == xs.find({ x > 4 }))
 ```
 
@@ -199,8 +199,8 @@ No element before the index found passes the test, and the first index is never 
 that [`Array.findLastIndex`](findLastIndex.md) finds:
 
 ```ant
-var xs = [1, 4, 6, 9, 12]
-var i = xs.findIndex({ x % 3 == 0 }) ?? panic("none")
+let xs = [1, 4, 6, 9, 12]
+let i = xs.findIndex({ x % 3 == 0 }) ?? panic("none")
 assert(!xs.slice(0, i).some({ x % 3 == 0 }))
 assert(i <= (xs.findLastIndex({ x % 3 == 0 }) ?? panic("none")))
 ```
@@ -208,8 +208,8 @@ assert(i <= (xs.findLastIndex({ x % 3 == 0 }) ?? panic("none")))
 The same index comes out of [`Array.entries`](entries.md) and `Array.find`:
 
 ```ant
-var xs = ["ant", "bee", "cicada"]
-var e = xs.entries().find({ String.length(x.value) > 3 })
+let xs = ["ant", "bee", "cicada"]
+let e = xs.entries().find({ String.length(x.value) > 3 })
 assert(e?.index == xs.findIndex({ String.length(x) > 3 }))
 ```
 
@@ -218,7 +218,7 @@ assert(e?.index == xs.findIndex({ String.length(x) > 3 }))
 The result can be `null`, and the type checker rejects it as an index until you narrow it:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 println(xs[xs.findIndex({ x == 2 })]) // error: cannot use int | null where int is expected
 ```
 
@@ -240,7 +240,7 @@ A miss is `null`, not `-1` as in JavaScript, so `i == -1` is never true. This pr
 type checker and gives the wrong answer:
 
 ```ant
-var i = [1, 2, 3].findIndex({ x == 9 })
+let i = [1, 2, 3].findIndex({ x == 9 })
 if i == -1 {
   println("missing")
 } else {
@@ -255,7 +255,7 @@ found
 Compare with `null` instead:
 
 ```ant
-var i = [1, 2, 3].findIndex({ x == 9 })
+let i = [1, 2, 3].findIndex({ x == 9 })
 if i == null {
   println("missing")
 } else {
@@ -284,20 +284,20 @@ A lambda needs the expected function type to know what `x` is. Kept in an unanno
 compile error. Annotate the variable:
 
 ```ant
-var big = { x > 1 }
+let big = { x > 1 }
 // error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 println([1, 2, 3].findIndex(big))
 ```
 
 ```ant
-var big: func(int): bool = { x > 1 }
+let big: func(int): bool = { x > 1 }
 [1, 2, 3].findIndex(big) // 1
 ```
 
 The call visits the elements `xs` had when it started. Elements the callback pushes are not tested:
 
 ```ant
-var xs = [1, 2, 3]
+let xs = [1, 2, 3]
 xs.findIndex({ xs.push(x * 10); x == 10 }) // null
 xs                                         // [1, 2, 3, 10, 20, 30]
 ```

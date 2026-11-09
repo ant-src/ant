@@ -59,17 +59,17 @@ String.repeat("ab\n", 2) // "ab\nab\n"
 The count may be any `int` expression:
 
 ```ant
-var word = "ant"
+let word = "ant"
 String.repeat("^", String.length(word)) // "^^^"
 ```
 
 On a string that may be `null`, call it through `?.`; the result is `null` when the string is:
 
 ```ant
-var name: string | null = null
+let name: string | null = null
 name?.repeat(2) // null
 
-var tag: string | null = "ab"
+let tag: string | null = "ab"
 tag?.repeat(2) // "abab"
 ```
 
@@ -110,7 +110,7 @@ Indent a line by its depth in a tree:
 ```ant
 type Item = { name: string, depth: int }
 
-var items = [Item{ name: "src", depth: 0 }, Item{ name: "lib", depth: 1 }, Item{ name: "a.ant", depth: 2 }]
+let items = [Item{ name: "src", depth: 0 }, Item{ name: "lib", depth: 1 }, Item{ name: "a.ant", depth: 2 }]
 for item in items {
   println("${String.repeat("  ", item.depth)}${item.name}")
 }
@@ -138,7 +138,7 @@ Print a small bar chart:
 ```ant
 type Count = { name: string, count: int }
 
-var counts = [Count{ name: "a", count: 3 }, Count{ name: "b", count: 5 }, Count{ name: "c", count: 1 }]
+let counts = [Count{ name: "a", count: 3 }, Count{ name: "b", count: 5 }, Count{ name: "c", count: 1 }]
 for c in counts {
   println("${c.name} ${String.repeat("*", c.count)}")
 }
@@ -165,16 +165,16 @@ for s in ["", "a", "日本", "🐜!"] {
 Repeating `a + b` times is repeating `a` times and then `b` times:
 
 ```ant
-var s = "xy"
-var a = 2
-var b = 3
+let s = "xy"
+let a = 2
+let b = 3
 assert(String.repeat(s, a + b) == String.repeat(s, a) + String.repeat(s, b))
 ```
 
 It is [String.concat](concat.md) of an array of `n` copies:
 
 ```ant
-var s = "ab"
+let s = "ab"
 assert(String.repeat(s, 4) == String.concat(Array.filled(4, s)))
 ```
 
@@ -201,8 +201,8 @@ String.repeat("ab", -1) // panic: String.repeat needs a count of at least 0, got
 Clamp a count that may go below zero with [Math.max](../Math/max.md):
 
 ```ant
-var width = 4
-var title = "library"
+let width = 4
+let title = "library"
 String.repeat(".", Math.max(width - String.length(title), 0)) // ""
 ```
 
@@ -229,13 +229,13 @@ String.padEnd("", 5, "ab") // "ababa"
 The count is an `int`. A `float64`, or an `int` that may be `null`, is a compile error:
 
 ```ant
-var w = 2.5
-var s = String.repeat("a", w) // error: cannot use float64 where int is expected
+let w = 2.5
+let s = String.repeat("a", w) // error: cannot use float64 where int is expected
 ```
 
 ```ant
-var i = String.indexOf("a.b", ".")
-var s = String.repeat("-", i) // error: cannot use int | null where int is expected
+let i = String.indexOf("a.b", ".")
+let s = String.repeat("-", i) // error: cannot use int | null where int is expected
 ```
 
 Give a default with `??` to turn the `int | null` into an `int`:
@@ -248,7 +248,7 @@ Repeating a combining mark does not give separate characters: every copy joins t
 it:
 
 ```ant
-var s = "e" + String.repeat("\u{301}", 3)
+let s = "e" + String.repeat("\u{301}", 3)
 String.length(s)         // 4
 len(String.graphemes(s)) // 1
 ```
