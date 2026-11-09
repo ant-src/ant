@@ -239,7 +239,6 @@ checker stops at the first line:
 ```ant
 var e = [] // error: cannot infer the element type of an empty array; annotate it
 e.uniqueBy({ x })
-// error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 ```
 
 Annotate the array:

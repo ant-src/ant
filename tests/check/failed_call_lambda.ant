@@ -1,0 +1,13 @@
+// spec: 5 Calls through .
+// A call that cannot be resolved is reported once: its lambda arguments are not reported again
+// for lacking a parameter type, though their bodies are still checked.
+var f: func(int): int = { x + 1 }
+var g = f.map({ x }) // ERR: Iter.map is not a function on func(int): int
+var n = 5
+println([1].nosuch({ x })) // ERR: Array[int] has no field or function nosuch
+println(n.map({ x }))      // ERR: int has no field or function map
+println(nosuch({ x }))     // ERR: nosuch is not defined
+println([1].map({ x }, 2)) // ERR: Array.map takes 1 argument after the receiver, got 2
+println(n.map({            // ERR: int has no field or function map
+  undefinedName // ERR: undefinedName is not defined
+}))

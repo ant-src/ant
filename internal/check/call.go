@@ -74,6 +74,12 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 
 func (c *Checker) synthArgs(args []ast.Arg, sc *scope) {
 	for _, a := range args {
+		// The call failed, so a lambda has no parameter type to take; that is the call's error,
+		// and the lambda's body is checked on its own.
+		if lam, ok := a.Value.(*ast.Lambda); ok {
+			c.lambdaBodyAnyway(lam, sc)
+			continue
+		}
 		c.synth(a.Value, sc)
 	}
 }
