@@ -240,8 +240,10 @@ let labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
 - `// error: <message>` marks a line `ant check` rejects. The block is checked, not run. Every error
   `ant check` reports must be marked, at its line, so follow-on errors are shown too. A block with
   `// error:` has no cases.
-- `// panic: <message>` marks the line a program panics at. In a block of cases it is the value of a
-  case, with the whole message; in a program it may be on a statement too.
+- `// panic: <message>` marks the line a program panics at. After a bare expression it makes that
+  expression a case, and its block a block of cases, where each case runs on its own. In a program,
+  as one that uses `Channel`, which cases cannot, put it on a statement instead:
+  `let sent = Channel.send(done, true) // panic: …`.
 - At the end of a line, the comment marks that line. When the line would grow past 100 columns, put
   the comment on its own line right below; it then marks the code line above it.
 - Give the whole message. The test checks that the reported message contains the comment's text.
