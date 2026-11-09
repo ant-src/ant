@@ -1,0 +1,29 @@
+// spec: 8 assert
+// In x.f(…) an assert shows x when it is passed as the first argument, as the direct call shows
+// it; a receiver that is itself a call is shown too. A namespace, or a record whose field is
+// called, is not.
+type H = { f: func(int): bool }
+let xs = [1, 2]
+let h = H{ f: { x > 5 } }
+let checks: Array[func(): void] = [
+  { assert(xs.contains(5)) },
+  { assert(Array.contains(xs, 5)) },
+  { assert(h.f(1)) },
+  { assert(xs.map({ x * 2 }).contains(9)) },
+]
+for c in checks {
+  let r = Panic.catch(c)
+  if r is Err {
+    println(r.error.message)
+  }
+}
+
+// expect
+// out: assertion failed: xs.contains(5)
+// out:   xs = [1, 2]
+// out: assertion failed: Array.contains(xs, 5)
+// out:   xs = [1, 2]
+// out: assertion failed: h.f(1)
+// out: assertion failed: xs.map({ x * 2 }).contains(9)
+// out:   xs = [1, 2]
+// out:   xs.map({ x * 2 }) = [2, 4]

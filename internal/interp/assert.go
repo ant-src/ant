@@ -21,13 +21,19 @@ type assertRec struct {
 // is a part of that condition.
 func (g *Goroutine) evalRecorded(e ast.Expr, env *Env) (value.Value, ctl) {
 	rec := g.rec
-	i, ok := rec.a.Index[e]
 	v, c := g.evalExpr(e, env)
-	if ok && c == ctlNone && rec.vals[i] == nil {
+	if i, ok := rec.a.Index[e]; ok && c == ctlNone && !rec.a.Parts[i].Receiver {
+		rec.keep(e, v)
+	}
+	return v, c
+}
+
+// keep records v as the value of the part e, the first time e finishes.
+func (rec *assertRec) keep(e ast.Expr, v value.Value) {
+	if i, ok := rec.a.Index[e]; ok && rec.vals[i] == nil {
 		rec.vals[i] = v
 		rec.order = append(rec.order, i)
 	}
-	return v, c
 }
 
 // assert evaluates a call of assert: the condition, recording its parts, and on failure the

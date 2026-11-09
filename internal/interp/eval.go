@@ -463,6 +463,9 @@ func (g *Goroutine) link(e ast.Expr, env *Env) (value.Value, ctl, bool) {
 			fn, withRecv = g.member(recv, fld.Name, fld.Pos)
 			if withRecv {
 				args = append([]value.Value{recv}, args...)
+				if g.rec != nil {
+					g.rec.keep(fld.X, recv) // an assert shows the receiver as an argument
+				}
 			}
 		} else {
 			var c ctl

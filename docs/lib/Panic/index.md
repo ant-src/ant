@@ -205,6 +205,7 @@ println("${failed} failed")
 
 ```text
 main.ant:2: assertion failed: stack.length() > 0 (0 > 0): top of an empty stack
+  stack = []
 1 failed
 ```
 

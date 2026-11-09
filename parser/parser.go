@@ -2543,7 +2543,15 @@ func (p *parser) assertInfo(call *ast.Call) *ast.Assert {
 				}
 				return
 			}
-			inner(x.Fn)
+			// In x.f(…) the callee is f alone, and x is shown when it is passed as the first
+			// argument (ast.AssertPart.Receiver).
+			if f, ok := x.Fn.(*ast.Field); ok && !f.Grouped {
+				add(f.X, true)
+				a.Parts[len(a.Parts)-1].Receiver = true
+				inner(f.X)
+			} else {
+				inner(x.Fn)
+			}
 			for _, arg := range x.Args {
 				part(arg.Value)
 			}

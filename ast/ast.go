@@ -1013,4 +1013,7 @@ type AssertPart struct {
 	Text string
 	// Shown marks a part listed on a line of its own; the comparison's operands are not.
 	Shown bool
+	// Receiver marks the x of a call x.f(…), recorded only when x is passed to f as its first
+	// argument: not when it is a namespace, as Array is, or a record whose field f is called.
+	Receiver bool
 }
