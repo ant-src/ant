@@ -1,0 +1,8 @@
+// spec: 4 Types as values
+// Indexing a value that failed reports only that failure: a name inside, as int in Array[int](),
+// may be meant as a type argument. Any other index is still checked.
+let a = Array[int]() // ERR: Array is a namespace, not a value
+let b = Foo[int]()   // ERR: Foo is not defined
+let c = Foo[         // ERR: Foo is not defined
+  1 + "x" // ERR: + needs both operands of one type
+]

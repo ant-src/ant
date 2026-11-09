@@ -653,7 +653,11 @@ func (c *Checker) indexOf(recv types.Type, x *ast.Index, sc *scope) types.Type {
 		c.check(x.Index, sc, r.Key)
 		return types.Nullable(r.Val)
 	case types.Invalid:
-		c.synth(x.Index, sc)
+		// The operand was reported. A name inside, as int in Array[int](), may be meant as a
+		// type argument, so it is left alone; any other index is still checked.
+		if _, isName := x.Index.(*ast.Ident); !isName {
+			c.synth(x.Index, sc)
+		}
 		return types.Invalid{}
 	case types.Named:
 		if c.isBytes(r) {
