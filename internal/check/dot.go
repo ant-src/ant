@@ -287,8 +287,8 @@ func (c *Checker) waitingCall(x *ast.Call, f *ast.Field, sc *scope, expected typ
 		return nil, false
 	}
 	s := c.sigOf(m, f.Pos)
-	if s == nil || len(s.fn.Params) == 0 {
-		return nil, false
+	if s == nil || len(s.fn.Params) == 0 || c.namespaceOf(s.fn.Params[0]) != ns {
+		return nil, false // f does not take a value of this kind first
 	}
 	c.info.recordMember(f, c.info.object(m))
 	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{expr: f.X, pos: f.X.Position()}), true

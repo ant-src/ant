@@ -14,3 +14,8 @@ for x in both {
   println(x.isEmpty())
 }
 let empty = [[], []] // ERR: cannot infer the element type of an array of empty literals
+func ints(xs: Array[int]): Array[int] {
+  xs
+}
+let typed = [ints([])]
+let wrong: string = typed // ERR: cannot use Array[Array[int]] where string is expected

@@ -7,3 +7,10 @@ let has: bool = Set.of([]).has("")
 let joined: Array[int] = [].concat([1])
 let merged: Map[string, int] = Map{}.merge(Map{ a: 1 })
 let alone = [].length() // ERR: cannot infer the element type of an empty array
+func ints(xs: Array[int]): Array[int] {
+  xs
+}
+let first = ints([]).first()
+let direct = Array.first(ints([]))
+let bad: string = first    // ERR: cannot use int | null where string is expected
+let worse: string = direct // ERR: cannot use int | null where string is expected

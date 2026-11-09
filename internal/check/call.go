@@ -393,8 +393,15 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			continue
 		}
 		if types.Mentions(want, unsolved) {
+			// Nothing else fixed it. A call is typed on its own: ints([]) has a type, and
+			// Set.of([]) reports the empty literal inside it.
 			if _, isCall := w.e.(*ast.Call); isCall && !mismatch {
-				c.synth(w.e, sc) // reports the empty literal inside it
+				got := c.synth(w.e, sc)
+				if !types.IsInvalid(got) && c.unify(s.fn.Params[w.i], got, subst) {
+					pruneSolved(unsolved, subst)
+					synthesized = append(synthesized, pending{w.i, got, w.e.Position()})
+					continue
+				}
 			} else if !mismatch {
 				c.errorf(w.e.Position(), "%s", emptyError(w.e))
 			}

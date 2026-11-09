@@ -884,15 +884,21 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 		elems = append(elems, t)
 	}
 	if len(elems) == 0 {
-		// nothing to wait for: a call such as Set.of([]) reports the empty literal inside it
+		// Nothing to wait for. A call is typed on its own: ints([]) has a type, and Set.of([])
+		// reports the empty literal inside it.
+		var literals []ast.Expr
 		for _, e := range empties {
 			if _, isCall := e.(*ast.Call); isCall {
-				c.synth(e, sc)
-				return types.Invalid{}
+				elems = append(elems, c.synth(e, sc))
+			} else {
+				literals = append(literals, e)
 			}
 		}
-		c.errorf(x.Pos, "cannot infer the element type of %s; annotate it", "an array of empty literals")
-		return types.Invalid{}
+		if len(elems) == 0 {
+			c.errorf(x.Pos, "cannot infer the element type of %s; annotate it", "an array of empty literals")
+			return types.Invalid{}
+		}
+		empties = literals
 	}
 	// An element that failed was reported; the literal is invalid too, so later uses stay quiet.
 	for _, t := range elems {
