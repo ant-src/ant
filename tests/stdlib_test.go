@@ -194,30 +194,23 @@ func forbiddenName(f *ast.File) string {
 	return found
 }
 
-// checkTable checks the table as a program: declarations at the top level, in order, and every
-// other input in main, each case as var _ = <expression>. It returns each diagnostic at the
+// checkTable checks the table as a script, its inputs at the top level in order, as the REPL
+// keeps them (section 13), each case as var _ = <expression>. It returns each diagnostic at the
 // table's own line.
 func checkTable(path string, inputs []tableInput) []string {
-	var top, body []string
-	var topLines, bodyLines []int
+	var lines []string
+	var lineOf []int // the script's line n is the table's lineOf[n-1]
 	for _, in := range inputs {
-		lines := strings.Split(in.src, "\n")
+		src := strings.Split(in.src, "\n")
 		if in.isCase {
-			lines[0] = "var _ = " + lines[0]
+			src[0] = "var _ = " + src[0]
 		}
-		for k, l := range lines {
-			if len(in.file.Stmts) == 0 {
-				top = append(top, l)
-				topLines = append(topLines, in.line+k)
-			} else {
-				body = append(body, "  "+l)
-				bodyLines = append(bodyLines, in.line+k)
-			}
+		for k, l := range src {
+			lines = append(lines, l)
+			lineOf = append(lineOf, in.line+k)
 		}
 	}
-	lines := append(append(append(top, "func main(): void {"), body...), "}")
 	src := strings.Join(lines, "\n") + "\n"
-	lineOf := append(append(topLines, 0), bodyLines...) // the program's line n is lineOf[n-1]
 	abs, _ := filepath.Abs(path)
 	var problems []string
 	report := func(d ant.Diagnostic) {
