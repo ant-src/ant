@@ -134,8 +134,8 @@ Values out of range panic, and so do `NaN` and the infinities:
 ```ant
 int(Math.maxUint64) // panic: 18446744073709551615 out of range for int
 int(9.3e18)         // panic: 9300000000000000000.0 out of range for int
-int(Math.NaN)       // panic: NaN out of range for int
-int(Math.Infinity)  // panic: Infinity out of range for int
+int(Math.NaN)       // panic: NaN does not convert to int
+int(Math.Infinity)  // panic: Infinity does not convert to int
 ```
 
 `int` does not parse text; that is a compile error:

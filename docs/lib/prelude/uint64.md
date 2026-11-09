@@ -7,8 +7,7 @@
 func uint64[T: Number](x: T): uint64
 ```
 
-uint64 converts x to uint64 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+uint64 converts x to uint64 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; uint64(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -150,8 +149,8 @@ uint64(2.5) // panic: 2.5 has a fraction, so it does not convert to uint64
 `NaN` and the infinities have no integer value:
 
 ```ant
-uint64(Math.NaN)       // panic: NaN out of range for uint64
-uint64(-Math.Infinity) // panic: -Infinity out of range for uint64
+uint64(Math.NaN)       // panic: NaN does not convert to uint64
+uint64(-Math.Infinity) // panic: -Infinity does not convert to uint64
 ```
 
 `float64(Math.maxUint64)` rounds up to 2^64, which is one past `Math.maxUint64`, so converting it

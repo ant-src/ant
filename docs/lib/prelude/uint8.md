@@ -7,8 +7,7 @@
 func uint8[T: Number](x: T): uint8
 ```
 
-uint8 converts x to uint8 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+uint8 converts x to uint8 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; uint8(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -58,8 +57,8 @@ A float with a fraction, `NaN`, and the infinities panic:
 
 ```ant
 uint8(2.5)            // panic: 2.5 has a fraction, so it does not convert to byte
-uint8(Math.NaN)       // panic: NaN out of range for byte
-uint8(-Math.Infinity) // panic: -Infinity out of range for byte
+uint8(Math.NaN)       // panic: NaN does not convert to byte
+uint8(-Math.Infinity) // panic: -Infinity does not convert to byte
 ```
 
 A named primitive over a number is unwrapped first:
@@ -235,7 +234,7 @@ A string does not convert. Parse it with `String.toInt`, which returns `int | nu
 result:
 
 ```ant
-let x = uint8("200") // error: uint8 converts a number or a named primitive type over a number, got string
+let x = uint8("200") // error: byte converts a number or a named primitive type over a number, got string
 ```
 
 ```ant

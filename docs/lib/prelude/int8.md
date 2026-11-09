@@ -7,8 +7,7 @@
 func int8[T: Number](x: T): int8
 ```
 
-int8 converts x to int8 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int8 converts x to int8 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int8(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -59,8 +58,8 @@ A float with a fraction, `NaN`, and the infinities panic:
 
 ```ant
 int8(2.5)           // panic: 2.5 has a fraction, so it does not convert to int8
-int8(Math.NaN)      // panic: NaN out of range for int8
-int8(Math.Infinity) // panic: Infinity out of range for int8
+int8(Math.NaN)      // panic: NaN does not convert to int8
+int8(Math.Infinity) // panic: Infinity does not convert to int8
 ```
 
 A named primitive over a number is unwrapped first:

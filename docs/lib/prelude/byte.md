@@ -7,8 +7,7 @@
 func byte[T: Number](x: T): byte
 ```
 
-byte converts x to byte, which is uint8, exactly. It panics if x is out of range, has a fraction, or
-is NaN or infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+byte converts x to byte, which is uint8, exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; byte(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -55,8 +54,8 @@ A float with a fraction panics, and so do `NaN` and the infinities:
 
 ```ant
 byte(65.5)          // panic: 65.5 has a fraction, so it does not convert to byte
-byte(Math.NaN)      // panic: NaN out of range for byte
-byte(Math.Infinity) // panic: Infinity out of range for byte
+byte(Math.NaN)      // panic: NaN does not convert to byte
+byte(Math.Infinity) // panic: Infinity does not convert to byte
 ```
 
 A named primitive over a number is unwrapped first:

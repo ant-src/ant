@@ -7,8 +7,7 @@
 func int16[T: Number](x: T): int16
 ```
 
-int16 converts x to int16 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int16 converts x to int16 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int16(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -131,8 +130,8 @@ int16(2.5) // panic: 2.5 has a fraction, so it does not convert to int16
 `NaN` and the infinities panic:
 
 ```ant
-int16(Math.NaN)      // panic: NaN out of range for int16
-int16(Math.Infinity) // panic: Infinity out of range for int16
+int16(Math.NaN)      // panic: NaN does not convert to int16
+int16(Math.Infinity) // panic: Infinity does not convert to int16
 ```
 
 An integer literal is an `int`, not an `int16`:

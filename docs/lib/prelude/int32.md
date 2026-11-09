@@ -7,8 +7,7 @@
 func int32[T: Number](x: T): int32
 ```
 
-int32 converts x to int32 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int32 converts x to int32 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int32(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -191,8 +190,8 @@ int32(Math.trunc(1.5)) // 1
 `NaN` and the infinities panic too:
 
 ```ant
-int32(Math.NaN)      // panic: NaN out of range for int32
-int32(Math.Infinity) // panic: Infinity out of range for int32
+int32(Math.NaN)      // panic: NaN does not convert to int32
+int32(Math.Infinity) // panic: Infinity does not convert to int32
 ```
 
 Arithmetic that leaves the range panics, even when the same values would fit an `int`:

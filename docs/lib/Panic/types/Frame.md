@@ -223,7 +223,7 @@ if first is Err {
 
 ```ant
 let f = Frame{ function: "a", path: "a.ant", line: 1, column: 1 }
-// error: a record literal needs a record type as its head
+// error: unknown type Frame; did you mean Panic.Frame?
 ```
 
 A literal gives every field:

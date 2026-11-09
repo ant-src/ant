@@ -7,8 +7,7 @@
 func int64[T: Number](x: T): int64
 ```
 
-int64 converts x to int64 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int64 converts x to int64 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int64(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -181,8 +180,8 @@ int64(1e19)           // panic: 10000000000000000000.0 out of range for int
 `NaN` and the infinities have no integer value:
 
 ```ant
-int64(Math.NaN)      // panic: NaN out of range for int
-int64(Math.Infinity) // panic: Infinity out of range for int
+int64(Math.NaN)      // panic: NaN does not convert to int
+int64(Math.Infinity) // panic: Infinity does not convert to int
 ```
 
 To get `null` instead of a panic, use [Math.toInt](../Math/toInt.md):
@@ -210,7 +209,7 @@ int64(float64(9007199254740993)) // 9007199254740992
 
 ```ant
 let n = int64("42")
-// error: int64 converts a number or a named primitive type over a number, got string
+// error: int converts a number or a named primitive type over a number, got string
 ```
 
 Converting the result does not stop an overflow that already happened in a smaller kind. Widen

@@ -7,8 +7,7 @@
 func uint32[T: Number](x: T): uint32
 ```
 
-uint32 converts x to uint32 exactly. It panics if x is out of range, has a fraction, or is NaN or
-infinite; int(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+uint32 converts x to uint32 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; uint32(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 
@@ -195,8 +194,8 @@ too:
 uint32(1.5)             // panic: 1.5 has a fraction, so it does not convert to uint32
 uint32(-0.5)            // panic: -0.5 has a fraction, so it does not convert to uint32
 uint32(Math.trunc(1.5)) // 1
-uint32(Math.NaN)        // panic: NaN out of range for uint32
-uint32(-Math.Infinity)  // panic: -Infinity out of range for uint32
+uint32(Math.NaN)        // panic: NaN does not convert to uint32
+uint32(-Math.Infinity)  // panic: -Infinity does not convert to uint32
 ```
 
 A string does not convert:
