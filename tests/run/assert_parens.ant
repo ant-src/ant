@@ -1,0 +1,22 @@
+// spec: 8 assert
+// A condition that starts or ends with a parenthesized group keeps its parentheses, and is shown
+// on one line as ant fmt formats it.
+let m: Map[string, int] = Map{ a: 1 }
+let k: int | null = null
+let checks: Array[func(): void] = [
+  { assert((Map.get(m, "b") ?? 0) == 1) },
+  { assert(1 == (k ?? 0)) },
+]
+for c in checks {
+  let r = Panic.catch(c)
+  if r is Err {
+    println(r.error.message)
+  }
+}
+
+// expect
+// out: assertion failed: (Map.get(m, "b") ?? 0) == 1 (0 == 1)
+// out:   m = Map{ "a": 1 }
+// out:   Map.get(m, "b") = null
+// out: assertion failed: 1 == (k ?? 0) (1 == 0)
+// out:   k = null

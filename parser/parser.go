@@ -2616,7 +2616,30 @@ func (p *parser) text(n ast.Node) string {
 	if first >= len(p.toks) || last < first {
 		return ""
 	}
+	// Parentheses are not in the tree, so a node that starts or ends with a group, as
+	// (a ?? 0) == 1 does, starts or ends inside it: take in the parentheses it leaves unmatched.
+	open, unmatchedClose := 0, 0
+	for _, tok := range p.toks[first : last+1] {
+		switch {
+		case isOp(tok, "("):
+			open++
+		case isOp(tok, ")") && open > 0:
+			open--
+		case isOp(tok, ")"):
+			unmatchedClose++
+		}
+	}
+	for ; unmatchedClose > 0 && first > 0 && isOp(p.toks[first-1], "("); unmatchedClose-- {
+		first--
+	}
+	for ; open > 0 && last+1 < len(p.toks) && isOp(p.toks[last+1], ")"); open-- {
+		last++
+	}
 	return p.src[p.toks[first].Off:p.toks[last].End]
+}
+
+func isOp(t token.Token, text string) bool {
+	return t.Kind == token.Op && t.Text == text
 }
 
 func before(a token.Pos, b ast.Pos) bool {
