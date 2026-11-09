@@ -1427,8 +1427,8 @@ func each(v value.Value, visit func(value.Value) bool) bool {
 			cursor = seq
 		}
 	case value.Bytes:
-		for _, b := range x {
-			if !visit(b) {
+		for i := 0; i < len(x); i++ {
+			if !visit(x[i]) {
 				break
 			}
 		}

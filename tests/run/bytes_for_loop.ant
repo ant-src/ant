@@ -1,0 +1,23 @@
+// spec: 5 Loops; 11 Bytes
+// A for loop over Bytes yields each byte, not each UTF-8 code point: é is two bytes, and an
+// invalid byte comes out as itself.
+
+for x in String.toBytes("é") {
+  println(x)
+}
+var n = 0
+for x in Bytes.fromArray([0xc3, 0xa9, 0xff]) {
+  println(x)
+  n += 1
+  if n == 2 { break }
+}
+for x in Bytes.fromArray([0xff]) {
+  println(x)
+}
+
+// expect
+// out: 195
+// out: 169
+// out: 195
+// out: 169
+// out: 255
