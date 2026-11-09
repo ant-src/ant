@@ -53,7 +53,7 @@ type Integer = int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64
 // Number is any integer or floating-point type.
 type Number = Integer | float32 | float64
 
-// Ordered is any type < and > compare: the numbers and string.
+// Ordered is the numbers and string, the built-in types that < and > compare.
 type Ordered = Number | string
 
 // print writes String.from(value) to standard output, with no newline. Output is not buffered, so
@@ -893,7 +893,7 @@ func Iter.toArray[T](s: Seq[T]): Array[T]
 // Math
 //
 // Math holds numeric functions and constants. The functions over float64 follow IEEE 754 and never
-// panic, so a result outside a function's domain is NaN.
+// panic: Math.log(0.0) is -Infinity, and Math.sqrt(-1.0) is NaN.
 
 // Math.abs returns the absolute value of x. It panics on the most negative value of an integer
 // type, whose absolute value does not fit.

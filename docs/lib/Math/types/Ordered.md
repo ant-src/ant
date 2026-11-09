@@ -7,7 +7,7 @@
 type Ordered = Number | string
 ```
 
-Ordered is any type \< and \> compare: the numbers and string.
+Ordered is the numbers and string, the built-in types that \< and \> compare.
 
 <!-- end generated -->
 
