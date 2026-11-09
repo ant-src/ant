@@ -92,6 +92,6 @@ A namespace alone, such as `ant doc Csv`, prints its doc and the signature of ev
 - [Design notes](../design/errors-are-values.md): why Ant is the way it is, one decision per page.
 
 The tools come in the same binary as `ant run`: [`ant check`](../tools/check.md),
-[`ant fmt`](../tools/fmt.md), [`ant test`](../tools/test.md), and [`ant doc`](../tools/doc.md).
-[Editor setup](../start/editors.md) connects your editor to the language server, `ant lsp`, and the
-debugger, `ant dap`.
+[`ant fmt`](../tools/fmt.md), [`ant test`](../tools/test.md), and [`ant doc`](../tools/doc.md). The
+plugins for [VS Code](/vscode), [IntelliJ IDEA](/intellij), and [Neovim](/nvim) connect your editor
+to the language server, `ant lsp`, and the debugger, `ant dap`.
