@@ -3,14 +3,13 @@
 # Install
 
 ```sh
-curl -fsSL https://ant-lang.org/install.sh | sh
+curl https://ant-lang.org/install.sh | sh
 ```
 
-The script downloads the latest release's `ant` for your OS and architecture into `/usr/local/bin`,
-or `~/bin` in Git Bash on Windows. `ANT_VERSION=vX.Y.Z` installs that release, and `ANT_INSTALL_DIR`
+The script downloads `ant` into `/usr/local/bin`, use `ANT_VERSION=vX.Y.Z` for version, and `ANT_INSTALL_DIR`
 picks another directory.
 
-With Go installed, `go install` builds it from source instead:
+Or build it from source instead:
 
 ```sh
 go install github.com/ant-src/ant/cmd/ant@latest
