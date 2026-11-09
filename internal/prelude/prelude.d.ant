@@ -866,7 +866,7 @@ func Regex.flags(p: Regex.Pattern): string
 // Iter
 //
 // Iter holds the functions of lazy sequences, Seq[T]. Each returns a new sequence without running
-// its source; [Iter.toArray] and for run one.
+// its source; [Iter.toArray] and a for loop run it.
 
 // Iter.range returns the sequence of integers from from, inclusive, up to to, exclusive. It is
 // empty when to <= from.

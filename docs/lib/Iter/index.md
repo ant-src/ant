@@ -3,8 +3,7 @@
 
 # Iter
 
-Iter holds the functions of lazy sequences, Seq\[T\]. Each returns a new sequence without running
-its source; [`Iter.toArray`](toArray.md) and for run one.
+Iter holds the functions of lazy sequences, Seq\[T\]. Each returns a new sequence without running its source; [`Iter.toArray`](toArray.md) and a for loop run it.
 
 <!-- end generated -->
 

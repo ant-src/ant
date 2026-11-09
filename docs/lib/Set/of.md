@@ -19,8 +19,8 @@ empty set, its element type coming from the expected type.
 - A member is hashed when the set is built. Changing an array, map, set, or record after it became a
   member is a program error: the set may no longer find it.
 - `Set.of([])` takes its element type from the expected type (an annotation, a parameter or return
-  type, a record field, or the left side of `??`) or from the other arguments of a generic call.
-  With neither, it is a compile error.
+  type, a record field, or the left side of `??`), from the other arguments of a generic call, or
+  from the other elements of an array literal. With none of these, it is a compile error.
 
 ## Basic examples
 
@@ -50,11 +50,19 @@ seen        // Set.of([])
 seen.size() // 0
 ```
 
-Passed to a call next to another set, `Set.of([])` takes its element type from that set:
+Passed to a call next to another set, `Set.of([])` takes its element type from that set, also when
+it comes before the dot:
 
 ```ant
 Set.isSubset(Set.of([]), Set.of([1, 2])) // true
 Set.union(Set.of([]), Set.of(["a"]))     // Set.of(["a"])
+Set.of([]).isSubset(Set.of([1, 2]))      // true
+```
+
+In an array literal, it takes its element type from the other elements:
+
+```ant
+[Set.of([1]), Set.of([])] // [Set.of([1]), Set.of([])]
 ```
 
 Records are members by contents, so two records with the same fields are one member:
