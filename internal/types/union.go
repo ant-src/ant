@@ -231,6 +231,56 @@ func Discriminator(t Type) (key, describe string, ok bool) {
 	return "", "", false
 }
 
+// A DuplicateError is a union whose members A and B share a discriminator, as Array[int] and
+// Array[string] do: is could not tell them apart.
+type DuplicateError struct {
+	A, B Type
+	Kind string // what both are, as "an array"
+}
+
+func (e *DuplicateError) Error() string {
+	return fmt.Sprintf("a union may contain each discriminator at most once: %s and %s are both %s", String(e.A), String(e.B), e.Kind)
+}
+
+// Merged is the one type that holds the values of both members, when they are the same generic
+// type with different arguments: Array[int | string] for Array[int] and Array[string].
+func (e *DuplicateError) Merged() (Type, bool) {
+	join := func(a, b Type) (Type, bool) {
+		u, err := MakeUnion([]Type{a, b})
+		return u, err == nil
+	}
+	switch a := expandTop(e.A).(type) {
+	case Array:
+		if b, ok := expandTop(e.B).(Array); ok {
+			el, ok := join(a.Elem, b.Elem)
+			return Array{Elem: el}, ok
+		}
+	case Set:
+		if b, ok := expandTop(e.B).(Set); ok {
+			el, ok := join(a.Elem, b.Elem)
+			return Set{Elem: el}, ok
+		}
+	case Map:
+		if b, ok := expandTop(e.B).(Map); ok {
+			k, okK := join(a.Key, b.Key)
+			v, okV := join(a.Val, b.Val)
+			return Map{Key: k, Val: v}, okK && okV
+		}
+	case Named:
+		if b, ok := expandTop(e.B).(Named); ok && a.Decl == b.Decl && len(a.Args) > 0 && len(a.Args) == len(b.Args) {
+			args := make([]Type, len(a.Args))
+			for i := range a.Args {
+				var ok bool
+				if args[i], ok = join(a.Args[i], b.Args[i]); !ok {
+					return nil, false
+				}
+			}
+			return Named{Decl: a.Decl, Args: args}, true
+		}
+	}
+	return nil, false
+}
+
 // CheckUnion reports an error when the members of a formed union, which may name an alias
 // whose body was not yet known when the union was formed, share a discriminator.
 func CheckUnion(members []Type) error { return checkDiscriminators(members) }
@@ -259,8 +309,7 @@ func checkDiscriminators(members []Type) error {
 			continue
 		}
 		if prev, dup := seen[key]; dup {
-			return fmt.Errorf("a union may contain each discriminator at most once: %s and %s are both %s; narrow first or give the whole an expected type",
-				String(prev), String(m), strings.TrimPrefix(desc, "the "))
+			return &DuplicateError{A: prev, B: m, Kind: strings.TrimPrefix(desc, "the ")}
 		}
 		seen[key] = m
 		switch x := expandTop(m).(type) {

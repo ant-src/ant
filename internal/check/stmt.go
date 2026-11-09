@@ -413,7 +413,7 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 	}
 	u, err := types.Join(thenT, elseT)
 	if err != nil {
-		c.errorf(x.Pos, "the branches of this if do not form a valid type: %s", err)
+		c.errorf(x.Pos, "the branches of this if do not form a valid type: %s; narrow first or give the whole an expected type", err)
 		return types.Invalid{}
 	}
 	return u
@@ -478,7 +478,7 @@ func (c *Checker) checkSelect(x *ast.Select, sc *scope, expected types.Type) typ
 	}
 	u, err := types.Join(bodyTypes...)
 	if err != nil {
-		c.errorf(x.Pos, "the clauses of this select do not form a valid type: %s", err)
+		c.errorf(x.Pos, "the clauses of this select do not form a valid type: %s; narrow first or give the whole an expected type", err)
 		return types.Invalid{}
 	}
 	return u

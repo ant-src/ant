@@ -230,14 +230,14 @@ Inner arrays of different element types do not flatten without an expected type 
 
 ```ant
 let xs = Array.flatten([[1], ["x"]])
-// error: the elements do not form a valid type: a union may contain each discriminator at most once: Array[int] and Array[string] are both an array; narrow first or give the whole an expected type
+// error: the elements do not form a valid type: a union may contain each discriminator at most once: Array[int] and Array[string] are both an array; give the array an expected type
 ```
 
 Inner arrays that hold `null` in some places and not in others need an expected type too:
 
 ```ant
 let xs = Array.flatten([[1, null], [null]])
-// error: the elements do not form a valid type: a union may contain each discriminator at most once: Array[int | null] and Array[null] are both an array; narrow first or give the whole an expected type
+// error: the elements do not form a valid type: a union may contain each discriminator at most once: Array[int | null] and Array[null] are both an array; give the array an expected type
 ```
 
 An empty literal leaves `T` unsolved. Annotate the argument or the result:

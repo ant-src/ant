@@ -984,7 +984,7 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 			}
 			u, err := types.MakeUnion(elems)
 			if err != nil {
-				c.errorf(x.Pos, "the elements do not form a valid type: %s", err)
+				c.errorf(x.Pos, "the elements do not form a valid type: %s; give the array an expected type", err)
 				return types.Invalid{}
 			}
 			for _, e := range empties {
@@ -1010,7 +1010,7 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 			k, errK := types.MakeUnion(keys)
 			v, errV := types.MakeUnion(vals)
 			if errK != nil || errV != nil {
-				c.errorf(x.Pos, "the entries do not form a valid type")
+				c.errorf(x.Pos, "the entries do not form a valid type; give the map an expected type")
 				return types.Invalid{}
 			}
 			return types.Map{Key: k, Val: v}

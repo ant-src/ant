@@ -1284,7 +1284,7 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 	}
 	u, err := types.Join(nonNull, r)
 	if err != nil {
-		c.errorf(x.Pos, "the sides of ?? do not form a valid type: %s", err)
+		c.errorf(x.Pos, "the sides of ?? do not form a valid type: %s; narrow first or give the whole an expected type", err)
 		return types.Invalid{}
 	}
 	return u

@@ -88,7 +88,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		}
 		u, err := types.MakeUnion(results)
 		if err != nil {
-			c.errorf(x.Pos, "the results of %s through %s do not form a valid type: %s", f.Name, types.String(recv), err)
+			c.errorf(x.Pos, "the results of %s through %s do not form a valid type: %s; narrow first or give the whole an expected type", f.Name, types.String(recv), err)
 			return types.Invalid{}
 		}
 		return u

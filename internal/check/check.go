@@ -4,6 +4,7 @@
 package check
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -1394,7 +1395,14 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 		}
 		u, err := types.MakeUnion(members)
 		if err != nil {
-			c.errorf(x.Pos, "%s", err)
+			hint := ""
+			var dup *types.DuplicateError
+			if errors.As(err, &dup) {
+				if t, ok := dup.Merged(); ok {
+					hint = "; write " + types.String(t)
+				}
+			}
+			c.errorf(x.Pos, "%s%s", err, hint)
 			return types.Invalid{}
 		}
 		return u

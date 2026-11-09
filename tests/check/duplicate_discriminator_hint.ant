@@ -1,0 +1,9 @@
+// spec: 4 Unions
+// A written union whose members share a discriminator says which one type to write; a union the
+// checker forms says to narrow first or to give the whole an expected type.
+type Box[T] = { v: T }
+type Ids = Array[int] | Array[string] // ERR: Array[int] and Array[string] are both an array; write Array[int | string]
+type Boxes = Box[int] | Box[string]   // ERR: write Box[int | string]
+func g(b: bool): void {
+  let v = if b { [1] } else { ["a"] } // ERR: are both an array; narrow first or give the whole an expected type
+}
