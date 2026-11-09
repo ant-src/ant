@@ -220,11 +220,9 @@ alias // [1, 2]
 
 `Array.push` returns `void`, not the array, so its result cannot be assigned back:
 
-<!-- test: error cannot use void where Array[int] is expected -->
-
 ```ant
 var xs = [1]
-xs = Array.push(xs, 2)
+xs = Array.push(xs, 2) // error: cannot use void where Array[int] is expected
 ```
 
 To get a new array and keep the old one, use the spread literal:
@@ -239,11 +237,9 @@ ys // [1, 2]
 `v` must have the element type. An array is one value, so pushing it adds one element; to append its
 elements, use [Array.extend](extend.md):
 
-<!-- test: error cannot use Array[int] where int is expected -->
-
 ```ant
 var xs = [1]
-Array.push(xs, [2, 3])
+Array.push(xs, [2, 3]) // error: cannot use Array[int] where int is expected
 ```
 
 ```ant
@@ -254,10 +250,8 @@ xs // [1, 2, 3]
 
 An empty literal has no element type to infer, so annotate the variable:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
-var xs = []
+var xs = [] // error: cannot infer the element type of an empty array; annotate it
 Array.push(xs, 1)
 ```
 

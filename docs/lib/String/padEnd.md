@@ -248,11 +248,9 @@ draw each of them two columns wide, so a column padded with `String.padEnd` does
 
 `width` is an `int`. A `float64` width is a compile error; convert it first:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
 var w = 6.0
-println(String.padEnd("ant", w))
+println(String.padEnd("ant", w)) // error: cannot use float64 where int is expected
 ```
 
 ## See also

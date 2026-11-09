@@ -191,19 +191,16 @@ rows // [[1, 0], [0, 0]]
 
 Without an annotation, `Array.filled(n, null)` is an `Array[null]`, which holds nothing but `null`:
 
-<!-- test: error cannot use int where null is expected -->
-
 ```ant
 var slots = Array.filled(3, null)
-slots[0] = 5
+slots[0] = 5 // error: cannot use int where null is expected
 ```
 
 An empty array literal as `v` has no element type to infer, so annotate it:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
 var rows = Array.filled(2, [])
+// error: cannot infer the element type of an empty array; annotate it
 ```
 
 ## See also

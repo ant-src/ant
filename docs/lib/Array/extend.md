@@ -243,22 +243,18 @@ Array.concat(ys, more) // [1, 2, 10, 20]
 
 `ys` is an array. To append one value, use [Array.push](push.md):
 
-<!-- test: error cannot use int where Array[int] is expected -->
-
 ```ant
 var xs = [1]
-Array.extend(xs, 2)
+Array.extend(xs, 2) // error: cannot use int where Array[int] is expected
 ```
 
 An `Array[int]` does not extend an `Array[int | null]`, even though each `int` fits, because array
 types are invariant. Spell the element type where `ys` is built:
 
-<!-- test: error cannot use Array[int] where Array[int | null] is expected -->
-
 ```ant
 var xs: Array[int | null] = [1]
 var ys = [2]
-Array.extend(xs, ys)
+Array.extend(xs, ys) // error: cannot use Array[int] where Array[int | null] is expected
 ```
 
 ```ant

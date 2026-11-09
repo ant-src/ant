@@ -254,11 +254,9 @@ errors.every({ false }) // true
 `f` must return a `bool`. Ant has no truthy values, so a lambda that returns an `int` is a compile
 error:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
 var counts = [0, 1, 2]
-println(counts.some({ x }))
+println(counts.some({ x })) // error: cannot use int where bool is expected
 ```
 
 Write the comparison instead:
@@ -270,11 +268,9 @@ Write the comparison instead:
 `Array.some` takes a predicate, not a value. Passing the value itself is a compile error; use
 [`Array.contains`](contains.md) to test by `==`:
 
-<!-- test: error cannot use int where func(int): bool is expected -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs.some(2))
+println(xs.some(2)) // error: cannot use int where func(int): bool is expected
 ```
 
 ```ant
@@ -283,10 +279,9 @@ println(xs.some(2))
 
 A lambda stored in an unannotated `var` has no expected function type. Annotate the variable:
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 var big = { x > 100 }
+// error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 println([1, 200].some(big))
 ```
 

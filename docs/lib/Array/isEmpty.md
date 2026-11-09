@@ -169,48 +169,38 @@ for xs in cases {
 
 An array is not a condition. Ask `Array.isEmpty` explicitly:
 
-<!-- test: error cannot use Array[int] where bool is expected -->
-
 ```ant
 var xs = [1]
-if xs {
+if xs { // error: cannot use Array[int] where bool is expected
   println("has elements")
 }
 ```
 
 A nullable array must be narrowed or reached through `?.` first:
 
-<!-- test: error cannot use Array[int] | null where Array[T] is expected -->
-
 ```ant
 var xs: Array[int] | null = null
-println(Array.isEmpty(xs))
+println(Array.isEmpty(xs)) // error: cannot use Array[int] | null where Array[T] is expected
 ```
 
 An empty array literal has no element type to infer. Annotate it:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
-println([].isEmpty())
+println([].isEmpty()) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 An operand of `==` gives no expected type, so `xs == []` cannot infer the element type. Use
 `Array.isEmpty`:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
 var xs = [1]
-println(xs == [])
+println(xs == []) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 `Array.isEmpty` takes only arrays. Strings, maps, and sets have their own:
 
-<!-- test: error cannot use string where Array[T] is expected -->
-
 ```ant
-println(Array.isEmpty("abc"))
+println(Array.isEmpty("abc")) // error: cannot use string where Array[T] is expected
 ```
 
 `Array.first` is `null` when the array is empty, but also when the first element is `null`. Use

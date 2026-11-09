@@ -193,11 +193,9 @@ assert(xs == [1, 2, 3])
 
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [3, 1, 2]
-println(xs.first() + 1)
+println(xs.first() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
@@ -210,12 +208,10 @@ var xs = [3, 1, 2]
 Testing the call itself does not narrow a second call, because only locals, parameters, and
 top-level `let`s narrow:
 
-<!-- test: error * needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [3, 1, 2]
 if xs.first() != null {
-  println(xs.first() * 2)
+  println(xs.first() * 2) // error: * needs both operands of one type, got int | null and int
 }
 ```
 

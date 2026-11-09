@@ -171,10 +171,8 @@ assert(xs.countWhere({ x > 3 }) + xs.countWhere({ !(x > 3) }) == len(xs))
 
 The callback must return `bool`. A number is not a truth value:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
-println([1, 2, 3].countWhere({ x % 2 }))
+println([1, 2, 3].countWhere({ x % 2 })) // error: cannot use int where bool is expected
 ```
 
 Compare it explicitly:
@@ -186,10 +184,8 @@ Compare it explicitly:
 `Array.countWhere` takes a predicate, not a value. To count the elements `==` to a value, compare in
 the callback:
 
-<!-- test: error cannot use int where func(int): bool is expected -->
-
 ```ant
-println([1, 2, 2, 3].countWhere(2))
+println([1, 2, 2, 3].countWhere(2)) // error: cannot use int where func(int): bool is expected
 ```
 
 ```ant
@@ -199,11 +195,10 @@ println([1, 2, 2, 3].countWhere(2))
 With a nullable element type, `x` may be `null`, so an operator that needs a number is a compile
 error. Test for `null` first:
 
-<!-- test: error > needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs: Array[int | null] = [1, null, 3]
 println(xs.countWhere({ x > 0 }))
+// error: > needs both operands of one type, got int | null and int
 ```
 
 ```ant

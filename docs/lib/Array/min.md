@@ -179,10 +179,8 @@ assert(xs == [3, 1, 2])
 
 An empty array literal gives `T` nothing to infer from, so it is a compile error:
 
-<!-- test: error cannot infer the element type of an empty array; annotate it -->
-
 ```ant
-println(Array.min([]))
+println(Array.min([])) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 Annotate the array so that `T` is known:
@@ -194,11 +192,9 @@ Array.min(empty) // null
 
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [3, 1]
-println(xs.min() + 1)
+println(xs.min() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
@@ -211,12 +207,11 @@ var xs = [3, 1]
 An array of records has no order, so it is a compile error. To find the record with the least field,
 use [`Array.minBy`](minBy.md):
 
-<!-- test: error T would be Item, which is not a single member of its bound Ordered -->
-
 ```ant
 type Item = { name: string, price: int }
 var items = [Item{ name: "pen", price: 3 }, Item{ name: "ink", price: 2 }]
 println(items.min())
+// error: T would be Item, which is not a single member of its bound Ordered; narrow first
 ```
 
 ```ant
@@ -227,12 +222,11 @@ items.minBy({ x.price }) // Item{ name: "ink", price: 2 }
 
 A named primitive type is not assignable to its base, so it does not fit `Ordered`:
 
-<!-- test: error T would be Meters, which is not a single member of its bound Ordered -->
-
 ```ant
 type Meters = float64
 var legs = [Meters(3.0), Meters(1.5)]
 println(legs.min())
+// error: T would be Meters, which is not a single member of its bound Ordered; narrow first
 ```
 
 Unwrap the elements with the base type's name first:
@@ -245,11 +239,10 @@ legs.map(float64).min() // 1.5
 
 An element type that includes `null` is a union, which is not a single member of `Ordered`:
 
-<!-- test: error T would be int | null, which is not a single member of its bound Ordered -->
-
 ```ant
 var cells: Array[int | null] = [4, null, 2]
 println(cells.min())
+// error: T would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
 
 Map each `null` to `Math.maxInt` to get an `Array[int]`:

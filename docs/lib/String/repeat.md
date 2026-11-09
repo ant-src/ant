@@ -228,18 +228,14 @@ String.padEnd("", 5, "ab") // "ababa"
 
 The count is an `int`. A `float64`, or an `int` that may be `null`, is a compile error:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
 var w = 2.5
-var s = String.repeat("a", w)
+var s = String.repeat("a", w) // error: cannot use float64 where int is expected
 ```
-
-<!-- test: error cannot use int | null where int is expected -->
 
 ```ant
 var i = String.indexOf("a.b", ".")
-var s = String.repeat("-", i)
+var s = String.repeat("-", i) // error: cannot use int | null where int is expected
 ```
 
 Give a default with `??` to turn the `int | null` into an `int`:

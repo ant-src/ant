@@ -211,10 +211,9 @@ assert(s != null && String.toBytes(s) == b)
 
 The result may be `null`, so it cannot be used as a `string` before it is narrowed:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var text: string = String.fromBytes(String.toBytes("hi"))
+// error: cannot use string | null where string is expected
 ```
 
 A byte order mark is valid UTF-8 and stays in the result as U+FEFF:
@@ -225,20 +224,17 @@ String.fromBytes(Bytes.fromArray([0xef, 0xbb, 0xbf, 0x41])) == "\u{FEFF}A" // tr
 
 `Bytes` has no `fromBytes` function, so a call through `.` on bytes is a compile error. Use a pipe:
 
-<!-- test: error Bytes has no field or function fromBytes -->
-
 ```ant
 var b = String.toBytes("hi")
-println(b.fromBytes())
+println(b.fromBytes()) // error: Bytes has no field or function fromBytes
 ```
 
 A pipe binds looser than `??`, so a pipeline before `??` needs parentheses:
 
-<!-- test: error parenthesize the pipe -->
-
 ```ant
 var b = String.toBytes("hi")
 println(b | String.fromBytes() ?? "binary")
+// error: '|' binds looser than '??', so parenthesize the pipe, as in (a | f()) ?? b
 ```
 
 ```ant

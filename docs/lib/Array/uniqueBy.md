@@ -236,11 +236,10 @@ Strings compare by code points, so two spellings of the same character are two k
 An empty literal with nothing to fix its element type is a compile error, even before the call. The
 checker stops at the first line:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
-var e = []
+var e = [] // error: cannot infer the element type of an empty array; annotate it
 e.uniqueBy({ x })
+// error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 ```
 
 Annotate the array:

@@ -232,12 +232,11 @@ assert(items[0].stock == 10)
 
 The result may be `null`, so reading a field of it without narrowing is a compile error:
 
-<!-- test: error has no field name -->
-
 ```ant
 type User = { id: int, name: string }
 var users = [User{ id: 1, name: "Ann" }]
 println(users.find({ x.id == 1 }).name)
+// error: User | null has no field name: narrow the value first
 ```
 
 Use `?.`, `??`, or a test against `null` first, as in the examples above.
@@ -255,11 +254,9 @@ scores.findIndex({ x == 100 })  // null
 
 `f` must return a `bool`. Ant has no truthy values, so a number is not a test:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs.find({ x - 2 }))
+println(xs.find({ x - 2 })) // error: cannot use int where bool is expected
 ```
 
 `Array.find` takes a predicate, not a value. To look for a value by `==`, use

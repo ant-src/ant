@@ -207,11 +207,10 @@ String.trimSuffix(String.trimPrefix("\"quoted\"", "\""), "\"") // "quoted"
 A pipe binds looser than `==`, so compare a piped trim inside parentheses. Without them, the type
 checker reports a compile error:
 
-<!-- test: error binds looser than -->
-
 ```ant
 var s = "  "
 println(s | String.trim() == "")
+// error: '|' binds looser than '==', so parenthesize the pipe, as in (a | f()) == b
 ```
 
 ```ant

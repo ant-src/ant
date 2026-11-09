@@ -223,22 +223,18 @@ Array.same(xs, copy) // false
 Both arguments have the one type `Array[T]`. An `Array[int]` and an `Array[int | null]` are
 different types, so comparing them is a compile error:
 
-<!-- test: error cannot use Array[int | null] where Array[int] is expected -->
-
 ```ant
 var xs = [1]
 var ys: Array[int | null] = [1]
-println(Array.same(xs, ys))
+println(Array.same(xs, ys)) // error: cannot use Array[int | null] where Array[int] is expected
 ```
 
 A nullable array, such as a value read from a map, must be narrowed first:
 
-<!-- test: error cannot use Array[int] | null where Array[T] is expected -->
-
 ```ant
 var xs = [1]
 var m = Map{ a: xs }
-println(Array.same(m["a"], xs))
+println(Array.same(m["a"], xs)) // error: cannot use Array[int] | null where Array[T] is expected
 ```
 
 ```ant

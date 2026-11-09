@@ -202,38 +202,31 @@ assert(!Record.same(a, copy))
 
 The type lives in the `String` namespace. `Cut` alone is not a type:
 
-<!-- test: error unknown type Cut -->
-
 ```ant
-var c: Cut = String.Cut{ before: "a", after: "b" }
+var c: Cut = String.Cut{ before: "a", after: "b" } // error: unknown type Cut
 ```
 
 A literal gives both fields:
 
-<!-- test: error String.Cut literal is missing the field after -->
-
 ```ant
-var c = String.Cut{ before: "a" }
+var c = String.Cut{ before: "a" } // error: String.Cut literal is missing the field after
 ```
 
 `String.cut` returns `String.Cut | null`, so reading a field before narrowing is a compile error:
 
-<!-- test: error String.Cut | null has no field before -->
-
 ```ant
 var c = String.cut("a=b", "=")
-println(c.before)
+println(c.before) // error: String.Cut | null has no field before: narrow the value first
 ```
 
 A record of your own with the same fields is a different type. It does not compare with a
 `String.Cut`, and a spread converts it:
 
-<!-- test: error Pair and String.Cut cannot be compared with == -->
-
 ```ant
 type Pair = { before: string, after: string }
 var p = Pair{ before: "k", after: "v" }
 println(p == String.Cut{ before: "k", after: "v" })
+// error: Pair and String.Cut cannot be compared with ==: neither is assignable to the other
 ```
 
 ```ant

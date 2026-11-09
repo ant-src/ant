@@ -452,28 +452,24 @@ Json.stringify(p) // "{\"x\":1.0,\"y\":2.0}"
 
 `T` comes from the argument, so a lambda, which needs an expected function type, cannot be passed:
 
-<!-- test: error a lambda needs an expected function type, but T is expected -->
-
 ```ant
 var text = String.from({ x + 1 })
+// error: cannot infer the type parameter T of String.from; annotate the result
+// error: a lambda needs an expected function type, but T is expected
 ```
 
 An empty literal fixes no element type either. Annotate it first:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
-var text = String.from([])
+var text = String.from([]) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 `.from` reaches `String.from` only on a string. On a number it is a compile error; call
 `String.from` directly:
 
-<!-- test: error int has no field or function from -->
-
 ```ant
 var n = 42
-var text = n.from()
+var text = n.from() // error: int has no field or function from
 ```
 
 ## See also

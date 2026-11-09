@@ -270,20 +270,18 @@ Numbers held as strings sort as text. Convert them first, or sort by a numeric k
 An array whose element type is a union of members, such as `int | string`, has no single `T`, so it
 is a compile error:
 
-<!-- test: error T would be int | string, which is not a single member of its bound Ordered -->
-
 ```ant
 var xs: Array[int | string] = [3, "a", 1]
 println(xs.sort())
+// error: T would be int | string, which is not a single member of its bound Ordered; narrow first
 ```
 
 `null` is not `Ordered`, so an `Array[int | null]` does not sort either:
 
-<!-- test: error T would be int | null, which is not a single member of its bound Ordered -->
-
 ```ant
 var xs: Array[int | null] = [3, null, 1]
 println(xs.sort())
+// error: T would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
 
 Drop the nulls first, then sort:
@@ -295,30 +293,27 @@ xs.filter({ x != null }).map({ x ?? 0 }).sort() // [1, 3]
 
 `bool` is not `Ordered`:
 
-<!-- test: error T would be bool, which is not a single member of its bound Ordered -->
-
 ```ant
 println([true, false].sort())
+// error: T would be bool, which is not a single member of its bound Ordered; narrow first
 ```
 
 Records are not `Ordered` either:
-
-<!-- test: error T would be Player, which is not a single member of its bound Ordered -->
 
 ```ant
 type Player = { name: string, score: int }
 var players = [Player{ name: "Ann", score: 7 }, Player{ name: "Bob", score: 3 }]
 println(players.sort())
+// error: T would be Player, which is not a single member of its bound Ordered; narrow first
 ```
 
 A named primitive type is not `Ordered`, though `<` works on two of its values:
-
-<!-- test: error T would be Cents, which is not a single member of its bound Ordered -->
 
 ```ant
 type Cents = int
 var cs = [Cents(5), Cents(2)]
 println(cs.sort())
+// error: T would be Cents, which is not a single member of its bound Ordered; narrow first
 ```
 
 Sort by the base value with [`Array.sortBy`](sortBy.md):

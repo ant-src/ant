@@ -256,29 +256,26 @@ println(xs)
 
 The key must be ordered. A `bool` or a record is not, which is a compile error:
 
-<!-- test: error K would be bool, which is not a single member of its bound Ordered -->
-
 ```ant
 println([1, 2, 3].sortBy({ x > 1 }))
+// error: K would be bool, which is not a single member of its bound Ordered; narrow first
 ```
-
-<!-- test: error K would be Point, which is not a single member of its bound Ordered -->
 
 ```ant
 type Point = { x: int, y: int }
 var points = [Point{ x: 2, y: 1 }, Point{ x: 1, y: 5 }]
 println(points.sortBy({ x }))
+// error: K would be Point, which is not a single member of its bound Ordered; narrow first
 ```
 
 Return one field as the key instead, or compare whole records with `Array.sortWith`.
 
 A key that can be `null` has the union type `int | null`, which is not a single member of `Ordered`:
 
-<!-- test: error K would be int | null, which is not a single member of its bound Ordered -->
-
 ```ant
 var scores: Array[int | null] = [3, null, 1]
 println(scores.sortBy({ x }))
+// error: K would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
 
 Give `null` a value with `??`, as in `scores.sortBy({ x ?? -1 })`.
@@ -286,11 +283,9 @@ Give `null` a value with `??`, as in `scores.sortBy({ x ?? -1 })`.
 Negating a key panics when the negation overflows, as it does for any nonzero unsigned key. Use
 `Array.sortWith` for descending order on an unsigned key:
 
-<!-- test: panics integer overflow -->
-
 ```ant
 var sizes: Array[uint8] = [uint8(1), uint8(2)]
-println(sizes.sortBy({ -x }))
+println(sizes.sortBy({ -x })) // panic: integer overflow
 ```
 
 Convert the keys to `int` before subtracting, because `b - a` on unsigned values panics when
@@ -304,12 +299,11 @@ sizes.sortWith(func(a: uint8, b: uint8) { int(b) - int(a) }) // [2, 1]
 A key of a named primitive type is not a member of `Ordered`, because a named primitive is
 assignable only to itself, never to its base:
 
-<!-- test: error K would be Celsius, which is not a single member of its bound Ordered -->
-
 ```ant
 type Celsius = float64
 var temps = [Celsius(3.0), Celsius(1.0)]
 println(temps.sortBy({ x }))
+// error: K would be Celsius, which is not a single member of its bound Ordered; narrow first
 ```
 
 Unwrap the key with its base type: `temps.sortBy({ float64(x) })`.

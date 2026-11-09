@@ -253,18 +253,16 @@ assert(ys.sortWith(asc) == ys)
 
 A lambda has one parameter, and `cmp` takes two. Write a `func` with named parameters:
 
-<!-- test: error a lambda has at most one parameter -->
-
 ```ant
 println([3, 1, 2].sortWith({ 0 }))
+// error: a lambda has at most one parameter, x; func(int, int): int expects 2: write func with named parameters
 ```
 
 The comparator returns an `int`, not a `bool`. A test like `a < b` is a compile error:
 
-<!-- test: error cannot use func(int, int): bool where func(int, int): int is expected -->
-
 ```ant
 println([3, 1, 2].sortWith(func(a: int, b: int) { a < b }))
+// error: cannot use func(int, int): bool where func(int, int): int is expected
 ```
 
 Return a negative, zero, or positive `int`:
@@ -285,10 +283,9 @@ subtracting:
 
 The comparator returns an `int` for floats too, so `a - b` on `float64` elements is a compile error:
 
-<!-- test: error cannot use func(float64, float64): float64 where func(float64, float64): int is expected -->
-
 ```ant
 println([1.5, 0.5].sortWith(func(a: float64, b: float64) { a - b }))
+// error: cannot use func(float64, float64): float64 where func(float64, float64): int is expected
 ```
 
 Compare with `<` and `>` and return `-1`, `0`, or `1`:

@@ -276,20 +276,18 @@ Array.map([1, 2], func(n: int) { Array.map([10, 20], { n + x }) }) // [[11, 21],
 `f` takes one argument, the element. It gets no index, and a function of two parameters is a compile
 error; use `Array.entries` for the index, as in Applications:
 
-<!-- test: error cannot use func(string, int): string where func(string): U is expected -->
-
 ```ant
 var xs = ["a", "b"]
 var labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
+// error: cannot use func(string, int): string where func(string): U is expected
 ```
 
 An expected type fixes `U` before the lambda is checked, so a lambda that returns another type is a
 compile error. Integer literals are always `int`, even where a `float64` is expected:
 
-<!-- test: error cannot use int where float64 is expected -->
-
 ```ant
 var halves: Array[float64] = Array.map([1, 2], { x * 2 })
+// error: cannot use int where float64 is expected
 ```
 
 Convert in the lambda instead:
@@ -302,10 +300,9 @@ halves // [0.5, 1.0]
 A lambda whose body is an empty literal fixes nothing, so `U` stays unsolved and the call is a
 compile error:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
 var lists = Array.map([1, 2], { [] })
+// error: cannot infer the element type of an empty array; annotate it
 ```
 
 Annotate the result to fix `U`:

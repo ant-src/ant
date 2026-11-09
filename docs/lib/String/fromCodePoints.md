@@ -176,10 +176,9 @@ assert(String.fromCodePoints(points) == String.concat(parts))
 The result may be `null`, so using it where a `string` is expected is a compile error. Supply a
 fallback with `??`, or narrow it with `if`:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var s: string = String.fromCodePoints([97])
+// error: cannot use string | null where string is expected
 ```
 
 One bad value makes the whole result `null`. To keep the valid ones, filter the array first:
@@ -200,19 +199,15 @@ String.fromCodePoints([0x1F41C])        // "🐜"
 
 The argument is an array, not a list of values:
 
-<!-- test: error String.fromCodePoints takes 1 argument, got more -->
-
 ```ant
-var s = String.fromCodePoints(97, 98)
+var s = String.fromCodePoints(97, 98) // error: String.fromCodePoints takes 1 argument, got more
 ```
 
 The array is the subject of a call through `.`, and a value reaches its own type's namespace, so
 `points.fromCodePoints()` looks in `Array` and is a compile error. Use a pipe instead:
 
-<!-- test: error Array[int] has no field or function fromCodePoints -->
-
 ```ant
-var s = [97, 98].fromCodePoints()
+var s = [97, 98].fromCodePoints() // error: Array[int] has no field or function fromCodePoints
 ```
 
 The result is not normalized. A letter and a combining accent differ from the one-code-point letter

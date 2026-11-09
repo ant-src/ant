@@ -206,31 +206,25 @@ xs.some({ Math.isNaN(x) }) // true
 
 Numeric types never mix, so looking for a `float64` in an `Array[int]` is a compile error:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
 var counts = [1, 2, 3]
-println(counts.contains(2.0))
+println(counts.contains(2.0)) // error: cannot use float64 where int is expected
 ```
 
 Nor is `null` a valid value unless the element type includes it:
 
-<!-- test: error cannot use null where int is expected -->
-
 ```ant
 var counts = [1, 2, 3]
-println(counts.contains(null))
+println(counts.contains(null)) // error: cannot use null where int is expected
 ```
 
 A nullable value, such as the result of `Array.get`, `Map` indexing, or `Array.first`, is not an
 `int` either, so it cannot be looked up in an `Array[int]` as it is:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var xs = [1, 2, 3]
 var m: int | null = Map{ a: 2 }["a"]
-println(xs.contains(m))
+println(xs.contains(m)) // error: cannot use int | null where int is expected
 ```
 
 Narrow it first:
@@ -244,11 +238,10 @@ m != null && xs.contains(m) // true
 `Array.contains` takes a value, not a predicate. To test elements with a function, use
 [`Array.some`](some.md):
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 var counts = [1, 2, 3]
 println(counts.contains({ x > 2 }))
+// error: a lambda needs an expected function type, but int is expected
 ```
 
 `==` compares records by their contents at the time of the call. A record changed after it went into

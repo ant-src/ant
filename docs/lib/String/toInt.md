@@ -249,11 +249,9 @@ String.toInt(String.trim(" 42\n")) // 42
 
 The result may be `null`, so using it as an `int` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var n = String.toInt("42")
-println(n + 1)
+println(n + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Narrow it, or give a default with [`??`](../../language/operators/null-coalescing.md):

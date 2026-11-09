@@ -182,10 +182,9 @@ len(String.graphemes("👍🏽"))    // 1
 The argument is a `string`; passing `Bytes` is a compile error. Decode the bytes with
 [String.fromBytes](fromBytes.md) first:
 
-<!-- test: error cannot use Bytes where string is expected -->
-
 ```ant
 var points = String.toCodePoints(String.toBytes("a"))
+// error: cannot use Bytes where string is expected
 ```
 
 ## See also

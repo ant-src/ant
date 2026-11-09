@@ -202,11 +202,10 @@ assert(xs == [5, 3, 8, 1])
 Indexing the result reads `Array[T] | null`, because a key may have no group. Calling a function on
 it without narrowing is a compile error:
 
-<!-- test: error has no field or function length on every member -->
-
 ```ant
 var groups = [1, 2, 3].groupBy({ x % 2 })
 println(groups[1].length())
+// error: Array[int] | null has no field or function length on every member: narrow the value first
 ```
 
 Supply an empty group with `??`, and annotate the variable so that `[]` has an element type:
@@ -221,11 +220,9 @@ sevens // []
 
 Without the annotation, `[]` has no element type, which is a compile error:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
 var groups = [1, 2, 3].groupBy({ x % 2 })
-var odd = groups[1] ?? []
+var odd = groups[1] ?? [] // error: cannot infer the element type of an empty array; annotate it
 println(odd)
 ```
 

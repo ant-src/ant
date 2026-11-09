@@ -224,20 +224,16 @@ String.toUint("9223372036854775808") // 9223372036854775808
 
 The result may be `null`, so it is not a `uint64` until you narrow it:
 
-<!-- test: error cannot use uint64 | null where uint64 is expected -->
-
 ```ant
-var n: uint64 = String.toUint("5")
+var n: uint64 = String.toUint("5") // error: cannot use uint64 | null where uint64 is expected
 ```
 
 An integer literal is always an `int`, so `?? 0` gives `uint64 | int`, and arithmetic on it is a
 compile error. Write the default as a `uint64`:
 
-<!-- test: error + needs both operands of one type -->
-
 ```ant
 var n = String.toUint("5") ?? 0
-var m = n + 1
+var m = n + 1 // error: + needs both operands of one type, got uint64 | int and int
 ```
 
 ```ant
@@ -252,11 +248,9 @@ println(n + uint64(1))
 Converting the result to a narrower kind panics when it does not fit. Check the range first, as
 `port` does above:
 
-<!-- test: panics 300 out of range for byte -->
-
 ```ant
 var n = String.toUint("300") ?? panic("not a number")
-println(byte(n))
+println(byte(n)) // panic: 300 out of range for byte
 ```
 
 A base outside `2 ..= 36` panics, even for text that would parse:

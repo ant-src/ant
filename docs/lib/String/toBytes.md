@@ -221,10 +221,9 @@ Bytes.fromArray([0x89])  // Bytes(89)
 
 `Bytes` and `string` are different types, so comparing them is a compile error:
 
-<!-- test: error Bytes and string cannot be compared with == -->
-
 ```ant
 println(String.toBytes("a") == "a")
+// error: Bytes and string cannot be compared with ==: neither is assignable to the other
 ```
 
 `Json.stringify` panics on `Bytes`. Write them as base64 or hex instead:

@@ -210,31 +210,26 @@ xs[xs.length()] // panic: index 3 out of range for an array of length 3
 
 `length` is a function, not a field. Without parentheses it is a compile error:
 
-<!-- test: error Array[int] is not a record, so it has no field length -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs.length)
+println(xs.length) // error: Array[int] is not a record, so it has no field length
 ```
 
 `Array.length` takes only arrays. A map, a set, or a string is a compile error; use
 [`Map.size`](../Map/size.md), [`Set.size`](../Set/size.md), [`String.length`](../String/length.md),
 or [`len`](../prelude/len.md), which takes them all:
 
-<!-- test: error cannot use Map[string, int] where Array[T] is expected -->
-
 ```ant
 var ages = Map{ ada: 36 }
-println(Array.length(ages))
+println(Array.length(ages)) // error: cannot use Map[string, int] where Array[T] is expected
 ```
 
 A nullable array has no length until it is narrowed:
 
-<!-- test: error has no field or function length on every member: narrow the value first -->
-
 ```ant
 var xs: Array[int] | null = null
 println(xs.length())
+// error: Array[int] | null has no field or function length on every member: narrow the value first
 ```
 
 Narrow it, or use `?.` with a default:

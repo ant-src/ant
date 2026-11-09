@@ -217,20 +217,16 @@ assert(e?.index == xs.findIndex({ String.length(x) > 3 }))
 
 The result can be `null`, and the type checker rejects it as an index until you narrow it:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs[xs.findIndex({ x == 2 })])
+println(xs[xs.findIndex({ x == 2 })]) // error: cannot use int | null where int is expected
 ```
 
 Nor is it a condition. Ant has no truthiness, and index `0` is a match like any other. Compare with
 `null` instead:
 
-<!-- test: error cannot use int | null where bool is expected -->
-
 ```ant
-if [1, 2, 3].findIndex({ x == 2 }) {
+if [1, 2, 3].findIndex({ x == 2 }) { // error: cannot use int | null where bool is expected
   println("found")
 }
 ```
@@ -273,28 +269,23 @@ missing
 
 `f` must return a `bool`. A callback that computes something else is a compile error:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
-println([1, 2, 3].findIndex({ x * 2 }))
+println([1, 2, 3].findIndex({ x * 2 })) // error: cannot use int where bool is expected
 ```
 
 `Array.findIndex` takes a test, not a value. To look for a value by `==`, use
 [`Array.indexOf`](indexOf.md):
 
-<!-- test: error cannot use int where func(int): bool is expected -->
-
 ```ant
-println([1, 2, 3].findIndex(2))
+println([1, 2, 3].findIndex(2)) // error: cannot use int where func(int): bool is expected
 ```
 
 A lambda needs the expected function type to know what `x` is. Kept in an unannotated `var`, it is a
 compile error. Annotate the variable:
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 var big = { x > 1 }
+// error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 println([1, 2, 3].findIndex(big))
 ```
 

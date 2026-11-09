@@ -172,44 +172,37 @@ assert(xs.entries().every({ xs[x.index] == x.value }))
 
 A literal gives both fields. Leaving one out is a compile error:
 
-<!-- test: error Indexed literal is missing the field value -->
-
 ```ant
 var e = Indexed{ index: 0 }
+// error: Indexed literal is missing the field value
+// error: cannot infer the type parameter T of Indexed; annotate the result
 ```
 
 The type argument goes in an annotation, never in a literal:
 
-<!-- test: error expected a newline or ';' before '{' -->
-
 ```ant
-var e = Indexed[int]{ index: 0, value: 1 }
+var e = Indexed[int]{ index: 0, value: 1 } // error: expected a newline or ';' before '{'
 ```
 
 `Indexed` without a type argument is not a type:
 
-<!-- test: error Indexed takes 1 type argument, got 0 -->
-
 ```ant
-var e: Indexed = Indexed{ index: 0, value: 1 }
+var e: Indexed = Indexed{ index: 0, value: 1 } // error: Indexed takes 1 type argument, got 0
 ```
 
 Type arguments are invariant, so an `Indexed[int]` does not fit where an `Indexed[int | string]` is
 expected:
 
-<!-- test: error cannot use Indexed[int] where Indexed[int | string] is expected -->
-
 ```ant
 var e = Indexed{ index: 0, value: 1 }
 var f: Indexed[int | string] = e
+// error: cannot use Indexed[int] where Indexed[int | string] is expected
 ```
 
 `Indexed` is not `Entry`. A map's entries have `key` and `value`, and an `Indexed` has no `key`:
 
-<!-- test: error Indexed[string] has no field key -->
-
 ```ant
-for { key, value } in ["a", "b"].entries() {
+for { key, value } in ["a", "b"].entries() { // error: Indexed[string] has no field key
   println("${key}: ${value}")
 }
 ```
@@ -237,10 +230,11 @@ xs // [10, 20]
 `for` over an array yields its elements, not `Indexed` records, so destructuring `{ index, value }`
 needs `.entries()`:
 
-<!-- test: error a record destructuring needs a record, got string -->
-
 ```ant
 for { index, value } in ["a", "b"] {
+  // error: a record destructuring needs a record, got string
+  // error: string is not a record, so it has no field index
+  // error: string is not a record, so it has no field value
   println("${index}: ${value}")
 }
 ```

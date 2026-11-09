@@ -192,10 +192,8 @@ assert(["a"].entries()[0] == Indexed{ index: 0, value: "a" })
 The fields are `index` and `value`. A map's entries are `Entry` records with `key` and `value`, so a
 destructuring written for a map does not fit:
 
-<!-- test: error Indexed[string] has no field key -->
-
 ```ant
-for { key, value } in ["a", "b"].entries() {
+for { key, value } in ["a", "b"].entries() { // error: Indexed[string] has no field key
   println("${key}: ${value}")
 }
 ```
@@ -232,10 +230,8 @@ the array, write `xs[e.index] = ...`.
 
 `Array.entries` takes an array, not a string:
 
-<!-- test: error cannot use string where Array[T] is expected -->
-
 ```ant
-println(Array.entries("abc"))
+println(Array.entries("abc")) // error: cannot use string where Array[T] is expected
 ```
 
 ## See also

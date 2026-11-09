@@ -282,11 +282,9 @@ assert((s | String.trim()) == String.trim(s))
 A string cannot be indexed. Take one code point with `String.slice`, or index the array of
 `String.chars`:
 
-<!-- test: error string cannot be indexed -->
-
 ```ant
 var s = "ant"
-println(s[0])
+println(s[0]) // error: string cannot be indexed
 ```
 
 ```ant
@@ -297,11 +295,9 @@ String.chars(s)[0]    // "a"
 
 `+` joins only two strings; a number goes in through interpolation or `String.fromInt`:
 
-<!-- test: error + needs both operands of one type, got string and int -->
-
 ```ant
 var n = 3
-println("ants: " + n)
+println("ants: " + n) // error: + needs both operands of one type, got string and int
 ```
 
 ```ant
@@ -329,11 +325,9 @@ String.foldCase("Zebra") < String.foldCase("apple") // false
 `join` is a `String` function, not an `Array` one. A call through `.` on an array goes to the
 `Array` namespace, so `parts.join(",")` does not compile:
 
-<!-- test: error has no field or function join -->
-
 ```ant
 var parts = ["a", "b"]
-println(parts.join(","))
+println(parts.join(",")) // error: Array[string] has no field or function join
 ```
 
 ```ant
@@ -344,11 +338,9 @@ parts | String.join(",") // "a,b"
 
 `s.length` without parentheses reads a field, and a string has no fields. Call it, or use `len`:
 
-<!-- test: error has no field length -->
-
 ```ant
 var s = "ab"
-println(s.length)
+println(s.length) // error: string is not a record, so it has no field length
 ```
 
 ```ant

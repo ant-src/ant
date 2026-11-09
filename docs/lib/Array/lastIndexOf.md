@@ -199,20 +199,16 @@ for v in xs {
 
 The result is nullable, so it cannot index the array as it is:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var xs = [5, 6, 5]
-println(xs[xs.lastIndexOf(5)])
+println(xs[xs.lastIndexOf(5)]) // error: cannot use int | null where int is expected
 ```
 
 Test it against `null`, not for truth. `0` is a valid index, and an `int | null` is not a condition:
 
-<!-- test: error cannot use int | null where bool is expected -->
-
 ```ant
 var i = [5, 6].lastIndexOf(5)
-if i {
+if i { // error: cannot use int | null where bool is expected
   println(i)
 }
 ```
@@ -235,30 +231,25 @@ xs.lastIndexOf(-0.0)                // 3
 
 Numeric types never mix, so looking for a `float64` in an `Array[int]` is a compile error:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
 var counts = [1, 2, 1]
-println(counts.lastIndexOf(1.0))
+println(counts.lastIndexOf(1.0)) // error: cannot use float64 where int is expected
 ```
 
 The same holds the other way. Write `2.0`: an integer literal is always an `int`.
 
-<!-- test: error cannot use int where float64 is expected -->
-
 ```ant
 var prices = [1.5, 2.0, 1.5]
-println(prices.lastIndexOf(2))
+println(prices.lastIndexOf(2)) // error: cannot use int where float64 is expected
 ```
 
 `Array.lastIndexOf` takes a value, not a predicate. To test elements with a function, use
 [`Array.findLastIndex`](findLastIndex.md):
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 var counts = [1, 2, 3]
 println(counts.lastIndexOf({ x > 1 }))
+// error: a lambda needs an expected function type, but int is expected
 ```
 
 Functions compare by identity, so two lambdas with the same body are different values:

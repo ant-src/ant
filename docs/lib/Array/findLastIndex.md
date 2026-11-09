@@ -273,29 +273,24 @@ for v in ["a", "c", "z"] {
 
 The result is nullable, so it cannot index the array as it is:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var xs = [5, 6, 7]
-println(xs[xs.findLastIndex({ x > 5 })])
+println(xs[xs.findLastIndex({ x > 5 })]) // error: cannot use int | null where int is expected
 ```
 
 Nor can it go straight into arithmetic:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [5, 6, 7]
 println(xs.findLastIndex({ x > 5 }) + 1)
+// error: + needs both operands of one type, got int | null and int
 ```
 
 Test it against `null`, not for truth. `0` is a valid index, and an `int | null` is not a condition:
 
-<!-- test: error cannot use int | null where bool is expected -->
-
 ```ant
 var i = [5, 6].findLastIndex({ x == 5 })
-if i {
+if i { // error: cannot use int | null where bool is expected
   println(i)
 }
 ```
@@ -308,10 +303,8 @@ i         // 0
 
 `f` must return a `bool`. A value that is not one is a compile error, not a truth test:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
-println([0, 1, 2].findLastIndex({ x }))
+println([0, 1, 2].findLastIndex({ x })) // error: cannot use int where bool is expected
 ```
 
 `NaN` is not `==` to itself, so an `==` test never finds it. Test with `Math.isNaN`:

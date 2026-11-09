@@ -207,11 +207,9 @@ Array.insert([1, 2, 3], -1, 0) // panic: Array.insert: the index -1 is not withi
 `Array.insert` returns `void`, not the array. Binding its result to a name of an array type is a
 compile error:
 
-<!-- test: error cannot use void where Array[int] is expected -->
-
 ```ant
 var xs = [2, 3]
-var ys: Array[int] = Array.insert(xs, 0, 1)
+var ys: Array[int] = Array.insert(xs, 0, 1) // error: cannot use void where Array[int] is expected
 ```
 
 Without the annotation, `ys` is `void` and no error is reported. To get a new array and keep `xs`,
@@ -227,11 +225,9 @@ ys // [1, 2, 3]
 `v` is one element, so an array of values is a compile error on an `Array[int]`. Spread it into a
 new array instead:
 
-<!-- test: error cannot use Array[int] where int is expected -->
-
 ```ant
 var xs = [1, 4]
-Array.insert(xs, 1, [2, 3])
+Array.insert(xs, 1, [2, 3]) // error: cannot use Array[int] where int is expected
 ```
 
 ```ant

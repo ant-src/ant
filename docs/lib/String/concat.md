@@ -168,35 +168,27 @@ assert(String.concat([String.concat(a), String.concat(b)]) == String.concat([...
 `parts.concat()` reaches [Array.concat](../Array/concat.md), which joins two arrays, so the call is
 a compile error. Call `String.concat(parts)` or use a pipe:
 
-<!-- test: error Array.concat needs an argument for ys -->
-
 ```ant
-var s = ["a", "b"].concat()
+var s = ["a", "b"].concat() // error: Array.concat needs an argument for ys
 ```
 
 The parts go in one array. Strings passed as separate arguments are a compile error:
 
-<!-- test: error String.concat takes 1 argument, got more -->
-
 ```ant
-var s = String.concat("a", "b")
+var s = String.concat("a", "b") // error: String.concat takes 1 argument, got more
 ```
 
 Every part must be a string. Convert other values with [String.from](from.md) first:
 
-<!-- test: error cannot use int where string is expected -->
-
 ```ant
-var s = String.concat(["a", 1])
+var s = String.concat(["a", 1]) // error: cannot use int where string is expected
 ```
 
 A part that may be `null` is a compile error too. Supply a fallback with `??`:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var x: string | null = null
-var s = String.concat(["a", x])
+var s = String.concat(["a", x]) // error: cannot use string | null where string is expected
 ```
 
 The result is not normalized. An `e` joined with a combining accent looks like `é`, but it is not

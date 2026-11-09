@@ -216,17 +216,15 @@ String.cut("abc", "") // panic: String.cut needs a separator that is not empty
 The result may be `null`, so reading a field of it without narrowing is a compile error. The same
 holds for a destructuring:
 
-<!-- test: error has no field before -->
-
 ```ant
 var c = String.cut("a=b", "=")
-println(c.before)
+println(c.before) // error: String.Cut | null has no field before: narrow the value first
 ```
-
-<!-- test: error has no field before -->
 
 ```ant
 var { before, after } = String.cut("a=b", "=")
+// error: String.Cut | null has no field before: narrow the value first
+// error: String.Cut | null has no field after: narrow the value first
 println(before)
 ```
 

@@ -94,8 +94,6 @@ var docDirectives = map[string]struct{ arg, body bool }{
 	"before":     {false, true},
 	"cmd":        {true, false},
 	"exit":       {true, false},
-	"panics":     {true, false},
-	"error":      {true, false},
 	"check-only": {true, false},
 }
 
@@ -205,6 +203,8 @@ func parsePage(rel, src string) (docPageParts, []string) {
 		arg = strings.TrimSpace(arg)
 		spec, known := docDirectives[name]
 		switch {
+		case name == "error" || name == "panics":
+			bad(start, "test: %s is gone: mark the failing line with a // %s: comment, so the reader sees it", name, strings.TrimSuffix(name, "s"))
 		case !known:
 			bad(start, "unknown directive test: %s", name)
 		case spec.arg && arg == "":
@@ -267,6 +267,70 @@ func caseInputs(src string) ([]caseInput, bool) {
 	return inputs, any
 }
 
+// docMarker is a comment that marks the line of a program that fails: "// error: <message>" for a
+// line ant check rejects, "// panic: <message>" for a line that panics. At the end of a line it
+// marks that line; on a line of its own, the code line above it.
+type docMarker struct {
+	kind, text string
+	line       int // in the block, from 1
+}
+
+var markerLine = regexp.MustCompile(`^//\s*(error|panic):\s*(.*)$`)
+
+// blockMarkers finds the markers of a block. The comments come from the lexer, so a // inside a
+// string is not one; a block the lexer rejects, which can only show a compile error, is read line
+// by line.
+func blockMarkers(src string) ([]docMarker, []string) {
+	lines := strings.Split(strings.TrimSuffix(src, "\n"), "\n")
+	type comment struct {
+		text string
+		line int
+		own  bool
+	}
+	var comments []comment
+	if _, cs, err := lexer.LexLayout(src, false); err == nil {
+		for _, c := range cs {
+			start := strings.LastIndex(src[:c.Off], "\n") + 1
+			comments = append(comments, comment{c.Text, strings.Count(src[:c.Off], "\n") + 1, strings.TrimSpace(src[start:c.Off]) == ""})
+		}
+	} else {
+		lax := regexp.MustCompile(`//\s*(?:error|panic):`)
+		for i, l := range lines {
+			if m := lax.FindStringIndex(l); m != nil {
+				comments = append(comments, comment{l[m[0]:], i + 1, strings.TrimSpace(l[:m[0]]) == ""})
+			}
+		}
+	}
+	var markers []docMarker
+	var problems []string
+	for _, c := range comments {
+		m := markerLine.FindStringSubmatch(c.text)
+		if m == nil {
+			continue
+		}
+		mk := docMarker{kind: m[1], text: strings.TrimSpace(m[2]), line: c.line}
+		if mk.text == "" {
+			problems = append(problems, fmt.Sprintf("line %d: // %s: needs the message", c.line, mk.kind))
+			continue
+		}
+		if c.own {
+			mk.line = 0
+			for i := c.line - 2; i >= 0; i-- {
+				if t := strings.TrimSpace(lines[i]); t != "" && !strings.HasPrefix(t, "//") {
+					mk.line = i + 1
+					break
+				}
+			}
+			if mk.line == 0 {
+				problems = append(problems, fmt.Sprintf("line %d: // %s: marks the code line above it, and there is none", c.line, mk.kind))
+				continue
+			}
+		}
+		markers = append(markers, mk)
+	}
+	return markers, problems
+}
+
 // caseSplit splits an input into an expression and the value its trailing comment gives, if the
 // input is a case.
 func caseSplit(src string) (string, string, bool) {
@@ -284,6 +348,9 @@ func caseSplit(src string) (string, string, bool) {
 	}
 	expr := strings.TrimRight(src[:c.Off], " \t")
 	value := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
+	if strings.HasPrefix(value, "error:") {
+		return "", "", false // a line ant check rejects, not a value
+	}
 	f, err := parser.Parse("case.ant", expr, parser.Session)
 	if err != nil || len(f.Decls) > 0 || len(f.Stmts) != 1 || len(f.Imports) > 0 {
 		return "", "", false
@@ -424,19 +491,34 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		ds[d.name] = d
 	}
 	has := func(name string) bool { _, ok := ds[name]; return ok }
+	markers, mp := blockMarkers(b.src)
+	for _, p := range mp {
+		bad("%s", p)
+	}
+	var errs, panics []docMarker
+	for _, m := range markers {
+		if m.kind == "error" {
+			errs = append(errs, m)
+		} else {
+			panics = append(panics, m)
+		}
+	}
+	fails := len(errs) > 0
 	before := ds["before"].body
 	hidden := strings.Count(before, "\n")
 	code := b.line + 1
 
 	ext := filepath.Ext(b.name)
 	isAnt := b.name == "" || ext == ".ant"
-	if isAnt && !has("error") {
+	if isAnt {
 		name := "main.ant"
 		if b.name != "" {
 			name = b.name
 		}
 		out, err := format.Source(name, []byte(b.src))
 		switch {
+		case err != nil && fails:
+			// Code that does not parse cannot be formatted; it shows a syntax error.
 		case err != nil:
 			bad("%v", err)
 			return problems
@@ -445,7 +527,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		}
 	}
 
-	if inputs, isCases := caseInputs(b.src); isCases && b.name == "" {
+	if inputs, isCases := caseInputs(b.src); isCases && b.name == "" && !fails {
 		for name := range ds {
 			if name != "before" && name != "file" {
 				bad("a block of cases takes only test: before, not test: %s", name)
@@ -475,18 +557,33 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 
 	// A program. It runs when it is the page's script or names a command; a named block is a
 	// module, a test file, or a data file the others use.
-	running := !has("error") && !has("check-only") && (b.name == "" || has("cmd"))
+	if fails {
+		if _, isCases := caseInputs(b.src); isCases {
+			bad("a block with // error: has no cases: it does not run, so their values would not be checked")
+		}
+		if !isAnt || has("check-only") || has("cmd") {
+			bad("// error: marks a line of an ant program without test: check-only or test: cmd")
+		}
+		if len(panics) > 0 {
+			bad("a block with // error: does not run, so it has no // panic:")
+		}
+	}
+	running := !fails && !has("check-only") && (b.name == "" || has("cmd"))
+	if len(panics) > 0 && !running {
+		bad("// panic: marks a line of a block that runs")
+	}
+	if len(panics) > 1 {
+		bad("a program panics once: one // panic: per block")
+	}
 	for _, d := range b.directives {
 		ok := true
 		switch d.name {
 		case "before", "args":
 			ok = b.name == "" && !has("cmd")
-		case "stdin", "exit", "panics":
+		case "stdin", "exit":
 			ok = running
 		case "cmd":
-			ok = !has("error") && !has("check-only")
-		case "error":
-			ok = isAnt && !has("check-only")
+			ok = !fails && !has("check-only")
 		case "check-only":
 			ok = isAnt
 		}
@@ -494,8 +591,8 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 			problems = append(problems, fmt.Sprintf("%s:%d: test: %s does not apply to this block", rel, d.line, d.name))
 		}
 	}
-	if has("exit") && has("panics") {
-		bad("test: exit and test: panics exclude each other")
+	if has("exit") && len(panics) > 0 {
+		bad("test: exit and // panic: exclude each other")
 	}
 	if b.output != nil && !running {
 		bad("a block that does not run has no output block")
@@ -523,11 +620,11 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		out, status := runDocAnt(bin, dir, "", "check", main)
 		out = pageLines(out, main, rel, code, hidden)
 		switch {
-		case has("error") && status == 0:
-			bad("ant check passes, but test: error expects %q", ds["error"].arg)
-		case has("error") && !strings.Contains(out, ds["error"].arg):
-			bad("ant check does not report %q:\n%s", ds["error"].arg, out)
-		case !has("error") && status != 0:
+		case fails && status == 0:
+			bad("ant check passes, but the block marks a line with // error:")
+		case fails:
+			problems = append(problems, errorMarkerProblems(rel, out, code, errs)...)
+		case status != 0:
 			bad("ant check:\n%s", out)
 		}
 	}
@@ -560,9 +657,14 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		status = exit.ExitCode()
 	}
 	errText := pageLines(stderr.String(), main, rel, code, hidden)
-	if p, ok := ds["panics"]; ok {
-		if status == 0 || !strings.Contains(stderr.String(), "panic: "+p.arg) {
-			bad("the program does not panic with %q; it exits with %d:\n%s", p.arg, status, errText)
+	if len(panics) > 0 {
+		p := panics[0]
+		line := code + p.line - 1
+		switch {
+		case status == 0 || !strings.Contains(stderr.String(), "panic: "+p.text):
+			bad("the program does not panic with %q; it exits with %d:\n%s", p.text, status, errText)
+		case !strings.Contains(errText, fmt.Sprintf("%s:%d:", rel, line)):
+			bad("the program panics, but not at line %d, which // panic: marks:\n%s", line, errText)
 		}
 	} else if status != want {
 		bad("ant %s exits with %d, not %d:\n%s%s", strings.Join(args, " "), status, want, stdout.String(), errText)
@@ -666,6 +768,42 @@ func headingProblems(rel string, parts docPageParts, status string) []string {
 	}
 	if examples == 0 {
 		problems = append(problems, fmt.Sprintf("%s:1: a %s page needs ## Basic examples with an example", rel, status))
+	}
+	return problems
+}
+
+// errorMarkerProblems holds the errors ant check reports, out, to the lines // error: marks: each
+// marked line has an error containing its text, and each error is on a marked line.
+func errorMarkerProblems(rel, out string, code int, errs []docMarker) []string {
+	type diag struct {
+		line int // 0 on a hidden line of test: before
+		msg  string
+	}
+	var diags []diag
+	re := regexp.MustCompile(`^` + regexp.QuoteMeta(rel) + `(?::(\d+)| \(test: before, line \d+\)):\d+: (.*)$`)
+	for _, l := range strings.Split(out, "\n") {
+		if m := re.FindStringSubmatch(l); m != nil {
+			n, _ := strconv.Atoi(m[1])
+			diags = append(diags, diag{n, m[2]})
+		}
+	}
+	var problems []string
+	marked := map[int]bool{}
+	for _, e := range errs {
+		line := code + e.line - 1
+		marked[line] = true
+		found := false
+		for _, d := range diags {
+			found = found || d.line == line && strings.Contains(d.msg, e.text)
+		}
+		if !found {
+			problems = append(problems, fmt.Sprintf("%s:%d: ant check does not report %q at this line:\n%s", rel, line, e.text, out))
+		}
+	}
+	for _, d := range diags {
+		if !marked[d.line] {
+			problems = append(problems, fmt.Sprintf("%s:%d: ant check reports %q, but no // error: marks this line", rel, d.line, d.msg))
+		}
 	}
 	return problems
 }

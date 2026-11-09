@@ -224,13 +224,11 @@ String.length(String.toUpper("ß")) // 2
 
 A value of a named primitive type is not a `string`, so passing it is a compile error:
 
-<!-- test: error cannot use Name where string is expected -->
-
 ```ant
 type Name = string
 
 var n = Name("Ann")
-println(String.length(n))
+println(String.length(n)) // error: cannot use Name where string is expected
 ```
 
 Convert it with `string(n)`, or use `len`, which unwraps it:

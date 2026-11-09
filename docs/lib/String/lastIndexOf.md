@@ -185,10 +185,9 @@ for c in ["h", "l", "o", "z"] {
 
 A missing match is `null`, not `-1`, so a test written as in JavaScript is a compile error:
 
-<!-- test: error >= needs both operands of one type, got int | null and int -->
-
 ```ant
 if String.lastIndexOf("abc", "z") >= 0 {
+  // error: >= needs both operands of one type, got int | null and int
   println("found")
 }
 ```
@@ -203,11 +202,9 @@ String.contains("abc", "z")            // false
 
 The result is not an `int` until you narrow it, so arithmetic on it is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var i = String.lastIndexOf("a.b", ".")
-println(i + 1)
+println(i + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??` when one makes sense:

@@ -182,11 +182,10 @@ String.fields(text).contains("cat") // true
 A nullable string, such as the result of `Map` indexing, is not a `string`, so it is a compile
 error:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var user = Map{ name: "Ann" }
 println(String.contains(user["name"], "A"))
+// error: cannot use string | null where string is expected
 ```
 
 Narrow it first:
@@ -213,10 +212,9 @@ var user = Map{ name: "Ann" }
 `String.contains` takes a string, not a predicate. To test each character with a function, use
 [`String.chars`](chars.md) and [`Array.some`](../Array/some.md):
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 println(String.contains("abc", { x == "b" }))
+// error: a lambda needs an expected function type, but string is expected
 ```
 
 ```ant

@@ -197,20 +197,18 @@ assert(jobs.minBy({ x.cost })?.name == "b")
 
 The result can be `null`, and the type checker rejects it as a `T` until you narrow it:
 
-<!-- test: error has no field or function length on every member -->
-
 ```ant
 println(["a", "bb"].minBy({ String.length(x) }).length())
+// error: string | null has no field or function length on every member: narrow the value first
 ```
 
 The key must be one ordered type. A record, a `bool`, or a nullable key is a compile error; key on a
 field, or give `null` a number with `??`:
 
-<!-- test: error which is not a single member of its bound Ordered -->
-
 ```ant
 var scores: Array[int | null] = [70, null, 55]
 println(scores.minBy({ x }))
+// error: K would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
 
 ```ant

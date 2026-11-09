@@ -174,11 +174,9 @@ assert(xs.concat(ys).sum() == (xs.sum() ?? 0) + (ys.sum() ?? 0))
 
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs.sum() + 1)
+println(xs.sum() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`:
@@ -191,11 +189,9 @@ var xs = [1, 2, 3]
 The default must have the element type. Numeric types never mix, so `?? 0.0` on an `Array[int]` does
 not give a `float64`:
 
-<!-- test: error cannot use int where float64 is expected -->
-
 ```ant
 var xs = [1, 2, 3]
-var total: float64 = xs.sum() ?? 0.0
+var total: float64 = xs.sum() ?? 0.0 // error: cannot use int where float64 is expected
 ```
 
 Integer overflow panics. The sum of small types overflows sooner:
@@ -217,11 +213,10 @@ xs.reduce(byte(0), Bits.wrapAdd) // 44
 An array whose element type is a union, such as `int | null` or `Number`, has no single `T`, so it
 is a compile error:
 
-<!-- test: error T would be int | null, which is not a single member of its bound Number -->
-
 ```ant
 var xs: Array[int | null] = [1, null, 3]
 println(xs.sum())
+// error: T would be int | null, which is not a single member of its bound Number; narrow first
 ```
 
 Collect the non-`null` elements into an `Array[int]` first. Testing each one narrows it:
@@ -241,12 +236,11 @@ Because `T` never includes `null`, a `null` result always means an empty array.
 
 Named primitive types, strings, and records are not `Number`:
 
-<!-- test: error T would be Cents, which is not a single member of its bound Number -->
-
 ```ant
 type Cents = int
 var fees = [Cents(150), Cents(275)]
 println(fees.sum())
+// error: T would be Cents, which is not a single member of its bound Number; narrow first
 ```
 
 Unwrap a named primitive with its base type, and wrap the total again:

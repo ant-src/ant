@@ -188,26 +188,22 @@ grid // [[99], [2]]
 `+` joins strings, not arrays, so it does not concatenate two arrays. Use `Array.concat` or the
 spread literal `[...xs, ...ys]`:
 
-<!-- test: error + applies to -->
-
 ```ant
 println([1] + [2])
+// error: + applies to a single numeric kind, string, or a named primitive type over one, not to Array[int]; narrow first
 ```
 
 Two arrays of different element types do not join without an expected type that holds both:
 
-<!-- test: error cannot use string -->
-
 ```ant
-var both = Array.concat([1], ["x"])
+var both = Array.concat([1], ["x"]) // error: cannot use string where int is expected
 ```
 
 Two empty literals leave `T` open, which is a compile error. Annotate one side, or the result:
 
-<!-- test: error cannot infer the element type -->
-
 ```ant
 var zs = Array.concat([], [])
+// error: cannot infer the element type of an empty array; annotate it
 ```
 
 Calling `Array.concat` in a loop builds a new array, with every element so far, each time. To grow

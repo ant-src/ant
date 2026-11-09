@@ -218,6 +218,33 @@ written before any block runs, in one directory per page. A named `.ant` file, a
 is checked with `ant check`; it runs only with `test: cmd`, such as `test: cmd ant test .` on a test
 file. A named block of another kind, such as `data.json`, is only written.
 
+### Failing examples
+
+An example that does not compile, or that panics, says so where the reader looks: in a comment on
+the line that fails, with the message `ant` prints. Never hide it in a directive.
+
+```ant
+var xs = [1, 2, 3]
+xs[3] = 1 // panic: index 3 out of range for an array of length 3
+```
+
+````md
+```ant
+var xs = ["a", "b"]
+var labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
+// error: cannot use func(string, int): string where func(string): U is expected
+```
+````
+
+- `// error: <message>` marks a line `ant check` rejects. The block is checked, not run. Every error
+  `ant check` reports must be marked, at its line, so follow-on errors are shown too. A block with
+  `// error:` has no cases.
+- `// panic: <message>` marks the line a program panics at. In a block of cases it is the value of a
+  case, with the whole message; in a program it may be on a statement too.
+- At the end of a line, the comment marks that line. When the line would grow past 100 columns, put
+  the comment on its own line right below; it then marks the code line above it.
+- Give the whole message. The test checks that the reported message contains the comment's text.
+
 ### Preparation
 
 What the reader does not need to see goes in an HTML comment that starts with `test:`. It applies to
@@ -225,20 +252,18 @@ the next ` ```ant ` block. A misspelled prefix (`tests:`, `Test:`), an unknown d
 directive of the same name on one block (`file` aside), and a directive that does not apply to its
 block all fail the test.
 
-| Directive                   | Meaning                                                                | Applies to                       |
-| --------------------------- | ---------------------------------------------------------------------- | -------------------------------- |
-| `test: file <path>` + body  | Write the body to `<path>` in the page's directory.                    | any block                        |
-| `test: before` + body       | Ant code put in front of the block, hidden from the reader.            | cases, an unnamed program        |
-| `test: stdin` + body        | Feed the body to standard input.                                       | a block that runs                |
-| `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                             | an unnamed program without `cmd` |
-| `test: cmd ant <args>`      | Run this `ant` command in the page's directory, such as `ant test .`.  | a program                        |
-| `test: exit <n>`            | Expect exit status `<n>` instead of 0.                                 | a block that runs                |
-| `test: panics <text>`       | Expect a panic whose message contains `<text>`.                        | a block that runs                |
-| `test: error <text>`        | Expect `ant check` to report an error containing `<text>`; do not run. | an ant program, not with `cmd`   |
-| `test: check-only <reason>` | Check and format-check only. For output that changes between runs.     | an ant program, not with `cmd`   |
+| Directive                   | Meaning                                                               | Applies to                       |
+| --------------------------- | --------------------------------------------------------------------- | -------------------------------- |
+| `test: file <path>` + body  | Write the body to `<path>` in the page's directory.                   | any block                        |
+| `test: before` + body       | Ant code put in front of the block, hidden from the reader.           | cases, an unnamed program        |
+| `test: stdin` + body        | Feed the body to standard input.                                      | a block that runs                |
+| `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                            | an unnamed program without `cmd` |
+| `test: cmd ant <args>`      | Run this `ant` command in the page's directory, such as `ant test .`. | a program                        |
+| `test: exit <n>`            | Expect exit status `<n>` instead of 0.                                | a block that runs                |
+| `test: check-only <reason>` | Check and format-check only. For output that changes between runs.    | an ant program, not with `cmd`   |
 
-A block runs when it is an unnamed program, or a named one with `cmd`, and has no `error` or
-`check-only`. `exit` and `panics` exclude each other.
+A block runs when it is an unnamed program, or a named one with `cmd`, has no `check-only`, and
+marks no line with `// error:`. `exit` and `// panic:` exclude each other.
 
 A directive with a body puts it on the lines after the first, up to `-->`; nothing else goes on the
 first line of `stdin` or `before`:

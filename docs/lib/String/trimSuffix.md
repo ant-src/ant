@@ -253,11 +253,10 @@ String.trimSuffix(".ant", "main.ant") // ".ant"
 
 A nullable suffix is a compile error. Narrow it first:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var ext: string | null = null
 println(String.trimSuffix("main.ant", ext))
+// error: cannot use string | null where string is expected
 ```
 
 ## See also

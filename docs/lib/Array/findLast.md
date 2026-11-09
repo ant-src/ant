@@ -234,11 +234,9 @@ for n in [2, 3, 4, 5] {
 
 The result may be `null`, so using it as a `T` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var last = [1, 2, 3].findLast({ x > 1 })
-println(last + 1)
+println(last + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Narrow it first, or give a fallback with `??`:
@@ -262,11 +260,9 @@ readings.findLastIndex({ x == 7 })    // null
 `Array.findLast` takes a predicate, not a value. To look for a value by `==`, use
 [`Array.lastIndexOf`](lastIndexOf.md) or [`Array.contains`](contains.md):
 
-<!-- test: error cannot use int where func(int): bool is expected -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs.findLast(2))
+println(xs.findLast(2)) // error: cannot use int where func(int): bool is expected
 ```
 
 ## See also

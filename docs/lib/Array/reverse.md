@@ -183,10 +183,8 @@ grid // [[1], [9]]
 `Array.reverse` takes an array, not a string; split the string with
 [String.graphemes](../String/graphemes.md) first, as below:
 
-<!-- test: error cannot use string where Array[T] is expected -->
-
 ```ant
-Array.reverse("noel")
+Array.reverse("noel") // error: cannot use string where Array[T] is expected
 ```
 
 Reversing the code points of a string moves an accent onto another letter. Split with

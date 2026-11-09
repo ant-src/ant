@@ -263,19 +263,17 @@ array.
 A lambda has one parameter, `x`, so it cannot be the two-parameter `f`. Write `func` with annotated
 parameters:
 
-<!-- test: error a lambda has at most one parameter -->
-
 ```ant
 var total = [1, 2, 3].reduce(0, { x })
+// error: a lambda has at most one parameter, x; func(int, int): int expects 2: write func with named parameters
 ```
 
 The type of `init` fixes `A`. The integer literal `0` is an `int`, so summing floats from `0` is a
 compile error:
 
-<!-- test: error cannot use func(float64, float64): float64 where func(int, float64): int is expected -->
-
 ```ant
 var total = [1.5, 2.5].reduce(0, func(a: float64, b: float64) { a + b })
+// error: cannot use func(float64, float64): float64 where func(int, float64): int is expected
 ```
 
 Start from `0.0`:
@@ -287,10 +285,9 @@ Start from `0.0`:
 Without an annotation, `null` as `init` makes `A` the type `null`, and a callback that returns
 anything else does not fit:
 
-<!-- test: error where func(null, int): null is expected -->
-
 ```ant
 var last = [1, 2].reduce(null, func(a: int | null, x: int): int | null { x })
+// error: cannot use func(int | null, int): int | null where func(null, int): null is expected
 ```
 
 An array, a map, or a record is a reference. When `f` mutates the accumulator, it mutates the value

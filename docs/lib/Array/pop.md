@@ -280,11 +280,9 @@ assert(xs.isEmpty())
 
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [3, 1, 2]
-println(xs.pop() + 1)
+println(xs.pop() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or bind it to a local and narrow that:

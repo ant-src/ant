@@ -259,10 +259,8 @@ String.padStart(String.slice("overflow", 0, 4), 4) // "over"
 
 `width` is an `int`, so a float is a compile error:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
-println(String.padStart("7", 2.0))
+println(String.padStart("7", 2.0)) // error: cannot use float64 where int is expected
 ```
 
 ## See also

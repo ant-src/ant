@@ -214,10 +214,9 @@ String.toFloat(String.fromFloat(2.675, 2)) // 2.67
 
 The result can be `null`, so arithmetic on it does not compile until you remove the `null`:
 
-<!-- test: error * needs both operands of one type, got float64 | null and float64 -->
-
 ```ant
 var x = String.toFloat("1.5") * 2.0
+// error: * needs both operands of one type, got float64 | null and float64
 ```
 
 ```ant

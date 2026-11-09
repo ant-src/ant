@@ -188,11 +188,9 @@ assert(items[0].stock == 10)
 
 The result may be `null`, so using it as a `T` without narrowing is a compile error:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var xs = [10, 20, 30]
-var v: int = xs.get(1)
+var v: int = xs.get(1) // error: cannot use int | null where int is expected
 println(v)
 ```
 
@@ -200,13 +198,11 @@ Use `?.`, `??`, or a test against `null` first, as in the examples above.
 
 Testing the call does not narrow a second call, which is still `User | null`:
 
-<!-- test: error has no field name -->
-
 ```ant
 type User = { id: int, name: string }
 var users = [User{ id: 1, name: "Ann" }]
 if users.get(0) != null {
-  println(users.get(0).name)
+  println(users.get(0).name) // error: User | null has no field name: narrow the value first
 }
 ```
 
@@ -232,21 +228,17 @@ scores.get(5)       // null
 
 The index must be an `int`. Numeric types never mix, so a `float64` is a compile error:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
 var xs = [10, 20, 30]
-println(xs.get(1.0))
+println(xs.get(1.0)) // error: cannot use float64 where int is expected
 ```
 
 `?.[i]` is not a safe index: it guards against a `null` array, not an index out of range, and it
 needs a left side whose type includes `null`. Use `Array.get` for the index:
 
-<!-- test: error needs a nullable left side -->
-
 ```ant
 var xs = [10, 20, 30]
-println(xs?.[5])
+println(xs?.[5]) // error: ?.[ needs a nullable left side, got Array[int]
 ```
 
 ## See also

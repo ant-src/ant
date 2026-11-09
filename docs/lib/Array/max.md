@@ -171,11 +171,9 @@ assert(lo <= hi)
 
 The result is `T | null`, not `T`, so using it as a `T` is a compile error:
 
-<!-- test: error + needs both operands of one type, got int | null and int -->
-
 ```ant
 var xs = [3, 1, 2]
-println(xs.max() + 1)
+println(xs.max() + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??`, or narrow a local:
@@ -205,10 +203,9 @@ depend on their order:
 Mixing integer and float literals infers a union element type, `int | float64`, which is not a
 single member of `Ordered`, so it is a compile error:
 
-<!-- test: error T would be int | float64 -->
-
 ```ant
 println([1, 2.5].max())
+// error: T would be int | float64, which is not a single member of its bound Ordered; narrow first
 ```
 
 Write every element as a float, or annotate the array:
@@ -222,11 +219,10 @@ xs.max()         // 2.5
 An array whose element type is a union, such as `int | null` or `Number`, has no single `T`, so it
 is a compile error:
 
-<!-- test: error T would be int | null, which is not a single member of its bound Ordered -->
-
 ```ant
 var xs: Array[int | null] = [1, null, 3]
 println(xs.max())
+// error: T would be int | null, which is not a single member of its bound Ordered; narrow first
 ```
 
 Collect the non-`null` elements into an `Array[int]` first. Testing each one narrows it:
@@ -246,12 +242,11 @@ Because `T` never includes `null`, a `null` result always means an empty array.
 
 Records, `bool`, and named primitive types are not `Ordered`:
 
-<!-- test: error T would be Meters, which is not a single member of its bound Ordered -->
-
 ```ant
 type Meters = float64
 var runs = [Meters(5.0), Meters(10.0)]
 println(runs.max())
+// error: T would be Meters, which is not a single member of its bound Ordered; narrow first
 ```
 
 Unwrap a named primitive with its base type, or pick a record by a key with

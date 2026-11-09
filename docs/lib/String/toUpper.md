@@ -187,20 +187,16 @@ String.equalFold("Straße", "STRASSE") // true
 
 The function on the right of a pipe needs its parentheses:
 
-<!-- test: error the right side of a pipe must be a call -->
-
 ```ant
-println("ant" | String.toUpper)
+println("ant" | String.toUpper) // error: the right side of a pipe must be a call
 ```
 
 A nullable string, such as the result of `Map` indexing, is a compile error. Narrow it first, or
 give a default with `??`:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var user = Map{ name: "ann" }
-println(String.toUpper(user["name"]))
+println(String.toUpper(user["name"])) // error: cannot use string | null where string is expected
 ```
 
 ```ant

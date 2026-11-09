@@ -184,10 +184,8 @@ Iter.range(0, 3000000000).filter({ x % 7 == 0 }).take(3).toArray() // [0, 7, 14]
 
 Both bounds must be `int`s:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
-var xs = Array.range(0, 2.5)
+var xs = Array.range(0, 2.5) // error: cannot use float64 where int is expected
 ```
 
 ## See also

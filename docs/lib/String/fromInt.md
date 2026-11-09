@@ -219,10 +219,9 @@ A float is not an `Integer`, so passing one is a compile error. Convert it first
 when it is whole, otherwise with [`Math.round`](../Math/round.md) or
 [`Math.trunc`](../Math/trunc.md) and then `int(...)`:
 
-<!-- test: error which is not a single member of its bound Integer -->
-
 ```ant
 println(String.fromInt(2.5))
+// error: T would be float64, which is not a single member of its bound Integer; narrow first
 ```
 
 ```ant
@@ -232,11 +231,10 @@ String.fromInt(int(Math.round(2.5))) // "3"
 A value that may be `null`, such as the result of [`String.toInt`](toInt.md), must be narrowed
 first:
 
-<!-- test: error which is not a single member of its bound Integer -->
-
 ```ant
 var n = String.toInt("42")
 println(String.fromInt(n))
+// error: T would be int | null, which is not a single member of its bound Integer; narrow first
 ```
 
 ```ant
@@ -246,12 +244,11 @@ if n != null { String.fromInt(n, 2) } // "101010"
 
 A named primitive type over `int` is not a member of `Integer`, so passing one is a compile error:
 
-<!-- test: error which is not a single member of its bound Integer -->
-
 ```ant
 type UserId = int
 var id = UserId(42)
 println(String.fromInt(id))
+// error: T would be UserId, which is not a single member of its bound Integer; narrow first
 ```
 
 Unwrap it with `int(...)`:
@@ -265,11 +262,9 @@ String.fromInt(int(id)) // "42"
 A number has no namespace, so a call through `.` fails. Call `String.fromInt(n)` or pipe
 `n | String.fromInt()`:
 
-<!-- test: error int has no field or function fromInt -->
-
 ```ant
 var n = 42
-println(n.fromInt())
+println(n.fromInt()) // error: int has no field or function fromInt
 ```
 
 There are no leading zeros and no width. Pad the result with [`String.padStart`](padStart.md):

@@ -205,27 +205,23 @@ String.graphemes("👨‍👩‍👧").length() // 1
 
 There is no character type and no `'c'` literal; a character is a string of one code point:
 
-<!-- test: error unexpected character -->
-
 ```ant
-println(String.endsWith("abc", 'c'))
+println(String.endsWith("abc", 'c')) // error: unexpected character '\''
 ```
 
 A nullable suffix is a compile error. Narrow it first:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var ext: string | null = null
 println(String.endsWith("main.ant", ext))
+// error: cannot use string | null where string is expected
 ```
 
 `String.endsWith` takes one suffix, not an array of them; use `Array.some`, as `isImage` above does:
 
-<!-- test: error cannot use Array[string] where string is expected -->
-
 ```ant
 println(String.endsWith("ant.png", [".png", ".jpg"]))
+// error: cannot use Array[string] where string is expected
 ```
 
 ## See also

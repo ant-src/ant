@@ -234,11 +234,9 @@ results.every({ x })                       // true
 `f` must return a `bool`. Ant has no truthy values, so a lambda that returns an `int` is a compile
 error:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
 var counts = [1, 2, 3]
-println(counts.every({ x }))
+println(counts.every({ x })) // error: cannot use int where bool is expected
 ```
 
 Write the comparison instead:
@@ -249,21 +247,19 @@ Write the comparison instead:
 
 `f` takes one parameter. A function of two parameters does not fit `func(T): bool`:
 
-<!-- test: error cannot use func(int, int): bool where func(int): bool is expected -->
-
 ```ant
 var counts = [1, 2, 3]
 println(counts.every(func(a: int, b: int): bool { a < b }))
+// error: cannot use func(int, int): bool where func(int): bool is expected
 ```
 
 To compare neighbors, iterate over indices, as `isSorted` above does.
 
 A lambda stored in an unannotated `var` has no expected function type. Annotate the variable:
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 var positive = { x > 0 }
+// error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
 println([1, 2].every(positive))
 ```
 

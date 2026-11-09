@@ -232,22 +232,18 @@ String.fromFloat(1.5, 2147483648) // panic: String.fromFloat needs a count of di
 
 An `int` is not a `float64`, so passing one is a compile error:
 
-<!-- test: error cannot use int where float64 is expected -->
-
 ```ant
 var n = 3
-println(String.fromFloat(n, 2))
+println(String.fromFloat(n, 2)) // error: cannot use int where float64 is expected
 ```
 
 Convert it with `float64(n)`, or write the literal as `3.0`.
 
 A number has no namespace, so `x.fromFloat(2)` is a compile error:
 
-<!-- test: error float64 has no field or function fromFloat -->
-
 ```ant
 var price = 1.25
-println(price.fromFloat(2))
+println(price.fromFloat(2)) // error: float64 has no field or function fromFloat
 ```
 
 Use a pipe instead:

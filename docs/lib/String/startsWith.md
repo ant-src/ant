@@ -236,27 +236,23 @@ String.startsWith("👨‍👩‍👧", "👨") // true
 
 There is no character type and no `'c'` literal; a character is a string of one code point:
 
-<!-- test: error unexpected character -->
-
 ```ant
-println(String.startsWith("abc", 'a'))
+println(String.startsWith("abc", 'a')) // error: unexpected character '\''
 ```
 
 A nullable prefix is a compile error. Narrow it first:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var prefix: string | null = null
 println(String.startsWith("main.ant", prefix))
+// error: cannot use string | null where string is expected
 ```
 
 `String.startsWith` takes one prefix, not an array of them; use [`Array.some`](../Array/some.md):
 
-<!-- test: error cannot use Array[string] where string is expected -->
-
 ```ant
 println(String.startsWith("https://x", ["http://", "https://"]))
+// error: cannot use Array[string] where string is expected
 ```
 
 ```ant

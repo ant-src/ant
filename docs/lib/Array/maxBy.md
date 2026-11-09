@@ -204,22 +204,20 @@ seen                                        // [9, 1, 5]
 
 The result may be `null`, so reading a field of it without narrowing is a compile error:
 
-<!-- test: error has no field name -->
-
 ```ant
 type Person = { name: string, age: int }
 var people = [Person{ name: "Ann", age: 31 }]
 println(people.maxBy({ x.age }).name)
+// error: Person | null has no field name: narrow the value first
 ```
 
 Use `?.`, `??`, or a test against `null` first, as in the examples above.
 
 The key must be ordered. A `bool` or a record is not, which is a compile error:
 
-<!-- test: error K would be bool, which is not a single member of its bound Ordered -->
-
 ```ant
 println([1, 2, 3].maxBy({ x > 1 }))
+// error: K would be bool, which is not a single member of its bound Ordered; narrow first
 ```
 
 Of equal keys, `Array.maxBy` keeps the first, while the last element of a stable ascending sort is

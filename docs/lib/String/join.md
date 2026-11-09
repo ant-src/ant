@@ -167,35 +167,28 @@ assert(String.length(String.join(parts, sep)) == total + (len(parts) - 1) * Stri
 `parts.join(",")` looks in the `Array` namespace, which has no `join`, so the call is a compile
 error. Call `String.join(parts, ",")` or use a pipe:
 
-<!-- test: error Array[string] has no field or function join -->
-
 ```ant
-var s = ["a", "b"].join(",")
+var s = ["a", "b"].join(",") // error: Array[string] has no field or function join
 ```
 
 A string is not the subject either: `String.join` takes the array first:
 
-<!-- test: error String.join is not a function on string: it takes Array[string] first -->
-
 ```ant
 var s = ",".join(["a", "b"])
+// error: String.join is not a function on string: it takes Array[string] first
 ```
 
 The separator has no default. Leaving it out is a compile error; pass `""` or use
 [String.concat](concat.md):
 
-<!-- test: error String.join needs an argument for sep -->
-
 ```ant
-var s = String.join(["a", "b"])
+var s = String.join(["a", "b"]) // error: String.join needs an argument for sep
 ```
 
 Every part must be a string. Convert other values with [String.from](from.md) first:
 
-<!-- test: error cannot use int where string is expected -->
-
 ```ant
-var s = String.join(["a", 1], ",")
+var s = String.join(["a", 1], ",") // error: cannot use int where string is expected
 ```
 
 Interpolating an array does not join it: it renders the array with its brackets and quotes:

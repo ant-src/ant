@@ -222,42 +222,36 @@ nested // [[[99]], [[2]]]
 
 `Array.flatten` takes an array of arrays. A flat array is a compile error:
 
-<!-- test: error cannot use Array[int] where Array[Array[T]] is expected -->
-
 ```ant
-var xs = Array.flatten([1, 2])
+var xs = Array.flatten([1, 2]) // error: cannot use Array[int] where Array[Array[T]] is expected
 ```
 
 Inner arrays of different element types do not flatten without an expected type that holds both:
 
-<!-- test: error Array[int] and Array[string] are both an array -->
-
 ```ant
 var xs = Array.flatten([[1], ["x"]])
+// error: the elements do not form a valid type: a union may contain each discriminator at most once: Array[int] and Array[string] are both an array; narrow first or give the whole an expected type
 ```
 
 Inner arrays that hold `null` in some places and not in others need an expected type too:
 
-<!-- test: error Array[int | null] and Array[null] are both an array -->
-
 ```ant
 var xs = Array.flatten([[1, null], [null]])
+// error: the elements do not form a valid type: a union may contain each discriminator at most once: Array[int | null] and Array[null] are both an array; narrow first or give the whole an expected type
 ```
 
 An empty literal leaves `T` unsolved. Annotate the argument or the result:
 
-<!-- test: error cannot infer the element type of an empty array; annotate it -->
-
 ```ant
-var xs = Array.flatten([])
+var xs = Array.flatten([]) // error: cannot infer the element type of an empty array; annotate it
 ```
 
 It removes one level only, so a deeper array does not fit an expected flat type:
 
-<!-- test: error cannot use Array[int] where int is expected -->
-
 ```ant
 var xs: Array[int] = Array.flatten([[[1]], [[2]]])
+// error: cannot use Array[int] where int is expected
+// error: cannot use Array[int] where int is expected
 ```
 
 ## See also

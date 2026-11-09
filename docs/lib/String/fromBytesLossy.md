@@ -205,11 +205,9 @@ String.fromBytes(real) == null                                                //
 The function is in the `String` namespace and its argument is `Bytes`, so a call through `.` on the
 bytes is a compile error:
 
-<!-- test: error Bytes has no field or function fromBytesLossy -->
-
 ```ant
 var b = String.toBytes("ant")
-println(b.fromBytesLossy())
+println(b.fromBytesLossy()) // error: Bytes has no field or function fromBytesLossy
 ```
 
 Write `String.fromBytesLossy(b)`, or pipe the bytes into it: `b | String.fromBytesLossy()`.

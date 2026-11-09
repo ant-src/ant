@@ -247,21 +247,19 @@ println(xs)
 
 The predicate must return a `bool`. Ant has no truthy values, so an `int` is a compile error:
 
-<!-- test: error cannot use int where bool is expected -->
-
 ```ant
 var counts = [0, 2, 0, 5]
-var nonZero = Array.filter(counts, { x })
+var nonZero = Array.filter(counts, { x }) // error: cannot use int where bool is expected
 ```
 
 The result keeps the element type of `xs`. Filtering out `null` gives an `Array[int | null]`, not an
 `Array[int]`:
 
-<!-- test: error cannot use Array[int | null] where Array[int] is expected -->
-
 ```ant
 var scores: Array[int | null] = [90, null, 75]
 var ints: Array[int] = Array.filter(scores, { x != null })
+// error: cannot use Array[int | null] where Array[int] is expected
+// error: int and null cannot be compared with !=: neither is assignable to the other
 ```
 
 Use `Array.flatMap` instead. Inside the lambda the test on `x` narrows it, so the arrays it returns
@@ -276,14 +274,13 @@ ints // [90, 75]
 The same holds for a union: `filter` with `is Circle` still gives an `Array[Shape]`, whose fields
 are those every member has:
 
-<!-- test: error Shape has no field radius on every member -->
-
 ```ant
 type Circle = { radius: float64 }
 type Rect = { width: float64, height: float64 }
 type Shape = Circle | Rect
 var shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
 var radii = shapes.filter({ x is Circle }).map({ x.radius })
+// error: Shape has no field radius on every member: narrow the value first
 ```
 
 Use `flatMap` with `is` to get an `Array[Circle]`:

@@ -226,11 +226,10 @@ Array.pop(empty)         // null
 `Array.indexOf` and `Array.findIndex` return `int | null`, and `Array.removeAt` needs an `int`.
 Passing the result straight through is a compile error:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var tags = ["red", "green"]
 Array.removeAt(tags, Array.indexOf(tags, "green"))
+// error: cannot use int | null where int is expected
 ```
 
 Test for `null` first, as in the applications above.

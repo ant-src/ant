@@ -160,11 +160,9 @@ for a in ["", "x"] {
 
 A string is not a condition. Ask `String.isEmpty` explicitly:
 
-<!-- test: error cannot use string where bool is expected -->
-
 ```ant
 var s = ""
-if s {
+if s { // error: cannot use string where bool is expected
   println("has text")
 }
 ```
@@ -189,11 +187,9 @@ input.trim().isEmpty() // true
 A nullable string, such as the result of `Map` indexing, is not a `string`, so passing it is a
 compile error:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var user = Map{ name: "" }
-println(String.isEmpty(user["name"]))
+println(String.isEmpty(user["name"])) // error: cannot use string | null where string is expected
 ```
 
 Narrow it first:
@@ -219,12 +215,10 @@ var user = Map{ name: "" }
 
 A named primitive over `string` is not a `string`. Unwrap it with `string(...)`:
 
-<!-- test: error cannot use Name where string is expected -->
-
 ```ant
 type Name = string
 var n = Name("")
-println(String.isEmpty(n))
+println(String.isEmpty(n)) // error: cannot use Name where string is expected
 ```
 
 ```ant

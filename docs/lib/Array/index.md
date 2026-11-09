@@ -260,22 +260,19 @@ Array.get(xs, 3) // null
 
 A write past the end panics with the same message:
 
-<!-- test: panics index 3 out of range for an array of length 3 -->
-
 ```ant
 var xs = [1, 2, 3]
-xs[3] = 1
+xs[3] = 1 // panic: index 3 out of range for an array of length 3
 ```
 
 Assigning the loop variable is a compile error, since it would not change the array. `Array.map`
 returns the changed elements:
 
-<!-- test: error cannot assign to x, a for variable -->
-
 ```ant
 var xs = [1, 2, 3]
 for x in xs {
   x = x * 2
+  // error: cannot assign to x, a for variable; declare a var to hold a value that changes
 }
 ```
 

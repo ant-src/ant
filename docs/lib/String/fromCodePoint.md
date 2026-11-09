@@ -141,10 +141,9 @@ assert(String.fromCodePoint(0xDC00) == String.fromCodePoints([0xDC00]))
 
 The result may be `null`, so passing it where a `string` is expected is a compile error:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var s: string = String.fromCodePoint(65)
+// error: cannot use string | null where string is expected
 ```
 
 Give a default with `??`, or test against `null` first.
@@ -152,22 +151,18 @@ Give a default with `??`, or test against `null` first.
 `String.fromCodePoint` is a function of `String`, not of `int`, so it cannot be called through `.`
 on a number:
 
-<!-- test: error int has no field or function fromCodePoint -->
-
 ```ant
 var n = 97
-println(n.fromCodePoint())
+println(n.fromCodePoint()) // error: int has no field or function fromCodePoint
 ```
 
 Call it as `String.fromCodePoint(n)`, or in a pipe as `n | String.fromCodePoint()`.
 
 A code point held in another integer type, such as a `byte` read from `Bytes`, is not an `int`:
 
-<!-- test: error cannot use byte where int is expected -->
-
 ```ant
 var b = byte(65)
-String.fromCodePoint(b)
+String.fromCodePoint(b) // error: cannot use byte where int is expected
 ```
 
 Convert it first: `String.fromCodePoint(int(b))`.

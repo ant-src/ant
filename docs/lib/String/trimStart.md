@@ -172,19 +172,15 @@ String.trimPrefix("--flag", "--") // "flag"
 
 The right side of a pipe is a call, so it needs its parentheses:
 
-<!-- test: error the right side of a pipe must be a call -->
-
 ```ant
-println("  x" | String.trimStart)
+println("  x" | String.trimStart) // error: the right side of a pipe must be a call
 ```
 
 `s` is a `string`, so a `string | null` needs a check first:
 
-<!-- test: error cannot use string | null where string is expected -->
-
 ```ant
 var name: string | null = null
-println(String.trimStart(name))
+println(String.trimStart(name)) // error: cannot use string | null where string is expected
 ```
 
 ## See also

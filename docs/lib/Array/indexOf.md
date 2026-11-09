@@ -204,20 +204,16 @@ assert(xs.indexOf(4) != xs.lastIndexOf(4))
 
 The result is nullable, so it cannot index an array as it is:
 
-<!-- test: error cannot use int | null where int is expected -->
-
 ```ant
 var xs = ["a", "b"]
-println(xs[xs.indexOf("b")])
+println(xs[xs.indexOf("b")]) // error: cannot use int | null where int is expected
 ```
 
 Test it against `null`, not for truth. `0` is a valid index, and an `int | null` is not a condition:
 
-<!-- test: error cannot use int | null where bool is expected -->
-
 ```ant
 var i = ["a", "b"].indexOf("a")
-if i {
+if i { // error: cannot use int | null where bool is expected
   println(i)
 }
 ```
@@ -239,21 +235,18 @@ xs.findIndex({ Math.isNaN(x) }) // 1
 
 Numeric types never mix, so looking for a `float64` in an `Array[int]` is a compile error:
 
-<!-- test: error cannot use float64 where int is expected -->
-
 ```ant
 var xs = [1, 2, 3]
-println(xs.indexOf(2.0))
+println(xs.indexOf(2.0)) // error: cannot use float64 where int is expected
 ```
 
 `Array.indexOf` takes a value, not a predicate. To find an element with a function, use
 [`Array.findIndex`](findIndex.md):
 
-<!-- test: error a lambda needs an expected function type -->
-
 ```ant
 var xs = [1, 2, 3]
 println(xs.indexOf({ x > 1 }))
+// error: a lambda needs an expected function type, but int is expected
 ```
 
 On a string array, `Array.indexOf` finds a whole element. To find text inside one string, use

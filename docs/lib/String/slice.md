@@ -213,10 +213,8 @@ String.slice("abc", 2, 1) // panic: String.slice: the range 2..1 is not within 0
 
 All three arguments are required; there is no form that runs to the end of the string:
 
-<!-- test: error needs an argument for to -->
-
 ```ant
-println(String.slice("abc", 1))
+println(String.slice("abc", 1)) // error: String.slice needs an argument for to
 ```
 
 Code point indices can split a letter from its accent, so a shortened string can end in a bare

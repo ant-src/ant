@@ -205,19 +205,20 @@ assert(evens == Array.filter(xs, { x % 2 == 0 }))
 `f` must return an array. A lambda that returns a single value is a compile error; use
 [Array.map](map.md) for that:
 
-<!-- test: error the lambda returns int where Array[U] is expected -->
-
 ```ant
 var doubled = Array.flatMap([1, 2], { x * 2 })
+// error: cannot infer the type parameter U of Array.flatMap; annotate the result
+// error: the lambda returns int where Array[U] is expected
 ```
 
 When one branch of `f` returns `[]`, the empty array does not fix `U`, so the call is a compile
 error. Annotate the result:
 
-<!-- test: error cannot infer the element type of an empty array -->
-
 ```ant
 var odd = Array.flatMap([1, 2, 3], { if x % 2 == 0 { [] } else { [x] } })
+// error: cannot infer the type parameter U of Array.flatMap; annotate the result
+// error: the lambda returns ? | Array[int] where Array[U] is expected
+// error: cannot infer the element type of an empty array; annotate it
 ```
 
 ```ant
