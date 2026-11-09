@@ -91,7 +91,7 @@ Text outside ASCII counts by code point. An accent written as its own code point
 and `String.graphemes` keeps it with its letter:
 
 ```ant
-String.length("日本語")          // 3
+String.length("日本語")       // 3
 String.length("e\u{301}")     // 2
 String.graphemes("e\u{301}x") // ["é", "x"]
 String.toCodePoints("é")      // [233]

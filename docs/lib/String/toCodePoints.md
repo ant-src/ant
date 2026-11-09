@@ -61,7 +61,7 @@ two, and a family emoji is three people joined by U+200D, the zero-width joiner:
 
 ```ant
 String.toCodePoints("e\u{301}") // [101, 769]
-String.toCodePoints("👨‍👩‍👧")    // [128104, 8205, 128105, 8205, 128103]
+String.toCodePoints("👨‍👩‍👧")       // [128104, 8205, 128105, 8205, 128103]
 ```
 
 In a pipe, the string is the first argument:
@@ -104,7 +104,7 @@ func utf16Length(s: string): int {
   s.toCodePoints().map({ if x > 0xFFFF { 2 } else { 1 } }).sum() ?? 0
 }
 
-utf16Length("ant")   // 3
+utf16Length("ant")    // 3
 utf16Length("ant 🐜") // 6
 ```
 

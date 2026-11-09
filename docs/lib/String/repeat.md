@@ -51,8 +51,8 @@ String.repeat("", 2147483647) // ""
 `s` may be text in any script, an emoji, or an escape such as `\n`:
 
 ```ant
-String.repeat("日本", 2)   // "日本日本"
-String.repeat("🐜", 3)    // "🐜🐜🐜"
+String.repeat("日本", 2) // "日本日本"
+String.repeat("🐜", 3)   // "🐜🐜🐜"
 String.repeat("ab\n", 2) // "ab\nab\n"
 ```
 

@@ -71,7 +71,7 @@ An emoji of one code point is a symbol, and so is a flag, which is two regional 
 skin tone modifier is a modifier symbol, so a thumbs-up with a skin tone is all symbols too:
 
 ```ant
-String.isSymbol("😀")  // true
+String.isSymbol("😀") // true
 String.isSymbol("🇫🇷") // true
 String.isSymbol("👍🏽") // true
 ```
@@ -187,7 +187,7 @@ zero-width joiner U+200D, a format character:
 ```ant
 String.isSymbol("❤️")                    // false
 "❤️".chars().map({ String.category(x) }) // ["So", "Mn"]
-String.isSymbol("👨‍👩‍👧")                 // false
+String.isSymbol("👨‍👩‍👧")                    // false
 ```
 
 An emoji that a Unicode version newer than `String.unicodeVersion` adds is unassigned, category

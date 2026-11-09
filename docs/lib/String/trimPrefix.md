@@ -71,7 +71,7 @@ String.trimPrefix("a-b-", "b-") // "a-b-"
 Non-ASCII text works the same way, by code points:
 
 ```ant
-String.trimPrefix("🐜🐝🐞", "🐜")           // "🐝🐞"
+String.trimPrefix("🐜🐝🐞", "🐜")       // "🐝🐞"
 String.trimPrefix("über-cool", "über-") // "cool"
 ```
 

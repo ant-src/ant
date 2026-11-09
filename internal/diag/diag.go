@@ -10,8 +10,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"golang.org/x/text/width"
-
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/grapheme"
 	"github.com/ant-src/ant/internal/highlight"
@@ -358,22 +356,8 @@ func columns(text string) int {
 			continue
 		}
 		n := max(grapheme.First(text[i:]), 1)
-		col += clusterWidth(text[i : i+n])
+		col += grapheme.ClusterWidth(text[i : i+n])
 		i += n
 	}
 	return col
-}
-
-// clusterWidth is the columns a grapheme cluster takes: two for a wide character or an emoji
-// shown as one, else one.
-func clusterWidth(c string) int {
-	r, _ := utf8.DecodeRuneInString(c)
-	switch width.LookupRune(r).Kind() {
-	case width.EastAsianWide, width.EastAsianFullwidth:
-		return 2
-	}
-	if strings.ContainsRune(c, '️') {
-		return 2
-	}
-	return 1
 }

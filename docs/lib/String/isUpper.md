@@ -63,7 +63,7 @@ The full-width `Ａ` and the mathematical bold `𝐀` are Lu too:
 
 ```ant
 String.isUpper("Ａ") // true
-String.isUpper("𝐀") // true
+String.isUpper("𝐀")  // true
 ```
 
 Some code points look like capitals but are not in Lu: the Roman numeral `Ⅻ` is a number, the

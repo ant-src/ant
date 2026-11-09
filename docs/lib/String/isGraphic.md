@@ -26,7 +26,7 @@ String.isGraphic reports whether every code point of s is in L, M, N, P, S, or Z
 ```ant
 String.isGraphic("Hello, world!") // true
 String.isGraphic("a\tb")          // false
-String.isGraphic("🐜")             // true
+String.isGraphic("🐜")            // true
 ```
 
 Call it through `.`:
@@ -47,7 +47,7 @@ Every code point in the classes L, M, N, P, and S is graphic, whatever its scrip
 numbers, punctuation, and symbols:
 
 ```ant
-String.isGraphic("中文")      // true
+String.isGraphic("中文")    // true
 String.isGraphic("\u{301}") // true
 String.isGraphic("½Ⅻ٣")     // true
 String.isGraphic("«»¿")     // true
@@ -211,7 +211,7 @@ An emoji joined from several, such as a family, holds the zero-width joiner U+20
 format character, so the whole emoji is not graphic:
 
 ```ant
-String.isGraphic("👨‍👩‍👧")   // false
+String.isGraphic("👨‍👩‍👧")      // false
 String.category("\u{200D}") // "Cf"
 ```
 

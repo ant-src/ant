@@ -61,9 +61,9 @@ String.padEnd("ab", 3, "xyz") // "abx"
 Both `s` and `pad` count in code points, in any script:
 
 ```ant
-String.padEnd("é", 3, "ü")    // "éüü"
-String.padEnd("東京", 4, "・")   // "東京・・"
-String.padEnd("Ωμ", 4, "αβγ") // "Ωμαβ"
+String.padEnd("é", 3, "ü")     // "éüü"
+String.padEnd("東京", 4, "・") // "東京・・"
+String.padEnd("Ωμ", 4, "αβγ")  // "Ωμαβ"
 ```
 
 Call it through `.` on any string, in a pipeline, where the string is the first argument, or inside

@@ -60,7 +60,7 @@ String.replace("", "a", "b") // ""
 `old` and `new` may hold any code points: emoji, line breaks, accented letters.
 
 ```ant
-String.replace("🐜🐝🐜", "🐜", "🐞")               // "🐞🐝🐞"
+String.replace("🐜🐝🐜", "🐜", "🐞")          // "🐞🐝🐞"
 String.replace("one\ntwo\nthree", "\n", ", ") // "one, two, three"
 String.replace("naïve café", "é", "e")        // "naïve cafe"
 ```

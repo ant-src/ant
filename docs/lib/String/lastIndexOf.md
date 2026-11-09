@@ -59,7 +59,7 @@ The index counts code points, not bytes. Each of `ï` and `é` is one code point
 
 ```ant
 String.lastIndexOf("naïve café, café", "café") // 12
-String.lastIndexOf("🐜🐝🐜🐞", "🐜")                // 2
+String.lastIndexOf("🐜🐝🐜🐞", "🐜")           // 2
 ```
 
 It counts code points, not what a reader sees as characters. The family emoji is five code points:

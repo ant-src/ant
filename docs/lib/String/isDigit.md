@@ -53,10 +53,10 @@ String.isDigit(" 42")   // false
 Decimal digits of other scripts count: Arabic-Indic, Devanagari, full-width, and mathematical bold:
 
 ```ant
-String.isDigit("٣٤") // true
-String.isDigit("४२") // true
+String.isDigit("٣٤")   // true
+String.isDigit("४२")   // true
 String.isDigit("１２") // true
-String.isDigit("𝟗")  // true
+String.isDigit("𝟗")    // true
 ```
 
 Numbers that are not decimal digits do not: a fraction, a superscript, and a Roman numeral. Hex

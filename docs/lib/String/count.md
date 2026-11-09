@@ -54,7 +54,7 @@ String.count("five", "five") // 1
 `t` may be any string, an emoji or an escape such as `\n` included:
 
 ```ant
-String.count("🐜🐜🐜", "🐜")        // 3
+String.count("🐜🐜🐜", "🐜")    // 3
 String.count("a\nb\nc\n", "\n") // 3
 ```
 
@@ -180,7 +180,7 @@ It counts code point sequences, not graphemes, so a part of an emoji joined from
 found:
 
 ```ant
-String.count("👨‍👩‍👧", "👩")     // 1
+String.count("👨‍👩‍👧", "👩")    // 1
 len(String.graphemes("👨‍👩‍👧")) // 1
 ```
 

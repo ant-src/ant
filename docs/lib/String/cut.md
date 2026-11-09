@@ -72,7 +72,7 @@ String.cut("abc", "abc") // String.Cut{ before: "", after: "" }
 Unicode text and separators work like any other:
 
 ```ant
-String.cut("🐜🐝🐞", "🐝")        // String.Cut{ before: "🐜", after: "🐞" }
+String.cut("🐜🐝🐞", "🐝")    // String.Cut{ before: "🐜", after: "🐞" }
 String.cut("naïve café", " ") // String.Cut{ before: "naïve", after: "café" }
 ```
 

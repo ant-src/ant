@@ -52,9 +52,9 @@ String.endsWith("giant", "ant") // true
 Text in any script compares by code points:
 
 ```ant
-String.endsWith("Ωμέγα", "γα") // true
-String.endsWith("東京都", "都")    // true
-String.endsWith("naïve", "ve") // true
+String.endsWith("Ωμέγα", "γα")  // true
+String.endsWith("東京都", "都") // true
+String.endsWith("naïve", "ve")  // true
 ```
 
 In a pipeline, the string is the first argument:

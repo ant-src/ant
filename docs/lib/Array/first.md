@@ -86,7 +86,7 @@ For the first grapheme of a string, what a reader sees as one character, split i
 character is written with a combining mark:
 
 ```ant
-String.graphemes("🐜🐝🐞").first()       // "🐜"
+String.graphemes("🐜🐝🐞").first()    // "🐜"
 String.graphemes("e\u{301}x").first() // "é"
 String.chars("e\u{301}x").first()     // "e"
 ```

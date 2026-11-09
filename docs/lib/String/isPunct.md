@@ -67,7 +67,7 @@ String.isPunct("“”‘’") // true
 String.isPunct("«»")   // true
 String.isPunct("¿¡")   // true
 String.isPunct("…")    // true
-String.isPunct("、。")   // true
+String.isPunct("、。") // true
 ```
 
 The section and pilcrow signs are punctuation; the euro, copyright, degree, and emoji are symbols:
@@ -77,7 +77,7 @@ String.isPunct("§¶") // true
 String.isPunct("€")  // false
 String.isPunct("©")  // false
 String.isPunct("°")  // false
-String.isPunct("😀")  // false
+String.isPunct("😀") // false
 ```
 
 White space is not punctuation:

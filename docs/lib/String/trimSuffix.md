@@ -60,8 +60,8 @@ String.trimSuffix("ant", "giant") // "ant"
 Text in any script trims by code points:
 
 ```ant
-String.trimSuffix("東京都", "都")    // "東京"
-String.trimSuffix("Ωμέγα", "γα") // "Ωμέ"
+String.trimSuffix("東京都", "都") // "東京"
+String.trimSuffix("Ωμέγα", "γα")  // "Ωμέ"
 ```
 
 A combining accent is a code point of its own, so it can come off alone and leave the bare letter:

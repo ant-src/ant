@@ -71,7 +71,7 @@ Library functions are values too. `String.isEmpty` finds a blank entry:
 Strings compare by their text, Unicode included:
 
 ```ant
-["mañana", "Ωμέγα", "🐜"].some({ x == "🐜" })             // true
+["mañana", "Ωμέγα", "🐜"].some({ x == "🐜" })           // true
 ["mañana", "Ωμέγα"].some({ String.startsWith(x, "Ω") }) // true
 ```
 

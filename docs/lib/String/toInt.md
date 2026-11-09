@@ -80,7 +80,7 @@ String.toInt("1e3")   // null
 Only ASCII digits count. Digits of other scripts and full-width digits are `null`:
 
 ```ant
-String.toInt("٣") // null
+String.toInt("٣")  // null
 String.toInt("０") // null
 ```
 

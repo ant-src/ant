@@ -20,8 +20,8 @@ String.codePoint returns the scalar value of c. It panics unless c is one code p
 ## Basic examples
 
 ```ant
-String.codePoint("A") // 65
-String.codePoint("é") // 233
+String.codePoint("A")  // 65
+String.codePoint("é")  // 233
 String.codePoint("🐜") // 128028
 ```
 

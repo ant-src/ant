@@ -55,7 +55,7 @@ Letters of other scripts count:
 String.isLetter("Привет") // true
 String.isLetter("αβγ")    // true
 String.isLetter("مرحبا")  // true
-String.isLetter("日本語")    // true
+String.isLetter("日本語") // true
 String.isLetter("ß")      // true
 ```
 
@@ -63,17 +63,17 @@ Each kind of letter counts: upper case `Lu`, lower case `Ll`, title case `Lt`, m
 other `Lo`:
 
 ```ant
-String.isLetter("Ǆ") // true
-String.isLetter("ǆ") // true
-String.isLetter("ǅ") // true
-String.isLetter("ʰ") // true
+String.isLetter("Ǆ")  // true
+String.isLetter("ǆ")  // true
+String.isLetter("ǅ")  // true
+String.isLetter("ʰ")  // true
 String.isLetter("ア") // true
 ```
 
 A Roman numeral looks like a letter but is a number, `Nl`. An emoji is a symbol:
 
 ```ant
-String.isLetter("Ⅻ") // false
+String.isLetter("Ⅻ")  // false
 String.isLetter("🐜") // false
 ```
 

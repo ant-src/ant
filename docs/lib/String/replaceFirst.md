@@ -71,9 +71,9 @@ Unicode text works like any other. The match is exact, so case matters and a pre
 not contain the code point `e`:
 
 ```ant
-String.replaceFirst("🐜🐝🐜", "🐜", "🐞")  // "🐞🐝🐜"
-String.replaceFirst("Café", "c", "K") // "Café"
-String.replaceFirst("é", "e", "a")    // "é"
+String.replaceFirst("🐜🐝🐜", "🐜", "🐞") // "🐞🐝🐜"
+String.replaceFirst("Café", "c", "K")     // "Café"
+String.replaceFirst("é", "e", "a")        // "é"
 ```
 
 The search matches code points, not graphemes, so it can strip the first combining accent from its

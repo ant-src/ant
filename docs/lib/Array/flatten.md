@@ -46,7 +46,7 @@ Strings and records work like any other element:
 
 ```ant
 type Point = { x: int, y: int }
-Array.flatten([["é"], ["日本", "🐜"]])                           // ["é", "日本", "🐜"]
+Array.flatten([["é"], ["日本", "🐜"]])                        // ["é", "日本", "🐜"]
 Array.flatten([[Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]]) // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 ```
 

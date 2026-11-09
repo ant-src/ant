@@ -59,7 +59,7 @@ The separator can be any string: empty, several code points long, or in any scri
 ```ant
 String.join(["a", "b", "c"], "")     // "abc"
 String.join(["a", "b", "c"], " -> ") // "a -> b -> c"
-String.join(["日本", "🐜"], "·")        // "日本·🐜"
+String.join(["日本", "🐜"], "·")     // "日本·🐜"
 ```
 
 Pass the parts with a pipe, which puts the array in as the first argument:

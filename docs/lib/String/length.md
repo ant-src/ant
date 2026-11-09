@@ -38,8 +38,8 @@ String.length("") // 0
 A letter outside ASCII, written as one code point, counts once:
 
 ```ant
-String.length("héllo") // 5
-String.length("日本語")   // 3
+String.length("héllo")  // 5
+String.length("日本語") // 3
 String.length("🐜")     // 1
 ```
 
@@ -69,7 +69,7 @@ A flag is two regional indicator symbols, and a family emoji is three people joi
 zero-width joiners:
 
 ```ant
-String.length("🇨🇭")            // 2
+String.length("🇨🇭")         // 2
 String.length("👨‍👩‍👧")         // 5
 len(String.graphemes("👨‍👩‍👧")) // 1
 ```
@@ -185,7 +185,7 @@ for s in ["ant", "héllo", "🐜"] {
 }
 Bytes.length(String.toBytes("ant"))   // 3
 Bytes.length(String.toBytes("héllo")) // 6
-Bytes.length(String.toBytes("🐜"))     // 4
+Bytes.length(String.toBytes("🐜"))    // 4
 ```
 
 ## Possible issues

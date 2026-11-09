@@ -35,9 +35,9 @@ Call it through `.` on a string:
 ASCII takes one byte per code point; other code points take two, three, or four:
 
 ```ant
-String.toBytes("a") // Bytes(61)
-String.toBytes("ñ") // Bytes(c3 b1)
-String.toBytes("€") // Bytes(e2 82 ac)
+String.toBytes("a")  // Bytes(61)
+String.toBytes("ñ")  // Bytes(c3 b1)
+String.toBytes("€")  // Bytes(e2 82 ac)
 String.toBytes("🐜") // Bytes(f0 9f 90 9c)
 ```
 

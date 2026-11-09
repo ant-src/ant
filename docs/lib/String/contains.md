@@ -51,8 +51,8 @@ String.contains("ant", "ants") // false
 Non-ASCII text works the same way, by code points:
 
 ```ant
-String.contains("naïve café", "ï") // true
-String.contains("日本語のテキスト", "テキ")  // true
+String.contains("naïve café", "ï")          // true
+String.contains("日本語のテキスト", "テキ") // true
 ```
 
 An emoji joined from several code points contains each of them:

@@ -59,7 +59,7 @@ Text in any script stays as it is, and so does a combining accent right before t
 five code points of `"cafe\u{301}"` remain:
 
 ```ant
-String.trimEnd("東京 ")                   // "東京"
+String.trimEnd("東京 ")                 // "東京"
 String.trimEnd("cafe\u{301} ").length() // 5
 ```
 

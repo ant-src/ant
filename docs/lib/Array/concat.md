@@ -59,7 +59,7 @@ Strings, records, and unions with `null` work alike:
 
 ```ant
 type Point = { x: int, y: int }
-Array.concat(["é"], ["日本"])                                // ["é", "日本"]
+Array.concat(["é"], ["日本"])                              // ["é", "日本"]
 Array.concat([Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]) // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 Array.concat([1, null], [null])                            // [1, null, null]
 ```

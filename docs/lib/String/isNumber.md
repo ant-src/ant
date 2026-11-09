@@ -47,14 +47,14 @@ Decimal digits of any script are numbers:
 ```ant
 String.isNumber("2026") // true
 String.isNumber("٣٤")   // true
-String.isNumber("１２")   // true
+String.isNumber("１２") // true
 ```
 
 Letter numbers count: Roman numerals, upper and lower case, and the ideographic zero:
 
 ```ant
-String.isNumber("Ⅻ") // true
-String.isNumber("ⅻ") // true
+String.isNumber("Ⅻ")  // true
+String.isNumber("ⅻ")  // true
 String.isNumber("〇") // true
 ```
 
@@ -73,7 +73,7 @@ A Han numeral such as `三` is a letter, Lo, and `π` is a lower-case letter, so
 
 ```ant
 String.isNumber("三") // false
-String.isNumber("π") // false
+String.isNumber("π")  // false
 ```
 
 Signs, points, separators, exponents, and white space are not number characters:

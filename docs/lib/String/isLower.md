@@ -64,7 +64,7 @@ Han characters such as `日` are letters of category Lo, not lower-case letters:
 
 ```ant
 String.isLower("日本") // false
-String.category("日") // "Lo"
+String.category("日")  // "Lo"
 ```
 
 The title-case letter `ǅ` is neither lower nor upper case, and the modifier letter `ʰ` is not a

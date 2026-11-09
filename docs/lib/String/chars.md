@@ -66,7 +66,7 @@ A flag is two regional indicator symbols, and a family emoji is three people joi
 joiners. `String.graphemes` keeps the family as one element:
 
 ```ant
-String.chars("🇨🇭")             // ["🇨", "🇭"]
+String.chars("🇨🇭")          // ["🇨", "🇭"]
 String.chars("👨‍👩‍👧")          // ["👨", "\u{200d}", "👩", "\u{200d}", "👧"]
 len(String.graphemes("👨‍👩‍👧")) // 1
 ```

@@ -46,9 +46,9 @@ String.isPrint("") // false
 Letters, digits, punctuation, and symbols of any script are printable:
 
 ```ant
-String.isPrint("日本語")   // true
-String.isPrint("½€!")   // true
-String.isPrint("Ⅻ + ٣") // true
+String.isPrint("日本語") // true
+String.isPrint("½€!")    // true
+String.isPrint("Ⅻ + ٣")  // true
 ```
 
 A combining mark is printable, alone or after its base letter:
@@ -84,7 +84,7 @@ An emoji is a symbol. An emoji joined from several holds the zero-width joiner U
 format character:
 
 ```ant
-String.isPrint("👍")     // true
+String.isPrint("👍") // true
 String.isPrint("👨‍👩‍👧") // false
 ```
 

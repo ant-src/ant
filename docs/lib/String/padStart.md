@@ -63,8 +63,8 @@ Width counts code points, so a non-ASCII `pad` or `s` takes one place per code p
 size in bytes:
 
 ```ant
-String.padStart("x", 4, "🐜")  // "🐜🐜🐜x"
-String.padStart("é", 3, "·")  // "··é"
+String.padStart("x", 4, "🐜")    // "🐜🐜🐜x"
+String.padStart("é", 3, "·")     // "··é"
 String.padStart("日本", 4, "＿") // "＿＿日本"
 ```
 

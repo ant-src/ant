@@ -43,11 +43,11 @@ Call it through `.` on a one-code-point string:
 Letters of different writing systems:
 
 ```ant
-String.inScript("α", "Greek")    // true
-String.inScript("ا", "Arabic")   // true
+String.inScript("α", "Greek")     // true
+String.inScript("ا", "Arabic")    // true
 String.inScript("あ", "Hiragana") // true
-String.inScript("ｱ", "Katakana") // true
-String.inScript("ǅ", "Latin")    // true
+String.inScript("ｱ", "Katakana")  // true
+String.inScript("ǅ", "Latin")     // true
 ```
 
 A script whose name has two words takes an underscore, as in `Scripts.txt`:
@@ -59,12 +59,12 @@ String.inScript("𐌀", "Old_Italic") // true
 Digits, punctuation, white space, and emoji are in `Common`, whatever text they appear in:
 
 ```ant
-String.inScript("7", "Common") // true
+String.inScript("7", "Common")  // true
 String.inScript("１", "Common") // true
-String.inScript("!", "Common") // true
-String.inScript(" ", "Common") // true
+String.inScript("!", "Common")  // true
+String.inScript(" ", "Common")  // true
 String.inScript("🐜", "Common") // true
-String.inScript("7", "Latin")  // false
+String.inScript("7", "Latin")   // false
 ```
 
 A combining mark that many scripts use, such as an accent, is in `Inherited`, not in the script of

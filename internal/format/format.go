@@ -7,8 +7,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"unicode/utf8"
 
+	"github.com/ant-src/ant/internal/grapheme"
 	"github.com/ant-src/ant/internal/lexer"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/parser"
@@ -410,7 +410,7 @@ func (p *printer) trailing(c *token.Comment) {
 
 // align lines up the trailing comments of each run of consecutive lines that have the same
 // indentation and each end in one: every comment of the run starts one space after the longest
-// code in it, counted in code points (fmt.md 4.8). A run of one keeps its single space. Which
+// code in it, counted in display columns (fmt.md 4.8). A run of one keeps its single space. Which
 // comments end their lines is decided on the output, not the source, so that formatting the
 // output aligns the same comments again.
 func align(out string, trails [][2]int) string {
@@ -430,7 +430,7 @@ func align(out string, trails [][2]int) string {
 		}
 	}
 	indent := func(s string) int { return len(s) - len(strings.TrimLeft(s, " ")) }
-	width := func(i int) int { return utf8.RuneCountInString(strings.TrimRight(lines[i][:at[i]], " ")) }
+	width := func(i int) int { return grapheme.Width(strings.TrimRight(lines[i][:at[i]], " ")) }
 	for i := 0; i < len(lines); {
 		if _, ok := at[i]; !ok {
 			i++

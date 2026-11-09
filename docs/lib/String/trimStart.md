@@ -52,7 +52,7 @@ line U+0085, and the line separator U+2028:
 
 ```ant
 String.trimStart("\u{A0}\u{3000}日本") // "日本"
-String.trimStart("\u{85}\u{2028}x")  // "x"
+String.trimStart("\u{85}\u{2028}x")    // "x"
 ```
 
 Call it in a pipe, through `.` on a string, with its argument named, or as a function value:

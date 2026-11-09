@@ -91,7 +91,7 @@ Three Hangul jamo combine into one syllable, and a Devanagari conjunct holds tog
 
 ```ant
 len(String.graphemes("\u{1100}\u{1161}\u{11A8}")) // 1
-len(String.graphemes("नमस्ते"))                   // 3
+len(String.graphemes("नमस्ते"))                      // 3
 ```
 
 Call it through `.` on a string, or put the string first in a pipe:

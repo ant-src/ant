@@ -87,7 +87,7 @@ type Point = { x: float64, y: float64 }
 func Point.norm(p: Point): float64 { Math.sqrt(p.x * p.x + p.y * p.y) }
 Array.map([1, 2, 3], square)                     // [1, 4, 9]
 Array.map([Point{ x: 3.0, y: 4.0 }], Point.norm) // [5.0]
-Array.map(["ant", "日本"], len)                    // [3, 2]
+Array.map(["ant", "日本"], len)                  // [3, 2]
 ```
 
 A conversion is a function too. `byte` builds an `Array[byte]`, and a named type over `string` tags

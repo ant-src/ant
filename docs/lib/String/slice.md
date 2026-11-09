@@ -60,8 +60,8 @@ A grapheme of several code points can be cut. The accent of `e\u{301}`, the seco
 and the rest of a family emoji fall outside these slices:
 
 ```ant
-String.slice("e\u{301}x", 0, 1)            // "e"
-String.slice("🇨🇭", 0, 1)                   // "🇨"
+String.slice("e\u{301}x", 0, 1)         // "e"
+String.slice("🇨🇭", 0, 1)                // "🇨"
 String.length(String.slice("👨‍👩‍👧", 0, 1)) // 1
 ```
 

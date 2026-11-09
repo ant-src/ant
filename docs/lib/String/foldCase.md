@@ -34,7 +34,7 @@ String.foldCase("Hello, World") // "hello, world"
 An empty string folds to an empty string, and characters without case pass through unchanged:
 
 ```ant
-String.foldCase("")          // ""
+String.foldCase("")           // ""
 String.foldCase("123 + 4 🐜") // "123 + 4 🐜"
 ```
 

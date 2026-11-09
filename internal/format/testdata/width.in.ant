@@ -1,0 +1,11 @@
+// spec: fmt 4.8 Comments
+// Columns are display columns: a wide character takes two, a combining mark none.
+var a = ["日本"] // wide
+var bb = ["abcd"]   // ascii
+
+var d = "é" // one column
+var ee = "ab"  // two
+var f = "👍" // an emoji is wide
+var gg = "ab"   // two
+var h = "🇫🇷" // a flag is wide
+var ii = "ab" // two

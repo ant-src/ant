@@ -67,8 +67,8 @@ Compatibility characters include full-width letters and digits, superscripts, an
 
 ```ant
 String.normalize("Ａｎｔ １２３", "NFKC") // "Ant 123"
-String.normalize("x²", "NFKC")      // "x2"
-String.normalize("Ⅻ", "NFKC")       // "XII"
+String.normalize("x²", "NFKC")            // "x2"
+String.normalize("Ⅻ", "NFKC")             // "XII"
 ```
 
 Some characters have a canonical equivalent of their own, so even `"NFC"` replaces them. The
@@ -81,7 +81,7 @@ String.codePoint(String.normalize("\u{212B}", "NFC")) // 197
 `"NFD"` splits a Korean Hangul syllable into its three jamo, and `"NFC"` joins them again:
 
 ```ant
-String.length(String.normalize("한", "NFD"))                  // 3
+String.length(String.normalize("한", "NFD"))                   // 3
 String.normalize(String.normalize("한", "NFD"), "NFC") == "한" // true
 ```
 
@@ -142,7 +142,7 @@ func searchKey(s: string): string {
 }
 
 searchKey("Ｃａｆé") == searchKey("CAFE") // true
-searchKey("ﬁlm") == searchKey("Film")  // true
+searchKey("ﬁlm") == searchKey("Film")     // true
 ```
 
 ## Properties and relations

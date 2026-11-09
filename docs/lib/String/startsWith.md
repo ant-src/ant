@@ -59,9 +59,9 @@ String.startsWith("ant", "ant") // true
 Text in any script compares by code points:
 
 ```ant
-String.startsWith("Ωμέγα", "Ωμ") // true
-String.startsWith("東京都", "東京")   // true
-String.startsWith("ñandú", "ñ")  // true
+String.startsWith("Ωμέγα", "Ωμ")    // true
+String.startsWith("東京都", "東京") // true
+String.startsWith("ñandú", "ñ")     // true
 ```
 
 In a pipeline, the string is the first argument:

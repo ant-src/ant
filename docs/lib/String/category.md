@@ -43,10 +43,10 @@ Letters: upper case, lower case, title case, modifier, and other, such as a Han 
 no case:
 
 ```ant
-String.category("Ä") // "Lu"
-String.category("ß") // "Ll"
-String.category("ǅ") // "Lt"
-String.category("ʰ") // "Lm"
+String.category("Ä")  // "Lu"
+String.category("ß")  // "Ll"
+String.category("ǅ")  // "Lt"
+String.category("ʰ")  // "Lm"
 String.category("中") // "Lo"
 ```
 
@@ -84,10 +84,10 @@ String.category("?") // "Po"
 Symbols: math, currency, modifier, and other. An emoji of one code point is an other symbol:
 
 ```ant
-String.category("+") // "Sm"
-String.category("€") // "Sc"
-String.category("^") // "Sk"
-String.category("©") // "So"
+String.category("+")  // "Sm"
+String.category("€")  // "Sc"
+String.category("^")  // "Sk"
+String.category("©")  // "So"
 String.category("🐜") // "So"
 ```
 
