@@ -185,8 +185,9 @@ func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope, expected t
 // a string or bool for those two, or a named primitive over such a base, which is unwrapped.
 func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 	result := types.Prim{Kind: ent.conversion}
+	name := types.String(result) // int for int64, byte for uint8, as everywhere (section 4)
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorf(x.Pos, "%s takes exactly one positional argument", ent.name)
+		c.errorf(x.Pos, "%s takes exactly one positional argument", name)
 		c.synthArgs(x.Args, sc)
 		return result
 	}
@@ -202,14 +203,14 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 	switch {
 	case ent.conversion == value.KindString || ent.conversion == value.KindBool:
 		if !ok || p.Kind != ent.conversion {
-			c.errorf(x.Pos, "%s converts only a %s or a named primitive type over %s, got %s", ent.name, ent.conversion, ent.conversion, types.String(t))
+			c.errorf(x.Pos, "%s converts only a %s or a named primitive type over %s, got %s", name, ent.conversion, ent.conversion, types.String(t))
 		}
 	default:
 		if !ok || !p.Kind.IsNumber() {
 			if pp, isParam := types.Expand(base).(types.Param); isParam && pp.Decl.Bound != nil && c.operandOK(base, false) {
 				return result
 			}
-			c.errorf(x.Pos, "%s converts a number or a named primitive type over a number, got %s", ent.name, types.String(t))
+			c.errorf(x.Pos, "%s converts a number or a named primitive type over a number, got %s", name, types.String(t))
 		}
 	}
 	return result

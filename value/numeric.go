@@ -563,7 +563,7 @@ func uintToInt(to Kind, x uint64) (Value, error) {
 // fraction is reported as one.
 func floatToInt(to Kind, f float64) (Value, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
-		return nil, rangeError(to, f)
+		return nil, fmt.Errorf("%s does not convert to %s", Render(f), to)
 	}
 	if f != math.Trunc(f) {
 		return nil, fmt.Errorf("%s has a fraction, so it does not convert to %s", Render(f), to)
