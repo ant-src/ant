@@ -167,6 +167,9 @@ func (c *Checker) nullTest(x *ast.Binary, sc *scope) (*local, bool) {
 func (c *Checker) narrowable(sc *scope, id *ast.Ident) *local {
 	l, ent := c.lookup(sc, id.Name)
 	if l != nil {
+		if l.hidden {
+			return nil // the x of a lambda of arity zero, reported where it is read
+		}
 		return l
 	}
 	if ent == nil || ent.kind != entVar || !ent.v.decl.Let {

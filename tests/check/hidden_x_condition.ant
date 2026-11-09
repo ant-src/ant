@@ -1,0 +1,11 @@
+// spec: 6 Anonymous functions
+// A lambda of arity zero has no x, also where x is tested in a condition: the outer x is hidden,
+// not read.
+let x: int | string = 3
+let a = Panic.catch({ assert(x is string) }) // ERR: x is not defined: a lambda that takes no argument has no x
+let b = Panic.catch({
+  if x is int { println("int") } // ERR: x is not defined: a lambda that takes no argument has no x
+})
+let c = Panic.catch({
+  if x == null { println("null") } // ERR: x is not defined: a lambda that takes no argument has no x
+})
