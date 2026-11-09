@@ -264,7 +264,29 @@ func caseInputs(src string) ([]caseInput, bool) {
 		}
 		inputs = append(inputs, in)
 	}
+	if any {
+		inputs = attachPanics(inputs)
+	}
 	return inputs, any
+}
+
+var ownPanic = regexp.MustCompile(`^\s*//\s*panic:`)
+
+// attachPanics makes a // panic: on a line of its own the value of the expression above it, in a
+// block of cases, for a case that would pass 100 columns with it (README.md, Failing examples).
+func attachPanics(inputs []caseInput) []caseInput {
+	var out []caseInput
+	for _, in := range inputs {
+		if n := len(out); n > 0 && !out[n-1].isCase && ownPanic.MatchString(in.src) {
+			prev := &out[n-1]
+			if expr, value, ok := caseSplit(prev.src + " " + strings.TrimSpace(in.src)); ok {
+				prev.isCase, prev.src, prev.last = true, expr+" // => "+value, in.last
+				continue
+			}
+		}
+		out = append(out, in)
+	}
+	return out
 }
 
 // docMarker is a comment that marks the line of a program that fails: "// error: <message>" for a

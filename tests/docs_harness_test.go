@@ -31,6 +31,8 @@ func TestDocsHarness(t *testing.T) {
 		{name: "a syntax error", page: f + "ant\nprintln(1,, 2) // error: unexpected ','\n" + f + "\n"},
 		{name: "two errors", page: f + "ant\nvar x: int = \"s\"  // error: cannot use\nvar y: string = 1 // error: cannot use\n" + f + "\n"},
 		{name: "a panic in a case", page: f + "ant\n[1][3] // panic: index 3 out of range for an array of length 1\n" + f + "\n"},
+		{name: "a panic under a case", page: f + "ant\n[1, 2] // [1, 2]\n[1][3]\n// panic: index 3 out of range for an array of length 1\n" + f + "\n"},
+		{name: "a function in cases sees a let", page: f + "ant\nlet magic = 1\nfunc f(): int {\n  magic\n}\nf() // 1\n" + f + "\n"},
 		{name: "modules and tests", page: f + "ant [lib/geo.ant]\nexport func double(n: int): int { n * 2 }\n" + f + "\n\n" + f + "ant\nimport \"./lib/geo.ant\" { double }\n\nprintln(double(21))\n" + f + "\n\n" + f + "text\n42\n" + f + "\n\n<!-- test: cmd ant test . -->\n\n" + f + "ant [geo_test.ant]\nimport \"./lib/geo.ant\" { double }\n\ntest \"double\" {\n  assert(double(2) == 4)\n}\n" + f + "\n"},
 		{name: "check-only", page: "<!-- test: check-only prints the time -->\n\n" + f + "ant\nprintln(Time.now())\n" + f + "\n"},
 		{name: "indented fence", page: "1. Run it:\n\n   " + f + "ant\n   println(1)\n   " + f + "\n\n   " + f + "text\n   1\n   " + f + "\n"},
