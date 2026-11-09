@@ -15,10 +15,12 @@ Iter.take returns a sequence of at most the first n elements of s. It panics if 
 
 - `Iter.take` is lazy: it returns a new sequence without running `s`. The source runs when a `for`
   loop or [Iter.toArray](toArray.md) runs the result.
-- When `s` has fewer than `n` elements, the result has all of them. `n` of `0` gives an empty
-  sequence.
-- The result is finite even when `s` never ends, so `Iter.take` is how you bound an endless
-  sequence.
+- The result stops `s` as soon as it has yielded `n` elements, so an [Iter.map](map.md) before it
+  calls its function only `n` times. With `n` of `0` it does not run `s` at all.
+- When `s` has fewer than `n` elements, the result has all of them.
+- A negative `n` panics when `Iter.take` is called, before the result runs.
+- The result is finite once `s` has yielded `n` elements, even when `s` never ends, so `Iter.take`
+  bounds an endless sequence.
 
 ## Basic examples
 
@@ -156,6 +158,18 @@ for n in Iter.range(0, 6) {
 }
 ```
 
+The result stops the source after `n` elements, so a mapping function before it runs `n` times, and
+not at all for a count of `0`:
+
+```ant
+var calls = 0
+let squares = Iter.range(0, 1000000) | Iter.map({ calls += 1; x * x })
+squares | Iter.take(3) | Iter.toArray() // [0, 1, 4]
+calls                                   // 3
+squares | Iter.take(0) | Iter.toArray() // []
+calls                                   // 3
+```
+
 Taking twice keeps the smaller count:
 
 ```ant
@@ -165,10 +179,10 @@ assert((s | Iter.take(5) | Iter.take(2) | Iter.toArray()) == (s | Iter.take(2) |
 
 ## Possible issues
 
-A negative count panics:
+A negative count panics at the call, even when the result never runs:
 
 ```ant
-Iter.take(Iter.range(0, 5), -1) // panic: Iter.take needs a count of at least 0, got -1
+let none = Iter.take(Iter.range(0, 5), -1) // panic: Iter.take needs a count of at least 0, got -1
 ```
 
 `Iter.take` returns a sequence, not an array. Run it with [Iter.toArray](toArray.md) to get one:
@@ -176,6 +190,25 @@ Iter.take(Iter.range(0, 5), -1) // panic: Iter.take needs a count of at least 0,
 ```ant
 var first: Array[int] = Iter.range(0, 5) | Iter.take(2)
 // error: cannot use Seq[int] where Array[int] is expected
+```
+
+`Iter.take` ends an endless source only once `n` elements reach it. A filter before it that matches
+fewer than `n` elements never ends:
+
+<!-- test: check-only never ends -->
+
+```ant
+func from(start: int): Seq[int] {
+  func(yield: func(int): bool) {
+    var i = start
+    while true {
+      if !yield(i) { return }
+      i += 1
+    }
+  }
+}
+
+println(from(1) | Iter.filter({ x < 0 }) | Iter.take(1) | Iter.toArray())
 ```
 
 ## See also

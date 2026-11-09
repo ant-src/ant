@@ -110,8 +110,7 @@ while !frontier.isEmpty() {
   println("${depth}: ${frontier.values()}")
   var next: Set[string] = Set.of([])
   for node in frontier {
-    var targets: Array[string] = edges[node] ?? []
-    for to in targets {
+    for to in edges[node] ?? [] {
       if seen.add(to) {
         next.add(to)
       }
@@ -146,10 +145,9 @@ for s in cases {
 The empty set is a subset of every set:
 
 ```ant
-var none: Set[int] = Set.of([])
 var cases: Array[Set[int]] = [Set.of([]), Set.of([1, 2])]
 for s in cases {
-  assert(none.isSubset(s))
+  assert(Set.isSubset(Set.of([]), s))
 }
 ```
 
@@ -164,7 +162,7 @@ if s { // error: cannot use Set[int] where bool is expected
 }
 ```
 
-`Set.of([])` has no element type to infer without an expected type. Annotate it:
+`Set.of([])` alone has nothing to take an element type from. Annotate it:
 
 ```ant
 println(Set.of([]).isEmpty()) // error: cannot infer the element type of an empty array; annotate it

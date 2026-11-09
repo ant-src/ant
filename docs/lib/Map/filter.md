@@ -14,6 +14,7 @@ Map.filter returns a new map holding the entries of m that f accepts, in the ord
 ## Details
 
 - Returns a new map; `m` is unchanged, even when `f` accepts every entry.
+- Calls `f` once per entry, in insertion order.
 
 ## Basic examples
 
@@ -100,7 +101,7 @@ stock | Map.filter({ x.key == "plums" }) // Map{ "plums": 7 }
 
 ## Applications
 
-Hide the fields named in a set before logging form data:
+Hide the keys named in a set before logging form data:
 
 ```ant
 var hidden = Set.of(["password", "token"])
@@ -152,6 +153,19 @@ var yes = Map.filter(m, f)
 var no = Map.filter(m, { !f(x) })
 assert(Map.size(yes) + Map.size(no) == Map.size(m))
 assert(Map.merge(yes, no) == m)
+```
+
+`f` runs once per entry, in insertion order:
+
+```ant
+var m = Map{ b: 2, a: 1, c: 3 }
+var seen: Array[string] = []
+var big = Map.filter(m, func(e: Entry[string, int]): bool {
+  Array.push(seen, e.key)
+  e.value > 1
+})
+assert(seen == ["b", "a", "c"])
+assert(big == Map{ b: 2, c: 3 })
 ```
 
 Filtering twice by the same predicate changes nothing the second time:

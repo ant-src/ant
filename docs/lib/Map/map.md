@@ -14,9 +14,9 @@ order of m.
 
 ## Details
 
-- Returns a new map; `m` is unchanged.
-- `f` receives each entry as an `Entry[K, V]`, a record with `key` and `value`. It returns the new
-  value only: the keys stay the same.
+- `f` returns the new value only; the keys stay the same. To change keys, rebuild the map with
+  [`Map.fromEntries`](fromEntries.md).
+- `f` is called once per entry, in insertion order.
 
 ## Basic examples
 
@@ -68,6 +68,13 @@ Replace the `null` values of a map with `??`:
 ```ant
 var scores: Map[string, int | null] = Map{ ann: 90, bob: null }
 Map.map(scores, { x.value ?? 0 }) // Map{ "ann": 90, "bob": 0 }
+```
+
+An empty literal on the right of `??` takes the type of the left side, so it needs no annotation:
+
+```ant
+var tags: Map[string, Array[string] | null] = Map{ ann: ["admin"], bob: null }
+Map.map(tags, { x.value ?? [] }) // Map{ "ann": ["admin"], "bob": [] }
 ```
 
 Handle each member of a union with `is`, which narrows `x.value` in each branch:
@@ -164,6 +171,17 @@ var f: func(Entry[string, int]): int = { x.value + 10 }
 assert(Map.map(m, f) == Map.fromEntries(Map.entries(m).map({ Entry{ key: x.key, value: f(x) } })))
 ```
 
+`f` sees the entries one at a time, in insertion order:
+
+```ant
+var seen: Array[string] = []
+Map.map(Map{ b: 2, a: 1 }, func(e: Entry[string, int]): int {
+  Array.push(seen, e.key)
+  e.value
+})
+assert(seen == ["b", "a"])
+```
+
 Mapping each entry to its value gives an equal map that is not the same map:
 
 ```ant
@@ -181,6 +199,12 @@ assert(!Map.same(n, m))
 var m = Map{ a: 1 }
 var doubled = Map.map(m, { x * 2 })
 // error: * needs both operands of one type, got Entry[string, int] and int
+```
+
+`Map.map` returns a map, not an array. To get an array of results, map the entries:
+
+```ant
+Map.entries(Map{ a: 1, b: 2 }).map({ x.value * 10 }) // [10, 20]
 ```
 
 A function of two parameters, a key and a value, is a compile error too:

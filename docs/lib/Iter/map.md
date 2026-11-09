@@ -15,7 +15,8 @@ Iter.map returns a sequence of f applied to each element of s. Like every Iter f
 ## Details
 
 - Lazy: `Iter.map` calls `f` only when the result runs, through `Iter.toArray` or `for`, and calls
-  it once for each element the run takes from `s`.
+  it once for each element the run takes from `s`, in the order of `s`, so a `break` or
+  [`Iter.take`](take.md) stops the calls.
 - Each run of the result runs `s` again and calls `f` again; nothing is cached. A second run sees
   only what `s` gives the second time, so a sequence from [`Channel.values`](../Channel/values.md)
   gives nothing more once the channel is drained.
@@ -122,20 +123,6 @@ func naturals(): Seq[int] {
 naturals() | Iter.map({ x * x }) | Iter.take(5) | Iter.toArray() // [0, 1, 4, 9, 16]
 ```
 
-Stop a `for` loop early with `break`. The elements after the break are never mapped:
-
-```ant
-var seen: Array[int] = []
-for n in Iter.map(Iter.range(1, 100), { Array.push(seen, x); x * x }) {
-  if n > 10 { break }
-}
-println(seen)
-```
-
-```text
-[1, 2, 3, 4]
-```
-
 Transform the values a goroutine sends on a channel as they arrive:
 
 ```ant
@@ -183,6 +170,29 @@ Iter.toArray(doubled) // [0, 2, 4]
 calls                 // 3
 Iter.toArray(doubled) // [0, 2, 4]
 calls                 // 6
+```
+
+Followed by `Iter.take(n)`, the map calls `f` only `n` times, however long `s` is:
+
+```ant
+var mapped = 0
+var s = Iter.range(0, 1000000) | Iter.map({ mapped += 1; x })
+Iter.take(s, 5) | Iter.toArray() // [0, 1, 2, 3, 4]
+mapped                           // 5
+```
+
+A `break` in a `for` loop stops the calls too. `f` never sees the elements after the break:
+
+```ant
+var seen: Array[int] = []
+for n in Iter.map(Iter.range(1, 100), { Array.push(seen, x); x * x }) {
+  if n > 10 { break }
+}
+println(seen)
+```
+
+```text
+[1, 2, 3, 4]
 ```
 
 When `f` and `g` have no side effects, two maps in a row are one map with the composed function:

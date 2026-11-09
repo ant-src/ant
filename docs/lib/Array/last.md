@@ -13,10 +13,7 @@ Array.last returns the last element of xs, or null when xs is empty.
 
 ## Details
 
-- Returns `null` when `xs` is empty; `xs` is unchanged. To remove the last element, use
-  [Array.pop](pop.md).
-- When `T` includes `null`, a `null` result does not tell an empty array from a `null` last element;
-  use [Array.isEmpty](isEmpty.md).
+- Does not change `xs`. To remove the last element, use [Array.pop](pop.md).
 
 ## Basic examples
 
@@ -96,18 +93,20 @@ String.graphemes("bonjour 👋🏽").last() // "👋🏽"
 ```
 
 The keys of a map and the values of a set are arrays in insertion order, so `Array.last` gives the
-key or member whose first insertion came last. Replacing a map value or re-adding a set member does
-not move it:
+one inserted last:
 
 ```ant
 Map.keys(Map{ b: 2, a: 1 }).last() // "a"
 Set.of([3, 1, 2]).values().last()  // 2
-var m = Map{ b: 2, a: 1 }
-m["b"] = 5
-Map.keys(m).last() // "a"
-var s = Set.of([3, 1, 2])
-s.add(3)          // false
-s.values().last() // 2
+```
+
+A map value that may be missing can default to `[]` with `??`. The `[]` takes the type of the value,
+so it needs no annotation:
+
+```ant
+var visits = Map{ ann: ["home", "cart"] }
+(visits["ann"] ?? []).last() // "cart"
+(visits["bob"] ?? []).last() // null
 ```
 
 In a pipe, the array is the first argument:
@@ -118,7 +117,7 @@ In a pipe, the array is the first argument:
 
 ## Applications
 
-Take the file name from a path, or a default for an empty one:
+Take the file name from a path:
 
 ```ant
 func baseName(path: string): string {
@@ -133,6 +132,9 @@ println(baseName("README.md"))
 last.md
 README.md
 ```
+
+`String.split` always returns at least one piece, so the `?? ""` only satisfies the `string | null`
+type.
 
 Read the top of a stack and leave the stack as it was:
 
@@ -167,7 +169,7 @@ println(latest([]))
 no data
 ```
 
-Stop with a panic when an array that must not be empty is:
+Panic when an array that must have elements is empty:
 
 ```ant
 var results: Array[int] = []

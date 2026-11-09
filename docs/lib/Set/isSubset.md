@@ -15,7 +15,6 @@ Set.isSubset reports whether every member of a is a member of b.
 
 - Compares members by [`==`](../../language/operators/equality.md): arrays, maps, and sets match by
   contents, and records by tag and fields.
-- The empty set is a subset of every set.
 - Neither set changes.
 
 ## Basic examples
@@ -36,17 +35,16 @@ palette.isSubset(picked) // false
 
 ## Scope
 
-The empty set is a subset of every set, the empty set included. Annotate it so that `T` is known:
+The empty set is a subset of every set, the empty set included. An inline `Set.of([])` takes its
+element type from the other argument. When nothing gives it one, as when both sets are empty,
+annotate it:
 
 ```ant
+Set.isSubset(Set.of([]), Set.of([1, 2])) // true
+Set.of([1]).isSubset(Set.of([]))         // false
 var none: Set[int] = Set.of([])
-none.isSubset(Set.of([1, 2]))    // true
-none.isSubset(none)              // true
-Set.of([1]).isSubset(Set.of([])) // false
+none.isSubset(none) // true
 ```
-
-The second argument takes its element type from the first, so an inline `Set.of([])` works there,
-while the first needs the annotation.
 
 A set is a subset of itself and of any equal set, whatever the order of its members:
 
@@ -184,8 +182,8 @@ var b = Set.of(["y", "x"])
 assert((a == b) == (a.isSubset(b) && b.isSubset(a)))
 ```
 
-Every set is a subset of its union with another, and its intersection with another is a subset of
-it:
+Every set is a subset of its union with another, its intersection with another is a subset of it,
+and so is its difference with another:
 
 ```ant
 var a = Set.of([1, 2])
@@ -251,6 +249,15 @@ var xs = [1, 2, 2]
 var ys = [3, 2, 1]
 Set.of(xs).isSubset(Set.of(ys)) // true
 xs.every({ ys.contains(x) })    // true
+```
+
+There is no `Set.isSuperset`. Swap the arguments: `palette.isSuperset(picked)` is
+`picked.isSubset(palette)`:
+
+```ant
+var picked = Set.of(["red", "blue"])
+var palette = Set.of(["red", "green", "blue"])
+picked.isSubset(palette) // true
 ```
 
 ## See also

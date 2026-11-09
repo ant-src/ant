@@ -15,8 +15,8 @@ Set.has reports whether x is a member of s.
 
 - Members compare by [`==`](../../language/operators/equality.md), so a record or an array matches
   by contents.
-- `Set.has` does not change the set. Use [Set.add](add.md) when you want to test and insert in one
-  step.
+- To test and insert in one step, use [Set.add](add.md): it returns `true` when the value was not a
+  member.
 
 ## Basic examples
 
@@ -36,11 +36,11 @@ primes.has(9) // false
 
 ## Scope
 
-On an empty set, `has` is `false` for every value. Annotate the set so that `T` is known:
+On an empty set, `has` is `false` for every value:
 
 ```ant
-var empty: Set[string] = Set.of([])
-empty.has("") // false
+var none: Set[string] = Set.of([])
+none.has("") // false
 ```
 
 Records and arrays compare by value:
@@ -116,13 +116,10 @@ while i < queue.length() {
   var node = queue[i]
   i += 1
   println(node)
-  var out = edges[node]
-  if out != null {
-    for next in out {
-      if !seen.has(next) {
-        seen.add(next)
-        queue.push(next)
-      }
+  for next in edges[node] ?? [] {
+    if !seen.has(next) {
+      seen.add(next)
+      queue.push(next)
     }
   }
 }

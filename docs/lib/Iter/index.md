@@ -10,18 +10,20 @@ its source; [`Iter.toArray`](toArray.md) and for run one.
 
 The `Iter` namespace holds the functions on sequences. A [Seq](types/Seq.md) is a function that
 pushes its elements to a callback one at a time, so a sequence can be endless and still be used: the
-consumer asks for only the elements it needs. `s.map(f)` and `s | Iter.map(f)` call
+consumer stops it once it has the elements it needs. `s.map(f)` and `s | Iter.map(f)` call
 `Iter.map(s, f)`. `Iter.range` and `Iter.fromArray` build a sequence from something else, so you
 call them as `Iter.fromArray(xs)` or `xs | Iter.fromArray()`, not through `.`.
 
 ## Details
 
 - Building a sequence runs nothing. A `for` loop or [Iter.toArray](toArray.md) runs it, and the
-  callbacks of [Iter.map](map.md) and [Iter.filter](filter.md) run then, element by element.
+  callbacks of [Iter.map](map.md) and [Iter.filter](filter.md) run then, once per element, in the
+  order of the source.
 - Each run runs the source again, and the callbacks with it. A source that cannot repeat, such as
   [Channel.values](../Channel/values.md), gives only what is left.
 - A chain stops as soon as its consumer does: after a `break`, or once [Iter.take](take.md) has its
-  elements, the source produces nothing more.
+  elements, the source produces nothing more. `Iter.take` with a count of 0 never runs its source.
+- `Iter.take` with a negative count panics when you call it, before the sequence runs.
 - On an array, `.map` and `.filter` are the eager `Array` functions. On a sequence they are the lazy
   `Iter` ones. The type of the receiver decides.
 
@@ -47,7 +49,7 @@ step 2
 step 3
 ```
 
-The same chain reads left to right through `.`:
+A chain also reads left to right through `.`:
 
 ```ant
 Iter.fromArray(["ant", "bee", "fly"]).map({ String.toUpper(x) }).toArray() // ["ANT", "BEE", "FLY"]
@@ -60,6 +62,14 @@ An empty range is an empty sequence, and every function passes it through:
 ```ant
 Iter.range(3, 3).toArray()                // []
 Iter.range(5, 0).map({ x * 2 }).toArray() // []
+```
+
+`Iter.take(0)` gives an empty sequence and never runs its source, so the callback never runs:
+
+```ant
+var calls = 0
+Iter.range(0, 5).map({ calls += 1; x }).take(0).toArray() // []
+calls                                                     // 0
 ```
 
 A sequence you write yourself works with every function here. This one never runs out, and
@@ -204,22 +214,31 @@ The `Iter` functions take a sequence, not an array. Wrap an array with `Iter.fro
 var doubled = Iter.map([1, 2], { x * 2 }) // error: cannot use Array[int] where Seq[T] is expected
 ```
 
-`Iter.take` panics on a negative count:
+`Iter.take` panics on a negative count as soon as you call it, even if the sequence never runs:
 
 ```ant
-Iter.range(0, 5).take(-1) // panic: Iter.take needs a count of at least 0, got -1
+var s = Iter.range(0, 5).take(-1) // panic: Iter.take needs a count of at least 0, got -1
 ```
 
-`Iter.fromArray` reads the array when the sequence runs, not when you build it:
+A sequence you write must stop when `yield` returns `false`. `Iter.take` and `break` both return
+`false`, and a later call panics:
 
 ```ant
-var a = [1, 2]
-var s = Iter.fromArray(a)
-Array.push(a, 3)
-s.toArray() // [1, 2, 3]
+func bad(): Seq[int] {
+  func(yield: func(int): bool) {
+    _ = yield(1)
+    _ = yield(2)
+    // panic: yield called again after it returned false; a sequence must return when yield returns false
+  }
+}
+println(bad() | Iter.take(1) | Iter.toArray())
 ```
 
-Build it from a copy, `Iter.fromArray([...a])`, to keep the elements as they are now.
+Check what `yield` returns, as `while yield(p)` in `powersOfTwo` and `if !yield(n) { return }` in
+`collatz` do above.
+
+Call `yield` only on the goroutine that runs the sequence. To produce elements on other goroutines,
+send them on a channel and return [`Channel.values(c)`](../Channel/values.md).
 
 `Iter.toArray` runs the whole sequence, so on an endless one it never returns. Put `Iter.take` in
 front of it, or consume the sequence with a `for` loop that breaks.

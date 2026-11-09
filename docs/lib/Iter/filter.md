@@ -13,15 +13,22 @@ Iter.filter returns a sequence of the elements of s that f accepts.
 
 ## Details
 
-- Lazy: `Iter.filter` runs nothing when called. `f` runs only when the result is run, by `for` or
-  `Iter.toArray`, once per element the source yields.
+- Lazy: `Iter.filter` runs nothing when called. `f` runs only when `for` or `Iter.toArray` runs the
+  result, once per element the source yields.
+- The kept elements come out in the order of the source.
 - When the consumer stops early, as `Iter.take` or a `break` does, the source stops too, and `f` is
   not called on the elements after.
 - Each run of the result runs the source again and calls `f` again.
 
 ## Basic examples
 
-Keep the multiples of 7 below 30:
+Keep the multiples of 3 below 10:
+
+```ant
+Iter.toArray(Iter.filter(Iter.range(0, 10), { x % 3 == 0 })) // [0, 3, 6, 9]
+```
+
+Keep the multiples of 7 below 30 with a pipe:
 
 ```ant
 Iter.range(0, 30) | Iter.filter({ x % 7 == 0 }) | Iter.toArray() // [0, 7, 14, 21, 28]

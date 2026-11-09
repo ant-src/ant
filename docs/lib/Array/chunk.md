@@ -14,10 +14,7 @@ a multiple of n. It panics if n \< 1. An empty xs gives \[\].
 
 ## Details
 
-- Every chunk holds `n` elements except the last, which holds what is left. An empty `xs` gives
-  `[]`.
 - `n` below 1 panics, even when `xs` is empty.
-- Returns new arrays; `xs` is unchanged.
 
 ## Basic examples
 
@@ -179,6 +176,12 @@ the length first:
 var flat = ["host", "localhost", "port"]
 Array.chunk(flat, 2).map({ x[1] })                         // panic: index 1 out of range for an array of length 1
 Array.chunk(flat, 2).filter({ len(x) == 2 }).map({ x[1] }) // ["localhost"]
+```
+
+```ant
+var empty: Array[int] = []
+Array.chunk(empty, 3)      // []
+len(Array.chunk(empty, 3)) // 0
 ```
 
 An empty array gives `[]`, not `[[]]`, so a loop over its chunks runs zero times.

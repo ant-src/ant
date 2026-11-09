@@ -21,6 +21,9 @@ from an array and is called only through the namespace.
   inserted again goes to the end.
 - `m[k] = v`, [Map.set](set.md), and [Map.remove](remove.md) change the map in place. Every other
   function returns a new value and leaves its arguments untouched.
+- [Map.map](map.md) and [Map.filter](filter.md) call `f` once per entry, in insertion order.
+- Each [Entry](types/Entry.md) that a `for` loop visits or [Map.entries](entries.md) returns is a
+  new record. Assigning to its fields does not change the map.
 - A map is a reference: copying a variable shares the map. Two maps are `==` when they have the same
   keys and equal values per key, in any order.
 
@@ -79,7 +82,7 @@ Map.isEmpty(empty) // true
 empty["missing"]   // null
 ```
 
-Records, arrays, and named types can be keys. They match by contents:
+Keys compare by `==`, so records and arrays can be keys and match by contents:
 
 ```ant
 type Point = { x: int, y: int }
@@ -166,6 +169,24 @@ Fill in options from defaults. The keys of the defaults come first, and the give
 var defaults = Map{ color: "auto", width: "80" }
 var given = Map{ width: "120" }
 Map.merge(defaults, given) // Map{ "color": "auto", "width": "120" }
+```
+
+Walk a graph stored as a map from each node to its neighbors. `?? []` gives a node with no entry an
+empty list:
+
+```ant
+var edges = Map{ a: ["b", "c"], b: ["c"] }
+for node in ["a", "b", "c"] {
+  for next in edges[node] ?? [] {
+    println("${node} -> ${next}")
+  }
+}
+```
+
+```text
+a -> b
+a -> c
+b -> c
 ```
 
 ## Properties and relations
@@ -257,7 +278,7 @@ m              // Map{ "a": 1, "b": 2 }
 Map.same(m, n) // true
 ```
 
-`Map.merge` with an empty map makes a separate copy:
+To get a separate map, merge with an empty one:
 
 ```ant
 var m = Map{ a: 1 }
@@ -266,8 +287,45 @@ n["b"] = 2
 m // Map{ "a": 1 }
 ```
 
+Assigning to the fields of an entry from a loop or from `Map.entries` changes only that record. Set
+the value through the map:
+
+```ant
+var stock = Map{ apples: 3, pears: 0 }
+for e in stock {
+  e.value = 10
+}
+stock // Map{ "apples": 3, "pears": 0 }
+for { key } in stock {
+  stock[key] = 10
+}
+stock // Map{ "apples": 10, "pears": 10 }
+```
+
+A loop reads the map as it goes. It skips the removed `b` and visits the added `d`:
+
+```ant
+var m = Map{ a: 1, b: 2, c: 3 }
+for { key, value } in m {
+  if value == 1 {
+    Map.remove(m, "b")
+  }
+  if key == "c" {
+    m["d"] = 4
+  }
+  println(key)
+}
+```
+
+```text
+a
+c
+d
+```
+
 ## See also
 
 - [Entry](types/Entry.md), the record a map yields
 - [Array](../Array/index.md), [Set](../Set/index.md): the other built-in containers
 - [Array.groupBy](../Array/groupBy.md): a map from each key to its elements
+- [len](../prelude/len.md): the number of entries, as for any container

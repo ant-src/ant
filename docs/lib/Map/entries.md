@@ -13,10 +13,10 @@ Map.entries returns the entries of m in insertion order.
 
 ## Details
 
-- The entries come in insertion order. Replacing a value keeps its entry's position; a key removed
-  and inserted again goes to the end.
+- Replacing a value keeps its entry's position; a key removed and inserted again goes to the end.
 - `Map.entries` returns a new array, so later changes to `m` do not change it, and changes to it do
   not change `m`. Each `value` is the stored value itself, not a copy.
+- Each `Entry` is a new record, so assigning to its fields does not change `m`.
 
 ## Basic examples
 
@@ -212,6 +212,20 @@ var m = Map{ a: 1 }
 var es = m.entries()
 es[0].value = 9
 m // Map{ "a": 1 }
+```
+
+The same holds for the entries a `for` loop over the map visits:
+
+```ant
+var m = Map{ a: 1, b: 2 }
+for e in m {
+  e.value = 0
+}
+println(m)
+```
+
+```text
+Map{ "a": 1, "b": 2 }
 ```
 
 `Map.entries` takes a map, not a set:

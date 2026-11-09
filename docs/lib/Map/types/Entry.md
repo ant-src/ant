@@ -16,6 +16,8 @@ Entry is a key and its value, as a map yields them.
 - `for` over a map, [`Map.entries`](../entries.md), and the callbacks of [`Map.map`](../map.md) and
   [`Map.filter`](../filter.md) give one `Entry[K, V]` per key, in insertion order.
   [`Map.fromEntries`](../fromEntries.md) turns entries back into a map.
+- Each entry that `Map.entries` returns or a `for` loop visits is a new record, so assigning to its
+  `key` or `value` does not change the map.
 
 ## Basic examples
 
@@ -212,7 +214,7 @@ for { key, value } in m {
 }
 ```
 
-`Map.fromEntries` and `Map.entries` undo each other:
+`Map.fromEntries` rebuilds a map from its entries:
 
 ```ant
 var m = Map{ x: 1, y: 2 }
@@ -257,6 +259,20 @@ var ages = Map{ ann: 31 }
 for { index, value } in ages { // error: Entry[string, int] has no field index
   println("${index}: ${value}")
 }
+```
+
+Assigning to an entry's field changes only that entry, never the map:
+
+```ant
+var m = Map{ a: 1, b: 2 }
+for e in m {
+  e.value = e.value * 10
+}
+m // Map{ "a": 1, "b": 2 }
+var es = m.entries()
+es[0].value = 99
+es[0] // Entry{ key: "a", value: 99 }
+m     // Map{ "a": 1, "b": 2 }
 ```
 
 Write `m[e.key] = ...` to change a value while looping:

@@ -18,6 +18,9 @@ empty set, its element type coming from the expected type.
   removing from `xs` leaves the set as it was.
 - A member is hashed when the set is built. Changing an array, map, set, or record after it became a
   member is a program error: the set may no longer find it.
+- `Set.of([])` takes its element type from the expected type (an annotation, a parameter or return
+  type, a record field, or the left side of `??`) or from the other arguments of a generic call.
+  With neither, it is a compile error.
 
 ## Basic examples
 
@@ -45,6 +48,13 @@ An empty array gives the empty set. The annotation supplies the element type:
 var seen: Set[int] = Set.of([])
 seen        // Set.of([])
 seen.size() // 0
+```
+
+Passed to a call next to another set, `Set.of([])` takes its element type from that set:
+
+```ant
+Set.isSubset(Set.of([]), Set.of([1, 2])) // true
+Set.union(Set.of([]), Set.of(["a"]))     // Set.of(["a"])
 ```
 
 Records are members by contents, so two records with the same fields are one member:
@@ -105,12 +115,6 @@ The parameter is named `xs`:
 Set.of(xs: [2, 2, 7]) // Set.of([2, 7])
 ```
 
-`Set.of` is a function value too, so it can go to `Array.map`:
-
-```ant
-[[1, 1], [2, 3, 2]].map(Set.of) // [Set.of([1]), Set.of([2, 3])]
-```
-
 ## Applications
 
 Count the distinct words of a sentence:
@@ -169,6 +173,21 @@ println(visited)
 new: about
 new: blog
 Set.of(["home", "about", "blog"])
+```
+
+Fall back to an empty set for a missing map key. The right side of `??` takes the map's value type:
+
+```ant
+var followers: Map[string, Set[string]] = Map{ ada: Set.of(["alan"]) }
+for name in ["ada", "linus"] {
+  var fs = followers[name] ?? Set.of([])
+  println("${name}: ${fs.size()}")
+}
+```
+
+```text
+ada: 1
+linus: 0
 ```
 
 ## Properties and relations

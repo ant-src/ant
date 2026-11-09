@@ -15,8 +15,8 @@ them.
 ## Details
 
 - [`String.cut`](../cut.md) returns a `String.Cut` when the separator occurs, with `before` the text
-  in front of its first occurrence and `after` the text behind it, and `null` when it does not.
-- Neither field has a default, so a literal gives both.
+  in front of its first occurrence and `after` the text that follows it, and `null` when it does
+  not.
 
 ## Basic examples
 
@@ -36,6 +36,14 @@ for line in ["name=ant", "oops"] {
 ```text
 name -> ant
 no '=' in oops
+```
+
+Only the first separator splits; `after` keeps the later ones, and a separator at an end leaves an
+empty field:
+
+```ant
+String.cut("k=v=w", "=") // String.Cut{ before: "k", after: "v=w" }
+String.cut("=v", "=")    // String.Cut{ before: "", after: "v" }
 ```
 
 Write one with a literal:
@@ -145,7 +153,7 @@ Split `user@domain` addresses and group the users by domain:
 var users: Map[string, Array[string]] = Map{}
 for address in ["ann@a.org", "bob@b.org", "cat@a.org", "nobody"] {
   var { before: user, after: domain } = String.cut(address, "@") ?? continue
-  var list: Array[string] = users[domain] ?? []
+  var list = users[domain] ?? []
   list.push(user)
   users[domain] = list
 }

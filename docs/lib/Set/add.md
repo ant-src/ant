@@ -80,15 +80,6 @@ Set.add(s, "b") // true
 s               // Set.of(["a", "b"])
 ```
 
-Call it through `.` on a set, or with a pipe:
-
-```ant
-var s = Set.of([1])
-s.add(2)       // true
-s | Set.add(3) // true
-s              // Set.of([1, 2, 3])
-```
-
 ## Applications
 
 Keep the first of each line, with no separate membership test:
@@ -125,15 +116,15 @@ func repeated(words: Array[string]): Array[string] {
 repeated(["to", "be", "or", "not", "to", "be", "to"]) // ["to", "be"]
 ```
 
-Collect every node reachable from a start. The `for` loop visits the members added while it runs,
-and a node already in the set is not added again, so a cycle ends:
+Collect every node reachable from a start. The `for` loop visits the members added while it runs. A
+node already in the set is not added again, so a cycle ends. `edges[node] ?? []` is an empty array
+for a node with no edges:
 
 ```ant
 func reachable(edges: Map[string, Array[string]], start: string): Set[string] {
   var found = Set.of([start])
   for node in found {
-    let out: Array[string] = edges[node] ?? []
-    for next in out {
+    for next in edges[node] ?? [] {
       Set.add(found, next)
     }
   }
@@ -261,6 +252,16 @@ var s: Set[int] = Set.of([])
 s[1] = true // error: Set[int] cannot be indexed
 ```
 
+NaN is not `==` to itself, so each add of it adds a new member:
+
+```ant
+var s: Set[float64] = Set.of([])
+let nan = 0.0 / 0.0
+Set.add(s, nan) // true
+Set.add(s, nan) // true
+Set.size(s)     // 2
+```
+
 Adding an existing member does not move it. To move a member to the end, remove it first:
 
 ```ant
@@ -272,7 +273,8 @@ Set.add(s, "a")    // true
 s                  // Set.of(["b", "c", "a"])
 ```
 
-A set is not safe to add to from several goroutines at once. Guard it with a `Mutex`:
+Adding to one set from several goroutines without a lock is a data race. Guard the set with a
+`Mutex`:
 
 ```ant
 var seen: Set[int] = Set.of([])
