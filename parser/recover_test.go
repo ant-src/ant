@@ -78,29 +78,33 @@ func TestRecoverSyntaxCases(t *testing.T) {
 }
 
 // TestRecoverTruncated checks that the recovering parser never panics on any prefix of a corpus
-// file, and that the tree it builds has sound spans.
+// file, and that the tree it builds has sound spans. Parsing every prefix is quadratic in a file's
+// size, so the files run in parallel.
 func TestRecoverTruncated(t *testing.T) {
 	for path, src := range corpus(t) {
-		_, l, _ := ParseRecover(path, src)
-		cuts := map[int]bool{len(src): true}
-		for _, tok := range l.Tokens {
-			cuts[tok.Off] = true
-			cuts[tok.End] = true
-			if tok.Off+1 < len(src) {
-				cuts[tok.Off+1] = true
+		t.Run(path, func(t *testing.T) {
+			t.Parallel()
+			_, l, _ := ParseRecover(path, src)
+			cuts := map[int]bool{len(src): true}
+			for _, tok := range l.Tokens {
+				cuts[tok.Off] = true
+				cuts[tok.End] = true
+				if tok.Off+1 < len(src) {
+					cuts[tok.Off+1] = true
+				}
 			}
-		}
-		for cut := range cuts {
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						t.Fatalf("%s cut at %d: panic: %v\n%s", path, cut, r, src[:cut])
-					}
+			for cut := range cuts {
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							t.Fatalf("%s cut at %d: panic: %v\n%s", path, cut, r, src[:cut])
+						}
+					}()
+					f, _, _ := ParseRecover(path, src[:cut])
+					checkRecoveredSpans(t, path, cut, f)
 				}()
-				f, _, _ := ParseRecover(path, src[:cut])
-				checkRecoveredSpans(t, path, cut, f)
-			}()
-		}
+			}
+		})
 	}
 }
 
