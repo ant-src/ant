@@ -259,6 +259,7 @@ block all fail the test.
 | --------------------------- | --------------------------------------------------------------------- | -------------------------------- |
 | `test: file <path>` + body  | Write the body to `<path>` in the page's directory.                   | any block                        |
 | `test: before` + body       | Ant code put in front of the block, hidden from the reader.           | cases, an unnamed program        |
+| `test: after` + body        | Ant code put after the block, hidden from the reader.                 | an unnamed program               |
 | `test: stdin` + body        | Feed the body to standard input.                                      | a block that runs                |
 | `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                            | an unnamed program without `cmd` |
 | `test: cmd ant <args>`      | Run this `ant` command in the page's directory, such as `ant test .`. | a program                        |
@@ -269,7 +270,7 @@ A block runs when it is an unnamed program, or a named one with `cmd`, has no `c
 marks no line with `// error:`. `exit` and `// panic:` exclude each other.
 
 A directive with a body puts it on the lines after the first, up to `-->`; nothing else goes on the
-first line of `stdin` or `before`:
+first line of `stdin`, `before`, or `after`:
 
 ````md
 <!-- test: file people.csv

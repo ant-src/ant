@@ -92,6 +92,7 @@ var docDirectives = map[string]struct{ arg, body bool }{
 	"stdin":      {false, true},
 	"args":       {true, false},
 	"before":     {false, true},
+	"after":      {false, true},
 	"cmd":        {true, false},
 	"exit":       {true, false},
 	"check-only": {true, false},
@@ -488,13 +489,17 @@ func writeDocFile(rel string, line int, dir, name, body string) []string {
 }
 
 // pageLines rewrites the positions a tool reports in file, "file:12:", to the lines of the page:
-// the block's code starts on line start, after hidden lines of test: before.
-func pageLines(msg, file, rel string, start, hidden int) string {
+// the block's code starts on line start, after hidden lines of test: before, and test: after
+// follows its shown lines.
+func pageLines(msg, file, rel string, start, hidden, shown int) string {
 	re := regexp.MustCompile(`(?:[^\s:]*[/\\])?` + regexp.QuoteMeta(filepath.Base(file)) + `:(\d+)`)
 	return re.ReplaceAllStringFunc(msg, func(m string) string {
 		n, _ := strconv.Atoi(re.FindStringSubmatch(m)[1])
 		if n <= hidden {
 			return fmt.Sprintf("%s (test: before, line %d)", rel, n)
+		}
+		if shown > 0 && n > hidden+shown {
+			return fmt.Sprintf("%s (test: after, line %d)", rel, n-hidden-shown)
 		}
 		return fmt.Sprintf("%s:%d", rel, start+n-hidden-1)
 	})
@@ -528,6 +533,8 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	fails := len(errs) > 0
 	before := ds["before"].body
 	hidden := strings.Count(before, "\n")
+	after := ds["after"].body
+	shown := strings.Count(b.src, "\n")
 	code := b.line + 1
 
 	ext := filepath.Ext(b.name)
@@ -572,7 +579,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		for _, p := range tableProblems(t.Context(), fake, src.String(), docCasesTimeout) {
 			// The table speaks of its own // => marker; a page writes the value after //.
 			p = strings.ReplaceAll(p, "give it a // => or bind it with var", "end its last line with // and its value, or bind it with var")
-			problems = append(problems, pageLines(p, fake, rel, code, hidden))
+			problems = append(problems, pageLines(p, fake, rel, code, hidden, 0))
 		}
 		return problems
 	}
@@ -600,7 +607,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	for _, d := range b.directives {
 		ok := true
 		switch d.name {
-		case "before", "args":
+		case "before", "after", "args":
 			ok = b.name == "" && !has("cmd")
 		case "stdin", "exit":
 			ok = running
@@ -634,13 +641,13 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	main := b.name
 	if main == "" {
 		main = "main.ant"
-		if err := os.WriteFile(filepath.Join(dir, main), []byte(before+b.src), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, main), []byte(before+b.src+after), 0o644); err != nil {
 			return append(problems, err.Error())
 		}
 	}
 	if isAnt {
 		out, status := runDocAnt(bin, dir, "", "check", main)
-		out = pageLines(out, main, rel, code, hidden)
+		out = pageLines(out, main, rel, code, hidden, shown)
 		switch {
 		case fails && status == 0:
 			bad("ant check passes, but the block marks a line with // error:")
@@ -678,7 +685,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		}
 		status = exit.ExitCode()
 	}
-	errText := pageLines(stderr.String(), main, rel, code, hidden)
+	errText := pageLines(stderr.String(), main, rel, code, hidden, shown)
 	if len(panics) > 0 {
 		p := panics[0]
 		line := code + p.line - 1
@@ -798,11 +805,11 @@ func headingProblems(rel string, parts docPageParts, status string) []string {
 // marked line has an error containing its text, and each error is on a marked line.
 func errorMarkerProblems(rel, out string, code int, errs []docMarker) []string {
 	type diag struct {
-		line int // 0 on a hidden line of test: before
+		line int // 0 on a hidden line of test: before or test: after
 		msg  string
 	}
 	var diags []diag
-	re := regexp.MustCompile(`^` + regexp.QuoteMeta(rel) + `(?::(\d+)| \(test: before, line \d+\)):\d+: (.*)$`)
+	re := regexp.MustCompile(`^` + regexp.QuoteMeta(rel) + `(?::(\d+)| \(test: (?:before|after), line \d+\)):\d+: (.*)$`)
 	for _, l := range strings.Split(out, "\n") {
 		if m := re.FindStringSubmatch(l); m != nil {
 			n, _ := strconv.Atoi(m[1])

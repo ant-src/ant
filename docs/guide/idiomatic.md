@@ -11,12 +11,24 @@ Choose the form that makes the operation, data flow, and failure path clear.
 Keep short questions and actions close to their receiver. Keep compact chains that express one
 thought.
 
-```ant
-func mentionsAnt(text: string, name: string): bool {
-  if !text.contains("ant") { return false }
-  if name.trim().isEmpty() { return false }
-  true
+<!-- test: before
+type Parser = { tokens: Array[string], pos: int }
+func Parser.next(p: Parser): string | null {
+  let token = p.tokens.get(p.pos)
+  p.pos += 1
+  token
 }
+func accept(text: string, name: string, p: Parser): bool {
+-->
+<!-- test: after
+true
+}
+-->
+
+```ant
+if !text.contains("ant") { return false }
+if name.trim().isEmpty() { return false }
+p.next()
 ```
 
 Count operations, not dots. Field access such as `config.server.name` locates a value. Name the
