@@ -111,8 +111,8 @@ func semitones(from: float64, to: float64): float64 {
   12.0 * Math.log2(to / from)
 }
 
-semitones(440.0, 880.0) // 12.0
-semitones(440.0, 660.0) // 7.019550008653875
+semitones(440.0, 880.0)                             // 12.0
+Math.round(semitones(440.0, 660.0) * 100.0) / 100.0 // 7.02
 ```
 
 ## Properties and relations

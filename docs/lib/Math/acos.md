@@ -144,8 +144,8 @@ Math.acos(float64(n)) // 0.0
 angle in that range with the same cosine:
 
 ```ant
-Math.acos(Math.cos(4.0))  // 2.2831853071795862
-Math.acos(Math.cos(-1.0)) // 0.9999999999999999
+Math.acos(Math.cos(4.0))                          // 2.2831853071795862
+Math.round(Math.acos(Math.cos(-1.0)) * 1e9) / 1e9 // 1.0
 ```
 
 Rounding can push a cosine computed from floats just past `1.0`, which gives `NaN`. Hold the

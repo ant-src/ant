@@ -79,9 +79,10 @@ func init() {
 				}
 				return v
 			}),
-			unary("Math.log", math.Log),
+			unary("Math.log", logOf),
 			unary("Math.log2", math.Log2),
-			unary("Math.log10", math.Log10),
+			// Go's math.Log10 is math.Log(x) * (1 / math.Ln10).
+			unary("Math.log10", func(x float64) float64 { return logOf(x) * (1 / math.Ln10) }),
 			unary("Math.exp", math.Exp),
 			unary("Math.sin", math.Sin),
 			unary("Math.cos", math.Cos),
@@ -145,6 +146,16 @@ func init() {
 }
 
 // unary is a Math function over one float64.
+// logOf is math.Log, except for a subnormal x, which it scales into the normal range first. Go's
+// assembly Log on amd64 reads a subnormal's exponent as a normal one's and returns log(2^-1023)
+// for all of them; the scaled result is within an ulp of Go's portable Log.
+func logOf(x float64) float64 {
+	if x > 0 && x < 0x1p-1022 {
+		return math.Log(x*0x1p52) - 52*math.Ln2
+	}
+	return math.Log(x)
+}
+
 func unary(name string, f func(float64) float64) *interp.Builtin {
 	return fn(name, "x", func(g *interp.Goroutine, _ string, a []value.Value) value.Value {
 		return f(floatArg(g, name, a[0]))

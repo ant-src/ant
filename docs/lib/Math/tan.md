@@ -59,7 +59,7 @@ Math.tan(-Math.Infinity) // NaN
 Call it in a pipe, or pass it as a function value:
 
 ```ant
-Math.PI / 4.0 | Math.tan() // 0.9999999999999998
+Math.PI / 3.0 | Math.tan() // 1.7320508075688767
 [0.0, 1.0].map(Math.tan)   // [0.0, 1.557407724654902]
 ```
 
@@ -128,15 +128,15 @@ for x in [-1.2, -0.5, 0.0, 0.5, 1.2] {
 An angle in degrees is read as radians:
 
 ```ant
-Math.tan(45.0)                   // 1.6197751905438615
-Math.tan(45.0 * Math.PI / 180.0) // 0.9999999999999998
+Math.tan(45.0)                                           // 1.6197751905438615
+Math.abs(Math.tan(45.0 * Math.PI / 180.0) - 1.0) < 1e-12 // true
 ```
 
-`Math.PI` is not exactly π, so a tangent that is exact in arithmetic comes out a little off. Compare
-with a tolerance:
+`Math.PI` is not exactly π, so a tangent that is exact in arithmetic comes out a little off, and the
+last digit can differ between platforms: `Math.tan(Math.PI / 4.0)` is `1.0` on one machine and
+`0.9999999999999998` on another. Compare with a tolerance:
 
 ```ant
-Math.tan(Math.PI / 4.0) == 1.0                  // false
 Math.abs(Math.tan(Math.PI / 4.0) - 1.0) < 1e-12 // true
 Math.tan(Math.PI)                               // -1.2246467991473515e-16
 ```

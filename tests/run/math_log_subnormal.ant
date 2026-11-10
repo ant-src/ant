@@ -1,0 +1,18 @@
+// spec: 11 Math and Bits
+// Math.log and Math.log10 of a subnormal float are the logarithm of its value, on every platform:
+// Go's assembly Log on amd64 once gave log(2^-1023) for all of them.
+let round6 = func(x: float64): float64 { Math.round(x * 1e6) / 1e6 }
+println(round6(Math.log(5e-324)))
+println(round6(Math.log(1e-310)))
+println(round6(Math.log10(5e-324)))
+println(round6(Math.log10(1e-310)))
+println(Math.log(0.0))
+println(Math.log(2.2250738585072014e-308) > Math.log(1e-310))
+
+// expect
+// out: -744.440072
+// out: -713.801379
+// out: -323.306215
+// out: -310.0
+// out: -Infinity
+// out: true
