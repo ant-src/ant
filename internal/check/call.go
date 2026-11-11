@@ -3,6 +3,7 @@ package check
 import (
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 
 	"github.com/ant-src/ant/ast"
@@ -1011,6 +1012,9 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 				}
 				return types.Array{Elem: solved}
 			}
+			if slices.ContainsFunc(elems, types.IsInvalid) {
+				return types.Invalid{} // an element's error was reported; the array would only repeat it
+			}
 			u, err := types.MakeUnion(elems)
 			if err != nil {
 				c.errorf(x.Pos, "the elements do not form a valid type: %s; give the array an expected type", err)
@@ -1035,6 +1039,9 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 					return types.Map{Key: types.Never{}, Val: types.Never{}}
 				}
 				return types.Map{Key: k, Val: v}
+			}
+			if slices.ContainsFunc(keys, types.IsInvalid) || slices.ContainsFunc(vals, types.IsInvalid) {
+				return types.Invalid{}
 			}
 			k, errK := types.MakeUnion(keys)
 			v, errV := types.MakeUnion(vals)
