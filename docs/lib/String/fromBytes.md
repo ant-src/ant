@@ -7,7 +7,8 @@
 func String.fromBytes(bytes: Bytes): string | null
 ```
 
-String.fromBytes decodes bytes as UTF-8, or returns null when they are not valid UTF-8.
+String.fromBytes decodes bytes as UTF-8, or returns null when they are not valid UTF-8. A byte order
+mark at the start is kept, as U+FEFF.
 
 <!-- end generated -->
 

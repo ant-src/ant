@@ -8,7 +8,7 @@ func String.fromBytesLossy(bytes: Bytes): string
 ```
 
 String.fromBytesLossy decodes bytes as UTF-8, replacing each maximal subpart of an ill-formed
-sequence with U+FFFD.
+sequence with U+FFFD. A byte order mark at the start is kept, as U+FEFF.
 
 <!-- end generated -->
 

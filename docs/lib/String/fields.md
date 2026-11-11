@@ -7,7 +7,8 @@
 func String.fields(s: string): Array[string]
 ```
 
-String.fields returns the runs of s between Unicode white space, or \[\] when there are none.
+String.fields returns the runs of s between the code points [`String.isSpace`](isSpace.md) accepts,
+or \[\] when there are none.
 
 <!-- end generated -->
 

@@ -479,13 +479,13 @@ func String.join(parts: Array[string], sep: string): string
 // bytes is above 2^31 - 1.
 func String.repeat(s: string, n: int): string
 
-// String.trim returns s without leading and trailing Unicode white space.
+// String.trim returns s without the leading and trailing code points [String.isSpace] accepts.
 func String.trim(s: string): string
 
-// String.trimStart returns s without leading Unicode white space.
+// String.trimStart returns s without the leading code points [String.isSpace] accepts.
 func String.trimStart(s: string): string
 
-// String.trimEnd returns s without trailing Unicode white space.
+// String.trimEnd returns s without the trailing code points [String.isSpace] accepts.
 func String.trimEnd(s: string): string
 
 // String.trimPrefix returns s with prefix removed once from its start, or s unchanged when it does
@@ -547,7 +547,8 @@ func String.replaceFirst(s: string, old: string, new: string): string
 //     String.cut("k=v=w", "=")   // String.Cut{ before: "k", after: "v=w" }
 func String.cut(s: string, sep: string): String.Cut | null
 
-// String.fields returns the runs of s between Unicode white space, or [] when there are none.
+// String.fields returns the runs of s between the code points [String.isSpace] accepts, or [] when
+// there are none.
 //
 //     String.fields("  a \t b\n")   // ["a", "b"]
 func String.fields(s: string): Array[string]
@@ -574,7 +575,8 @@ func String.toUpper(s: string): string
 func String.toLower(s: string): string
 
 // String.foldCase returns s with Unicode's full case folding applied, a key in which case does not
-// matter. It does not normalize; see [String.normalize].
+// matter. It leaves out the Turkic entries, so İ folds to i and a combining dot, and ı only to
+// itself. It does not normalize; see [String.normalize].
 //
 //     String.foldCase("Straße")   // "strasse"
 func String.foldCase(s: string): string
@@ -655,11 +657,12 @@ func String.graphemes(s: string): Array[string]
 //     String.toBytes("é")   // Bytes(c3 a9)
 func String.toBytes(s: string): Bytes
 
-// String.fromBytes decodes bytes as UTF-8, or returns null when they are not valid UTF-8.
+// String.fromBytes decodes bytes as UTF-8, or returns null when they are not valid UTF-8. A byte
+// order mark at the start is kept, as U+FEFF.
 func String.fromBytes(bytes: Bytes): string | null
 
 // String.fromBytesLossy decodes bytes as UTF-8, replacing each maximal subpart of an ill-formed
-// sequence with U+FFFD.
+// sequence with U+FFFD. A byte order mark at the start is kept, as U+FEFF.
 func String.fromBytesLossy(bytes: Bytes): string
 
 // String.codePoint returns the scalar value of c. It panics unless c is one code point.
@@ -695,9 +698,9 @@ func String.toUint(s: string, base: int = 10): uint64 | null
 
 // String.toFloat parses s as a decimal number, or returns null when it is not one. s is ASCII
 // digits with an optional sign, fraction after ., and exponent after e or E; the result is rounded
-// to the nearest float64, and a value beyond its range is null. It also reads NaN, and Inf or
-// Infinity with an optional sign, in any case, so what [String.from] writes reads back. White
-// space, _, and a prefix such as 0x are not numbers.
+// to the nearest float64 keeping the sign, so "-0" is -0.0, and a value beyond its range is null.
+// It also reads NaN, and Inf or Infinity with an optional sign, in any case, so what [String.from]
+// writes reads back. White space, _, and a prefix such as 0x are not numbers.
 //
 //     String.toFloat(".5")          // 0.5
 //     String.toFloat("1e+3")        // 1000.0

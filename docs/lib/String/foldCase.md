@@ -8,7 +8,8 @@ func String.foldCase(s: string): string
 ```
 
 String.foldCase returns s with Unicode's full case folding applied, a key in which case does not
-matter. It does not normalize; see [`String.normalize`](normalize.md).
+matter. It leaves out the Turkic entries, so İ folds to i and a combining dot, and ı only to itself.
+It does not normalize; see [`String.normalize`](normalize.md).
 
 <!-- end generated -->
 

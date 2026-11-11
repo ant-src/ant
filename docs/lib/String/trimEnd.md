@@ -7,7 +7,7 @@
 func String.trimEnd(s: string): string
 ```
 
-String.trimEnd returns s without trailing Unicode white space.
+String.trimEnd returns s without the trailing code points [`String.isSpace`](isSpace.md) accepts.
 
 <!-- end generated -->
 

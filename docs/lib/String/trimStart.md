@@ -7,7 +7,7 @@
 func String.trimStart(s: string): string
 ```
 
-String.trimStart returns s without leading Unicode white space.
+String.trimStart returns s without the leading code points [`String.isSpace`](isSpace.md) accepts.
 
 <!-- end generated -->
 
