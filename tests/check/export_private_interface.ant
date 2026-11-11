@@ -1,6 +1,8 @@
 // spec: 10
 // An exported function whose parameters, result, or bounds name a private interface of the
-// module is a compile error. A private type of another kind may appear in an exported signature.
+// module is a compile error, and so is an exported interface whose functions name one and an
+// exported variable whose type does. A private type of another kind may appear in an exported
+// signature, and a private interface in a field of an exported type.
 interface Shape {
   area(s: Self): float64
 }
@@ -19,3 +21,12 @@ export func issue(): Token { Token{ value: "abc" } }
 func inner(s: Shape): float64 { s.area() }
 type Shapes = Array[Shape]
 export func sum(xs: Shapes): float64 { 0.0 } // ERR: sum is exported but its signature names the interface Shape
+export interface Scene {                     // ERR: Scene is exported but its body names the interface Shape, which is not
+  first(s: Self): Shape
+}
+export interface Labeled {
+  label(s: Self): Named
+}
+export let draw = func(s: Shape): float64 { s.area() } // ERR: draw is exported but its type names the interface Shape, which is not
+export let title = func(n: Named): string { n.name() }
+export type Box = { shape: Shape }

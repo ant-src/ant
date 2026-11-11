@@ -6,6 +6,7 @@ package check
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -1258,39 +1259,69 @@ func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.D
 // resolveSignatures resolves every function's parameter and declared return types.
 func (c *Checker) resolveSignatures(mi *moduleInfo) {
 	c.mod = mi
+	private := privateInterfaces(mi)
 	for _, fi := range mi.funcs {
 		c.resolveSignature(fi)
 		if fi.decl.Export && fi.decl.Return == nil {
 			c.errorf(fi.decl.Pos, "the exported function %s must state its return type", fi.sig.fullName())
 		}
 		if fi.decl.Export {
-			c.exportedInterfaces(mi, fi)
+			ts := append(funcTypes(fi.sig.fn), bounds(fi.sig.tparams)...)
+			c.exportedInterfaces(private, ts, fi.decl.Pos, fi.sig.fullName(), "signature")
 		}
+	}
+	for _, ii := range mi.ifaces {
+		if !ii.ent.exported {
+			continue
+		}
+		ts := bounds(ii.t.Params)
+		for _, name := range slices.Sorted(maps.Keys(ii.t.Funcs)) {
+			ts = append(ts, funcTypes(*ii.t.Funcs[name])...)
+		}
+		c.exportedInterfaces(private, ts, ii.decl.Pos, ii.t.Name, "body")
 	}
 }
 
-// exportedInterfaces reports a private interface of the module named in an exported function's
-// parameters, result, or bounds: an interface is a name for the checker alone, so an importer
-// could not check a call without it (section 10, Modules). A private type of another kind may
-// appear there, as data the importer holds but cannot name.
-func (c *Checker) exportedInterfaces(mi *moduleInfo, fi *funcInfo) {
+// privateInterfaces holds the interfaces a module declares without export, by declaration.
+func privateInterfaces(mi *moduleInfo) map[*types.Decl]string {
 	private := map[*types.Decl]string{}
 	for name, ent := range mi.names {
 		if ent.kind == entType && ent.decl != nil && ent.decl.Kind == types.InterfaceDecl && !ent.exported {
 			private[ent.decl] = name
 		}
 	}
-	if len(private) == 0 {
-		return
+	return private
+}
+
+// funcTypes is a function type's parameter and result types.
+func funcTypes(fn types.Func) []types.Type {
+	ts := append([]types.Type{}, fn.Params...)
+	if fn.Return != nil {
+		ts = append(ts, fn.Return)
 	}
-	ts := append([]types.Type{}, fi.sig.fn.Params...)
-	if fi.sig.fn.Return != nil {
-		ts = append(ts, fi.sig.fn.Return)
-	}
-	for _, tp := range fi.sig.tparams {
+	return ts
+}
+
+// bounds is the bounds of the type parameters that have one.
+func bounds(tparams []*types.ParamDecl) []types.Type {
+	var ts []types.Type
+	for _, tp := range tparams {
 		if tp.Bound != nil {
 			ts = append(ts, tp.Bound)
 		}
+	}
+	return ts
+}
+
+// exportedInterfaces reports each private interface of the module named in ts, the types an
+// export shows: an exported function's parameters, result, and bounds, an exported interface's
+// functions and bounds, or an exported variable's type. An interface is a name for the checker
+// alone, so an importer could not check a use without it (section 10, Modules). A private type
+// of another kind may appear there, as data the importer holds but cannot name. where is the
+// part of the export that ts is: its signature, body, or type.
+func (c *Checker) exportedInterfaces(private map[*types.Decl]string, ts []types.Type, pos ast.Pos, export, where string) {
+	if len(private) == 0 {
+		return
 	}
 	reported := map[*types.Decl]bool{}
 	seen := map[*types.Decl]bool{} // aliases already looked through
@@ -1309,7 +1340,7 @@ func (c *Checker) exportedInterfaces(mi *moduleInfo, fi *funcInfo) {
 			}
 			if name, ok := private[n.Decl]; ok && !reported[n.Decl] {
 				reported[n.Decl] = true
-				c.errorf(fi.decl.Pos, "%s is exported but its signature names the interface %s, which is not", fi.sig.fullName(), name)
+				c.errorf(pos, "%s is exported but its %s names the interface %s, which is not", export, where, name)
 			}
 		})
 	}
@@ -1715,8 +1746,12 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 			c.checkDefaults(ti)
 		}
 	}
+	private := privateInterfaces(mi)
 	for _, v := range mi.vars {
-		c.varType(v, ast.Pos{}, false)
+		t := c.varType(v, ast.Pos{}, false)
+		if v.decl.Export {
+			c.exportedInterfaces(private, []types.Type{t}, v.decl.Pos, v.name, "type")
+		}
 	}
 	for _, fi := range mi.funcs {
 		c.checkFunc(fi)
