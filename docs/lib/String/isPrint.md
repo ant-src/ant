@@ -91,7 +91,7 @@ String.isPrint("👨‍👩‍👧") // false
 Test each code point of a string with `String.chars` in a pipe:
 
 ```ant
-"a b\n" | String.chars() | Array.map({ String.isPrint(x) }) // [true, true, true, false]
+"a b\n" | String.chars() | Array.map({ x.isPrint() }) // [true, true, true, false]
 ```
 
 ## Applications
@@ -114,7 +114,7 @@ log:
 
 ```ant
 func clean(s: string): string {
-  String.concat(s.chars().filter({ String.isPrint(x) }))
+  String.concat(s.chars().filter({ x.isPrint() }))
 }
 
 clean("pay\u{A0}100\u{200B}€\n") // "pay100€"
@@ -126,10 +126,10 @@ value:
 ```ant
 func reveal(s: string): string {
   let parts = s.chars().map({
-    if String.isPrint(x) {
+    if x.isPrint() {
       x
     } else {
-      let hex = String.fromInt(String.codePoint(x), 16).toUpper()
+      let hex = String.fromInt(x.codePoint(), 16).toUpper()
       "<U+${hex.padStart(4, "0")}>"
     }
   })
@@ -161,11 +161,11 @@ println(String.from(["a\u{A0}b", "tab\there", "日本"]))
 
 ```ant
 func printable(c: string): bool {
-  c == " " || ["L", "M", "N", "P", "S"].contains(String.category(c).slice(0, 1))
+  c == " " || ["L", "M", "N", "P", "S"].contains(c.category().slice(0, 1))
 }
 
 for s in ["", "abc", "a b", "a\tb", "\u{A0}", "e\u{301}", "½", "\u{200D}", "\u{E000}"] {
-  let chars = String.chars(s)
+  let chars = s.chars()
   assert(String.isPrint(s) == (!chars.isEmpty() && chars.every(printable)))
 }
 ```
@@ -211,16 +211,16 @@ An emoji that looks like one character can be several code points joined by U+20
 is not printable:
 
 ```ant
-String.isPrint("👨‍👩‍👧")                    // false
-"👨‍👩‍👧".chars().map({ String.isPrint(x) }) // [true, false, true, false, true]
+String.isPrint("👨‍👩‍👧")              // false
+"👨‍👩‍👧".chars().map({ x.isPrint() }) // [true, false, true, false, true]
 ```
 
 `String.isPrint` tests that the whole string is printable, not that it holds a printable character.
 To find out whether a string has one, test each code point:
 
 ```ant
-String.isPrint("ok\n")                     // false
-"ok\n".chars().some({ String.isPrint(x) }) // true
+String.isPrint("ok\n")               // false
+"ok\n".chars().some({ x.isPrint() }) // true
 ```
 
 ## See also

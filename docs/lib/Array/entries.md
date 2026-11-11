@@ -52,29 +52,29 @@ An empty array has no entries. Annotate it so that `T` is known:
 
 ```ant
 let empty: Array[int] = []
-Array.entries(empty) // []
+empty.entries() // []
 ```
 
 `null` elements get an index like any other:
 
 ```ant
-Array.entries(["x", null]) // [Indexed{ index: 0, value: "x" }, Indexed{ index: 1, value: null }]
+["x", null].entries() // [Indexed{ index: 0, value: "x" }, Indexed{ index: 1, value: null }]
 ```
 
 Records, nested arrays, and union members are carried as they are:
 
 ```ant
 type Point = { x: int, y: int }
-Array.entries([Point{ x: 1, y: 2 }]) // [Indexed{ index: 0, value: Point{ x: 1, y: 2 } }]
-Array.entries([[1], []])             // [Indexed{ index: 0, value: [1] }, Indexed{ index: 1, value: [] }]
+[Point{ x: 1, y: 2 }].entries() // [Indexed{ index: 0, value: Point{ x: 1, y: 2 } }]
+[[1], []].entries()             // [Indexed{ index: 0, value: [1] }, Indexed{ index: 1, value: [] }]
 let r: Array[Result[int, string]] = [Result.ok(1), Result.err("no")]
-Array.entries(r)[1] // Indexed{ index: 1, value: Err{ error: "no" } }
+r.entries()[1] // Indexed{ index: 1, value: Err{ error: "no" } }
 ```
 
 A string is not an array. Split it into graphemes first:
 
 ```ant
-String.graphemes("🐜🐝").entries() // [Indexed{ index: 0, value: "🐜" }, Indexed{ index: 1, value: "🐝" }]
+"🐜🐝".graphemes().entries() // [Indexed{ index: 0, value: "🐜" }, Indexed{ index: 1, value: "🐝" }]
 ```
 
 Call it through `.` or in a pipe:
@@ -133,14 +133,15 @@ first of equal keys):
 
 ```ant
 let scores = [70, 95, 88, 95]
-Array.maxBy(scores.entries(), { x.value }) // Indexed{ index: 1, value: 95 }
+scores.entries().maxBy({ x.value }) // Indexed{ index: 1, value: 95 }
 ```
 
 Build a map from each name to its position:
 
 ```ant
 let names = ["Ann", "Bob", "Cid"]
-Map.fromEntries(names.entries().map({ Entry{ key: x.value, value: x.index } })) // Map{ "Ann": 0, "Bob": 1, "Cid": 2 }
+let pairs = names.entries().map({ Entry{ key: x.value, value: x.index } })
+Map.fromEntries(pairs) // Map{ "Ann": 0, "Bob": 1, "Cid": 2 }
 ```
 
 Compare each element with the one before it:
@@ -165,7 +166,7 @@ There is one entry per element, the values are `xs`, and the indices are `Array.
 
 ```ant
 let xs = ["p", "q", "r"]
-let es = Array.entries(xs)
+let es = xs.entries()
 assert(len(es) == len(xs))
 assert(es.map({ x.value }) == xs)
 assert(es.map({ x.index }) == Array.range(0, len(xs)))

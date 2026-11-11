@@ -24,14 +24,14 @@ and a NaN key never replaces the element held.
 Find the longest word:
 
 ```ant
-Array.maxBy(["fig", "banana", "kiwi"], { String.length(x) }) // "banana"
+Array.maxBy(["fig", "banana", "kiwi"], { x.length() }) // "banana"
 ```
 
 An empty array has no greatest element, so the result is `null`:
 
 ```ant
 let empty: Array[string] = []
-empty.maxBy({ String.length(x) }) // null
+empty.maxBy({ x.length() }) // null
 ```
 
 Find the oldest person, and read a field of the result with `?.`:
@@ -53,7 +53,7 @@ The result is the element, not its key:
 Of equal keys, the first element wins:
 
 ```ant
-["ab", "cd", "e"].maxBy({ String.length(x) }) // "ab"
+["ab", "cd", "e"].maxBy({ x.length() }) // "ab"
 ```
 
 A string key compares by code point, so every uppercase ASCII letter comes before every lowercase
@@ -84,7 +84,7 @@ Pass a named function instead of a lambda:
 
 ```ant
 func vowels(s: string): int {
-  String.graphemes(s).countWhere({ "aeiou".contains(x) })
+  s.graphemes().countWhere({ "aeiou".contains(x) })
 }
 
 ["sky", "queue", "area"].maxBy(vowels) // "queue"
@@ -107,14 +107,14 @@ scores.maxBy({ x ?? 0 }) // 85
 Find the greatest grapheme of a string by splitting it first:
 
 ```ant
-String.graphemes("hello").maxBy({ x }) // "o"
+"hello".graphemes().maxBy({ x }) // "o"
 ```
 
 Call it through `.` or in a pipe:
 
 ```ant
-["a", "bbb", "cc"].maxBy({ String.length(x) })         // "bbb"
-["a", "bbb", "cc"] | Array.maxBy({ String.length(x) }) // "bbb"
+["a", "bbb", "cc"].maxBy({ x.length() })         // "bbb"
+["a", "bbb", "cc"] | Array.maxBy({ x.length() }) // "bbb"
 ```
 
 ## Applications
@@ -129,7 +129,7 @@ stock.entries().maxBy({ x.value })?.key // "bolt"
 Find the most frequent word, with `Array.groupBy`:
 
 ```ant
-let words = String.split("the ant and the bee and the ant", " ")
+let words = "the ant and the bee and the ant".split(" ")
 words.groupBy({ x }).entries().maxBy({ x.value.length() })?.key // "the"
 ```
 
@@ -196,8 +196,8 @@ assert(items[1].stock == 0)
 
 ```ant
 let seen: Array[int] = []
-[9, 1, 5].maxBy({ Array.push(seen, x); x }) // 9
-seen                                        // [9, 1, 5]
+[9, 1, 5].maxBy({ seen.push(x); x }) // 9
+seen                                 // [9, 1, 5]
 ```
 
 ## Possible issues
@@ -254,8 +254,8 @@ Test `Array.isEmpty` first, or find the index through `Array.entries`:
 
 ```ant
 let a: Array[int | null] = [null]
-a.isEmpty()                                     // false
-Array.entries(a).maxBy({ x.value ?? 0 })?.index // 0
+a.isEmpty()                                // false
+a.entries().maxBy({ x.value ?? 0 })?.index // 0
 ```
 
 On floats, `maxBy({ x })` and `Array.max` can differ. `Array.max` is `NaN` when any element is `NaN`

@@ -101,8 +101,8 @@ r.value // Err{ error: "no" }
 
 ```ant
 let prices = Map{ tea: 3, cake: 5 }
-Map.map(prices, { x.value * 2 })       // Map{ "tea": 6, "cake": 10 }
-Map.filter(prices, { x.key != "tea" }) // Map{ "cake": 5 }
+prices.map({ x.value * 2 })       // Map{ "tea": 6, "cake": 10 }
+prices.filter({ x.key != "tea" }) // Map{ "cake": 5 }
 ```
 
 A named function that takes an `Entry` works as the callback:
@@ -113,7 +113,7 @@ func label(e: Entry[string, int]): string {
 }
 
 let prices = Map{ tea: 3, cake: 5 }
-Map.map(prices, label) // Map{ "tea": "tea costs 3", "cake": "cake costs 5" }
+prices.map(label) // Map{ "tea": "tea costs 3", "cake": "cake costs 5" }
 ```
 
 Return an `Entry` from a generic function:
@@ -218,7 +218,7 @@ for { key, value } in m {
 
 ```ant
 let m = Map{ x: 1, y: 2 }
-assert(Map.fromEntries(Map.entries(m)) == m)
+assert(Map.fromEntries(m.entries()) == m)
 ```
 
 ## Possible issues

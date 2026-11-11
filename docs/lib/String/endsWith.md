@@ -38,24 +38,24 @@ name.endsWith("tar.gz") // true
 Every string ends with the empty string, and the empty string ends with nothing else:
 
 ```ant
-String.endsWith("ant", "") // true
-String.endsWith("", "")    // true
-String.endsWith("", "t")   // false
+"ant".endsWith("") // true
+"".endsWith("")    // true
+"".endsWith("t")   // false
 ```
 
 A suffix longer than the string never matches, even when the string is inside it:
 
 ```ant
-String.endsWith("ant", "giant") // false
-String.endsWith("giant", "ant") // true
+"ant".endsWith("giant") // false
+"giant".endsWith("ant") // true
 ```
 
 Text in any script compares by code points:
 
 ```ant
-String.endsWith("Ωμέγα", "γα")  // true
-String.endsWith("東京都", "都") // true
-String.endsWith("naïve", "ve")  // true
+"Ωμέγα".endsWith("γα")  // true
+"東京都".endsWith("都") // true
+"naïve".endsWith("ve")  // true
 ```
 
 In a pipeline, the string is the first argument:
@@ -92,7 +92,7 @@ let commands: Array[string] = []
 var pending = ""
 for line in lines {
   if line.endsWith("\\") {
-    pending += String.trimSuffix(line, "\\")
+    pending += line.trimSuffix("\\")
   } else {
     commands.push(pending + line)
     pending = ""
@@ -127,7 +127,7 @@ A string always ends with what is appended to it, and `String.trimSuffix` remove
 let s = "ant"
 let t = "hill"
 assert((s + t).endsWith(t))
-assert(String.trimSuffix(s + t, t) == s)
+assert((s + t).trimSuffix(t) == s)
 ```
 
 Reversing the code points of both strings turns `endsWith` into
@@ -149,7 +149,7 @@ On the UTF-8 bytes, [`Bytes.endsWith`](../Bytes/endsWith.md) gives the same answ
 ```ant
 let s = "año"
 for t in ["o", "ño", "ñ", ""] {
-  assert(s.endsWith(t) == Bytes.endsWith(String.toBytes(s), String.toBytes(t)))
+  assert(s.endsWith(t) == Bytes.endsWith(s.toBytes(), t.toBytes()))
 }
 ```
 
@@ -167,9 +167,9 @@ Case matters, so lower both sides, or fold them with [`String.foldCase`](foldCas
 
 ```ant
 let name = "PHOTO.JPG"
-name.endsWith(".jpg")                  // false
-name.toLower().endsWith(".jpg")        // true
-String.foldCase(name).endsWith(".jpg") // true
+name.endsWith(".jpg")            // false
+name.toLower().endsWith(".jpg")  // true
+name.foldCase().endsWith(".jpg") // true
 ```
 
 The precomposed "é" and "e" followed by a combining accent are different code points: the string
@@ -178,22 +178,22 @@ The precomposed "é" and "e" followed by a combining accent are different code p
 
 ```ant
 let word = "cafe\u{301}"
-word.endsWith("\u{301}")                                             // true
-word.endsWith("é")                                                   // false
-String.normalize(word, "NFC").endsWith(String.normalize("é", "NFC")) // true
+word.endsWith("\u{301}")                             // true
+word.endsWith("é")                                   // false
+word.normalize("NFC").endsWith("é".normalize("NFC")) // true
 ```
 
 `String.endsWith` works on code points, not on what a reader sees as one character. A family emoji
 is three people joined by U+200D, so it ends with the last of them:
 
 ```ant
-String.endsWith("👨‍👩‍👧", "👧") // true
+"👨‍👩‍👧".endsWith("👧") // true
 ```
 
 [`String.graphemes`](graphemes.md) shows the one character a reader sees:
 
 ```ant
-String.graphemes("👨‍👩‍👧").length() // 1
+"👨‍👩‍👧".graphemes().length() // 1
 ```
 
 There is no character type and no `'c'` literal; a character is a string of one code point:

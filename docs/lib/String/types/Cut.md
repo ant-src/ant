@@ -24,7 +24,7 @@ Get a `String.Cut` from `String.cut`, check it for `null`, and read its fields:
 
 ```ant
 for line in ["name=ant", "oops"] {
-  let c = String.cut(line, "=")
+  let c = line.cut("=")
   if c != null {
     println("${c.before} -> ${c.after}")
   } else {
@@ -126,7 +126,7 @@ whole
 An array of results holds `String.Cut` records and `null`s:
 
 ```ant
-["a=1", "b=2", "c"].map({ String.cut(x, "=") }) // [String.Cut{ before: "a", after: "1" }, String.Cut{ before: "b", after: "2" }, null]
+["a=1", "b=2", "c"].map({ x.cut("=") }) // [String.Cut{ before: "a", after: "1" }, String.Cut{ before: "b", after: "2" }, null]
 ```
 
 A function that takes an anonymous record type accepts a `String.Cut` with the fields it lists:
@@ -152,7 +152,7 @@ Split `user@domain` addresses and group the users by domain:
 ```ant
 let users: Map[string, Array[string]] = Map{}
 for address in ["ann@a.org", "bob@b.org", "cat@a.org", "nobody"] {
-  let { before: user, after: domain } = String.cut(address, "@") ?? continue
+  let { before: user, after: domain } = address.cut("@") ?? continue
   let list = users[domain] ?? []
   list.push(user)
   users[domain] = list
@@ -168,11 +168,8 @@ Return a `String.Cut` from your own function, here one that cuts at the last sep
 
 ```ant
 func cutLast(s: string, sep: string): String.Cut | null {
-  let i = String.lastIndexOf(s, sep) ?? return null
-  String.Cut{
-    before: String.slice(s, 0, i),
-    after: String.slice(s, i + String.length(sep), String.length(s)),
-  }
+  let i = s.lastIndexOf(sep) ?? return null
+  String.Cut{ before: s.slice(0, i), after: s.slice(i + sep.length(), s.length()) }
 }
 
 println(cutLast("archive.tar.gz", "."))

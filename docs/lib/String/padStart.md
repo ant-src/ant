@@ -72,10 +72,10 @@ String.padStart("日本", 4, "＿") // "＿＿日本"
 Call it in a pipe, through `.` on a string, with every argument named, or inside a lambda:
 
 ```ant
-"42" | String.padStart(6, pad: "0")                      // "000042"
-"7".padStart(3, "0")                                     // "007"
-String.padStart(s: "a", width: 3, pad: "-")              // "--a"
-Array.map(["1", "22", "333"], { String.padStart(x, 3) }) // ["  1", " 22", "333"]
+"42" | String.padStart(6, pad: "0")         // "000042"
+"7".padStart(3, "0")                        // "007"
+String.padStart(s: "a", width: 3, pad: "-") // "--a"
+["1", "22", "333"].map({ x.padStart(3) })   // ["  1", " 22", "333"]
 ```
 
 ## Named arguments
@@ -97,7 +97,7 @@ Right-align a column of numbers:
 ```ant
 let prices = [5, 120, 42, 1999]
 for p in prices {
-  println(String.padStart(String.from(p), 6))
+  println(String.from(p).padStart(6))
 }
 ```
 
@@ -114,7 +114,7 @@ Format a time of day with two digits per field:
 type Clock = { hour: int, minute: int, second: int }
 
 func two(n: int): string {
-  String.padStart(String.from(n), 2, "0")
+  String.from(n).padStart(2, "0")
 }
 
 func show(c: Clock): string {
@@ -134,7 +134,7 @@ Write a byte as eight binary digits, the zero-padded form a format string would 
 
 ```ant
 for b in [byte(5), byte(160)] {
-  println(String.padStart(String.fromInt(b, 2), 8, "0"))
+  println(String.fromInt(b, 2).padStart(8, "0"))
 }
 ```
 
@@ -150,7 +150,7 @@ type Chapter = { title: string, page: int }
 
 let toc = [Chapter{ title: "Intro", page: 1 }, Chapter{ title: "Strings", page: 14 }]
 for e in toc {
-  println(e.title + String.padStart(String.from(e.page), 16 - String.length(e.title), "."))
+  println(e.title + String.from(e.page).padStart(16 - e.title.length(), "."))
 }
 ```
 
@@ -166,9 +166,9 @@ The result is `width` code points long, or `s` itself when `s` is already that l
 ```ant
 for s in ["", "a", "abc", "日本語"] {
   for w in [0, 2, 5] {
-    let r = String.padStart(s, w, "xy")
-    assert(String.length(r) == Math.max(w, String.length(s)))
-    assert(String.endsWith(r, s))
+    let r = s.padStart(w, "xy")
+    assert(r.length() == Math.max(w, s.length()))
+    assert(r.endsWith(s))
   }
 }
 ```
@@ -177,7 +177,7 @@ With a `pad` of one code point, the padding is [`String.repeat`](repeat.md) of i
 
 ```ant
 let s = "42"
-assert(String.padStart(s, 6, "0") == String.repeat("0", 4) + s)
+assert(s.padStart(6, "0") == "0".repeat(4) + s)
 ```
 
 [`String.padEnd`](padEnd.md) puts the same padding on the right instead:
@@ -227,7 +227,7 @@ A negative number gets its zeros in front of the sign, because `String.from` put
 the padding goes on the left of everything:
 
 ```ant
-String.padStart(String.from(-42), 5, "0") // "00-42"
+String.from(-42).padStart(5, "0") // "00-42"
 ```
 
 Pad the absolute value and put the sign in front:
@@ -235,9 +235,9 @@ Pad the absolute value and put the sign in front:
 ```ant
 func zeros(n: int, width: int): string {
   if n < 0 {
-    "-" + String.padStart(String.from(-n), width - 1, "0")
+    "-" + String.from(-n).padStart(width - 1, "0")
   } else {
-    String.padStart(String.from(n), width, "0")
+    String.from(n).padStart(width, "0")
   }
 }
 
@@ -254,8 +254,8 @@ println(zeros(42, 5))
 with [`String.slice`](slice.md) when the width is a hard limit:
 
 ```ant
-String.padStart("overflow", 4)                     // "overflow"
-String.padStart(String.slice("overflow", 0, 4), 4) // "over"
+String.padStart("overflow", 4)             // "overflow"
+String.padStart("overflow".slice(0, 4), 4) // "over"
 ```
 
 `width` is an `int`, so a float is a compile error:

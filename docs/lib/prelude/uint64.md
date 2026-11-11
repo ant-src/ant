@@ -84,9 +84,9 @@ Hash a string with 64-bit FNV-1a, which relies on multiplication that wraps:
 
 ```ant
 func fnv1a(s: string): uint64 {
-  var h = String.toUint("14695981039346656037") ?? panic("bad offset")
+  var h = "14695981039346656037".toUint() ?? panic("bad offset")
   let prime = uint64(1099511628211)
-  for b in String.toBytes(s) {
+  for b in s.toBytes() {
     h = Bits.wrapMul(Bits.xor(h, uint64(b)), prime)
   }
   h

@@ -109,7 +109,7 @@ Draw a progress bar from a fraction that may overshoot:
 ```ant
 func bar(done: float64): string {
   let filled = int(Math.round(Math.clamp(done, 0.0, 1.0) * 10.0))
-  String.repeat("#", filled) + String.repeat(".", 10 - filled)
+  "#".repeat(filled) + ".".repeat(10 - filled)
 }
 bar(0.35) // "####......"
 bar(1.2)  // "##########"
@@ -121,9 +121,9 @@ Move a cursor through an array without running off either end:
 ```ant
 let items = ["a", "b", "c"]
 var cursor = 0
-cursor = Math.clamp(cursor - 1, 0, len(items) - 1)
+cursor = Math.clamp(cursor - 1, 0, items.length() - 1)
 cursor // 0
-cursor = Math.clamp(cursor + 5, 0, len(items) - 1)
+cursor = Math.clamp(cursor + 5, 0, items.length() - 1)
 cursor // 2
 ```
 
@@ -135,7 +135,8 @@ func channel(v: int): int { Math.clamp(v, 0, 255) }
 func Rgb.brighten(c: Rgb, by: int): Rgb {
   Rgb{ r: channel(c.r + by), g: channel(c.g + by), b: channel(c.b + by) }
 }
-Rgb.brighten(Rgb{ r: 200, g: 120, b: 10 }, 80) // Rgb{ r: 255, g: 200, b: 90 }
+let color = Rgb{ r: 200, g: 120, b: 10 }
+color.brighten(80) // Rgb{ r: 255, g: 200, b: 90 }
 ```
 
 ## Properties and relations

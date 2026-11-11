@@ -28,7 +28,7 @@ Array.map([1, 2, 3], { x * 2 }) // [2, 4, 6]
 Turn each word into its length. The result has a different element type from `xs`:
 
 ```ant
-Array.map(["ant", "beetle", "fly"], { String.length(x) }) // [3, 6, 3]
+Array.map(["ant", "beetle", "fly"], { x.length() }) // [3, 6, 3]
 ```
 
 ## Scope
@@ -37,13 +37,13 @@ An empty array gives an empty array:
 
 ```ant
 let empty: Array[int] = []
-Array.map(empty, { x * 2 }) // []
+empty.map({ x * 2 }) // []
 ```
 
 Map over the characters of a string by splitting it into graphemes first:
 
 ```ant
-Array.map(String.graphemes("née"), String.toUpper) // ["N", "É", "E"]
+"née".graphemes().map(String.toUpper) // ["N", "É", "E"]
 ```
 
 Read a field of each record:
@@ -51,14 +51,14 @@ Read a field of each record:
 ```ant
 type User = { name: string, age: int }
 let users = [User{ name: "Ann", age: 31 }, User{ name: "Bob", age: 27 }]
-Array.map(users, { x.name }) // ["Ann", "Bob"]
+users.map({ x.name }) // ["Ann", "Bob"]
 ```
 
 Build a record from each element:
 
 ```ant
 type Item = { name: string, qty: int }
-Array.map(["pen", "ink"], { Item{ name: x, qty: 1 } }) // [Item{ name: "pen", qty: 1 }, Item{ name: "ink", qty: 1 }]
+["pen", "ink"].map({ Item{ name: x, qty: 1 } }) // [Item{ name: "pen", qty: 1 }, Item{ name: "ink", qty: 1 }]
 ```
 
 Replace the `null` elements of a nullable array with `??`, which gives an array that holds no
@@ -66,7 +66,7 @@ Replace the `null` elements of a nullable array with `??`, which gives an array 
 
 ```ant
 let scores: Array[int | null] = [90, null, 75]
-Array.map(scores, { x ?? 0 }) // [90, 0, 75]
+scores.map({ x ?? 0 }) // [90, 0, 75]
 ```
 
 Handle each member of a union with `is`, which narrows `x` in each branch:
@@ -76,7 +76,7 @@ type Circle = { radius: float64 }
 type Rect = { width: float64, height: float64 }
 type Shape = Circle | Rect
 let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
-Array.map(shapes, { if x is Circle { 3.0 * x.radius * x.radius } else { x.width * x.height } }) // [3.0, 6.0]
+shapes.map({ if x is Circle { 3.0 * x.radius * x.radius } else { x.width * x.height } }) // [3.0, 6.0]
 ```
 
 Pass a named function, a function on a type, or `len` instead of a lambda:
@@ -85,9 +85,9 @@ Pass a named function, a function on a type, or `len` instead of a lambda:
 func square(n: int): int { n * n }
 type Point = { x: float64, y: float64 }
 func Point.norm(p: Point): float64 { Math.sqrt(p.x * p.x + p.y * p.y) }
-Array.map([1, 2, 3], square)                     // [1, 4, 9]
-Array.map([Point{ x: 3.0, y: 4.0 }], Point.norm) // [5.0]
-Array.map(["ant", "日本"], len)                  // [3, 2]
+[1, 2, 3].map(square)                     // [1, 4, 9]
+[Point{ x: 3.0, y: 4.0 }].map(Point.norm) // [5.0]
+["ant", "日本"].map(len)                  // [3, 2]
 ```
 
 A conversion is a function too. `byte` builds an `Array[byte]`, and a named type over `string` tags
@@ -95,21 +95,21 @@ every element:
 
 ```ant
 type UserId = string
-Array.map([72, 105], byte)      // [72, 105]
-Array.map(["u1", "u2"], UserId) // [UserId("u1"), UserId("u2")]
+[72, 105].map(byte)      // [72, 105]
+["u1", "u2"].map(UserId) // [UserId("u1"), UserId("u2")]
 ```
 
 An anonymous function names and annotates its parameter:
 
 ```ant
-Array.map([1.5, 2.25], func(price: float64): string { "$${price}" }) // ["$1.5", "$2.25"]
+[1.5, 2.25].map(func(price: float64): string { "$${price}" }) // ["$1.5", "$2.25"]
 ```
 
 A closure reads the variables it captures:
 
 ```ant
 let rate = 3
-Array.map([10, 20], { x * rate }) // [30, 60]
+[10, 20].map({ x * rate }) // [30, 60]
 ```
 
 Call it through `.` or in a pipe:
@@ -139,13 +139,13 @@ Format each record as a line of text and join the lines:
 ```ant
 type Account = { owner: string, balance: int }
 let accounts = [Account{ owner: "Ann", balance: 120 }, Account{ owner: "Bob", balance: 75 }]
-accounts.map({ "${x.owner}: ${x.balance}" }) | String.join("\n") // "Ann: 120\nBob: 75"
+accounts | Array.map({ "${x.owner}: ${x.balance}" }) | String.join("\n") // "Ann: 120\nBob: 75"
 ```
 
 Parse every field of a line. `String.toInt` returns `null` for text that is not an integer:
 
 ```ant
-String.split("4,8,x,15", ",").map(String.toInt) // [4, 8, null, 15]
+"4,8,x,15".split(",").map(String.toInt) // [4, 8, null, 15]
 ```
 
 Parse every element and keep the first error: map with a function that returns a `Result`, then
@@ -153,7 +153,7 @@ Parse every element and keep the first error: map with a function that returns a
 
 ```ant
 func parse(s: string): Result[int, string] {
-  let n = String.toInt(s)
+  let n = s.toInt()
   if n is int { Result.ok(n) } else { Result.err("not a number: ${s}") }
 }
 ["4", "8", "15"] | Array.map(parse) | Result.all() // Ok{ value: [4, 8, 15] }
@@ -172,7 +172,7 @@ Number the elements with `Array.entries`, which pairs each with its index:
 
 ```ant
 let steps = ["mix", "bake", "serve"]
-for line in Array.entries(steps).map({ "${x.index + 1}. ${x.value}" }) {
+for line in steps.entries().map({ "${x.index + 1}. ${x.value}" }) {
   println(line)
 }
 ```
@@ -187,7 +187,7 @@ Render a list of HTML elements. An array of nodes renders its elements in order:
 
 ```ant
 let tasks = ["write", "test"]
-println(<ul>{Array.map(tasks, { <li>{x}</li> })}</ul>)
+println(<ul>{tasks.map({ <li>{x}</li> })}</ul>)
 ```
 
 ```text
@@ -200,14 +200,14 @@ The result has the length of `xs`:
 
 ```ant
 let xs = ["a", "bb", "ccc"]
-assert(len(Array.map(xs, { String.length(x) })) == len(xs))
+assert(xs.map({ x.length() }).length() == xs.length())
 ```
 
 Mapping with the identity gives an equal array that is not the same array:
 
 ```ant
 let xs = [1, 2, 3]
-let ys = Array.map(xs, { x })
+let ys = xs.map({ x })
 assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
@@ -218,14 +218,14 @@ When `f` and `g` have no side effects, two maps in a row are one map with the co
 let xs = [1, 2, 3]
 let f: func(int): int = { x + 1 }
 let g: func(int): int = { x * 10 }
-assert(Array.map(Array.map(xs, f), g) == Array.map(xs, { g(f(x)) }))
+assert(xs.map(f).map(g) == xs.map({ g(f(x)) }))
 ```
 
 Mapping each element to a one-element array and flattening is the same as mapping:
 
 ```ant
 let xs = [1, 2, 3]
-assert(Array.flatMap(xs, { [x * 2] }) == Array.map(xs, { x * 2 }))
+assert(xs.flatMap({ [x * 2] }) == xs.map({ x * 2 }))
 ```
 
 `f` runs once per element, from the first to the last. A callback that logs what it sees shows the
@@ -233,16 +233,16 @@ order:
 
 ```ant
 let seen: Array[string] = []
-Array.map(["a", "b", "c"], { Array.push(seen, x); String.toUpper(x) }) // ["A", "B", "C"]
-seen                                                                   // ["a", "b", "c"]
+["a", "b", "c"].map({ seen.push(x); x.toUpper() }) // ["A", "B", "C"]
+seen                                               // ["a", "b", "c"]
 ```
 
 A callback that pushes to `xs` does not change what the call visits:
 
 ```ant
 let xs = [1, 2, 3]
-Array.map(xs, { Array.push(xs, x + 10); x * 2 }) // [2, 4, 6]
-xs                                               // [1, 2, 3, 11, 12, 13]
+xs.map({ xs.push(x + 10); x * 2 }) // [2, 4, 6]
+xs                                 // [1, 2, 3, 11, 12, 13]
 ```
 
 ## Possible issues
@@ -252,7 +252,7 @@ xs                                               // [1, 2, 3, 11, 12, 13]
 
 ```ant
 let xs = [1, 2, 3]
-Array.map(xs, { x * 2 })
+xs.map({ x * 2 })
 println(xs)
 ```
 
@@ -264,13 +264,13 @@ Nested lambdas each bind their own `x`, so the inner lambda cannot read the oute
 `x + x` is the inner element doubled:
 
 ```ant
-Array.map([1, 2], { Array.map([10, 20], { x + x }) }) // [[20, 40], [20, 40]]
+[1, 2].map({ [10, 20].map({ x + x }) }) // [[20, 40], [20, 40]]
 ```
 
 Use `func` for the outer function to name its parameter:
 
 ```ant
-Array.map([1, 2], func(n: int) { Array.map([10, 20], { n + x }) }) // [[11, 21], [12, 22]]
+[1, 2].map(func(n: int) { [10, 20].map({ n + x }) }) // [[11, 21], [12, 22]]
 ```
 
 `f` takes one argument, the element. It gets no index, and a function of two parameters is a compile
@@ -278,7 +278,7 @@ error; use `Array.entries` for the index, as in Applications:
 
 ```ant
 let xs = ["a", "b"]
-let labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
+let labeled = xs.map(func(s: string, i: int): string { "${i}${s}" })
 // error: cannot use func(string, int): string where func(string): U is expected
 ```
 
@@ -286,14 +286,14 @@ An expected type fixes `U` before the lambda is checked, so a lambda that return
 compile error. Integer literals are always `int`, even where a `float64` is expected:
 
 ```ant
-let halves: Array[float64] = Array.map([1, 2], { x * 2 })
+let halves: Array[float64] = [1, 2].map({ x * 2 })
 // error: cannot use int where float64 is expected
 ```
 
 Convert in the lambda instead:
 
 ```ant
-let halves: Array[float64] = Array.map([1, 2], { float64(x) / 2.0 })
+let halves: Array[float64] = [1, 2].map({ float64(x) / 2.0 })
 halves // [0.5, 1.0]
 ```
 
@@ -301,14 +301,14 @@ A lambda whose body is an empty literal fixes nothing, so `U` stays unsolved and
 compile error:
 
 ```ant
-let lists = Array.map([1, 2], { [] })
+let lists = [1, 2].map({ [] })
 // error: cannot infer the element type of an empty array; annotate it
 ```
 
 Annotate the result to fix `U`:
 
 ```ant
-let lists: Array[Array[int]] = Array.map([1, 2], { [] })
+let lists: Array[Array[int]] = [1, 2].map({ [] })
 lists // [[], []]
 ```
 
@@ -317,7 +317,7 @@ record, both arrays hold the same value, so writing to it shows through:
 
 ```ant
 let grid = [[1], [2]]
-let copy = Array.map(grid, { x })
+let copy = grid.map({ x })
 copy[0][0] = 9
 grid // [[9], [2]]
 ```

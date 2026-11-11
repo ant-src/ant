@@ -111,7 +111,7 @@ Parse an unsigned number and use it where an `int` is expected:
 
 ```ant
 func port(text: string): int {
-  let n = String.toUint(text) ?? return -1
+  let n = text.toUint() ?? return -1
   if n > uint64(65535) {
     return -1
   }

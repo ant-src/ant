@@ -89,15 +89,15 @@ For the last character of a string, split it into graphemes first, so that a cha
 several code points stays whole:
 
 ```ant
-String.graphemes("bonjour 👋🏽").last() // "👋🏽"
+"bonjour 👋🏽".graphemes().last() // "👋🏽"
 ```
 
 The keys of a map and the values of a set are arrays in insertion order, so `Array.last` gives the
 one inserted last:
 
 ```ant
-Map.keys(Map{ b: 2, a: 1 }).last() // "a"
-Set.of([3, 1, 2]).values().last()  // 2
+Map{ b: 2, a: 1 }.keys().last()   // "a"
+Set.of([3, 1, 2]).values().last() // 2
 ```
 
 A map value that may be missing can default to `[]` with `??`. The `[]` takes the type of the value,

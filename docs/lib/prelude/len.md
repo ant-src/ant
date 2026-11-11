@@ -57,7 +57,7 @@ A string counts code points, and `Bytes` counts bytes:
 
 ```ant
 len("héllo")                   // 5
-len(String.toBytes("héllo"))   // 6
+len("héllo".toBytes())         // 6
 len(Bytes.fromArray([0, 255])) // 2
 ```
 
@@ -85,10 +85,10 @@ A channel reports the values it buffers now:
 
 ```ant
 let c: Channel[int] = Channel.new(3)
-Channel.send(c, 1)
-Channel.send(c, 2)
+c.send(1)
+c.send(2)
 println(len(c))
-Channel.receive(c)
+c.receive()
 println(len(c))
 ```
 
@@ -100,7 +100,7 @@ println(len(c))
 Pass `len` as a function where the expected type fixes its parameter:
 
 ```ant
-Array.map(["a", "bb", "ccc"], len) // [1, 2, 3]
+["a", "bb", "ccc"].map(len) // [1, 2, 3]
 ```
 
 ## Applications
@@ -115,7 +115,7 @@ steps[len(steps) - 1] // "ship"
 Sort words by length:
 
 ```ant
-Array.sortBy(["pear", "fig", "banana"], len) // ["fig", "pear", "banana"]
+["pear", "fig", "banana"].sortBy(len) // ["fig", "pear", "banana"]
 ```
 
 Reject a password that is too short:
@@ -132,7 +132,7 @@ strong("correct horse") // true
 Count the distinct words of a sentence:
 
 ```ant
-let words = String.split("the cat saw the dog", " ")
+let words = "the cat saw the dog".split(" ")
 len(words)         // 5
 len(Set.of(words)) // 4
 ```
@@ -154,7 +154,7 @@ than its code points:
 
 ```ant
 for s in ["", "abc", "héllo", "日本"] {
-  assert(len(String.toBytes(s)) >= len(s))
+  assert(len(s.toBytes()) >= len(s))
 }
 let xs = [1, 1, 2]
 assert(len(Set.of(xs)) <= len(xs))
@@ -173,8 +173,8 @@ assert(len(a + b) == len(a) + len(b))
 `len` counts code points, so a character built from several code points counts more than once:
 
 ```ant
-len("e\u{301}")                   // 2
-len(String.graphemes("e\u{301}")) // 1
+len("e\u{301}")             // 2
+len("e\u{301}".graphemes()) // 1
 ```
 
 The last valid index is `len(xs) - 1`; indexing at `len(xs)` panics:

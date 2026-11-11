@@ -37,29 +37,29 @@ greeting.contains("Hello") // false
 With an empty `t` or an empty `s`:
 
 ```ant
-String.contains("abc", "") // true
-String.contains("", "")    // true
-String.contains("", "a")   // false
+"abc".contains("") // true
+"".contains("")    // true
+"".contains("a")   // false
 ```
 
 `t` may be longer than one code point, and may be all of `s`:
 
 ```ant
-String.contains("ant", "ant")  // true
-String.contains("ant", "ants") // false
+"ant".contains("ant")  // true
+"ant".contains("ants") // false
 ```
 
 Non-ASCII text works the same way, by code points:
 
 ```ant
-String.contains("naïve café", "ï")          // true
-String.contains("日本語のテキスト", "テキ") // true
+"naïve café".contains("ï")          // true
+"日本語のテキスト".contains("テキ") // true
 ```
 
 An emoji joined from several code points contains each of them:
 
 ```ant
-String.contains("👨‍👩‍👧", "👩") // true
+"👨‍👩‍👧".contains("👩") // true
 ```
 
 In a pipeline, the string is the first argument:
@@ -74,7 +74,7 @@ Keep the log lines that mention an error:
 
 ```ant
 let log = "ok\nERROR: disk full\nok\nERROR: timeout"
-String.lines(log).filter({ x.contains("ERROR") }) // ["ERROR: disk full", "ERROR: timeout"]
+log.lines().filter({ x.contains("ERROR") }) // ["ERROR: disk full", "ERROR: timeout"]
 ```
 
 Search without regard to case by folding both sides with [`String.foldCase`](foldCase.md):
@@ -155,7 +155,7 @@ assert(s.endsWith(b) && s.contains(b))
 The test is case-sensitive. Fold the case of both sides, as in the `mentions` example above:
 
 ```ant
-String.contains("Ant", "ant")               // false
+"Ant".contains("ant")                       // false
 "Ant".foldCase().contains("ANT".foldCase()) // true
 ```
 
@@ -165,9 +165,9 @@ contains a plain `e`, and does not contain the single code point `\u{E9}` until
 
 ```ant
 let word = "cafe\u{301}"
-word.contains("e")                               // true
-word.contains("\u{E9}")                          // false
-String.normalize(word, "NFC").contains("\u{E9}") // true
+word.contains("e")                       // true
+word.contains("\u{E9}")                  // false
+word.normalize("NFC").contains("\u{E9}") // true
 ```
 
 A substring is not a word. To test for a whole word, split the text first and use
@@ -175,9 +175,9 @@ A substring is not a word. To test for a whole word, split the text first and us
 
 ```ant
 let text = "the cat sat"
-text.contains("he")                 // true
-String.fields(text).contains("he")  // false
-String.fields(text).contains("cat") // true
+text.contains("he")           // true
+text.fields().contains("he")  // false
+text.fields().contains("cat") // true
 ```
 
 A nullable string, such as the result of `Map` indexing, is not a `string`, so it is a compile
@@ -219,7 +219,7 @@ println(String.contains("abc", { x == "b" }))
 ```
 
 ```ant
-"a1b".chars().some({ String.isDigit(x) }) // true
+"a1b".chars().some({ x.isDigit() }) // true
 ```
 
 ## See also

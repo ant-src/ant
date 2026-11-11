@@ -36,7 +36,7 @@ Call it through `.` on any array:
 
 ```ant
 let words = ["ant", "bee", "beetle", "wasp"]
-words.findLast({ String.startsWith(x, "b") }) // "beetle"
+words.findLast({ x.startsWith("b") }) // "beetle"
 ```
 
 ## Scope
@@ -78,10 +78,10 @@ A named function works as well as a lambda:
 
 ```ant
 func isVowel(s: string): bool {
-  String.contains("aeiou", s)
+  "aeiou".contains(s)
 }
 
-String.graphemes("rhythm and blues").findLast(isVowel) // "e"
+"rhythm and blues".graphemes().findLast(isVowel) // "e"
 ```
 
 A lambda can read local variables:
@@ -94,7 +94,7 @@ let limit = 10
 In a pipeline, the array is the first argument:
 
 ```ant
-"a,bb,ccc,dd" | String.split(",") | Array.findLast({ String.length(x) == 2 }) // "dd"
+"a,bb,ccc,dd" | String.split(",") | Array.findLast({ x.length() == 2 }) // "dd"
 ```
 
 A callback that records its argument shows the order: from the last element back, stopping at the
@@ -158,9 +158,9 @@ Read the last value a setting was given, where later lines override earlier ones
 
 ```ant
 let lines = ["port=80", "host=localhost", "port=8080"]
-let port = lines.findLast({ String.startsWith(x, "port=") })
+let port = lines.findLast({ x.startsWith("port=") })
 if port != null {
-  println(String.trimPrefix(port, "port="))
+  println(port.trimPrefix("port="))
 }
 ```
 
@@ -226,7 +226,7 @@ The result is `null` exactly when `Array.some` is `false`, as long as `T` does n
 ```ant
 let xs = ["ant", "bee", "wasp"]
 for n in [2, 3, 4, 5] {
-  assert((xs.findLast({ String.length(x) == n }) != null) == xs.some({ String.length(x) == n }))
+  assert((xs.findLast({ x.length() == n }) != null) == xs.some({ x.length() == n }))
 }
 ```
 

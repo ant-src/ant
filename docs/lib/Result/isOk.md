@@ -57,8 +57,8 @@ An `Ok` whose value is itself an `Err` is an `Ok`. Ask the inner result separate
 
 ```ant
 let outer: Result[Result[int, string], string] = Result.ok(Result.err("inner"))
-outer.isOk()                                // true
-outer.isOk() && Result.unwrap(outer).isOk() // false
+outer.isOk()                          // true
+outer.isOk() && outer.unwrap().isOk() // false
 ```
 
 The error type is whatever the code chooses, such as a union of records:

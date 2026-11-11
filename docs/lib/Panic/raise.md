@@ -126,7 +126,7 @@ func handle(job: string): int {
   job.length()
 }
 
-var failures: Array[Panic] = []
+let failures: Array[Panic] = []
 for job in ["build", "", "deploy"] {
   let r = Panic.catch({ handle(job) })
   if r is Err {

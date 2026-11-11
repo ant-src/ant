@@ -44,7 +44,7 @@ Bytes.fromArray(none) // Bytes()
 An `Array[byte]` converts as it is, and so does an array of any other integer type:
 
 ```ant
-let raw = Array.map([1, 2, 255], byte)
+let raw = [1, 2, 255].map(byte)
 Bytes.fromArray(raw)                      // Bytes(01 02 ff)
 Bytes.fromArray([int8(1), int8(127)])     // Bytes(01 7f)
 Bytes.fromArray([uint64(0), uint64(255)]) // Bytes(00 ff)
@@ -71,7 +71,7 @@ Check a file header against a known signature:
 ```ant
 let png = Bytes.fromArray([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 let file = Bytes.concat([png, String.toBytes("IHDR")])
-Bytes.startsWith(file, png) // true
+file.startsWith(png) // true
 ```
 
 Compute bytes one at a time into an array, then convert it once:
@@ -97,8 +97,8 @@ bigEndian(0x12345678) // Bytes(12 34 56 78)
 Decode UTF-8 bytes given as numbers:
 
 ```ant
-String.fromBytes(Bytes.fromArray([0xe6, 0x97, 0xa5])) // "日"
-String.fromBytes(Bytes.fromArray([0xff]))             // null
+Bytes.fromArray([0xe6, 0x97, 0xa5]) | String.fromBytes() // "日"
+Bytes.fromArray([0xff]) | String.fromBytes()             // null
 ```
 
 ## Properties and relations
@@ -108,7 +108,7 @@ String.fromBytes(Bytes.fromArray([0xff]))             // null
 ```ant
 let b = String.toBytes("ant")
 assert(Bytes.fromArray(Bytes.toArray(b)) == b)
-assert(Bytes.toArray(Bytes.fromArray([1, 2, 3])) == Array.map([1, 2, 3], byte))
+assert(Bytes.toArray(Bytes.fromArray([1, 2, 3])) == [1, 2, 3].map(byte))
 ```
 
 The bytes of an ASCII string are its character codes:

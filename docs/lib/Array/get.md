@@ -77,7 +77,7 @@ grid.get(5)?.get(0) // null
 Index the graphemes of a string by splitting it with `String.graphemes` first:
 
 ```ant
-String.graphemes("🐜🐝🐞").get(1) // "🐝"
+"🐜🐝🐞".graphemes().get(1) // "🐝"
 ```
 
 In a pipeline, the array is the first argument:

@@ -19,15 +19,15 @@ Result.all returns Ok of every value in rs, in order, or the first Err in rs.
 
 ```ant
 let rs: Array[Result[int, string]] = [Result.ok(1), Result.ok(2)]
-Result.all(rs)                                   // Ok{ value: [1, 2] }
-Result.all(Array.concat(rs, [Result.err("no")])) // Err{ error: "no" }
+Result.all(rs)                            // Ok{ value: [1, 2] }
+Result.all(rs.concat([Result.err("no")])) // Err{ error: "no" }
 ```
 
 Map a function that can fail over an array, then combine the results:
 
 ```ant
 func parsePort(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   if n < 1 || n > 65535 {
     return Result.err("out of range: ${n}")
   }
@@ -112,7 +112,7 @@ pipeline, so that `try` applies to the combined result:
 
 ```ant
 func parsePrice(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("bad price: ${s}")
+  let n = s.toInt() ?? return Result.err("bad price: ${s}")
   Result.ok(n)
 }
 
@@ -136,8 +136,8 @@ Validate every field of a form and return the cleaned values, or the first probl
 type Field = { name: string, value: string }
 
 func check(f: Field): Result[string, string] {
-  let value = String.trim(f.value)
-  if value == "" {
+  let value = f.value.trim()
+  if value.isEmpty() {
     return Result.err("${f.name} is required")
   }
   Result.ok(value)
@@ -167,8 +167,7 @@ func square(n: int, work: Context): Result[int, string] {
 
 func squares(xs: Array[int]): Result[Array[int], string] {
   let results = Parallel.map(xs, square, limit: 2) ?? return Result.err("cancelled")
-  let values = try (results | Result.all())
-  Result.ok(values)
+  results | Result.all()
 }
 
 println(squares([1, 2, 3]))
@@ -202,8 +201,8 @@ Err{ error: Error{ message: "load configs: unexpected end of JSON input" } }
 let rs: Array[Result[int, string]] = [Result.ok(3), Result.ok(1), Result.ok(2)]
 let all = Result.all(rs)
 assert(all is Ok == rs.every(Result.isOk))
-assert(Result.unwrap(all) == rs.map(Result.unwrap))
-assert(Result.unwrap(all).length() == rs.length())
+assert(all.unwrap() == rs.map(Result.unwrap))
+assert(all.unwrap().length() == rs.length())
 ```
 
 On a failure, the error is the error of the first `Err` that `Array.find` finds:
@@ -230,7 +229,7 @@ after a failure still runs:
 
 <!-- test: before
 func parsePort(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 -->
@@ -249,7 +248,7 @@ func parseAll(xs: Array[string]): Result[Array[int], string] {
   let out: Array[int] = []
   for s in xs {
     println("parsing ${s}")
-    let n = String.toInt(s) ?? return Result.err(s)
+    let n = s.toInt() ?? return Result.err(s)
     out.push(n)
   }
   Result.ok(out)
@@ -277,7 +276,7 @@ rs.filter({ x is Err }) // [Err{ error: "a" }, Err{ error: "b" }]
 
 ```ant
 func parsePrice(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("bad price: ${s}")
+  let n = s.toInt() ?? return Result.err("bad price: ${s}")
   Result.ok(n)
 }
 

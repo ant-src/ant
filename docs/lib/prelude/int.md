@@ -65,7 +65,7 @@ int(Celsius(21.0)) // 21
 Pass `int` itself as a function:
 
 ```ant
-Array.map([1.0, 2.0, 3.0], int) // [1, 2, 3]
+[1.0, 2.0, 3.0].map(int) // [1, 2, 3]
 ```
 
 ## Applications
@@ -74,7 +74,7 @@ Add bytes without overflowing `byte` by summing them as `int`:
 
 ```ant
 let data = [byte(200), byte(100), byte(50)]
-Array.sum(Array.map(data, int)) // 350
+data.map(int).sum() // 350
 ```
 
 Turn a price in dollars into whole cents, rounding first:
@@ -147,7 +147,7 @@ let n = int("3") // error: int converts a number or a named primitive type over 
 A nullable number must be narrowed first:
 
 ```ant
-let found: int | null = Array.indexOf([5, 6], 6)
+let found: int | null = [5, 6].indexOf(6)
 let n = int(found)
 // error: int converts a number or a named primitive type over a number, got int | null
 ```

@@ -80,7 +80,7 @@ letter. The code point 769 is the accent U+0301 that stays on `t`:
 
 ```ant
 let s = String.replaceFirst("e\u{301}t\u{301}", "\u{301}", "")
-String.toCodePoints(s) // [101, 116, 769]
+s.toCodePoints() // [101, 116, 769]
 ```
 
 Call it through `.`, in a pipe, or with named arguments:
@@ -99,7 +99,7 @@ Fill `?` placeholders in order, one value each:
 func fill(template: string, values: Array[string]): string {
   var out = template
   for v in values {
-    out = String.replaceFirst(out, "?", v)
+    out = out.replaceFirst("?", v)
   }
   out
 }
@@ -147,17 +147,17 @@ When `old` occurs, the result is the text before it, then `new`, then the text a
 
 ```ant
 let s = "user=ann=admin"
-let c = String.cut(s, "=")
+let c = s.cut("=")
 assert(c != null)
-assert(String.replaceFirst(s, "=", ": ") == c.before + ": " + c.after)
+assert(s.replaceFirst("=", ": ") == c.before + ": " + c.after)
 ```
 
 When `old` does not occur, the result is `s`:
 
 ```ant
 let s = "plain"
-assert(!String.contains(s, "="))
-assert(String.replaceFirst(s, "=", ": ") == s)
+assert(!s.contains("="))
+assert(s.replaceFirst("=", ": ") == s)
 ```
 
 The length changes by the difference between `new` and `old` when `old` occurs, and does not change
@@ -165,16 +165,16 @@ otherwise:
 
 ```ant
 let s = "a-b-c"
-let r = String.replaceFirst(s, "-", "--")
-assert(String.length(r) == String.length(s) - 1 + 2)
+let r = s.replaceFirst("-", "--")
+assert(r.length() == s.length() - 1 + 2)
 ```
 
 When `old` occurs at most once, `String.replaceFirst` and [`String.replace`](replace.md) agree:
 
 ```ant
 for s in ["k=v", "kv", "=", ""] {
-  assert(String.count(s, "=") <= 1)
-  assert(String.replaceFirst(s, "=", ":") == String.replace(s, "=", ":"))
+  assert(s.count("=") <= 1)
+  assert(s.replaceFirst("=", ":") == s.replace("=", ":"))
 }
 ```
 
@@ -190,9 +190,9 @@ String.replaceFirst("abc", "", "x") // panic: String.replaceFirst needs an old s
 
 ```ant
 var s = "a-b"
-String.replaceFirst(s, "-", "+")
+s.replaceFirst("-", "+")
 println(s)
-s = String.replaceFirst(s, "-", "+")
+s = s.replaceFirst("-", "+")
 println(s)
 ```
 
@@ -218,7 +218,7 @@ To change only a leading prefix, test it with [`String.startsWith`](startsWith.m
 
 ```ant
 func promote(s: string): string {
-  if String.startsWith(s, "# ") { "#" + s } else { s }
+  if s.startsWith("# ") { "#" + s } else { s }
 }
 
 println(promote("C# # notes"))
@@ -238,7 +238,7 @@ value:
 func fill(template: string, values: Array[string]): string {
   var out = template
   for v in values {
-    out = String.replaceFirst(out, "?", v)
+    out = out.replaceFirst("?", v)
   }
   out
 }
@@ -256,11 +256,8 @@ There is no `String.replaceLast`. To replace the last occurrence, find it with
 
 ```ant
 func replaceLast(s: string, old: string, new: string): string {
-  let i = String.lastIndexOf(s, old)
-  if i == null {
-    return s
-  }
-  String.slice(s, 0, i) + new + String.slice(s, i + String.length(old), String.length(s))
+  let i = s.lastIndexOf(old) ?? return s
+  s.slice(0, i) + new + s.slice(i + old.length(), s.length())
 }
 
 println(replaceLast("a-b-c", "-", "+"))

@@ -86,17 +86,17 @@ For the first grapheme of a string, what a reader sees as one character, split i
 character is written with a combining mark:
 
 ```ant
-String.graphemes("🐜🐝🐞").first()    // "🐜"
-String.graphemes("e\u{301}x").first() // "é"
-String.chars("e\u{301}x").first()     // "e"
+"🐜🐝🐞".graphemes().first()    // "🐜"
+"e\u{301}x".graphemes().first() // "é"
+"e\u{301}x".chars().first()     // "e"
 ```
 
 The keys, values, and entries of a map, and the values of a set, are arrays in insertion order, so
 `Array.first` gives the earliest one:
 
 ```ant
-Map.keys(Map{ b: 2, a: 1 }).first() // "b"
-Set.of([3, 1, 2]).values().first()  // 3
+Map{ b: 2, a: 1 }.keys().first()   // "b"
+Set.of([3, 1, 2]).values().first() // 3
 ```
 
 In a pipe, the array is the first argument:
@@ -145,7 +145,7 @@ Keep the first word for each initial letter:
 
 ```ant
 let words = ["apple", "avocado", "banana", "blueberry", "cherry"]
-let byLetter = words.groupBy({ String.graphemes(x)[0] })
+let byLetter = words.groupBy({ x.graphemes()[0] })
 byLetter.map({ x.value.first() ?? "" }) // Map{ "a": "apple", "b": "banana", "c": "cherry" }
 ```
 

@@ -25,7 +25,7 @@ Iter.filter returns a sequence of the elements of s that f accepts.
 Keep the multiples of 3 below 10:
 
 ```ant
-Iter.toArray(Iter.filter(Iter.range(0, 10), { x % 3 == 0 })) // [0, 3, 6, 9]
+Iter.filter(Iter.range(0, 10), { x % 3 == 0 }) | Iter.toArray() // [0, 3, 6, 9]
 ```
 
 Keep the multiples of 7 below 30 with a pipe:
@@ -53,7 +53,7 @@ for n in Iter.range(1, 20) | Iter.filter({ x % 5 == 0 }) {
 Filter the elements of an array as a sequence:
 
 ```ant
-Iter.fromArray(["ant", "beetle", "fly"]) | Iter.filter({ String.length(x) > 3 }) | Iter.toArray() // ["beetle"]
+Iter.fromArray(["ant", "beetle", "fly"]) | Iter.filter({ x.length() > 3 }) | Iter.toArray() // ["beetle"]
 ```
 
 An empty sequence gives an empty sequence, and so does a predicate that accepts nothing:
@@ -148,7 +148,7 @@ Stop at the first match with `break`; the predicate sees nothing after it:
 
 ```ant
 let checked: Array[int] = []
-for n in Iter.range(10, 100) | Iter.filter({ Array.push(checked, x); x % 13 == 0 }) {
+for n in Iter.range(10, 100) | Iter.filter({ checked.push(x); x % 13 == 0 }) {
   println(n)
   break
 }
@@ -174,7 +174,7 @@ The predicate does not run until the result runs, and then only as far as the co
 
 ```ant
 let calls: Array[int] = []
-let evens = Iter.range(0, 10) | Iter.filter({ Array.push(calls, x); x % 2 == 0 })
+let evens = Iter.range(0, 10) | Iter.filter({ calls.push(x); x % 2 == 0 })
 calls                                 // []
 evens | Iter.take(2) | Iter.toArray() // [0, 2]
 calls                                 // [0, 1, 2]
@@ -184,9 +184,9 @@ calls                                 // [0, 1, 2]
 
 ```ant
 let log: Array[string] = []
-let kept = Iter.range(1, 5) | Iter.filter({ Array.push(log, "f${x}"); x % 2 == 0 })
-kept | Iter.map({ Array.push(log, "m${x}"); x * 10 }) | Iter.toArray() // [20, 40]
-log                                                                    // ["f1", "f2", "m2", "f3", "f4", "m4"]
+let kept = Iter.range(1, 5) | Iter.filter({ log.push("f${x}"); x % 2 == 0 })
+kept | Iter.map({ log.push("m${x}"); x * 10 }) | Iter.toArray() // [20, 40]
+log                                                             // ["f1", "f2", "m2", "f3", "f4", "m4"]
 ```
 
 ## Possible issues

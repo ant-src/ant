@@ -117,7 +117,7 @@ Turn a weekday name into its number, with a fallback for unknown names:
 ```ant
 let days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 func dayNumber(name: string): int {
-  (days.indexOf(String.toLower(name)) ?? -1) + 1
+  (days.indexOf(name.toLower()) ?? -1) + 1
 }
 
 println(dayNumber("Wed"))
@@ -177,7 +177,7 @@ for v in [3, 5, 8] {
   let i = xs.indexOf(v)
   assert(i != null)
   assert(xs[i] == v)
-  assert(!Array.slice(xs, 0, i).contains(v))
+  assert(!xs.slice(0, i).contains(v))
 }
 ```
 

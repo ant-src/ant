@@ -81,19 +81,19 @@ As a function value, it maps an array of numbers to an array of nullable strings
 Build the lower-case Latin alphabet from the code point of `"a"`:
 
 ```ant
-let a = String.codePoint("a")
+let a = "a".codePoint()
 let letters = Iter.range(0, 26) | Iter.map({ String.fromCodePoint(a + x) ?? "" }) | Iter.toArray()
-String.join(letters, "") // "abcdefghijklmnopqrstuvwxyz"
+letters | String.join("") // "abcdefghijklmnopqrstuvwxyz"
 ```
 
 Read a code point written as `U+` and hexadecimal digits, and reject one that names no character:
 
 ```ant
 func parseUPlus(s: string): string | null {
-  if !String.startsWith(s, "U+") {
+  if !s.startsWith("U+") {
     return null
   }
-  let n = String.toInt(String.slice(s, 2, String.length(s)), 16)
+  let n = s.slice(2, s.length()).toInt(16)
   if n == null {
     return null
   }
@@ -110,7 +110,7 @@ Replace a value that is not a scalar value with U+FFFD, the replacement characte
 
 ```ant
 func toText(points: Array[int]): string {
-  String.join(points.map({ String.fromCodePoint(x) ?? "\u{FFFD}" }), "")
+  points.map({ String.fromCodePoint(x) ?? "\u{FFFD}" }) | String.join("")
 }
 
 toText([65, 0xD800, 110, 116]) // "A�nt"
@@ -123,7 +123,7 @@ The result of a scalar value is one code point long, and `String.codePoint` turn
 ```ant
 for n in [0, 65, 233, 0xD7FF, 0xE000, 0x1F41C, 0x10FFFF] {
   let c = String.fromCodePoint(n)
-  assert(c != null && String.length(c) == 1 && String.codePoint(c) == n)
+  assert(c != null && c.length() == 1 && c.codePoint() == n)
 }
 ```
 
@@ -179,8 +179,8 @@ before it into one grapheme:
 
 ```ant
 let e = "e" + (String.fromCodePoint(0x301) ?? "")
-String.length(e)             // 2
-String.graphemes(e).length() // 1
+e.length()             // 2
+e.graphemes().length() // 1
 ```
 
 ## See also

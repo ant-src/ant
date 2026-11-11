@@ -35,19 +35,19 @@ Array.flatten([["c"], ["a", "b"]]) // ["c", "a", "b"]
 Empty inner arrays add nothing, and an empty outer array gives an empty result:
 
 ```ant
-Array.flatten([[1], [], [2]]) // [1, 2]
+[[1], [], [2]].flatten() // [1, 2]
 let empties: Array[Array[string]] = [[], []]
-Array.flatten(empties) // []
+empties.flatten() // []
 let none: Array[Array[int]] = []
-Array.flatten(none) // []
+none.flatten() // []
 ```
 
 Strings and records work like any other element:
 
 ```ant
 type Point = { x: int, y: int }
-Array.flatten([["é"], ["日本", "🐜"]])                        // ["é", "日本", "🐜"]
-Array.flatten([[Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]]) // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
+[["é"], ["日本", "🐜"]].flatten()                        // ["é", "日本", "🐜"]
+[[Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]].flatten() // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 ```
 
 Inner arrays that differ only in holding `null` need an expected type. Without one,
@@ -56,13 +56,13 @@ array member:
 
 ```ant
 let xs: Array[Array[int | null]] = [[1, null], [null]]
-Array.flatten(xs) // [1, null, null]
+xs.flatten() // [1, null, null]
 ```
 
 Inner arrays of the same type need none:
 
 ```ant
-Array.flatten([[1, null], [2, null]]) // [1, null, 2, null]
+[[1, null], [2, null]].flatten() // [1, null, 2, null]
 ```
 
 An expected type fixes `T`, so inner arrays of different element types flatten into a union:
@@ -75,8 +75,8 @@ mixed // [1, "x"]
 Only one level is removed. An array of arrays of arrays gives an array of arrays:
 
 ```ant
-Array.flatten([[[1, 2]], [[3]]])                // [[1, 2], [3]]
-Array.flatten(Array.flatten([[[1, 2]], [[3]]])) // [1, 2, 3]
+[[[1, 2]], [[3]]].flatten()           // [[1, 2], [3]]
+[[[1, 2]], [[3]]].flatten().flatten() // [1, 2, 3]
 ```
 
 Call it through `.` on an array, or with a pipe:
@@ -98,21 +98,21 @@ List every word of a few lines:
 
 ```ant
 let lines = ["the ant", "and the bee"]
-Array.flatten(lines.map({ String.split(x, " ") })) // ["the", "ant", "and", "the", "bee"]
+lines.map({ x.split(" ") }).flatten() // ["the", "ant", "and", "the", "bee"]
 ```
 
 Collect the values of a map of groups back into one array, group by group:
 
 ```ant
-let byLetter = Array.groupBy(["ant", "bee", "ape"], { String.slice(x, 0, 1) })
-Array.flatten(Map.values(byLetter)) // ["ant", "ape", "bee"]
+let byLetter = ["ant", "bee", "ape"].groupBy({ x.slice(0, 1) })
+byLetter.values().flatten() // ["ant", "ape", "bee"]
 ```
 
 Print every cell of a table, one per line:
 
 ```ant
 let table = [["name", "age"], ["Ann", "31"]]
-for cell in Array.flatten(table) {
+for cell in table.flatten() {
   println(cell)
 }
 ```
@@ -135,7 +135,7 @@ func flags(verbose: bool, output: string | null): Array[string] {
   if output != null {
     groups.push(["-o", output])
   }
-  Array.flatten(groups)
+  groups.flatten()
 }
 
 println(String.join(flags(true, "out.txt"), " "))
@@ -153,7 +153,7 @@ The length of the result is the sum of the inner lengths:
 
 ```ant
 let xss = [[1, 2], [], [3, 4, 5]]
-assert(len(Array.flatten(xss)) == (Array.sum(Array.map(xss, len)) ?? 0))
+assert(len(xss.flatten()) == (xss.map(len).sum() ?? 0))
 ```
 
 Flattening two arrays is [Array.concat](concat.md), and flattening any number is the spread literal:
@@ -162,8 +162,8 @@ Flattening two arrays is [Array.concat](concat.md), and flattening any number is
 let a = [1, 2]
 let b = [3]
 let c = [4]
-assert(Array.flatten([a, b]) == Array.concat(a, b))
-assert(Array.flatten([a, b, c]) == [...a, ...b, ...c])
+assert([a, b].flatten() == Array.concat(a, b))
+assert([a, b, c].flatten() == [...a, ...b, ...c])
 ```
 
 The result keeps the order of the inner arrays and of the elements within each, so it matches a
@@ -172,28 +172,28 @@ left-to-right [Array.reduce](reduce.md) with [Array.concat](concat.md):
 ```ant
 let xss = [[3, 1], [], [2], [5, 4]]
 let empty: Array[int] = []
-assert(Array.flatten(xss) == Array.reduce(xss, empty, Array.concat))
+assert(xss.flatten() == xss.reduce(empty, Array.concat))
 ```
 
 Flattening after a map is [Array.flatMap](flatMap.md):
 
 ```ant
 let xs = [1, 2, 3]
-assert(Array.flatten(Array.map(xs, { [x, x * 10] })) == Array.flatMap(xs, { [x, x * 10] }))
+assert(xs.map({ [x, x * 10] }).flatten() == xs.flatMap({ [x, x * 10] }))
 ```
 
 Flattening the chunks of [Array.chunk](chunk.md) gives back the original array:
 
 ```ant
 let xs = [1, 2, 3, 4, 5]
-assert(Array.flatten(Array.chunk(xs, 2)) == xs)
+assert(xs.chunk(2).flatten() == xs)
 ```
 
 The result is a new array, even when there is one inner array:
 
 ```ant
 let inner = [1, 2]
-let flat = Array.flatten([inner])
+let flat = [inner].flatten()
 assert(flat == inner)
 assert(!Array.same(flat, inner))
 ```
@@ -202,7 +202,7 @@ Writing to the result leaves the inner arrays as they were:
 
 ```ant
 let grid = [[1], [2]]
-let flat = Array.flatten(grid)
+let flat = grid.flatten()
 flat[0] = 9
 flat // [9, 2]
 grid // [[1], [2]]
@@ -215,7 +215,7 @@ writing to it through the result shows through the original:
 
 ```ant
 let nested = [[[1]], [[2]]]
-let flat = Array.flatten(nested)
+let flat = nested.flatten()
 flat[0][0] = 99
 nested // [[[99]], [[2]]]
 ```

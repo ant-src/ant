@@ -45,56 +45,56 @@ String.toUint("-1") // null
 Pass a base from 2 to 36. Above ten, the letters `a` to `z` are digits, in either case:
 
 ```ant
-String.toUint("101", 2)               // 5
-String.toUint("755", 8)               // 493
-String.toUint("ff", 16)               // 255
-String.toUint("FF", 16)               // 255
-String.toUint("ffffffffffffffff", 16) // 18446744073709551615
-String.toUint("zz", 36)               // 1295
+"101".toUint(2)               // 5
+"755".toUint(8)               // 493
+"ff".toUint(16)               // 255
+"FF".toUint(16)               // 255
+"ffffffffffffffff".toUint(16) // 18446744073709551615
+"zz".toUint(36)               // 1295
 ```
 
 A digit that is not one of the base is `null`, and so is a number one past `Math.maxUint64`:
 
 ```ant
-String.toUint("12", 2)                // null
-String.toUint("g", 16)                // null
-String.toUint("18446744073709551616") // null
+"12".toUint(2)                  // null
+"g".toUint(16)                  // null
+"18446744073709551616".toUint() // null
 ```
 
 Leading zeros are digits like any other:
 
 ```ant
-String.toUint("007") // 7
-String.toUint("0")   // 0
+"007".toUint() // 7
+"0".toUint()   // 0
 ```
 
 No sign, no prefix, no space, no `_` separator, and no empty string:
 
 ```ant
-String.toUint("+1")    // null
-String.toUint("-0")    // null
-String.toUint("0x10")  // null
-String.toUint(" 1")    // null
-String.toUint("1_000") // null
-String.toUint("")      // null
+"+1".toUint()    // null
+"-0".toUint()    // null
+"0x10".toUint()  // null
+" 1".toUint()    // null
+"1_000".toUint() // null
+"".toUint()      // null
 ```
 
 Only ASCII digits count. A digit of another script, or a full-width one, is `null`:
 
 ```ant
-String.toUint("٣")  // null
-String.toUint("１") // null
+"٣".toUint()  // null
+"１".toUint() // null
 ```
 
 Call it through `.`, in a pipe, with named arguments, or pass it as a function value:
 
 ```ant
-"ff".toUint(16)                                 // 255
-"42".toUint()                                   // 42
-"777" | String.toUint(base: 8)                  // 511
-String.toUint(s: "1010", base: 2)               // 10
-Array.map(["1", "x", "30"], String.toUint)      // [1, null, 30]
-Array.map(["a", "b"], { String.toUint(x, 16) }) // [10, 11]
+"ff".toUint(16)                     // 255
+"42".toUint()                       // 42
+"777" | String.toUint(base: 8)      // 511
+String.toUint(s: "1010", base: 2)   // 10
+["1", "x", "30"].map(String.toUint) // [1, null, 30]
+["a", "b"].map({ x.toUint(16) })    // [10, 11]
 ```
 
 ## Named arguments
@@ -104,9 +104,9 @@ Array.map(["a", "b"], { String.toUint(x, 16) }) // [10, 11]
 `base` picks the radix, from 2 to 36, and defaults to `10`. The same text reads differently in each:
 
 ```ant
-String.toUint("100")           // 100
-String.toUint("100", base: 2)  // 4
-String.toUint("100", base: 16) // 256
+"100".toUint()         // 100
+"100".toUint(base: 2)  // 4
+"100".toUint(base: 16) // 256
 ```
 
 ## Applications
@@ -116,10 +116,10 @@ hex:
 
 ```ant
 func rgb(hex: string): Array[byte] | null {
-  if String.length(hex) != 6 {
+  if hex.length() != 6 {
     return null
   }
-  let n = String.toUint(hex, 16) ?? return null
+  let n = hex.toUint(16) ?? return null
   [
     byte(Bits.shiftRight(n, 16)),
     byte(Bits.and(Bits.shiftRight(n, 8), uint64(255))),
@@ -140,7 +140,7 @@ Parse a 64-bit identifier written in hex, such as a trace ID, whose high bit is 
 fit an `int`:
 
 ```ant
-let id = String.toUint("9f86d081884c7d65", 16) ?? panic("not hex")
+let id = "9f86d081884c7d65".toUint(16) ?? panic("not hex")
 println(id)
 println(String.fromInt(id, 16))
 ```
@@ -154,7 +154,7 @@ Read a port number, checking its range before converting to `uint16`:
 
 ```ant
 func port(s: string): uint16 | null {
-  let n = String.toUint(s) ?? return null
+  let n = s.toUint() ?? return null
   if n > uint64(65535) {
     return null
   }
@@ -176,7 +176,7 @@ Read a Unix permission mode in octal, the way `chmod` takes it:
 
 ```ant
 for mode in ["755", "640", "abc"] {
-  let bits = String.toUint(mode, 8)
+  let bits = mode.toUint(8)
   if bits == null {
     println("${mode}: not octal")
   } else {
@@ -198,7 +198,7 @@ abc: not octal
 ```ant
 for n in [uint64(0), uint64(1), uint64(255), Math.maxUint64] {
   for base in [2, 8, 10, 16, 36] {
-    assert(String.toUint(String.fromInt(n, base), base) == n)
+    assert(String.fromInt(n, base).toUint(base) == n)
   }
 }
 ```
@@ -208,8 +208,8 @@ fits an `int`:
 
 ```ant
 for s in ["0", "42", "9223372036854775807"] {
-  let u = String.toUint(s) ?? panic("unreachable")
-  assert(String.toInt(s) == int(u))
+  let u = s.toUint() ?? panic("unreachable")
+  assert(s.toInt() == int(u))
 }
 ```
 
@@ -225,19 +225,19 @@ String.toUint("9223372036854775808") // 9223372036854775808
 The result may be `null`, so it is not a `uint64` until you narrow it:
 
 ```ant
-let n: uint64 = String.toUint("5") // error: cannot use uint64 | null where uint64 is expected
+let n: uint64 = "5".toUint() // error: cannot use uint64 | null where uint64 is expected
 ```
 
 An integer literal is always an `int`, so `?? 0` gives `uint64 | int`, and arithmetic on it is a
 compile error. Write the default as a `uint64`:
 
 ```ant
-let n = String.toUint("5") ?? 0
+let n = "5".toUint() ?? 0
 let m = n + 1 // error: + needs both operands of one type, got uint64 | int and int
 ```
 
 ```ant
-let n = String.toUint("5") ?? uint64(0)
+let n = "5".toUint() ?? uint64(0)
 println(n + uint64(1))
 ```
 
@@ -249,15 +249,15 @@ Converting the result to a narrower kind panics when it does not fit. Check the 
 `port` does above:
 
 ```ant
-let n = String.toUint("300") ?? panic("not a number")
+let n = "300".toUint() ?? panic("not a number")
 println(byte(n)) // panic: 300 out of range for byte
 ```
 
 A base outside `2 ..= 36` panics, even for text that would parse:
 
 ```ant
-String.toUint("1", 1)  // panic: String.toUint needs a base from 2 to 36, got 1
-String.toUint("1", 37) // panic: String.toUint needs a base from 2 to 36, got 37
+"1".toUint(1)  // panic: String.toUint needs a base from 2 to 36, got 1
+"1".toUint(37) // panic: String.toUint needs a base from 2 to 36, got 37
 ```
 
 ## See also

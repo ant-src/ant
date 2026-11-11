@@ -65,7 +65,7 @@ Math.PI | Math.cos() // -1.0
 Pass it as a function value to map a list of angles:
 
 ```ant
-Array.map([0.0, Math.PI], Math.cos) // [1.0, -1.0]
+[0.0, Math.PI].map(Math.cos) // [1.0, -1.0]
 ```
 
 ## Applications

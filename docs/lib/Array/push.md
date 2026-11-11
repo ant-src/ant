@@ -43,13 +43,13 @@ Records, `null` in an array that allows it, and arrays inside arrays push alike:
 ```ant
 type Point = { x: int, y: int }
 let points = [Point{ x: 1, y: 2 }]
-Array.push(points, Point{ x: 3, y: 4 })
+points.push(Point{ x: 3, y: 4 })
 points // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 let maybe: Array[int | null] = [1]
-Array.push(maybe, null)
+maybe.push(null)
 maybe // [1, null]
 let rows = [[1, 2]]
-Array.push(rows, [3])
+rows.push([3])
 rows // [[1, 2], [3]]
 ```
 
@@ -57,7 +57,7 @@ A `let` array can be pushed to, since the binding stays the same:
 
 ```ant
 let stack = ["a"]
-Array.push(stack, "b")
+stack.push("b")
 stack // ["a", "b"]
 ```
 
@@ -87,7 +87,7 @@ let totals: Array[int] = []
 var sum = 0
 for n in [3, 1, 4, 1, 5] {
   sum += n
-  Array.push(totals, sum)
+  totals.push(sum)
 }
 totals // [3, 4, 8, 9, 14]
 ```
@@ -99,15 +99,15 @@ func balanced(s: string): bool {
   let open: Array[string] = []
   for c in s {
     if c == "(" || c == "[" {
-      Array.push(open, c)
+      open.push(c)
     } else if c == ")" || c == "]" {
       let want = if c == ")" { "(" } else { "[" }
-      if Array.pop(open) != want {
+      if open.pop() != want {
         return false
       }
     }
   }
-  Array.isEmpty(open)
+  open.isEmpty()
 }
 
 balanced("([]())") // true
@@ -131,7 +131,7 @@ let queue = [tree]
 for node in queue {
   println(node.name)
   for child in node.children {
-    Array.push(queue, child)
+    queue.push(child)
   }
 }
 ```
@@ -150,14 +150,14 @@ let results: Array[int] = []
 let mu = Mutex.new()
 let wg = WaitGroup.new()
 for n in [1, 2, 3, 4] {
-  WaitGroup.add(wg, 1)
+  wg.add(1)
   go {
-    defer { WaitGroup.done(wg) }
-    Mutex.withLock(mu, { Array.push(results, n * n) })
+    defer { wg.done() }
+    mu.withLock({ results.push(n * n) })
   }
 }
-WaitGroup.wait(wg)
-println(Array.sort(results))
+wg.wait()
+println(results.sort())
 ```
 
 ```text
@@ -170,18 +170,18 @@ The length grows by one, and the last element is `v`:
 
 ```ant
 let xs = [1, 2]
-let before = len(xs)
-Array.push(xs, 7)
-assert(len(xs) == before + 1)
-assert(Array.last(xs) == 7)
+let before = xs.length()
+xs.push(7)
+assert(xs.length() == before + 1)
+assert(xs.last() == 7)
 ```
 
 [Array.pop](pop.md) undoes it:
 
 ```ant
 let xs = [1, 2]
-Array.push(xs, 3)
-assert(Array.pop(xs) == 3)
+xs.push(3)
+assert(xs.pop() == 3)
 assert(xs == [1, 2])
 ```
 
@@ -190,7 +190,7 @@ It does in place what the spread literal `[...xs, v]` does in a new array:
 ```ant
 let xs = [1, 2]
 let copy = [...xs, 3]
-Array.push(xs, 3)
+xs.push(3)
 assert(xs == copy)
 ```
 
@@ -200,9 +200,9 @@ It is [Array.insert](insert.md) at the length, and [Array.extend](extend.md) wit
 let a = [1]
 let b = [1]
 let c = [1]
-Array.push(a, 2)
-Array.insert(b, len(b), 2)
-Array.extend(c, [2])
+a.push(2)
+b.insert(b.length(), 2)
+c.extend([2])
 assert(a == b && b == c)
 ```
 
@@ -211,7 +211,7 @@ Every other name for the array sees the push:
 ```ant
 let xs = [1]
 let alias = xs
-Array.push(xs, 2)
+xs.push(2)
 assert(Array.same(alias, xs))
 alias // [1, 2]
 ```
@@ -222,7 +222,7 @@ alias // [1, 2]
 
 ```ant
 var xs = [1]
-xs = Array.push(xs, 2) // error: cannot use void where Array[int] is expected
+xs = xs.push(2) // error: cannot use void where Array[int] is expected
 ```
 
 To get a new array and keep the old one, use the spread literal:
@@ -239,12 +239,12 @@ elements, use [Array.extend](extend.md):
 
 ```ant
 let xs = [1]
-Array.push(xs, [2, 3]) // error: cannot use Array[int] where int is expected
+xs.push([2, 3]) // error: cannot use Array[int] where int is expected
 ```
 
 ```ant
 let xs = [1]
-Array.extend(xs, [2, 3])
+xs.extend([2, 3])
 xs // [1, 2, 3]
 ```
 
@@ -252,7 +252,7 @@ An empty literal has no element type to infer, so annotate the variable:
 
 ```ant
 let xs = [] // error: cannot infer the element type of an empty array; annotate it
-Array.push(xs, 1)
+xs.push(1)
 ```
 
 The value is pushed, not copied. An array or a record pushed in is the same value in the array, so a
@@ -261,7 +261,7 @@ later change to it shows through both:
 ```ant
 let row = [0]
 let grid: Array[Array[int]] = []
-Array.push(grid, row)
+grid.push(row)
 row[0] = 9
 grid // [[9]]
 ```
@@ -272,7 +272,7 @@ Loop over a copy, or push to another array:
 ```ant
 let xs = [1, 2]
 for x in [...xs] {
-  Array.push(xs, x * 10)
+  xs.push(x * 10)
 }
 xs // [1, 2, 10, 20]
 ```
@@ -283,8 +283,8 @@ its own pushes:
 
 ```ant
 let a = [1, 2, 3]
-Array.map(a, { Array.push(a, x + 10); x * 2 }) // [2, 4, 6]
-a                                              // [1, 2, 3, 11, 12, 13]
+a.map({ a.push(x + 10); x * 2 }) // [2, 4, 6]
+a                                // [1, 2, 3, 11, 12, 13]
 ```
 
 ## See also

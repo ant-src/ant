@@ -102,7 +102,7 @@ Count the distinct words of a text:
 
 ```ant
 func distinct(text: string): int {
-  Set.of(String.fields(text)).size()
+  Set.of(text.fields()).size()
 }
 
 println(distinct("to be or not to be"))

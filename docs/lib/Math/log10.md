@@ -157,12 +157,12 @@ Math.log10(0.1)  // -0.9999999999999999
 ```
 
 So counting digits with `Math.floor(Math.log10(x)) + 1.0` can be off by one. For a non-negative
-`int`, count with `String.length("${n}")` instead:
+`int`, count the characters of `"${n}"` instead:
 
 ```ant
 let n = 1000000000000000
 Math.floor(Math.log10(float64(n))) + 1.0 // 15.0
-String.length("${n}")                    // 16
+"${n}".length()                          // 16
 ```
 
 `Math.log(x) / Math.log(10.0)` is a different rounding of the same value, and can differ in the last

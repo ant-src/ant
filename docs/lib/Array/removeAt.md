@@ -43,24 +43,24 @@ Remove the last element with index `length - 1`:
 
 ```ant
 let xs = [1, 2, 3]
-Array.removeAt(xs, len(xs) - 1) // 3
-xs                              // [1, 2]
+xs.removeAt(len(xs) - 1) // 3
+xs                       // [1, 2]
 ```
 
 Removing the only element leaves an empty array:
 
 ```ant
 let xs = ["only"]
-Array.removeAt(xs, 0) // "only"
-xs                    // []
+xs.removeAt(0) // "only"
+xs             // []
 ```
 
 Remove a grapheme from a string by splitting it first and joining the rest:
 
 ```ant
-let chars = String.graphemes("héllo")
-Array.removeAt(chars, 1) // "é"
-String.join(chars, "")   // "hllo"
+let chars = "héllo".graphemes()
+chars.removeAt(1)      // "é"
+String.join(chars, "") // "hllo"
 ```
 
 A removed record comes back whole, ready to use:
@@ -68,16 +68,16 @@ A removed record comes back whole, ready to use:
 ```ant
 type Task = { title: string, done: bool }
 let tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
-Array.removeAt(tasks, 0).title // "write"
-tasks                          // [Task{ title: "test", done: false }]
+tasks.removeAt(0).title // "write"
+tasks                   // [Task{ title: "test", done: false }]
 ```
 
 On an array with `null` elements the result is `null` when the removed element is:
 
 ```ant
 let slots: Array[string | null] = ["a", null, "c"]
-Array.removeAt(slots, 1) // null
-slots                    // ["a", "c"]
+slots.removeAt(1) // null
+slots             // ["a", "c"]
 ```
 
 A union element keeps its member, so `is` tells which one was removed:
@@ -87,7 +87,7 @@ type Circle = { radius: float64 }
 type Rect = { width: float64, height: float64 }
 type Shape = Circle | Rect
 let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
-Array.removeAt(shapes, 1) is Rect // true
+shapes.removeAt(1) is Rect // true
 ```
 
 Call it through `.` or in a pipe:
@@ -105,11 +105,11 @@ Remove an element by value: find its index first, and remove only when there is 
 
 ```ant
 func removeValue(xs: Array[string], v: string): bool {
-  let i = Array.indexOf(xs, v)
+  let i = xs.indexOf(v)
   if i == null {
     return false
   }
-  Array.removeAt(xs, i)
+  xs.removeAt(i)
   true
 }
 
@@ -123,7 +123,7 @@ Move an element to a new position by removing it and inserting it again:
 
 ```ant
 let playlist = ["intro", "verse", "chorus", "outro"]
-Array.insert(playlist, 0, Array.removeAt(playlist, 2))
+playlist.insert(0, playlist.removeAt(2))
 playlist // ["chorus", "intro", "verse", "outro"]
 ```
 
@@ -131,8 +131,8 @@ Serve a queue in order, taking each item from the front:
 
 ```ant
 let jobs = ["build", "test", "deploy"]
-while !Array.isEmpty(jobs) {
-  let job = Array.removeAt(jobs, 0)
+while !jobs.isEmpty() {
+  let job = jobs.removeAt(0)
   println("running ${job}")
 }
 ```
@@ -151,7 +151,7 @@ let xs = [1, 4, 6, 7, 8, 3]
 var i = len(xs) - 1
 while i >= 0 {
   if xs[i] % 2 == 0 {
-    Array.removeAt(xs, i)
+    xs.removeAt(i)
   }
   i -= 1
 }
@@ -170,7 +170,7 @@ The result is the element that was at `i`, and the array is one shorter:
 let xs = [5, 6, 7, 8]
 let before = xs[2]
 let n = len(xs)
-assert(Array.removeAt(xs, 2) == before)
+assert(xs.removeAt(2) == before)
 assert(len(xs) == n - 1)
 ```
 
@@ -178,8 +178,8 @@ What is left is the array without element `i`, the same as concatenating the sli
 
 ```ant
 let xs = ["a", "b", "c", "d"]
-let expected = Array.concat(Array.slice(xs, 0, 1), Array.slice(xs, 2, len(xs)))
-Array.removeAt(xs, 1)
+let expected = Array.concat(xs.slice(0, 1), xs.slice(2, len(xs)))
+xs.removeAt(1)
 assert(xs == expected)
 ```
 
@@ -187,7 +187,7 @@ assert(xs == expected)
 
 ```ant
 let xs = [1, 2, 3]
-Array.insert(xs, 1, Array.removeAt(xs, 1))
+xs.insert(1, xs.removeAt(1))
 assert(xs == [1, 2, 3])
 ```
 
@@ -196,7 +196,7 @@ Removing at the last index does what `Array.pop` does on a non-empty array:
 ```ant
 let a = [1, 2, 3]
 let b = [1, 2, 3]
-assert(Array.removeAt(a, len(a) - 1) == Array.pop(b))
+assert(a.removeAt(len(a) - 1) == b.pop())
 assert(a == b)
 ```
 
@@ -205,13 +205,13 @@ assert(a == b)
 The index must be below the length. The length itself is out of range:
 
 ```ant
-Array.removeAt([1, 2, 3], 3) // panic: Array.removeAt: the index 3 is out of range for a length of 3
+[1, 2, 3].removeAt(3) // panic: Array.removeAt: the index 3 is out of range for a length of 3
 ```
 
 A negative index does not count from the end; it panics:
 
 ```ant
-Array.removeAt([1, 2, 3], -1) // panic: Array.removeAt: the index -1 is out of range for a length of 3
+[1, 2, 3].removeAt(-1) // panic: Array.removeAt: the index -1 is out of range for a length of 3
 ```
 
 An empty array has no index to remove. Check the length first, or use `Array.pop`, which returns
@@ -219,8 +219,8 @@ An empty array has no index to remove. Check the length first, or use `Array.pop
 
 ```ant
 let empty: Array[int] = []
-Array.removeAt(empty, 0) // panic: Array.removeAt: the index 0 is out of range for a length of 0
-Array.pop(empty)         // null
+empty.removeAt(0) // panic: Array.removeAt: the index 0 is out of range for a length of 0
+empty.pop()       // null
 ```
 
 `Array.indexOf` and `Array.findIndex` return `int | null`, and `Array.removeAt` needs an `int`.
@@ -228,7 +228,7 @@ Passing the result straight through is a compile error:
 
 ```ant
 let tags = ["red", "green"]
-Array.removeAt(tags, Array.indexOf(tags, "green"))
+tags.removeAt(tags.indexOf("green"))
 // error: cannot use int | null where int is expected
 ```
 
@@ -242,7 +242,7 @@ let xs = [2, 4, 5]
 var i = 0
 for x in xs {
   if x % 2 == 0 {
-    Array.removeAt(xs, i)
+    xs.removeAt(i)
   } else {
     i += 1
   }
@@ -263,8 +263,8 @@ change:
 ```ant
 let original = [1, 2, 3]
 let alias = original
-Array.removeAt(alias, 0) // 1
-original                 // [2, 3]
+alias.removeAt(0) // 1
+original          // [2, 3]
 ```
 
 ## See also

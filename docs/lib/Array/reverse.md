@@ -40,17 +40,17 @@ An empty array and an array of one element come back with the same elements:
 
 ```ant
 let none: Array[int] = []
-Array.reverse(none)  // []
-Array.reverse(["a"]) // ["a"]
+none.reverse()  // []
+["a"].reverse() // ["a"]
 ```
 
 Records, `null`, and nested arrays move as whole elements:
 
 ```ant
 type Point = { x: int, y: int }
-Array.reverse([Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]) // [Point{ x: 3, y: 4 }, Point{ x: 1, y: 2 }]
-Array.reverse([1, null, 3])                               // [3, null, 1]
-Array.reverse([[1, 2], [3]])                              // [[3], [1, 2]]
+[Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }].reverse() // [Point{ x: 3, y: 4 }, Point{ x: 1, y: 2 }]
+[1, null, 3].reverse()                               // [3, null, 1]
+[[1, 2], [3]].reverse()                              // [[3], [1, 2]]
 ```
 
 Call it through `.` on an array, or with a pipe:
@@ -71,7 +71,7 @@ Array.reverse(xs: [1, 2]) // [2, 1]
 Reverse a string by its graphemes, and join them back:
 
 ```ant
-let reversed = String.join(Array.reverse(String.graphemes("noe\u{301}l")), "")
+let reversed = "noe\u{301}l" | String.graphemes() | Array.reverse() | String.join("")
 reversed == "le\u{301}on" // true
 ```
 
@@ -79,8 +79,8 @@ Check whether a word is a palindrome:
 
 ```ant
 func isPalindrome(word: string): bool {
-  let gs = String.graphemes(String.toLower(word))
-  gs == Array.reverse(gs)
+  let gs = word.toLower().graphemes()
+  gs == gs.reverse()
 }
 
 isPalindrome("Level") // true
@@ -91,7 +91,7 @@ Show the latest entries of a log first:
 
 ```ant
 let log = ["start", "load config", "listen on :8080"]
-for line in Array.reverse(log) {
+for line in log.reverse() {
   println(line)
 }
 ```
@@ -105,7 +105,7 @@ start
 Read a path from the leaf up to the root:
 
 ```ant
-let parts = String.split("usr/local/bin", "/")
+let parts = "usr/local/bin".split("/")
 String.join(parts.reverse(), " < ") // "bin < local < usr"
 ```
 
@@ -115,14 +115,14 @@ Reversing twice gives back the original array:
 
 ```ant
 let xs = [1, 2, 3, 4]
-assert(Array.reverse(Array.reverse(xs)) == xs)
+assert(xs.reverse().reverse() == xs)
 ```
 
 The length stays the same, and element `i` of the result is element `length - 1 - i` of `xs`:
 
 ```ant
 let xs = [5, 6, 7, 8]
-let ys = Array.reverse(xs)
+let ys = xs.reverse()
 assert(len(ys) == len(xs))
 for i in Array.range(0, len(xs)) {
   assert(ys[i] == xs[len(xs) - 1 - i])
@@ -133,7 +133,7 @@ The result is a new array, even when the order cannot change:
 
 ```ant
 let xs = [1]
-let ys = Array.reverse(xs)
+let ys = xs.reverse()
 assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
@@ -142,7 +142,7 @@ The first element of the result is the last element of `xs`:
 
 ```ant
 let xs = [1, 2, 3]
-assert(Array.first(Array.reverse(xs)) == Array.last(xs))
+assert(xs.reverse().first() == xs.last())
 ```
 
 Reversing a concatenation reverses each part and swaps them:
@@ -150,7 +150,7 @@ Reversing a concatenation reverses each part and swaps them:
 ```ant
 let xs = [1, 2]
 let ys = [3, 4, 5]
-assert(Array.reverse(Array.concat(xs, ys)) == Array.concat(Array.reverse(ys), Array.reverse(xs)))
+assert(Array.concat(xs, ys).reverse() == Array.concat(ys.reverse(), xs.reverse()))
 ```
 
 ## Possible issues
@@ -159,9 +159,9 @@ assert(Array.reverse(Array.concat(xs, ys)) == Array.concat(Array.reverse(ys), Ar
 
 ```ant
 var xs = [1, 2, 3]
-Array.reverse(xs)
+xs.reverse()
 println(xs)
-xs = Array.reverse(xs)
+xs = xs.reverse()
 println(xs)
 ```
 
@@ -175,7 +175,7 @@ through the original:
 
 ```ant
 let grid = [[1], [2]]
-let flipped = Array.reverse(grid)
+let flipped = grid.reverse()
 flipped[0][0] = 9
 grid // [[1], [9]]
 ```
@@ -192,7 +192,7 @@ Reversing the code points of a string moves an accent onto another letter. Split
 Applications above:
 
 ```ant
-String.join(Array.reverse(String.chars("noe\u{301}l")), "") == "l\u{301}eon" // true
+String.join("noe\u{301}l".chars().reverse(), "") == "l\u{301}eon" // true
 ```
 
 Reversing a stable sort also reverses the order of equal keys. To sort in descending order and keep
@@ -201,8 +201,8 @@ equal elements in their original order, sort by a negated key or with [Array.sor
 ```ant
 type Player = { name: string, score: int }
 let players = [Player{ name: "Ann", score: 2 }, Player{ name: "Bob", score: 1 }, Player{ name: "Cid", score: 2 }]
-Array.reverse(Array.sortBy(players, { x.score })).map({ x.name }) // ["Cid", "Ann", "Bob"]
-Array.sortBy(players, { -x.score }).map({ x.name })               // ["Ann", "Cid", "Bob"]
+players.sortBy({ x.score }).reverse().map({ x.name }) // ["Cid", "Ann", "Bob"]
+players.sortBy({ -x.score }).map({ x.name })          // ["Ann", "Cid", "Bob"]
 ```
 
 The sorts treat `-0.0` and `0.0` as equal and keep them in their original order, so reversing a sort
@@ -210,8 +210,8 @@ swaps them too. Dividing by each zero shows which is which:
 
 ```ant
 let zs = [-0.0, 0.0]
-Array.sort(zs).map({ 1.0 / x })                // [-Infinity, Infinity]
-Array.reverse(Array.sort(zs)).map({ 1.0 / x }) // [Infinity, -Infinity]
+zs.sort().map({ 1.0 / x })           // [-Infinity, Infinity]
+zs.sort().reverse().map({ 1.0 / x }) // [Infinity, -Infinity]
 ```
 
 ## See also

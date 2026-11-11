@@ -27,7 +27,7 @@ Set.union(Set.of([1, 2]), Set.of([3, 2])) // Set.of([1, 2, 3])
 The members of `a` come first, and `b` adds only what `a` lacks:
 
 ```ant
-Set.values(Set.union(Set.of([3, 1]), Set.of([2, 1, 0]))) // [3, 1, 2, 0]
+Set.union(Set.of([3, 1]), Set.of([2, 1, 0])).values() // [3, 1, 2, 0]
 ```
 
 ## Scope
@@ -85,7 +85,7 @@ List every tag used by two posts, each once, in the order they first appear:
 ```ant
 let first = Set.of(["ant", "lang", "docs"])
 let second = Set.of(["docs", "tests"])
-println(String.join(Set.values(Set.union(first, second)), ", "))
+println(Set.union(first, second).values() | String.join(", "))
 ```
 
 ```text
@@ -100,7 +100,7 @@ var everyone: Set[string] = Set.of([])
 for g in groups {
   everyone = Set.union(everyone, g)
 }
-println(Set.values(everyone))
+println(everyone.values())
 ```
 
 ```text
@@ -116,7 +116,7 @@ differs:
 let a = Set.of([1, 2])
 let b = Set.of([2, 3])
 assert(Set.union(a, b) == Set.union(b, a))
-assert(Set.values(Set.union(a, b)) != Set.values(Set.union(b, a)))
+assert(Set.union(a, b).values() != Set.union(b, a).values())
 ```
 
 Both arguments are subsets of the result:
@@ -134,7 +134,7 @@ Its size is the sum of the sizes less the members the two share:
 ```ant
 let a = Set.of([1, 2, 3])
 let b = Set.of([3, 4])
-assert(Set.size(Set.union(a, b)) == Set.size(a) + Set.size(b) - Set.size(Set.intersect(a, b)))
+assert(Set.union(a, b).size() == a.size() + b.size() - a.intersect(b).size())
 ```
 
 The result equals `Set.of` over the values of `a` followed by the values of `b`:
@@ -142,7 +142,7 @@ The result equals `Set.of` over the values of `a` followed by the values of `b`:
 ```ant
 let a = Set.of([3, 1])
 let b = Set.of([1, 2])
-assert(Set.values(Set.union(a, b)) == Set.values(Set.of([...Set.values(a), ...Set.values(b)])))
+assert(Set.union(a, b).values() == Set.of([...a.values(), ...b.values()]).values())
 ```
 
 The result is a new set, even when one side is empty, and adding to it leaves `a` as it was:
@@ -152,9 +152,9 @@ let a = Set.of([1, 2])
 let u = Set.union(a, Set.of([]))
 assert(u == a)
 assert(!Set.same(u, a))
-Set.add(u, 9) // true
-a             // Set.of([1, 2])
-u             // Set.of([1, 2, 9])
+u.add(9) // true
+a        // Set.of([1, 2])
+u        // Set.of([1, 2, 9])
 ```
 
 ## Possible issues
@@ -173,7 +173,7 @@ seen // Set.of([1, 2])
 Strings match by code point, so two spellings of the same text stay two members:
 
 ```ant
-Set.size(Set.union(Set.of(["é"]), Set.of(["é"]))) // 2
+Set.union(Set.of(["é"]), Set.of(["é"])).size() // 2
 ```
 
 Two sets of different member types do not join without an expected type that holds both:

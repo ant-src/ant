@@ -121,7 +121,7 @@ Count the characters of a list of words:
 
 ```ant
 let words = ["ant", "colony", "queen"]
-words.map({ String.length(x) }).sum() // 14
+words.map({ x.length() }).sum() // 14
 ```
 
 Add up the numbers in a line of text, skipping what does not parse:
@@ -129,8 +129,8 @@ Add up the numbers in a line of text, skipping what does not parse:
 ```ant
 let line = "12 7 x 30"
 let ns: Array[int] = []
-for part in String.split(line, " ") {
-  let n = String.toInt(part)
+for part in line.split(" ") {
+  let n = part.toInt()
   if n != null {
     ns.push(n)
   }

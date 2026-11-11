@@ -103,10 +103,10 @@ Add context at each level, so the final message says what the program was doing:
 ```ant
 func readPort(text: string): Result[float64, Error] {
   let json = try (Json.parse(text) | Result.wrapErr("parse settings"))
-  if json is float64 {
-    return Result.ok(json)
+  if !(json is float64) {
+    return Result.err(Error{ message: "port is not a number" })
   }
-  Result.err(Error{ message: "port is not a number" })
+  Result.ok(json)
 }
 
 for text in ["8080", "true", "{"] {
@@ -133,10 +133,10 @@ type Empty = {}
 type TooLong = { max: int }
 
 func checkName(s: string): Result[string, Empty | TooLong] {
-  if String.isEmpty(s) {
+  if s.isEmpty() {
     return Result.err(Empty{})
   }
-  if String.length(s) > 8 {
+  if s.length() > 8 {
     return Result.err(TooLong{ max: 8 })
   }
   Result.ok(s)
@@ -201,8 +201,8 @@ let e = Error{ message: "timeout" }
 let bad: Result[int, Error] = Result.err(e)
 let wrapped: Result[int, Error] = Result.err(Error.wrap(e, "fetch"))
 let good: Result[int, Error] = Result.ok(1)
-assert(Result.wrapErr(bad, "fetch") == wrapped)
-assert(Result.wrapErr(good, "fetch") == good)
+assert((bad | Result.wrapErr("fetch")) == wrapped)
+assert((good | Result.wrapErr("fetch")) == good)
 ```
 
 ## Possible issues

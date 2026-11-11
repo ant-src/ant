@@ -97,7 +97,7 @@ Count how often each character occurs:
 ```ant
 func counts(s: string): Map[string, int] {
   let m: Map[string, int] = Map{}
-  for c in String.chars(s) {
+  for c in s.chars() {
     m[c] = (m[c] ?? 0) + 1
   }
   m
@@ -125,8 +125,8 @@ Check whether a phrase reads the same backward, ignoring case and anything but l
 
 ```ant
 func isPalindrome(s: string): bool {
-  let cs = String.chars(String.toLower(s)).filter(String.isLetter)
-  cs == Array.reverse(cs)
+  let cs = s.toLower().chars().filter(String.isLetter)
+  cs == cs.reverse()
 }
 
 isPalindrome("Never odd or even") // true
@@ -137,8 +137,8 @@ Shift each letter by 13 places, and put the characters back together with `Strin
 
 ```ant
 func rot13(s: string): string {
-  String.chars(s).map(func(c: string): string {
-    let n = String.codePoint(c)
+  s.chars().map(func(c: string): string {
+    let n = c.codePoint()
     if n >= 97 && n <= 122 {
       return String.fromCodePoint((n - 97 + 13) % 26 + 97) ?? c
     }
@@ -158,16 +158,16 @@ The result has `String.length(s)` elements, each of length 1:
 
 ```ant
 let s = "héllo 🐜"
-let cs = String.chars(s)
-assert(len(cs) == String.length(s))
-assert(cs.every({ String.length(x) == 1 }))
+let cs = s.chars()
+assert(len(cs) == s.length())
+assert(cs.every({ x.length() == 1 }))
 ```
 
 Joining the characters gives back the string:
 
 ```ant
 let s = "e\u{301}🇨🇭 ant"
-assert(String.join(String.chars(s), "") == s)
+assert((s.chars() | String.join("")) == s)
 ```
 
 A `for` loop over the string visits the same characters in the same order:
@@ -176,16 +176,16 @@ A `for` loop over the string visits the same characters in the same order:
 let s = "héllo"
 let seen: Array[string] = []
 for c in s {
-  Array.push(seen, c)
+  seen.push(c)
 }
-assert(seen == String.chars(s))
+assert(seen == s.chars())
 ```
 
 Each character's code point is what `String.toCodePoints` gives:
 
 ```ant
 let s = "añt🐜"
-assert(String.chars(s).map(String.codePoint) == String.toCodePoints(s))
+assert(s.chars().map(String.codePoint) == s.toCodePoints())
 ```
 
 ## Possible issues
@@ -195,15 +195,15 @@ symbols. Reverse the graphemes instead:
 
 ```ant
 let s = "e\u{301}x"
-String.join(Array.reverse(String.chars(s)), "") == "x\u{301}e"     // true
-String.join(Array.reverse(String.graphemes(s)), "") == "xe\u{301}" // true
+(s.chars().reverse() | String.join("")) == "x\u{301}e"     // true
+(s.graphemes().reverse() | String.join("")) == "xe\u{301}" // true
 ```
 
 The two spellings of `é` give different characters, so compare after `String.normalize`:
 
 ```ant
-String.chars("\u{E9}") == String.chars("e\u{301}")                          // false
-String.chars(String.normalize("e\u{301}", "NFC")) == String.chars("\u{E9}") // true
+"\u{E9}".chars() == "e\u{301}".chars()                  // false
+"e\u{301}".normalize("NFC").chars() == "\u{E9}".chars() // true
 ```
 
 An index past the last character panics:

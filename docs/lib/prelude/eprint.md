@@ -93,7 +93,7 @@ names; a person at the terminal sees a dot per file as well:
 let files = ["a.txt", "b.txt", "c.txt"]
 for file in files {
   eprint(".")
-  println(String.toUpper(file))
+  println(file.toUpper())
 }
 eprintln(" done")
 ```

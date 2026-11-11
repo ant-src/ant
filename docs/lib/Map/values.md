@@ -148,8 +148,8 @@ let m = Map{ a: 1, b: 2, c: 3 }
 let ks = m.keys()
 let vs = m.values()
 assert(vs == m.entries().map({ x.value }))
-assert(len(vs) == m.size())
-for i in Array.range(0, len(ks)) {
+assert(vs.length() == m.size())
+for i in Array.range(0, ks.length()) {
   assert(m[ks[i]] == vs[i])
 }
 ```
@@ -201,8 +201,8 @@ The values do not say which key they came from. Use `Map.entries` when you need 
 
 ```ant
 let votes = Map{ tea: 3, coffee: 7 }
-votes.values().max()                        // 7
-votes.entries().sortBy({ -x.value })[0].key // "coffee"
+votes.values().max()                    // 7
+votes.entries().maxBy({ x.value })?.key // "coffee"
 ```
 
 `Map.values` is a function, not a field. Without the parentheses it is a compile error:

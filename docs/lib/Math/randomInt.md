@@ -112,7 +112,7 @@ Count how often each face of a die comes up:
 let counts = Array.filled(6, 0)
 for _ in Array.range(0, 6000) {
   let face = Math.randomInt(1, 7)
-  counts[face - 1] = counts[face - 1] + 1
+  counts[face - 1] += 1
 }
 assert(counts.every({ x > 0 }))
 assert(counts.sum() == 6000)
@@ -182,7 +182,7 @@ instead, which gives the same values on every run:
 
 ```ant
 let r = Random.new(42)
-Random.int(r, 0, 100) // 22
+r.int(0, 100) // 22
 ```
 
 ## See also

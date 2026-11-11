@@ -132,7 +132,7 @@ On an `Ok`, the result is `r` itself:
 
 ```ant
 let loaded: Result[int, Error] = Result.ok(1)
-assert(Record.same(Result.wrapErr(loaded, "load"), loaded))
+assert(Record.same(loaded.wrapErr("load"), loaded))
 ```
 
 Wrapping leaves the original error as it was:
@@ -140,7 +140,7 @@ Wrapping leaves the original error as it was:
 ```ant
 let cause = Error{ message: "timeout" }
 let failed: Result[int, Error] = Result.err(cause)
-let wrapped = Result.wrapErr(failed, "fetch")
+let wrapped = failed.wrapErr("fetch")
 cause // Error{ message: "timeout" }
 ```
 
@@ -173,7 +173,7 @@ and nothing leads back from it to the original error. Branch on an error type of
 ```ant
 let cause = Error{ message: "timeout" }
 let failed: Result[int, Error] = Result.err(cause)
-let wrapped = Result.wrapErr(failed, "fetch")
+let wrapped = failed.wrapErr("fetch")
 if wrapped is Err { Record.same(wrapped.error, cause) } else { false } // false
 ```
 

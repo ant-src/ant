@@ -52,7 +52,7 @@ uint16(uint16(5))     // 5
 `uint16` is a function value, so it converts every element of an array:
 
 ```ant
-Array.map([80, 443, 8080], uint16) // [80, 443, 8080]
+[80, 443, 8080].map(uint16) // [80, 443, 8080]
 ```
 
 It unwraps a named primitive type over a number:
@@ -67,7 +67,7 @@ uint16(https) // 443
 In a pipe, the value is the argument:
 
 ```ant
-(String.toInt("3000") ?? 0) | uint16() // 3000
+("3000".toInt() ?? 0) | uint16() // 3000
 ```
 
 ## Applications
@@ -102,7 +102,7 @@ range:
 
 ```ant
 func parsePort(s: string): uint16 | null {
-  let n = String.toInt(s) ?? -1
+  let n = s.toInt() ?? -1
   if n < 1 || n > 65535 {
     return null
   }

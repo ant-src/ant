@@ -96,7 +96,7 @@ String.isPunct("! ?") // false
 Test one code point at a time with `String.chars`, here in a pipe:
 
 ```ant
-"a,b." | String.chars() | Array.map({ String.isPunct(x) }) // [false, true, false, true]
+"a,b." | String.chars() | Array.map({ x.isPunct() }) // [false, true, false, true]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -111,13 +111,13 @@ Remove the punctuation from a sentence:
 
 ```ant
 let line = "Well, well: who's there?"
-String.concat(line.chars().filter({ !String.isPunct(x) })) // "Well well whos there"
+String.concat(line.chars().filter({ !x.isPunct() })) // "Well well whos there"
 ```
 
 Count words, ignoring tokens that are only punctuation, such as a dash between spaces:
 
 ```ant
-String.fields("Wait — what? ...").countWhere({ !String.isPunct(x) }) // 2
+"Wait — what? ...".fields().countWhere({ !x.isPunct() }) // 2
 ```
 
 Strip the punctuation from both ends of each word, keeping the apostrophe inside:
@@ -127,16 +127,16 @@ func strip(word: string): string {
   let cs = word.chars()
   var start = 0
   var end = cs.length()
-  while start < end && String.isPunct(cs[start]) {
+  while start < end && cs[start].isPunct() {
     start += 1
   }
-  while end > start && String.isPunct(cs[end - 1]) {
+  while end > start && cs[end - 1].isPunct() {
     end -= 1
   }
   String.concat(cs.slice(start, end))
 }
 
-println(String.fields("\"Don't,\" she said (quietly).").map(strip))
+println("\"Don't,\" she said (quietly).".fields().map(strip))
 ```
 
 ```text
@@ -150,7 +150,7 @@ that starts with `P`:
 
 ```ant
 for s in ["", "!", "?!", "«»", "$", "a.", "—", "😀"] {
-  let byCategory = s != "" && s.chars().every({ String.category(x).startsWith("P") })
+  let byCategory = s != "" && s.chars().every({ x.category().startsWith("P") })
   assert(String.isPunct(s) == byCategory)
 }
 ```
@@ -192,8 +192,8 @@ is not enough, because some of those characters are symbols. Combine it with
 [`String.isSymbol`](isSymbol.md):
 
 ```ant
-String.isPunct("+=")                                            // false
-"+=".chars().every({ String.isPunct(x) || String.isSymbol(x) }) // true
+String.isPunct("+=")                                // false
+"+=".chars().every({ x.isPunct() || x.isSymbol() }) // true
 ```
 
 The test runs per code point, not per grapheme. A punctuation mark followed by a combining accent
@@ -201,23 +201,23 @@ looks like one punctuation character, but the accent is a mark, M, so the string
 [`String.isMark`](isMark.md) tests the accent:
 
 ```ant
-String.isPunct("!\u{301}")            // false
-String.isMark("\u{301}")              // true
-String.graphemes("!\u{301}").length() // 1
+String.isPunct("!\u{301}")      // false
+String.isMark("\u{301}")        // true
+"!\u{301}".graphemes().length() // 1
 ```
 
 Every code point must be punctuation, so `String.isPunct` does not answer whether a string contains
 punctuation. Use `Array.some` for that:
 
 ```ant
-String.isPunct("Hi!")                     // false
-"Hi!".chars().some({ String.isPunct(x) }) // true
+String.isPunct("Hi!")               // false
+"Hi!".chars().some({ x.isPunct() }) // true
 ```
 
 Removing punctuation also removes the apostrophe and the hyphen inside words:
 
 ```ant
-String.concat("don't re-read".chars().filter({ !String.isPunct(x) })) // "dont reread"
+String.concat("don't re-read".chars().filter({ !x.isPunct() })) // "dont reread"
 ```
 
 ## See also

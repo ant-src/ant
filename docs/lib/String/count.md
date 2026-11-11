@@ -33,23 +33,23 @@ path.count("/") // 3
 Occurrences do not overlap, so the characters of one match are not part of another:
 
 ```ant
-String.count("aaaa", "aa")    // 2
-String.count("banana", "ana") // 1
+"aaaa".count("aa")    // 2
+"banana".count("ana") // 1
 ```
 
 An empty string holds no occurrences, a `t` longer than `s` none either, and `s` itself one:
 
 ```ant
-String.count("", "a")        // 0
-String.count("ab", "abc")    // 0
-String.count("five", "five") // 1
+"".count("a")        // 0
+"ab".count("abc")    // 0
+"five".count("five") // 1
 ```
 
 `t` may be any string, an emoji or an escape such as `\n` included:
 
 ```ant
-String.count("🐜🐜🐜", "🐜")    // 3
-String.count("a\nb\nc\n", "\n") // 3
+"🐜🐜🐜".count("🐜")    // 3
+"a\nb\nc\n".count("\n") // 3
 ```
 
 In a pipeline, the string is the first argument:
@@ -64,7 +64,7 @@ Count the lines of a text that ends each line with `\n`:
 
 ```ant
 let text = "one\ntwo\nthree\n"
-println("${String.count(text, "\n")} lines")
+println("${text.count("\n")} lines")
 ```
 
 ```text
@@ -74,15 +74,15 @@ println("${String.count(text, "\n")} lines")
 A last line without `\n` is not counted; `String.lines` counts it:
 
 ```ant
-String.count("one\ntwo", "\n") // 1
-len(String.lines("one\ntwo"))  // 2
+"one\ntwo".count("\n")      // 1
+"one\ntwo".lines().length() // 2
 ```
 
 Check that the brackets of an expression balance in number:
 
 ```ant
 func sameCount(s: string): bool {
-  String.count(s, "(") == String.count(s, ")")
+  s.count("(") == s.count(")")
 }
 
 sameCount("(1 + 2) * (3 - 4)") // true
@@ -93,7 +93,7 @@ Count a word in any case by folding both sides first:
 
 ```ant
 let text = "Ant, ANT, ant."
-String.count(String.foldCase(text), String.foldCase("ant")) // 3
+text.foldCase().count("ant".foldCase()) // 3
 ```
 
 ## Properties and relations
@@ -102,7 +102,7 @@ The count is above `0` exactly when `String.contains` holds:
 
 ```ant
 for t in ["e", "ee", "x"] {
-  assert((String.count("cheese", t) > 0) == String.contains("cheese", t))
+  assert(("cheese".count(t) > 0) == "cheese".contains(t))
 }
 ```
 
@@ -110,14 +110,14 @@ Counting a single code point gives the same as `Array.countWhere` over `String.c
 
 ```ant
 let s = "mississippi"
-assert(String.count(s, "s") == String.chars(s).countWhere({ x == "s" }))
+assert(s.count("s") == s.chars().countWhere({ x == "s" }))
 ```
 
 Splitting at `t` gives one piece more than the count:
 
 ```ant
 for t in ["a", "an", "x"] {
-  assert(len(String.split("banana", t)) == String.count("banana", t) + 1)
+  assert("banana".split(t).length() == "banana".count(t) + 1)
 }
 ```
 
@@ -126,15 +126,15 @@ for t in ["a", "an", "x"] {
 An empty `t` panics:
 
 ```ant
-String.count("abc", "") // panic: String.count needs a substring that is not empty
+"abc".count("") // panic: String.count needs a substring that is not empty
 ```
 
 To count code points, use `String.length`; to count what a reader sees as characters,
-`len(String.graphemes(s))`:
+`s.graphemes().length()`:
 
 ```ant
-String.length("e\u{301}")         // 2
-len(String.graphemes("e\u{301}")) // 1
+"e\u{301}".length()             // 2
+"e\u{301}".graphemes().length() // 1
 ```
 
 `String.count` skips an occurrence that overlaps one it counts, so `"abababa"` holds three `"aba"`
@@ -143,8 +143,8 @@ but counts two. To count every position where `t` starts, test each one:
 ```ant
 func countOverlapping(s: string, t: string): int {
   var n = 0
-  for i in Iter.range(0, String.length(s)) {
-    if String.startsWith(String.slice(s, i, String.length(s)), t) {
+  for i in Iter.range(0, s.length()) {
+    if s.slice(i, s.length()).startsWith(t) {
       n += 1
     }
   }
@@ -160,30 +160,30 @@ whole words, split the text into fields first:
 
 ```ant
 let text = "other then the"
-String.count(text, "the")                      // 3
-String.fields(text).countWhere({ x == "the" }) // 1
+text.count("the")                        // 3
+text.fields().countWhere({ x == "the" }) // 1
 ```
 
 The match is case-sensitive:
 
 ```ant
-String.count("Hello hello", "hello") // 1
+"Hello hello".count("hello") // 1
 ```
 
 `String.count` does not normalize. A precomposed "é" does not contain the code point "e", while "e"
 followed by a combining accent does:
 
 ```ant
-String.count("café", "e")        // 0
-String.count("cafe\u{301}", "e") // 1
+"café".count("e")        // 0
+"cafe\u{301}".count("e") // 1
 ```
 
 It counts code point sequences, not graphemes, so a part of an emoji joined from several people is
 found:
 
 ```ant
-String.count("👨‍👩‍👧", "👩")    // 1
-len(String.graphemes("👨‍👩‍👧")) // 1
+"👨‍👩‍👧".count("👩")          // 1
+"👨‍👩‍👧".graphemes().length() // 1
 ```
 
 ## See also

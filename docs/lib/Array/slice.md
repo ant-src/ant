@@ -41,22 +41,22 @@ An empty range gives `[]`, wherever it sits, the end included:
 
 ```ant
 let xs = [10, 20, 30]
-Array.slice(xs, 0, 0) // []
-Array.slice(xs, 2, 2) // []
-Array.slice(xs, 3, 3) // []
+xs.slice(0, 0) // []
+xs.slice(2, 2) // []
+xs.slice(3, 3) // []
 ```
 
 The range `0` to the length covers the whole array:
 
 ```ant
-Array.slice([10, 20, 30], 0, 3) // [10, 20, 30]
+[10, 20, 30].slice(0, 3) // [10, 20, 30]
 ```
 
 An empty array has one range, `0` to `0`:
 
 ```ant
 let empty: Array[int] = []
-Array.slice(empty, 0, 0) // []
+empty.slice(0, 0) // []
 ```
 
 Records and `null` elements are sliced like any other value:
@@ -64,14 +64,14 @@ Records and `null` elements are sliced like any other value:
 ```ant
 type Point = { x: int, y: int }
 let path = [Point{ x: 0, y: 0 }, Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
-Array.slice(path, 1, 2)               // [Point{ x: 1, y: 2 }]
-Array.slice([1, null, 3, null], 1, 3) // [null, 3]
+path.slice(1, 2)               // [Point{ x: 1, y: 2 }]
+[1, null, 3, null].slice(1, 3) // [null, 3]
 ```
 
 Slice the characters a reader sees by splitting a string into graphemes first:
 
 ```ant
-Array.slice(String.graphemes("🐜🐝🐞🦋"), 1, 3) // ["🐝", "🐞"]
+"🐜🐝🐞🦋".graphemes().slice(1, 3) // ["🐝", "🐞"]
 ```
 
 Call it through `.` or in a pipe:
@@ -96,7 +96,7 @@ Take at most `n` elements. [Math.min](../Math/min.md) keeps `to` within the leng
 
 ```ant
 func take[T](xs: Array[T], n: int): Array[T] {
-  Array.slice(xs, 0, Math.min(n, len(xs)))
+  xs.slice(0, Math.min(n, len(xs)))
 }
 
 println(take([1, 2, 3, 4, 5], 3))
@@ -112,7 +112,7 @@ Drop a header row and keep the data rows:
 
 ```ant
 let lines = ["name,age", "Ann,31", "Bob,27"]
-for line in Array.slice(lines, 1, len(lines)) {
+for line in lines.slice(1, len(lines)) {
   println(line)
 }
 ```
@@ -128,7 +128,7 @@ Show one page of results, clamping the last page to the length:
 func page(items: Array[string], number: int, size: int): Array[string] {
   let from = Math.min(number * size, len(items))
   let to = Math.min(from + size, len(items))
-  Array.slice(items, from, to)
+  items.slice(from, to)
 }
 
 let names = ["Ann", "Bob", "Cid", "Dee", "Eve"]
@@ -148,8 +148,8 @@ Sum each window of three readings:
 ```ant
 let readings = [3, 6, 9, 6, 3]
 for i in Array.range(0, len(readings) - 2) {
-  let window = Array.slice(readings, i, i + 3)
-  println(Array.sum(window) ?? 0)
+  let window = readings.slice(i, i + 3)
+  println(window.sum() ?? 0)
 }
 ```
 
@@ -167,9 +167,9 @@ The result holds `to - from` elements, and element `i` of it is element `from + 
 let xs = [5, 6, 7, 8, 9]
 let from = 1
 let to = 4
-let part = Array.slice(xs, from, to)
+let part = xs.slice(from, to)
 assert(len(part) == to - from)
-assert(Array.every(Array.range(0, len(part)), { part[x] == xs[from + x] }))
+assert(Array.range(0, len(part)).every({ part[x] == xs[from + x] }))
 ```
 
 Two slices that meet at the same index put the array back together:
@@ -177,14 +177,14 @@ Two slices that meet at the same index put the array back together:
 ```ant
 let xs = [1, 2, 3, 4, 5]
 let i = 2
-assert(Array.concat(Array.slice(xs, 0, i), Array.slice(xs, i, len(xs))) == xs)
+assert(Array.concat(xs.slice(0, i), xs.slice(i, len(xs))) == xs)
 ```
 
 Slicing a slice is one slice with the offsets added:
 
 ```ant
 let xs = [1, 2, 3, 4, 5, 6]
-assert(Array.slice(Array.slice(xs, 1, 5), 1, 3) == Array.slice(xs, 2, 4))
+assert(xs.slice(1, 5).slice(1, 3) == xs.slice(2, 4))
 ```
 
 Destructuring with a rest binds everything after the head as a new array, the same as slicing from
@@ -193,7 +193,7 @@ Destructuring with a rest binds everything after the head as a new array, the sa
 ```ant
 let xs = [1, 2, 3]
 let [_, ...tail] = xs
-assert(tail == Array.slice(xs, 1, len(xs)))
+assert(tail == xs.slice(1, len(xs)))
 ```
 
 A slice of the whole array is a copy: equal, but a new array, so writing to it leaves `xs` as it
@@ -201,7 +201,7 @@ was:
 
 ```ant
 let xs = [1, 2, 3]
-let copy = Array.slice(xs, 0, len(xs))
+let copy = xs.slice(0, len(xs))
 assert(copy == xs)
 assert(!Array.same(copy, xs))
 copy[0] = 9
@@ -214,34 +214,34 @@ xs // [1, 2, 3]
 
 ```ant
 let xs = [10, 20, 30]
-Array.slice(xs, 0, 2)       // [10, 20]
-Array.slice(xs, 0, len(xs)) // [10, 20, 30]
+xs.slice(0, 2)       // [10, 20]
+xs.slice(0, len(xs)) // [10, 20, 30]
 ```
 
 `to` past the length panics, unlike in languages that clamp it. Clamp it yourself, as `take` above
 does:
 
 ```ant
-Array.slice([1, 2, 3], 0, 5) // panic: Array.slice: the range 0..5 is not within 0 ..= 3
+[1, 2, 3].slice(0, 5) // panic: Array.slice: the range 0..5 is not within 0 ..= 3
 ```
 
 A negative index panics. It does not count from the end:
 
 ```ant
-Array.slice([1, 2, 3], -1, 3) // panic: Array.slice: the range -1..3 is not within 0 ..= 3
+[1, 2, 3].slice(-1, 3) // panic: Array.slice: the range -1..3 is not within 0 ..= 3
 ```
 
 Write the length out to take from the end:
 
 ```ant
 let xs = [1, 2, 3]
-Array.slice(xs, len(xs) - 1, len(xs)) // [3]
+xs.slice(len(xs) - 1, len(xs)) // [3]
 ```
 
 `from` after `to` panics rather than giving `[]`:
 
 ```ant
-Array.slice([1, 2, 3], 2, 1) // panic: Array.slice: the range 2..1 is not within 0 ..= 3
+[1, 2, 3].slice(2, 1) // panic: Array.slice: the range 2..1 is not within 0 ..= 3
 ```
 
 The new array holds the same elements, not copies of them. Writing into an element that is itself an
@@ -249,7 +249,7 @@ array or a record shows through the original:
 
 ```ant
 let grid = [[1, 2], [3, 4]]
-let top = Array.slice(grid, 0, 1)
+let top = grid.slice(0, 1)
 top[0][0] = 99
 grid // [[99, 2], [3, 4]]
 ```

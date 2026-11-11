@@ -111,7 +111,7 @@ Map{ a: 1 } | Map.has("a") // true
 Report each field of a JSON object as present, `null`, or missing:
 
 ```ant
-let doc = Result.unwrap(Json.parse("{\"name\": \"ant\", \"license\": null}"))
+let doc = Json.parse("{\"name\": \"ant\", \"license\": null}").unwrap()
 if doc is Map {
   for key in ["name", "license", "homepage"] {
     if !doc.has(key) {

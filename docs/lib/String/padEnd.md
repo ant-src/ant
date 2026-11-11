@@ -168,7 +168,7 @@ The result is never shorter than `width`, never shorter than `s`, and always sta
 ```ant
 for s in ["", "a", "ant", "antenna"] {
   for width in [-1, 0, 3, 5] {
-    let r = String.padEnd(s, width, "xy")
+    let r = s.padEnd(width, "xy")
     assert(r.length() == Math.max(s.length(), width))
     assert(r.startsWith(s))
   }
@@ -183,8 +183,8 @@ let s = "ab"
 let pad = "xyz"
 let width = 7
 let lacking = width - s.length()
-let padding = String.repeat(pad, lacking).slice(0, lacking)
-assert(String.padEnd(s, width, pad) == s + padding)
+let padding = pad.repeat(lacking).slice(0, lacking)
+assert(s.padEnd(width, pad) == s + padding)
 ```
 
 With a one-code-point pad, `String.padEnd` and [`String.padStart`](padStart.md) add the same padding
@@ -192,10 +192,10 @@ on opposite sides:
 
 ```ant
 let s = "42"
-let right = String.padEnd(s, 6, "0")
-let left = String.padStart(s, 6, "0")
-assert(String.trimSuffix(right, "0000") == s)
-assert(String.trimPrefix(left, "0000") == s)
+let right = s.padEnd(6, "0")
+let left = s.padStart(6, "0")
+assert(right.trimSuffix("0000") == s)
+assert(left.trimPrefix("0000") == s)
 ```
 
 ## Possible issues
@@ -230,17 +230,17 @@ String.padEnd("", 2147483647, "🐜") // panic: String.padEnd would give a strin
 code points, so it takes most of the width:
 
 ```ant
-String.padEnd("👨‍👩‍👧", 6, ".")     // "👨\u{200d}👩\u{200d}👧."
-String.length("👨‍👩‍👧")             // 5
-String.graphemes("👨‍👩‍👧").length() // 1
+String.padEnd("👨‍👩‍👧", 6, ".") // "👨\u{200d}👩\u{200d}👧."
+"👨‍👩‍👧".length()               // 5
+"👨‍👩‍👧".graphemes().length()   // 1
 ```
 
 The same holds for "e" followed by a combining accent, which is two code points. Normalize with
 [`String.normalize`](normalize.md) when text can arrive in either spelling:
 
 ```ant
-String.padEnd("cafe\u{301}", 6, ".")                          // "café."
-String.padEnd(String.normalize("cafe\u{301}", "NFC"), 6, ".") // "café.."
+String.padEnd("cafe\u{301}", 6, ".")                  // "café."
+String.padEnd("cafe\u{301}".normalize("NFC"), 6, ".") // "café.."
 ```
 
 A code point is not a column on a terminal either: `"東京"` is two code points, but most terminals

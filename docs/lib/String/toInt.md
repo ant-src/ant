@@ -96,9 +96,9 @@ String.toInt("-9223372036854775809") // null
 Call it through `.` on a string, in a pipe, or pass it as a function value:
 
 ```ant
-"42".toInt()                             // 42
-"ff" | String.toInt(base: 16)            // 255
-Array.map(["1", "x", "3"], String.toInt) // [1, null, 3]
+"42".toInt()                      // 42
+"ff" | String.toInt(base: 16)     // 255
+["1", "x", "3"].map(String.toInt) // [1, null, 3]
 ```
 
 ## Named arguments
@@ -121,7 +121,7 @@ Read a port from the command line, with a default when the argument is missing o
 
 ```ant
 let args = Os.args()
-let port = if len(args) > 0 { String.toInt(args[0]) ?? 3000 } else { 3000 }
+let port = if len(args) > 0 { args[0].toInt() ?? 3000 } else { 3000 }
 println("listening on ${port}")
 ```
 
@@ -135,7 +135,7 @@ Sum the numbers in a list of fields, skipping the ones that are not numbers:
 let fields = ["12", "n/a", "30", "", "-2"]
 var total = 0
 for f in fields {
-  let n = String.toInt(f)
+  let n = f.toInt()
   if n != null {
     total += n
   }
@@ -153,12 +153,12 @@ Split a CSS color such as `#ff8000` into its channels:
 type Rgb = { r: int, g: int, b: int }
 
 func parseColor(s: string): Rgb | null {
-  if len(s) != 7 || !String.startsWith(s, "#") {
+  if len(s) != 7 || !s.startsWith("#") {
     return null
   }
-  let r = String.toInt(String.slice(s, 1, 3), 16) ?? return null
-  let g = String.toInt(String.slice(s, 3, 5), 16) ?? return null
-  let b = String.toInt(String.slice(s, 5, 7), 16) ?? return null
+  let r = s.slice(1, 3).toInt(16) ?? return null
+  let g = s.slice(3, 5).toInt(16) ?? return null
+  let b = s.slice(5, 7).toInt(16) ?? return null
   Rgb{ r: r, g: g, b: b }
 }
 
@@ -176,9 +176,9 @@ Parse a version such as `1.12.3` and compare two of them:
 ```ant
 func version(s: string): Array[int] | null {
   let parts: Array[int] = []
-  for p in String.split(s, ".") {
-    let n = String.toInt(p) ?? return null
-    Array.push(parts, n)
+  for p in s.split(".") {
+    let n = p.toInt() ?? return null
+    parts.push(n)
   }
   parts
 }
@@ -199,7 +199,7 @@ null
 ```ant
 for n in [0, 1, -1, 255, -4096, Math.maxInt, Math.minInt] {
   for base in [2, 10, 16, 36] {
-    assert(String.toInt(String.fromInt(n, base), base) == n)
+    assert(String.fromInt(n, base).toInt(base) == n)
   }
 }
 ```
@@ -208,8 +208,8 @@ In base 10 it reads back what [`String.from`](from.md) and interpolation write:
 
 ```ant
 for n in [0, 42, -7, Math.maxInt] {
-  assert(String.toInt(String.from(n)) == n)
-  assert(String.toInt("${n}") == n)
+  assert(String.from(n).toInt() == n)
+  assert("${n}".toInt() == n)
 }
 ```
 
@@ -218,7 +218,7 @@ Letters parse the same in either case, so the result does not change under
 
 ```ant
 for s in ["beef", "C0FFEE", "-7f"] {
-  assert(String.toInt(s, 16) == String.toInt(String.toUpper(s), 16))
+  assert(s.toInt(16) == s.toUpper().toInt(16))
 }
 ```
 
@@ -235,16 +235,16 @@ A prefix such as `0x` or `0b` is not a number, even in the matching base. Strip 
 [`String.trimPrefix`](trimPrefix.md):
 
 ```ant
-String.toInt("0x1f", 16)                          // null
-String.toInt(String.trimPrefix("0x1f", "0x"), 16) // 31
+String.toInt("0x1f", 16)                  // null
+String.toInt("0x1f".trimPrefix("0x"), 16) // 31
 ```
 
 White space around the digits makes the result `null`, which bites on a line read from input. Trim
 it first with [`String.trim`](trim.md):
 
 ```ant
-String.toInt(" 42\n")              // null
-String.toInt(String.trim(" 42\n")) // 42
+String.toInt(" 42\n")        // null
+String.toInt(" 42\n".trim()) // 42
 ```
 
 The result may be `null`, so using it as an `int` is a compile error:

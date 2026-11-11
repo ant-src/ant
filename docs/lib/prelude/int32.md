@@ -69,8 +69,8 @@ int32(today) // 21
 `int32` is a function value, so it can be passed to `Array.map`:
 
 ```ant
-Array.map([1, 2, 3], int32)       // [1, 2, 3]
-[10, 20].map(int32) | Array.sum() // 30
+[1, 2, 3].map(int32)      // [1, 2, 3]
+[10, 20].map(int32).sum() // 30
 ```
 
 ## Applications
@@ -119,7 +119,7 @@ Read an `int32` from text in two steps. `String.toInt` returns `int | null`, so 
 then convert. `int32` panics if the parsed value is out of range:
 
 ```ant
-let port = String.toInt("8080") ?? 0
+let port = "8080".toInt() ?? 0
 println(int32(port))
 ```
 

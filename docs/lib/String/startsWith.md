@@ -90,7 +90,7 @@ Drop the comment lines of a config file:
 
 ```ant
 let text = "# settings\nport=8080\n# debug=true\nhost=localhost"
-String.lines(text).filter({ !x.trimStart().startsWith("#") }) // ["port=8080", "host=localhost"]
+text.lines().filter({ !x.trimStart().startsWith("#") }) // ["port=8080", "host=localhost"]
 ```
 
 Split command-line arguments into flags and operands:
@@ -164,7 +164,7 @@ removes exactly that:
 let s = "hill"
 let t = "ant"
 assert((t + s).startsWith(t))
-assert(String.trimPrefix(t + s, t) == s)
+assert((t + s).trimPrefix(t) == s)
 ```
 
 Reversing the code points of both strings turns `startsWith` into [`String.endsWith`](endsWith.md):
@@ -185,7 +185,7 @@ On the UTF-8 bytes, [`Bytes.startsWith`](../Bytes/startsWith.md) gives the same 
 ```ant
 let s = "año"
 for t in ["a", "añ", "ñ", ""] {
-  assert(s.startsWith(t) == Bytes.startsWith(String.toBytes(s), String.toBytes(t)))
+  assert(s.startsWith(t) == Bytes.startsWith(s.toBytes(), t.toBytes()))
 }
 ```
 
@@ -213,15 +213,15 @@ case:
 
 ```ant
 let header = "Content-Type: text/html"
-header.startsWith("content-type")                                   // false
-String.foldCase(header).startsWith(String.foldCase("Content-Type")) // true
+header.startsWith("content-type")                       // false
+header.foldCase().startsWith("Content-Type".foldCase()) // true
 ```
 
 Folding changes more than case, so fold the prefix too:
 
 ```ant
-String.foldCase("Straße").startsWith("straß")                  // false
-String.foldCase("Straße").startsWith(String.foldCase("STRAß")) // true
+"Straße".foldCase().startsWith("straß")            // false
+"Straße".foldCase().startsWith("STRAß".foldCase()) // true
 ```
 
 Leading white space is part of the string. Trim it with [`String.trimStart`](trimStart.md) first:
@@ -237,8 +237,8 @@ sides with [`String.normalize`](normalize.md) when text can arrive in either spe
 
 ```ant
 let word = "e\u{301}cole"
-word.startsWith("é")                                                   // false
-String.normalize(word, "NFC").startsWith(String.normalize("é", "NFC")) // true
+word.startsWith("é")                                   // false
+word.normalize("NFC").startsWith("é".normalize("NFC")) // true
 ```
 
 `String.startsWith` works on code points, not on what a reader sees as one character. A family emoji

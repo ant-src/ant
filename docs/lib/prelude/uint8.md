@@ -73,7 +73,7 @@ uint8(Percent(80)) // 80
 `Array[byte]`:
 
 ```ant
-Array.map([0, 128, 255], uint8) // [0, 128, 255]
+[0, 128, 255].map(uint8) // [0, 128, 255]
 ```
 
 In a pipe, the value is the argument:
@@ -85,7 +85,7 @@ In a pipe, the value is the argument:
 Indexing `Bytes` gives a `byte`, which is a `uint8`, so it mixes with other `uint8` values:
 
 ```ant
-let b = String.toBytes("hi")
+let b = "hi".toBytes()
 b[0] + uint8(1) // 105
 ```
 
@@ -113,7 +113,7 @@ Add up the bytes of a `Bytes` value. Each one is a `uint8`, so convert it to `in
 the sum overflows past 255:
 
 ```ant
-let data = String.toBytes("Ant")
+let data = "Ant".toBytes()
 var sum = 0
 for x in data {
   sum += int(x)
@@ -143,7 +143,7 @@ println(low)
 Build `Bytes` from `int` values:
 
 ```ant
-let header = Array.map([0x89, 0x50, 0x4e, 0x47], uint8)
+let header = [0x89, 0x50, 0x4e, 0x47].map(uint8)
 println(Bytes.fromArray(header))
 ```
 
@@ -174,10 +174,10 @@ An `Array[uint8]` is an `Array[byte]`:
 
 ```ant
 func total(xs: Array[uint8]): int {
-  Array.reduce(xs, 0, func(acc: int, x: byte) { acc + int(x) })
+  xs.reduce(0, func(acc: int, x: byte) { acc + int(x) })
 }
 
-let data: Array[byte] = String.toBytes("ab").toArray()
+let data: Array[byte] = "ab".toBytes().toArray()
 assert(total(data) == 195)
 ```
 
@@ -239,7 +239,7 @@ let x = uint8("200") // error: byte converts a number or a named primitive type 
 ```
 
 ```ant
-uint8(String.toInt("200") ?? 0) // 200
+uint8("200".toInt() ?? 0) // 200
 ```
 
 ## See also

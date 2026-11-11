@@ -101,7 +101,7 @@ Count words, starting each count at 0 with `??`:
 
 ```ant
 let counts: Map[string, int] = Map{}
-for word in String.split("to be or not to be", " ") {
+for word in "to be or not to be".split(" ") {
   counts[word] = (counts.get(word) ?? 0) + 1
 }
 println(counts)

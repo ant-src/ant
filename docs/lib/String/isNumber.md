@@ -89,7 +89,7 @@ String.isNumber(" 42")   // false
 Test one code point at a time with `String.chars`, here in a pipe:
 
 ```ant
-"x½2" | String.chars() | Array.map({ String.isNumber(x) }) // [false, true, true]
+"x½2" | String.chars() | Array.map({ x.isNumber() }) // [false, true, true]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -103,7 +103,7 @@ Pass it to a higher-order function as a function value:
 Count the number characters in a recipe line:
 
 ```ant
-"Add 1½ cups and 2 eggs".chars().countWhere({ String.isNumber(x) }) // 3
+"Add 1½ cups and 2 eggs".chars().countWhere({ x.isNumber() }) // 3
 ```
 
 Split an amount from its unit, where the amount may hold a fraction:
@@ -113,8 +113,10 @@ type Amount = { qty: string, unit: string }
 
 func amount(s: string): Amount {
   let cs = s.chars()
-  let i = cs.findIndex({ !String.isNumber(x) }) ?? cs.length()
-  Amount{ qty: String.concat(cs.slice(0, i)), unit: String.trim(String.concat(cs.slice(i, cs.length()))) }
+  let i = cs.findIndex({ !x.isNumber() }) ?? cs.length()
+  let qty = String.concat(cs.slice(0, i))
+  let unit = String.concat(cs.slice(i, cs.length())).trim()
+  Amount{ qty, unit }
 }
 
 for s in ["1½ cups", "250 g", "¾ tsp", "pinch"] {
@@ -133,7 +135,7 @@ for s in ["1½ cups", "250 g", "¾ tsp", "pinch"] {
 Mark the fields of a line that are numbers of any kind:
 
 ```ant
-for f in String.fields("Chapter Ⅻ page 42 note ①") {
+for f in "Chapter Ⅻ page 42 note ①".fields() {
   println(if f.isNumber() { "[${f}]" } else { f })
 }
 ```
@@ -154,7 +156,7 @@ point starts with `N`:
 
 ```ant
 for s in ["", "0", "42", "٣", "½", "Ⅻ", "²", "1.5", "a1", "三"] {
-  let byCategory = s != "" && s.chars().every({ String.category(x).startsWith("N") })
+  let byCategory = s != "" && s.chars().every({ x.category().startsWith("N") })
   assert(String.isNumber(s) == byCategory)
 }
 ```
@@ -224,8 +226,8 @@ Every code point must be a number, so `String.isNumber` does not answer whether 
 one. Use `Array.some` for that:
 
 ```ant
-String.isNumber("No. 5")                     // false
-"No. 5".chars().some({ String.isNumber(x) }) // true
+String.isNumber("No. 5")               // false
+"No. 5".chars().some({ x.isNumber() }) // true
 ```
 
 ## See also

@@ -78,7 +78,7 @@ Turn Windows line endings into `\n`:
 
 ```ant
 let text = "one\r\ntwo\r\n"
-String.replace(text, "\r\n", "\n") // "one\ntwo\n"
+text.replace("\r\n", "\n") // "one\ntwo\n"
 ```
 
 Fill the placeholders of a template from a map:
@@ -87,7 +87,7 @@ Fill the placeholders of a template from a map:
 func fill(template: string, values: Map[string, string]): string {
   var out = template
   for e in values {
-    out = String.replace(out, "{" + e.key + "}", e.value)
+    out = out.replace("{" + e.key + "}", e.value)
   }
   out
 }
@@ -131,23 +131,23 @@ Replacing a string with itself, or replacing a string that does not occur, gives
 
 ```ant
 let s = "banana"
-assert(String.replace(s, "an", "an") == s)
-assert(String.replace(s, "x", "y") == s)
-assert(!String.contains(s, "x"))
+assert(s.replace("an", "an") == s)
+assert(s.replace("x", "y") == s)
+assert(!s.contains("x"))
 ```
 
 After a replacement, `old` occurs no more, as long as `new` does not bring it back:
 
 ```ant
 let s = "a--b---c"
-assert(!String.contains(String.replace(s, "-", " "), "-"))
+assert(!s.replace("-", " ").contains("-"))
 ```
 
 `String.replace` gives the same as splitting at `old` and joining with `new`:
 
 ```ant
 for s in ["a,b,,c", "", ",", "abc"] {
-  assert(String.replace(s, ",", ";") == String.join(String.split(s, ","), ";"))
+  assert(s.replace(",", ";") == String.join(s.split(","), ";"))
 }
 ```
 
@@ -157,10 +157,10 @@ The length changes by the [`String.count`](count.md) of `old` times the differen
 let s = "the cat sat on the mat"
 let old = "at"
 let new = "ug"
-let r = String.replace(s, old, new)
+let r = s.replace(old, new)
 assert(r == "the cug sug on the mug")
-let grow = String.length(new) - String.length(old)
-assert(String.length(r) == String.length(s) + String.count(s, old) * grow)
+let grow = new.length() - old.length()
+assert(r.length() == s.length() + s.count(old) * grow)
 ```
 
 Only the first occurrence changes with [`String.replaceFirst`](replaceFirst.md); when `old` occurs
@@ -194,7 +194,7 @@ String.replace("abc", "", "-") // panic: String.replace needs an old string that
 To put something between every character, join the code points instead:
 
 ```ant
-String.join(String.chars("abc"), "-") // "a-b-c"
+String.join("abc".chars(), "-") // "a-b-c"
 ```
 
 The match is case-sensitive:

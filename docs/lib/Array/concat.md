@@ -42,26 +42,26 @@ Array.concat([3, 1, 2], [2, 0]) // [3, 1, 2, 2, 0]
 An empty array on either side gives the other one's elements:
 
 ```ant
-Array.concat([1, 2], []) // [1, 2]
-Array.concat([], [1])    // [1]
+[1, 2].concat([]) // [1, 2]
+[].concat([1])    // [1]
 let none: Array[int] = []
-Array.concat(none, none) // []
+none.concat(none) // []
 ```
 
 An array joined with itself repeats it:
 
 ```ant
 let xs = [1, 2]
-Array.concat(xs, xs) // [1, 2, 1, 2]
+xs.concat(xs) // [1, 2, 1, 2]
 ```
 
 Strings, records, and unions with `null` work alike:
 
 ```ant
 type Point = { x: int, y: int }
-Array.concat(["é"], ["日本"])                              // ["é", "日本"]
-Array.concat([Point{ x: 1, y: 2 }], [Point{ x: 3, y: 4 }]) // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
-Array.concat([1, null], [null])                            // [1, null, null]
+["é"].concat(["日本"])                              // ["é", "日本"]
+[Point{ x: 1, y: 2 }].concat([Point{ x: 3, y: 4 }]) // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
+[1, null].concat([null])                            // [1, null, null]
 ```
 
 An expected type fixes `T`, so arrays of different element types can join into a union:
@@ -90,7 +90,7 @@ Add a header row in front of data rows without touching the data:
 
 ```ant
 let rows = [["Ann", "31"], ["Bob", "27"]]
-let table = Array.concat([["name", "age"]], rows)
+let table = [["name", "age"]].concat(rows)
 for row in table {
   println(String.join(row, ","))
 }
@@ -107,7 +107,7 @@ Put default flags in front of the ones a user gave:
 ```ant
 let defaults = ["--color", "--quiet"]
 let extra = ["--verbose"]
-println(String.join(Array.concat(defaults, extra), " "))
+println(defaults.concat(extra) | String.join(" "))
 ```
 
 ```text
@@ -121,14 +121,14 @@ The length of the result is the sum of the lengths:
 ```ant
 let xs = [1, 2, 3]
 let ys = [4, 5]
-assert(Array.length(Array.concat(xs, ys)) == Array.length(xs) + Array.length(ys))
+assert(xs.concat(ys).length() == xs.length() + ys.length())
 ```
 
 The result is a new array, even when one side is empty:
 
 ```ant
 let xs = [1, 2]
-let ys = Array.concat(xs, [])
+let ys = xs.concat([])
 assert(ys == xs)
 assert(!Array.same(ys, xs))
 ```
@@ -138,8 +138,8 @@ Writing to the result leaves the inputs as they were:
 ```ant
 let xs = [1, 2]
 let ys = [3]
-let zs = Array.concat(xs, ys)
-Array.push(zs, 4)
+let zs = xs.concat(ys)
+zs.push(4)
 zs // [1, 2, 3, 4]
 xs // [1, 2]
 ys // [3]
@@ -150,7 +150,7 @@ It is the array literal with two spreads:
 ```ant
 let xs = [1, 2]
 let ys = [3]
-assert(Array.concat(xs, ys) == [...xs, ...ys])
+assert(xs.concat(ys) == [...xs, ...ys])
 ```
 
 It is a copy of `xs` extended with `ys`:
@@ -159,8 +159,8 @@ It is a copy of `xs` extended with `ys`:
 let xs = [1, 2]
 let ys = [3]
 let copy = [...xs]
-Array.extend(copy, ys)
-assert(copy == Array.concat(xs, ys))
+copy.extend(ys)
+assert(copy == xs.concat(ys))
 ```
 
 It is associative, and [Array.flatten](flatten.md) joins any number of arrays the same way:
@@ -180,7 +180,7 @@ array or a record is the same value in both, so writing to it shows through the 
 
 ```ant
 let grid = [[1], [2]]
-let more = Array.concat(grid, [[3]])
+let more = grid.concat([[3]])
 more[0][0] = 99
 grid // [[99], [2]]
 ```
@@ -212,7 +212,7 @@ one array, use [Array.extend](extend.md) or [Array.push](push.md) instead:
 ```ant
 let all: Array[int] = []
 for n in Array.range(0, 3) {
-  Array.extend(all, [n, n])
+  all.extend([n, n])
 }
 println(all)
 ```

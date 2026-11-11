@@ -32,7 +32,7 @@ Call it through `.` on the array to group words by their first letter:
 
 ```ant
 let fruit = ["apple", "avocado", "banana", "blueberry", "cherry"]
-fruit.groupBy({ String.slice(x, 0, 1) }) // Map{ "a": ["apple", "avocado"], "b": ["banana", "blueberry"], "c": ["cherry"] }
+fruit.groupBy({ x.slice(0, 1) }) // Map{ "a": ["apple", "avocado"], "b": ["banana", "blueberry"], "c": ["cherry"] }
 ```
 
 ## Scope
@@ -102,7 +102,7 @@ shapes.groupBy({ if x is Circle { "circle" } else { "square" } }) // Map{ "circl
 Group the characters of a string by splitting it into graphemes first:
 
 ```ant
-String.graphemes("🐜a🐜b").groupBy({ x }) // Map{ "🐜": ["🐜", "🐜"], "a": ["a"], "b": ["b"] }
+"🐜a🐜b".graphemes().groupBy({ x }) // Map{ "🐜": ["🐜", "🐜"], "a": ["a"], "b": ["b"] }
 ```
 
 ## Applications
@@ -153,8 +153,8 @@ Flattening the groups gives every element once. The order changes when keys inte
 ```ant
 let xs = [5, 3, 8, 1]
 let groups = xs.groupBy({ x > 4 })
-assert(Array.flatten(Map.values(groups)) == [5, 8, 3, 1])
-assert(len(Array.flatten(Map.values(groups))) == len(xs))
+assert(groups.values().flatten() == [5, 8, 3, 1])
+assert(len(groups.values().flatten()) == len(xs))
 ```
 
 The keys are the distinct keys of the elements, in first-seen order, and every element sits under
@@ -164,7 +164,7 @@ its own key:
 let xs = [5, 3, 8, 1]
 let key = func(n: int): bool { n > 4 }
 let groups = xs.groupBy(key)
-assert(Map.keys(groups) == xs.map(key).unique())
+assert(groups.keys() == xs.map(key).unique())
 for entry in groups.entries() {
   assert(entry.value.every({ key(x) == entry.key }))
 }
@@ -222,8 +222,8 @@ The keys are in first-seen order, not sorted. Sort them when the order matters:
 
 ```ant
 let groups = [1, 2, 3, 4, 5].groupBy({ x % 2 })
-Map.keys(groups)        // [1, 0]
-Map.keys(groups).sort() // [0, 1]
+groups.keys()        // [1, 0]
+groups.keys().sort() // [0, 1]
 ```
 
 `NaN` is not `==` to itself, so every `NaN` key starts a group of its own:

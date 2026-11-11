@@ -39,36 +39,36 @@ name.trimSuffix(".tar")    // "report.tar.gz"
 The suffix comes off once, even when the string ends with several copies of it:
 
 ```ant
-String.trimSuffix("ha!!!", "!") // "ha!!"
-String.trimSuffix("abab", "ab") // "ab"
+"ha!!!".trimSuffix("!") // "ha!!"
+"abab".trimSuffix("ab") // "ab"
 ```
 
 An empty suffix changes nothing, an empty string stays empty, and a suffix equal to the whole string
 leaves the empty string:
 
 ```ant
-String.trimSuffix("ant", "")    // "ant"
-String.trimSuffix("", "x")      // ""
-String.trimSuffix("ant", "ant") // ""
+"ant".trimSuffix("")    // "ant"
+"".trimSuffix("x")      // ""
+"ant".trimSuffix("ant") // ""
 ```
 
 A suffix longer than the string never matches:
 
 ```ant
-String.trimSuffix("ant", "giant") // "ant"
+"ant".trimSuffix("giant") // "ant"
 ```
 
 Text in any script trims by code points:
 
 ```ant
-String.trimSuffix("東京都", "都") // "東京"
-String.trimSuffix("Ωμέγα", "γα")  // "Ωμέ"
+"東京都".trimSuffix("都") // "東京"
+"Ωμέγα".trimSuffix("γα")  // "Ωμέ"
 ```
 
 A combining accent is a code point of its own, so it can come off alone and leave the bare letter:
 
 ```ant
-String.trimSuffix("cafe\u{301}", "\u{301}") // "cafe"
+"cafe\u{301}".trimSuffix("\u{301}") // "cafe"
 ```
 
 In a pipeline, the string is the first argument. Named arguments use `s:` and `suffix:`:
@@ -104,7 +104,7 @@ func millis(s: string): int | null {
   if !s.endsWith("ms") {
     return null
   }
-  String.toInt(s.trimSuffix("ms"))
+  s.trimSuffix("ms").toInt()
 }
 
 millis("250ms") // 250
@@ -144,7 +144,7 @@ Whatever is appended comes back off:
 ```ant
 for s in ["ant", "", "hill"] {
   for t in ["hill", "", "s"] {
-    assert(String.trimSuffix(s + t, t) == s)
+    assert((s + t).trimSuffix(t) == s)
   }
 }
 ```
@@ -180,7 +180,7 @@ Reversing the code points of both strings turns it into [`String.trimPrefix`](tr
 
 ```ant
 func reverse(s: string): string {
-  String.concat(s.chars().reverse())
+  s.chars().reverse() | String.concat()
 }
 
 for t in ["gz", "tar.gz", "tar", ""] {
@@ -207,34 +207,34 @@ The suffix is one string, not a set of characters. To drop trailing white space 
 [`String.trimEnd`](trimEnd.md):
 
 ```ant
-String.trimSuffix("line \t\n", "\n") // "line \t"
-String.trimEnd("line \t\n")          // "line"
+"line \t\n".trimSuffix("\n") // "line \t"
+"line \t\n".trimEnd()        // "line"
 ```
 
 Removing `"\n"` from a line that ends with `"\r\n"` leaves the `"\r"`:
 
 ```ant
-String.trimSuffix("line\r\n", "\n") // "line\r"
+"line\r\n".trimSuffix("\n") // "line\r"
 ```
 
 To drop the whole line ending, use [`String.trimEnd`](trimEnd.md), or split the text with
 [`String.lines`](lines.md):
 
 ```ant
-String.trimEnd("line\r\n") // "line"
+"line\r\n".trimEnd() // "line"
 ```
 
 Case matters, so `".md"` does not match `".MD"`:
 
 ```ant
-String.trimSuffix("README.MD", ".md") // "README.MD"
+"README.MD".trimSuffix(".md") // "README.MD"
 ```
 
 The match works on code points, not on what a reader sees as one character. A family emoji is three
 people joined by U+200D, so trimming the last person leaves a joiner at the end:
 
 ```ant
-String.trimSuffix("👨‍👩‍👧", "👧").endsWith("\u{200D}") // true
+"👨‍👩‍👧".trimSuffix("👧").endsWith("\u{200D}") // true
 ```
 
 The string comes first and the suffix second. Swapped, the call returns the suffix unchanged:

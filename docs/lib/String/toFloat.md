@@ -135,8 +135,8 @@ the number:
 let line = "3.5, 2, oops, 1e1"
 var total = 0.0
 var bad = 0
-for field in String.split(line, ",") {
-  let n = String.toFloat(String.trim(field))
+for field in line.split(",") {
+  let n = field.trim().toFloat()
   if n != null {
     total += n
   } else {
@@ -156,7 +156,7 @@ Read a setting with a fallback when it is missing or malformed:
 let settings = Map{ "ratio": "0.75", "scale": "big" }
 
 func setting(name: string, fallback: float64): float64 {
-  String.toFloat(settings[name] ?? "") ?? fallback
+  settings[name]?.toFloat() ?? fallback
 }
 
 println(setting("ratio", 1.0))
@@ -174,7 +174,7 @@ Validate a whole column with [`Array.every`](../Array/every.md):
 
 ```ant
 let column = ["1.5", "2", "-0.25"]
-Array.every(column, { String.toFloat(x) != null }) // true
+column.every({ x.toFloat() != null }) // true
 ```
 
 ## Properties and relations
@@ -184,7 +184,7 @@ infinities:
 
 ```ant
 for x in [0.1 + 0.2, -1.5, 1e21, 5e-324, 1.7976931348623157e308, Math.Infinity, -Math.Infinity] {
-  assert(String.toFloat(String.from(x)) == x)
+  assert(String.from(x).toFloat() == x)
 }
 ```
 
@@ -192,7 +192,7 @@ for x in [0.1 + 0.2, -1.5, 1e21, 5e-324, 1.7976931348623157e308, Math.Infinity, 
 [`Math.isNaN`](../Math/isNaN.md):
 
 ```ant
-let n = String.toFloat(String.from(Math.NaN))
+let n = String.from(Math.NaN).toFloat()
 assert(n != null && Math.isNaN(n))
 ```
 
@@ -200,14 +200,14 @@ For an integer that fits, it agrees with [`String.toInt`](toInt.md) and a conver
 
 ```ant
 for s in ["0", "-17", "123456"] {
-  assert(String.toFloat(s) == float64(String.toInt(s) ?? 0))
+  assert(s.toFloat() == float64(s.toInt() ?? 0))
 }
 ```
 
 It reads what [`String.fromFloat`](fromFloat.md) writes, up to the rounding `fromFloat` applies:
 
 ```ant
-String.toFloat(String.fromFloat(2.675, 2)) // 2.67
+String.fromFloat(2.675, 2).toFloat() // 2.67
 ```
 
 ## Possible issues
@@ -226,8 +226,8 @@ let x = String.toFloat("1.5") * 2.0
 Surrounding white space makes the whole string invalid. Trim it first with [`String.trim`](trim.md):
 
 ```ant
-String.toFloat(" 2.5\n")              // null
-String.toFloat(String.trim(" 2.5\n")) // 2.5
+String.toFloat(" 2.5\n")        // null
+String.toFloat(" 2.5\n".trim()) // 2.5
 ```
 
 A number beyond the range of `float64` is `null`, not `Infinity`, so you cannot tell it from text

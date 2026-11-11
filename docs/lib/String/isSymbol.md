@@ -64,7 +64,7 @@ String.category("°") // "So"
 The ASCII symbols are `$`, `+`, `<`, `=`, `>`, `^`, `` ` ``, `|`, and `~`:
 
 ```ant
-"$+<=>^`|~".chars().every({ String.isSymbol(x) }) // true
+"$+<=>^`|~".chars().every({ x.isSymbol() }) // true
 ```
 
 An emoji of one code point is a symbol, and so is a flag, which is two regional indicator symbols. A
@@ -88,7 +88,7 @@ String.isSymbol(" ") // false
 Test each code point of a string with `String.chars` in a pipe:
 
 ```ant
-"2+2=4" | String.chars() | Array.map({ String.isSymbol(x) }) // [false, true, false, true, false]
+"2+2=4" | String.chars() | Array.map({ x.isSymbol() }) // [false, true, false, true, false]
 ```
 
 ## Applications
@@ -100,7 +100,7 @@ type Price = { currency: string, amount: string }
 
 func parsePrice(s: string): Price | null {
   let chars = s.chars()
-  if chars.isEmpty() || !String.isSymbol(chars[0]) {
+  if chars.isEmpty() || !chars[0].isSymbol() {
     return null
   }
   Price{ currency: chars[0], amount: s.trimPrefix(chars[0]) }
@@ -115,15 +115,12 @@ and `<` with punctuation such as `-` and `&`, so test each code point for either
 
 ```ant
 func isOperator(token: string): bool {
-  !token.isEmpty() && token.chars().every({ String.isSymbol(x) || String.isPunct(x) })
+  !token.isEmpty() && token.chars().every({ x.isSymbol() || x.isPunct() })
 }
 
 for token in ["x", "+", "-", "<=", "&&", "count", "|>"] {
-  if isOperator(token) {
-    println("operator ${token}")
-  } else {
-    println("name ${token}")
-  }
+  let kind = if isOperator(token) { "operator" } else { "name" }
+  println("${kind} ${token}")
 }
 ```
 
@@ -140,7 +137,7 @@ operator |>
 Count the symbols of a text:
 
 ```ant
-"1 + 2 = 3 ≠ 4 ✓".chars().countWhere({ String.isSymbol(x) }) // 4
+"1 + 2 = 3 ≠ 4 ✓".chars().countWhere({ x.isSymbol() }) // 4
 ```
 
 ## Properties and relations
@@ -149,8 +146,8 @@ Count the symbols of a text:
 
 ```ant
 for s in ["", "+", "$5", "😀", "©®", "%", "a", "👍🏽"] {
-  let chars = String.chars(s)
-  let all = !chars.isEmpty() && chars.every({ String.category(x).startsWith("S") })
+  let chars = s.chars()
+  let all = !chars.isEmpty() && chars.every({ x.category().startsWith("S") })
   assert(String.isSymbol(s) == all)
 }
 ```
@@ -173,11 +170,11 @@ Many ASCII signs are punctuation, not symbols. To accept both, test both on each
 the whole string with each function fails on a string that mixes the two, such as `!=`:
 
 ```ant
-String.isSymbol("%")                                            // false
-String.isPunct("%")                                             // true
-String.isSymbol("-")                                            // false
-String.isSymbol("!=") || String.isPunct("!=")                   // false
-"!=".chars().every({ String.isSymbol(x) || String.isPunct(x) }) // true
+String.isSymbol("%")                                // false
+String.isPunct("%")                                 // true
+String.isSymbol("-")                                // false
+String.isSymbol("!=") || String.isPunct("!=")       // false
+"!=".chars().every({ x.isSymbol() || x.isPunct() }) // true
 ```
 
 An emoji that looks like one character can hold code points that are not symbols. The red heart `❤️`
@@ -185,9 +182,9 @@ ends with the variation selector U+FE0F, a mark, and a family emoji joins its pe
 zero-width joiner U+200D, a format character:
 
 ```ant
-String.isSymbol("❤️")                    // false
-"❤️".chars().map({ String.category(x) }) // ["So", "Mn"]
-String.isSymbol("👨‍👩‍👧")                    // false
+String.isSymbol("❤️")              // false
+"❤️".chars().map({ x.category() }) // ["So", "Mn"]
+String.isSymbol("👨‍👩‍👧")              // false
 ```
 
 An emoji that a Unicode version newer than `String.unicodeVersion` adds is unassigned, category
@@ -198,8 +195,8 @@ version.
 a string contains a symbol, test each code point:
 
 ```ant
-String.isSymbol("a+b")                     // false
-"a+b".chars().some({ String.isSymbol(x) }) // true
+String.isSymbol("a+b")               // false
+"a+b".chars().some({ x.isSymbol() }) // true
 ```
 
 ## See also

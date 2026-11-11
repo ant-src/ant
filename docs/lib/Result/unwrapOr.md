@@ -211,7 +211,7 @@ Annotate the `Result` first:
 
 ```ant
 let r: Result[int, string] = Result.err("e")
-Result.unwrapOr(r, 0) // 0
+r.unwrapOr(0) // 0
 ```
 
 When the value type includes `null` and the fallback is `null`, a `null` result does not tell an

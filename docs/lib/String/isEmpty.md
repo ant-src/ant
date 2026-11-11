@@ -71,15 +71,15 @@ nickname?.isEmpty() ?? true // true
 Test what `String.slice` or `String.trim` returns:
 
 ```ant
-String.slice("abc", 1, 1).isEmpty() // true
-"  \t\n".trim().isEmpty()           // true
+"abc".slice(1, 1).isEmpty() // true
+"  \t\n".trim().isEmpty()   // true
 ```
 
 Drop the empty fields that a doubled or trailing separator leaves:
 
 ```ant
-String.split("a,,b,", ",")                          // ["a", "", "b", ""]
-String.split("a,,b,", ",").filter({ !x.isEmpty() }) // ["a", "b"]
+"a,,b,".split(",")                          // ["a", "", "b", ""]
+"a,,b,".split(",").filter({ !x.isEmpty() }) // ["a", "b"]
 ```
 
 Fall back to a default when a name is blank:
@@ -109,7 +109,7 @@ Reject empty input with a `Result`:
 type EmptyInput = {}
 
 func parseName(s: string): Result[string, EmptyInput] {
-  if String.isEmpty(s) {
+  if s.isEmpty() {
     return Result.err(EmptyInput{})
   }
   Result.ok(s)
@@ -132,7 +132,7 @@ Err{ error: EmptyInput{} }
 ```ant
 for s in ["", "a", " ", "日本", "👨‍👩‍👧"] {
   assert(s.isEmpty() == (len(s) == 0))
-  assert(s.isEmpty() == (String.length(s) == 0))
+  assert(s.isEmpty() == (s.length() == 0))
   assert(s.isEmpty() == (s == ""))
   assert(s.isEmpty() == s.chars().isEmpty())
 }
@@ -223,7 +223,7 @@ println(String.isEmpty(n)) // error: cannot use Name where string is expected
 ```ant
 type Name = string
 let n = Name("")
-String.isEmpty(string(n)) // true
+string(n).isEmpty() // true
 ```
 
 ## See also

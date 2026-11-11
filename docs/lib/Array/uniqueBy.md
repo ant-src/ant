@@ -24,7 +24,7 @@ Keep the first word for each first letter:
 
 ```ant
 let fruit = ["apple", "avocado", "banana", "cherry", "blueberry"]
-Array.uniqueBy(fruit, { String.slice(x, 0, 1) }) // ["apple", "banana", "cherry"]
+Array.uniqueBy(fruit, { x.slice(0, 1) }) // ["apple", "banana", "cherry"]
 ```
 
 Keep the first number of each parity, through `.`:
@@ -113,7 +113,7 @@ shapes.uniqueBy({ x is Circle }) // [Circle{ r: 1.0 }, Square{ side: 2.0 }]
 Work on the characters of a string by splitting it into graphemes first:
 
 ```ant
-String.graphemes("Ant ANT ant").uniqueBy({ String.toLower(x) }) // ["A", "n", "t", " "]
+"Ant ANT ant".graphemes().uniqueBy({ x.toLower() }) // ["A", "n", "t", " "]
 ```
 
 ## Applications
@@ -174,7 +174,7 @@ let xs = ["ant", "bee", "wasp", "fly", "moth"]
 let kept = xs.uniqueBy(String.length)
 assert(kept.map(String.length) == xs.map(String.length).unique())
 for k in kept {
-  assert(xs.find({ String.length(x) == String.length(k) }) == k)
+  assert(xs.find({ x.length() == k.length() }) == k)
 }
 ```
 
@@ -182,7 +182,7 @@ Each kept element is the first of its group in `Array.groupBy`:
 
 ```ant
 let xs = [5, 3, 8, 1, 6]
-let firsts = Map.values(xs.groupBy({ x % 3 })).map({ x[0] })
+let firsts = xs.groupBy({ x % 3 }).values().map({ x[0] })
 assert(xs.uniqueBy({ x % 3 }) == firsts)
 ```
 

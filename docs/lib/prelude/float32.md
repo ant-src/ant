@@ -93,7 +93,7 @@ float32(room) // 21.5
 `float32` is a value, so it can be passed to a function:
 
 ```ant
-Array.map([1, 2, 3], float32) // [1.0, 2.0, 3.0]
+[1, 2, 3].map(float32) // [1.0, 2.0, 3.0]
 ```
 
 In a pipe, the value is the argument:
@@ -141,7 +141,7 @@ Read a `float32` from text. `String.toFloat` returns a `float64`, which `float32
 
 ```ant
 func parse32(s: string): float32 | null {
-  let f = String.toFloat(s) ?? return null
+  let f = s.toFloat() ?? return null
   float32(f)
 }
 

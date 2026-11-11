@@ -119,7 +119,7 @@ c.category() // "Cn"
 Map it over the code points of a string, here in a pipe:
 
 ```ant
-"Hi, 2!" | String.chars() | Array.map({ String.category(x) }) // ["Lu", "Ll", "Po", "Zs", "Nd", "Po"]
+"Hi, 2!" | String.chars() | Array.map({ x.category() }) // ["Lu", "Ll", "Po", "Zs", "Nd", "Po"]
 ```
 
 ## Applications
@@ -129,7 +129,7 @@ Count the categories in a text:
 ```ant
 let counts: Map[string, int] = Map{}
 for c in "Hi, 2 ants!" {
-  let k = String.category(c)
+  let k = c.category()
   counts[k] = (counts[k] ?? 0) + 1
 }
 println(counts)
@@ -144,8 +144,11 @@ it again:
 
 ```ant
 func stripAccents(s: string): string {
-  let kept = String.normalize(s, "NFD") | String.chars() | Array.filter({ String.category(x) != "Mn" })
-  String.normalize(String.concat(kept), "NFC")
+  s.normalize("NFD")
+    | String.chars()
+    | Array.filter({ x.category() != "Mn" })
+    | String.concat()
+    | String.normalize("NFC")
 }
 
 println(stripAccents("Crème brûlée à Zürich"))
@@ -160,7 +163,7 @@ web page leaves behind:
 
 ```ant
 let pasted = "co\u{AD}operate\u{200B}"
-String.concat(pasted.chars().filter({ String.category(x) != "Cf" })) // "cooperate"
+pasted.chars().filter({ x.category() != "Cf" }) | String.concat() // "cooperate"
 ```
 
 Cf also holds the zero-width joiner that binds an emoji sequence, so this filter splits a family
@@ -168,7 +171,7 @@ emoji into three emoji:
 
 ```ant
 let family = "👨\u{200D}👩\u{200D}👧"
-String.concat(family.chars().filter({ String.category(x) != "Cf" })) // "👨👩👧"
+family.chars().filter({ x.category() != "Cf" }) | String.concat() // "👨👩👧"
 ```
 
 Split a string into runs of code points that share a major class, the first letter of the category:
@@ -177,7 +180,7 @@ Split a string into runs of code points that share a major class, the first lett
 type Run = { major: string, text: string }
 
 func major(c: string): string {
-  String.slice(String.category(c), 0, 1)
+  c.category().slice(0, 1)
 }
 
 func runs(s: string): Array[Run] {
@@ -212,19 +215,19 @@ Each class test of `String` except `String.isSpace` is a test on the category of
 
 ```ant
 for c in ["A", "a", "ǅ", "7", "Ⅻ", "\u{301}", "-", "€", " ", "\n", "\u{AD}", "\u{378}"] {
-  let k = String.category(c)
-  let m = String.slice(k, 0, 1)
-  assert(String.isUpper(c) == (k == "Lu"))
-  assert(String.isLower(c) == (k == "Ll"))
-  assert(String.isDigit(c) == (k == "Nd"))
-  assert(String.isControl(c) == (k == "Cc"))
-  assert(String.isLetter(c) == (m == "L"))
-  assert(String.isMark(c) == (m == "M"))
-  assert(String.isNumber(c) == (m == "N"))
-  assert(String.isPunct(c) == (m == "P"))
-  assert(String.isSymbol(c) == (m == "S"))
-  assert(String.isGraphic(c) == (["L", "M", "N", "P", "S"].contains(m) || k == "Zs"))
-  assert(String.isPrint(c) == (["L", "M", "N", "P", "S"].contains(m) || c == " "))
+  let k = c.category()
+  let m = k.slice(0, 1)
+  assert(c.isUpper() == (k == "Lu"))
+  assert(c.isLower() == (k == "Ll"))
+  assert(c.isDigit() == (k == "Nd"))
+  assert(c.isControl() == (k == "Cc"))
+  assert(c.isLetter() == (m == "L"))
+  assert(c.isMark() == (m == "M"))
+  assert(c.isNumber() == (m == "N"))
+  assert(c.isPunct() == (m == "P"))
+  assert(c.isSymbol() == (m == "S"))
+  assert(c.isGraphic() == (["L", "M", "N", "P", "S"].contains(m) || k == "Zs"))
+  assert(c.isPrint() == (["L", "M", "N", "P", "S"].contains(m) || c == " "))
 }
 ```
 
@@ -232,8 +235,8 @@ The result is always two letters, and a code point keeps its category whichever 
 
 ```ant
 for c in ["A", "\u{41}", String.fromCodePoint(65) ?? ""] {
-  assert(String.category(c) == "Lu")
-  assert(String.length(String.category(c)) == 2)
+  assert(c.category() == "Lu")
+  assert(c.category().length() == 2)
 }
 ```
 
@@ -263,8 +266,8 @@ Split such text with `String.chars` and ask about each code point, or normalize 
 a precomposed form exists:
 
 ```ant
-String.chars("e\u{301}").map({ String.category(x) }) // ["Ll", "Mn"]
-String.category(String.normalize("e\u{301}", "NFC")) // "Ll"
+"e\u{301}".chars().map({ x.category() }) // ["Ll", "Mn"]
+"e\u{301}".normalize("NFC").category()   // "Ll"
 ```
 
 White space is a property, not a category. A tab and a line feed are white space with the category

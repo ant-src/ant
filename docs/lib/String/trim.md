@@ -38,43 +38,43 @@ String.trim("\tname: Ann\r\n") // "name: Ann"
 White space inside the string stays:
 
 ```ant
-String.trim("  two  words  ") // "two  words"
+"  two  words  ".trim() // "two  words"
 ```
 
 A string with no white space at its ends comes back unchanged:
 
 ```ant
-String.trim("ant")  // "ant"
-String.trim("a\tb") // "a\tb"
+"ant".trim()  // "ant"
+"a\tb".trim() // "a\tb"
 ```
 
 An empty string, and a string of only white space, give an empty string:
 
 ```ant
-String.trim("")         // ""
-String.trim(" \t\n\r ") // ""
+"".trim()         // ""
+" \t\n\r ".trim() // ""
 ```
 
 White space beyond ASCII is trimmed as well, such as the no-break space U+00A0, the ideographic
 space U+3000, and the line separator U+2028:
 
 ```ant
-String.trim("\u{A0}\u{3000}日本\u{2028}") // "日本"
+"\u{A0}\u{3000}日本\u{2028}".trim() // "日本"
 ```
 
 Text of any script, and emoji, keep every code point that is not white space:
 
 ```ant
-String.trim(" 🐜 Ünïcödé ") // "🐜 Ünïcödé"
+" 🐜 Ünïcödé ".trim() // "🐜 Ünïcödé"
 ```
 
 Call it through `.`, in a pipe, with the argument named, or inside a lambda:
 
 ```ant
-"  x  ".trim()                               // "x"
-"  x  " | String.trim()                      // "x"
-String.trim(s: "  x  ")                      // "x"
-Array.map([" a", "b ", " c "], { x.trim() }) // ["a", "b", "c"]
+"  x  ".trim()                        // "x"
+"  x  " | String.trim()               // "x"
+String.trim(s: "  x  ")               // "x"
+[" a", "b ", " c "].map({ x.trim() }) // ["a", "b", "c"]
 ```
 
 ## Applications
@@ -88,16 +88,17 @@ NO
 -->
 
 ```ant
-let input = Result.unwrap(File.readAll(Os.stdin()))
-for line in String.lines(input) {
-  let answer = String.toLower(String.trim(line))
-  if answer == "yes" {
-    println("accepted")
+let input = Os.stdin().readAll().unwrap()
+for line in input.lines() {
+  let answer = line.trim().toLower()
+  let reply = if answer == "yes" {
+    "accepted"
   } else if answer == "no" {
-    println("declined")
+    "declined"
   } else {
-    println("unknown: ${answer}")
+    "unknown: ${answer}"
   }
+  println(reply)
 }
 ```
 
@@ -111,9 +112,10 @@ Skip blank lines and comment lines in a configuration text:
 
 ```ant
 let text = "  # settings\n\n  port = 8080  \n   \nhost = example.org\n"
-let kept = String.lines(text)
-  | Array.map({ String.trim(x) })
-  | Array.filter({ x != "" && !String.startsWith(x, "#") })
+let kept = text
+  | String.lines()
+  | Array.map({ x.trim() })
+  | Array.filter({ x != "" && !x.startsWith("#") })
 println(kept)
 ```
 
@@ -127,11 +129,11 @@ Read `key = value` pairs, trimming the sides that `String.cut` leaves:
 type Setting = { key: string, value: string }
 
 func parse(line: string): Setting | null {
-  let c = String.cut(line, "=")
+  let c = line.cut("=")
   if c == null {
     return null
   }
-  Setting{ key: String.trim(c.before), value: String.trim(c.after) }
+  Setting{ key: c.before.trim(), value: c.after.trim() }
 }
 
 println(parse("  port =  8080 "))
@@ -147,7 +149,7 @@ Check that a required field is not blank:
 
 ```ant
 func isBlank(s: string): bool {
-  String.isEmpty(String.trim(s))
+  s.trim().isEmpty()
 }
 
 isBlank("   ")   // true
@@ -161,12 +163,12 @@ white space:
 
 ```ant
 for s in ["", "  ", " a ", "\u{3000}b\n", "c d"] {
-  let t = String.trim(s)
-  assert(String.trim(t) == t)
-  assert(String.contains(s, t))
-  if !String.isEmpty(t) {
-    assert(!String.isSpace(String.slice(t, 0, 1)))
-    assert(!String.isSpace(String.slice(t, String.length(t) - 1, String.length(t))))
+  let t = s.trim()
+  assert(t.trim() == t)
+  assert(s.contains(t))
+  if !t.isEmpty() {
+    assert(!t.slice(0, 1).isSpace())
+    assert(!t.slice(t.length() - 1, t.length()).isSpace())
   }
 }
 ```
@@ -176,15 +178,15 @@ either order:
 
 ```ant
 let s = "\t  both ends \n"
-assert(String.trim(s) == String.trimEnd(String.trimStart(s)))
-assert(String.trim(s) == String.trimStart(String.trimEnd(s)))
+assert(s.trim() == s.trimStart().trimEnd())
+assert(s.trim() == s.trimEnd().trimStart())
 ```
 
 A string is blank exactly when it is empty or every code point is white space:
 
 ```ant
 for s in ["", " ", "\u{A0}\t", " x "] {
-  assert(String.isEmpty(String.trim(s)) == (String.isEmpty(s) || String.isSpace(s)))
+  assert(s.trim().isEmpty() == (s.isEmpty() || s.isSpace()))
 }
 ```
 
@@ -194,15 +196,15 @@ The zero-width space U+200B and the byte order mark U+FEFF are not white space, 
 keeps them:
 
 ```ant
-String.trim("\u{FEFF}x\u{200B}") // "\u{feff}x\u{200b}"
+"\u{FEFF}x\u{200B}".trim() // "\u{feff}x\u{200b}"
 ```
 
 `String.trim` removes only white space. Remove other characters, such as quotes, with
 [`String.trimPrefix`](trimPrefix.md) and [`String.trimSuffix`](trimSuffix.md):
 
 ```ant
-String.trim("\"quoted\"")                                      // "\"quoted\""
-String.trimSuffix(String.trimPrefix("\"quoted\"", "\""), "\"") // "quoted"
+"\"quoted\"".trim()                            // "\"quoted\""
+"\"quoted\"".trimPrefix("\"").trimSuffix("\"") // "quoted"
 ```
 
 A pipe binds looser than `==`, so compare a piped trim inside parentheses. Without them, the type

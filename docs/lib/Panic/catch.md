@@ -25,9 +25,9 @@ pass through. It belongs at the edge of a unit of work, not in place of a Result
 A block that returns normally gives `Ok` of its value. A panic gives `Err` of the panic:
 
 ```ant
-Panic.catch({ 6 * 7 })                               // Ok{ value: 42 }
-Panic.catch({ [1, 2][5] }) is Err                    // true
-Result.mapErr(Panic.catch({ 1 / 0 }), { x.message }) // Err{ error: "division by zero" }
+Panic.catch({ 6 * 7 })                                // Ok{ value: 42 }
+Panic.catch({ [1, 2][5] }) is Err                     // true
+Panic.catch({ 1 / 0 }) | Result.mapErr({ x.message }) // Err{ error: "division by zero" }
 ```
 
 Read the message of the panic from the `Err`:
@@ -99,9 +99,9 @@ func message(p: Panic): string {
 }
 
 let xs = [1, 2]
-Result.mapErr(Panic.catch({ panic("stop") }), message)     // Err{ error: "stop" }
-Result.mapErr(Panic.catch({ assert(xs[0] > 1) }), message) // Err{ error: "assertion failed: xs[0] > 1 (1 > 1)" }
-Result.mapErr(Panic.catch({ xs[2] }), message)             // Err{ error: "index 2 out of range for an array of length 2" }
+Panic.catch({ panic("stop") }) | Result.mapErr(message)     // Err{ error: "stop" }
+Panic.catch({ assert(xs[0] > 1) }) | Result.mapErr(message) // Err{ error: "assertion failed: xs[0] > 1 (1 > 1)" }
+Panic.catch({ xs[2] }) | Result.mapErr(message)             // Err{ error: "index 2 out of range for an array of length 2" }
 ```
 
 The panic carries a trace, innermost frame first. Each frame names a function, its module's path,
@@ -151,7 +151,7 @@ Run every job, so that a bug in one does not stop the others:
 type Job = { id: int, input: string }
 
 func handle(job: Job): int {
-  let n = String.toInt(job.input) ?? panic("bad input: ${job.input}")
+  let n = job.input.toInt() ?? panic("bad input: ${job.input}")
   100 / n
 }
 
@@ -179,8 +179,8 @@ func average(xs: Array[int]): int {
   xs.reduce(0, func(sum: int, x: int): int { sum + x }) / xs.length()
 }
 
-Result.unwrapOr(Panic.catch({ average([2, 4]) }), 0) // 3
-Result.unwrapOr(Panic.catch({ average([]) }), 0)     // 0
+Panic.catch({ average([2, 4]) }) | Result.unwrapOr(0) // 3
+Panic.catch({ average([]) }) | Result.unwrapOr(0)     // 0
 ```
 
 Catch a panic, log it, and pass it on with `Panic.raise`, which keeps the original trace:
@@ -234,7 +234,7 @@ A function that takes arguments does not fit. Wrap the call in a block:
 
 ```ant
 func parse(s: string): int {
-  String.toInt(s) ?? panic("not a number: ${s}")
+  s.toInt() ?? panic("not a number: ${s}")
 }
 
 let r = Panic.catch(parse) // error: cannot use func(string): int where func(): T is expected
@@ -249,7 +249,7 @@ let r = Panic.catch({
   defer { panic("in cleanup") }
   panic("in work")
 })
-Result.mapErr(r, { x.message }) // Err{ error: "in cleanup" }
+r.mapErr({ x.message }) // Err{ error: "in cleanup" }
 ```
 
 A goroutine that `f` starts runs on its own. Its panic is reported on standard error, and
@@ -257,15 +257,15 @@ A goroutine that `f` starts runs on its own. Its panic is reported on standard e
 
 ```ant
 let wg = WaitGroup.new()
-WaitGroup.add(wg, 1)
+wg.add(1)
 let r = Panic.catch({
   go {
-    defer { WaitGroup.done(wg) }
+    defer { wg.done() }
     panic("in goroutine")
   }
   "started"
 })
-WaitGroup.wait(wg)
+wg.wait()
 println(r)
 ```
 
@@ -301,7 +301,7 @@ so there is nothing to branch on. Return a `Result` instead:
 
 ```ant
 func parsePort(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 

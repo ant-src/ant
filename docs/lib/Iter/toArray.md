@@ -40,7 +40,7 @@ An empty sequence gives an empty array:
 ```ant
 Iter.range(5, 0) | Iter.toArray() // []
 let none: Seq[string] = func(yield: func(string): bool) {}
-Iter.toArray(none) // []
+none.toArray() // []
 ```
 
 Elements of any type come through as they are, `null` included:
@@ -49,7 +49,7 @@ Elements of any type come through as they are, `null` included:
 type Point = { x: int, y: int }
 Iter.fromArray([Point{ x: 1, y: 2 }]) | Iter.toArray() // [Point{ x: 1, y: 2 }]
 let maybe: Seq[int | null] = Iter.fromArray([1, null, 3])
-Iter.toArray(maybe) // [1, null, 3]
+maybe.toArray() // [1, null, 3]
 ```
 
 Collect a sequence you write yourself, as a function that calls `yield`:
@@ -64,7 +64,7 @@ func evens(limit: int): Seq[int] {
     }
   }
 }
-Iter.toArray(evens(10)) // [0, 2, 4, 6, 8]
+evens(10).toArray() // [0, 2, 4, 6, 8]
 ```
 
 Call it through `.` on a sequence:
@@ -78,8 +78,8 @@ Collect what a channel delivers until it is closed:
 ```ant
 let squares: Channel[int] = Channel.new(3)
 go {
-  for i in [1, 2, 3] { Channel.send(squares, i * i) }
-  Channel.close(squares)
+  for i in [1, 2, 3] { squares.send(i * i) }
+  squares.close()
 }
 println(Channel.values(squares) | Iter.toArray())
 ```
@@ -113,7 +113,7 @@ let labels = Iter.range(0, 3) | Iter.map({
   "item ${x}"
 })
 println("built")
-println(Iter.toArray(labels))
+println(labels.toArray())
 ```
 
 ```text
@@ -130,9 +130,9 @@ Collecting `Iter.fromArray(xs)` gives an array equal to `xs`, but not the same a
 
 ```ant
 let xs = [3, 1, 2]
-let copy = Iter.toArray(Iter.fromArray(xs))
+let copy = Iter.fromArray(xs).toArray()
 assert(copy == xs)
-Array.push(copy, 4)
+copy.push(4)
 assert(xs == [3, 1, 2])
 ```
 
@@ -147,8 +147,8 @@ A `for` loop over the sequence visits the same elements, in the same order:
 
 ```ant
 let seen: Array[int] = []
-for n in Iter.range(0, 4) { Array.push(seen, n) }
-assert(seen == Iter.toArray(Iter.range(0, 4)))
+for n in Iter.range(0, 4) { seen.push(n) }
+assert(seen == Iter.range(0, 4).toArray())
 ```
 
 ## Possible issues
@@ -158,21 +158,21 @@ A sequence over an array reads the array each time it runs, so two calls can dif
 ```ant
 let xs = [1, 2]
 let seq = Iter.fromArray(xs)
-Iter.toArray(seq) // [1, 2]
-Array.push(xs, 3)
-Iter.toArray(seq) // [1, 2, 3]
+seq.toArray() // [1, 2]
+xs.push(3)
+seq.toArray() // [1, 2, 3]
 ```
 
 A sequence over a channel gives each value once, so a second run finds nothing:
 
 ```ant
 let c: Channel[int] = Channel.new(3)
-Channel.send(c, 1)
-Channel.send(c, 2)
-Channel.close(c)
-let vs = Channel.values(c)
-println(Iter.toArray(vs))
-println(Iter.toArray(vs))
+c.send(1)
+c.send(2)
+c.close()
+let vs = c.values()
+println(vs.toArray())
+println(vs.toArray())
 ```
 
 ```text

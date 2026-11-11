@@ -116,7 +116,7 @@ meant for the innermost program:
 let args = ["ant", "run", "--", "tool.ant", "--", "-v", "input.txt"]
 let i = args.lastIndexOf("--")
 if i != null {
-  println(Array.slice(args, i + 1, len(args)))
+  println(args.slice(i + 1, len(args)))
 }
 ```
 
@@ -174,7 +174,7 @@ let xs = [3, 1, 4, 1, 5, 9, 1]
 let i = xs.lastIndexOf(1)
 assert(i != null)
 assert(xs[i] == 1)
-assert(!Array.slice(xs, i + 1, len(xs)).contains(1))
+assert(!xs.slice(i + 1, len(xs)).contains(1))
 ```
 
 It mirrors [`Array.indexOf`](indexOf.md) on the reversed array:

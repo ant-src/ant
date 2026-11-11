@@ -37,30 +37,30 @@ line.trimEnd() // "total: 42"
 The empty string, a string with nothing to remove, and a string of only white space:
 
 ```ant
-String.trimEnd("")        // ""
-String.trimEnd("ant")     // "ant"
-String.trimEnd(" \t\n\r") // ""
+"".trimEnd()        // ""
+"ant".trimEnd()     // "ant"
+" \t\n\r".trimEnd() // ""
 ```
 
 Space between words stays; only the end changes:
 
 ```ant
-String.trimEnd("a  b  ") // "a  b"
+"a  b  ".trimEnd() // "a  b"
 ```
 
 Every kind of white space at the end goes, the vertical tab, the form feed, the no-break space, and
 the ideographic space among them:
 
 ```ant
-String.trimEnd("x\u{B}\u{C}\u{A0}\u{3000}") // "x"
+"x\u{B}\u{C}\u{A0}\u{3000}".trimEnd() // "x"
 ```
 
 Text in any script stays as it is, and so does a combining accent right before the white space: the
 five code points of `"cafe\u{301}"` remain:
 
 ```ant
-String.trimEnd("東京 ")                 // "東京"
-String.trimEnd("cafe\u{301} ").length() // 5
+"東京 ".trimEnd()                 // "東京"
+"cafe\u{301} ".trimEnd().length() // 5
 ```
 
 In a pipeline, the string is the first argument:
@@ -81,14 +81,17 @@ Strip the trailing spaces from each line of a text, as an editor does on save:
 
 ```ant
 let text = "func f() {  \n  return 1 \n}\t"
-String.join(String.lines(text).map({ x.trimEnd() }), "\n") // "func f() {\n  return 1\n}"
+text
+  | String.lines()
+  | Array.map({ x.trimEnd() })
+  | String.join("\n") // "func f() {\n  return 1\n}"
 ```
 
 Compare two versions of a text and ignore trailing white space, as `diff -b` does at line ends:
 
 ```ant
 func clean(s: string): Array[string] {
-  String.lines(s).map({ x.trimEnd() })
+  s.lines().map({ x.trimEnd() })
 }
 
 func sameText(a: string, b: string): bool {
@@ -142,30 +145,30 @@ for s in ["  a b  ", "\ta", "b\n", "", "   "] {
 `String.trimEnd` leaves white space at the start. Use [`String.trim`](trim.md) to remove both ends:
 
 ```ant
-String.trimEnd("  ant  ") // "  ant"
-String.trim("  ant  ")    // "ant"
+"  ant  ".trimEnd() // "  ant"
+"  ant  ".trim()    // "ant"
 ```
 
 It removes white space only. To remove a given ending, such as a period or a `/`, use
 [`String.trimSuffix`](trimSuffix.md):
 
 ```ant
-String.trimEnd("end.")         // "end."
-String.trimSuffix("end.", ".") // "end"
+"end.".trimEnd()       // "end."
+"end.".trimSuffix(".") // "end"
 ```
 
 It removes every white space code point at the end, not one line break. A blank last line goes too,
 along with trailing spaces you may have meant to keep:
 
 ```ant
-String.trimEnd("a  \n\n") // "a"
+"a  \n\n".trimEnd() // "a"
 ```
 
 The zero-width space U+200B and the byte order mark U+FEFF are not white space, so they stay:
 
 ```ant
-String.trimEnd("x\u{200B}").length() // 2
-String.trimEnd("x\u{FEFF}").length() // 2
+"x\u{200B}".trimEnd().length() // 2
+"x\u{FEFF}".trimEnd().length() // 2
 ```
 
 The function takes no set of characters to remove; a second argument is a compile error:

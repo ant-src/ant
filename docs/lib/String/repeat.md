@@ -61,7 +61,7 @@ The count may be any `int` expression:
 
 ```ant
 let word = "ant"
-String.repeat("^", String.length(word)) // "^^^"
+String.repeat("^", word.length()) // "^^^"
 ```
 
 On a string that may be `null`, call it through `?.`; the result is `null` when the string is:
@@ -95,7 +95,7 @@ Underline a title with a rule as long as the title:
 
 ```ant
 func heading(title: string): string {
-  "${title}\n${String.repeat("=", String.length(title))}"
+  "${title}\n${"=".repeat(title.length())}"
 }
 
 println(heading("Ant docs"))
@@ -113,7 +113,7 @@ type Item = { name: string, depth: int }
 
 let items = [Item{ name: "src", depth: 0 }, Item{ name: "lib", depth: 1 }, Item{ name: "a.ant", depth: 2 }]
 for item in items {
-  println("${String.repeat("  ", item.depth)}${item.name}")
+  println("${"  ".repeat(item.depth)}${item.name}")
 }
 ```
 
@@ -127,7 +127,7 @@ Draw a progress bar from two repeated pieces:
 
 ```ant
 func bar(done: int, total: int): string {
-  "[${String.repeat("#", done)}${String.repeat(".", total - done)}]"
+  "[${"#".repeat(done)}${".".repeat(total - done)}]"
 }
 
 bar(3, 10)  // "[###.......]"
@@ -141,7 +141,7 @@ type Count = { name: string, count: int }
 
 let counts = [Count{ name: "a", count: 3 }, Count{ name: "b", count: 5 }, Count{ name: "c", count: 1 }]
 for c in counts {
-  println("${c.name} ${String.repeat("*", c.count)}")
+  println("${c.name} ${"*".repeat(c.count)}")
 }
 ```
 
@@ -158,7 +158,7 @@ The length of the result is `n` times the length of `s`:
 ```ant
 for s in ["", "a", "日本", "🐜!"] {
   for n in [0, 1, 4] {
-    assert(String.length(String.repeat(s, n)) == n * String.length(s))
+    assert(s.repeat(n).length() == n * s.length())
   }
 }
 ```
@@ -169,20 +169,20 @@ Repeating `a + b` times is repeating `a` times and then `b` times:
 let s = "xy"
 let a = 2
 let b = 3
-assert(String.repeat(s, a + b) == String.repeat(s, a) + String.repeat(s, b))
+assert(s.repeat(a + b) == s.repeat(a) + s.repeat(b))
 ```
 
 It is [String.concat](concat.md) of an array of `n` copies:
 
 ```ant
 let s = "ab"
-assert(String.repeat(s, 4) == String.concat(Array.filled(4, s)))
+assert(s.repeat(4) == String.concat(Array.filled(4, s)))
 ```
 
 Repeating a repeat multiplies the counts:
 
 ```ant
-assert(String.repeat(String.repeat("ab", 2), 3) == String.repeat("ab", 6))
+assert("ab".repeat(2).repeat(3) == "ab".repeat(6))
 ```
 
 For a single code point, it is [String.padStart](padStart.md) of the empty string:
@@ -204,7 +204,7 @@ Clamp a count that may go below zero with [Math.max](../Math/max.md):
 ```ant
 let width = 4
 let title = "library"
-String.repeat(".", Math.max(width - String.length(title), 0)) // ""
+String.repeat(".", Math.max(width - title.length(), 0)) // ""
 ```
 
 A count above 2^31 − 1 panics:
@@ -242,15 +242,15 @@ let s = String.repeat("-", i) // error: cannot use int | null where int is expec
 Give a default with `??` to turn the `int | null` into an `int`:
 
 ```ant
-String.repeat("-", String.indexOf("a.b", ".") ?? 0) // "-"
+String.repeat("-", "a.b".indexOf(".") ?? 0) // "-"
 ```
 
 Repeating a combining mark does not give separate characters: every copy joins the grapheme before
 it:
 
 ```ant
-let s = "e" + String.repeat("\u{301}", 3)
-String.length(s)         // 4
+let s = "e" + "\u{301}".repeat(3)
+s.length()               // 4
 len(String.graphemes(s)) // 1
 ```
 

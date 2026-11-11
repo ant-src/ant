@@ -71,8 +71,8 @@ Library functions are values too. `String.isEmpty` finds a blank entry:
 Strings compare by their text, Unicode included:
 
 ```ant
-["mañana", "Ωμέγα", "🐜"].some({ x == "🐜" })           // true
-["mañana", "Ωμέγα"].some({ String.startsWith(x, "Ω") }) // true
+["mañana", "Ωμέγα", "🐜"].some({ x == "🐜" })   // true
+["mañana", "Ωμέγα"].some({ x.startsWith("Ω") }) // true
 ```
 
 Records are read through their fields:
@@ -124,7 +124,7 @@ Set.of([2, 4, 6]).values().some({ x % 2 == 1 }) // false
 In a pipeline, the array is the first argument:
 
 ```ant
-"red green blue" | String.split(" ") | Array.some({ String.length(x) > 4 }) // true
+"red green blue" | String.split(" ") | Array.some({ x.length() > 4 }) // true
 ```
 
 A closure sees later assignments to the variables it captures:
@@ -143,7 +143,7 @@ Check a password for at least one digit:
 
 ```ant
 func hasDigit(s: string): bool {
-  String.chars(s).some({ String.isDigit(x) })
+  s.chars().some({ x.isDigit() })
 }
 
 hasDigit("hunter2") // true
@@ -277,7 +277,7 @@ println(xs.some(2)) // error: cannot use int where func(int): bool is expected
 [1, 2, 3].contains(2) // true
 ```
 
-A lambda stored in an unannotated `var` has no expected function type. Annotate the variable:
+A lambda stored in an unannotated `let` has no expected function type. Annotate the variable:
 
 ```ant
 let big = { x > 100 }

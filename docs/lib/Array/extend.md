@@ -42,10 +42,10 @@ An empty `ys` leaves `xs` as it was, and an empty `xs` ends up with the elements
 
 ```ant
 let xs = [1, 2]
-Array.extend(xs, [])
+xs.extend([])
 xs // [1, 2]
 let empty: Array[int] = []
-Array.extend(empty, [5, 6])
+empty.extend([5, 6])
 empty // [5, 6]
 ```
 
@@ -53,7 +53,7 @@ An array extended with itself doubles, because the call reads `ys` as it was at 
 
 ```ant
 let xs = [1, 2]
-Array.extend(xs, xs)
+xs.extend(xs)
 xs // [1, 2, 1, 2]
 ```
 
@@ -62,13 +62,13 @@ Strings, records, and `null` elements append alike:
 ```ant
 type Point = { x: int, y: int }
 let words = ["é"]
-Array.extend(words, String.chars("日本"))
+words.extend("日本".chars())
 words // ["é", "日", "本"]
 let points = [Point{ x: 1, y: 2 }]
-Array.extend(points, [Point{ x: 3, y: 4 }])
+points.extend([Point{ x: 3, y: 4 }])
 points // [Point{ x: 1, y: 2 }, Point{ x: 3, y: 4 }]
 let maybe: Array[int | null] = [1]
-Array.extend(maybe, [null, 2])
+maybe.extend([null, 2])
 maybe // [1, null, 2]
 ```
 
@@ -76,7 +76,7 @@ A `let` fixes the binding, not the elements, so a `let` array can be extended:
 
 ```ant
 let xs = [1]
-Array.extend(xs, [2])
+xs.extend([2])
 xs // [1, 2]
 ```
 
@@ -105,7 +105,7 @@ Collect the words of several lines into one array:
 let lines = ["the quick fox", "jumps over", "the dog"]
 let words: Array[string] = []
 for line in lines {
-  Array.extend(words, String.split(line, " "))
+  words.extend(line.split(" "))
 }
 println(len(words))
 println(String.join(words, ","))
@@ -122,14 +122,14 @@ Build a command line from fixed parts and optional ones:
 func command(verbose: bool, files: Array[string]): Array[string] {
   let args = ["test"]
   if verbose {
-    Array.extend(args, ["-v", "-count", "1"])
+    args.extend(["-v", "-count", "1"])
   }
-  Array.extend(args, files)
+  args.extend(files)
   args
 }
 
-println(String.join(command(true, ["a.ant", "b.ant"]), " "))
-println(String.join(command(false, []), " "))
+println(command(true, ["a.ant", "b.ant"]) | String.join(" "))
+println(command(false, []) | String.join(" "))
 ```
 
 ```text
@@ -145,7 +145,7 @@ The length grows by the length of `ys`:
 let xs = [1, 2, 3]
 let ys = [4, 5]
 let before = len(xs)
-Array.extend(xs, ys)
+xs.extend(ys)
 assert(len(xs) == before + len(ys))
 ```
 
@@ -154,8 +154,8 @@ It gives in place what [Array.concat](concat.md) returns as a new array:
 ```ant
 let xs = [1, 2]
 let ys = [3]
-let joined = Array.concat(xs, ys)
-Array.extend(xs, ys)
+let joined = xs.concat(ys)
+xs.extend(ys)
 assert(xs == joined)
 ```
 
@@ -165,9 +165,9 @@ It is [Array.push](push.md) of each element of `ys`, in order:
 let a = [1]
 let b = [1]
 let ys = [2, 3]
-Array.extend(a, ys)
+a.extend(ys)
 for y in ys {
-  Array.push(b, y)
+  b.push(y)
 }
 assert(a == b)
 ```
@@ -177,7 +177,7 @@ assert(a == b)
 ```ant
 let xs = [1]
 let alias = xs
-Array.extend(xs, [2])
+xs.extend([2])
 assert(Array.same(alias, xs))
 alias // [1, 2]
 ```
@@ -191,9 +191,9 @@ alias // [1, 2]
 let xs = [1]
 let ys = [2]
 let all = [...xs, ...ys]
-xs                   // [1]
-all                  // [1, 2]
-Array.concat(xs, ys) // [1, 2]
+xs            // [1]
+all           // [1, 2]
+xs.concat(ys) // [1, 2]
 ```
 
 The elements are appended, not copied. An element that is itself an array or a record is the same
@@ -202,7 +202,7 @@ value in both arrays, so writing to it shows through both:
 ```ant
 let grid = [[1]]
 let more = [[2]]
-Array.extend(grid, more)
+grid.extend(more)
 more[0][0] = 9
 grid // [[1], [9]]
 ```
@@ -216,7 +216,7 @@ let xs = [1, 2]
 var n = 0
 for x in xs {
   if n < 3 {
-    Array.extend(xs, [x * 10])
+    xs.extend([x * 10])
   }
   n = n + 1
 }
@@ -230,22 +230,22 @@ array and join it with [Array.concat](concat.md):
 ```ant
 let xs = [1, 2]
 for x in [...xs] {
-  Array.extend(xs, [x * 10])
+  xs.extend([x * 10])
 }
 xs // [1, 2, 10, 20]
 let ys = [1, 2]
 let more: Array[int] = []
 for y in ys {
-  Array.push(more, y * 10)
+  more.push(y * 10)
 }
-Array.concat(ys, more) // [1, 2, 10, 20]
+ys.concat(more) // [1, 2, 10, 20]
 ```
 
 `ys` is an array. To append one value, use [Array.push](push.md):
 
 ```ant
 let xs = [1]
-Array.extend(xs, 2) // error: cannot use int where Array[int] is expected
+xs.extend(2) // error: cannot use int where Array[int] is expected
 ```
 
 An `Array[int]` does not extend an `Array[int | null]`, even though each `int` fits, because array
@@ -254,13 +254,13 @@ types are invariant. Spell the element type where `ys` is built:
 ```ant
 let xs: Array[int | null] = [1]
 let ys = [2]
-Array.extend(xs, ys) // error: cannot use Array[int] where Array[int | null] is expected
+xs.extend(ys) // error: cannot use Array[int] where Array[int | null] is expected
 ```
 
 ```ant
 let xs: Array[int | null] = [1]
 let ys: Array[int | null] = [2]
-Array.extend(xs, ys)
+xs.extend(ys)
 xs // [1, 2]
 ```
 

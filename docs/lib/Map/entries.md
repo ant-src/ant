@@ -55,7 +55,7 @@ An empty map has no entries. Annotate it so that `K` and `V` are known:
 
 ```ant
 let empty: Map[string, int] = Map{}
-Map.entries(empty) // []
+empty.entries() // []
 ```
 
 The order is the order keys were first inserted. Replacing a value keeps its place; a key removed
@@ -64,7 +64,7 @@ and inserted again goes to the end:
 ```ant
 let m = Map{ a: 1, b: 2, c: 3 }
 m["a"] = 10
-Map.remove(m, "b") // 2
+m.remove("b") // 2
 m["b"] = 20
 m.entries() // [Entry{ key: "a", value: 10 }, Entry{ key: "c", value: 3 }, Entry{ key: "b", value: 20 }]
 ```
@@ -73,8 +73,8 @@ Keys of any type, records included, and `null` values come through as they are:
 
 ```ant
 type Point = { x: int, y: int }
-Map.entries(Map{ 1: "one", 2: "two" })         // [Entry{ key: 1, value: "one" }, Entry{ key: 2, value: "two" }]
-Map.entries(Map{ (Point{ x: 1, y: 2 }): "a" }) // [Entry{ key: Point{ x: 1, y: 2 }, value: "a" }]
+Map{ 1: "one", 2: "two" }.entries()         // [Entry{ key: 1, value: "one" }, Entry{ key: 2, value: "two" }]
+Map{ (Point{ x: 1, y: 2 }): "a" }.entries() // [Entry{ key: Point{ x: 1, y: 2 }, value: "a" }]
 let maybe: Map[string, int | null] = Map{ a: null }
 maybe.entries() // [Entry{ key: "a", value: null }]
 ```
@@ -114,21 +114,21 @@ Build a query string:
 
 ```ant
 let params = Map{ q: "ants", page: "2" }
-String.join(params.entries().map({ "${x.key}=${x.value}" }), "&") // "q=ants&page=2"
+params.entries().map({ "${x.key}=${x.value}" }) | String.join("&") // "q=ants&page=2"
 ```
 
 Sort a map by its keys:
 
 ```ant
 let m = Map{ b: 2, c: 3, a: 1 }
-Map.fromEntries(m.entries().sortBy({ x.key })) // Map{ "a": 1, "b": 2, "c": 3 }
+m.entries().sortBy({ x.key }) | Map.fromEntries() // Map{ "a": 1, "b": 2, "c": 3 }
 ```
 
 Swap keys and values:
 
 ```ant
 let codes = Map{ ok: 200, missing: 404 }
-Map.fromEntries(codes.entries().map({ Entry{ key: x.value, value: x.key } })) // Map{ 200: "ok", 404: "missing" }
+codes.entries().map({ Entry{ key: x.value, value: x.key } }) | Map.fromEntries() // Map{ 200: "ok", 404: "missing" }
 ```
 
 Remove entries while you walk the map. The array is taken before the loop starts, so removing from
@@ -138,7 +138,7 @@ Remove entries while you walk the map. The array is taken before the loop starts
 let sessions = Map{ s1: 0, s2: 5, s3: 0 }
 for { key, value } in sessions.entries() {
   if value == 0 {
-    Map.remove(sessions, key)
+    sessions.remove(key)
   }
 }
 println(sessions)
@@ -155,10 +155,10 @@ the entries back into an equal map:
 
 ```ant
 let m = Map{ a: 1, b: 2, c: 3 }
-let es = Map.entries(m)
-assert(len(es) == Map.size(m))
-assert(es.map({ x.key }) == Map.keys(m))
-assert(es.map({ x.value }) == Map.values(m))
+let es = m.entries()
+assert(len(es) == m.size())
+assert(es.map({ x.key }) == m.keys())
+assert(es.map({ x.value }) == m.values())
 assert(Map.fromEntries(es) == m)
 assert(es.every({ m[x.key] == x.value }))
 ```

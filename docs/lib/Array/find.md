@@ -54,7 +54,7 @@ empty.find({ true }) // null
 Only the first match counts, even when later elements match too:
 
 ```ant
-["fig", "plum", "pear", "lime"].find({ String.length(x) == 4 }) // "plum"
+["fig", "plum", "pear", "lime"].find({ x.length() == 4 }) // "plum"
 ```
 
 `f` runs from the first element and stops at the first match. A callback that records each call
@@ -115,7 +115,7 @@ if s is Square { s.side } // 2.0
 Find in a nested array:
 
 ```ant
-[[1, 2], [], [3]].find({ Array.isEmpty(x) }) // []
+[[1, 2], [], [3]].find({ x.isEmpty() }) // []
 ```
 
 Call it through `.` or in a pipe:
@@ -166,7 +166,7 @@ Find the first line that is not blank:
 
 ```ant
 let text = "\n  \nTitle\nBody"
-String.split(text, "\n").find({ String.trim(x) != "" }) // "Title"
+text.split("\n").find({ x.trim() != "" }) // "Title"
 ```
 
 Return early from a function when nothing matches, with `?? return`:

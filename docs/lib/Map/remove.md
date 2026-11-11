@@ -129,7 +129,7 @@ func touch(m: Map[string, int], k: string) {
 
 let recent = Map{ a: 1, b: 2, c: 3 }
 touch(recent, "a")
-println(Map.keys(recent))
+println(recent.keys())
 ```
 
 ```text
@@ -231,7 +231,7 @@ To remove the entries that match a test, [Map.filter](filter.md) returns a new m
 
 ```ant
 let m = Map{ a: 1, b: 2, c: 3 }
-Map.filter(m, { x.value != 2 }) // Map{ "a": 1, "c": 3 }
+m.filter({ x.value != 2 }) // Map{ "a": 1, "c": 3 }
 ```
 
 ## See also

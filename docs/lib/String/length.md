@@ -88,7 +88,7 @@ Check that a user name has between 3 and 16 characters:
 
 ```ant
 func validName(name: string): bool {
-  let n = String.length(String.trim(name))
+  let n = name.trim().length()
   n >= 3 && n <= 16
 }
 
@@ -101,10 +101,8 @@ Shorten a title to a limit, ending it with an ellipsis when it was cut:
 
 ```ant
 func shorten(s: string, limit: int): string {
-  if String.length(s) <= limit {
-    return s
-  }
-  String.slice(s, 0, limit - 1) + "…"
+  if s.length() <= limit { return s }
+  s.slice(0, limit - 1) + "…"
 }
 
 shorten("Ant", 10)                   // "Ant"
@@ -114,7 +112,7 @@ shorten("An anthill of tunnels", 10) // "An anthil…"
 Find the longest word of a sentence:
 
 ```ant
-String.fields("ants dig long tunnels").maxBy(String.length) // "tunnels"
+"ants dig long tunnels".fields().maxBy(String.length) // "tunnels"
 ```
 
 Underline a heading with as many characters as it has:
@@ -122,7 +120,7 @@ Underline a heading with as many characters as it has:
 ```ant
 let title = "Größe"
 println(title)
-println(String.repeat("=", String.length(title)))
+println("=".repeat(title.length()))
 ```
 
 ```text
@@ -150,8 +148,8 @@ The length is the number of elements of `String.chars` and of `String.toCodePoin
 
 ```ant
 let s = "e\u{301}🇨🇭 ant"
-assert(len(String.chars(s)) == String.length(s))
-assert(len(String.toCodePoints(s)) == String.length(s))
+assert(s.chars().length() == s.length())
+assert(s.toCodePoints().length() == s.length())
 ```
 
 The length of a concatenation is the sum of the lengths:
@@ -159,14 +157,14 @@ The length of a concatenation is the sum of the lengths:
 ```ant
 let a = "ant"
 let b = "hill🐜"
-assert(String.length(a + b) == String.length(a) + String.length(b))
+assert((a + b).length() == a.length() + b.length())
 ```
 
 `String.isEmpty` is true exactly when the length is `0`:
 
 ```ant
 for s in ["", " ", "ant"] {
-  assert(String.isEmpty(s) == (String.length(s) == 0))
+  assert(s.isEmpty() == (s.length() == 0))
 }
 ```
 
@@ -174,18 +172,18 @@ for s in ["", " ", "ant"] {
 
 ```ant
 let s = "anthill 🐜"
-assert(String.slice(s, 0, String.length(s)) == s)
+assert(s.slice(0, s.length()) == s)
 ```
 
 A string has at least as many bytes as code points, and as many only when it is all ASCII:
 
 ```ant
 for s in ["ant", "héllo", "🐜"] {
-  assert(Bytes.length(String.toBytes(s)) >= String.length(s))
+  assert(s.toBytes().length() >= s.length())
 }
-Bytes.length(String.toBytes("ant"))   // 3
-Bytes.length(String.toBytes("héllo")) // 6
-Bytes.length(String.toBytes("🐜"))    // 4
+"ant".toBytes().length()   // 3
+"héllo".toBytes().length() // 6
+"🐜".toBytes().length()    // 4
 ```
 
 ## Possible issues
@@ -203,23 +201,23 @@ len(String.graphemes("cafe\u{301}")) // 4
 The two spellings of `é` have different lengths. `String.normalize` brings them to one:
 
 ```ant
-String.length("e\u{301}")                          // 2
-String.length(String.normalize("e\u{301}", "NFC")) // 1
+String.length("e\u{301}")            // 2
+"e\u{301}".normalize("NFC").length() // 1
 ```
 
 The length is not the size in bytes. A limit on stored or sent bytes needs the byte count:
 
 ```ant
 let s = "日本語"
-String.length(s)                // 3
-Bytes.length(String.toBytes(s)) // 9
+s.length()           // 3
+s.toBytes().length() // 9
 ```
 
 Changing case can change the length, since `String.toUpper` uses the full mappings:
 
 ```ant
-String.length("ß")                 // 1
-String.length(String.toUpper("ß")) // 2
+String.length("ß")     // 1
+"ß".toUpper().length() // 2
 ```
 
 A value of a named primitive type is not a `string`, so passing it is a compile error:
@@ -237,7 +235,7 @@ Convert it with `string(n)`, or use `len`, which unwraps it:
 type Name = string
 
 let n = Name("Ann")
-println(String.length(string(n)))
+println(string(n).length())
 println(len(n))
 ```
 

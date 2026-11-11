@@ -45,11 +45,11 @@ it to the end:
 
 ```ant
 let s = Set.of(["a", "b", "c"])
-Set.add(s, "a")    // false
-s.values()         // ["a", "b", "c"]
-Set.remove(s, "a") // true
-Set.add(s, "a")    // true
-s.values()         // ["b", "c", "a"]
+s.add("a")    // false
+s.values()    // ["a", "b", "c"]
+s.remove("a") // true
+s.add("a")    // true
+s.values()    // ["b", "c", "a"]
 ```
 
 Records and arrays compare by `==`, so equal ones are one member:
@@ -107,14 +107,14 @@ Join the members into one line:
 
 ```ant
 let flags = Set.of(["-v", "-x", "-v"])
-String.join(flags.values(), " ") // "-v -x"
+flags.values() | String.join(" ") // "-v -x"
 ```
 
 Use the members as a lazy sequence:
 
 ```ant
 let s = Set.of([1, 2, 3, 4])
-Iter.fromArray(s.values()) | Iter.map({ x * 10 }) | Iter.take(2) | Iter.toArray() // [10, 20]
+s.values() | Iter.fromArray() | Iter.map({ x * 10 }) | Iter.take(2) | Iter.toArray() // [10, 20]
 ```
 
 ## Properties and relations

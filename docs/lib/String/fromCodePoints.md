@@ -64,8 +64,8 @@ reads as one character:
 
 ```ant
 let s = String.fromCodePoints([101, 0x301]) ?? ""
-String.length(s)         // 2
-len(String.graphemes(s)) // 1
+s.length()             // 2
+s.graphemes().length() // 1
 ```
 
 In a pipe, the array is the first argument:
@@ -122,7 +122,7 @@ value:
 
 ```ant
 func decode(hex: string): string | null {
-  let points = String.fields(hex).map({ String.toInt(x, 16) ?? -1 })
+  let points = hex.fields().map({ x.toInt(16) ?? -1 })
   String.fromCodePoints(points)
 }
 
@@ -143,7 +143,7 @@ It undoes [String.toCodePoints](toCodePoints.md):
 
 ```ant
 for s in ["", "ant", "héllo 日本", "e\u{301}", "🐜\u{0}"] {
-  assert(String.fromCodePoints(String.toCodePoints(s)) == s)
+  assert(String.fromCodePoints(s.toCodePoints()) == s)
 }
 ```
 
@@ -160,7 +160,7 @@ A result that is not `null` has one code point per value:
 ```ant
 let points = [0x41, 0xE9, 0x65E5, 0x1F41C]
 let s = String.fromCodePoints(points)
-assert(s != null && String.length(s) == len(points))
+assert(s != null && s.length() == len(points))
 ```
 
 It is the [String.concat](concat.md) of each value's one-code-point string:
@@ -215,8 +215,8 @@ until [String.normalize](normalize.md) brings both to one form:
 
 ```ant
 let s = String.fromCodePoints([101, 0x301]) ?? ""
-s == "\u{E9}"                          // false
-String.normalize(s, "NFC") == "\u{E9}" // true
+s == "\u{E9}"                  // false
+s.normalize("NFC") == "\u{E9}" // true
 ```
 
 ## See also

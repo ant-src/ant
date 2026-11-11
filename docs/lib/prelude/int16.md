@@ -51,7 +51,7 @@ int16(int8(-128))    // -128
 `int16` is a function value, so it converts every element of an array:
 
 ```ant
-Array.map([10, -20, 30], int16) // [10, -20, 30]
+[10, -20, 30].map(int16) // [10, -20, 30]
 ```
 
 It unwraps a named primitive type over a number:
@@ -66,7 +66,7 @@ int16(freezing) // 0
 In a pipe, the value is the argument:
 
 ```ant
-(String.toInt("-512") ?? 0) | int16() // -512
+("-512".toInt() ?? 0) | int16() // -512
 ```
 
 ## Applications

@@ -71,7 +71,7 @@ if r is Ok {
 
 ```ant
 func parseInt(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 
@@ -95,10 +95,10 @@ type TooLong = { max: int }
 type NameError = Empty | TooLong
 
 func checkName(s: string): Result[string, NameError] {
-  if String.isEmpty(s) {
+  if s.isEmpty() {
     return Result.err(Empty{})
   }
-  if String.length(s) > 8 {
+  if s.length() > 8 {
     return Result.err(TooLong{ max: 8 })
   }
   Result.ok(s)
@@ -197,11 +197,11 @@ Add context as an error goes up. Under `try`, parenthesize the call together wit
 ```ant
 func loadPort(text: string): Result[int, Error] {
   let json = try (Json.parse(text) | Result.wrapErr("parse settings"))
-  if json is float64 {
-    let port = Math.toInt(json) ?? return Result.err(Error{ message: "port ${json} is not whole" })
-    return Result.ok(port)
+  if !(json is float64) {
+    return Result.err(Error{ message: "port is not a number" })
   }
-  Result.err(Error{ message: "port is not a number" })
+  let port = Math.toInt(json) ?? return Result.err(Error{ message: "port ${json} is not whole" })
+  Result.ok(port)
 }
 
 for text in ["8080", "80.5", "{"] {
@@ -234,7 +234,7 @@ Parse every input, and get the first failure or every value:
 
 ```ant
 func parsePort(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 
@@ -246,7 +246,7 @@ Or keep going, with a fallback for each failure:
 
 ```ant
 func parsePort(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 
@@ -307,7 +307,7 @@ func load(text: string): Result[Json.Value, Error] {
   let json = try (Json.parse(text) | Result.wrapErr("parse settings"))
   Result.ok(json)
 }
-load("{") | Result.isOk() // false
+load("{").isOk() // false
 ```
 
 A result with a narrower error type does not fit where a wider one is expected, because type
@@ -318,7 +318,7 @@ arguments are invariant. `try` widens on the way out; elsewhere, widen with
 type Empty = {}
 type TooLong = { max: int }
 func check(s: string): Result[string, Empty] {
-  if String.isEmpty(s) { Result.err(Empty{}) } else { Result.ok(s) }
+  if s.isEmpty() { Result.err(Empty{}) } else { Result.ok(s) }
 }
 func validate(s: string): Result[string, Empty | TooLong] {
   check(s)
@@ -330,7 +330,7 @@ func validate(s: string): Result[string, Empty | TooLong] {
 type Empty = {}
 type TooLong = { max: int }
 func check(s: string): Result[string, Empty] {
-  if String.isEmpty(s) { Result.err(Empty{}) } else { Result.ok(s) }
+  if s.isEmpty() { Result.err(Empty{}) } else { Result.ok(s) }
 }
 func validate(s: string): Result[string, Empty | TooLong] {
   Result.mapErr(check(s), { x })

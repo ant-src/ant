@@ -117,14 +117,14 @@ Give each goroutine its own slot to write a result into, then read the slots aft
 let words = ["ant", "bee", "wasp"]
 let lengths: Array[int | null] = Array.filled(len(words), null)
 let wg = WaitGroup.new()
-for entry in Array.entries(words) {
-  WaitGroup.add(wg, 1)
+for { index, value } in words.entries() {
+  wg.add(1)
   go {
-    defer { WaitGroup.done(wg) }
-    lengths[entry.index] = String.length(entry.value)
+    defer { wg.done() }
+    lengths[index] = value.length()
   }
 }
-WaitGroup.wait(wg)
+wg.wait()
 println(lengths)
 ```
 
@@ -141,7 +141,7 @@ The result has `n` elements, and every one is `v`:
 ```ant
 let xs = Array.filled(4, "a")
 assert(len(xs) == 4)
-assert(Array.every(xs, { x == "a" }))
+assert(xs.every({ x == "a" }))
 ```
 
 It equals mapping every index of `Array.range(0, n)` to `v`:
@@ -153,7 +153,7 @@ assert(Array.filled(3, 1) == Array.range(0, 3).map({ 1 }))
 Joining `n` copies of a string gives the same string as `String.repeat`:
 
 ```ant
-assert(String.join(Array.filled(3, "ab"), "") == String.repeat("ab", 3))
+assert(String.join(Array.filled(3, "ab"), "") == "ab".repeat(3))
 ```
 
 ## Possible issues

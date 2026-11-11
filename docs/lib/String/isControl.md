@@ -38,44 +38,44 @@ Call it through `.`:
 The empty string has no code points, so it is not all control characters:
 
 ```ant
-String.isControl("") // false
+"".isControl() // false
 ```
 
 One code point that is not a control character makes the result `false`, wherever it sits in the
 string:
 
 ```ant
-String.isControl("a\n")      // false
-String.isControl("\n\n\n")   // true
-String.isControl("\u{1B}[m") // false
+"a\n".isControl()      // false
+"\n\n\n".isControl()   // true
+"\u{1B}[m".isControl() // false
 ```
 
 The C0 controls, the delete character, and the C1 controls are all `Cc`:
 
 ```ant
-String.isControl("\u{0}")  // true
-String.isControl("\u{1F}") // true
-String.isControl("\u{7F}") // true
-String.isControl("\u{80}") // true
-String.isControl("\u{9F}") // true
+"\u{0}".isControl()  // true
+"\u{1F}".isControl() // true
+"\u{7F}".isControl() // true
+"\u{80}".isControl() // true
+"\u{9F}".isControl() // true
 ```
 
 The code points next to them are not. The space is a space separator, and U+00A0 is the no-break
 space:
 
 ```ant
-String.isControl(" ")      // false
-String.isControl("\u{A0}") // false
+" ".isControl()      // false
+"\u{A0}".isControl() // false
 ```
 
 Format characters, line separators, and private-use characters have their own categories and are not
 `Cc`:
 
 ```ant
-String.isControl("\u{AD}")   // false
-String.isControl("\u{200B}") // false
-String.isControl("\u{2028}") // false
-String.isControl("\u{E000}") // false
+"\u{AD}".isControl()   // false
+"\u{200B}".isControl() // false
+"\u{2028}".isControl() // false
+"\u{E000}".isControl() // false
 ```
 
 A string built with `String.fromCodePoint` works as a literal one does:
@@ -88,7 +88,7 @@ bell.isControl() // true
 Test each code point of a string with `String.chars` in a pipe:
 
 ```ant
-"a\tb\n" | String.chars() | Array.map({ String.isControl(x) }) // [false, true, false, true]
+"a\tb\n" | String.chars() | Array.map({ x.isControl() }) // [false, true, false, true]
 ```
 
 ## Applications
@@ -98,7 +98,7 @@ in a log line. The rest of the sequence is printable and stays:
 
 ```ant
 func clean(s: string): string {
-  String.concat(s.chars().filter({ !String.isControl(x) }))
+  String.concat(s.chars().filter({ !x.isControl() }))
 }
 
 clean("\u{1B}[31mred\u{1B}[0m\u{7}") // "[31mred[0m"
@@ -108,7 +108,7 @@ Keep the line breaks and tabs of a text, and drop every other control character:
 
 ```ant
 func keepLayout(c: string): bool {
-  !String.isControl(c) || c == "\n" || c == "\t"
+  !c.isControl() || c == "\n" || c == "\t"
 }
 
 String.concat("a\u{0}b\tc\n".chars().filter(keepLayout)) // "ab\tc\n"
@@ -119,7 +119,7 @@ or `null` when there is none:
 
 ```ant
 func badIndex(name: string): int | null {
-  name.chars().findIndex({ String.isControl(x) })
+  name.chars().findIndex({ x.isControl() })
 }
 
 for name in ["ant", "an\u{0}t", "colony\n"] {
@@ -141,7 +141,7 @@ control character at 6
 Count the control characters of a text:
 
 ```ant
-"one\ttwo\r\nthree\n".chars().countWhere({ String.isControl(x) }) // 4
+"one\ttwo\r\nthree\n".chars().countWhere({ x.isControl() }) // 4
 ```
 
 ## Properties and relations
@@ -150,9 +150,9 @@ Count the control characters of a text:
 
 ```ant
 for s in ["", "\n", "\t\r", "a\n", "\u{85}", "\u{AD}", " "] {
-  let chars = String.chars(s)
-  let all = !chars.isEmpty() && chars.every({ String.category(x) == "Cc" })
-  assert(String.isControl(s) == all)
+  let chars = s.chars()
+  let all = !chars.isEmpty() && chars.every({ x.category() == "Cc" })
+  assert(s.isControl() == all)
 }
 ```
 
@@ -161,9 +161,9 @@ A control character is neither graphic nor printable:
 ```ant
 for n in [0, 9, 10, 13, 27, 127, 128, 133, 159] {
   let c = String.fromCodePoint(n) ?? ""
-  assert(String.isControl(c))
-  assert(!String.isGraphic(c))
-  assert(!String.isPrint(c))
+  assert(c.isControl())
+  assert(!c.isGraphic())
+  assert(!c.isPrint())
 }
 ```
 
@@ -173,31 +173,31 @@ A tab, a line feed, and a carriage return are control characters, and white spac
 drops control characters drops line breaks with them:
 
 ```ant
-String.isControl("\n") // true
-String.isSpace("\n")   // true
+"\n".isControl() // true
+"\n".isSpace()   // true
 ```
 
 Not every control character is white space. The bell and NUL are not:
 
 ```ant
-String.isSpace("\u{7}") // false
-String.isSpace("\u{0}") // false
+"\u{7}".isSpace() // false
+"\u{0}".isSpace() // false
 ```
 
 `String.isControl` tests that the whole string is control characters, not that it holds one. To find
 out whether a string contains a control character, test each code point:
 
 ```ant
-String.isControl("ok\n")                     // false
-"ok\n".chars().some({ String.isControl(x) }) // true
+"ok\n".isControl()                     // false
+"ok\n".chars().some({ x.isControl() }) // true
 ```
 
 Invisible characters that a copy from a web page leaves behind, such as the zero-width space and the
 soft hyphen, are format characters, `"Cf"`. `String.isControl` does not catch them:
 
 ```ant
-String.isControl("\u{200B}") // false
-String.category("\u{200B}")  // "Cf"
+"\u{200B}".isControl() // false
+"\u{200B}".category()  // "Cf"
 ```
 
 ## See also

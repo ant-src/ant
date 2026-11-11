@@ -34,8 +34,8 @@ Take a prefix from index 0, or a suffix up to the length:
 
 ```ant
 let s = "anthill"
-String.slice(s, 0, 3)                // "ant"
-String.slice(s, 3, String.length(s)) // "hill"
+String.slice(s, 0, 3)          // "ant"
+String.slice(s, 3, s.length()) // "hill"
 ```
 
 ## Scope
@@ -60,9 +60,9 @@ A grapheme of several code points can be cut. The accent of `e\u{301}`, the seco
 and the rest of a family emoji fall outside these slices:
 
 ```ant
-String.slice("e\u{301}x", 0, 1)         // "e"
-String.slice("🇨🇭", 0, 1)                // "🇨"
-String.length(String.slice("👨‍👩‍👧", 0, 1)) // 1
+String.slice("e\u{301}x", 0, 1)   // "e"
+String.slice("🇨🇭", 0, 1)          // "🇨"
+String.slice("👨‍👩‍👧", 0, 1).length() // 1
 ```
 
 Call it through `.`, in a pipe, or with named arguments:
@@ -79,8 +79,8 @@ Read the extension of a file name, from the last `.` to the end:
 
 ```ant
 func extension(name: string): string {
-  let i = String.lastIndexOf(name, ".") ?? return ""
-  String.slice(name, i + 1, String.length(name))
+  let i = name.lastIndexOf(".") ?? return ""
+  name.slice(i + 1, name.length())
 }
 
 extension("archive.tar.gz") // "gz"
@@ -91,7 +91,7 @@ Shorten text to at most `n` code points, ending in `…` when it was cut:
 
 ```ant
 func shorten(s: string, n: int): string {
-  if String.length(s) <= n { s } else if n <= 0 { "" } else { String.slice(s, 0, n - 1) + "…" }
+  if s.length() <= n { s } else if n <= 0 { "" } else { s.slice(0, n - 1) + "…" }
 }
 
 shorten("Ant is a small language", 10) // "Ant is a …"
@@ -103,11 +103,11 @@ Take the text between two markers with `String.indexOf`:
 
 ```ant
 func between(s: string, open: string, close: string): string | null {
-  let start = String.indexOf(s, open) ?? return null
-  let from = start + String.length(open)
-  let rest = String.slice(s, from, String.length(s))
-  let end = String.indexOf(rest, close) ?? return null
-  String.slice(rest, 0, end)
+  let start = s.indexOf(open) ?? return null
+  let from = start + open.length()
+  let rest = s.slice(from, s.length())
+  let end = rest.indexOf(close) ?? return null
+  rest.slice(0, end)
 }
 
 between("see [the docs] here", "[", "]") // "the docs"
@@ -121,9 +121,9 @@ type Row = { date: string, code: string, amount: string }
 
 func parse(line: string): Row {
   Row{
-    date: String.slice(line, 0, 10),
-    code: String.slice(line, 10, 13),
-    amount: String.trim(String.slice(line, 13, String.length(line))),
+    date: line.slice(0, 10),
+    code: line.slice(10, 13),
+    amount: line.slice(13, line.length()).trim(),
   }
 }
 
@@ -140,7 +140,7 @@ Take the text around a regular expression match, whose `start` and `end` are cod
 let s = "total 42 EUR"
 let m = Regex.find(/\d+/, s)
 if m != null {
-  println(String.slice(s, 0, m.start) + "<" + m.text + ">" + String.slice(s, m.end, String.length(s)))
+  println(s.slice(0, m.start) + "<" + m.text + ">" + s.slice(m.end, s.length()))
 }
 ```
 
@@ -154,17 +154,17 @@ The result holds `to - from` code points, and the whole range gives `s` back:
 
 ```ant
 let s = "héllo 🐜"
-assert(String.length(String.slice(s, 2, 5)) == 3)
-assert(String.slice(s, 0, String.length(s)) == s)
+assert(s.slice(2, 5).length() == 3)
+assert(s.slice(0, s.length()) == s)
 ```
 
 Two adjacent slices join to the slice that spans both:
 
 ```ant
 let s = "e\u{301}🇨🇭 ant"
-let n = String.length(s)
+let n = s.length()
 for i in Iter.range(0, n + 1) {
-  assert(String.slice(s, 0, i) + String.slice(s, i, n) == s)
+  assert(s.slice(0, i) + s.slice(i, n) == s)
 }
 ```
 
@@ -172,7 +172,7 @@ A slice is the same code points that `Array.slice` takes from `String.chars`:
 
 ```ant
 let s = "añt🐜hill"
-assert(String.slice(s, 2, 6) == String.join(Array.slice(String.chars(s), 2, 6), ""))
+assert(s.slice(2, 6) == String.join(s.chars().slice(2, 6), ""))
 ```
 
 For a match of `Regex.find`, the slice from `start` to `end` is the matched text:
@@ -181,7 +181,7 @@ For a match of `Regex.find`, the slice from `start` to `end` is the matched text
 let s = "añt 🐜 42"
 let m = Regex.find(/\d+/, s)
 assert(m != null)
-assert(String.slice(s, m.start, m.end) == m.text)
+assert(s.slice(m.start, m.end) == m.text)
 ```
 
 ## Possible issues
@@ -195,14 +195,14 @@ String.slice("abc", 0, 4) // panic: String.slice: the range 0..4 is not within 0
 Keep `to` within the string with `Math.min`:
 
 ```ant
-String.slice("abc", 0, Math.min(4, String.length("abc"))) // "abc"
+String.slice("abc", 0, Math.min(4, "abc".length())) // "abc"
 ```
 
 A negative index panics rather than counting from the end. Count from `String.length(s)` instead:
 
 ```ant
-String.slice("abc", -2, 3)                       // panic: String.slice: the range -2..3 is not within 0 ..= 3
-String.slice("abc", String.length("abc") - 2, 3) // "bc"
+String.slice("abc", -2, 3)                 // panic: String.slice: the range -2..3 is not within 0 ..= 3
+String.slice("abc", "abc".length() - 2, 3) // "bc"
 ```
 
 `from` greater than `to` panics, even when both are within the string:
@@ -222,8 +222,8 @@ letter or a broken emoji. Slice the graphemes when the text is for a reader:
 
 ```ant
 let s = "cafe\u{301}!"
-String.slice(s, 0, 4) == "cafe"                                          // true
-String.join(Array.slice(String.graphemes(s), 0, 4), "") == "cafe\u{301}" // true
+s.slice(0, 4) == "cafe"                                     // true
+String.join(s.graphemes().slice(0, 4), "") == "cafe\u{301}" // true
 ```
 
 ## See also

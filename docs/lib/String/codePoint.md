@@ -82,7 +82,7 @@ Turn a decimal digit into its value by distance from `"0"`:
 
 ```ant
 func digit(c: string): int {
-  String.codePoint(c) - String.codePoint("0")
+  c.codePoint() - "0".codePoint()
 }
 
 "2026" | String.chars() | Array.map(digit) // [2, 0, 2, 6]
@@ -92,16 +92,16 @@ Shift lower-case Latin letters for a Caesar cipher, and leave everything else as
 
 ```ant
 func shift(c: string, k: int): string {
-  let n = String.codePoint(c)
-  let a = String.codePoint("a")
-  if n < a || n > String.codePoint("z") {
+  let n = c.codePoint()
+  let a = "a".codePoint()
+  if n < a || n > "z".codePoint() {
     return c
   }
   String.fromCodePoint((n - a + k) % 26 + a) ?? c
 }
 
 func caesar(s: string, k: int): string {
-  String.join(s.chars().map({ shift(x, k) }), "")
+  s.chars().map({ shift(x, k) }) | String.join("")
 }
 
 println(caesar("hello, ant", 3))
@@ -115,7 +115,7 @@ Print each character of a string with its `U+` code:
 
 ```ant
 for c in "Añ🐜" {
-  let hex = String.padStart(String.toUpper(String.fromInt(String.codePoint(c), 16)), 4, "0")
+  let hex = c.codePoint() | String.fromInt(16) | String.toUpper() | String.padStart(4, "0")
   println("${c} U+${hex}")
 }
 ```
@@ -135,7 +135,7 @@ A U+0041
 let s = "Ant 🐜 é"
 assert(s.chars().map(String.codePoint) == s.toCodePoints())
 for c in s {
-  assert(String.fromCodePoint(String.codePoint(c)) == c)
+  assert(String.fromCodePoint(c.codePoint()) == c)
 }
 ```
 
@@ -144,7 +144,7 @@ For a scalar value `n`, `String.fromCodePoint` gives a character whose code poin
 ```ant
 for n in [0, 65, 233, 0xD7FF, 0xE000, 0x1F41C, 0x10FFFF] {
   let c = String.fromCodePoint(n)
-  assert(c != null && String.codePoint(c) == n)
+  assert(c != null && c.codePoint() == n)
 }
 ```
 
@@ -168,7 +168,7 @@ composes it into one when Unicode has a single code point for it:
 
 ```ant
 let e = "e\u{301}"
-String.length(e)                       // 2
+e.length()                             // 2
 String.normalize(e, "NFC").codePoint() // 233
 ```
 

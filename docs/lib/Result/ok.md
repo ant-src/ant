@@ -100,7 +100,7 @@ Validate input and return it, or say what is wrong:
 type Signup = { name: string, age: int }
 
 func validate(s: Signup): Result[Signup, Error] {
-  if String.isEmpty(s.name) {
+  if s.name.isEmpty() {
     return Result.err(Error{ message: "name is empty" })
   }
   if s.age < 13 {
@@ -119,7 +119,7 @@ Wrap the total at the end of a loop that returns early on bad input:
 func sum(texts: Array[string]): Result[int, string] {
   var total = 0
   for t in texts {
-    total += String.toInt(t) ?? return Result.err("not a number: ${t}")
+    total += t.toInt() ?? return Result.err("not a number: ${t}")
   }
   Result.ok(total)
 }
@@ -158,9 +158,9 @@ assert(r == Ok{ value: 7 })
 
 ```ant
 let r: Result[string, Error] = Result.ok("hi")
-assert(Result.isOk(r))
-assert(Result.unwrap(r) == "hi")
-assert(Result.unwrapOr(r, "fallback") == "hi")
+assert(r.isOk())
+assert(r.unwrap() == "hi")
+assert(r.unwrapOr("fallback") == "hi")
 ```
 
 [`Result.map`](map.md) of it is `Result.ok` of the mapped value:
@@ -168,7 +168,7 @@ assert(Result.unwrapOr(r, "fallback") == "hi")
 ```ant
 let r: Result[int, string] = Result.ok(4)
 let doubled: Result[int, string] = Result.ok(8)
-assert(Result.map(r, { x * 2 }) == doubled)
+assert(r.map({ x * 2 }) == doubled)
 ```
 
 `try` on it gives the value:

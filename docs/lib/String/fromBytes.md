@@ -22,7 +22,7 @@ mark at the start is kept, as U+FEFF.
 ## Basic examples
 
 ```ant
-String.fromBytes(String.toBytes("héllo"))             // "héllo"
+String.fromBytes("héllo".toBytes())                   // "héllo"
 String.fromBytes(Bytes.fromArray([0x41, 0x6e, 0x74])) // "Ant"
 String.fromBytes(Bytes.fromArray([0xff, 0xfe]))       // null
 ```
@@ -53,9 +53,9 @@ String.fromBytes(Bytes.fromArray([0x82, 0xac])) // null
 A slice of the bytes of a string decodes only when it starts and ends between code points:
 
 ```ant
-let b = String.toBytes("€uro")
-String.fromBytes(Bytes.slice(b, 0, 2)) // null
-String.fromBytes(Bytes.slice(b, 3, 6)) // "uro"
+let b = "€uro".toBytes()
+String.fromBytes(b.slice(0, 2)) // null
+String.fromBytes(b.slice(3, 6)) // "uro"
 ```
 
 An overlong encoding, a surrogate, and a value above U+10FFFF are all rejected:
@@ -79,7 +79,7 @@ String.fromBytes(Bytes.fromArray([0x65, 0xcc, 0x81])) == "\u{e9}"   // false
 The parameter is named `bytes`:
 
 ```ant
-String.fromBytes(bytes: String.toBytes("go")) // "go"
+String.fromBytes(bytes: "go".toBytes()) // "go"
 ```
 
 In a pipe, the bytes are the first argument:
@@ -116,9 +116,9 @@ func describe(path: string): string {
   let bytes = Result.unwrap(File.readBytes(path))
   let text = String.fromBytes(bytes)
   if text == null {
-    return "${path}: binary, ${Bytes.length(bytes)} bytes"
+    return "${path}: binary, ${bytes.length()} bytes"
   }
-  "${path}: ${String.length(String.trim(text))} characters of text"
+  "${path}: ${text.trim().length()} characters of text"
 }
 
 Result.unwrap(File.writeBytes("logo.png", Bytes.fromArray([0x89, 0x50, 0x4e, 0x47])))
@@ -142,7 +142,7 @@ func decodeUtf8(bytes: Bytes): Result[string, Error] {
   Result.ok(text)
 }
 
-println(decodeUtf8(String.toBytes("ok")))
+println(decodeUtf8("ok".toBytes()))
 println(decodeUtf8(Bytes.fromArray([0xff])))
 ```
 
@@ -166,7 +166,7 @@ func decode(raw: Bytes): string {
   String.fromBytesLossy(raw)
 }
 
-println(decode(String.toBytes("ab")))
+println(decode("ab".toBytes()))
 println(decode(Bytes.fromArray([0x61, 0xff, 0x62])))
 ```
 
@@ -182,7 +182,7 @@ a�b
 
 ```ant
 for s in ["", "ant", "straße", "🐜🐜", "e\u{301}"] {
-  assert(String.fromBytes(String.toBytes(s)) == s)
+  assert(String.fromBytes(s.toBytes()) == s)
 }
 ```
 
@@ -190,12 +190,12 @@ When the bytes are valid UTF-8, [String.fromBytesLossy](fromBytesLossy.md) gives
 when they are not, the lossy result holds at least one U+FFFD:
 
 ```ant
-for b in [String.toBytes("ok"), Bytes.fromArray([0x61, 0xff]), Bytes.fromArray([0xe2, 0x82])] {
+for b in ["ok".toBytes(), Bytes.fromArray([0x61, 0xff]), Bytes.fromArray([0xe2, 0x82])] {
   let strict = String.fromBytes(b)
   if strict != null {
     assert(String.fromBytesLossy(b) == strict)
   } else {
-    assert(String.contains(String.fromBytesLossy(b), "\u{FFFD}"))
+    assert(String.fromBytesLossy(b).contains("\u{FFFD}"))
   }
 }
 ```
@@ -205,7 +205,7 @@ The bytes of the result are the input bytes:
 ```ant
 let b = Bytes.fromArray([0xc3, 0xa9, 0x21])
 let s = String.fromBytes(b)
-assert(s != null && String.toBytes(s) == b)
+assert(s != null && s.toBytes() == b)
 ```
 
 ## Possible issues
@@ -213,7 +213,7 @@ assert(s != null && String.toBytes(s) == b)
 The result may be `null`, so it cannot be used as a `string` before it is narrowed:
 
 ```ant
-let text: string = String.fromBytes(String.toBytes("hi"))
+let text: string = String.fromBytes("hi".toBytes())
 // error: cannot use string | null where string is expected
 ```
 

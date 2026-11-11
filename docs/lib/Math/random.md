@@ -157,8 +157,8 @@ seed:
 ```ant
 let a = Random.new(42)
 let b = Random.new(42)
-Random.float(a) // 0.08386297105988216
-Random.float(b) // 0.08386297105988216
+a.float() // 0.08386297105988216
+b.float() // 0.08386297105988216
 ```
 
 ## Possible issues

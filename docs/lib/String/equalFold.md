@@ -43,37 +43,37 @@ Call it through `.` on the first string:
 Two empty strings are equal, and an empty string equals no other:
 
 ```ant
-String.equalFold("", "")  // true
-String.equalFold("", " ") // false
+"".equalFold("")  // true
+"".equalFold(" ") // false
 ```
 
 Case folding can change the length of a string. `"ß"` folds to `"ss"`:
 
 ```ant
-String.equalFold("Straße", "STRASSE") // true
-String.equalFold("ß", "SS")           // true
+"Straße".equalFold("STRASSE") // true
+"ß".equalFold("SS")           // true
 ```
 
 It covers every script with case, such as Greek, where the final sigma `ς` and `σ` fold alike:
 
 ```ant
-String.equalFold("σοφος", "ΣΟΦΟΣ")       // true
-String.equalFold("Ångström", "ÅNGSTRÖM") // true
+"σοφος".equalFold("ΣΟΦΟΣ")       // true
+"Ångström".equalFold("ÅNGSTRÖM") // true
 ```
 
 Compatibility characters that have case fold too. The ligature `ﬁ` folds to `"fi"`, and the Kelvin
 sign `K` to `"k"`:
 
 ```ant
-String.equalFold("ﬁ", "FI")       // true
-String.equalFold("\u{212A}", "k") // true
+"ﬁ".equalFold("FI")       // true
+"\u{212A}".equalFold("k") // true
 ```
 
 Characters without case, such as digits, spaces, and punctuation, must match exactly:
 
 ```ant
-String.equalFold("Room 101!", "ROOM 101!") // true
-String.equalFold("Room 101", "room  101")  // false
+"Room 101!".equalFold("ROOM 101!") // true
+"Room 101".equalFold("room  101")  // false
 ```
 
 In a pipe, the left side is `a`:
@@ -94,8 +94,8 @@ Accept a yes or no answer however the user typed it:
 
 ```ant
 func confirmed(answer: string): bool {
-  let a = String.trim(answer)
-  String.equalFold(a, "y") || String.equalFold(a, "yes")
+  let a = answer.trim()
+  a.equalFold("y") || a.equalFold("yes")
 }
 
 confirmed(" Yes ") // true
@@ -111,19 +111,19 @@ let headers = [
   Header{ name: "Content-Type", value: "text/html" },
   Header{ name: "X-Request-Id", value: "42" },
 ]
-headers.find({ String.equalFold(x.name, "content-type") })?.value // "text/html"
+headers.find({ x.name.equalFold("content-type") })?.value // "text/html"
 ```
 
 Check a file extension without regard to case:
 
 ```ant
 func isImage(name: string): bool {
-  let dot = String.lastIndexOf(name, ".")
+  let dot = name.lastIndexOf(".")
   if dot == null {
     return false
   }
-  let ext = String.slice(name, dot + 1, String.length(name))
-  ["png", "jpg", "gif"].some({ String.equalFold(ext, x) })
+  let ext = name.slice(dot + 1, name.length())
+  ["png", "jpg", "gif"].some({ ext.equalFold(x) })
 }
 
 isImage("photo.JPG") // true
@@ -138,8 +138,8 @@ isImage("README")    // false
 ```ant
 let a = "Straße"
 let b = "STRASSE"
-assert(String.equalFold(a, a))
-assert(String.equalFold(a, b) == String.equalFold(b, a))
+assert(a.equalFold(a))
+assert(a.equalFold(b) == b.equalFold(a))
 ```
 
 It agrees with comparing the folded strings with `==`:
@@ -147,7 +147,7 @@ It agrees with comparing the folded strings with `==`:
 ```ant
 let pairs = [["Ant", "aNT"], ["ß", "ss"], ["İ", "i"], ["a", "b"]]
 for p in pairs {
-  assert(String.equalFold(p[0], p[1]) == (String.foldCase(p[0]) == String.foldCase(p[1])))
+  assert(p[0].equalFold(p[1]) == (p[0].foldCase() == p[1].foldCase()))
 }
 ```
 
@@ -157,8 +157,8 @@ Comparing with `String.toLower` is not the same. Lower case keeps `ß`, so it mi
 finds:
 
 ```ant
-String.toLower("Straße") == String.toLower("STRASSE") // false
-String.equalFold("Straße", "STRASSE")                 // true
+"Straße".toLower() == "STRASSE".toLower() // false
+"Straße".equalFold("STRASSE")             // true
 ```
 
 `equalFold` does not normalize. The same accented letter spelled two ways compares `false` until
@@ -167,23 +167,23 @@ both are normalized:
 ```ant
 let composed = "\u{E9}"
 let decomposed = "e\u{301}"
-String.equalFold(composed, decomposed) // false
-let nfc = String.normalize(decomposed, "NFC")
-String.equalFold(composed, nfc) // true
+composed.equalFold(decomposed) // false
+let nfc = decomposed.normalize("NFC")
+composed.equalFold(nfc) // true
 ```
 
 The Turkish dotted and dotless i do not fold to `i` and `I`. The full case folding has no Turkish
 rule, so `"İ"` folds to `"i\u{307}"` and `"ı"` stays `"ı"`:
 
 ```ant
-String.equalFold("İ", "i") // false
-String.equalFold("ı", "I") // false
+"İ".equalFold("i") // false
+"ı".equalFold("I") // false
 ```
 
 Folding changes case only, not accents, so `é` does not match `E`:
 
 ```ant
-String.equalFold("café", "CAFE") // false
+"café".equalFold("CAFE") // false
 ```
 
 To ignore accents as well, strip them first: split each accent from its letter with
@@ -192,25 +192,27 @@ accepts:
 
 ```ant
 func stripAccents(s: string): string {
-  let letters = String.chars(String.normalize(s, "NFD")).filter({ !String.isMark(x) })
-  String.join(letters, "")
+  s.normalize("NFD")
+    | String.chars()
+    | Array.filter({ !x.isMark() })
+    | String.join("")
 }
 
-String.equalFold(stripAccents("café"), "CAFE") // true
+stripAccents("café").equalFold("CAFE") // true
 ```
 
 A regex with the `i` flag folds one code point at a time, so it can reject what `equalFold` accepts:
 
 ```ant
-Regex.test(/straße/i, "STRASSE")      // false
-String.equalFold("straße", "STRASSE") // true
+Regex.test(/straße/i, "STRASSE") // false
+"straße".equalFold("STRASSE")    // true
 ```
 
 To group or deduplicate strings without regard to case, use `String.foldCase` as the key instead of
 comparing every pair with `equalFold`:
 
 ```ant
-Array.uniqueBy(["Ant", "ANT", "bee", "Bee"], String.foldCase) // ["Ant", "bee"]
+["Ant", "ANT", "bee", "Bee"].uniqueBy(String.foldCase) // ["Ant", "bee"]
 ```
 
 ## See also

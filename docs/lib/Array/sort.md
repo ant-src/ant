@@ -241,8 +241,8 @@ Uppercase sorts before lowercase. For an order that ignores case, sort by a case
 
 ```ant
 let names = ["bob", "alice", "Carol"]
-names.sort()                         // ["Carol", "alice", "bob"]
-names.sortBy({ String.foldCase(x) }) // ["alice", "bob", "Carol"]
+names.sort()                   // ["Carol", "alice", "bob"]
+names.sortBy({ x.foldCase() }) // ["alice", "bob", "Carol"]
 ```
 
 Nothing normalizes strings before they compare. An "é" written as one code point, U+00E9, sorts
@@ -258,14 +258,14 @@ of "é" then sort together, after "z":
 
 ```ant
 let words = ["\u{E9}a", "e\u{301}b", "z"]
-words.sortBy({ String.normalize(x, "NFC") }) == ["z", "\u{E9}a", "e\u{301}b"] // true
+words.sortBy({ x.normalize("NFC") }) == ["z", "\u{E9}a", "e\u{301}b"] // true
 ```
 
 Numbers held as strings sort as text. Convert them first, or sort by a numeric key:
 
 ```ant
-["10", "9", "100"].sort()                           // ["10", "100", "9"]
-["10", "9", "100"].sortBy({ String.toInt(x) ?? 0 }) // ["9", "10", "100"]
+["10", "9", "100"].sort()                     // ["10", "100", "9"]
+["10", "9", "100"].sortBy({ x.toInt() ?? 0 }) // ["9", "10", "100"]
 ```
 
 An array whose element type is a union of members, such as `int | string`, has no single `T`, so it

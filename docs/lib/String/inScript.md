@@ -43,46 +43,46 @@ Call it through `.` on a one-code-point string:
 Letters of different writing systems:
 
 ```ant
-String.inScript("α", "Greek")     // true
-String.inScript("ا", "Arabic")    // true
-String.inScript("あ", "Hiragana") // true
-String.inScript("ｱ", "Katakana")  // true
-String.inScript("ǅ", "Latin")     // true
+"α".inScript("Greek")     // true
+"ا".inScript("Arabic")    // true
+"あ".inScript("Hiragana") // true
+"ｱ".inScript("Katakana")  // true
+"ǅ".inScript("Latin")     // true
 ```
 
 A script whose name has two words takes an underscore, as in `Scripts.txt`:
 
 ```ant
-String.inScript("𐌀", "Old_Italic") // true
+"𐌀".inScript("Old_Italic") // true
 ```
 
 Digits, punctuation, white space, and emoji are in `Common`, whatever text they appear in:
 
 ```ant
-String.inScript("7", "Common")  // true
-String.inScript("１", "Common") // true
-String.inScript("!", "Common")  // true
-String.inScript(" ", "Common")  // true
-String.inScript("🐜", "Common") // true
-String.inScript("7", "Latin")   // false
+"7".inScript("Common")  // true
+"１".inScript("Common") // true
+"!".inScript("Common")  // true
+" ".inScript("Common")  // true
+"🐜".inScript("Common") // true
+"7".inScript("Latin")   // false
 ```
 
 A combining mark that many scripts use, such as an accent, is in `Inherited`, not in the script of
 the letter it follows. A mark of one script is in that script:
 
 ```ant
-String.inScript("\u{301}", "Inherited")  // true
-String.inScript("\u{301}", "Latin")      // false
-String.inScript("\u{3099}", "Inherited") // true
-String.inScript("\u{93F}", "Devanagari") // true
+"\u{301}".inScript("Inherited")  // true
+"\u{301}".inScript("Latin")      // false
+"\u{3099}".inScript("Inherited") // true
+"\u{93F}".inScript("Devanagari") // true
 ```
 
 An unassigned code point and a private-use one are in `Unknown`:
 
 ```ant
-String.inScript("\u{378}", "Unknown")  // true
-String.inScript("\u{E000}", "Unknown") // true
-String.inScript("\u{378}", "Latin")    // false
+"\u{378}".inScript("Unknown")  // true
+"\u{E000}".inScript("Unknown") // true
+"\u{378}".inScript("Latin")    // false
 ```
 
 Pass the arguments by name:
@@ -94,7 +94,7 @@ String.inScript(c: "b", script: "Latin") // true
 Test each code point of a string, here in a pipe:
 
 ```ant
-"Ab1" | String.chars() | Array.map({ String.inScript(x, "Latin") }) // [true, true, false]
+"Ab1" | String.chars() | Array.map({ x.inScript("Latin") }) // [true, true, false]
 ```
 
 ## Applications
@@ -106,10 +106,10 @@ func mixesScripts(host: string): bool {
   var latin = false
   var cyrillic = false
   for c in host {
-    if String.inScript(c, "Latin") {
+    if c.inScript("Latin") {
       latin = true
     }
-    if String.inScript(c, "Cyrillic") {
+    if c.inScript("Cyrillic") {
       cyrillic = true
     }
   }
@@ -134,7 +134,7 @@ func scriptsOf(s: string): Array[string] {
   let found: Array[string] = []
   for c in s {
     for name in scripts {
-      if String.inScript(c, name) && !found.contains(name) {
+      if c.inScript(name) && !found.contains(name) {
         found.push(name)
       }
     }
@@ -154,7 +154,7 @@ println(scriptsOf("α + β = 3"))
 Keep only the Han characters of a mixed text:
 
 ```ant
-String.concat("漢字 kanji かんじ".chars().filter({ String.inScript(x, "Han") })) // "漢字"
+String.concat("漢字 kanji かんじ".chars().filter({ x.inScript("Han") })) // "漢字"
 ```
 
 ## Properties and relations
@@ -165,7 +165,7 @@ scripts:
 ```ant
 let names = ["Latin", "Cyrillic", "Han", "Common", "Inherited", "Unknown"]
 for c in ["a", "я", "中", "7", "\u{301}", "\u{378}"] {
-  assert(names.filter({ String.inScript(c, x) }).length() == 1)
+  assert(names.filter({ c.inScript(x) }).length() == 1)
 }
 ```
 
@@ -173,8 +173,8 @@ An unassigned code point, with category `"Cn"`, is in `Unknown`:
 
 ```ant
 for c in ["\u{378}", String.fromCodePoint(0xFFFF) ?? ""] {
-  assert(String.category(c) == "Cn")
-  assert(String.inScript(c, "Unknown"))
+  assert(c.category() == "Cn")
+  assert(c.inScript("Unknown"))
 }
 ```
 
@@ -183,35 +183,35 @@ for c in ["\u{378}", String.fromCodePoint(0xFFFF) ?? ""] {
 The script name is exact. Another case or a four-letter code panics:
 
 ```ant
-String.inScript("a", "latin") // panic: String.inScript needs the name of a script, got "latin"
-String.inScript("a", "Latn")  // panic: String.inScript needs the name of a script, got "Latn"
+"a".inScript("latin") // panic: String.inScript needs the name of a script, got "latin"
+"a".inScript("Latn")  // panic: String.inScript needs the name of a script, got "Latn"
 ```
 
 A space in place of the underscore panics too:
 
 ```ant
-String.inScript("a", "Old Italic") // panic: String.inScript needs the name of a script, got "Old Italic"
+"a".inScript("Old Italic") // panic: String.inScript needs the name of a script, got "Old Italic"
 ```
 
 `c` must be one code point. A word, the empty string, and a flag, which is two code points, panic:
 
 ```ant
-String.inScript("ab", "Latin")  // panic: String.inScript needs a string of one code point, got "ab"
-String.inScript("", "Latin")    // panic: String.inScript needs a string of one code point, got ""
-String.inScript("🇨🇭", "Common") // panic: String.inScript needs a string of one code point, got "🇨🇭"
+"ab".inScript("Latin")  // panic: String.inScript needs a string of one code point, got "ab"
+"".inScript("Latin")    // panic: String.inScript needs a string of one code point, got ""
+"🇨🇭".inScript("Common") // panic: String.inScript needs a string of one code point, got "🇨🇭"
 ```
 
 A letter with an accent written as two code points, `e` and U+0301, looks like one character and
 panics too:
 
 ```ant
-String.inScript("e\u{301}", "Latin") // panic: String.inScript needs a string of one code point, got "é"
+"e\u{301}".inScript("Latin") // panic: String.inScript needs a string of one code point, got "é"
 ```
 
 Compose it first with `String.normalize(s, "NFC")`, or test each code point with `for c in s`:
 
 ```ant
-String.inScript(String.normalize("e\u{301}", "NFC"), "Latin") // true
+"e\u{301}".normalize("NFC").inScript("Latin") // true
 ```
 
 A script that a later Unicode version adds panics until Ant's tables move to that version.
@@ -225,16 +225,16 @@ Test a whole string with `for c in s` or `String.chars`, and decide what the cha
 and `Inherited` count as:
 
 ```ant
-"Привет!".chars().every({ String.inScript(x, "Cyrillic") })                                 // false
-"Привет!".chars().every({ String.inScript(x, "Cyrillic") || String.inScript(x, "Common") }) // true
+"Привет!".chars().every({ x.inScript("Cyrillic") })                         // false
+"Привет!".chars().every({ x.inScript("Cyrillic") || x.inScript("Common") }) // true
 ```
 
 The test reads Script, not Script_Extensions. The Japanese long-vowel mark `ー` appears in Katakana
 and Hiragana words, yet its script is `Common`:
 
 ```ant
-String.inScript("ー", "Katakana") // false
-String.inScript("ー", "Common")   // true
+"ー".inScript("Katakana") // false
+"ー".inScript("Common")   // true
 ```
 
 ## See also

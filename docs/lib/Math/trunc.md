@@ -86,7 +86,7 @@ type Parts = { whole: float64, fraction: float64 }
 
 func split(x: float64): Parts {
   let whole = Math.trunc(x)
-  Parts{ whole: whole, fraction: x - whole }
+  Parts{ whole, fraction: x - whole }
 }
 
 split(3.25)  // Parts{ whole: 3.0, fraction: 0.25 }
@@ -98,7 +98,7 @@ Show a duration in seconds as whole minutes and seconds:
 ```ant
 func clock(seconds: float64): string {
   let total = int(Math.trunc(seconds))
-  "${total / 60}:${String.padStart(String.from(total % 60), 2, "0")}"
+  "${total / 60}:${String.from(total % 60).padStart(2, "0")}"
 }
 
 clock(125.9) // "2:05"

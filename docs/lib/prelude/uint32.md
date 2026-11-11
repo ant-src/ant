@@ -68,8 +68,8 @@ uint32(port) // 8080
 `uint32` is a function value, so it can be passed to `Array.map`:
 
 ```ant
-Array.map([1, 2, 3], uint32)        // [1, 2, 3]
-[1, 2, 3].map(uint32) | Array.sum() // 6
+[1, 2, 3].map(uint32)                       // [1, 2, 3]
+[1, 2, 3] | Array.map(uint32) | Array.sum() // 6
 ```
 
 ## Applications
@@ -102,7 +102,7 @@ Pack an IPv4 address into a `uint32`, and unpack it again:
 ```ant
 func parseIPv4(s: string): uint32 | null {
   let parts = s.split(".")
-  if len(parts) != 4 {
+  if parts.length() != 4 {
     return null
   }
   var ip = uint32(0)
@@ -117,8 +117,9 @@ func parseIPv4(s: string): uint32 | null {
 }
 
 func formatIPv4(ip: uint32): string {
-  let octets = [24, 16, 8, 0].map({ String.from(Bits.and(Bits.shiftRight(ip, x), uint32(255))) })
-  String.join(octets, ".")
+  [24, 16, 8, 0]
+    | Array.map({ String.from(Bits.and(Bits.shiftRight(ip, x), uint32(255))) })
+    | String.join(".")
 }
 
 let ip = parseIPv4("192.168.1.10") ?? panic("bad address")

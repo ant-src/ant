@@ -79,7 +79,7 @@ Reject a parsed number that is not finite. `String.toFloat` reads `"inf"` and `"
 
 ```ant
 func parseAmount(s: string): float64 | null {
-  let n = String.toFloat(s)
+  let n = s.toFloat()
   if n == null || !Math.isFinite(n) {
     return null
   }

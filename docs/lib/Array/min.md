@@ -84,14 +84,14 @@ The values of a map or a set are an array, so `Array.min` gives the least of the
 
 ```ant
 let ages = Map{ ann: 31, bob: 27, cy: 45 }
-Map.values(ages).min()           // 27
+ages.values().min()              // 27
 Set.of([4, 2, 9]).values().min() // 2
 ```
 
 In a pipe, the array is the first argument:
 
 ```ant
-"5 12 3 8" | String.split(" ") | Array.map({ String.toInt(x) ?? 0 }) | Array.min() // 3
+"5 12 3 8" | String.split(" ") | Array.map({ x.toInt() ?? 0 }) | Array.min() // 3
 ```
 
 ## Applications

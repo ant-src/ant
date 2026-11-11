@@ -142,15 +142,15 @@ sum // 294
 Decode bytes as text, which gives `null` when they are not valid UTF-8:
 
 ```ant
-String.fromBytes(Bytes.fromArray([0xe6, 0x97, 0xa5])) // "日"
-String.fromBytes(Bytes.fromArray([0xff]))             // null
+Bytes.fromArray([0xe6, 0x97, 0xa5]) | String.fromBytes() // "日"
+Bytes.fromArray([0xff]) | String.fromBytes()             // null
 ```
 
 `String.fromBytesLossy` decodes bytes that may be invalid, such as file or process output, and
 writes U+FFFD for each bad sequence:
 
 ```ant
-String.fromBytesLossy(Bytes.fromArray([0x61, 0xff])) // "a�"
+Bytes.fromArray([0x61, 0xff]) | String.fromBytesLossy() // "a�"
 ```
 
 Hash a string and print the hex digest:
@@ -217,7 +217,7 @@ Json.stringify(b) // panic: Json.stringify: Bytes has no JSON form; write Encodi
 
 ```ant
 let b = Bytes.fromArray([1, 2])
-Json.stringify(Encoding.toBase64(b)) // "\"AQI=\""
+b | Encoding.toBase64() | Json.stringify() // "\"AQI=\""
 ```
 
 `Bytes.fromArray` panics on an element outside `0 ..= 255`, which int arithmetic can produce:

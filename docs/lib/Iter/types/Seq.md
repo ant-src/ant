@@ -56,7 +56,7 @@ The `Iter` functions return sequences, and `Iter.toArray` collects one into an a
 
 ```ant
 let s: Seq[int] = Iter.range(1, 4)
-Iter.toArray(s)            // [1, 2, 3]
+s.toArray()                // [1, 2, 3]
 s.map({ x * x }).toArray() // [1, 4, 9]
 ```
 
@@ -164,11 +164,11 @@ func squares(n: int): Seq[int] {
   let c: Channel[int] = Channel.new()
   go {
     for i in Iter.range(1, n + 1) {
-      Channel.send(c, i * i)
+      c.send(i * i)
     }
-    Channel.close(c)
+    c.close()
   }
-  Channel.values(c)
+  c.values()
 }
 
 println(squares(4).toArray())
@@ -200,8 +200,8 @@ func Tree.values(t: Tree): Seq[int] {
 
 let leaf = func(n: int): Tree { Tree{ value: n, children: [] } }
 let t = Tree{ value: 1, children: [leaf(2), Tree{ value: 3, children: [leaf(4)] }] }
-println(Tree.values(t).toArray())
-println(Tree.values(t).filter({ x % 2 == 0 }).toArray())
+println(t.values().toArray())
+println(t.values().filter({ x % 2 == 0 }).toArray())
 ```
 
 ```text
@@ -280,10 +280,10 @@ A channel's values run once. Running the sequence again finds the channel draine
 
 ```ant
 let c: Channel[int] = Channel.new(2)
-Channel.send(c, 1)
-Channel.send(c, 2)
-Channel.close(c)
-let s = Channel.values(c)
+c.send(1)
+c.send(2)
+c.close()
+let s = c.values()
 println(s.toArray())
 println(s.toArray())
 ```

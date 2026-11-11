@@ -74,7 +74,7 @@ int8(today) // 21
 `int8` is a function value, so it can be passed where a function is expected:
 
 ```ant
-Array.map([1, -2, 3], int8) // [1, -2, 3]
+[1, -2, 3].map(int8) // [1, -2, 3]
 ```
 
 In a pipe, the value is the argument:
@@ -185,7 +185,7 @@ let xs: Array[int8] = [1, 2, 3] // error: cannot use int where int8 is expected
 Convert each element instead:
 
 ```ant
-let xs = Array.map([1, 2, 3], int8)
+let xs = [1, 2, 3].map(int8)
 xs // [1, 2, 3]
 ```
 

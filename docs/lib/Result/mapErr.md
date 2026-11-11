@@ -24,14 +24,14 @@ Change the error of an `Err`:
 
 ```ant
 let failed: Result[int, string] = Result.err("not found")
-Result.mapErr(failed, { String.toUpper(x) }) // Err{ error: "NOT FOUND" }
+Result.mapErr(failed, { x.toUpper() }) // Err{ error: "NOT FOUND" }
 ```
 
 An `Ok` passes through, and its error type changes:
 
 ```ant
 let found: Result[int, string] = Result.ok(42)
-Result.mapErr(found, { String.length(x) }) // Ok{ value: 42 }
+Result.mapErr(found, { x.length() }) // Ok{ value: 42 }
 ```
 
 Turn an error of your own into an `Error` with a readable message:
@@ -92,7 +92,7 @@ so the error of `parsePort` has to become one:
 type BadPort = { text: string }
 
 func parsePort(s: string): Result[int, BadPort] {
-  let n = String.toInt(s) ?? return Result.err(BadPort{ text: s })
+  let n = s.toInt() ?? return Result.err(BadPort{ text: s })
   Result.ok(n)
 }
 
@@ -124,7 +124,7 @@ func portOf(key: string | null): Result[int, NotFound | Error] {
   if key == null {
     return Result.err(Error{ message: "no key" })
   }
-  Result.mapErr(lookup(key), { x })
+  lookup(key).mapErr({ x })
 }
 
 println(portOf(null))
@@ -142,7 +142,7 @@ Put results of different error types in one array before `Result.all`:
 type Timeout = { ms: int }
 let a: Result[int, string] = Result.ok(1)
 let b: Result[int, Timeout] = Result.err(Timeout{ ms: 500 })
-let results: Array[Result[int, string | Timeout]] = [Result.mapErr(a, { x }), Result.mapErr(b, { x })]
+let results: Array[Result[int, string | Timeout]] = [a.mapErr({ x }), b.mapErr({ x })]
 Result.all(results) // Err{ error: Timeout{ ms: 500 } }
 ```
 
@@ -152,7 +152,7 @@ On an `Ok`, the result holds the value of `r`, whatever `f` does:
 
 ```ant
 let r: Result[int, string] = Result.ok(7)
-assert(Result.mapErr(r, { String.toUpper(x) }) == r)
+assert(r.mapErr({ x.toUpper() }) == r)
 ```
 
 `Result.mapErr` never changes whether a result is an `Ok`:
@@ -160,7 +160,7 @@ assert(Result.mapErr(r, { String.toUpper(x) }) == r)
 ```ant
 let rs: Array[Result[int, string]] = [Result.ok(1), Result.err("no")]
 for r in rs {
-  assert(Result.isOk(Result.mapErr(r, { String.length(x) })) == Result.isOk(r))
+  assert(r.mapErr({ x.length() }).isOk() == r.isOk())
 }
 ```
 
@@ -175,9 +175,9 @@ Two maps in a row are one map with the composed function:
 
 ```ant
 let r: Result[int, string] = Result.err("abc")
-let f: func(string): int = { String.length(x) }
+let f: func(string): int = { x.length() }
 let g: func(int): int = { x * 10 }
-assert(Result.mapErr(Result.mapErr(r, f), g) == Result.mapErr(r, { g(f(x)) }))
+assert(r.mapErr(f).mapErr(g) == r.mapErr({ g(f(x)) }))
 ```
 
 ## Possible issues
@@ -201,8 +201,8 @@ func reword(e: string): Result[int, string] {
 }
 
 let r: Result[int, string] = Result.err("eof")
-Result.mapErr(r, reword)           // Err{ error: Err{ error: "read: eof" } }
-Result.mapErr(r, { "read: ${x}" }) // Err{ error: "read: eof" }
+r.mapErr(reword)           // Err{ error: Err{ error: "read: eof" } }
+r.mapErr({ "read: ${x}" }) // Err{ error: "read: eof" }
 ```
 
 An unannotated `Result.ok` has no error type to map from:
@@ -219,7 +219,7 @@ let r = Result.mapErr(Result.ok(1), { x })
 type BadPort = { text: string }
 
 func parsePort(s: string): Result[int, BadPort] {
-  let n = String.toInt(s) ?? return Result.err(BadPort{ text: s })
+  let n = s.toInt() ?? return Result.err(BadPort{ text: s })
   Result.ok(n)
 }
 

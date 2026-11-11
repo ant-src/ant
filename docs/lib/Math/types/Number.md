@@ -123,7 +123,7 @@ func mean[T: Number](xs: Array[T]): float64 {
   for x in xs {
     total += float64(x)
   }
-  total / float64(len(xs))
+  total / float64(xs.length())
 }
 
 mean([1, 2, 4])                    // 2.3333333333333335

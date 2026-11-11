@@ -82,14 +82,14 @@ true
 There is no right fold. Reverse the array first:
 
 ```ant
-Array.reverse([1, 2, 3]).reduce(0, func(acc: int, x: int) { acc * 10 + x }) // 321
+[1, 2, 3].reverse().reduce(0, func(acc: int, x: int) { acc * 10 + x }) // 321
 ```
 
 The accumulator may have another type than the elements. Here it is an `int` and the elements are
 strings:
 
 ```ant
-["ant", "beetle", "fly"].reduce(0, func(n: int, s: string) { n + String.length(s) }) // 12
+["ant", "beetle", "fly"].reduce(0, func(n: int, s: string) { n + s.length() }) // 12
 ```
 
 Join strings by starting from `""`:
@@ -105,7 +105,7 @@ func add(a: int, b: int): int {
   a + b
 }
 
-Array.reduce([5, 6, 7], 0, add)                 // 18
+[5, 6, 7].reduce(0, add)                        // 18
 [3, 9, 4].reduce(Math.minInt, Math.max)         // 9
 [2.5, 0.5, 1.5].reduce(Math.Infinity, Math.min) // 0.5
 ```
@@ -125,7 +125,7 @@ than `null`:
 
 ```ant
 let longest: string | null = ["ant", "termite", "bee"].reduce(null, func(best: string | null, w: string): string | null {
-  if best == null || String.length(w) > String.length(best) { w } else { best }
+  if best == null || w.length() > best.length() { w } else { best }
 })
 longest // "termite"
 ```
@@ -206,7 +206,7 @@ Folding with `+` from `0` is what `Array.sum` gives on a non-empty array:
 
 ```ant
 let xs = [3, 1, 4, 1, 5]
-assert(xs.reduce(0, func(a: int, b: int) { a + b }) == Array.sum(xs))
+assert(xs.reduce(0, func(a: int, b: int) { a + b }) == xs.sum())
 ```
 
 A fold that appends each element to a new array copies `xs`, and one that puts each in front
@@ -216,7 +216,7 @@ reverses it:
 let xs = [1, 2, 3]
 let empty: Array[int] = []
 assert(xs.reduce(empty, func(a: Array[int], x: int) { a.concat([x]) }) == xs)
-assert(xs.reduce(empty, func(a: Array[int], x: int) { [x].concat(a) }) == Array.reverse(xs))
+assert(xs.reduce(empty, func(a: Array[int], x: int) { [x].concat(a) }) == xs.reverse())
 ```
 
 `Array.map` is a fold that appends `f(x)`:

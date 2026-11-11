@@ -77,7 +77,7 @@ String.isMark("^") // false
 Test each code point of a decomposed string with `String.chars`, here in a pipe:
 
 ```ant
-String.normalize("ṩ", "NFD") | String.chars() | Array.map({ String.isMark(x) }) // [false, true, true]
+"ṩ" | String.normalize("NFD") | String.chars() | Array.map({ x.isMark() }) // [false, true, true]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -92,8 +92,12 @@ Remove accents: decompose the text with NFD, drop the marks, and compose the res
 
 ```ant
 func stripAccents(s: string): string {
-  let base = String.normalize(s, "NFD").chars().filter({ !String.isMark(x) })
-  String.normalize(String.concat(base), "NFC")
+  s
+    | String.normalize("NFD")
+    | String.chars()
+    | Array.filter({ !x.isMark() })
+    | String.concat()
+    | String.normalize("NFC")
 }
 
 println(stripAccents("Crème brûlée à Zürich"))
@@ -111,8 +115,8 @@ lines around it. Count the marks in each grapheme with `String.graphemes`:
 ```ant
 func maxMarks(s: string): int {
   var most = 0
-  for g in String.graphemes(s) {
-    most = Math.max(most, g.chars().countWhere({ String.isMark(x) }))
+  for g in s.graphemes() {
+    most = Math.max(most, g.chars().countWhere({ x.isMark() }))
   }
   most
 }
@@ -133,7 +137,7 @@ Reject a name that starts with a mark, which has no letter to attach to:
 ```ant
 func startsWithMark(s: string): bool {
   let first = s.chars().first()
-  first != null && String.isMark(first)
+  first != null && first.isMark()
 }
 
 startsWithMark("\u{301}ant") // true
@@ -148,8 +152,8 @@ that starts with `M`:
 
 ```ant
 for s in ["", "\u{301}", "\u{903}", "\u{20DD}", "é", "e\u{301}", "´", "\u{200D}"] {
-  let chars = String.chars(s)
-  let all = !chars.isEmpty() && chars.every({ String.category(x).startsWith("M") })
+  let chars = s.chars()
+  let all = !chars.isEmpty() && chars.every({ x.category().startsWith("M") })
   assert(String.isMark(s) == all)
 }
 ```
@@ -169,7 +173,7 @@ NFD leaves the letter in front and puts its marks after it:
 
 ```ant
 for s in ["é", "ṩ", "Å", "ü"] {
-  let chars = String.normalize(s, "NFD").chars()
+  let chars = s.normalize("NFD").chars()
   assert(!String.isMark(chars[0]))
   assert(chars.slice(1, chars.length()).every(String.isMark))
 }
@@ -181,10 +185,10 @@ The same text can be written two ways. A precomposed `é` holds no mark, and `e`
 holds one, though both look the same:
 
 ```ant
-String.isMark("\u{E9}")                                       // false
-"\u{E9}".chars().some({ String.isMark(x) })                   // false
-"e\u{301}".chars().some({ String.isMark(x) })                 // true
-String.normalize("\u{E9}", "NFD").chars().some(String.isMark) // true
+String.isMark("\u{E9}")                               // false
+"\u{E9}".chars().some({ x.isMark() })                 // false
+"e\u{301}".chars().some({ x.isMark() })               // true
+"\u{E9}".normalize("NFD").chars().some(String.isMark) // true
 ```
 
 Normalize to NFD first when you look for marks in text that can arrive in either form.
@@ -193,8 +197,8 @@ Normalize to NFD first when you look for marks in text that can arrive in either
 accent is `false`; use `Array.some` to find out whether a string contains a mark:
 
 ```ant
-String.isMark("e\u{301}")                     // false
-"e\u{301}".chars().some({ String.isMark(x) }) // true
+String.isMark("e\u{301}")               // false
+"e\u{301}".chars().some({ x.isMark() }) // true
 ```
 
 Some invisible code points that go with emoji are marks and some are not. The variation selector
@@ -213,8 +217,12 @@ text instead of emoji:
 
 ```ant
 func stripAccents(s: string): string {
-  let base = String.normalize(s, "NFD").chars().filter({ !String.isMark(x) })
-  String.normalize(String.concat(base), "NFC")
+  s
+    | String.normalize("NFD")
+    | String.chars()
+    | Array.filter({ !x.isMark() })
+    | String.concat()
+    | String.normalize("NFC")
 }
 
 stripAccents("\u{2764}\u{FE0F}") == "\u{2764}" // true
@@ -225,15 +233,11 @@ Work on graphemes instead, and drop the marks of a grapheme only when it starts 
 ```ant
 func stripAccents(s: string): string {
   var out = ""
-  for g in String.graphemes(String.normalize(s, "NFD")) {
+  for g in s.normalize("NFD").graphemes() {
     let chars = g.chars()
-    if String.isLetter(chars[0]) {
-      out += String.concat(chars.filter({ !String.isMark(x) }))
-    } else {
-      out += g
-    }
+    out += if chars[0].isLetter() { String.concat(chars.filter({ !x.isMark() })) } else { g }
   }
-  String.normalize(out, "NFC")
+  out.normalize("NFC")
 }
 
 assert(stripAccents("Crème") == "Creme")

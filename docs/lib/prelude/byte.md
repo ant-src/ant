@@ -69,8 +69,8 @@ byte(Level(3)) // 3
 `byte` is a function value, so it converts every element of an array:
 
 ```ant
-Array.map([72, 105], byte)     // [72, 105]
-Array.map([72.0, 105.0], byte) // [72, 105]
+[72, 105].map(byte)     // [72, 105]
+[72.0, 105.0].map(byte) // [72, 105]
 ```
 
 In a generic function, a type parameter bounded by `Number` converts too:
@@ -86,7 +86,7 @@ toByte(9.0)      // 9
 Indexing `Bytes` gives a `byte`, and `int` converts it back:
 
 ```ant
-let b = String.toBytes("Hi")
+let b = "Hi".toBytes()
 b[0]          // 72
 int(b[0]) + 1 // 73
 ```
@@ -96,8 +96,7 @@ int(b[0]) + 1 // 73
 Build `Bytes` from computed values:
 
 ```ant
-let ramp = Array.map([0, 1, 2, 3], { byte(x * 85) })
-Bytes.fromArray(ramp) // Bytes(00 55 aa ff)
+[0, 1, 2, 3] | Array.map({ byte(x * 85) }) | Bytes.fromArray() // Bytes(00 55 aa ff)
 ```
 
 Sum the bytes of a message into a one-byte checksum. The sum is kept in an `int`, which has room for
@@ -112,7 +111,7 @@ func checksum(data: Bytes): byte {
   byte(sum % 256)
 }
 
-println(checksum(String.toBytes("hello")))
+println(checksum("hello".toBytes()))
 ```
 
 ```text
@@ -123,10 +122,13 @@ Mask each byte with a one-byte key using `Bits.xor`, which keeps the `byte` kind
 
 ```ant
 let key = byte(0x2a)
-let secret = Array.map(String.toBytes("ant").toArray(), { Bits.xor(x, key) })
+let secret = "ant".toBytes().toArray().map({ Bits.xor(x, key) })
 println(Bytes.fromArray(secret))
-let plain = Array.map(secret, { Bits.xor(x, key) })
-println(String.fromBytes(Bytes.fromArray(plain)))
+let plain = secret
+  | Array.map({ Bits.xor(x, key) })
+  | Bytes.fromArray()
+  | String.fromBytes()
+println(plain)
 ```
 
 ```text
@@ -168,7 +170,7 @@ flag // 1
 A `byte` and an `int` do not mix in arithmetic or comparisons:
 
 ```ant
-let b = String.toBytes("A")
+let b = "A".toBytes()
 println(b[0] + 1) // error: + needs both operands of one type, got byte and int
 ```
 
@@ -206,7 +208,7 @@ println(byte("A"))
 ```
 
 ```ant
-String.toBytes("A")[0] // 65
+"A".toBytes()[0] // 65
 ```
 
 ## See also

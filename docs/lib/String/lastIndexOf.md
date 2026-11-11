@@ -99,8 +99,8 @@ when there is none:
 
 ```ant
 func extension(name: string): string {
-  let i = String.lastIndexOf(name, ".") ?? return ""
-  String.slice(name, i + 1, String.length(name))
+  let i = name.lastIndexOf(".") ?? return ""
+  name.slice(i + 1, name.length())
 }
 
 println(extension("archive.tar.gz"))
@@ -118,12 +118,9 @@ Split a path into its directory and its base name at the last slash:
 type Split = { dir: string, base: string }
 
 func splitPath(path: string): Split {
-  let i = String.lastIndexOf(path, "/")
-  if i != null {
-    Split{ dir: String.slice(path, 0, i), base: String.slice(path, i + 1, String.length(path)) }
-  } else {
-    Split{ dir: "", base: path }
-  }
+  let i = path.lastIndexOf("/")
+  if i == null { return Split{ dir: "", base: path } }
+  Split{ dir: path.slice(0, i), base: path.slice(i + 1, path.length()) }
 }
 
 println(splitPath("docs/lib/String/lastIndexOf.md"))
@@ -140,10 +137,10 @@ with `?? break`:
 
 ```ant
 let s = "the cat and the hat"
-var to = String.length(s)
+var to = s.length()
 let hits: Array[int] = []
 while true {
-  let i = String.lastIndexOf(String.slice(s, 0, to), "the") ?? break
+  let i = s.slice(0, to).lastIndexOf("the") ?? break
   hits.push(i)
   to = i
 }
@@ -162,9 +159,9 @@ before the index [`String.indexOf`](indexOf.md) gives:
 ```ant
 let s = "banana"
 for t in ["an", "nab", "a", "x"] {
-  let first = String.indexOf(s, t)
-  let last = String.lastIndexOf(s, t)
-  assert((last == null) == !String.contains(s, t))
+  let first = s.indexOf(t)
+  let last = s.lastIndexOf(t)
+  assert((last == null) == !s.contains(t))
   if first != null && last != null {
     assert(first <= last)
   }
@@ -176,9 +173,9 @@ When `t` occurs, the slice of `s` at the index is `t`:
 ```ant
 let s = "mississippi"
 let t = "ssi"
-let i = String.lastIndexOf(s, t)
+let i = s.lastIndexOf(t)
 assert(i != null)
-assert(String.slice(s, i, i + String.length(t)) == t)
+assert(s.slice(i, i + t.length()) == t)
 ```
 
 For a one-code-point `t`, the index is the one [`Array.lastIndexOf`](../Array/lastIndexOf.md) gives
@@ -187,7 +184,7 @@ on [`String.chars`](chars.md):
 ```ant
 let s = "hello"
 for c in ["h", "l", "o", "z"] {
-  assert(String.lastIndexOf(s, c) == Array.lastIndexOf(String.chars(s), c))
+  assert(String.lastIndexOf(s, c) == Array.lastIndexOf(s.chars(), c))
 }
 ```
 
@@ -227,8 +224,8 @@ The index counts code points, so it differs from a byte offset once non-ASCII te
 match:
 
 ```ant
-String.lastIndexOf("café!", "!")     // 4
-Bytes.length(String.toBytes("café")) // 5
+String.lastIndexOf("café!", "!") // 4
+"café".toBytes().length()        // 5
 ```
 
 The search is case-sensitive, and a precomposed `é` does not contain the code point `e`:

@@ -125,7 +125,7 @@ List the words that appear more than once, in the order they first appear:
 
 ```ant
 let words = ["the", "ant", "and", "the", "bee", "ant"]
-words.groupBy({ x }).filter({ len(x.value) > 1 }).keys() // ["the", "ant"]
+words | Array.groupBy({ x }) | Map.filter({ x.value.length() > 1 }) | Map.keys() // ["the", "ant"]
 ```
 
 ## Properties and relations
@@ -136,7 +136,7 @@ The keys are the keys of `Map.entries`, one per entry, each distinct, and each o
 let m = Map{ a: 1, b: 2, c: 3 }
 let ks = m.keys()
 assert(ks == m.entries().map({ x.key }))
-assert(len(ks) == m.size())
+assert(ks.length() == m.size())
 assert(ks == ks.unique())
 assert(ks.every({ m.has(x) }))
 ```
@@ -147,7 +147,7 @@ assert(ks.every({ m.has(x) }))
 let m = Map{ a: 1, b: 2, c: 3 }
 let ks = m.keys()
 let vs = m.values()
-for i in Array.range(0, len(ks)) {
+for i in Array.range(0, ks.length()) {
   assert(m[ks[i]] == vs[i])
 }
 ```

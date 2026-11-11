@@ -52,7 +52,7 @@ step 3
 A chain also reads left to right through `.`:
 
 ```ant
-Iter.fromArray(["ant", "bee", "fly"]).map({ String.toUpper(x) }).toArray() // ["ANT", "BEE", "FLY"]
+Iter.fromArray(["ant", "bee", "fly"]).map({ x.toUpper() }).toArray() // ["ANT", "BEE", "FLY"]
 ```
 
 ## Scope
@@ -189,7 +189,7 @@ The callbacks run only when the sequence runs, and only as far as the consumer a
 
 ```ant
 let seen: Array[int] = []
-let s = Iter.range(0, 100).map({ Array.push(seen, x); x })
+let s = Iter.range(0, 100).map({ seen.push(x); x })
 seen                // []
 s.take(3).toArray() // [0, 1, 2]
 seen                // [0, 1, 2]

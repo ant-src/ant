@@ -50,7 +50,7 @@ A named function works as well as an anonymous one:
 
 ```ant
 func byLength(a: string, b: string): int {
-  String.length(a) - String.length(b)
+  a.length() - b.length()
 }
 
 ["ccc", "a", "bb"].sortWith(byLength) // ["a", "bb", "ccc"]
@@ -60,7 +60,7 @@ In a pipeline, the array is the first argument:
 
 ```ant
 func byLength(a: string, b: string): int {
-  String.length(a) - String.length(b)
+  a.length() - b.length()
 }
 
 "the quick brown fox" | String.split(" ") | Array.sortWith(byLength) // ["the", "fox", "quick", "brown"]
@@ -173,8 +173,8 @@ Sort words case-insensitively:
 
 ```ant
 func caseless(a: string, b: string): int {
-  let x = String.toLower(a)
-  let y = String.toLower(b)
+  let x = a.toLower()
+  let y = b.toLower()
   if x < y { -1 } else if x > y { 1 } else { 0 }
 }
 
@@ -227,8 +227,8 @@ let xs = [4, 1, 3, 1, 2]
 assert(xs.sortWith(func(a: int, b: int) { a - b }) == xs.sort())
 
 let words = ["bee", "ant", "wasp", "fly"]
-assert(words.sortWith(func(a: string, b: string) { String.length(a) - String.length(b) })
-  == words.sortBy({ String.length(x) }))
+assert(words.sortWith(func(a: string, b: string) { a.length() - b.length() })
+  == words.sortBy({ x.length() }))
 ```
 
 Swapping the arguments of `cmp` reverses the order of unequal elements, so for distinct elements it

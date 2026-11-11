@@ -78,7 +78,7 @@ func parseSettings(text: string): Result[string, BadLine] {
 }
 
 let parsed = parseSettings("")
-  | Result.mapErr({ Error.wrap(Error{ message: "bad line ${x.line}" }, "parse settings") })
+  | Result.mapErr({ Error{ message: "bad line ${x.line}" }.wrap("parse settings") })
 if parsed is Err {
   println(parsed.error.message)
 }
@@ -100,7 +100,7 @@ func checkPort(port: int): Error | null {
 
 let problem = checkPort(70000)
 if problem != null {
-  println(Error.wrap(problem, "port").message)
+  println(problem.wrap("port").message)
 }
 ```
 
@@ -130,7 +130,7 @@ Wrapping leaves the original error as it was:
 
 ```ant
 let e = Error{ message: "timeout" }
-let wrapped = Error.wrap(e, "fetch")
+let wrapped = e.wrap("fetch")
 e // Error{ message: "timeout" }
 ```
 
@@ -151,7 +151,7 @@ instead:
 
 ```ant
 let e = Error{ message: "timeout" }
-Record.same(Error.wrap(e, "fetch"), e) // false
+Record.same(e.wrap("fetch"), e) // false
 ```
 
 `Error.wrap` adds `: ` itself, so a context that ends in a colon gets two:

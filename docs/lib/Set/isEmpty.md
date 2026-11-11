@@ -147,7 +147,7 @@ The empty set is a subset of every set:
 ```ant
 let cases: Array[Set[int]] = [Set.of([]), Set.of([1, 2])]
 for s in cases {
-  assert(Set.isSubset(Set.of([]), s))
+  assert(Set.of([]).isSubset(s))
 }
 ```
 

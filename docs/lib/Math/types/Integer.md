@@ -69,9 +69,9 @@ func largest[T: Integer](xs: Array[T]): T {
   }
   best
 }
-largest([3, 9, 4])                           // 9
-largest([int8(-5), int8(-2)])                // -2
-largest(Bytes.toArray(String.toBytes("hi"))) // 105
+largest([3, 9, 4])                // 9
+largest([int8(-5), int8(-2)])     // -2
+largest("hi".toBytes().toArray()) // 105
 ```
 
 Annotate a variable or an array element as `Integer` to hold integers of different types side by
@@ -106,7 +106,7 @@ Format any integer as a fixed-width binary string:
 ```ant
 func binary[T: Integer](x: T, width: int): string {
   let digits = String.fromInt(x, base: 2)
-  String.repeat("0", width - String.length(digits)) + digits
+  "0".repeat(width - digits.length()) + digits
 }
 binary(byte(5), 8)      // "00000101"
 binary(uint16(300), 16) // "0000000100101100"

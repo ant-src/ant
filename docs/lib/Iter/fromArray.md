@@ -30,7 +30,7 @@ Iter.fromArray([1, 2, 3]).toArray() // [1, 2, 3]
 Chain lazy steps on it:
 
 ```ant
-Iter.fromArray(["ant", "bee", "cat"]).map({ String.toUpper(x) }).toArray() // ["ANT", "BEE", "CAT"]
+Iter.fromArray(["ant", "bee", "cat"]).map({ x.toUpper() }).toArray() // ["ANT", "BEE", "CAT"]
 ```
 
 Take the first elements of an array as a sequence:
@@ -66,7 +66,7 @@ Iter.fromArray(marks).filter({ x != null }).toArray() // [90, 75]
 Nested arrays stay arrays; each element of the sequence is one inner array:
 
 ```ant
-Iter.fromArray([[1, 2], [], [3]]).map({ Array.length(x) }).toArray() // [2, 0, 1]
+Iter.fromArray([[1, 2], [], [3]]).map({ x.length() }).toArray() // [2, 0, 1]
 ```
 
 Start a pipe with it:

@@ -49,35 +49,35 @@ Records and arrays are members by value, so an equal one is not added again:
 ```ant
 type Point = { x: int, y: int }
 let points: Set[Point] = Set.of([])
-Set.add(points, Point{ x: 1, y: 2 }) // true
-Set.add(points, Point{ x: 1, y: 2 }) // false
+points.add(Point{ x: 1, y: 2 }) // true
+points.add(Point{ x: 1, y: 2 }) // false
 let rows = Set.of([[1, 2]])
-Set.add(rows, [1, 2]) // false
-Set.add(rows, [2, 1]) // true
+rows.add([1, 2]) // false
+rows.add([2, 1]) // true
 ```
 
 `null` is a member like any other in a set that allows it:
 
 ```ant
 let maybe: Set[int | null] = Set.of([1])
-Set.add(maybe, null) // true
-Set.add(maybe, null) // false
-maybe                // Set.of([1, null])
+maybe.add(null) // true
+maybe.add(null) // false
+maybe           // Set.of([1, null])
 ```
 
 Floats compare as `==` compares them, so `-0.0` is the member `0.0`:
 
 ```ant
 let zeros = Set.of([0.0])
-Set.add(zeros, -0.0) // false
+zeros.add(-0.0) // false
 ```
 
 A `let` set can be added to, since the binding stays the same:
 
 ```ant
 let s = Set.of(["a"])
-Set.add(s, "b") // true
-s               // Set.of(["a", "b"])
+s.add("b") // true
+s          // Set.of(["a", "b"])
 ```
 
 ## Applications
@@ -87,7 +87,7 @@ Keep the first of each line, with no separate membership test:
 ```ant
 let seen: Set[string] = Set.of([])
 for line in ["b", "a", "b", "c", "a"] {
-  if Set.add(seen, line) {
+  if seen.add(line) {
     println(line)
   }
 }
@@ -106,11 +106,11 @@ func repeated(words: Array[string]): Array[string] {
   let seen: Set[string] = Set.of([])
   let twice: Set[string] = Set.of([])
   for w in words {
-    if !Set.add(seen, w) {
-      Set.add(twice, w)
+    if !seen.add(w) {
+      twice.add(w)
     }
   }
-  Set.values(twice)
+  twice.values()
 }
 
 repeated(["to", "be", "or", "not", "to", "be", "to"]) // ["to", "be"]
@@ -125,7 +125,7 @@ func reachable(edges: Map[string, Array[string]], start: string): Set[string] {
   let found = Set.of([start])
   for node in found {
     for next in edges[node] ?? [] {
-      Set.add(found, next)
+      found.add(next)
     }
   }
   found
@@ -147,9 +147,9 @@ let orders = [
 ]
 let customers: Set[string] = Set.of([])
 for o in orders {
-  Set.add(customers, o.customer)
+  customers.add(o.customer)
 }
-Set.size(customers) // 2
+customers.size() // 2
 ```
 
 ## Properties and relations
@@ -158,48 +158,48 @@ The result is the opposite of [Set.has](has.md) before the call, and `x` is a me
 
 ```ant
 let s = Set.of([1, 2])
-let had = Set.has(s, 5)
-assert(Set.add(s, 5) == !had)
-assert(Set.has(s, 5))
+let had = s.has(5)
+assert(s.add(5) == !had)
+assert(s.has(5))
 ```
 
 The size grows by one exactly when the result is `true`:
 
 ```ant
 let s = Set.of(["a"])
-let before = Set.size(s)
-let added = Set.add(s, "b")
-assert(Set.size(s) == before + (if added { 1 } else { 0 }))
-assert(!Set.add(s, "b"))
-assert(Set.size(s) == 2)
+let before = s.size()
+let added = s.add("b")
+assert(s.size() == before + (if added { 1 } else { 0 }))
+assert(!s.add("b"))
+assert(s.size() == 2)
 ```
 
 A new member goes last in [Set.values](values.md):
 
 ```ant
 let s = Set.of([3, 1])
-Set.add(s, 2)
-assert(Array.last(Set.values(s)) == 2)
+s.add(2)
+assert(s.values().last() == 2)
 ```
 
 It does in place what [Set.union](union.md) with a one-member set does in a new set:
 
 ```ant
 let s = Set.of([1, 2])
-let u = Set.union(s, Set.of([3]))
-let added = Set.add(s, 3)
+let u = s.union(Set.of([3]))
+let added = s.add(3)
 assert(added)
 assert(s == u)
-assert(Set.values(s) == Set.values(u))
+assert(s.values() == u.values())
 ```
 
 [Set.remove](remove.md) undoes the add of a new member:
 
 ```ant
 let s = Set.of([1, 2])
-let copy = Set.of(Set.values(s))
-Set.add(s, 3)
-assert(Set.remove(s, 3))
+let copy = Set.of(s.values())
+s.add(3)
+assert(s.remove(3))
 assert(s == copy)
 ```
 
@@ -208,7 +208,7 @@ Every other name for the set sees the add:
 ```ant
 let s = Set.of([1])
 let alias = s
-Set.add(s, 2) // true
+s.add(2) // true
 assert(Set.same(alias, s))
 alias // Set.of([1, 2])
 ```
@@ -219,14 +219,14 @@ alias // Set.of([1, 2])
 
 ```ant
 var s = Set.of([1])
-s = Set.add(s, 2) // error: cannot use bool where Set[int] is expected
+s = s.add(2) // error: cannot use bool where Set[int] is expected
 ```
 
 To get a new set and keep the old one, use [Set.union](union.md):
 
 ```ant
 let s = Set.of([1])
-let t = Set.union(s, Set.of([2]))
+let t = s.union(Set.of([2]))
 s // Set.of([1])
 t // Set.of([1, 2])
 ```
@@ -235,14 +235,14 @@ t // Set.of([1, 2])
 
 ```ant
 let s = Set.of([]) // error: cannot infer the element type of an empty array; annotate it
-Set.add(s, 1)
+s.add(1)
 ```
 
 `x` must have the element type:
 
 ```ant
 let s = Set.of([1])
-Set.add(s, "2") // error: cannot use string where int is expected
+s.add("2") // error: cannot use string where int is expected
 ```
 
 A set has no indexing, so add with `Set.add`, not an assignment as for a map:
@@ -257,20 +257,20 @@ NaN is not `==` to itself, so each add of it adds a new member:
 ```ant
 let s: Set[float64] = Set.of([])
 let nan = 0.0 / 0.0
-Set.add(s, nan) // true
-Set.add(s, nan) // true
-Set.size(s)     // 2
+s.add(nan) // true
+s.add(nan) // true
+s.size()   // 2
 ```
 
 Adding an existing member does not move it. To move a member to the end, remove it first:
 
 ```ant
 let s = Set.of(["a", "b", "c"])
-Set.add(s, "a")    // false
-s                  // Set.of(["a", "b", "c"])
-Set.remove(s, "a") // true
-Set.add(s, "a")    // true
-s                  // Set.of(["b", "c", "a"])
+s.add("a")    // false
+s             // Set.of(["a", "b", "c"])
+s.remove("a") // true
+s.add("a")    // true
+s             // Set.of(["b", "c", "a"])
 ```
 
 Adding to one set from several goroutines without a lock is a data race. Guard the set with a
@@ -281,14 +281,14 @@ let seen: Set[int] = Set.of([])
 let lock = Mutex.new()
 let wg = WaitGroup.new()
 for n in [1, 2, 3, 2, 1] {
-  WaitGroup.add(wg, 1)
+  wg.add(1)
   go {
-    defer { WaitGroup.done(wg) }
-    Mutex.withLock(lock, { Set.add(seen, n) })
+    defer { wg.done() }
+    lock.withLock({ seen.add(n) })
   }
 }
-WaitGroup.wait(wg)
-println(Set.size(seen))
+wg.wait()
+println(seen.size())
 ```
 
 ```text

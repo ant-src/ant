@@ -42,7 +42,7 @@ Start from an empty map, which needs its type spelled out:
 
 ```ant
 let counts: Map[string, int] = Map{}
-Map.set(counts, "apples", 3)
+counts.set("apples", 3)
 counts // Map{ "apples": 3 }
 ```
 
@@ -50,11 +50,11 @@ A replaced entry keeps its place; a key removed and set again goes to the end:
 
 ```ant
 let order = Map{ a: 1, b: 2, c: 3 }
-Map.set(order, "a", 10)
-Map.keys(order)        // ["a", "b", "c"]
-Map.remove(order, "a") // 10
-Map.set(order, "a", 11)
-Map.keys(order) // ["b", "c", "a"]
+order.set("a", 10)
+order.keys()      // ["a", "b", "c"]
+order.remove("a") // 10
+order.set("a", 11)
+order.keys() // ["b", "c", "a"]
 ```
 
 Records, arrays, and numbers work as keys. Two keys that are `==` are the same key:
@@ -62,14 +62,14 @@ Records, arrays, and numbers work as keys. Two keys that are `==` are the same k
 ```ant
 type Point = { x: int, y: int }
 let tiles: Map[Point, string] = Map{}
-Map.set(tiles, Point{ x: 1, y: 2 }, "tree")
-Map.set(tiles, Point{ x: 1, y: 2 }, "rock")
+tiles.set(Point{ x: 1, y: 2 }, "tree")
+tiles.set(Point{ x: 1, y: 2 }, "rock")
 tiles // Map{ Point{ x: 1, y: 2 }: "rock" }
 let paths: Map[Array[int], string] = Map{}
-Map.set(paths, [0, 1], "left")
+paths.set([0, 1], "left")
 paths[[0, 1]] // "left"
 let names: Map[int, string] = Map{}
-Map.set(names, 7, "seven")
+names.set(7, "seven")
 names // Map{ 7: "seven" }
 ```
 
@@ -78,17 +78,17 @@ When the value type includes `null`, a stored `null` is an entry like any other,
 
 ```ant
 let parents: Map[string, string | null] = Map{}
-Map.set(parents, "root", null)
-parents                     // Map{ "root": null }
-Map.has(parents, "root")    // true
-Map.has(parents, "missing") // false
+parents.set("root", null)
+parents                // Map{ "root": null }
+parents.has("root")    // true
+parents.has("missing") // false
 ```
 
 A `let` fixes the binding, not the map, so a `let` map takes new entries:
 
 ```ant
 let config = Map{ debug: "off" }
-Map.set(config, "debug", "on")
+config.set("debug", "on")
 config // Map{ "debug": "on" }
 ```
 
@@ -107,8 +107,8 @@ Count the words of a text:
 
 ```ant
 let counts: Map[string, int] = Map{}
-for word in String.split("the cat saw the dog", " ") {
-  Map.set(counts, word, (counts[word] ?? 0) + 1)
+for word in "the cat saw the dog".split(" ") {
+  counts.set(word, (counts[word] ?? 0) + 1)
 }
 println(counts)
 ```
@@ -127,12 +127,12 @@ func fib(n: int): int {
   let hit = cache[n]
   if hit != null { return hit }
   let v = fib(n - 1) + fib(n - 2)
-  Map.set(cache, n, v)
+  cache.set(n, v)
   v
 }
 
 println(fib(80))
-println(Map.size(cache))
+println(cache.size())
 ```
 
 ```text
@@ -152,9 +152,9 @@ let users = [
 ]
 let byId: Map[string, User] = Map{}
 for user in users {
-  Map.set(byId, user.id, user)
+  byId.set(user.id, user)
 }
-println(Map.size(byId))
+println(byId.size())
 println(byId["u1"]?.name)
 ```
 
@@ -179,18 +179,18 @@ After the call, [Map.get](get.md) returns `v` for `k`:
 
 ```ant
 let m = Map{ a: 1 }
-Map.set(m, "b", 2)
-assert(Map.get(m, "b") == 2)
+m.set("b", 2)
+assert(m.get("b") == 2)
 ```
 
 The size grows by one for a new key and stays the same for a key already there:
 
 ```ant
 let m = Map{ a: 1 }
-Map.set(m, "b", 2)
-assert(Map.size(m) == 2)
-Map.set(m, "a", 3)
-assert(Map.size(m) == 2)
+m.set("b", 2)
+assert(m.size() == 2)
+m.set("a", 3)
+assert(m.size() == 2)
 ```
 
 `m` stays the same map, so every other name for it sees the new entry, including the caller of a
@@ -198,14 +198,14 @@ function that sets it:
 
 ```ant
 func touch(m: Map[string, int]) {
-  Map.set(m, "touched", 1)
+  m.set("touched", 1)
 }
 
 let m = Map{ a: 1 }
 let alias = m
 touch(m)
 assert(Map.same(alias, m))
-assert(Map.has(alias, "touched"))
+assert(alias.has("touched"))
 ```
 
 ## Possible issues
@@ -214,7 +214,7 @@ assert(Map.has(alias, "touched"))
 
 ```ant
 func withDefault(m: Map[string, int]): Map[string, int] {
-  Map.set(m, "default", 0) // error: cannot use void where Map[string, int] is expected
+  m.set("default", 0) // error: cannot use void where Map[string, int] is expected
 }
 ```
 
@@ -229,8 +229,8 @@ The key and the value must have the map's types:
 
 ```ant
 let ages = Map{ ada: 36 }
-Map.set(ages, 7, 54)          // error: cannot use int where string is expected
-Map.set(ages, "linus", "old") // error: cannot use string where int is expected
+ages.set(7, 54)          // error: cannot use int where string is expected
+ages.set("linus", "old") // error: cannot use string where int is expected
 ```
 
 A `for` loop over a map visits entries set during the loop, so adding a new key for each entry never
@@ -239,8 +239,8 @@ ends. Here a size check stops it:
 ```ant
 let squares = Map{ 1: 1, 2: 4 }
 for e in squares {
-  if Map.size(squares) >= 6 { break }
-  Map.set(squares, e.key * 10, e.value)
+  if squares.size() >= 6 { break }
+  squares.set(e.key * 10, e.value)
 }
 squares // Map{ 1: 1, 2: 4, 10: 1, 20: 4, 100: 1, 200: 4 }
 ```
@@ -250,7 +250,7 @@ Replacing the value of the entry the loop is on adds no entry, so this loop visi
 ```ant
 let prices = Map{ tea: 2, cake: 5 }
 for { key, value } in prices {
-  Map.set(prices, key, value * 2)
+  prices.set(key, value * 2)
 }
 prices // Map{ "tea": 4, "cake": 10 }
 ```
@@ -261,7 +261,7 @@ copy instead:
 ```ant
 let path = [0, 1]
 let seen: Map[Array[int], bool] = Map{}
-Map.set(seen, [...path], true)
+seen.set([...path], true)
 path[0] = 9
 seen[[0, 1]] // true
 ```

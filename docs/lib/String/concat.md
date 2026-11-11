@@ -52,8 +52,8 @@ points:
 
 ```ant
 let s = String.concat(["e", "\u{301}"])
-String.length(s)         // 2
-len(String.graphemes(s)) // 1
+s.length()         // 2
+len(s.graphemes()) // 1
 ```
 
 Pass the parts with a pipe, which puts the array in as the first argument:
@@ -67,7 +67,7 @@ Pass the parts with a pipe, which puts the array in as the first argument:
 Join digits into one string:
 
 ```ant
-String.concat(Array.map([1, 2, 3], { String.from(x) })) // "123"
+[1, 2, 3].map({ String.from(x) }) | String.concat() // "123"
 ```
 
 Collect pieces in an array as a loop goes, then join them once:
@@ -88,7 +88,7 @@ Build a banner from repeated pieces:
 
 ```ant
 func banner(title: string): string {
-  let rule = String.repeat("=", 3)
+  let rule = "=".repeat(3)
   String.concat([rule, " ", title, " ", rule])
 }
 
@@ -120,16 +120,16 @@ The length of the result is the sum of the lengths of the parts:
 
 ```ant
 let parts = ["é", "日本", "", "🐜"]
-let total = Array.sum(Array.map(parts, { String.length(x) })) ?? 0
-assert(String.length(String.concat(parts)) == total)
+let total = parts.map({ x.length() }).sum() ?? 0
+assert(String.concat(parts).length() == total)
 ```
 
 It undoes [String.chars](chars.md) and [String.graphemes](graphemes.md):
 
 ```ant
 let s = "héllo 日本"
-assert(String.concat(String.chars(s)) == s)
-assert(String.concat(String.graphemes(s)) == s)
+assert(String.concat(s.chars()) == s)
+assert(String.concat(s.graphemes()) == s)
 ```
 
 It is associative: joining joined parts gives the same string as joining them all at once:
@@ -183,9 +183,9 @@ instead:
 
 ```ant
 let s = "ne\u{301}"
-String.toCodePoints(s)                                                 // [110, 101, 769]
-String.toCodePoints(String.concat(Array.reverse(String.chars(s))))     // [769, 101, 110]
-String.toCodePoints(String.concat(Array.reverse(String.graphemes(s)))) // [101, 769, 110]
+s.toCodePoints()                                                  // [110, 101, 769]
+s.chars().reverse() | String.concat() | String.toCodePoints()     // [769, 101, 110]
+s.graphemes().reverse() | String.concat() | String.toCodePoints() // [101, 769, 110]
 ```
 
 ## See also

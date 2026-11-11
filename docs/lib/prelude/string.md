@@ -54,7 +54,7 @@ string(e).length()        // 15
 ```ant
 type Tag = string
 let tags = [Tag("ant"), Tag("docs")]
-Array.map(tags, string) // ["ant", "docs"]
+tags.map(string) // ["ant", "docs"]
 ```
 
 In a pipe:
@@ -70,7 +70,7 @@ The keys of a map:
 ```ant
 type Slug = string
 let pages = Map{ Slug("home"): 1, Slug("about"): 2 }
-Array.sort(Array.map(Map.keys(pages), string)) // ["about", "home"]
+pages | Map.keys() | Array.map(string) | Array.sort() // ["about", "home"]
 ```
 
 ## Applications
@@ -96,7 +96,7 @@ Join tagged values into one line of text:
 ```ant
 type Tag = string
 let tags = [Tag("go"), Tag("ant"), Tag("docs")]
-println(String.join(Array.map(tags, string), ", "))
+println(tags | Array.map(string) | String.join(", "))
 ```
 
 ```text

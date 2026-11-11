@@ -80,7 +80,7 @@ water plants
 
 ```ant
 let text = Result.unwrap(File.read("todo.txt"))
-for line in String.lines(text) {
+for line in text.lines() {
   println("- ${line}")
 }
 ```
@@ -103,7 +103,7 @@ Number the lines, starting at 1:
 ```ant
 func numbered(text: string): string {
   let out: Array[string] = []
-  for line in String.lines(text) {
+  for line in text.lines() {
     out.push("${len(out) + 1}: ${line}")
   }
   String.join(out, "\n")
@@ -117,15 +117,11 @@ Parse `key=value` settings, skipping blank lines and comments:
 ```ant
 func settings(text: string): Map[string, string] {
   let m: Map[string, string] = Map{}
-  for line in String.lines(text) {
-    let t = String.trim(line)
-    if t == "" || String.startsWith(t, "#") {
-      continue
-    }
-    let kv = String.cut(t, "=")
-    if kv != null {
-      m[String.trim(kv.before)] = String.trim(kv.after)
-    }
+  for line in text.lines() {
+    let t = line.trim()
+    if t.isEmpty() || t.startsWith("#") { continue }
+    let kv = t.cut("=") ?? continue
+    m[kv.before.trim()] = kv.after.trim()
   }
   m
 }
@@ -137,7 +133,7 @@ Keep the lines that match, as `grep` does:
 
 ```ant
 let log = "INFO start\nERROR disk full\nINFO retry\nERROR disk full\n"
-String.lines(log).filter({ String.startsWith(x, "ERROR") }) // ["ERROR disk full", "ERROR disk full"]
+log.lines().filter({ x.startsWith("ERROR") }) // ["ERROR disk full", "ERROR disk full"]
 ```
 
 ## Properties and relations
@@ -147,14 +143,14 @@ newline gives the text back:
 
 ```ant
 let text = "first\n\nthird\n"
-assert(String.join(String.lines(text), "\n") + "\n" == text)
+assert(String.join(text.lines(), "\n") + "\n" == text)
 ```
 
 For such text, there is one line per `\n`:
 
 ```ant
 let text = "a\nb\n\nc\n"
-assert(len(String.lines(text)) == String.count(text, "\n"))
+assert(text.lines().length() == text.count("\n"))
 ```
 
 Adding a final newline to text that is not empty and does not end with one does not change the
@@ -162,7 +158,7 @@ lines:
 
 ```ant
 let text = "a\nb"
-assert(String.lines(text + "\n") == String.lines(text))
+assert((text + "\n").lines() == text.lines())
 ```
 
 For text with no `\r`, `String.lines` is [String.split](split.md) at `\n` without the empty piece
@@ -170,8 +166,8 @@ after a final newline:
 
 ```ant
 let text = "a\nb\n"
-String.split(text, "\n") // ["a", "b", ""]
-String.lines(text)       // ["a", "b"]
+text.split("\n") // ["a", "b", ""]
+text.lines()     // ["a", "b"]
 ```
 
 A `\r` before a `\n` stays in the pieces of `String.split`:
@@ -211,7 +207,7 @@ String.lines("a\u{2028}b") // ["a\u{2028}b"]
 `String.lines` does not trim lines. Trim each one when the white space around it does not matter:
 
 ```ant
-String.lines("  a \n b").map({ String.trim(x) }) // ["a", "b"]
+String.lines("  a \n b").map({ x.trim() }) // ["a", "b"]
 ```
 
 ## See also

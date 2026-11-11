@@ -24,7 +24,7 @@ stable, a NaN key sorts after every number, and -0.0 and 0.0 keys are equal.
 Sort words by length:
 
 ```ant
-Array.sortBy(["pear", "fig", "banana"], { String.length(x) }) // ["fig", "pear", "banana"]
+Array.sortBy(["pear", "fig", "banana"], { x.length() }) // ["fig", "pear", "banana"]
 ```
 
 Sort records by a field:
@@ -60,8 +60,8 @@ A string key sorts uppercase ASCII letters before lowercase ones. Sort by `Strin
 ignore case:
 
 ```ant
-["b", "B", "a", "A"].sortBy({ x })                           // ["A", "B", "a", "b"]
-["Banana", "apple", "cherry"].sortBy({ String.foldCase(x) }) // ["apple", "Banana", "cherry"]
+["b", "B", "a", "A"].sortBy({ x })                     // ["A", "B", "a", "b"]
+["Banana", "apple", "cherry"].sortBy({ x.foldCase() }) // ["apple", "Banana", "cherry"]
 ```
 
 An accented letter sorts by its code point, after every ASCII letter:
@@ -107,7 +107,7 @@ Pass a named function instead of a lambda:
 
 ```ant
 func vowels(s: string): int {
-  String.graphemes(s).countWhere({ "aeiou".contains(x) })
+  s.graphemes().countWhere({ "aeiou".contains(x) })
 }
 
 ["queue", "sky", "area"].sortBy(vowels) // ["sky", "area", "queue"]
@@ -123,8 +123,8 @@ let target = 10
 Call it through `.` or in a pipe:
 
 ```ant
-["bb", "a", "ccc"].sortBy({ String.length(x) })         // ["a", "bb", "ccc"]
-["bb", "a", "ccc"] | Array.sortBy({ String.length(x) }) // ["a", "bb", "ccc"]
+["bb", "a", "ccc"].sortBy({ x.length() })         // ["a", "bb", "ccc"]
+["bb", "a", "ccc"] | Array.sortBy({ x.length() }) // ["a", "bb", "ccc"]
 ```
 
 ## Applications
@@ -139,7 +139,7 @@ stock.entries().sortBy({ x.value }).map({ x.key }) // ["nut", "gear", "bolt"]
 Count words and print them from the most frequent, with `Array.groupBy`:
 
 ```ant
-let words = String.split("the ant and the bee and the ant", " ")
+let words = "the ant and the bee and the ant".split(" ")
 for entry in words.groupBy({ x }).entries().sortBy({ -x.value.length() }) {
   println("${entry.key}: ${entry.value.length()}")
 }
@@ -195,8 +195,8 @@ order:
 
 ```ant
 let seen: Array[string] = []
-["pear", "fig", "kiwi"].sortBy({ Array.push(seen, x); String.length(x) }) // ["fig", "pear", "kiwi"]
-seen                                                                      // ["pear", "fig", "kiwi"]
+["pear", "fig", "kiwi"].sortBy({ seen.push(x); x.length() }) // ["fig", "pear", "kiwi"]
+seen                                                         // ["pear", "fig", "kiwi"]
 ```
 
 ## Properties and relations
@@ -225,15 +225,15 @@ the first of equal keys:
 
 ```ant
 let words = ["fig", "kiwi", "pea", "plum"]
-assert(words.sortBy({ String.length(x) }).first() == words.minBy({ String.length(x) }))
+assert(words.sortBy({ x.length() }).first() == words.minBy({ x.length() }))
 ```
 
 `Array.sortWith` with a comparison of the keys gives the same order:
 
 ```ant
 let words = ["pear", "fig", "banana", "kiwi"]
-let byLength = words.sortWith(func(a: string, b: string) { String.length(a) - String.length(b) })
-assert(words.sortBy({ String.length(x) }) == byLength)
+let byLength = words.sortWith(func(a: string, b: string) { a.length() - b.length() })
+assert(words.sortBy({ x.length() }) == byLength)
 ```
 
 ## Possible issues
@@ -323,12 +323,12 @@ but it also reverses the order of equal keys, so the sort is no longer stable:
 
 ```ant
 func longerFirst(a: string, b: string): int {
-  String.length(b) - String.length(a)
+  b.length() - a.length()
 }
 
 let words = ["bb", "a", "cc"]
-words.sortBy({ String.length(x) }).reverse() // ["cc", "bb", "a"]
-words.sortWith(longerFirst)                  // ["bb", "cc", "a"]
+words.sortBy({ x.length() }).reverse() // ["cc", "bb", "a"]
+words.sortWith(longerFirst)            // ["bb", "cc", "a"]
 ```
 
 ## See also

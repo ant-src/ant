@@ -104,7 +104,7 @@ Count the distinct words of a text:
 ```ant
 func distinct(text: string): int {
   let counts: Map[string, int] = Map{}
-  for word in String.fields(text) {
+  for word in text.fields() {
     counts[word] = (counts[word] ?? 0) + 1
   }
   counts.size()

@@ -46,7 +46,7 @@ Ann
 
 ```ant
 print("name: ")
-let name = try File.readLine(Os.stdin())
+let name = try Os.stdin().readLine()
 println("Hello, ${name ?? "stranger"}")
 ```
 
@@ -124,7 +124,7 @@ Join items with a separator as they come, writing the separator before every ite
 
 ```ant
 let words = ["one", "two", "three"]
-for entry in Array.entries(words) {
+for entry in words.entries() {
   if entry.index > 0 {
     print(", ")
   }
@@ -143,7 +143,7 @@ Print a table one cell at a time, ending each row with [println](println.md):
 let rows = [[1, 20, 300], [4000, 5, 60]]
 for row in rows {
   for n in row {
-    print(String.padStart(String.from(n), 6))
+    print(String.from(n).padStart(6))
   }
   println()
 }
@@ -231,10 +231,10 @@ A `print` made while a [File.buffered](../File/buffered.md) handle on [Os.stdout
 holds output goes past the buffer and can come out first:
 
 ```ant
-let out = File.buffered(Os.stdout())
-try File.writeText(out, "A")
+let out = Os.stdout().buffered()
+try out.writeText("A")
 print("B")
-try File.flush(out)
+try out.flush()
 println()
 ```
 

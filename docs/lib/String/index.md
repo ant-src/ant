@@ -27,7 +27,7 @@ functions build a string from another value.
 - `String.unicodeVersion` names the version of the Unicode tables that grapheme splitting,
   normalization, case mapping, and the class tests follow.
 - There is no format string: write `String.fromFloat(x, 2)` or
-  `String.padStart(String.fromInt(n, 16), 8, "0")` inside interpolation.
+  `String.fromInt(n, 16).padStart(8, "0")` inside interpolation.
 
 ## Basic examples
 
@@ -91,33 +91,33 @@ Text outside ASCII counts by code point. An accent written as its own code point
 and `String.graphemes` keeps it with its letter:
 
 ```ant
-String.length("日本語")       // 3
-String.length("e\u{301}")     // 2
-String.graphemes("e\u{301}x") // ["é", "x"]
-String.toCodePoints("é")      // [233]
+"日本語".length()       // 3
+"e\u{301}".length()     // 2
+"e\u{301}x".graphemes() // ["é", "x"]
+"é".toCodePoints()      // [233]
 ```
 
 Numbers go to and from text through dedicated functions. A string that is not a number reads as
 `null`:
 
 ```ant
-String.toInt("42")           // 42
-String.toInt("4 2")          // null
+"42".toInt()                 // 42
+"4 2".toInt()                // null
 String.fromInt(255, 16)      // "ff"
 String.fromFloat(3.14159, 2) // "3.14"
 ```
 
-There is no format string; a zero-padded number is `String.fromInt` inside `String.padStart`:
+There is no format string; a zero-padded number is `String.fromInt` followed by `padStart`:
 
 ```ant
-String.padStart(String.fromInt(255, 16), 8, "0") // "000000ff"
+String.fromInt(255, 16).padStart(8, "0") // "000000ff"
 ```
 
 `String.cut` returns a [String.Cut](types/Cut.md) record, or `null` when the separator is absent:
 
 ```ant
-String.cut("key=value", "=") // String.Cut{ before: "key", after: "value" }
-String.cut("novalue", "=")   // null
+"key=value".cut("=") // String.Cut{ before: "key", after: "value" }
+"novalue".cut("=")   // null
 ```
 
 ## Functions by job
@@ -209,10 +209,10 @@ Read `key=value` settings, skipping blank lines and lines without `=`:
 ```ant
 let text = "host=localhost\n\nport=8080\nverbose\n"
 let settings: Map[string, string] = Map{}
-for line in String.lines(text) {
-  let kv = String.cut(line, "=")
+for line in text.lines() {
+  let kv = line.cut("=")
   if kv != null {
-    settings[String.trim(kv.before)] = String.trim(kv.after)
+    settings[kv.before.trim()] = kv.after.trim()
   }
 }
 settings // Map{ "host": "localhost", "port": "8080" }
@@ -222,7 +222,7 @@ Format a table row with fixed-width columns:
 
 ```ant
 func row(name: string, qty: int): string {
-  String.padEnd(name, 8, ".") + String.padStart(String.fromInt(qty), 4)
+  name.padEnd(8, ".") + String.fromInt(qty).padStart(4)
 }
 row("apples", 12) // "apples..  12"
 row("figs", 300)  // "figs.... 300"
@@ -232,8 +232,10 @@ Build a slug from a title:
 
 ```ant
 let title = "  Hello, Ant World! "
-let slug = String.fields(String.toLower(title))
-  | Array.map({ String.chars(x).filter({ String.isLetter(x) }) | String.concat() })
+let slug = title
+  | String.toLower()
+  | String.fields()
+  | Array.map({ x.chars().filter({ x.isLetter() }) | String.concat() })
   | String.join("-")
 println(slug)
 ```
@@ -256,17 +258,17 @@ Splitting and joining with the same separator gives the string back:
 
 ```ant
 let s = "a,b,,c"
-assert(String.join(String.split(s, ","), ",") == s)
+assert(String.join(s.split(","), ",") == s)
 ```
 
 The code points of a string, its characters, and its UTF-8 bytes all lead back to it:
 
 ```ant
 let s = "naïve 🐜"
-assert(String.concat(String.chars(s)) == s)
-assert(String.fromCodePoints(String.toCodePoints(s)) == s)
-assert(String.fromBytes(String.toBytes(s)) == s)
-assert(len(String.chars(s)) == len(s))
+assert(String.concat(s.chars()) == s)
+assert(String.fromCodePoints(s.toCodePoints()) == s)
+assert(String.fromBytes(s.toBytes()) == s)
+assert(len(s.chars()) == len(s))
 ```
 
 A call through `.`, a pipe, and a direct call are the same call:
@@ -289,8 +291,8 @@ println(s[0]) // error: string cannot be indexed
 
 ```ant
 let s = "ant"
-String.slice(s, 0, 1) // "a"
-String.chars(s)[0]    // "a"
+s.slice(0, 1) // "a"
+s.chars()[0]  // "a"
 ```
 
 `+` joins only two strings; a number goes in through interpolation or `String.fromInt`:
@@ -310,16 +312,16 @@ let n = 3
 through `String.normalize`:
 
 ```ant
-"\u{E9}" == "e\u{301}"                                                   // false
-String.normalize("\u{E9}", "NFC") == String.normalize("e\u{301}", "NFC") // true
+"\u{E9}" == "e\u{301}"                                   // false
+"\u{E9}".normalize("NFC") == "e\u{301}".normalize("NFC") // true
 ```
 
 Comparison is by code point, not by dictionary order, so every upper-case ASCII letter comes before
 every lower-case one:
 
 ```ant
-"Zebra" < "apple"                                   // true
-String.foldCase("Zebra") < String.foldCase("apple") // false
+"Zebra" < "apple"                       // true
+"Zebra".foldCase() < "apple".foldCase() // false
 ```
 
 `join` is a `String` function, not an `Array` one. A call through `.` on an array goes to the
@@ -353,16 +355,16 @@ len(s)     // 2
 to case. Compare or key such text through `String.foldCase` or `String.equalFold`:
 
 ```ant
-String.toLower("STRASSE") == String.toLower("Straße") // false
-String.equalFold("STRASSE", "Straße")                 // true
+"STRASSE".toLower() == "Straße".toLower() // false
+String.equalFold("STRASSE", "Straße")     // true
 ```
 
 A code point is not always a character a reader sees. `String.length` counts the code points of a
 flag, and `String.graphemes` counts the flag once:
 
 ```ant
-String.length("🇨🇭")         // 2
-len(String.graphemes("🇨🇭")) // 1
+"🇨🇭".length()         // 2
+len("🇨🇭".graphemes()) // 1
 ```
 
 ## See also

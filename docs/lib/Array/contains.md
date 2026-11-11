@@ -108,7 +108,7 @@ Drop stop words from a sentence:
 
 ```ant
 let stop = ["a", "an", "the", "of"]
-let words = String.split("the art of an ant", " ")
+let words = "the art of an ant".split(" ")
 words.filter({ !stop.contains(x) }) // ["art", "ant"]
 ```
 
@@ -272,8 +272,8 @@ Text that can arrive in either Unicode spelling needs normalizing on both sides 
 [`String.normalize`](../String/normalize.md):
 
 ```ant
-let names = ["café"].map({ String.normalize(x, "NFC") })
-names.contains(String.normalize("cafe\u{301}", "NFC")) // true
+let names = ["café"].map({ x.normalize("NFC") })
+names.contains("cafe\u{301}".normalize("NFC")) // true
 ```
 
 ## See also

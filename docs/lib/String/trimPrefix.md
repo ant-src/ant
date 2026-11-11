@@ -43,36 +43,36 @@ Call it through `.` on any string:
 The prefix is removed once, even when it repeats:
 
 ```ant
-String.trimPrefix("vvx", "v")    // "vx"
-String.trimPrefix("////a", "//") // "//a"
+"vvx".trimPrefix("v")    // "vx"
+"////a".trimPrefix("//") // "//a"
 ```
 
 An empty prefix changes nothing, and nothing is removed from an empty string:
 
 ```ant
-String.trimPrefix("abc", "") // "abc"
-String.trimPrefix("", "")    // ""
-String.trimPrefix("", "a")   // ""
+"abc".trimPrefix("") // "abc"
+"".trimPrefix("")    // ""
+"".trimPrefix("a")   // ""
 ```
 
 The whole string as the prefix leaves the empty string. A prefix longer than `s` matches nothing:
 
 ```ant
-String.trimPrefix("abc", "abc") // ""
-String.trimPrefix("ab", "abc")  // "ab"
+"abc".trimPrefix("abc") // ""
+"ab".trimPrefix("abc")  // "ab"
 ```
 
 The prefix must be at the very start. A match later in the string does not count:
 
 ```ant
-String.trimPrefix("a-b-", "b-") // "a-b-"
+"a-b-".trimPrefix("b-") // "a-b-"
 ```
 
 Non-ASCII text works the same way, by code points:
 
 ```ant
-String.trimPrefix("🐜🐝🐞", "🐜")       // "🐝🐞"
-String.trimPrefix("über-cool", "über-") // "cool"
+"🐜🐝🐞".trimPrefix("🐜")       // "🐝🐞"
+"über-cool".trimPrefix("über-") // "cool"
 ```
 
 In a pipeline, the string is the first argument. Named arguments use `s:` and `prefix:`:
@@ -112,7 +112,7 @@ Turn Markdown headings into plain titles, leaving other lines alone:
 
 ```ant
 let text = "# Intro\nSome text.\n# Usage"
-for line in String.lines(text) {
+for line in text.lines() {
   println(line.trimPrefix("# "))
 }
 ```
@@ -137,7 +137,7 @@ When `s` starts with `prefix`, putting the prefix back gives `s`. When it does n
 
 ```ant
 for s in ["v1.0", "1.0", "v", ""] {
-  let t = String.trimPrefix(s, "v")
+  let t = s.trimPrefix("v")
   if s.startsWith("v") {
     assert("v" + t == s)
   } else {
@@ -175,8 +175,8 @@ s.trimPrefix("<").trimSuffix(">") // "b"
 The prefix is a string, not a set of characters to strip. `"xy"` matches only `x` followed by `y`:
 
 ```ant
-String.trimPrefix("xxyz", "xy") // "xxyz"
-String.trimPrefix("xyz", "xy")  // "z"
+"xxyz".trimPrefix("xy") // "xxyz"
+"xyz".trimPrefix("xy")  // "z"
 ```
 
 It removes one copy. To remove every leading copy, loop with [`String.startsWith`](startsWith.md):
@@ -197,8 +197,8 @@ The match is case-sensitive. Lowering `s` first makes the prefix match, but it l
 `s` too:
 
 ```ant
-String.trimPrefix("Http://Ant-Lang.org", "http://")           // "Http://Ant-Lang.org"
-String.trimPrefix("Http://Ant-Lang.org".toLower(), "http://") // "ant-lang.org"
+"Http://Ant-Lang.org".trimPrefix("http://")           // "Http://Ant-Lang.org"
+"Http://Ant-Lang.org".toLower().trimPrefix("http://") // "ant-lang.org"
 ```
 
 To keep the case of the rest, compare only the start of `s` with [`String.equalFold`](equalFold.md):
@@ -217,13 +217,13 @@ The match counts code points, not what a reader sees. Removing `e` from an `e` w
 accent leaves the accent alone:
 
 ```ant
-String.trimPrefix("e\u{301}tude", "e").startsWith("\u{301}") // true
+"e\u{301}tude".trimPrefix("e").startsWith("\u{301}") // true
 ```
 
 To remove white space, use [`String.trimStart`](trimStart.md), which takes no prefix:
 
 ```ant
-String.trimStart("  \tindent") // "indent"
+"  \tindent".trimStart() // "indent"
 ```
 
 Testing the result with `startsWith` does not tell whether a prefix was removed: `"vv1"` gives

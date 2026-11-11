@@ -82,8 +82,8 @@ Records are read through their fields:
 ```ant
 type Task = { title: string, done: bool }
 let tasks = [Task{ title: "write", done: true }, Task{ title: "test", done: false }]
-tasks.every({ x.done })                      // false
-tasks.every({ String.length(x.title) <= 5 }) // true
+tasks.every({ x.done })                // false
+tasks.every({ x.title.length() <= 5 }) // true
 ```
 
 With a union, test the tag with `is`. Inside `&&`, `x` is narrowed to the member:
@@ -125,7 +125,7 @@ Set.of(["a", "b"]).values().every({ x.length() == 1 }) // true
 In a pipeline, the array is the first argument:
 
 ```ant
-"a b c" | String.split(" ") | Array.every({ String.length(x) == 1 }) // true
+"a b c" | String.split(" ") | Array.every({ x.length() == 1 }) // true
 ```
 
 A closure sees later assignments to the variables it captures:
@@ -181,9 +181,9 @@ Err{ error: "missing: email" }
 Check that a string holds only hexadecimal digits:
 
 ```ant
-let hex = Set.of(String.chars("0123456789abcdef"))
-String.chars("c0ffee").every({ hex.has(x) }) // true
-String.chars("coffee").every({ hex.has(x) }) // false
+let hex = Set.of("0123456789abcdef".chars())
+"c0ffee".chars().every({ hex.has(x) }) // true
+"coffee".chars().every({ hex.has(x) }) // false
 ```
 
 ## Properties and relations
@@ -255,7 +255,7 @@ println(counts.every(func(a: int, b: int): bool { a < b }))
 
 To compare neighbors, iterate over indices, as `isSorted` above does.
 
-A lambda stored in an unannotated `var` has no expected function type. Annotate the variable:
+A lambda stored in an unannotated `let` has no expected function type. Annotate the variable:
 
 ```ant
 let positive = { x > 0 }

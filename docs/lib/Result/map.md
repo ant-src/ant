@@ -111,7 +111,7 @@ Count the values of [`Result.all`](all.md), which stops at the first error:
 
 ```ant
 func countDates(dates: Array[string]): Result[int, Error] {
-  dates | Array.map(Time.parsePlainDate) | Result.all() | Result.map({ len(x) })
+  dates | Array.map(Time.parsePlainDate) | Result.all() | Result.map({ x.length() })
 }
 
 println(countDates(["2024-02-29", "2025-01-01"]))
@@ -128,7 +128,7 @@ Inside a function that returns a `Result`, map a pipeline and `try` it as a whol
 ```ant
 func hostOf(s: string): Result[string, Error] {
   let host = try (Url.parse(s) | Result.map({ x.host }))
-  Result.ok(String.toUpper(host))
+  Result.ok(host.toUpper())
 }
 
 println(hostOf("https://ant-lang.org/docs"))
@@ -192,7 +192,7 @@ A function that itself returns a `Result` gives a nested `Result`:
 
 ```ant
 func parseAge(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 let input: Result[string, string] = Result.ok("41")
@@ -203,7 +203,7 @@ Annotating the result as a flat `Result` is a compile error:
 
 ```ant
 func parseAge(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 let input: Result[string, string] = Result.ok("41")
@@ -215,7 +215,7 @@ Unwrap with `try` and call the function directly instead:
 
 ```ant
 func parseAge(s: string): Result[int, string] {
-  let n = String.toInt(s) ?? return Result.err("not a number: ${s}")
+  let n = s.toInt() ?? return Result.err("not a number: ${s}")
   Result.ok(n)
 }
 
@@ -245,7 +245,7 @@ The result is still a `Result`, so reading its value needs narrowing first:
 
 ```ant
 let r: Result[int, string] = Result.ok(2)
-let n = Result.map(r, { x * 10 })
+let n = r.map({ x * 10 })
 println(n.value)
 // error: Result[int, string] has no field value on every member: narrow the value first
 ```

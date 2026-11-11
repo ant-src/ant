@@ -77,7 +77,7 @@ String.join(sep: "+", parts: ["x", "y"]) // "x+y"
 The array can come from any expression, such as a map over numbers:
 
 ```ant
-String.join(Array.map([1, 2, 3], { String.from(x) }), " + ") // "1 + 2 + 3"
+[1, 2, 3].map({ String.from(x) }) | String.join(" + ") // "1 + 2 + 3"
 ```
 
 ## Applications
@@ -85,13 +85,13 @@ String.join(Array.map([1, 2, 3], { String.from(x) }), " + ") // "1 + 2 + 3"
 Replace one separator with another:
 
 ```ant
-String.join(String.split("2026-11-08", "-"), "/") // "2026/11/08"
+"2026-11-08".split("-") | String.join("/") // "2026/11/08"
 ```
 
 Collapse every run of white space to one space:
 
 ```ant
-String.join(String.fields("  too   many\tspaces \n"), " ") // "too many spaces"
+"  too   many\tspaces \n".fields() | String.join(" ") // "too many spaces"
 ```
 
 Write a row of comma-separated values from a record:
@@ -114,11 +114,11 @@ List names in a sentence, with "and" before the last one:
 
 ```ant
 func listing(names: Array[string]): string {
-  let n = len(names)
+  let n = names.length()
   if n < 2 {
     return String.join(names, "")
   }
-  String.join(Array.slice(names, 0, n - 1), ", ") + " and " + names[n - 1]
+  String.join(names.slice(0, n - 1), ", ") + " and " + names[n - 1]
 }
 
 println(listing(["Ann"]))
@@ -155,8 +155,8 @@ separator fewer than there are parts:
 ```ant
 let parts = ["é", "日本", "", "🐜"]
 let sep = ", "
-let total = Array.sum(Array.map(parts, { String.length(x) })) ?? 0
-assert(String.length(String.join(parts, sep)) == total + (len(parts) - 1) * String.length(sep))
+let total = parts.map({ x.length() }).sum() ?? 0
+assert(String.join(parts, sep).length() == total + (parts.length() - 1) * sep.length())
 ```
 
 ## Possible issues
@@ -207,9 +207,9 @@ String.join(["a", "b"], "\n") // "a\nb"
 different parts:
 
 ```ant
-String.split(String.join(["a,b", "c"], ","), ",") // ["a", "b", "c"]
+String.join(["a,b", "c"], ",").split(",") // ["a", "b", "c"]
 let none: Array[string] = []
-String.split(String.join(none, ","), ",") // [""]
+String.join(none, ",").split(",") // [""]
 ```
 
 ## See also

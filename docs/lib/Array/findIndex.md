@@ -28,7 +28,7 @@ Call it through `.` on any array:
 
 ```ant
 let names = ["Ann", "Bob", "Cid"]
-names.findIndex({ String.startsWith(x, "B") }) // 1
+names.findIndex({ x.startsWith("B") }) // 1
 ```
 
 ## Scope
@@ -209,8 +209,8 @@ The same index comes out of [`Array.entries`](entries.md) and `Array.find`:
 
 ```ant
 let xs = ["ant", "bee", "cicada"]
-let e = xs.entries().find({ String.length(x.value) > 3 })
-assert(e?.index == xs.findIndex({ String.length(x) > 3 }))
+let e = xs.entries().find({ x.value.length() > 3 })
+assert(e?.index == xs.findIndex({ x.length() > 3 }))
 ```
 
 ## Possible issues
@@ -280,8 +280,8 @@ println([1, 2, 3].findIndex({ x * 2 })) // error: cannot use int where bool is e
 println([1, 2, 3].findIndex(2)) // error: cannot use int where func(int): bool is expected
 ```
 
-A lambda needs the expected function type to know what `x` is. Kept in an unannotated `var`, it is a
-compile error. Annotate the variable:
+A lambda needs the expected function type to know what `x` is. Bound with `let` and no annotation,
+it is a compile error. Annotate the variable:
 
 ```ant
 let big = { x > 1 }

@@ -100,7 +100,7 @@ List the distinct words of a sentence in the order they first appear:
 
 ```ant
 let text = "the ant and the bee and the fly"
-String.split(text, " ").unique() // ["the", "ant", "and", "bee", "fly"]
+text.split(" ").unique() // ["the", "ant", "and", "bee", "fly"]
 ```
 
 Count the distinct visitors in a log:
@@ -126,7 +126,7 @@ type Cell = { row: int, col: int }
 func visited(moves: string): Array[Cell] {
   var at = Cell{ row: 0, col: 0 }
   let cells = [at]
-  for m in String.graphemes(moves) {
+  for m in moves.graphemes() {
     if m == "R" {
       at = Cell{ ...at, col: at.col + 1 }
     } else if m == "L" {
@@ -157,7 +157,7 @@ These hold for every value but `NaN`, which is not `==` to itself, so an array h
 
 ```ant
 let xs = [4, 2, 4, 9, 2, 1]
-assert(xs.unique() == Set.values(Set.of(xs)))
+assert(xs.unique() == Set.of(xs).values())
 ```
 
 The result has no repeats, so applying `Array.unique` again changes nothing:
@@ -238,8 +238,8 @@ ps[0] // Point{ x: 9, y: 2 }
 [`Array.uniqueBy`](uniqueBy.md) with a key:
 
 ```ant
-["Ant", "ant", "ANT", "bee"].unique()                        // ["Ant", "ant", "ANT", "bee"]
-["Ant", "ant", "ANT", "bee"].uniqueBy({ String.toLower(x) }) // ["Ant", "bee"]
+["Ant", "ant", "ANT", "bee"].unique()                  // ["Ant", "ant", "ANT", "bee"]
+["Ant", "ant", "ANT", "bee"].uniqueBy({ x.toLower() }) // ["Ant", "bee"]
 ```
 
 `Array.unique` drops repeats wherever they are. To collapse only runs of the same value next to each

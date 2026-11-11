@@ -89,7 +89,7 @@ for i in Array.range(0, len(animals)) {
 Sum the integers from 1 to 100. The upper bound is 101, because `to` is excluded:
 
 ```ant
-Array.sum(Array.range(1, 101)) // 5050
+Array.range(1, 101).sum() // 5050
 ```
 
 Take the difference between each pair of neighbors, starting at index 1:
@@ -143,14 +143,14 @@ assert(Array.concat(Array.range(0, 3), Array.range(3, 7)) == Array.range(0, 7))
 `Array.range` gives the same integers as `Iter.range` collected into an array:
 
 ```ant
-assert(Iter.toArray(Iter.range(2, 6)) == Array.range(2, 6))
+assert(Iter.range(2, 6).toArray() == Array.range(2, 6))
 ```
 
 Slicing an array with the same bounds picks the elements at the indices of the range:
 
 ```ant
 let xs = ["a", "b", "c", "d", "e"]
-assert(Array.slice(xs, 1, 4) == Array.range(1, 4).map({ xs[x] }))
+assert(xs.slice(1, 4) == Array.range(1, 4).map({ xs[x] }))
 ```
 
 ## Possible issues
@@ -165,8 +165,8 @@ Array.range(1, 6) // [1, 2, 3, 4, 5]
 `Array.range` never counts down. Reverse an ascending range instead:
 
 ```ant
-Array.range(5, 0)                // []
-Array.reverse(Array.range(1, 6)) // [5, 4, 3, 2, 1]
+Array.range(5, 0)           // []
+Array.range(1, 6).reverse() // [5, 4, 3, 2, 1]
 ```
 
 `Array.range` panics when `to − from` is above 2^31 − 1:

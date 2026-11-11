@@ -38,37 +38,37 @@ lang.toUpper() // "ANT"
 The empty string stays empty, and text with no letters comes back unchanged:
 
 ```ant
-String.toUpper("")       // ""
-String.toUpper("123 !?") // "123 !?"
+"".toUpper()       // ""
+"123 !?".toUpper() // "123 !?"
 ```
 
 Letters with accents and letters of other alphabets have upper-case forms too:
 
 ```ant
-String.toUpper("élan")   // "ÉLAN"
-String.toUpper("σοφος")  // "ΣΟΦΟΣ"
-String.toUpper("привет") // "ПРИВЕТ"
+"élan".toUpper()   // "ÉLAN"
+"σοφος".toUpper()  // "ΣΟΦΟΣ"
+"привет".toUpper() // "ПРИВЕТ"
 ```
 
 Scripts without case, such as Japanese, pass through:
 
 ```ant
-String.toUpper("日本語") // "日本語"
+"日本語".toUpper() // "日本語"
 ```
 
 A ligature expands into its letters, so the result can be longer than `s`:
 
 ```ant
-String.toUpper("ﬁ")               // "FI"
-String.toUpper("ﬃ")               // "FFI"
-String.toUpper("ﬁ").length()      // 2
-String.toUpper("straße").length() // 7
+"ﬁ".toUpper()               // "FI"
+"ﬃ".toUpper()               // "FFI"
+"ﬁ".toUpper().length()      // 2
+"straße".toUpper().length() // 7
 ```
 
 A combining accent is a code point of its own and stays after the letter, which is mapped:
 
 ```ant
-String.toUpper("e\u{301}") == "E\u{301}" // true
+"e\u{301}".toUpper() == "E\u{301}" // true
 ```
 
 In a pipeline, the string is the first argument:
@@ -89,7 +89,10 @@ Name a constant from a phrase:
 
 ```ant
 func constName(phrase: string): string {
-  String.join(String.fields(phrase).map(String.toUpper), "_")
+  phrase
+    | String.fields()
+    | Array.map(String.toUpper)
+    | String.join("_")
 }
 
 constName("max retry count") // "MAX_RETRY_COUNT"
@@ -99,7 +102,10 @@ Take the initials of a name:
 
 ```ant
 func initials(name: string): string {
-  String.concat(String.fields(name).map({ x.slice(0, 1).toUpper() }))
+  name
+    | String.fields()
+    | Array.map({ x.slice(0, 1).toUpper() })
+    | String.concat()
 }
 
 initials("ada lovelace") // "AL"
@@ -111,7 +117,7 @@ written as its own code point stays with its letter:
 ```ant
 func capitalize(s: string): string {
   let gs = s.graphemes()
-  if gs.length() == 0 {
+  if gs.isEmpty() {
     return s
   }
   gs[0].toUpper() + String.concat(gs.slice(1, gs.length()))
@@ -142,16 +148,16 @@ Upper-casing `"hello"` gives a string that [`String.isUpper`](isUpper.md) accept
 space is not an upper-case letter, so it makes `isUpper` false:
 
 ```ant
-assert(String.isUpper("hello".toUpper()))
-assert(!String.isUpper("hello 1".toUpper()))
+assert("hello".toUpper().isUpper())
+assert(!"hello 1".toUpper().isUpper())
 ```
 
 Upper-casing and then lower-casing with [`String.toLower`](toLower.md) does not give back the
 original when the mapping expands:
 
 ```ant
-String.toLower(String.toUpper("straße")) // "strasse"
-String.toLower(String.toUpper("Ant"))    // "ant"
+"straße".toUpper().toLower() // "strasse"
+"Ant".toUpper().toLower()    // "ant"
 ```
 
 ## Possible issues
@@ -169,13 +175,13 @@ s.toUpper().indexOf("!") // 7
 `"Ǆ"`, not `"ǅ"`:
 
 ```ant
-String.toUpper("ǆemal") // "ǄEMAL"
+"ǆemal".toUpper() // "ǄEMAL"
 ```
 
 Turkish rules are not applied: the dotted `"i"` becomes the dotless `"I"`:
 
 ```ant
-String.toUpper("istanbul") // "ISTANBUL"
+"istanbul".toUpper() // "ISTANBUL"
 ```
 
 To compare without regard to case, use [`String.equalFold`](equalFold.md) or

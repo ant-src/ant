@@ -34,14 +34,14 @@ A flag is one grapheme, though it is two code points:
 
 ```ant
 String.graphemes("🇨🇭!") // ["🇨🇭", "!"]
-String.chars("🇨🇭!")     // ["🇨", "🇭", "!"]
+"🇨🇭!".chars()           // ["🇨", "🇭", "!"]
 ```
 
 Count what a reader sees with `len`:
 
 ```ant
 len(String.graphemes("👍🏽")) // 1
-String.length("👍🏽")         // 2
+"👍🏽".length()               // 2
 ```
 
 ## Scope
@@ -49,56 +49,56 @@ String.length("👍🏽")         // 2
 An empty string gives an empty array:
 
 ```ant
-String.graphemes("") // []
+"".graphemes() // []
 ```
 
 A combining accent stays with the letter before it:
 
 ```ant
-len(String.graphemes("e\u{301}a"))   // 2
-len(String.graphemes("noe\u{308}l")) // 4
+len("e\u{301}a".graphemes())   // 2
+len("noe\u{308}l".graphemes()) // 4
 ```
 
 An accent at the very start has no letter to attach to, so it is a grapheme of its own:
 
 ```ant
-len(String.graphemes("\u{301}a")) // 2
+len("\u{301}a".graphemes()) // 2
 ```
 
 A family emoji is three people and two zero width joiners, five code points in one grapheme:
 
 ```ant
 let family = "👨‍👩‍👧"
-String.length(family)         // 5
-len(String.graphemes(family)) // 1
+family.length()         // 5
+len(family.graphemes()) // 1
 ```
 
 Two flags in a row pair up their regional indicators, and a lone indicator left over is a grapheme
 of its own:
 
 ```ant
-String.graphemes("🇨🇭🇩🇪") // ["🇨🇭", "🇩🇪"]
-String.graphemes("🇨🇭🇩")  // ["🇨🇭", "🇩"]
+"🇨🇭🇩🇪".graphemes() // ["🇨🇭", "🇩🇪"]
+"🇨🇭🇩".graphemes()  // ["🇨🇭", "🇩"]
 ```
 
 A Windows line break, `"\r\n"`, is one grapheme:
 
 ```ant
-String.graphemes("a\r\nb") // ["a", "\r\n", "b"]
+"a\r\nb".graphemes() // ["a", "\r\n", "b"]
 ```
 
 Three Hangul jamo combine into one syllable, and a Devanagari conjunct holds together:
 
 ```ant
-len(String.graphemes("\u{1100}\u{1161}\u{11A8}")) // 1
-len(String.graphemes("नमस्ते"))                      // 3
+len("\u{1100}\u{1161}\u{11A8}".graphemes()) // 1
+len("नमस्ते".graphemes())                      // 3
 ```
 
 Call it through `.` on a string, or put the string first in a pipe:
 
 ```ant
-"x\u{303}y".graphemes().map({ String.length(x) }) // [2, 1]
-"Zoë" | String.graphemes()                        // ["Z", "o", "ë"]
+"x\u{303}y".graphemes().map({ x.length() }) // [2, 1]
+"Zoë" | String.graphemes()                  // ["Z", "o", "ë"]
 ```
 
 The parameter is named `s`:
@@ -110,7 +110,7 @@ String.graphemes(s: "ok") // ["o", "k"]
 As a function value, it splits each element of an array:
 
 ```ant
-Array.map(["hi", "🐜🐜"], String.graphemes) // [["h", "i"], ["🐜", "🐜"]]
+["hi", "🐜🐜"].map(String.graphemes) // [["h", "i"], ["🐜", "🐜"]]
 ```
 
 ## Applications
@@ -120,11 +120,11 @@ points instead breaks both:
 
 ```ant
 func reverse(s: string): string {
-  String.concat(String.graphemes(s).reverse())
+  s.graphemes().reverse() | String.concat()
 }
 
 println(reverse("noe\u{308}l 🇨🇭"))
-println(String.concat(String.chars("noe\u{308}l 🇨🇭").reverse()))
+println("noe\u{308}l 🇨🇭".chars().reverse() | String.concat())
 ```
 
 ```text
@@ -136,7 +136,7 @@ Shorten text to a number of characters for display, never cutting one in half:
 
 ```ant
 func truncate(s: string, n: int): string {
-  let gs = String.graphemes(s)
+  let gs = s.graphemes()
   if len(gs) <= n {
     return s
   }
@@ -156,7 +156,7 @@ Take the initials of a name, keeping each one whole:
 
 ```ant
 func initials(name: string): string {
-  String.fields(name).map({ String.graphemes(x)[0] }) | String.concat()
+  name.fields().map({ x.graphemes()[0] }) | String.concat()
 }
 
 initials("E\u{301}mile Zola") // "ÉZ"
@@ -168,9 +168,9 @@ Joining the graphemes gives the string back, and every grapheme is a non-empty s
 
 ```ant
 for s in ["", "ant", "noe\u{308}l", "🇨🇭🇩", "👨‍👩‍👧\r\n"] {
-  let gs = String.graphemes(s)
+  let gs = s.graphemes()
   assert(String.concat(gs) == s)
-  assert(gs.every({ !String.isEmpty(x) }))
+  assert(gs.every({ !x.isEmpty() }))
 }
 ```
 
@@ -178,7 +178,7 @@ A grapheme holds one code point or more, so there are never more graphemes than 
 
 ```ant
 for s in ["", "ant", "e\u{301}", "👍🏽", "नमस्ते"] {
-  assert(len(String.graphemes(s)) <= String.length(s))
+  assert(len(s.graphemes()) <= s.length())
 }
 ```
 
@@ -186,7 +186,7 @@ For text with no combining marks, joiners, or flags, the graphemes are the code 
 
 ```ant
 let s = "plain ASCII text"
-assert(String.graphemes(s) == String.chars(s))
+assert(s.graphemes() == s.chars())
 ```
 
 ## Possible issues
@@ -194,8 +194,8 @@ assert(String.graphemes(s) == String.chars(s))
 `String.length` counts code points, not graphemes. Count graphemes with `len` of the result:
 
 ```ant
-String.length("e\u{301}")         // 2
-len(String.graphemes("e\u{301}")) // 1
+"e\u{301}".length()         // 2
+len("e\u{301}".graphemes()) // 1
 ```
 
 A `for` loop over a string steps through its code points, not its graphemes. Loop over the graphemes
@@ -208,7 +208,7 @@ for c in s {
   points += 1
 }
 var chars = 0
-for g in String.graphemes(s) {
+for g in s.graphemes() {
   chars += 1
 }
 assert(points == 2)
@@ -219,16 +219,16 @@ assert(chars == 1)
 person and a joiner of the family:
 
 ```ant
-String.slice("👨‍👩‍👧", 0, 2) | String.length()  // 2
-String.graphemes("👨‍👩‍👧")[0] | String.length() // 5
+"👨‍👩‍👧".slice(0, 2).length()    // 2
+"👨‍👩‍👧".graphemes()[0].length() // 5
 ```
 
 `String.graphemes` does not normalize. The two spellings of "é" are each one grapheme, but not the
 same string. Normalize first to compare them:
 
 ```ant
-String.graphemes("\u{E9}") == String.graphemes("e\u{301}") // false
-String.graphemes(String.normalize("e\u{301}", "NFC"))      // ["é"]
+"\u{E9}".graphemes() == "e\u{301}".graphemes() // false
+"e\u{301}".normalize("NFC").graphemes()        // ["é"]
 ```
 
 ## See also

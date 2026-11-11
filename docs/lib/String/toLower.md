@@ -40,37 +40,37 @@ An empty string stays empty, and text with no letters to change, such as digits 
 back unchanged:
 
 ```ant
-String.toLower("")         // ""
-String.toLower("room 101") // "room 101"
+"".toLower()         // ""
+"room 101".toLower() // "room 101"
 ```
 
 Every script with case is mapped, not only Latin:
 
 ```ant
-String.toLower("ÅNGSTRÖM") // "ångström"
-String.toLower("ПРИВЕТ")   // "привет"
+"ÅNGSTRÖM".toLower() // "ångström"
+"ПРИВЕТ".toLower()   // "привет"
 ```
 
 The Greek capital sigma becomes `ς` at the end of a word and `σ` elsewhere:
 
 ```ant
-String.toLower("ΣΟΦΟΣ")      // "σοφος"
-String.toLower("ΟΔΟΣ ΣΟΦΟΣ") // "οδος σοφος"
+"ΣΟΦΟΣ".toLower()      // "σοφος"
+"ΟΔΟΣ ΣΟΦΟΣ".toLower() // "οδος σοφος"
 ```
 
 A mapping can make the string longer. The capital `İ` with a dot lowers to two code points:
 
 ```ant
-String.toLower("İ") == "i\u{307}"  // true
-String.length(String.toLower("İ")) // 2
+"İ".toLower() == "i\u{307}" // true
+"İ".toLower().length()      // 2
 ```
 
 Compatibility characters with case are lowered too, such as the Kelvin sign and the title-case
 digraph `ǅ`:
 
 ```ant
-String.toLower("\u{212A}") // "k"
-String.toLower("ǅ")        // "ǆ"
+"\u{212A}".toLower() // "k"
+"ǅ".toLower()        // "ǆ"
 ```
 
 In a pipe, the left side is `s`:
@@ -97,7 +97,10 @@ Make a slug for a URL from a title:
 
 ```ant
 func slug(title: string): string {
-  String.join(String.fields(String.toLower(title)), "-")
+  title
+    | String.toLower()
+    | String.fields()
+    | String.join("-")
 }
 
 slug("Hello  Ant World") // "hello-ant-world"
@@ -107,8 +110,8 @@ Check a file name for an image extension however it is spelled:
 
 ```ant
 func isImage(name: string): bool {
-  let lower = String.toLower(name)
-  [".png", ".jpg", ".gif"].some({ String.endsWith(lower, x) })
+  let lower = name.toLower()
+  [".png", ".jpg", ".gif"].some({ lower.endsWith(x) })
 }
 
 isImage("Photo.JPG") // true
@@ -121,8 +124,8 @@ Lower case and upper case are not inverses. `toUpper` turns `ß` into `"SS"`, an
 `"ss"`:
 
 ```ant
-assert(String.toLower(String.toUpper("ß")) == "ss")
-assert(String.toLower("ß") != String.toLower(String.toUpper("ß")))
+assert("ß".toUpper().toLower() == "ss")
+assert("ß".toLower() != "ß".toUpper().toLower())
 ```
 
 ## Possible issues
@@ -130,24 +133,24 @@ assert(String.toLower("ß") != String.toLower(String.toUpper("ß")))
 Mapping each character on its own loses the final sigma, since the sigma depends on what follows it:
 
 ```ant
-String.join(String.chars("ΣΟΦΟΣ").map(String.toLower), "") // "σοφοσ"
-String.toLower("ΣΟΦΟΣ")                                    // "σοφος"
+"ΣΟΦΟΣ" | String.chars() | Array.map(String.toLower) | String.join("") // "σοφοσ"
+"ΣΟΦΟΣ".toLower()                                                      // "σοφος"
 ```
 
 The Turkish rules are not applied, so the dotless `I` lowers to `i`, not `ı`, and `İ` gains a
 combining dot:
 
 ```ant
-String.toLower("ISTANBUL") // "istanbul"
-String.toLower("İ") == "i" // false
+"ISTANBUL".toLower() // "istanbul"
+"İ".toLower() == "i" // false
 ```
 
 Comparing lowered strings misses some matches, because lower case keeps `ß`. Compare with
 `String.equalFold`, or key with `String.foldCase`:
 
 ```ant
-String.toLower("Straße") == String.toLower("STRASSE") // false
-String.equalFold("Straße", "STRASSE")                 // true
+"Straße".toLower() == "STRASSE".toLower() // false
+String.equalFold("Straße", "STRASSE")     // true
 ```
 
 ## See also

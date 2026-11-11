@@ -182,11 +182,11 @@ The other `Result` functions pass an `Err` through or fall back:
 
 ```ant
 let r: Result[int, string] = Result.err("x")
-assert(!Result.isOk(r))
-assert(Result.map(r, { x + 1 }) == r)
-assert(Result.unwrapOr(r, 0) == 0)
+assert(!r.isOk())
+assert(r.map({ x + 1 }) == r)
+assert(r.unwrapOr(0) == 0)
 let upper: Result[int, string] = Result.err("X")
-assert(Result.mapErr(r, { String.toUpper(x) }) == upper)
+assert(r.mapErr({ x.toUpper() }) == upper)
 ```
 
 Two calls build two records, equal but not the same:
@@ -211,7 +211,7 @@ let r = Result.err("no input")
 
 ```ant
 let r: Result[int, string] = Result.err("x")
-Result.unwrap(r) // panic: Result.unwrap on an Err: "x"
+r.unwrap() // panic: Result.unwrap on an Err: "x"
 ```
 
 ## See also

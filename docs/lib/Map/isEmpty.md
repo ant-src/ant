@@ -84,7 +84,7 @@ Print a word count, or a note when there are no words:
 ```ant
 func report(text: string) {
   let counts: Map[string, int] = Map{}
-  for word in String.fields(text) {
+  for word in text.fields() {
     counts[word] = (counts[word] ?? 0) + 1
   }
   if counts.isEmpty() {
@@ -114,7 +114,7 @@ Report the missing fields of a form, or accept it:
 func missing(form: Map[string, string], required: Array[string]): Map[string, string] {
   let problems: Map[string, string] = Map{}
   for name in required {
-    if String.isEmpty(form[name] ?? "") {
+    if (form[name] ?? "").isEmpty() {
       problems[name] = "required"
     }
   }

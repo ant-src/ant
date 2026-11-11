@@ -29,7 +29,7 @@ Call it through `.` on any array:
 
 ```ant
 let words = ["ant", "bee", "", "cat", ""]
-words.countWhere({ String.isEmpty(x) }) // 2
+words.countWhere({ x.isEmpty() }) // 2
 ```
 
 ## Scope
@@ -60,7 +60,7 @@ In a pipeline, the array is the first argument:
 Count graphemes of a string by splitting it first:
 
 ```ant
-String.graphemes("🐜a🐜b🐜").countWhere({ x == "🐜" }) // 3
+"🐜a🐜b🐜".graphemes().countWhere({ x == "🐜" }) // 3
 ```
 
 An element type that includes `null` lets the callback test for it:
@@ -112,14 +112,14 @@ Count the vowels in a word:
 
 ```ant
 let vowels = ["a", "e", "i", "o", "u"]
-String.graphemes("formicidae").countWhere({ vowels.contains(x) }) // 5
+"formicidae".graphemes().countWhere({ vowels.contains(x) }) // 5
 ```
 
 Tally the cells of each row of a grid that are walls:
 
 ```ant
 let grid = ["#..#", "....", "###."]
-grid.map({ String.graphemes(x).countWhere({ x == "#" }) }) // [2, 0, 3]
+grid.map({ x.graphemes().countWhere({ x == "#" }) }) // [2, 0, 3]
 ```
 
 ## Properties and relations

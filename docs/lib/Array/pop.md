@@ -341,16 +341,16 @@ let done: Array[int] = []
 let mu = Mutex.new()
 let wg = WaitGroup.new()
 for _ in [1, 2] {
-  WaitGroup.add(wg, 1)
+  wg.add(1)
   go {
-    defer { WaitGroup.done(wg) }
+    defer { wg.done() }
     while true {
-      let n = Mutex.withLock(mu, { work.pop() }) ?? break
-      Mutex.withLock(mu, { done.push(n * n) })
+      let n = mu.withLock({ work.pop() }) ?? break
+      mu.withLock({ done.push(n * n) })
     }
   }
 }
-WaitGroup.wait(wg)
+wg.wait()
 println(done.sort())
 println(work)
 ```

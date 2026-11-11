@@ -39,17 +39,17 @@ Every value starts with the empty bytes, and the empty bytes start with nothing 
 
 ```ant
 let empty = String.toBytes("")
-Bytes.startsWith(String.toBytes("ant"), empty) // true
-Bytes.startsWith(empty, empty)                 // true
-Bytes.startsWith(empty, String.toBytes("a"))   // false
+String.toBytes("ant").startsWith(empty) // true
+empty.startsWith(empty)                 // true
+empty.startsWith(String.toBytes("a"))   // false
 ```
 
 A prefix longer than the bytes never matches, and a value starts with itself:
 
 ```ant
 let ant = String.toBytes("ant")
-Bytes.startsWith(ant, String.toBytes("anthill")) // false
-Bytes.startsWith(ant, ant)                       // true
+ant.startsWith(String.toBytes("anthill")) // false
+ant.startsWith(ant)                       // true
 ```
 
 Any byte value matches, zero and `0xff` included:
@@ -192,12 +192,12 @@ The prefix must be `Bytes`. Convert a string with `String.toBytes`, and integers
 
 ```ant
 let data = String.toBytes("GIF89a")
-println(Bytes.startsWith(data, "GIF")) // error: cannot use string where Bytes is expected
+println(data.startsWith("GIF")) // error: cannot use string where Bytes is expected
 ```
 
 ```ant
 let data = String.toBytes("GIF89a")
-println(Bytes.startsWith(data, [0x47])) // error: cannot use Array[int] where Bytes is expected
+println(data.startsWith([0x47])) // error: cannot use Array[int] where Bytes is expected
 ```
 
 `Encoding.fromHex` returns a `Result`, not `Bytes`. Unwrap it first:
@@ -210,7 +210,7 @@ println(data.startsWith(Encoding.fromHex("efbbbf")))
 
 ```ant
 let data = Bytes.fromArray([0xef, 0xbb, 0xbf, 0x61])
-data.startsWith(Result.unwrap(Encoding.fromHex("efbbbf"))) // true
+data.startsWith(Encoding.fromHex("efbbbf").unwrap()) // true
 ```
 
 The match works on bytes, not characters. "é" is two bytes in UTF-8, so its first byte alone is a

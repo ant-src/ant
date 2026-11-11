@@ -66,7 +66,7 @@ In a pipeline, the array is the first argument:
 As a function value, it maps an array of arrays to an array of `bool`s:
 
 ```ant
-Array.map([[1], [], [2, 3]], Array.isEmpty) // [false, true, false]
+[[1], [], [2, 3]].map(Array.isEmpty) // [false, true, false]
 ```
 
 For an array that may be `null`, `?.` yields `null` instead of calling:
@@ -130,7 +130,7 @@ type User = { name: string, age: int }
 
 func check(u: User): Result[User, Array[string]] {
   let problems: Array[string] = []
-  if String.isEmpty(u.name) {
+  if u.name.isEmpty() {
     problems.push("name is empty")
   }
   if u.age < 0 {

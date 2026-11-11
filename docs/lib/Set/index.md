@@ -151,15 +151,15 @@ Find the required settings a map lacks:
 ```ant
 let required = Set.of(["host", "port", "user"])
 let given = Map{ host: "localhost", user: "ada" }
-Set.difference(required, Set.of(given.keys())).values() // ["port"]
+required.difference(Set.of(given.keys())).values() // ["port"]
 ```
 
 Check that a word uses only allowed letters:
 
 ```ant
-let allowed = Set.of(String.chars("abcdef"))
-Set.of(String.chars("faced")).isSubset(allowed)  // true
-Set.of(String.chars("faded!")).isSubset(allowed) // false
+let allowed = Set.of("abcdef".chars())
+Set.of("faced".chars()).isSubset(allowed)  // true
+Set.of("faded!".chars()).isSubset(allowed) // false
 ```
 
 Copy a set, so that changing the copy leaves the original alone:
@@ -184,9 +184,9 @@ tags.values().sort() // ["blue", "green", "red"]
 
 ```ant
 let s = Set.of(["x", "y", "x"])
-assert(len(s) == Set.size(s))
-assert(len(Set.values(s)) == Set.size(s))
-assert(Set.isEmpty(s) == (Set.size(s) == 0))
+assert(len(s) == s.size())
+assert(len(s.values()) == s.size())
+assert(s.isEmpty() == (s.size() == 0))
 ```
 
 The members of `Set.of(xs)`, in order, are what `Array.unique` returns:

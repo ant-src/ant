@@ -38,41 +38,41 @@ Call it through `.`:
 The empty string has no code points to test, and gives `false`:
 
 ```ant
-String.isDigit("") // false
+"".isDigit() // false
 ```
 
 A sign, a decimal point, a digit separator, and white space are not digits:
 
 ```ant
-String.isDigit("-1")    // false
-String.isDigit("1.5")   // false
-String.isDigit("1_000") // false
-String.isDigit(" 42")   // false
+"-1".isDigit()    // false
+"1.5".isDigit()   // false
+"1_000".isDigit() // false
+" 42".isDigit()   // false
 ```
 
 Decimal digits of other scripts count: Arabic-Indic, Devanagari, full-width, and mathematical bold:
 
 ```ant
-String.isDigit("٣٤")   // true
-String.isDigit("४२")   // true
-String.isDigit("１２") // true
-String.isDigit("𝟗")    // true
+"٣٤".isDigit()   // true
+"४२".isDigit()   // true
+"１２".isDigit() // true
+"𝟗".isDigit()    // true
 ```
 
 Numbers that are not decimal digits do not: a fraction, a superscript, and a Roman numeral. Hex
 letters are letters:
 
 ```ant
-String.isDigit("½")  // false
-String.isDigit("²")  // false
-String.isDigit("Ⅻ")  // false
-String.isDigit("ff") // false
+"½".isDigit()  // false
+"²".isDigit()  // false
+"Ⅻ".isDigit()  // false
+"ff".isDigit() // false
 ```
 
 Test one code point at a time with `String.chars`, here in a pipe:
 
 ```ant
-"a1b2" | String.chars() | Array.map({ String.isDigit(x) }) // [false, true, false, true]
+"a1b2" | String.chars() | Array.map({ x.isDigit() }) // [false, true, false, true]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -87,13 +87,13 @@ Keep only the digits of a phone number:
 
 ```ant
 let phone = "+1 (555) 010-9999"
-String.concat(phone.chars().filter({ String.isDigit(x) })) // "15550109999"
+String.concat(phone.chars().filter({ x.isDigit() })) // "15550109999"
 ```
 
 Count the digits in a text:
 
 ```ant
-"Room 12, floor 3".chars().countWhere({ String.isDigit(x) }) // 3
+"Room 12, floor 3".chars().countWhere({ x.isDigit() }) // 3
 ```
 
 Split a line into words and numbers:
@@ -104,11 +104,11 @@ type Num = { value: int }
 type Token = Word | Num
 
 func token(field: string): Token {
-  let n = if String.isDigit(field) { String.toInt(field) } else { null }
+  let n = if field.isDigit() { field.toInt() } else { null }
   if n != null { Num{ value: n } } else { Word{ text: field } }
 }
 
-for t in String.fields("buy 3 apples and 12 pears").map(token) {
+for t in "buy 3 apples and 12 pears".fields().map(token) {
   if t is Num {
     println("number ${t.value}")
   } else {
@@ -133,8 +133,8 @@ category `"Nd"`:
 
 ```ant
 for s in ["", "0", "42", "٣", "½", "1.5", "a1", "１２"] {
-  let byCategory = s != "" && s.chars().every({ String.category(x) == "Nd" })
-  assert(String.isDigit(s) == byCategory)
+  let byCategory = s != "" && s.chars().every({ x.category() == "Nd" })
+  assert(s.isDigit() == byCategory)
 }
 ```
 
@@ -143,10 +143,10 @@ the other way around:
 
 ```ant
 for s in ["7", "٣", "½", "Ⅻ", "²"] {
-  assert(!String.isDigit(s) || String.isNumber(s))
+  assert(!s.isDigit() || s.isNumber())
 }
-String.isNumber("½") // true
-String.isDigit("½")  // false
+"½".isNumber() // true
+"½".isDigit()  // false
 ```
 
 Two nonempty strings of digits join into a string of digits:
@@ -155,7 +155,7 @@ Two nonempty strings of digits join into a string of digits:
 for a in ["1", "٣", "x"] {
   for b in ["2", "४", ""] {
     if a != "" && b != "" {
-      assert(String.isDigit(a + b) == (String.isDigit(a) && String.isDigit(b)))
+      assert(String.isDigit(a + b) == (a.isDigit() && b.isDigit()))
     }
   }
 }
@@ -168,8 +168,8 @@ for a in ["1", "٣", "x"] {
 `z`:
 
 ```ant
-String.isDigit("٣") // true
-String.toInt("٣")   // null
+"٣".isDigit() // true
+"٣".toInt()   // null
 ```
 
 To accept only the ASCII digits `0` to `9`, as for a PIN or a ZIP code, compare each code point:
@@ -183,8 +183,8 @@ A string of ASCII digits too large for an `int` passes the test too, and `String
 `null`:
 
 ```ant
-String.isDigit("99999999999999999999") // true
-String.toInt("99999999999999999999")   // null
+"99999999999999999999".isDigit() // true
+"99999999999999999999".toInt()   // null
 ```
 
 To parse a number, call `String.toInt` and check for `null` instead of testing first.
@@ -192,16 +192,16 @@ To parse a number, call `String.toInt` and check for `null` instead of testing f
 A negative number is not all digits:
 
 ```ant
-String.isDigit("-5") // false
-String.toInt("-5")   // -5
+"-5".isDigit() // false
+"-5".toInt()   // -5
 ```
 
 Every code point must be a digit, so `String.isDigit` does not answer whether a string contains a
 digit. Use `Array.some` for that:
 
 ```ant
-String.isDigit("a1")                     // false
-"a1".chars().some({ String.isDigit(x) }) // true
+"a1".isDigit()                     // false
+"a1".chars().some({ x.isDigit() }) // true
 ```
 
 ## See also

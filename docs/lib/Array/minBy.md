@@ -22,15 +22,15 @@ key never replaces the element held.
 ## Basic examples
 
 ```ant
-Array.minBy(["bb", "a", "c"], { String.length(x) }) // "a"
-Array.minBy([3, -5, 2], { Math.abs(x) })            // 2
+Array.minBy(["bb", "a", "c"], { x.length() }) // "a"
+Array.minBy([3, -5, 2], { Math.abs(x) })      // 2
 ```
 
 Call it through `.` on any array:
 
 ```ant
 let words = ["hill", "ant", "colony"]
-words.minBy({ String.length(x) }) // "ant"
+words.minBy({ x.length() }) // "ant"
 ```
 
 ## Scope
@@ -39,13 +39,13 @@ An empty array has no element to return. Annotate it so that `T` is known:
 
 ```ant
 let empty: Array[string] = []
-empty.minBy({ String.length(x) }) // null
+empty.minBy({ x.length() }) // null
 ```
 
 When several elements share the least key, the first of them wins:
 
 ```ant
-["bee", "ant", "fly"].minBy({ String.length(x) }) // "bee"
+["bee", "ant", "fly"].minBy({ x.length() }) // "bee"
 ```
 
 Pick a record by one of its fields. The whole record comes back, and `?.` reads a field of it:
@@ -123,7 +123,7 @@ seen                             // [0, 4, 2]
 In a pipeline, the array is the first argument:
 
 ```ant
-"pear,fig,banana" | String.split(",") | Array.minBy({ String.length(x) }) // "fig"
+"pear,fig,banana" | String.split(",") | Array.minBy({ x.length() }) // "fig"
 ```
 
 ## Applications
@@ -175,8 +175,8 @@ key is `NaN`. With `{ x }` as the key, `Array.minBy` agrees with `Array.min`:
 
 ```ant
 let xs = ["kiwi", "fig", "banana", "date"]
-let found = xs.minBy({ String.length(x) }) ?? panic("empty")
-assert(String.length(found) == xs.map({ String.length(x) }).min())
+let found = xs.minBy({ x.length() }) ?? panic("empty")
+assert(found.length() == xs.map({ x.length() }).min())
 let ns = [5, 3, 8, 3]
 assert(ns.minBy({ x }) == ns.min())
 ```
@@ -198,7 +198,7 @@ assert(jobs.minBy({ x.cost })?.name == "b")
 The result can be `null`, and the type checker rejects it as a `T` until you narrow it:
 
 ```ant
-println(["a", "bb"].minBy({ String.length(x) }).length())
+println(["a", "bb"].minBy({ x.length() }).length())
 // error: string | null has no field or function length on every member: narrow the value first
 ```
 

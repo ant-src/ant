@@ -81,7 +81,7 @@ String.category("ǅ") // "Lt"
 Test one code point at a time with `String.chars`, here in a pipe:
 
 ```ant
-"aBcD" | String.chars() | Array.map({ String.isUpper(x) }) // [false, true, false, true]
+"aBcD" | String.chars() | Array.map({ x.isUpper() }) // [false, true, false, true]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -96,7 +96,7 @@ Build an acronym from the capitals of a phrase:
 
 ```ant
 let phrase = "Portable Network Graphics"
-String.concat(phrase.chars().filter({ String.isUpper(x) })) // "PNG"
+String.concat(phrase.chars().filter({ x.isUpper() })) // "PNG"
 ```
 
 Split a PascalCase name into words at each upper-case letter:
@@ -106,7 +106,7 @@ func words(name: string): Array[string] {
   let out: Array[string] = []
   var word = ""
   for c in name {
-    if word != "" && String.isUpper(c) {
+    if word != "" && c.isUpper() {
       out.push(word)
       word = ""
     }
@@ -129,8 +129,8 @@ Flag a message whose words are all in capitals:
 
 ```ant
 func shouting(text: string): bool {
-  let ws = String.fields(text)
-  ws.length() > 0 && ws.every(String.isUpper)
+  let ws = text.fields()
+  !ws.isEmpty() && ws.every(String.isUpper)
 }
 
 for msg in ["STOP RIGHT THERE", "Stop right there", "OK THEN", "NO 2"] {
@@ -152,7 +152,7 @@ category `"Lu"`:
 
 ```ant
 for s in ["", "A", "ABC", "Ab", "ǅ", "Ⅻ", "Ω", "A1", "日"] {
-  let byCategory = s != "" && s.chars().every({ String.category(x) == "Lu" })
+  let byCategory = s != "" && s.chars().every({ x.category() == "Lu" })
   assert(String.isUpper(s) == byCategory)
 }
 ```
@@ -185,9 +185,9 @@ combining accent is a mark, Mn, so the second spelling is not all upper-case let
 NFC first:
 
 ```ant
-let decomposed = String.normalize("ÉTÉ", "NFD")
-String.isUpper(decomposed)                          // false
-String.isUpper(String.normalize(decomposed, "NFC")) // true
+let decomposed = "ÉTÉ".normalize("NFD")
+String.isUpper(decomposed)                  // false
+String.isUpper(decomposed.normalize("NFC")) // true
 ```
 
 A title-case letter such as `ǅ` is not upper case, but `String.toUpper` turns it into the upper-case
@@ -205,8 +205,8 @@ String.toUpper("straße")            // "STRASSE"
 `Array.some` for that:
 
 ```ant
-String.isUpper("abC")                     // false
-"abC".chars().some({ String.isUpper(x) }) // true
+String.isUpper("abC")               // false
+"abC".chars().some({ x.isUpper() }) // true
 ```
 
 ## See also

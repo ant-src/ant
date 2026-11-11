@@ -38,37 +38,39 @@ data.indexOf(String.toBytes("=")) // 3
 The first occurrence wins, even when a later one overlaps it:
 
 ```ant
-Bytes.indexOf(Bytes.fromArray([0, 0, 0]), Bytes.fromArray([0, 0])) // 0
+let b = Bytes.fromArray([0, 0, 0])
+b.indexOf(Bytes.fromArray([0, 0])) // 0
 ```
 
 `sub` may be all of `b`, but not longer:
 
 ```ant
 let b = Bytes.fromArray([7, 8])
-Bytes.indexOf(b, b)                          // 0
-Bytes.indexOf(b, Bytes.fromArray([7, 8, 9])) // null
+b.indexOf(b)                          // 0
+b.indexOf(Bytes.fromArray([7, 8, 9])) // null
 ```
 
 Only an empty `sub` occurs in empty bytes, and an empty `sub` gives `0` for any `b`:
 
 ```ant
 let empty = String.toBytes("")
-Bytes.indexOf(empty, Bytes.fromArray([1]))  // null
-Bytes.indexOf(String.toBytes("ant"), empty) // 0
-Bytes.indexOf(empty, empty)                 // 0
+empty.indexOf(Bytes.fromArray([1]))  // null
+String.toBytes("ant").indexOf(empty) // 0
+empty.indexOf(empty)                 // 0
 ```
 
 On the UTF-8 bytes of text, the index counts bytes. `ï` is two bytes, so `v` is at byte 4:
 
 ```ant
-Bytes.indexOf(String.toBytes("naïve"), String.toBytes("v")) // 4
+String.toBytes("naïve").indexOf(String.toBytes("v")) // 4
 ```
 
 A single byte matches even when it is the second byte of a character. `é` is `c3 a9`:
 
 ```ant
-String.toBytes("é")                                         // Bytes(c3 a9)
-Bytes.indexOf(String.toBytes("é"), Bytes.fromArray([0xa9])) // 1
+let b = String.toBytes("é")
+b                                  // Bytes(c3 a9)
+b.indexOf(Bytes.fromArray([0xa9])) // 1
 ```
 
 Call it with named arguments, or in a pipe, where `b` is the first argument:
@@ -86,9 +88,9 @@ Split an HTTP request at the blank line that ends its headers:
 ```ant
 func splitHead(request: Bytes): Array[Bytes] | null {
   let blank = String.toBytes("\r\n\r\n")
-  let end = Bytes.indexOf(request, blank) ?? return null
-  let head = Bytes.slice(request, 0, end)
-  let body = Bytes.slice(request, end + Bytes.length(blank), Bytes.length(request))
+  let end = request.indexOf(blank) ?? return null
+  let head = request.slice(0, end)
+  let body = request.slice(end + blank.length(), request.length())
   [head, body]
 }
 
@@ -105,8 +107,8 @@ field has no zero byte:
 
 ```ant
 func cString(field: Bytes): string | null {
-  let n = Bytes.indexOf(field, Bytes.fromArray([0])) ?? return null
-  String.fromBytes(Bytes.slice(field, 0, n))
+  let n = field.indexOf(Bytes.fromArray([0])) ?? return null
+  String.fromBytes(field.slice(0, n))
 }
 
 println(cString(Bytes.fromArray([0x61, 0x6e, 0x74, 0, 0, 0])))
@@ -126,9 +128,9 @@ let marker = Bytes.fromArray([0xff, 0xd8])
 var from = 0
 let hits: Array[int] = []
 while true {
-  let i = Bytes.indexOf(Bytes.slice(data, from, Bytes.length(data)), marker) ?? break
+  let i = data.slice(from, data.length()).indexOf(marker) ?? break
   hits.push(from + i)
-  from = from + i + Bytes.length(marker)
+  from += i + marker.length()
 }
 println(hits)
 ```
@@ -143,8 +145,8 @@ with `Bytes.indexOf` when it may be anywhere:
 ```ant
 let png = Bytes.fromArray([0x89, 0x50, 0x4e, 0x47])
 let file = Bytes.fromArray([0, 0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a])
-Bytes.startsWith(file, png) // false
-Bytes.indexOf(file, png)    // 2
+file.startsWith(png) // false
+file.indexOf(png)    // 2
 ```
 
 ## Properties and relations
@@ -154,9 +156,9 @@ When `sub` occurs, the slice of `b` at the index is `sub`:
 ```ant
 let b = String.toBytes("mississippi")
 let sub = String.toBytes("ssi")
-let i = Bytes.indexOf(b, sub)
+let i = b.indexOf(sub)
 assert(i != null)
-assert(Bytes.slice(b, i, i + Bytes.length(sub)) == sub)
+assert(b.slice(i, i + sub.length()) == sub)
 ```
 
 The result is `0` exactly when [`Bytes.startsWith`](startsWith.md) is `true`:
@@ -165,7 +167,7 @@ The result is `0` exactly when [`Bytes.startsWith`](startsWith.md) is `true`:
 let b = Bytes.fromArray([1, 2, 1, 2])
 for xs in [[1], [1, 2], [2], [2, 1, 2], [3]] {
   let sub = Bytes.fromArray(xs)
-  assert((Bytes.indexOf(b, sub) == 0) == Bytes.startsWith(b, sub))
+  assert((b.indexOf(sub) == 0) == b.startsWith(sub))
 }
 ```
 
@@ -185,7 +187,7 @@ A missing match is `null`, not `-1`, and the result is not an `int` until you na
 arithmetic on it is a compile error:
 
 ```ant
-let i = Bytes.indexOf(Bytes.fromArray([1, 2, 3]), Bytes.fromArray([2]))
+let i = Bytes.fromArray([1, 2, 3]).indexOf(Bytes.fromArray([2]))
 println(i + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
@@ -193,15 +195,15 @@ Give a default with `??`, or compare against `null`:
 
 ```ant
 let b = Bytes.fromArray([1, 2, 3])
-(Bytes.indexOf(b, Bytes.fromArray([2])) ?? 0) + 1 // 2
-Bytes.indexOf(b, Bytes.fromArray([9])) != null    // false
+(b.indexOf(Bytes.fromArray([2])) ?? 0) + 1 // 2
+b.indexOf(Bytes.fromArray([9])) != null    // false
 ```
 
 `sub` is `Bytes`, not a single byte. Wrap one byte with [`Bytes.fromArray`](fromArray.md):
 
 ```ant
 let b = Bytes.fromArray([1, 2, 3])
-println(Bytes.indexOf(b, 2)) // error: cannot use int where Bytes is expected
+println(b.indexOf(2)) // error: cannot use int where Bytes is expected
 ```
 
 An empty array literal has no element type, so `Bytes.fromArray([])` does not compile. Write empty
@@ -209,7 +211,7 @@ bytes as `String.toBytes("")`, or annotate the array:
 
 ```ant
 let b = Bytes.fromArray([1, 2, 3])
-println(Bytes.indexOf(b, Bytes.fromArray([])))
+println(b.indexOf(Bytes.fromArray([])))
 // error: cannot infer the element type of an empty array; annotate it
 ```
 
@@ -217,7 +219,7 @@ Annotate it on a `let`:
 
 ```ant
 let none: Array[int] = []
-Bytes.indexOf(Bytes.fromArray([1, 2, 3]), Bytes.fromArray(none)) // 0
+Bytes.fromArray([1, 2, 3]).indexOf(Bytes.fromArray(none)) // 0
 ```
 
 The index counts bytes, so on text it differs from the code point index that
@@ -232,8 +234,8 @@ Slicing at a byte match inside a character cuts it in two, and the halves are no
 
 ```ant
 let b = String.toBytes("é")
-let i = Bytes.indexOf(b, Bytes.fromArray([0xa9])) ?? 0
-String.fromBytes(Bytes.slice(b, 0, i)) // null
+let i = b.indexOf(Bytes.fromArray([0xa9])) ?? 0
+String.fromBytes(b.slice(0, i)) // null
 ```
 
 ## See also

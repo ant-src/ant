@@ -131,14 +131,14 @@ Find the first element a test accepts together with where it is:
 
 ```ant
 let words = ["ant", "beetle", "cicada"]
-words.entries().find({ String.length(x.value) > 3 }) // Indexed{ index: 1, value: "beetle" }
+words.entries().find({ x.value.length() > 3 }) // Indexed{ index: 1, value: "beetle" }
 ```
 
 Keep the position of each line that fails a check, so that a report can name it:
 
 ```ant
 func blankLines(lines: Array[string]): Array[Indexed[string]] {
-  lines.entries().filter({ String.trim(x.value) == "" })
+  lines.entries().filter({ x.value.trim().isEmpty() })
 }
 
 for { index } in blankLines(["a", " ", "b", ""]) {

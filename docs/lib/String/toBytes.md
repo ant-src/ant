@@ -73,9 +73,9 @@ Index the result to read single bytes as `byte` values:
 
 ```ant
 let b = String.toBytes("é")
-b[0]             // 195
-b[1]             // 169
-Bytes.toArray(b) // [195, 169]
+b[0]        // 195
+b[1]        // 169
+b.toArray() // [195, 169]
 ```
 
 A function value works wherever a `func(string): Bytes` is expected:
@@ -93,12 +93,12 @@ encode("x") // Bytes(78)
 bytes first:
 
 ```ant
-let digest = Crypto.sha256(String.toBytes("abc")) | Encoding.toHex()
+let digest = "abc" | String.toBytes() | Crypto.sha256() | Encoding.toHex()
 digest // "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 ```
 
 ```ant
-Encoding.toBase64(String.toBytes("hi?")) // "aGk/"
+"hi?" | String.toBytes() | Encoding.toBase64() // "aGk/"
 ```
 
 ### Fit text into a byte limit
@@ -110,7 +110,7 @@ func fitBytes(s: string, limit: int): string {
   let kept: Array[string] = []
   var used = 0
   for c in s {
-    let n = Bytes.length(String.toBytes(c))
+    let n = c.toBytes().length()
     if used + n > limit {
       break
     }
@@ -136,9 +136,9 @@ points:
 
 ```ant
 func field(name: string): Bytes {
-  let data = String.toBytes(name)
-  assert(Bytes.length(data) <= 255)
-  Bytes.concat([Bytes.fromArray([Bytes.length(data)]), data])
+  let data = name.toBytes()
+  assert(data.length() <= 255)
+  Bytes.concat([Bytes.fromArray([data.length()]), data])
 }
 
 println(field("Zoë"))
@@ -171,7 +171,7 @@ true
 
 ```ant
 for s in ["", "ant", "straße", "🐜🐜", "e\u{301}", "\u{0}"] {
-  assert(String.fromBytes(String.toBytes(s)) == s)
+  assert(String.fromBytes(s.toBytes()) == s)
 }
 ```
 
@@ -180,15 +180,15 @@ The bytes of a string are the bytes of its characters, joined:
 ```ant
 let s = "Añ🐜"
 let parts = s.chars().map(String.toBytes)
-assert(Bytes.concat(parts) == String.toBytes(s))
+assert(Bytes.concat(parts) == s.toBytes())
 ```
 
 The byte length is at least the code point length and at most four times it:
 
 ```ant
 for s in ["ant", "naïve", "€uro", "🐜"] {
-  let n = Bytes.length(String.toBytes(s))
-  assert(n >= String.length(s) && n <= 4 * String.length(s))
+  let n = s.toBytes().length()
+  assert(n >= s.length() && n <= 4 * s.length())
 }
 ```
 

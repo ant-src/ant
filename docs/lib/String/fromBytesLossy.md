@@ -27,7 +27,7 @@ sequence with U+FFFD. A byte order mark at the start is kept, as U+FEFF.
 Valid UTF-8 decodes to the same text `String.fromBytes` gives:
 
 ```ant
-String.fromBytesLossy(String.toBytes("héllo")) // "héllo"
+String.fromBytesLossy("héllo".toBytes()) // "héllo"
 ```
 
 A byte that cannot start or continue a character becomes U+FFFD, which renders as `�`:
@@ -41,7 +41,7 @@ String.fromBytesLossy(Bytes.fromArray([0x61, 0xFF, 0x62])) // "a�b"
 Empty bytes give the empty string:
 
 ```ant
-String.fromBytesLossy(String.toBytes("")) // ""
+String.fromBytesLossy("".toBytes()) // ""
 ```
 
 Each maximal subpart becomes one U+FFFD. Two bytes that are each invalid on their own give two, and
@@ -88,7 +88,7 @@ String.fromBytesLossy(Bytes.fromArray([0x00])) == "\u{0}" // true
 The parameter is named `bytes`:
 
 ```ant
-String.fromBytesLossy(bytes: String.toBytes("ant")) // "ant"
+String.fromBytesLossy(bytes: "ant".toBytes()) // "ant"
 ```
 
 In a pipe, the bytes are the first argument:
@@ -113,11 +113,11 @@ func preview(b: Bytes, max: int): string {
   if len(b) <= max {
     return String.fromBytesLossy(b)
   }
-  "${String.fromBytesLossy(Bytes.slice(b, 0, max))}…"
+  "${String.fromBytesLossy(b.slice(0, max))}…"
 }
 
-println(preview(String.toBytes("naïve café"), 3))
-println(preview(String.toBytes("naïve café"), 4))
+println(preview("naïve café".toBytes(), 3))
+println(preview("naïve café".toBytes(), 4))
 ```
 
 ```text
@@ -145,10 +145,10 @@ Count how many U+FFFD a decode put in, to report how damaged the input was:
 
 ```ant
 func damage(b: Bytes): int {
-  String.count(String.fromBytesLossy(b), "\u{FFFD}")
+  String.fromBytesLossy(b).count("\u{FFFD}")
 }
 
-damage(String.toBytes("fine"))                          // 0
+damage("fine".toBytes())                                // 0
 damage(Bytes.fromArray([0x61, 0xFF, 0xE2, 0x82, 0x62])) // 2
 ```
 
@@ -158,7 +158,7 @@ On valid UTF-8, `String.fromBytesLossy` agrees with `String.fromBytes` and undoe
 
 ```ant
 for s in ["", "ant", "héllo", "🐜 \u{0} \u{10FFFF}"] {
-  let b = String.toBytes(s)
+  let b = s.toBytes()
   assert(String.fromBytesLossy(b) == s)
   assert(String.fromBytes(b) == s)
 }
@@ -178,8 +178,8 @@ The result is always valid text, so encoding it and decoding again changes nothi
 ```ant
 let b = Bytes.fromArray([0xC0, 0xAF, 0x61, 0xED, 0xA0, 0x80])
 let s = String.fromBytesLossy(b)
-assert(String.fromBytes(String.toBytes(s)) == s)
-assert(String.fromBytesLossy(String.toBytes(s)) == s)
+assert(String.fromBytes(s.toBytes()) == s)
+assert(String.fromBytesLossy(s.toBytes()) == s)
 ```
 
 ## Possible issues
@@ -189,15 +189,15 @@ give them back. Keep the `Bytes` when you need them as they were:
 
 ```ant
 let b = Bytes.fromArray([0xFF])
-String.toBytes(String.fromBytesLossy(b))      // Bytes(ef bf bd)
-String.toBytes(String.fromBytesLossy(b)) == b // false
+String.fromBytesLossy(b).toBytes()      // Bytes(ef bf bd)
+String.fromBytesLossy(b).toBytes() == b // false
 ```
 
 A U+FFFD in the result does not prove the bytes were broken: valid UTF-8 can encode U+FFFD itself.
 Use `String.fromBytes` to tell the two apart:
 
 ```ant
-let real = String.toBytes("\u{FFFD}")
+let real = "\u{FFFD}".toBytes()
 String.fromBytesLossy(real) == String.fromBytesLossy(Bytes.fromArray([0xFF])) // true
 String.fromBytes(real) == null                                                // false
 ```
@@ -206,7 +206,7 @@ The function is in the `String` namespace and its argument is `Bytes`, so a call
 bytes is a compile error:
 
 ```ant
-let b = String.toBytes("ant")
+let b = "ant".toBytes()
 println(b.fromBytesLossy()) // error: Bytes has no field or function fromBytesLossy
 ```
 
@@ -221,8 +221,7 @@ s == "a"   // false
 s.length() // 2
 ```
 
-The byte order mark is valid UTF-8 and decodes to U+FEFF. `String.trimPrefix(s, "\u{FEFF}")` removes
-it.
+The byte order mark is valid UTF-8 and decodes to U+FEFF. `s.trimPrefix("\u{FEFF}")` removes it.
 
 ## See also
 

@@ -108,7 +108,7 @@ mixed // Set.of([1, "a"])
 A string is not an array. Split it into code points with `String.chars` first:
 
 ```ant
-Set.of(String.chars("hello")) // Set.of(["h", "e", "l", "o"])
+Set.of("hello".chars()) // Set.of(["h", "e", "l", "o"])
 ```
 
 In a pipeline, the array is the argument:
@@ -128,7 +128,7 @@ Set.of(xs: [2, 2, 7]) // Set.of([2, 7])
 Count the distinct words of a sentence:
 
 ```ant
-let words = String.split("the cat and the hat and the bat", " ")
+let words = "the cat and the hat and the bat".split(" ")
 Set.of(words).size() // 5
 ```
 
@@ -160,8 +160,8 @@ unknown level: loud
 Find the letters two words share, in the order of the first word:
 
 ```ant
-let a = Set.of(String.chars("listen"))
-let b = Set.of(String.chars("pistol"))
+let a = Set.of("listen".chars())
+let b = Set.of("pistol".chars())
 Set.intersect(a, b).values() // ["l", "i", "s", "t"]
 ```
 
@@ -279,8 +279,8 @@ with `String.normalize` first:
 
 ```ant
 let names = ["café", "cafe\u{301}"]
-Set.of(names).size()                                     // 2
-Set.of(names.map({ String.normalize(x, "NFC") })).size() // 1
+Set.of(names).size()                             // 2
+Set.of(names.map({ x.normalize("NFC") })).size() // 1
 ```
 
 ## See also

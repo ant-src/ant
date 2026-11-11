@@ -80,7 +80,7 @@ bake
 
 ```ant
 let steps = ["mix", "bake"]
-for step in Array.entries(steps) {
+for step in steps.entries() {
   println("${step.index}: ${step.value}")
 }
 ```
@@ -96,8 +96,8 @@ Elements may be records, `null` where the type allows it, or other arrays:
 type Point = { x: int, y: int }
 [Point{ x: 1, y: 2 }] // [Point{ x: 1, y: 2 }]
 let maybe: Array[int | null] = [1, null]
-maybe                        // [1, null]
-Array.flatten([[1, 2], [3]]) // [1, 2, 3]
+maybe                   // [1, null]
+[[1, 2], [3]].flatten() // [1, 2, 3]
 ```
 
 ## Functions by job
@@ -174,8 +174,8 @@ Count the words of each length. `Array.groupBy` keeps the keys in first-seen ord
 
 ```ant
 let words = ["ant", "bee", "wasp", "fly", "moth"]
-let groups = words.groupBy({ String.length(x) })
-Map.entries(groups).map({ "${x.key}: ${len(x.value)}" }) // ["3: 3", "4: 2"]
+let groups = words.groupBy({ x.length() })
+groups.entries().map({ "${x.key}: ${len(x.value)}" }) // ["3: 3", "4: 2"]
 ```
 
 Build a list of results in a loop, then summarize it:
@@ -183,11 +183,11 @@ Build a list of results in a loop, then summarize it:
 ```ant
 let squares: Array[int] = []
 for i in Array.range(1, 5) {
-  Array.push(squares, i * i)
+  squares.push(i * i)
 }
-squares            // [1, 4, 9, 16]
-Array.sum(squares) // 30
-Array.max(squares) // 16
+squares       // [1, 4, 9, 16]
+squares.sum() // 30
+squares.max() // 16
 ```
 
 ## Properties and relations
@@ -197,7 +197,7 @@ Array.max(squares) // 16
 ```ant
 let xs = [4, 5, 6]
 assert(len(xs) == Array.length(xs))
-assert(Array.isEmpty(xs) == (len(xs) == 0))
+assert(xs.isEmpty() == (len(xs) == 0))
 ```
 
 A call through `.`, a pipe, and a direct call are the same call:
@@ -216,7 +216,7 @@ through the other:
 ```ant
 let xs = [1, 2]
 let ys = xs
-Array.push(ys, 3)
+ys.push(3)
 xs                 // [1, 2, 3]
 Array.same(xs, ys) // true
 ```
@@ -226,7 +226,7 @@ A spread into a new literal makes a separate array:
 ```ant
 let xs = [1, 2]
 let ys = [...xs]
-Array.push(ys, 3)
+ys.push(3)
 xs           // [1, 2]
 xs == [1, 2] // true
 ```
@@ -245,7 +245,7 @@ sorted // [1, 2, 3]
 
 ```ant
 let xs = [1, 2]
-Array.push(xs, 3)
+xs.push(3)
 xs // [1, 2, 3]
 ```
 
@@ -254,8 +254,8 @@ range:
 
 ```ant
 let xs = [1, 2, 3]
-xs[3]            // panic: index 3 out of range for an array of length 3
-Array.get(xs, 3) // null
+xs[3]     // panic: index 3 out of range for an array of length 3
+xs.get(3) // null
 ```
 
 A write past the end panics with the same message:
@@ -288,15 +288,15 @@ and the other functions that take a callback read the elements once, at the call
 let a = [1, 2, 3]
 let seen: Array[int] = []
 for x in a {
-  Array.push(seen, x)
+  seen.push(x)
   if x < 3 {
-    Array.push(a, x + 10)
+    a.push(x + 10)
   }
 }
 seen // [1, 2, 3, 11, 12]
 let b = [1, 2, 3]
-Array.map(b, { Array.push(b, x + 10); x * 2 }) // [2, 4, 6]
-b                                              // [1, 2, 3, 11, 12, 13]
+b.map({ b.push(x + 10); x * 2 }) // [2, 4, 6]
+b                                // [1, 2, 3, 11, 12, 13]
 ```
 
 ## See also

@@ -89,13 +89,13 @@ String.split(s: "a-b", sep: "-") // ["a", "b"]
 Read a line of comma-separated numbers, with `?? 0` for a field that is not a number:
 
 ```ant
-String.split("3,14,x,15", ",").map({ String.toInt(x) ?? 0 }) // [3, 14, 0, 15]
+"3,14,x,15".split(",").map({ x.toInt() ?? 0 }) // [3, 14, 0, 15]
 ```
 
 Take a path apart and drop the empty pieces that the slashes at the ends leave:
 
 ```ant
-String.split("/usr/local/bin/", "/").filter({ !String.isEmpty(x) }) // ["usr", "local", "bin"]
+"/usr/local/bin/".split("/").filter({ !x.isEmpty() }) // ["usr", "local", "bin"]
 ```
 
 Parse rows of a simple table into records, checking the number of columns:
@@ -104,12 +104,12 @@ Parse rows of a simple table into records, checking the number of columns:
 type Person = { name: string, age: int }
 
 func parse(row: string): Person | null {
-  let cols = String.split(row, ";")
+  let cols = row.split(";")
   if len(cols) != 2 {
     return null
   }
-  let age = String.toInt(String.trim(cols[1])) ?? return null
-  Person{ name: String.trim(cols[0]), age }
+  let age = cols[1].trim().toInt() ?? return null
+  Person{ name: cols[0].trim(), age }
 }
 
 for row in ["Ann; 31", "Bob;27", "broken", "Eve;x"] {
@@ -128,7 +128,7 @@ Count how often each tag occurs in a comma-separated list:
 
 ```ant
 let counts: Map[string, int] = Map{}
-for tag in String.split("ant,bee,ant,ant,bee", ",") {
+for tag in "ant,bee,ant,ant,bee".split(",") {
   counts[tag] = (counts[tag] ?? 0) + 1
 }
 println(counts)
@@ -144,16 +144,16 @@ For this `s`, joining the pieces with `","` gives `s` back, and no piece contain
 
 ```ant
 let s = ",a,,b,"
-let pieces = String.split(s, ",")
+let pieces = s.split(",")
 assert(String.join(pieces, ",") == s)
-assert(Array.every(pieces, { !String.contains(x, ",") }))
+assert(pieces.every({ !x.contains(",") }))
 ```
 
 For each of these strings, there is one piece more than there are commas:
 
 ```ant
 for s in ["", "a", "a,b", ",,"] {
-  assert(len(String.split(s, ",")) == String.count(s, ",") + 1)
+  assert(len(s.split(",")) == s.count(",") + 1)
 }
 ```
 
@@ -161,9 +161,9 @@ The first piece is the `before` of [`String.cut`](cut.md), when the separator oc
 
 ```ant
 let s = "k=v=w"
-let c = String.cut(s, "=")
+let c = s.cut("=")
 assert(c != null)
-assert(String.split(s, "=")[0] == c.before)
+assert(s.split("=")[0] == c.before)
 ```
 
 ## Possible issues
@@ -179,9 +179,9 @@ The pieces keep any space next to the separator. Trim each piece, or split at `"
 always has the space:
 
 ```ant
-String.split("a, b, c", ",")                         // ["a", " b", " c"]
-String.split("a, b, c", ",").map({ String.trim(x) }) // ["a", "b", "c"]
-String.split("a, b, c", ", ")                        // ["a", "b", "c"]
+String.split("a, b, c", ",")                   // ["a", " b", " c"]
+String.split("a, b, c", ",").map({ x.trim() }) // ["a", "b", "c"]
+String.split("a, b, c", ", ")                  // ["a", "b", "c"]
 ```
 
 The empty string gives one empty piece, not an empty array:

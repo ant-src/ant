@@ -43,7 +43,7 @@ bool(false) // false
 ```ant
 type Enabled = bool
 let flags = [Enabled(true), Enabled(false), Enabled(true)]
-Array.map(flags, bool) // [true, false, true]
+flags.map(bool) // [true, false, true]
 ```
 
 As a predicate, it keeps the tagged elements whose payload is `true`:
@@ -51,8 +51,8 @@ As a predicate, it keeps the tagged elements whose payload is `true`:
 ```ant
 type Enabled = bool
 let flags = [Enabled(true), Enabled(false), Enabled(true)]
-Array.filter(flags, bool)     // [Enabled(true), Enabled(true)]
-Array.countWhere(flags, bool) // 2
+flags.filter(bool)     // [Enabled(true), Enabled(true)]
+flags.countWhere(bool) // 2
 ```
 
 ## Applications
@@ -81,7 +81,7 @@ Count the features that are on in a settings map:
 ```ant
 type On = bool
 let features = Map{ "search": On(true), "export": On(false), "sync": On(true) }
-let on = Array.countWhere(Map.values(features), bool)
+let on = features.values().countWhere(bool)
 println("${on} of ${len(features)} features on")
 ```
 

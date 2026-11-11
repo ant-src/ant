@@ -162,7 +162,7 @@ func hasLoop(head: Node): bool {
   var node: Node | null = head
   while node != null {
     let n = node
-    if seen.findIndex({ Record.same(x, n) }) != null {
+    if seen.some({ Record.same(x, n) }) {
       return true
     }
     seen.push(n)

@@ -35,8 +35,8 @@ Call it through `.` on any array:
 
 ```ant
 let words = ["ant", "bee", "wasp", "fly"]
-words.findLastIndex({ String.length(x) == 3 })     // 3
-words.findLastIndex({ String.startsWith(x, "b") }) // 1
+words.findLastIndex({ x.length() == 3 })   // 3
+words.findLastIndex({ x.startsWith("b") }) // 1
 ```
 
 ## Scope
@@ -64,7 +64,7 @@ When `f` accepts every element, the result is the last index:
 Strings are tested whole. Split them into graphemes to search by character:
 
 ```ant
-let letters = String.graphemes("naïve café")
+let letters = "naïve café".graphemes()
 letters.findLastIndex({ x == "é" || x == "ï" }) // 9
 ```
 
@@ -144,10 +144,10 @@ Find the last error in a log and read the lines after it:
 
 ```ant
 let log = ["start", "error: disk", "retry", "error: net", "retry", "ok"]
-let i = log.findLastIndex({ String.startsWith(x, "error") })
+let i = log.findLastIndex({ x.startsWith("error") })
 if i != null {
   println(log[i])
-  println(Array.slice(log, i + 1, len(log)))
+  println(log.slice(i + 1, len(log)))
 }
 ```
 
@@ -160,8 +160,8 @@ Trim trailing blank lines from a text:
 
 ```ant
 func trimTrailing(lines: Array[string]): Array[string] {
-  let last = lines.findLastIndex({ String.trim(x) != "" }) ?? -1
-  Array.slice(lines, 0, last + 1)
+  let last = lines.findLastIndex({ x.trim() != "" }) ?? -1
+  lines.slice(0, last + 1)
 }
 
 println(trimTrailing(["one", "two", "", "  "]))
@@ -247,7 +247,7 @@ for limit in [0, 5, 10, 20] {
   let i = xs.findLastIndex({ x > limit })
   assert((i != null) == xs.some({ x > limit }))
   let from = (i ?? -1) + 1
-  assert(!Array.slice(xs, from, len(xs)).some({ x > limit }))
+  assert(!xs.slice(from, len(xs)).some({ x > limit }))
 }
 ```
 

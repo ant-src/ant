@@ -85,10 +85,10 @@ String.fromInt(uint32(4000000000)) // "4000000000"
 Call it in a pipe, with named arguments, or pass it as a function value:
 
 ```ant
-42 | String.fromInt(base: 8)                   // "52"
-String.fromInt(x: 5, base: 2)                  // "101"
-Array.map([10, 11], String.fromInt)            // ["10", "11"]
-Array.map([1, 2, 3], { String.fromInt(x, 2) }) // ["1", "10", "11"]
+42 | String.fromInt(base: 8)            // "52"
+String.fromInt(x: 5, base: 2)           // "101"
+[10, 11].map(String.fromInt)            // ["10", "11"]
+[1, 2, 3].map({ String.fromInt(x, 2) }) // ["1", "10", "11"]
 ```
 
 ## Named arguments
@@ -109,7 +109,7 @@ Build a CSS color from three channels, zero-padded to two hex digits each:
 
 ```ant
 func hex(c: int): string {
-  String.padStart(String.fromInt(c, 16), 2, "0")
+  String.fromInt(c, 16).padStart(2, "0")
 }
 
 func color(r: int, g: int, b: int): string {
@@ -129,7 +129,7 @@ Show the bits of a byte, eight wide:
 
 ```ant
 for b in [byte(5), byte(160), byte(255)] {
-  println(String.padStart(String.fromInt(b, 2), 8, "0"))
+  println(String.fromInt(b, 2).padStart(8, "0"))
 }
 ```
 
@@ -142,7 +142,7 @@ for b in [byte(5), byte(160), byte(255)] {
 Make short identifiers from counters in base 36:
 
 ```ant
-let ids = Array.map([35, 36, 1295, 1296, 1000000], { String.fromInt(x, 36) })
+let ids = [35, 36, 1295, 1296, 1000000].map({ String.fromInt(x, 36) })
 println(ids)
 ```
 
@@ -175,7 +175,7 @@ For an `int`, [`String.toInt`](toInt.md) reads back what `String.fromInt` writes
 ```ant
 for n in [0, 1, -1, 255, -12345, Math.maxInt, Math.minInt] {
   for base in [2, 8, 10, 16, 36] {
-    assert(String.toInt(String.fromInt(n, base), base) == n)
+    assert(String.fromInt(n, base).toInt(base) == n)
   }
 }
 ```
@@ -184,7 +184,7 @@ for n in [0, 1, -1, 255, -12345, Math.maxInt, Math.minInt] {
 
 ```ant
 let big = Math.maxUint64
-assert(String.toUint(String.fromInt(big, 16), 16) == big)
+assert(String.fromInt(big, 16).toUint(16) == big)
 ```
 
 In base 10, the result is what [`String.from`](from.md) and string interpolation write:
@@ -277,17 +277,17 @@ There is no prefix such as `0x`, no leading zeros, and no width. Add a prefix by
 pad with [`String.padStart`](padStart.md):
 
 ```ant
-String.fromInt(255, 16)                          // "ff"
-"0x" + String.fromInt(255, 16)                   // "0xff"
-String.fromInt(7, 2)                             // "111"
-String.padStart(String.fromInt(7, 2), 8, "0")    // "00000111"
-String.padStart(String.fromInt(255, 16), 8, "0") // "000000ff"
+String.fromInt(255, 16)                  // "ff"
+"0x" + String.fromInt(255, 16)           // "0xff"
+String.fromInt(7, 2)                     // "111"
+String.fromInt(7, 2).padStart(8, "0")    // "00000111"
+String.fromInt(255, 16).padStart(8, "0") // "000000ff"
 ```
 
 The letters are always lower case. Upper-case them with [`String.toUpper`](toUpper.md):
 
 ```ant
-String.toUpper(String.fromInt(48879, 16)) // "BEEF"
+String.fromInt(48879, 16).toUpper() // "BEEF"
 ```
 
 ## See also

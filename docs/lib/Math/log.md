@@ -120,7 +120,7 @@ Average growth rates with the geometric mean, through the mean of the logarithms
 ```ant
 func geometricMean(xs: Array[float64]): float64 {
   let logs = xs.map(Math.log)
-  Math.exp((Array.sum(logs) ?? 0.0) / float64(xs.length()))
+  Math.exp((logs.sum() ?? 0.0) / float64(xs.length()))
 }
 
 println(geometricMean([1.1, 1.2, 0.9]))

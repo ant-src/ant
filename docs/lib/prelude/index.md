@@ -68,7 +68,7 @@ words | Array.map({ len(x) })           // [3, 3]
 let r: Result[int, Error] = Ok{ value: 2 }
 r is Ok // true
 let e: Result[int, Error] = Err{ error: Error{ message: "no" } }
-Result.unwrapOr(e, 0) // 0
+e.unwrapOr(0) // 0
 ```
 
 `Integer`, `Number`, and `Ordered` bound a type parameter, so one function takes every number type:
@@ -86,8 +86,8 @@ A map yields `Entry` records, and `Array.entries` yields `Indexed` ones:
 
 ```ant
 let ages = Map{ "Ann": 31, "Bob": 27 }
-Map.entries(ages)    // [Entry{ key: "Ann", value: 31 }, Entry{ key: "Bob", value: 27 }]
-Array.entries(["a"]) // [Indexed{ index: 0, value: "a" }]
+ages.entries()  // [Entry{ key: "Ann", value: 31 }, Entry{ key: "Bob", value: 27 }]
+["a"].entries() // [Indexed{ index: 0, value: "a" }]
 ```
 
 A conversion also unwraps a named primitive type:
@@ -150,7 +150,7 @@ let scores = [72, 95, 88]
 if len(scores) < 5 {
   eprintln("warning: only ${len(scores)} scores")
 }
-println(Array.sum(scores) ?? 0)
+println(scores.sum() ?? 0)
 ```
 
 ```text

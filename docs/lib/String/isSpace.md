@@ -74,7 +74,7 @@ String.isSpace("\u{180E}") // false
 Test one code point at a time with `String.chars`, here in a pipe:
 
 ```ant
-"a b\tc" | String.chars() | Array.map({ String.isSpace(x) }) // [false, true, false, true, false]
+"a b\tc" | String.chars() | Array.map({ x.isSpace() }) // [false, true, false, true, false]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -89,7 +89,7 @@ Drop the lines of a text that hold only white space:
 
 ```ant
 let text = "first\n   \n\t\nsecond"
-text.lines().filter({ !String.isSpace(x) }) // ["first", "second"]
+text.lines().filter({ !x.isSpace() }) // ["first", "second"]
 ```
 
 Collapse every run of white space into one space:
@@ -99,7 +99,7 @@ func squeeze(s: string): string {
   var out = ""
   var inSpace = false
   for c in s.chars() {
-    if String.isSpace(c) {
+    if c.isSpace() {
       if !inSpace {
         out += " "
       }
@@ -123,7 +123,7 @@ var number = 0
 for line in source.lines() {
   number += 1
   let last = line.chars().last()
-  if last != null && String.isSpace(last) {
+  if last != null && last.isSpace() {
     println("line ${number}: trailing white space")
   }
 }
@@ -140,7 +140,7 @@ line 3: trailing white space
 
 ```ant
 for s in ["", " ", "\t\n", "a", " a ", "\u{A0}", "\u{200B}"] {
-  let all = !s.isEmpty() && s.chars().every({ String.isSpace(x) })
+  let all = !s.isEmpty() && s.chars().every({ x.isSpace() })
   assert(String.isSpace(s) == all)
 }
 ```
@@ -161,21 +161,21 @@ for s in [" ", "\t\n", "a", " a ", "\u{A0}", "\u{3000}", "\u{200B}", "\u{85}"] {
 empty line passes a filter that drops white-space lines:
 
 ```ant
-"a\n\n \nb".lines().filter({ !String.isSpace(x) }) // ["a", "", "b"]
+"a\n\n \nb".lines().filter({ !x.isSpace() }) // ["a", "", "b"]
 ```
 
 To test for blank, empty included, compare the trimmed string with `""`:
 
 ```ant
-"a\n\n \nb".lines().filter({ String.trim(x) != "" }) // ["a", "b"]
+"a\n\n \nb".lines().filter({ x.trim() != "" }) // ["a", "b"]
 ```
 
 Every code point must be white space, so `String.isSpace` does not answer whether a string contains
 white space. Use `Array.some` for that:
 
 ```ant
-String.isSpace("a b")                     // false
-"a b".chars().some({ String.isSpace(x) }) // true
+String.isSpace("a b")               // false
+"a b".chars().some({ x.isSpace() }) // true
 ```
 
 The zero-width space and the byte order mark are not white space. `String.isSpace` rejects them, and
@@ -190,7 +190,7 @@ The no-break space is white space, though it exists to keep its neighbors togeth
 splits at it:
 
 ```ant
-String.fields("10\u{A0}km") // ["10", "km"]
+"10\u{A0}km".fields() // ["10", "km"]
 ```
 
 ## See also

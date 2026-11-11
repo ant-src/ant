@@ -106,7 +106,7 @@ Format prices to cents:
 
 ```ant
 let prices = [4.5, 12.0, 0.99]
-let total = Array.sum(prices) ?? 0.0
+let total = prices.sum() ?? 0.0
 for p in prices {
   println(String.fromFloat(p, 2))
 }
@@ -143,7 +143,7 @@ type Row = { name: string, score: float64 }
 
 let rows = [Row{ name: "ann", score: 9.25 }, Row{ name: "bob", score: 10.0 }, Row{ name: "cy", score: 7.125 }]
 for row in rows {
-  println("${String.padEnd(row.name, 4)}${String.padStart(String.fromFloat(row.score, 2), 6)}")
+  println("${row.name.padEnd(4)}${String.fromFloat(row.score, 2).padStart(6)}")
 }
 ```
 
@@ -157,7 +157,7 @@ Format a whole array with [`Array.map`](../Array/map.md) and join it:
 
 ```ant
 let temps = [21.04, 19.96, -3.5]
-Array.map(temps, { String.fromFloat(x, 1) }) | String.join(", ") // "21.0, 20.0, -3.5"
+temps.map({ String.fromFloat(x, 1) }) | String.join(", ") // "21.0, 20.0, -3.5"
 ```
 
 ## Properties and relations
@@ -166,11 +166,11 @@ A finite result has exactly `digits` decimals after the `.`:
 
 ```ant
 for digits in [1, 2, 5] {
-  let c = String.cut(String.fromFloat(Math.PI, digits), ".")
+  let c = String.fromFloat(Math.PI, digits).cut(".")
   assert(c != null)
-  assert(String.length(c.after) == digits)
+  assert(c.after.length() == digits)
 }
-assert(!String.contains(String.fromFloat(Math.PI, 0), "."))
+assert(!String.fromFloat(Math.PI, 0).contains("."))
 ```
 
 For `NaN` and the infinities, the result is what `String.from` gives:
@@ -192,7 +192,7 @@ for x in [0.0, 7.0, -12.0, 1e15] {
 `String.toFloat` reads the result back:
 
 ```ant
-String.toFloat(String.fromFloat(2.5, 2)) // 2.5
+String.fromFloat(2.5, 2).toFloat() // 2.5
 ```
 
 ## Possible issues

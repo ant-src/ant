@@ -70,8 +70,8 @@ Set.of([1, 2, 3]) | Set.intersect(Set.of([3, 1])) // Set.of([1, 3])
 Find the words two sentences share:
 
 ```ant
-let first = Set.of(String.fields("the quick brown fox"))
-let second = Set.of(String.fields("the lazy brown dog"))
+let first = Set.of("the quick brown fox".fields())
+let second = Set.of("the lazy brown dog".fields())
 Set.intersect(first, second) // Set.of(["the", "brown"])
 ```
 
@@ -79,7 +79,7 @@ Intersect any number of sets by folding with `Array.reduce`:
 
 ```ant
 let sets = [Set.of([1, 2, 3, 4]), Set.of([2, 3, 4]), Set.of([4, 3, 9])]
-Array.reduce(sets, sets[0], Set.intersect) // Set.of([3, 4])
+sets.reduce(sets[0], Set.intersect) // Set.of([3, 4])
 ```
 
 Keep only the permissions a role grants:
@@ -94,8 +94,8 @@ allowed // Set.of(["read", "write"])
 Check whether two sets share a member:
 
 ```ant
-!Set.isEmpty(Set.intersect(Set.of([1, 2]), Set.of([2, 3]))) // true
-!Set.isEmpty(Set.intersect(Set.of([1, 2]), Set.of([3, 4]))) // false
+!Set.intersect(Set.of([1, 2]), Set.of([2, 3])).isEmpty() // true
+!Set.intersect(Set.of([1, 2]), Set.of([3, 4])).isEmpty() // false
 ```
 
 ## Properties and relations
@@ -106,8 +106,8 @@ The result is a subset of both sets:
 let a = Set.of([1, 2, 3, 4])
 let b = Set.of([2, 4, 6])
 let both = Set.intersect(a, b)
-assert(Set.isSubset(both, a))
-assert(Set.isSubset(both, b))
+assert(both.isSubset(a))
+assert(both.isSubset(b))
 ```
 
 Swapping the arguments gives an equal set, since `==` ignores order, but the members come in the
@@ -117,8 +117,8 @@ order of the new first argument:
 let a = Set.of([3, 1, 2])
 let b = Set.of([1, 3])
 Set.intersect(a, b) == Set.intersect(b, a) // true
-Set.values(Set.intersect(a, b))            // [3, 1]
-Set.values(Set.intersect(b, a))            // [1, 3]
+Set.intersect(a, b).values()               // [3, 1]
+Set.intersect(b, a).values()               // [1, 3]
 ```
 
 `Set.intersect` keeps the members of `a` that `Set.difference(a, b)` removes:
@@ -134,8 +134,8 @@ The result is never larger than either set:
 ```ant
 let a = Set.of([1, 2, 3, 4, 5])
 let b = Set.of([4, 5, 6])
-let n = Set.size(Set.intersect(a, b))
-assert(n <= Set.size(a) && n <= Set.size(b))
+let n = Set.intersect(a, b).size()
+assert(n <= a.size() && n <= b.size())
 ```
 
 The result is a new set even when it equals `a`, so adding to it leaves `a` as it was:
@@ -145,8 +145,8 @@ let a = Set.of([1, 2])
 let same = Set.intersect(a, a)
 assert(same == a)
 assert(!Set.same(same, a))
-Set.add(same, 9) // true
-a                // Set.of([1, 2])
+same.add(9) // true
+a           // Set.of([1, 2])
 ```
 
 ## Possible issues

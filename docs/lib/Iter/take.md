@@ -127,9 +127,9 @@ Read only the first values sent on a channel with [Channel.values](../Channel/va
 ```ant
 let c: Channel[string] = Channel.new(capacity: 4)
 for word in ["one", "two", "three", "four"] {
-  Channel.send(c, word)
+  c.send(word)
 }
-Channel.close(c)
+c.close()
 for word in Channel.values(c) | Iter.take(2) {
   println(word)
 }

@@ -34,7 +34,7 @@ String.normalize("e\u{301}", "NFC") == "\u{E9}" // true
 `"NFD"` goes the other way and splits the accent from its letter:
 
 ```ant
-String.toCodePoints(String.normalize("\u{E9}", "NFD")) // [101, 769]
+String.normalize("\u{E9}", "NFD").toCodePoints() // [101, 769]
 ```
 
 Call it through `.` on the string:
@@ -57,10 +57,10 @@ compatibility forms replace it with `fi`:
 
 ```ant
 let s = "ﬁancé"
-String.length(String.normalize(s, "NFC"))  // 5
-String.length(String.normalize(s, "NFD"))  // 6
-String.length(String.normalize(s, "NFKC")) // 6
-String.length(String.normalize(s, "NFKD")) // 7
+s.normalize("NFC").length()  // 5
+s.normalize("NFD").length()  // 6
+s.normalize("NFKC").length() // 6
+s.normalize("NFKD").length() // 7
 ```
 
 Compatibility characters include full-width letters and digits, superscripts, and Roman numerals:
@@ -75,14 +75,14 @@ Some characters have a canonical equivalent of their own, so even `"NFC"` replac
 Ångström sign U+212B becomes the letter `Å`, U+00C5:
 
 ```ant
-String.codePoint(String.normalize("\u{212B}", "NFC")) // 197
+String.normalize("\u{212B}", "NFC").codePoint() // 197
 ```
 
 `"NFD"` splits a Korean Hangul syllable into its three jamo, and `"NFC"` joins them again:
 
 ```ant
-String.length(String.normalize("한", "NFD"))                   // 3
-String.normalize(String.normalize("한", "NFD"), "NFC") == "한" // true
+String.normalize("한", "NFD").length()         // 3
+"한".normalize("NFD").normalize("NFC") == "한" // true
 ```
 
 `"NFC"` puts several combining marks in a canonical order, so the same marks typed in a different
@@ -91,8 +91,8 @@ order compare equal after normalizing:
 ```ant
 let a = "q\u{307}\u{323}"
 let b = "q\u{323}\u{307}"
-a == b                                                   // false
-String.normalize(a, "NFC") == String.normalize(b, "NFC") // true
+a == b                                   // false
+a.normalize("NFC") == b.normalize("NFC") // true
 ```
 
 In a pipe, the left side is `s`:
@@ -114,7 +114,11 @@ Strip the accents from text: split them off with `"NFD"`, then drop the code poi
 
 ```ant
 func stripAccents(s: string): string {
-  String.join(String.normalize(s, "NFD").chars().filter({ !String.isMark(x) }), "")
+  s
+    | String.normalize("NFD")
+    | String.chars()
+    | Array.filter({ !x.isMark() })
+    | String.join("")
 }
 
 stripAccents("Crème Brûlée") // "Creme Brulee"
@@ -126,7 +130,7 @@ Key a map by normalized names, so a name typed with a combining accent finds the
 ```ant
 let ages: Map[string, int] = Map{}
 func key(name: string): string {
-  String.normalize(name, "NFC")
+  name.normalize("NFC")
 }
 ages[key("Zoë")] = 31
 ages[key("Zoe\u{308}")] // 31
@@ -137,8 +141,8 @@ Build a search key that ignores case, accents, and compatibility forms by combin
 
 ```ant
 func searchKey(s: string): string {
-  let bare = String.normalize(s, "NFKD").chars().filter({ !String.isMark(x) })
-  String.foldCase(String.join(bare, ""))
+  let bare = s.normalize("NFKD").chars().filter({ !x.isMark() })
+  String.join(bare, "").foldCase()
 }
 
 searchKey("Ｃａｆé") == searchKey("CAFE") // true
@@ -152,8 +156,8 @@ Normalizing twice gives the same result as normalizing once, in every form:
 ```ant
 let s = "ﬁancé Å 한"
 for form in ["NFC", "NFD", "NFKC", "NFKD"] {
-  let once = String.normalize(s, form)
-  assert(String.normalize(once, form) == once)
+  let once = s.normalize(form)
+  assert(once.normalize(form) == once)
 }
 ```
 
@@ -161,8 +165,8 @@ for form in ["NFC", "NFD", "NFKC", "NFKD"] {
 
 ```ant
 let s = "ﬁancé Å 한"
-assert(String.normalize(String.normalize(s, "NFD"), "NFC") == String.normalize(s, "NFC"))
-assert(String.normalize(String.normalize(s, "NFKD"), "NFKC") == String.normalize(s, "NFKC"))
+assert(s.normalize("NFD").normalize("NFC") == s.normalize("NFC"))
+assert(s.normalize("NFKD").normalize("NFKC") == s.normalize("NFKC"))
 ```
 
 ## Possible issues
@@ -178,8 +182,8 @@ character, the marks stay separate; count with `String.graphemes` instead:
 
 ```ant
 let s = String.normalize("q\u{307}\u{323}", "NFC")
-String.length(s)             // 3
-String.graphemes(s).length() // 1
+s.length()             // 3
+s.graphemes().length() // 1
 ```
 
 The compatibility forms make different strings equal: `x²` and `x2` have the same `"NFKC"` form:
@@ -198,8 +202,8 @@ String.normalize("É", "NFC").foldCase() == String.normalize("e\u{301}", "NFC").
 `String.equalFold` does not normalize either; normalize both sides first:
 
 ```ant
-String.equalFold("\u{C9}", "e\u{301}")                                                   // false
-String.equalFold(String.normalize("\u{C9}", "NFC"), String.normalize("e\u{301}", "NFC")) // true
+String.equalFold("\u{C9}", "e\u{301}")                                   // false
+String.equalFold("\u{C9}".normalize("NFC"), "e\u{301}".normalize("NFC")) // true
 ```
 
 ## See also

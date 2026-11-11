@@ -38,38 +38,38 @@ Call it through `.` on any string:
 The first occurrence wins, even when a later one overlaps it:
 
 ```ant
-String.indexOf("aaa", "aa")      // 0
-String.indexOf("abababa", "aba") // 0
+"aaa".indexOf("aa")      // 0
+"abababa".indexOf("aba") // 0
 ```
 
 `t` may be all of `s`, but not longer:
 
 ```ant
-String.indexOf("ant", "ant")  // 0
-String.indexOf("ant", "ants") // null
+"ant".indexOf("ant")  // 0
+"ant".indexOf("ants") // null
 ```
 
 Nothing occurs in an empty string, but the empty string occurs at the start of any string:
 
 ```ant
-String.indexOf("", "a")   // null
-String.indexOf("ant", "") // 0
-String.indexOf("", "")    // 0
+"".indexOf("a")   // null
+"ant".indexOf("") // 0
+"".indexOf("")    // 0
 ```
 
 The index counts code points, not bytes. Each of `ï` and `é` is one code point and two bytes:
 
 ```ant
-String.indexOf("naïve café", "café") // 6
-String.indexOf("🐜🐝🐞", "🐞")       // 2
+"naïve café".indexOf("café") // 6
+"🐜🐝🐞".indexOf("🐞")       // 2
 ```
 
 It counts code points, not what a reader sees as characters. The family emoji is five code points,
 and the accented `e` below is two:
 
 ```ant
-String.indexOf("👨‍👩‍👧x", "x")       // 5
-String.indexOf("e\u{301}x", "x") // 2
+"👨‍👩‍👧x".indexOf("x")       // 5
+"e\u{301}x".indexOf("x") // 2
 ```
 
 Call it with named arguments, or in a pipe, where the string is the first argument:
@@ -85,8 +85,8 @@ Take the text after the first dot, and return early with `?? return` when there 
 
 ```ant
 func afterFirstDot(name: string): string {
-  let i = String.indexOf(name, ".") ?? return ""
-  String.slice(name, i + 1, String.length(name))
+  let i = name.indexOf(".") ?? return ""
+  name.slice(i + 1, name.length())
 }
 
 println(afterFirstDot("archive.tar.gz"))
@@ -105,7 +105,7 @@ let s = "the cat and the hat"
 var from = 0
 let hits: Array[int] = []
 while true {
-  let i = String.indexOf(String.slice(s, from, String.length(s)), "the") ?? break
+  let i = s.slice(from, s.length()).indexOf("the") ?? break
   hits.push(from + i)
   from = from + i + 1
 }
@@ -125,9 +125,9 @@ Narrow the result with `!= null` to split a header line at its colon:
 type Header = { name: string, value: string }
 
 func parseHeader(line: string): Header | null {
-  let i = String.indexOf(line, ": ")
+  let i = line.indexOf(": ")
   if i != null {
-    Header{ name: String.slice(line, 0, i), value: String.slice(line, i + 2, String.length(line)) }
+    Header{ name: line.slice(0, i), value: line.slice(i + 2, line.length()) }
   } else {
     null
   }
@@ -146,7 +146,7 @@ When you need both sides rather than the index, [`String.cut`](cut.md) splits ar
 occurrence:
 
 ```ant
-String.cut("Content-Type: text/html", ": ") // String.Cut{ before: "Content-Type", after: "text/html" }
+"Content-Type: text/html".cut(": ") // String.Cut{ before: "Content-Type", after: "text/html" }
 ```
 
 ## Properties and relations
@@ -156,7 +156,7 @@ The result is `null` exactly when [`String.contains`](contains.md) is `false`:
 ```ant
 let s = "banana"
 for t in ["an", "nab", "a", "x"] {
-  assert((String.indexOf(s, t) == null) == !String.contains(s, t))
+  assert((s.indexOf(t) == null) == !s.contains(t))
 }
 ```
 
@@ -166,18 +166,18 @@ index:
 ```ant
 let s = "mississippi"
 let t = "ssi"
-let i = String.indexOf(s, t)
+let i = s.indexOf(t)
 assert(i != null)
-assert(String.slice(s, i, i + String.length(t)) == t)
-assert(!String.contains(String.slice(s, 0, i + String.length(t) - 1), t))
+assert(s.slice(i, i + t.length()) == t)
+assert(!s.slice(0, i + t.length() - 1).contains(t))
 ```
 
 The first index is never after the last one that [`String.lastIndexOf`](lastIndexOf.md) gives:
 
 ```ant
 for s in ["banana", "an", "nana"] {
-  let first = String.indexOf(s, "an")
-  let last = String.lastIndexOf(s, "an")
+  let first = s.indexOf("an")
+  let last = s.lastIndexOf("an")
   assert((first == null) == (last == null))
   if first != null && last != null {
     assert(first <= last)
@@ -191,7 +191,7 @@ On the code points of `s`, a one-code-point `t` has the same index that
 ```ant
 let s = "hello"
 for c in ["h", "l", "o", "z"] {
-  assert(String.indexOf(s, c) == Array.indexOf(String.chars(s), c))
+  assert(s.indexOf(c) == Array.indexOf(s.chars(), c))
 }
 ```
 
@@ -200,7 +200,7 @@ for c in ["h", "l", "o", "z"] {
 A missing match is `null`, not `-1`, so a test written as in JavaScript is a compile error:
 
 ```ant
-if String.indexOf("abc", "z") >= 0 {
+if "abc".indexOf("z") >= 0 {
   // error: >= needs both operands of one type, got int | null and int
   println("found")
 }
@@ -210,45 +210,45 @@ Compare against `null` instead, or use [`String.contains`](contains.md) when the
 matter:
 
 ```ant
-String.indexOf("abc", "z") != null // false
-String.contains("abc", "z")        // false
+"abc".indexOf("z") != null // false
+"abc".contains("z")        // false
 ```
 
 The result is not an `int` until you narrow it, so arithmetic on it is a compile error:
 
 ```ant
-let i = String.indexOf("abc", "b")
+let i = "abc".indexOf("b")
 println(i + 1) // error: + needs both operands of one type, got int | null and int
 ```
 
 Give a default with `??` when one makes sense:
 
 ```ant
-(String.indexOf("abc", "b") ?? 0) + 1 // 2
+("abc".indexOf("b") ?? 0) + 1 // 2
 ```
 
 The index counts code points. [`Bytes.indexOf`](../Bytes/indexOf.md) on the UTF-8 bytes counts
 bytes, and gives a different number for the same text:
 
 ```ant
-String.indexOf("café!", "!")                                // 4
-Bytes.indexOf(String.toBytes("café!"), String.toBytes("!")) // 5
+String.indexOf("café!", "!")                    // 4
+Bytes.indexOf("café!".toBytes(), "!".toBytes()) // 5
 ```
 
 The search is case-sensitive, and a precomposed `é` does not contain the code point `e`:
 
 ```ant
-String.indexOf("Ant", "ant")           // null
-String.indexOf("Ant".toLower(), "ant") // 0
-String.indexOf("café", "e")            // null
+"Ant".indexOf("ant")           // null
+"Ant".toLower().indexOf("ant") // 0
+"café".indexOf("e")            // null
 ```
 
 The search does not normalize either, so the two spellings of `é` do not find each other. Bring both
 strings to one form with [`String.normalize`](normalize.md) first:
 
 ```ant
-String.indexOf("cafe\u{301}", "\u{E9}")                          // null
-String.indexOf(String.normalize("cafe\u{301}", "NFC"), "\u{E9}") // 3
+"cafe\u{301}".indexOf("\u{E9}")                  // null
+"cafe\u{301}".normalize("NFC").indexOf("\u{E9}") // 3
 ```
 
 ## See also

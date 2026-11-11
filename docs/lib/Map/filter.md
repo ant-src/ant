@@ -29,7 +29,7 @@ Keep the entries whose key passes a test:
 
 ```ant
 let stock = Map{ apples: 3, pears: 0, plums: 7 }
-Map.filter(stock, { String.startsWith(x.key, "p") }) // Map{ "pears": 0, "plums": 7 }
+Map.filter(stock, { x.key.startsWith("p") }) // Map{ "pears": 0, "plums": 7 }
 ```
 
 ## Scope
@@ -38,15 +38,15 @@ An empty map gives an empty map, and so does a predicate that accepts nothing:
 
 ```ant
 let empty: Map[string, int] = Map{}
-Map.filter(empty, { true })              // Map{}
-Map.filter(Map{ a: 1, b: 2 }, { false }) // Map{}
+empty.filter({ true })              // Map{}
+Map{ a: 1, b: 2 }.filter({ false }) // Map{}
 ```
 
 The result keeps the order of `m`, which is the order its keys were first inserted:
 
 ```ant
 let m = Map{ b: 2, a: 1, c: 3 }
-Map.filter(m, { x.key != "a" }) // Map{ "b": 2, "c": 3 }
+m.filter({ x.key != "a" }) // Map{ "b": 2, "c": 3 }
 ```
 
 Keys can be records:
@@ -54,7 +54,7 @@ Keys can be records:
 ```ant
 type Point = { x: int, y: int }
 let grid = Map{ Point{ x: 0, y: 0 }: "start", Point{ x: 2, y: 1 }: "tree", Point{ x: 0, y: 3 }: "rock" }
-Map.filter(grid, { x.key.x == 0 }) // Map{ Point{ x: 0, y: 0 }: "start", Point{ x: 0, y: 3 }: "rock" }
+grid.filter({ x.key.x == 0 }) // Map{ Point{ x: 0, y: 0 }: "start", Point{ x: 0, y: 3 }: "rock" }
 ```
 
 Values can be a union; pick one member with `is`:
@@ -64,28 +64,28 @@ type Open = {}
 type Closed = { reason: string }
 type State = Open | Closed
 let doors: Map[string, State] = Map{ front: Open{}, back: Closed{ reason: "locked" } }
-Map.filter(doors, { x.value is Closed }) // Map{ "back": Closed{ reason: "locked" } }
+doors.filter({ x.value is Closed }) // Map{ "back": Closed{ reason: "locked" } }
 ```
 
 Drop the entries whose value is `null`:
 
 ```ant
 let ages = Map{ "Ann": 31, "Bob": null, "Cid": 27 }
-Map.filter(ages, { x.value != null }) // Map{ "Ann": 31, "Cid": 27 }
+ages.filter({ x.value != null }) // Map{ "Ann": 31, "Cid": 27 }
 ```
 
 Pass a named function that takes an `Entry`:
 
 ```ant
 func isPositive(e: Entry[string, int]): bool { e.value > 0 }
-Map.filter(Map{ a: 1, b: -1, c: 5 }, isPositive) // Map{ "a": 1, "c": 5 }
+Map{ a: 1, b: -1, c: 5 }.filter(isPositive) // Map{ "a": 1, "c": 5 }
 ```
 
 An anonymous function can destructure the entry into its key and value:
 
 ```ant
 let m = Map{ a: 1, b: 2, c: 3 }
-Map.filter(m, func(e: Entry[string, int]): bool {
+m.filter(func(e: Entry[string, int]): bool {
   let { key, value } = e
   value > 1 && key != "c"
 }) // Map{ "b": 2 }
@@ -106,14 +106,14 @@ Hide the keys named in a set before logging form data:
 ```ant
 let hidden = Set.of(["password", "token"])
 let form = Map{ user: "ann", password: "hunter2", token: "abc" }
-form.filter({ !Set.has(hidden, x.key) }) // Map{ "user": "ann" }
+form.filter({ !hidden.has(x.key) }) // Map{ "user": "ann" }
 ```
 
 Print the words of two or more letters that occur at least three times:
 
 ```ant
 let counts = Map{ "the": 12, "ant": 3, "a": 9, "hill": 1 }
-for e in Map.entries(counts.filter({ x.value >= 3 && String.length(x.key) > 1 })) {
+for e in counts.filter({ x.value >= 3 && x.key.length() > 1 }).entries() {
   println("${e.key} ${e.value}")
 }
 ```
@@ -149,9 +149,9 @@ Filtering by `f` and by its negation splits `m` with nothing lost:
 ```ant
 let m = Map{ a: 1, b: 2, c: 3, d: 4 }
 let f: func(Entry[string, int]): bool = { x.value > 2 }
-let yes = Map.filter(m, f)
-let no = Map.filter(m, { !f(x) })
-assert(Map.size(yes) + Map.size(no) == Map.size(m))
+let yes = m.filter(f)
+let no = m.filter({ !f(x) })
+assert(yes.size() + no.size() == m.size())
 assert(Map.merge(yes, no) == m)
 ```
 
@@ -160,8 +160,8 @@ assert(Map.merge(yes, no) == m)
 ```ant
 let m = Map{ b: 2, a: 1, c: 3 }
 let seen: Array[string] = []
-let big = Map.filter(m, func(e: Entry[string, int]): bool {
-  Array.push(seen, e.key)
+let big = m.filter(func(e: Entry[string, int]): bool {
+  seen.push(e.key)
   e.value > 1
 })
 assert(seen == ["b", "a", "c"])
@@ -172,19 +172,19 @@ Filtering twice by the same predicate changes nothing the second time:
 
 ```ant
 let m = Map{ a: 1, b: 2, c: 3 }
-let once = Map.filter(m, { x.value != 2 })
-assert(Map.filter(once, { x.value != 2 }) == once)
+let once = m.filter({ x.value != 2 })
+assert(once.filter({ x.value != 2 }) == once)
 ```
 
 The result is a new map even when it holds every entry, so changing it leaves `m` as it was:
 
 ```ant
 let m = Map{ a: 1, b: 2 }
-let all = Map.filter(m, { true })
+let all = m.filter({ true })
 assert(all == m)
 assert(!Map.same(all, m))
 all["c"] = 3
-assert(Map.size(m) == 2)
+assert(m.size() == 2)
 ```
 
 ## Possible issues
@@ -194,7 +194,7 @@ change `m`; assign the result, or use `Map.remove` to change `m` in place:
 
 ```ant
 let stock = Map{ apples: 3, pears: 0 }
-Map.filter(stock, { x.value > 0 })
+stock.filter({ x.value > 0 })
 println(stock)
 ```
 
@@ -206,7 +206,7 @@ The predicate takes one `Entry`, not a key and a value:
 
 ```ant
 let stock = Map{ apples: 3, pears: 0 }
-let inStock = Map.filter(stock, func(k: string, v: int): bool { v > 0 })
+let inStock = stock.filter(func(k: string, v: int): bool { v > 0 })
 // error: cannot use func(string, int): bool where func(Entry[string, int]): bool is expected
 ```
 
@@ -214,7 +214,7 @@ The predicate must return a `bool`. Ant has no truthy values, so an `int` is a c
 
 ```ant
 let stock = Map{ apples: 3, pears: 0 }
-let inStock = Map.filter(stock, { x.value }) // error: cannot use int where bool is expected
+let inStock = stock.filter({ x.value }) // error: cannot use int where bool is expected
 ```
 
 The result keeps the value type of `m`. Filtering out `null` gives a `Map[string, int | null]`, not
@@ -222,7 +222,7 @@ a `Map[string, int]`:
 
 ```ant
 let ages = Map{ "Ann": 31, "Bob": null }
-let kept = Map.filter(ages, { x.value != null })
+let kept = ages.filter({ x.value != null })
 let known: Map[string, int] = kept // error: cannot use Map[string, int | null] where Map[string, int] is expected
 ```
 

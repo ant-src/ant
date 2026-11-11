@@ -92,9 +92,9 @@ Turn scores into probabilities with softmax. Subtracting the largest score first
 
 ```ant
 func softmax(xs: Array[float64]): Array[float64] {
-  let top = Array.max(xs) ?? 0.0
+  let top = xs.max() ?? 0.0
   let ws = xs.map({ Math.exp(x - top) })
-  let total = Array.sum(ws) ?? 0.0
+  let total = ws.sum() ?? 0.0
   ws.map({ x / total })
 }
 

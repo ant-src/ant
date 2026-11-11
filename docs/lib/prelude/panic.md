@@ -168,12 +168,12 @@ stop waiting for it:
 
 ```ant
 let wg = WaitGroup.new()
-WaitGroup.add(wg, 1)
+wg.add(1)
 go {
-  defer { WaitGroup.done(wg) }
+  defer { wg.done() }
   panic("worker failed")
 }
-WaitGroup.wait(wg)
+wg.wait()
 println("main goes on")
 ```
 
@@ -192,7 +192,7 @@ func handle(job: Job): string {
   if job.input == "" {
     panic("empty input")
   }
-  String.toUpper(job.input)
+  job.input.toUpper()
 }
 
 let jobs = [Job{ id: 1, input: "a" }, Job{ id: 2, input: "" }, Job{ id: 3, input: "c" }]
@@ -285,20 +285,20 @@ let code = 42
 panic("code ${code}") // panic: code 42
 ```
 
-A panic skips the rest of the goroutine's code, so a `WaitGroup.done(wg)` call at the end of a `go`
-block never runs when the block panics, and `WaitGroup.wait` waits forever. Put the call in a
-`defer`, as in the goroutine example under Scope.
+A panic skips the rest of the goroutine's code, so a `wg.done()` call at the end of a `go` block
+never runs when the block panics, and `WaitGroup.wait` waits forever. Put the call in a `defer`, as
+in the goroutine example under Scope.
 
 Do not panic on input from a user, a file, or the network. Return a `Result`, or a value the caller
 can check, instead:
 
 ```ant
 func port(text: string): Result[int, Error] {
-  let n = String.toInt(text)
+  let n = text.toInt()
   if n == null {
-    return Err{ error: Error{ message: "not a port: ${text}" } }
+    return Result.err(Error{ message: "not a port: ${text}" })
   }
-  Ok{ value: n }
+  Result.ok(n)
 }
 
 println(port("80x"))
@@ -313,7 +313,7 @@ Catching a panic does not undo what ran before it. Data the code changed stays c
 ```ant
 let log: Array[string] = []
 let r = Panic.catch({
-  Array.push(log, "step 1")
+  log.push("step 1")
   panic("halfway")
 })
 println(log)

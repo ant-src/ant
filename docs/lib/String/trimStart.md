@@ -37,31 +37,31 @@ String.trimStart("\t\n  indented") // "indented"
 A string without leading white space comes back unchanged, white space inside it included:
 
 ```ant
-String.trimStart("a  b ") // "a  b "
+"a  b ".trimStart() // "a  b "
 ```
 
 An empty string, and a string of only white space, give `""`:
 
 ```ant
-String.trimStart("")        // ""
-String.trimStart(" \t\r\n") // ""
+"".trimStart()        // ""
+" \t\r\n".trimStart() // ""
 ```
 
 White space beyond ASCII counts: the no-break space U+00A0, the ideographic space U+3000, the next
 line U+0085, and the line separator U+2028:
 
 ```ant
-String.trimStart("\u{A0}\u{3000}日本") // "日本"
-String.trimStart("\u{85}\u{2028}x")    // "x"
+"\u{A0}\u{3000}日本".trimStart() // "日本"
+"\u{85}\u{2028}x".trimStart()    // "x"
 ```
 
 Call it in a pipe, through `.` on a string, with its argument named, or as a function value:
 
 ```ant
-"  piped" | String.trimStart()                     // "piped"
-"  dotted".trimStart()                             // "dotted"
-String.trimStart(s: "  named")                     // "named"
-Array.map(["  a", " b ", "c  "], String.trimStart) // ["a", "b ", "c  "]
+"  piped" | String.trimStart()              // "piped"
+"  dotted".trimStart()                      // "dotted"
+String.trimStart(s: "  named")              // "named"
+["  a", " b ", "c  "].map(String.trimStart) // ["a", "b ", "c  "]
 ```
 
 ## Applications
@@ -70,11 +70,11 @@ Measure the indentation of a line, in code points:
 
 ```ant
 func indent(line: string): int {
-  String.length(line) - String.length(String.trimStart(line))
+  line.length() - line.trimStart().length()
 }
 
 for line in ["func f() {", "  var x = 1", "    return x", "}"] {
-  println("${indent(line)}: ${String.trimStart(line)}")
+  println("${indent(line)}: ${line.trimStart()}")
 }
 ```
 
@@ -91,11 +91,11 @@ Read `key: value` pairs, where the value may follow the colon after any number o
 type Header = { key: string, value: string }
 
 func parse(line: string): Header | null {
-  let c = String.cut(line, ":")
+  let c = line.cut(":")
   if c == null {
     return null
   }
-  Header{ key: c.before, value: String.trimStart(c.after) }
+  Header{ key: c.before, value: c.after.trimStart() }
 }
 
 println(parse("Host:   example.com"))
@@ -113,9 +113,10 @@ Remove the indentation of every line, and skip the lines that are blank:
 
 ```ant
 let text = "  first\n\n    second\n   \n  third"
-let kept = String.lines(text)
+let kept = text
+  | String.lines()
   | Array.map(String.trimStart)
-  | Array.filter({ !String.isEmpty(x) })
+  | Array.filter({ !x.isEmpty() })
 println(kept)
 ```
 
@@ -129,9 +130,9 @@ println(kept)
 
 ```ant
 for s in ["", "  a ", "\t\nb", "c", "   "] {
-  let t = String.trimStart(s)
-  assert(String.endsWith(s, t))
-  assert(String.trimStart(t) == t)
+  let t = s.trimStart()
+  assert(s.endsWith(t))
+  assert(t.trimStart() == t)
 }
 ```
 
@@ -140,8 +141,8 @@ The result is empty or starts with a code point that is not white space, as
 
 ```ant
 for s in ["  a", "\u{3000}b", "   "] {
-  let t = String.trimStart(s)
-  assert(String.isEmpty(t) || !String.isSpace(String.slice(t, 0, 1)))
+  let t = s.trimStart()
+  assert(t.isEmpty() || !t.slice(0, 1).isSpace())
 }
 ```
 
@@ -149,7 +150,7 @@ for s in ["  a", "\u{3000}b", "   "] {
 
 ```ant
 let s = "  both ends  "
-assert(String.trimEnd(String.trimStart(s)) == String.trim(s))
+assert(s.trimStart().trimEnd() == s.trim())
 ```
 
 ## Possible issues
@@ -158,16 +159,16 @@ The zero-width space U+200B and the byte order mark U+FEFF are not white space, 
 `String.trimStart` keeps them. Remove a byte order mark with [`String.trimPrefix`](trimPrefix.md):
 
 ```ant
-String.trimStart("\u{FEFF}  x") == "\u{FEFF}  x"               // true
-String.trimStart(String.trimPrefix("\u{FEFF}  x", "\u{FEFF}")) // "x"
+"\u{FEFF}  x".trimStart() == "\u{FEFF}  x"       // true
+"\u{FEFF}  x".trimPrefix("\u{FEFF}").trimStart() // "x"
 ```
 
 `String.trimStart` removes white space only. To remove another leading text, use
 [`String.trimPrefix`](trimPrefix.md), which removes it once:
 
 ```ant
-String.trimStart("--flag")        // "--flag"
-String.trimPrefix("--flag", "--") // "flag"
+"--flag".trimStart()      // "--flag"
+"--flag".trimPrefix("--") // "flag"
 ```
 
 The right side of a pipe is a call, so it needs its parentheses:

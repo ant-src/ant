@@ -36,51 +36,51 @@ Call it through `.`:
 The empty string has no code points to test, and gives `false`:
 
 ```ant
-String.isLetter("") // false
+"".isLetter() // false
 ```
 
 Every code point must be a letter, so a space, a digit, a hyphen, or an underscore anywhere makes it
 `false`:
 
 ```ant
-String.isLetter("red ant") // false
-String.isLetter("ant2")    // false
-String.isLetter("re-do")   // false
-String.isLetter("my_var")  // false
+"red ant".isLetter() // false
+"ant2".isLetter()    // false
+"re-do".isLetter()   // false
+"my_var".isLetter()  // false
 ```
 
 Letters of other scripts count:
 
 ```ant
-String.isLetter("Привет") // true
-String.isLetter("αβγ")    // true
-String.isLetter("مرحبا")  // true
-String.isLetter("日本語") // true
-String.isLetter("ß")      // true
+"Привет".isLetter() // true
+"αβγ".isLetter()    // true
+"مرحبا".isLetter()  // true
+"日本語".isLetter() // true
+"ß".isLetter()      // true
 ```
 
 Each kind of letter counts: upper case `Lu`, lower case `Ll`, title case `Lt`, modifier `Lm`, and
 other `Lo`:
 
 ```ant
-String.isLetter("Ǆ")  // true
-String.isLetter("ǆ")  // true
-String.isLetter("ǅ")  // true
-String.isLetter("ʰ")  // true
-String.isLetter("ア") // true
+"Ǆ".isLetter()  // true
+"ǆ".isLetter()  // true
+"ǅ".isLetter()  // true
+"ʰ".isLetter()  // true
+"ア".isLetter() // true
 ```
 
 A Roman numeral looks like a letter but is a number, `Nl`. An emoji is a symbol:
 
 ```ant
-String.isLetter("Ⅻ")  // false
-String.isLetter("🐜") // false
+"Ⅻ".isLetter()  // false
+"🐜".isLetter() // false
 ```
 
 Test one code point at a time with `String.chars`, here in a pipe:
 
 ```ant
-"a1 b" | String.chars() | Array.map({ String.isLetter(x) }) // [true, false, false, true]
+"a1 b" | String.chars() | Array.map({ x.isLetter() }) // [true, false, false, true]
 ```
 
 Pass it to a higher-order function as a function value:
@@ -95,13 +95,13 @@ Keep only the letters of a text:
 
 ```ant
 let code = "A1-B2_c3"
-String.concat(code.chars().filter({ String.isLetter(x) })) // "ABc"
+String.concat(code.chars().filter({ x.isLetter() })) // "ABc"
 ```
 
 Count the letters of a sentence:
 
 ```ant
-"Hi, ants! 3 of you?".chars().countWhere({ String.isLetter(x) }) // 11
+"Hi, ants! 3 of you?".chars().countWhere({ x.isLetter() }) // 11
 ```
 
 Split a text into words, where a word is a run of letters:
@@ -111,7 +111,7 @@ func words(text: string): Array[string] {
   let out: Array[string] = []
   var word = ""
   for c in text {
-    if String.isLetter(c) {
+    if c.isLetter() {
       word = word + c
     } else if word != "" {
       out.push(word)
@@ -134,7 +134,7 @@ type Check = { name: string, ok: bool }
 
 func check(name: string): Check {
   let chars = name.chars()
-  Check{ name: name, ok: !chars.isEmpty() && String.isLetter(chars[0]) }
+  Check{ name: name, ok: !chars.isEmpty() && chars[0].isLetter() }
 }
 
 for c in ["ant", "_tmp", "9lives", ""].map(check) {
@@ -156,8 +156,8 @@ that starts with `L`:
 
 ```ant
 for s in ["", "a", "Ant", "日本", "ǅ", "ʰ", "a1", "Ⅻ", "e\u{301}", "_"] {
-  let byCategory = s != "" && s.chars().every({ String.category(x).startsWith("L") })
-  assert(String.isLetter(s) == byCategory)
+  let byCategory = s != "" && s.chars().every({ x.category().startsWith("L") })
+  assert(s.isLetter() == byCategory)
 }
 ```
 
@@ -166,12 +166,12 @@ An upper-case or lower-case letter is a letter, so [`String.isUpper`](isUpper.md
 
 ```ant
 for s in ["A", "a", "ǅ", "日", "ʰ", "1"] {
-  assert(!String.isUpper(s) || String.isLetter(s))
-  assert(!String.isLower(s) || String.isLetter(s))
+  assert(!s.isUpper() || s.isLetter())
+  assert(!s.isLower() || s.isLetter())
 }
-String.isLetter("日") // true
-String.isUpper("日")  // false
-String.isLower("日")  // false
+"日".isLetter() // true
+"日".isUpper()  // false
+"日".isLower()  // false
 ```
 
 For nonempty `a` and `b`, `a + b` is all letters exactly when both `a` and `b` are:
@@ -179,7 +179,7 @@ For nonempty `a` and `b`, `a + b` is all letters exactly when both `a` and `b` a
 ```ant
 for a in ["ab", "日", "1"] {
   for b in ["c", "ß", " "] {
-    assert(String.isLetter(a + b) == (String.isLetter(a) && String.isLetter(b)))
+    assert(String.isLetter(a + b) == (a.isLetter() && b.isLetter()))
   }
 }
 ```
@@ -192,38 +192,38 @@ point for it:
 
 ```ant
 let e = "e\u{301}"
-String.isLetter(e)                          // false
-String.isMark("\u{301}")                    // true
-String.isLetter(String.normalize(e, "NFC")) // true
+e.isLetter()                  // false
+"\u{301}".isMark()            // true
+e.normalize("NFC").isLetter() // true
 ```
 
 Real names hold more than letters: an apostrophe, a hyphen, a space. `String.isLetter` rejects them:
 
 ```ant
-String.isLetter("O'Brien")  // false
-String.isLetter("Jean-Luc") // false
-String.isLetter("Mary Ann") // false
+"O'Brien".isLetter()  // false
+"Jean-Luc".isLetter() // false
+"Mary Ann".isLetter() // false
 ```
 
 `String.isLetter` tests that the whole string is letters, not that it holds one. Use `Array.some`
 for that:
 
 ```ant
-String.isLetter("a1")                     // false
-"a1".chars().some({ String.isLetter(x) }) // true
+"a1".isLetter()                     // false
+"a1".chars().some({ x.isLetter() }) // true
 ```
 
 A letter is not only `a` to `z`. To accept ASCII letters only, test the code point:
 
 ```ant
 func isAsciiLetter(c: string): bool {
-  let n = String.codePoint(c)
+  let n = c.codePoint()
   (n >= 65 && n <= 90) || (n >= 97 && n <= 122)
 }
 
-String.isLetter("é") // true
-isAsciiLetter("é")   // false
-isAsciiLetter("Z")   // true
+"é".isLetter()     // true
+isAsciiLetter("é") // false
+isAsciiLetter("Z") // true
 ```
 
 ## See also

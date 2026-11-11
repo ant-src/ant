@@ -41,7 +41,7 @@ A condition that fails panics. The message shows the condition and the values it
 
 ```ant
 let prices = [1, 2]
-let total = Array.sum(prices) ?? 0
+let total = prices.sum() ?? 0
 assert(total == 4) // panic: assertion failed: total == 4 (3 == 4)
 ```
 
@@ -49,7 +49,7 @@ Add a message that says why the condition should hold. It goes at the end:
 
 ```ant
 let prices = [1, 2]
-let total = Array.sum(prices) ?? 0
+let total = prices.sum() ?? 0
 assert(total == 3, "the cart adds every price")
 println(total)
 ```
@@ -137,7 +137,7 @@ The arguments of a call show too, so a failed check on a helper shows its input:
 
 ```ant
 func isSorted(xs: Array[int]): bool {
-  xs == Array.sort(xs)
+  xs == xs.sort()
 }
 
 let xs = [3, 1, 2]
@@ -201,7 +201,7 @@ Check a documented precondition at the top of a function, so that a bad call fai
 ```ant
 func average(xs: Array[float64]): float64 {
   assert(len(xs) > 0, "average of no numbers")
-  (Array.sum(xs) ?? 0.0) / float64(len(xs))
+  (xs.sum() ?? 0.0) / float64(len(xs))
 }
 
 println(average([1.0, 2.0, 6.0]))
@@ -273,7 +273,7 @@ test "top returns the last element" {
 test "top of an empty stack panics" {
   let r = Panic.catch({ top([]) })
   assert(r is Err)
-  assert(String.contains(r.error.message, "top of an empty stack"))
+  assert(r.error.message.contains("top of an empty stack"))
 }
 ```
 
@@ -296,7 +296,7 @@ A failed `assert` with a message ends its panic message with `: ` and the messag
 
 ```ant
 let r = Panic.catch({ assert(1 + 1 == 3, "arithmetic works") })
-assert(r is Err && String.endsWith(r.error.message, ": arithmetic works"))
+assert(r is Err && r.error.message.endsWith(": arithmetic works"))
 ```
 
 ## Possible issues
@@ -305,7 +305,7 @@ assert(r is Err && String.endsWith(r.error.message, ": arithmetic works"))
 
 ```ant
 let flags = [true, false]
-let checked = Array.map(flags, assert)
+let checked = flags.map(assert)
 // error: assert is not a value; it can only be called, as assert(cond) or assert(cond, message)
 ```
 
@@ -322,11 +322,11 @@ return a `Result` instead:
 
 ```ant
 func parseAge(text: string): Result[int, Error] {
-  let n = String.toInt(text) ?? return Err{ error: Error{ message: "not a number: ${text}" } }
+  let n = text.toInt() ?? return Result.err(Error{ message: "not a number: ${text}" })
   if n < 0 {
-    return Err{ error: Error{ message: "age is negative: ${n}" } }
+    return Result.err(Error{ message: "age is negative: ${n}" })
   }
-  Ok{ value: n }
+  Result.ok(n)
 }
 
 println(parseAge("-4"))

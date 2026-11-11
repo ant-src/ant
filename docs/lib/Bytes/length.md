@@ -43,31 +43,31 @@ Bytes.length(Bytes.concat([]))   // 0
 A character outside ASCII takes two to four bytes in UTF-8:
 
 ```ant
-Bytes.length(String.toBytes("é"))      // 2
-Bytes.length(String.toBytes("日本語")) // 9
-Bytes.length(String.toBytes("🐜"))     // 4
+String.toBytes("é").length()      // 2
+String.toBytes("日本語").length() // 9
+String.toBytes("🐜").length()     // 4
 ```
 
 A string escape writes a code point, not a byte, so `"\u{89}"` is two bytes:
 
 ```ant
-Bytes.length(String.toBytes("\u{89}")) // 2
-Bytes.length(Bytes.fromArray([0x89]))  // 1
+String.toBytes("\u{89}").length() // 2
+Bytes.fromArray([0x89]).length()  // 1
 ```
 
 Decoded bytes have one byte per two hexadecimal digits, and three per four Base64 characters:
 
 ```ant
-Bytes.length(Encoding.fromHex("cafe").unwrap())    // 2
-Bytes.length(Encoding.fromBase64("YW50").unwrap()) // 3
+Encoding.fromHex("cafe").unwrap().length()    // 2
+Encoding.fromBase64("YW50").unwrap().length() // 3
 ```
 
 A slice has as many bytes as its range is wide:
 
 ```ant
 let b = String.toBytes("anthill")
-Bytes.length(Bytes.slice(b, 3, 7)) // 4
-Bytes.length(Bytes.slice(b, 3, 3)) // 0
+b.slice(3, 7).length() // 4
+b.slice(3, 3).length() // 0
 ```
 
 Call it through `.`, in a pipe, or pass it as a function value:
@@ -85,20 +85,20 @@ Check that a payload fits a limit on bytes, such as a field stored in 16 bytes:
 
 ```ant
 func fits(name: string): bool {
-  Bytes.length(String.toBytes(name)) <= 16
+  String.toBytes(name).length() <= 16
 }
 
-fits("anthill")             // true
-fits("муравейник")          // false
-String.length("муравейник") // 10
+fits("anthill")       // true
+fits("муравейник")    // false
+"муравейник".length() // 10
 ```
 
 Take the last four bytes, such as a checksum stored at the end of a block:
 
 ```ant
 func trailer(b: Bytes): Bytes {
-  let n = Bytes.length(b)
-  Bytes.slice(b, n - 4, n)
+  let n = b.length()
+  b.slice(n - 4, n)
 }
 
 trailer(Bytes.fromArray([1, 2, 3, 4, 5, 6])) // Bytes(03 04 05 06)
@@ -108,7 +108,7 @@ Check the length before reading a byte at a fixed offset:
 
 ```ant
 func version(b: Bytes): int | null {
-  if Bytes.length(b) < 5 {
+  if b.length() < 5 {
     return null
   }
   int(b[4])
@@ -122,8 +122,8 @@ Add up the sizes of several pieces before joining them:
 
 ```ant
 let parts = ["ant", "hill", "🐜"].map(String.toBytes)
-parts.map(Bytes.length).sum()     // 11
-Bytes.length(Bytes.concat(parts)) // 11
+parts.map(Bytes.length).sum() // 11
+Bytes.concat(parts).length()  // 11
 ```
 
 ## Properties and relations
@@ -142,7 +142,7 @@ The length of a concatenation is the sum of the lengths:
 ```ant
 let a = String.toBytes("ant")
 let b = Bytes.fromArray([0, 255])
-assert(Bytes.length(Bytes.concat([a, b])) == Bytes.length(a) + Bytes.length(b))
+assert(Bytes.concat([a, b]).length() == a.length() + b.length())
 ```
 
 A slice from `from` to `to` has `to - from` bytes:
@@ -150,7 +150,7 @@ A slice from `from` to `to` has `to - from` bytes:
 ```ant
 let b = String.toBytes("anthill")
 for r in [[0, 0], [1, 4], [0, 7]] {
-  assert(Bytes.length(Bytes.slice(b, r[0], r[1])) == r[1] - r[0])
+  assert(b.slice(r[0], r[1]).length() == r[1] - r[0])
 }
 ```
 
@@ -158,15 +158,15 @@ for r in [[0, 0], [1, 4], [0, 7]] {
 
 ```ant
 let b = String.toBytes("héllo")
-assert(len(Bytes.toArray(b)) == Bytes.length(b))
-assert(Bytes.length(Bytes.fromArray([1, 2, 3])) == 3)
+assert(len(b.toArray()) == b.length())
+assert(Bytes.fromArray([1, 2, 3]).length() == 3)
 ```
 
 A string has at least as many bytes as code points:
 
 ```ant
 for s in ["ant", "héllo", "🐜"] {
-  assert(Bytes.length(String.toBytes(s)) >= String.length(s))
+  assert(String.toBytes(s).length() >= s.length())
 }
 ```
 
@@ -187,8 +187,8 @@ The length is one past the last index, so indexing at it panics:
 
 ```ant
 let b = String.toBytes("ant")
-b[Bytes.length(b) - 1] // 116
-b[Bytes.length(b)]     // panic: index 3 out of range for Bytes of length 3
+b[b.length() - 1] // 116
+b[b.length()]     // panic: index 3 out of range for Bytes of length 3
 ```
 
 A string is not `Bytes`, so passing one is a compile error. Convert it with `String.toBytes`:
@@ -198,12 +198,12 @@ println(Bytes.length("ant")) // error: cannot use string where Bytes is expected
 ```
 
 Arithmetic on the length can go below zero. Taking the last four bytes of shorter data panics, so
-check `Bytes.length(b) >= 4` first:
+check `b.length() >= 4` first:
 
 ```ant
 func trailer(b: Bytes): Bytes {
-  let n = Bytes.length(b)
-  Bytes.slice(b, n - 4, n)
+  let n = b.length()
+  b.slice(n - 4, n)
 }
 
 trailer(Bytes.fromArray([1, 2])) // panic: Bytes.slice: the range -2..2 is not within 0 ..= 2

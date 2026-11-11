@@ -83,8 +83,8 @@ float64(Count(4))    // 4.0
 `float64` is a function value, so it maps an array or ends a pipe:
 
 ```ant
-Array.map([1, 2, 3], float64) // [1.0, 2.0, 3.0]
-7 | float64()                 // 7.0
+[1, 2, 3].map(float64) // [1.0, 2.0, 3.0]
+7 | float64()          // 7.0
 ```
 
 ## Applications

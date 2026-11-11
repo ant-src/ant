@@ -128,11 +128,11 @@ Report the required columns a CSV header lacks, and accept it when there are non
 
 ```ant
 let required = Set.of(["id", "name", "email"])
-let header = Set.of(String.split("id,email,age", ","))
+let header = Set.of("id,email,age".split(","))
 if required.isSubset(header) {
   println("ok")
 } else {
-  println("missing: ${Set.difference(required, header).values()}")
+  println("missing: ${required.difference(header).values()}")
 }
 ```
 
@@ -143,9 +143,9 @@ missing: ["name"]
 Test whether a word can be spelled from a set of letters, using each letter any number of times:
 
 ```ant
-let letters = Set.of(String.chars("aenst"))
+let letters = Set.of("aenst".chars())
 for word in ["ants", "nest", "tent", "lens"] {
-  println("${word}: ${Set.of(String.chars(word)).isSubset(letters)}")
+  println("${word}: ${Set.of(word.chars()).isSubset(letters)}")
 }
 ```
 
@@ -229,7 +229,7 @@ Annotate the first set with the union type, as in Scope above.
 A set holds each value once, so `isSubset` ignores repeats:
 
 ```ant
-Set.of(String.chars("sees")).isSubset(Set.of(String.chars("se"))) // true
+Set.of("sees".chars()).isSubset(Set.of("se".chars())) // true
 ```
 
 To compare how many times each value occurs, count them in a `Map`.

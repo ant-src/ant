@@ -79,18 +79,15 @@ Drop missing readings before averaging them:
 ```ant
 let readings = [12.5, Math.NaN, 13.5, Math.NaN]
 let valid = readings.filter({ !Math.isNaN(x) })
-valid                                               // [12.5, 13.5]
-(Array.sum(valid) ?? 0.0) / float64(valid.length()) // 13.0
+valid                                          // [12.5, 13.5]
+(valid.sum() ?? 0.0) / float64(valid.length()) // 13.0
 ```
 
 Fill gaps in a series with a default value:
 
 ```ant
 func orDefault(x: float64, d: float64): float64 {
-  if Math.isNaN(x) {
-    return d
-  }
-  x
+  if Math.isNaN(x) { d } else { x }
 }
 
 [12.5, Math.NaN, 13.5].map({ orDefault(x, 0.0) }) // [12.5, 0.0, 13.5]

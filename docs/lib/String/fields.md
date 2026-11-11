@@ -38,27 +38,27 @@ String.fields("  a \t b\n") // ["a", "b"]
 A string with no white space is one field:
 
 ```ant
-String.fields("one") // ["one"]
+"one".fields() // ["one"]
 ```
 
 An empty string and a string of only white space have no fields:
 
 ```ant
-String.fields("")          // []
-String.fields("   \n\t  ") // []
+"".fields()          // []
+"   \n\t  ".fields() // []
 ```
 
 White space beyond ASCII separates fields too, such as the no-break space U+00A0 and the ideographic
 space U+3000:
 
 ```ant
-String.fields("a\u{A0}b\u{3000}c") // ["a", "b", "c"]
+"a\u{A0}b\u{3000}c".fields() // ["a", "b", "c"]
 ```
 
 Letters of any script, and emoji, stay in their fields:
 
 ```ant
-String.fields("Ünïcödé  日本 語 🐜") // ["Ünïcödé", "日本", "語", "🐜"]
+"Ünïcödé  日本 語 🐜".fields() // ["Ünïcödé", "日本", "語", "🐜"]
 ```
 
 Call it through `.` or in a pipe:
@@ -74,14 +74,14 @@ Count the words of a text:
 
 ```ant
 let text = "It was the best of times,\nit was the worst of times."
-len(String.fields(text)) // 12
+text.fields().length() // 12
 ```
 
 Collapse every run of white space to a single space:
 
 ```ant
 func squish(s: string): string {
-  String.join(String.fields(s), " ")
+  s.fields() | String.join(" ")
 }
 
 squish("  too   many\tspaces \n") // "too many spaces"
@@ -91,7 +91,7 @@ Read a line of numbers separated by any amount of white space:
 
 ```ant
 let line = " 3  14\t15 "
-String.fields(line).map({ String.toInt(x) ?? 0 }) // [3, 14, 15]
+line.fields().map({ x.toInt() ?? 0 }) // [3, 14, 15]
 ```
 
 Read a command and its arguments from a line of input:
@@ -106,15 +106,15 @@ look
 type Command = { name: string, args: Array[string] }
 
 func parse(line: string): Command | null {
-  let words = String.fields(line)
-  if len(words) == 0 {
+  let words = line.fields()
+  if words.isEmpty() {
     return null
   }
-  Command{ name: words[0], args: Array.slice(words, 1, len(words)) }
+  Command{ name: words[0], args: words.slice(1, words.length()) }
 }
 
 let input = Result.unwrap(File.readAll(Os.stdin()))
-for line in String.lines(input) {
+for line in input.lines() {
   let c = parse(line)
   if c == null {
     println("empty line")
@@ -135,23 +135,23 @@ look []
 No field is empty, and no field holds a code point that `String.isSpace` accepts:
 
 ```ant
-let fields = String.fields(" a\u{A0}bc \t d\n")
-assert(Array.every(fields, { !String.isEmpty(x) }))
-assert(Array.every(fields, { Array.every(String.chars(x), { !String.isSpace(x) }) }))
+let fields = " a\u{A0}bc \t d\n".fields()
+assert(fields.every({ !x.isEmpty() }))
+assert(fields.every({ x.chars().every({ !x.isSpace() }) }))
 ```
 
 Joining the fields with one space and taking the fields again gives the same fields:
 
 ```ant
-let fields = String.fields("  to be\tor  not \n")
-assert(String.fields(String.join(fields, " ")) == fields)
+let fields = "  to be\tor  not \n".fields()
+assert(String.join(fields, " ").fields() == fields)
 ```
 
 White space at the ends does not change the fields, so trimming first is not needed:
 
 ```ant
 let s = "\t one two  "
-assert(String.fields(s) == String.fields(String.trim(s)))
+assert(s.fields() == s.trim().fields())
 ```
 
 ## Possible issues
@@ -160,26 +160,26 @@ assert(String.fields(s) == String.fields(String.trim(s)))
 when every separator counts:
 
 ```ant
-String.fields("a  b")     // ["a", "b"]
-String.split("a  b", " ") // ["a", "", "b"]
+"a  b".fields()   // ["a", "b"]
+"a  b".split(" ") // ["a", "", "b"]
 ```
 
 Only white space separates fields. Punctuation stays in them:
 
 ```ant
-String.fields("red, green,blue") // ["red,", "green,blue"]
+"red, green,blue".fields() // ["red,", "green,blue"]
 ```
 
 The zero-width space U+200B is not white space, so it does not separate fields:
 
 ```ant
-String.fields("a\u{200B}b c") // ["a\u{200b}b", "c"]
+"a\u{200B}b c".fields() // ["a\u{200b}b", "c"]
 ```
 
 Quotes do not group words, so a quoted argument with a space in it becomes two fields:
 
 ```ant
-String.fields("say \"hello there\"") // ["say", "\"hello", "there\""]
+"say \"hello there\"".fields() // ["say", "\"hello", "there\""]
 ```
 
 ## See also

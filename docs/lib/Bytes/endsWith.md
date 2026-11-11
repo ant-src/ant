@@ -21,9 +21,9 @@ Bytes.endsWith reports whether b ends with suffix.
 ## Basic examples
 
 ```ant
-let data = String.toBytes("main.ant")
-Bytes.endsWith(data, String.toBytes(".ant")) // true
-Bytes.endsWith(data, String.toBytes(".go"))  // false
+let data = "main.ant".toBytes()
+Bytes.endsWith(data, ".ant".toBytes()) // true
+Bytes.endsWith(data, ".go".toBytes())  // false
 ```
 
 Call it through `.` on any `Bytes`:
@@ -39,43 +39,43 @@ jpeg.endsWith(Bytes.fromArray([0xff, 0xe0])) // false
 Every value ends with the empty `Bytes`, and the empty `Bytes` ends with nothing else:
 
 ```ant
-let none = String.toBytes("")
-Bytes.endsWith(Bytes.fromArray([1, 2]), none) // true
-Bytes.endsWith(none, none)                    // true
-Bytes.endsWith(none, Bytes.fromArray([2]))    // false
+let none = "".toBytes()
+Bytes.fromArray([1, 2]).endsWith(none) // true
+none.endsWith(none)                    // true
+none.endsWith(Bytes.fromArray([2]))    // false
 ```
 
 A suffix longer than the value never matches, even when the value is inside it:
 
 ```ant
 let tail = Bytes.fromArray([0xff, 0xd9])
-Bytes.endsWith(tail, Bytes.fromArray([0xd8, 0xff, 0xd9])) // false
-Bytes.endsWith(Bytes.fromArray([0xd8, 0xff, 0xd9]), tail) // true
+tail.endsWith(Bytes.fromArray([0xd8, 0xff, 0xd9])) // false
+Bytes.fromArray([0xd8, 0xff, 0xd9]).endsWith(tail) // true
 ```
 
 Bytes from any source compare the same way, here from hex text and from a slice:
 
 ```ant
-let b = Result.unwrap(Encoding.fromHex("cafebabe"))
-b.endsWith(Result.unwrap(Encoding.fromHex("babe"))) // true
-b.endsWith(Bytes.slice(b, 2, 4))                    // true
-b.endsWith(Bytes.slice(b, 0, 2))                    // false
+let b = Encoding.fromHex("cafebabe").unwrap()
+b.endsWith(Encoding.fromHex("babe").unwrap()) // true
+b.endsWith(b.slice(2, 4))                     // true
+b.endsWith(b.slice(0, 2))                     // false
 ```
 
 The suffix may be part of a UTF-8 character. "ñ" is the two bytes `c3 b1`, and the last of them
 followed by "o" is a suffix of "año":
 
 ```ant
-let word = String.toBytes("año")
+let word = "año".toBytes()
 word                                         // Bytes(61 c3 b1 6f)
 word.endsWith(Bytes.fromArray([0xb1, 0x6f])) // true
-word.endsWith(String.toBytes("ño"))          // true
+word.endsWith("ño".toBytes())                // true
 ```
 
 In a pipeline, the value is the first argument:
 
 ```ant
-String.toBytes("index.html") | Bytes.endsWith(String.toBytes(".html")) // true
+"index.html".toBytes() | Bytes.endsWith(".html".toBytes()) // true
 ```
 
 ## Applications
@@ -100,17 +100,17 @@ func chomp(line: Bytes): Bytes {
   let crlf = Bytes.fromArray([0x0d, 0x0a])
   let lf = Bytes.fromArray([0x0a])
   if line.endsWith(crlf) {
-    return Bytes.slice(line, 0, len(line) - 2)
+    return line.slice(0, len(line) - 2)
   }
   if line.endsWith(lf) {
-    return Bytes.slice(line, 0, len(line) - 1)
+    return line.slice(0, len(line) - 1)
   }
   line
 }
 
-chomp(String.toBytes("HELO ant\r\n")) // Bytes(48 45 4c 4f 20 61 6e 74)
-chomp(String.toBytes("QUIT\n"))       // Bytes(51 55 49 54)
-chomp(String.toBytes("QUIT"))         // Bytes(51 55 49 54)
+chomp("HELO ant\r\n".toBytes()) // Bytes(48 45 4c 4f 20 61 6e 74)
+chomp("QUIT\n".toBytes())       // Bytes(51 55 49 54)
+chomp("QUIT".toBytes())         // Bytes(51 55 49 54)
 ```
 
 ## Properties and relations
@@ -123,15 +123,15 @@ for s in [[4], [3, 4], [2, 4], [], [1, 2, 3, 4], [0, 1, 2, 3, 4]] {
   let suffix = Bytes.fromArray(s)
   let n = len(b)
   let m = len(suffix)
-  assert(b.endsWith(suffix) == (m <= n && Bytes.slice(b, n - m, n) == suffix))
+  assert(b.endsWith(suffix) == (m <= n && b.slice(n - m, n) == suffix))
 }
 ```
 
 A value always ends with what [`Bytes.concat`](concat.md) puts last:
 
 ```ant
-let head = String.toBytes("ant")
-let tail = String.toBytes("hill")
+let head = "ant".toBytes()
+let tail = "hill".toBytes()
 assert(Bytes.concat([head, tail]).endsWith(tail))
 assert(Bytes.concat([head, tail]).endsWith(Bytes.concat([head, tail])))
 ```
@@ -142,7 +142,7 @@ On the UTF-8 bytes of two strings, it gives the same answer as
 ```ant
 let s = "año"
 for t in ["o", "ño", "ñ", ""] {
-  assert(s.endsWith(t) == Bytes.endsWith(String.toBytes(s), String.toBytes(t)))
+  assert(s.endsWith(t) == s.toBytes().endsWith(t.toBytes()))
 }
 ```
 
@@ -152,8 +152,8 @@ The value comes first and the suffix second. Swapped, the call asks whether the 
 value:
 
 ```ant
-let data = String.toBytes("main.ant")
-let ext = String.toBytes(".ant")
+let data = "main.ant".toBytes()
+let ext = ".ant".toBytes()
 Bytes.endsWith(ext, data) // false
 Bytes.endsWith(data, ext) // true
 ```
@@ -164,16 +164,16 @@ before converting them:
 
 ```ant
 let word = "cafe\u{301}"
-let nfc = String.normalize(word, "NFC")
-String.toBytes(word).endsWith(String.toBytes("é")) // false
-String.toBytes(nfc).endsWith(String.toBytes("é"))  // true
+let nfc = word.normalize("NFC")
+word.toBytes().endsWith("é".toBytes()) // false
+nfc.toBytes().endsWith("é".toBytes())  // true
 ```
 
 A string is not `Bytes`. Convert it with [`String.toBytes`](../String/toBytes.md), or compare the
 strings with [`String.endsWith`](../String/endsWith.md):
 
 ```ant
-let data = String.toBytes("main.ant")
+let data = "main.ant".toBytes()
 println(Bytes.endsWith(data, ".ant")) // error: cannot use string where Bytes is expected
 ```
 

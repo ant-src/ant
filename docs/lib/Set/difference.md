@@ -91,8 +91,8 @@ Find what was removed and what was added between two versions of a list:
 ```ant
 let before = Set.of(["ann", "bob", "cy"])
 let after = Set.of(["bob", "cy", "dee"])
-println("removed: ${Set.values(Set.difference(before, after))}")
-println("added: ${Set.values(Set.difference(after, before))}")
+println("removed: ${before.difference(after).values()}")
+println("added: ${after.difference(before).values()}")
 ```
 
 ```text
@@ -105,7 +105,7 @@ Report the required settings that a configuration does not set:
 ```ant
 let required = Set.of(["host", "port", "user"])
 let config = Map{ host: "localhost", user: "ann" }
-for name in Set.difference(required, Set.of(Map.keys(config))) {
+for name in required.difference(Set.of(config.keys())) {
   println("missing: ${name}")
 }
 ```
@@ -122,8 +122,8 @@ The result has no member of `b`, and every member of it is a member of `a`:
 let a = Set.of([1, 2, 3])
 let b = Set.of([2, 5])
 let d = Set.difference(a, b)
-assert(Set.isEmpty(Set.intersect(d, b)))
-assert(Set.isSubset(d, a))
+assert(Set.intersect(d, b).isEmpty())
+assert(d.isSubset(a))
 ```
 
 The difference and the intersection split `a` in two:
@@ -139,8 +139,8 @@ The difference is empty exactly when `a` is a subset of `b`:
 ```ant
 let a = Set.of([1, 2])
 let b = Set.of([1, 2, 3])
-assert(Set.isEmpty(Set.difference(a, b)) == Set.isSubset(a, b))
-assert(!Set.isEmpty(Set.difference(b, a)))
+assert(Set.difference(a, b).isEmpty() == a.isSubset(b))
+assert(!Set.difference(b, a).isEmpty())
 ```
 
 The members that are in only one of two sets are the union of both differences:
@@ -156,7 +156,7 @@ It is a filter over the values of `a`:
 ```ant
 let a = Set.of([1, 2, 3])
 let b = Set.of([2])
-assert(Set.values(Set.difference(a, b)) == Array.filter(Set.values(a), { !Set.has(b, x) }))
+assert(Set.difference(a, b).values() == a.values().filter({ !b.has(x) }))
 ```
 
 The result is a new set, even when `b` is empty, and adding to it leaves `a` as it was:
@@ -167,9 +167,9 @@ let none: Set[int] = Set.of([])
 let d = Set.difference(a, none)
 assert(d == a)
 assert(!Set.same(d, a))
-Set.add(d, 3) // true
-a             // Set.of([1, 2])
-d             // Set.of([1, 2, 3])
+d.add(3) // true
+a        // Set.of([1, 2])
+d        // Set.of([1, 2, 3])
 ```
 
 ## Possible issues
@@ -210,7 +210,7 @@ a new set:
 ```ant
 let s = Set.of([1, 2, 3])
 for x in [2, 3] {
-  Set.remove(s, x)
+  s.remove(x)
 }
 println(s)
 ```

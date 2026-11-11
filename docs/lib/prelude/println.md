@@ -109,7 +109,7 @@ println([1, 2, null])
 println(Map{ "a": 1, "b": 2 })
 println(Set.of([1, 2]))
 println(parsed)
-println(String.toBytes("hi"))
+println("hi".toBytes())
 ```
 
 ```text
@@ -181,7 +181,7 @@ Print a small report, one line per entry:
 let stock = Map{ "apples": 12, "pears": 0, "plums": 7 }
 for { key, value } in stock {
   let note = if value == 0 { " (sold out)" } else { "" }
-  println("${String.padEnd(key, 8, " ")}${value}${note}")
+  println("${key.padEnd(8, " ")}${value}${note}")
 }
 ```
 
@@ -197,7 +197,7 @@ Print a table with a separator line:
 let header = ["name", "age"]
 let rows = [["Ann", "31"], ["Bob", "27"]]
 println(String.join(header, " | "))
-println(String.repeat("-", 10))
+println("-".repeat(10))
 for row in rows {
   println(String.join(row, " | "))
 }
@@ -213,11 +213,11 @@ Bob | 27
 Write many lines through a buffer, and flush it at the end:
 
 ```ant
-let out = File.buffered(Os.stdout())
+let out = Os.stdout().buffered()
 for n in Array.range(1, 4) {
-  try File.writeLine(out, "line ${n}")
+  try out.writeLine("line ${n}")
 }
-try File.flush(out)
+try out.flush()
 ```
 
 ```text

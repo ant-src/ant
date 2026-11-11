@@ -337,14 +337,14 @@ Pass `String.from` to `Array.map` to turn numbers into text, then join them:
 
 ```ant
 let widths = [3, 14, 159]
-String.join(Array.map(widths, String.from), " | ") // "3 | 14 | 159"
+widths | Array.map(String.from) | String.join(" | ") // "3 | 14 | 159"
 ```
 
 Right-align a column of numbers by rendering each one first:
 
 ```ant
 for n in [7, 42, 1024] {
-  println(String.padStart(String.from(n), 6))
+  println(String.from(n).padStart(6))
 }
 ```
 
@@ -357,7 +357,7 @@ for n in [7, 42, 1024] {
 Print a debug view of a whole structure, quotes and all, to see where a string has stray spaces:
 
 ```ant
-let fields = String.split("Ann , 31", ",")
+let fields = "Ann , 31".split(",")
 println(fields)
 ```
 
@@ -388,7 +388,7 @@ A finite float reads back from its rendering with `String.toFloat`:
 
 ```ant
 for x in [0.1, 1.0 / 3.0, 1e21, 1.5e-7, -0.0] {
-  assert(String.toFloat(String.from(x)) == x)
+  assert(String.from(x).toFloat() == x)
 }
 ```
 

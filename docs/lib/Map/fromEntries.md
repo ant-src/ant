@@ -56,14 +56,14 @@ A value may be `null` when the value type allows it:
 
 ```ant
 let settings: Map[string, int | null] = Map.fromEntries([Entry{ key: "limit", value: null }])
-settings                   // Map{ "limit": null }
-Map.has(settings, "limit") // true
+settings              // Map{ "limit": null }
+settings.has("limit") // true
 ```
 
 Build the entries with `Array.map`:
 
 ```ant
-Map.fromEntries(["ant", "beetle"].map({ Entry{ key: x, value: String.length(x) } })) // Map{ "ant": 3, "beetle": 6 }
+["ant", "beetle"].map({ Entry{ key: x, value: x.length() } }) | Map.fromEntries() // Map{ "ant": 3, "beetle": 6 }
 ```
 
 Call it in a pipe:
@@ -85,7 +85,7 @@ Index records by a field:
 ```ant
 type User = { id: int, name: string }
 let users = [User{ id: 7, name: "Ann" }, User{ id: 9, name: "Bob" }]
-let byId = Map.fromEntries(users.map({ Entry{ key: x.id, value: x } }))
+let byId = users.map({ Entry{ key: x.id, value: x } }) | Map.fromEntries()
 byId[9] // User{ id: 9, name: "Bob" }
 ```
 
@@ -93,7 +93,7 @@ Swap the keys and values of a map:
 
 ```ant
 let codes = Map{ red: "#f00", green: "#0f0" }
-Map.fromEntries(codes.entries().map({ Entry{ key: x.value, value: x.key } })) // Map{ "#f00": "red", "#0f0": "green" }
+codes.entries().map({ Entry{ key: x.value, value: x.key } }) | Map.fromEntries() // Map{ "#f00": "red", "#0f0": "green" }
 ```
 
 Sort a map by value. `Map.entries` gives an array to sort, and the new map keeps the sorted order:
@@ -107,17 +107,17 @@ Parse `key=value` settings:
 
 ```ant
 func parsePair(s: string): Entry[string, string] {
-  let parts = String.split(s, "=")
+  let parts = s.split("=")
   Entry{ key: parts[0], value: parts[1] }
 }
-String.split("host=localhost;port=8080", ";").map(parsePair) | Map.fromEntries() // Map{ "host": "localhost", "port": "8080" }
+"host=localhost;port=8080".split(";").map(parsePair) | Map.fromEntries() // Map{ "host": "localhost", "port": "8080" }
 ```
 
 Map each word to its last index with `Array.entries`:
 
 ```ant
 let words = ["to", "be", "or", "not", "to", "be"]
-Map.fromEntries(Array.entries(words).map({ Entry{ key: x.value, value: x.index } })) // Map{ "to": 4, "be": 5, "or": 2, "not": 3 }
+words.entries().map({ Entry{ key: x.value, value: x.index } }) | Map.fromEntries() // Map{ "to": 4, "be": 5, "or": 2, "not": 3 }
 ```
 
 ## Properties and relations
@@ -127,7 +127,7 @@ map:
 
 ```ant
 let m = Map{ a: 1, b: 2 }
-let copy = Map.fromEntries(Map.entries(m))
+let copy = m.entries() | Map.fromEntries()
 assert(copy == m)
 assert(!Map.same(copy, m))
 ```
@@ -138,8 +138,8 @@ first appear:
 ```ant
 let es = [Entry{ key: "a", value: 1 }, Entry{ key: "b", value: 2 }, Entry{ key: "a", value: 3 }]
 let m = Map.fromEntries(es)
-assert(Map.size(m) <= len(es))
-assert(Map.keys(m) == Array.unique(es.map({ x.key })))
+assert(m.size() <= len(es))
+assert(m.keys() == es.map({ x.key }).unique())
 ```
 
 ## Possible issues
@@ -171,9 +171,9 @@ keys:
 
 ```ant
 let owners = Map{ pen: "Ann", ink: "Bob", pad: "Ann" }
-let byOwner = Map.fromEntries(owners.entries().map({ Entry{ key: x.value, value: x.key } }))
-byOwner           // Map{ "Ann": "pad", "Bob": "ink" }
-Map.size(byOwner) // 2
+let byOwner = owners.entries().map({ Entry{ key: x.value, value: x.key } }) | Map.fromEntries()
+byOwner        // Map{ "Ann": "pad", "Bob": "ink" }
+byOwner.size() // 2
 ```
 
 To keep every key, group them with [`Array.groupBy`](../Array/groupBy.md) instead.

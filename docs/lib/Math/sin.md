@@ -84,7 +84,7 @@ let steps = 8
 for i in Iter.range(0, steps) {
   let y = Math.sin(2.0 * Math.PI * float64(i) / float64(steps))
   let width = int(Math.round((y + 1.0) * 4.0)) + 1
-  println(String.repeat("#", width))
+  println("#".repeat(width))
 }
 ```
 

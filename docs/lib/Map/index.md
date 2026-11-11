@@ -77,9 +77,9 @@ An empty literal needs a type, from an annotation or from where it goes:
 
 ```ant
 let empty: Map[string, int] = Map{}
-empty              // Map{}
-Map.isEmpty(empty) // true
-empty["missing"]   // null
+empty            // Map{}
+empty.isEmpty()  // true
+empty["missing"] // null
 ```
 
 Keys compare by `==`, so records and arrays can be keys and match by contents:
@@ -159,7 +159,7 @@ Index records by a field to look them up later:
 ```ant
 type User = { id: string, name: string }
 let users = [User{ id: "u1", name: "Ada" }, User{ id: "u2", name: "Linus" }]
-let byId = Map.fromEntries(users.map({ Entry{ key: x.id, value: x } }))
+let byId = users.map({ Entry{ key: x.id, value: x } }) | Map.fromEntries()
 byId["u2"]?.name // "Linus"
 ```
 
@@ -195,9 +195,9 @@ b -> c
 
 ```ant
 let m = Map{ a: 1, b: 2 }
-assert(m["a"] == Map.get(m, "a"))
-assert(len(m) == Map.size(m))
-assert(Map.isEmpty(m) == (Map.size(m) == 0))
+assert(m["a"] == m.get("a"))
+assert(len(m) == m.size())
+assert(m.isEmpty() == (m.size() == 0))
 ```
 
 `==` ignores order, while `Map.keys` shows it:
@@ -206,16 +206,16 @@ assert(Map.isEmpty(m) == (Map.size(m) == 0))
 let m = Map{ a: 1, b: 2 }
 let n = Map{ b: 2, a: 1 }
 assert(m == n)
-assert(Map.keys(m) != Map.keys(n))
+assert(m.keys() != n.keys())
 ```
 
 The entries rebuild an equal map, and keys and values line up with them:
 
 ```ant
 let m = Map{ x: 1, y: 2, z: 3 }
-assert(Map.fromEntries(Map.entries(m)) == m)
-assert(Map.entries(m).map({ x.key }) == Map.keys(m))
-assert(Map.entries(m).map({ x.value }) == Map.values(m))
+assert(Map.fromEntries(m.entries()) == m)
+assert(m.entries().map({ x.key }) == m.keys())
+assert(m.entries().map({ x.value }) == m.values())
 ```
 
 ## Possible issues
@@ -308,7 +308,7 @@ A loop reads the map as it goes. It skips the removed `b` and visits the added `
 let m = Map{ a: 1, b: 2, c: 3 }
 for { key, value } in m {
   if value == 1 {
-    Map.remove(m, "b")
+    m.remove("b")
   }
   if key == "c" {
     m["d"] = 4

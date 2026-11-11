@@ -34,14 +34,14 @@ Bytes.toArray(String.toBytes("hi")) // [104, 105]
 Empty bytes give an empty array:
 
 ```ant
-Bytes.toArray(String.toBytes("")) // []
+String.toBytes("").toArray() // []
 ```
 
 A character outside ASCII takes several bytes, each its own element:
 
 ```ant
-Bytes.toArray(String.toBytes("é"))  // [195, 169]
-Bytes.toArray(String.toBytes("🐜")) // [240, 159, 144, 156]
+String.toBytes("é").toArray()  // [195, 169]
+String.toBytes("🐜").toArray() // [240, 159, 144, 156]
 ```
 
 Call it through `.` or in a pipe:
@@ -59,7 +59,7 @@ from 1 to 2:
 
 ```ant
 let header = Bytes.fromArray([0x41, 0x4e, 0x54, 0x01])
-let fields = Bytes.toArray(header)
+let fields = header.toArray()
 fields[3] = byte(2)
 Bytes.fromArray(fields) // Bytes(41 4e 54 02)
 ```
@@ -75,7 +75,7 @@ Add up the bytes as `int`s for a simple checksum, kept in one byte with `%`:
 
 ```ant
 func checksum(b: Bytes): int {
-  (Bytes.toArray(b).map({ int(x) }).sum() ?? 0) % 256
+  (b.toArray().map({ int(x) }).sum() ?? 0) % 256
 }
 
 checksum(String.toBytes("hello")) // 20
@@ -84,7 +84,7 @@ checksum(String.toBytes("hello")) // 20
 Count the bytes that are not ASCII:
 
 ```ant
-Bytes.toArray(String.toBytes("naïve café")).countWhere({ x > byte(127) }) // 4
+String.toBytes("naïve café").toArray().countWhere({ x > byte(127) }) // 4
 ```
 
 ## Properties and relations
@@ -100,16 +100,16 @@ The array has one element per byte, in order, each equal to indexing `b`:
 
 ```ant
 let b = String.toBytes("añt")
-let xs = Bytes.toArray(b)
+let xs = b.toArray()
 assert(len(xs) == len(b))
-assert(Array.every(Array.range(0, len(b)), { xs[x] == b[x] }))
+assert(Array.range(0, len(b)).every({ xs[x] == b[x] }))
 ```
 
 Changing the array leaves the bytes as they were:
 
 ```ant
 let b = String.toBytes("ant")
-let xs = Bytes.toArray(b)
+let xs = b.toArray()
 xs[0] = byte(0)
 assert(b == String.toBytes("ant"))
 ```
@@ -140,12 +140,12 @@ for x in b {
 An element is a `byte`, so adding an `int` literal to it is a compile error. Convert one side:
 
 ```ant
-let xs = Bytes.toArray(String.toBytes("A"))
+let xs = String.toBytes("A").toArray()
 let next = xs[0] + 1 // error: + needs both operands of one type, got byte and int
 ```
 
 ```ant
-let xs = Bytes.toArray(String.toBytes("A"))
+let xs = String.toBytes("A").toArray()
 xs[0] + byte(1) // 66
 int(xs[0]) + 1  // 66
 ```
@@ -153,7 +153,7 @@ int(xs[0]) + 1  // 66
 Arithmetic on `byte`s panics outside 0 to 255. Compute in `int` instead:
 
 ```ant
-let xs = Bytes.toArray(Bytes.fromArray([200, 100]))
+let xs = Bytes.fromArray([200, 100]).toArray()
 xs.sum()                      // panic: Array.sum: integer overflow
 xs.map({ int(x) }).sum() ?? 0 // 300
 xs[1] - xs[0]                 // panic: integer overflow
@@ -165,7 +165,7 @@ one side first:
 
 ```ant
 let b = String.toBytes("A")
-let same = Bytes.toArray(b) == b
+let same = b.toArray() == b
 // error: Array[byte] and Bytes cannot be compared with ==: neither is assignable to the other
 ```
 
