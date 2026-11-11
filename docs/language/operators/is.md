@@ -334,7 +334,7 @@ The runtime sees tags and kinds, not type arguments, so the target takes none:
 
 ```ant
 let v: Array[int] | string = [1]
-let b = v is Array[int] // error: expected a newline or ';' before '['
+let b = v is Array[int] // error: 'is' tests a kind or a tag, written without type arguments
 ```
 
 ### A test that cannot fail, or cannot pass

@@ -237,12 +237,12 @@ assert(firstNegative([]) == null)
 ### `break` in a lambda
 
 A lambda is a boundary, so a `break` in it cannot end a loop outside it. Use a `for` loop instead of
-`forEach` when the code needs to stop early:
+a callback such as `map` when the code needs to stop early:
 
 ```ant
 let rows = [[1, 2], [3, 4]]
 for row in rows {
-  row.forEach({
+  row.map({
     if x > 2 { break } // error: 'break' outside a loop
   })
 }
@@ -286,6 +286,27 @@ func firstPowerOver(limit: int): int {
 ```
 
 Return the value from inside the loop instead: `if n > limit { return n }`.
+
+### `break` takes no value
+
+A loop has no result, so `break` takes no operand. Assign the value to a `var` before `break`:
+
+```ant
+for x in [1, 2, 3] {
+  if x == 2 { break x } // error: 'break' takes no value
+}
+```
+
+```ant
+var found: int | null = null
+for x in [1, 2, 3] {
+  if x == 2 {
+    found = x
+    break
+  }
+}
+found // 2
+```
 
 ## See also
 

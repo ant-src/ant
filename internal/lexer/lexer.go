@@ -439,6 +439,12 @@ func (l *lexer) scan(stop func(token.Token) bool) (more bool) {
 // the parser builds the pattern.
 func (l *lexer) regex() {
 	pos := l.here()
+	// A / right after a * that does not end a regular expression is most likely the */ of a
+	// block comment that a nested /* ended early: block comments do not nest (section 2).
+	unterminated := "unterminated regular expression"
+	if l.pos > 0 && l.src[l.pos-1] == '*' {
+		unterminated = "*/ outside a comment: block comments do not nest, so an earlier */ ended the comment"
+	}
 	l.advance(1)
 	start := l.pos
 	inClass, inSpan := false, false
@@ -446,7 +452,7 @@ func (l *lexer) regex() {
 		c := l.peek(0)
 		switch {
 		case l.atEnd(0) || c == '\n' || c == '\r':
-			l.fail(pos, "unterminated regular expression")
+			l.fail(pos, unterminated)
 		case inSpan && l.has(`\E`):
 			inSpan = false
 			l.advance(2)
@@ -459,7 +465,7 @@ func (l *lexer) regex() {
 			continue
 		case c == '\\':
 			if l.atEnd(1) || l.peek(1) == '\n' || l.peek(1) == '\r' {
-				l.fail(pos, "unterminated regular expression")
+				l.fail(pos, unterminated)
 			}
 			inSpan = !inClass && l.peek(1) == 'Q'
 			l.advance(2)

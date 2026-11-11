@@ -204,7 +204,7 @@ code:
 
 ```ant
 /* outer /* inner */ still */
-// error: unterminated regular expression
+// error: */ outside a comment: block comments do not nest
 ```
 
 So a block comment cannot turn off code that already holds one. Use line comments for that:

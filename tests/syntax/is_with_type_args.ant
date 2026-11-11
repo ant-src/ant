@@ -4,4 +4,4 @@ var b = Box{ value: 1 }; println(b is Box[int])
 
 // expect
 // exit: 2
-// err: expected
+// err: 'is' tests a kind or a tag, written without type arguments

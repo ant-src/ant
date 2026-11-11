@@ -1750,6 +1750,9 @@ func (p *parser) isTarget() (kind string, kindPos ast.Pos, path ast.Expr) {
 		e = &ast.Field{Pos: pos(d), End: epos(name), X: e, Name: name.Text, NamePos: pos(name)}
 		single = false
 	}
+	if p.raw().Is("[") {
+		p.fail(p.raw().Pos, "'is' tests a kind or a tag, written without type arguments: write is %s, then test the elements", t.Text)
+	}
 	if single && kindNames[t.Text] {
 		return t.Text, pos(t), nil
 	}
@@ -2074,6 +2077,13 @@ func (p *parser) primary() ast.Expr {
 				p.fail(t.Pos, "'%s' outside a loop", t.Text)
 			}
 			p.next()
+			if r := p.raw(); r.Kind != token.Newline && r.Kind != token.EOF &&
+				!r.Is(";") && !r.Is("}") && !r.Is(")") && !r.Is("]") && !r.Is(",") {
+				if t.Text == "break" {
+					p.fail(r.Pos, "'break' takes no value: a loop has no result, so assign the value to a var before break")
+				}
+				p.fail(r.Pos, "'continue' takes no value")
+			}
 			if t.Text == "break" {
 				return &ast.Break{Pos: pos(t), End: epos(t)}
 			}

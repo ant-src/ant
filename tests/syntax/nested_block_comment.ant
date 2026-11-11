@@ -1,0 +1,7 @@
+// spec: 2 Comments
+// Block comments do not nest: the first */ ends the comment.
+/* outer /* inner */ still */
+
+// expect
+// exit: 2
+// err: */ outside a comment: block comments do not nest

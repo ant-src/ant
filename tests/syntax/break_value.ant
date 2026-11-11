@@ -1,0 +1,9 @@
+// spec: 5 return, break, continue
+// break and continue take no operand.
+for x in [1, 2] {
+  if x == 2 { break x }
+}
+
+// expect
+// exit: 2
+// err: 'break' takes no value
