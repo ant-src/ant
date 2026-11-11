@@ -1,7 +1,7 @@
 // spec: 4 Inference
 // A map literal's key and value types are the unions of its keys' and values' types. A value
 // that fixes nothing, [] or Set.of([]), waits and is checked against the union of the others,
-// and so does such a key.
+// and so does such a key. The values are checked after a key that failed.
 let x = "k"
 let mixed: Map[string, int | string] = Map{ a: 1, b: "x" }
 let keys: Map[string | int, int] = Map{ x: 1, (x): 2, 3: 4 }
@@ -10,3 +10,7 @@ let first: Map[string, Array[int]] = Map{ a: [], b: [1] }
 let sets: Map[string, Set[int]] = Map{ a: Set.of([1]), b: Set.of([]) }
 let none = Map{ a: [], b: [] } // ERR: cannot infer the value type of a map of empty literals
 let setKeys: Map[Set[int], int] = Map{ Set.of([]): 1, Set.of([1]): 2 }
+let bad = Map{
+  (nokey): 1, // ERR: nokey is not defined
+  b: noval,   // ERR: noval is not defined
+}

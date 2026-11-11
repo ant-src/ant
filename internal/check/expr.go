@@ -1030,12 +1030,10 @@ func (c *Checker) synthMapLit(x *ast.MapLit, sc *scope) types.Type {
 		keys = append(keys, en.Key)
 		vals = append(vals, en.Value)
 	}
-	k, ok := c.waitingUnion(x.Pos, keys, sc, "key", "keys")
-	if !ok {
-		return types.Invalid{}
-	}
-	v, ok := c.waitingUnion(x.Pos, vals, sc, "value", "values")
-	if !ok {
+	// the values are checked after keys that failed too, so that their errors are reported
+	k, keysOK := c.waitingUnion(x.Pos, keys, sc, "key", "keys")
+	v, valsOK := c.waitingUnion(x.Pos, vals, sc, "value", "values")
+	if !keysOK || !valsOK {
 		return types.Invalid{}
 	}
 	return types.Map{Key: k, Val: v}
