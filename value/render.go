@@ -6,6 +6,9 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+	"unicode/utf8"
+
+	"github.com/ant-src/ant/internal/grapheme"
 )
 
 // Render is String.from (section 11): the rendering print, println and string interpolation use.
@@ -193,12 +196,15 @@ func FormatFloat(f float64, bits int) string {
 }
 
 // quote writes s as a string literal: every code point that String.isPrint rejects, such as a
-// control character, a non-breaking space, or a zero-width joiner, as an escape, as well as a
-// combining mark right after the opening quote, which would combine with the quote, and a $ before
-// { as \$, so the rendering reads back (section 11, String).
+// control character, a non-breaking space, or a zero-width joiner, as an escape, and a $ before {
+// as \$, so the rendering reads back (section 11, String). A code point that would join the
+// character before it, such as a combining mark, is escaped too when that character is the
+// opening quote or the end of an escape, so it shows instead of merging into the quote.
 func quote(sb *strings.Builder, s string) {
 	sb.WriteByte('"')
+	escaped := true // the last thing written is the quote or an escape
 	for i, r := range s {
+		mark := sb.Len()
 		switch r {
 		case '"':
 			sb.WriteString(`\"`)
@@ -216,7 +222,7 @@ func quote(sb *strings.Builder, s string) {
 		case '\r':
 			sb.WriteString(`\r`)
 		default:
-			if !unicode.IsPrint(r) || i == 0 && unicode.IsMark(r) {
+			if !unicode.IsPrint(r) || escaped && grapheme.Joins(r) {
 				sb.WriteString(`\u{`)
 				sb.WriteString(strconv.FormatInt(int64(r), 16))
 				sb.WriteByte('}')
@@ -224,6 +230,7 @@ func quote(sb *strings.Builder, s string) {
 				sb.WriteRune(r)
 			}
 		}
+		escaped = sb.Len()-mark > utf8.RuneLen(r)
 	}
 	sb.WriteByte('"')
 }

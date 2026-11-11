@@ -82,6 +82,15 @@ func Split(s string) []string {
 	return out
 }
 
+// Joins reports whether r continues the cluster of an ASCII character before it, as a combining
+// mark, an emoji modifier, or a spacing mark does, instead of starting a cluster of its own.
+func Joins(r rune) bool {
+	var buf [1 + utf8.UTFMax]byte
+	buf[0] = '"'
+	n := utf8.EncodeRune(buf[1:], r)
+	return First(string(buf[:1+n])) > 1
+}
+
 // First returns the length in bytes of the first extended grapheme cluster of s, which is at
 // least one byte unless s is empty.
 func First(s string) int {
