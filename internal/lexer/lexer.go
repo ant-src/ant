@@ -452,7 +452,7 @@ func (l *lexer) regex() {
 		c := l.peek(0)
 		switch {
 		case l.atEnd(0) || c == '\n' || c == '\r':
-			l.fail(pos, unterminated)
+			l.fail(pos, "%s", unterminated)
 		case inSpan && l.has(`\E`):
 			inSpan = false
 			l.advance(2)
@@ -465,7 +465,7 @@ func (l *lexer) regex() {
 			continue
 		case c == '\\':
 			if l.atEnd(1) || l.peek(1) == '\n' || l.peek(1) == '\r' {
-				l.fail(pos, unterminated)
+				l.fail(pos, "%s", unterminated)
 			}
 			inSpan = !inClass && l.peek(1) == 'Q'
 			l.advance(2)
