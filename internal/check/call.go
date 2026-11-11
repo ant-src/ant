@@ -293,7 +293,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	}
 	if len(s.tparams) == 0 {
 		if recv != nil && !recv.untyped() {
-			c.expect(recv.pos, recv.typ, s.fn.Params[0])
+			c.expectIn(recv.at, recv.typ, s.fn.Params[0])
 		}
 		for i, a := range slots {
 			if a != nil {
@@ -347,18 +347,18 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		pt := s.fn.Params[0]
 		if types.Mentions(pt, unsolved) {
 			if c.unify(pt, recv.typ, subst) {
-				synthesized = append(synthesized, pendingArg{0, recv.typ, recv.pos})
+				synthesized = append(synthesized, pendingArg{0, recv.typ, recv.at})
 			} else {
 				want, _ := types.Subst(pt, subst)
 				n := c.typeNames(recv.typ, want)
-				c.errorf(recv.pos, "cannot use %s where %s is expected", n[0], n[1])
+				c.errorIn(recv.at, "cannot use %s where %s is expected", n[0], n[1])
 				mismatch = true
 			}
 			pruneSolved(unsolved, subst)
 		} else if want, err := types.Subst(pt, subst); err != nil {
-			c.errorf(recv.pos, "%s", err)
+			c.errorIn(recv.at, "%s", err)
 		} else {
-			c.expect(recv.pos, recv.typ, want)
+			c.expectIn(recv.at, recv.typ, want)
 		}
 	}
 	for i, a := range slots {
@@ -378,20 +378,20 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			if !c.unify(pt, got, subst) {
 				want, _ := types.Subst(pt, subst)
 				n := c.typeNames(got, want)
-				c.errorf(a.Pos, "cannot use %s where %s is expected", n[0], n[1])
+				c.errorIn(a.Value, "cannot use %s where %s is expected", n[0], n[1])
 				mismatch = true
 				pruneSolved(unsolved, subst)
 				continue // reported once, not again against the solved types
 			}
 			pruneSolved(unsolved, subst)
-			synthesized = append(synthesized, pendingArg{i, got, a.Pos})
+			synthesized = append(synthesized, pendingArg{i, got, a.Value})
 			continue
 		}
 		if types.Mentions(pt, soft) && typedAlone(a.Value, pt) {
 			// typed without the expected solution, so that a misfit can solve it instead
 			got := c.synth(a.Value, sc)
 			if c.unify(pt, got, subst) {
-				synthesized = append(synthesized, pendingArg{i, got, a.Pos})
+				synthesized = append(synthesized, pendingArg{i, got, a.Value})
 				continue
 			}
 		}
@@ -402,7 +402,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 		t := c.check(a.Value, sc, want)
 		if types.Mentions(pt, soft) {
-			checked = append(checked, pendingArg{i, t, a.Pos})
+			checked = append(checked, pendingArg{i, t, a.Value})
 		}
 	}
 	if hint, ok := c.hints[x]; ok && len(unsolved) > 0 {
@@ -421,7 +421,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				got := c.synth(w.e, sc)
 				if !types.IsInvalid(got) && c.unify(s.fn.Params[w.i], got, subst) {
 					pruneSolved(unsolved, subst)
-					synthesized = append(synthesized, pendingArg{w.i, got, w.e.Position()})
+					synthesized = append(synthesized, pendingArg{w.i, got, w.e})
 					continue
 				}
 			} else if !mismatch {
@@ -474,23 +474,23 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, pe := range synthesized {
 		want, err := types.Subst(s.fn.Params[pe.i], subst)
 		if err != nil {
-			c.errorf(pe.pos, "%s", err)
+			c.errorIn(pe.at, "%s", err)
 			continue
 		}
 		if !types.Assignable(pe.t, want) {
 			n := c.typeNames(pe.t, want)
-			c.errorf(pe.pos, "cannot use %s where %s is expected", n[0], n[1])
+			c.errorIn(pe.at, "cannot use %s where %s is expected", n[0], n[1])
 		}
 	}
 	return c.resultOf(s, subst, x.Pos)
 }
 
 // pendingArg is an argument typed before its parameter's type was settled: the argument at
-// slot i, of type t.
+// slot i, of type t, written as at.
 type pendingArg struct {
-	i   int
-	t   types.Type
-	pos ast.Pos
+	i  int
+	t  types.Type
+	at ast.Expr
 }
 
 // typedAlone reports whether e has the same type whatever is expected of it, so that it can be

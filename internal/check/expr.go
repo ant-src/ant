@@ -91,7 +91,7 @@ func (c *Checker) checkExpr(e ast.Expr, sc *scope, expected types.Type) types.Ty
 	if t == nil {
 		t = c.synth(e, sc)
 	}
-	c.expect(e.Position(), t, expected)
+	c.expectIn(e, t, expected)
 	return t
 }
 
@@ -209,16 +209,31 @@ func convValue(ent *entity, f types.Func) types.Type {
 
 // expect reports a type that is not assignable to the expected one.
 func (c *Checker) expect(pos ast.Pos, t, expected types.Type) {
-	if !types.Assignable(t, expected) {
-		n := c.typeNames(t, expected)
-		why := ""
-		if iface, ok := types.Expand(expected).(types.Named); ok && iface.Decl.Kind == types.InterfaceDecl {
-			if r := c.unsatisfied(t, iface); r != "" {
-				why = ": " + r
-			}
-		}
-		c.errorf(pos, "cannot use %s where %s is expected%s", n[0], n[1], why)
+	if msg := c.misfit(t, expected); msg != "" {
+		c.errorf(pos, "%s", msg)
 	}
+}
+
+// expectIn is expect for the expression e, reported at its start and spanning it.
+func (c *Checker) expectIn(e ast.Expr, t, expected types.Type) {
+	if msg := c.misfit(t, expected); msg != "" {
+		c.errorIn(e, "%s", msg)
+	}
+}
+
+// misfit is the error for a value of type t where expected is expected, or "" when it fits.
+func (c *Checker) misfit(t, expected types.Type) string {
+	if types.Assignable(t, expected) {
+		return ""
+	}
+	n := c.typeNames(t, expected)
+	why := ""
+	if iface, ok := types.Expand(expected).(types.Named); ok && iface.Decl.Kind == types.InterfaceDecl {
+		if r := c.unsatisfied(t, iface); r != "" {
+			why = ": " + r
+		}
+	}
+	return fmt.Sprintf("cannot use %s where %s is expected%s", n[0], n[1], why)
 }
 
 // typeNames renders types for one message. A name that stands for two different types among

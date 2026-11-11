@@ -224,6 +224,12 @@ func (p *Printer) source(path string) *Source {
 // the terminal print one, path:line:col: msg, then the lines of the code it is about, numbered,
 // with what it covers underlined, then an empty line.
 func (p *Printer) Print(w io.Writer, path string, pos ast.Pos, msg string) {
+	p.PrintSpan(w, path, pos, ast.Pos{}, msg)
+}
+
+// PrintSpan is Print for a diagnostic that covers pos up to end; a zero end leaves the span to
+// Span.
+func (p *Printer) PrintSpan(w io.Writer, path string, pos, end ast.Pos, msg string) {
 	var sb strings.Builder
 	switch {
 	case path == "":
@@ -238,6 +244,9 @@ func (p *Printer) Print(w io.Writer, path string, pos ast.Pos, msg string) {
 	sb.WriteString("\n")
 	if s := p.source(path); s != nil && pos.Line > 0 && pos.Line <= len(s.lines) {
 		from, to := s.Span(pos)
+		if end.Line > 0 {
+			from, to = Offset(s.Text, s.lines, pos), Offset(s.Text, s.lines, end)
+		}
 		p.snippet(&sb, s, from, to, pos.Line-1)
 	}
 	sb.WriteString("\n")

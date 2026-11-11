@@ -1,0 +1,13 @@
+// spec: 6 Calling
+// An error about an argument is reported where the argument starts, the column its underline
+// starts at, also when the argument is a call or a field read.
+type Box = { s: string }
+
+func f(x: int) {}
+func g(): string { "a" }
+let box = Box{ s: "a" }
+
+f(g())                                             // ERR: @3 cannot use string where int is expected
+f(box.s)                                           // ERR: @3 cannot use string where int is expected
+f(x: g())                                          // ERR: @6 cannot use string where int is expected
+println(Time.daysInMonth(Time.plainTime(hour: 9))) // ERR: @26 cannot use Time.PlainTime where Time.Dated is expected

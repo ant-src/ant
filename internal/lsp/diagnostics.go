@@ -26,7 +26,7 @@ func (s *Server) publish(d *document) {
 	root := a.module().File
 	for _, dg := range a.diags {
 		if dg.Path == root.Path {
-			out = append(out, Diagnostic{Range: a.diagRange(root.Path, dg.Pos), Severity: 1, Source: "ant", Message: dg.Msg})
+			out = append(out, Diagnostic{Range: a.diagRange(root.Path, dg.Pos, dg.End), Severity: 1, Source: "ant", Message: dg.Msg})
 		}
 	}
 	for _, imp := range root.Imports {
@@ -73,8 +73,8 @@ func (a *analysis) firstError(i int, seen map[int]bool) *loader.Diagnostic {
 
 // diagRange is the range a diagnostic at pos covers (diag.Span): the token there when it is a
 // keyword or an operator, as in a syntax error; else the innermost expression or declaration that
-// starts there; else the token or word there.
-func (a *analysis) diagRange(path string, pos ast.Pos) Range {
+// starts there; else the token or word there. A diagnostic that names its end covers pos to end.
+func (a *analysis) diagRange(path string, pos, end ast.Pos) Range {
 	d := a.doc(path)
 	if d == nil || pos.Line == 0 {
 		return Range{}
@@ -84,5 +84,8 @@ func (a *analysis) diagRange(path string, pos ast.Pos) Range {
 		toks = m.Layout.Tokens
 	}
 	from, to := diag.Span(a.file(path), toks, d.text, d.lines, pos)
+	if end.Line > 0 {
+		from, to = d.offsetOf(pos), d.offsetOf(end)
+	}
 	return Range{Start: d.position(from, a.server.utf16), End: d.position(to, a.server.utf16)}
 }

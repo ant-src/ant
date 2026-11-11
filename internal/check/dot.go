@@ -22,6 +22,7 @@ type receiver struct {
 	typ        types.Type
 	expr       ast.Expr
 	pos        ast.Pos
+	at         ast.Expr // the receiver as written, what an error about it covers
 	positional bool
 }
 
@@ -292,7 +293,7 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 		return types.Invalid{}
 	}
 	c.info.recordMember(f, c.info.object(m))
-	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{typ: recv, pos: f.X.Position(), positional: positional})
+	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{typ: recv, pos: f.X.Position(), at: f.X, positional: positional})
 }
 
 // aliasFunc is the name of the alias recv when a function name is declared on it: a value of
@@ -331,7 +332,7 @@ func (c *Checker) waitingCall(x *ast.Call, f *ast.Field, sc *scope, expected typ
 		return nil, false // f does not take a value of this kind first
 	}
 	c.info.recordMember(f, c.info.object(m))
-	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{expr: f.X, pos: f.X.Position()}), true
+	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{expr: f.X, pos: f.X.Position(), at: f.X}), true
 }
 
 // isCollectionLit reports an array or map literal, whose element types an expected type can
@@ -386,7 +387,7 @@ func (c *Checker) interfaceCall(self types.Type, n types.Named, x *ast.Call, f *
 	}
 	callee := c.info.interfaceFunc(n.Decl, f.Name)
 	c.info.recordMember(f, callee)
-	return c.applySig(s, x, sc, expected, callee, &receiver{typ: self, pos: f.X.Position(), positional: true})
+	return c.applySig(s, x, sc, expected, callee, &receiver{typ: self, pos: f.X.Position(), at: f.X, positional: true})
 }
 
 // interfaceSig is the signature of the function name of the interface n read for the satisfying

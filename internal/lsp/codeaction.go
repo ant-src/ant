@@ -34,7 +34,7 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 		if dg.Path != path {
 			continue
 		}
-		rng := a.diagRange(path, dg.Pos)
+		rng := a.diagRange(path, dg.Pos, dg.End)
 		if before(rng.End, p.Range.Start) || before(p.Range.End, rng.Start) {
 			continue // the diagnostic is outside the range
 		}

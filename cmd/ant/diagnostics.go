@@ -19,7 +19,7 @@ func printDiagnostics(w io.Writer, diags []ant.Diagnostic) {
 		return string(b), err
 	}}
 	for _, d := range diags {
-		p.Print(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, d.Message)
+		p.PrintSpan(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col}, d.Message)
 	}
 	p.Summary(w, len(diags))
 }

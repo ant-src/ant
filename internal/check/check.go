@@ -174,17 +174,25 @@ type Checker struct {
 }
 
 func (c *Checker) errorf(pos ast.Pos, format string, args ...any) {
+	c.report(pos, ast.Pos{}, fmt.Sprintf(format, args...))
+}
+
+// errorIn reports an error about the expression e as a whole, at its start and spanning it.
+func (c *Checker) errorIn(e ast.Expr, format string, args ...any) {
+	c.report(ast.Start(e), e.EndPosition(), fmt.Sprintf(format, args...))
+}
+
+func (c *Checker) report(pos, end ast.Pos, msg string) {
 	path := ""
 	if c.mod != nil {
 		path = c.mod.path
 	}
-	msg := fmt.Sprintf(format, args...)
 	key := fmt.Sprintf("%s:%d:%d:%s", path, pos.Line, pos.Col, msg)
 	if c.seen[key] {
 		return
 	}
 	c.seen[key] = true
-	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, Msg: msg})
+	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, End: end, Msg: msg})
 }
 
 // retract drops the error msg reported at pos, if there is one.

@@ -22,7 +22,10 @@ func (p Position) String() string {
 
 // Diagnostic is one error found while loading or checking a program.
 type Diagnostic struct {
-	Pos     Position
+	Pos Position
+	// End is where the expression the diagnostic is about ends, when it names one, and Pos is
+	// its start; else its Line is 0.
+	End     Position
 	Message string
 }
 

@@ -208,7 +208,11 @@ func Load(path string, opts ...Option) (*Program, error) {
 func convert(diags []loader.Diagnostic) []Diagnostic {
 	out := make([]Diagnostic, len(diags))
 	for i, d := range diags {
-		out[i] = Diagnostic{Pos: Position{Path: d.Path, Line: d.Pos.Line, Col: d.Pos.Col}, Message: d.Msg}
+		out[i] = Diagnostic{
+			Pos:     Position{Path: d.Path, Line: d.Pos.Line, Col: d.Pos.Col},
+			End:     Position{Path: d.Path, Line: d.End.Line, Col: d.End.Col},
+			Message: d.Msg,
+		}
 	}
 	return out
 }

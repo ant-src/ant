@@ -19,7 +19,10 @@ import (
 type Diagnostic struct {
 	Path string
 	Pos  ast.Pos
-	Msg  string
+	// End is where the expression the diagnostic is about ends, when it names one: Pos is then
+	// its start. Else it is zero, and the span is found from Pos (diag.Span).
+	End ast.Pos
+	Msg string
 }
 
 func (d Diagnostic) String() string {
