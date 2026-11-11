@@ -11,7 +11,8 @@ it is private to its file.
 - Only a library exports. A file with `export` cannot have a top-level statement, since a script
   cannot be imported.
 - An exported function states its return type. A function exported on a type needs the type exported
-  too.
+  too, and an interface its signature names must be exported. Any other private type may appear in
+  an exported signature.
 - An imported `var` reads the exporting module's current value, but only that module can assign it.
 - Privacy applies to names, not to data. A test file sees every declaration of the modules it
   imports, exported or not.
@@ -215,6 +216,20 @@ type Point = { x: int, y: int }
 
 export func Point.origin(): Point { Point{ x: 0, y: 0 } }
 // error: Point.origin is exported but Point is not
+```
+
+So is an exported function whose signature names a private interface, since the importer could not
+check a call without it:
+
+```ant
+interface Shape {
+  area(s: Self): float64
+}
+
+export func total(shapes: Array[Shape]): float64 {
+  // error: total is exported but its signature names the interface Shape, which is not
+  shapes.map({ x.area() }).sum() ?? 0.0
+}
 ```
 
 Imports are read-only. Only the module that declares an exported `var` assigns it, so change it
