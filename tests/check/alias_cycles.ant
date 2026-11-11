@@ -3,7 +3,8 @@
 // function is an error, directly, through a union, through a chain of aliases, and whichever
 // declaration order the cycle is written in, with or without type parameters; a later declaration
 // that mentions the cyclic alias does not loop, and an alias may name a later alias. Recursion
-// through a record, an array, a set or a map is fine.
+// through a record, an array, a set or a map is fine. Once a cycle is reported, its aliases are
+// invalid, and a use of one reports nothing more.
 type Loop = Loop | null // ERR: without passing through a record, array, map, set, or function
 type Chain = Link | int // ERR: type Chain refers to itself through Link without passing through
 type Link = Chain | string
@@ -29,3 +30,8 @@ println(f)
 println(p)
 var e: Early = "e"
 println(e)
+
+func takesLoop(x: Loop) {}
+takesLoop(1)
+var c: Chain = 1.5
+var l: Link = 1.5
