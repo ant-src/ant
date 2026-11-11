@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/lexer"
@@ -1802,9 +1803,13 @@ func (p *parser) postfix() ast.Expr {
 				node = &ast.Field{Pos: pos(t), End: epos(name), X: node, Name: name.Text, NamePos: pos(name), Optional: true}
 			}
 		case "[":
-			if isPath && !p.header {
+			if isPath && !p.header && typeName(node) {
 				if end, ok := p.typeArgsBeforeBrace(); ok {
-					p.soft(t.Pos, "a record literal takes no type arguments; write %s{ ... }, and annotate the variable if the type parameters need fixing", pathText(node))
+					kind := "record"
+					if id, ok := node.(*ast.Ident); ok && id.Name == "Map" {
+						kind = "map"
+					}
+					p.soft(t.Pos, "a %s literal takes no type arguments; write %s{ ... }, and annotate the variable if the type parameters need fixing", kind, pathText(node))
 					p.i = end + 1
 					return p.braceLit(node)
 				}
@@ -1828,32 +1833,48 @@ func (p *parser) postfix() ast.Expr {
 	}
 }
 
-// typeArgsBeforeBrace reports whether the [ at the parser's position closes on a ] that a { follows
-// on the same line, as in Box[int]{ ... }, a record literal written with type arguments, which
-// section 4, Records, forbids. It returns the index of the ].
+// typeArgsBeforeBrace reports whether the [ at the parser's position holds only names, dots,
+// commas, brackets, and bars, as type arguments do, and closes on a ] that a { follows on the same
+// line, as in Box[int]{ ... }, a literal written with type arguments, which section 4, Records,
+// forbids. It returns the index of the ]. It stops at the first token a type argument list cannot
+// hold, so an index such as xs[i + 1] costs a token or two.
 func (p *parser) typeArgsBeforeBrace() (int, bool) {
 	depth := 0
 	for j := p.i; j < len(p.toks); j++ {
 		t := p.toks[j]
 		switch {
-		case t.Kind == token.EOF:
-			return 0, false
+		case t.Kind == token.Ident || t.Text == "null":
 		case t.Kind != token.Op:
-		case t.Text == "[" || t.Text == "(" || t.Text == "{":
+			return 0, false
+		case t.Text == "." || t.Text == "," || t.Text == "|":
+		case t.Text == "[":
 			depth++
-		case t.Text == ")" || t.Text == "}":
-			depth--
 		case t.Text == "]":
 			depth--
 			if depth == 0 {
 				return j, j+1 < len(p.toks) && p.toks[j+1].Is("{")
 			}
+		default:
+			return 0, false
 		}
 		if depth <= 0 {
 			return 0, false
 		}
 	}
 	return 0, false
+}
+
+// typeName reports whether a literal head's last name is capitalized, as a type's is by
+// convention, so that xs[i]{ is not taken for type arguments.
+func typeName(e ast.Expr) bool {
+	name := ""
+	switch x := e.(type) {
+	case *ast.Ident:
+		name = x.Name
+	case *ast.Field:
+		name = x.Name
+	}
+	return name != "" && unicode.IsUpper([]rune(name)[0])
 }
 
 // pathText writes a literal head, a name or a dotted path of names.
