@@ -308,6 +308,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, p := range s.tparams {
 		unsolved[p] = true
 	}
+	// soft holds the parameters the expected type solved; an argument that does not fit such a
+	// solution solves the parameter instead (argsOverExpected).
+	soft := map[*types.ParamDecl]bool{}
 	// misfit: the result can be no instance of the expected type, whatever the arguments solve.
 	misfit := false
 	if expected != nil && types.Mentions(s.fn.Return, unsolved) {
@@ -322,16 +325,15 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 					continue
 				}
 				subst[p] = t
+				soft[p] = true
 				delete(unsolved, p)
 			}
 		}
 	}
-	type pending struct {
-		i   int
-		t   types.Type
-		pos ast.Pos
-	}
-	var synthesized []pending
+	var synthesized []pendingArg
+	// checked holds the arguments checked against a solution from the expected type, which must
+	// still fit should the arguments solve it instead.
+	var checked []pendingArg
 	mismatch := false
 	// An argument that fixes nothing, an empty literal or a call of only those, waits for the
 	// other arguments; a receiver can be one too.
@@ -345,7 +347,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		pt := s.fn.Params[0]
 		if types.Mentions(pt, unsolved) {
 			if c.unify(pt, recv.typ, subst) {
-				synthesized = append(synthesized, pending{0, recv.typ, recv.pos})
+				synthesized = append(synthesized, pendingArg{0, recv.typ, recv.pos})
 			} else {
 				want, _ := types.Subst(pt, subst)
 				n := c.typeNames(recv.typ, want)
@@ -382,15 +384,26 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				continue // reported once, not again against the solved types
 			}
 			pruneSolved(unsolved, subst)
-			synthesized = append(synthesized, pending{i, got, a.Pos})
+			synthesized = append(synthesized, pendingArg{i, got, a.Pos})
 			continue
+		}
+		if types.Mentions(pt, soft) && typedAlone(a.Value, pt) {
+			// typed without the expected solution, so that a misfit can solve it instead
+			got := c.synth(a.Value, sc)
+			if c.unify(pt, got, subst) {
+				synthesized = append(synthesized, pendingArg{i, got, a.Pos})
+				continue
+			}
 		}
 		want, err := types.Subst(pt, subst)
 		if err != nil {
 			c.errorf(a.Pos, "%s", err)
 			continue
 		}
-		c.check(a.Value, sc, want)
+		t := c.check(a.Value, sc, want)
+		if types.Mentions(pt, soft) {
+			checked = append(checked, pendingArg{i, t, a.Pos})
+		}
 	}
 	if hint, ok := c.hints[x]; ok && len(unsolved) > 0 {
 		c.solveFromHint(s, hint, subst, unsolved)
@@ -408,7 +421,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				got := c.synth(w.e, sc)
 				if !types.IsInvalid(got) && c.unify(s.fn.Params[w.i], got, subst) {
 					pruneSolved(unsolved, subst)
-					synthesized = append(synthesized, pending{w.i, got, w.e.Position()})
+					synthesized = append(synthesized, pendingArg{w.i, got, w.e.Position()})
 					continue
 				}
 			} else if !mismatch {
@@ -452,6 +465,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			subst[p] = types.Invalid{}
 		}
 	}
+	if len(soft) > 0 && !mismatch {
+		c.argsOverExpected(s, subst, soft, synthesized, checked)
+	}
 	c.checkBounds(s, subst, x.Pos)
 	// An argument synthesized while its parameter's type was open is checked against the
 	// solved type.
@@ -467,6 +483,72 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 	}
 	return c.resultOf(s, subst, x.Pos)
+}
+
+// pendingArg is an argument typed before its parameter's type was settled: the argument at
+// slot i, of type t.
+type pendingArg struct {
+	i   int
+	t   types.Type
+	pos ast.Pos
+}
+
+// typedAlone reports whether e has the same type whatever is expected of it, so that it can be
+// synthesized: a name or field path that is no function value.
+func typedAlone(e ast.Expr, pt types.Type) bool {
+	if _, isFunc := types.Expand(pt).(types.Func); isFunc {
+		return false
+	}
+	switch e.(type) {
+	case *ast.Ident, *ast.Field:
+		return true
+	}
+	return false
+}
+
+// argsOverExpected applies the second half of the skip rule (section 4, Inference): when an
+// argument does not fit its parameter under a solution from the expected type, the arguments
+// solve that parameter instead. It changes subst only when every argument then fits; the result
+// is checked against the expected type by the caller.
+func (c *Checker) argsOverExpected(s *sig, subst map[*types.ParamDecl]types.Type, soft map[*types.ParamDecl]bool, synthesized, checked []pendingArg) {
+	fits := func(subst map[*types.ParamDecl]types.Type, pe pendingArg) bool {
+		want, err := types.Subst(s.fn.Params[pe.i], subst)
+		return err == nil && types.Assignable(pe.t, want)
+	}
+	// skipped: the solutions some argument does not fit
+	skipped := map[*types.ParamDecl]bool{}
+	for _, pe := range synthesized {
+		if !fits(subst, pe) {
+			for p := range soft {
+				if types.Mentions(s.fn.Params[pe.i], map[*types.ParamDecl]bool{p: true}) {
+					skipped[p] = true
+				}
+			}
+		}
+	}
+	if len(skipped) == 0 {
+		return
+	}
+	trial := maps.Clone(subst)
+	for p := range skipped {
+		delete(trial, p)
+	}
+	for _, pe := range synthesized {
+		if !c.unify(s.fn.Params[pe.i], pe.t, trial) {
+			return
+		}
+	}
+	for p := range skipped {
+		if t, done := trial[p]; !done || !boundFits(p, t, trial, s.tparams) {
+			return
+		}
+	}
+	for _, pe := range slices.Concat(synthesized, checked) {
+		if !fits(trial, pe) {
+			return
+		}
+	}
+	maps.Copy(subst, trial)
 }
 
 // argSlotsLoosely maps each argument of a call that argSlots refused to the parameter it would

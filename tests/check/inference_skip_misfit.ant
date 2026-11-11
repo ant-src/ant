@@ -1,0 +1,27 @@
+// spec: 4 Inference; 5 Calls through .
+// Section 4: a solution from the expected type that leaves an argument not assignable to its
+// parameter is skipped, and the arguments solve that parameter instead; the result must then be
+// assignable to the expected type. The direct, pipe and dot forms agree.
+type NotFound = { id: int }
+type TransferError = NotFound | Error
+
+func f(x: int | string): int { 1 }
+func first[T](a: Array[T]): T { a[0] }
+
+let r: Result[int, Error] = Result.ok(1)
+let ints = [1, 2]
+
+println(f(Result.unwrap(r)))
+println(f(r | Result.unwrap()))
+println(f(r.unwrap()))
+let n: int | string = r.unwrap()
+let m: int | string = Result.unwrap(r)
+let k: int | string = first(ints)
+
+// the argument fits the expected solution, which stays
+let e: Result[void, TransferError] = Result.err(NotFound{ id: 1 })
+
+// the arguments' solution does not fit the expected type
+let s: string = Result.unwrap(r)  // ERR: cannot use Result[int, Error] where Result[string,
+let t: string = r.unwrap()        // ERR: cannot use Result[int, Error] where Result[string,
+let u: string = first(ints)       // ERR: cannot use Array[int] where Array[string] is expected
