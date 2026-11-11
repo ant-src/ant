@@ -138,7 +138,7 @@ logo.png: binary, 4 bytes
 
 ```ant
 func decodeUtf8(bytes: Bytes): Result[string, Error] {
-  let text = String.fromBytes(bytes) ?? return Result.err(Error{ message: "not UTF-8" })
+  let text = String.fromBytes(bytes) ?? return Result.fail("not UTF-8")
   Result.ok(text)
 }
 

@@ -322,9 +322,9 @@ return a `Result` instead:
 
 ```ant
 func parseAge(text: string): Result[int, Error] {
-  let n = text.toInt() ?? return Result.err(Error{ message: "not a number: ${text}" })
+  let n = text.toInt() ?? return Result.fail("not a number: ${text}")
   if n < 0 {
-    return Result.err(Error{ message: "age is negative: ${n}" })
+    return Result.fail("age is negative: ${n}")
   }
   Result.ok(n)
 }

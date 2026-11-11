@@ -33,6 +33,7 @@ that takes a result takes it first, so `Result.unwrapOr(r, 0)`, `r.unwrapOr(0)`,
 
 - `Ok` and `Err` are ordinary records. `Result.ok(v)` is the same value as `Ok{ value: v }`, and
   `Result.err(e)` the same as `Err{ error: e }`.
+- `Result.fail(m)` is `Result.err(Error{ message: m })`, for a result whose error type is `Error`.
 - `try` unwraps an `Ok`. On an `Err` it returns an `Err` with the same error from the enclosing
   function, which must return a `Result` whose error type accepts it.
 - The error type is any type: the library's `Error`, a string, or a union of records the program
@@ -131,7 +132,7 @@ a `message`:
 ```ant
 func save(ok: bool): Result[void, Error] {
   if !ok {
-    return Result.err(Error{ message: "disk full" })
+    return Result.fail("disk full")
   }
   Result.ok(void)
 }
@@ -172,6 +173,7 @@ Ok{ value: 0 }
 
 - [Result.ok](ok.md): an `Ok` carrying a value
 - [Result.err](err.md): an `Err` carrying an error
+- [Result.fail](fail.md): an `Err` carrying an `Error` with a message
 
 ### Reading
 
@@ -198,9 +200,9 @@ Add context as an error goes up. Under `try`, parenthesize the call together wit
 func loadPort(text: string): Result[int, Error] {
   let json = try (Json.parse(text) | Result.wrapErr("parse settings"))
   if !(json is float64) {
-    return Result.err(Error{ message: "port is not a number" })
+    return Result.fail("port is not a number")
   }
-  let port = Math.toInt(json) ?? return Result.err(Error{ message: "port ${json} is not whole" })
+  let port = Math.toInt(json) ?? return Result.fail("port ${json} is not whole")
   Result.ok(port)
 }
 

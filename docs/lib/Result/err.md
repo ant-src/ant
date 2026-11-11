@@ -48,11 +48,14 @@ if r is Err { r.error } // "timeout"
 
 ## Scope
 
-The error can be an `Error`, the record the standard library uses:
+The error can be an `Error`, the record the standard library uses. [Result.fail](fail.md) builds the
+same result from the message alone:
 
 ```ant
 let r: Result[string, Error] = Result.err(Error{ message: "no such file" })
 r // Err{ error: Error{ message: "no such file" } }
+let short: Result[string, Error] = Result.fail("no such file")
+assert(short == r)
 ```
 
 The error can be a member of a union of your own error records:
@@ -216,6 +219,6 @@ r.unwrap() // panic: Result.unwrap on an Err: "x"
 
 ## See also
 
-[Result.ok](ok.md) · [Result.isOk](isOk.md) · [Result.mapErr](mapErr.md) ·
+[Result.ok](ok.md) · [Result.fail](fail.md) · [Result.isOk](isOk.md) · [Result.mapErr](mapErr.md) ·
 [Result.wrapErr](wrapErr.md) · [Result.unwrapOr](unwrapOr.md) · [Result](index.md) ·
 [Error.wrap](../Error/wrap.md) · [try](../../language/keywords/try.md)

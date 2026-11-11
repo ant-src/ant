@@ -9,21 +9,21 @@
 type Task = { id: int, title: string, done: bool }
 
 func decodeTask(v: Json.Value, path: string): Result[Task, Error] {
-  if !(v is Map) { return Result.err(Error{ message: "${path}: expected an object" }) }
+  if !(v is Map) { return Result.fail("${path}: expected an object") }
   var id = v["id"]
   var title = v["title"]
   var done = v["done"]
-  if !(id is float64) { return Result.err(Error{ message: "${path}.id: expected a number" }) }
-  var n = Math.toInt(id) ?? return Result.err(Error{ message: "${path}.id: expected an integer" })
-  if !(title is string) { return Result.err(Error{ message: "${path}.title: expected a string" }) }
-  if !(done is bool) { return Result.err(Error{ message: "${path}.done: expected a bool" }) }
+  if !(id is float64) { return Result.fail("${path}.id: expected a number") }
+  var n = Math.toInt(id) ?? return Result.fail("${path}.id: expected an integer")
+  if !(title is string) { return Result.fail("${path}.title: expected a string") }
+  if !(done is bool) { return Result.fail("${path}.done: expected a bool") }
   Result.ok(Task{ id: n, title: title, done: done })
 }
 
 func load(path: string): Result[Array[Task], Error] {
   if !File.exists(path) { return Result.ok([]) }
   var tree = try Json.parse(try File.read(path))
-  if !(tree is Array) { return Result.err(Error{ message: "$: expected an array" }) }
+  if !(tree is Array) { return Result.fail("$: expected an array") }
   var tasks: Array[Task] = []
   for { index, value } in Array.entries(tree) { Array.push(tasks, try decodeTask(value, "$[${index}]")) }
   Result.ok(tasks)
@@ -32,16 +32,16 @@ func load(path: string): Result[Array[Task], Error] {
 func save(path: string, tasks: Array[Task]): Result[void, Error] { File.write(path, Json.stringify(tasks)) }
 
 func find(tasks: Array[Task], arg: string | null): Result[Task, Error] {
-  var text = arg ?? return Result.err(Error{ message: "an id is required" })
-  var id = String.toInt(text) ?? return Result.err(Error{ message: "${text} is not an id" })
-  var task = Array.find(tasks, { x.id == id }) ?? return Result.err(Error{ message: "no task ${id}" })
+  var text = arg ?? return Result.fail("an id is required")
+  var id = String.toInt(text) ?? return Result.fail("${text} is not an id")
+  var task = Array.find(tasks, { x.id == id }) ?? return Result.fail("no task ${id}")
   Result.ok(task)
 }
 
 func execute(path: string, command: string, args: Array[string]): Result[string, Error] {
   var tasks = try load(path)
   if command == "add" {
-    if Array.isEmpty(args) { return Result.err(Error{ message: "a title is required" }) }
+    if Array.isEmpty(args) { return Result.fail("a title is required") }
     var next = Array.reduce(tasks, 0, func(high: int, t: Task): int { Math.max(high, t.id) }) + 1
     Array.push(tasks, Task{ id: next, title: String.join(args, " "), done: false })
     try save(path, tasks)
@@ -68,7 +68,7 @@ func execute(path: string, command: string, args: Array[string]): Result[string,
     for { id, title, done } in tasks { Array.push(lines, "${if done { "[x]" } else { "[ ]" }} ${id} ${title}") }
     return Result.ok(String.join(lines, "\n"))
   }
-  Result.err(Error{ message: "unknown command ${command}; use add, done, remove, list, or clear" })
+  Result.fail("unknown command ${command}; use add, done, remove, list, or clear")
 }
 
 var path = Os.env("TODO_FILE") ?? "todo.json"

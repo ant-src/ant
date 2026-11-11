@@ -30,7 +30,7 @@ func tokenize(src: string): Result[Array[Token], Error] {
       var start = i
       while i < Array.length(chars) && isDigit(chars[i]) { i += 1 }
       var text = String.join(Array.slice(chars, start, i), "")
-      var n = String.toFloat(text) ?? return Result.err(Error{ message: "bad number ${text}" })
+      var n = String.toFloat(text) ?? return Result.fail("bad number ${text}")
       Array.push(tokens, Num{ value: n })
     } else if isLetter(ch) {
       var start = i
@@ -40,7 +40,7 @@ func tokenize(src: string): Result[Array[Token], Error] {
       Array.push(tokens, Punct{ text: ch })
       i += 1
     } else {
-      return Result.err(Error{ message: "unexpected character ${ch} at ${i}" })
+      return Result.fail("unexpected character ${ch} at ${i}")
     }
   }
   Result.ok(tokens)
@@ -96,23 +96,23 @@ func Parser.unary(p: Parser): Result[Expr, Error] {
 
 // primary := number | name | "(" expr ")"
 func Parser.primary(p: Parser): Result[Expr, Error] {
-  var t = Parser.next(p) ?? return Result.err(Error{ message: "unexpected end of input" })
+  var t = Parser.next(p) ?? return Result.fail("unexpected end of input")
   if t is Num { return Result.ok(Lit{ value: t.value }) }
   if t is Ident { return Result.ok(Ref{ name: t.name }) }
   if t.text == "(" {
     var inner = try Parser.expr(p)
-    if !Parser.atPunct(p, ")") { return Result.err(Error{ message: "expected )" }) }
+    if !Parser.atPunct(p, ")") { return Result.fail("expected )") }
     _ = Parser.next(p)
     return Result.ok(inner)
   }
-  Result.err(Error{ message: "unexpected ${t.text}" })
+  Result.fail("unexpected ${t.text}")
 }
 
 func parse(src: string): Result[Expr, Error] {
   var p = Parser{ tokens: try tokenize(src), pos: 0 }
   var e = try Parser.expr(p)
   var rest = Parser.peek(p)
-  if rest != null { return Result.err(Error{ message: "unexpected ${show(rest)} after the expression" }) }
+  if rest != null { return Result.fail("unexpected ${show(rest)} after the expression") }
   Result.ok(e)
 }
 
@@ -123,7 +123,7 @@ func show(t: Token): string {
 func eval(e: Expr, env: Map[string, float64]): Result[float64, Error] {
   if e is Lit { return Result.ok(e.value) }
   if e is Ref {
-    var v = env[e.name] ?? return Result.err(Error{ message: "unknown variable ${e.name}" })
+    var v = env[e.name] ?? return Result.fail("unknown variable ${e.name}")
     return Result.ok(v)
   }
   if e is Neg { return Result.ok(-(try eval(e.operand, env))) }
@@ -132,7 +132,7 @@ func eval(e: Expr, env: Map[string, float64]): Result[float64, Error] {
   if e.op == "+" { Result.ok(l + r) }
   else if e.op == "-" { Result.ok(l - r) }
   else if e.op == "*" { Result.ok(l * r) }
-  else if r == 0.0 { Result.err(Error{ message: "division by zero" }) }
+  else if r == 0.0 { Result.fail("division by zero") }
   else { Result.ok(l / r) }
 }
 

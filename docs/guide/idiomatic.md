@@ -130,10 +130,10 @@ func parseOrder(row: Row): Result[Order, Error] {
 ```ant
 let quantity = row.quantity.toInt()
 if quantity == null {
-  return Result.err(Error{ message: "order ${row.id}: quantity must be an integer" })
+  return Result.fail("order ${row.id}: quantity must be an integer")
 }
 if quantity <= 0 {
-  return Result.err(Error{ message: "order ${row.id}: quantity must be positive" })
+  return Result.fail("order ${row.id}: quantity must be positive")
 }
 Result.ok(Order{ id: row.id, quantity })
 ```
@@ -166,7 +166,7 @@ type Setting = { value: string, line: int }
 func boundedInt(text: string, low: int, high: int): Result[int, Error] {
   let n = text.toInt()
   if n == null || n < low || n > high {
-    return Result.err(Error{ message: "want an integer from ${low} to ${high}" })
+    return Result.fail("want an integer from ${low} to ${high}")
   }
   Result.ok(n)
 }

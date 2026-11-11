@@ -53,12 +53,13 @@ bad input: unexpected end of JSON input
 
 ## Scope
 
-Return an `Error` from a function of your own:
+Return an `Error` from a function of your own. [Result.fail](../Result/fail.md) builds the `Err`
+from the message:
 
 ```ant
 func half(n: int): Result[int, Error] {
   if n % 2 != 0 {
-    return Result.err(Error{ message: "${n} is odd" })
+    return Result.fail("${n} is odd")
   }
   Result.ok(n / 2)
 }
@@ -104,7 +105,7 @@ Add context at each level, so the final message says what the program was doing:
 func readPort(text: string): Result[float64, Error] {
   let json = try (Json.parse(text) | Result.wrapErr("parse settings"))
   if !(json is float64) {
-    return Result.err(Error{ message: "port is not a number" })
+    return Result.fail("port is not a number")
   }
   Result.ok(json)
 }

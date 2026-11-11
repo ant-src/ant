@@ -101,10 +101,10 @@ type Signup = { name: string, age: int }
 
 func validate(s: Signup): Result[Signup, Error] {
   if s.name.isEmpty() {
-    return Result.err(Error{ message: "name is empty" })
+    return Result.fail("name is empty")
   }
   if s.age < 13 {
-    return Result.err(Error{ message: "too young: ${s.age}" })
+    return Result.fail("too young: ${s.age}")
   }
   Result.ok(s)
 }

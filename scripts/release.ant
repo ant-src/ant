@@ -13,7 +13,7 @@
 
 var args = Os.args()
 if len(args) != 1 {
-  return Result.err(Error{ message: "usage: ant scripts/release.ant vX.Y.Z" })
+  return Result.fail("usage: ant scripts/release.ant vX.Y.Z")
 }
 var version = args[0]
 
@@ -40,7 +40,7 @@ for target in targets {
   var build = Cmd.new("go", ["build", "-trimpath", "-ldflags=-s -w -X main.version=${version}", "-o", output, "./cmd/ant"], env: env)
   var status = try Cmd.run(build)
   if status != 0 {
-    return Result.err(Error{ message: "${Cmd.string(build)}: exit status ${status}" })
+    return Result.fail("${Cmd.string(build)}: exit status ${status}")
   }
   println(output)
 }

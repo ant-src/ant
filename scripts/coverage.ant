@@ -88,7 +88,7 @@ var hit: Set[string] = Set.of([])
 for line in String.lines(try File.read(profile)) {
   if line == "" || String.startsWith(line, "mode:") { continue }
   var block = parseBlock(line) ??
-    return Result.err(Error{ message: "malformed profile line: ${line}" })
+    return Result.fail("malformed profile line: ${line}")
   var pkg = packageOf(block)
   var tally = packages[pkg] ?? Tally{}
   packages[pkg] = tally
@@ -107,4 +107,4 @@ for { key: name, value: tally } in Map.entries(packages) | Array.sortBy({ x.key 
   if report(name, tally, packageMin) { below = true }
 }
 if report("total", total, overallMin) { below = true }
-if below { return Result.err(Error{ message: "coverage below the minimum" }) }
+if below { return Result.fail("coverage below the minimum") }

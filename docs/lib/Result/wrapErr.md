@@ -23,7 +23,7 @@ it is an Err.
 Put the operation in front of the message of an error:
 
 ```ant
-let failed: Result[int, Error] = Result.err(Error{ message: "no such file" })
+let failed: Result[int, Error] = Result.fail("no such file")
 Result.wrapErr(failed, "load config") // Err{ error: Error{ message: "load config: no such file" } }
 ```
 
@@ -46,7 +46,7 @@ Json.parse("{") | Result.wrapErr("parse app.json")
 Each wrap adds one more context in front, so the outermost caller reads first:
 
 ```ant
-let failed: Result[int, Error] = Result.err(Error{ message: "timeout" })
+let failed: Result[int, Error] = Result.fail("timeout")
 failed | Result.wrapErr("fetch user") | Result.wrapErr("render page")
 // Err{ error: Error{ message: "render page: fetch user: timeout" } }
 ```
@@ -54,14 +54,14 @@ failed | Result.wrapErr("fetch user") | Result.wrapErr("render page")
 An empty context still adds the separator:
 
 ```ant
-let failed: Result[int, Error] = Result.err(Error{ message: "timeout" })
+let failed: Result[int, Error] = Result.fail("timeout")
 Result.wrapErr(failed, "") // Err{ error: Error{ message: ": timeout" } }
 ```
 
 Call it through `.`:
 
 ```ant
-let failed: Result[int, Error] = Result.err(Error{ message: "refused" })
+let failed: Result[int, Error] = Result.fail("refused")
 failed.wrapErr("connect") // Err{ error: Error{ message: "connect: refused" } }
 ```
 
@@ -70,7 +70,7 @@ failed.wrapErr("connect") // Err{ error: Error{ message: "connect: refused" } }
 Name the arguments to pass them in any order:
 
 ```ant
-let failed: Result[int, Error] = Result.err(Error{ message: "refused" })
+let failed: Result[int, Error] = Result.fail("refused")
 Result.wrapErr(context: "connect", r: failed) // Err{ error: Error{ message: "connect: refused" } }
 ```
 
@@ -124,7 +124,7 @@ missing | Result.mapErr({ Error{ message: "user ${x.id} not found" } }) | Result
 `Result.wrapErr` is [`Result.mapErr`](mapErr.md) with [`Error.wrap`](../Error/wrap.md):
 
 ```ant
-let failed: Result[int, Error] = Result.err(Error{ message: "timeout" })
+let failed: Result[int, Error] = Result.fail("timeout")
 assert(Result.wrapErr(failed, "fetch") == Result.mapErr(failed, { Error.wrap(x, "fetch") }))
 ```
 
@@ -179,5 +179,6 @@ if wrapped is Err { Record.same(wrapped.error, cause) } else { false } // false
 
 ## See also
 
-[Error.wrap](../Error/wrap.md), [Result.mapErr](mapErr.md), [Result.map](map.md),
-[Result.all](all.md), [Result.unwrap](unwrap.md), [try](../../language/keywords/try.md)
+[Error.wrap](../Error/wrap.md), [Result.fail](fail.md), [Result.mapErr](mapErr.md),
+[Result.map](map.md), [Result.all](all.md), [Result.unwrap](unwrap.md),
+[try](../../language/keywords/try.md)

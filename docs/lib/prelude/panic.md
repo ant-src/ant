@@ -296,7 +296,7 @@ can check, instead:
 func port(text: string): Result[int, Error] {
   let n = text.toInt()
   if n == null {
-    return Result.err(Error{ message: "not a port: ${text}" })
+    return Result.fail("not a port: ${text}")
   }
   Result.ok(n)
 }

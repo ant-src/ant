@@ -12,10 +12,10 @@ type Order = { item: string, qty: int }
 func parseQty(text: string): Result[int, Error] {
   let n = text.toInt()
   if n == null {
-    return Result.err(Error{ message: "\"${text}\" is not a number" })
+    return Result.fail("\"${text}\" is not a number")
   }
   if n <= 0 {
-    return Result.err(Error{ message: "${n} is not positive" })
+    return Result.fail("${n} is not positive")
   }
   Result.ok(n)
 }
@@ -23,7 +23,7 @@ func parseQty(text: string): Result[int, Error] {
 func parseOrder(line: string): Result[Order, Error] {
   let parts = line.split(" x")
   if parts.length() != 2 {
-    return Result.err(Error{ message: "no quantity in \"${line}\"" })
+    return Result.fail("no quantity in \"${line}\"")
   }
   let qty = try (parseQty(parts[1]) | Result.wrapErr("quantity of ${parts[0]}"))
   Result.ok(Order{ item: parts[0], qty })
@@ -52,7 +52,8 @@ skipped: quantity of figs: "many" is not a number
 
 `Result[int, Error]` is a tagged union of two records, `Ok{ value }` and `Err{ error }`. `Result.ok`
 and `Result.err` build them. `Error` is the standard library's error type, a record with a
-`message`. You can use any type for the error, such as a union of your own records.
+`message`, and `Result.fail("...")` is short for `Result.err(Error{ message: "..." })`. You can use
+any type for the error, such as a union of your own records.
 
 `try` unwraps a `Result`. On `Ok` it gives the value, so `qty` is a plain `int`. On `Err` it returns
 that error from the enclosing function right away. The loop takes the result apart with `is`, as any
@@ -123,7 +124,7 @@ error and exits with status 1:
 ```ant
 func half(n: int): Result[int, Error] {
   if n % 2 != 0 {
-    return Result.err(Error{ message: "${n} is odd" })
+    return Result.fail("${n} is odd")
   }
   Result.ok(n / 2)
 }

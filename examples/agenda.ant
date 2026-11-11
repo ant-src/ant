@@ -12,7 +12,7 @@ var weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 func text(object: Map[string, Json.Value], name: string): Result[string, Error] {
   var v = object[name]
-  if v is string { Result.ok(v) } else { Result.err(Error{ message: "${name} must be a string" }) }
+  if v is string { Result.ok(v) } else { Result.fail("${name} must be a string") }
 }
 
 func meetingOf(object: Map[string, Json.Value]): Result[Meeting, Error] {
@@ -23,7 +23,7 @@ func meetingOf(object: Map[string, Json.Value]): Result[Meeting, Error] {
 }
 
 func meeting(v: Json.Value): Result[Meeting, Error] {
-  if v is Map { meetingOf(v) } else { Result.err(Error{ message: "a meeting must be an object" }) }
+  if v is Map { meetingOf(v) } else { Result.fail("a meeting must be an object") }
 }
 
 func pad(n: int): string { if n < 10 { "0${n}" } else { String.from(n) } }

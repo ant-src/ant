@@ -47,7 +47,7 @@ Result.mapErr(r, { Error{ message: "missing key ${x.key}" } }) // Err{ error: Er
 Read a field of an `Error`:
 
 ```ant
-let r: Result[string, Error] = Result.err(Error{ message: "unexpected end of input" })
+let r: Result[string, Error] = Result.fail("unexpected end of input")
 Result.mapErr(r, { x.message }) // Err{ error: "unexpected end of input" }
 ```
 
@@ -167,7 +167,7 @@ for r in rs {
 With `Error.wrap` as `f`, it gives what [Result.wrapErr](wrapErr.md) gives:
 
 ```ant
-let r: Result[int, Error] = Result.err(Error{ message: "eof" })
+let r: Result[int, Error] = Result.fail("eof")
 assert(Result.mapErr(r, { Error.wrap(x, "read") }) == Result.wrapErr(r, "read"))
 ```
 
