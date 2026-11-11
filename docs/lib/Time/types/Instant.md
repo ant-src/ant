@@ -261,7 +261,7 @@ An instant has no fields; read them from a zoned time:
 ```ant
 let t = Time.fromEpochMillis(0)
 let year = t.year()
-// error: Time.year takes Time.Dated first, so a Time.Instant does not reach it; call it as Time.year(...)
+// error: Time.year takes Time.Dated first, so a Time.Instant does not reach it
 let hour = Time.hour(t)
 // error: cannot use Time.Instant where Time.Timed is expected
 ```
@@ -272,7 +272,7 @@ let hour = Time.hour(t)
 let a = Time.fromEpochMillis(0)
 let b = Time.fromEpochMillis(1)
 let earlier = a < b
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Instant; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Instant
 ```
 
 The range is wide but finite, and a result past its edge panics:

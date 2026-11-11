@@ -147,17 +147,6 @@ let n = Time.epochNanos(meeting)
 // error: cannot use Time.PlainDateTime where Time.Instant | Time.ZonedDateTime is expected
 ```
 
-A call that returns a `Result` cannot be unwrapped straight into the argument. The parameter's union
-becomes the expected type of `Result.unwrap`, and a `Result[Time.Instant, Error]` is not a
-`Result[Time.Instant | Time.ZonedDateTime, Error]`. Bind the instant with `let` first, as the
-examples above do:
-
-```ant
-let text = "2026-10-22T14:03:05Z"
-let n = Time.epochNanos(Time.parseInstant(text) | Result.unwrap())
-// error: cannot use Result[Time.Instant, Error] where Result[Time.Instant | Time.ZonedDateTime, Error] is expected
-```
-
 ## See also
 
 [Time.fromEpochNanos](fromEpochNanos.md), [Time.epochMillis](epochMillis.md),

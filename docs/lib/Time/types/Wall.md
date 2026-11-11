@@ -207,22 +207,6 @@ func startOfMinute[T: Time.Wall](t: T): T {
 let today = startOfMinute(Time.plainDate(2026, 4, 10)) // panic: Time.with: a date has no time fields
 ```
 
-A call to `unwrap` passed straight to a `Time.Wall` parameter takes `Time.Wall` as its expected
-type, so it asks for a `Result[Time.Wall, Error]`, which a `Result[Time.ZonedDateTime, Error]` is
-not. Bind the value with `let` first, as the examples above do:
-
-```ant
-func firstOfMonth(t: Time.Wall): Time.Wall {
-  if t is Time.PlainTime { return t }
-  if t is Time.PlainDate { return t.with(day: 1) }
-  if t is Time.PlainDateTime { return t.with(day: 1) }
-  t.with(day: 1)
-}
-
-println(firstOfMonth(Time.parseZoned("2026-04-10T08:00[Asia/Tokyo]").unwrap()))
-// error: cannot use Result[Time.ZonedDateTime, Error] where Result[Time.Wall, Error] is expected
-```
-
 ## See also
 
 [Time.with](../with.md) · [Time.Point](Point.md) · [Time.Dated](Dated.md) · [Time.Timed](Timed.md) ·

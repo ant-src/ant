@@ -233,20 +233,11 @@ let t: Time.Timed = Time.plainTime(9)
 let year = Time.year(t) // error: cannot use Time.Timed where Time.Dated is expected
 ```
 
-The expected type solves a generic call first, so an `unwrap` checked against `Time.Timed`, in an
-annotation or as an argument, asks for a `Result[Time.Timed, Error]`, which a
-`Result[Time.ZonedDateTime, Error]` is not:
+An `unwrap` checked against `Time.Timed` takes its type from the `Result`, so a parse result goes
+straight into an annotation or an argument:
 
 ```ant
 let t: Time.Timed = Time.parseZoned("2026-06-02T09:30:00Z[UTC]").unwrap()
-// error: cannot use Result[Time.ZonedDateTime, Error] where Result[Time.Timed, Error] is expected
-```
-
-Name the value first, then use it as a `Time.Timed`:
-
-```ant
-let zoned = Time.parseZoned("2026-06-02T09:30:00Z[UTC]").unwrap()
-let t: Time.Timed = zoned
 t.hour() // 9
 ```
 

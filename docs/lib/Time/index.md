@@ -334,7 +334,7 @@ Time.fromEpochMillis(0).inZone(Time.utc).add(Time.duration(days: 1)) // 1970-01-
 let a = Time.plainDate(2026, 1, 1)
 let b = Time.plainDate(2026, 2, 1)
 let earlier = a < b
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate
 ```
 
 ```ant
