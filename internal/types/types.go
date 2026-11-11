@@ -159,18 +159,32 @@ var (
 
 // IsInvalid reports whether t is the error-recovery type, or a type parameter whose bound the
 // checker rejected and made invalid, as that of T in func f[T: T] is: the error was reported once,
-// at the bound, and what the body does with a T would only repeat it. An alias counts by its
-// expansion, so an alias the checker rejected as cyclic, whose body it dropped, is invalid too.
+// at the bound, and what the body does with a T would only repeat it. An alias whose chain of
+// alias bodies ends in Invalid counts too: the checker drops the body of an alias it rejected as
+// cyclic, and each use of it, or of a parameter bounded by it, would only repeat that error.
 func IsInvalid(t Type) bool {
-	if isAlias(t) {
-		t, _ = expand(t, false)
+	if p, ok := t.(Param); ok {
+		t = p.Decl.Bound
 	}
-	switch x := t.(type) {
-	case Invalid:
-		return true
-	case Param:
-		_, ok := x.Decl.Bound.(Invalid)
-		return ok
+	return invalidAlias(t)
+}
+
+// invalidAlias reports whether t is Invalid, following alias bodies as written, without the
+// substitution Expand does. A rejected cycle's body is Invalid, so the chain ends; the step limit
+// guards a cycle not yet rejected.
+func invalidAlias(t Type) bool {
+	for range 64 {
+		switch x := t.(type) {
+		case Invalid:
+			return true
+		case Named:
+			if x.Decl.Kind != AliasDecl || x.Decl.Body == nil {
+				return false
+			}
+			t = x.Decl.Body
+		default:
+			return false
+		}
 	}
 	return false
 }
