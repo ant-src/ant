@@ -1,0 +1,21 @@
+// spec: 4 Arrays, maps, and sets; 11 Set
+// Section 4: a key == to one already in the map replaces the value only, keeping the entry's
+// key and position; section 11: Set.add of a value == to a member keeps the member the set has.
+let m: Map[float, string] = Map{}
+m[0.0] = "a"
+m[1.0] = "c"
+m[-0.0] = "b"
+println(m)
+println(m.keys())
+
+let s: Set[float] = Set.of([])
+println(s.add(-0.0))
+println(s.add(0.0))
+println(s.values())
+
+// expect
+// out: Map{ 0.0: "b", 1.0: "c" }
+// out: [0.0, 1.0]
+// out: true
+// out: false
+// out: [-0.0]
