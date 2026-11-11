@@ -151,6 +151,13 @@ records, unions, `null`, calls through `.`, pipes. A reader browsing `Array.map`
 code looks. Declare with `let`, and with `var` only a name the example reassigns, so the keyword
 tells the reader which names change.
 
+Code on every page follows [Idiomatic Ant](guide/idiomatic.md). A reference page names its subject
+in namespace form in Basic examples, such as `Array.map(xs, f)`, so the reader sees which function
+the page documents. Every other call follows the guide: dots for local operations, such as
+`{ x.length() }` or `name.trim()`; pipes for a chain of transformations; namespaces where they
+explain an operation; guards before the main path; `some`, `every`, `find`, or `filter` for the
+result the code needs.
+
 ### Other pages
 
 A tour page is one concept and one editable program, about three minutes of reading. A guide chapter
@@ -179,8 +186,8 @@ outputs. The block is read as the REPL reads input, so a case may span lines; it
 the end of its last line.
 
 ```ant
-Array.map([1, 2, 3], { x * 2 })              // [2, 4, 6]
-Array.map(["a", "bb"], { String.length(x) }) // [1, 2]
+Array.map([1, 2, 3], { x * 2 })        // [2, 4, 6]
+Array.map(["a", "bb"], { x.length() }) // [1, 2]
 let xs = [3, 1, 2]
 Array.sort(xs) // [1, 2, 3]
 ```
