@@ -1,4 +1,4 @@
-// spec: 10 Modules
+// spec: 10
 // An exported function whose parameters, result, or bounds name a private interface of the
 // module is a compile error. A private type of another kind may appear in an exported signature.
 interface Shape {
