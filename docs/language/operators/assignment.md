@@ -87,8 +87,8 @@ ages["Bob"] = 27
 ages // Map{ "Ann": 32, "Bob": 27 }
 ```
 
-A compound operator reads the entry first, and a map read is `V | null`, so `+=` on a map entry is
-a compile error. Add a default with `??`:
+A compound operator reads the entry first, and a map read is `V | null`, so `+=` on a map entry is a
+compile error. Add a default with `??`:
 
 ```ant
 let ages = Map{ "Ann": 31 }
