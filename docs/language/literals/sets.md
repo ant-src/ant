@@ -68,11 +68,14 @@ ann.roles.add("admin") // true
 bob.roles              // Set.of([])
 ```
 
-In an array literal, `Set.of([])` takes its element type from the other elements:
+In an array literal, `Set.of([])` takes its element type from the other elements, and in a map
+literal from the other values:
 
 ```ant
 let teams = [Set.of(["ann", "bob"]), Set.of([])]
 teams.map({ x.size() }) // [2, 0]
+let roles = Map{ ann: Set.of(["admin"]), bob: Set.of([]) }
+roles["bob"]?.size() // 0
 ```
 
 A long set goes one member per line, with a trailing comma in the array:

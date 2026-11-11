@@ -1,0 +1,7 @@
+// spec: 4 Arrays, maps, and sets
+// A spread in an array literal needs an array; a lone spread of another type reports that
+// alone.
+let s = "ab"
+let t = [...s]                // ERR: a spread in an array literal needs an array, got string
+let u = [...Iter.range(0, 3)] // ERR: a spread in an array literal needs an array, got Seq[int]
+let v = [...Map{ a: 1 }]      // ERR: a spread in an array literal needs an array, got Map[string, int]

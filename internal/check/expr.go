@@ -929,7 +929,11 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 		if el.Spread {
 			a, ok := types.Expand(t).(types.Array)
 			if !ok {
-				c.errorf(el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
+				if !types.IsInvalid(t) {
+					c.errorf(el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
+				}
+				// the literal is invalid: no error about its other elements follows
+				elems = append(elems, types.Invalid{})
 				continue
 			}
 			t = a.Elem
@@ -1005,19 +1009,37 @@ func (c *Checker) synthMapLit(x *ast.MapLit, sc *scope) types.Type {
 		c.errorf(x.Pos, "cannot infer the key and value types of an empty map; annotate it")
 		return types.Invalid{}
 	}
+	// As in an array literal, a value that fixes nothing, such as [] or Set.of([]), waits and is
+	// then checked against the union of the other values (section 4, Inference).
 	var keys, vals []types.Type
 	var empties []ast.Expr
 	for _, en := range x.Entries {
 		keys = append(keys, c.synth(en.Key, sc))
-		if isEmptyLiteral(en.Value) {
+		if onlyEmpty(en.Value) {
 			empties = append(empties, en.Value)
 			continue
 		}
 		vals = append(vals, c.synth(en.Value, sc))
 	}
 	if len(vals) == 0 {
-		c.errorf(x.Pos, "cannot infer the value type of a map of empty literals; annotate it")
-		return types.Invalid{}
+		var literals []ast.Expr
+		for _, e := range empties {
+			if _, isCall := e.(*ast.Call); isCall {
+				vals = append(vals, c.synth(e, sc))
+			} else {
+				literals = append(literals, e)
+			}
+		}
+		if len(vals) == 0 {
+			c.errorf(x.Pos, "cannot infer the value type of a map of empty literals; annotate it")
+			return types.Invalid{}
+		}
+		empties = literals
+	}
+	for _, t := range vals {
+		if types.IsInvalid(t) {
+			return types.Invalid{}
+		}
 	}
 	k, err := types.MakeUnion(keys)
 	if err != nil {

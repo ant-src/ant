@@ -1,0 +1,10 @@
+// spec: 4 Inference
+// A map literal's key and value types are the unions of its keys' and values' types. A value
+// that fixes nothing, [] or Set.of([]), waits and is checked against the union of the others.
+let x = "k"
+let mixed: Map[string, int | string] = Map{ a: 1, b: "x" }
+let keys: Map[string | int, int] = Map{ x: 1, (x): 2, 3: 4 }
+let arrays: Map[string, Array[int]] = Map{ a: [1], b: [] }
+let first: Map[string, Array[int]] = Map{ a: [], b: [1] }
+let sets: Map[string, Set[int]] = Map{ a: Set.of([1]), b: Set.of([]) }
+let none = Map{ a: [], b: [] } // ERR: cannot infer the value type of a map of empty literals
