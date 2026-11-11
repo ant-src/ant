@@ -48,3 +48,7 @@ println(t.add(Time.duration(seconds: 1))) // ERR: T would be Time.Instant | Time
 println(Iter.range(0, 9).take(2).toArray())
 var handler = func(n: int): int { n }
 println(handler.take(2)) // ERR: Iter.take is not a function on func(int): int: it takes Seq[T] first
+func Square.scaled(s: Square, by: float64): float64 { s.side * by }
+func Circle.scaled(c: Circle, by: float64): float64 { c.radius * by }
+var both: Circle | Square = Circle{ radius: 1.0 }
+var once = both.scaled(by: 2.0) // ERR: a call through Circle | Square is positional, since each member's scaled names its parameters as it likes; pass by positionally

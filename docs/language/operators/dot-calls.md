@@ -110,7 +110,7 @@ type Rect = { width: float64, height: float64 }
 func Circle.area(c: Circle, scale: float64): float64 { Math.PI * c.radius * c.radius * scale }
 func Rect.area(r: Rect, scale: float64): float64 { r.width * r.height * scale }
 let shapes: Array[Circle | Rect] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0 }]
-let big = shapes.map({ x.area(scale: 2.0) }) // error: a call through Circle is positional
+let big = shapes.map({ x.area(scale: 2.0) }) // error: a call through Circle | Rect is positional
 ```
 
 ```ant

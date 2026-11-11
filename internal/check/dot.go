@@ -83,6 +83,14 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 				return types.Invalid{}
 			}
 		}
+		for _, a := range x.Args {
+			if a.Name != "" {
+				// one error for the call, not one per member (section 5, Calls through .)
+				c.errorf(a.Pos, "a call through %s is positional, since each member's %s names its parameters as it likes; pass %s positionally", types.String(recv), f.Name, a.Name)
+				c.synthArgs(x.Args, sc)
+				return types.Invalid{}
+			}
+		}
 		var results []types.Type
 		for _, m := range r.Members {
 			results = append(results, c.dotCallOn(m, x, f, sc, expected, true))
