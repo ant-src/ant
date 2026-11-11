@@ -1,0 +1,17 @@
+// spec: 4 Inference; 4 Interfaces
+// An argument checked against an interface with an open type parameter solves it from the
+// functions its type offers; a type that lacks one does not match.
+interface Container[T] {
+  get(c: Self, i: int): T | null
+  size(c: Self): int
+}
+type Stack = { items: Array[string] }
+func Stack.get(s: Stack, i: int): string | null { s.items.get(i) }
+func Stack.size(s: Stack): int { s.items.length() }
+type Bag = { n: int }
+func Bag.size(b: Bag): int { b.n }
+func lastOf[T](c: Container[T]): T | null { c.get(c.size() - 1) }
+let a: string | null = lastOf(Stack{ items: ["a"] })
+let s = lastOf(Stack{ items: ["a"] })
+let n: int = s              // ERR: cannot use string | null where int is expected
+let b = lastOf(Bag{ n: 1 }) // ERR: cannot use Bag where Container[T] is expected

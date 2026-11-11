@@ -809,6 +809,9 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 		if pt.Decl.Kind == types.AliasDecl {
 			return c.unify(types.Expand(pattern), actual, subst)
 		}
+		if pt.Decl.Kind == types.InterfaceDecl && c.mentionsOpen(pattern) {
+			return c.unifyInterface(pt, actual, subst)
+		}
 		return types.Equal(pattern, actual)
 	case types.Array:
 		a, ok := types.Expand(actual).(types.Array)
@@ -866,6 +869,33 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 		return c.unify(pattern, types.Expand(actual), subst)
 	}
 	return types.Assignable(actual, pattern)
+}
+
+// unifyInterface matches an interface pattern whose arguments name open type parameters against
+// a type that may satisfy it: each function of the interface, with Self as the actual type, is
+// matched against the function a call through a dot reaches, as an argument matches a parameter
+// (section 4, Inference). Container[T] against a Stack whose get returns string | null solves T
+// as string.
+func (c *Checker) unifyInterface(pt types.Named, actual types.Type, subst map[*types.ParamDecl]types.Type) bool {
+	if _, isUnion := types.Expand(actual).(types.Union); isUnion {
+		return false
+	}
+	m := types.Bindings(pt.Decl.Params, pt.Args)
+	m[pt.Decl.Self] = actual
+	trial := maps.Clone(subst)
+	for _, name := range pt.Decl.Order {
+		wt, err := types.Subst(*pt.Decl.Funcs[name], m)
+		if err != nil {
+			return false
+		}
+		want := wt.(types.Func)
+		got := c.offered(actual, name, want, types.Assignable)
+		if got == nil || !c.unify(want, *got, trial) {
+			return false
+		}
+	}
+	maps.Copy(subst, trial)
+	return true
 }
 
 // unifyParam matches a parameter of a function argument. Matching solves the type parameters it

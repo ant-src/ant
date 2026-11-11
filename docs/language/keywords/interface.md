@@ -119,7 +119,8 @@ println(longest(["ant", "wasp", [1, 2, 3, 4, 5]]))
 
 ### Generic interfaces
 
-An interface may take type parameters:
+An interface may take type parameters. A call solves them from the argument's functions: `Stack.get`
+returns `string | null`, so `lastOf` gets `T` as `string`:
 
 ```ant
 interface Container[T] {
@@ -134,8 +135,7 @@ func Stack.size(s: Stack): int { s.items.length() }
 
 func lastOf[T](c: Container[T]): T | null { c.get(c.size() - 1) }
 
-let stack: Container[string] = Stack{ items: ["a", "b", "c"] }
-println(lastOf(stack))
+println(lastOf(Stack{ items: ["a", "b", "c"] }))
 ```
 
 ```text
