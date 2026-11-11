@@ -1,0 +1,13 @@
+//! A shape whose area function is private, for interface_mismatch_reason.ant.
+
+// Round has an area.
+export interface Round {
+  area(s: Self): float64
+}
+
+// Circle is a circle.
+export type Circle = { radius: float64 }
+
+func Circle.area(c: Circle): float64 {
+  3.0 * c.radius * c.radius
+}

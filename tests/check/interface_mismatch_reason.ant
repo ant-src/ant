@@ -1,6 +1,8 @@
 // spec: 4 Interfaces
 // A type that does not satisfy an interface is reported with the first function it lacks, or
-// offers with another type.
+// offers with another type, or has as a field, or does not export.
+import "./lib/circles.ant" { Round, Circle }
+
 interface Shape {
   area(s: Self): float64
   name(s: Self): string
@@ -17,3 +19,6 @@ interface Bad {
 }
 let shapes: Array[Shape] = [Square{ side: 2.0 }] // ERR: Square has no function name of type func(Square): string
 let b: Bad = Square{ side: 1.0 }                 // ERR: Square.bad has type func(Square): int, not func(Square): string
+type Fixed = { area: func(): float64, name: func(): string }
+let f: Shape = Fixed{ area: func(): float64 { 1.0 }, name: func(): string { "f" } } // ERR: Fixed has a field area, not a function declared on it
+let r: Round = Circle{ radius: 1.0 }                                                // ERR: Circle.area is not exported, so it does not satisfy Round here

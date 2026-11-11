@@ -145,7 +145,7 @@ println(total(squares))
 import "./shapes.ant" { Shape, Circle }
 
 let s: Shape = Circle{ radius: 1.0 }
-// error: cannot use Circle where Shape is expected: Circle has no function area of type func(Circle): float64
+// error: cannot use Circle where Shape is expected: Circle.area is not exported
 ```
 
 ### Private types

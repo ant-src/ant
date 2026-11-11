@@ -479,7 +479,7 @@ interface Shape {
 type Fixed = { area: func(): float64 }
 
 let s: Shape = Fixed{ area: func(): float64 { 1.0 } }
-// error: cannot use Fixed where Shape is expected: Fixed has no function area of type func(Fixed): float64
+// error: cannot use Fixed where Shape is expected: Fixed has a field area, not a function declared on it
 ```
 
 Containers are invariant: an `Array[Square]` is not an `Array[Shape]`. Spread it into a new array to
@@ -635,7 +635,7 @@ func Square.area(s: Square): float64 { s.side * s.side }
 import "./shapes.ant" { Shape, Square }
 
 let s: Shape = Square{ side: 2.0 }
-// error: cannot use Square where Shape is expected: Square has no function area of type func(Square): float64
+// error: cannot use Square where Shape is expected: Square.area is not exported
 ```
 
 ## See also

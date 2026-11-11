@@ -428,6 +428,14 @@ func (c *Checker) unsatisfied(s types.Type, n types.Named) string {
 		names := c.typeNames(s, want)
 		switch {
 		case got == nil:
+			if _, isField := c.fieldType(types.Expand(s), name); isField {
+				return fmt.Sprintf("%s has a field %s, not a function declared on it; the interface needs func %s.%s", names[0], name, names[0], name)
+			}
+			if ns := c.namespaceOf(types.Expand(s)); ns != nil {
+				if m, ok := ns.members[name]; ok && m.kind == entFunc && c.foreignPrivate(m) {
+					return fmt.Sprintf("%s.%s is not exported, so it does not satisfy %s here", names[0], name, types.String(n))
+				}
+			}
 			return fmt.Sprintf("%s has no function %s of type %s", names[0], name, names[1])
 		case !types.Assignable(*got, want):
 			return fmt.Sprintf("%s.%s has type %s, not %s", names[0], name, c.typeNames(*got)[0], names[1])
