@@ -175,7 +175,7 @@ assert(d.year() == 2027)
 error:
 
 ```ant
-println(Time.now().month()) // error: Time.month takes Time.Dated first, so a Time.Instant does not reach it; call it as Time.month(...)
+println(Time.now().month()) // error: Time.month takes Time.Dated first, so a Time.Instant does not reach it
 ```
 
 For the current month, take the time in a zone with `Time.nowIn`:
