@@ -1,7 +1,7 @@
 // spec: 4 Generics; 6 Closures and first-class values
 // Section 4: a generic function used as a value takes its type arguments from the expected
-// function type, which must satisfy their bounds; without one, or with one that does not fix
-// every parameter, it is an error.
+// function type, which must satisfy their bounds; without one, with one that does not fix every
+// parameter, or with one whose parameters do not fit, it is an error.
 func pair[T](a: T, b: T): Array[T] { [a, b] }
 func bigger[T: Ordered](a: T, b: T): T { if a > b { a } else { b } }
 func apply(f: func(bool, bool): bool): bool { f(true, false) }
@@ -15,6 +15,7 @@ println(mapped)
 var bare = Array.length                                 // ERR: Array.length is generic; call it
 var wrong: func(int): int = Array.length                // ERR: cannot use Array.length where func(int): int is expected
 var sums: Array[int] = Array.map([[1], [2]], Array.sum) // ERR: cannot use func(Array[int]): int | null where func(Array[int]): int is expected
+var lens = ["a", "bb"].map(Array.length)                // ERR: cannot use Array.length where func(string): U is expected: it takes Array[T], not string
 var strs: func(string, string): string = bigger
 println(strs("a", "b"))
 var bools: func(bool, bool): bool = bigger      // ERR: T would be bool, which is not a member of its bound Ordered

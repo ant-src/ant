@@ -1218,7 +1218,8 @@ func bindInvalid(pattern types.Type, subst map[*types.ParamDecl]types.Type) {
 // parameter's pattern the call has solved so far: in Array.map(xs, byte) the element type fixes
 // byte's own type parameter, and the call then solves its U from byte's result. It returns nil
 // when e is not a generic function, no function type is expected, or too little is known yet,
-// and the plain path reports the problem.
+// and the plain path reports the problem; when a known parameter does not fit, it reports the
+// mismatch and returns Invalid.
 func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool, sc *scope) types.Type {
 	pat, err := types.Subst(pattern, subst)
 	if err != nil {
@@ -1261,7 +1262,10 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 			continue
 		}
 		if !c.unify(s.fn.Params[i], pf.Params[i], argSubst) {
-			return nil
+			// The expected parameter is known and does not fit: a mismatch, not a missing
+			// expected type, so say so rather than leave it to the plain path.
+			c.errorf(e.Position(), "cannot use %s where %s is expected: it takes %s, not %s", s.fullName(), types.String(pat), types.String(s.fn.Params[i]), types.String(pf.Params[i]))
+			return types.Invalid{}
 		}
 	}
 	if !types.Mentions(pf.Return, unsolved) {
