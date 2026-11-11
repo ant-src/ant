@@ -246,6 +246,15 @@ func TestZones(t *testing.T) {
 	if LocalZone().ID() != "Europe/Stockholm" {
 		t.Errorf("local from TZ: %s", LocalZone())
 	}
+	t.Setenv("TZ", ":Europe/Stockholm")
+	if LocalZone().ID() != "Europe/Stockholm" {
+		t.Errorf("local from TZ with a colon: %s", LocalZone())
+	}
+	// POSIX reads an offset in TZ west of UTC, so it is not taken as the offset zone.
+	t.Setenv("TZ", "+05:30")
+	if LocalZone().ID() == "+05:30" {
+		t.Error("an offset in TZ taken as an offset zone")
+	}
 	t.Setenv("TZ", "Nowhere/Nothing")
 	if LocalZone() == nil {
 		t.Error("no local zone")

@@ -34,6 +34,11 @@ func LoadZone(id string) (*Zone, error) {
 	if off, ok := parseOffsetZone(id); ok {
 		return FixedZone(off), nil
 	}
+	return loadNamedZone(id)
+}
+
+// loadNamedZone resolves a name of the IANA database in any letter case; an offset is an error.
+func loadNamedZone(id string) (*Zone, error) {
 	spelled, ok := zoneNames[strings.ToLower(id)]
 	if !ok {
 		return nil, fmt.Errorf("unknown time zone %q", id)
@@ -132,16 +137,18 @@ func (z *Zone) Key() string {
 func (z *Zone) String() string { return z.id }
 
 // LocalZone is the zone the host's configuration names: the TZ environment variable first,
-// the system's setting second, and when neither names a zone of the database, the fixed
-// offset the host reports at the moment of the call.
+// with a leading ':' dropped as POSIX allows, the system's setting second, and when neither
+// names a zone of the database, the fixed offset the host reports at the moment of the call.
+// Only names count: POSIX reads an offset in TZ, such as +05:30, west of UTC, the opposite
+// of an offset zone.
 func LocalZone() *Zone {
 	if tz := strings.TrimPrefix(os.Getenv("TZ"), ":"); tz != "" {
-		if z, err := LoadZone(tz); err == nil {
+		if z, err := loadNamedZone(tz); err == nil {
 			return z
 		}
 	}
 	if name := systemZoneName(); name != "" {
-		if z, err := LoadZone(name); err == nil {
+		if z, err := loadNamedZone(name); err == nil {
 			return z
 		}
 	}
