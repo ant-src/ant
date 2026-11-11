@@ -255,7 +255,7 @@ func (dt PlainDateTime) Add(dur Duration) (PlainDateTime, error) {
 // calendar.
 func (i Instant) Add(dur Duration) (Instant, error) {
 	if isDateUnit(dur.defaultLargestUnit()) && dur.Sign() != 0 {
-		return Instant{}, fmt.Errorf("an instant has no calendar; %ss cannot be added to it", dur.defaultLargestUnit())
+		return Instant{}, fmt.Errorf("an instant has no calendar, so it takes no %ss; convert it with Time.inZone first", dur.defaultLargestUnit())
 	}
 	id, err := dur.internal24()
 	if err != nil {

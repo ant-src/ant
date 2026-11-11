@@ -147,13 +147,12 @@ end.subtract(Time.until(start, end)) == start // true
 
 ## Possible issues
 
-An `Instant` has no calendar, so a day panics, and the message names adding. Use 24 hours, or
-convert to a `ZonedDateTime`:
+An `Instant` has no calendar, so a day panics. Use 24 hours, or convert to a `ZonedDateTime`:
 
 ```ant
 let start = Time.fromEpochMillis(0)
 start.subtract(Time.duration(days: 1))
-// panic: Time.subtract: an instant has no calendar; days cannot be added to it
+// panic: Time.subtract: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 start.subtract(Time.duration(hours: 24)) // 1969-12-31T00:00:00Z
 ```
 

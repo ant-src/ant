@@ -23,7 +23,8 @@ Time.compareDuration(Time.duration(years: 1), Time.duration(years: 2)) // => pan
 
 // A day added to an instant is a panic: an instant has no calendar.
 Time.add(Time.fromEpochMillis(0), Time.duration(hours: 24)) // => 1970-01-02T00:00:00Z
-Time.add(Time.fromEpochMillis(0), Time.duration(days: 1)) // => panic: Time.add: an instant has no calendar; days cannot be added to it
+Time.add(Time.fromEpochMillis(0), Time.duration(days: 1)) // => panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
+Time.subtract(Time.fromEpochMillis(0), Time.duration(days: 1)) // => panic: Time.subtract: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 
 // fromEpochMillis is a panic beyond 100 million days from the epoch.
 Time.fromEpochMillis(8640000000000000)        // => +275760-09-13T00:00:00Z
@@ -42,7 +43,8 @@ Time.epochNanos(far)                          // => panic: Time.epochNanos: the 
 // Rounding a date-time to a calendar unit is a panic, as is an increment that does not fit.
 var dt = Result.unwrap(Time.parsePlainDateTime("2021-07-01T12:34:56"))
 Time.round(dt, Time.Hour{}, 6)                // => 2021-07-01T12:00:00
-Time.round(dt, Time.Month{})                  // => panic: Time.round: months cannot be rounded to
+Time.round(dt, Time.Month{})                  // => panic: Time.round: cannot round to months; round a duration with Time.roundDuration
+Time.round(Time.plainTime(9), Time.Year{})    // => panic: Time.round: cannot round to years; round a duration with Time.roundDuration
 Time.round(dt, Time.Hour{}, 7)                // => panic: Time.round: the increment for hours must divide 24 and be smaller, not 7
 
 // roundDuration balances to largestUnit or rounds to smallestUnit, and with neither given has
@@ -90,3 +92,8 @@ Time.roundDuration(Time.duration(seconds: 9007199254740991), largestUnit: Time.N
 Time.until(Time.fromEpochMillis(0), Time.fromEpochMillis(10000000000000), largestUnit: Time.Nanosecond{}) // => panic: Time.until: a balanced field does not fit an int
 Time.negate(Time.duration(nanoseconds: Math.minInt)) // => panic: Time.negate: the negated duration has a field that does not fit an int
 Time.abs(Time.duration(nanoseconds: Math.minInt)) // => panic: Time.abs: the negated duration has a field that does not fit an int
+
+// roundDuration panics when largestUnit is smaller than smallestUnit, or increment is below 1.
+Time.roundDuration(Time.duration(minutes: 90), smallestUnit: Time.Hour{}, largestUnit: Time.Minute{}) // => panic: Time.roundDuration: the largest unit, minutes, is smaller than the smallest, hours
+Time.roundDuration(Time.duration(minutes: 37), smallestUnit: Time.Minute{}, increment: 0) // => panic: Time.roundDuration: the increment must be positive, not 0
+Time.roundDuration(Time.duration(days: 3), smallestUnit: Time.Day{}, increment: -1) // => panic: Time.roundDuration: the increment must be positive, not -1

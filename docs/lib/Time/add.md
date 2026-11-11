@@ -215,7 +215,7 @@ An `Instant` has no calendar, so a day panics. Use 24 hours, or convert to a `Zo
 
 ```ant
 let start = Time.fromEpochMillis(0)
-start.add(Time.duration(days: 1))   // panic: Time.add: an instant has no calendar; days cannot be added to it
+start.add(Time.duration(days: 1))   // panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 start.add(Time.duration(hours: 24)) // 1970-01-02T00:00:00Z
 ```
 

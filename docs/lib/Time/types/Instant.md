@@ -252,7 +252,7 @@ zone, where a day follows the clock:
 let t = Time.fromEpochMillis(0)
 t.add(Time.duration(hours: 24)) // 1970-01-02T00:00:00Z
 t.add(Time.duration(days: 1))
-// panic: Time.add: an instant has no calendar; days cannot be added to it
+// panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 t.until(t, largestUnit: Time.Day{}) // panic: Time.until: an instant has no days
 ```
 

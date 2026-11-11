@@ -183,7 +183,7 @@ use hours:
 ```ant
 let epoch = Time.fromEpochMillis(0)
 epoch.add(Time.duration(days: 1))
-// panic: Time.add: an instant has no calendar; days cannot be added to it
+// panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 epoch.add(Time.duration(hours: 24)) // 1970-01-02T00:00:00Z
 ```
 

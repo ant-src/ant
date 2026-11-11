@@ -124,7 +124,7 @@ func validateIncrement(unit Unit, inc int64) error {
 	case Millisecond, Microsecond, Nanosecond:
 		max = 1000
 	default:
-		return fmt.Errorf("%ss cannot be rounded to", unit)
+		return fmt.Errorf("cannot round to %ss; round a duration with Time.roundDuration", unit)
 	}
 	if unit == Day {
 		if inc != 1 {
