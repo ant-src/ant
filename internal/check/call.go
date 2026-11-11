@@ -308,9 +308,13 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, p := range s.tparams {
 		unsolved[p] = true
 	}
+	// misfit: the result can be no instance of the expected type, whatever the arguments solve.
+	misfit := false
 	if expected != nil && types.Mentions(s.fn.Return, unsolved) {
 		trial := map[*types.ParamDecl]types.Type{}
+		misfit = true
 		if c.unify(s.fn.Return, expectedPart(s.fn.Return, expected), trial) {
+			misfit = false
 			for p, t := range trial {
 				if !boundFits(p, t, trial, s.tparams) {
 					// An expected union such as Time.Dated is no solution for a bounded T,
@@ -434,9 +438,17 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.lambdaArg(a, lam, s.fn.Params[i], sc, subst, unsolved)
 		}
 	}
+	misfitSaid := false
 	for _, p := range s.tparams {
 		if _, done := subst[p]; !done {
-			c.errorf(x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, s.fullName())
+			if !misfit {
+				c.errorf(x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, s.fullName())
+			} else if !misfitSaid {
+				// Only the expected type could solve p, and the result does not fit it: an
+				// annotation would not help, so name the two types, once.
+				c.errorf(x.Pos, "cannot use %s where %s is expected: it returns %s", s.fullName(), types.String(expected), types.String(s.fn.Return))
+				misfitSaid = true
+			}
 			subst[p] = types.Invalid{}
 		}
 	}

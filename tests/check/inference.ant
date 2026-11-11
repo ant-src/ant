@@ -47,3 +47,23 @@ func uses(): void {
   println(k)
   println(later + earlier + selfish + count())
 }
+
+// A result that no type argument fits to the expected type names both types, since an
+// annotation would not help.
+func failing[T](message: string): Result[T, Error] {
+  Result.err(Error{ message })
+}
+
+func narrow(id: int): Result[int, Error] {
+  if id < 0 { return failing("negative id") }
+  Result.ok(id)
+}
+
+func wide(id: int): Result[int, NotFound | Error] {
+  if id < 0 { return failing("negative id") } // ERR: cannot use failing where Result[int, NotFound | Error] is expected: it returns Result[T, Error]
+  if id == 0 { return Result.err(Error{ message: "zero id" }) }
+  Result.ok(id)
+}
+
+var open = failing("x")                     // ERR: cannot infer the type parameter T of failing
+var mapped: Map[string, int] = Result.ok(1) // ERR: cannot use Result.ok where Map[string, int] is expected: it returns Result[T, E]
