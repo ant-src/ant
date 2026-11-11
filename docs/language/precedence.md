@@ -23,7 +23,8 @@ Parentheses override the table: `(a + b) * c` adds first.
 ## Details
 
 - `&&` binds tighter than `||`, so `a || b && c` is `a || (b && c)`.
-- `??` cannot mix with `&&` or `||` without parentheses. It is a compile error.
+- `??` cannot mix with `&&`, `||`, a comparison, or an equality test without parentheses. It is a
+  compile error.
 - A binary operator after a pipe stage, as in `s | String.trim() == ""`, is a compile error.
   Parenthesize the pipeline: `(s | String.trim()) == ""`.
 - `|` is left associative: `a | f() | g()` is `g(f(a))`.
@@ -359,12 +360,13 @@ let ready: bool | null = null
 
 ### `??` before a comparison
 
-`count ?? 0 > 0` is `count ?? (0 > 0)`, not a test of the count. In a condition, the checker reports
-that the operand is not a `bool`:
+`??` binds looser than a comparison, so `count ?? 0 > 0` would read as `count ?? (0 > 0)`, not a
+test of the count. Mixing `??` with a comparison or an equality test without parentheses is a
+compile error:
 
 ```ant
 let count: int | null = 4
-if count ?? 0 > 0 { println("some") } // error: cannot use int where bool is expected
+if count ?? 0 > 0 { println("some") } // error: '??' cannot mix with '>' without parentheses
 ```
 
 ```ant

@@ -216,6 +216,9 @@ func ParseExpr(src string) (e ast.Expr, err error) {
 }
 
 type parser struct {
+	// grouped is the last expression written in parentheses, which tells a comparison operand
+	// of ?? written as (a < b) from a bare one.
+	grouped  ast.Expr
 	mode     Mode
 	src      string // with every line break holding a \n (lexer.NormalizeBreaks)
 	toks     []token.Token
@@ -1611,10 +1614,12 @@ func (p *parser) pipeOperand() ast.Expr {
 	defer p.unlink(&links)
 	left := p.equality()
 	if p.at("??") {
+		p.bareComparison(left)
 		for p.at("??") {
 			p.link(&links)
 			t := p.next()
 			b := &ast.Binary{Pos: pos(t), Op: "??", X: left, Y: p.equality()}
+			p.bareComparison(b.Y)
 			b.End = p.end()
 			left = b
 		}
@@ -1636,6 +1641,29 @@ func (p *parser) pipeOperand() ast.Expr {
 		}
 	}
 	return left
+}
+
+// bareComparison fails on an operand of ?? that is a comparison or an equality test written
+// without parentheses: a ?? b > c groups as a ?? (b > c), which almost never means what it reads
+// as (section 5, Operators).
+func (p *parser) bareComparison(e ast.Expr) {
+	if e == p.grouped {
+		return
+	}
+	var op string
+	var at ast.Pos
+	switch x := e.(type) {
+	case *ast.Binary:
+		switch x.Op {
+		case "<", "<=", ">", ">=", "==", "!=":
+			op, at = x.Op, x.Pos
+		}
+	case *ast.Is:
+		op, at = "is", x.Pos
+	}
+	if op != "" {
+		p.fail(token.Pos{Line: at.Line, Col: at.Col}, "'??' cannot mix with '%s' without parentheses: write (a ?? b) %s c or a ?? (b %s c)", op, op, op)
+	}
 }
 
 func (p *parser) andTail(left ast.Expr) ast.Expr {
@@ -2073,6 +2101,7 @@ func (p *parser) primary() ast.Expr {
 			case *ast.Call:
 				x.Grouped = true
 			}
+			p.grouped = e
 			return e
 		case "...":
 			if p.mode == Spec {

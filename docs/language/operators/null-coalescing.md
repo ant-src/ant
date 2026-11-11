@@ -11,7 +11,7 @@
 - The right side may be any expression, including `return`, `break`, and `panic(...)`. After
   `let v = x ?? return ...`, `v` is not nullable.
 - `??` binds looser than arithmetic, comparison, and equality, and tighter than `|`. It cannot be
-  mixed with `&&`, `||`, or a pipe stage without parentheses.
+  mixed with `&&`, `||`, a comparison, an equality test, or a pipe stage without parentheses.
 
 ## Basic examples
 
@@ -250,14 +250,14 @@ theme.has("dark")        // true
 theme.has("sepia")       // false
 ```
 
-### Comparison binds tighter
+### Mixing with a comparison
 
-`n ?? 0 > 5` is `n ?? (0 > 5)`, an `int | bool`, not a test:
+`??` binds looser than a comparison, so `n ?? 0 > 5` would read as `n ?? (0 > 5)`. Without
+parentheses, the mix is a compile error:
 
 ```ant
 let n: int | null = 3
-let big = n ?? 0 > 5
-if big { println("big") } // error: cannot use int | bool where bool is expected
+let big = n ?? 0 > 5 // error: '??' cannot mix with '>' without parentheses
 ```
 
 Parenthesize the `??`:

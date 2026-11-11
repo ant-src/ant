@@ -1,0 +1,8 @@
+// spec: 5 Operators
+// ?? cannot mix with a comparison or an equality test without parentheses.
+let count: int | null = 4
+if count ?? 0 > 0 { println("some") }
+
+// expect
+// exit: 2
+// err: '??' cannot mix with '>' without parentheses
