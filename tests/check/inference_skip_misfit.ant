@@ -22,6 +22,6 @@ let k: int | string = first(ints)
 let e: Result[void, TransferError] = Result.err(NotFound{ id: 1 })
 
 // the arguments' solution does not fit the expected type
-let s: string = Result.unwrap(r)  // ERR: cannot use Result[int, Error] where Result[string,
-let t: string = r.unwrap()        // ERR: cannot use Result[int, Error] where Result[string,
-let u: string = first(ints)       // ERR: cannot use Array[int] where Array[string] is expected
+let s: string = Result.unwrap(r) // ERR: cannot use Result[int, Error] where Result[string,
+let t: string = r.unwrap()       // ERR: cannot use Result[int, Error] where Result[string,
+let u: string = first(ints)      // ERR: cannot use Array[int] where Array[string] is expected

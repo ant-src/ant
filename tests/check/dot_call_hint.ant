@@ -6,7 +6,7 @@ let time = Time.plainTime(hour: 9)
 let dated: Time.Dated = Time.plainDate(2026, 1, 1)
 let timed: Time.Timed = Time.plainTime(9)
 
-println(time.dayOfWeek()) // ERR: Time.dayOfWeek takes Time.Dated first, so a Time.PlainTime does not reach it$
+println(time.dayOfWeek())   // ERR: Time.dayOfWeek takes Time.Dated first, so a Time.PlainTime does not reach it$
 println(Time.now().month()) // ERR: so a Time.Instant does not reach it$
-println(dated.hour())     // ERR: Time.hour takes Time.Timed first, so a Time.Dated does not reach it; narrow it first$
-println(timed.year())     // ERR: Time.year takes Time.Dated first, so a Time.Timed does not reach it; narrow it first$
+println(dated.hour())       // ERR: Time.hour takes Time.Timed first, so a Time.Dated does not reach it; narrow it first$
+println(timed.year())       // ERR: Time.year takes Time.Dated first, so a Time.Timed does not reach it; narrow it first$
