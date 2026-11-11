@@ -1,0 +1,10 @@
+// spec: 12 Runtime panics; 11 Result, Error, Panic, and Record
+// panics: library-kind
+// Result.fail builds an Error, whose message is a string (section 8, Result).
+println(Result.fail("no such file"))
+println(Result.fail(404))
+
+// expect
+// out: Err{ error: Error{ message: "no such file" } }
+// exit: 1
+// err: Result.fail needs a string, got int

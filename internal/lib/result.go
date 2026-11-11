@@ -109,6 +109,9 @@ func resultFuncs() []*interp.Builtin {
 	return []*interp.Builtin{
 		fn("Result.ok", "value", func(g *interp.Goroutine, who string, a []value.Value) value.Value { return value.Ok(a[0]) }),
 		fn("Result.err", "error", func(g *interp.Goroutine, who string, a []value.Value) value.Value { return value.Err(a[0]) }),
+		fn("Result.fail", "message", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			return value.Err(value.ErrorValue(stringArg(g, who, a[0])))
+		}),
 		fn("Result.isOk", "r", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return result(g, who, a[0]).Tag == value.OkTag
 		}),

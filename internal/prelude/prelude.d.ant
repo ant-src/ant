@@ -1145,6 +1145,13 @@ func Result.ok[T, E](value: T): Result[T, E]
 // Result.err returns an Err carrying error; Result.err(e) is the same value as Err{ error: e }.
 func Result.err[T, E](error: E): Result[T, E]
 
+// Result.fail returns an Err carrying an Error with the message; Result.fail(m) is the same value
+// as Result.err(Error{ message: m }). Its error type is Error itself, so where a wider one is
+// expected, such as ParseError | Error, write Result.err.
+//
+//     var user = users[id] ?? return Result.fail("no such user")
+func Result.fail[T](message: string): Result[T, Error]
+
 // Result.isOk reports whether r is an Ok.
 func Result.isOk[T, E](r: Result[T, E]): bool
 

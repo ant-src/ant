@@ -1,0 +1,35 @@
+// spec: 8 Result; 4 Inference; 4 Assignability
+// Result.fail takes T from the expected type, and its error type is Error itself: a wider
+// error type is a mismatch, which Result.err, taking E from the expected type, is not.
+type NotFound = { id: int }
+
+func narrow(id: int): Result[int, Error] {
+  if id < 0 { return Result.fail("negative id") }
+  var n = Map{ 1: 10 }[id] ?? return Result.fail("no such id ${id}")
+  if n == 0 { Result.fail("zero") } else { Result.ok(n) }
+}
+
+func wide(id: int): Result[int, NotFound | Error] {
+  if id < 0 { return Result.fail("negative id") } // ERR: cannot use Result.fail where Result[int, NotFound | Error] is expected: it returns Result[T, Error]
+  if id == 0 { return Result.err(Error{ message: "zero id" }) }
+  var n = try narrow(id)
+  Result.ok(n)
+}
+
+func other(): Result[int, string] {
+  Result.fail("text") // ERR: cannot use Result.fail where Result[int, string] is expected: it returns Result[T, Error]
+}
+
+var typed: Result[void, Error] = Result.fail("typed")
+var open = Result.fail("x")                    // ERR: cannot infer the type parameter T of Result.fail
+var bad: Result[int, Error] = Result.fail(404) // ERR: cannot use int where string is expected
+var piped: Result[int, Error] = "piped" | Result.fail()
+var wrapped: Result[int, Error] = Result.wrapErr(Result.fail("inner"), "outer")
+println(typed)
+println(open)
+println(bad)
+println(piped)
+println(wrapped)
+println(narrow(1))
+println(wide(1))
+println(other())
