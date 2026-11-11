@@ -1,0 +1,9 @@
+// spec: 3; 11 Map
+// A compound assignment reads its target first, and a map read is V | null, so no compound
+// operator applies to a map element. An array element reads its element type.
+var counts = Map{ a: 1 }
+counts["a"] += 10 // ERR: += on a map element reads it first, and the read is int | null
+counts["b"] -= 1 // ERR: -= on a map element reads it first
+counts["c"] = (counts["c"] ?? 0) + 1
+var xs = [1, 2]
+xs[0] += 1

@@ -1664,10 +1664,19 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 			c.synth(x.Value, sc)
 		}
 	case *ast.Field, *ast.Index:
-		if pt := c.placeType(t.(ast.Expr), sc); pt != nil {
-			c.assignValue(x, sc, pt)
-		} else {
+		pt, isMap := c.placeType(t.(ast.Expr), sc)
+		switch {
+		case pt == nil:
 			c.synth(x.Value, sc)
+		case x.Op != "=" && isMap:
+			// A compound assignment reads its target first, and a map read is V | null
+			// (section 11, Map), which no operator takes.
+			c.synth(x.Value, sc)
+			if !types.IsInvalid(pt) {
+				c.errorf(x.Pos, "%s on a map element reads it first, and the read is %s | null; write m[k] = (m[k] ?? init) %s v", x.Op, types.String(pt), x.Op[:len(x.Op)-1])
+			}
+		default:
+			c.assignValue(x, sc, pt)
 		}
 	case *ast.AssignArray:
 		v := c.synth(x.Value, sc)
@@ -1711,29 +1720,30 @@ func (c *Checker) assignValue(x *ast.Assign, sc *scope, target types.Type) {
 
 // placeType checks the receiver and index of a field or index place and returns the type the
 // place stores, or nil after reporting why it cannot be assigned: an import or a union
-// receiver, or a receiver that cannot be indexed.
-func (c *Checker) placeType(p ast.Expr, sc *scope) types.Type {
+// receiver, or a receiver that cannot be indexed. isMap reports a map element, whose read is
+// V | null.
+func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 	switch t := p.(type) {
 	case *ast.Field:
 		if base := c.entityPath(t.X, sc); base != nil && base.kind == entModule {
 			c.errorf(t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
-			return nil
+			return nil, false
 		}
 		recv := c.synth(t.X, sc)
 		if _, isUnion := types.Expand(recv).(types.Union); isUnion {
 			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
-			return nil
+			return nil, false
 		}
-		return c.fieldOf(recv, t.Name, t.Pos)
+		return c.fieldOf(recv, t.Name, t.Pos), false
 	case *ast.Index:
 		recv := c.synth(t.X, sc)
 		switch r := types.Expand(recv).(type) {
 		case types.Array:
 			c.check(t.Index, sc, types.IntType)
-			return r.Elem
+			return r.Elem, false
 		case types.Map:
 			c.check(t.Index, sc, r.Key)
-			return r.Val
+			return r.Val, true
 		}
 		c.synth(t.Index, sc)
 		if c.isBytes(recv) {
@@ -1742,7 +1752,7 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) types.Type {
 			c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (c *Checker) assignArray(t *ast.AssignArray, v types.Type, sc *scope) {
@@ -1790,7 +1800,7 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 		}
 	case *ast.Field, *ast.Index:
 		// the rules of a plain field or index assignment: no import, no union
-		if pt := c.placeType(t, sc); pt != nil {
+		if pt, _ := c.placeType(t, sc); pt != nil {
 			c.expect(t.Position(), v, pt)
 		}
 	}

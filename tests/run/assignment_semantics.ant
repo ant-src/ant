@@ -18,7 +18,7 @@ var rest: Array[int] = []
 println("${a} ${b} ${rest} ${log}")
 var m: Map[string, int] = Map{}
 m["k"] = 1
-m["k"] += 1
+m["k"] = (m["k"] ?? 0) + 1
 m["j"] = 0
 println(m)
 var p = [0, 0]

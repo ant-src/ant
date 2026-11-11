@@ -13,7 +13,8 @@ the result.
   destructuring such as `[a, b]`. Assigning a `let` name, a parameter, or a name a `for` binds is a
   compile error.
 - The value must fit the target's declared type. `x += y` follows the rules of `x + y`: both
-  operands have one type, and integer overflow panics.
+  operands have one type, and integer overflow panics. On a map entry the read is `V | null`, so a
+  compound operator is a compile error there.
 - The target's sub-expressions, such as the index in `xs[i] = v`, evaluate before the right side. An
   array destructuring assignment then stores left to right.
 - A destructuring assignment allows only `=`. There is no record destructuring assignment, and no
@@ -84,6 +85,14 @@ let ages = Map{ "Ann": 31 }
 ages["Ann"] = 32
 ages["Bob"] = 27
 ages // Map{ "Ann": 32, "Bob": 27 }
+```
+
+A compound operator reads the entry first, and a map read is `V | null`, so `+=` on a map entry is
+a compile error. Add a default with `??`:
+
+```ant
+let ages = Map{ "Ann": 31 }
+ages["Ann"] += 1 // error: += on a map element reads it first, and the read is int | null
 ```
 
 ### Destructuring
