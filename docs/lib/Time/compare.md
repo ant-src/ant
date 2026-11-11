@@ -209,7 +209,7 @@ assert(Time.until(b, a).sign() == -Time.compare(b, a))
 let a = Time.plainDate(2026, 3, 1)
 let b = Time.plainDate(2026, 4, 1)
 println(a < b)
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate
 ```
 
 Write `Time.compare(a, b) < 0` instead.

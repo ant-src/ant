@@ -244,9 +244,9 @@ Only numbers and strings compare with `<`:
 
 ```ant
 let first = [1, 2] < [1, 3]
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Array[int]; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Array[int]
 let earlier = Time.fromEpochMillis(0) < Time.fromEpochMillis(1)
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Instant; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Instant
 ```
 
 Use `Time.compare` for time values, and `Array.sortBy` or `Array.sortWith` to order records.

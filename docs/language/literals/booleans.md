@@ -118,7 +118,7 @@ Map{ (true): "yes" } // Map{ true: "yes" }
 
 ```ant
 let first = true < false
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to bool; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to bool
 ```
 
 ### `bool` values do not mix with numbers

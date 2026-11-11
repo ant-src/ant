@@ -208,7 +208,7 @@ The comparison operators do not apply to durations:
 let a = Time.duration(hours: 1)
 let b = Time.duration(minutes: 30)
 let longer = a > b
-// error: > applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration; narrow first
+// error: > applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
 ```
 
 ## See also

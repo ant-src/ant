@@ -180,7 +180,7 @@ Time.plainTime(9).with(minute: 90) // 09:59:00
 let early = Time.plainTime(8)
 let late = Time.plainTime(9)
 println(early < late)
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainTime; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainTime
 ```
 
 ```ant

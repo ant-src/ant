@@ -180,7 +180,7 @@ assert(Bytes.concat([a, b]).toArray() == Array.concat(a.toArray(), b.toArray()))
 ```ant
 let a = "a".toBytes()
 let s = a + a
-// error: + applies to a single numeric kind, string, or a named primitive type over one, not to Bytes; narrow first
+// error: + applies to a single numeric kind, string, or a named primitive type over one, not to Bytes
 ```
 
 The parts go in one array. Bytes passed as separate arguments are a compile error:

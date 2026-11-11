@@ -222,7 +222,7 @@ let i: Time.Instant = t // error: cannot use Time.ZonedDateTime where Time.Insta
 ```ant
 let a = Time.parseZoned("2026-10-22T16:03:05+02:00[Europe/Stockholm]").unwrap()
 let earlier = a < a.withZone(Time.utc)
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.ZonedDateTime; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.ZonedDateTime
 ```
 
 A difference in days between two zones panics, since their days do not line up. Move one value into

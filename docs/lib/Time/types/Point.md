@@ -245,7 +245,7 @@ Time.until(midnight, Time.plainDateTime(day, Time.plainTime(9))) // PT9H
 ```ant
 func later[T: Time.Point](a: T, b: T): T {
   if a > b { a } else { b }
-  // error: > applies to a single numeric kind, string, or a named primitive type over one, not to T; narrow first
+  // error: > applies to a single numeric kind, string, or a named primitive type over one, not to T
 }
 ```
 

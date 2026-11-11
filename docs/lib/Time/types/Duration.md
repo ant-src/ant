@@ -207,7 +207,7 @@ Time.compareDuration(Time.duration(minutes: 90), Time.duration(hours: 1, minutes
 
 ```ant
 let short = Time.duration(minutes: 90) < Time.duration(hours: 2)
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
 ```
 
 A wait needs a fixed length, so a duration in months panics:

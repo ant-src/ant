@@ -214,7 +214,7 @@ assert(Time.compare(a, b) == 0)
 let a = Time.plainTime(9)
 let b = Time.plainTime(17)
 let early = a < b
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainTime; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainTime
 ```
 
 A time has no date, so the date fields are a compile error, and `Time.with` panics on one:

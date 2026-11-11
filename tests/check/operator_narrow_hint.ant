@@ -1,0 +1,16 @@
+// spec: 5 Operators
+// Section 5: an arithmetic or comparison operator needs a single numeric kind, string, or a
+// named primitive type over one. The error says to narrow first only for a union with a member
+// the operator takes; narrowing cannot help any other type.
+type Point = { x: int }
+
+let n: Number = 1
+let i: int | string = 1
+let p = Point{ x: 1 }
+let d = Time.duration(hours: 1)
+
+let a = n < n       // ERR: not to Number; narrow first
+let b = i < i       // ERR: not to int | string; narrow first
+let c = true < true // ERR: not to bool$
+let e = p < p       // ERR: not to Point$
+let f = d > d       // ERR: not to Time.Duration$

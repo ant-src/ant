@@ -273,7 +273,7 @@ ny.yearOfWeek() // 2026
 let a = Time.plainDate(2026, 3, 1)
 let b = Time.plainDate(2026, 4, 1)
 let early = a < b
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate
 let sorted = [b, a].sort()
 // error: T would be Time.PlainDate, which is not a member of its bound Ordered
 ```

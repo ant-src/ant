@@ -116,7 +116,7 @@ The comparison operators do not apply to time values. Use [Time.compare](compare
 ```ant
 let deadline = Time.parseInstant("2030-01-01T00:00:00Z").unwrap()
 let early = Time.now() < deadline
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Instant; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Instant
 ```
 
 An instant has no year, month or hour until it is seen in a zone, so asking for one is a compile

@@ -236,7 +236,7 @@ Zones have no order, so `<` does not apply to them:
 let a = Time.utc
 let b = Time.zone("+01:00").unwrap()
 let before = a < b
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Zone; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Zone
 ```
 
 ## See also

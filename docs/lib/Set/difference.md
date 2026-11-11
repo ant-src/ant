@@ -187,7 +187,7 @@ Set.difference(b, a) // Set.of([3])
 
 ```ant
 println(Set.of([1, 2]) - Set.of([1]))
-// error: - applies to a single numeric kind or a named primitive type over one, not to Set[int]; narrow first
+// error: - applies to a single numeric kind or a named primitive type over one, not to Set[int]
 ```
 
 Both sets need the same element type:

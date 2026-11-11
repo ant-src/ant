@@ -36,12 +36,16 @@ func TestCheckRunCorpus(t *testing.T) {
 	}
 }
 
-var errorLine = regexp.MustCompile(`^// error: (\d+): (.*)$`)
+var (
+	errorLine = regexp.MustCompile(`^// error: (\d+): (.*)$`)
+	errorCol  = regexp.MustCompile(`^@(\d+) (.*)$`)
+)
 
 // TestCheckCorpus runs the checker over check/*.ant. A line that ends in "// ERR: <text>"
 // expects an error on that line whose message contains the text; a file may also list
-// "// error: <line>: <text>" lines. A file without any must check clean. Every expected error
-// must be reported, and nothing else may be reported.
+// "// error: <line>: <text>" lines. A text that starts with "@<column> " expects the error at
+// that column too, and one that ends in "$" expects the message to end with it. A file without
+// any must check clean. Every expected error must be reported, and nothing else may be reported.
 func TestCheckCorpus(t *testing.T) {
 	paths, _ := filepath.Glob("check/*.ant")
 	if len(paths) == 0 {
@@ -55,6 +59,20 @@ func TestCheckCorpus(t *testing.T) {
 			type want struct {
 				line int
 				text string
+			}
+			matches := func(d ant.Diagnostic, w want) bool {
+				text, col := w.text, 0
+				if m := errorCol.FindStringSubmatch(text); m != nil {
+					col, _ = strconv.Atoi(m[1])
+					text = m[2]
+				}
+				if col != 0 && d.Pos.Col != col {
+					return false
+				}
+				if end, ok := strings.CutSuffix(text, "$"); ok {
+					return strings.HasSuffix(d.Message, end)
+				}
+				return strings.Contains(d.Message, text)
 			}
 			var wants []want
 			for i, line := range strings.Split(string(src), "\n") {
@@ -79,7 +97,7 @@ func TestCheckCorpus(t *testing.T) {
 			for _, w := range wants {
 				found := false
 				for i, d := range diags {
-					if !used[i] && d.Pos.Line == w.line && strings.Contains(d.Message, w.text) {
+					if !used[i] && d.Pos.Line == w.line && matches(d, w) {
 						used[i] = true
 						found = true
 						break

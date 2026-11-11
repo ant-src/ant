@@ -185,7 +185,7 @@ Dates do not order with `<`. Use [Time.compare](compare.md):
 let a = Time.plainDate(2026, 1, 1)
 let b = Time.plainDate(2025, 12, 31)
 println(a < b)
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDate
 ```
 
 ```ant

@@ -1312,7 +1312,12 @@ func (c *Checker) sameOperands(l, r types.Type, op string, strings bool, pos ast
 		if strings {
 			what = "a single numeric kind, string, or a named primitive type over one"
 		}
-		c.errorf(pos, "%s applies to %s, not to %s; narrow first", op, what, types.String(l))
+		// narrowing helps only a union with a member the operator takes
+		hint := ""
+		if ms := types.Members(l); len(ms) > 1 && slices.ContainsFunc(ms, func(m types.Type) bool { return c.operandOK(m, strings) }) {
+			hint = "; narrow first"
+		}
+		c.errorf(pos, "%s applies to %s, not to %s%s", op, what, types.String(l), hint)
 		return false
 	}
 	return true

@@ -201,7 +201,7 @@ t.toZoned(stockholm)          // 2026-03-29T03:30:00+02:00[Europe/Stockholm]
 let a = Time.plainDateTime(Time.plainDate(2026, 1, 1), Time.plainTime())
 let b = Time.plainDateTime(Time.plainDate(2026, 1, 2), Time.plainTime())
 let first = a < b
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDateTime; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.PlainDateTime
 ```
 
 ## See also

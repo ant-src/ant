@@ -116,7 +116,7 @@ The comparison operators do not apply to durations, so `d < Time.duration()` doe
 ```ant
 let d = Time.duration(hours: -1)
 let late = d < Time.duration()
-// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration; narrow first
+// error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
 ```
 
 `Time.compareDuration` against zero panics on a calendar duration without `relativeTo`, while

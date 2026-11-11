@@ -190,7 +190,7 @@ spread literal `[...xs, ...ys]`:
 
 ```ant
 println([1] + [2])
-// error: + applies to a single numeric kind, string, or a named primitive type over one, not to Array[int]; narrow first
+// error: + applies to a single numeric kind, string, or a named primitive type over one, not to Array[int]
 ```
 
 Two arrays of different element types do not join without an expected type that holds both:

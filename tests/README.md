@@ -69,8 +69,10 @@ var n: int = "x"      // ERR: string is not int
 f(1, 2)               // ERR: first text ;; second text
 ```
 
-The marker text must be contained in the message. A line `// error: <line>: <text>` at the top names
-an error on another line, for errors the checker reports on a declaration rather than a use.
+The marker text must be contained in the message. A text that starts with `@<column> `, as in
+`// ERR: @3 cannot use`, also names the column the error is reported at, and one that ends in `$`
+must end the message. A line `// error: <line>: <text>` at the top names an error on another line,
+for errors the checker reports on a declaration rather than a use.
 
 ## Where to add a test
 
