@@ -1,0 +1,16 @@
+// spec: 5 Operators
+// Every binary level groups to the left.
+println(10 - 4 - 3)
+println(100 / 10 / 5)
+println(17 % 10 % 4)
+println(2 - 3 + 4)
+println(1 == 1 == true)
+println(false == false != true)
+
+// expect
+// out: 3
+// out: 2
+// out: 3
+// out: 3
+// out: true
+// out: false

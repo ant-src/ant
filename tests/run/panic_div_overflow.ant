@@ -1,0 +1,12 @@
+// spec: 12 Runtime panics; 5 Operators
+// panics: div-zero
+// The kind's minimum divided by -1 does not fit the kind, so / panics; % gives 0, as in Go.
+var min = int8(-128)
+var neg = int8(-1)
+println(min % neg)
+println(min / neg)
+
+// expect
+// out: 0
+// exit: 1
+// err: integer overflow

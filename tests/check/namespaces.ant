@@ -16,6 +16,7 @@ var c = Array.map([1, 2], { x * 2 })                                            
 var d: Time.Instant = Time.now()                                                              // a type a prelude namespace declares
 var m: Mutex = Mutex.new()                                                                    // a type and a namespace in one name
 var t = Time                                                                                  // ERR: Time is a namespace, not a value
+let g = Geometry                                                                              // ERR: Geometry is a namespace, not a value
 var u: Time = Time.now()                                                                      // ERR: Time is a namespace, not a type
 var v = Mutex                                                                                 // ERR: Mutex is a type, not a value
 var w = Os.cwd                                                                                // a function value of a namespace

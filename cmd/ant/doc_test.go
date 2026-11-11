@@ -22,6 +22,11 @@ export func Point.norm(p: Point): float64 {
   Math.sqrt(p.x * p.x + p.y * p.y)
 }
 
+// Shape has an area.
+export interface Shape {
+  area(s: Self): float64
+}
+
 func hidden() {}
 `
 
@@ -43,12 +48,13 @@ func TestDocCommand(t *testing.T) {
 		{"namespace doc", []string{"array"}, 0, "Array\n\n    Array holds "},
 		{"unknown", []string{"Array.nope"}, 1, ""},
 		{"module", []string{mod}, 0, "    Geometry computes distances on the plane.\n\n        Point.norm(Point{ x: 3.0, y: 4.0 })   // 5.0\n\n" +
-			"type Point = { x: float64, y: float64 }\nfunc Point.norm(p: Point): float64\n"},
+			"type Point = { x: float64, y: float64 }\nfunc Point.norm(p: Point): float64\ninterface Shape\n"},
 		{"module without docs or exports", []string{empty}, 1, ""},
 		{"module name", []string{mod, "point.norm"}, 0, "func Point.norm(p: Point): float64\n\n" +
 			"    Point.norm returns the distance from p to the origin.\n\n        Point.norm(Point{ x: 3.0, y: 4.0 })   // 5.0\n"},
 		{"module type", []string{mod, "Point"}, 0, "type Point = { x: float64, y: float64 }\n\n" +
 			"    Point is a position on the plane.\n\nfunc Point.norm(p: Point): float64\n"},
+		{"module interface", []string{mod, "Shape"}, 0, "interface Shape\n\n    Shape has an area.\n\narea(s: Self): float64\n"},
 		{"private", []string{mod, "hidden"}, 1, ""},
 		{"syntax error", []string{bad}, 2, ""},
 		{"no args", nil, 2, ""},

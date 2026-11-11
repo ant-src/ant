@@ -13,6 +13,8 @@ println(-0.5)
 println(0.1 + 0.2)
 println(1.0 / 3.0)
 println(float32(0.1))
+println(float32(2.0) / float32(3.0))
+println(float64(float32(2.0) / float32(3.0)))
 println(1.0 / 0.0)
 println(-1.0 / 0.0)
 println(0.0 / 0.0)
@@ -32,6 +34,8 @@ println(2.5e-3)
 // out: 0.30000000000000004
 // out: 0.3333333333333333
 // out: 0.1
+// out: 0.6666667
+// out: 0.6666666865348816
 // out: Infinity
 // out: -Infinity
 // out: NaN
