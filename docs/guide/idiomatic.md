@@ -31,6 +31,9 @@ if name.trim().isEmpty() { return false }
 p.next()
 ```
 
+A `select` head is the exception: write it in namespace form, such as `Channel.receive(jobs)`. Only
+that form is a head.
+
 Count operations, not dots. Field access such as `config.server.name` locates a value. Name the
 value when the path becomes hard to follow.
 

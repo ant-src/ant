@@ -1,0 +1,10 @@
+// spec: 5 select
+// A head is written in namespace form; c.receive() is the same call elsewhere, but not a head.
+var c: Channel[int] = Channel.new(capacity: 1)
+select {
+  let v = c.receive() { println(v) }
+}
+
+// expect
+// exit: 2
+// err: a select clause's head must be a call of Channel.receive, Channel.send, Context.wait, WaitGroup.wait or Time.sleep
