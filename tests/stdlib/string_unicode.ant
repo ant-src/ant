@@ -144,5 +144,12 @@ String.unicodeVersion                         // => "17.0.0"
 String.from(["\u{7F}"]) == "[\"\\u{7f}\"]"    // => true
 ["a\u{A0}b", "\u{202E}evil", "\u{FEFF}", "\u{85}"]   // => ["a\u{a0}b", "\u{202e}evil", "\u{feff}", "\u{85}"]
 ["e\u{301}", "tab\there", "\u{378}"]          // => ["é", "tab\there", "\u{378}"]
+// A combining mark right after the opening quote is escaped; after a base it is itself.
+["\u{301}", "\u{301}e"]                      // => ["\u{301}", "\u{301}e"]
+String.from(["\u{301}"]) == "[\"\\u{301}\"]"  // => true
+String.from(["e\u{301}"]) == "[\"e\u{301}\"]" // => true
 String.from("a\u{A0}b") == "a\u{A0}b"         // => true
 Map{ "\u{200B}": 1 }                          // => Map{ "\u{200b}": 1 }
+
+// UTF-8 decoding keeps a leading byte order mark as U+FEFF.
+String.toCodePoints(String.fromBytesLossy(Bytes.fromArray([0xEF, 0xBB, 0xBF, 0x61])))   // => [65279, 97]

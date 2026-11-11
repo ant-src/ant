@@ -193,8 +193,9 @@ func FormatFloat(f float64, bits int) string {
 }
 
 // quote writes s as a string literal: every code point that String.isPrint rejects, such as a
-// control character, a non-breaking space, or a zero-width joiner, as an escape, and a $ before
-// { as \$, so the rendering shows every code point there is and reads back (section 11, String).
+// control character, a non-breaking space, or a zero-width joiner, as an escape, as well as a
+// combining mark right after the opening quote, which would combine with the quote, and a $ before
+// { as \$, so the rendering reads back (section 11, String).
 func quote(sb *strings.Builder, s string) {
 	sb.WriteByte('"')
 	for i, r := range s {
@@ -215,7 +216,7 @@ func quote(sb *strings.Builder, s string) {
 		case '\r':
 			sb.WriteString(`\r`)
 		default:
-			if !unicode.IsPrint(r) {
+			if !unicode.IsPrint(r) || i == 0 && unicode.IsMark(r) {
 				sb.WriteString(`\u{`)
 				sb.WriteString(strconv.FormatInt(int64(r), 16))
 				sb.WriteByte('}')
