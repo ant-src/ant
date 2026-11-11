@@ -94,7 +94,6 @@ type binding struct {
 	pos            ast.Pos
 	scope          *scope
 	captured       bool
-	reassigned     bool
 	assignedNested bool
 	discard        bool // _, which binds nothing
 	fixed          ast.Fixed
@@ -929,7 +928,6 @@ func (r *resolver) markAssigned(id *ast.Ident, s *scope) {
 			if b.imp >= 0 || b.fixed != ast.Assignable || b.module && !r.script {
 				return // an import or a fixed binding: the checker reports the assignment
 			}
-			b.reassigned = true
 			if crossed {
 				b.assignedNested = true
 			}
@@ -1009,9 +1007,9 @@ func slotOf(b *binding) ast.Slot {
 	case b.discard:
 		return ast.Slot{Discard: true}
 	case b.module:
-		return ast.Slot{Index: b.index, Module: true, Reassigned: b.reassigned, AssignedNested: b.assignedNested, Fixed: b.fixed}
+		return ast.Slot{Index: b.index, Module: true, AssignedNested: b.assignedNested, Fixed: b.fixed}
 	}
-	return ast.Slot{Index: b.index, Shared: b.shared, Reassigned: b.reassigned, AssignedNested: b.assignedNested, Fixed: b.fixed}
+	return ast.Slot{Index: b.index, Shared: b.shared, AssignedNested: b.assignedNested, Fixed: b.fixed}
 }
 
 func (r *resolver) finalize() {

@@ -706,9 +706,7 @@ type Slot struct {
 	Index  int
 	Shared bool
 	Module bool // a module field rather than a local slot
-	// Reassigned is set when the binding is assigned after its declaration anywhere;
-	// AssignedNested when it is assigned inside a nested body (section 7).
-	Reassigned     bool
+	// AssignedNested is set when the binding is assigned inside a nested body (section 7).
 	AssignedNested bool
 	// Discard is set for _, which binds nothing: a value stored there is dropped.
 	Discard bool
