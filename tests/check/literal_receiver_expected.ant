@@ -1,0 +1,7 @@
+// spec: 5 Calls through .
+// A literal receiver is checked as the first argument of the direct call, so the expected type
+// of the call reaches it: [[1], ["x"]].flatten() checks as Array.flatten([[1], ["x"]]) does.
+let direct: Array[int | string] = Array.flatten([[1], ["x"]])
+let dotted: Array[int | string] = [[1], ["x"]].flatten()
+let merged: Map[string, int | string] = Map{ a: 1 }.merge(Map{ b: "x" })
+let alone = [[1], ["x"]].flatten() // ERR: the elements do not form a valid type

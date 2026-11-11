@@ -280,18 +280,19 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object, recv *receiver) types.Type {
 	slots, ok := c.argSlots(s, x, recv)
 	c.recordSlots(s, x, slots, ok, callee, recv != nil)
+	if ok && recv.untyped() {
+		// checked as the first argument of the direct call
+		slots[0] = &ast.Arg{Pos: recv.pos, Value: recv.expr}
+	}
 	if !ok {
-		if recv.waits() {
+		if recv.untyped() {
 			c.synth(recv.expr, sc)
 		}
 		c.synthArgs(x.Args, sc)
 		return c.resultOf(s, nil, x.Pos)
 	}
 	if len(s.tparams) == 0 {
-		switch {
-		case recv.waits():
-			c.check(recv.expr, sc, s.fn.Params[0])
-		case recv != nil:
+		if recv != nil && !recv.untyped() {
 			c.expect(recv.pos, recv.typ, s.fn.Params[0])
 		}
 		for i, a := range slots {
@@ -335,9 +336,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		e ast.Expr
 	}
 	var empties []waiting
-	if recv.waits() {
-		empties = append(empties, waiting{0, recv.expr})
-	} else if recv != nil {
+	if recv != nil && !recv.untyped() {
 		// the receiver, typed already, solves what it mentions first
 		pt := s.fn.Params[0]
 		if types.Mentions(pt, unsolved) {

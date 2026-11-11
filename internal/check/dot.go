@@ -13,9 +13,10 @@ import (
 
 // receiver is the value a call through a dot passes first (section 5, Calls through .): its
 // type, where it is written, and whether the call is positional, as it is through an
-// interface, a type parameter, or a union of several namespaces. A receiver that fixes nothing,
-// such as Set.of([]), is not typed yet: typ is nil, and expr waits for the other arguments as
-// the first argument of the direct call does.
+// interface, a type parameter, or a union of several namespaces. A receiver whose namespace is
+// known without its type, such as [[1], ["x"]] or Set.of([]), is not typed yet: typ is nil, and
+// expr is checked as the first argument of the direct call, which waits for the other arguments
+// when it fixes nothing.
 type receiver struct {
 	typ        types.Type
 	expr       ast.Expr
@@ -23,8 +24,8 @@ type receiver struct {
 	positional bool
 }
 
-// waits reports a receiver that fixes nothing and so is checked as a waiting argument.
-func (r *receiver) waits() bool {
+// untyped reports a receiver checked as the direct call's first argument.
+func (r *receiver) untyped() bool {
 	return r != nil && r.expr != nil
 }
 
@@ -42,7 +43,7 @@ func (c *Checker) dotCall(x *ast.Call, f *ast.Field, sc *scope, expected types.T
 			return nil, false
 		}
 	}
-	if !f.Optional && onlyEmpty(f.X) {
+	if !f.Optional && (onlyEmpty(f.X) || isCollectionLit(f.X)) {
 		if t, ok := c.waitingCall(x, f, sc, expected); ok {
 			return c.endLink(x, x.Grouped, t, false), true
 		}
@@ -274,9 +275,10 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{typ: recv, pos: f.X.Position(), positional: positional})
 }
 
-// waitingCall checks x.f(…) whose receiver fixes nothing, as Set.of([]).isSubset(s) or
-// [].concat([1]). The namespace comes from the receiver's kind alone, and the call is checked as
-// the direct call Set.isSubset(Set.of([]), s), where the receiver waits for the other arguments.
+// waitingCall checks x.f(…) whose receiver is typed by the call, as Set.of([]).isSubset(s),
+// [].concat([1]) or [[1], ["x"]].flatten(). The namespace comes from the receiver's kind alone,
+// and the call is checked as the direct call Set.isSubset(Set.of([]), s): the receiver is its
+// first argument, with the expected type of the call and the other arguments to go by.
 // It reports false when the namespace has no such function, so that the usual path reports it.
 func (c *Checker) waitingCall(x *ast.Call, f *ast.Field, sc *scope, expected types.Type) (types.Type, bool) {
 	ns := c.kindNamespace(f.X, sc)
@@ -293,6 +295,16 @@ func (c *Checker) waitingCall(x *ast.Call, f *ast.Field, sc *scope, expected typ
 	}
 	c.info.recordMember(f, c.info.object(m))
 	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{expr: f.X, pos: f.X.Position()}), true
+}
+
+// isCollectionLit reports an array or map literal, whose element types an expected type can
+// decide.
+func isCollectionLit(e ast.Expr) bool {
+	switch e.(type) {
+	case *ast.ArrayLit, *ast.MapLit:
+		return true
+	}
+	return false
 }
 
 // kindNamespace is the namespace of a value that fixes nothing, known without typing it: Array
