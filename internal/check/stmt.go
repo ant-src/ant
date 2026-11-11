@@ -47,8 +47,18 @@ func joinFlows(a, b flow) flow {
 
 // narrowLocal sets a local's current type after a test or an assignment. A local assigned
 // inside a nested body never narrows.
+// outerVar reports a var of an enclosing body read inside a nested one, which never narrows
+// there: a call or another goroutine may reassign it between a test and a use, so only an outer
+// let narrows (section 7).
+func (c *Checker) outerVar(l *local) bool {
+	return l.ctx != c.fn && l.slot.Fixed == ast.Assignable
+}
+
 func (c *Checker) narrowLocal(l *local, t types.Type) {
 	if l.slot.AssignedNested {
+		return
+	}
+	if c.outerVar(l) {
 		return
 	}
 	if types.IsInvalid(t) || types.Equal(t, l.typ) {
@@ -170,6 +180,9 @@ func (c *Checker) narrowable(sc *scope, id *ast.Ident) *local {
 		if l.hidden {
 			return nil // the x of a lambda of arity zero, reported where it is read
 		}
+		if c.outerVar(l) {
+			return nil
+		}
 		return l
 	}
 	if ent == nil || ent.kind != entVar || !ent.v.decl.Let {
@@ -180,7 +193,7 @@ func (c *Checker) narrowable(sc *scope, id *ast.Ident) *local {
 		if types.IsInvalid(t) {
 			return nil
 		}
-		ent.v.local = &local{name: ent.v.name, typ: t, pos: id.Pos, node: id}
+		ent.v.local = &local{name: ent.v.name, typ: t, pos: id.Pos, node: id, slot: ast.Slot{Fixed: ast.FixedLet}}
 	}
 	return ent.v.local
 }

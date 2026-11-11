@@ -1,8 +1,8 @@
 // spec: 10 Scripts; 7 Narrowing
 // A script's top-level code is a function body: its vars narrow like locals, unless one of its
-// functions assigns them; a func sees them at their declared types, while a lambda written in
-// the body keeps the narrowing of a var never assigned again; the body returns void or an Err;
-// and a statement may refer only to the vars above it.
+// functions assigns them; a func or a lambda sees a var at its declared type, while a lambda
+// keeps the narrowing of a let; the body returns void or an Err; and a statement may refer only
+// to the vars above it.
 func reset(): void { assigned = null }
 func peek(): int { fixed + 1 } // ERR: + needs both operands of one type
 
@@ -12,7 +12,7 @@ var later2 = early2 // ERR: early2 is declared later in the module
 var early2 = 1
 if fixed != null {
   println(fixed + 1)
-  println(Array.map([1], { fixed + x }))
+  println(Array.map([1], { fixed + x })) // ERR: + needs both operands of one type
 }
 if assigned != null {
   println(assigned + 1) // ERR: + needs both operands of one type

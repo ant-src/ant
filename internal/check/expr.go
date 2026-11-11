@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/types"
@@ -565,7 +566,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 		return c.endLink(x, x.Grouped, inner, true)
 	}
 	c.info.recordMember(x, c.info.fieldOf(recv, x.Name))
-	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos), short)
+	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos, c.outerVarHint(x.X, sc)), short)
 }
 
 // chainRecv synthesizes the left side of a postfix link. When that side is a link a ?. earlier
@@ -592,9 +593,24 @@ func (c *Checker) endLink(x ast.Expr, grouped bool, inner types.Type, short bool
 	return types.Nullable(inner)
 }
 
+// outerVarHint explains why x did not narrow when it names a var of an enclosing body read in a
+// nested one (section 7), for an error that asks to narrow; it is "" otherwise.
+func (c *Checker) outerVarHint(x ast.Expr, sc *scope) string {
+	id, ok := x.(*ast.Ident)
+	if !ok {
+		return ""
+	}
+	l, _ := c.lookup(sc, id.Name)
+	if l == nil || !c.outerVar(l) {
+		return ""
+	}
+	return fmt.Sprintf("; %s is a var of an enclosing body, which does not narrow here, so bind it to a let first", id.Name)
+}
+
 // fieldOf is the type of a field read through a type: a record, named or anonymous, or a
 // union of records that all declare it.
-func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos) types.Type {
+func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint ...string) types.Type {
+	note := strings.Join(hint, "")
 	if types.IsInvalid(recv) {
 		return types.Invalid{}
 	}
@@ -604,7 +620,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos) types.Type 
 		for _, m := range r.Members {
 			fields := types.FieldsOf(m)
 			if fields == nil {
-				c.errorf(pos, "%s has no field %s: narrow the value first", types.String(recv), name)
+				c.errorf(pos, "%s has no field %s: narrow the value first%s", types.String(recv), name, note)
 				return types.Invalid{}
 			}
 			found := false
@@ -615,7 +631,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos) types.Type 
 				}
 			}
 			if !found {
-				c.errorf(pos, "%s has no field %s on every member: narrow the value first", types.String(recv), name)
+				c.errorf(pos, "%s has no field %s on every member: narrow the value first%s", types.String(recv), name, note)
 				return types.Invalid{}
 			}
 		}
@@ -1099,14 +1115,15 @@ func (c *Checker) funcLit(x *ast.FuncLit, sc *scope) types.Type {
 	return types.Func{Params: s.fn.Params, Return: ret, Required: s.fn.Required}
 }
 
-// withNested runs f as a nested body: a new context whose flow drops the narrowing of every
-// outer local that is ever reassigned (section 7).
+// withNested runs f as a nested body: a new context whose flow keeps the narrowing of the outer
+// locals that cannot be reassigned, a let, a parameter, or a for variable, and drops that of
+// every var (section 7).
 func (c *Checker) withNested(ctx *fnCtx, f func() types.Type) types.Type {
 	savedFn, savedFlow := c.fn, c.flow
 	c.fn = ctx
 	nf := flow{}
 	for l, t := range savedFlow {
-		if !l.slot.Reassigned {
+		if l.slot.Fixed != ast.Assignable {
 			nf[l] = t
 		}
 	}

@@ -78,7 +78,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		}
 		for _, m := range r.Members {
 			if !c.offers(m, f.Name) {
-				c.errorf(f.Pos, "%s has no field or function %s on every member: narrow the value first", types.String(recv), f.Name)
+				c.errorf(f.Pos, "%s has no field or function %s on every member: narrow the value first%s", types.String(recv), f.Name, c.outerVarHint(f.X, sc))
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
 			}

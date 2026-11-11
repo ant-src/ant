@@ -312,20 +312,18 @@ DRAFT
 
 ### A narrowed `var` inside a lambda
 
-Inside a lambda, a `go` block, or a `defer` block, an outer `var` that is assigned again later
-starts at its declared type, since the body may run after that assignment. A narrowing outside the
-lambda does not reach into it:
+Inside a lambda, a `func`, a `go` block, or a `defer` block, an outer `var` never narrows: a call or
+another goroutine may assign it between a test and a use. A narrowing outside the lambda does not
+reach into it, and a test inside does not narrow it either:
 
 ```ant
 var user: string | null = "ant"
 if user != null {
-  println([1].map({ user.length() })) // error: string | null has no field or function length on every member: narrow the value first
+  println([1].map({ user.length() })) // error: user is a var of an enclosing body, which does not narrow here
 }
-user = null
 ```
 
-Bind the narrowed value to a `let` inside the `if` and use that in the lambda. A `var` never
-assigned after its declaration keeps its narrowing inside the lambda.
+Bind the narrowed value to a `let` inside the `if` and use that in the lambda:
 
 ```ant
 var user: string | null = "ant"

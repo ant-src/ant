@@ -23,9 +23,13 @@ var hit: User | null = null
 go { hit = find(1) }
 if hit != null { println(hit.name) } // ERR: narrow the value first
 var lock = Mutex.new()
-var u = find(2)
+let u = find(2)
 if u != null {
   Mutex.withLock(lock, { println(u.name) })
+}
+var loose = find(2)
+if loose != null {
+  Mutex.withLock(lock, { println(loose.name) }) // ERR: loose is a var of an enclosing body, which does not narrow here
 }
 var reassigned = find(1)
 if reassigned != null {

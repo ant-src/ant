@@ -39,7 +39,7 @@ if !(x is int) { println(String.length(x)) }
 var d: Config | null = null
 while d == null { d = load() }
 println(d.name)
-var u: int | null = 1
+let u: int | null = 1
 var keep = func(): int { u ?? 0 }
 if u != null {
   var inner = func(): int { u + 1 }
