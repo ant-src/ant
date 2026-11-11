@@ -186,9 +186,13 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 }
 
 // incompleteLex reports whether a lexer error means the source ended too early: an open string,
-// raw string, or block comment, which may span lines, or a regular expression open on the last
-// line. A regular expression stays on one line, so a line break ends it in an error instead.
+// raw string, block comment, or HTML element, which may span lines, or a regular expression open
+// on the last line. A regular expression stays on one line, so a line break ends it in an error
+// instead.
 func incompleteLex(src string, le *lexer.Error) bool {
+	if strings.HasSuffix(le.Msg, "is never closed") || strings.HasPrefix(le.Msg, "the fragment is never closed") {
+		return true // the lexer reports these only at the end of the source
+	}
 	if !strings.HasPrefix(le.Msg, "unterminated") {
 		return false
 	}

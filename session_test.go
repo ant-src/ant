@@ -104,13 +104,13 @@ func TestSession(t *testing.T) {
 	}
 	// incomplete inputs
 	for _, src := range []string{"func f() {", "var s = \"open", "[1,", "\"${",
-		"f(1,\n", "/* open\n", "`a\n", "var s = \"open\n"} {
+		"f(1,\n", "/* open\n", "`a\n", "var s = \"open\n", "<ul>\n  <li>a</li>", "<>\n  <p>a</p>"} {
 		if !ant.Incomplete(src) {
 			t.Errorf("%q should be incomplete", src)
 		}
 	}
 	for _, src := range []string{"1 + 2", "func f() {}", "var x = = 1",
-		"var r = /ab\n", "if true\n", "var x = = 1\n"} {
+		"var r = /ab\n", "if true\n", "var x = = 1\n", "<ul>\n  <li>a</li>\n</ul>"} {
 		if ant.Incomplete(src) {
 			t.Errorf("%q should not be incomplete", src)
 		}
