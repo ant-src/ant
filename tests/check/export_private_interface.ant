@@ -11,9 +11,9 @@ export interface Named {
 
 type Token = { value: string }
 
-export func one(s: Shape): float64 { s.area() } // ERR: one is exported but its signature names the interface Shape, which is not
+export func one(s: Shape): float64 { s.area() }                                            // ERR: one is exported but its signature names the interface Shape, which is not
 export func total(shapes: Array[Shape]): float64 { shapes.map({ x.area() }).sum() ?? 0.0 } // ERR: total is exported but its signature names the interface Shape
-export func biggest[T: Shape](xs: Array[T]): T | null { xs.first() } // ERR: biggest is exported but its signature names the interface Shape
+export func biggest[T: Shape](xs: Array[T]): T | null { xs.first() }                       // ERR: biggest is exported but its signature names the interface Shape
 export func label(n: Named): string { n.name() }
 export func issue(): Token { Token{ value: "abc" } }
 func inner(s: Shape): float64 { s.area() }

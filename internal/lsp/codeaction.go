@@ -14,7 +14,7 @@ import (
 var (
 	missingField   = regexp.MustCompile(`^(\S+) literal is missing the field (\S+)$`)
 	stateReturn    = regexp.MustCompile(`^the exported function (\S+) must state its return type$`)
-	stateVarType   = regexp.MustCompile(`^(\S+) is used by a function in its own initializer; state its type on the var$`)
+	stateVarType   = regexp.MustCompile(`^(\S+) is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func$`)
 	annotateResult = regexp.MustCompile(`annotate the result$`)
 )
 

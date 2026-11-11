@@ -1100,7 +1100,7 @@ func counter(): int {
 	var diags []Diagnostic
 	all := c.diagnostics(uri)
 	for _, dg := range all {
-		if strings.Contains(dg.Message, "state its type on the var") {
+		if strings.Contains(dg.Message, "own initializer; state its type") {
 			diags = append(diags, dg)
 		}
 	}
