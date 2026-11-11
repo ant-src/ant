@@ -41,3 +41,8 @@ var mapped: Result[int, ParseError | Error] = Result.mapErr(parse("1"), { x })
 println(mapped)
 println(Result.unwrap(parse("1")))
 println(both("x"))
+func one(): Result[int, Error] { Result.ok(1) }
+func inferredOk(s: string) {
+  let n = try one()
+  Result.ok(n * 2) // ERR: cannot infer the type parameter E of Result.ok
+}

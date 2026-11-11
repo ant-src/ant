@@ -454,7 +454,6 @@ func parseNumber(text: string): Result[int, Error] {
 
 func double(text: string) {
   let n = try parseNumber(text)
-  // error: try needs an enclosing function that returns a Result, but double returns ? | Err[Error]
   Result.ok(n * 2) // error: cannot infer the type parameter E of Result.ok; annotate the result
 }
 ```

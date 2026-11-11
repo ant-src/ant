@@ -2047,12 +2047,24 @@ func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}
 	}
-	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !types.IsInvalid(u) {
+	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !hasInvalid(u) {
+		// A part that failed, such as Result.ok with E unsolved, was reported where it failed.
 		for _, x := range ctx.tries {
 			c.errorf(x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
 		}
 	}
 	return u
+}
+
+// hasInvalid reports whether t or a type written inside it is invalid.
+func hasInvalid(t types.Type) bool {
+	found := false
+	types.Walk(t, func(t types.Type) {
+		if types.IsInvalid(t) {
+			found = true
+		}
+	})
+	return found
 }
 
 // returnTypeOf returns a function's return type, inferring it on demand; a function whose
