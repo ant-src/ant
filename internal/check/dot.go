@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -278,8 +279,14 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 		if len(s.fn.Params) == 0 {
 			c.errorf(f.Pos, "%s does not take a %s first, so a value does not reach it; call it as %s()", s.fullName(), types.String(recv), s.fullName())
 		} else {
+			// The direct call would fail the same way, so the hint is to narrow, and only a
+			// union with a member the function takes can.
+			hint := ""
+			if ms := types.Members(recv); len(ms) > 1 && slices.ContainsFunc(ms, func(m types.Type) bool { return c.accepts(s, m) }) {
+				hint = "; narrow it first"
+			}
 			n := c.typeNames(recv, s.fn.Params[0])
-			c.errorf(f.Pos, "%s takes %s first, so a %s does not reach it; call it as %s(...)", s.fullName(), n[1], n[0], s.fullName())
+			c.errorf(f.Pos, "%s takes %s first, so a %s does not reach it%s", s.fullName(), n[1], n[0], hint)
 		}
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}

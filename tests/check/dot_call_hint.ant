@@ -1,0 +1,12 @@
+// spec: 5 Calls through .
+// Section 5: the first-parameter condition decides whether f is offered on x at all; when the
+// first parameter does not accept x, the direct call fails the same way, so the error offers it
+// no more. It says to narrow only a union with a member the parameter takes.
+let time = Time.plainTime(hour: 9)
+let dated: Time.Dated = Time.plainDate(2026, 1, 1)
+let timed: Time.Timed = Time.plainTime(9)
+
+println(time.dayOfWeek()) // ERR: Time.dayOfWeek takes Time.Dated first, so a Time.PlainTime does not reach it$
+println(Time.now().month()) // ERR: so a Time.Instant does not reach it$
+println(dated.hour())     // ERR: Time.hour takes Time.Timed first, so a Time.Dated does not reach it; narrow it first$
+println(timed.year())     // ERR: Time.year takes Time.Dated first, so a Time.Timed does not reach it; narrow it first$
