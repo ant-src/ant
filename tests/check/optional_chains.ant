@@ -16,4 +16,4 @@ var v = a?.b.c
 var w: int = v    // ERR: cannot use int | null where int is expected
 println(a?.n.c)   // ERR: In | null has no field c: narrow the value first
 println((a?.b).c) // ERR: In | null has no field c: narrow the value first
-println(a?.b?.c)  // ERR: ?. needs a nullable left side, got In
+println(a?.b?.c)  // ERR: ?. needs a nullable left side, got In: an earlier ?. in the chain already skips the rest of it on null, so write . here

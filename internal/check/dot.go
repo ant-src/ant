@@ -51,7 +51,7 @@ func (c *Checker) dotCall(x *ast.Call, f *ast.Field, sc *scope, expected types.T
 	recv, short := c.chainRecv(f.X, sc)
 	if f.Optional {
 		if !types.Includes(recv, types.Null{}) {
-			c.errorf(f.Pos, "?. needs a nullable left side, got %s", types.String(recv))
+			c.errorf(f.Pos, "?. needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "."))
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}, true
 		}

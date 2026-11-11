@@ -558,7 +558,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 	recv, short := c.chainRecv(x.X, sc)
 	if x.Optional {
 		if !types.Includes(recv, types.Null{}) {
-			c.errorf(x.Pos, "?. needs a nullable left side, got %s", types.String(recv))
+			c.errorf(x.Pos, "?. needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "."))
 			return types.Invalid{}
 		}
 		c.info.recordMember(x, c.info.fieldOf(types.Without(recv, types.Null{}), x.Name))
@@ -567,6 +567,16 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 	}
 	c.info.recordMember(x, c.info.fieldOf(recv, x.Name))
 	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos, c.outerVarHint(x.X, sc)), short)
+}
+
+// chainNote explains a ?. on a left side that is not nullable when a ?. earlier in the chain
+// already skips the rest of it on null (section 7), so that the plain link, written as next, is
+// what is meant.
+func chainNote(short bool, next string) string {
+	if !short {
+		return ""
+	}
+	return fmt.Sprintf(": an earlier ?. in the chain already skips the rest of it on null, so write %s here", next)
 }
 
 // chainRecv synthesizes the left side of a postfix link. When that side is a link a ?. earlier
@@ -660,7 +670,7 @@ func (c *Checker) index(x *ast.Index, sc *scope) types.Type {
 	recv, short := c.chainRecv(x.X, sc)
 	if x.Optional {
 		if !types.Includes(recv, types.Null{}) {
-			c.errorf(x.Pos, "?.[ needs a nullable left side, got %s", types.String(recv))
+			c.errorf(x.Pos, "?.[ needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "["))
 			return types.Invalid{}
 		}
 		inner := c.indexOf(types.Without(recv, types.Null{}), x, sc)

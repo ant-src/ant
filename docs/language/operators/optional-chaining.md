@@ -232,7 +232,7 @@ the next link sees a `string`:
 ```ant
 type User = { name: string }
 let user: User | null = null
-let size = user?.name?.length() // error: ?. needs a nullable left side, got string
+let size = user?.name?.length() // error: ?. needs a nullable left side, got string: an earlier ?. in the chain already skips the rest of it on null
 ```
 
 ```ant

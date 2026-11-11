@@ -15,9 +15,9 @@ import (
 // named arguments; a constructor call; or a call through a function value.
 func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 	if x.Optional {
-		fn, _ := c.chainRecv(x.Fn, sc)
+		fn, short := c.chainRecv(x.Fn, sc)
 		if !types.Includes(fn, types.Null{}) {
-			c.errorf(x.Pos, "?.( needs a nullable left side, got %s", types.String(fn))
+			c.errorf(x.Pos, "?.( needs a nullable left side, got %s%s", types.String(fn), chainNote(short, "("))
 		}
 		inner := c.callValue(types.Without(fn, types.Null{}), x, sc)
 		return c.endLink(x, x.Grouped, inner, true)
