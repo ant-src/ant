@@ -53,7 +53,7 @@ let orders = [
 -->
 
 ```ant
-let summaries = orders
+orders
   | Array.filter({ x.paid })
   | Array.groupBy({ x.customer })
   | Map.entries()
@@ -118,19 +118,21 @@ leave early and the final expression for the ordinary result.
 <!-- test: before
 type Row = { id: string, quantity: string }
 type Order = { id: string, quantity: int }
+func parseOrder(row: Row): Result[Order, Error] {
+-->
+<!-- test: after
+}
 -->
 
 ```ant
-func parseOrder(row: Row): Result[Order, Error] {
-  let quantity = row.quantity.toInt()
-  if quantity == null {
-    return Result.err(Error{ message: "order ${row.id}: quantity must be an integer" })
-  }
-  if quantity <= 0 {
-    return Result.err(Error{ message: "order ${row.id}: quantity must be positive" })
-  }
-  Result.ok(Order{ id: row.id, quantity })
+let quantity = row.quantity.toInt()
+if quantity == null {
+  return Result.err(Error{ message: "order ${row.id}: quantity must be an integer" })
 }
+if quantity <= 0 {
+  return Result.err(Error{ message: "order ${row.id}: quantity must be positive" })
+}
+Result.ok(Order{ id: row.id, quantity })
 ```
 
 ### Choose values with expressions
@@ -165,9 +167,6 @@ func boundedInt(text: string, low: int, high: int): Result[int, Error] {
   }
   Result.ok(n)
 }
--->
-
-```ant
 func intSetting(
   settings: Map[string, Setting],
   key: string,
@@ -175,11 +174,16 @@ func intSetting(
   low: int,
   high: int,
 ): Result[int, Error] {
-  let setting = settings[key]
-  if setting == null { return Result.ok(fallback) }
-  boundedInt(setting.value, low, high)
-    | Result.wrapErr("line ${setting.line}, ${key}")
+-->
+<!-- test: after
 }
+-->
+
+```ant
+let setting = settings[key]
+if setting == null { return Result.ok(fallback) }
+boundedInt(setting.value, low, high)
+  | Result.wrapErr("line ${setting.line}, ${key}")
 ```
 
 Here, a missing port may use `8080`; a supplied `port=oops` must report an error. A fallback after
@@ -193,13 +197,15 @@ does not. Avoid repeating information already in the error.
 <!-- test: before
 type Config = { name: string }
 func parseConfig(text: string): Result[Config, Error] { Result.ok(Config{ name: text }) }
+func loadConfig(path: string): Result[Config, Error] {
+-->
+<!-- test: after
+}
 -->
 
 ```ant
-func loadConfig(path: string): Result[Config, Error] {
-  let text = try File.read(path)
-  parseConfig(text) | Result.wrapErr("parse ${path}")
-}
+let text = try File.read(path)
+parseConfig(text) | Result.wrapErr("parse ${path}")
 ```
 
 Use `panic` and `assert` for broken program assumptions. Make the scope of `try` clear when
@@ -219,7 +225,7 @@ let orders = [Order{ customer: "Ann", paid: true, items: [Item{ product: "tea" }
 -->
 
 ```ant
-let lines = orders
+orders
   | Array.filter({ x.paid })
   | Array.flatMap(func(order: Order): Array[string] {
     order.items.map({ "${order.customer}: ${x.product}" })
@@ -256,16 +262,18 @@ Keep per-item validation, related updates, and early exits together.
 type Row = { id: string }
 type Order = { id: string }
 func parseOrder(row: Row): Result[Order, Error] { Result.ok(Order{ id: row.id }) }
+func parseOrders(rows: Array[Row]): Result[Array[Order], Error] {
+-->
+<!-- test: after
+}
 -->
 
 ```ant
-func parseOrders(rows: Array[Row]): Result[Array[Order], Error] {
-  let orders: Array[Order] = []
-  for row in rows {
-    orders.push(try parseOrder(row))
-  }
-  Result.ok(orders)
+let orders: Array[Order] = []
+for row in rows {
+  orders.push(try parseOrder(row))
 }
+Result.ok(orders)
 ```
 
 This stops at the first error. An eager `Array.map` followed by `Result.all` evaluates every item
@@ -290,12 +298,17 @@ onward.
 
 Put `defer` immediately after acquiring a resource. Choose the block that should own its lifetime.
 
-```ant
+<!-- test: before
 func firstLine(path: string): Result[string | null, Error] {
-  let file = try File.open(path)
-  defer { file.close() }
+-->
+<!-- test: after
   file.readLine()
 }
+-->
+
+```ant
+let file = try File.open(path)
+defer { file.close() }
 ```
 
 ### Check completion before reporting success
