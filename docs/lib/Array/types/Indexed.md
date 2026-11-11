@@ -181,7 +181,8 @@ let e = Indexed{ index: 0 }
 The type argument goes in an annotation, never in a literal:
 
 ```ant
-let e = Indexed[int]{ index: 0, value: 1 } // error: expected a newline or ';' before '{'
+let e = Indexed[int]{ index: 0, value: 1 }
+// error: a record literal takes no type arguments; write Indexed{ ... }
 ```
 
 `Indexed` without a type argument is not a type:

@@ -234,7 +234,8 @@ let e = Entry{ key: 0 }
 The type arguments go in an annotation, never in a literal:
 
 ```ant
-let e = Entry[string, int]{ key: "a", value: 1 } // error: expected ']', got ','
+let e = Entry[string, int]{ key: "a", value: 1 }
+// error: a record literal takes no type arguments; write Entry{ ... }
 ```
 
 `Entry` without type arguments is not a type:

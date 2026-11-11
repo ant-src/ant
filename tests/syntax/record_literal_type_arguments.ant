@@ -1,0 +1,9 @@
+// spec: 4 Records
+// The head of a record literal is an identifier path; type arguments are never written there.
+type Box[T] = { value: T }
+
+var b = Box[int]{ value: 1 }
+
+// expect
+// exit: 2
+// err: a record literal takes no type arguments; write Box{ ... }
