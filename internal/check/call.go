@@ -477,7 +477,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.errorIn(pe.at, "%s", err)
 			continue
 		}
-		if !types.Assignable(pe.t, want) {
+		if !types.Assignable(pe.t, want) && !hasHole(want) {
 			n := c.typeNames(pe.t, want)
 			c.errorIn(pe.at, "cannot use %s where %s is expected", n[0], n[1])
 		}

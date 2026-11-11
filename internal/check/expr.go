@@ -223,8 +223,8 @@ func (c *Checker) expectIn(e ast.Expr, t, expected types.Type) {
 
 // misfit is the error for a value of type t where expected is expected, or "" when it fits.
 func (c *Checker) misfit(t, expected types.Type) string {
-	if types.Assignable(t, expected) {
-		return ""
+	if types.Assignable(t, expected) || hasHole(t) || hasHole(expected) {
+		return "" // a type naming an unknown type was reported where it was written
 	}
 	n := c.typeNames(t, expected)
 	why := ""

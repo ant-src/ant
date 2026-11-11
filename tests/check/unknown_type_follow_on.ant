@@ -1,0 +1,14 @@
+// spec: 4 Inference
+// An annotation that names an unknown type is reported once: as an expected type it solves
+// nothing the arguments can, and no error follows from it.
+func first[T](a: Array[T]): T { a[0] }
+
+let r: Result[int, Error] = Result.ok(1)
+let nested = [[1]]
+
+let a: PlainDateTime = Time.parsePlainDateTime("2026-10-22T14:00").unwrap() // ERR: unknown type PlainDateTime; did you mean Time.PlainDateTime?
+let b: Nope = Result.unwrap(r)                                              // ERR: unknown type Nope
+let c: Array[Nope] = first(nested)                                          // ERR: unknown type Nope
+let d: Nope = r | Result.unwrap()                                           // ERR: unknown type Nope
+let e: Result[Nope, Error] = Result.ok(1)                                   // ERR: unknown type Nope
+let f: Nope = first([])                                                     // ERR: unknown type Nope
