@@ -4,7 +4,7 @@
 # Bits
 
 Bits holds the bitwise operations and wrapping arithmetic over the integer types, which have no
-operators for them.
+operators for them. A signed value is taken as its two's complement bits.
 
 <!-- end generated -->
 

@@ -7,8 +7,9 @@
 func Bits.shiftLeft[T: Integer](a: T, n: int): T
 ```
 
-Bits.shiftLeft returns a shifted left by n bits, filling with zeros. It panics if n \< 0 or n is at
-least the bit width of T.
+Bits.shiftLeft returns a shifted left by n bits, filling with zeros. The bits shifted past the width
+of T are dropped, into the sign bit too, and never overflow. It panics if n \< 0 or n is at least
+the bit width of T.
 
 <!-- end generated -->
 
