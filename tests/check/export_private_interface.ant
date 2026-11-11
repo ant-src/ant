@@ -1,8 +1,8 @@
 // spec: 10
 // An exported function whose parameters, result, or bounds name a private interface of the
-// module is a compile error, and so is an exported interface whose functions name one and an
-// exported variable whose type does. A private type of another kind may appear in an exported
-// signature, and a private interface in a field of an exported type.
+// module is a compile error, and so is an exported interface whose functions or bounds name one,
+// an exported type whose fields, alias body, or bounds do, and an exported variable whose type
+// does, once per declaration. A private type of another kind may appear in an exported signature.
 interface Shape {
   area(s: Self): float64
 }
@@ -13,20 +13,28 @@ export interface Named {
 
 type Token = { value: string }
 
-export func one(s: Shape): float64 { s.area() }                                            // ERR: one is exported but its signature names the interface Shape, which is not
-export func total(shapes: Array[Shape]): float64 { shapes.map({ x.area() }).sum() ?? 0.0 } // ERR: total is exported but its signature names the interface Shape
-export func biggest[T: Shape](xs: Array[T]): T | null { xs.first() }                       // ERR: biggest is exported but its signature names the interface Shape
+export func one(s: Shape): float64 { s.area() }                                            // ERR: one is exported but names the private interface Shape in its signature
+export func total(shapes: Array[Shape]): float64 { shapes.map({ x.area() }).sum() ?? 0.0 } // ERR: total is exported but names the private interface Shape in its signature
+export func biggest[T: Shape](xs: Array[T]): T | null { xs.first() }                       // ERR: biggest is exported but names the private interface Shape in its signature
 export func label(n: Named): string { n.name() }
 export func issue(): Token { Token{ value: "abc" } }
 func inner(s: Shape): float64 { s.area() }
 type Shapes = Array[Shape]
-export func sum(xs: Shapes): float64 { 0.0 } // ERR: sum is exported but its signature names the interface Shape
-export interface Scene {                     // ERR: Scene is exported but its body names the interface Shape, which is not
+export func sum(xs: Shapes): float64 { 0.0 } // ERR: sum is exported but names the private interface Shape in its signature
+export interface Scene {                     // ERR: Scene is exported but names the private interface Shape in its functions
   first(s: Self): Shape
 }
 export interface Labeled {
   label(s: Self): Named
 }
-export let draw = func(s: Shape): float64 { s.area() } // ERR: draw is exported but its type names the interface Shape, which is not
+export let draw = func(s: Shape): float64 { s.area() } // ERR: draw is exported but names the private interface Shape in its type
 export let title = func(n: Named): string { n.name() }
-export type Box = { shape: Shape }
+export type Box = { shape: Shape } // ERR: Box is exported but names the private interface Shape in its fields
+export type Many = Array[Shape]    // ERR: Many is exported but names the private interface Shape in its body
+export interface Group[T: Shape] { // ERR: Group is exported but names the private interface Shape in its bounds
+  all(g: Self): Array[T]
+}
+export type Pair[T: Shape] = { a: T }                                                        // ERR: Pair is exported but names the private interface Shape in its bounds
+export var [one2, two2] = [func(s: Shape): float64 { 1.0 }, func(s: Shape): float64 { 2.0 }] // ERR: one2 is exported but names the private interface Shape in its type
+type Holder = { shape: Shape }
+export let held: Holder | null = null

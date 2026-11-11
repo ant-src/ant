@@ -1274,11 +1274,30 @@ func (c *Checker) resolveSignatures(mi *moduleInfo) {
 		if !ii.ent.exported {
 			continue
 		}
-		ts := bounds(ii.t.Params)
+		c.exportedInterfaces(private, bounds(ii.t.Params), ii.decl.Pos, ii.t.Name, "bounds")
+		var ts []types.Type
 		for _, name := range slices.Sorted(maps.Keys(ii.t.Funcs)) {
 			ts = append(ts, funcTypes(*ii.t.Funcs[name])...)
 		}
-		c.exportedInterfaces(private, ts, ii.decl.Pos, ii.t.Name, "body")
+		c.exportedInterfaces(private, ts, ii.decl.Pos, ii.t.Name, "functions")
+	}
+	for _, ti := range mi.types {
+		if ti.scope != nil || ti.ent == nil || !ti.ent.exported {
+			continue
+		}
+		c.exportedInterfaces(private, bounds(ti.t.Params), ti.decl.Pos, ti.t.Name, "bounds")
+		switch ti.t.Kind {
+		case types.RecordDecl:
+			var ts []types.Type
+			for _, f := range ti.t.Fields {
+				ts = append(ts, f.Type)
+			}
+			c.exportedInterfaces(private, ts, ti.decl.Pos, ti.t.Name, "fields")
+		case types.AliasDecl:
+			if ti.t.Body != nil {
+				c.exportedInterfaces(private, []types.Type{ti.t.Body}, ti.decl.Pos, ti.t.Name, "body")
+			}
+		}
 	}
 }
 
@@ -1314,14 +1333,15 @@ func bounds(tparams []*types.ParamDecl) []types.Type {
 }
 
 // exportedInterfaces reports each private interface of the module named in ts, the types an
-// export shows: an exported function's parameters, result, and bounds, an exported interface's
-// functions and bounds, or an exported variable's type. An interface is a name for the checker
-// alone, so an importer could not check a use without it (section 10, Modules). A private type
-// of another kind may appear there, as data the importer holds but cannot name. where is the
-// part of the export that ts is: its signature, body, or type.
-func (c *Checker) exportedInterfaces(private map[*types.Decl]string, ts []types.Type, pos ast.Pos, export, where string) {
+// export shows: an exported function's parameters, result, and bounds; an exported interface's
+// functions and bounds; an exported type's fields, alias body, and bounds; or an exported
+// variable's type. An importer must be able to name an interface the export asks it to satisfy
+// (section 10, Modules). A private type of another kind may appear there, as data the importer
+// holds but cannot name. where is the part of the export that ts is, and the result says whether
+// anything was reported.
+func (c *Checker) exportedInterfaces(private map[*types.Decl]string, ts []types.Type, pos ast.Pos, export, where string) bool {
 	if len(private) == 0 {
-		return
+		return false
 	}
 	reported := map[*types.Decl]bool{}
 	seen := map[*types.Decl]bool{} // aliases already looked through
@@ -1340,13 +1360,14 @@ func (c *Checker) exportedInterfaces(private map[*types.Decl]string, ts []types.
 			}
 			if name, ok := private[n.Decl]; ok && !reported[n.Decl] {
 				reported[n.Decl] = true
-				c.errorf(pos, "%s is exported but its %s names the interface %s, which is not", export, where, name)
+				c.errorf(pos, "%s is exported but names the private interface %s in its %s", export, name, where)
 			}
 		})
 	}
 	for _, t := range ts {
 		visit(t)
 	}
+	return len(reported) > 0
 }
 
 // resolveSignature resolves a function's signature once, in its module.
@@ -1747,10 +1768,11 @@ func (c *Checker) checkModule(mi *moduleInfo) {
 		}
 	}
 	private := privateInterfaces(mi)
+	reported := map[*ast.VarDecl]bool{} // one error for a declaration that binds several names
 	for _, v := range mi.vars {
 		t := c.varType(v, ast.Pos{}, false)
-		if v.decl.Export {
-			c.exportedInterfaces(private, []types.Type{t}, v.decl.Pos, v.name, "type")
+		if v.decl.Export && !reported[v.decl] && c.exportedInterfaces(private, []types.Type{t}, v.decl.Pos, v.name, "type") {
+			reported[v.decl] = true
 		}
 	}
 	for _, fi := range mi.funcs {

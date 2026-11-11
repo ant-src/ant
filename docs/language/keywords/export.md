@@ -11,8 +11,10 @@ it is private to its file.
 - Only a library exports. A file with `export` cannot have a top-level statement, since a script
   cannot be imported.
 - An exported function states its return type. A function exported on a type needs the type exported
-  too, and an interface its signature names must be exported. Any other private type may appear in
-  an exported signature.
+  too.
+- An interface that an export names must be exported too: in a function's signature, an interface's
+  functions, a type's fields or bounds, or a variable's type. The importer must be able to name what
+  it is asked to satisfy. Any other private type may appear there.
 - An imported `var` reads the exporting module's current value, but only that module can assign it.
 - Privacy applies to names, not to data. A test file sees every declaration of the modules it
   imports, exported or not.
@@ -150,8 +152,8 @@ let s: Shape = Circle{ radius: 1.0 }
 
 ### Private types
 
-A field of an exported type may have a private type. The importer reads the field but cannot name
-its type:
+A field of an exported type may have a private type that is not an interface. The importer reads the
+field but cannot name its type:
 
 ```ant [session.ant]
 type Token = { value: string }
@@ -227,7 +229,7 @@ interface Shape {
 }
 
 export func total(shapes: Array[Shape]): float64 {
-  // error: total is exported but its signature names the interface Shape, which is not
+  // error: total is exported but names the private interface Shape in its signature
   shapes.map({ x.area() }).sum() ?? 0.0
 }
 ```
