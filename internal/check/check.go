@@ -92,6 +92,10 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 
 // Checker holds the state of one check.
 type Checker struct {
+	// unifying holds the interface matches unifyInterface has under way.
+	unifying map[ifacePair]bool
+	// litSigs holds the signature of a func literal resolved before the literal is checked.
+	litSigs map[*ast.FuncLit]*sig
 	prog    *loader.Program
 	diags   []Diagnostic
 	seen    map[string]bool
@@ -1289,17 +1293,28 @@ func (c *Checker) exportedInterfaces(mi *moduleInfo, fi *funcInfo) {
 		}
 	}
 	reported := map[*types.Decl]bool{}
-	for _, t := range ts {
+	seen := map[*types.Decl]bool{} // aliases already looked through
+	var visit func(t types.Type)
+	visit = func(t types.Type) {
 		types.Walk(t, func(t types.Type) {
 			n, ok := t.(types.Named)
-			if !ok || reported[n.Decl] {
+			if !ok {
 				return
 			}
-			if name, ok := private[n.Decl]; ok {
+			if n.Decl.Kind == types.AliasDecl && !seen[n.Decl] {
+				// an alias names what its body names: type Shapes = Array[Shape]
+				seen[n.Decl] = true
+				visit(types.Expand(t))
+				return
+			}
+			if name, ok := private[n.Decl]; ok && !reported[n.Decl] {
 				reported[n.Decl] = true
 				c.errorf(fi.decl.Pos, "%s is exported but its signature names the interface %s, which is not", fi.sig.fullName(), name)
 			}
 		})
+	}
+	for _, t := range ts {
+		visit(t)
 	}
 }
 
@@ -1890,7 +1905,7 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 		t = declared
 	} else {
 		if fl, ok := d.Init.(*ast.FuncLit); ok && fl.Return != nil && single {
-			g.stated = c.signature(&ast.FuncDecl{Pos: fl.Pos, Params: fl.Params, Return: fl.Return, Body: fl.Body}, sc, "").fn
+			g.stated = c.litSignature(fl, sc).fn
 		}
 		t = c.synth(d.Init, sc)
 	}
@@ -2047,24 +2062,13 @@ func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}
 	}
-	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !hasInvalid(u) {
-		// A part that failed, such as Result.ok with E unsolved, was reported where it failed.
+	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !invalidResult(u) {
+		// A member that failed, such as Result.ok with E unsolved, was reported where it failed.
 		for _, x := range ctx.tries {
 			c.errorf(x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
 		}
 	}
 	return u
-}
-
-// hasInvalid reports whether t or a type written inside it is invalid.
-func hasInvalid(t types.Type) bool {
-	found := false
-	types.Walk(t, func(t types.Type) {
-		if types.IsInvalid(t) {
-			found = true
-		}
-	})
-	return found
 }
 
 // returnTypeOf returns a function's return type, inferring it on demand; a function whose

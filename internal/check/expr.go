@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/types"
@@ -562,11 +561,11 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 			return types.Invalid{}
 		}
 		c.info.recordMember(x, c.info.fieldOf(types.Without(recv, types.Null{}), x.Name))
-		inner := c.fieldOf(types.Without(recv, types.Null{}), x.Name, x.Pos)
+		inner := c.fieldOf(types.Without(recv, types.Null{}), x.Name, x.Pos, nil)
 		return c.endLink(x, x.Grouped, inner, true)
 	}
 	c.info.recordMember(x, c.info.fieldOf(recv, x.Name))
-	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos, c.outerVarHint(x.X, sc)), short)
+	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos, func() string { return c.outerVarHint(x.X, sc) }), short)
 }
 
 // chainNote explains a ?. on a left side that is not nullable when a ?. earlier in the chain
@@ -619,8 +618,13 @@ func (c *Checker) outerVarHint(x ast.Expr, sc *scope) string {
 
 // fieldOf is the type of a field read through a type: a record, named or anonymous, or a
 // union of records that all declare it.
-func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint ...string) types.Type {
-	note := strings.Join(hint, "")
+func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func() string) types.Type {
+	note := func() string {
+		if hint == nil {
+			return ""
+		}
+		return hint()
+	}
 	if types.IsInvalid(recv) {
 		return types.Invalid{}
 	}
@@ -630,7 +634,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint ...str
 		for _, m := range r.Members {
 			fields := types.FieldsOf(m)
 			if fields == nil {
-				c.errorf(pos, "%s has no field %s: narrow the value first%s", types.String(recv), name, note)
+				c.errorf(pos, "%s has no field %s: narrow the value first%s", types.String(recv), name, note())
 				return types.Invalid{}
 			}
 			found := false
@@ -641,7 +645,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint ...str
 				}
 			}
 			if !found {
-				c.errorf(pos, "%s has no field %s on every member: narrow the value first%s", types.String(recv), name, note)
+				c.errorf(pos, "%s has no field %s on every member: narrow the value first%s", types.String(recv), name, note())
 				return types.Invalid{}
 			}
 		}
@@ -1019,52 +1023,66 @@ func (c *Checker) synthMapLit(x *ast.MapLit, sc *scope) types.Type {
 		c.errorf(x.Pos, "cannot infer the key and value types of an empty map; annotate it")
 		return types.Invalid{}
 	}
-	// As in an array literal, a value that fixes nothing, such as [] or Set.of([]), waits and is
-	// then checked against the union of the other values (section 4, Inference).
-	var keys, vals []types.Type
-	var empties []ast.Expr
+	// As in an array literal, a key or value that fixes nothing, such as [] or Set.of([]), waits
+	// and is then checked against the union of the other keys or values (section 4, Inference).
+	var keys, vals []ast.Expr
 	for _, en := range x.Entries {
-		keys = append(keys, c.synth(en.Key, sc))
-		if onlyEmpty(en.Value) {
-			empties = append(empties, en.Value)
+		keys = append(keys, en.Key)
+		vals = append(vals, en.Value)
+	}
+	k, ok := c.waitingUnion(x.Pos, keys, sc, "key", "keys")
+	if !ok {
+		return types.Invalid{}
+	}
+	v, ok := c.waitingUnion(x.Pos, vals, sc, "value", "values")
+	if !ok {
+		return types.Invalid{}
+	}
+	return types.Map{Key: k, Val: v}
+}
+
+// waitingUnion is the union of the types of es, the keys or the values of a map literal. An
+// expression that fixes nothing waits and is checked against the union of the others; when all
+// of them wait, a call is typed on its own, as Set.of([]) is. It reports false after an error.
+func (c *Checker) waitingUnion(pos ast.Pos, es []ast.Expr, sc *scope, what, plural string) (types.Type, bool) {
+	var ts []types.Type
+	var empties []ast.Expr
+	for _, e := range es {
+		if onlyEmpty(e) {
+			empties = append(empties, e)
 			continue
 		}
-		vals = append(vals, c.synth(en.Value, sc))
+		ts = append(ts, c.synth(e, sc))
 	}
-	if len(vals) == 0 {
+	if len(ts) == 0 {
 		var literals []ast.Expr
 		for _, e := range empties {
 			if _, isCall := e.(*ast.Call); isCall {
-				vals = append(vals, c.synth(e, sc))
+				ts = append(ts, c.synth(e, sc))
 			} else {
 				literals = append(literals, e)
 			}
 		}
-		if len(vals) == 0 {
-			c.errorf(x.Pos, "cannot infer the value type of a map of empty literals; annotate it")
-			return types.Invalid{}
+		if len(ts) == 0 {
+			c.errorf(pos, "cannot infer the %s type of a map of empty literals; annotate it", what)
+			return nil, false
 		}
 		empties = literals
 	}
-	for _, t := range vals {
+	for _, t := range ts {
 		if types.IsInvalid(t) {
-			return types.Invalid{}
+			return nil, false
 		}
 	}
-	k, err := types.MakeUnion(keys)
+	u, err := types.MakeUnion(ts)
 	if err != nil {
-		c.errorf(x.Pos, "the keys do not form a valid type: %s; give the map an expected type", err)
-		return types.Invalid{}
-	}
-	v, err := types.MakeUnion(vals)
-	if err != nil {
-		c.errorf(x.Pos, "the values do not form a valid type: %s; give the map an expected type", err)
-		return types.Invalid{}
+		c.errorf(pos, "the %s do not form a valid type: %s; give the map an expected type", plural, err)
+		return nil, false
 	}
 	for _, e := range empties {
-		c.check(e, sc, v)
+		c.check(e, sc, u)
 	}
-	return types.Map{Key: k, Val: v}
+	return u, true
 }
 
 func (c *Checker) checkMapLit(x *ast.MapLit, sc *scope, m types.Map) types.Type {
@@ -1138,13 +1156,27 @@ func (c *Checker) lambdaBodyAnyway(x *ast.Lambda, sc *scope) {
 }
 
 func (c *Checker) funcLit(x *ast.FuncLit, sc *scope) types.Type {
-	d := &ast.FuncDecl{Pos: x.Pos, Params: x.Params, Return: x.Return, Body: x.Body}
-	s := c.signature(d, sc, "")
+	s := c.litSignature(x, sc)
+	delete(c.litSigs, x)
 	ctx := &fnCtx{parent: c.fn, kind: "func", name: "func", declared: s.fn.Return}
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	c.declareParams(x.Params, s, inner, ctx)
 	ret := c.withNested(ctx, func() types.Type { return c.inferBody(x.Body, inner, ctx) })
 	return types.Func{Params: s.fn.Params, Return: ret, Required: s.fn.Required}
+}
+
+// litSignature resolves a func literal's signature once: a binding that reads it to let the
+// function call itself (section 6) and the literal's own check share it.
+func (c *Checker) litSignature(x *ast.FuncLit, sc *scope) *sig {
+	if s, ok := c.litSigs[x]; ok {
+		return s
+	}
+	if c.litSigs == nil {
+		c.litSigs = map[*ast.FuncLit]*sig{}
+	}
+	s := c.signature(&ast.FuncDecl{Pos: x.Pos, Params: x.Params, Return: x.Return, Body: x.Body}, sc, "")
+	c.litSigs[x] = s
+	return s
 }
 
 // withNested runs f as a nested body: a new context whose flow keeps the narrowing of the outer
@@ -1786,7 +1818,7 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
 			return nil, false
 		}
-		return c.fieldOf(recv, t.Name, t.Pos), false
+		return c.fieldOf(recv, t.Name, t.Pos, nil), false
 	case *ast.Index:
 		recv := c.synth(t.X, sc)
 		switch r := types.Expand(recv).(type) {

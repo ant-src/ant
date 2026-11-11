@@ -295,7 +295,7 @@ func (c *Checker) varDecl(d *ast.VarDecl, sc *scope) {
 		// A func literal with a stated return type gives the var its type before the body is
 		// checked, which is how a local function calls itself (section 6).
 		if fl, ok := d.Init.(*ast.FuncLit); ok && fl.Return != nil {
-			s := c.signature(&ast.FuncDecl{Pos: fl.Pos, Params: fl.Params, Return: fl.Return, Body: fl.Body}, sc, "")
+			s := c.litSignature(fl, sc)
 			locals[0].typ = s.fn
 			locals[0].stated = true
 		}
@@ -338,7 +338,7 @@ func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string
 		for _, f := range t.Fields {
 			ft := types.Type(types.Invalid{})
 			if !types.IsInvalid(src) {
-				ft = c.fieldOf(src, f.Name, f.Pos)
+				ft = c.fieldOf(src, f.Name, f.Pos, nil)
 			}
 			c.bindTargetTypes(f.Target, ft, bind)
 		}

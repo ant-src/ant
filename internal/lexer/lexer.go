@@ -15,6 +15,9 @@ import (
 type Error struct {
 	Pos token.Pos
 	Msg string
+	// AtEnd marks an error the end of the source caused, such as an element still open there,
+	// so that more input may complete it.
+	AtEnd bool
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
@@ -134,6 +137,15 @@ func (l *lexer) fail(pos token.Pos, format string, args ...any) {
 func (l *lexer) soft(pos token.Pos, format string, args ...any) bool {
 	if !l.recover {
 		l.fail(pos, format, args...)
+	}
+	l.record(pos, format, args...)
+	return true
+}
+
+// softAtEnd is soft for an error the end of the source caused (Error.AtEnd).
+func (l *lexer) softAtEnd(pos token.Pos, format string, args ...any) bool {
+	if !l.recover {
+		panic(&Error{Pos: pos, Msg: fmt.Sprintf(format, args...), AtEnd: true})
 	}
 	l.record(pos, format, args...)
 	return true

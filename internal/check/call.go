@@ -872,30 +872,33 @@ func (c *Checker) unify(pattern, actual types.Type, subst map[*types.ParamDecl]t
 }
 
 // unifyInterface matches an interface pattern whose arguments name open type parameters against
-// a type that may satisfy it: each function of the interface, with Self as the actual type, is
-// matched against the function a call through a dot reaches, as an argument matches a parameter
-// (section 4, Inference). Container[T] against a Stack whose get returns string | null solves T
-// as string.
+// a type that may satisfy it: the satisfaction check of section 4, Interfaces, with each function
+// of the interface matched as an argument matches a parameter (section 4, Inference), so that
+// Container[T] against a Stack whose get returns string | null solves T as string. A pair met
+// again inside its own match, as when next returns the satisfying type where the interface
+// returns itself, holds for the match under way, as it does for satisfies.
 func (c *Checker) unifyInterface(pt types.Named, actual types.Type, subst map[*types.ParamDecl]types.Type) bool {
-	if _, isUnion := types.Expand(actual).(types.Union); isUnion {
-		return false
+	key := ifacePair{decl: pt.Decl, actual: types.String(actual)}
+	if c.unifying[key] {
+		return true
 	}
-	m := types.Bindings(pt.Decl.Params, pt.Args)
-	m[pt.Decl.Self] = actual
+	if c.unifying == nil {
+		c.unifying = map[ifacePair]bool{}
+	}
+	c.unifying[key] = true
+	defer delete(c.unifying, key)
 	trial := maps.Clone(subst)
-	for _, name := range pt.Decl.Order {
-		wt, err := types.Subst(*pt.Decl.Funcs[name], m)
-		if err != nil {
-			return false
-		}
-		want := wt.(types.Func)
-		got := c.offered(actual, name, want, types.Assignable)
-		if got == nil || !c.unify(want, *got, trial) {
-			return false
-		}
+	if !c.satisfies(actual, pt.Decl, pt.Args, func(got, want types.Type) bool { return c.unify(want, got, trial) }) {
+		return false
 	}
 	maps.Copy(subst, trial)
 	return true
+}
+
+// ifacePair is an interface matched against a type while unifyInterface runs.
+type ifacePair struct {
+	decl   *types.Decl
+	actual string
 }
 
 // unifyParam matches a parameter of a function argument. Matching solves the type parameters it

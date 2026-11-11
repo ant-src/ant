@@ -392,7 +392,7 @@ func (l *lexer) rawText(pos token.Pos, name string, foreign bool) *token.Markup 
 	closed := true
 	for {
 		if l.atEnd(0) {
-			if l.soft(pos, "<%s> is never closed", name) {
+			if l.softAtEnd(pos, "<%s> is never closed", name) {
 				closed = false
 				break
 			}
@@ -507,9 +507,9 @@ func (l *lexer) contentItems(pos token.Pos, name string, ctx markupContext) *tok
 		case l.atEnd(0):
 			flush()
 			if name == "" {
-				l.soft(pos, "the fragment is never closed; end it with </>")
+				l.softAtEnd(pos, "the fragment is never closed; end it with </>")
 			} else {
-				l.soft(pos, "<%s> is never closed", name)
+				l.softAtEnd(pos, "<%s> is never closed", name)
 			}
 			return m
 		case c == '<':

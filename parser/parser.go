@@ -190,8 +190,8 @@ func ParseLayout(path, src string) (f *ast.File, l *Layout, err error) {
 // on the last line. A regular expression stays on one line, so a line break ends it in an error
 // instead.
 func incompleteLex(src string, le *lexer.Error) bool {
-	if strings.HasSuffix(le.Msg, "is never closed") || strings.HasPrefix(le.Msg, "the fragment is never closed") {
-		return true // the lexer reports these only at the end of the source
+	if le.AtEnd {
+		return true
 	}
 	if !strings.HasPrefix(le.Msg, "unterminated") {
 		return false
@@ -1744,6 +1744,7 @@ func (p *parser) isTarget() (kind string, kindPos ast.Pos, path ast.Expr) {
 	}
 	p.next()
 	var e ast.Expr = &ast.Ident{Pos: pos(t), End: epos(t), Name: t.Text}
+	written := t.Text
 	single := true
 	links := 0
 	defer p.unlink(&links)
@@ -1752,10 +1753,11 @@ func (p *parser) isTarget() (kind string, kindPos ast.Pos, path ast.Expr) {
 		d := p.next()
 		name := p.expectIdent("a type name")
 		e = &ast.Field{Pos: pos(d), End: epos(name), X: e, Name: name.Text, NamePos: pos(name)}
+		written += "." + name.Text
 		single = false
 	}
 	if p.raw().Is("[") {
-		p.fail(p.raw().Pos, "'is' tests a kind or a tag, written without type arguments: write is %s, then test the elements", t.Text)
+		p.fail(p.raw().Pos, "'is' tests a kind or a tag, written without type arguments: write is %s, then test the elements", written)
 	}
 	if single && kindNames[t.Text] {
 		return t.Text, pos(t), nil

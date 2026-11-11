@@ -158,6 +158,7 @@ func syntaxCases() []syntaxCase {
 		{"nullish comparison", "var x = a ?? b > c", "cannot mix with '>'", Program},
 		{"comparison nullish", "var x = a == b ?? c", "cannot mix with '=='", Program},
 		{"nullish is", "var x = a ?? b is int", "cannot mix with 'is'", Program},
+		{"is qualified type arguments", "var x = v is G.Box[int]", "write is G.Box,", Program},
 		{"comparison after pipe", "var x = a | f() == b", "'|' binds looser than '=='", Program},
 		{"arithmetic after pipe", "var x = a | f() | g() + 1", "'|' binds looser than '+'", Program},
 		{"is after pipe", "var x = a | f() is int", "'|' binds looser than 'is'", Program},
