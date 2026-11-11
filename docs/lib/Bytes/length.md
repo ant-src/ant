@@ -206,7 +206,7 @@ func trailer(b: Bytes): Bytes {
   Bytes.slice(b, n - 4, n)
 }
 
-trailer(Bytes.fromArray([1, 2])) // panic: Bytes.slice: the range -2..2 is not within 0..2
+trailer(Bytes.fromArray([1, 2])) // panic: Bytes.slice: the range -2..2 is not within 0 ..= 2
 ```
 
 ## See also

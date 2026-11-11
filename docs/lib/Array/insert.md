@@ -200,8 +200,8 @@ alias // [1, 2, 3]
 An index past the length panics, and so does a negative one. Index `len(xs)` is the last valid one:
 
 ```ant
-Array.insert([1, 2, 3], 4, 0)  // panic: Array.insert: the index 4 is not within 0..3
-Array.insert([1, 2, 3], -1, 0) // panic: Array.insert: the index -1 is not within 0..3
+Array.insert([1, 2, 3], 4, 0)  // panic: Array.insert: the index 4 is not within 0 ..= 3
+Array.insert([1, 2, 3], -1, 0) // panic: Array.insert: the index -1 is not within 0 ..= 3
 ```
 
 `Array.insert` returns `void`, not the array. Binding its result to a name of an array type is a

@@ -7,7 +7,8 @@
 func int16[T: Number](x: T): int16
 ```
 
-int16 converts x to int16 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int16(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int16 converts x to int16 exactly. It panics if x is out of range, has a fraction, or is NaN or
+infinite; int16(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 

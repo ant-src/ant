@@ -166,6 +166,6 @@ func sortLess(g *interp.Goroutine, who string, a, b value.Value) bool {
 // sliceBounds checks a half-open range against a length.
 func sliceBounds(g *interp.Goroutine, who string, from, to int64, length int) {
 	if from < 0 || to > int64(length) || from > to {
-		g.Panic("%s: the range %d..%d is not within 0..%d", who, from, to, length)
+		g.Panic("%s: the range %d..%d is not within 0 ..= %d", who, from, to, length)
 	}
 }

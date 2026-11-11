@@ -7,7 +7,8 @@
 func uint16[T: Number](x: T): uint16
 ```
 
-uint16 converts x to uint16 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; uint16(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+uint16 converts x to uint16 exactly. It panics if x is out of range, has a fraction, or is NaN or
+infinite; uint16(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 

@@ -7,7 +7,8 @@
 func int32[T: Number](x: T): int32
 ```
 
-int32 converts x to int32 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int32(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int32 converts x to int32 exactly. It panics if x is out of range, has a fraction, or is NaN or
+infinite; int32(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 

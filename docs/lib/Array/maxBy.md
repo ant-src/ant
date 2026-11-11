@@ -9,7 +9,7 @@ func Array.maxBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
 
 Array.maxBy returns the first element of xs with the greatest key, or null when xs is empty. An
 element replaces the one held only when its key is strictly greater, so of equal keys the first wins
-and a NaN key never wins.
+and a NaN key never replaces the element held.
 
 <!-- end generated -->
 

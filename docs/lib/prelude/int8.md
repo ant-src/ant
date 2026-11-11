@@ -7,7 +7,8 @@
 func int8[T: Number](x: T): int8
 ```
 
-int8 converts x to int8 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int8(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int8 converts x to int8 exactly. It panics if x is out of range, has a fraction, or is NaN or
+infinite; int8(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 

@@ -189,7 +189,7 @@ assert(String.slice(s, m.start, m.end) == m.text)
 An index past the end panics; `String.slice` does not clamp it:
 
 ```ant
-String.slice("abc", 0, 4) // panic: String.slice: the range 0..4 is not within 0..3
+String.slice("abc", 0, 4) // panic: String.slice: the range 0..4 is not within 0 ..= 3
 ```
 
 Keep `to` within the string with `Math.min`:
@@ -201,14 +201,14 @@ String.slice("abc", 0, Math.min(4, String.length("abc"))) // "abc"
 A negative index panics rather than counting from the end. Count from `String.length(s)` instead:
 
 ```ant
-String.slice("abc", -2, 3)                       // panic: String.slice: the range -2..3 is not within 0..3
+String.slice("abc", -2, 3)                       // panic: String.slice: the range -2..3 is not within 0 ..= 3
 String.slice("abc", String.length("abc") - 2, 3) // "bc"
 ```
 
 `from` greater than `to` panics, even when both are within the string:
 
 ```ant
-String.slice("abc", 2, 1) // panic: String.slice: the range 2..1 is not within 0..3
+String.slice("abc", 2, 1) // panic: String.slice: the range 2..1 is not within 0 ..= 3
 ```
 
 All three arguments are required; there is no form that runs to the end of the string:

@@ -7,7 +7,8 @@
 func String.repeat(s: string, n: int): string
 ```
 
-String.repeat returns s repeated n times. It panics if n \< 0 or n is above 2^31 - 1.
+String.repeat returns s repeated n times. It panics if n \< 0, or if n or the result's length in
+bytes is above 2^31 - 1.
 
 <!-- end generated -->
 

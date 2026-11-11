@@ -3,7 +3,8 @@
 
 # Math
 
-Math holds numeric functions and constants. The functions over float64 follow IEEE 754 and never panic: Math.log(0.0) is -Infinity, and Math.sqrt(-1.0) is NaN.
+Math holds numeric functions and constants. The functions over float64 follow IEEE 754 and never
+panic: Math.log(0.0) is -Infinity, and Math.sqrt(-1.0) is NaN.
 
 <!-- end generated -->
 

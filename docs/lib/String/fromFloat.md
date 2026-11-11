@@ -8,7 +8,7 @@ func String.fromFloat(x: float64, digits: int): string
 ```
 
 String.fromFloat returns x in fixed point with digits decimals, rounded half to even. NaN and the
-infinities render as [`String.from`](from.md) does. It panics if digits \< 0.
+infinities render as [`String.from`](from.md) does. It panics if digits \< 0 or is above 2^31 - 1.
 
 <!-- end generated -->
 

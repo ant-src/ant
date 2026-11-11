@@ -8,7 +8,7 @@ func Array.min[T: Ordered](xs: Array[T]): T | null
 ```
 
 Array.min returns the least element of xs, or null when xs is empty. It returns NaN when any element
-is NaN.
+is NaN, and holds -0.0 below 0.0.
 
 <!-- end generated -->
 

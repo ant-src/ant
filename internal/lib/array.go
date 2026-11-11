@@ -63,7 +63,7 @@ func init() {
 				xs := arrayArg(g, who, a[0])
 				i := intArg(g, who, a[1])
 				if i < 0 || i > int64(xs.Len()) || !xs.Insert(int(i), a[2]) {
-					g.Panic("Array.insert: the index %d is not within 0..%d", i, xs.Len())
+					g.Panic("Array.insert: the index %d is not within 0 ..= %d", i, xs.Len())
 				}
 				return value.Void
 			}),

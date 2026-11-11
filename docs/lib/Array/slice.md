@@ -222,13 +222,13 @@ Array.slice(xs, 0, len(xs)) // [10, 20, 30]
 does:
 
 ```ant
-Array.slice([1, 2, 3], 0, 5) // panic: Array.slice: the range 0..5 is not within 0..3
+Array.slice([1, 2, 3], 0, 5) // panic: Array.slice: the range 0..5 is not within 0 ..= 3
 ```
 
 A negative index panics. It does not count from the end:
 
 ```ant
-Array.slice([1, 2, 3], -1, 3) // panic: Array.slice: the range -1..3 is not within 0..3
+Array.slice([1, 2, 3], -1, 3) // panic: Array.slice: the range -1..3 is not within 0 ..= 3
 ```
 
 Write the length out to take from the end:
@@ -241,7 +241,7 @@ Array.slice(xs, len(xs) - 1, len(xs)) // [3]
 `from` after `to` panics rather than giving `[]`:
 
 ```ant
-Array.slice([1, 2, 3], 2, 1) // panic: Array.slice: the range 2..1 is not within 0..3
+Array.slice([1, 2, 3], 2, 1) // panic: Array.slice: the range 2..1 is not within 0 ..= 3
 ```
 
 The new array holds the same elements, not copies of them. Writing into an element that is itself an

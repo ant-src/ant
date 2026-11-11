@@ -11,7 +11,7 @@ String.isEmpty(" ")                           // => false
 String.slice(s, 1, 4)                         // => "éll"
 String.slice("añb", 1, 3)                     // => "ñb"
 String.slice("añb", 0, 0)                     // => ""
-String.slice("héllo", 3, 2)                   // => panic: String.slice: the range 3..2 is not within 0..5
+String.slice("héllo", 3, 2)                   // => panic: String.slice: the range 3..2 is not within 0 ..= 5
 String.chars("a😀b")                           // => ["a", "😀", "b"]
 
 // Searching: indexOf and lastIndexOf in code points, null when absent.

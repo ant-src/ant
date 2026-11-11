@@ -252,30 +252,31 @@ func Array.indexOf[T](xs: Array[T], v: T): int | null
 func Array.lastIndexOf[T](xs: Array[T], v: T): int | null
 
 // Array.min returns the least element of xs, or null when xs is empty. It returns NaN when any
-// element is NaN.
+// element is NaN, and holds -0.0 below 0.0.
 func Array.min[T: Ordered](xs: Array[T]): T | null
 
 // Array.max returns the greatest element of xs, or null when xs is empty. It returns NaN when any
-// element is NaN.
+// element is NaN, and holds -0.0 below 0.0.
 func Array.max[T: Ordered](xs: Array[T]): T | null
 
 // Array.minBy returns the first element of xs with the least key, or null when xs is empty. An
 // element replaces the one held only when its key is strictly less, so of equal keys the first wins
-// and a NaN key never wins.
+// and a NaN key never replaces the element held.
 //
 //     Array.minBy(["bb", "a", "c"], { String.length(x) })   // "a"
 func Array.minBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
 
 // Array.maxBy returns the first element of xs with the greatest key, or null when xs is empty. An
 // element replaces the one held only when its key is strictly greater, so of equal keys the first
-// wins and a NaN key never wins.
+// wins and a NaN key never replaces the element held.
 func Array.maxBy[T, K: Ordered](xs: Array[T], key: func(T): K): T | null
 
-// Array.sort returns a new array holding the elements of xs in ascending order. The sort is stable.
+// Array.sort returns a new array holding the elements of xs in ascending order. The sort is stable,
+// NaN sorts after every number, and -0.0 and 0.0 are equal.
 func Array.sort[T: Ordered](xs: Array[T]): Array[T]
 
 // Array.sortBy returns a new array holding the elements of xs in ascending order of key. The sort
-// is stable.
+// is stable, a NaN key sorts after every number, and -0.0 and 0.0 keys are equal.
 func Array.sortBy[T, K: Ordered](xs: Array[T], key: func(T): K): Array[T]
 
 // Array.sortWith returns a new array holding the elements of xs ordered by cmp. cmp(a, b) < 0 puts
@@ -317,7 +318,7 @@ func Array.entries[T](xs: Array[T]): Array[Indexed[T]]
 func Array.range(from: int, to: int): Array[int]
 
 // Array.filled returns a new array of n elements, each the same v. Every slot holds v itself, not a
-// copy. It panics if n < 0.
+// copy. It panics if n < 0 or n is above 2^31 - 1.
 func Array.filled[T](n: int, v: T): Array[T]
 
 // Array.flatten returns a new array holding the elements of each array in xs, concatenated in
@@ -325,7 +326,8 @@ func Array.filled[T](n: int, v: T): Array[T]
 func Array.flatten[T](xs: Array[Array[T]]): Array[T]
 
 // Array.sum returns the sum of the elements of xs, or null when xs is empty. Write Array.sum(xs) ??
-// 0 for a zero default. It panics on overflow.
+// 0 for a zero default, or ?? 0.0 for floats. It adds from the left with +, so it panics when a
+// partial sum overflows.
 func Array.sum[T: Number](xs: Array[T]): T | null
 
 // Array.same reports whether xs and ys are the same array, not merely equal ones.
@@ -473,7 +475,8 @@ func String.split(s: string, sep: string): Array[string]
 // String.join returns the strings in parts joined with sep between each two.
 func String.join(parts: Array[string], sep: string): string
 
-// String.repeat returns s repeated n times. It panics if n < 0 or n is above 2^31 - 1.
+// String.repeat returns s repeated n times. It panics if n < 0, or if n or the result's length in
+// bytes is above 2^31 - 1.
 func String.repeat(s: string, n: int): string
 
 // String.trim returns s without leading and trailing Unicode white space.
@@ -495,7 +498,8 @@ func String.trimSuffix(s: string, suffix: string): string
 
 // String.padStart returns s with pad repeated on the left until it is width code points long. The
 // padding is cut to the code points s lacks, and s comes back unchanged when it is already at or
-// beyond width. pad defaults to a space. It panics if pad is empty or width is above 2^31 - 1.
+// beyond width. pad defaults to a space. It panics if pad is empty, or if width or the result's
+// length in bytes is above 2^31 - 1.
 //
 //     String.padStart("7", 4, "ab")   // "aba7"
 func String.padStart(s: string, width: int, pad: string = " "): string
@@ -529,7 +533,8 @@ func String.lastIndexOf(s: string, t: string): int | null
 //     String.count("aaaa", "aa")   // 2
 func String.count(s: string, t: string): int
 
-// String.replace returns s with every occurrence of old replaced by new. It panics if old is empty.
+// String.replace returns s with every occurrence of old replaced by new. It panics if old is empty
+// or the result's length in bytes is above 2^31 - 1.
 func String.replace(s: string, old: string, new: string): string
 
 // String.replaceFirst returns s with the first occurrence of old replaced by new. It panics if old
@@ -706,7 +711,7 @@ func String.toFloat(s: string): float64 | null
 func String.fromInt[T: Integer](x: T, base: int = 10): string
 
 // String.fromFloat returns x in fixed point with digits decimals, rounded half to even. NaN and the
-// infinities render as [String.from] does. It panics if digits < 0.
+// infinities render as [String.from] does. It panics if digits < 0 or is above 2^31 - 1.
 //
 //     String.fromFloat(0.125, 2)   // "0.12"
 func String.fromFloat(x: float64, digits: int): string

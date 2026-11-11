@@ -40,7 +40,7 @@ describe("ok")                                // => "text: ok"
 // The namespace.
 Bytes.slice(png, 1, 4)                        // => Bytes(50 4e 47)
 Bytes.slice(png, 8, 8)                        // => Bytes()
-Bytes.slice(png, 2, 9)                        // => panic: Bytes.slice: the range 2..9 is not within 0..8
+Bytes.slice(png, 2, 9)                        // => panic: Bytes.slice: the range 2..9 is not within 0 ..= 8
 Bytes.concat([png, String.toBytes("!")])      // => Bytes(89 50 4e 47 0d 0a 1a 0a 21)
 Bytes.concat([])                              // => Bytes()
 var request = String.toBytes("GET / HTTP/1.1\r\nHost: a\r\n\r\nbody")

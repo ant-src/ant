@@ -185,19 +185,19 @@ assert(Bytes.slice(Bytes.slice(b, 1, 5), 1, 3) == Bytes.slice(b, 2, 4))
 An index past the end panics; `Bytes.slice` does not clamp it:
 
 ```ant
-Bytes.slice(Bytes.fromArray([1, 2, 3]), 0, 5) // panic: Bytes.slice: the range 0..5 is not within 0..3
+Bytes.slice(Bytes.fromArray([1, 2, 3]), 0, 5) // panic: Bytes.slice: the range 0..5 is not within 0 ..= 3
 ```
 
 A negative index panics rather than counting from the end:
 
 ```ant
-Bytes.slice(Bytes.fromArray([1, 2, 3]), -1, 3) // panic: Bytes.slice: the range -1..3 is not within 0..3
+Bytes.slice(Bytes.fromArray([1, 2, 3]), -1, 3) // panic: Bytes.slice: the range -1..3 is not within 0 ..= 3
 ```
 
 `from` greater than `to` panics rather than giving empty `Bytes`:
 
 ```ant
-Bytes.slice(Bytes.fromArray([1, 2, 3]), 2, 1) // panic: Bytes.slice: the range 2..1 is not within 0..3
+Bytes.slice(Bytes.fromArray([1, 2, 3]), 2, 1) // panic: Bytes.slice: the range 2..1 is not within 0 ..= 3
 ```
 
 All three arguments are required; there is no form that runs to the end:

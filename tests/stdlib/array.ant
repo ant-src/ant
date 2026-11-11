@@ -75,8 +75,8 @@ Array.range(Math.minInt, Math.maxInt)         // => panic: Array.range needs a r
 xs = [1, 2]
 Array.insert(xs, 2, 3)
 xs                                            // => [1, 2, 3]
-Array.insert(xs, 4, 5)                        // => panic: Array.insert: the index 4 is not within 0..3
-Array.insert(xs, -1, 0)                       // => panic: Array.insert: the index -1 is not within 0..3
+Array.insert(xs, 4, 5)                        // => panic: Array.insert: the index 4 is not within 0 ..= 3
+Array.insert(xs, -1, 0)                       // => panic: Array.insert: the index -1 is not within 0 ..= 3
 xs                                            // => [1, 2, 3]
 
 // removeAt takes an index from 0 up to but excluding the length; the length itself
@@ -90,7 +90,7 @@ Array.removeAt(xs, -1)                        // => panic: Array.removeAt: the i
 // Array.slice with a range outside the array panics (section 11).
 xs = [1, 2, 3]
 Array.slice(xs, 0, 3)                         // => [1, 2, 3]
-Array.slice(xs, 2, 1)                         // => panic: Array.slice: the range 2..1 is not within 0..3
+Array.slice(xs, 2, 1)                         // => panic: Array.slice: the range 2..1 is not within 0 ..= 3
 
 // Array.sum panics when the sum does not fit the kind (section 11).
 Array.sum([int8(100), int8(27)])              // => 127

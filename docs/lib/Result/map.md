@@ -7,7 +7,8 @@
 func Result.map[T, U, E](r: Result[T, E], f: func(T): U): Result[U, E]
 ```
 
-Result.map returns r with f applied to its value if r is an Ok, and r's error unchanged if it is an Err, without calling f.
+Result.map returns r with f applied to its value if r is an Ok, and r's error unchanged if it is an
+Err, without calling f.
 
 <!-- end generated -->
 

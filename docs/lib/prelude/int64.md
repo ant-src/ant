@@ -7,7 +7,8 @@
 func int64[T: Number](x: T): int64
 ```
 
-int64 converts x to int64 exactly. It panics if x is out of range, has a fraction, or is NaN or infinite; int64(Math.trunc(x)) truncates. x may also be a named primitive over a number.
+int64 converts x to int64 exactly. It panics if x is out of range, has a fraction, or is NaN or
+infinite; int64(Math.trunc(x)) truncates. x may also be a named primitive over a number.
 
 <!-- end generated -->
 

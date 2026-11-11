@@ -8,7 +8,8 @@ func Array.sum[T: Number](xs: Array[T]): T | null
 ```
 
 Array.sum returns the sum of the elements of xs, or null when xs is empty. Write Array.sum(xs) ?? 0
-for a zero default. It panics on overflow.
+for a zero default, or ?? 0.0 for floats. It adds from the left with +, so it panics when a partial
+sum overflows.
 
 <!-- end generated -->
 

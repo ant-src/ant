@@ -21,7 +21,7 @@ func TestStdlibHarness(t *testing.T) {
 		{"marker not on the last line", "String.join([  // => \"x\"\n  \"a\"], \",\")  // => \"a\"", "nowhere else"},
 		{"setup with a value", "String.length(\"ab\")\nvar done = true", "a value that nothing checks"},
 		{"void case", "var xs = [1]\nArray.push(xs, 2)  // => null", "this one is void"},
-		{"void case that panics", "var xs = [1]\nArray.insert(xs, 5, 2)  // => panic: Array.insert: the index 5 is not within 0..1", ""},
+		{"void case that panics", "var xs = [1]\nArray.insert(xs, 5, 2)  // => panic: Array.insert: the index 5 is not within 0 ..= 1", ""},
 		{"setup panics", `var n = String.repeat("x", -1)`, "the input failed"},
 		{"error is not an expectation", `Os.exit(3)  // => error: exit status 3`, "Os.exit"},
 		{"goroutine", "go { }", "go"},

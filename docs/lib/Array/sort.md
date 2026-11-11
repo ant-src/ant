@@ -7,7 +7,8 @@
 func Array.sort[T: Ordered](xs: Array[T]): Array[T]
 ```
 
-Array.sort returns a new array holding the elements of xs in ascending order. The sort is stable.
+Array.sort returns a new array holding the elements of xs in ascending order. The sort is stable,
+NaN sorts after every number, and -0.0 and 0.0 are equal.
 
 <!-- end generated -->
 
