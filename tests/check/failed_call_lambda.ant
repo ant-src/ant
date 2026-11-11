@@ -2,7 +2,7 @@
 // A call that cannot be resolved is reported once: its lambda arguments are not reported again
 // for lacking a parameter type, though their bodies are still checked.
 var f: func(int): int = { x + 1 }
-var g = f.map({ x }) // ERR: Iter.map is not a function on func(int): int
+var g = f.map({ x }) // ERR: Iter.map takes Seq[T] first, so a func(int): int does not reach it
 var n = 5
 println([1].nosuch({ x })) // ERR: Array[int] has no field or function nosuch
 println(n.map({ x }))      // ERR: int has no field or function map

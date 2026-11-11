@@ -336,7 +336,7 @@ A function with no parameters is called through its type's name, not through a v
 type Point = { x: float64, y: float64 }
 func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
 let p = Point{ x: 3.0, y: 4.0 }
-let o = p.origin() // error: Point.origin takes no argument, so it is not a function on Point
+let o = p.origin() // error: Point.origin does not take a Point first, so a value does not reach it
 ```
 
 A namespace that mixes receivers offers through a value only the functions that take it first.
@@ -346,7 +346,7 @@ A namespace that mixes receivers offers through a value only the functions that 
 func save(path: string): Result[void, Error] {
   let file = try File.create(path)
   defer { file.close() }
-  file.write("text") // error: File.write is not a function on File.Handle: it takes string first
+  file.write("text") // error: File.write takes string first, so a File.Handle does not reach it
 }
 ```
 
@@ -356,7 +356,7 @@ other function:
 ```ant
 let handler = func(n: int): string { "${n}" }
 let m = handler.map({ x })
-// error: Iter.map is not a function on func(int): string: it takes Seq[T] first
+// error: Iter.map takes Seq[T] first, so a func(int): string does not reach it
 ```
 
 ### Reading the function without calling it
@@ -393,7 +393,7 @@ func Shape.area(s: Shape): float64 {
 }
 let s: Shape = Circle{ radius: 1.0 }
 let a = s.area()
-// error: Shape has no field or function area on every member: narrow the value first
+// error: Shape.area is declared on the alias Shape, which a value does not reach; call it as Shape.area(...)
 ```
 
 ```ant

@@ -78,6 +78,11 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		}
 		for _, m := range r.Members {
 			if !c.offers(m, f.Name) {
+				if alias := c.aliasFunc(recv, f.Name); alias != "" {
+					c.errorf(f.Pos, "%s.%s is declared on the alias %s, which a value does not reach; call it as %s.%s(...)", alias, f.Name, alias, alias, f.Name)
+					c.synthArgs(x.Args, sc)
+					return types.Invalid{}
+				}
 				c.errorf(f.Pos, "%s has no field or function %s on every member: narrow the value first%s", types.String(recv), f.Name, c.outerVarHint(f.X, sc))
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
@@ -271,16 +276,33 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 	}
 	if !c.accepts(s, recv) {
 		if len(s.fn.Params) == 0 {
-			c.errorf(f.Pos, "%s takes no argument, so it is not a function on %s", s.fullName(), types.String(recv))
+			c.errorf(f.Pos, "%s does not take a %s first, so a value does not reach it; call it as %s()", s.fullName(), types.String(recv), s.fullName())
 		} else {
 			n := c.typeNames(recv, s.fn.Params[0])
-			c.errorf(f.Pos, "%s is not a function on %s: it takes %s first", s.fullName(), n[0], n[1])
+			c.errorf(f.Pos, "%s takes %s first, so a %s does not reach it; call it as %s(...)", s.fullName(), n[1], n[0], s.fullName())
 		}
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
 	c.info.recordMember(f, c.info.object(m))
 	return c.applySig(s, x, sc, expected, c.info.object(m), &receiver{typ: recv, pos: f.X.Position(), positional: positional})
+}
+
+// aliasFunc is the name of the alias recv when a function name is declared on it: a value of
+// the alias carries a member's tag, so x.name does not reach it (section 5, Calls through .).
+func (c *Checker) aliasFunc(recv types.Type, name string) string {
+	n, ok := recv.(types.Named)
+	if !ok || n.Decl.Kind != types.AliasDecl {
+		return ""
+	}
+	ti := c.typeOf[n.Decl]
+	if ti == nil || ti.ent == nil {
+		return ""
+	}
+	if m, ok := ti.ent.members[name]; ok && m.kind == entFunc {
+		return n.Decl.Name
+	}
+	return ""
 }
 
 // waitingCall checks x.f(…) whose receiver is typed by the call, as Set.of([]).isSubset(s),

@@ -19,7 +19,7 @@ func Shape.describe(s: Shape): string { "shape" }
 var p = Point{ x: 3.0, y: 4.0 }
 println(p.norm())
 println(p.nrom())     // ERR: Point has no field or function nrom
-println(p.origin())   // ERR: Point.origin takes no argument, so it is not a function on Point
+println(p.origin())   // ERR: Point.origin does not take a Point first, so a value does not reach it
 println(p.norm(1.0))  // ERR: Point.norm takes 0 arguments after the receiver, got 1
 println(p.norm(p: p)) // ERR: the parameter p is the receiver, which the call passes first
 var g = p.norm        // ERR: Point has no field norm
@@ -28,12 +28,12 @@ println((1).abs())    // ERR: int has no field or function abs
 println("abc".nope()) // ERR: string has no field or function nope
 println(true.not())   // ERR: bool has no field or function not
 var h = try File.create("x")
-println(h.write("x"))                               // ERR: File.write is not a function on File.Handle: it takes string first
+println(h.write("x"))                               // ERR: File.write takes string first, so a File.Handle does not reach it
 func anonymous(a: { x: int }): float64 { a.norm() } // ERR: { x: int } has no field or function norm
 
 var sh: Shape = Circle{ radius: 1.0 }
 println(sh.area())     // ERR: the results of area through Shape do not form a valid type
-println(sh.describe()) // ERR: Shape has no field or function describe on every member: narrow the value first
+println(sh.describe()) // ERR: Shape.describe is declared on the alias Shape, which a value does not reach
 println(Shape.describe(sh))
 var cs: Circle | string = "x"
 println(cs.area()) // ERR: Circle | string has no field or function area on every member: narrow the value first
@@ -47,7 +47,7 @@ var t: Time.Instant | Time.PlainDate = Time.now()
 println(t.add(Time.duration(seconds: 1))) // ERR: T would be Time.Instant | Time.PlainDate, which is not a single member of its bound Time.Point
 println(Iter.range(0, 9).take(2).toArray())
 var handler = func(n: int): int { n }
-println(handler.take(2)) // ERR: Iter.take is not a function on func(int): int: it takes Seq[T] first
+println(handler.take(2)) // ERR: Iter.take takes Seq[T] first, so a func(int): int does not reach it
 func Square.scaled(s: Square, by: float64): float64 { s.side * by }
 func Circle.scaled(c: Circle, by: float64): float64 { c.radius * by }
 var both: Circle | Square = Circle{ radius: 1.0 }

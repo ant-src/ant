@@ -194,7 +194,7 @@ let s = Bytes.concat(a, a) // error: Bytes.concat takes 1 argument, got 2
 
 ```ant
 let a = "a".toBytes()
-let s = a.concat() // error: Bytes.concat is not a function on Bytes: it takes Array[Bytes] first
+let s = a.concat() // error: Bytes.concat takes Array[Bytes] first, so a Bytes does not reach it
 ```
 
 Every part must be `Bytes`. Convert a string with [String.toBytes](../String/toBytes.md) first:

@@ -403,7 +403,7 @@ name:
 type Point = { x: float64, y: float64 }
 func Point.origin(): Point { Point{ x: 0.0, y: 0.0 } }
 let p = Point{ x: 1.0, y: 1.0 }
-p.origin() // error: Point.origin takes no argument, so it is not a function on Point
+p.origin() // error: Point.origin does not take a Point first, so a value does not reach it
 ```
 
 `return` inside a lambda leaves only the lambda, not the enclosing function. Here it gives the

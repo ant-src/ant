@@ -172,7 +172,7 @@ A string is not the subject either: `String.join` takes the array first:
 
 ```ant
 let s = ",".join(["a", "b"])
-// error: String.join is not a function on string: it takes Array[string] first
+// error: String.join takes Array[string] first, so a string does not reach it
 ```
 
 The separator has no default. Leaving it out is a compile error; pass `""` or use
