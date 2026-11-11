@@ -39,7 +39,7 @@ let shapes: Array[Shape] = [Circle{ radius: 1.0 }, Rect{ width: 2.0, height: 3.0
 for s in shapes {
   println(area(s))
 }
-println(shapes.filter({ x is Rect }).length())
+println(shapes.countWhere({ x is Rect }))
 
 let lights: Array[Light] = [Red{}, Green{}, Yellow{}]
 for light in lights {
@@ -65,7 +65,7 @@ on a local variable or a parameter changes its type in the branch it guards.
 `Shape` is a tagged union, a union of named records. Every record value carries its type's name as a
 tag, and `s is Circle` tests that tag. In the branch, `s` is a `Circle`, so `s.radius` is there to
 read. Ant has no pattern matching: `is` with `if` is how you take a union of records apart. `is`
-works anywhere a `bool` does, as in the lambda passed to `filter`.
+works anywhere a `bool` does, as in the lambda passed to `countWhere`.
 
 The chain in `area` has no final `else`. After `s is Circle` and `s is Rect`, no member of `Shape`
 is left, so the type checker knows the chain covers every case and gives it type `float64`.

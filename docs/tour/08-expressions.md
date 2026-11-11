@@ -19,7 +19,7 @@ func describe(n: int): string {
 }
 
 func reading(xs: Array[int], i: int): string {
-  let n = Array.get(xs, i) ?? return "no reading at ${i}"
+  let n = xs.get(i) ?? return "no reading at ${i}"
   describe(n)
 }
 
@@ -63,7 +63,7 @@ let size: string = if n > 2 { "big" }
 `for` and `while` give no value, so a loop that builds a result updates a `var` declared before it,
 as `sum` does. `break` leaves the loop, and `continue` skips to the next element.
 
-`return` is an expression too. In `reading`, `??` falls back to its right side when `Array.get`
+`return` is an expression too. In `reading`, `??` falls back to its right side when `xs.get(i)`
 finds no element, and that right side leaves the function with a message. The rest of `reading` then
 works with an `int`, never with `null`.
 

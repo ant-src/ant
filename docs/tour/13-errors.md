@@ -38,7 +38,7 @@ for line in ["apples x3", "pears x0", "plums", "figs xmany"] {
   }
 }
 
-let orders = try (["apples x3", "pears x2"].map(parseOrder) | Result.all())
+let orders = try (["apples x3", "pears x2"] | Array.map(parseOrder) | Result.all())
 println(orders.map({ x.qty }).sum())
 ```
 
@@ -83,11 +83,9 @@ func parseCount(text: string): Result[int, Empty | BadDigit] {
   if text == "" {
     return Result.err(Empty{})
   }
-  let chars = text.chars()
-  for i in Iter.range(0, chars.length()) {
-    if !chars[i].isDigit() {
-      return Result.err(BadDigit{ at: i })
-    }
+  let bad = text.chars().findIndex({ !x.isDigit() })
+  if bad != null {
+    return Result.err(BadDigit{ at: bad })
   }
   Result.ok(text.toInt() ?? 0)
 }

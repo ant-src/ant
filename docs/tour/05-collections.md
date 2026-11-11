@@ -7,11 +7,11 @@ holds each value once. This program builds one of each, reads it, changes it, an
 
 ```ant
 let scores = [72, 95, 88]
-Array.push(scores, 61)
+scores.push(61)
 scores[0] = 75
 println(scores[1])
 println(scores)
-println("${Array.length(scores)} scores")
+println("${scores.length()} scores")
 
 let ages = Map{ ada: 36, linus: 54 }
 ages["grace"] = 85
@@ -22,8 +22,8 @@ for { key, value } in ages {
 }
 
 let tags = Set.of(["red", "blue", "red"])
-Set.add(tags, "green")
-println(Set.has(tags, "red"))
+tags.add("green")
+println(tags.has("red"))
 for tag in tags {
   println(tag)
 }
@@ -45,7 +45,7 @@ green
 ```
 
 Square brackets build an array, and `scores[1]` reads the element at index 1, counting from 0.
-`scores[0] = 75` replaces an element, and `Array.push` appends one. The array changes in place:
+`scores[0] = 75` replaces an element, and `scores.push(61)` appends one. The array changes in place:
 `let` stops you from pointing `scores` at another array, not from changing the one it holds.
 
 `Map{ ... }` builds a map. A single word before `:` is a string key, so `ada` is the key `"ada"`.
@@ -54,8 +54,8 @@ key gives the value or `null`, since the key may be missing, so `?? 0` supplies 
 loop over a map visits each entry in the order its key was first inserted, and `{ key, value }`
 takes the entry apart.
 
-A set has no literal: `Set.of` builds one from an array and drops the second `"red"`. `Set.add` adds
-a member and `Set.has` asks for one. A set keeps insertion order too.
+A set has no literal: `Set.of` builds one from an array and drops the second `"red"`. `tags.add`
+adds a member and `tags.has` asks for one. A set keeps insertion order too.
 
 An empty collection needs its type written out, because nothing in it says what it holds:
 
@@ -63,9 +63,9 @@ An empty collection needs its type written out, because nothing in it says what 
 let names: Array[string] = []
 let counts: Map[string, int] = Map{}
 let seen: Set[int] = Set.of([])
-Array.push(names, "ada")
+names.push("ada")
 counts["ada"] = 1
-Set.add(seen, 7)
+seen.add(7)
 println(names)
 println(counts)
 println(seen)
@@ -77,16 +77,16 @@ Map{ "ada": 1 }
 Set.of([7])
 ```
 
-An index out of range panics, whether you read or write it. `Array.get` returns `null` instead:
+An index out of range panics, whether you read or write it. `get` returns `null` instead:
 
 ```ant
 let xs = [1, 2, 3]
-Array.get(xs, 5) // null
-xs[5]            // panic: index 5 out of range for an array of length 3
+xs.get(5) // null
+xs[5]     // panic: index 5 out of range for an array of length 3
 ```
 
-Try it: push a few more scores and print `Array.sort(scores)`, or remove `"linus"` with `Map.remove`
-and loop again.
+Try it: push a few more scores and print `scores.sort()`, or remove `"linus"` with
+`ages.remove("linus")` and loop again.
 
 The [collections guide](../guide/collections.md) explains equality, identity, and lazy sequences.
 The reference has every function on [Array](../lib/Array/index.md), [Map](../lib/Map/index.md), and

@@ -22,7 +22,7 @@ func twice(f: func(int): int, n: int): int {
 let square = func(n: int): int { n * n }
 println(twice(square, 3))
 println(twice({ x + 10 }, 1))
-println(Array.map([1, 2, 3], { x * x }))
+println([1, 2, 3].map({ x * x }))
 
 func counter(): func(): int {
   var n = 0
@@ -67,8 +67,8 @@ accepts and returns. Any function of that type fits: a declared function by its 
 which binds a `func` without a name, or a lambda.
 
 A lambda is a bare block, `{ x + 10 }`. It takes at most one parameter, always named `x`, and its
-type comes from where you use it: `twice` expects `func(int): int`, so `x` is an `int`. `Array.map`
-passes each element as `x` in the same way.
+type comes from where you use it: `twice` expects `func(int): int`, so `x` is an `int`. `map` passes
+each element as `x` in the same way.
 
 `counter` returns a function that keeps its own `n`. The returned function captures the variable,
 not its value, so each call sees the count the last call left.
@@ -112,7 +112,7 @@ greet(greeting: "Hi", "Ann") // error: a positional argument cannot follow a nam
 
 ## Next
 
-[Calls](07-calls.md) shows `xs.map(...)` and the pipe. The [functions guide](../guide/functions.md)
-goes further, and the reference has [func](../language/keywords/func.md),
-[lambdas](../language/literals/lambdas.md), [function types](../language/types/functions.md), and
-[Array.map](../lib/Array/map.md).
+[Calls](07-calls.md) explains calls through `.` and the pipe. The
+[functions guide](../guide/functions.md) goes further, and the reference has
+[func](../language/keywords/func.md), [lambdas](../language/literals/lambdas.md),
+[function types](../language/types/functions.md), and [Array.map](../lib/Array/map.md).

@@ -24,7 +24,7 @@ for c in word {
   print("[${c}]")
 }
 println("")
-println(String.toUpper(word))
+println(word.toUpper())
 ```
 
 ```text
@@ -45,7 +45,7 @@ AÑT 🐜
 let xs = [1, 2, 3]
 "sum: ${xs[0] + xs[1] + xs[2]}" // "sum: 6"
 "items: ${xs}"                  // "items: [1, 2, 3]"
-String.chars("\${n}")           // ["$", "{", "n", "}"]
+"\${n}".chars()                 // ["$", "{", "n", "}"]
 "$5"                            // "$5"
 ```
 
@@ -74,10 +74,10 @@ no character type: `for` gives each character as a string of one code point. `St
 the UTF-8 bytes when you need them.
 
 ```ant
-len("añt")               // 3
-String.chars("añt")      // ["a", "ñ", "t"]
-String.toBytes("añt")    // Bytes(61 c3 b1 74)
-String.toUpper("straße") // "STRASSE"
+len("añt")         // 3
+"añt".chars()      // ["a", "ñ", "t"]
+"añt".toBytes()    // Bytes(61 c3 b1 74)
+"straße".toUpper() // "STRASSE"
 ```
 
 Changing case can change the length: `String.toUpper` turns `ß` into `SS`.
@@ -87,8 +87,8 @@ joined by two invisible joiners. `String.graphemes` splits text the way a reader
 
 ```ant
 let family = "👨‍👩‍👧"
-len(family)                   // 5
-len(String.graphemes(family)) // 1
+len(family)             // 5
+len(family.graphemes()) // 1
 ```
 
 ## Learn more

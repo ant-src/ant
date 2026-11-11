@@ -39,7 +39,10 @@ for n in naturals() {
   }
 }
 
-let oddSquares = naturals() | Iter.map({ x * x }) | Iter.filter({ x % 2 == 1 }) | Iter.take(4)
+let oddSquares = naturals()
+  | Iter.map({ x * x })
+  | Iter.filter({ x % 2 == 1 })
+  | Iter.take(4)
 println(oddSquares.toArray())
 ```
 
@@ -64,8 +67,8 @@ returns `false`, and the sequence must stop: that is what `if !yield(n) { return
 `naturals` counts forever. That is fine, because the loop decides how far to go: the `break` at 64
 makes `yield` return `false`, and the `while` ends.
 
-The `oddSquares` line builds a chain with `Iter`. Building it runs nothing. `toArray` on the last
-line runs it, and `Iter.take(4)` stops `naturals` once it has four odd squares, so `Iter.map`
+The `oddSquares` pipeline builds a chain with `Iter`. Building it runs nothing. `toArray` on the
+last line runs it, and `Iter.take(4)` stops `naturals` once it has four odd squares, so `Iter.map`
 squares only the seven numbers it needs. `Iter.fromArray(xs)` turns an array into a sequence, and a
 chain like `oddSquares` runs again each time you loop over it.
 
