@@ -8,9 +8,9 @@ func Time.toZoned(t: Time.PlainDateTime, z: Time.Zone, disambiguation: Time.Disa
 ```
 
 Time.toZoned places the wall-clock time t in zone z. A time that a daylight-saving change skipped or
-repeated is resolved by disambiguation, by default Time.Compatible, which takes the later instant in
-a gap and the earlier in an overlap; [`Time.possibleInstants`](possibleInstants.md) shows the
-choices.
+repeated is resolved by disambiguation, by default Time.Compatible, which moves a time in a gap
+forward by the length of the gap and takes the earlier instant in an overlap;
+[`Time.possibleInstants`](possibleInstants.md) shows the choices.
 
 <!-- end generated -->
 
@@ -97,8 +97,9 @@ repeated.toZoned(ny, disambiguation: Time.Earlier{}) // 2026-11-01T01:30:00-04:0
 repeated.toZoned(ny, disambiguation: Time.Later{})   // 2026-11-01T01:30:00-05:00[America/New_York]
 ```
 
-In a gap, `Time.Earlier{}` gives a time before the change and `Time.Later{}` one after it. The
-default, `Time.Compatible{}`, takes the later instant in a gap and the earlier in an overlap:
+In a gap, `Time.Earlier{}` moves the time back by the length of the gap and `Time.Later{}` moves it
+forward. The default, `Time.Compatible{}`, moves it forward in a gap and takes the earlier instant
+in an overlap:
 
 ```ant
 let ny = Time.zone("America/New_York").unwrap()

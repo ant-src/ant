@@ -120,3 +120,51 @@ describe(z)                                   // => "zoned in America/New_York"
 describe(dt)                                  // => "date-time on 2026-10-22"
 Time.epochMillis(Time.now()) > 1700000000000  // => true
 Time.year(Time.nowIn(Time.utc)) >= 2026       // => true
+
+// Dates are in the ISO 8601 calendar, the proleptic Gregorian one with a year 0 and negative
+// years; a leap year is divisible by 4, except a century year not divisible by 400.
+Time.inLeapYear(Time.plainDate(2000, 2, 1))   // => true
+Time.inLeapYear(Time.plainDate(1900, 2, 1))   // => false
+Time.inLeapYear(Time.plainDate(0, 2, 1))      // => true
+Time.inLeapYear(Time.plainDate(-100, 2, 1))   // => false
+Time.daysInMonth(Time.plainDate(1900, 2, 1))  // => 28
+Time.daysInYear(Time.plainDate(-4, 1, 1))     // => 366
+Time.plainDate(1900, 2, 29)                   // => panic: Time.plainDate: no such date: 1900-02-29
+
+// The day of the year runs from 1 to 365, or 366 in a leap year; plainTime's fields have the
+// ranges of a clock.
+Time.dayOfYear(Time.plainDate(2026, 1, 1))    // => 1
+Time.dayOfYear(Time.plainDate(2028, 12, 31))  // => 366
+Time.plainTime(second: 60)                    // => panic: Time.plainTime: second out of range: 60
+Time.plainTime(millisecond: 1000)             // => panic: Time.plainTime: millisecond out of range: 1000
+Time.plainTime(minute: -1)                    // => panic: Time.plainTime: minute out of range: -1
+
+// An offset zone is below 24 hours, and a zero offset is written with +.
+Time.zone("+23:59")                           // => Ok{ value: +23:59 }
+Time.zone("+24:00") is Err                    // => true
+Time.zoneId(Result.unwrap(Time.zone("-00:00"))) // => "+00:00"
+
+// A bracketed zone is read in any letter case and renders as the database spells it.
+Time.parseZoned("2026-10-22T16:03:05+02:00[europe/stockholm]") // => Ok{ value: 2026-10-22T16:03:05+02:00[Europe/Stockholm] }
+
+// The plain parsers keep their own part of any form, but the whole string must be well formed;
+// the bracketed zone's name is not looked up.
+Time.parsePlainDate("2026-10-22 trailing") is Err // => true
+Time.parsePlainDate("2026-10-22T25:00") is Err // => true
+Time.parsePlainTime("2026-02-30T10:00") is Err // => true
+Time.parsePlainDateTime("2026-02-30T10:00") is Err // => true
+Time.parsePlainDate("2026-10-22T10:00+24:00") is Err // => true
+Time.parsePlainDate("2026-10-22T10:00[Nowhere/Zone]") // => Ok{ value: 2026-10-22 }
+
+// Lord Howe Island moves its clocks by half an hour, so its change days are 23.5 and 24.5 hours.
+Time.hoursInDay(Result.unwrap(Time.parseZoned("2026-04-05T12:00[Australia/Lord_Howe]"))) // => 24.5
+
+// In a gap, Earlier reads the time with the offset from after the change, moving it back.
+var nyGap = Result.unwrap(Time.zone("America/New_York"))
+var spring = Result.unwrap(Time.parsePlainDateTime("2026-03-08T02:30"))
+Time.toZoned(spring, nyGap, disambiguation: Time.Earlier{}) // => 2026-03-08T01:30:00-05:00[America/New_York]
+Time.toZoned(spring, nyGap, disambiguation: Time.Later{}) // => 2026-03-08T03:30:00-04:00[America/New_York]
+
+// A PlainTime that rounds up to 24:00 wraps to midnight; a PlainDateTime moves to the next day.
+Time.round(Time.plainTime(23, 50), Time.Hour{}) // => 00:00:00
+Time.round(Time.plainDateTime(Time.plainDate(2026, 1, 1), Time.plainTime(23, 50)), Time.Hour{}) // => 2026-01-02T00:00:00

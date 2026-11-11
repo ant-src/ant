@@ -8,7 +8,8 @@ func Time.monotonic(): int
 ```
 
 Time.monotonic returns milliseconds from an arbitrary origin, for measuring elapsed time. Only the
-difference of two readings means anything.
+difference of two readings means anything. Changes to the wall clock do not affect it, and a later
+reading in the same run, on any goroutine, is never smaller than an earlier one.
 
 <!-- end generated -->
 

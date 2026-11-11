@@ -7,9 +7,10 @@
 func Time.parsePlainDate(s: string): Result[Time.PlainDate, Error]
 ```
 
-Time.parsePlainDate parses a date from s, such as 2026-10-22. It takes the date of a longer string
-and ignores the rest, though not of one with Z and no bracketed zone; text it cannot parse, or a
-date that does not exist, is an Err.
+Time.parsePlainDate parses a date from s, such as 2026-10-22. It also takes the longer forms, up to
+a full zoned string, and keeps their date; the whole string must still be well formed, with a date
+that exists, a time in range and a valid offset, though the name in a bracketed zone is not looked
+up. Z with no bracketed zone, and text it cannot parse, are an Err.
 
 <!-- end generated -->
 

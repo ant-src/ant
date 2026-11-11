@@ -8,9 +8,10 @@ func Time.parseZoned(s: string, disambiguation: Time.Disambiguation = Time.Compa
 ```
 
 Time.parseZoned parses a zoned date-time from s, such as
-2026-10-22T16:03:05+02:00\[Europe/Stockholm\]. The text needs a bracketed zone. Without an offset,
-the wall-clock time is placed in the zone by disambiguation; with Z, the moment is taken and shown
-in the zone; an offset the zone does not have at that time is an Err, as is text it cannot parse.
+2026-10-22T16:03:05+02:00\[Europe/Stockholm\]. The text needs a bracketed zone, read in any letter
+case. Without an offset, the wall-clock time is placed in the zone by disambiguation; with Z, the
+moment is taken and shown in the zone; an offset the zone does not have at that time is an Err, as
+is text it cannot parse.
 
 <!-- end generated -->
 
@@ -21,8 +22,8 @@ in the zone; an offset the zone does not have at that time is an Err, as is text
 - With an offset, the offset must be the zone's at that time, so the text names one exact moment.
   Text with `Z` is taken as that moment, shown in the zone.
 - Without an offset, `disambiguation` resolves a wall-clock time that a daylight-saving change
-  skipped or repeated. The default, `Time.Compatible{}`, takes the later instant in a gap and the
-  earlier one in an overlap.
+  skipped or repeated. The default, `Time.Compatible{}`, moves a time in a gap forward by the length
+  of the gap and takes the earlier instant in an overlap.
 - An unknown zone and text in another spelling, such as a lowercase `t`, are an `Err`.
 
 ## Basic examples

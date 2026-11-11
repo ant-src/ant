@@ -10,9 +10,10 @@ func Time.round[T: Time.Instant | Time.Timed](t: T, smallestUnit: Time.Unit, inc
 Time.round rounds t to a multiple of increment of smallestUnit by mode, by default to the nearest
 with a tie away from zero. It rounds the time since the start of the day, or since the epoch for an
 Instant; a ZonedDateTime rounded to Day picks the start of its day or the next by how much of the
-real day has passed. It panics on Year, Month or Week, on Day for an Instant or a PlainTime, and
-unless increment divides the next larger unit (24, 60 or 1000) and is smaller than it, or is 1 for
-Day.
+real day has passed. A PlainTime that rounds up to 24:00 wraps to 00:00:00, and the other wall-clock
+types move to the next day. It panics on Year, Month or Week, on Day for an Instant or a PlainTime,
+and unless increment is positive, divides the next larger unit (24, 60 or 1000) and is smaller than
+it, or is 1 for Day.
 
 <!-- end generated -->
 
@@ -223,7 +224,7 @@ rounds to a week, month or year:
 let start = Time.fromEpochMillis(0)
 start.round(Time.Day{})               // panic: Time.round: an instant cannot be rounded to a day
 Time.plainTime(9).round(Time.Day{})   // panic: Time.round: a time cannot be rounded to a day
-Time.plainTime(9).round(Time.Month{}) // panic: Time.round: months cannot be rounded to
+Time.plainTime(9).round(Time.Month{}) // panic: Time.round: cannot round to months; round a duration with Time.roundDuration
 ```
 
 A `PlainDate` has no time of day to round:

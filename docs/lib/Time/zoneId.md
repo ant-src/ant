@@ -8,7 +8,7 @@ func Time.zoneId(z: Time.Zone): string
 ```
 
 Time.zoneId returns the identifier of z: its name as the database spells it, or its offset as
-±HH:MM.
+±HH:MM, with + for a zero offset.
 
 <!-- end generated -->
 

@@ -7,8 +7,9 @@
 func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.Dated | null = null): int
 ```
 
-Time.compareDuration returns -1, 0 or 1 as a is shorter than, as long as or longer than b. Years,
-months and weeks are measured from relativeTo, and a day is 24 hours unless relativeTo is a
+Time.compareDuration returns -1, 0 or 1 as a is shorter than, as long as or longer than b, by signed
+length, so a negative duration is shorter than any positive one. Years, months and weeks are
+measured from relativeTo, a week being 7 days, and a day is 24 hours unless relativeTo is a
 ZonedDateTime, whose days have their daylight-saving hours. It panics if either has years, months or
 weeks and relativeTo is null.
 

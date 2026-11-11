@@ -5,7 +5,8 @@
 
 Time holds dates, times, zones, and durations, after JavaScript's Temporal: exact time and
 wall-clock time are different types, a zone is named and carried, and nothing assumes UTC or the
-host's zone. The time types are opaque, immutable, and compared by value. Unlike the other I/O
+host's zone. Dates are in the ISO 8601 calendar, the proleptic Gregorian one, with a year 0 and
+negative years. The time types are opaque, immutable, and compared by value. Unlike the other I/O
 namespaces, Time is computation and panics on an argument that cannot be.
 
 <!-- end generated -->
@@ -323,7 +324,7 @@ Time.plainDate(2026, 2, 30) // panic: Time.plainDate: no such date: 2026-02-30
 An `Instant` has no calendar, so calendar units panic on it. Convert it to a `ZonedDateTime` first:
 
 ```ant
-Time.fromEpochMillis(0).add(Time.duration(days: 1))                  // panic: Time.add: an instant has no calendar; days cannot be added to it
+Time.fromEpochMillis(0).add(Time.duration(days: 1))                  // panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 Time.fromEpochMillis(0).inZone(Time.utc).add(Time.duration(days: 1)) // 1970-01-02T00:00:00+00:00[UTC]
 ```
 

@@ -7,7 +7,7 @@
 func Time.dayOfYear(t: Time.Dated): int
 ```
 
-Time.dayOfYear returns the day of the year of t, 1 for January 1.
+Time.dayOfYear returns the day of the year of t, 1 for January 1 to 365, or 366 in a leap year.
 
 <!-- end generated -->
 

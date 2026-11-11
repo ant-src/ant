@@ -1,0 +1,14 @@
+// spec: stdlib Time
+// Time.monotonic never goes back within a run, on any goroutine, and a sleep of d adds at least
+// the whole milliseconds of d.
+let start = Time.monotonic()
+Time.sleep(Time.duration(milliseconds: 20))
+let slept = Time.monotonic()
+println(slept - start >= 20)
+let later: Channel[int] = Channel.new(1)
+go { later.send(Time.monotonic()) }
+println((later.receive() ?? 0) >= slept)
+
+// expect
+// out: true
+// out: true

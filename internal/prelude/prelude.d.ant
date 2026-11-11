@@ -2028,7 +2028,8 @@ func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: C
 //
 // Time holds dates, times, zones, and durations, after JavaScript's Temporal: exact time and
 // wall-clock time are different types, a zone is named and carried, and nothing assumes UTC or the
-// host's zone. The time types are opaque, immutable, and compared by value. Unlike the other I/O
+// host's zone. Dates are in the ISO 8601 calendar, the proleptic Gregorian one, with a year 0 and
+// negative years. The time types are opaque, immutable, and compared by value. Unlike the other I/O
 // namespaces, Time is computation and panics on an argument that cannot be.
 
 // Time.Zone is a time zone: a zone of the IANA database, such as Europe/Stockholm, or a fixed
@@ -2079,16 +2080,19 @@ type Time.Timed = Time.ZonedDateTime | Time.PlainTime | Time.PlainDateTime
 // 8601 form, as P1Y2M3DT4H5M6.5S, -PT1H or PT0S.
 type Time.Duration
 
-// Time.Compatible is the disambiguation that takes the later instant for a wall-clock time in a gap
-// and the earlier for one in an overlap. It is the default, and what the common date libraries do.
+// Time.Compatible is the disambiguation that moves a wall-clock time in a gap forward by the length
+// of the gap, as Time.Later does, and takes the earlier instant for one in an overlap. It is the
+// default, and what the common date libraries do.
 type Time.Compatible = {}
 
-// Time.Earlier is the disambiguation that takes the earlier instant for a wall-clock time in a gap
-// or an overlap.
+// Time.Earlier is the disambiguation that takes the earlier instant for a wall-clock time in an
+// overlap, and reads one in a gap with the offset from after the change, which moves it back by the
+// length of the gap.
 type Time.Earlier = {}
 
-// Time.Later is the disambiguation that takes the later instant for a wall-clock time in a gap or
-// an overlap.
+// Time.Later is the disambiguation that takes the later instant for a wall-clock time in an
+// overlap, and reads one in a gap with the offset from before the change, which moves it forward by
+// the length of the gap.
 type Time.Later = {}
 
 // Time.Disambiguation says which instant to take for a wall-clock time that a daylight-saving
@@ -2170,25 +2174,28 @@ let Time.utc: Time.Zone
 
 // Time.zone returns the zone named by id, a name of the IANA database in any letter case or a fixed
 // offset. An alias such as Asia/Calcutta is accepted, and an offset may be written ±HH:MM, ±HHMM or
-// ±HH; anything else, the empty string included, is an Err.
+// ±HH, below 24 hours; anything else, the empty string included, is an Err.
 func Time.zone(id: string): Result[Time.Zone, Error]
 
-// Time.localZone returns the host's zone. It is the zone the TZ environment variable names, else
-// the one the system's setting names; when neither names a zone of the database, it is the fixed
+// Time.localZone returns the host's zone. It is the zone the TZ environment variable names, with a
+// leading colon dropped, else the one the system's setting names; an offset in TZ, which POSIX
+// reads as west of UTC, is passed over. When neither names a zone of the database, it is the fixed
 // offset the host reports at the moment of the call.
 func Time.localZone(): Time.Zone
 
 // Time.zoneId returns the identifier of z: its name as the database spells it, or its offset as
-// ±HH:MM.
+// ±HH:MM, with + for a zero offset.
 //
 //     Time.zoneId(Result.unwrap(Time.zone("asia/calcutta")))   // "Asia/Calcutta"
 //     Time.zoneId(Result.unwrap(Time.zone("+0530")))           // "+05:30"
 func Time.zoneId(z: Time.Zone): string
 
-// Time.now returns the current instant.
+// Time.now returns the current instant from the wall clock, which the host may set forward or back,
+// so a later call can return an earlier instant; measure elapsed time with [Time.monotonic].
 func Time.now(): Time.Instant
 
-// Time.nowIn returns the current instant seen in zone z.
+// Time.nowIn returns the current instant seen in zone z, read from the wall clock as [Time.now]
+// reads it.
 func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
 
 // Time.sleep blocks the calling goroutine for d, or until ctx is done when ctx is not null. Hours
@@ -2203,7 +2210,8 @@ func Time.sleep(d: Time.Duration, ctx: Context | null = null): void
 func Time.ticker(d: Time.Duration, ctx: Context | null = null): Channel[Time.Instant]
 
 // Time.monotonic returns milliseconds from an arbitrary origin, for measuring elapsed time. Only
-// the difference of two readings means anything.
+// the difference of two readings means anything. Changes to the wall clock do not affect it, and a
+// later reading in the same run, on any goroutine, is never smaller than an earlier one.
 func Time.monotonic(): int
 
 // Time.fromEpochMillis returns the instant ms milliseconds after the Unix epoch, or before it when
@@ -2231,7 +2239,7 @@ func Time.epochNanos(t: Time.Instant | Time.ZonedDateTime): int
 func Time.plainDate(year: int, month: int, day: int): Time.PlainDate
 
 // Time.plainTime returns the time of day with the given fields, each 0 when omitted. It panics if a
-// field is out of range, such as hour 24 or minute 60.
+// field is out of range: hour 0 to 23, minute and second 0 to 59, the subsecond fields 0 to 999.
 func Time.plainTime(hour: int = 0, minute: int = 0, second: int = 0, millisecond: int = 0, microsecond: int = 0, nanosecond: int = 0): Time.PlainTime
 
 // Time.plainDateTime returns the wall-clock date and time made of date and time.
@@ -2251,33 +2259,39 @@ func Time.duration(years: int = 0, months: int = 0, weeks: int = 0, days: int = 
 func Time.parseInstant(s: string): Result[Time.Instant, Error]
 
 // Time.parseZoned parses a zoned date-time from s, such as
-// 2026-10-22T16:03:05+02:00[Europe/Stockholm]. The text needs a bracketed zone. Without an offset,
-// the wall-clock time is placed in the zone by disambiguation; with Z, the moment is taken and
-// shown in the zone; an offset the zone does not have at that time is an Err, as is text it cannot
-// parse.
+// 2026-10-22T16:03:05+02:00[Europe/Stockholm]. The text needs a bracketed zone, read in any letter
+// case. Without an offset, the wall-clock time is placed in the zone by disambiguation; with Z, the
+// moment is taken and shown in the zone; an offset the zone does not have at that time is an Err,
+// as is text it cannot parse.
 func Time.parseZoned(s: string, disambiguation: Time.Disambiguation = Time.Compatible{}): Result[Time.ZonedDateTime, Error]
 
-// Time.parsePlainDate parses a date from s, such as 2026-10-22. It takes the date of a longer
-// string and ignores the rest, though not of one with Z and no bracketed zone; text it cannot
-// parse, or a date that does not exist, is an Err.
+// Time.parsePlainDate parses a date from s, such as 2026-10-22. It also takes the longer forms, up
+// to a full zoned string, and keeps their date; the whole string must still be well formed, with a
+// date that exists, a time in range and a valid offset, though the name in a bracketed zone is not
+// looked up. Z with no bracketed zone, and text it cannot parse, are an Err.
 //
-//     var s = "2026-10-22T16:03:05+02:00[Europe/Stockholm]"
+//     let s = "2026-10-22T16:03:05+02:00[Europe/Stockholm]"
 //     Time.parsePlainDate(s)   // Ok{ value: 2026-10-22 }
 func Time.parsePlainDate(s: string): Result[Time.PlainDate, Error]
 
 // Time.parsePlainTime parses a time of day from s, such as 14:03:05.123. It takes HH:MM, HH:MM:SS
-// or up to nine digits of fraction, alone or after a date, and ignores the rest of a longer string,
-// though not of one with Z and no bracketed zone; text it cannot parse is an Err.
+// or up to nine digits of fraction, alone or after a date, and keeps the time of a longer form; the
+// whole string must still be well formed, with a date that exists and a valid offset, though the
+// name in a bracketed zone is not looked up. Z with no bracketed zone, and text it cannot parse,
+// are an Err.
 func Time.parsePlainTime(s: string): Result[Time.PlainTime, Error]
 
 // Time.parsePlainDateTime parses a date and time from s, such as 2026-10-22T14:03:05, with T or a
-// space between them. It ignores an offset or zone that follows, though not Z with no bracketed
-// zone; text it cannot parse is an Err.
+// space between them. It keeps the date and time of a longer form, which must still be well formed,
+// with a valid offset, though the name in a bracketed zone is not looked up. Z with no bracketed
+// zone, and text it cannot parse, are an Err.
 func Time.parsePlainDateTime(s: string): Result[Time.PlainDateTime, Error]
 
 // Time.parseDuration parses an ISO 8601 duration from s, such as P1Y2M3DT4H5M6.5S, -PT1H or PT0S.
 // It takes PnYnMnWnDTnHnMnS with an optional leading sign, where only the last time component may
-// have a fraction, and keeps the fields as written; text it cannot parse is an Err.
+// have a fraction, and keeps the whole fields as written. A fraction is spread into the smaller
+// fields, so PT1.5H is PT1H30M and PT1.5S is 1 second and 500 milliseconds; text it cannot parse is
+// an Err.
 func Time.parseDuration(s: string): Result[Time.Duration, Error]
 
 // Time.inZone returns the instant t seen in zone z.
@@ -2287,11 +2301,12 @@ func Time.inZone(t: Time.Instant, z: Time.Zone): Time.ZonedDateTime
 func Time.withZone(t: Time.ZonedDateTime, z: Time.Zone): Time.ZonedDateTime
 
 // Time.toZoned places the wall-clock time t in zone z. A time that a daylight-saving change skipped
-// or repeated is resolved by disambiguation, by default Time.Compatible, which takes the later
-// instant in a gap and the earlier in an overlap; [Time.possibleInstants] shows the choices.
+// or repeated is resolved by disambiguation, by default Time.Compatible, which moves a time in a
+// gap forward by the length of the gap and takes the earlier instant in an overlap;
+// [Time.possibleInstants] shows the choices.
 //
-//     var ny = Result.unwrap(Time.zone("America/New_York"))
-//     var t = Result.unwrap(Time.parsePlainDateTime("2024-03-10T02:30"))
+//     let ny = Result.unwrap(Time.zone("America/New_York"))
+//     let t = Result.unwrap(Time.parsePlainDateTime("2024-03-10T02:30"))
 //     Time.toZoned(t, ny)   // 2024-03-10T03:30:00-04:00[America/New_York]
 func Time.toZoned(t: Time.PlainDateTime, z: Time.Zone, disambiguation: Time.Disambiguation = Time.Compatible{}): Time.ZonedDateTime
 
@@ -2315,7 +2330,7 @@ func Time.toPlainDateTime(t: Time.ZonedDateTime): Time.PlainDateTime
 // Time.startOfDay returns the first instant of the date of t in its zone. That is midnight, except
 // on a day whose midnight a daylight-saving change skipped.
 //
-//     var t = Result.unwrap(Time.parseZoned("2024-09-08T12:00[America/Santiago]"))
+//     let t = Result.unwrap(Time.parseZoned("2024-09-08T12:00[America/Santiago]"))
 //     Time.startOfDay(t)   // 2024-09-08T01:00:00-03:00[America/Santiago]
 func Time.startOfDay(t: Time.ZonedDateTime): Time.ZonedDateTime
 
@@ -2330,14 +2345,14 @@ func Time.offset(t: Time.ZonedDateTime): string
 func Time.offsetSeconds(t: Time.ZonedDateTime): int
 
 // Time.hoursInDay returns the length in hours of the date of t in its zone: 24.0 on most days, 23.0
-// or 25.0 on a daylight-saving change, 23.5 on Lord Howe Island.
+// or 25.0 on a daylight-saving change, 23.5 or 24.5 on Lord Howe Island.
 func Time.hoursInDay(t: Time.ZonedDateTime): float64
 
 // Time.nextTransition returns the earliest moment after t at which the zone of t changes its
 // offset, in that zone. It is null when there is none, as for an offset zone or a zone that has
 // stopped changing.
 //
-//     var t = Result.unwrap(Time.parseZoned("2024-06-01T00:00[America/New_York]"))
+//     let t = Result.unwrap(Time.parseZoned("2024-06-01T00:00[America/New_York]"))
 //     Time.nextTransition(t)   // 2024-11-03T01:00:00-05:00[America/New_York]
 func Time.nextTransition(t: Time.ZonedDateTime): Time.ZonedDateTime | null
 
@@ -2357,7 +2372,7 @@ func Time.day(t: Time.Dated): int
 // Time.dayOfWeek returns the day of the week of t, 1 for Monday to 7 for Sunday, as in ISO 8601.
 func Time.dayOfWeek(t: Time.Dated): int
 
-// Time.dayOfYear returns the day of the year of t, 1 for January 1.
+// Time.dayOfYear returns the day of the year of t, 1 for January 1 to 365, or 366 in a leap year.
 func Time.dayOfYear(t: Time.Dated): int
 
 // Time.weekOfYear returns the ISO 8601 week of t, 1 to 53. Weeks start on Monday and week 1 holds
@@ -2379,7 +2394,8 @@ func Time.daysInMonth(t: Time.Dated): int
 // Time.daysInYear returns the number of days in the year of t, 365 or 366.
 func Time.daysInYear(t: Time.Dated): int
 
-// Time.inLeapYear reports whether the year of t has 366 days.
+// Time.inLeapYear reports whether the year of t has 366 days: a year divisible by 4, except a
+// century year not divisible by 400, so 2000 and 0 are leap years and 1900 is not.
 func Time.inLeapYear(t: Time.Dated): bool
 
 // Time.hour returns the hour of t, 0 to 23.
@@ -2430,7 +2446,7 @@ func Time.subtract[T: Time.Point](t: T, d: Time.Duration): T
 // panics on a unit above Hour for an Instant or a PlainTime or below Day for a PlainDate, and on
 // Day or larger between ZonedDateTimes in different zones.
 //
-//     var jan31 = Time.plainDate(2026, 1, 31)
+//     let jan31 = Time.plainDate(2026, 1, 31)
 //     Time.until(jan31, Time.plainDate(2026, 2, 28), largestUnit: Time.Month{})   // P28D
 func Time.until[T: Time.Point](from: T, to: T, largestUnit: Time.Unit | null = null): Time.Duration
 
@@ -2438,8 +2454,8 @@ func Time.until[T: Time.Point](from: T, to: T, largestUnit: Time.Unit | null = n
 // other)), and for calendar units can differ from Time.until(other, t), whose anchor is other. It
 // panics as [Time.until] does.
 //
-//     var feb29 = Time.plainDate(2024, 2, 29)
-//     var mar31 = Time.plainDate(2024, 3, 31)
+//     let feb29 = Time.plainDate(2024, 2, 29)
+//     let mar31 = Time.plainDate(2024, 3, 31)
 //     Time.since(mar31, feb29, largestUnit: Time.Month{})   // P1M
 //     Time.until(feb29, mar31, largestUnit: Time.Month{})   // P1M2D
 func Time.since[T: Time.Point](t: T, other: T, largestUnit: Time.Unit | null = null): Time.Duration
@@ -2447,9 +2463,10 @@ func Time.since[T: Time.Point](t: T, other: T, largestUnit: Time.Unit | null = n
 // Time.round rounds t to a multiple of increment of smallestUnit by mode, by default to the nearest
 // with a tie away from zero. It rounds the time since the start of the day, or since the epoch for
 // an Instant; a ZonedDateTime rounded to Day picks the start of its day or the next by how much of
-// the real day has passed. It panics on Year, Month or Week, on Day for an Instant or a PlainTime,
-// and unless increment divides the next larger unit (24, 60 or 1000) and is smaller than it, or is
-// 1 for Day.
+// the real day has passed. A PlainTime that rounds up to 24:00 wraps to 00:00:00, and the other
+// wall-clock types move to the next day. It panics on Year, Month or Week, on Day for an Instant or
+// a PlainTime, and unless increment is positive, divides the next larger unit (24, 60 or 1000) and
+// is smaller than it, or is 1 for Day.
 //
 //     Time.round(Time.plainTime(14, 37), Time.Minute{}, increment: 15)   // 14:30:00
 func Time.round[T: Time.Instant | Time.Timed](t: T, smallestUnit: Time.Unit, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}): T
@@ -2481,14 +2498,16 @@ func Time.abs(d: Time.Duration): Time.Duration
 //     Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25))         // P2DT1H
 func Time.addDuration(a: Time.Duration, b: Time.Duration): Time.Duration
 
-// Time.compareDuration returns -1, 0 or 1 as a is shorter than, as long as or longer than b. Years,
-// months and weeks are measured from relativeTo, and a day is 24 hours unless relativeTo is a
+// Time.compareDuration returns -1, 0 or 1 as a is shorter than, as long as or longer than b, by
+// signed length, so a negative duration is shorter than any positive one. Years, months and weeks
+// are measured from relativeTo, a week being 7 days, and a day is 24 hours unless relativeTo is a
 // ZonedDateTime, whose days have their daylight-saving hours. It panics if either has years, months
 // or weeks and relativeTo is null.
 //
-//     var month = Time.duration(months: 1)
-//     var feb = Time.plainDate(2026, 2, 1)
+//     let month = Time.duration(months: 1)
+//     let feb = Time.plainDate(2026, 2, 1)
 //     Time.compareDuration(month, Time.duration(days: 30), relativeTo: feb)   // -1
+//     Time.compareDuration(Time.duration(hours: -2), Time.duration(minutes: 30))   // -1
 func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.Dated | null = null): int
 
 // Time.total returns the length of d in unit, with a fraction: PT1H30M in hours is 1.5. Years,
@@ -2496,7 +2515,7 @@ func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.D
 // 24 hours unless relativeTo is a ZonedDateTime. It panics on years, months or weeks, in d or as
 // unit, when relativeTo is null.
 //
-//     var feb = Time.plainDate(2026, 2, 1)
+//     let feb = Time.plainDate(2026, 2, 1)
 //     Time.total(Time.duration(months: 1), Time.Day{}, relativeTo: feb)   // 28.0
 func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null = null): float64
 
@@ -2504,9 +2523,10 @@ func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null
 // rounds it to a multiple of increment of smallestUnit by mode, dropping the smaller fields.
 // largestUnit defaults to the larger of the largest nonzero unit of d and smallestUnit; years,
 // months and weeks need relativeTo, as in [Time.total]. increment follows [Time.round] for a time
-// unit, and may be any for a day or calendar unit when largestUnit is smallestUnit. It panics if
-// neither unit is given, on years, months or weeks without relativeTo, and on an increment that
-// breaks those rules.
+// unit, and may be any positive one for a day or calendar unit when largestUnit is smallestUnit. It
+// panics if neither unit is given, if largestUnit is smaller than smallestUnit, if increment is
+// below 1, on years, months or weeks without relativeTo, and on an increment that breaks those
+// rules.
 //
 //     Time.roundDuration(Time.duration(minutes: 90), largestUnit: Time.Hour{})   // PT1H30M
 //     Time.roundDuration(Time.duration(hours: 1, minutes: 29), smallestUnit: Time.Hour{})   // PT1H

@@ -8,8 +8,9 @@ func Time.parsePlainDateTime(s: string): Result[Time.PlainDateTime, Error]
 ```
 
 Time.parsePlainDateTime parses a date and time from s, such as 2026-10-22T14:03:05, with T or a
-space between them. It ignores an offset or zone that follows, though not Z with no bracketed zone;
-text it cannot parse is an Err.
+space between them. It keeps the date and time of a longer form, which must still be well formed,
+with a valid offset, though the name in a bracketed zone is not looked up. Z with no bracketed zone,
+and text it cannot parse, are an Err.
 
 <!-- end generated -->
 

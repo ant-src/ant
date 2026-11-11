@@ -9,14 +9,16 @@ func Time.parseDuration(s: string): Result[Time.Duration, Error]
 
 Time.parseDuration parses an ISO 8601 duration from s, such as P1Y2M3DT4H5M6.5S, -PT1H or PT0S. It
 takes PnYnMnWnDTnHnMnS with an optional leading sign, where only the last time component may have a
-fraction, and keeps the fields as written; text it cannot parse is an Err.
+fraction, and keeps the whole fields as written. A fraction is spread into the smaller fields, so
+PT1.5H is PT1H30M and PT1.5S is 1 second and 500 milliseconds; text it cannot parse is an Err.
 
 <!-- end generated -->
 
 ## Details
 
-- The fields stay as written: `PT90M` is 90 minutes, not 1 hour 30 minutes. Use
-  [Time.roundDuration](roundDuration.md) to balance them.
+- The whole fields stay as written: `PT90M` is 90 minutes, not 1 hour 30 minutes. Use
+  [Time.roundDuration](roundDuration.md) to balance them. A fraction is spread into the smaller
+  fields, so `PT1.5H` is `PT1H30M`.
 - Letters are capitals, and a fraction takes a point and up to nine digits. Lowercase letters, a
   comma, spaces, and Go-style text such as `1h30m` are an `Err`.
 

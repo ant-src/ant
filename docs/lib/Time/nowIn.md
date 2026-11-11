@@ -7,7 +7,8 @@
 func Time.nowIn(z: Time.Zone): Time.ZonedDateTime
 ```
 
-Time.nowIn returns the current instant seen in zone z.
+Time.nowIn returns the current instant seen in zone z, read from the wall clock as
+[`Time.now`](now.md) reads it.
 
 <!-- end generated -->
 

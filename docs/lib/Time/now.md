@@ -7,7 +7,9 @@
 func Time.now(): Time.Instant
 ```
 
-Time.now returns the current instant.
+Time.now returns the current instant from the wall clock, which the host may set forward or back, so
+a later call can return an earlier instant; measure elapsed time with
+[`Time.monotonic`](monotonic.md).
 
 <!-- end generated -->
 

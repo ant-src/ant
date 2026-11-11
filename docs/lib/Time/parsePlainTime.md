@@ -8,8 +8,9 @@ func Time.parsePlainTime(s: string): Result[Time.PlainTime, Error]
 ```
 
 Time.parsePlainTime parses a time of day from s, such as 14:03:05.123. It takes HH:MM, HH:MM:SS or
-up to nine digits of fraction, alone or after a date, and ignores the rest of a longer string,
-though not of one with Z and no bracketed zone; text it cannot parse is an Err.
+up to nine digits of fraction, alone or after a date, and keeps the time of a longer form; the whole
+string must still be well formed, with a date that exists and a valid offset, though the name in a
+bracketed zone is not looked up. Z with no bracketed zone, and text it cannot parse, are an Err.
 
 <!-- end generated -->
 

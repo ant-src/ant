@@ -8,7 +8,7 @@ func Time.plainTime(hour: int = 0, minute: int = 0, second: int = 0, millisecond
 ```
 
 Time.plainTime returns the time of day with the given fields, each 0 when omitted. It panics if a
-field is out of range, such as hour 24 or minute 60.
+field is out of range: hour 0 to 23, minute and second 0 to 59, the subsecond fields 0 to 999.
 
 <!-- end generated -->
 

@@ -100,3 +100,17 @@ Time.epochNanos(a)                            // => 1730610000000000000
 Json.stringify(d)                             // => "\"PT1H90M\""
 var maybe: Time.Duration | null = d
 maybe is Time.Duration                        // => true
+
+// A parsed fraction is spread into the smaller fields, so a duration whose subsecond fields
+// reach a second parses back to a duration of the same length but not ==.
+Time.parseDuration("PT1H30.5M")               // => Ok{ value: PT1H30M30S }
+var oneAndAHalf = Result.unwrap(Time.parseDuration("PT1.5S"))
+Time.part(oneAndAHalf, Time.Second{})         // => 1
+Time.part(oneAndAHalf, Time.Millisecond{})    // => 500
+var ms1500 = Time.duration(milliseconds: 1500)
+Result.unwrap(Time.parseDuration("${ms1500}")) == ms1500 // => false
+Time.compareDuration(Result.unwrap(Time.parseDuration("${ms1500}")), ms1500) // => 0
+
+// compareDuration orders by signed length, and a week from relativeTo is 7 days.
+Time.compareDuration(Time.duration(hours: -2), Time.duration(minutes: 30)) // => -1
+Time.compareDuration(Time.duration(weeks: 1), Time.duration(days: 7), relativeTo: Time.plainDate(2026, 2, 1)) // => 0

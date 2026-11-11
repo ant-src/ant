@@ -8,7 +8,7 @@ func Time.hoursInDay(t: Time.ZonedDateTime): float64
 ```
 
 Time.hoursInDay returns the length in hours of the date of t in its zone: 24.0 on most days, 23.0 or
-25.0 on a daylight-saving change, 23.5 on Lord Howe Island.
+25.0 on a daylight-saving change, 23.5 or 24.5 on Lord Howe Island.
 
 <!-- end generated -->
 

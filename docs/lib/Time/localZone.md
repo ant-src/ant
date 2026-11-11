@@ -7,8 +7,9 @@
 func Time.localZone(): Time.Zone
 ```
 
-Time.localZone returns the host's zone. It is the zone the TZ environment variable names, else the
-one the system's setting names; when neither names a zone of the database, it is the fixed offset
+Time.localZone returns the host's zone. It is the zone the TZ environment variable names, with a
+leading colon dropped, else the one the system's setting names; an offset in TZ, which POSIX reads
+as west of UTC, is passed over. When neither names a zone of the database, it is the fixed offset
 the host reports at the moment of the call.
 
 <!-- end generated -->
@@ -17,6 +18,9 @@ the host reports at the moment of the call.
 
 - The result depends on the machine that runs the program. Code that must give the same answer
   everywhere takes a `Time.Zone` as a parameter instead.
+- `TZ` counts only when it names a zone of the database, with a leading colon dropped as POSIX
+  allows, so `TZ=:Europe/Stockholm` is Stockholm. An offset such as `TZ=+05:30`, which POSIX reads
+  as 5:30 west of UTC, is passed over for the system's setting.
 
 ## Basic examples
 

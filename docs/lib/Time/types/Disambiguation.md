@@ -15,22 +15,25 @@ skipped or repeated in a zone. Such a time has no instant in a gap and two in an
 type Time.Compatible = {}
 ```
 
-Time.Compatible is the disambiguation that takes the later instant for a wall-clock time in a gap
-and the earlier for one in an overlap. It is the default, and what the common date libraries do.
+Time.Compatible is the disambiguation that moves a wall-clock time in a gap forward by the length of
+the gap, as Time.Later does, and takes the earlier instant for one in an overlap. It is the default,
+and what the common date libraries do.
 
 ```ant signature
 type Time.Earlier = {}
 ```
 
-Time.Earlier is the disambiguation that takes the earlier instant for a wall-clock time in a gap or
-an overlap.
+Time.Earlier is the disambiguation that takes the earlier instant for a wall-clock time in an
+overlap, and reads one in a gap with the offset from after the change, which moves it back by the
+length of the gap.
 
 ```ant signature
 type Time.Later = {}
 ```
 
-Time.Later is the disambiguation that takes the later instant for a wall-clock time in a gap or an
-overlap.
+Time.Later is the disambiguation that takes the later instant for a wall-clock time in an overlap,
+and reads one in a gap with the offset from before the change, which moves it forward by the length
+of the gap.
 
 <!-- end generated -->
 

@@ -11,9 +11,9 @@ Time.roundDuration balances d so that no field below largestUnit exceeds its nex
 it to a multiple of increment of smallestUnit by mode, dropping the smaller fields. largestUnit
 defaults to the larger of the largest nonzero unit of d and smallestUnit; years, months and weeks
 need relativeTo, as in [`Time.total`](total.md). increment follows [`Time.round`](round.md) for a
-time unit, and may be any for a day or calendar unit when largestUnit is smallestUnit. It panics if
-neither unit is given, on years, months or weeks without relativeTo, and on an increment that breaks
-those rules.
+time unit, and may be any positive one for a day or calendar unit when largestUnit is smallestUnit.
+It panics if neither unit is given, if largestUnit is smaller than smallestUnit, if increment is
+below 1, on years, months or weeks without relativeTo, and on an increment that breaks those rules.
 
 <!-- end generated -->
 

@@ -7,7 +7,8 @@
 func Time.inLeapYear(t: Time.Dated): bool
 ```
 
-Time.inLeapYear reports whether the year of t has 366 days.
+Time.inLeapYear reports whether the year of t has 366 days: a year divisible by 4, except a century
+year not divisible by 400, so 2000 and 0 are leap years and 1900 is not.
 
 <!-- end generated -->
 
