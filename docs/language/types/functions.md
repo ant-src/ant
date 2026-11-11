@@ -365,7 +365,7 @@ A function value that calls itself needs its type stated before its body: a retu
 `func`, or a type on the binding.
 
 ```ant
-let fact = func(n: int) { if n <= 1 { 1 } else { n * fact(n - 1) } } // error: the type of fact depends on itself; annotate it
+let fact = func(n: int) { if n <= 1 { 1 } else { n * fact(n - 1) } } // error: fact is used by a function in its own initializer; state its type
 ```
 
 ```ant

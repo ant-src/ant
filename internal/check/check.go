@@ -322,6 +322,11 @@ type varGroup struct {
 	decl  *ast.VarDecl
 	state int
 	types map[string]types.Type
+	// stated is the type written for a single name while its initializer is checked: the
+	// annotation, or the signature of a func literal with a return type, which a function
+	// in the initializer may read to call itself (section 6).
+	stated       types.Type
+	selfReported bool
 }
 
 // ---- prelude
@@ -1797,6 +1802,20 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 	}
 	g := v.group
 	if g.state == 1 {
+		if c.fn != nil && c.fn.initVar == v {
+			c.errorf(pos, "%s is read in its own initializer", v.name)
+			return types.Invalid{}
+		}
+		if g.stated != nil {
+			return g.stated
+		}
+		if c.inInitOf(v) {
+			if !g.selfReported {
+				g.selfReported = true
+				c.errorf(pos, "%s is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func", v.name)
+			}
+			return types.Invalid{}
+		}
 		c.errorf(pos, "the type of %s depends on itself; annotate it", v.name)
 		return types.Invalid{}
 	}
@@ -1820,13 +1839,21 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 	sc := &scope{names: map[string]*local{}}
 	d := g.decl
 	var t types.Type
+	_, single := d.Target.(*ast.NameTarget)
 	if d.Type != nil {
 		declared := c.resolveType(d.Type, sc)
+		if single {
+			g.stated = declared
+		}
 		c.check(d.Init, sc, declared)
 		t = declared
 	} else {
+		if fl, ok := d.Init.(*ast.FuncLit); ok && fl.Return != nil && single {
+			g.stated = c.signature(&ast.FuncDecl{Pos: fl.Pos, Params: fl.Params, Return: fl.Return, Body: fl.Body}, sc, "").fn
+		}
 		t = c.synth(d.Init, sc)
 	}
+	g.stated = nil
 	g.types = map[string]types.Type{}
 	c.bindTargetTypes(d.Target, t, func(name string, ty types.Type) { g.types[name] = ty })
 	g.state = 2
@@ -1837,6 +1864,16 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 	}
 	v.typ = types.Invalid{}
 	return v.typ
+}
+
+// inInitOf reports whether the body being checked is nested in v's initializer.
+func (c *Checker) inInitOf(v *varInfo) bool {
+	for f := c.fn; f != nil; f = f.parent {
+		if f.initVar == v {
+			return true
+		}
+	}
+	return false
 }
 
 // ---- functions
@@ -1874,6 +1911,9 @@ type local struct {
 	// unset marks a parameter with a default while the defaults up to its own are checked.
 	unset  bool
 	stated bool
+	// selfReported says a read from a function in its own initializer was reported, which
+	// is reported once.
+	selfReported bool
 	// hidden marks the x of a lambda of arity zero, which is not in scope (section 6).
 	hidden bool
 }

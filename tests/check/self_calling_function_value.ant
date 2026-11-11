@@ -1,0 +1,14 @@
+// spec: 6; 3
+// A function value may call itself when its type is stated before its body is checked, by a
+// return type on the func or a type on the binding, at the top level of a library as in a
+// block. Without one, the read is reported once per name.
+export let fact = func(n: int): int { if n <= 1 { 1 } else { n * fact(n - 1) } }
+export var fib: func(int): int = func(n: int): int {
+  if n < 2 { n } else { fib(n - 1) + fib(n - 2) }
+}
+let bad = func(n: int) { if n <= 1 { 1 } else { n * bad(n - 1) + bad(n - 2) } } // ERR: bad is used by a function in its own initializer; state its type
+export func g(): int {
+  let local = func(n: int) { if n < 2 { n } else { local(n - 1) + local(n - 2) } } // ERR: local is used by a function in its own initializer
+  let ok = func(n: int): int { if n < 2 { n } else { ok(n - 1) } }
+  fact(5) + fib(10) + ok(3)
+}

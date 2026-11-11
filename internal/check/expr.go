@@ -357,7 +357,10 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 				return types.Invalid{}
 			}
 			if !l.stated {
-				c.errorf(x.Pos, "%s is used by a function in its own initializer; state its type on the var", x.Name)
+				if !l.selfReported {
+					l.selfReported = true
+					c.errorf(x.Pos, "%s is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func", x.Name)
+				}
 				return types.Invalid{}
 			}
 		}

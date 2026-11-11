@@ -251,7 +251,7 @@ inferred from a call to itself:
 
 ```ant
 let factorial = func(n: int) {
-  if n <= 1 { 1 } else { n * factorial(n - 1) } // error: the type of factorial depends on itself; annotate it
+  if n <= 1 { 1 } else { n * factorial(n - 1) } // error: factorial is used by a function in its own initializer; state its type
 }
 ```
 
