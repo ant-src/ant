@@ -1,0 +1,25 @@
+// spec: stdlib Os
+// Os.args and Os.environ return a new array and a new map at each call, which the caller may
+// change without changing the program's arguments or environment (stdlib.md, Os). An empty name,
+// or one holding =, names no variable, and Os.env gives null for it.
+var a = Os.args()
+a.push("x")
+println(a)
+println(Os.args())
+var e = Os.environ()
+e.set("ANT_COPY_TEST_7F3A", "1")
+println(e.has("ANT_COPY_TEST_7F3A"))
+println(Os.env("ANT_COPY_TEST_7F3A"))
+println(Os.environ().has("ANT_COPY_TEST_7F3A"))
+println(Os.env(""))
+println(Os.env("A=B"))
+
+// expect
+// args: one
+// out: ["one", "x"]
+// out: ["one"]
+// out: true
+// out: null
+// out: false
+// out: null
+// out: null

@@ -1,0 +1,15 @@
+// spec: stdlib Os; stdlib File
+// Os.stdin() is open for reading only, and Os.stdout() and Os.stderr() for writing only; a write
+// to a handle opened only for reading, and a read of one opened only for writing, is Err
+// (stdlib.md, File and Os, Streams).
+println(File.writeLine(Os.stdin(), "x"))
+println(File.readLine(Os.stdout()))
+println(File.readChunk(Os.stderr(), 4))
+println(File.readLine(Os.stdin()))
+
+// expect
+// stdin: kept
+// out: Err{ error: Error{ message: "the file is not open for writing" } }
+// out: Err{ error: Error{ message: "the file is not open for reading" } }
+// out: Err{ error: Error{ message: "the file is not open for reading" } }
+// out: Ok{ value: "kept" }

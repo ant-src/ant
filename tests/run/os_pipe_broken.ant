@@ -1,0 +1,13 @@
+// spec: stdlib Os
+// A write to an Os.openPipe end once every copy of read is closed is Err with the message
+// "broken pipe", and the program goes on: only the standard streams end it (stdlib.md, Os).
+var pipe = Result.unwrap(Os.openPipe())
+Result.unwrap(File.close(pipe.read))
+println(File.writeLine(pipe.write, "x"))
+println(File.writeChunk(pipe.write, Bytes.fromArray([121])))
+println("still running")
+
+// expect
+// out: Err{ error: Error{ message: "broken pipe" } }
+// out: Err{ error: Error{ message: "broken pipe" } }
+// out: still running

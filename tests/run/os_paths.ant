@@ -1,0 +1,21 @@
+// spec: stdlib File; stdlib Os
+// A path is used as written, with no ~ or $NAME expansion, and a relative path is taken against
+// the working directory, which Os.cwd returns as an absolute path (stdlib.md, File and Os). The
+// harness runs this program from tests/, not from run/.
+var cwd = Result.unwrap(Os.cwd())
+println(Path.isAbs(cwd))
+println(File.exists("run/os_paths.ant"))
+println(File.exists("os_paths.ant"))
+println(Result.unwrap(Path.abs("~/notes.txt")) == Path.join([cwd, "~", "notes.txt"]))
+println(Result.unwrap(Path.abs("$HOME")) == Path.join([cwd, "$HOME"]))
+println(File.exists("~"))
+println(File.read("~/surely-not-here.txt") is Err)
+
+// expect
+// out: true
+// out: true
+// out: false
+// out: true
+// out: true
+// out: false
+// out: true

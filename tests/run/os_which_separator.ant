@@ -1,0 +1,28 @@
+// spec: stdlib Cmd; stdlib Os
+// Given a program with a path separator, Os.which returns it unchanged when it names an
+// executable file, taken against the working directory, and null otherwise (stdlib.md, Cmd,
+// Processes). A name without a separator is looked up in PATH alone.
+var dir = Result.unwrap(File.tempDir("which"))
+var tool = Path.join([dir, "tool"])
+Result.unwrap(File.write(tool, "#!/bin/sh\necho tool\n"))
+var data = Path.join([dir, "data"])
+Result.unwrap(File.write(data, "x"))
+println(Os.which(tool) == tool)
+println(Os.which(data))
+Result.unwrap(File.chmod(tool, 0o755))
+println(Os.which(tool) == tool)
+var rel = Result.unwrap(Path.rel(Result.unwrap(Os.cwd()), tool))
+println(Os.which(rel) == rel)
+println(Os.which(Path.join([dir, "missing"])))
+println(Os.which("./tool"))
+println(Result.unwrap(Cmd.read(Cmd.new("./tool", dir: dir))))
+Result.unwrap(File.removeAll(dir))
+
+// expect
+// out: false
+// out: null
+// out: true
+// out: true
+// out: null
+// out: null
+// out: tool
