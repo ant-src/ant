@@ -209,7 +209,7 @@ Err{ error: Error{ message: "lint failed with status 1: main.ant:3: unused varia
 Find which stage of a pipeline failed:
 
 ```ant
-let stages = [Cmd.new("echo", ["data"]), Cmd.new("false"), Cmd.new("cat")]
+let stages = [Cmd.new("echo", ["data"]), Cmd.new("grep", ["missing"]), Cmd.new("cat")]
 let out = try Cmd.capture(Cmd.pipe(stages))
 let failed = out.statuses.findIndex({ x != 0 })
 if failed != null {
@@ -218,7 +218,7 @@ if failed != null {
 ```
 
 ```text
-stage 2 (false) exited 1
+stage 2 (grep) exited 1
 ```
 
 ## Properties and relations

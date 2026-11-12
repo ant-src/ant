@@ -281,9 +281,9 @@ A historical offset with seconds is rounded to the minute in the text, which sti
 the same value:
 
 ```ant
-let old = Time.parseZoned("1880-01-01T00:00[Europe/Stockholm]").unwrap()
+let old = Time.parseZoned("1880-01-01T00:00[Europe/Berlin]").unwrap()
 old.offset()                                      // "+00:53:28"
-old                                               // 1880-01-01T00:00:00+00:53[Europe/Stockholm]
+old                                               // 1880-01-01T00:00:00+00:53[Europe/Berlin]
 Time.parseZoned(String.from(old)).unwrap() == old // true
 ```
 

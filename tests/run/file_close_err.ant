@@ -12,6 +12,6 @@ println(File.close(out))
 // expect
 // os: linux
 // out: Ok{ value: void }
-// out: Err{ error: Error{ message: "write /dev/full: no space left on device" } }
+// out: Err{ error: Error{ message: "no space left on device" } }
 // out: true
 // out: Ok{ value: void }
