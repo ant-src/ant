@@ -233,24 +233,28 @@ let word = /\w+/u // error: there is no u flag: a pattern is Unicode and a match
 
 ### A line that starts with a literal
 
-`/` after an operand is division, even when a line break comes between them. A statement that starts
-with a literal on the line after a name or a value is a division with no left operand:
+`/` after an operand is division, even when a line break comes between them. A line that starts
+with a literal, right after a line that ends in a name, a value, `)`, `]`, or `}`, is read as a
+division with no left operand:
 
 ```ant
 let word = "ant"
+println(word)
 /a/.test(word) // error: unexpected '/'
 ```
 
-Bind the result, or write the call in namespace form, so the line starts with a name:
+Name the pattern with `let`, wrap the literal in parentheses, or write the call in namespace form:
 
 ```ant
 let word = "ant"
-let found = /a/.test(word)
-println(found)
-println(Regex.test(/n/, word))
+let a = /a/
+println(a.test(word))
+(/n/).test(word) | println()
+println(Regex.test(/t/, word))
 ```
 
 ```text
+true
 true
 true
 ```
