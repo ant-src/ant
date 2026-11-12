@@ -1490,10 +1490,10 @@ func Parallel.any[T, E](fs: Array[func(Context): Result[T, E]], ctx: Context | n
 
 // Reflect
 //
-// Reflect holds reflection: types as values, written type(T) (section 4, Types as values), taken
-// apart one level at a time with Reflect.shape, and values boxed with a type they belong to,
-// Reflect.Value, read along that type and built from checked parts. With these, typed decoding and
-// encoding for a data format are ordinary library code, and the format keeps every policy.
+// Reflect holds reflection: types as values, written type(T), taken apart one level at a time
+// with Reflect.shape, and values boxed with a type they belong to, Reflect.Value, read along that
+// type and built from checked parts. With these, typed decoding and encoding for a data format are
+// ordinary library code, and the format keeps every policy.
 
 // Reflect.Type is the type T as a value, written type(T). It is opaque: [Reflect.erase] gives the
 // value with its static type forgotten, and [Reflect.valueOf] boxes a T under it. Two type values
@@ -1510,11 +1510,11 @@ type Reflect.ErasedType
 // It is the key for anything that applies to every instantiation of a generic type.
 type Reflect.Decl
 
-// Reflect.Value is a value together with a type it belongs to, the one way to hold a value whose
-// type is known only at run time. [Reflect.valueOf] boxes, [Reflect.to] unboxes, the readers take
-// one apart along its type, and the builders make new ones from checked parts. In a checked
-// program the value always belongs to the type, which is never a union or an alias. Two are ==
-// when their types and values are, and one renders as Reflect.Value(42: int).
+// Reflect.Value is a value together with a type it belongs to. [Reflect.valueOf] boxes,
+// [Reflect.to] unboxes, the readers take one apart along its type, and the builders make new ones
+// from checked parts. In a checked program the value always belongs to the type, which is never a
+// union or an alias. Two are == when their types and values are, and one renders as
+// Reflect.Value(42: int).
 type Reflect.Value
 
 // Reflect.Shape is one level of a type's structure, as [Reflect.shape] gives it: aliases expanded,
@@ -1619,10 +1619,9 @@ func Reflect.nullable[T](t: Reflect.Type[T]): Reflect.Type[T | null]
 //     // Reflect.Array{ element: int }
 func Reflect.shape(t: Reflect.ErasedType): Reflect.Shape
 
-// Reflect.assignable reports whether a value of type from may be used where to is expected
-// (section 4, Assignability), on two closed types. It is the relation the readers, the builders,
-// and [Reflect.to] use, exposed so that a library can test before calling a function that would
-// panic.
+// Reflect.assignable reports whether a value of type from may be used where to is expected, on
+// two closed types. It is the relation the readers, the builders, and [Reflect.to] use, exposed so
+// that a library can test before calling a function that would panic.
 //
 //     Reflect.assignable(Reflect.erase(type(int)), Reflect.erase(type(int | null)))
 //     // true
