@@ -17,6 +17,8 @@ the REPL.
 
 - The array holds only the arguments, not the program path, so the first argument is at index 0. Use
   [Os.program](program.md) for the path.
+- Each call returns a new array, which the program may change without changing the arguments the
+  next call returns. In the REPL it is `[]`.
 - `Os.args` does not parse anything: an option such as `-v` or `--out=x.txt` arrives as a plain
   string, in the order given.
 - Each argument is decoded as UTF-8, and each ill-formed piece becomes U+FFFD. `Os.args` has no

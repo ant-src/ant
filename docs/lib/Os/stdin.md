@@ -15,18 +15,20 @@ the rest of its input to a child reads it and gives it as input.
 
 ## Details
 
-- `Os.stdin` returns a [File.Handle](../File/types/Handle.md) open for reading, so every `File` read
-  works on it: [File.readLine](../File/readLine.md), [File.readAll](../File/readAll.md),
+- `Os.stdin` returns a [File.Handle](../File/types/Handle.md) open for reading only, so a write to
+  it is `Err`, even when it is a terminal. Every `File` read works on it:
+  [File.readLine](../File/readLine.md), [File.readAll](../File/readAll.md),
   [File.readChunk](../File/readChunk.md), [File.pipe](../File/pipe.md).
 - At the end of the input, `readLine` and `readChunk` give `null` and `readAll` gives `""`. In the
   REPL, standard input belongs to the REPL: `Os.stdin()` is at end of file, and so is the standard
   input of a child the REPL starts with [Cmd.run](../Cmd/run.md).
 - [File.close](../File/close.md) on standard input does nothing and is `Ok`, so a function may close
   any handle it reads without asking which one it is.
-- Standard input is read only while a read waits, so between reads a child started with
-  [Cmd.run](../Cmd/run.md) gets the input. A read whose `ctx` ends returns `Err`, but the stream
-  itself cannot be interrupted: what arrives afterwards is kept for the program's next read, not
-  given to a child.
+- A read takes what is there, which may be more than the line it returns, and keeps it for the
+  program's next read. A child started with [Cmd.run](../Cmd/run.md) gets only input that arrives
+  after that, so to hand the rest of the input to a child, read it and pass it as `input` to
+  [Cmd.read](../Cmd/read.md). A read whose `ctx` ends returns `Err`, but the stream itself cannot be
+  interrupted: what arrives afterwards is kept for the program's next read, not given to a child.
 
 ## Basic examples
 

@@ -15,7 +15,9 @@ on Windows. An empty name, or one holding =, names no variable and gives null.
 
 ## Details
 
-- `null` means the variable is not set.
+- `null` means the variable is not set. A variable set to the empty string gives `""`.
+- Names match as the host matches them: exactly on Unix, so `path` is not `PATH`, and ignoring case
+  on Windows. An empty name, or one holding `=`, names no variable and gives `null`.
 - `Os.env` reads the program's own environment. The `env` of a [Cmd](../Cmd/new.md) sets a child's
   environment and does not change what `Os.env` returns.
 
@@ -33,8 +35,25 @@ null
 true
 ```
 
-A variable that is set gives its value, which depends on the machine, such as `/Users/ann` for
-`HOME`:
+A variable that is set gives its value, and one set to the empty string gives `""`, not `null`. Here
+the program runs as `APP_MODE=debug APP_EMPTY= ant run main.ant`:
+
+<!-- test: env APP_MODE=debug -->
+<!-- test: env APP_EMPTY= -->
+
+```ant
+println(Os.env("APP_MODE"))
+println(Os.env("APP_EMPTY") == "")
+println(Os.env("APP_NO_SUCH_VARIABLE"))
+```
+
+```text
+debug
+true
+null
+```
+
+The value of a variable the host sets depends on the machine, such as `/Users/ann` for `HOME`:
 
 <!-- test: check-only the value of HOME differs between machines -->
 

@@ -15,8 +15,10 @@ macOS, %LocalAppData% on Windows. The directory need not exist.
 
 ## Details
 
-- The result is `Err` when the variable it rests on is unset, such as `$HOME` on Unix and macOS, or
-  when `$XDG_CACHE_HOME` holds a relative path.
+- The result is `Err` when the variable it rests on is unset or empty, such as `$HOME` on Unix and
+  macOS, or when `$XDG_CACHE_HOME` holds a relative path.
+- On Unix other than macOS, an empty `$XDG_CACHE_HOME` counts as unset, giving `$HOME/.cache`. The
+  directory need not exist, as on a new account.
 - The directory is a root shared by every program. Keep your files under a directory of your
   program's name, made with [File.mkdir](../File/mkdir.md), which also creates any parents it lacks.
 - Use it for what can be made again, such as downloads and computed results. Settings belong in

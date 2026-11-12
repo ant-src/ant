@@ -18,6 +18,9 @@ names an executable file, taken against the working directory, and null otherwis
 - `Os.which` looks `program` up in the program's own `PATH`, `Os.env("PATH")`, as a
   [Cmd](../Cmd/new.md) does. The `env` of a `Cmd` never changes that lookup. An entry of `PATH` that
   is not absolute, `.` included, finds nothing.
+- A `program` with a path separator is not looked up. It comes back unchanged when it names an
+  executable file, taken against the working directory, and `null` otherwise. A `Cmd` with `dir`
+  takes it against `dir` instead, which `Os.which` cannot be given.
 
 ## Basic examples
 
@@ -77,6 +80,18 @@ println(Os.which("sh "))
 
 ```text
 null
+null
+```
+
+A name with a path separator is not looked up in `PATH`:
+
+```ant
+println(Os.which("/bin/sh"))
+println(Os.which("./no-such-tool"))
+```
+
+```text
+/bin/sh
 null
 ```
 

@@ -23,6 +23,8 @@ to 125.
   call is out. A [`File.buffered`](../File/buffered.md) handle that is not flushed loses what its
   buffer holds.
 - [`Panic.catch`](../Panic/catch.md) does not stop it.
+- A Unix parent sees the status modulo 256, so `Os.exit(256)` reads as success and `Os.exit(-1)`
+  as 255. Exit with 0 to 125 to be portable.
 - In `ant test`, it ends the whole command with its status, and no further test runs.
 
 ## Basic examples

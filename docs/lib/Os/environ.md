@@ -16,6 +16,9 @@ environment: a later Os.env, and a child without env, see it as it was.
 ## Details
 
 - A variable that is not set has no key in the map, so `get` returns `null` for it.
+- Each call returns a new map. Changing it changes neither the environment nor the next call, so a
+  later `Os.env`, and a child without `env`, see the variables as they were.
+- The entries come in the host's order, which is no order to rely on; sort them to print them.
 - To read one variable, call [`Os.env`](env.md); `Os.environ` is for working with the whole set.
 - A command's `env` is the child's whole environment. To give a child one more variable, start from
   `Os.environ()` and add to it.
@@ -33,6 +36,22 @@ println(env.get("ANT_DOCS_NOT_SET"))
 ```text
 true
 null
+```
+
+A variable set to the empty string has a key, with the value `""`. Here the program runs as
+`APP_EMPTY= ant run main.ant`:
+
+<!-- test: env APP_EMPTY= -->
+
+```ant
+let env = Os.environ()
+println(env.has("APP_EMPTY"))
+println(env["APP_EMPTY"] == "")
+```
+
+```text
+true
+true
 ```
 
 Print every variable, sorted by name:

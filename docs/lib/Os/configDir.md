@@ -17,11 +17,12 @@ root too.
 
 ## Details
 
-- It is `Err` when the variable it rests on is unset, such as `$HOME`, or, on Unix other than macOS,
-  when `$XDG_CONFIG_HOME` holds a relative path.
-- Make your program's directory with [File.mkdir](../File/mkdir.md) before you write to it. It makes
-  any missing parents and is `Ok` when the directory already exists, so calling it on every run is
-  safe.
+- It is `Err` when the variable it rests on is unset or empty, such as `$HOME`, or, on Unix other
+  than macOS, when `$XDG_CONFIG_HOME` holds a relative path.
+- On Unix other than macOS, an empty `$XDG_CONFIG_HOME` counts as unset, giving `$HOME/.config`.
+- The directory need not exist. Make your program's directory with [File.mkdir](../File/mkdir.md)
+  before you write to it. It makes any missing parents and is `Ok` when the directory already
+  exists, so calling it on every run is safe.
 
 ## Basic examples
 

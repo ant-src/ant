@@ -15,8 +15,10 @@ has been removed.
 
 ## Details
 
-- The working directory is not the directory of the script; [Path.abs](../Path/abs.md) resolves a
-  relative path against it.
+- The working directory is the one `ant` was started in, not the directory of the script. Every
+  `File` function, and [Path.abs](../Path/abs.md), takes a relative path against it.
+- The result is absolute. It is `Err` when the host cannot name the directory, as when it has been
+  removed.
 - No function changes the working directory. Join paths to the directory you need, or pass `dir:` to
   [Cmd.new](../Cmd/new.md) for a child process.
 

@@ -13,7 +13,9 @@ Os.home returns the user's home directory: $HOME on Unix, %USERPROFILE% on Windo
 
 ## Details
 
-- `Os.home` is `Err` when `$HOME` (`%USERPROFILE%` on Windows) is unset.
+- `Os.home` is `Err` when `$HOME` (`%USERPROFILE%` on Windows) is unset or empty.
+- A path is used as written: `~` and `$HOME` in a path are not expanded, so a path under the home
+  directory is `Path.join([try Os.home(), ...])`.
 - The home directory is shared by every program. Keep configuration under
   [Os.configDir](configDir.md) and files that can be made again under [Os.cacheDir](cacheDir.md), in
   a directory named after your program.

@@ -20,7 +20,9 @@ of read is closed is Err with the message "broken pipe", and the program goes on
 - A `ctx` on a read of `pipe.read` ends the wait. After [Cmd.start](../Cmd/start.md) gives
   `pipe.write` to a child, close the program's own copy, or `pipe.read` never reaches end of file.
 - A child that writes into a pipe nobody reads blocks once the pipe is full. Read the pipe before
-  [Cmd.wait](../Cmd/wait.md), or on another goroutine.
+  [Cmd.wait](../Cmd/wait.md), or on another goroutine. The program's own write waits the same way.
+- A write once every copy of `pipe.read` is closed is `Err` with the message `broken pipe`, and the
+  program goes on. Only a broken pipe on standard output or standard error ends the program.
 
 ## Basic examples
 
@@ -279,6 +281,21 @@ println(try child.wait())
 Err{ error: Error{ message: "timeout" } }
 100000
 0
+```
+
+A write after the read end is closed has nowhere to go. It is `Err`, and the program goes on:
+
+```ant
+let pipe = try Os.openPipe()
+defer { pipe.write.close() }
+try pipe.read.close()
+println(pipe.write.writeLine("x"))
+println("still running")
+```
+
+```text
+Err{ error: Error{ message: "broken pipe" } }
+still running
 ```
 
 ## See also
