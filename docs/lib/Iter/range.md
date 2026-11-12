@@ -60,10 +60,8 @@ Iter.range(-3, 1) | Iter.toArray() // [-3, -2, -1, 0]
 The bounds can be anywhere in the `int` range, up to and including `Math.minInt` and `Math.maxInt`:
 
 ```ant
-Iter.range(Math.maxInt - 2, Math.maxInt) | Iter.toArray()
-// [9223372036854775805, 9223372036854775806]
-Iter.range(Math.minInt, Math.maxInt) | Iter.take(2) | Iter.toArray()
-// [-9223372036854775808, -9223372036854775807]
+Iter.range(Math.maxInt - 2, Math.maxInt) | Iter.toArray()            // [9223372036854775805, 9223372036854775806]
+Iter.range(Math.minInt, Math.maxInt) | Iter.take(2) | Iter.toArray() // [-9223372036854775808, -9223372036854775807]
 ```
 
 A pipe passes `from`, and `.` chains other `Iter` functions on the result:
@@ -120,8 +118,7 @@ Take the first five multiples of 7 from a range of a thousand integers; the pipe
 fifth:
 
 ```ant
-Iter.range(0, 1000) | Iter.filter({ x % 7 == 0 }) | Iter.take(5) | Iter.toArray()
-// [0, 7, 14, 21, 28]
+Iter.range(0, 1000) | Iter.filter({ x % 7 == 0 }) | Iter.take(5) | Iter.toArray() // [0, 7, 14, 21, 28]
 ```
 
 ## Properties and relations

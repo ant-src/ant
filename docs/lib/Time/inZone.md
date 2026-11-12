@@ -79,8 +79,7 @@ After a parse in a pipe, map over the Result:
 
 ```ant
 let tokyo = Time.zone("Asia/Tokyo").unwrap()
-"2026-10-22T14:03:05Z" | Time.parseInstant() | Result.map({ x.inZone(tokyo) })
-// Ok{ value: 2026-10-22T23:03:05+09:00[Asia/Tokyo] }
+"2026-10-22T14:03:05Z" | Time.parseInstant() | Result.map({ x.inZone(tokyo) }) // Ok{ value: 2026-10-22T23:03:05+09:00[Asia/Tokyo] }
 ```
 
 In the host's own zone, from [Time.localZone](localZone.md), the result is still the same instant:

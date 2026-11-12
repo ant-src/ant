@@ -126,8 +126,7 @@ Time.Later{}: 2026-03-08T03:30:00-04:00[America/New_York]
 `Time.parseZoned` resolves a string with a time and no offset by it:
 
 ```ant
-Time.parseZoned("2026-11-01T01:30[America/New_York]", disambiguation: Time.Later{})
-// Ok{ value: 2026-11-01T01:30:00-05:00[America/New_York] }
+Time.parseZoned("2026-11-01T01:30[America/New_York]", disambiguation: Time.Later{}) // Ok{ value: 2026-11-01T01:30:00-05:00[America/New_York] }
 ```
 
 `Time.with` uses it when the new wall-clock time is skipped:
@@ -247,8 +246,7 @@ let at = repeated.toZoned(ny, disambiguation: Time.Later)
 A string with an offset names its instant, so `disambiguation` has no say:
 
 ```ant
-Time.parseZoned("2026-11-01T01:30-04:00[America/New_York]", disambiguation: Time.Later{})
-// Ok{ value: 2026-11-01T01:30:00-04:00[America/New_York] }
+Time.parseZoned("2026-11-01T01:30-04:00[America/New_York]", disambiguation: Time.Later{}) // Ok{ value: 2026-11-01T01:30:00-04:00[America/New_York] }
 ```
 
 `Time.with` keeps the value's own offset when it fits the new time, so moving to the repeated hour

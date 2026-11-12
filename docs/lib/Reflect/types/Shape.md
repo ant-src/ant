@@ -193,23 +193,20 @@ A record shape gives the declaration, the type arguments, and the fields in decl
 
 ```ant
 type Point = { x: int, y: int = 0 }
-Reflect.shape(type(Point).erase())
-// Reflect.Record{ decl: Point, args: [], fields: [Reflect.Field{ name: "x", type: int, hasDefault: false }, Reflect.Field{ name: "y", type: int, hasDefault: true }] }
+Reflect.shape(type(Point).erase()) // Reflect.Record{ decl: Point, args: [], fields: [Reflect.Field{ name: "x", type: int, hasDefault: false }, Reflect.Field{ name: "y", type: int, hasDefault: true }] }
 ```
 
 In a generic record, the fields have the type arguments substituted:
 
 ```ant
 type Box[T] = { value: T }
-Reflect.shape(type(Box[int]).erase())
-// Reflect.Record{ decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
+Reflect.shape(type(Box[int]).erase()) // Reflect.Record{ decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
 ```
 
 An anonymous record type has no declaration, so `decl` is `null`:
 
 ```ant
-Reflect.shape(type({ name: string }).erase())
-// Reflect.Record{ decl: null, args: [], fields: [Reflect.Field{ name: "name", type: string, hasDefault: false }] }
+Reflect.shape(type({ name: string }).erase()) // Reflect.Record{ decl: null, args: [], fields: [Reflect.Field{ name: "name", type: string, hasDefault: false }] }
 ```
 
 ### Named primitive types
@@ -261,8 +258,7 @@ A recursive type has a finite shape, because its children are type values:
 
 ```ant
 type Tree = { value: int, children: Array[Tree] }
-Reflect.shape(type(Tree).erase())
-// Reflect.Record{ decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
+Reflect.shape(type(Tree).erase()) // Reflect.Record{ decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
 ```
 
 ## Applications
@@ -479,8 +475,7 @@ isBytes(type(Array[byte]).erase()) // false
 `Reflect.Shape` is itself a union, so its shape lists the fifteen members:
 
 ```ant
-Reflect.shape(type(Reflect.Shape).erase())
-// Reflect.Union{ members: [Reflect.Null, Reflect.Void, Reflect.Never, Reflect.Bool, Reflect.Int, Reflect.Float, Reflect.String, Reflect.Array, Reflect.Map, Reflect.Set, Reflect.Record, Reflect.Tagged, Reflect.Union, Reflect.Func, Reflect.Opaque] }
+Reflect.shape(type(Reflect.Shape).erase()) // Reflect.Union{ members: [Reflect.Null, Reflect.Void, Reflect.Never, Reflect.Bool, Reflect.Int, Reflect.Float, Reflect.String, Reflect.Array, Reflect.Map, Reflect.Set, Reflect.Record, Reflect.Tagged, Reflect.Union, Reflect.Func, Reflect.Opaque] }
 ```
 
 ## See also

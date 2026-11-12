@@ -199,8 +199,7 @@ Time.parsePlainTime("23:59:60") // Err{ error: Error{ message: "second out of ra
 A string with `Z` and no bracketed zone names a moment, not a wall-clock time, so it is an `Err`:
 
 ```ant
-Time.parsePlainTime("2026-10-22T14:03:05Z")
-// Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainTime("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
 ```
 
 Parse it with [Time.parseInstant](parseInstant.md) and put it in a zone to read its time there:

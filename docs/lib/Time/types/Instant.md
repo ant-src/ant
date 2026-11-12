@@ -181,8 +181,7 @@ let events = [
   Event{ name: "build", at: Time.parseInstant("2026-10-22T15:58:00+02:00") | Result.unwrap() },
   Event{ name: "alert", at: Time.parseInstant("2026-10-22T14:20:00Z") | Result.unwrap() },
 ]
-events.sortWith(func(a: Event, b: Event) { Time.compare(a.at, b.at) }).map({ x.name })
-// ["build", "deploy", "alert"]
+events.sortWith(func(a: Event, b: Event) { Time.compare(a.at, b.at) }).map({ x.name }) // ["build", "deploy", "alert"]
 ```
 
 Check whether a token has expired, given the moment it was issued and its lifetime:
@@ -201,10 +200,9 @@ expired(issued, lifetime, Time.parseInstant("2026-10-22T14:15:00Z") | Result.unw
 Count requests per hour, rounding each instant down to the start of its hour:
 
 ```ant
-let requests = ["2026-10-22T14:03:05Z", "2026-10-22T14:59:59Z", "2026-10-22T15:00:00Z"]
-  .map({ Time.parseInstant(x) | Result.unwrap() })
-requests.groupBy({ x.round(Time.Hour{}, mode: Time.Floor{}) }).map({ x.value.length() })
-// Map{ 2026-10-22T14:00:00Z: 2, 2026-10-22T15:00:00Z: 1 }
+let stamps = ["2026-10-22T14:03:05Z", "2026-10-22T14:59:59Z", "2026-10-22T15:00:00Z"]
+let requests = stamps.map({ Time.parseInstant(x) | Result.unwrap() })
+requests.groupBy({ x.round(Time.Hour{}, mode: Time.Floor{}) }).map({ x.value.length() }) // Map{ 2026-10-22T14:00:00Z: 2, 2026-10-22T15:00:00Z: 1 }
 ```
 
 Stamp a log line with the moment it was written:

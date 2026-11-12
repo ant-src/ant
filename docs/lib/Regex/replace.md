@@ -136,8 +136,7 @@ hello-world-it-s-2026
 Mask all but the last four digits of a card number:
 
 ```ant
-Regex.replace(/\d(?:\d|\s)*(\d{4})/, "card 4111 1111 1111 1234", "**** $1")
-// "card **** 1234"
+Regex.replace(/\d(?:\d|\s)*(\d{4})/, "card 4111 1111 1111 1234", "**** $1") // "card **** 1234"
 ```
 
 Replace user-supplied text literally: [`Regex.escape`](escape.md) quotes the pattern, and doubling

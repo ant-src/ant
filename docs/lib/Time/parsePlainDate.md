@@ -39,8 +39,7 @@ Time.parsePlainDate(s) // Ok{ value: 2026-10-22 }
 Text that is not a date is an `Err`:
 
 ```ant
-Time.parsePlainDate("22/10/2026")
-// Err{ error: Error{ message: "not a date or time: \"22/10/2026\"" } }
+Time.parsePlainDate("22/10/2026") // Err{ error: Error{ message: "not a date or time: \"22/10/2026\"" } }
 ```
 
 ## Scope
@@ -66,8 +65,7 @@ Time.parsePlainDate("2026-10-22[u-ca=iso8601]") // Ok{ value: 2026-10-22 }
 ```
 
 ```ant
-Time.parsePlainDate("2026-10-22[u-ca=gregory]")
-// Err{ error: Error{ message: "calendar gregory is not supported; only iso8601 is" } }
+Time.parsePlainDate("2026-10-22[u-ca=gregory]") // Err{ error: Error{ message: "calendar gregory is not supported; only iso8601 is" } }
 ```
 
 A year outside 0 to 9999 takes a sign and six digits, the form such a date renders in:
@@ -88,17 +86,14 @@ Time.parsePlainDate("2026-13-01") // Err{ error: Error{ message: "no such date: 
 Pass it as a function value to parse many strings:
 
 ```ant
-["2026-03-01", "2026-01-15"].map(Time.parsePlainDate)
-// [Ok{ value: 2026-03-01 }, Ok{ value: 2026-01-15 }]
+["2026-03-01", "2026-01-15"].map(Time.parsePlainDate) // [Ok{ value: 2026-03-01 }, Ok{ value: 2026-01-15 }]
 ```
 
 `Result.all` turns those into one `Result` for the whole list, the first `Err` if any:
 
 ```ant
-["2026-03-01", "2026-01-15"].map(Time.parsePlainDate) | Result.all()
-// Ok{ value: [2026-03-01, 2026-01-15] }
-["2026-03-01", "2026-02-30"].map(Time.parsePlainDate) | Result.all()
-// Err{ error: Error{ message: "no such date: 2026-02-30" } }
+["2026-03-01", "2026-01-15"].map(Time.parsePlainDate) | Result.all() // Ok{ value: [2026-03-01, 2026-01-15] }
+["2026-03-01", "2026-02-30"].map(Time.parsePlainDate) | Result.all() // Err{ error: Error{ message: "no such date: 2026-02-30" } }
 ```
 
 In a pipeline, the result feeds the `Result` functions:
@@ -225,8 +220,7 @@ at.inZone(Time.utc).toPlainDate() // 2026-10-23
 `Time.parseInstant`:
 
 ```ant
-Time.parsePlainDate("2026-10-22T14:03:05Z")
-// Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainDate("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
 ```
 
 The rest of a longer string is checked, not skipped, so a bad time makes the whole string an `Err`:
@@ -236,8 +230,7 @@ Time.parsePlainDate("2026-10-22T25:00") // Err{ error: Error{ message: "hour out
 ```
 
 ```ant
-Time.parsePlainDate("2026-10-22 trailing")
-// Err{ error: Error{ message: "not a date or time: \"2026-10-22 trailing\"" } }
+Time.parsePlainDate("2026-10-22 trailing") // Err{ error: Error{ message: "not a date or time: \"2026-10-22 trailing\"" } }
 ```
 
 Only the ISO form parses. Leading spaces, single-digit months and days, and compact dates are all

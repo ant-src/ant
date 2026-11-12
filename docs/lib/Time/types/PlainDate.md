@@ -253,8 +253,7 @@ A string that ends in `Z` with no zone in brackets names a moment, not a wall-cl
 parser refuses it:
 
 ```ant
-Time.parsePlainDate("2026-10-22T14:03:05Z")
-// Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainDate("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
 ```
 
 The ISO week number belongs to the week's year, which differs from the date's year around New Year.

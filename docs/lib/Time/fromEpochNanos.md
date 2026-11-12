@@ -45,8 +45,7 @@ Time.fromEpochNanos(Math.maxInt) // 2262-04-11T23:47:16.854775807Z
 Pass it as a function value to convert a list of timestamps:
 
 ```ant
-[0, 1_000_000_000, 1_500_000_000].map(Time.fromEpochNanos)
-// [1970-01-01T00:00:00Z, 1970-01-01T00:00:01Z, 1970-01-01T00:00:01.5Z]
+[0, 1_000_000_000, 1_500_000_000].map(Time.fromEpochNanos) // [1970-01-01T00:00:00Z, 1970-01-01T00:00:01Z, 1970-01-01T00:00:01.5Z]
 ```
 
 Every digit is kept, down to the nanosecond:

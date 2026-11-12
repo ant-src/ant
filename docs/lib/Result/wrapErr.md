@@ -37,8 +37,7 @@ Result.wrapErr(loaded, "load config") // Ok{ value: 8080 }
 Wrap the result of a call in a pipe:
 
 ```ant
-Json.parse("{") | Result.wrapErr("parse app.json")
-// Err{ error: Error{ message: "parse app.json: unexpected end of JSON input" } }
+Json.parse("{") | Result.wrapErr("parse app.json") // Err{ error: Error{ message: "parse app.json: unexpected end of JSON input" } }
 ```
 
 ## Scope
@@ -47,8 +46,7 @@ Each wrap adds one more context in front, so the outermost caller reads first:
 
 ```ant
 let failed: Result[int, Error] = Result.fail("timeout")
-failed | Result.wrapErr("fetch user") | Result.wrapErr("render page")
-// Err{ error: Error{ message: "render page: fetch user: timeout" } }
+failed | Result.wrapErr("fetch user") | Result.wrapErr("render page") // Err{ error: Error{ message: "render page: fetch user: timeout" } }
 ```
 
 An empty context still adds the separator:
@@ -106,8 +104,7 @@ Name the input that failed when you process several, then keep the first error w
 ```ant
 type Source = { name: string, text: string }
 let sources = [Source{ name: "a.json", text: "[1]" }, Source{ name: "b.json", text: "[1," }]
-sources | Array.map({ Json.parse(x.text) | Result.wrapErr("parse ${x.name}") }) | Result.all()
-// Err{ error: Error{ message: "parse b.json: unexpected end of JSON input" } }
+sources | Array.map({ Json.parse(x.text) | Result.wrapErr("parse ${x.name}") }) | Result.all() // Err{ error: Error{ message: "parse b.json: unexpected end of JSON input" } }
 ```
 
 Turn an error of your own type into an `Error` for a person to read, then add the context:
@@ -115,8 +112,7 @@ Turn an error of your own type into an `Error` for a person to read, then add th
 ```ant
 type NotFound = { id: int }
 let missing: Result[string, NotFound] = Result.err(NotFound{ id: 7 })
-missing | Result.mapErr({ Error{ message: "user ${x.id} not found" } }) | Result.wrapErr("load profile")
-// Err{ error: Error{ message: "load profile: user 7 not found" } }
+missing | Result.mapErr({ Error{ message: "user ${x.id} not found" } }) | Result.wrapErr("load profile") // Err{ error: Error{ message: "load profile: user 7 not found" } }
 ```
 
 ## Properties and relations

@@ -39,8 +39,7 @@ launch.inLeapYear() // true
 Century years are leap years only when they divide by 400:
 
 ```ant
-[1900, 2000, 2100, 2400].map({ Time.plainDate(x, 1, 1).inLeapYear() })
-// [false, true, false, true]
+[1900, 2000, 2100, 2400].map({ Time.plainDate(x, 1, 1).inLeapYear() }) // [false, true, false, true]
 ```
 
 Year 0 and negative years follow the same calendar:
@@ -87,8 +86,7 @@ The leap years of a range:
 ```ant
 [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032].filter({
   Time.plainDate(x, 1, 1).inLeapYear()
-})
-// [2024, 2028, 2032]
+}) // [2024, 2028, 2032]
 ```
 
 The next leap year from a date:

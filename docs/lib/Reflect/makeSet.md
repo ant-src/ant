@@ -82,8 +82,7 @@ type Tag = string
 let members = ["new", "sale"].map({
   Reflect.makeTagged(Reflect.erase(type(Tag)), Reflect.valueOf(type(string), x))
 })
-Reflect.makeSet(Reflect.erase(type(Set[Tag])), members)
-// Reflect.Value(Set.of([Tag("new"), Tag("sale")]): Set[Tag])
+Reflect.makeSet(Reflect.erase(type(Set[Tag])), members) // Reflect.Value(Set.of([Tag("new"), Tag("sale")]): Set[Tag])
 ```
 
 ## Applications
@@ -202,8 +201,7 @@ Reflect.makeSet(t, [Reflect.valueOf(type(string), "new")])
 
 ```ant
 let members = [Math.NaN, Math.NaN].map({ Reflect.valueOf(type(float64), x) })
-Reflect.makeSet(Reflect.erase(type(Set[float64])), members)
-// Reflect.Value(Set.of([NaN, NaN]): Set[float64])
+Reflect.makeSet(Reflect.erase(type(Set[float64])), members) // Reflect.Value(Set.of([NaN, NaN]): Set[float64])
 ```
 
 ## See also

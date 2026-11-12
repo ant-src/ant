@@ -82,25 +82,21 @@ the field a default:
 ```ant
 type Box[T] = { value: T }
 type Server = { host: string, port: int = 8080 }
-Reflect.shape(Reflect.erase(type(Box[int])))
-// Reflect.Record{ decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
-Reflect.shape(Reflect.erase(type(Server)))
-// Reflect.Record{ decl: Server, args: [], fields: [Reflect.Field{ name: "host", type: string, hasDefault: false }, Reflect.Field{ name: "port", type: int, hasDefault: true }] }
+Reflect.shape(Reflect.erase(type(Box[int]))) // Reflect.Record{ decl: Box, args: [int], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Server)))   // Reflect.Record{ decl: Server, args: [], fields: [Reflect.Field{ name: "host", type: string, hasDefault: false }, Reflect.Field{ name: "port", type: int, hasDefault: true }] }
 ```
 
 An anonymous record type has no declaration, so `decl` is `null`:
 
 ```ant
-Reflect.shape(Reflect.erase(type({ x: int })))
-// Reflect.Record{ decl: null, args: [], fields: [Reflect.Field{ name: "x", type: int, hasDefault: false }] }
+Reflect.shape(Reflect.erase(type({ x: int }))) // Reflect.Record{ decl: null, args: [], fields: [Reflect.Field{ name: "x", type: int, hasDefault: false }] }
 ```
 
 A recursive record type stops at one level: the field holds the erased type, not its expansion:
 
 ```ant
 type Tree = { value: int, children: Array[Tree] }
-Reflect.shape(Reflect.erase(type(Tree)))
-// Reflect.Record{ decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
+Reflect.shape(Reflect.erase(type(Tree))) // Reflect.Record{ decl: Tree, args: [], fields: [Reflect.Field{ name: "value", type: int, hasDefault: false }, Reflect.Field{ name: "children", type: Array[Tree], hasDefault: false }] }
 ```
 
 ### Named primitive types
@@ -133,10 +129,8 @@ Reflect.shape(Reflect.erase(type(int | (string | null) | int))) // Reflect.Union
 `Result` is a union of two records, and `Json.Value` a recursive union:
 
 ```ant
-Reflect.shape(Reflect.erase(type(Result[int, Error])))
-// Reflect.Union{ members: [Ok[int], Err[Error]] }
-Reflect.shape(Reflect.erase(type(Json.Value)))
-// Reflect.Union{ members: [null, bool, float64, string, Array[Json.Value], Map[string, Json.Value]] }
+Reflect.shape(Reflect.erase(type(Result[int, Error]))) // Reflect.Union{ members: [Ok[int], Err[Error]] }
+Reflect.shape(Reflect.erase(type(Json.Value)))         // Reflect.Union{ members: [null, bool, float64, string, Array[Json.Value], Map[string, Json.Value]] }
 ```
 
 ### Opaque types

@@ -69,8 +69,7 @@ t.toInstant() // 2026-10-22T14:03:05.123456789Z
 In a pipe, pass it as a function value:
 
 ```ant
-"2026-10-22T16:03:05+02:00[Europe/Stockholm]" | Time.parseZoned() | Result.map(Time.toInstant)
-// Ok{ value: 2026-10-22T14:03:05Z }
+"2026-10-22T16:03:05+02:00[Europe/Stockholm]" | Time.parseZoned() | Result.map(Time.toInstant) // Ok{ value: 2026-10-22T14:03:05Z }
 ```
 
 ## Applications

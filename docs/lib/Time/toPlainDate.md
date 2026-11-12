@@ -68,8 +68,7 @@ times.map(Time.toPlainDate) // [2026-12-24, 2026-12-25]
 In a pipe, the value is the first argument:
 
 ```ant
-"2026-10-22T14:30" | Time.parsePlainDateTime() | Result.map(Time.toPlainDate)
-// Ok{ value: 2026-10-22 }
+"2026-10-22T14:30" | Time.parsePlainDateTime() | Result.map(Time.toPlainDate) // Ok{ value: 2026-10-22 }
 ```
 
 ## Applications

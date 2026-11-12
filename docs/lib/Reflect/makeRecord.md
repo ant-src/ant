@@ -46,8 +46,7 @@ Leave out a field that has a default:
 ```ant
 type Server = { host: string, port: int = 8080, tags: Array[string] = [] }
 let host = Reflect.valueOf(type(string), "example.com")
-Reflect.makeRecord(Reflect.erase(type(Server)), Map{ host })
-// Reflect.Value(Server{ host: "example.com", port: 8080, tags: [] }: Server)
+Reflect.makeRecord(Reflect.erase(type(Server)), Map{ host }) // Reflect.Value(Server{ host: "example.com", port: 8080, tags: [] }: Server)
 ```
 
 ## Scope
@@ -86,8 +85,7 @@ type Celsius = float64
 type Reading = { sensor: string, value: Celsius }
 let value = Reflect.makeTagged(Reflect.erase(type(Celsius)), Reflect.valueOf(type(float64), 21.5))
 let sensor = Reflect.valueOf(type(string), "a1")
-Reflect.makeRecord(Reflect.erase(type(Reading)), Map{ sensor, value }) | Reflect.to(type(Reading))
-// Reading{ sensor: "a1", value: 21.5 }
+Reflect.makeRecord(Reflect.erase(type(Reading)), Map{ sensor, value }) | Reflect.to(type(Reading)) // Reading{ sensor: "a1", value: Celsius(21.5) }
 ```
 
 A field of record type takes a box of a record, built by reflection or not. A field of anonymous
@@ -98,8 +96,7 @@ type Point = { x: float64, y: float64 }
 type Label = { text: string, at: { x: float64 } }
 let at = Reflect.valueOf(type(Point), Point{ x: 1.0, y: 2.0 })
 let text = Reflect.valueOf(type(string), "origin")
-Reflect.makeRecord(Reflect.erase(type(Label)), Map{ text, at })
-// Reflect.Value(Label{ text: "origin", at: Point{ x: 1.0, y: 2.0 } }: Label)
+Reflect.makeRecord(Reflect.erase(type(Label)), Map{ text, at }) // Reflect.Value(Label{ text: "origin", at: Point{ x: 1.0, y: 2.0 } }: Label)
 ```
 
 ## Applications
@@ -291,8 +288,7 @@ let t = Reflect.erase(type(Point))
 let y = Reflect.valueOf(type(float64), 0.0)
 Reflect.makeRecord(t, Map{ x: Reflect.valueOf(type(int), 1), y })
 // panic: Reflect.makeRecord: a value of type int is not assignable to the field x of Point, whose type is float64
-Reflect.makeRecord(t, Map{ x: Reflect.valueOf(type(float64), 1.0), y })
-// Reflect.Value(Point{ x: 1.0, y: 0.0 }: Point)
+Reflect.makeRecord(t, Map{ x: Reflect.valueOf(type(float64), 1.0), y }) // Reflect.Value(Point{ x: 1.0, y: 0.0 }: Point)
 ```
 
 ## See also

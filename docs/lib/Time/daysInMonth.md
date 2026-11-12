@@ -37,8 +37,7 @@ d.daysInMonth() // 29
 Every month of a year:
 
 ```ant
-Array.range(1, 13) | Array.map({ Time.plainDate(2026, x, 1).daysInMonth() })
-// [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+Array.range(1, 13) | Array.map({ Time.plainDate(2026, x, 1).daysInMonth() }) // [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 ```
 
 A `Time.PlainDateTime` gives the days of its date's month:

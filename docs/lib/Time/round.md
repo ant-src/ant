@@ -79,10 +79,8 @@ them have passed, and at 13:00 12 have, so noon rounds down and 13:00 rounds up:
 ```ant
 let ny = Result.unwrap(Time.zone("America/New_York"))
 let day = Time.plainDate(2026, 3, 8)
-Time.plainDateTime(day, Time.plainTime(12)).toZoned(ny).round(Time.Day{})
-// 2026-03-08T00:00:00-05:00[America/New_York]
-Time.plainDateTime(day, Time.plainTime(13)).toZoned(ny).round(Time.Day{})
-// 2026-03-09T00:00:00-04:00[America/New_York]
+Time.plainDateTime(day, Time.plainTime(12)).toZoned(ny).round(Time.Day{}) // 2026-03-08T00:00:00-05:00[America/New_York]
+Time.plainDateTime(day, Time.plainTime(13)).toZoned(ny).round(Time.Day{}) // 2026-03-09T00:00:00-04:00[America/New_York]
 ```
 
 A smaller unit works on the wall clock. 01:40 rounds to 02:00, which the change skips, so the result

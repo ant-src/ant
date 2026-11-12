@@ -199,8 +199,7 @@ Mask every number but its last two digits:
 Regex.replaceWith(/\d+/, "card 4111111111111111, pin 1234", {
   let n = x.text.length()
   "*".repeat(n - 2) + x.text.slice(n - 2, n)
-})
-// "card **************11, pin **34"
+}) // "card **************11, pin **34"
 ```
 
 Split a list whose separators vary:

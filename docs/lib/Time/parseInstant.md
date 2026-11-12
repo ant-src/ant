@@ -29,8 +29,7 @@ Time.parseInstant("2026-10-22T16:03:05+02:00") // Ok{ value: 2026-10-22T14:03:05
 Text it cannot parse is an `Err` with a message:
 
 ```ant
-Time.parseInstant("yesterday")
-// Err{ error: Error{ message: "not a date or time: \"yesterday\"" } }
+Time.parseInstant("yesterday") // Err{ error: Error{ message: "not a date or time: \"yesterday\"" } }
 ```
 
 ## Scope
@@ -181,10 +180,8 @@ Text without an offset is a wall-clock time, not a moment, and is an `Err`. Pars
 [Time.toZoned](toZoned.md):
 
 ```ant
-Time.parseInstant("2026-10-22T14:03:05")
-// Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22T14:03:05\"" } }
-Time.parseInstant("2026-10-22")
-// Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22\"" } }
+Time.parseInstant("2026-10-22T14:03:05") // Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22T14:03:05\"" } }
+Time.parseInstant("2026-10-22")          // Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22\"" } }
 ```
 
 Spellings that other ISO 8601 parsers accept are an `Err`: a lowercase `z`, a comma before the

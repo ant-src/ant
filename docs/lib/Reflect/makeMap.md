@@ -46,8 +46,7 @@ Small helpers keep the boxing of keys and values short:
 func str(s: string): Reflect.Value { Reflect.valueOf(type(string), s) }
 func num(n: int): Reflect.Value { Reflect.valueOf(type(int), n) }
 let t = Reflect.erase(type(Map[string, int]))
-Reflect.makeMap(t, [Entry{ key: str("a"), value: num(1) }, Entry{ key: str("b"), value: num(2) }])
-// Reflect.Value(Map{ "a": 1, "b": 2 }: Map[string, int])
+Reflect.makeMap(t, [Entry{ key: str("a"), value: num(1) }, Entry{ key: str("b"), value: num(2) }]) // Reflect.Value(Map{ "a": 1, "b": 2 }: Map[string, int])
 ```
 
 An empty array gives an empty map of the type:
@@ -84,13 +83,11 @@ Keys may be records or arrays. They compare with `==`, so two equal arrays are o
 type Cell = { row: int, col: int }
 let t = Reflect.erase(type(Map[Cell, string]))
 let cell = Reflect.valueOf(type(Cell), Cell{ row: 0, col: 1 })
-Reflect.makeMap(t, [Entry{ key: cell, value: Reflect.valueOf(type(string), "x") }])
-// Reflect.Value(Map{ Cell{ row: 0, col: 1 }: "x" }: Map[Cell, string])
+Reflect.makeMap(t, [Entry{ key: cell, value: Reflect.valueOf(type(string), "x") }]) // Reflect.Value(Map{ Cell{ row: 0, col: 1 }: "x" }: Map[Cell, string])
 let byList = Reflect.erase(type(Map[Array[int], string]))
 let a = Entry{ key: Reflect.valueOf(type(Array[int]), [1, 2]), value: Reflect.valueOf(type(string), "a") }
 let b = Entry{ key: Reflect.valueOf(type(Array[int]), [1, 2]), value: Reflect.valueOf(type(string), "b") }
-Reflect.makeMap(byList, [a, b])
-// Reflect.Value(Map{ [1, 2]: "b" }: Map[Array[int], string])
+Reflect.makeMap(byList, [a, b]) // Reflect.Value(Map{ [1, 2]: "b" }: Map[Array[int], string])
 ```
 
 Make the map type from type values held at run time with `Reflect.mapOf`:

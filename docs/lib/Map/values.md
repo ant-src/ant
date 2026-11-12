@@ -128,8 +128,7 @@ for w in ["the", "ant", "the", "hill", "the", "ant"] {
   c.n += 1
   counts[w] = c
 }
-counts.values().sortBy({ -x.n }).map({ "${x.word}: ${x.n}" })
-// ["the: 3", "ant: 2", "hill: 1"]
+counts.values().sortBy({ -x.n }).map({ "${x.word}: ${x.n}" }) // ["the: 3", "ant: 2", "hill: 1"]
 ```
 
 List the distinct values in the order they first appear:

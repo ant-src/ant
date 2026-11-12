@@ -45,8 +45,7 @@ Regex.replaceFirst(/x/, "abc", "y") // "abc"
 Named groups expand with `${name}`. A backtick string keeps `${` from interpolating:
 
 ```ant
-Regex.replaceFirst(/(?<user>\w+)@(?<host>\w+)/, "ann@home bob@work", `${host}/${user}`)
-// "home/ann bob@work"
+Regex.replaceFirst(/(?<user>\w+)@(?<host>\w+)/, "ann@home bob@work", `${host}/${user}`) // "home/ann bob@work"
 ```
 
 `$0` is the whole match:
@@ -108,8 +107,7 @@ Reformat the first date in a log line and leave later dates alone:
 
 ```ant
 let line = "2026-11-12 saved 2026-11-01 backup"
-Regex.replaceFirst(/(\d{4})-(\d{2})-(\d{2})/, line, "$3.$2.$1")
-// "12.11.2026 saved 2026-11-01 backup"
+Regex.replaceFirst(/(\d{4})-(\d{2})-(\d{2})/, line, "$3.$2.$1") // "12.11.2026 saved 2026-11-01 backup"
 ```
 
 Bump the first `version` line of a config file, not the one in a later section:

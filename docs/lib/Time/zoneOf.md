@@ -66,8 +66,7 @@ Time.nowIn(Time.zone("Asia/Tokyo").unwrap()).zoneOf()   // Asia/Tokyo
 In a pipe, the zoned value from a parse goes through `Result.map`:
 
 ```ant
-"2026-10-22T16:03:05+11:00[Australia/Sydney]" | Time.parseZoned() | Result.map(Time.zoneOf)
-// Ok{ value: Australia/Sydney }
+"2026-10-22T16:03:05+11:00[Australia/Sydney]" | Time.parseZoned() | Result.map(Time.zoneOf) // Ok{ value: Australia/Sydney }
 ```
 
 ## Applications

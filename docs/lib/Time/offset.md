@@ -79,8 +79,7 @@ at.inZone(Result.unwrap(Time.zone("America/New_York"))).offset() // "-04:00"
 In a pipeline, the zoned time is the first argument:
 
 ```ant
-"2026-07-01T12:00[Australia/Sydney]" | Time.parseZoned() | Result.map(Time.offset)
-// Ok{ value: "+10:00" }
+"2026-07-01T12:00[Australia/Sydney]" | Time.parseZoned() | Result.map(Time.offset) // Ok{ value: "+10:00" }
 ```
 
 ## Applications
@@ -174,8 +173,7 @@ An offset with seconds is not one the parsers accept, so text built from it does
 
 ```ant
 let t = Result.unwrap(Time.parseZoned("1800-07-01T12:00[Europe/Paris]"))
-Time.parseInstant("${t.toPlainDateTime()}${t.offset()}")
-// Err{ error: Error{ message: "not a date or time: \"1800-07-01T12:00:00+00:09:21\"" } }
+Time.parseInstant("${t.toPlainDateTime()}${t.offset()}") // Err{ error: Error{ message: "not a date or time: \"1800-07-01T12:00:00+00:09:21\"" } }
 ```
 
 Use the string of `t` instead, which rounds the offset to the minute and parses back to the same

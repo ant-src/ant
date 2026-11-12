@@ -25,8 +25,7 @@ Box a map with [Reflect.valueOf](valueOf.md), then read its entries:
 
 ```ant
 let ages = Reflect.valueOf(type(Map[string, int]), Map{ "ann": 31, "bob": 27 })
-Reflect.entries(ages)
-// [Entry{ key: Reflect.Value("ann": string), value: Reflect.Value(31: int) }, Entry{ key: Reflect.Value("bob": string), value: Reflect.Value(27: int) }]
+Reflect.entries(ages) // [Entry{ key: Reflect.Value("ann": string), value: Reflect.Value(31: int) }, Entry{ key: Reflect.Value("bob": string), value: Reflect.Value(27: int) }]
 ```
 
 Unbox a key or a value with [Reflect.to](to.md) or, for a leaf, [Reflect.scalar](scalar.md):
@@ -59,8 +58,7 @@ When the key or value type is a union, each box takes the member its value belon
 ```ant
 let mixed: Map[string | int, bool | string] = Map{ "a": true, 2: "two" }
 let d = Reflect.valueOf(type(Map[string | int, bool | string]), mixed)
-Reflect.entries(d).map({ "${x.key.type()} -> ${x.value.type()}" })
-// ["string -> bool", "int -> string"]
+Reflect.entries(d).map({ "${x.key.type()} -> ${x.value.type()}" }) // ["string -> bool", "int -> string"]
 ```
 
 A nullable value type boxes a stored `null` at `null`:
@@ -76,8 +74,7 @@ union, so the box's type is the map type:
 
 ```ant
 let d = Reflect.valueOf(type(Map[string, int] | null), Map{ "k": 1 })
-Reflect.entries(d)
-// [Entry{ key: Reflect.Value("k": string), value: Reflect.Value(1: int) }]
+Reflect.entries(d) // [Entry{ key: Reflect.Value("k": string), value: Reflect.Value(1: int) }]
 ```
 
 Keys of a named primitive type keep their tag:
@@ -85,8 +82,7 @@ Keys of a named primitive type keep their tag:
 ```ant
 type UserId = int
 let names = Map{ UserId(7): "ann" }
-Reflect.entries(Reflect.valueOf(type(Map[UserId, string]), names))
-// [Entry{ key: Reflect.Value(UserId(7): UserId), value: Reflect.Value("ann": string) }]
+Reflect.entries(Reflect.valueOf(type(Map[UserId, string]), names)) // [Entry{ key: Reflect.Value(UserId(7): UserId), value: Reflect.Value("ann": string) }]
 ```
 
 A value that is itself a map is boxed at its map type, so `Reflect.entries` reads it in turn:
@@ -95,8 +91,7 @@ A value that is itself a map is boxed at its map type, so `Reflect.entries` read
 let nested = Map{ "colors": Map{ "red": true } }
 let d = Reflect.valueOf(type(Map[string, Map[string, bool]]), nested)
 let inner = Reflect.entries(d)[0].value
-Reflect.entries(inner)
-// [Entry{ key: Reflect.Value("red": string), value: Reflect.Value(true: bool) }]
+Reflect.entries(inner) // [Entry{ key: Reflect.Value("red": string), value: Reflect.Value(true: bool) }]
 ```
 
 ## Applications

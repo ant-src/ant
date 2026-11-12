@@ -51,8 +51,7 @@ Time.fromEpochMillis(-8_640_000_000_000_000) // -271821-04-20T00:00:00Z
 Pass it as a function value:
 
 ```ant
-[0, 60_000, 3_600_000].map(Time.fromEpochMillis)
-// [1970-01-01T00:00:00Z, 1970-01-01T00:01:00Z, 1970-01-01T01:00:00Z]
+[0, 60_000, 3_600_000].map(Time.fromEpochMillis) // [1970-01-01T00:00:00Z, 1970-01-01T00:01:00Z, 1970-01-01T01:00:00Z]
 ```
 
 ## Named arguments
@@ -69,8 +68,7 @@ Show a timestamp from a JavaScript `Date.now()` as local time in a zone:
 
 ```ant
 let stockholm = Result.unwrap(Time.zone("Europe/Stockholm"))
-Time.fromEpochMillis(1_793_966_400_000).inZone(stockholm)
-// 2026-11-06T13:00:00+01:00[Europe/Stockholm]
+Time.fromEpochMillis(1_793_966_400_000).inZone(stockholm) // 2026-11-06T13:00:00+01:00[Europe/Stockholm]
 ```
 
 Measure the time between two stored timestamps:

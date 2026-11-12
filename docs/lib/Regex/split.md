@@ -98,8 +98,7 @@ Parse settings written as `key = value` pairs with loose spacing:
 
 ```ant
 let text = "host = example.com; port=8080 ;debug = true"
-Regex.split(/\s*;\s*/, text).map({ Regex.split(/\s*=\s*/, x) })
-// [["host", "example.com"], ["port", "8080"], ["debug", "true"]]
+Regex.split(/\s*;\s*/, text).map({ Regex.split(/\s*=\s*/, x) }) // [["host", "example.com"], ["port", "8080"], ["debug", "true"]]
 ```
 
 Count the words of a sentence, splitting at every run of characters that are not letters:

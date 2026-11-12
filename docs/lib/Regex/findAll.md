@@ -30,8 +30,7 @@ Regex.findAll(/\d+/, "a1b22") | Array.map({ x.text }) // ["1", "22"]
 Each match is a `Regex.Match` record:
 
 ```ant
-Regex.findAll(/\d+/, "a1b22")
-// [Regex.Match{ text: "1", start: 1, end: 2, groups: ["1"], named: Map{} }, Regex.Match{ text: "22", start: 3, end: 5, groups: ["22"], named: Map{} }]
+Regex.findAll(/\d+/, "a1b22") // [Regex.Match{ text: "1", start: 1, end: 2, groups: ["1"], named: Map{} }, Regex.Match{ text: "22", start: 3, end: 5, groups: ["22"], named: Map{} }]
 ```
 
 No match gives an empty array:
@@ -130,8 +129,7 @@ println(total ?? 0)
 Collect the distinct hashtags of a post:
 
 ```ant
-Regex.findAll(/#\w+/, "#ant is fun #lang #ant") | Array.map({ x.text }) | Array.unique()
-// ["#ant", "#lang"]
+Regex.findAll(/#\w+/, "#ant is fun #lang #ant") | Array.map({ x.text }) | Array.unique() // ["#ant", "#lang"]
 ```
 
 Read `key=value` settings into a map, with named groups:

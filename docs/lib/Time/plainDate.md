@@ -64,8 +64,7 @@ Json.stringify(d) // "\"2026-10-22\""
 Build several dates with a lambda, such as the first day of each quarter:
 
 ```ant
-[1, 4, 7, 10].map({ Time.plainDate(2026, x, 1) })
-// [2026-01-01, 2026-04-01, 2026-07-01, 2026-10-01]
+[1, 4, 7, 10].map({ Time.plainDate(2026, x, 1) }) // [2026-01-01, 2026-04-01, 2026-07-01, 2026-10-01]
 ```
 
 A date is a value, so it works as a map key and compares with `==`:

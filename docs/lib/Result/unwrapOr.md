@@ -134,8 +134,7 @@ Panic.catch({ xs[5] }).unwrapOr(0) // 0
 Map every input to a value, with the fallback standing in for the ones that fail:
 
 ```ant
-["PT1H", "later", "PT15M"].map({ Time.parseDuration(x).unwrapOr(Time.duration()) })
-// [PT1H, PT0S, PT15M]
+["PT1H", "later", "PT15M"].map({ Time.parseDuration(x).unwrapOr(Time.duration()) }) // [PT1H, PT0S, PT15M]
 ```
 
 ## Properties and relations

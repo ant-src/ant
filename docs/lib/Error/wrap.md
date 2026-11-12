@@ -38,8 +38,7 @@ Each wrap adds one more context in front, so the outermost caller reads first:
 
 ```ant
 let e = Error{ message: "timeout" }
-e | Error.wrap("fetch user") | Error.wrap("render page")
-// Error{ message: "render page: fetch user: timeout" }
+e | Error.wrap("fetch user") | Error.wrap("render page") // Error{ message: "render page: fetch user: timeout" }
 ```
 
 An empty context still adds the separator:
@@ -157,8 +156,7 @@ Record.same(e.wrap("fetch"), e) // false
 `Error.wrap` adds `: ` itself, so a context that ends in a colon gets two:
 
 ```ant
-Error.wrap(Error{ message: "no such file" }, "failed to load config:")
-// Error{ message: "failed to load config:: no such file" }
+Error.wrap(Error{ message: "no such file" }, "failed to load config:") // Error{ message: "failed to load config:: no such file" }
 ```
 
 Name the operation and its argument in lowercase, with no trailing punctuation: `load config`.

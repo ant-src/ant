@@ -71,8 +71,7 @@ second.offsetSeconds() // -18000
 In a pipe, the zoned time is the first argument:
 
 ```ant
-"2026-07-15T12:00[Asia/Tokyo]" | Time.parseZoned() | Result.map(Time.offsetSeconds)
-// Ok{ value: 32400 }
+"2026-07-15T12:00[Asia/Tokyo]" | Time.parseZoned() | Result.map(Time.offsetSeconds) // Ok{ value: 32400 }
 ```
 
 ## Applications
