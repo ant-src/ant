@@ -9,7 +9,8 @@ func Channel.receive[T](c: Channel[T], ctx: Context | null = null): T | null
 
 Channel.receive takes the next value from c, blocking until one is available. It returns null when c
 is closed and drained, or when ctx is done first; [`Context.isDone`](../Context/isDone.md) tells the
-two apart. When T includes null, a null value looks like the end, so wrap such values.
+two apart. A ctx done already takes nothing, even from a channel that holds values. When T includes
+null, a null value looks like the end, so wrap such values, or use [`Channel.values`](values.md).
 
 <!-- end generated -->
 
@@ -19,6 +20,9 @@ two apart. When T includes null, a null value looks like the end, so wrap such v
   capacity, that is until a sender hands one over.
 - Returns `null` once `c` is closed and every buffered value has been received. Every later receive
   returns `null` at once.
+- A `ctx` that is done already gives up at once, so `receive` returns `null` and takes nothing, even
+  from a channel that holds values. A [select](../../language/keywords/select.md) is the way to
+  prefer a ready channel.
 - Without `ctx`, a receive on a channel that no goroutine sends on or closes waits until the run is
   cancelled.
 

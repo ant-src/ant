@@ -1,0 +1,25 @@
+// spec: 11 Synchronization
+// Channel.values receives one value per yield and nothing ahead of it, so values left after a
+// break stay in the channel, and it tells a null value from a close.
+let queue: Channel[int] = Channel.new(capacity: 5)
+for n in [3, 8, 12, 5, 20] { queue.send(n) }
+queue.close()
+for n in queue.values() {
+  println(n)
+  if n == 12 { break }
+}
+println(queue.length())
+
+let nulls: Channel[int | null] = Channel.new(capacity: 3)
+nulls.send(1)
+nulls.send(null)
+nulls.send(2)
+nulls.close()
+println(nulls.values() | Iter.toArray())
+
+// expect
+// out: 3
+// out: 8
+// out: 12
+// out: 2
+// out: [1, null, 2]

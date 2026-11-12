@@ -8,13 +8,16 @@ func Channel.values[T](c: Channel[T], ctx: Context | null = null): Seq[T]
 ```
 
 Channel.values returns a sequence of every value received from c until it is closed and drained, or
-until ctx is done.
+until ctx is done. It receives one value per yield, so values left after a break stay in c, and it
+tells a null value from a close. A ctx done already takes nothing.
 
 <!-- end generated -->
 
 ## Details
 
-- The loop receives each value, so a value it yields is gone from the channel.
+- The loop receives each value, so a value it yields is gone from the channel. It receives one
+  value per step and nothing ahead, so the values left after a `break` stay in the channel.
+- A `ctx` that is done already yields nothing, even from a channel that holds values.
 - The sequence ends only when the channel is closed and drained, or when `ctx` is done. A loop over
   a channel nobody closes, without a context, waits until the run is cancelled.
 - Unlike `Channel.receive`, the sequence tells a `null` value from a close, so a `Channel[T | null]`

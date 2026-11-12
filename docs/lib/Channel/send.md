@@ -8,7 +8,8 @@ func Channel.send[T](c: Channel[T], v: T, ctx: Context | null = null): bool
 ```
 
 Channel.send sends v on c, blocking until a receiver takes it or the buffer has room. It returns
-true once v is taken or buffered, and false if ctx is done first. It panics if c is closed.
+true once v is taken or buffered, and false if ctx is done first; a ctx done already buffers
+nothing. It panics if c is closed, even when ctx is done, or if c closes while the send waits.
 
 <!-- end generated -->
 
@@ -18,8 +19,10 @@ true once v is taken or buffered, and false if ctx is done first. It panics if c
   channel it returns as soon as the value is buffered, and blocks only while the buffer is full.
 - It returns `false` only when `ctx` is done before the value is taken or buffered; the value is
   then not sent.
-- Sending on a closed channel panics, and so does sending on a [Time.ticker](../Time/ticker.md)
-  channel.
+- Sending on a closed channel panics, even with a `ctx` that is done, and so does sending on a
+  [Time.ticker](../Time/ticker.md) channel. A send waiting when the channel closes panics too.
+- A `ctx` that is done already gives up at once, so `send` buffers nothing and returns `false`, even
+  when the buffer has room.
 
 ## Basic examples
 

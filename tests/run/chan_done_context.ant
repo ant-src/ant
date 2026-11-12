@@ -1,0 +1,45 @@
+// spec: 11 Synchronization
+// panics: Channel.send
+// A send, receive or values given a context that is done already gives up at once, even when the
+// channel is ready: a send buffers nothing and a receive takes nothing, closed channel or not. A
+// send on a closed channel panics even when its context is done.
+let gone = Context.new()
+gone.cancel()
+
+let b: Channel[int] = Channel.new(1)
+println(b.send(1, gone))
+println(b.length())
+
+let buf: Channel[int] = Channel.new(1)
+buf.send(5)
+println(buf.receive(gone))
+println(buf.length())
+
+let drained: Channel[int] = Channel.new(2)
+drained.send(7)
+drained.close()
+println(drained.receive(gone))
+println(drained.length())
+
+let q: Channel[int] = Channel.new(capacity: 3)
+q.send(1)
+q.send(2)
+println(q.values(gone) | Iter.toArray())
+println(q.length())
+
+let closed: Channel[int] = Channel.new(1)
+closed.close()
+closed.send(1, gone)
+println("unreachable")
+
+// expect
+// exit: 1
+// out: false
+// out: 0
+// out: null
+// out: 1
+// out: null
+// out: 1
+// out: []
+// out: 2
+// err: Channel.send: the channel is closed
