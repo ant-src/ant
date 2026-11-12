@@ -39,6 +39,7 @@ func TestDocsHarness(t *testing.T) {
 		{name: "indented fence", page: "1. Run it:\n\n   " + f + "ant\n   println(1)\n   " + f + "\n\n   " + f + "text\n   1\n   " + f + "\n"},
 		{name: "odd but local file name", page: "<!-- test: file a..b.txt\nx\n-->\n\n" + f + "ant\nprintln(Result.unwrap(File.read(\"a..b.txt\")))\n" + f + "\n"},
 		{name: "links", page: "[same](p.md) [other](other.md \"title\") [site](/vscode) [web](https://ant-lang.org) `[code](nowhere.md)`\n"},
+		{name: "a comment below a statement or mid-program", page: f + "ant\nvar xs = [1]\n// one\nxs.length()\n// not a value\nprintln(xs)\nlet n = 2\n// done\n" + f + "\n\n" + f + "text\n[1]\n" + f + "\n"},
 		{name: "readme needs no status", rel: "README.md", raw: true, page: "# Docs\n"},
 
 		// Pages that fail.
@@ -79,6 +80,8 @@ func TestDocsHarness(t *testing.T) {
 		{name: "file outside the directory", page: "<!-- test: file ../x\nx\n-->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"relative path inside"}},
 		{name: "unclosed comment", page: "<!-- note\n\n" + f + "ant\nthis is (not ant\n" + f + "\n", want: []string{"comment is not closed"}},
 		{name: "unclosed block", page: f + "ant\nprintln(1)\n", want: []string{"block is not closed"}},
+		{name: "value below the last expression", page: f + "ant\nlet xs = [2, 1]\nxs.length()\n// 9\n" + f + "\n", want: []string{"p.md:5: this input has a value that nothing checks"}},
+		{name: "value below the last case", page: f + "ant\n1 + 1 // 2\n[1, 2]\n// [9]\n" + f + "\n", want: []string{"p.md:5: this input has a value that nothing checks"}},
 		{name: "output after cases", page: f + "ant\n1 + 1 // 2\n" + f + "\n\n" + f + "text\n2\n" + f + "\n", want: []string{"cases has no output block"}},
 		{name: "sections out of order", rel: "lib/X/y.md", page: "## Scope\n\n## Basic examples\n\n" + f + "ant\n1 + 1 // 2\n" + f + "\n\n## Extras\n", want: []string{"## Basic examples is out of order", "## Extras is not a section"}},
 		{name: "draft without examples", rel: "lib/X/y.md", page: "## Basic examples\n\n## See also\n", want: []string{"needs ## Basic examples with an example"}},

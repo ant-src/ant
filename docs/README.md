@@ -200,6 +200,9 @@ Array.sort(xs) // [1, 2, 3]
   its value must be the same on every run. Write those examples as programs.
 - A case that panics is written `// panic: <message>`, with the whole message:
   `[1][3] // panic: index 3 out of range for an array of length 1`.
+- The value goes at the end of the case's last line, never on the line below. A block that ends in
+  an expression with a comment right below it is read as a block of cases, so the expression fails
+  as a value that nothing checks.
 - `ant fmt` aligns the comments of consecutive lines; keep its alignment.
 
 ### Programs

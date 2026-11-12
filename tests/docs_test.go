@@ -266,10 +266,36 @@ func caseInputs(src string) ([]caseInput, bool) {
 		}
 		inputs = append(inputs, in)
 	}
+	if !any && valueBelow(inputs) {
+		// An expression with its value on the line below, in a block with no other case, is
+		// still meant as a case: read the block as cases, so the value nothing checks fails.
+		any = true
+	}
 	if any {
 		inputs = attachPanics(inputs)
 	}
 	return inputs, any
+}
+
+// valueBelow reports whether a block ends in a bare expression with a comment on its own line
+// right below, not a // error: or // panic: marker: a value written under its case instead of at
+// the end of its last line.
+func valueBelow(inputs []caseInput) bool {
+	isComment := func(in caseInput) bool { return strings.HasPrefix(strings.TrimSpace(in.src), "//") }
+	k := len(inputs) - 1
+	for k > 0 && isComment(inputs[k]) && isComment(inputs[k-1]) {
+		k-- // the first of the comments that end the block
+	}
+	if k < 1 {
+		return false
+	}
+	prev, in := inputs[k-1], inputs[k]
+	first, _, _ := strings.Cut(strings.TrimSpace(in.src), "\n")
+	if !isComment(in) || in.first != prev.last+1 || markerLine.MatchString(first) {
+		return false
+	}
+	_, _, ok := caseSplit(prev.src + " " + first)
+	return ok
 }
 
 var ownPanic = regexp.MustCompile(`^\s*//\s*panic:`)
