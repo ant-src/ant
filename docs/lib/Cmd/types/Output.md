@@ -85,7 +85,7 @@ A pipeline has one entry in `statuses` per stage. Its `status` is the rightmost 
 let out = try Cmd.capture(Cmd.pipe([
   Cmd.new("sh", ["-c", "echo a; exit 2"]),
   Cmd.new("cat"),
-  Cmd.new("true"),
+  Cmd.new("cat"),
 ]))
 println(out.status)
 println(out.statuses)
