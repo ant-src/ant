@@ -32,6 +32,9 @@ var m: Number = 2
 println(n > m) // ERR: > applies to
 var id: Id = 1
 println(id is Id) // ERR: Id is an alias and has no run-time identity
+var res: Result[int, Error] = Ok{ value: 1 }
+println(res is Result)     // ERR: Result is an alias and has no run-time identity
+println(res is Json.Value) // ERR: Json.Value is an alias and has no run-time identity
 var b = byte(7)
 println(b is byte)    // ERR: the test is always true
 println(id is bool)   // ERR: Id is never a bool
