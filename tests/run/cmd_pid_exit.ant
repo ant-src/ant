@@ -1,0 +1,12 @@
+// spec: stdlib Cmd
+// Cmd, Processes (stdlib.md): Cmd.pid is the id the last stage started with, and stays so after
+// it exits and is reaped.
+var c = Result.unwrap(Cmd.new("true").start())
+let id = c.pid()
+Result.unwrap(c.wait())
+println(c.pid() == id)
+println(id > 0)
+
+// expect
+// out: true
+// out: true

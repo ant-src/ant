@@ -1,0 +1,14 @@
+// spec: stdlib Cmd
+// Cmd (stdlib.md): Cmd.string leaves a word bare when it is not empty and only ASCII letters,
+// digits and _@%+=:,./-, = excepted in the program's word; any other word goes in single quotes,
+// each ' in it written '\'', so '' is the empty word and a line break stays inside the quotes.
+// Stages are joined by " | ".
+println(Cmd.new("echo", ["é", "~", "a=b", "@x", "", "it's", "a\nb", "#", "!", "[x]", "{y}", "-.:/%+,"]).string())
+println(Cmd.new("a=b").string())
+println(Cmd.pipe([Cmd.new("git", ["log"]), Cmd.new("wc", ["-l"])]).string())
+
+// expect
+// out: echo 'é' '~' a=b @x '' 'it'\''s' 'a
+// out: b' '#' '!' '[x]' '{y}' -.:/%+,
+// out: 'a=b'
+// out: git log | wc -l

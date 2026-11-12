@@ -7,7 +7,8 @@
 func Cmd.pid(p: Cmd.Process): int
 ```
 
-Cmd.pid returns the process id of p's last stage.
+Cmd.pid returns the process id p's last stage started with, the same after it exits; once it has
+been reaped the system may give that id to another process, so a program does not signal it by id.
 
 <!-- end generated -->
 

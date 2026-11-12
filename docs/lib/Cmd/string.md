@@ -8,8 +8,11 @@ func Cmd.string(c: Cmd | Cmd.Pipeline): string
 ```
 
 Cmd.string returns c as a line for a log: the program and its arguments, each quoted as a POSIX
-shell needs it, and a pipeline's stages joined by " \| ". env and dir are left out, so a secret in
-env never reaches the log.
+shell needs it, and a pipeline's stages joined by " \| ". A word is left bare when it is not empty
+and is only ASCII letters, digits and \_@%+=:,./-, = excepted in the program's word; any other word
+is put in single quotes, with each ' in it written '\\'', so '' is the empty word and a line break
+stays inside the quotes. env and dir are left out, so a secret in env never reaches the log. It
+panics on a pipeline of no commands.
 
 <!-- end generated -->
 
