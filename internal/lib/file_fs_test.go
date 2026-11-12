@@ -89,6 +89,33 @@ func TestCopyAllReadOnlyDirectory(t *testing.T) {
 	}
 }
 
+// TestCopyAllUnderLinkedWorkingDirectory: a to inside from is caught when the working directory is
+// reached through a link, so from and to, both relative, resolve it alike, and nothing is created
+// (stdlib.md, File: Copies).
+func TestCopyAllUnderLinkedWorkingDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symbolic links need privileges")
+	}
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "real", "site"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "real", "site", "index.html"), []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("real", filepath.Join(root, "via")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(root, "via"))
+	want := `Err{ error: Error{ message: "copy site to site/backup: site/backup lies inside site" } }`
+	if r := value.Render(copyAll("site", "site/backup")); r != want {
+		t.Fatalf("copyAll = %s; want %s", r, want)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "real", "site", "backup")); err == nil {
+		t.Fatal("copyAll created site/backup")
+	}
+}
+
 // TestDefaultTempDir: the temporary directory comes from the run's environment, which Os.env
 // reads, not the process's (stdlib.md, File: Temporary files).
 func TestDefaultTempDir(t *testing.T) {

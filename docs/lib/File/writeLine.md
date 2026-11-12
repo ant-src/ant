@@ -209,7 +209,7 @@ println(out.writeLine("late"))
 
 ```text
 Err{ error: Error{ message: "the file is not open for writing" } }
-Err{ error: Error{ message: "the file is not open for writing" } }
+Err{ error: Error{ message: "the file is closed" } }
 ```
 
 Lines written to a buffered handle are not in the file until the buffer fills, or until a flush or a

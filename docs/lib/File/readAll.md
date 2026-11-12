@@ -310,7 +310,7 @@ println(f.readAll())
 
 ```text
 Err{ error: Error{ message: "the file is not open for reading" } }
-Err{ error: Error{ message: "the file is not open for reading" } }
+Err{ error: Error{ message: "the file is closed" } }
 ```
 
 ## See also

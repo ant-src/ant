@@ -333,7 +333,7 @@ println(out.close())
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for writing" } }
+Err{ error: Error{ message: "the file is closed" } }
 Ok{ value: void }
 ```
 

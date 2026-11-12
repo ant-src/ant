@@ -72,7 +72,7 @@ println(0o777 == 511)
 // out: 640
 // out: Ok{ value: void }
 // out: 4755
-// out: chmod DIR: mode 0o10000 is outside 0o0 ..= 0o7777
+// out: chmod DIR: mode 0o10000 is outside 0 ..= 0o7777
 // out: true
 // out: true
 // out: Ok{ value: void }

@@ -1,0 +1,64 @@
+// spec: stdlib File
+// File (stdlib.md, File): a read, a write or a flush of a buffered handle after File.close is Err
+// with "the file is closed", while a handle opened the other way is "not open for" that; a flush of
+// a closed handle that is not buffered does nothing; a closed handle is no terminal; a buffered
+// handle over one that cannot be written is Err at once; a directory opens, and a read of it is Err
+// with the reason alone; a mode outside 0 ..= 0o7777 is written as the program writes it.
+let dir = Os.args()[0]
+try File.write("${dir}/in.txt", "line\n")
+let f = try File.create("${dir}/a.txt")
+println(f.isTerminal())
+try f.close()
+println(f.isTerminal())
+println(f.writeLine("x"))
+println(f.flush())
+let r = try File.open("${dir}/in.txt")
+try r.close()
+println(r.readLine())
+println(r.readAll())
+println(r.readChunk(4))
+let b = File.buffered(try File.create("${dir}/c.txt"))
+try b.close()
+println(b.writeLine("late"))
+println(b.flush())
+println(b.readLine())
+println(b.isTerminal())
+let w = try File.create("${dir}/w.txt")
+println(w.readLine())
+let ro = File.buffered(try File.open("${dir}/in.txt"))
+println(ro.writeLine("y"))
+println(ro.close())
+println(File.read("${dir}/in.txt"))
+
+try File.mkdir("${dir}/docs")
+let d = try File.open("${dir}/docs")
+println(d.readLine())
+println(d.readAll())
+println(d.readChunk(4))
+println(d.readExactly(4))
+try d.close()
+let bad = File.chmod("${dir}/in.txt", -1)
+if bad is Err { println(String.replace(bad.error.message, dir, "DIR")) }
+
+// expect
+// args: $TMP
+// out: false
+// out: false
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Ok{ value: void }
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed" } }
+// out: false
+// out: Err{ error: Error{ message: "the file is not open for reading" } }
+// out: Err{ error: Error{ message: "the file is not open for writing" } }
+// out: Ok{ value: void }
+// out: Ok{ value: "line\n" }
+// out: Err{ error: Error{ message: "is a directory" } }
+// out: Err{ error: Error{ message: "is a directory" } }
+// out: Err{ error: Error{ message: "is a directory" } }
+// out: Err{ error: Error{ message: "is a directory" } }
+// out: chmod DIR/in.txt: mode -1 is outside 0 ..= 0o7777

@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"math"
+	"net"
 	"os"
 	"path/filepath"
 	"slices"
@@ -114,9 +115,58 @@ func (h *Handle) isClosed() bool {
 // The messages of the Errs a handle gives back. Each Err gets its own Error record, since
 // records are mutable and a program may change the one it receives.
 const (
+	errClosed      = "the file is closed"
 	errNotReadable = "the file is not open for reading"
 	errNotWritable = "the file is not open for writing"
+	errEmptyPath   = "empty path"
 )
+
+// reason is err without the operation and target Go puts before it, *fs.PathError's and
+// *net.OpError's, for a call on a handle, which names no target, and for File.realPath, which
+// names the path as given.
+func reason(err error) error {
+	for {
+		switch e := err.(type) {
+		case *fs.PathError:
+			err = e.Err
+		case *net.OpError:
+			err = e.Err
+		case *os.SyscallError:
+			err = e.Err
+		default:
+			return err
+		}
+	}
+}
+
+// handleErr is the Err of a call on a handle: the reason alone.
+func handleErr(err error) value.Value { return errResult(reason(err)) }
+
+// pathParams are the parameters of the File calls that take a path.
+var pathParams = map[string]bool{"path": true, "from": true, "to": true, "dir": true, "target": true, "link": true}
+
+// checkPaths makes b Err for an empty path in any of its path parameters: an empty path names
+// nothing, not the working directory. File.exists is not checked, and is false for it.
+func checkPaths(b *interp.Builtin) {
+	var at []int
+	for i, p := range b.Params {
+		if pathParams[p] {
+			at = append(at, i)
+		}
+	}
+	if len(at) == 0 || b.Name == "File.exists" {
+		return
+	}
+	call := b.Fn
+	b.Fn = func(g *interp.Goroutine, args []value.Value) value.Value {
+		for _, i := range at {
+			if s, ok := args[i].(string); ok && s == "" {
+				return value.Err(value.ErrorValue(errEmptyPath))
+			}
+		}
+		return call(g, args)
+	}
+}
 
 // read runs f, which reads from h.r into h.pending and answers from there, holding the read
 // slot, and gives up with the context's reason when ctx is done, whether while waiting for the
@@ -125,6 +175,9 @@ const (
 // the context is looked at only before the read begins. What f consumed before giving up stays
 // in h.pending for the next read, so nothing is lost and the handle stays open.
 func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
+	if h.isClosed() {
+		return value.Err(value.ErrorValue(errClosed))
+	}
 	if h.r == nil {
 		return value.Err(value.ErrorValue(errNotReadable))
 	}
@@ -135,7 +188,7 @@ func (h *Handle) read(ctx context.Context, f func() value.Value) value.Value {
 	}
 	defer func() { <-h.reads }()
 	if h.isClosed() {
-		return value.Err(value.ErrorValue(errNotReadable))
+		return value.Err(value.ErrorValue(errClosed))
 	}
 	if ctx.Err() != nil {
 		return gaveUp(ctx)
@@ -194,7 +247,7 @@ func (h *Handle) readLine() value.Value {
 			h.pending = ""
 			return value.Ok(value.Text(line))
 		}
-		return errResult(err)
+		return handleErr(err)
 	}
 }
 
@@ -203,7 +256,7 @@ func (h *Handle) readAll() value.Value {
 	data, err := io.ReadAll(h.r)
 	h.pending += string(data)
 	if err != nil {
-		return errResult(err)
+		return handleErr(err)
 	}
 	text := h.pending
 	h.pending = ""
@@ -237,7 +290,7 @@ func (h *Handle) readChunk(max int) value.Value {
 		case err == io.EOF:
 			return value.Ok(value.Null)
 		case err != nil:
-			return errResult(err)
+			return handleErr(err)
 		}
 	}
 }
@@ -275,7 +328,7 @@ func (h *Handle) readExactly(n int) value.Value {
 		}
 		if err != nil {
 			h.pending = string(buf)
-			return errResult(err)
+			return handleErr(err)
 		}
 	}
 	return value.Ok(bytesValue(buf))
@@ -284,16 +337,21 @@ func (h *Handle) readExactly(n int) value.Value {
 // write writes s under the write mutex: to the OS, all of it or an error, or into the buffer of
 // a buffered handle.
 func (h *Handle) write(s string) value.Value {
+	if h.isClosed() {
+		return value.Err(value.ErrorValue(errClosed))
+	}
 	if h.w == nil {
 		return value.Err(value.ErrorValue(errNotWritable))
 	}
 	h.writes.Lock()
 	defer h.writes.Unlock()
 	if h.isClosed() {
-		return value.Err(value.ErrorValue(errNotWritable))
+		return value.Err(value.ErrorValue(errClosed))
 	}
-	_, err := io.WriteString(h.w, s)
-	return okVoid(err)
+	if _, err := io.WriteString(h.w, s); err != nil {
+		return handleErr(err)
+	}
+	return value.Ok(value.Void)
 }
 
 // flush is File.flush: the buffer of h written out, then that of each buffered handle under it,
@@ -305,7 +363,7 @@ func (h *Handle) flush() error {
 		h.writes.Lock()
 		var err error
 		if h.isClosed() {
-			err = errors.New(errNotWritable)
+			err = errors.New(errClosed)
 		} else {
 			err = h.buf.Flush()
 		}
@@ -363,7 +421,10 @@ type handleWriter struct{ h *Handle }
 func (w handleWriter) Write(b []byte) (int, error) {
 	w.h.writes.Lock()
 	defer w.h.writes.Unlock()
-	if w.h.w == nil || w.h.isClosed() {
+	if w.h.isClosed() {
+		return 0, errors.New(errClosed)
+	}
+	if w.h.w == nil {
 		return 0, errors.New(errNotWritable)
 	}
 	return w.h.w.Write(b)
@@ -395,7 +456,7 @@ func handleArg(g *interp.Goroutine, who string, v value.Value) *Handle {
 
 func init() {
 	register("File", func() value.Value {
-		return namespace("File", append([]any{
+		entries := []any{
 			constant("Handle", value.NewTag("File.Handle", value.SyncTag, nil)),
 			constant("Info", InfoTag),
 			fn("File.stat", "path, follow?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
@@ -405,7 +466,7 @@ func init() {
 				return okVoid(os.MkdirAll(stringArg(g, who, a[0]), newDirMode))
 			}),
 			fn("File.removeAll", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(os.RemoveAll(stringArg(g, who, a[0])))
+				return okVoid(removeAll(stringArg(g, who, a[0])))
 			}),
 			fn("File.rename", "from, to", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return okVoid(os.Rename(stringArg(g, who, a[0]), stringArg(g, who, a[1])))
@@ -557,15 +618,20 @@ func init() {
 				return buffered(handleArg(g, who, a[0]), int(min(size, math.MaxInt32)))
 			}),
 			fn("File.flush", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(handleArg(g, who, a[0]).flush())
+				if err := handleArg(g, who, a[0]).flush(); err != nil {
+					return handleErr(err)
+				}
+				return value.Ok(value.Void)
 			}),
 			fn("File.pipe", "src, dst, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				src := handleArg(g, who, a[0])
 				dst := handleArg(g, who, a[1])
 				ctx := waitContext(g, who, a[2])
 				src = src.source()
-				if src == dst.sink() {
-					return value.Err(value.ErrorValue("a handle cannot be piped into itself"))
+				// A connection piped into itself echoes, as Go's io.Copy(conn, conn) does; a file
+				// would read what it has just written.
+				if src == dst.sink() && !src.conn {
+					return value.Err(value.ErrorValue("a file cannot be piped into itself"))
 				}
 				if src.r == nil || src.isClosed() {
 					return value.Err(value.ErrorValue("the source is not open for reading"))
@@ -582,12 +648,24 @@ func init() {
 					if dst.isClosed() {
 						return value.Err(value.ErrorValue("the destination is not open for writing"))
 					}
-					return okVoid(src.copyTo(dst.w))
+					if err := src.copyTo(dst.w); err != nil {
+						return handleErr(err)
+					}
+					return value.Ok(value.Void)
 				})
 			}),
 			fn("File.close", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return okVoid(handleArg(g, who, a[0]).close())
+				if err := handleArg(g, who, a[0]).close(); err != nil {
+					return handleErr(err)
+				}
+				return value.Ok(value.Void)
 			}),
-		}, fileFS...)...)
+		}
+		for _, e := range entries {
+			if b, ok := e.(*interp.Builtin); ok {
+				checkPaths(b)
+			}
+		}
+		return namespace("File", append(entries, fileFS...)...)
 	})
 }

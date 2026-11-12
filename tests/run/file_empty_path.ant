@@ -1,0 +1,76 @@
+// spec: stdlib File
+// File (stdlib.md, File): an empty path is Err in every call that takes one, each argument of
+// rename, copy, copyAll and symlink included, with the message "empty path", and changes nothing;
+// File.exists("") is false. Path, which is text only, cleans "" to ".".
+let dir = Os.args()[0]
+let a = "${dir}/a.txt"
+try File.write(a, "a")
+println(File.read(""))
+println(File.readBytes(""))
+println(File.write("", "x"))
+println(File.writeBytes("", "x".toBytes()))
+println(File.stat(""))
+println(File.chmod("", 0o644))
+println(File.touch(""))
+println(File.remove(""))
+println(File.removeAll(""))
+println(File.rename("", a))
+println(File.rename(a, ""))
+println(File.copy("", a))
+println(File.copy(a, ""))
+println(File.copyAll("", "${dir}/b"))
+println(File.copyAll(a, ""))
+println(File.mkdir(""))
+println(File.tempFile("t-*", dir: ""))
+println(File.tempDir("t-*", dir: ""))
+println(File.symlink("", "${dir}/link"))
+println(File.symlink(a, ""))
+println(File.readLink(""))
+println(File.realPath(""))
+println(File.list(""))
+println(File.walk(""))
+println(File.glob("*", dir: ""))
+println(File.open(""))
+println(File.create(""))
+println(File.append(""))
+println(File.lock(""))
+println(File.tryLock(""))
+println(File.exists(""))
+println(File.list(dir))
+println(Path.clean(""))
+
+// expect
+// args: $TMP
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path" } }
+// out: false
+// out: Ok{ value: ["a.txt"] }
+// out: .

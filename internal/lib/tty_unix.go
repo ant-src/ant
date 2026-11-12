@@ -16,9 +16,9 @@ func isTerminal(f *os.File) bool {
 		return false
 	}
 	var errno syscall.Errno
-	c.Control(func(fd uintptr) {
+	err = c.Control(func(fd uintptr) {
 		var t syscall.Termios
 		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, fd, getTermios, uintptr(unsafe.Pointer(&t)))
 	})
-	return errno == 0
+	return err == nil && errno == 0 // a closed file runs no callback and is no terminal
 }

@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -95,7 +95,11 @@ func statFile(path string, follow bool) value.Value {
 // chmod is File.chmod: the mode set exactly, following a link.
 func chmod(path string, mode int64) value.Value {
 	if mode < 0 || mode > maxMode {
-		return errResult(fmt.Errorf("chmod %s: mode %O is outside 0o0 ..= 0o7777", path, mode))
+		m := fmt.Sprintf("%O", mode)
+		if mode < 0 {
+			m = fmt.Sprint(mode)
+		}
+		return errResult(fmt.Errorf("chmod %s: mode %s is outside 0 ..= 0o7777", path, m))
 	}
 	return okVoid(os.Chmod(path, goMode(mode)))
 }
@@ -223,26 +227,42 @@ func copyContents(src *os.File, sfi fs.FileInfo, to string, flags int) error {
 	return err
 }
 
+// unclean is path made absolute without cleaning it: a relative path is joined to the working
+// directory by text, so a .. after a link steps back from the link's target when
+// filepath.EvalSymlinks resolves it, where filepath.Abs would have cleaned it away first.
+func unclean(path string) (string, error) {
+	if filepath.IsAbs(path) {
+		return path, nil
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return wd + string(filepath.Separator) + path, nil
+}
+
 // resolved is path with every link resolved, for a path that may not exist yet: its nearest
 // existing ancestor resolved, and the rest joined on.
 func resolved(path string) (string, error) {
-	abs, err := filepath.Abs(path)
+	p, err := unclean(path)
 	if err != nil {
 		return "", err
 	}
 	var rest []string
 	for {
-		real, err := filepath.EvalSymlinks(abs)
+		real, err := filepath.EvalSymlinks(p)
 		if err == nil {
-			slices.Reverse(rest)
 			return filepath.Join(append([]string{real}, rest...)...), nil
 		}
-		parent := filepath.Dir(abs)
-		if parent == abs {
+		dir, base := filepath.Split(p)
+		if d := strings.TrimRight(dir, string(filepath.Separator)); d != "" && !strings.HasSuffix(d, ":") {
+			dir = d
+		}
+		if dir == p {
 			return "", err
 		}
-		rest = append(rest, filepath.Base(abs))
-		abs = parent
+		rest = append([]string{base}, rest...)
+		p = dir
 	}
 }
 
@@ -286,11 +306,9 @@ func copyAll(from, to string) value.Value {
 		defer src.Close()
 		return okVoid(copyContents(src, sfi, to, os.O_CREATE|os.O_EXCL))
 	}
-	root, err := filepath.EvalSymlinks(from)
+	// Both are resolved alike, so a working directory reached through a link is resolved in both.
+	root, err := resolved(from)
 	if err != nil {
-		return errResult(err)
-	}
-	if root, err = filepath.Abs(root); err != nil {
 		return errResult(err)
 	}
 	dest, err := resolved(to)
@@ -354,17 +372,30 @@ func copyAll(from, to string) value.Value {
 	return okVoid(err)
 }
 
-// realPath is File.realPath: absolute, clean, every link resolved.
+// realPath is File.realPath: absolute, clean, every link resolved, each .. stepping back from
+// what the path before it resolves to. The Err names the path as given, with the reason alone.
 func realPath(path string) value.Value {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return errResult(err)
+	abs, err := unclean(path)
+	if err == nil {
+		abs, err = filepath.EvalSymlinks(abs)
 	}
-	real, err := filepath.EvalSymlinks(abs)
 	if err != nil {
-		return errResult(err)
+		return errResult(fmt.Errorf("realpath %s: %s", path, strings.TrimPrefix(reason(err).Error(), "EvalSymlinks: ")))
 	}
-	return value.Ok(value.Text(real))
+	return value.Ok(value.Text(abs))
+}
+
+// removeAll is File.removeAll: os.RemoveAll, with its errors named removeAll, and Err for a path
+// whose last element is . or .., which Go would refuse for . and recurse into the parent for ..
+func removeAll(path string) error {
+	if base := filepath.Base(path); base == "." || base == ".." {
+		return &fs.PathError{Op: "removeAll", Path: path, Err: syscall.EINVAL}
+	}
+	err := os.RemoveAll(path)
+	if pe, ok := err.(*fs.PathError); ok {
+		pe.Op = "removeAll"
+	}
+	return err
 }
 
 // lockRetry is how long File.lock waits between tries of a lock another handle holds: flock
@@ -489,6 +520,9 @@ func init() {
 		fn("File.isTerminal", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return handleIsTerminal(handleArg(g, who, a[0]))
 		}),
+	}
+	for _, e := range fileFS {
+		checkPaths(e.(*interp.Builtin))
 	}
 }
 

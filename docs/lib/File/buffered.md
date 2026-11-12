@@ -254,7 +254,7 @@ println(out.close())
 
 ```text
 Ok{ value: void }
-Err{ error: Error{ message: "the file is not open for writing" } }
+Err{ error: Error{ message: "the file is closed" } }
 Ok{ value: void }
 ```
 

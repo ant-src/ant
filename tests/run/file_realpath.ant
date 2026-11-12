@@ -1,0 +1,30 @@
+// spec: stdlib File
+// File (stdlib.md, Links): realPath resolves each link before the .. after it, so latest/.. is the
+// parent of the link's target, and a path that leads nowhere, a missing name or a file with
+// something after it, is Err; each Err names the path as given, with the reason alone.
+let dir = Os.args()[0]
+func hide(r: Result[string, Error]): string {
+  if r is Ok { String.replace(r.value, dir, "DIR") } else { String.replace(r.error.message, dir, "DIR") }
+}
+try File.mkdir("${dir}/logs/2026")
+try File.symlink("logs/2026", "${dir}/latest")
+try File.write("${dir}/notes.txt", "")
+try File.symlink("loop", "${dir}/loop")
+let real = try File.realPath(dir)
+println((try File.realPath("${dir}/latest/..")) == Path.join([real, "logs"]))
+println((try File.realPath("${dir}/latest/../2026/.")) == Path.join([real, "logs", "2026"]))
+println(hide(File.realPath("${dir}/missing/..")))
+println(hide(File.realPath("${dir}/notes.txt/..")))
+println(hide(File.realPath("${dir}/loop")))
+println(hide(File.realPath("${dir}/notes.txt/x")))
+println(hide(File.realPath("${dir}/missing.txt")))
+
+// expect
+// args: $TMP
+// out: true
+// out: true
+// out: realpath DIR/missing/..: no such file or directory
+// out: realpath DIR/notes.txt/..: not a directory
+// out: realpath DIR/loop: too many links
+// out: realpath DIR/notes.txt/x: not a directory
+// out: realpath DIR/missing.txt: no such file or directory

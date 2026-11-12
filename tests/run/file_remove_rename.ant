@@ -1,0 +1,51 @@
+// spec: stdlib File
+// File (stdlib.md, File): remove is Err when nothing is there; removeAll is Ok when nothing is there
+// and the path could hold something, and Err for . and .., and its messages say removeAll; rename
+// is Err when a directory is at to, and Ok, changing nothing, when from and to are the same file;
+// exists is false when stat is Err for any reason, as when a directory on the way cannot be
+// searched.
+let dir = Os.args()[0]
+func hide(r: Result[void, Error]): string {
+  if r is Ok { "Ok" } else { String.replace(r.error.message, dir, "DIR") }
+}
+try File.write("${dir}/a.txt", "x")
+try File.mkdir("${dir}/sub")
+try File.write("${dir}/sub/keep.txt", "keep")
+println(hide(File.remove("${dir}/missing")))
+println(hide(File.removeAll("${dir}/missing/x")))
+println(hide(File.removeAll("${dir}/a.txt/x")))
+println(hide(File.removeAll("${dir}/sub/.")))
+println(hide(File.removeAll("${dir}/sub/..")))
+println(hide(File.removeAll("${dir}/sub/../")))
+println(File.read("${dir}/sub/keep.txt"))
+
+try File.mkdir("${dir}/box")
+try File.write("${dir}/c.txt", "c")
+println(hide(File.rename("${dir}/c.txt", "${dir}/box")))
+try File.mkdir("${dir}/empty")
+println(hide(File.rename("${dir}/sub", "${dir}/empty")))
+println(hide(File.rename("${dir}/c.txt", "${dir}/c.txt")))
+println(File.read("${dir}/c.txt"))
+
+try File.mkdir("${dir}/locked")
+try File.write("${dir}/locked/a.txt", "x")
+try File.chmod("${dir}/locked", 0o000)
+println(File.exists("${dir}/locked/a.txt") == File.stat("${dir}/locked/a.txt").isOk())
+try File.chmod("${dir}/locked", 0o755)
+println(File.exists("${dir}/locked/a.txt"))
+
+// expect
+// args: $TMP
+// out: remove DIR/missing: no such file or directory
+// out: Ok
+// out: removeAll DIR/a.txt/x: not a directory
+// out: removeAll DIR/sub/.: invalid argument
+// out: removeAll DIR/sub/..: invalid argument
+// out: removeAll DIR/sub/../: invalid argument
+// out: Ok{ value: "keep" }
+// out: rename DIR/c.txt DIR/box: file exists
+// out: rename DIR/sub DIR/empty: file exists
+// out: Ok
+// out: Ok{ value: "c" }
+// out: true
+// out: true

@@ -254,7 +254,7 @@ println(w.writeText("late"))
 
 ```text
 Err{ error: Error{ message: "the file is not open for writing" } }
-Err{ error: Error{ message: "the file is not open for writing" } }
+Err{ error: Error{ message: "the file is closed" } }
 ```
 
 `File.writeText` takes a string. Write `Bytes` with [File.writeChunk](writeChunk.md):

@@ -52,4 +52,4 @@ var sent = Channel.send(done, true)
 // out: echo c
 // out: null
 // out: read ended: true
-// out: Err{ error: Error{ message: "the file is not open for reading" } }
+// out: Err{ error: Error{ message: "the file is closed" } }

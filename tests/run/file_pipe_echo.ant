@@ -1,0 +1,45 @@
+// spec: stdlib File; stdlib Net
+// File (stdlib.md, File): src and dst of File.pipe may be the same connection, which echoes, as
+// Go's io.Copy(conn, conn) does, and the pipe ends Ok when the peer closes its end; for a file they
+// may not, which is Err; pipe closes neither.
+let l = try Net.listen("127.0.0.1:0")
+let piped: Channel[Result[void, Error]] = Channel.new(1)
+go {
+  let peer = l.accept().unwrap()
+  Channel.send(piped, peer.pipe(peer))
+  peer.close()
+}
+let c = try Net.dial(l.address())
+try c.writeLine("one")
+println(c.readLine())
+try c.writeLine("two")
+println(c.readLine())
+try c.close()
+println(Channel.receive(piped))
+
+let dir = Os.args()[0]
+let f = try File.lock("${dir}/lock")
+println(f.pipe(f))
+println(f.pipe(File.buffered(f)))
+try f.close()
+try File.write("${dir}/in.txt", "in\n")
+let src = try File.open("${dir}/in.txt")
+let dst = try File.create("${dir}/out.txt")
+println(src.pipe(dst))
+println(dst.writeLine("after"))
+println(src.readLine())
+try src.close()
+try dst.close()
+println(File.read("${dir}/out.txt"))
+
+// expect
+// args: $TMP
+// out: Ok{ value: "one" }
+// out: Ok{ value: "two" }
+// out: Ok{ value: void }
+// out: Err{ error: Error{ message: "a file cannot be piped into itself" } }
+// out: Err{ error: Error{ message: "a file cannot be piped into itself" } }
+// out: Ok{ value: void }
+// out: Ok{ value: void }
+// out: Ok{ value: null }
+// out: Ok{ value: "in\nafter\n" }

@@ -123,7 +123,7 @@ println(File.stat(""))
 
 ```text
 Err{ error: Error{ message: "stat plain.txt/inner: not a directory" } }
-Err{ error: Error{ message: "stat : no such file or directory" } }
+Err{ error: Error{ message: "empty path" } }
 ```
 
 ## Named arguments
