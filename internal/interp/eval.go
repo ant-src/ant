@@ -1581,9 +1581,9 @@ const seqCaughtBody = "the sequence returned after a panic in the loop body"
 // another goroutine (section 12, for).
 const seqYieldedElsewhere = "the sequence called yield on a goroutine other than the loop's"
 
-// withArticle puts "a" or "an" before a kind name: "an int", "a string".
+// withArticle puts "a" or "an" before a kind name: "an int", "a string", "a uint16".
 func withArticle(name string) string {
-	if strings.ContainsRune("aeiou", rune(name[0])) {
+	if strings.ContainsRune("aeio", rune(name[0])) {
 		return "an " + name
 	}
 	return "a " + name

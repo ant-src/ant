@@ -1,0 +1,9 @@
+// spec: 12 Runtime panics
+// panics: call
+// A constructor over an unsigned base names it with "a", as uint is sounded "you-int".
+type Port = uint16
+println(Port(8080))
+
+// expect
+// exit: 1
+// err: Port needs a uint16, got int
