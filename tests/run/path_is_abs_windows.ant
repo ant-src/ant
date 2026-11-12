@@ -1,0 +1,16 @@
+// spec: stdlib Path
+// On Windows Path.isAbs takes a drive with a root and a UNC path as absolute, and not a rooted
+// path with no drive or a drive-relative path, each of which depends on the current drive.
+println(Path.isAbs("C:\\x"))
+println(Path.isAbs("\\\\host\\share\\x"))
+println(Path.isAbs("\\x"))
+println(Path.isAbs("C:x"))
+println(Path.isAbs("/x"))
+
+// expect
+// out: true
+// out: true
+// out: false
+// out: false
+// out: false
+// os: windows

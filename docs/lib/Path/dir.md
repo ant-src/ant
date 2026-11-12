@@ -7,7 +7,7 @@
 func Path.dir(p: string): string
 ```
 
-Path.dir returns all but the last element of p, or "." when there is none.
+Path.dir returns p up to its last separator, cleaned, or "." when there is none.
 
 <!-- end generated -->
 
@@ -15,6 +15,9 @@ Path.dir returns all but the last element of p, or "." when there is none.
 
 - Works on the text alone: the path does not have to exist, and nothing on disk is read.
 - Separators are the host's: `/` on Unix, `\` and drive letters on Windows.
+- `Path.dir` is the path up to its last separator, cleaned, so `Path.dir("a/b/")` is `"a/b"` and
+  `Path.dir("/")` is `"/"`. It rebuilds `p` with [Path.base](base.md) only when `p` does not end in
+  a separator.
 
 ## Basic examples
 

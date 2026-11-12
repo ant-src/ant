@@ -64,3 +64,38 @@ Path.match("a/**/b", "a/b")                        // => Ok{ value: true }
 Path.match("a/**/b", "a/.x/b")                     // => Ok{ value: false }
 Path.match("a/**/b", "a/.x/b", hidden: true)       // => Ok{ value: true }
 Path.match("**/x/**/y", "p/x/q/x/y")               // => Ok{ value: true }
+// Path.join skips empty parts; Path.clean's rules at the root, above a relative start, and at a
+// trailing separator; Path.base and Path.dir at trailing separators and the root; Path.ext from
+// the last dot after the last separator (stdlib.md, Path).
+Path.join(["", "a"])                          // => "a"
+Path.join(["a", "", "b"])                     // => "a/b"
+Path.clean("/../a")                           // => "/a"
+Path.clean("a/../..")                         // => ".."
+Path.clean("a/b/")                            // => "a/b"
+Path.clean("//a")                             // => "/a"
+Path.base("photos//2024//")                   // => "2024"
+Path.base("///")                              // => "/"
+Path.dir("photos/2024/")                      // => "photos/2024"
+Path.dir("/")                                 // => "/"
+Path.dir("./a/b")                             // => "a"
+Path.dir("a//b")                              // => "a"
+Path.dir("a/../b/c")                          // => "b"
+Path.dir("")                                  // => "."
+Path.join([Path.dir("photos/2024/"), Path.base("photos/2024/")]) // => "photos/2024/2024"
+Path.ext("a/b.tar.gz")                        // => ".gz"
+Path.ext(".env")                              // => ".env"
+Path.ext("draft.")                            // => "."
+Path.ext("..")                                // => "."
+Path.base("a.txt/")                           // => "a.txt"
+Path.ext("a.txt/")                            // => ""
+Path.isAbs("\\x")                             // => false
+Path.isAbs("C:\\x")                           // => false
+// Path.match: the empty path is one empty element, a trailing separator adds none, and a set is a
+// wildcard for the leading-dot rule, even [.].
+Path.match("**", "")                               // => Ok{ value: true }
+Path.match("?", "")                                // => Ok{ value: false }
+Path.match("src/*", "src/")                        // => Ok{ value: false }
+Path.match("src/**", "src/")                       // => Ok{ value: false }
+Path.match("[.]env", ".env")                       // => Ok{ value: false }
+Path.match("[.]env", ".env", hidden: true)         // => Ok{ value: true }
+Path.match(".env", ".env")                         // => Ok{ value: true }

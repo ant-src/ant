@@ -7,7 +7,8 @@
 func Path.base(p: string): string
 ```
 
-Path.base returns the last element of p, or "." when p is empty.
+Path.base returns the last element of p after dropping trailing separators, the separator for a path
+made only of separators, or "." when p is empty.
 
 <!-- end generated -->
 
@@ -15,6 +16,8 @@ Path.base returns the last element of p, or "." when p is empty.
 
 - `Path.base` looks only at the text. It does not touch the file system and does not clean `p`
   first, so `Path.base("a/..")` is `".."`.
+- Trailing separators are dropped first, so `Path.base("a/b/")` is `"b"`; a path made only of
+  separators gives `"/"`.
 
 ## Basic examples
 

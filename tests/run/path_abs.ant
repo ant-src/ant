@@ -1,0 +1,20 @@
+// spec: stdlib Path; stdlib File
+// Path.abs joins a relative path to the working directory and cleans the result, cleans an
+// absolute path, and takes "" as the working directory, while File calls are Err on "".
+let cwd = Os.cwd().unwrap()
+println(Path.abs("/a/./b/../c/"))
+println(Path.abs("/etc//hosts"))
+println(Path.abs("a//b/./c/..").unwrap() == Path.join([cwd, "a/b"]))
+println(Path.abs("").unwrap() == cwd)
+println(File.realPath(""))
+println(Path.base(""))
+println(Path.clean(""))
+
+// expect
+// out: Ok{ value: "/a/c" }
+// out: Ok{ value: "/etc/hosts" }
+// out: true
+// out: true
+// out: Err{ error: Error{ message: "empty path" } }
+// out: .
+// out: .

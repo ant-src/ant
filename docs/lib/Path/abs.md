@@ -7,7 +7,8 @@
 func Path.abs(p: string): Result[string, Error]
 ```
 
-Path.abs returns p as an absolute path, resolved against the working directory.
+Path.abs returns p as an absolute path, resolved against the working directory and cleaned, so ""
+gives the working directory. It is Err only when Os.cwd would be.
 
 <!-- end generated -->
 
@@ -17,6 +18,9 @@ Path.abs returns p as an absolute path, resolved against the working directory.
   the directory of the script.
 - `Path.abs` works on the text: the path does not have to exist, and symbolic links are not
   resolved; use [`File.realPath`](../File/realPath.md) for the path with every link resolved.
+- The result is clean, and so is an absolute `p`: `Path.abs("/a/./b/../c/")` is `Ok("/a/c")`.
+  `Path.abs("")` is the working directory.
+- It is `Err` only when [`Os.cwd`](../Os/cwd.md) would be.
 
 ## Basic examples
 

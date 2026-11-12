@@ -7,7 +7,8 @@
 func Path.isAbs(p: string): bool
 ```
 
-Path.isAbs reports whether p is an absolute path.
+Path.isAbs reports whether p begins at a root: / on Unix; a drive and \\, or \\\\host\\share, on
+Windows, where \\x and C:x are not absolute.
 
 <!-- end generated -->
 
@@ -17,6 +18,8 @@ Path.isAbs reports whether p is an absolute path.
   absolute.
 - It follows the host's convention. The examples on this page run on Unix, where an absolute path
   begins with `/`.
+- On Windows a path is absolute with a drive and a root, `C:\x`, or as a UNC path,
+  `\\host\share\x`. `\x` and `C:x` are not, since each depends on the current drive.
 
 ## Basic examples
 

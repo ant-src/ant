@@ -7,13 +7,15 @@
 func Path.join(parts: Array[string]): string
 ```
 
-Path.join joins parts with the path separator and cleans the result, so no parts give ".".
+Path.join joins parts with the path separator and cleans the result. It skips empty parts, so no
+parts, or empty ones only, give ".".
 
 <!-- end generated -->
 
 ## Details
 
-- No parts, or only empty ones, give `"."`.
+- Empty parts are skipped, so `Path.join(["", "a"])` is `"a"`, not `"/a"`. No parts, or only empty
+  ones, give `"."`.
 - A later absolute part does not replace the parts before it: `Path.join(["a", "/etc"])` is
   `"a/etc"`.
 - The result is cleaned, so `..` removes the element before it and can climb above the first part.

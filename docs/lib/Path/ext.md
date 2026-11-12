@@ -7,13 +7,16 @@
 func Path.ext(p: string): string
 ```
 
-Path.ext returns the extension of p's last element, from its last dot, or "" when it has none.
+Path.ext returns the suffix of p from the last dot after its last separator, or "" when there is
+none.
 
 <!-- end generated -->
 
 ## Details
 
 - The letters are kept as written, so `.TXT` and `.txt` are different extensions.
+- The extension starts at the last dot after the last separator, so a name that begins with a dot,
+  as `.env`, is all extension, and a path that ends in a separator has none.
 - `Path.ext` works on the text alone and never looks at the file system.
 
 ## Basic examples

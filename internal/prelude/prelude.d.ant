@@ -1956,37 +1956,48 @@ func File.flush(f: File.Handle): Result[void, Error]
 // Path holds pure functions over paths in the host's convention: / on Unix, \ and drive letters on
 // Windows. They work on the text and never touch the file system, except [Path.abs].
 
-// Path.join joins parts with the path separator and cleans the result, so no parts give ".".
+// Path.join joins parts with the path separator and cleans the result. It skips empty parts, so no
+// parts, or empty ones only, give ".".
 //
 //     Path.join(["a", "b/../c", "d.ant"])   // "a/c/d.ant"
+//     Path.join(["", "a"])                  // "a"
 func Path.join(parts: Array[string]): string
 
-// Path.base returns the last element of p, or "." when p is empty.
+// Path.base returns the last element of p after dropping trailing separators, the separator for a
+// path made only of separators, or "." when p is empty.
 //
 //     Path.base("a/b.ant")   // "b.ant"
+//     Path.base("a/b/")      // "b"
 func Path.base(p: string): string
 
-// Path.dir returns all but the last element of p, or "." when there is none.
+// Path.dir returns p up to its last separator, cleaned, or "." when there is none.
 //
 //     Path.dir("a/b.ant")   // "a"
 //     Path.dir("b.ant")     // "."
+//     Path.dir("a/b/")      // "a/b"
 func Path.dir(p: string): string
 
-// Path.ext returns the extension of p's last element, from its last dot, or "" when it has none.
+// Path.ext returns the suffix of p from the last dot after its last separator, or "" when there is
+// none.
 //
 //     Path.ext("a/b.tar.gz")   // ".gz"
 //     Path.ext("a/b")          // ""
 func Path.ext(p: string): string
 
-// Path.clean returns the shortest path equivalent to p, working on the text alone.
+// Path.clean returns the shortest path equivalent to p, working on the text alone: one separator
+// for each run, no . elements and no trailing separator, and each .. removed with the element
+// before it. A .. right after the root is dropped; one at the start of a relative path is kept.
 //
 //     Path.clean("a//b/./c/..")   // "a/b"
+//     Path.clean("/../a")         // "/a"
 func Path.clean(p: string): string
 
-// Path.isAbs reports whether p is an absolute path.
+// Path.isAbs reports whether p begins at a root: / on Unix; a drive and \, or \\host\share, on
+// Windows, where \x and C:x are not absolute.
 func Path.isAbs(p: string): bool
 
-// Path.abs returns p as an absolute path, resolved against the working directory.
+// Path.abs returns p as an absolute path, resolved against the working directory and cleaned, so ""
+// gives the working directory. It is Err only when Os.cwd would be.
 func Path.abs(p: string): Result[string, Error]
 
 // Path.rel returns target as a path relative to base, working on the cleaned text. It is Err when
@@ -1999,9 +2010,9 @@ func Path.rel(base: string, target: string): Result[string, Error]
 // Path.match reports whether the whole of path matches the glob pattern, element by element. * is
 // any run of characters within an element, ? one character, [a-z] one of a set, [^a-z] or [!a-z]
 // one outside it, and ** as a whole element zero or more elements (one or more as the last). On
-// Unix \ escapes; on Windows it separates, and [*] escapes. A wildcard does not match a dot that
-// begins an element unless hidden is true. It looks only at the text and is Err on a malformed
-// pattern.
+// Unix \ escapes; on Windows it separates, and [*] escapes. A wildcard, a set included, does not
+// match a dot that begins an element unless hidden is true. The empty path is one empty element,
+// and a trailing separator adds none. It looks only at the text and is Err on a malformed pattern.
 //
 //     Path.match("**/*.ant", "src/main.ant")   // Ok{ value: true }
 //     Path.match("*", ".env")                  // Ok{ value: false }

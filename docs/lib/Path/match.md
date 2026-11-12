@@ -10,8 +10,9 @@ func Path.match(pattern: string, path: string, hidden: bool = false): Result[boo
 Path.match reports whether the whole of path matches the glob pattern, element by element. \* is any
 run of characters within an element, ? one character, \[a-z\] one of a set, \[^a-z\] or \[!a-z\] one
 outside it, and \*\* as a whole element zero or more elements (one or more as the last). On Unix \\
-escapes; on Windows it separates, and \[\*\] escapes. A wildcard does not match a dot that begins an
-element unless hidden is true. It looks only at the text and is Err on a malformed pattern.
+escapes; on Windows it separates, and \[\*\] escapes. A wildcard, a set included, does not match a
+dot that begins an element unless hidden is true. The empty path is one empty element, and a
+trailing separator adds none. It looks only at the text and is Err on a malformed pattern.
 
 <!-- end generated -->
 
@@ -20,6 +21,10 @@ element unless hidden is true. It looks only at the text and is Err on a malform
 - `Path.match` looks only at the text and reads no file.
 - A malformed pattern is `Err`, whatever the path, so a check against `""` validates a pattern. A
   pattern that is well formed is always `Ok`, with `true` or `false`.
+- A set is a wildcard for the leading-dot rule, so `[.]env` does not match `.env`; write `.env`, or
+  pass `hidden: true`.
+- The empty path is one empty element, which `*` matches. A trailing separator adds no element, so
+  `src/*` does not match `src/`.
 - On Windows both `/` and `\` separate elements, so a pattern written with `/` works on every
   system.
 
