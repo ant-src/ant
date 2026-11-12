@@ -91,6 +91,7 @@ var docDirectives = map[string]struct{ arg, body bool }{
 	"file":       {true, true},
 	"stdin":      {false, true},
 	"args":       {true, false},
+	"env":        {true, false},
 	"before":     {false, true},
 	"after":      {false, true},
 	"cmd":        {true, false},
@@ -512,7 +513,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	}
 	ds := map[string]docDirective{}
 	for _, d := range b.directives {
-		if _, dup := ds[d.name]; dup && d.name != "file" {
+		if _, dup := ds[d.name]; dup && d.name != "file" && d.name != "env" {
 			problems = append(problems, fmt.Sprintf("%s:%d: a second test: %s for the same block", rel, d.line, d.name))
 		}
 		ds[d.name] = d
@@ -609,7 +610,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		switch d.name {
 		case "before", "after", "args":
 			ok = b.name == "" && !has("cmd")
-		case "stdin", "exit":
+		case "stdin", "exit", "env":
 			ok = running
 		case "cmd":
 			ok = !fails && !has("check-only")
@@ -633,6 +634,14 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 			problems = append(problems, fmt.Sprintf("%s:%d: test: exit needs a number, not %q", rel, e.line, e.arg))
 		}
 		want = n
+	}
+	var env []string
+	for _, d := range b.directives {
+		if name, _, ok := strings.Cut(d.arg, "="); d.name == "env" && (!ok || name == "") {
+			problems = append(problems, fmt.Sprintf("%s:%d: test: env needs NAME=value, not %q", rel, d.line, d.arg))
+		} else if d.name == "env" {
+			env = append(env, d.arg)
+		}
 	}
 	if len(problems) > 0 {
 		return problems
@@ -675,6 +684,9 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Dir = dir
 	cmd.Stdin = strings.NewReader(ds["stdin"].body)
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	status := 0
 	if err := cmd.Run(); err != nil {

@@ -259,8 +259,8 @@ let labeled = Array.map(xs, func(s: string, i: int): string { "${i}${s}" })
 
 What the reader does not need to see goes in an HTML comment that starts with `test:`. It applies to
 the next ` ```ant ` block. A misspelled prefix (`tests:`, `Test:`), an unknown directive, a second
-directive of the same name on one block (`file` aside), and a directive that does not apply to its
-block all fail the test.
+directive of the same name on one block (`file` and `env` aside), and a directive that does not
+apply to its block all fail the test.
 
 | Directive                   | Meaning                                                               | Applies to                       |
 | --------------------------- | --------------------------------------------------------------------- | -------------------------------- |
@@ -269,6 +269,7 @@ block all fail the test.
 | `test: after` + body        | Ant code put after the block, hidden from the reader.                 | an unnamed program               |
 | `test: stdin` + body        | Feed the body to standard input.                                      | a block that runs                |
 | `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                            | an unnamed program without `cmd` |
+| `test: env <NAME>=<value>`  | Set an environment variable for the `ant` process; may repeat.        | a block that runs                |
 | `test: cmd ant <args>`      | Run this `ant` command in the page's directory, such as `ant test .`. | a program                        |
 | `test: exit <n>`            | Expect exit status `<n>` instead of 0.                                | a block that runs                |
 | `test: check-only <reason>` | Check and format-check only. For output that changes between runs.    | an ant program, not with `cmd`   |
