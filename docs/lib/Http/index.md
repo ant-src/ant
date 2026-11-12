@@ -549,13 +549,13 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.get("${base}/hello", timeout: Time.duration(seconds: 0)))
-println(Http.get("${base}/hello", timeout: Time.duration(weeks: 1)))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
 ```
 
 ```text
-Err{ error: Error{ message: "the timeout is zero or negative" } }
-Err{ error: Error{ message: "the timeout has years, months or weeks, which have no fixed length" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
 ```
 
 A script ends when its last line runs, and a server on a goroutine ends with it. A script that only

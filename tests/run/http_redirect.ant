@@ -23,7 +23,7 @@ println([got.status, got.headers["Location"] ?? ""])
 var posted = Result.unwrap(Http.post("${base}/old", "payload"))
 println(posted.status)
 println(Result.unwrap(Http.get("${base}/new")).body == "GET /new ${Net.address(l)}")
-println(Http.request("", "${base}/new"))
+println(Http.request("", "http://127.0.0.1:1/new"))
 Context.cancel(ctx)
 println(Channel.receive(served))
 println(Net.accept(l))
@@ -32,6 +32,6 @@ println(Net.accept(l))
 // out: [302, "/new"]
 // out: 302
 // out: true
-// out: Err{ error: Error{ message: "the method is empty" } }
+// out: Err{ error: Error{ message: "request \"http://127.0.0.1:1/new\": the method \"\" is not a token" } }
 // out: true
 // out: Err{ error: Error{ message: "the listener is closed" } }

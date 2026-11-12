@@ -15,8 +15,8 @@ var t = Time.duration(seconds: 5)
 println(Result.unwrap(Http.get(base, Map{ "Host": "example.test" }, t)).body)
 println(Result.unwrap(Http.get(base, Map{ "host": "other.test:8080" }, t)).body)
 println(Result.unwrap(Http.get(base, timeout: t)).body == Net.address(listener))
-println(Http.get(base, Map{ "Accept": "text/plain", "accept": "text/html" }, t))
-println(Http.get(base, Map{ "Host": "a.test", "HOST": "b.test" }, t))
+println(Http.get("http://127.0.0.1:1/", Map{ "Accept": "text/plain", "accept": "text/html" }, t))
+println(Http.get("http://127.0.0.1:1/", Map{ "Host": "a.test", "HOST": "b.test" }, t))
 Context.cancel(stop)
 println(Channel.receive(served))
 
@@ -24,6 +24,6 @@ println(Channel.receive(served))
 // out: example.test
 // out: other.test:8080
 // out: true
-// out: Err{ error: Error{ message: "the headers \"Accept\" and \"accept\" differ only in case" } }
-// out: Err{ error: Error{ message: "the headers \"Host\" and \"HOST\" differ only in case" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Host\" and \"HOST\" differ only in case" } }
 // out: Ok{ value: void }

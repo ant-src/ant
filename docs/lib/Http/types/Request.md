@@ -10,7 +10,7 @@ type Http.Request = { method: string, path: string, query: string, headers: Map[
 Http.Request is a request that [`Http.serve`](../serve.md) passes to its handler. path is decoded,
 query is raw for [`Url.parseQuery`](../../Url/parseQuery.md), and remote is the client's "ip:port".
 The body is there twice, as in [`Http.Response`](Response.md), and the headers hold one string per
-name, Host among them.
+name, Host first and the rest in order of name, each name in canonical form.
 
 <!-- end generated -->
 
@@ -19,6 +19,8 @@ name, Host among them.
 - `path` is decoded, so `%20` arrives as a space and `%2F` as `/`. `query` is raw: pass it to
   [Url.parseQuery](../../Url/parseQuery.md) to decode it.
 - A header the client sent twice arrives as one string, its values joined with `, `.
+- `headers` has `Host` first and the rest in order of name, each name in canonical form: a header
+  sent as `x-request-id` is read as `headers["X-Request-Id"]`.
 - The body is read whole. `bytes` holds it as received; `body` holds it as text, with U+FFFD for
   bytes that are not UTF-8.
 

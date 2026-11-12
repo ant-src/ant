@@ -226,11 +226,11 @@ go { Http.serve(listener, echo) }
 -->
 
 ```ant
-println(Http.post(url, "x", headers: Map{ "Accept": "text/plain", "accept": "*/*" }))
+println(Http.post("http://127.0.0.1:1/", "x", headers: Map{ "Accept": "text/plain", "accept": "*/*" }))
 ```
 
 ```text
-Err{ error: Error{ message: "the headers \"Accept\" and \"accept\" differ only in case" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
 ```
 
 `timeout` bounds the whole call, from connecting to the end of the body. When it passes, the result
@@ -527,13 +527,13 @@ go { Http.serve(listener, echo) }
 -->
 
 ```ant
-println(Http.post(url, "x", timeout: Time.duration(seconds: 0)))
-println(Http.post(url, "x", timeout: Time.duration(weeks: 1)))
+println(Http.post("http://127.0.0.1:1/", "x", timeout: Time.duration(seconds: 0)))
+println(Http.post("http://127.0.0.1:1/", "x", timeout: Time.duration(weeks: 1)))
 ```
 
 ```text
-Err{ error: Error{ message: "the timeout is zero or negative" } }
-Err{ error: Error{ message: "the timeout has years, months or weeks, which have no fixed length" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
 ```
 
 `try` returns early only when there is no response. A 404 is `Ok`, so check `status` before using
@@ -590,7 +590,7 @@ println(Http.post("http://example.com/%zz", "x"))
 ```
 
 ```text
-Err{ error: Error{ message: "parse \"http://example.com/%zz\": invalid URL escape \"%zz\"" } }
+Err{ error: Error{ message: "post \"http://example.com/%zz\": invalid URL escape \"%zz\"" } }
 ```
 
 ## See also

@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
+	"net"
 	"net/http"
-	"net/url"
+	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/ant-src/ant/internal/interp"
@@ -64,8 +67,9 @@ func headers(g *interp.Goroutine, who string, v value.Value, req *http.Request) 
 
 // client sends one request and follows no redirect, so a 3xx is the response, as stdlib.md
 // says of any status.
-// Its transport asks for no compression and decodes none, so the request carries only the
-// headers the program gave and the response's body and headers are as received.
+// Its transport asks for no compression and decodes none, and request sends no User-Agent of
+// its own, so the request carries only the headers the program gave, Host and Content-Length,
+// and the response's body and headers are as received.
 var client = &http.Client{
 	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	Transport:     plainTransport(),
@@ -77,27 +81,67 @@ func plainTransport() http.RoundTripper {
 	return t
 }
 
-// lowerOp lowercases the method that Go's client puts at the front of its errors, as in
-// `Get "http://x": ...`, so the message is lowercase as section 8 (Wrapping errors) asks.
-func lowerOp(err error) error {
-	var ue *url.Error
-	if errors.As(err, &ue) {
-		ue.Op = strings.ToLower(ue.Op)
+// httpReason is the innermost reason of a failed request, without Go's layers: the text of a
+// system error alone, as File errors give it ("connection refused"), and no "net/http:" or
+// "http:" prefix.
+func httpReason(err error) string {
+	var errno syscall.Errno
+	if errors.As(err, &errno) {
+		return errno.Error()
 	}
-	return err
+	var dns *net.DNSError
+	if errors.As(err, &dns) {
+		return dns.Err
+	}
+	for {
+		inner := errors.Unwrap(err)
+		if inner == nil {
+			break
+		}
+		err = inner
+	}
+	text := strings.TrimPrefix(err.Error(), "net/http: ")
+	return strings.TrimPrefix(text, "http: ")
+}
+
+// isToken reports whether s is an HTTP token (RFC 9110), as a method must be.
+func isToken(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !('a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || strings.IndexByte("!#$%&'*+-.^_`|~", c) >= 0) {
+			return false
+		}
+	}
+	return true
+}
+
+// sortedHeaders fills a map from Go's headers in order of name, after first, so the order is
+// the same on every run; a repeated header is joined with ", ".
+func sortedHeaders(out *value.Map, h http.Header) *value.Map {
+	for _, k := range slices.Sorted(maps.Keys(h)) {
+		out.Set(value.Text(k), value.Text(strings.Join(h[k], ", ")))
+	}
+	return out
 }
 
 // request is Http.request and, with the method filled in, Http.get and Http.post: one request
 // under the run's context, the given context and the timeout, the whole response read. A
 // response of any status is Ok; a failure to get one is Err, with the context's reason, or
-// "timeout", when a bound ended it.
+// "timeout", when a bound ended it, and otherwise as `<method> "<url>": <reason>`, the method
+// lowercased and the URL as given.
 func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c value.Value) value.Value {
-	if method == "" {
-		return errResult(errors.New("the method is empty"))
+	if !isToken(method) {
+		return errResult(fmt.Errorf("request %q: the method %q is not a token", url, method))
+	}
+	fail := func(err error) value.Value {
+		return errResult(fmt.Errorf("%s %q: %s", strings.ToLower(method), url, httpReason(err)))
 	}
 	wait, err := timeout(g, who, limit)
 	if err != nil {
-		return errResult(err)
+		return fail(err)
 	}
 	ctx := waitContext(g, who, c)
 	if wait > 0 {
@@ -111,25 +155,29 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 	}
 	req, err := http.NewRequestWithContext(ctx, method, url, reader)
 	if err != nil {
-		return errResult(err)
+		return fail(err)
 	}
+	req.Header["User-Agent"] = []string{""} // which makes Go's client send none of its own
 	if err := headers(g, who, hdrs, req); err != nil {
-		return errResult(err)
+		return fail(err)
 	}
 	resp, err := client.Do(req)
 	g.AfterWait()
 	if err != nil {
-		return failed(ctx, lowerOp(err))
+		if ctx.Err() != nil {
+			return gaveUp(ctx)
+		}
+		return fail(err)
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return failed(ctx, err)
+		if ctx.Err() != nil {
+			return gaveUp(ctx)
+		}
+		return fail(err)
 	}
-	out := value.NewMap()
-	for k, vs := range resp.Header {
-		out.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
-	}
+	out := sortedHeaders(value.NewMap(), resp.Header)
 	text, raw := received(data)
 	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, text, raw}))
 }
@@ -194,9 +242,7 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 	text, raw := received(body)
 	headers := value.NewMap()
 	headers.Set("Host", value.Text(r.Host)) // which Go keeps apart from the other headers
-	for k, vs := range r.Header {
-		headers.Set(value.Text(k), value.Text(strings.Join(vs, ", ")))
-	}
+	sortedHeaders(headers, r.Header)
 	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, text, raw, r.RemoteAddr})
 	type reply struct {
 		resp *value.Record

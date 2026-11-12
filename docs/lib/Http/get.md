@@ -90,7 +90,7 @@ println(Http.get("http://127.0.0.1:1/"))
 ```
 
 ```text
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": dial tcp 127.0.0.1:1: connect: connection refused" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": connection refused" } }
 ```
 
 ## Scope
@@ -744,8 +744,8 @@ println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
 ```
 
 ```text
-Err{ error: Error{ message: "the timeout has years, months or weeks, which have no fixed length" } }
-Err{ error: Error{ message: "the timeout is zero or negative" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
 ```
 
 ### Header names that differ only in case
@@ -758,7 +758,7 @@ println(Http.get("http://127.0.0.1:1/", headers: Map{ "Accept": "text/html", "ac
 ```
 
 ```text
-Err{ error: Error{ message: "the headers \"Accept\" and \"accept\" differ only in case" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
 ```
 
 ### The result is a Result

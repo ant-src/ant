@@ -8,15 +8,18 @@ type Http.Reply = { status: int, headers: Map[string, string], body: string | By
 ```
 
 Http.Reply is what an [`Http.serve`](../serve.md) handler returns to answer a request. body is sent
-as given, a string as its UTF-8 and Bytes as they are, with Content-Length set from it; a status
-outside 200 to 599, or two header names that differ only in case, panics.
+as given, a string as its UTF-8 and Bytes as they are, with the headers given plus Date and
+Content-Length from the body, which replaces one the handler gives; a 204 or 304 reply has no body
+and no Content-Length. A status outside 200 to 599, or two header names that differ only in case,
+panics.
 
 <!-- end generated -->
 
 ## Details
 
-- The server sends only the headers in `headers` and `Content-Length`. It fills in none, such as
-  `Content-Type`, from the body.
+- The server sends the headers in `headers`, plus `Date` and a `Content-Length` from the body,
+  which replaces one the handler gives. It fills in none, such as `Content-Type`, from the body.
+- A 204 or 304 reply goes out with no body and no `Content-Length`.
 - The panic ends only that request: the client gets status 500 with an empty body, and the server
   keeps serving.
 - A reply with a 3xx `status` and a `Location` header is a redirect. Whether it is followed is up to

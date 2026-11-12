@@ -1,0 +1,57 @@
+// spec: stdlib Http
+// Headers come in order of name, Host first in a Request, with their names in canonical form, so
+// "content-type" sent is read as "Content-Type". The client adds Host and Content-Length and no
+// User-Agent; serve adds Date, replaces Content-Length with the body's length, and sends none for
+// a 204 or 304, nor a body.
+func handle(req: Http.Request): Http.Reply {
+  if req.path == "/request" { return Http.Reply{ status: 200, headers: Map{}, body: "${req.headers.keys()}" } }
+  if req.path == "/echo" {
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.headers["x-request-id"]} ${req.headers["X-Request-Id"]}" }
+  }
+  if req.path == "/204" { return Http.Reply{ status: 204, headers: Map{}, body: "abc" } }
+  if req.path == "/304" { return Http.Reply{ status: 304, headers: Map{}, body: "abc" } }
+  if req.path == "/length" { return Http.Reply{ status: 200, headers: Map{ "Content-Length": "99" }, body: "abc" } }
+  if req.path == "/panic" { panic("handler bug") }
+  Http.Reply{ status: 200, headers: Map{ "X-B": "2", "x-a": "1", "content-type": "text/plain", "X-C": "3" }, body: "x" }
+}
+
+let l = Net.listen("127.0.0.1:0").unwrap()
+let url = "http://${Net.address(l)}"
+let stop = Context.new()
+let served: Channel[Result[void, Error]] = Channel.new(1)
+go { served.send(Http.serve(l, handle, stop)) }
+let r = Http.get(url + "/").unwrap()
+println(r.headers.keys())
+println(r.headers["content-type"])
+println(r.headers["Content-Type"])
+println(r.headers["X-A"])
+println(Http.get(url + "/echo", headers: Map{ "x-request-id": "1" }).unwrap().body)
+println(Http.get(url + "/request").unwrap().body)
+println(Http.post(url + "/request", "hi", headers: Map{ "X-Z": "1", "accept": "a" }).unwrap().body)
+println(Http.get(url + "/request", headers: Map{ "User-Agent": "me" }).unwrap().body)
+let none = Http.get(url + "/204").unwrap()
+println("${none.headers.keys()} [${none.body}]")
+let unchanged = Http.get(url + "/304").unwrap()
+println("${unchanged.headers.keys()} [${unchanged.body}]")
+let c = Http.get(url + "/length").unwrap()
+println("${c.headers["Content-Length"]} ${c.body}")
+let failed = Http.get(url + "/panic").unwrap()
+println("${failed.status} ${failed.headers.keys()}")
+stop.cancel()
+println(served.receive())
+
+// expect
+// out: ["Content-Length", "Content-Type", "Date", "X-A", "X-B", "X-C"]
+// out: null
+// out: text/plain
+// out: 1
+// out: null 1
+// out: ["Host"]
+// out: ["Host", "Accept", "Content-Length", "X-Z"]
+// out: ["Host", "User-Agent"]
+// out: ["Date"] []
+// out: ["Date"] []
+// out: 3 abc
+// out: 500 ["Content-Length", "Date"]
+// out: Ok{ value: void }
+// err: handler bug

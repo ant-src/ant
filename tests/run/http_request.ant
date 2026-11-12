@@ -23,10 +23,10 @@ println(posted.headers["X-Method"])
 println(Http.request("PUT", "${base}/slow", timeout: Time.duration(milliseconds: 200)))
 println(Http.get("${base}/slow", timeout: Time.duration(milliseconds: 100)))
 println(Result.isOk(Http.get("${base}/hello", timeout: Time.duration(days: 1))))
-println(Http.get("${base}/hello", timeout: Time.duration(months: 1)))
-println(Http.get("${base}/hello", timeout: Time.duration(weeks: 1)))
-println(Http.get("${base}/hello", timeout: Time.duration()))
-println(Http.get("${base}/hello", timeout: Time.duration(seconds: -1)))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(months: 1)))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration()))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(seconds: -1)))
 println(Result.isOk(Http.get("${base}/hello", timeout: Time.duration(days: 4294967295))))
 println(Result.isOk(Http.request("BAD METHOD", "${base}/hello")))
 println(Result.isOk(Http.request("GET", "http://127.0.0.1:1/unreachable", timeout: Time.duration(seconds: 5))))
@@ -47,10 +47,10 @@ println(Http.request("PATCH", "ftp://example.invalid/"))
 // out: Err{ error: Error{ message: "timeout" } }
 // out: Err{ error: Error{ message: "timeout" } }
 // out: true
-// out: Err{ error: Error{ message: "the timeout has years, months or weeks, which have no fixed length" } }
-// out: Err{ error: Error{ message: "the timeout has years, months or weeks, which have no fixed length" } }
-// out: Err{ error: Error{ message: "the timeout is zero or negative" } }
-// out: Err{ error: Error{ message: "the timeout is zero or negative" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
 // out: true
 // out: false
 // out: false

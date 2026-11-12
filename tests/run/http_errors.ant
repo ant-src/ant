@@ -1,0 +1,33 @@
+// spec: stdlib Http
+// A failed request's message is `<method> "<url>": <reason>`: the method lowercased, the URL as
+// given, the innermost reason; a method that is not a token, the empty one included, gives
+// `request`. Errors found before anything is sent name the URL too. url is http or https, and an
+// https request to a plain server is Err.
+let l = Net.listen("127.0.0.1:0").unwrap()
+let stop = Context.new()
+go { Http.serve(l, func(r: Http.Request): Http.Reply { Http.Reply{ status: 200, headers: Map{}, body: "x" } }, stop) }
+println(Http.get("not a url"))
+println(Http.post("http://example.com/%zz", "x"))
+println(Http.request("PUT", "ftp://x/"))
+println(Http.get("http://127.0.0.1:1/", headers: Map{ "Accept": "a", "accept": "b" }))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
+println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
+println(Http.request("", "http://127.0.0.1:1/"))
+println(Http.request("GE T", "http://127.0.0.1:1/"))
+let https = "https://${Net.address(l)}/"
+let plain: Result[Http.Response, Error] = Result.fail("get \"${https}\": server gave HTTP response to HTTPS client")
+println(Http.get(https) == plain)
+println(Http.get("http://${Net.address(l)}/").unwrap().body)
+stop.cancel()
+
+// expect
+// out: Err{ error: Error{ message: "get \"not a url\": unsupported protocol scheme \"\"" } }
+// out: Err{ error: Error{ message: "post \"http://example.com/%zz\": invalid URL escape \"%zz\"" } }
+// out: Err{ error: Error{ message: "put \"ftp://x/\": unsupported protocol scheme \"ftp\"" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+// out: Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"\" is not a token" } }
+// out: Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"GE T\" is not a token" } }
+// out: true
+// out: x

@@ -7,11 +7,16 @@
 func Http.request(method: string, url: string, body: string | Bytes = "", headers: Map[string, string] = Map{}, timeout: Time.Duration | null = null, ctx: Context | null = null): Result[Http.Response, Error]
 ```
 
-Http.request sends one request with method, body, and headers to url and reads the whole response. A
-response of any status is Ok, and no redirect is followed; Err means no response: a malformed url,
-an empty method, header names that differ only in case, no connection, the timeout ("timeout"), or
-ctx done. timeout bounds the whole call and is no deadline when null; one that is not positive or
-has years, months, or weeks is Err; when both timeout and ctx are given, the earlier wins.
+Http.request sends one request with method, body, and headers to url and reads the whole response.
+The client adds Host from url, unless headers give one, and Content-Length from body, and no other
+header. url is http or https, which verifies the server's certificate. A response of any status is
+Ok, and no redirect is followed; Err means no response: a malformed url, a method that is not a
+token, header names that differ only in case, no connection, the timeout ("timeout"), or ctx done.
+Its message is the method lowercased ("request" when it is not a token), the url as given, and the
+reason, as in get "http://127.0.0.1:1/": connection refused; a timeout that passes and a done ctx
+give their reason alone. timeout bounds the whole call and is no deadline when null; one that is not
+positive or has years, months, or weeks is Err; when both timeout and ctx are given, the earlier
+wins.
 
 <!-- end generated -->
 
@@ -19,6 +24,10 @@ has years, months, or weeks is Err; when both timeout and ctx are given, the ear
 
 - A 404 or a 500 is `Ok` too. Check `status` before you use the body.
 - The response's headers hold one string per name; a repeated header is joined with `, `.
+- The client adds `Host` and `Content-Length` and no other header, so no `User-Agent` is sent unless
+  you give one.
+- `url` is `http` or `https`. An `https` request checks the server's certificate, and there is no
+  way to skip the check.
 - When `timeout` passes first, the result is `Err` with the message `"timeout"`. A `timeout` that is
   zero or negative, or that has years, months, or weeks, is `Err` before anything is sent.
 
@@ -282,13 +291,15 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.request("", base))
-println(Http.request("GET", base, headers: Map{ "Accept": "a", "accept": "b" }))
+println(Http.request("", "http://127.0.0.1:1/"))
+println(Http.request("GE T", "http://127.0.0.1:1/"))
+println(Http.request("GET", "http://127.0.0.1:1/", headers: Map{ "Accept": "a", "accept": "b" }))
 ```
 
 ```text
-Err{ error: Error{ message: "the method is empty" } }
-Err{ error: Error{ message: "the headers \"Accept\" and \"accept\" differ only in case" } }
+Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"\" is not a token" } }
+Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"GE T\" is not a token" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
 ```
 
 ## Named arguments
@@ -414,13 +425,13 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.request("GET", base, timeout: Time.duration(weeks: 1)))
-println(Http.request("GET", base, timeout: Time.duration(seconds: 0)))
+println(Http.request("GET", "http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
+println(Http.request("GET", "http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
 ```
 
 ```text
-Err{ error: Error{ message: "the timeout has years, months or weeks, which have no fixed length" } }
-Err{ error: Error{ message: "the timeout is zero or negative" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
 ```
 
 ### ctx
@@ -777,11 +788,11 @@ go { Http.serve(listener, handle) }
 let defaults = Map{ "Content-Type": "text/plain" }
 let extra = Map{ "content-type": "text/csv" }
 let headers = Map.merge(defaults, extra)
-println(Http.request("POST", "${base}/echo", body: "a,b", headers: headers))
+println(Http.request("POST", "http://127.0.0.1:1/echo", body: "a,b", headers: headers))
 ```
 
 ```text
-Err{ error: Error{ message: "the headers \"Content-Type\" and \"content-type\" differ only in case" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/echo\": the headers \"Content-Type\" and \"content-type\" differ only in case" } }
 ```
 
 The method is sent as given, not upper-cased, so `"get"` reaches the server as `get`, and a server

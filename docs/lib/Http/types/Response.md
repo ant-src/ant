@@ -9,7 +9,8 @@ type Http.Response = { status: int, headers: Map[string, string], body: string, 
 
 Http.Response is the response to a client request. Its body is there twice: as received in bytes,
 and as text in body, with bytes that are not valid UTF-8 as U+FFFD. The headers hold one string per
-name, a repeated header joined with ", ".
+name, a repeated header joined with ", ", in order of name, each name in canonical form, as Go's
+CanonicalHeaderKey gives it: "content-type" is read as headers\["Content-Type"\].
 
 <!-- end generated -->
 
@@ -19,6 +20,8 @@ name, a repeated header joined with ", ".
   `Err` only when no response arrives.
 - No redirect is followed. A 3xx comes back as it is, with its `Location` header.
 - The whole body is read before the call returns.
+- `headers` is in order of name, and each name is in canonical form, as Go's `CanonicalHeaderKey`
+  gives it: a header sent as `content-type` is read as `headers["Content-Type"]`.
 - When the body is valid UTF-8, `body` and `bytes` share one copy, so reading either one costs
   nothing.
 
