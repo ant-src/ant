@@ -1,0 +1,11 @@
+// spec: 11 Regex
+// Regex.escape escapes exactly \.+*?()|[]{}^$; inside a class, - keeps its meaning.
+println(Regex.escape(`\.+*?()|[]{}^$`))
+println(Regex.escape("a-z/#& ~"))
+let p = try Regex.compile("[${Regex.escape("a-z")}]")
+println(Regex.test(p, "m"))
+
+// expect
+// out: \\\.\+\*\?\(\)\|\[\]\{\}\^\$
+// out: a-z/#& ~
+// out: true

@@ -1,0 +1,9 @@
+// spec: 11 Regex
+// Capturing groups are numbered by their opening parentheses from the left, nested and named
+// groups included.
+println(Regex.find(/((a)(b))(c)/, "abc")?.groups)
+println(Regex.find(/(?<x>a)(b)/, "ab")?.groups)
+
+// expect
+// out: ["abc", "ab", "a", "b", "c"]
+// out: ["ab", "a", "b"]

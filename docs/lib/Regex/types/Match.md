@@ -10,7 +10,8 @@ type Regex.Match = { text: string, start: int, end: int, groups: Array[string | 
 Regex.Match is one match of a whole pattern. text is the matched text and start and end its code
 point indices into the searched string; groups\[0\] is the whole match and groups\[n\] the nth
 group, null when the group took no part; named has an entry for each named group, in the pattern's
-order, null likewise.
+order, null likewise. Capturing groups are numbered by their opening parentheses from the left,
+nested and named groups included.
 
 <!-- end generated -->
 
@@ -21,6 +22,11 @@ order, null likewise.
   give matches that need no narrowing.
 - `groups` has one entry more than the pattern has groups. A group that took no part is `null`; a
   group that matched empty text is `""`.
+- Groups are numbered by their opening parentheses from the left, nested and named groups included:
+
+  ```ant
+  Regex.find(/((a)(b))(c)/, "abc")?.groups // ["abc", "ab", "a", "b", "c"]
+  ```
 - `named` has an entry for every named group, matched or not. Indexing it with a name the pattern
   does not have also gives `null`.
 

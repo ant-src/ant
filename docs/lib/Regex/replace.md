@@ -7,9 +7,11 @@
 func Regex.replace(p: Regex.Pattern, s: string, replacement: string): string
 ```
 
-Regex.replace returns s with every match of p replaced by replacement. In replacement, $n and $\{n\}
-expand to group n, $\{name\} to a named group, $$ to one $, and a group that took no part to "". A
-name after $ is taken as long as it can be, so write $\{1\}x, not $1x.
+Regex.replace returns s with every match of p replaced by replacement; the matches are the ones
+[`Regex.findAll`](findAll.md) returns. In replacement, $n and $\{n\} expand to group n, $\{name\} to
+a named group, $$ to one $, and a group that took no part to "". A $ that starts none of these, such
+as one at the end, one before a character that cannot start a name, or a $\{ with no name or no \},
+stays as written. A name after $ is taken as long as it can be, so write $\{1\}x, not $1x.
 
 <!-- end generated -->
 
@@ -18,6 +20,10 @@ name after $ is taken as long as it can be, so write $\{1\}x, not $1x.
 - `$` is special in `replacement`: write `$$` for a literal `$`, or use
   [`Regex.replaceWith`](replaceWith.md), which inserts its text as written.
 - A group number or name that the pattern does not have expands to `""`; it is not an error.
+- A `$` that starts no group reference, such as one at the end, stays as written:
+  `Regex.replace(/b/, "ab", "$")` is `"a$"`.
+- The matches replaced are the ones [`Regex.findAll`](findAll.md) returns, so an empty match right
+  after another match is skipped: `Regex.replace(/a*/, "baaab", "-")` is `"-b-b-"`.
 
 ## Basic examples
 

@@ -1,0 +1,12 @@
+// spec: 11 Regex
+// A $ that starts no group reference in a replacement stays as written.
+println(Regex.replace(/(\w)/, "ab", "$"))
+println(Regex.replace(/(\w)/, "ab", "[$-]"))
+println(Regex.replace(/(\w)/, "ab", `[${1]`))
+println(Regex.replace(/(\w)/, "ab", `[${}]`))
+
+// expect
+// out: $$
+// out: [$-][$-]
+// out: [${1][${1]
+// out: [${}][${}]

@@ -7,8 +7,8 @@
 func Regex.replaceFirst(p: Regex.Pattern, s: string, replacement: string): string
 ```
 
-Regex.replaceFirst returns s with the first match of p replaced by replacement, expanded as in
-[`Regex.replace`](replace.md).
+Regex.replaceFirst returns s with the first match of p, the first that [`Regex.findAll`](findAll.md)
+returns, replaced by replacement, expanded as in [`Regex.replace`](replace.md).
 
 <!-- end generated -->
 

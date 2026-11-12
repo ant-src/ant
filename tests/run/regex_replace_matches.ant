@@ -1,0 +1,15 @@
+// spec: 11 Regex
+// replace, replaceWith, and replaceFirst work on the matches findAll returns, so the empty
+// match that abuts aaa is not replaced.
+println(Regex.findAll(/a*/, "baaab") | Array.map({ x.text }))
+println(Regex.replace(/a*/, "baaab", "-"))
+println(Regex.replaceWith(/a*/, "baaab", { "<${x.text}>" }))
+println(Regex.replaceFirst(/a*/, "baaab", "-"))
+println(Regex.replace(/x*/, "abc", "-"))
+
+// expect
+// out: ["", "aaa", ""]
+// out: -b-b-
+// out: <>b<aaa>b<>
+// out: -baaab
+// out: -a-b-c-

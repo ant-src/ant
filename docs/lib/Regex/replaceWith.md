@@ -7,8 +7,9 @@
 func Regex.replaceWith(p: Regex.Pattern, s: string, f: func(Regex.Match): string): string
 ```
 
-Regex.replaceWith returns s with every match of p replaced by what f returns for it. f is called
-with each match in order, and its result is used as written, with no $ expansion.
+Regex.replaceWith returns s with every match of p, as [`Regex.findAll`](findAll.md) returns them,
+replaced by what f returns for it. f is called with each match in order, and its result is used as
+written, with no $ expansion.
 
 <!-- end generated -->
 
@@ -65,6 +66,13 @@ A pattern that matches the empty string matches between the characters too, and 
 
 ```ant
 Regex.replaceWith(/x*/, "abc", { "-" }) // "-a-b-c-"
+```
+
+`f` sees the matches [`Regex.findAll`](findAll.md) returns, which skip an empty match right after
+another match, so there is none between `aaa` and the last `b`:
+
+```ant
+Regex.replaceWith(/a*/, "baaab", { "<${x.text}>" }) // "<>b<aaa>b<>"
 ```
 
 Pass a named function instead of a lambda:

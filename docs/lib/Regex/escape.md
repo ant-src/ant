@@ -7,8 +7,9 @@
 func Regex.escape(s: string): string
 ```
 
-Regex.escape returns s with every metacharacter escaped, so a pattern compiled from it matches s
-literally.
+Regex.escape returns s with a \\ put before each of \\.+\*?()\|\[\]\{\}^$, so the result matches s
+literally as a pattern or part of one outside a character class; inside \[...\], - keeps its
+meaning.
 
 <!-- end generated -->
 
@@ -16,6 +17,8 @@ literally.
 
 - Pass the result to [Regex.compile](compile.md), alone or as part of a larger source.
 - It escapes text for a pattern only. A replacement string has its own escape, `$$` for a `$`.
+- It escapes exactly `\.+*?()|[]{}^$`, so inside `[...]` a `-` keeps its meaning:
+  `Regex.escape("a-z")` is `"a-z"`, and `[a-z]` built from it matches `"m"`.
 
 ## Basic examples
 

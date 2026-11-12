@@ -7,7 +7,9 @@
 func Regex.find(p: Regex.Pattern, s: string): Regex.Match | null
 ```
 
-Regex.find returns the leftmost match of p in s, or null when there is none.
+Regex.find returns the leftmost match of p in s, or null when there is none. Of the matches that
+start there, the one taken is the one a backtracking matcher finds first, as in Perl and JavaScript:
+alternatives are tried left to right, greedy repetition prefers more and lazy repetition fewer.
 
 <!-- end generated -->
 
@@ -16,6 +18,12 @@ Regex.find returns the leftmost match of p in s, or null when there is none.
 - `start` and `end` count code points, not bytes, so `String.slice(s, m.start, m.end)` is `m.text`.
 - A pattern that can match the empty string, such as `/x*/`, matches at position 0 of any string, so
   the result is an empty match rather than `null`.
+- Of the matches that start at the leftmost position, the first one a backtracking matcher finds
+  wins, as in Perl and JavaScript, not the longest:
+
+  ```ant
+  Regex.find(/a|ab/, "ab")?.text // "a"
+  ```
 
 ## Basic examples
 

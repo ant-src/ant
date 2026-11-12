@@ -1,0 +1,9 @@
+// spec: 11 Regex
+// Of the matches at the leftmost position, the one a backtracking matcher finds first is taken:
+// alternatives left to right, lazy repetition prefers fewer.
+println(Regex.find(/a|ab/, "ab")?.text)
+println(Regex.find(/a*?/, "aaa")?.end)
+
+// expect
+// out: a
+// out: 0
