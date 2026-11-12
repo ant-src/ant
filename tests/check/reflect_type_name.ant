@@ -1,0 +1,17 @@
+// spec: 4 Types as values
+// Section 4, Types as values: "A type name alone is still not a value ... type(Config) is the
+// value." A type name where a type value is expected, a primitive's conversion function and a
+// named primitive's constructor included, is reported with the type(...) that was meant.
+type Config = { port: int }
+type Port = uint16
+
+let box = Reflect.valueOf(type(int), 42)
+let a = Reflect.to(box, int)                  // ERR: int is a type name; write type(int) for its value
+let b = Reflect.to(box, string)               // ERR: string is a type name; write type(string) for its value
+let c = Reflect.to(box, Config)               // ERR: Config is a type name; write type(Config) for its value
+let d = Reflect.to(box, Port)                 // ERR: Port is a type name; write type(Port) for its value
+let e = Reflect.shape(int)                    // ERR: int is a type name; write type(int) for its value
+let f: Reflect.Type[int] = int                // ERR: int is a type name; write type(int) for its value
+let g: Reflect.ErasedType = bool              // ERR: bool is a type name; write type(bool) for its value
+let h: Reflect.ErasedType | null = Json.Value // ERR: Json.Value is a type name; write type(Json.Value) for its value
+let ok = Reflect.to(box, type(int))

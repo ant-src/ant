@@ -86,6 +86,9 @@ func (c *Checker) checkExpr(e ast.Expr, sc *scope, expected types.Type) types.Ty
 			t = c.nullish(x, sc, expected)
 		}
 	case *ast.Ident, *ast.Field:
+		if c.typeNameForTypeValue(x, sc, expected) {
+			return types.Invalid{}
+		}
 		t = c.genericValue(x, sc, expected)
 	}
 	if t == nil {
@@ -111,6 +114,37 @@ func (c *Checker) notePath(e ast.Expr, sc *scope) {
 		}
 		c.notePath(x.X, sc)
 	}
+}
+
+// typeNameForTypeValue reports a type name written where a type value is expected, a primitive's
+// conversion function and a named primitive's constructor included: the value is type(T)
+// (section 4, Types as values).
+func (c *Checker) typeNameForTypeValue(e ast.Expr, sc *scope, expected types.Type) bool {
+	want := false
+	for _, m := range types.Members(expected) {
+		if n, ok := types.Expand(m).(types.Named); ok && n.Decl != nil && (n.Decl == c.reflectDecl("Type") || n.Decl == c.reflectDecl("ErasedType")) {
+			want = true
+		}
+	}
+	if !want {
+		return false
+	}
+	ent := c.entityPath(e, sc)
+	if ent == nil || !(ent.kind == entType || ent.kind == entFunc && ent.isConv) {
+		return false
+	}
+	c.notePath(e, sc)
+	name := pathName(e)
+	c.errorf(e.Position(), "%s is a type name; write type(%s) for its value", name, name)
+	return true
+}
+
+// pathName is the written text of a dotted name.
+func pathName(e ast.Expr) string {
+	if f, ok := e.(*ast.Field); ok {
+		return pathName(f.X) + "." + f.Name
+	}
+	return e.(*ast.Ident).Name
 }
 
 // genericValue instantiates a generic function used as a value from the expected function

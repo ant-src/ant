@@ -369,6 +369,10 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			continue
 		}
 		pt := s.fn.Params[i]
+		if c.typeNameForTypeValue(a.Value, sc, pt) {
+			mismatch = true
+			continue
+		}
 		if types.Mentions(pt, unsolved) && onlyEmpty(a.Value) {
 			empties = append(empties, waiting{i, a.Value})
 			continue
