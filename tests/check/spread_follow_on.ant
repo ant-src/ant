@@ -1,0 +1,9 @@
+// spec: 4 Inference; 4 Arrays, maps, and sets
+// An empty literal an if branch gives is typed on its own and reported; a spread of the if's
+// type, which holds the invalid type, reports nothing more.
+let verbose = true
+let flags = if verbose { ["-v"] } else { [] } // ERR: @42 cannot infer the element type of an empty array
+let c = Cmd.new("rm", [...flags, "--"])
+var d: Array[string] = [...flags, "--"]
+println(c)
+println(d)

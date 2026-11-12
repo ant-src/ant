@@ -992,7 +992,7 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 		if el.Spread {
 			a, ok := types.Expand(t).(types.Array)
 			if !ok {
-				if !types.IsInvalid(t) {
+				if !types.IsInvalid(t) && !hasHole(t) { // ? in it: an error was reported
 					c.errorf(el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
 				}
 				// the literal is invalid: no error about its other elements follows
@@ -1054,7 +1054,7 @@ func (c *Checker) checkArrayLit(x *ast.ArrayLit, sc *scope, elem types.Type) typ
 			t := c.synth(el.Value, sc)
 			a, ok := types.Expand(t).(types.Array)
 			if !ok {
-				if !types.IsInvalid(t) {
+				if !types.IsInvalid(t) && !hasHole(t) { // ? in it: an error was reported
 					c.errorf(el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
 				}
 				continue
