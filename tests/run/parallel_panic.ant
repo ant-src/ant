@@ -2,11 +2,17 @@
 // panics: panic
 // A panic in a Parallel callback cancels the scope, waits for the siblings, and is raised in the
 // caller with its original trace, which Panic.catch sees; it overrides a race already won; a second
-// panic in the same call is reported where it happened and dropped.
+// panic in the same call is reported where it happened and dropped. The first callback panics only
+// once its sibling runs: a callback not yet started when the scope is cancelled never starts.
+var started: Channel[int] = Channel.new()
 var sibling: Atomic[string] = Atomic.new("")
 var caught = Panic.catch({
   var _ = Parallel.map([1, 2], func(n: int, work: Context) {
-    if n == 1 { panic("bad element") }
+    if n == 1 {
+      Channel.receive(started)
+      panic("bad element")
+    }
+    Channel.send(started, n)
     Context.wait(work)
     Atomic.store(sibling, Context.reason(work) ?? "running")
     n
@@ -39,7 +45,7 @@ if twice is Err { println(twice.error.message) }
 println("still running")
 
 // expect
-// out: bad element at 9
+// out: bad element at 13
 // out: cancelled
 // out: loser
 // out: first
