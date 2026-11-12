@@ -213,7 +213,7 @@ value:
 
 ```ant
 let x: Reflect.Value | Reflect.ErasedType = Reflect.erase(type(int))
-// error: a union may contain at most one type that is cannot test, since it cannot tell Reflect.Value from Reflect.ErasedType
+// error: a union may hold at most one type with no discriminator, and Reflect.Value and Reflect.ErasedType both have none
 ```
 
 `Json.stringify` has no form for a box:

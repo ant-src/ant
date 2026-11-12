@@ -1127,7 +1127,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 		// 10, Declaration files): Bytes and Html are kinds of their own, and the time types,
 		// the opaque types the prelude declares under Time, and Regex.Pattern carry their tag,
 		// so is tests all of them by name. Every other opaque type, a host's included, is a
-		// sync type, which is cannot test.
+		// sync type, which `is` cannot test.
 		inPrelude := c.mod != nil && filepath.Base(c.mod.path) == prelude.Path
 		switch {
 		case inPrelude && (decl.Name == "Bytes" || decl.Name == "Html"):

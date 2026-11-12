@@ -10,7 +10,7 @@ import (
 )
 
 // The Reflect namespace (section 11, Reflect): type values, shapes, and reflected values. The
-// opaque types are tags that is cannot test, as the sync types are; the shapes are record tags
+// opaque types are tags that `is` cannot test, as the sync types are; the shapes are record tags
 // whose values Reflect.shape builds. A type value is the checker's own types.Type, so
 // equality, union membership, substitution, and assignability are the checker's code.
 var (
@@ -78,7 +78,7 @@ func box(g *interp.Goroutine, who string, t types.Type, v value.Value) *value.Re
 // memberOf resolves t, aliases expanded, to the member v belongs to, by the discriminators of
 // section 4, Unions, as types.Discriminator keys them: t itself unless it is a union, and for a
 // union the member whose key v carries, an anonymous record member taking any record, and the
-// one member is cannot test taking a value is cannot test either.
+// one member with no discriminator taking a value that has none either.
 func memberOf(t types.Type, v value.Value) (types.Type, bool) {
 	t = types.Expand(t)
 	u, ok := t.(types.Union)
@@ -108,9 +108,10 @@ func memberOf(t types.Type, v value.Value) (types.Type, bool) {
 }
 
 // carries reports whether v has the discriminator of t, a type that is not a union: the kind,
-// the class, or the tag types.Discriminator keys it by. A type is cannot test, a sync type or one
-// of the Reflect types, takes any value is cannot test either, which a union holds at most one
-// of; ant run trusts the rest, as it trusts an annotation (section 11, Reflect, Unchecked runs).
+// the class, or the tag types.Discriminator keys it by. A type with no discriminator, a sync type
+// or one of the Reflect types, takes any value that has none either, and a union holds at most
+// one such type; ant run trusts the rest, as it trusts an annotation (section 11, Reflect,
+// Unchecked runs).
 func carries(v value.Value, t types.Type) bool {
 	key, _, ok := types.Discriminator(t)
 	if !ok {

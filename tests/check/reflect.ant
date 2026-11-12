@@ -36,7 +36,7 @@ func shape(t: Reflect.ErasedType): string {
   if s is Reflect.Record { s.fields[0].name } else if s is Reflect.Array { String.from(s.element) } else { "other" }
 }
 
-var two: Reflect.Decl | Reflect.Value | null = null // ERR: a union may contain at most one type that is cannot test
+var two: Reflect.Decl | Reflect.Value | null = null // ERR: a union may hold at most one type with no discriminator
 var boxed = Reflect.valueOf(type(Array[int]), [])
 var back: Array[int] = Reflect.to(boxed, type(Array[int]))
 

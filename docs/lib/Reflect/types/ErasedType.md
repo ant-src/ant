@@ -195,7 +195,7 @@ apart:
 
 ```ant
 let x: Reflect.ErasedType | Reflect.Decl = Reflect.erase(type(int))
-// error: a union may contain at most one type that is cannot test, since it cannot tell Reflect.ErasedType from Reflect.Decl
+// error: a union may hold at most one type with no discriminator, and Reflect.ErasedType and Reflect.Decl both have none
 ```
 
 An erased type has no JSON form:

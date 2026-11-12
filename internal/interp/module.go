@@ -242,7 +242,7 @@ func setDefaults(v value.Value, d *ast.TypeDecl, env *Env) {
 // expression to resolve (section 4, Types as values): the module's root, or for a local type the
 // environment that holds only the types of its block. A nil env resolves the names through the
 // prelude, as a host's declarations do. A host's opaque type, declared without a body, is a sync
-// tag, which is cannot test.
+// tag, which `is` cannot test.
 func TypeValue(d *ast.TypeDecl, env *Env) value.Value {
 	name := d.Name
 	if d.Owner != "" {

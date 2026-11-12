@@ -119,7 +119,7 @@ func TestPreludeMatchesLibrary(t *testing.T) {
 // time by a value of the matching shape, so that a type expression reaches a tag whose kept
 // body is the prelude's declaration (section 4, Types as values): a record type by a record tag
 // with the declared fields, a primitive type by a constructor, an alias by an alias tag, and
-// an opaque type by a tag that is cannot test. Bytes and Html are kinds, not tags.
+// an opaque type by a tag that `is` cannot test. Bytes and Html are kinds, not tags.
 func TestPreludeTypesMatchLibrary(t *testing.T) {
 	f, err := prelude.Decls()
 	if err != nil {

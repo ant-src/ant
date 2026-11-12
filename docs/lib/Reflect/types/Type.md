@@ -262,7 +262,7 @@ An `if` cannot pick between two type values at run time, since `Reflect.Type[int
 ```ant
 let wide = true
 let t = if wide { type(int64) } else { type(int32) }
-// error: the branches of this if do not form a valid type: a union may contain at most one type that is cannot test, since it cannot tell Reflect.Type[int] from Reflect.Type[int32]; narrow first or give the whole an expected type
+// error: the branches of this if do not form a valid type: a union may hold at most one type with no discriminator, and Reflect.Type[int] and Reflect.Type[int32] both have none; narrow first or give the whole an expected type
 ```
 
 Erase both branches, and the `if` gives a `Reflect.ErasedType`:
