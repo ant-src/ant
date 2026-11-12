@@ -33,7 +33,8 @@ jobs:
           cache: false
       - name: test
         working-directory: ant
-        run: go test -race ./...
+        # The tests package takes 8 to 10 minutes under -race, around go test's default limit of 10.
+        run: go test -race -timeout 30m ./...
 
   # File.lock is flock on Unix and LockFileEx on Windows; Windows has no other job, so its locks
   # are tested here, beside the two Unix systems.
