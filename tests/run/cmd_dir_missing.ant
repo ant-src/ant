@@ -1,0 +1,16 @@
+// spec: stdlib Cmd
+// Cmd, Processes (stdlib.md): a dir that does not exist is an Err from every verb, and each one
+// names the directory, Cmd.start too, not the program.
+let c = Cmd.new("ls", dir: "ant-no-such-dir-xyz")
+println(Cmd.start(c))
+println(Cmd.read(c))
+println(Cmd.run(c))
+println(Cmd.capture(c))
+println(Cmd.start(Cmd.pipe([Cmd.new("echo"), c])))
+
+// expect
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }

@@ -208,6 +208,14 @@ func command(g *interp.Goroutine, who string, c *value.Record) (*exec.Cmd, value
 	cmd := &exec.Cmd{Path: path, Args: args, Env: in.Environ(), WaitDelay: waitDelay}
 	if given(c.Get(2)) {
 		cmd.Dir = stringArg(g, who, c.Get(2))
+		// Checked here, as os.StartProcess does only for a child with no process attributes,
+		// so a missing dir is named as such by every verb, not as the program's failure.
+		if _, err := os.Stat(cmd.Dir); err != nil {
+			if pe, ok := err.(*os.PathError); ok {
+				pe.Op = "chdir"
+			}
+			return nil, errResult(err)
+		}
 	}
 	if given(c.Get(3)) {
 		env := []string{}
