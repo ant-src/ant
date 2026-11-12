@@ -7,7 +7,8 @@
 func File.list(dir: string): Result[Array[string], Error]
 ```
 
-File.list returns the names of the entries directly in dir, in lexical order. Unlike
+File.list returns the names of the entries directly in dir, in lexical order, the order in which
+strings compare, so "10.txt" comes before "9.txt". It follows a link at dir. Unlike
 [`File.walk`](walk.md) it does not descend, and it returns names rather than paths.
 
 <!-- end generated -->

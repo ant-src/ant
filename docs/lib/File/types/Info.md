@@ -10,7 +10,9 @@ type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modifi
 File.Info describes the file at a path, as [`File.stat`](../stat.md) reports it. modified is the
 time of the last write. mode holds the permission bits and the setuid, setgid and sticky bits, at
 most 0o7777; on Windows a file is 0o444 when read-only and 0o666 when not, and a directory adds
-0o111. isSymlink is true only when stat was told not to follow a link.
+0o111. isSymlink is true only when stat was told not to follow a link. name is the last element of
+the path, also when a link is followed. size is a regular file's length in bytes; for a directory,
+and for a link described with follow false, it is what the host reports, as is a link's own mode.
 
 <!-- end generated -->
 

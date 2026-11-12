@@ -8,7 +8,8 @@ func File.walk(dir: string): Result[Array[string], Error]
 ```
 
 File.walk returns every file below dir, at any depth, as paths relative to dir. It lists files and
-not directories, does not follow symbolic links, and returns the paths in lexical order.
+not directories, follows a link at dir but no link below it, and returns the paths in lexical order,
+the order in which strings compare.
 
 <!-- end generated -->
 

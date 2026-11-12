@@ -7,8 +7,9 @@
 func File.mkdir(path: string): Result[void, Error]
 ```
 
-File.mkdir creates the directory at path, with any parents it lacks. It is Ok when the directory
-already exists.
+File.mkdir creates the directory at path, with any parents it lacks, each made as the path names it,
+so x/../y makes x too. It is Ok when the directory already exists, a link to one included, and Err
+at a dangling link.
 
 <!-- end generated -->
 

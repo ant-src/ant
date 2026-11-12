@@ -1,0 +1,28 @@
+// spec: stdlib File
+// File (stdlib.md, Links): list and walk follow a link given as dir; mkdir follows a link, so a link
+// to a directory is Ok and a dangling link is Err; mkdir makes each parent as the path names it, so
+// x/../y makes x too.
+let dir = Os.args()[0]
+try File.mkdir("${dir}/assets")
+try File.write("${dir}/assets/logo.svg", "<svg/>")
+try File.symlink("assets", "${dir}/static")
+println(File.list("${dir}/static"))
+println(File.walk("${dir}/static"))
+println(File.mkdir("${dir}/static"))
+try File.symlink("nowhere", "${dir}/dangling")
+println(File.mkdir("${dir}/dangling") is Err)
+println(File.exists("${dir}/nowhere"))
+println(File.mkdir("${dir}/x/../y"))
+println(File.exists("${dir}/x"))
+println(File.exists("${dir}/y"))
+
+// expect
+// args: $TMP
+// out: Ok{ value: ["logo.svg"] }
+// out: Ok{ value: ["logo.svg"] }
+// out: Ok{ value: void }
+// out: true
+// out: false
+// out: Ok{ value: void }
+// out: true
+// out: true

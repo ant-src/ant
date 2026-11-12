@@ -5,7 +5,10 @@
 
 File holds the functions of the file system and of handles: open files, the standard streams, and
 network connections. Every operation that can fail returns a Result with an Error; a read that waits
-takes a context.
+takes a context. An empty path is Err in every call that takes one; File.exists("") is false. Only
+[`File.mkdir`](mkdir.md) creates missing directories: every other call that creates a file, a
+directory or a link is Err when the directory that would hold it is missing, and those that write a
+file are Err when a directory is at the path.
 
 <!-- end generated -->
 

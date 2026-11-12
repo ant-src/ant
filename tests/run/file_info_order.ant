@@ -1,0 +1,34 @@
+// spec: stdlib File
+// File (stdlib.md, File): name is Path.base of the path given, also through a followed link; size is
+// a regular file's length in bytes; lexical order is the order in which strings compare, code
+// point by code point, in list, walk and glob.
+let dir = Os.args()[0]
+try File.write("${dir}/v2.txt", "café ☕")
+try File.symlink("v2.txt", "${dir}/current")
+try File.mkdir("${dir}/logs")
+try File.write("${dir}/logs/app.log", "")
+let a = try File.stat("${dir}/current")
+println("${a.name} ${a.size} ${a.isSymlink}")
+println((try File.stat("${dir}/./logs/../logs/app.log")).name)
+println((try File.stat("${dir}/logs/")).name)
+println((try File.stat("${dir}/current", follow: false)).name)
+
+try File.mkdir("${dir}/names")
+for name in ["10.txt", "9.txt", "Zeta", "apple", "Äpfel", "a-b", "a"] {
+  try File.write("${dir}/names/${name}", "")
+}
+println(File.list("${dir}/names"))
+println(File.walk("${dir}/names"))
+println(File.glob("*", dir: "${dir}/names"))
+println(["10.txt", "9.txt", "Zeta", "apple", "Äpfel", "a-b", "a"].sort())
+
+// expect
+// args: $TMP
+// out: current 9 false
+// out: app.log
+// out: logs
+// out: current
+// out: Ok{ value: ["10.txt", "9.txt", "Zeta", "a", "a-b", "apple", "Äpfel"] }
+// out: Ok{ value: ["10.txt", "9.txt", "Zeta", "a", "a-b", "apple", "Äpfel"] }
+// out: Ok{ value: ["10.txt", "9.txt", "Zeta", "a", "a-b", "apple", "Äpfel"] }
+// out: ["10.txt", "9.txt", "Zeta", "a", "a-b", "apple", "Äpfel"]

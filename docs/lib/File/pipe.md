@@ -9,7 +9,8 @@ func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): 
 
 File.pipe copies the rest of src to dst, writing each chunk as it is read, so a source that waits
 streams. What it read has been written even when ctx ends the copy, which is then Err with ctx's
-reason.
+reason. src and dst may be the same connection, which echoes; for a file they may not, which is Err.
+It closes neither.
 
 <!-- end generated -->
 

@@ -7,7 +7,9 @@
 func File.rename(from: string, to: string): Result[void, Error]
 ```
 
-File.rename renames or moves the file or directory at from to the path to.
+File.rename renames or moves the file or directory at from to the path to, replacing a file at to.
+It is Err when a directory is at to, since there is no "into" form, and across file systems; it is
+Ok and nothing changes when from and to are the same file.
 
 <!-- end generated -->
 

@@ -7,7 +7,8 @@
 func File.open(path: string): Result[File.Handle, Error]
 ```
 
-File.open opens the file at path for reading. Close it with [`File.close`](close.md).
+File.open opens the file at path for reading. Close it with [`File.close`](close.md). A directory
+opens, and a read of it is Err.
 
 <!-- end generated -->
 

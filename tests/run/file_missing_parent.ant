@@ -1,0 +1,51 @@
+// spec: stdlib File
+// File (stdlib.md, File): only mkdir creates missing directories; every other call that creates a
+// file, a directory or a link is Err when the directory that would hold it is missing, and those
+// that write a file are Err when a directory is at the path.
+let dir = Os.args()[0]
+func hide(r: Result[void, Error]): string {
+  if r is Ok { "Ok" } else { String.replace(r.error.message, dir, "DIR") }
+}
+func opened(r: Result[File.Handle, Error]): string {
+  if r is Ok { "Ok" } else { String.replace(r.error.message, dir, "DIR") }
+}
+try File.write("${dir}/a.txt", "x")
+try File.mkdir("${dir}/site")
+println(hide(File.write("${dir}/missing/a.txt", "x")))
+println(hide(File.writeBytes("${dir}/missing/a.bin", "x".toBytes())))
+println(opened(File.create("${dir}/missing/a.txt")))
+println(opened(File.append("${dir}/missing/app.log")))
+println(hide(File.touch("${dir}/missing/stamp")))
+println(opened(File.lock("${dir}/missing/lock")))
+println(File.tryLock("${dir}/missing/lock") is Err)
+println(hide(File.copy("${dir}/a.txt", "${dir}/missing/b.txt")))
+println(hide(File.copyAll("${dir}/site", "${dir}/out/b/c")))
+println(hide(File.symlink("a.txt", "${dir}/missing/latest")))
+println(File.exists("${dir}/missing"))
+println(File.exists("${dir}/out"))
+println(hide(File.mkdir("${dir}/missing/x/y")))
+try File.mkdir("${dir}/logs")
+println(hide(File.write("${dir}/logs", "x")))
+println(hide(File.writeBytes("${dir}/logs", "x".toBytes())))
+println(opened(File.create("${dir}/logs")))
+println(opened(File.append("${dir}/logs")))
+
+// expect
+// args: $TMP
+// out: open DIR/missing/a.txt: no such file or directory
+// out: open DIR/missing/a.bin: no such file or directory
+// out: open DIR/missing/a.txt: no such file or directory
+// out: open DIR/missing/app.log: no such file or directory
+// out: open DIR/missing/stamp: no such file or directory
+// out: open DIR/missing/lock: no such file or directory
+// out: true
+// out: open DIR/missing/b.txt: no such file or directory
+// out: mkdir DIR/out/b/c: no such file or directory
+// out: symlink a.txt DIR/missing/latest: no such file or directory
+// out: false
+// out: false
+// out: Ok
+// out: open DIR/logs: is a directory
+// out: open DIR/logs: is a directory
+// out: open DIR/logs: is a directory
+// out: open DIR/logs: is a directory

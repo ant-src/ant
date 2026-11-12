@@ -1719,7 +1719,10 @@ func Reflect.makeTagged(t: Reflect.ErasedType, payload: Reflect.Value): Reflect.
 //
 // File holds the functions of the file system and of handles: open files, the standard streams, and
 // network connections. Every operation that can fail returns a Result with an Error; a read that
-// waits takes a context.
+// waits takes a context. An empty path is Err in every call that takes one; File.exists("") is
+// false. Only [File.mkdir] creates missing directories: every other call that creates a file, a
+// directory or a link is Err when the directory that would hold it is missing, and those that write
+// a file are Err when a directory is at the path.
 
 // File.Handle is an opaque handle to an open file, a standard stream, a network connection, or a
 // buffer over one ([File.buffered]). The reads of a handle share one buffer, so a program can read
@@ -1730,7 +1733,9 @@ type File.Handle
 // File.Info describes the file at a path, as [File.stat] reports it. modified is the time of the
 // last write. mode holds the permission bits and the setuid, setgid and sticky bits, at most
 // 0o7777; on Windows a file is 0o444 when read-only and 0o666 when not, and a directory adds 0o111.
-// isSymlink is true only when stat was told not to follow a link.
+// isSymlink is true only when stat was told not to follow a link. name is the last element of the
+// path, also when a link is followed. size is a regular file's length in bytes; for a directory, and
+// for a link described with follow false, it is what the host reports, as is a link's own mode.
 type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int }
 
 // File.stat returns the name, size, kind, modification time and mode of the file at path. It
@@ -1773,15 +1778,19 @@ func File.readLink(path: string): Result[string, Error]
 // It is Err when the path leads nowhere.
 func File.realPath(path: string): Result[string, Error]
 
-// File.mkdir creates the directory at path, with any parents it lacks. It is Ok when the directory
-// already exists.
+// File.mkdir creates the directory at path, with any parents it lacks, each made as the path names
+// it, so x/../y makes x too. It is Ok when the directory already exists, a link to one included,
+// and Err at a dangling link.
 func File.mkdir(path: string): Result[void, Error]
 
-// File.removeAll removes path and everything below it. It is Ok when there is nothing to remove;
-// [File.remove] is the form that refuses a directory with entries.
+// File.removeAll removes path and everything below it. It is Ok when nothing is there and the path
+// could hold something, and Err for . and ..; [File.remove] is the form that refuses a directory
+// with entries.
 func File.removeAll(path: string): Result[void, Error]
 
-// File.rename renames or moves the file or directory at from to the path to.
+// File.rename renames or moves the file or directory at from to the path to, replacing a file at
+// to. It is Err when a directory is at to, since there is no "into" form, and across file systems;
+// it is Ok and nothing changes when from and to are the same file.
 func File.rename(from: string, to: string): Result[void, Error]
 
 // File.tempDir creates a new empty directory, mode 0o700, in dir or the host's temporary directory,
@@ -1793,11 +1802,12 @@ func File.tempDir(pattern: string, dir: string | null = null): Result[string, Er
 // returns its path. Its name is pattern with the last * replaced by a random string, or with the
 // string appended when there is no *. Nothing removes it for the program.
 //
-//     var tmp = try File.tempFile("report-*.csv")
+//     let tmp = try File.tempFile("report-*.csv")
 func File.tempFile(pattern: string, dir: string | null = null): Result[string, Error]
 
 // File.walk returns every file below dir, at any depth, as paths relative to dir. It lists files
-// and not directories, does not follow symbolic links, and returns the paths in lexical order.
+// and not directories, follows a link at dir but no link below it, and returns the paths in lexical
+// order, the order in which strings compare.
 func File.walk(dir: string): Result[Array[string], Error]
 
 // File.glob returns the files and directories below dir whose paths relative to dir match pattern,
@@ -1807,7 +1817,7 @@ func File.walk(dir: string): Result[Array[string], Error]
 // pattern ignores dir. Nothing matching is Ok with an empty array; a malformed pattern, and a
 // directory the pattern leads into that cannot be read, is Err.
 //
-//     var tests = try File.glob("**/*_test.ant", dir: root)
+//     let tests = try File.glob("**/*_test.ant", dir: root)
 func File.glob(pattern: string, dir: string = ".", hidden: bool = false): Result[Array[string], Error]
 
 // File.append opens the file at path for writing at its end, creating it when it does not exist.
@@ -1828,19 +1838,22 @@ func File.write(path: string, text: string, replace: bool = true): Result[void, 
 // File.writeBytes writes bytes as they are to the file at path, as [File.write] writes text.
 func File.writeBytes(path: string, bytes: Bytes, replace: bool = true): Result[void, Error]
 
-// File.exists reports whether anything exists at path, a directory included. It follows a symbolic
-// link, so a link that leads nowhere is false.
+// File.exists reports whether anything exists at path that [File.stat] can reach, a directory
+// included. It follows a symbolic link, so a link that leads nowhere is false, and it is false when
+// stat is Err for any reason, such as a directory on the way that cannot be searched.
 func File.exists(path: string): bool
 
-// File.remove removes the file or empty directory at path. It is Err on a directory that has
-// entries; [File.removeAll] removes a whole tree.
+// File.remove removes the file or empty directory at path. It is Err when nothing is there and on a
+// directory that has entries; [File.removeAll] removes a whole tree.
 func File.remove(path: string): Result[void, Error]
 
-// File.list returns the names of the entries directly in dir, in lexical order. Unlike [File.walk]
-// it does not descend, and it returns names rather than paths.
+// File.list returns the names of the entries directly in dir, in lexical order, the order in which
+// strings compare, so "10.txt" comes before "9.txt". It follows a link at dir. Unlike [File.walk] it
+// does not descend, and it returns names rather than paths.
 func File.list(dir: string): Result[Array[string], Error]
 
-// File.open opens the file at path for reading. Close it with [File.close].
+// File.open opens the file at path for reading. Close it with [File.close]. A directory opens, and a
+// read of it is Err.
 func File.open(path: string): Result[File.Handle, Error]
 
 // File.create opens the file at path for writing, creating it or truncating what it held. With
@@ -1855,15 +1868,15 @@ func File.lock(path: string, ctx: Context | null = null): Result[File.Handle, Er
 
 // File.tryLock is [File.lock] without the wait: it is Ok(null) when another handle holds the lock.
 //
-//     var lock = try File.tryLock(path)
+//     let lock = try File.tryLock(path)
 //     if lock == null {
 //       eprintln("already running")
 //       Os.exit(1)
 //     }
 func File.tryLock(path: string): Result[File.Handle | null, Error]
 
-// File.isTerminal reports whether f is a terminal, as [[ -t 1 ]] asks of standard output. A buffered
-// handle answers for the handle under it.
+// File.isTerminal reports whether f is a terminal, as [[ -t 1 ]] asks of standard output. It is
+// false for a closed handle. A buffered handle answers for the handle under it.
 func File.isTerminal(f: File.Handle): bool
 
 // File.readLine reads the next line from f as text, without its \n or \r\n, and returns null at end
@@ -1876,15 +1889,17 @@ func File.writeLine(f: File.Handle, line: string): Result[void, Error]
 
 // File.pipe copies the rest of src to dst, writing each chunk as it is read, so a source that waits
 // streams. What it read has been written even when ctx ends the copy, which is then Err with ctx's
-// reason.
+// reason. src and dst may be the same connection, which echoes; for a file they may not, which is
+// Err. It closes neither.
 func File.pipe(src: File.Handle, dst: File.Handle, ctx: Context | null = null): Result[void, Error]
 
 // File.close closes f, and is Err when the close fails; f is closed either way. A buffered handle
 // writes its buffer out first and then closes the handle under it, reporting the first error. When
 // a write of it is in progress on another goroutine, it closes the handle under first, which ends
 // that write, and is Err when what the buffer held is lost. It does nothing and is Ok on a standard
-// stream and on a handle already closed, so a deferred close can follow an explicit one. Called
-// from another goroutine, it ends a read or write in progress on f with an Err.
+// stream and on a handle already closed, so a deferred close can follow an explicit one. A read or
+// a write after it is Err, as is a flush of a buffered handle. Called from another goroutine, it
+// ends a read or write in progress on f with an Err.
 func File.close(f: File.Handle): Result[void, Error]
 
 // File.readAll reads the rest of f as text. Bytes that are not valid UTF-8 become U+FFFD.
@@ -1910,15 +1925,16 @@ func File.writeText(f: File.Handle, text: string): Result[void, Error]
 // File.buffered returns a handle over f whose writes collect in a buffer of size bytes, written to f
 // when a write does not fit, at [File.flush], and at [File.close], and at nothing else: a buffered
 // handle neither flushed nor closed when the run ends loses what it holds. It is for a loop of many
-// small writes. f itself is returned when it is buffered with at least size bytes; a size below 1
-// gives the default. Reads of the handle read f. The first error writing the buffer out is kept
+// small writes. A write is Err at once when f cannot be written, such as a handle from [File.open].
+// f itself is returned when it is buffered with at least size bytes; a size below 1 gives the
+// default. Reads of the handle read f. The first error writing the buffer out is kept
 // and returned by every later write and flush, and by the first close. A write to f itself goes
 // past the buffer.
 func File.buffered(f: File.Handle, size: int = 4096): File.Handle
 
 // File.flush writes out the buffer of a buffered handle, and of every buffered handle under it, so
 // that what was written to f has been handed to the OS. On a handle that is not buffered it does
-// nothing and is Ok.
+// nothing and is Ok; on a closed buffered handle it is Err.
 func File.flush(f: File.Handle): Result[void, Error]
 
 // Path

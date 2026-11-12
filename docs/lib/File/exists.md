@@ -7,8 +7,9 @@
 func File.exists(path: string): bool
 ```
 
-File.exists reports whether anything exists at path, a directory included. It follows a symbolic
-link, so a link that leads nowhere is false.
+File.exists reports whether anything exists at path that [`File.stat`](stat.md) can reach, a
+directory included. It follows a symbolic link, so a link that leads nowhere is false, and it is
+false when stat is Err for any reason, such as a directory on the way that cannot be searched.
 
 <!-- end generated -->
 

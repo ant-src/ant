@@ -11,8 +11,9 @@ File.close closes f, and is Err when the close fails; f is closed either way. A 
 writes its buffer out first and then closes the handle under it, reporting the first error. When a
 write of it is in progress on another goroutine, it closes the handle under first, which ends that
 write, and is Err when what the buffer held is lost. It does nothing and is Ok on a standard stream
-and on a handle already closed, so a deferred close can follow an explicit one. Called from another
-goroutine, it ends a read or write in progress on f with an Err.
+and on a handle already closed, so a deferred close can follow an explicit one. A read or a write
+after it is Err, as is a flush of a buffered handle. Called from another goroutine, it ends a read
+or write in progress on f with an Err.
 
 <!-- end generated -->
 
