@@ -8,8 +8,10 @@ func Os.configDir(): Result[string, Error]
 ```
 
 Os.configDir returns the directory where the user's programs keep their configuration:
-$XDG\_CONFIG\_HOME or \~/.config on Unix, \~/Library/Application Support on macOS, %AppData% on
-Windows. A program keeps its files under a directory of its own name there.
+$XDG\_CONFIG\_HOME, or $HOME/.config when that is unset or empty, on Unix, $HOME/Library/Application
+Support on macOS, %AppData% on Windows. The directory need not exist. A program keeps its files
+under a directory of its own name there, made with [`File.mkdir`](../File/mkdir.md), which makes the
+root too.
 
 <!-- end generated -->
 

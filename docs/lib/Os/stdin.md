@@ -7,7 +7,9 @@
 func Os.stdin(): File.Handle
 ```
 
-Os.stdin returns the program's standard input.
+Os.stdin returns the program's standard input, open for reading only. A read takes what is there,
+which may be more than the line it returns; what it took stays the program's, so a script that hands
+the rest of its input to a child reads it and gives it as input.
 
 <!-- end generated -->
 

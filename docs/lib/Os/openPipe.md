@@ -9,7 +9,9 @@ func Os.openPipe(): Result[Os.Pipe, Error]
 
 Os.openPipe returns a pipe, two handles the program closes: what is written to write is read from
 read. A read waits for data. The reading end is at end of file once every writing end is closed, the
-copies given to children and the program's own.
+copies given to children and the program's own. A write waits while the pipe is full, so the program
+reads it on another goroutine, or gives it to a child, before writing much. A write once every copy
+of read is closed is Err with the message "broken pipe", and the program goes on.
 
 <!-- end generated -->
 

@@ -7,7 +7,9 @@
 func Os.environ(): Map[string, string]
 ```
 
-Os.environ returns every environment variable, keyed by name.
+Os.environ returns every environment variable, keyed by name, in the host's order, which is no order
+to rely on. Each call returns a new map, which the caller may change without changing the
+environment: a later Os.env, and a child without env, see it as it was.
 
 <!-- end generated -->
 

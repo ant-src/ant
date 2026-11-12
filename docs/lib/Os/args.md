@@ -7,7 +7,9 @@
 func Os.args(): Array[string]
 ```
 
-Os.args returns the arguments after the program path: ant run main.ant a b gives \["a", "b"\].
+Os.args returns the arguments after the program path: ant run main.ant a b gives \["a", "b"\]. Each
+call returns a new array, which the caller may change without changing the arguments. It is \[\] in
+the REPL.
 
 <!-- end generated -->
 

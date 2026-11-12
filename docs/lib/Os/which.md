@@ -8,7 +8,8 @@ func Os.which(program: string): string | null
 ```
 
 Os.which returns the path of the executable in PATH that a [`Cmd`](../Cmd/index.md) naming program
-starts, or null when PATH holds none.
+starts, or null when PATH holds none. A program with a path separator is returned unchanged when it
+names an executable file, taken against the working directory, and null otherwise.
 
 <!-- end generated -->
 

@@ -7,7 +7,9 @@
 func Os.exit(status: int): never
 ```
 
-Os.exit ends the process at once with status. No deferred block runs, in any goroutine.
+Os.exit ends the process at once with status. No deferred block runs, in any goroutine. A Unix
+parent sees the status modulo 256, so Os.exit(256) reads as success; a portable program exits with 0
+to 125.
 
 <!-- end generated -->
 

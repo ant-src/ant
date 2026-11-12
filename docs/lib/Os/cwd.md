@@ -7,7 +7,9 @@
 func Os.cwd(): Result[string, Error]
 ```
 
-Os.cwd returns the working directory.
+Os.cwd returns the working directory as an absolute path: the directory the ant command was started
+in, not the script's. Nothing in Ant changes it. It is Err when the host cannot name it, as when it
+has been removed.
 
 <!-- end generated -->
 

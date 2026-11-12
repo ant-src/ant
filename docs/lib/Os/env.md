@@ -7,7 +7,9 @@
 func Os.env(name: string): string | null
 ```
 
-Os.env returns the value of the environment variable name, or null when it is not set.
+Os.env returns the value of the environment variable name, or null when it is not set; a variable
+set empty gives "". Names are matched as the host matches them: exactly on Unix, and ignoring case
+on Windows. An empty name, or one holding =, names no variable and gives null.
 
 <!-- end generated -->
 

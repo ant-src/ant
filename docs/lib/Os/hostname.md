@@ -7,7 +7,9 @@
 func Os.hostname(): Result[string, Error]
 ```
 
-Os.hostname returns the host's name.
+Os.hostname returns the name the host's kernel reports, as hostname prints it, Go's os.Hostname. It
+is not looked up in DNS, so it may or may not hold a domain. It is Err only when the host cannot
+report one.
 
 <!-- end generated -->
 

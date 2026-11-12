@@ -8,7 +8,8 @@ func Os.cacheDir(): Result[string, Error]
 ```
 
 Os.cacheDir returns the directory where the user's programs keep what can be made again:
-$XDG\_CACHE\_HOME or \~/.cache on Unix, \~/Library/Caches on macOS, %LocalAppData% on Windows.
+$XDG\_CACHE\_HOME, or $HOME/.cache when that is unset or empty, on Unix, $HOME/Library/Caches on
+macOS, %LocalAppData% on Windows. The directory need not exist.
 
 <!-- end generated -->
 

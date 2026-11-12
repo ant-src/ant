@@ -1718,15 +1718,18 @@ func Reflect.makeTagged(t: Reflect.ErasedType, payload: Reflect.Value): Reflect.
 //
 // File holds the functions of the file system and of handles: open files, the standard streams, and
 // network connections. Every operation that can fail returns a Result with an Error; a read that
-// waits takes a context. An empty path is Err in every call that takes one; File.exists("") is
-// false. Only [File.mkdir] creates missing directories: every other call that creates a file, a
-// directory or a link is Err when the directory that would hold it is missing, and those that write
-// a file are Err when a directory is at the path.
+// waits takes a context. A path is used as written: ~ and $NAME are not expanded as a shell
+// expands them, so a path under the home directory is Path.join([try Os.home(), ...]), and a
+// relative path is taken against the working directory. An empty path is Err in every call that
+// takes one; File.exists("") is false. Only [File.mkdir] creates missing directories: every other
+// call that creates a file, a directory or a link is Err when the directory that would hold it is
+// missing, and those that write a file are Err when a directory is at the path.
 
 // File.Handle is an opaque handle to an open file, a standard stream, a network connection, or a
 // buffer over one ([File.buffered]). The reads of a handle share one buffer, so a program can read
 // lines and then bytes from it. A write is handed to the OS before it returns, all of it or Err,
-// except a write to a buffered handle. One goroutine may read a handle while another writes it.
+// except a write to a buffered handle. A read of a handle opened only for writing, and a write to
+// one opened only for reading, is Err. One goroutine may read a handle while another writes it.
 type File.Handle
 
 // File.Info describes the file at a path, as [File.stat] reports it. modified is the time of the
@@ -2589,6 +2592,8 @@ func Net.peer(f: File.Handle): string | null
 type Os.Pipe = { read: File.Handle, write: File.Handle }
 
 // Os.args returns the arguments after the program path: ant run main.ant a b gives ["a", "b"].
+// Each call returns a new array, which the caller may change without changing the arguments. It is
+// [] in the REPL.
 func Os.args(): Array[string]
 
 // Os.program returns the path of the program's root module as the command was given it, as a
@@ -2604,25 +2609,34 @@ func Os.platform(): string
 // "amd64", and so on.
 func Os.arch(): string
 
-// Os.env returns the value of the environment variable name, or null when it is not set.
+// Os.env returns the value of the environment variable name, or null when it is not set; a
+// variable set empty gives "". Names are matched as the host matches them: exactly on Unix, and
+// ignoring case on Windows. An empty name, or one holding =, names no variable and gives null.
 func Os.env(name: string): string | null
 
-// Os.environ returns every environment variable, keyed by name.
+// Os.environ returns every environment variable, keyed by name, in the host's order, which is no
+// order to rely on. Each call returns a new map, which the caller may change without changing the
+// environment: a later Os.env, and a child without env, see it as it was.
 func Os.environ(): Map[string, string]
 
-// Os.cwd returns the working directory.
+// Os.cwd returns the working directory as an absolute path: the directory the ant command was
+// started in, not the script's. Nothing in Ant changes it. It is Err when the host cannot name it,
+// as when it has been removed.
 func Os.cwd(): Result[string, Error]
 
 // Os.home returns the user's home directory: $HOME on Unix, %USERPROFILE% on Windows.
 func Os.home(): Result[string, Error]
 
 // Os.configDir returns the directory where the user's programs keep their configuration:
-// $XDG_CONFIG_HOME or ~/.config on Unix, ~/Library/Application Support on macOS, %AppData% on
-// Windows. A program keeps its files under a directory of its own name there.
+// $XDG_CONFIG_HOME, or $HOME/.config when that is unset or empty, on Unix,
+// $HOME/Library/Application Support on macOS, %AppData% on Windows. The directory need not exist.
+// A program keeps its files under a directory of its own name there, made with [File.mkdir], which
+// makes the root too.
 func Os.configDir(): Result[string, Error]
 
 // Os.cacheDir returns the directory where the user's programs keep what can be made again:
-// $XDG_CACHE_HOME or ~/.cache on Unix, ~/Library/Caches on macOS, %LocalAppData% on Windows.
+// $XDG_CACHE_HOME, or $HOME/.cache when that is unset or empty, on Unix, $HOME/Library/Caches on
+// macOS, %LocalAppData% on Windows. The directory need not exist.
 func Os.cacheDir(): Result[string, Error]
 
 // Os.pid returns this process's id.
@@ -2631,22 +2645,32 @@ func Os.pid(): int
 // Os.uid returns the effective user id, 0 for root, or null on Windows, which has none.
 func Os.uid(): int | null
 
-// Os.hostname returns the host's name.
+// Os.hostname returns the name the host's kernel reports, as hostname prints it, Go's os.Hostname.
+// It is not looked up in DNS, so it may or may not hold a domain. It is Err only when the host
+// cannot report one.
 func Os.hostname(): Result[string, Error]
 
-// Os.exit ends the process at once with status. No deferred block runs, in any goroutine.
+// Os.exit ends the process at once with status. No deferred block runs, in any goroutine. A Unix
+// parent sees the status modulo 256, so Os.exit(256) reads as success; a portable program exits
+// with 0 to 125.
 func Os.exit(status: int): never
 
 // Os.openPipe returns a pipe, two handles the program closes: what is written to write is read
 // from read. A read waits for data. The reading end is at end of file once every writing end is
-// closed, the copies given to children and the program's own.
+// closed, the copies given to children and the program's own. A write waits while the pipe is
+// full, so the program reads it on another goroutine, or gives it to a child, before writing much.
+// A write once every copy of read is closed is Err with the message "broken pipe", and the program
+// goes on.
 func Os.openPipe(): Result[Os.Pipe, Error]
 
 // Os.which returns the path of the executable in PATH that a [Cmd] naming program starts, or null
-// when PATH holds none.
+// when PATH holds none. A program with a path separator is returned unchanged when it names an
+// executable file, taken against the working directory, and null otherwise.
 func Os.which(program: string): string | null
 
-// Os.stdin returns the program's standard input.
+// Os.stdin returns the program's standard input, open for reading only. A read takes what is
+// there, which may be more than the line it returns; what it took stays the program's, so a script
+// that hands the rest of its input to a child reads it and gives it as input.
 func Os.stdin(): File.Handle
 
 // Os.interrupt returns a context that is done, with the reason "interrupt", when the process is
