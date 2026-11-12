@@ -710,9 +710,10 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Dir = dir
 	cmd.Stdin = strings.NewReader(ds["stdin"].body)
-	if len(env) > 0 {
-		cmd.Env = append(os.Environ(), env...)
-	}
+	// The built ant comes first on PATH, so a page that starts ant itself gets this one and not
+	// whatever the host has under the name, such as Apache Ant.
+	path := filepath.Dir(bin) + string(os.PathListSeparator) + os.Getenv("PATH")
+	cmd.Env = append(append(os.Environ(), "PATH="+path), env...)
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	status := 0
 	if err := cmd.Run(); err != nil {
