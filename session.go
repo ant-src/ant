@@ -431,11 +431,14 @@ func (s *Session) recordAt(names []string) *value.Record {
 	return rec
 }
 
-// typeName names the type of a value as the checker would: a record by its type, the rest
-// by its kind.
+// typeName names the type of a value as the checker would: a record or a sync object by its
+// type, the rest by its kind.
 func typeName(v value.Value) string {
 	if rec, ok := v.(*value.Record); ok && rec.Tag.Kind == value.RecordTag {
 		return rec.Tag.Name
+	}
+	if s, ok := v.(value.Sync); ok {
+		return s.SyncName()
 	}
 	return value.KindOf(v).String()
 }

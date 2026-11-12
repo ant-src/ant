@@ -247,6 +247,8 @@ func typeName(v value.Value) string {
 		return x.Tag.Name
 	case *value.Tagged:
 		return x.Tag.Name
+	case value.Sync:
+		return x.SyncName()
 	}
 	return value.KindOf(v).String()
 }

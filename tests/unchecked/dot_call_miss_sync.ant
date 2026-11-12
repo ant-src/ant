@@ -1,0 +1,22 @@
+// spec: 5 Calls through .; 12 Runtime panics
+// Section 5, Calls through .: a call x.f(...) on a value whose namespace has no f panics, naming
+// the value's type: a handle, a process, a mutex, a channel and a context by theirs.
+func message(r: Result[void, Panic]): string {
+  if r is Err { r.error.message } else { "no panic" }
+}
+
+let p = Result.unwrap(Os.openPipe())
+let c = Result.unwrap(Cmd.start(Cmd.new("true")))
+println(message(Panic.catch({ p.read.readText() })))
+println(message(Panic.catch({ c.nope() })))
+println(message(Panic.catch({ Mutex.new().nope() })))
+println(message(Panic.catch({ Channel.new().nope() })))
+println(message(Panic.catch({ Context.new().nope() })))
+Result.unwrap(Cmd.wait(c))
+
+// expect
+// out: File.Handle has no field or function readText
+// out: Cmd.Process has no field or function nope
+// out: Mutex has no field or function nope
+// out: Channel has no field or function nope
+// out: Context has no field or function nope

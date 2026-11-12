@@ -92,6 +92,8 @@ func Describe(v Value) string {
 		return x.TimeType()
 	case *Regex:
 		return "Regex.Pattern"
+	case Sync:
+		return x.SyncName()
 	}
 	return KindOf(v).String()
 }
