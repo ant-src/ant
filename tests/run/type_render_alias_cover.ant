@@ -1,0 +1,25 @@
+// spec: 4 Types as values
+// "A union does not render a member that an alias member already covers, so with
+// type MaybeInt = int | null, both type(MaybeInt | null) and Reflect.nullable(type(MaybeInt))
+// render as MaybeInt, and Reflect.nullable(type(Json.Value)) as Json.Value."
+type MaybeInt = int | null
+type Num = int | float64
+
+println(type(MaybeInt | null))
+println(Reflect.nullable(type(MaybeInt)))
+println(Reflect.nullable(type(MaybeInt)) == type(MaybeInt))
+println(Reflect.nullable(type(Json.Value)))
+println(Reflect.nullable(type(int | null)))
+println(type(Num | int | string))
+println(type(Num | MaybeInt))
+println(type(MaybeInt | string))
+
+// expect
+// out: MaybeInt
+// out: MaybeInt
+// out: true
+// out: Json.Value
+// out: int | null
+// out: Num | string
+// out: Num | MaybeInt
+// out: MaybeInt | string

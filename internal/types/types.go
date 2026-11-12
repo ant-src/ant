@@ -437,6 +437,55 @@ func expandRaw(t Type) Type {
 	return t
 }
 
+// uncovered drops from a union's written members each one that an alias member already covers,
+// keeping the first of two that cover each other, so MaybeInt | null renders as MaybeInt (section 4,
+// Types as values).
+func uncovered(written []Type) []Type {
+	var keep []Type
+	for i, m := range written {
+		covered := false
+		for j, a := range written {
+			if j != i && isAlias(a) && covers(a, m) && (j < i || !isAlias(m) || !covers(m, a)) {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			keep = append(keep, m)
+		}
+	}
+	return keep
+}
+
+// covers reports whether every member of m is a member of a, both expanded.
+func covers(a, m Type) bool {
+	ea, okA := ExpandOK(a)
+	em, okM := ExpandOK(m)
+	if !okA || !okM {
+		return false
+	}
+	for _, x := range unionMembers(em) {
+		found := false
+		for _, y := range unionMembers(ea) {
+			if Equal(x, y) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func unionMembers(t Type) []Type {
+	if u, ok := t.(Union); ok {
+		return u.Members
+	}
+	return []Type{t}
+}
+
 func isAlias(t Type) bool {
 	n, ok := t.(Named)
 	return ok && n.Decl.Kind == AliasDecl && n.Decl.Body != nil
@@ -643,7 +692,7 @@ func (w *writer) write(t Type, depth int) {
 	case Union:
 		members := x.Members
 		if x.Written != nil {
-			members = x.Written
+			members = uncovered(x.Written)
 		}
 		for i, m := range members {
 			if i > 0 {
