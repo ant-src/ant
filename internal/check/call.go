@@ -27,7 +27,7 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 		c.notePath(x.Fn, sc)
 		switch ent.kind {
 		case entFunc:
-			s := c.sigOf(ent, x.Pos)
+			s := c.sigOf(ent, ast.Start(x))
 			if s == nil {
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
@@ -53,11 +53,11 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 				c.info.recordCall(x, &CallInfo{Fn: constructorType(ent.decl), Callee: c.info.object(ent), Slots: positional(x)})
 				return c.construct(ent.decl, x, sc, expected)
 			}
-			c.errorf(x.Pos, "%s is a type, not a function", ent.decl.Name)
+			c.errorIn(x, "%s is a type, not a function", ent.decl.Name)
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
 		case entModule, entNamespace:
-			c.errorf(x.Pos, "%s is a namespace, not a function", ent.name)
+			c.errorIn(x, "%s is a namespace, not a function", ent.name)
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
 		case entMissing:
@@ -100,7 +100,7 @@ func (c *Checker) callValue(fn types.Type, x *ast.Call, sc *scope) types.Type {
 	ft, ok := types.Expand(fn).(types.Func)
 	if !ok {
 		if !types.IsInvalid(fn) {
-			c.errorf(x.Pos, "%s is not a function and cannot be called", types.String(fn))
+			c.errorIn(x, "%s is not a function and cannot be called", types.String(fn))
 		}
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
@@ -114,7 +114,7 @@ func (c *Checker) callValue(fn types.Type, x *ast.Call, sc *scope) types.Type {
 		}
 	}
 	if len(x.Args) < ft.Required || len(x.Args) > len(ft.Params) {
-		c.errorf(x.Pos, "%s takes %s, got %d", types.String(fn), countParams(ft), len(x.Args))
+		c.errorIn(x, "%s takes %s, got %d", types.String(fn), countParams(ft), len(x.Args))
 		c.synthArgs(x.Args, sc)
 		return ft.Return
 	}
@@ -158,7 +158,7 @@ func plural(n int, noun string) string {
 // construct checks a named primitive type's constructor call.
 func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope, expected types.Type) types.Type {
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorf(x.Pos, "the constructor %s takes exactly one positional argument", decl.Name)
+		c.errorIn(x, "the constructor %s takes exactly one positional argument", decl.Name)
 		c.synthArgs(x.Args, sc)
 	} else {
 		c.check(x.Args[0].Value, sc, types.Prim{Kind: decl.Base})
@@ -176,7 +176,7 @@ func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope, expected t
 	}
 	var args []types.Type
 	for _, p := range decl.Params {
-		c.errorf(x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
+		c.errorIn(x, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
 		args = append(args, types.Invalid{})
 	}
 	return types.Named{Decl: decl, Args: args}
@@ -188,7 +188,7 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 	result := types.Prim{Kind: ent.conversion}
 	name := types.String(result) // int for int64, byte for uint8, as everywhere (section 4)
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorf(x.Pos, "%s takes exactly one positional argument", name)
+		c.errorIn(x, "%s takes exactly one positional argument", name)
 		c.synthArgs(x.Args, sc)
 		return result
 	}
@@ -204,14 +204,14 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 	switch {
 	case ent.conversion == value.KindString || ent.conversion == value.KindBool:
 		if !ok || p.Kind != ent.conversion {
-			c.errorf(x.Pos, "%s converts only a %s or a named primitive type over %s, got %s", name, ent.conversion, ent.conversion, types.String(t))
+			c.errorIn(x, "%s converts only a %s or a named primitive type over %s, got %s", name, ent.conversion, ent.conversion, types.String(t))
 		}
 	default:
 		if !ok || !p.Kind.IsNumber() {
 			if pp, isParam := types.Expand(base).(types.Param); isParam && pp.Decl.Bound != nil && c.operandOK(base, false) {
 				return result
 			}
-			c.errorf(x.Pos, "%s converts a number or a named primitive type over a number, got %s", name, types.String(t))
+			c.errorIn(x, "%s converts a number or a named primitive type over a number, got %s", name, types.String(t))
 		}
 	}
 	return result
@@ -220,13 +220,13 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 // length checks len: one positional argument that has a size (section 11, Prelude).
 func (c *Checker) length(x *ast.Call, sc *scope) types.Type {
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorf(x.Pos, "len takes exactly one positional argument")
+		c.errorIn(x, "len takes exactly one positional argument")
 		c.synthArgs(x.Args, sc)
 		return types.IntType
 	}
 	t := c.synth(x.Args[0].Value, sc)
 	if !c.sized(t) {
-		c.errorf(x.Pos, "len needs an array, a map, a set, a string, Bytes, or a channel, got %s", types.String(t))
+		c.errorIn(x, "len needs an array, a map, a set, a string, Bytes, or a channel, got %s", types.String(t))
 	}
 	return types.IntType
 }
@@ -289,7 +289,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.synth(recv.expr, sc)
 		}
 		c.synthArgs(x.Args, sc)
-		return c.resultOf(s, nil, x.Pos)
+		return c.resultOf(s, nil, x)
 	}
 	if len(s.tparams) == 0 {
 		if recv != nil && !recv.untyped() {
@@ -455,11 +455,11 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, p := range s.tparams {
 		if _, done := subst[p]; !done {
 			if !misfit {
-				c.errorf(x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, s.fullName())
+				c.errorIn(x, "cannot infer the type parameter %s of %s; annotate the result", p.Name, s.fullName())
 			} else if !misfitSaid {
 				// Only the expected type could solve p, and the result does not fit it: an
 				// annotation would not help, so name the two types, once.
-				c.errorf(x.Pos, "cannot use %s where %s is expected: it returns %s", s.fullName(), types.String(expected), types.String(s.fn.Return))
+				c.errorIn(x, "cannot use %s where %s is expected: it returns %s", s.fullName(), types.String(expected), types.String(s.fn.Return))
 				misfitSaid = true
 			}
 			subst[p] = types.Invalid{}
@@ -468,7 +468,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	if len(soft) > 0 && !mismatch {
 		c.argsOverExpected(s, subst, soft, synthesized, checked)
 	}
-	c.checkBounds(s, subst, x.Pos)
+	c.checkBounds(s, subst, x)
 	// An argument synthesized while its parameter's type was open is checked against the
 	// solved type.
 	for _, pe := range synthesized {
@@ -482,7 +482,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.errorIn(pe.at, "cannot use %s where %s is expected", n[0], n[1])
 		}
 	}
-	return c.resultOf(s, subst, x.Pos)
+	return c.resultOf(s, subst, x)
 }
 
 // pendingArg is an argument typed before its parameter's type was settled: the argument at
@@ -648,7 +648,7 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 	}
 	for i := first; i < len(slots); i++ {
 		if slots[i] == nil && !(i < len(s.defaults) && s.defaults[i]) {
-			c.errorf(x.Pos, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
+			c.errorIn(x, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
 			ok = false
 		}
 	}
@@ -727,7 +727,7 @@ func anyParamMentions(ps []types.Type, set map[*types.ParamDecl]bool) bool {
 	return false
 }
 
-func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, pos ast.Pos) types.Type {
+func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, at ast.Expr) types.Type {
 	if s.fn.Return == nil {
 		return types.Invalid{}
 	}
@@ -750,7 +750,7 @@ func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, pos as
 	}
 	t, err := types.Subst(s.fn.Return, subst)
 	if err != nil {
-		c.errorf(pos, "the result of %s: %s", s.fullName(), err)
+		c.errorIn(at, "the result of %s: %s", s.fullName(), err)
 		return types.Invalid{}
 	}
 	return t
@@ -759,7 +759,7 @@ func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, pos as
 // checkBounds checks each solution against its bound: assignable to it, and when the bound is
 // a union, one member of it rather than a union. A bound may name the call's type parameters,
 // its own included, and is read with their solutions in place (section 4, Generics).
-func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, pos ast.Pos) {
+func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, at ast.Expr) {
 	for _, p := range s.tparams {
 		if p.Bound == nil {
 			continue
@@ -772,7 +772,7 @@ func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, pos
 		if !ok || boundFits(p, t, subst, s.tparams) {
 			continue
 		}
-		c.errorf(pos, "%s would be %s, which is not %s its bound %s%s", p.Name, types.String(t), boundRelation(t, bound), types.String(bound), c.boundHint(p, t, subst, s.tparams))
+		c.errorIn(at, "%s would be %s, which is not %s its bound %s%s", p.Name, types.String(t), boundRelation(t, bound), types.String(bound), c.boundHint(p, t, subst, s.tparams))
 	}
 }
 
@@ -1409,7 +1409,7 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 			return nil
 		}
 	}
-	c.checkBounds(s, argSubst, e.Position())
+	c.checkBounds(s, argSubst, e)
 	inst, err := types.Subst(s.fn, argSubst)
 	if err != nil {
 		return nil

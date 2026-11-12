@@ -104,7 +104,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		}
 		u, err := types.MakeUnion(results)
 		if err != nil {
-			c.errorf(x.Pos, "the results of %s through %s do not form a valid type: %s; narrow first or give the whole an expected type", f.Name, types.String(recv), err)
+			c.errorIn(x, "the results of %s through %s do not form a valid type: %s; narrow first or give the whole an expected type", f.Name, types.String(recv), err)
 			return types.Invalid{}
 		}
 		return u
@@ -356,7 +356,7 @@ func (c *Checker) kindNamespace(e ast.Expr, sc *scope) *entity {
 		return c.prelude["Map"]
 	case *ast.Call:
 		if ent := c.entityPath(x.Fn, sc); ent != nil && ent.kind == entFunc {
-			if s := c.sigOf(ent, x.Pos); s != nil {
+			if s := c.sigOf(ent, ast.Start(x)); s != nil {
 				return c.namespaceOf(s.fn.Return)
 			}
 		}

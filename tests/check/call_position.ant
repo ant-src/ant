@@ -1,0 +1,25 @@
+// spec: 6 Calling
+// An error about a call as a whole is reported where the call starts, the column its underline
+// starts at: its callee, or for a pipe a | f(...), its left side a.
+type Box = { s: string }
+
+func g(): string { "a" }
+func h(): int { 1 }
+func k(x: int): int { x }
+let n = 1
+
+func claim(r: Result[int, Error]): Result[string, Error] {
+  if r is Ok { return Result.ok("a") }
+  return r | Result.map({ "b" }) // ERR: @10 cannot infer the type parameter T of Result.map; annotate the result$
+}
+
+func ok(): Result[int, Error] {
+  Ok(g().length()) // ERR: @3 Ok is a type, not a function$
+}
+
+println(n(2))           // ERR: @9 int is not a function and cannot be called$
+println(Box("a"))       // ERR: @9 Box is a type, not a function$
+let b: string = h()     // ERR: @17 cannot use int where string is expected$
+let c: string = 1 | k() // ERR: @17 cannot use int where string is expected$
+
+// error: 13: @25 the lambda's parameter type T is not fixed yet
