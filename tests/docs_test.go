@@ -298,6 +298,9 @@ func valueBelow(inputs []caseInput) bool {
 	return ok
 }
 
+// duration is a time as ant test prints it after a test and after the run.
+var duration = regexp.MustCompile(`\(\d+\.\d\ds\)`)
+
 var ownPanic = regexp.MustCompile(`^\s*//\s*panic:`)
 
 // attachPanics makes a // panic: on a line of its own the value of the expression above it, in a
@@ -738,7 +741,9 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		bad("ant %s exits with %d, not %d:\n%s%s", strings.Join(args, " "), status, want, stdout.String(), errText)
 	}
 	// One trailing line break does not count, so output that does not end a line can be shown.
-	if b.output != nil && strings.TrimSuffix(stdout.String(), "\n") != strings.TrimSuffix(b.output.src, "\n") {
+	// Nor do the digits of a duration such as (0.00s), which ant test prints and the host decides.
+	shape := func(s string) string { return duration.ReplaceAllString(strings.TrimSuffix(s, "\n"), "(s)") }
+	if b.output != nil && shape(stdout.String()) != shape(b.output.src) {
 		bad("the output differs from the text block at line %d:\n--- got\n%s--- want\n%s", b.output.line, stdout.String(), b.output.src)
 	}
 	return problems

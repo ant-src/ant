@@ -229,6 +229,9 @@ written before any block runs, in one directory per page. A named `.ant` file, a
 is checked with `ant check`; it runs only with `test: cmd`, such as `test: cmd ant test .` on a test
 file. A named block of another kind, such as `data.json`, is only written.
 
+A duration in the output, such as `(0.00s)` from `ant test`, matches any duration: the host decides
+its digits.
+
 ### Failing examples
 
 An example that does not compile, or that panics, says so where the reader looks: in a comment on
