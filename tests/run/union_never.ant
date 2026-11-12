@@ -1,0 +1,20 @@
+// spec: 4 Unions
+// "never has no values, so a union drops it: never | null is null, and a union of only never is
+// never. This holds after substitution too, so Reflect.nullable(type(never)) is type(null)."
+println(type(never | null))
+println(type(int | never))
+println(type(never | never))
+println(type(never | null) == type(null))
+println(Reflect.nullable(type(never)))
+println(Reflect.nullable(type(never)) == type(null))
+let x: never | null = null
+println(x)
+
+// expect
+// out: null
+// out: int
+// out: never
+// out: true
+// out: null
+// out: true
+// out: null
