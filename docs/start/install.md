@@ -6,20 +6,15 @@
 curl https://ant-lang.org/install.sh | sh
 ```
 
-The script downloads `ant` into `/usr/local/bin`, use `ANT_VERSION=vX.Y.Z` for version, and `ANT_INSTALL_DIR`
-picks another directory.
+The script downloads `ant` into `/usr/local/bin`.
 
-Or build it from source instead:
+Or build it from source:
 
 ```sh
 go install github.com/ant-src/ant/cmd/ant@latest
 ```
 
-`ant version` prints the release you have.
-
 ## Run a program
-
-`ant check` type-checks a file with its imports, and `ant run` runs it:
 
 ```sh
 ant check main.ant
@@ -33,4 +28,14 @@ beside them, and `ant doc` prints the documentation of a name:
 ant fmt .
 ant test .
 ant doc Array.map
+```
+
+## Shell completion
+
+Complete commands, flags, and files in the shell:
+
+```sh
+source <(ant --comp zsh)   # in ~/.zshrc, after compinit
+source <(ant --comp bash)  # in ~/.bashrc
+ant --comp fish | source   # in ~/.config/fish/config.fish
 ```
