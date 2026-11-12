@@ -30,7 +30,7 @@ Start a command in the background with [Cmd.start](../start.md), and wait for it
 [Cmd.wait](../wait.md):
 
 ```ant
-let process: Cmd.Process = try Cmd.start(Cmd.new("sh", ["-c", "echo working; exit 3"]))
+let process: Cmd.Process = try Cmd.start(Cmd.new("sh", ["-c", "sleep 0.1; echo working; exit 3"]))
 println("started")
 println(Cmd.wait(process))
 ```
