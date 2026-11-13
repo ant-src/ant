@@ -605,7 +605,7 @@ func (g *Goroutine) namespaceOf(recv value.Value) value.Value {
 		return prelude["Map"]
 	case *value.Set:
 		return prelude["Set"]
-	case value.Bytes:
+	case *value.Bytes:
 		return prelude["Bytes"]
 	case *value.Html:
 		return prelude["Html"]
@@ -645,15 +645,16 @@ func (g *Goroutine) index(recv, idx value.Value, pos ast.Pos) value.Value {
 			return value.Null
 		}
 		return v
-	case value.Bytes:
+	case *value.Bytes:
 		i, ok := idx.(int64)
 		if !ok {
 			g.panicf(pos, "an index of Bytes must be an int, got %s", value.Describe(idx))
 		}
-		if i < 0 || i >= int64(len(x)) {
-			g.panicf(pos, "index %d out of range for Bytes of length %d", i, len(x))
+		c, ok := x.Get(int(i))
+		if !ok {
+			g.panicf(pos, "index %d out of range for Bytes of length %d", i, x.Len())
 		}
-		return x[i]
+		return c
 	}
 	g.panicf(pos, "%s is not an array, a map, or Bytes, so it cannot be indexed", value.Describe(recv))
 	return nil
@@ -1191,8 +1192,18 @@ func (g *Goroutine) setIndex(recv, idx, v value.Value, pos ast.Pos) {
 		}
 	case *value.Map:
 		x.Set(idx, v)
-	case value.Bytes:
-		g.panicf(pos, "Bytes is immutable, so a byte cannot be assigned")
+	case *value.Bytes:
+		i, ok := idx.(int64)
+		if !ok {
+			g.panicf(pos, "an index of Bytes must be an int, got %s", value.Describe(idx))
+		}
+		c, ok := v.(uint8)
+		if !ok {
+			g.panicf(pos, "a byte of Bytes must be a byte, got %s", value.Describe(v))
+		}
+		if !x.Set(int(i), c) {
+			g.panicf(pos, "index %d out of range for Bytes of length %d", i, x.Len())
+		}
 	default:
 		g.panicf(pos, "%s is not an array or a map, so it cannot be indexed", value.Describe(recv))
 	}
@@ -1438,9 +1449,10 @@ func each(v value.Value, visit func(value.Value) bool) bool {
 			}
 			cursor = seq
 		}
-	case value.Bytes:
-		for i := 0; i < len(x); i++ {
-			if !visit(x[i]) {
+	case *value.Bytes:
+		for i := 0; ; i++ {
+			c, ok := x.Get(i)
+			if !ok || !visit(c) {
 				break
 			}
 		}

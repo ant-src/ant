@@ -226,10 +226,10 @@ func (s *server) variable(v item, frame interp.StackFrame) map[string]any {
 			m["variablesReference"] = ref()
 			m["indexedVariables"] = x.Len()
 		}
-	case value.Bytes:
-		if len(x) > 0 {
+	case *value.Bytes:
+		if x.Len() > 0 {
 			m["variablesReference"] = ref()
-			m["indexedVariables"] = len(x)
+			m["indexedVariables"] = x.Len()
 		}
 	case *value.Map:
 		if x.Len() > 0 {
@@ -286,8 +286,9 @@ func children(v value.Value, start, count int) []item {
 				return nil
 			}
 		})
-	case value.Bytes:
-		page(len(x), func(i int) value.Value { return x[i] }, nil)
+	case *value.Bytes:
+		v := x.Snapshot()
+		page(len(v), func(i int) value.Value { return v[i] }, nil)
 	case *value.Set:
 		var members []value.Value
 		var cursor uint64

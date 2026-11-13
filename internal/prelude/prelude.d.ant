@@ -731,26 +731,68 @@ func String.from[T](value: T): string
 // normalization, case mapping, and the class tests follow, such as "17.0.0".
 let String.unicodeVersion: string
 
-// Bytes is an immutable sequence of bytes, for binary data. It compares by contents with ==, so it
-// serves as a map key; b[i] reads one byte and for x in b yields each.
+// Bytes is a mutable, growable sequence of bytes, for binary data, shared by reference as an array
+// is. It compares by contents with ==; b[i] reads one byte, b[i] = x writes one, and for x in b
+// yields each.
 type Bytes
+
+// Bytes.BigEndian is the byte order with the most significant byte first, as network formats use.
+type Bytes.BigEndian = {}
+
+// Bytes.LittleEndian is the byte order with the least significant byte first.
+type Bytes.LittleEndian = {}
+
+// Bytes.Order is the byte order of a multi-byte number in [Bytes.read], [Bytes.write] and
+// [Bytes.append].
+type Bytes.Order = Bytes.BigEndian | Bytes.LittleEndian
+
+// Bytes.new returns size zero bytes. It panics if size < 0 or is above 2^31 − 1.
+func Bytes.new(size: int = 0): Bytes
+
+// Bytes.clone returns a copy of b.
+func Bytes.clone(b: Bytes): Bytes
+
+// Bytes.same reports whether a and b are one collection.
+func Bytes.same(a: Bytes, b: Bytes): bool
 
 // Bytes.length returns the number of bytes in b.
 func Bytes.length(b: Bytes): int
 
-// Bytes.slice returns the bytes of b from index from up to but excluding index to. It panics if
-// from > to, or if either is outside 0 ..= Bytes.length(b).
+// Bytes.push appends x to b.
+func Bytes.push(b: Bytes, x: byte): void
+
+// Bytes.extend appends the bytes src holds at the call to b.
+func Bytes.extend(b: Bytes, src: Bytes): void
+
+// Bytes.pop removes and returns the last byte of b, or returns null when b is empty.
+func Bytes.pop(b: Bytes): byte | null
+
+// Bytes.truncate keeps the first n bytes of b. It panics if n is outside 0 ..= Bytes.length(b).
+func Bytes.truncate(b: Bytes, n: int): void
+
+// Bytes.fill sets the bytes of b from index from up to but excluding index to, the length when
+// null, to x. It panics as Bytes.slice does.
+func Bytes.fill(b: Bytes, x: byte, from: int = 0, to: int | null = null): void
+
+// Bytes.copy overwrites the bytes of dst from index at with those of src from index from up to but
+// excluding index to, the length of src when null, as if src were read first. It never grows dst,
+// and panics before writing unless 0 <= at <= Bytes.length(dst) and the range fits.
+func Bytes.copy(dst: Bytes, at: int, src: Bytes, from: int = 0, to: int | null = null): void
+
+// Bytes.slice returns a copy of the bytes of b from index from up to but excluding index to. It
+// panics if from > to, or if either is outside 0 ..= Bytes.length(b).
 func Bytes.slice(b: Bytes, from: int, to: int): Bytes
 
-// Bytes.concat returns the byte sequences in parts joined in order.
+// Bytes.concat returns the byte sequences in parts joined in order, in a new collection.
 func Bytes.concat(parts: Array[Bytes]): Bytes
 
-// Bytes.indexOf returns the index of the first occurrence of sub in b, or null when it does not
-// occur. It returns 0 for an empty sub.
-func Bytes.indexOf(b: Bytes, sub: Bytes): int | null
+// Bytes.indexOf returns the index of the first occurrence of sub in b at or after from, or null
+// when it does not occur. It panics if from is outside 0 ..= Bytes.length(b).
+func Bytes.indexOf(b: Bytes, sub: Bytes, from: int = 0): int | null
 
-// Bytes.startsWith reports whether b begins with prefix.
-func Bytes.startsWith(b: Bytes, prefix: Bytes): bool
+// Bytes.startsWith reports whether prefix occurs in b at index at. It panics if at is outside
+// 0 ..= Bytes.length(b).
+func Bytes.startsWith(b: Bytes, prefix: Bytes, at: int = 0): bool
 
 // Bytes.endsWith reports whether b ends with suffix.
 func Bytes.endsWith(b: Bytes, suffix: Bytes): bool
@@ -763,6 +805,22 @@ func Bytes.fromArray[T: Integer](xs: Array[T]): Bytes
 
 // Bytes.toArray returns the bytes of b as an array.
 func Bytes.toArray(b: Bytes): Array[byte]
+
+// Bytes.read returns the number of type t stored in b at index at in the given order. It panics
+// unless the number's bytes are within 0 ..= Bytes.length(b).
+//
+//     b.read(type(uint32), 0, Bytes.BigEndian{})
+func Bytes.read[T: Number](b: Bytes, t: Reflect.Type[T], at: int, order: Bytes.Order): T
+
+// Bytes.write overwrites the bytes of b at index at with x in the given order. It never grows b,
+// and panics unless the number's bytes are within 0 ..= Bytes.length(b).
+func Bytes.write[T: Number](b: Bytes, t: Reflect.Type[T], at: int, x: T, order: Bytes.Order): void
+
+// Bytes.append appends x to b in the given order.
+func Bytes.append[T: Number](b: Bytes, t: Reflect.Type[T], x: T, order: Bytes.Order): void
+
+// Bytes.sizeOf returns the number of bytes a number of type t takes: 1, 2, 4 or 8.
+func Bytes.sizeOf[T: Number](t: Reflect.Type[T]): int
 
 // Html is the value of an HTML expression, <p>{name}</p>: an immutable list of nodes, each an
 // element, a text node, or raw markup from [Html.unsafe]. It compares by its nodes with ==, and

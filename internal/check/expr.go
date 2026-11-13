@@ -1881,10 +1881,12 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 			c.check(t.Index, sc, r.Key)
 			return r.Val, true
 		}
-		c.synth(t.Index, sc)
 		if c.isBytes(recv) {
-			c.errorf(t.Pos, "Bytes is immutable, so a byte cannot be assigned; build an Array[byte] and convert it with Bytes.fromArray")
-		} else if !types.IsInvalid(recv) {
+			c.check(t.Index, sc, types.IntType)
+			return types.Prim{Kind: value.KindUint8}, false
+		}
+		c.synth(t.Index, sc)
+		if !types.IsInvalid(recv) {
 			c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
 		}
 	}

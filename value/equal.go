@@ -20,10 +20,13 @@ var equalSets = sync.Pool{New: func() any { return map[pair]bool{} }}
 func equal(a, b Value, visiting map[pair]bool) bool {
 	switch x := a.(type) {
 	case int64, int8, int16, int32, uint8, uint16, uint32, uint64, float64, float32, string, bool,
-		nullType, voidType, *Tag, Bytes:
+		nullType, voidType, *Tag:
 		// Interface comparison checks the dynamic type first, so float32 never equals float64,
 		// and it compares floats by value, so NaN is unequal to itself and -0.0 equals 0.0.
 		return a == b
+	case *Bytes:
+		y, ok := b.(*Bytes)
+		return ok && (x == y || string(x.View()) == string(y.View()))
 	case *Tagged:
 		y, ok := b.(*Tagged)
 		return ok && x.Tag == y.Tag && equal(x.Payload, y.Payload, visiting)
@@ -178,8 +181,8 @@ func hashInto(h *maphash.Hash, v Value, depth int) {
 		writeUint(h, uint64(math.Float32bits(x)))
 	case string:
 		h.WriteString(x)
-	case Bytes:
-		h.WriteString(string(x))
+	case *Bytes:
+		h.Write(x.View())
 	case *Html:
 		hashHtml(h, x, depth)
 	case bool:

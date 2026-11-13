@@ -207,7 +207,7 @@ func KindOf(v Value) Kind {
 		return KindTime
 	case *Regex:
 		return KindRegex
-	case Bytes:
+	case *Bytes:
 		return KindBytes
 	case *Html:
 		return KindHtml

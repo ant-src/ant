@@ -311,7 +311,7 @@ func init() {
 				x := reflectedArg(g, who, a[0]).Value
 				y := reflectedArg(g, who, a[1]).Value
 				switch x.(type) {
-				case *value.Record, *value.Array, *value.Map, *value.Set:
+				case *value.Record, *value.Array, *value.Map, *value.Set, *value.Bytes:
 					return x == y
 				}
 				return value.Equal(x, y)

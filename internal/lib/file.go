@@ -272,7 +272,7 @@ func (h *Handle) readChunk(max int) value.Value {
 		n := min(max, len(h.pending))
 		out := h.pending[:n]
 		h.pending = h.pending[n:]
-		return value.Ok(value.Bytes(out))
+		return value.Ok(bytesValue([]byte(out)))
 	}
 	if n := h.r.Buffered(); n > 0 {
 		buf := make([]byte, min(max, n))
@@ -286,7 +286,7 @@ func (h *Handle) readChunk(max int) value.Value {
 		n, err := h.r.Read(h.scratch[:min(max, cap(h.scratch))])
 		switch {
 		case n > 0:
-			return value.Ok(value.Bytes(h.scratch[:n]))
+			return value.Ok(value.CopyBytes(h.scratch[:n])) // the scratch is reused
 		case err == io.EOF:
 			return value.Ok(value.Null)
 		case err != nil:
@@ -307,7 +307,7 @@ func (h *Handle) readExactly(n int) value.Value {
 	if len(h.pending) >= n {
 		out := h.pending[:n]
 		h.pending = h.pending[n:]
-		return value.Ok(value.Bytes(out))
+		return value.Ok(bytesValue([]byte(out)))
 	}
 	buf := []byte(h.pending)
 	h.pending = ""
@@ -600,7 +600,7 @@ func init() {
 			}),
 			fn("File.writeChunk", "f, bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])
-				return h.write(string(bytesArg(g, who, a[1])))
+				return h.write(string(bytesArg(g, who, a[1]).View()))
 			}),
 			fn("File.writeLine", "f, line", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				h := handleArg(g, who, a[0])

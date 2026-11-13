@@ -509,7 +509,7 @@ const bytesNoJSON = "Bytes has no JSON form; write Encoding.toBase64 of it"
 // a function, void, a type, or a reference such as a channel, a Random or a File.Handle.
 func noJSON(v value.Value) string {
 	switch x := v.(type) {
-	case value.Bytes:
+	case *value.Bytes:
 		return bytesNoJSON
 	case *value.Html:
 		return "Html has no JSON form; write String.from of it"

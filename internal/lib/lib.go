@@ -126,8 +126,8 @@ func Prelude() map[string]value.Value {
 				return int64(x.Len())
 			case string:
 				return int64(utf8.RuneCountInString(x))
-			case value.Bytes:
-				return int64(len(x))
+			case *value.Bytes:
+				return int64(x.Len())
 			case *value.Chan:
 				return int64(x.Len())
 			}

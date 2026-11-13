@@ -453,17 +453,17 @@ func init() {
 				return value.NewArray(out)
 			}),
 			fn("String.toBytes", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return value.Bytes(stringArg(g, who, a[0]))
+				return bytesValue([]byte(stringArg(g, who, a[0])))
 			}),
 			fn("String.fromBytes", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				b := bytesArg(g, who, a[0])
-				if !utf8.ValidString(string(b)) {
+				s := string(bytesArg(g, who, a[0]).View()) // the copy is what is validated
+				if !utf8.ValidString(s) {
 					return value.Null
 				}
-				return string(b)
+				return s
 			}),
 			fn("String.fromBytesLossy", "bytes", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return value.Text(string(bytesArg(g, who, a[0])))
+				return value.Text(string(bytesArg(g, who, a[0]).View()))
 			}),
 			fn("String.codePoint", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return int64(oneCodePoint(g, who, a[0]))
