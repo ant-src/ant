@@ -30,9 +30,13 @@ var CmdTag = value.NewTag("Cmd", value.RecordTag, []string{"program", "args", "d
 // PipelineTag is Cmd.Pipeline: { cmds: Array[Cmd] }.
 var PipelineTag = value.NewTag("Cmd.Pipeline", value.RecordTag, []string{"cmds"})
 
-// OutputTag is Cmd.Output: { status: int, statuses: Array[int], stdout: string, stderr: string,
-// stdoutBytes: Bytes, stderrBytes: Bytes }, each output as text and as the children wrote it.
-var OutputTag = value.NewTag("Cmd.Output", value.RecordTag, []string{"status", "statuses", "stdout", "stderr", "stdoutBytes", "stderrBytes"})
+// OutputTag is Cmd.Output: { status: int, statuses: Array[int], stdout: string, stderr: string },
+// both outputs as text.
+var OutputTag = value.NewTag("Cmd.Output", value.RecordTag, []string{"status", "statuses", "stdout", "stderr"})
+
+// OutputBytesTag is Cmd.OutputBytes: { status: int, statuses: Array[int], stdout: Bytes,
+// stderr: string }, standard output as the last stage wrote it and standard error as text.
+var OutputBytesTag = value.NewTag("Cmd.OutputBytes", value.RecordTag, []string{"status", "statuses", "stdout", "stderr"})
 
 // PipeTag is Os.Pipe: { read: File.Handle, write: File.Handle }.
 var PipeTag = value.NewTag("Os.Pipe", value.RecordTag, []string{"read", "write"})
@@ -48,6 +52,7 @@ func init() {
 		withFuncs(CmdTag, cmdFuncs())
 		CmdTag.SetFunc("Pipeline", PipelineTag)
 		CmdTag.SetFunc("Output", OutputTag)
+		CmdTag.SetFunc("OutputBytes", OutputBytesTag)
 		CmdTag.SetFunc("Process", value.NewTag("Cmd.Process", value.SyncTag, nil))
 		return CmdTag
 	})
@@ -550,7 +555,7 @@ func (r handleReader) Read(b []byte) (int, error) {
 	return r.h.r.Read(b)
 }
 
-// capture runs a command for Cmd.read, Cmd.readBytes and Cmd.capture, arguments c, input and ctx:
+// capture runs a command for Cmd.read, Cmd.readBytes, Cmd.capture and Cmd.captureBytes, arguments c, input and ctx:
 // standard output and error captured, in the program's process group, the call blocking until
 // every stage is done. fail is the Err of a stage that could not start or of the end of ctx.
 func capture(g *interp.Goroutine, who string, a []value.Value) (p *Process, stdout, stderr []byte, fail value.Value) {
@@ -579,9 +584,20 @@ func capture(g *interp.Goroutine, who string, a []value.Value) (p *Process, stdo
 	return p, out.Bytes(), errOut.Bytes(), nil
 }
 
-// captureCmd is Cmd.capture: the status, each stage's, and both outputs, a nonzero status being
-// Ok.
+// captureCmd is Cmd.capture: the status, each stage's, and both outputs as text, a nonzero
+// status being Ok.
 func captureCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	return captured(g, who, a, OutputTag, func(b []byte) value.Value { return value.Text(string(b)) })
+}
+
+// captureBytesCmd is Cmd.captureBytes: as Cmd.capture, with standard output as Bytes.
+func captureBytesCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
+	return captured(g, who, a, OutputBytesTag, func(b []byte) value.Value { return bytesValue(b) })
+}
+
+// captured runs the capture for Cmd.capture and Cmd.captureBytes, making standard output with
+// out and standard error as text.
+func captured(g *interp.Goroutine, who string, a []value.Value, tag *value.Tag, out func([]byte) value.Value) value.Value {
 	p, stdout, stderr, fail := capture(g, who, a)
 	if fail != nil {
 		return fail
@@ -590,9 +606,7 @@ func captureCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	for i, s := range p.statuses {
 		statuses[i] = int64(s)
 	}
-	outText, outBytes := received(stdout)
-	errText, errBytes := received(stderr)
-	return value.Ok(value.NewRecord(OutputTag, []value.Value{int64(p.status), value.NewArray(statuses), outText, errText, outBytes, errBytes}))
+	return value.Ok(value.NewRecord(tag, []value.Value{int64(p.status), value.NewArray(statuses), out(stdout), value.Text(string(stderr))}))
 }
 
 // readCmd is Cmd.read: standard output as text without one final newline, and Err on a nonzero
@@ -610,8 +624,7 @@ func readCmd(g *interp.Goroutine, who string, a []value.Value) value.Value {
 	} else if bytes.HasSuffix(stdout, []byte("\n")) {
 		stdout = stdout[:len(stdout)-1]
 	}
-	text, _ := received(stdout)
-	return value.Ok(text)
+	return value.Ok(value.Text(string(stdout)))
 }
 
 // readBytesCmd is Cmd.readBytes: standard output as the last stage wrote it, and Err on a
@@ -871,6 +884,7 @@ func cmdFuncs() []*interp.Builtin {
 		fn("Cmd.read", "c, input?, ctx?", readCmd),
 		fn("Cmd.readBytes", "c, input?, ctx?", readBytesCmd),
 		fn("Cmd.capture", "c, input?, ctx?", captureCmd),
+		fn("Cmd.captureBytes", "c, input?, ctx?", captureBytesCmd),
 		fn("Cmd.start", "c, stdin?, stdout?, stderr?, ctx?", startCmd),
 		fn("Cmd.wait", "p, ctx?", waitCmd),
 		fn("Cmd.kill", "p, signal?", killCmd),

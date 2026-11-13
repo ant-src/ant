@@ -2084,24 +2084,24 @@ func Path.match(pattern: string, path: string, hidden: bool = false): Result[boo
 // Http holds an HTTP client and server. A request reads the whole response, and a server calls a
 // handler for each request on a goroutine of its own.
 
-// Http.Response is the response to a client request. Its body is there twice: as received in bytes,
-// and as text in body, with bytes that are not valid UTF-8 as U+FFFD. The headers hold one string
+// Http.Response is the response to a client request. Its body is held once, as received, in bytes;
+// [Http.text] decodes it. The headers hold one string
 // per name, a repeated header joined with ", ", in order of name, each name in canonical form, as
 // Go's CanonicalHeaderKey gives it: "content-type" is read as headers["Content-Type"].
-type Http.Response = { status: int, headers: Map[string, string], body: string, bytes: Bytes }
+type Http.Response = { status: int, headers: Map[string, string], bytes: Bytes }
 
 // Http.Reply is what an [Http.serve] handler returns to answer a request. body is sent as given, a
-// string as its UTF-8 and Bytes as they are, with the headers given plus Date and Content-Length
+// string as its UTF-8 and Bytes as they are, copied when the handler returns, with the headers given plus Date and Content-Length
 // from the body, which replaces one the handler gives; a 204 or 304 reply has no body and no
 // Content-Length. A status outside 200 to 599, or two header names that differ only in case,
 // panics.
 type Http.Reply = { status: int, headers: Map[string, string], body: string | Bytes }
 
 // Http.Request is a request that [Http.serve] passes to its handler. path is decoded, query is raw
-// for [Url.parseQuery], and remote is the client's "ip:port". The body is there twice, as in
+// for [Url.parseQuery], and remote is the client's "ip:port". The body is held once, in bytes, as in
 // [Http.Response], and the headers hold one string per name, Host first and the rest in order of
 // name, each name in canonical form.
-type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], body: string, bytes: Bytes, remote: string }
+type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], bytes: Bytes, remote: string }
 
 // Http.request sends one request with method, body, and headers to url and reads the whole
 // response. The client adds Host from url, unless headers give one, and Content-Length from body,
@@ -2133,6 +2133,14 @@ func Http.post(url: string, body: string | Bytes, headers: Map[string, string] =
 //     var l = try Net.listen(":8080")
 //     try Http.serve(l, { Http.Reply{ status: 200, headers: Map{}, body: "hi ${x.path}" } })
 func Http.serve(l: Net.Listener, handler: func(Http.Request): Http.Reply, ctx: Context | null = null): Result[void, Error]
+
+// Http.text returns the body of r decoded as UTF-8, with bytes that are not valid UTF-8 as U+FFFD,
+// as all text from outside is. It decodes on every call, so a program that needs the text twice
+// binds it once.
+//
+//     var r = try Http.get("https://example.com/data.json")
+//     var data = try Json.parse(r.text())
+func Http.text(r: Http.Response | Http.Request): string
 
 // Time
 //
@@ -2795,9 +2803,13 @@ type Cmd = { program: string, args: Array[string] = [], dir: string | null = nul
 type Cmd.Pipeline = { cmds: Array[Cmd] }
 
 // Cmd.Output is what [Cmd.capture] collects from a command that ran to its end. status is its
-// status, statuses each stage's own; each output is kept as bytes in stdoutBytes and stderrBytes
-// and as text in stdout and stderr. The stages' standard error interleaves as it arrived.
-type Cmd.Output = { status: int, statuses: Array[int], stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
+// status, statuses each stage's own, and stdout and stderr the outputs as text, with bytes that are
+// not valid UTF-8 as U+FFFD. The stages' standard error interleaves as it arrived.
+type Cmd.Output = { status: int, statuses: Array[int], stdout: string, stderr: string }
+
+// Cmd.OutputBytes is what [Cmd.captureBytes] collects: as [Cmd.Output], with standard output as the
+// last stage wrote it.
+type Cmd.OutputBytes = { status: int, statuses: Array[int], stdout: Bytes, stderr: string }
 
 // Cmd.Process is an opaque command started by [Cmd.start], waited for with [Cmd.wait].
 type Cmd.Process
@@ -2844,6 +2856,10 @@ func Cmd.readBytes(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Conte
 // status and outputs. A nonzero status is Ok; Err means a stage could not be started or run to its
 // end, and when ctx is done every stage is killed and the result is Err with ctx's reason.
 func Cmd.capture(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context | null = null): Result[Cmd.Output, Error]
+
+// Cmd.captureBytes is [Cmd.capture] that keeps standard output as the command wrote it, for a
+// command whose output is binary; standard error stays text.
+func Cmd.captureBytes(c: Cmd | Cmd.Pipeline, input: string | Bytes = "", ctx: Context | null = null): Result[Cmd.OutputBytes, Error]
 
 // Cmd.start starts c in the background, every stage in one process group of its own, and returns
 // once it is running. Its standard streams are the handles given, null being the null device;

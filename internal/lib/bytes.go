@@ -35,12 +35,6 @@ func textOrBytes(g *interp.Goroutine, who string, v value.Value) string {
 	return ""
 }
 
-// received is data that arrived from outside as text and as Bytes (stdlib.md, Http). The two no
-// longer share memory: the text is a copy, and the Bytes adopt b.
-func received(b []byte) (text, raw value.Value) {
-	return value.Text(string(b)), bytesValue(b)
-}
-
 func byteArg(g *interp.Goroutine, who string, v value.Value) byte {
 	return typedArg[uint8](g, who, "a byte", v)
 }

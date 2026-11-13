@@ -18,9 +18,9 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// ResponseTag is Http.Response: { status: int, headers: Map[string, string], body: string,
-// bytes: Bytes }, the body as text and as received.
-var ResponseTag = value.NewTag("Http.Response", value.RecordTag, []string{"status", "headers", "body", "bytes"})
+// ResponseTag is Http.Response: { status: int, headers: Map[string, string], bytes: Bytes }, the
+// body held once, as received; Http.text decodes it.
+var ResponseTag = value.NewTag("Http.Response", value.RecordTag, []string{"status", "headers", "bytes"})
 
 // ReplyTag is Http.Reply: what a handler of Http.serve returns, with a body that is a string or
 // Bytes.
@@ -178,8 +178,7 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 		return fail(err)
 	}
 	out := sortedHeaders(value.NewMap(), resp.Header)
-	text, raw := received(data)
-	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, text, raw}))
+	return value.Ok(value.NewRecord(ResponseTag, []value.Value{int64(resp.StatusCode), out, bytesValue(data)}))
 }
 
 // optionalBody is a body of Http.request, a string or Bytes, or none.
@@ -190,9 +189,9 @@ func optionalBody(g *interp.Goroutine, who string, v value.Value) string {
 	return textOrBytes(g, who, v)
 }
 
-// RequestTag is Http.Request: what a handler of Http.serve receives, the body as text and as
-// received.
-var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method", "path", "query", "headers", "body", "bytes", "remote"})
+// RequestTag is Http.Request: what a handler of Http.serve receives, the body held once, as
+// received; Http.text decodes it.
+var RequestTag = value.NewTag("Http.Request", value.RecordTag, []string{"method", "path", "query", "headers", "bytes", "remote"})
 
 // serve is Http.serve: an http.Server on the listener until ctx is done, then a shutdown that
 // waits up to five seconds for the requests in flight. Each request's handler runs on an Ant
@@ -239,11 +238,10 @@ func serveRequest(g *interp.Goroutine, handler value.Value, w http.ResponseWrite
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	text, raw := received(body)
 	headers := value.NewMap()
 	headers.Set("Host", value.Text(r.Host)) // which Go keeps apart from the other headers
 	sortedHeaders(headers, r.Header)
-	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, text, raw, r.RemoteAddr})
+	req := value.NewRecord(RequestTag, []value.Value{value.Text(r.Method), value.Text(r.URL.Path), value.Text(r.URL.RawQuery), headers, bytesValue(body), r.RemoteAddr})
 	type reply struct {
 		resp *value.Record
 		body string // the Reply's body, a string or Bytes, as the bytes to send
@@ -316,6 +314,16 @@ func init() {
 			}),
 			constant("Request", RequestTag),
 			constant("Reply", ReplyTag),
+			fn("Http.text", "r", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if r, ok := a[0].(*value.Record); ok && (r.Tag == ResponseTag || r.Tag == RequestTag) {
+					b, _ := r.Field("bytes")
+					if b, ok := b.(*value.Bytes); ok {
+						return value.Text(string(b.View()))
+					}
+				}
+				g.Panic("%s needs an Http.Response or an Http.Request, got %s", who, value.Describe(a[0]))
+				return nil
+			}),
 			fn("Http.serve", "l, handler, ctx?", serve),
 		)
 	})
