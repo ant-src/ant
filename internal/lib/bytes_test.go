@@ -28,7 +28,7 @@ func TestReadExactlyWithEOF(t *testing.T) {
 		data := bytes.Repeat([]byte{0xab}, n)
 		h := newHandle(nil, &eofWithData{data}, nil)
 		got := h.readExactly(n)
-		if r, ok := got.(*value.Record); !ok || r.Tag != value.OkTag || r.Get(0) != value.Bytes(data) {
+		if r, ok := got.(*value.Record); !ok || r.Tag != value.OkTag || !value.Equal(r.Get(0), value.CopyBytes(data)) {
 			t.Errorf("readExactly(%d) = %s", n, value.Render(got))
 		}
 		if again := h.readExactly(1); value.Render(again) != "Ok{ value: null }" {
@@ -58,8 +58,8 @@ func TestReadChunkAllocatesTheChunk(t *testing.T) {
 	runtime.ReadMemStats(&before)
 	for range 1000 {
 		r := h.readChunk(scratchCap).(*value.Record)
-		if b := r.Get(0).(value.Bytes); len(b) != 100 {
-			t.Fatalf("chunk of %d bytes", len(b))
+		if b := r.Get(0).(*value.Bytes); b.Len() != 100 {
+			t.Fatalf("chunk of %d bytes", b.Len())
 		}
 	}
 	runtime.ReadMemStats(&after)
@@ -72,15 +72,15 @@ func TestReadChunkAllocatesTheChunk(t *testing.T) {
 // holds no more memory than it needs.
 func TestBytesValueTrims(t *testing.T) {
 	full := make([]byte, 100, 110)
-	if b := bytesValue(full); len(b) != 100 || &view(b)[0] != &full[0] {
+	if b := bytesValue(full); b.Len() != 100 || &view(b)[0] != &full[0] {
 		t.Error("a nearly full array is shared")
 	}
 	loose := make([]byte, 100, 4096)
-	if b := bytesValue(loose); len(b) != 100 || &view(b)[0] == &loose[0] {
+	if b := bytesValue(loose); b.Len() != 100 || &view(b)[0] == &loose[0] {
 		t.Error("a mostly unused array is copied")
 	}
 	data, _ := io.ReadAll(io.LimitReader(drip{1000}, 3000))
-	if b := bytesValue(data); len(b) != 3000 {
-		t.Errorf("len %d", len(b))
+	if b := bytesValue(data); b.Len() != 3000 {
+		t.Errorf("len %d", b.Len())
 	}
 }

@@ -18,9 +18,15 @@ func bytesArg(g *interp.Goroutine, who string, v value.Value) *value.Bytes {
 // a hash, an encoder, a synchronous write (the ownership rule of section 11, Bytes).
 func view(b *value.Bytes) []byte { return b.View() }
 
-// bytesValue makes Bytes of b, adopting b's array. Pass only a slice nothing else holds, such as
-// what a read or a hash returned: what the library gives is the caller's.
-func bytesValue(b []byte) *value.Bytes { return value.NewBytes(b) }
+// bytesValue makes Bytes of b, adopting b's array when it is nearly full and copying when more than
+// an eighth of it would be held unused, as io.ReadAll and append leave it. Pass only a slice nothing
+// else holds, such as what a read or a hash returned: what the library gives is the caller's.
+func bytesValue(b []byte) *value.Bytes {
+	if cap(b)-len(b) > len(b)/8 {
+		return value.CopyBytes(b)
+	}
+	return value.NewBytes(b)
+}
 
 // textOrBytes reads a string | Bytes argument as the bytes to send: a string as its UTF-8, Bytes
 // copied, so that no goroutine of the runtime reads the program's bytes after the call returns.
@@ -152,6 +158,7 @@ func init() {
 		return namespace("Bytes",
 			constant("BigEndian", value.NewTag("Bytes.BigEndian", value.RecordTag, nil)),
 			constant("LittleEndian", value.NewTag("Bytes.LittleEndian", value.RecordTag, nil)),
+			constant("Order", value.NewTag("Bytes.Order", value.AliasTag, nil)),
 			fn("Bytes.new", "size?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				n := optOffset(g, who, a[0])
 				if n < 0 {

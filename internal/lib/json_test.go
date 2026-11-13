@@ -15,7 +15,7 @@ import (
 // which panics on the key without walking it.
 func TestStringifyDeep(t *testing.T) {
 	defer debug.SetMaxStack(debug.SetMaxStack(64 << 20))
-	var deep value.Value = value.Bytes("x")
+	var deep value.Value = value.CopyBytes([]byte("x"))
 	for i := 0; i < 300_000; i++ {
 		deep = value.NewArray([]value.Value{deep})
 	}

@@ -409,7 +409,7 @@ func TestHostBytesAreKept(t *testing.T) {
 		Signatures: "func Blob.raw(): Array[Bytes]\n",
 		Funcs: map[string]ant.HostFunc{
 			"raw": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
-				return value.NewArray([]value.Value{value.Bytes("\xff\xfe"), "\xff"}), nil
+				return value.NewArray([]value.Value{value.CopyBytes([]byte("\xff\xfe")), "\xff"}), nil
 			},
 		},
 	}
@@ -430,7 +430,7 @@ func size(b: Bytes): int { len(b) }
 	}
 	defer in.Close()
 	f, _ := in.Func("size")
-	if v, err := f.Call(value.Bytes("\xff\xfe\xfd")); err != nil || v != int64(3) {
+	if v, err := f.Call(value.CopyBytes([]byte("\xff\xfe\xfd"))); err != nil || v != int64(3) {
 		t.Errorf("size(Bytes) = %v, %v; want 3", v, err)
 	}
 }

@@ -27,7 +27,10 @@ type Runtime interface {
 // the order its signature lists them. An error it returns becomes an Ant panic with the
 // error's message; a nil result is void. Every string in the result that is not UTF-8 is
 // decoded as value.Text does, in place, since an Ant string holds only scalar values; binary
-// data travels as value.Bytes, which is kept as it is.
+// data travels as *value.Bytes, which is kept as it is. Bytes a host function returns are the
+// caller's, as the standard library's are: make them with value.CopyBytes, or with value.NewBytes
+// from a slice the host gives up. Bytes it receives it only reads during the call, or copies with
+// Snapshot.
 type HostFunc func(rt Runtime, args []value.Value) (value.Value, error)
 
 // Namespace is a set of host functions and types that Ant code reaches as Name.function, the
