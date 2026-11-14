@@ -119,6 +119,14 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
 		{[]string{"test", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
 		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", ""},
+		// -timeout is read as Time.parseDuration reads it: Go's notation or ISO 8601
+		{[]string{"test", "-timeout", "1h30m", ok}, 0, "ok    1 passed", ""},
+		{[]string{"test", "-timeout", "PT10M", ok}, 0, "ok    1 passed", ""},
+		{[]string{"test", "-timeout", "0", ok}, 0, "ok    1 passed", ""},
+		{[]string{"test", "-timeout", "1d", ok}, 2, "", `not a duration: "1d"`},
+		{[]string{"test", "-timeout", "P1M", ok}, 2, "", "a timeout cannot have years, months or weeks"},
+		{[]string{"test", "-timeout", "-5s", ok}, 2, "", "a timeout cannot be negative"},
+		{[]string{"test", "-h"}, 0, "", "(default 10m0s)"},
 		// a pattern as a code lens writes it: / in a name escaped, and repeats of a subtest
 		{[]string{"test", "-v", "-run", `^x\/y$/^c( #[0-9]+)?$`, slash}, 0, "--- PASS: " + slash + ": x/y/c #2", ""},
 		{[]string{"test", "-v", "-run", `[/]/c`, slash}, 0, "ok    2 passed", ""},
