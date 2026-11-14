@@ -680,6 +680,12 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 	if types.IsInvalid(recv) {
 		return types.Invalid{}
 	}
+	if p, ok := types.Expand(recv).(types.Param); ok && p.Decl.Bound != nil {
+		if _, isUnion := types.Expand(p.Decl.Bound).(types.Union); isUnion {
+			// T stands for one member of its bound, so a field every member has is readable
+			return c.fieldOf(p.Decl.Bound, name, pos, hint)
+		}
+	}
 	switch r := types.Expand(recv).(type) {
 	case types.Union:
 		var members []types.Type
@@ -1870,8 +1876,12 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 			return nil, false
 		}
 		recv := c.synth(t.X, sc)
-		if _, isUnion := types.Expand(recv).(types.Union); isUnion {
-			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(recv))
+		through := recv
+		if bp, ok := types.Expand(recv).(types.Param); ok && bp.Decl.Bound != nil {
+			through = bp.Decl.Bound // a T bounded by a union is assigned through as the union is
+		}
+		if _, isUnion := types.Expand(through).(types.Union); isUnion {
+			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(through))
 			return nil, false
 		}
 		return c.fieldOf(recv, t.Name, t.Pos, nil), false

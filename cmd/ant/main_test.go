@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -56,5 +58,39 @@ func TestRunCommand(t *testing.T) {
 				t.Errorf("stderr %q lacks %q", errOut.String(), c.err)
 			}
 		})
+	}
+}
+
+// TestHelpAfterCommand checks that -h or --help right after a command prints that command's
+// usage to standard output and exits 0, and that version takes no arguments.
+func TestHelpAfterCommand(t *testing.T) {
+	for _, c := range []struct{ args, want string }{
+		{"run --help", "usage: ant run <file.ant> [args...]"},
+		{"check -h", "usage: ant check <file.ant>"},
+		{"fmt --help", "usage: ant fmt"},
+		{"doc --help", "usage: ant doc"},
+		{"lsp -h", "usage: ant lsp"},
+	} {
+		var out, errOut strings.Builder
+		if status := run(strings.Fields(c.args), strings.NewReader(""), &out, &errOut); status != 0 || !strings.HasPrefix(out.String(), c.want) {
+			t.Errorf("ant %s: status %d, output %q, want %q", c.args, status, out.String(), c.want)
+		}
+	}
+	var out, errOut strings.Builder
+	if status := run([]string{"version", "x"}, strings.NewReader(""), &out, &errOut); status != 2 {
+		t.Errorf("ant version x: status %d, want 2", status)
+	}
+}
+
+// TestRunWithoutSuffix checks that ant runs an existing file whose name lacks .ant, as a #!
+// script installed without its suffix is.
+func TestRunWithoutSuffix(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "hello")
+	if err := os.WriteFile(path, []byte("#!/usr/bin/env ant\nprintln(Os.args())\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var out, errOut strings.Builder
+	if status := run([]string{path, "a"}, strings.NewReader(""), &out, &errOut); status != 0 || out.String() != "[\"a\"]\n" {
+		t.Errorf("status %d, output %q, errors %q", status, out.String(), errOut.String())
 	}
 }

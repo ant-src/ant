@@ -181,7 +181,7 @@ cases or a program.
 ### Cases
 
 An expression followed by a `//` comment is a case: the comment is the value the expression renders
-as, as the REPL shows it. A block with a case is a block of cases, like a notebook of inputs and
+as inside a container, so a string is quoted: `"ant".toUpper() // "ANT"`. A block with a case is a block of cases, like a notebook of inputs and
 outputs. The block is read as the REPL reads input, so a case may span lines; its comment goes at
 the end of its last line.
 
@@ -227,7 +227,8 @@ A block with a file name, ` ```ant [lib/geo.ant] `, is written into the page's d
 run, so other blocks of the page can import it. Every named block and `file` directive of a page is
 written before any block runs, in one directory per page. A named `.ant` file, a test file included,
 is checked with `ant check`; it runs only with `test: cmd`, such as `test: cmd ant test .` on a test
-file. A named block of another kind, such as `data.json`, is only written.
+file. A named block of another kind, such as ` ```csv [orders.csv] ` or ` ```ant [data.json] `, is
+only written.
 
 A duration in the output, such as `(0.00s)` from `ant test`, matches any duration: the host decides
 its digits.

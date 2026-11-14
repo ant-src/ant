@@ -53,9 +53,9 @@ for path in paths {
    ./lines.ant notes.txt
    ```
 
-4. To run it from any directory, copy it into a directory on your `PATH`, such as `~/bin`, and run
-   it as `lines.ant notes.txt`. Keep the `.ant` extension. `ant` runs only files named `*.ant`, so a
-   copy named `lines` fails with the `ant` usage message.
+4. To run it from any directory, copy it into a directory on your `PATH`, such as `~/bin`. It may
+   keep its `.ant` extension or drop it: `ant` runs any existing file, so a copy named `lines` runs
+   as `lines notes.txt`.
 
 The `#!` line makes the system run `ant ./lines.ant notes.txt`, which is
 `ant run ./lines.ant notes.txt`. So `ant` must be on your `PATH` too.

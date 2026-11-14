@@ -151,6 +151,11 @@ func parsePage(rel, src string) (docPageParts, []string) {
 					bad(pending[0].line, "test: %s comes before a %q block, not an ant block", pending[0].name, lang)
 					pending = nil
 				}
+				if strings.HasPrefix(info, "[") && strings.HasSuffix(info, "]") && lang != "text" {
+					// a named data block, ```csv [orders.csv], is only written for the page's programs
+					b.name = info[1 : len(info)-1]
+					parts.blocks = append(parts.blocks, b)
+				}
 				last = nil
 				continue
 			}

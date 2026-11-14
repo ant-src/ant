@@ -8,8 +8,9 @@
 ant check main.ant
 ```
 
-When the program has no errors, it exits with status 0. Otherwise it prints the errors and exits
-with a non-zero status.
+When the program has no errors, it prints nothing and exits with status 0. Otherwise it prints
+every error and their count and exits with status 1, or with 2 when the file cannot be loaded or
+the usage is wrong.
 
 ## What it checks
 

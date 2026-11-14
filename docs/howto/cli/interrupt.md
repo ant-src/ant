@@ -66,11 +66,12 @@ cleaned up
 [Context.wait](../../lib/Context/wait.md) blocks until the interrupt comes. Os.exit runs no deferred
 block, so finish the cleanup before you call it.
 
-## Stop a wait that takes no context
+## Stop a worker that waits on a channel
 
-[Channel.receive](../../lib/Channel/receive.md) takes no `ctx:`. To stop a worker that waits on a
-channel, wait in a `select` for either the next job or [Context.wait](../../lib/Context/wait.md) on
-the interrupt:
+To stop a worker that waits on a channel, wait in a `select` for either the next job or
+[Context.wait](../../lib/Context/wait.md) on the interrupt. A
+[Channel.receive](../../lib/Channel/receive.md) with `ctx:` gives up too, but it returns `null` for
+a close and for the interrupt alike, and the `select` tells them apart:
 
 <!-- test: before
 go {

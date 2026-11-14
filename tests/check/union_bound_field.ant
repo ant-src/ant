@@ -1,0 +1,18 @@
+// spec: 4 Generics
+// Through T bounded by a union, a field every member declares can be read, as through the union
+// itself; assigning it needs narrowing, as through the union.
+type Circle = { radius: float64, name: string }
+type Rect = { width: float64, name: string }
+type Shape = Circle | Rect
+
+func names[T: Shape](xs: Array[T]): Array[string] { xs.map({ x.name }) }
+
+func rename[T: Shape](s: T): void {
+  s.name = "x" // ERR: cannot assign a field through the union Shape
+}
+
+func radii[T: Shape](s: T): float64 {
+  s.radius // ERR: Shape has no field radius on every member
+}
+
+println(names([Circle{ radius: 1.0, name: "c" }]))

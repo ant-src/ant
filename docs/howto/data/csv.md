@@ -5,7 +5,7 @@
 This script reads a list of orders from `orders.csv`, adds up the amount of each customer, and
 writes the totals to `totals.csv`:
 
-```csv
+```csv [orders.csv]
 customer,amount
 Ann,30
 "Bob, Jr.",12
@@ -14,12 +14,6 @@ Ann,5
 
 Save it as `report.ant` next to `orders.csv` and run it with `ant run report.ant`:
 
-<!-- test: file orders.csv
-customer,amount
-Ann,30
-"Bob, Jr.",12
-Ann,5
--->
 <!-- test: cmd ant run report.ant -->
 
 ```ant [report.ant]

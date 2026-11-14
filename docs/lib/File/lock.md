@@ -168,19 +168,9 @@ first has the lock
 second has the lock
 ```
 
-Write the process id into the lock file for people to read. Whether the lock is held is what
-[File.tryLock](tryLock.md) answers, not what the file says:
-
-```ant
-let lock = try File.lock("server.lock")
-defer { lock.close() }
-try lock.writeLine("${Os.pid()}")
-println(try File.read("server.lock") == "${Os.pid()}\n")
-```
-
-```text
-true
-```
+Do not keep a process id in the lock file: the lock never truncates the file, so a shorter id
+leaves the tail of a longer one behind. Whether the lock is held is what
+[File.tryLock](tryLock.md) answers, not what the file holds.
 
 ## Properties and relations
 

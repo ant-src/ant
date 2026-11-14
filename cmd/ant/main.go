@@ -76,7 +76,8 @@ const usage = `usage:
   ant lsp
   ant dap
   ant --comp bash|zsh|fish
-  ant version
+  ant version | --version
+  ant help | -h | --help
   ant`
 
 func main() {
@@ -96,6 +97,13 @@ var endSignal os.Signal
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		return repl(stdin, stdout, stderr)
+	}
+	if len(args) > 1 && (args[1] == "-h" || args[1] == "--help") && args[0] != "test" {
+		if lines := commandUsage(args[0]); lines != "" {
+			// -h or --help right after a command prints its usage; ant test prints its flags too
+			fmt.Fprintln(stdout, lines)
+			return 0
+		}
 	}
 	switch args[0] {
 	case "run":
@@ -162,18 +170,39 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case "--comp":
 		return compCommand(args[1:], stdout, stderr)
 	case "version", "--version":
+		if len(args) > 1 {
+			fmt.Fprintln(stderr, commandUsage("version"))
+			return 2
+		}
 		fmt.Fprintln(stdout, "ant", antVersion())
 		return 0
 	case "help", "-h", "--help":
 		fmt.Fprintln(stdout, usage)
 		return 0
 	default:
-		if strings.HasSuffix(args[0], ".ant") {
+		// a script, also one installed without its .ant suffix and run through its #! line
+		if info, err := os.Stat(args[0]); strings.HasSuffix(args[0], ".ant") || err == nil && info.Mode().IsRegular() {
 			return run(append([]string{"run"}, args...), stdin, stdout, stderr)
 		}
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
+}
+
+// commandUsage is the usage line of one command, "usage: ant check <file.ant>", or "" for a name
+// that is no command.
+func commandUsage(name string) string {
+	var lines []string
+	for _, l := range strings.Split(usage, "\n")[1:] {
+		l = strings.TrimSpace(l)
+		if l == "ant "+name || strings.HasPrefix(l, "ant "+name+" ") {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) == 0 {
+		return ""
+	}
+	return "usage: " + strings.Join(lines, "\n       ")
 }
 
 func repl(stdin io.Reader, stdout, stderr io.Writer) int {
