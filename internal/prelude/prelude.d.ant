@@ -2553,7 +2553,7 @@ func Time.with[T: Time.Wall](t: T, year: int | null = null, month: int | null = 
 // and wraps around the clock. It panics if t is an Instant and d has years, months, weeks or days.
 //
 //     Time.plainDate(2024, 1, 31) | Time.add(Time.duration(months: 1))   // 2024-02-29
-//     Time.plainTime(23, 30) | Time.add(Time.duration(hours: 2))         // 01:30:00
+//     Time.plainTime(23, 30) | Time.add(2h)                              // 01:30:00
 func Time.add[T: Time.Point](t: T, d: Time.Duration): T
 
 // Time.subtract returns t moved back by d, which is Time.add(t, Time.negate(d)). It panics as
@@ -2600,7 +2600,7 @@ func Time.compare[T: Time.Point](a: T, b: T): int
 
 // Time.part returns the field of d for unit, as given and not balanced.
 //
-//     Time.part(Time.duration(minutes: 90), Time.Hour{})   // 0
+//     Time.part(90m, Time.Hour{})   // 0
 func Time.part(d: Time.Duration, unit: Time.Unit): int
 
 // Time.sign returns -1, 0 or 1 as d is negative, zero or positive.
@@ -2615,8 +2615,8 @@ func Time.abs(d: Time.Duration): Time.Duration
 // Time.addDuration returns the sum of a and b, with days as 24 hours, balanced up to the larger of
 // their largest units. It panics if either has years, months or weeks.
 //
-//     Time.addDuration(Time.duration(minutes: 90), Time.duration(minutes: 30))   // PT120M
-//     Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25))         // P2DT1H
+//     Time.addDuration(90m, 30m)                      // PT120M
+//     Time.addDuration(Time.duration(days: 1), 25h)   // P2DT1H
 func Time.addDuration(a: Time.Duration, b: Time.Duration): Time.Duration
 
 // Time.compareDuration returns -1, 0 or 1 as a is shorter than, as long as or longer than b, by
@@ -2628,7 +2628,7 @@ func Time.addDuration(a: Time.Duration, b: Time.Duration): Time.Duration
 //     let month = Time.duration(months: 1)
 //     let feb = Time.plainDate(2026, 2, 1)
 //     Time.compareDuration(month, Time.duration(days: 30), relativeTo: feb)   // -1
-//     Time.compareDuration(Time.duration(hours: -2), Time.duration(minutes: 30))   // -1
+//     Time.compareDuration(Time.negate(2h), 30m)   // -1
 func Time.compareDuration(a: Time.Duration, b: Time.Duration, relativeTo: Time.Dated | null = null): int
 
 // Time.total returns the length of d in unit, with a fraction: PT1H30M in hours is 1.5. Years,
@@ -2649,8 +2649,8 @@ func Time.total(d: Time.Duration, unit: Time.Unit, relativeTo: Time.Dated | null
 // below 1, on years, months or weeks without relativeTo, and on an increment that breaks those
 // rules.
 //
-//     Time.roundDuration(Time.duration(minutes: 90), largestUnit: Time.Hour{})   // PT1H30M
-//     Time.roundDuration(Time.duration(hours: 1, minutes: 29), smallestUnit: Time.Hour{})   // PT1H
+//     Time.roundDuration(90m, largestUnit: Time.Hour{})      // PT1H30M
+//     Time.roundDuration(1h29m, smallestUnit: Time.Hour{})   // PT1H
 func Time.roundDuration(d: Time.Duration, smallestUnit: Time.Unit | null = null, largestUnit: Time.Unit | null = null, increment: int = 1, mode: Time.RoundingMode = Time.HalfExpand{}, relativeTo: Time.Dated | null = null): Time.Duration
 
 // Net

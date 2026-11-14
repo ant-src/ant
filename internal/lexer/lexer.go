@@ -609,6 +609,10 @@ func (l *lexer) number() {
 	case isLetter(c) && base == 10:
 		l.duration(pos, start)
 		return
+	case strings.IndexByte("hmsun", c) >= 0 && !(base == 16 && isHex(c)):
+		l.fail(pos, "malformed duration literal: a duration is decimal, as 1s")
+	case c == '_':
+		l.fail(l.here(), "malformed number literal: _ goes between digits")
 	case isIdentChar(c):
 		l.fail(l.here(), "malformed number literal")
 	case base == 10 && (l.has("µ") || l.has("μ")):

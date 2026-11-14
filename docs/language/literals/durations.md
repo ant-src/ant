@@ -294,7 +294,7 @@ unit is an error rather than a name:
 - The number is decimal, with no prefix:
 
   ```ant
-  let wait = 0x1s // error: malformed number literal
+  let wait = 0x1s // error: malformed duration literal: a duration is decimal, as 1s
   ```
 
 - The value is not a whole number of nanoseconds:

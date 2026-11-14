@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 1_s
+
+// expect
+// exit: 2
+// err: _ goes between digits
