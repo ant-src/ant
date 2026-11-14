@@ -13,7 +13,7 @@ println(b["0"])       // ERR: cannot use string where int is expected
 for x in b { println(takesByte(x)) }
 b[0] = byte(1)
 b[0] += byte(1)
-b[0] = 1       // ERR: cannot use int where byte is expected
+b[0] = 1         // ERR: cannot use int where byte is expected
 b["0"] = byte(1) // ERR: cannot use string where int is expected
 var sizes: Array[int] = Array.map([b], len)
 var body: string | Bytes = b
