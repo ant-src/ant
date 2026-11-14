@@ -51,3 +51,15 @@ func uses(): void {
   println(required(b: 2) + ordered())
   var lit = func(a: int = b, b: int = 2): int { a } // ERR: b is a parameter whose default has not run yet
 }
+
+// A positional argument left out shifts the rest: the checker names the parameter the arguments
+// skip over, or lists the parameters when they line up with none.
+func three(a: int, s: string, flag: bool): void {}
+
+func shifted() {
+  three("x", true)                                 // ERR: three needs an argument for a
+  three(1, "x")                                    // ERR: three needs an argument for flag
+  three(true)                                      // ERR: three takes 3 arguments, got 1; the parameters are a: int, s: string, flag: bool
+  three(s: "x", flag: true)                        // ERR: three needs an argument for a
+  Bytes.new().append(uint16(1), Bytes.BigEndian{}) // ERR: Bytes.append needs an argument for t
+}

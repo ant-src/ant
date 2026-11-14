@@ -5,6 +5,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/types"
@@ -74,16 +75,18 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 	return c.endLink(x, x.Grouped, c.callValue(fn, x, sc), short)
 }
 
-func (c *Checker) synthArgs(args []ast.Arg, sc *scope) {
-	for _, a := range args {
+func (c *Checker) synthArgs(args []ast.Arg, sc *scope) []types.Type {
+	out := make([]types.Type, len(args))
+	for i, a := range args {
 		// The call failed, so a lambda has no parameter type to take; that is the call's error,
 		// and the lambda's body is checked on its own.
 		if lam, ok := a.Value.(*ast.Lambda); ok {
 			c.lambdaBodyAnyway(lam, sc)
 			continue
 		}
-		c.synth(a.Value, sc)
+		out[i] = c.synth(a.Value, sc)
 	}
+	return out
 }
 
 // positional maps each argument of a call to the parameter of its position.
@@ -278,7 +281,7 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 // Inference) and matching positional and named arguments to its parameters. A call through a
 // dot passes its receiver, typed already, as the first argument (section 5, Calls through .).
 func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object, recv *receiver) types.Type {
-	slots, ok := c.argSlots(s, x, recv)
+	slots, ok, short := c.argSlots(s, x, recv)
 	c.recordSlots(s, x, slots, ok, callee, recv != nil)
 	if ok && recv.untyped() {
 		// checked as the first argument of the direct call
@@ -288,7 +291,10 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		if recv.untyped() {
 			c.synth(recv.expr, sc)
 		}
-		c.synthArgs(x.Args, sc)
+		got := c.synthArgs(x.Args, sc)
+		if short {
+			c.missingArg(s, x, recv != nil, got)
+		}
 		return c.resultOf(s, nil, x)
 	}
 	if len(s.tparams) == 0 {
@@ -584,10 +590,12 @@ func argSlotsLoosely(s *sig, x *ast.Call, recv bool) []int {
 
 // argSlots matches a call's positional and named arguments to the function's parameters, one
 // slot per parameter and nil where a default applies. It reports an extra, unknown, repeated
-// or missing argument, and then the second result is false. A receiver fills the first
+// or missing argument, and then the second result is false. A call of positional arguments only
+// that leaves a parameter without one is not reported here but marked short, for missingArg to
+// report once the arguments' types are known. A receiver fills the first
 // parameter, which the slots leave nil, and makes a call through an interface, a type
 // parameter or a union of several namespaces positional (section 5, Calls through .).
-func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, bool) {
+func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, bool, bool) {
 	n := len(s.fn.Params)
 	slots := make([]*ast.Arg, n)
 	ok := true
@@ -648,15 +656,86 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 		slots[idx] = a
 	}
 	if !ok {
-		return nil, false
+		return nil, false, false
+	}
+	named := false
+	for _, a := range x.Args {
+		named = named || a.Name != ""
 	}
 	for i := first; i < len(slots); i++ {
 		if slots[i] == nil && !(i < len(s.defaults) && s.defaults[i]) {
+			if !named {
+				return slots, false, true
+			}
 			c.errorIn(x, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
 			ok = false
 		}
 	}
-	return slots, ok
+	return slots, ok, false
+}
+
+// missingArg reports a call of positional arguments only that leaves a required parameter without
+// one. One left out early shifts the rest, so the parameter left over at the end is often not the
+// one forgotten: got, the arguments' types, decide which to name. When they fit the parameters in
+// order, the first required parameter past them is missing; when they fit with one parameter
+// skipped, that one; otherwise the message lists the parameters.
+func (c *Checker) missingArg(s *sig, x *ast.Call, recv bool, got []types.Type) {
+	first := 0
+	if recv {
+		first = 1
+	}
+	params, names := s.fn.Params[first:], s.fn.Names[first:]
+	required := func(j int) bool { return !(first+j < len(s.defaults) && s.defaults[first+j]) }
+	tparams := map[*types.ParamDecl]bool{}
+	for _, p := range s.tparams {
+		tparams[p] = true
+	}
+	fits := func(skip int) bool {
+		subst := map[*types.ParamDecl]types.Type{}
+		for i, t := range got {
+			j := i
+			if skip >= 0 && i >= skip {
+				j++
+			}
+			if j >= len(params) {
+				return false
+			}
+			if t == nil || types.IsInvalid(t) {
+				continue // a lambda, or an argument whose own error is reported
+			}
+			if types.Mentions(params[j], tparams) {
+				if !c.unify(params[j], t, subst) {
+					return false
+				}
+			} else if !types.Assignable(t, params[j]) {
+				return false
+			}
+		}
+		return true
+	}
+	if fits(-1) {
+		for j := len(got); j < len(params); j++ {
+			if required(j) {
+				c.errorIn(x, "%s needs an argument for %s", s.fullName(), names[j])
+				return
+			}
+		}
+	}
+	for k := 0; k < len(got) && k < len(params); k++ {
+		if required(k) && fits(k) {
+			c.errorIn(x, "%s needs an argument for %s", s.fullName(), names[k])
+			return
+		}
+	}
+	var parts []string
+	for j := range params {
+		parts = append(parts, names[j]+": "+types.String(params[j]))
+	}
+	after := ""
+	if recv {
+		after = " after the receiver"
+	}
+	c.errorIn(x, "%s takes %s%s, got %d; the parameters are %s", s.fullName(), s.arity(first), after, len(got), strings.Join(parts, ", "))
 }
 
 // lambdaArg checks a lambda argument against its parameter's type pt, once the other arguments
@@ -1456,10 +1535,13 @@ func (c *Checker) recordSlots(s *sig, x *ast.Call, slots []*ast.Arg, ok bool, ca
 // is false, and after the call the flow where it is true, as after if !cond { panic(...) }
 // (section 7, Narrowing).
 func (c *Checker) assertCall(s *sig, x *ast.Call, sc *scope, callee *Object) types.Type {
-	slots, ok := c.argSlots(s, x, nil)
+	slots, ok, short := c.argSlots(s, x, nil)
 	c.recordSlots(s, x, slots, ok, callee, false)
 	if !ok {
-		c.synthArgs(x.Args, sc)
+		got := c.synthArgs(x.Args, sc)
+		if short {
+			c.missingArg(s, x, false, got)
+		}
 		return types.Void{}
 	}
 	whenTrue, whenFalse := c.cond(slots[0].Value, sc)
