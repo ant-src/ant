@@ -25,13 +25,13 @@ their largest units. It panics if either has years, months or weeks.
 Add two durations in the same unit. The sum stays in that unit:
 
 ```ant
-Time.addDuration(Time.duration(minutes: 90), Time.duration(minutes: 30)) // PT120M
+Time.addDuration(90m, 30m) // PT120M
 ```
 
 A sum with days carries 24 hours into a day:
 
 ```ant
-Time.addDuration(Time.duration(days: 1), Time.duration(hours: 25)) // P2DT1H
+Time.addDuration(Time.duration(days: 1), 25h) // P2DT1H
 ```
 
 ## Scope
@@ -40,41 +40,41 @@ The largest unit of either input sets how far the sum balances. Minutes carry in
 input has hours, and seconds carry into minutes when one has minutes:
 
 ```ant
-Time.addDuration(Time.duration(hours: 1, minutes: 30), Time.duration(minutes: 45)) // PT2H15M
-Time.addDuration(Time.duration(minutes: 1), Time.duration(seconds: 90))            // PT2M30S
-Time.addDuration(Time.duration(seconds: 59), Time.duration(milliseconds: 1500))    // PT60.5S
+Time.addDuration(1h30m, 45m)  // PT2H15M
+Time.addDuration(1m, 90s)     // PT2M30S
+Time.addDuration(59s, 1500ms) // PT60.5S
 ```
 
 Hours never become days on their own. Only an input with days makes 24 hours a day:
 
 ```ant
-Time.addDuration(Time.duration(hours: 24), Time.duration(hours: 1)) // PT25H
-Time.addDuration(Time.duration(days: 1), Time.duration(hours: 1))   // P1DT1H
+Time.addDuration(24h, 1h)                    // PT25H
+Time.addDuration(Time.duration(days: 1), 1h) // P1DT1H
 ```
 
 A negative duration subtracts. The result takes the sign of the longer input. In the last line the
 day becomes 24 hours before the subtraction, so no day is left in the result:
 
 ```ant
-Time.addDuration(Time.duration(hours: 1), Time.duration(minutes: -30))     // PT30M
-Time.addDuration(Time.duration(hours: 1), Time.duration(minutes: -90))     // -PT30M
-Time.addDuration(Time.duration(seconds: -30), Time.duration(seconds: -45)) // -PT75S
-Time.addDuration(Time.duration(days: 1), Time.duration(hours: -1))         // PT23H
+Time.addDuration(1h, Time.negate(30m))                    // PT30M
+Time.addDuration(1h, Time.negate(90m))                    // -PT30M
+Time.addDuration(Time.negate(30s), Time.negate(45s))      // -PT75S
+Time.addDuration(Time.duration(days: 1), Time.negate(1h)) // PT23H
 ```
 
 Adding the zero duration, `Time.duration()`, keeps the length of the other input and balances it:
 
 ```ant
-Time.addDuration(Time.duration(minutes: 25), Time.duration())           // PT25M
-Time.addDuration(Time.duration(hours: 1, minutes: 90), Time.duration()) // PT2H30M
+Time.addDuration(25m, Time.duration())   // PT25M
+Time.addDuration(1h90m, Time.duration()) // PT2H30M
 ```
 
 Call it through `.`, in a pipe, or with named arguments:
 
 ```ant
-Time.duration(minutes: 90).addDuration(Time.duration(minutes: 30))          // PT120M
-Time.duration(hours: 1) | Time.addDuration(Time.duration(minutes: 15))      // PT1H15M
-Time.addDuration(b: Time.duration(minutes: 15), a: Time.duration(hours: 1)) // PT1H15M
+90m.addDuration(30m)            // PT120M
+1h | Time.addDuration(15m)      // PT1H15M
+Time.addDuration(b: 15m, a: 1h) // PT1H15M
 ```
 
 ## Applications
@@ -83,11 +83,7 @@ Total an array of durations with `reduce`, starting from the zero duration. The 
 hours, since no input has days:
 
 ```ant
-let shifts = [
-  Time.duration(hours: 7, minutes: 30),
-  Time.duration(hours: 8),
-  Time.duration(hours: 6, minutes: 45),
-]
+let shifts = [7h30m, 8h, 6h45m]
 shifts.reduce(Time.duration(), Time.addDuration) // PT22H15M
 ```
 
@@ -96,9 +92,9 @@ Find when a meeting ends from the length of its agenda items:
 ```ant
 type Item = { topic: string, length: Time.Duration }
 let agenda = [
-  Item{ topic: "Status", length: Time.duration(minutes: 15) },
-  Item{ topic: "Design review", length: Time.duration(minutes: 50) },
-  Item{ topic: "Planning", length: Time.duration(minutes: 25) },
+  Item{ topic: "Status", length: 15m },
+  Item{ topic: "Design review", length: 50m },
+  Item{ topic: "Planning", length: 25m },
 ]
 let total = agenda.map({ x.length }).reduce(Time.duration(), Time.addDuration)
 total                            // PT90M
@@ -108,8 +104,8 @@ Time.plainTime(9, 30).add(total) // 11:00:00
 There is no subtraction of durations. Add the negation to find how much time is left:
 
 ```ant
-let budget = Time.duration(hours: 2)
-let spent = Time.duration(minutes: 75)
+let budget = 2h
+let spent = 75m
 budget.addDuration(spent.negate()) // PT45M
 ```
 
@@ -118,23 +114,23 @@ budget.addDuration(spent.negate()) // PT45M
 The order of the inputs does not matter:
 
 ```ant
-let a = Time.duration(hours: 1, minutes: 20)
-let b = Time.duration(minutes: 55)
+let a = 1h20m
+let b = 55m
 assert(Time.addDuration(a, b) == Time.addDuration(b, a))
 ```
 
 A duration plus its negation is zero:
 
 ```ant
-let d = Time.duration(minutes: 90)
+let d = 90m
 assert(Time.addDuration(d, Time.negate(d)).sign() == 0)
 ```
 
 The sum is as long as the inputs together, in any unit:
 
 ```ant
-let a = Time.duration(minutes: 50)
-let b = Time.duration(minutes: 25)
+let a = 50m
+let b = 25m
 let sum = Time.addDuration(a, b)
 assert(sum.total(Time.Hour{}) == a.total(Time.Hour{}) + b.total(Time.Hour{}))
 ```
@@ -155,10 +151,10 @@ Compare lengths with [`Time.compareDuration`](compareDuration.md), or balance th
 [`Time.roundDuration`](roundDuration.md):
 
 ```ant
-let sum = Time.addDuration(Time.duration(minutes: 90), Time.duration(minutes: 30))
-sum == Time.duration(hours: 2)                     // false
-Time.compareDuration(sum, Time.duration(hours: 2)) // 0
-sum.roundDuration(largestUnit: Time.Hour{})        // PT2H
+let sum = Time.addDuration(90m, 30m)
+sum == 2h                                   // false
+Time.compareDuration(sum, 2h)               // 0
+sum.roundDuration(largestUnit: Time.Hour{}) // PT2H
 ```
 
 ## See also

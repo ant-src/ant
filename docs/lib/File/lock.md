@@ -106,7 +106,7 @@ Err{ error: Error{ message: "open .: is a directory" } }
 ```ant
 let held = try File.lock("slow.lock")
 defer { held.close() }
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(File.lock("slow.lock", ctx: ctx))
 ```
 
@@ -134,7 +134,7 @@ Let one run of a job do its work at a time, and give up after a while instead of
 
 ```ant
 func runExclusive[T](name: string, work: func(): T): Result[T, Error] {
-  let ctx = Context.new(timeout: Time.duration(seconds: 5))
+  let ctx = Context.new(timeout: 5s)
   let lock = try (File.lock("${name}.lock", ctx: ctx) | Result.wrapErr("lock ${name}"))
   defer { lock.close() }
   Result.ok(work())
@@ -157,7 +157,7 @@ go {
   defer { second.close() }
   Channel.send(done, "second has the lock")
 }
-Time.sleep(Time.duration(milliseconds: 50))
+Time.sleep(50ms)
 println("first has the lock")
 try first.close()
 println(Channel.receive(done))
@@ -223,7 +223,7 @@ for itself. Give it a context, or use [File.tryLock](tryLock.md):
 ```ant
 let outer = try File.lock("twice.lock")
 defer { outer.close() }
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(File.lock("twice.lock", ctx: ctx))
 ```
 

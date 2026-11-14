@@ -53,7 +53,7 @@ Name the type of the body with a header:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -83,7 +83,7 @@ The body is a string or `Bytes`. An empty string sends an empty body, which `/ra
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -118,7 +118,7 @@ while `text()` has U+FFFD where the text is not valid:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -148,7 +148,7 @@ A status that reports a failure is still `Ok`:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -178,7 +178,7 @@ A redirect comes back as it is, and the program decides whether to follow it:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -210,7 +210,7 @@ Two names that differ only in case name one header, so the call is `Err` and sen
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -238,7 +238,7 @@ is `Err` with the message `timeout`:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -254,7 +254,7 @@ go { Http.serve(listener, echo) }
 -->
 
 ```ant
-println(Http.post("${url}/slow", "x", timeout: Time.duration(milliseconds: 100)))
+println(Http.post("${url}/slow", "x", timeout: 100ms))
 ```
 
 ```text
@@ -266,7 +266,7 @@ bound across several calls:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -282,7 +282,7 @@ go { Http.serve(listener, echo) }
 -->
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 println(Http.post("${url}/slow", "first", ctx: ctx))
 println(Http.post(url, "second", ctx: ctx))
 ```
@@ -296,7 +296,7 @@ When both are given, the earlier bound wins:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -312,8 +312,8 @@ go { Http.serve(listener, echo) }
 -->
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(seconds: 10))
-println(Http.post("${url}/slow", "x", timeout: Time.duration(milliseconds: 100), ctx: ctx))
+let ctx = Context.new(timeout: 10s)
+println(Http.post("${url}/slow", "x", timeout: 100ms, ctx: ctx))
 ```
 
 ```text
@@ -324,7 +324,7 @@ A context cancelled by the program gives the reason `cancelled`:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -355,7 +355,7 @@ Send a record as JSON and read the JSON reply:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -389,7 +389,7 @@ Post a form, encoded with [Url.stringifyQuery](../Url/stringifyQuery.md):
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -419,7 +419,7 @@ Turn a failing status into an `Err`, and name the call in every error with
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -458,7 +458,7 @@ Err{ error: Error{ message: "create call Bob: status 404" } }
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -484,7 +484,7 @@ When the response is UTF-8, `text()` is its `bytes` as text:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -511,7 +511,7 @@ weeks, which have no fixed length:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -527,7 +527,7 @@ go { Http.serve(listener, echo) }
 -->
 
 ```ant
-println(Http.post("http://127.0.0.1:1/", "x", timeout: Time.duration(seconds: 0)))
+println(Http.post("http://127.0.0.1:1/", "x", timeout: 0s))
 println(Http.post("http://127.0.0.1:1/", "x", timeout: Time.duration(weeks: 1)))
 ```
 
@@ -541,7 +541,7 @@ the body:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
@@ -570,7 +570,7 @@ A malformed URL is `Err`:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 2)) }
+  if req.path == "/slow" { Time.sleep(2s) }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no such note" } }
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }

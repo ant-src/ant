@@ -26,12 +26,12 @@ Wait for a reply, but no longer than a timeout:
 ```ant
 let replies: Channel[string] = Channel.new()
 go {
-  Time.sleep(Time.duration(seconds: 1))
+  Time.sleep(1s)
   replies.send("pong")
 }
 select {
   let reply = Channel.receive(replies) { println("got ${reply}") }
-  Time.sleep(Time.duration(milliseconds: 20)) { println("timed out") }
+  Time.sleep(20ms) { println("timed out") }
 }
 ```
 
@@ -134,7 +134,7 @@ for n in [1, 2, 3] {
 }
 select {
   WaitGroup.wait(wg) { println("all ${squares.length()} done") }
-  Time.sleep(Time.duration(seconds: 5)) { println("too slow") }
+  Time.sleep(5s) { println("too slow") }
 }
 ```
 
@@ -172,7 +172,7 @@ let lines: Channel[string] = Channel.new(capacity: 1)
 lines.send("hello")
 let event: Line | Closed | Timeout = select {
   let line = Channel.receive(lines) { if line == null { Closed{} } else { Line{ text: line } } }
-  Time.sleep(Time.duration(seconds: 1)) { Timeout{} }
+  Time.sleep(1s) { Timeout{} }
 }
 println(event)
 ```

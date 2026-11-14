@@ -152,7 +152,7 @@ is `Err`, and the part it had read stays for the next read:
 let pipe = try Os.openPipe()
 defer { pipe.read.close() }
 try pipe.write.writeText("par")
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(pipe.read.readLine(ctx: ctx))
 try pipe.write.writeLine("tial")
 try pipe.write.close()

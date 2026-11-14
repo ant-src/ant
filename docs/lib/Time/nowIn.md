@@ -184,7 +184,7 @@ measuring, not two `Time.nowIn` readings:
 
 ```ant
 func work() {
-  Time.sleep(Time.duration(milliseconds: 20))
+  Time.sleep(20ms)
 }
 
 let start = Time.monotonic()

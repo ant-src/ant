@@ -29,7 +29,7 @@ Receive three ticks, ten milliseconds apart, then stop the ticker:
 
 ```ant
 let ctx = Context.new()
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
+let ticks = Time.ticker(10ms, ctx)
 for i in Iter.range(1, 4) {
   ticks.receive()
   println("tick ${i}")
@@ -48,7 +48,7 @@ Each tick is the instant it was sent:
 <!-- test: check-only the instants change from run to run -->
 
 ```ant
-let ticks = Time.ticker(Time.duration(seconds: 1))
+let ticks = Time.ticker(1s)
 println(ticks.receive())
 ```
 
@@ -59,8 +59,8 @@ It waits a second and prints an instant such as `2026-11-11T21:27:08.050436Z`.
 Read ticks with `Channel.values`. The loop ends when its context is done, or here when it breaks:
 
 ```ant
-let ctx = Context.new(Time.duration(seconds: 1))
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
+let ctx = Context.new(1s)
+let ticks = Time.ticker(10ms, ctx)
 var polls = 0
 for at in ticks.values(ctx) {
   polls += 1
@@ -83,7 +83,7 @@ let jobs = ["parse", "check", "build", "test"]
 let results: Channel[string] = Channel.new()
 go {
   for job in jobs {
-    Time.sleep(Time.duration(milliseconds: 20))
+    Time.sleep(20ms)
     results.send(job)
   }
   results.close()
@@ -91,7 +91,7 @@ go {
 
 let ctx = Context.new()
 defer { ctx.cancel() }
-let ticks = Time.ticker(Time.duration(milliseconds: 30), ctx)
+let ticks = Time.ticker(30ms, ctx)
 var done = 0
 while true {
   select {
@@ -116,8 +116,8 @@ done, and drops the tick it held:
 
 ```ant
 let ctx = Context.new()
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
-Time.sleep(Time.duration(milliseconds: 50))
+let ticks = Time.ticker(10ms, ctx)
+Time.sleep(50ms)
 println(ticks.length())
 ctx.cancel()
 println(ticks.length())
@@ -135,7 +135,7 @@ Limit a loop to one step per tick, such as one request every 20 milliseconds:
 ```ant
 let ctx = Context.new()
 defer { ctx.cancel() }
-let ticks = Time.ticker(Time.duration(milliseconds: 20), ctx)
+let ticks = Time.ticker(20ms, ctx)
 for page in ["/", "/docs", "/blog"] {
   ticks.receive()
   println("fetch ${page}")
@@ -154,7 +154,7 @@ Poll a condition on every tick until it holds or a timeout passes:
 func waitFor(ready: func(): bool, timeout: Time.Duration): bool {
   let ctx = Context.new(timeout)
   defer { ctx.cancel() }
-  let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
+  let ticks = Time.ticker(10ms, ctx)
   while !ready() {
     select {
       Context.wait(ctx) { return false }
@@ -165,8 +165,8 @@ func waitFor(ready: func(): bool, timeout: Time.Duration): bool {
 }
 
 let start = Time.monotonic()
-println(waitFor({ Time.monotonic() - start > 30 }, Time.duration(seconds: 1)))
-println(waitFor({ false }, Time.duration(milliseconds: 50)))
+println(waitFor({ Time.monotonic() - start > 30 }, 1s))
+println(waitFor({ false }, 50ms))
 ```
 
 ```text
@@ -179,7 +179,7 @@ false
 The first tick comes no sooner than `d` after the call, and each tick is later than the one before:
 
 ```ant
-let d = Time.duration(milliseconds: 20)
+let d = 20ms
 let start = Time.now()
 let ticks = Time.ticker(d)
 let first = ticks.receive() ?? start
@@ -192,8 +192,8 @@ A reader slower than the beat finds one tick waiting, not one for every period i
 
 ```ant
 let ctx = Context.new()
-let ticks = Time.ticker(Time.duration(milliseconds: 5), ctx)
-Time.sleep(Time.duration(milliseconds: 50))
+let ticks = Time.ticker(5ms, ctx)
+Time.sleep(50ms)
 assert(ticks.length() == 1)
 ctx.cancel()
 ```
@@ -203,7 +203,7 @@ ctx.cancel()
 The period must be above zero:
 
 ```ant
-let ticks = Time.ticker(Time.duration(seconds: 0))
+let ticks = Time.ticker(0s)
 // panic: Time.ticker needs a period above zero, got PT0S
 ```
 
@@ -218,7 +218,7 @@ let ticks = Time.ticker(Time.duration(weeks: 1))
 The channel only receives, so sending on it panics:
 
 ```ant
-let ticks = Time.ticker(Time.duration(seconds: 1))
+let ticks = Time.ticker(1s)
 let sent = ticks.send(Time.now()) // panic: Channel.send: a ticker's channel only receives
 ```
 
@@ -229,9 +229,9 @@ context, which makes it return `null`:
 
 ```ant
 let ctx = Context.new()
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
+let ticks = Time.ticker(10ms, ctx)
 ctx.cancel()
-let tick = ticks.receive(Context.new(Time.duration(milliseconds: 50)))
+let tick = ticks.receive(Context.new(50ms))
 println(tick)
 ```
 

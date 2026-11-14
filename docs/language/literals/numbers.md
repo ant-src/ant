@@ -7,9 +7,11 @@ An integer literal such as `42`, `0xFF`, or `1_000` is an `int`. A float literal
 
 ## Details
 
-- An integer literal is always an `int` and a float literal is always a `float64`. There are no
-  suffixes: write `1.0` for a float, and call a conversion such as `byte(255)` or `float32(1.5)` for
-  any other numeric type.
+- An integer literal is always an `int` and a float literal is always a `float64`. No suffix picks a
+  numeric type: write `1.0` for a float, and call a conversion such as `byte(255)` or `float32(1.5)`
+  for any other numeric type. The only letters that can follow a number are the duration units `h`,
+  `m`, `s`, `ms`, `us` and `ns`, and `2h30m` is then a [duration literal](durations.md) of type
+  `Time.Duration`, not a number.
 - A float literal has digits on both sides of the point, an exponent, or both. `.5` and `1.` are
   errors.
 - `_` may stand between two digits only, to group them.
@@ -81,6 +83,12 @@ A minus sign is the negation operator applied to a literal:
 -5      // -5
 -2.5e-3 // -0.0025
 -0.0    // -0.0
+```
+
+A duration literal takes no minus; write `Time.negate(5s)`:
+
+```ant
+let d = -5s // error: unary - needs a number, got Time.Duration
 ```
 
 ### Integer and float are different types
@@ -322,4 +330,5 @@ let tiny = 1e-400 // error: float literal 1e-400 is out of range
 [int](../types/int.md) · [float64](../types/float.md) · [byte](../types/byte.md) ·
 [Arithmetic operators](../operators/arithmetic.md) · [Math](../../lib/Math/index.md) ·
 [Bits](../../lib/Bits/index.md) · [String.toInt](../../lib/String/toInt.md) ·
-[String.fromInt](../../lib/String/fromInt.md) · [String literals](strings.md)
+[String.fromInt](../../lib/String/fromInt.md) · [String literals](strings.md) ·
+[Duration literals](durations.md)

@@ -141,11 +141,12 @@ A letter outside ASCII is not part of an identifier:
 let café = "open" // error: unexpected character 'é'
 ```
 
-An identifier cannot start with a digit or contain `-`. The first reads as a number, the second as
-subtraction:
+An identifier cannot start with a digit or contain `-`. The first reads as a number, possibly with a
+unit as in the [duration literal](../literals/durations.md) `2h`, and the second as subtraction:
 
 ```ant
-let 2nd = 2 // error: malformed number literal
+let 2nd = 2
+// error: malformed number literal: nd is not a duration unit, which are h, m, s, ms, us and ns
 ```
 
 ```ant

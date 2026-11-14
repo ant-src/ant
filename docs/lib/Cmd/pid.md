@@ -130,7 +130,7 @@ every stage:
 ```ant
 let pipeline = try Cmd.pipe([Cmd.new("sleep", ["30"]), Cmd.new("sleep", ["30"])]).start()
 try Cmd.new("kill", ["${pipeline.pid()}"]).run()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 200))
+let ctx = Context.new(timeout: 200ms)
 println(pipeline.wait(ctx: ctx))
 try pipeline.kill()
 println(pipeline.wait())

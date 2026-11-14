@@ -18,6 +18,11 @@ smaller units is written as a duration literal instead, such as 2h30m or 500ms.
 
 - Each field keeps the value you pass: `Time.duration(minutes: 90)` stays `PT90M` until
   [Time.roundDuration](roundDuration.md) balances it.
+- A constant span of hours and smaller units is a
+  [duration literal](../../language/literals/durations.md), such as `500ms`, `2h30m` or `1.5s`, of
+  type Time.Duration with no import. Time.duration is for computed spans
+  (`Time.duration(seconds: n)`), calendar spans (days, weeks, months and years, which have no
+  literal), and negative fields.
 
 ## Basic examples
 
@@ -87,11 +92,12 @@ Time.duration(microseconds: 250)       // PT0.00025S
 
 ## Applications
 
-Move a meeting by an hour and a quarter:
+Move a meeting by an hour and a quarter. For a constant span like this one, a literal is the usual
+form:
 
 ```ant
 let meeting = Time.plainDateTime(Time.plainDate(2026, 3, 9), Time.plainTime(9, 30))
-meeting.add(Time.duration(hours: 1, minutes: 15)) // 2026-03-09T10:45:00
+meeting.add(1h15m) // 2026-03-09T10:45:00
 ```
 
 Add a month to a date. The day is constrained to the end of February:
@@ -104,7 +110,7 @@ Turn a list of minutes into one total duration:
 
 ```ant
 let laps = [15, 45, 30]
-laps.map({ Time.duration(minutes: x) }).reduce(Time.duration(), Time.addDuration) // PT90M
+laps.map({ Time.duration(minutes: x) }).reduce(0s, Time.addDuration) // PT90M
 ```
 
 Wait between attempts, longer each time:
@@ -138,6 +144,12 @@ assert(d.part(Time.Hour{}) == 2)
 assert(d.part(Time.Minute{}) == 90)
 ```
 
+A duration literal has the fields the constructor is given:
+
+```ant
+assert(Time.duration(hours: 1, minutes: 30) == 1h30m)
+```
+
 A duration renders in ISO 8601 form, and [Time.parseDuration](parseDuration.md) reads that form
 back:
 
@@ -149,8 +161,8 @@ assert(Time.parseDuration("${d}").unwrap() == d)
 A negative duration is the [negation](negate.md) of the positive one:
 
 ```ant
-assert(Time.duration(minutes: -5) == Time.duration(minutes: 5).negate())
-assert(Time.duration(minutes: -5).abs() == Time.duration(minutes: 5))
+assert(Time.duration(minutes: -5) == Time.negate(5m))
+assert(Time.duration(minutes: -5).abs() == 5m)
 ```
 
 ## Possible issues
@@ -185,7 +197,30 @@ use hours:
 let epoch = Time.fromEpochMillis(0)
 epoch.add(Time.duration(days: 1))
 // panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
-epoch.add(Time.duration(hours: 24)) // 1970-01-02T00:00:00Z
+epoch.add(24h) // 1970-01-02T00:00:00Z
+```
+
+A duration takes no operator, so a negative constant is not written with `-`. Use
+[Time.negate](negate.md) or a negative field:
+
+```ant
+let d = -5s // error: unary - needs a number, got Time.Duration
+```
+
+```ant
+Time.negate(5s)            // -PT5S
+Time.duration(seconds: -5) // -PT5S
+```
+
+There are no duration literals for days, weeks, months or years. Use the constructor:
+
+```ant
+let d = 1d
+// error: there are no duration literals for days, weeks, months or years: write Time.duration(days: 1) and the like
+```
+
+```ant
+Time.duration(days: 1) // P1D
 ```
 
 Values past the bounds panic:
@@ -202,4 +237,5 @@ Time.duration(seconds: 9007199254740992)
 
 [Time.parseDuration](parseDuration.md), [Time.Duration](types/Duration.md), [Time.part](part.md),
 [Time.addDuration](addDuration.md), [Time.roundDuration](roundDuration.md), [Time.total](total.md),
-[Time.add](add.md), [Time.sleep](sleep.md)
+[Time.add](add.md), [Time.sleep](sleep.md),
+[Duration literals](../../language/literals/durations.md)

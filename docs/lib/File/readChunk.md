@@ -167,12 +167,12 @@ defer { Net.close(listener) }
 go {
   let peer = Net.accept(listener).unwrap()
   defer { File.close(peer) }
-  Time.sleep(Time.duration(milliseconds: 200))
+  Time.sleep(200ms)
   peer.writeLine("late").unwrap()
 }
 let conn = try Net.dial(listener.address())
 defer { File.close(conn) }
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(conn.readChunk(100, ctx: ctx))
 println(try conn.readChunk(100))
 ```

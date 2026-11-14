@@ -85,7 +85,7 @@ A ticker's channel is never closed, not even after its context is done:
 
 ```ant
 let ctx = Context.new()
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx: ctx)
+let ticks = Time.ticker(10ms, ctx: ctx)
 ctx.cancel()
 println(ticks.isClosed())
 ```
@@ -112,7 +112,7 @@ func next(jobs: Channel[string], ctx: Context): string {
 
 let jobs: Channel[string] = Channel.new(1)
 jobs.send("build")
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 println(next(jobs, ctx))
 println(next(jobs, ctx))
 jobs.close()

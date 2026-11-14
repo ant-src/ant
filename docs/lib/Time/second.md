@@ -143,9 +143,9 @@ Adding a second carries into the minute at 59, and adding a minute leaves the se
 
 ```ant
 let t = Time.plainTime(9, 30, 59)
-assert(t.add(Time.duration(seconds: 1)).second() == 0)
-assert(t.add(Time.duration(seconds: 1)).minute() == 31)
-assert(t.add(Time.duration(minutes: 1)).second() == 59)
+assert(t.add(1s).second() == 0)
+assert(t.add(1s).minute() == 31)
+assert(t.add(1m).second() == 59)
 ```
 
 Rounding down to the second with [Time.round](round.md) keeps the second and clears the fraction:
@@ -219,11 +219,11 @@ paris.second()                    // 21
 paris.offset()                    // "+00:09:21"
 ```
 
-`Time.second` reads the clock, not a span. A `Time.Duration` keeps its seconds as given, and
+`Time.second` reads the clock, not a span. A duration literal keeps its seconds as written, and
 [Time.part](part.md) reads them:
 
 ```ant
-Time.duration(seconds: 90).part(Time.Second{}) // 90
+90s.part(Time.Second{}) // 90
 ```
 
 ## See also

@@ -216,7 +216,7 @@ A `Time.PlainTime` wraps around the clock, so adding hours can give a smaller ho
 
 ```ant
 let late = Time.plainTime(23, minute: 30)
-late.add(Time.duration(hours: 2)).hour() // 1
+late.add(2h).hour() // 1
 ```
 
 On a daylight-saving change, an hour added is an hour of real time, not of the clock. In Stockholm
@@ -224,7 +224,7 @@ the clocks jump from 02:00 to 03:00 on March 29, 2026, so an hour after 01:30 is
 
 ```ant
 let before = Time.parseZoned("2026-03-29T01:30:00+01:00[Europe/Stockholm]").unwrap()
-before.add(Time.duration(hours: 1)).hour() // 3
+before.add(1h).hour() // 3
 ```
 
 When the clocks go back, one hour happens twice. In Stockholm 02:00 to 03:00 repeats on October 25,
@@ -232,7 +232,7 @@ When the clocks go back, one hour happens twice. In Stockholm 02:00 to 03:00 rep
 
 ```ant
 let first = Time.parseZoned("2026-10-25T02:30:00+02:00[Europe/Stockholm]").unwrap()
-let second = first.add(Time.duration(hours: 1))
+let second = first.add(1h)
 println(first.hour())
 println(second.hour())
 println(second)

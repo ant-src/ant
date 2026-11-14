@@ -19,9 +19,9 @@ Time.sign returns -1, 0 or 1 as d is negative, zero or positive.
 ## Basic examples
 
 ```ant
-Time.sign(Time.duration(hours: 2))     // 1
+Time.sign(2h)                          // 1
 Time.sign(Time.duration(minutes: -90)) // -1
-Time.sign(Time.duration())             // 0
+Time.sign(0s)                          // 0
 ```
 
 ## Scope
@@ -30,7 +30,7 @@ Calendar fields count like any other, and one nanosecond is enough:
 
 ```ant
 Time.sign(Time.duration(years: -1, days: -3)) // -1
-Time.sign(Time.duration(nanoseconds: 1))      // 1
+Time.sign(1ns)                                // 1
 ```
 
 A parsed duration carries its leading sign:
@@ -51,13 +51,13 @@ Time.until(today, due).sign() // -1
 Pass `Time.sign` as a function value:
 
 ```ant
-[Time.duration(hours: 1), Time.duration(), Time.duration(minutes: -5)].map(Time.sign) // [1, 0, -1]
+[1h, 0s, Time.duration(minutes: -5)].map(Time.sign) // [1, 0, -1]
 ```
 
 ## Named arguments
 
 ```ant
-Time.sign(d: Time.duration(seconds: -5)) // -1
+Time.sign(d: Time.negate(5s)) // -1
 ```
 
 ## Applications
@@ -81,7 +81,7 @@ status(now, friday)  // "upcoming"
 Keep the offsets in a schedule that point back in time:
 
 ```ant
-let offsets = [Time.duration(days: -1), Time.duration(hours: 2), Time.duration(minutes: -15)]
+let offsets = [Time.duration(days: -1), 2h, Time.negate(15m)]
 offsets.filter({ x.sign() < 0 }) // [-P1D, -PT15M]
 ```
 
@@ -90,8 +90,8 @@ offsets.filter({ x.sign() < 0 }) // [-P1D, -PT15M]
 Negating flips the sign, `Time.abs` drops it, and only the zero duration has sign `0`:
 
 ```ant
-let zero = Time.duration()
-let ds = [Time.duration(hours: -3), zero, Time.duration(days: 2, minutes: 5)]
+let zero = 0s
+let ds = [Time.negate(3h), zero, Time.duration(days: 2, minutes: 5)]
 for d in ds {
   assert(d.negate().sign() == -d.sign())
   assert(d.abs().sign() == Math.abs(d.sign()))
@@ -110,12 +110,11 @@ Time.until(a, b).sign() == Time.compare(b, a) // true
 
 ## Possible issues
 
-The comparison operators do not apply to durations, so `d < Time.duration()` does not compile. Use
-`Time.sign`:
+The comparison operators do not apply to durations, so `d < 0s` does not compile. Use `Time.sign`:
 
 ```ant
-let d = Time.duration(hours: -1)
-let late = d < Time.duration()
+let d = Time.negate(1h)
+let late = d < 0s
 // error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
 ```
 
@@ -125,7 +124,7 @@ let late = d < Time.duration()
 ```ant
 let month = Time.duration(months: -1)
 month.sign() // -1
-Time.compareDuration(month, Time.duration())
+Time.compareDuration(month, 0s)
 // panic: Time.compareDuration: years, months or weeks need a relativeTo point to compare
 ```
 

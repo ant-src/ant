@@ -244,9 +244,9 @@ context to bound the wait, or give the channel a capacity:
 
 ```ant
 let c: Channel[int] = Channel.new()
-println(c.send(1, Context.new(Time.duration(milliseconds: 20))))
+println(c.send(1, Context.new(20ms)))
 let buffered: Channel[int] = Channel.new(1)
-println(buffered.send(1, Context.new(Time.duration(milliseconds: 20))))
+println(buffered.send(1, Context.new(20ms)))
 ```
 
 ```text

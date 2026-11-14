@@ -159,7 +159,7 @@ writes:
 let listener = try Net.listen("127.0.0.1:0")
 let conn = try Net.dial(listener.address())
 defer { conn.close() }
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 let line = conn.readLine(ctx: ctx)
 println(line)
 println(Context.reason(ctx))

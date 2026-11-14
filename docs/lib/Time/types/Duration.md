@@ -16,28 +16,49 @@ renders in ISO 8601 form, as P1Y2M3DT4H5M6.5S, -PT1H or PT0S.
 
 ## Details
 
+- A constant span of hours and smaller units is a
+  [duration literal](../../../language/literals/durations.md), written as in Go: `500ms`, `2h30m`,
+  `1.5s`, `90m`. The units are `h`, `m`, `s`, `ms`, `us` and `ns`, so `m` is minutes; they come in
+  descending order, each at most once, and only the last component may have a fraction. A literal
+  has type Time.Duration and needs no import. There are no literals for days, weeks, months or
+  years, which are `Time.duration(days: 1)` and the like, and a span computed from a number is
+  `Time.duration(seconds: n)`. A literal keeps its fields as written, so `90m` is PT90M.
+- Durations take no arithmetic or ordering operators, so `-5s`, `5s + 1s` and `90m < 2h` are compile
+  errors. Negate with [`Time.negate`](../negate.md), add with
+  [`Time.addDuration`](../addDuration.md), and order with
+  [`Time.compareDuration`](../compareDuration.md).
 - Years, months and weeks have no fixed length. [`Time.sleep`](../sleep.md),
   [`Time.ticker`](../ticker.md), [`Time.addDuration`](../addDuration.md) and `Context.new` panic on
   them, and [`Time.compareDuration`](../compareDuration.md), [`Time.total`](../total.md) and
   [`Time.roundDuration`](../roundDuration.md) need a `relativeTo` date for them.
 - Days count as 24 hours in a wait or a sum, but [`Time.add`](../add.md) on a zoned time adds
   calendar days, and a [`Time.Instant`](Instant.md) takes no days at all.
-- `<` and the other comparison operators do not apply to durations;
-  [`Time.compareDuration`](../compareDuration.md) orders them by length.
 
 ## Basic examples
 
-Build a duration from named fields with [`Time.duration`](../duration.md):
+Write a constant duration as a literal:
 
 ```ant
-Time.duration(hours: 1, minutes: 30) // PT1H30M
-Time.duration(days: 3)               // P3D
+1h30m // PT1H30M
+500ms // PT0.5S
 ```
 
-Parse one from its ISO 8601 text with [`Time.parseDuration`](../parseDuration.md):
+Build a calendar or computed duration with [`Time.duration`](../duration.md):
+
+```ant
+Time.duration(days: 3) // P3D
+```
+
+```ant
+let n = 90
+Time.duration(seconds: n) // PT90S
+```
+
+Parse one from its ISO 8601 text or Go's notation with [`Time.parseDuration`](../parseDuration.md):
 
 ```ant
 Time.parseDuration("PT1H30M") // Ok{ value: PT1H30M }
+Time.parseDuration("1h30m")   // Ok{ value: PT1H30M }
 ```
 
 Measure the time between two points with [`Time.until`](../until.md):
@@ -55,23 +76,24 @@ fields folded into the seconds, and `PT0S` when it is zero:
 Time.duration(years: 1, months: 2, days: 3)                     // P1Y2M3D
 Time.duration(days: 3, hours: 4, seconds: 6, milliseconds: 500) // P3DT4H6.5S
 Time.duration(weeks: 2)                                         // P2W
-Time.duration(milliseconds: 1500)                               // PT1.5S
-Time.duration()                                                 // PT0S
+1500ms                                                          // PT1.5S
+0s                                                              // PT0S
 ```
 
 A negative duration has a sign in front:
 
 ```ant
-Time.duration(hours: -2)           // -PT2H
-Time.duration(hours: 1).negate()   // -PT1H
-Time.duration(minutes: -15).sign() // -1
+Time.duration(hours: -2) // -PT2H
+1h.negate()              // -PT1H
+Time.negate(5s)          // -PT5S
+Time.negate(15m).sign()  // -1
 ```
 
 Fields are not balanced. Ninety minutes stays ninety minutes, and two weeks has no days, until
 [`Time.roundDuration`](../roundDuration.md) balances it:
 
 ```ant
-let d = Time.duration(minutes: 90)
+let d = 90m
 d                                         // PT90M
 d.part(Time.Hour{})                       // 0
 d.roundDuration(largestUnit: Time.Hour{}) // PT1H30M
@@ -81,19 +103,22 @@ Time.duration(weeks: 2).part(Time.Day{})  // 0
 String interpolation, `String.from` and `Json.stringify` all write the same text:
 
 ```ant
-let d = Time.duration(minutes: 5)
+let d = 5m
 "retry in ${d}"     // "retry in PT5M"
 String.from(d)      // "PT5M"
 Json.stringify([d]) // "[\"PT5M\"]"
 ```
 
-A duration is a value like any other: a record field, an optional parameter, a map key:
+A duration is a value like any other: a record field, a field default, an optional parameter, a map
+key:
 
 ```ant
 type Job = { name: string, timeout: Time.Duration | null }
-Job{ name: "build", timeout: Time.duration(minutes: 10) } // Job{ name: "build", timeout: PT10M }
-Job{ name: "lint", timeout: null }                        // Job{ name: "lint", timeout: null }
-let names = Map{ Time.duration(hours: 1): "hour", Time.duration(minutes: 60): "sixty minutes" }
+Job{ name: "build", timeout: 10m } // Job{ name: "build", timeout: PT10M }
+Job{ name: "lint", timeout: null } // Job{ name: "lint", timeout: null }
+type Task = { name: string, timeout: Time.Duration = 10m }
+Task{ name: "build" } // Task{ name: "build", timeout: PT10M }
+let names = Map{ 1h: "hour", 60m: "sixty minutes" }
 names.size() // 2
 ```
 
@@ -103,7 +128,7 @@ func fetch(url: string, timeout: Time.Duration | null = null): string {
 }
 
 println(fetch("https://example.com"))
-println(fetch("https://example.com", timeout: Time.duration(seconds: 2)))
+println(fetch("https://example.com", timeout: 2s))
 ```
 
 ```text
@@ -114,8 +139,8 @@ https://example.com within PT2S
 [`Time.total`](../total.md) gives the whole length in one unit as a `float64`:
 
 ```ant
-Time.duration(hours: 1, minutes: 30).total(Time.Minute{}) // 90.0
-Time.duration(minutes: 90).total(Time.Hour{})             // 1.5
+1h30m.total(Time.Minute{}) // 90.0
+90m.total(Time.Hour{})     // 1.5
 ```
 
 ## Applications
@@ -123,7 +148,7 @@ Time.duration(minutes: 90).total(Time.Hour{})             // 1.5
 Move a time by a duration with [`Time.add`](../add.md):
 
 ```ant
-Time.plainDateTime(Time.plainDate(2026, 10, 22), Time.plainTime(9, 0)).add(Time.duration(hours: 1, minutes: 30)) // 2026-10-22T10:30:00
+Time.plainDateTime(Time.plainDate(2026, 10, 22), Time.plainTime(9, 0)).add(1h30m) // 2026-10-22T10:30:00
 ```
 
 Show the time between two instants as hours, minutes and seconds. Balance it to hours and round to
@@ -147,8 +172,8 @@ println(label(start.until(end)))
 Give up waiting after a timeout. Every wait in the library takes a duration:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
-Time.sleep(Time.duration(seconds: 5), ctx: ctx)
+let ctx = Context.new(timeout: 20ms)
+Time.sleep(5s, ctx: ctx)
 println("gave up waiting")
 ```
 
@@ -156,14 +181,29 @@ println("gave up waiting")
 gave up waiting
 ```
 
+Read a timeout from configuration, in either notation, with a default for text that is not a
+duration:
+
+```ant
+func timeoutFrom(text: string): Time.Duration {
+  Time.parseDuration(text).unwrapOr(30s)
+}
+
+println(timeoutFrom("500ms"))
+println(timeoutFrom("PT2M"))
+println(timeoutFrom("soon"))
+```
+
+```text
+PT0.5S
+PT2M
+PT30S
+```
+
 Sort durations by length with [`Time.compareDuration`](../compareDuration.md):
 
 ```ant
-let laps = [
-  Time.duration(minutes: 90),
-  Time.duration(hours: 1),
-  Time.duration(hours: 1, minutes: 15),
-]
+let laps = [90m, 1h, 1h15m]
 laps.sortWith(Time.compareDuration) // [PT1H, PT1H15M, PT90M]
 ```
 
@@ -172,11 +212,18 @@ laps.sortWith(Time.compareDuration) // [PT1H, PT1H15M, PT90M]
 `==` compares fields, and [`Time.compareDuration`](../compareDuration.md) compares lengths:
 
 ```ant
-let a = Time.duration(minutes: 90)
-let b = Time.duration(hours: 1, minutes: 30)
+let a = 90m
+let b = 1h30m
 assert(a != b)
 assert(Time.compareDuration(a, b) == 0)
 assert(a.roundDuration(largestUnit: Time.Hour{}) == b)
+```
+
+A fraction in a literal spreads into the smaller fields, so `1.5h` has the fields of `1h30m`:
+
+```ant
+assert(1.5h == 1h30m)
+assert(String.from(1.5h) == "PT1H30M")
 ```
 
 The text of a duration parses back to an equal duration:
@@ -189,25 +236,50 @@ assert(Time.parseDuration("${d}").unwrap() == d)
 Negating twice gives the duration back:
 
 ```ant
-let d = Time.duration(hours: 3, minutes: 5)
+let d = 3h5m
 assert(d.negate().negate() == d)
 assert(d.negate().abs() == d)
 ```
 
 ## Possible issues
 
-`==` is not a test of length. Two durations of one length are `==` only with the same fields:
+`==` is not a test of length. Two durations of one length are `==` only with the same fields, and
+`ant check` rejects `==` between two such literals:
 
 ```ant
-Time.duration(minutes: 90) == Time.duration(hours: 1, minutes: 30)                     // false
-Time.compareDuration(Time.duration(minutes: 90), Time.duration(hours: 1, minutes: 30)) // 0
+let same = 90m == 1h30m
+// error: 90m == 1h30m compares the fields as written, and == is false: compare the lengths with Time.compareDuration(90m, 1h30m)
+```
+
+```ant
+Time.compareDuration(90m, 1h30m) // 0
 ```
 
 `<` does not compare durations. Use [`Time.compareDuration`](../compareDuration.md):
 
 ```ant
-let short = Time.duration(minutes: 90) < Time.duration(hours: 2)
+let short = 90m < 2h
 // error: < applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
+```
+
+Durations take no operators. Negate with [`Time.negate`](../negate.md), as in `Time.negate(5s)`:
+
+```ant
+let d = -5s // error: unary - needs a number, got Time.Duration
+```
+
+Add with [`Time.addDuration`](../addDuration.md), as in `Time.addDuration(5s, 1s)`:
+
+```ant
+let d = 5s + 1s
+// error: + applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
+```
+
+There are no literals for days, weeks, months or years:
+
+```ant
+let d = 1d
+// error: there are no duration literals for days, weeks, months or years: write Time.duration(days: 1) and the like
 ```
 
 A wait needs a fixed length, so a duration in months panics:
@@ -217,8 +289,8 @@ Time.sleep(Time.duration(months: 1))
 // panic: Time.sleep needs a duration without years, months or weeks, which have no fixed length
 ```
 
-All fields of a duration have one sign, so 1h30m less is not `hours: 1, minutes: -30`. Write
-`Time.duration(minutes: 30)`, or negate the duration to take away and pass it to
+All fields of a duration have one sign, so an hour less 30 minutes is not `hours: 1, minutes: -30`.
+Write `30m`, or negate the duration to take away and pass it to
 [`Time.addDuration`](../addDuration.md):
 
 ```ant
@@ -227,19 +299,22 @@ Time.duration(hours: 1, minutes: -30)
 ```
 
 ```ant
-Time.addDuration(Time.duration(hours: 1), Time.duration(minutes: 30).negate()) // PT30M
+Time.addDuration(1h, Time.negate(30m)) // PT30M
 ```
 
-Text that is not ISO 8601 is an `Err`:
+Text in neither ISO 8601 nor Go's notation is an `Err`, and so is a bare number other than `0`,
+which has no unit:
 
 ```ant
 Time.parseDuration("1 hour") // Err{ error: Error{ message: "not a duration: \"1 hour\"" } }
+Time.parseDuration("5")      // Err{ error: Error{ message: "not a duration: \"5\"" } }
 ```
 
 ## See also
 
 [Time.duration](../duration.md), [Time.parseDuration](../parseDuration.md),
 [Time.until](../until.md), [Time.since](../since.md), [Time.add](../add.md),
-[Time.addDuration](../addDuration.md), [Time.compareDuration](../compareDuration.md),
-[Time.roundDuration](../roundDuration.md), [Time.total](../total.md), [Time.part](../part.md),
-[Time.Unit](Unit.md)
+[Time.addDuration](../addDuration.md), [Time.negate](../negate.md),
+[Time.compareDuration](../compareDuration.md), [Time.roundDuration](../roundDuration.md),
+[Time.total](../total.md), [Time.part](../part.md), [Time.Unit](Unit.md),
+[Duration literals](../../../language/literals/durations.md)

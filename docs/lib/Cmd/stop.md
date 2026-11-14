@@ -17,6 +17,7 @@ grace has years, months or weeks.
 
 - `Cmd.stop` signals the whole process group that [`Cmd.start`](start.md) made, so every stage of a
   pipeline gets the signal.
+- Without `grace:`, it waits `5s` after SIGTERM before SIGKILL.
 - It waits for the command to exit and returns its status. A command ended by a signal has
   `128 + n`: `143` for SIGTERM, `137` for SIGKILL. That status is `Ok`, not `Err`.
 - On a command that has exited already it sends nothing and returns its status, as
@@ -108,7 +109,7 @@ let script = "trap '' TERM; echo ready; while true; do sleep 1; done"
 let p = try Cmd.start(Cmd.new("sh", ["-c", script]), stdout: out.write)
 try out.write.close()
 println(try out.read.readLine())
-println(try p.stop(grace: Time.duration(milliseconds: 200)))
+println(try p.stop(grace: 200ms))
 ```
 
 ```text
@@ -120,7 +121,7 @@ A `grace` of zero, or a negative one, sends SIGKILL alone, with no SIGTERM befor
 
 ```ant
 let p = try Cmd.start(Cmd.new("sleep", ["30"]))
-println(try p.stop(grace: Time.duration(seconds: 0)))
+println(try p.stop(grace: 0s))
 ```
 
 ```text
@@ -134,7 +135,7 @@ Stop a helper process when the script ends, however it ends. A deferred `stop` r
 
 ```ant
 let server = try Cmd.start(Cmd.new("sleep", ["30"]))
-defer { server.stop(grace: Time.duration(seconds: 1)) }
+defer { server.stop(grace: 1s) }
 println("server ${server.pid() > 0}")
 ```
 
@@ -153,11 +154,11 @@ func runFor(c: Cmd, limit: Time.Duration): Result[int, Error] {
   let status = p.wait(ctx: ctx)
   if status.isOk() { return status }
   println("timed out: ${c.string()}")
-  p.stop(grace: Time.duration(seconds: 1))
+  p.stop(grace: 1s)
 }
 
-println(try runFor(Cmd.new("sh", ["-c", "exit 4"]), Time.duration(seconds: 5)))
-println(try runFor(Cmd.new("sleep", ["30"]), Time.duration(milliseconds: 100)))
+println(try runFor(Cmd.new("sh", ["-c", "exit 4"]), 5s))
+println(try runFor(Cmd.new("sleep", ["30"]), 100ms))
 ```
 
 ```text

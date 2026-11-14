@@ -200,17 +200,19 @@ subsecond fields, so 1500 milliseconds renders as `PT1.5S` and comes back as 1 s
 milliseconds:
 
 ```ant
-let d = Time.duration(milliseconds: 1500)
+let d = 1500ms
 "${d}"                                                       // "PT1.5S"
 Time.parseDuration("${d}").unwrap() == d                     // false
 Time.parseDuration("${d}").unwrap().part(Time.Millisecond{}) // 500
 Time.parseDuration("${d}").unwrap().compareDuration(d)       // 0
 ```
 
-A parsed string has the same fields as [Time.duration](duration.md) given them:
+A parsed string has the same fields as the duration literal or [Time.duration](duration.md) call
+that writes them:
 
 ```ant
-assert(Time.parseDuration("PT90M").unwrap() == Time.duration(minutes: 90))
+assert(Time.parseDuration("PT90M").unwrap() == 90m)
+assert(Time.parseDuration("90m").unwrap() == 90m)
 ```
 
 A leading minus is the [negation](negate.md) of the positive duration:
@@ -311,6 +313,7 @@ Time.parseDuration("1 hour").unwrap()
 
 ## See also
 
-[Time.duration](duration.md), [Time.Duration](types/Duration.md), [Time.part](part.md),
-[Time.roundDuration](roundDuration.md), [Time.compareDuration](compareDuration.md),
-[Time.parsePlainTime](parsePlainTime.md), [Result.wrapErr](../Result/wrapErr.md)
+[Time.duration](duration.md), [Duration literals](../../language/literals/durations.md),
+[Time.Duration](types/Duration.md), [Time.part](part.md), [Time.roundDuration](roundDuration.md),
+[Time.compareDuration](compareDuration.md), [Time.parsePlainTime](parsePlainTime.md),
+[Result.wrapErr](../Result/wrapErr.md)

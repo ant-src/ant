@@ -20,9 +20,9 @@ Time.abs returns d with its sign made positive, or d itself when it is zero.
 ## Basic examples
 
 ```ant
-Time.abs(Time.duration(hours: -2))  // PT2H
-Time.abs(Time.duration(hours: 2))   // PT2H
-Time.abs(Time.duration(seconds: 0)) // PT0S
+Time.abs(Time.duration(hours: -2)) // PT2H
+Time.abs(2h)                       // PT2H
+Time.abs(0s)                       // PT0S
 ```
 
 ## Scope
@@ -46,7 +46,7 @@ Time.until(close, open).abs() // PT8H30M
 Pass `Time.abs` as a function value:
 
 ```ant
-[Time.duration(hours: -1), Time.duration(minutes: 30)].map(Time.abs) // [PT1H, PT30M]
+[Time.duration(hours: -1), 30m].map(Time.abs) // [PT1H, PT30M]
 ```
 
 ## Applications
@@ -56,7 +56,7 @@ Check that two clocks agree within five minutes, whichever one is ahead:
 ```ant
 func inSync(a: Time.Instant, b: Time.Instant): bool {
   let drift = Time.until(a, b).abs()
-  Time.compareDuration(drift, Time.duration(minutes: 5)) <= 0
+  Time.compareDuration(drift, 5m) <= 0
 }
 
 let server = Time.parseInstant("2026-10-22T14:03:05Z").unwrap()
@@ -82,7 +82,7 @@ The result is never negative, ignores the sign of its argument, and leaves a non
 it is:
 
 ```ant
-let ds = [Time.duration(hours: -3), Time.duration(seconds: 0), Time.duration(days: 2, minutes: 5)]
+let ds = [Time.duration(hours: -3), 0s, Time.duration(days: 2, minutes: 5)]
 for d in ds {
   assert(d.abs().sign() >= 0)
   assert(d.negate().abs() == d.abs())
@@ -97,8 +97,8 @@ for d in ds {
 
 ```ant
 let d = Time.abs(Time.duration(minutes: -90))
-d == Time.duration(hours: 1, minutes: 30)                          // false
-Time.compareDuration(d, Time.duration(hours: 1, minutes: 30)) == 0 // true
+d == 1h30m                          // false
+Time.compareDuration(d, 1h30m) == 0 // true
 ```
 
 A field of the most negative `int` has no positive counterpart:
@@ -111,7 +111,7 @@ Time.abs(Time.duration(nanoseconds: Math.minInt))
 `Math.abs` takes numbers only, not durations:
 
 ```ant
-let d = Time.duration(hours: -1)
+let d = Time.negate(1h)
 let e = Math.abs(d) // error: T would be Time.Duration, which is not a member of its bound Number
 ```
 

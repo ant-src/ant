@@ -287,7 +287,7 @@ Work until Ctrl-C, then finish what is in hand. Passing the context to
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -297,7 +297,7 @@ let stop = Os.interrupt()
 var rounds = 0
 while !stop.isDone() {
   rounds += 1
-  Time.sleep(Time.duration(seconds: 10), ctx: stop)
+  Time.sleep(10s, ctx: stop)
 }
 println("saving after ${rounds} round")
 ```

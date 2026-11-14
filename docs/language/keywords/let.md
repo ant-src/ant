@@ -102,7 +102,7 @@ let ready: Channel[string] = Channel.new(1)
 Channel.send(ready, "go")
 let message = select {
   let m = Channel.receive(ready) { m ?? "closed" }
-  Time.sleep(Time.duration(seconds: 1)) { "timeout" }
+  Time.sleep(1s) { "timeout" }
 }
 println(message)
 ```

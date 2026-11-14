@@ -160,7 +160,7 @@ is never closed, so the timeout ends the loop, and `Context.reason` tells why:
 let c: Channel[string] = Channel.new(capacity: 2)
 c.send("first")
 c.send("second")
-let ctx = Context.new(Time.duration(milliseconds: 50))
+let ctx = Context.new(50ms)
 for s in c.values(ctx: ctx) {
   println(s)
 }
@@ -310,7 +310,7 @@ only line
 A ticker is never closed, so a loop over its ticks ends only by `break`, a context, or `Iter.take`:
 
 ```ant
-let ticks = Time.ticker(Time.duration(milliseconds: 10))
+let ticks = Time.ticker(10ms)
 let first = ticks.values() | Iter.take(3) | Iter.toArray()
 println(first.length())
 ```

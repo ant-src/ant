@@ -203,7 +203,7 @@ When `ctx` is done while the command runs, every stage is killed and the result 
 context's reason:
 
 ```ant
-let ctx = Context.new(Time.duration(milliseconds: 50))
+let ctx = Context.new(50ms)
 println(Cmd.read(Cmd.new("sleep", ["10"]), ctx: ctx))
 ```
 

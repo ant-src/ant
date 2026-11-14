@@ -32,15 +32,15 @@ below 1, on years, months or weeks without relativeTo, and on an increment that 
 ## Basic examples
 
 ```ant
-Time.roundDuration(Time.duration(minutes: 90), largestUnit: Time.Hour{})            // PT1H30M
-Time.roundDuration(Time.duration(hours: 1, minutes: 29), smallestUnit: Time.Hour{}) // PT1H
-Time.roundDuration(Time.duration(hours: 1, minutes: 30), smallestUnit: Time.Hour{}) // PT2H
+Time.roundDuration(90m, largestUnit: Time.Hour{})    // PT1H30M
+Time.roundDuration(1h29m, smallestUnit: Time.Hour{}) // PT1H
+Time.roundDuration(1h30m, smallestUnit: Time.Hour{}) // PT2H
 ```
 
 Give both units to balance and round in one call:
 
 ```ant
-Time.roundDuration(Time.duration(seconds: 7384), largestUnit: Time.Hour{}, smallestUnit: Time.Minute{}) // PT2H3M
+Time.roundDuration(7384s, largestUnit: Time.Hour{}, smallestUnit: Time.Minute{}) // PT2H3M
 ```
 
 ## Scope
@@ -48,7 +48,7 @@ Time.roundDuration(Time.duration(seconds: 7384), largestUnit: Time.Hour{}, small
 `largestUnit` balances up, carrying seconds into minutes, hours and days:
 
 ```ant
-let d = Time.duration(seconds: 100000)
+let d = 100000s
 d.roundDuration(largestUnit: Time.Day{})  // P1DT3H46M40S
 d.roundDuration(largestUnit: Time.Hour{}) // PT27H46M40S
 ```
@@ -56,21 +56,21 @@ d.roundDuration(largestUnit: Time.Hour{}) // PT27H46M40S
 It also balances down, spreading larger fields into a smaller unit:
 
 ```ant
-Time.duration(hours: 1, minutes: 30).roundDuration(largestUnit: Time.Minute{}) // PT90M
-Time.duration(days: 1).roundDuration(largestUnit: Time.Hour{})                 // PT24H
+1h30m.roundDuration(largestUnit: Time.Minute{})                // PT90M
+Time.duration(days: 1).roundDuration(largestUnit: Time.Hour{}) // PT24H
 ```
 
 Fields above `smallestUnit` stay as they are; only the part below it rounds:
 
 ```ant
-Time.duration(days: 3, hours: 13).roundDuration(smallestUnit: Time.Day{})       // P4D
-Time.duration(milliseconds: 1234567).roundDuration(smallestUnit: Time.Second{}) // PT1235S
+Time.duration(days: 3, hours: 13).roundDuration(smallestUnit: Time.Day{}) // P4D
+1234567ms.roundDuration(smallestUnit: Time.Second{})                      // PT1235S
 ```
 
 A negative duration rounds by its length and keeps its sign:
 
 ```ant
-Time.duration(hours: -2, minutes: -30).roundDuration(smallestUnit: Time.Hour{}) // -PT3H
+Time.negate(2h30m).roundDuration(smallestUnit: Time.Hour{}) // -PT3H
 ```
 
 A zero duration stays zero:
@@ -86,7 +86,7 @@ Time.duration().roundDuration(smallestUnit: Time.Second{}) // PT0S
 The fields below `smallestUnit` are dropped after rounding:
 
 ```ant
-let d = Time.duration(hours: 2, minutes: 37, seconds: 25)
+let d = 2h37m25s
 d.roundDuration(smallestUnit: Time.Minute{}) // PT2H37M
 d.roundDuration(smallestUnit: Time.Hour{})   // PT3H
 ```
@@ -96,7 +96,7 @@ d.roundDuration(smallestUnit: Time.Hour{})   // PT3H
 `largestUnit` sets the top field of the result. Rounding can carry into it:
 
 ```ant
-let d = Time.duration(minutes: 59, seconds: 50)
+let d = 59m50s
 d.roundDuration(smallestUnit: Time.Minute{})                           // PT60M
 d.roundDuration(smallestUnit: Time.Minute{}, largestUnit: Time.Hour{}) // PT1H
 ```
@@ -107,9 +107,9 @@ d.roundDuration(smallestUnit: Time.Minute{}, largestUnit: Time.Hour{}) // PT1H
 next unit, 60 minutes or 24 hours, and be smaller than it:
 
 ```ant
-let d = Time.duration(minutes: 37)
-d.roundDuration(smallestUnit: Time.Minute{}, increment: 15)                      // PT30M
-Time.duration(hours: 37).roundDuration(smallestUnit: Time.Hour{}, increment: 12) // PT36H
+let d = 37m
+d.roundDuration(smallestUnit: Time.Minute{}, increment: 15) // PT30M
+37h.roundDuration(smallestUnit: Time.Hour{}, increment: 12) // PT36H
 ```
 
 For days and calendar units any increment works, as long as `largestUnit` is `smallestUnit`:
@@ -126,7 +126,7 @@ Time.duration(months: 5).roundDuration(smallestUnit: Time.Month{}, increment: 2,
 and `Trunc` away from and toward zero:
 
 ```ant
-let d = Time.duration(minutes: -37)
+let d = Time.negate(37m)
 d.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: Time.Ceil{})   // -PT30M
 d.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: Time.Floor{})  // -PT45M
 d.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: Time.Expand{}) // -PT45M
@@ -137,12 +137,12 @@ The `Half` modes go to the nearest multiple and differ only on a tie. `HalfEven`
 multiple:
 
 ```ant
-let tie = Time.duration(hours: 1, minutes: 30)
+let tie = 1h30m
 tie.roundDuration(smallestUnit: Time.Hour{})                         // PT2H
 tie.roundDuration(smallestUnit: Time.Hour{}, mode: Time.HalfTrunc{}) // PT1H
 let even = Time.HalfEven{}
-Time.duration(milliseconds: 2500).roundDuration(smallestUnit: Time.Second{}, mode: even) // PT2S
-Time.duration(milliseconds: 3500).roundDuration(smallestUnit: Time.Second{}, mode: even) // PT4S
+2500ms.roundDuration(smallestUnit: Time.Second{}, mode: even) // PT2S
+3500ms.roundDuration(smallestUnit: Time.Second{}, mode: even) // PT4S
 ```
 
 ### relativeTo
@@ -195,7 +195,7 @@ PT2H37M
 Bill each session in started blocks of 15 minutes:
 
 ```ant
-let sessions = [Time.duration(minutes: 7), Time.duration(minutes: 31), Time.duration(minutes: 45)]
+let sessions = [7m, 31m, 45m]
 let billed = sessions
   | Array.map({ x.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: Time.Ceil{}) })
 println(billed)
@@ -227,7 +227,7 @@ Balancing alone keeps the length, which [Time.compareDuration](compareDuration.m
 [Time.total](total.md) measure:
 
 ```ant
-let d = Time.duration(seconds: 100000)
+let d = 100000s
 let balanced = d.roundDuration(largestUnit: Time.Day{})
 assert(Time.compareDuration(d, balanced) == 0)
 assert(Time.total(d, Time.Second{}) == Time.total(balanced, Time.Second{}))
@@ -237,7 +237,7 @@ assert(d != balanced)
 Rounding a duration and negating it commute for a symmetric mode such as the default:
 
 ```ant
-let d = Time.duration(minutes: 37)
+let d = 37m
 let unit = Time.Minute{}
 let a = Time.negate(d.roundDuration(smallestUnit: unit, increment: 15))
 let b = Time.negate(d).roundDuration(smallestUnit: unit, increment: 15)
@@ -247,7 +247,7 @@ assert(a == b)
 `Ceil` never gives less than the input, and `Floor` never more:
 
 ```ant
-let d = Time.duration(minutes: 37)
+let d = 37m
 let up = d.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: Time.Ceil{})
 let down = d.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: Time.Floor{})
 assert(Time.compareDuration(up, d) >= 0)
@@ -259,7 +259,7 @@ assert(Time.compareDuration(down, d) <= 0)
 Without a unit there is nothing to do, and it panics:
 
 ```ant
-Time.roundDuration(Time.duration(minutes: 90))
+Time.roundDuration(90m)
 // panic: Time.roundDuration: roundDuration needs a smallest or a largest unit
 ```
 
@@ -278,7 +278,7 @@ Time.duration(days: 45).roundDuration(largestUnit: Time.Month{})
 An increment of a time unit must divide the next unit and be smaller than it:
 
 ```ant
-let d = Time.duration(minutes: 37)
+let d = 37m
 d.roundDuration(smallestUnit: Time.Minute{}, increment: 7)
 // panic: Time.roundDuration: the increment for minutes must divide 60 and be smaller, not 7
 ```
@@ -286,7 +286,7 @@ d.roundDuration(smallestUnit: Time.Minute{}, increment: 7)
 The increment cannot be the whole next unit either:
 
 ```ant
-let d = Time.duration(minutes: 37)
+let d = 37m
 d.roundDuration(smallestUnit: Time.Minute{}, increment: 60)
 // panic: Time.roundDuration: the increment for minutes must divide 60 and be smaller, not 60
 ```

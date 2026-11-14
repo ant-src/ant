@@ -233,12 +233,12 @@ A `select` waits for whichever comes first, the reply or the timer:
 ```ant
 let replies: Channel[string] = Channel.new()
 go {
-  Time.sleep(Time.duration(milliseconds: 200))
+  Time.sleep(200ms)
   replies.send("late")
 }
 let reply = select {
   let r = Channel.receive(replies) { r }
-  Time.sleep(Time.duration(milliseconds: 20)) { "timed out" }
+  Time.sleep(20ms) { "timed out" }
 }
 println(reply)
 ```
@@ -311,7 +311,7 @@ waits until the run is cancelled. A context bounds the wait, and the send return
 
 ```ant
 let c: Channel[int] = Channel.new()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 println(c.send(1, ctx: ctx))
 ```
 
@@ -324,7 +324,7 @@ tells the two apart:
 
 ```ant
 let c: Channel[int] = Channel.new()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 println(c.receive(ctx: ctx))
 println(ctx.isDone())
 println(c.isClosed())

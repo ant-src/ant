@@ -112,7 +112,7 @@ Add an exact duration, measure the span between two instants, and round:
 
 ```ant
 let start = Time.parseInstant("2026-10-22T14:03:05Z") | Result.unwrap()
-let end = start.add(Time.duration(hours: 25, minutes: 1))
+let end = start.add(25h1m)
 end                                        // 2026-10-23T15:04:05Z
 start.until(end)                           // PT90060S
 start.until(end, largestUnit: Time.Hour{}) // PT25H1M
@@ -192,7 +192,7 @@ func expired(issued: Time.Instant, lifetime: Time.Duration, now: Time.Instant): 
 }
 
 let issued = Time.parseInstant("2026-10-22T14:00:00Z") | Result.unwrap()
-let lifetime = Time.duration(minutes: 15)
+let lifetime = 15m
 expired(issued, lifetime, Time.parseInstant("2026-10-22T14:10:00Z") | Result.unwrap()) // false
 expired(issued, lifetime, Time.parseInstant("2026-10-22T14:15:00Z") | Result.unwrap()) // true
 ```
@@ -248,7 +248,7 @@ zone, where a day follows the clock:
 
 ```ant
 let t = Time.fromEpochMillis(0)
-t.add(Time.duration(hours: 24)) // 1970-01-02T00:00:00Z
+t.add(24h) // 1970-01-02T00:00:00Z
 t.add(Time.duration(days: 1))
 // panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
 t.until(t, largestUnit: Time.Day{}) // panic: Time.until: an instant has no days
@@ -277,7 +277,7 @@ The range is wide but finite, and a result past its edge panics:
 
 ```ant
 let last = Time.fromEpochMillis(8640000000000000)
-last.add(Time.duration(nanoseconds: 1)) // panic: Time.add: outside the range of time values
+last.add(1ns) // panic: Time.add: outside the range of time values
 ```
 
 `epochMillis` always fits an `int`, but `epochNanos` reaches only 1677-09-21 to 2262-04-11 and

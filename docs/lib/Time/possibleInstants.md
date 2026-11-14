@@ -133,7 +133,7 @@ for date in [Time.plainDate(2026, 3, 29), Time.plainDate(2026, 10, 25)] {
       let what = if count == 0 { "skipped" } else { "repeated" }
       println("${t.toPlainTime()} ${what}")
     }
-    t = t.add(Time.duration(minutes: 30))
+    t = t.add(30m)
   }
 }
 ```

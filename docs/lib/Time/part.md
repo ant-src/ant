@@ -21,7 +21,7 @@ Time.part returns the field of d for unit, as given and not balanced.
 ## Basic examples
 
 ```ant
-let d = Time.duration(hours: 2, minutes: 15)
+let d = 2h15m
 Time.part(d, Time.Hour{})   // 2
 Time.part(d, Time.Minute{}) // 15
 Time.part(d, Time.Second{}) // 0
@@ -30,8 +30,8 @@ Time.part(d, Time.Second{}) // 0
 Fields are not balanced, so 90 minutes stay 90 minutes:
 
 ```ant
-Time.part(Time.duration(minutes: 90), Time.Hour{})   // 0
-Time.part(Time.duration(minutes: 90), Time.Minute{}) // 90
+Time.part(90m, Time.Hour{})   // 0
+Time.part(90m, Time.Minute{}) // 90
 ```
 
 ## Scope
@@ -86,7 +86,7 @@ shift.part(Time.Minute{}) // 45
 ## Named arguments
 
 ```ant
-Time.part(unit: Time.Minute{}, d: Time.duration(minutes: 90)) // 90
+Time.part(unit: Time.Minute{}, d: 90m) // 90
 ```
 
 ## Applications
@@ -102,8 +102,8 @@ func clock(d: Time.Duration): string {
   "${b.part(Time.Hour{})}:${mm}:${ss}"
 }
 
-clock(Time.duration(seconds: 3725)) // "1:02:05"
-clock(Time.duration(minutes: 90))   // "1:30:00"
+clock(3725s) // "1:02:05"
+clock(90m)   // "1:30:00"
 ```
 
 Say how long ago something happened in the largest unit that is not zero. A duration between two
@@ -132,8 +132,8 @@ let now = Time.parseInstant("2026-10-22T15:00:00Z") | Result.unwrap()
 
 ago(Time.since(now, then))            // "3 hours ago"
 ago(Time.duration(days: 3, hours: 4)) // "3 days ago"
-ago(Time.duration(hours: 1))          // "1 hour ago"
-ago(Time.duration(seconds: 20))       // "just now"
+ago(1h)                               // "1 hour ago"
+ago(20s)                              // "just now"
 ```
 
 ## Properties and relations
@@ -153,8 +153,8 @@ Two durations are `==` exactly when every field is the same, so `part` tells apa
 same length:
 
 ```ant
-let a = Time.duration(minutes: 90)
-let b = Time.duration(hours: 1, minutes: 30)
+let a = 90m
+let b = 1h30m
 Time.compareDuration(a, b)                 // 0
 a == b                                     // false
 a.part(Time.Hour{}) == b.part(Time.Hour{}) // false
@@ -175,12 +175,12 @@ Time.total(d, Time.Hour{})                                         // 2.5
 Time.until(start, end, largestUnit: Time.Hour{}).part(Time.Hour{}) // 2
 ```
 
-Two durations that print the same can hold different fields. `Time.duration(milliseconds: 1500)`
-keeps 1500 milliseconds, while the other keeps 1 second and 500 milliseconds:
+Two durations that print the same can hold different fields: `1500ms` keeps 1500 milliseconds, while
+`1s500ms` keeps 1 second and 500 milliseconds:
 
 ```ant
-let a = Time.duration(milliseconds: 1500)
-let b = Time.duration(seconds: 1, milliseconds: 500)
+let a = 1500ms
+let b = 1s500ms
 a                     // PT1.5S
 b                     // PT1.5S
 a.part(Time.Second{}) // 0
@@ -190,7 +190,7 @@ b.part(Time.Second{}) // 1
 The unit is a value, written with braces. The bare name is a type:
 
 ```ant
-let h = Time.part(Time.duration(hours: 1), Time.Hour)
+let h = Time.part(1h, Time.Hour)
 // error: Time.Hour is a type, not a value; a type appears only as a literal head, after is, or before a dot
 ```
 

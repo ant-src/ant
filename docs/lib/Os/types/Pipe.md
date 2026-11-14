@@ -287,7 +287,7 @@ defer { b.read.close() }
 defer { b.write.close() }
 let mixed = Os.Pipe{ read: a.read, write: b.write }
 try mixed.write.writeLine("hello")
-println(mixed.read.readLine(ctx: Context.new(Time.duration(milliseconds: 100))))
+println(mixed.read.readLine(ctx: Context.new(100ms)))
 println(try b.read.readLine())
 ```
 

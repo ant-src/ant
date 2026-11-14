@@ -159,7 +159,7 @@ why:
 
 ```ant
 let replies: Channel[string] = Channel.new()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(replies.receive(ctx: ctx))
 println(ctx.isDone())
 println(ctx.reason())
@@ -227,7 +227,7 @@ func awaitReply(replies: Channel[string], wait: Time.Duration): Result[string, E
 }
 
 let replies: Channel[string] = Channel.new(1)
-let wait = Time.duration(milliseconds: 50)
+let wait = 50ms
 replies.send("pong")
 println(awaitReply(replies, wait))
 println(awaitReply(replies, wait))

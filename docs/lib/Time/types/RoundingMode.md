@@ -86,7 +86,7 @@ t.round(Time.Minute{}, increment: 15, mode: Time.Ceil{})  // 14:45:00
 Without `mode:`, both functions use `Time.HalfExpand{}`, which takes a tie away from zero:
 
 ```ant
-let tie = Time.duration(minutes: 90)
+let tie = 90m
 tie.roundDuration(smallestUnit: Time.Hour{})                         // PT2H
 tie.roundDuration(smallestUnit: Time.Hour{}, mode: Time.HalfEven{})  // PT2H
 tie.roundDuration(smallestUnit: Time.Hour{}, mode: Time.HalfTrunc{}) // PT1H
@@ -174,7 +174,7 @@ func bill(worked: Time.Duration, policy: string): Result[Time.Duration, Error] {
   Result.ok(worked.roundDuration(smallestUnit: Time.Minute{}, increment: 15, mode: mode))
 }
 
-let worked = Time.duration(hours: 1, minutes: 20)
+let worked = 1h20m
 bill(worked, "up")      // Ok{ value: PT1H30M }
 bill(worked, "down")    // Ok{ value: PT1H15M }
 bill(worked, "nearest") // Ok{ value: PT1H15M }
@@ -186,7 +186,7 @@ bill(worked, "weekly")  // Err{ error: Error{ message: "unknown rounding policy:
 `HalfExpand`, the default, rounds as `Math.round` does, halves away from zero:
 
 ```ant
-let half = Time.duration(milliseconds: -2500)
+let half = Time.negate(2500ms)
 let rounded = half.roundDuration(smallestUnit: Time.Second{})
 assert(rounded.total(Time.Second{}) == Math.round(-2.5))
 ```
@@ -222,7 +222,7 @@ let same = Time.HalfEven{} == Time.HalfExpand{}
 `Trunc` goes toward zero, which is up for a negative value. Use `Floor` to always round down:
 
 ```ant
-let d = Time.duration(minutes: -100)
+let d = Time.negate(100m)
 d.roundDuration(smallestUnit: Time.Hour{}, mode: Time.Trunc{}) // -PT1H
 d.roundDuration(smallestUnit: Time.Hour{}, mode: Time.Floor{}) // -PT2H
 ```

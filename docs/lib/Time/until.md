@@ -85,7 +85,7 @@ Between two zones, hours and smaller still work:
 ```ant
 let tokyo = Result.unwrap(Time.zone("Asia/Tokyo"))
 let t = Time.fromEpochMillis(0)
-t.inZone(Time.utc).until(t.add(Time.duration(hours: 30)).inZone(tokyo)) // PT30H
+t.inZone(Time.utc).until(t.add(30h).inZone(tokyo)) // PT30H
 ```
 
 ### The same point, and pipes

@@ -131,7 +131,7 @@ let p = try Os.openPipe()
 defer { p.read.close() }
 defer { p.write.close() }
 try p.write.writeLine("arrived in time")
-let ctx = Context.new(Time.duration(milliseconds: 50))
+let ctx = Context.new(50ms)
 println(p.read.pipe(Os.stdout(), ctx: ctx))
 ```
 

@@ -97,7 +97,7 @@ let g = "Makefile"
 g.trimSuffix(Path.ext(g)) // "Makefile"
 ```
 
-Read a duration such as `250ms` by trimming the unit and parsing the rest:
+Read a count with a unit, such as `250ms`, by trimming the unit and parsing the rest:
 
 ```ant
 func millis(s: string): int | null {
@@ -109,6 +109,14 @@ func millis(s: string): int | null {
 
 millis("250ms") // 250
 millis("2s")    // null
+```
+
+To read duration text as a `Time.Duration`, use [`Time.parseDuration`](../Time/parseDuration.md),
+which reads Go notation such as `"250ms"` or `"2h30m"` as well as ISO 8601:
+
+```ant
+Time.parseDuration("250ms") // Ok{ value: PT0.25S }
+Time.parseDuration("2s")    // Ok{ value: PT2S }
 ```
 
 Remove one trailing slash from a URL path, but keep the root:
@@ -255,4 +263,5 @@ println(String.trimSuffix("main.ant", ext))
 
 [String.trimPrefix](trimPrefix.md) · [String.endsWith](endsWith.md) · [String.trimEnd](trimEnd.md) ·
 [String.trim](trim.md) · [String.slice](slice.md) · [String.cut](cut.md) ·
-[String.replace](replace.md) · [Path.ext](../Path/ext.md)
+[String.replace](replace.md) · [Path.ext](../Path/ext.md) ·
+[Time.parseDuration](../Time/parseDuration.md)

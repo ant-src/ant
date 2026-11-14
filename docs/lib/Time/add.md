@@ -25,7 +25,7 @@ around the clock. It panics if t is an Instant and d has years, months, weeks or
 
 ```ant
 Time.add(Time.plainDate(2024, 1, 31), Time.duration(months: 1)) // 2024-02-29
-Time.add(Time.plainTime(23, 30), Time.duration(hours: 2))       // 01:30:00
+Time.add(Time.plainTime(23, 30), 2h)                            // 01:30:00
 ```
 
 A negative duration moves back:
@@ -43,7 +43,7 @@ A `PlainDate` takes calendar units and whole days of the exact part:
 ```ant
 let day = Time.plainDate(2026, 1, 1)
 day.add(Time.duration(years: 1, weeks: 2)) // 2027-01-15
-day.add(Time.duration(hours: 47))          // 2026-01-02
+day.add(47h)                               // 2026-01-02
 day.add(Time.duration(hours: -1))          // 2026-01-01
 ```
 
@@ -51,7 +51,7 @@ A `PlainTime` wraps around the clock and ignores days:
 
 ```ant
 let noon = Time.plainTime(12)
-noon.add(Time.duration(hours: 13))          // 01:00:00
+noon.add(13h)                               // 01:00:00
 noon.add(Time.duration(days: 3, hours: 1))  // 13:00:00
 noon.add(Time.duration(milliseconds: -500)) // 11:59:59.5
 ```
@@ -60,7 +60,7 @@ A `PlainDateTime` carries the clock into the date:
 
 ```ant
 let eve = Time.plainDateTime(Time.plainDate(2026, 12, 31), Time.plainTime(23))
-eve.add(Time.duration(hours: 2))          // 2027-01-01T01:00:00
+eve.add(2h)                               // 2027-01-01T01:00:00
 eve.add(Time.duration(days: 1, hours: 2)) // 2027-01-02T01:00:00
 ```
 
@@ -68,8 +68,8 @@ An `Instant` takes hours and smaller units:
 
 ```ant
 let start = Time.fromEpochMillis(0)
-start.add(Time.duration(hours: 36, minutes: 30)) // 1970-01-02T12:30:00Z
-start.add(Time.duration(seconds: -1))            // 1969-12-31T23:59:59Z
+start.add(36h30m)          // 1970-01-02T12:30:00Z
+start.add(Time.negate(1s)) // 1969-12-31T23:59:59Z
 ```
 
 A `ZonedDateTime` keeps its zone:
@@ -114,8 +114,8 @@ clocks forward on March 8, 2026, so that day has 23 hours:
 ```ant
 let ny = Result.unwrap(Time.zone("America/New_York"))
 let saturday = Time.plainDateTime(Time.plainDate(2026, 3, 7), Time.plainTime(12)).toZoned(ny)
-saturday.add(Time.duration(days: 1))   // 2026-03-08T12:00:00-04:00[America/New_York]
-saturday.add(Time.duration(hours: 24)) // 2026-03-08T13:00:00-04:00[America/New_York]
+saturday.add(Time.duration(days: 1)) // 2026-03-08T12:00:00-04:00[America/New_York]
+saturday.add(24h)                    // 2026-03-08T13:00:00-04:00[America/New_York]
 ```
 
 It sets them back on November 1, 2026, so that day has 25 hours and 24 hours end an hour short of
@@ -124,8 +124,8 @@ noon:
 ```ant
 let ny = Result.unwrap(Time.zone("America/New_York"))
 let saturday = Time.plainDateTime(Time.plainDate(2026, 10, 31), Time.plainTime(12)).toZoned(ny)
-saturday.add(Time.duration(days: 1))   // 2026-11-01T12:00:00-05:00[America/New_York]
-saturday.add(Time.duration(hours: 24)) // 2026-11-01T11:00:00-05:00[America/New_York]
+saturday.add(Time.duration(days: 1)) // 2026-11-01T12:00:00-05:00[America/New_York]
+saturday.add(24h)                    // 2026-11-01T11:00:00-05:00[America/New_York]
 ```
 
 A day that lands in the skipped hour moves forward out of it:
@@ -152,7 +152,7 @@ A deadline five minutes from a fixed instant, checked with `Time.compare`:
 
 ```ant
 let started = Result.unwrap(Time.parseInstant("2026-10-22T14:03:05Z"))
-let deadline = started.add(Time.duration(minutes: 5))
+let deadline = started.add(5m)
 let now = Result.unwrap(Time.parseInstant("2026-10-22T14:09:00Z"))
 Time.compare(now, deadline) > 0 // true
 ```
@@ -204,9 +204,9 @@ For exact units on an `Instant`, subtracting undoes adding, and `Time.until` mea
 
 ```ant
 let t = Time.fromEpochMillis(1_000_000)
-let d = Time.duration(hours: 5, seconds: 7)
+let d = 5h7s
 assert(t.add(d).subtract(d) == t)
-assert(t.until(t.add(d)) == Time.duration(seconds: 18007))
+assert(t.until(t.add(d)) == 18007s)
 ```
 
 ## Possible issues
@@ -215,8 +215,8 @@ An `Instant` has no calendar, so a day panics. Use 24 hours, or convert to a `Zo
 
 ```ant
 let start = Time.fromEpochMillis(0)
-start.add(Time.duration(days: 1))   // panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
-start.add(Time.duration(hours: 24)) // 1970-01-02T00:00:00Z
+start.add(Time.duration(days: 1)) // panic: Time.add: an instant has no calendar, so it takes no days; convert it with Time.inZone first
+start.add(24h)                    // 1970-01-02T00:00:00Z
 ```
 
 Months do not undo each other. The day is constrained at each step, so two single months from
@@ -233,8 +233,8 @@ A `PlainDate` drops what is less than a day, so small steps add up to nothing:
 
 ```ant
 let day = Time.plainDate(2026, 1, 1)
-day.add(Time.duration(hours: 12)).add(Time.duration(hours: 12)) // 2026-01-01
-day.add(Time.duration(hours: 24))                               // 2026-01-02
+day.add(12h).add(12h) // 2026-01-01
+day.add(24h)          // 2026-01-02
 ```
 
 A value typed with a union such as `Time.Dated` does not pass until an `is` test narrows it:

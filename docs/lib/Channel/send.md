@@ -119,7 +119,7 @@ and no one receives:
 ```ant
 let c: Channel[int] = Channel.new(1)
 c.send(1)
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 println(c.send(2, ctx: ctx))
 println(ctx.reason())
 ```
@@ -179,7 +179,7 @@ go {
   events.send(Done{ files: 12 }, ctx: ctx)
 }
 go {
-  Time.sleep(Time.duration(seconds: 5), ctx: ctx)
+  Time.sleep(5s, ctx: ctx)
   events.send(Timeout{}, ctx: ctx)
 }
 while true {
@@ -237,7 +237,7 @@ clause beside the send:
 
 ```ant
 let out: Channel[string] = Channel.new()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 let outcome = select {
   Channel.send(out, "report") { "sent" }
   Context.wait(ctx) { "nobody listened" }
@@ -269,7 +269,7 @@ On an unbuffered channel, `send` returns only after a receiver has taken the val
 ```ant
 let c: Channel[int] = Channel.new()
 go {
-  Time.sleep(Time.duration(milliseconds: 30))
+  Time.sleep(30ms)
   c.receive()
 }
 let start = Time.monotonic()
@@ -301,7 +301,7 @@ let sent = select { // panic: select: a send clause was chosen on a closed chann
 A ticker's channel only receives:
 
 ```ant
-let ticks = Time.ticker(Time.duration(seconds: 1))
+let ticks = Time.ticker(1s)
 let sent = ticks.send(Time.now()) // panic: Channel.send: a ticker's channel only receives
 ```
 
@@ -311,7 +311,7 @@ receiver first:
 
 ```ant
 let c: Channel[int] = Channel.new()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 println(c.send(1, ctx: ctx))
 ```
 

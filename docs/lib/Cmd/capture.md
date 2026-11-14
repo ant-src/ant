@@ -170,7 +170,7 @@ println(out.stdout.trim())
 with the context's reason:
 
 ```ant
-let ctx = Context.new(Time.duration(milliseconds: 100))
+let ctx = Context.new(100ms)
 println(Cmd.capture(Cmd.new("sleep", ["5"]), ctx: ctx))
 ```
 

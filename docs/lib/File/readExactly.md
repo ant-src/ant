@@ -119,7 +119,7 @@ go {
   let c = Result.unwrap(Net.dial(l.address()))
   defer { File.close(c) }
   Result.unwrap(c.writeText("hel"))
-  Time.sleep(Time.duration(milliseconds: 20))
+  Time.sleep(20ms)
   Result.unwrap(c.writeText("lo"))
 }
 let conn = try Net.accept(l)
@@ -149,7 +149,7 @@ go {
 }
 let conn = try Net.accept(l)
 defer { File.close(conn) }
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(conn.readExactly(4, ctx: ctx))
 Channel.send(more, true)
 println(conn.readExactly(4))

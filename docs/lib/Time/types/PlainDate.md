@@ -302,8 +302,8 @@ Hours shorter than a day are dropped, so small steps add up to nothing:
 
 ```ant
 let d = Time.plainDate(2026, 1, 1)
-d.add(Time.duration(hours: 12)).add(Time.duration(hours: 12)) // 2026-01-01
-d.add(Time.duration(hours: 24))                               // 2026-01-02
+d.add(12h).add(12h) // 2026-01-01
+d.add(24h)          // 2026-01-02
 ```
 
 ## See also

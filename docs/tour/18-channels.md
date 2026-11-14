@@ -28,7 +28,7 @@ for line in results.values() {
 }
 
 let replies: Channel[string] = Channel.new()
-let ctx = Context.new(Time.duration(milliseconds: 50))
+let ctx = Context.new(50ms)
 select {
   let reply = Channel.receive(replies) { println("reply: ${reply}") }
   Context.wait(ctx) { println("gave up: ${ctx.reason() ?? "running"}") }
@@ -69,11 +69,12 @@ and drained. That is why each sender closes its channel: the `for` loop on the o
 there.
 
 The first `select` waits on two things: a reply that never comes, and the context `ctx`, which is
-done after 50 milliseconds. Whichever is ready first runs its block, here the context's. The
-`let reply =` before the receive names the value it got, for use in that block. `reply` is a
-`string | null`: a receive gives `null` once the channel is closed, and a closed channel is always
-ready, so a `select` in a loop leaves the loop when it gets `null`. A `select` head is written in
-namespace form, as `Channel.receive(replies)`.
+done after `50ms`, a [duration literal](../language/literals/durations.md) of 50 milliseconds.
+Whichever is ready first runs its block, here the context's. The `let reply =` before the receive
+names the value it got, for use in that block. `reply` is a `string | null`: a receive gives `null`
+once the channel is closed, and a closed channel is always ready, so a `select` in a loop leaves the
+loop when it gets `null`. A `select` head is written in namespace form, as
+`Channel.receive(replies)`.
 
 The second `select` has an `else`, so it never waits. On the first lap the mailbox is empty, nothing
 is ready, and `else` leaves a note. On the second lap the note is there, and the receive takes it.

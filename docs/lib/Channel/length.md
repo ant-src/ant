@@ -80,8 +80,8 @@ A ticker holds at most one tick, and none once its context is done:
 
 ```ant
 let ctx = Context.new()
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx)
-Time.sleep(Time.duration(milliseconds: 50))
+let ticks = Time.ticker(10ms, ctx)
+Time.sleep(50ms)
 println(ticks.length())
 ctx.cancel()
 println(ticks.length())

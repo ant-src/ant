@@ -168,8 +168,8 @@ the start of April 7 is 01:00 on April 6. Subtract a calendar day instead:
 
 ```ant
 let start = Result.unwrap(Time.parseZoned("2024-04-07T00:00[America/Santiago]"))
-start.subtract(Time.duration(hours: 24)) // 2024-04-06T01:00:00-03:00[America/Santiago]
-start.subtract(Time.duration(days: 1))   // 2024-04-06T00:00:00-03:00[America/Santiago]
+start.subtract(24h)                    // 2024-04-06T01:00:00-03:00[America/Santiago]
+start.subtract(Time.duration(days: 1)) // 2024-04-06T00:00:00-03:00[America/Santiago]
 ```
 
 Building midnight by hand with `Time.Earlier{}` lands on the day before when midnight was skipped;

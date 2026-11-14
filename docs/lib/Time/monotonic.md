@@ -28,7 +28,7 @@ Take a reading before the work and one after, and subtract:
 
 ```ant
 let start = Time.monotonic()
-Time.sleep(Time.duration(milliseconds: 50))
+Time.sleep(50ms)
 println("slept ${Time.monotonic() - start} ms")
 ```
 
@@ -84,7 +84,7 @@ let deadline = Time.monotonic() + 200
 var polls = 0
 while Time.monotonic() < deadline {
   polls += 1
-  Time.sleep(Time.duration(milliseconds: 50))
+  Time.sleep(50ms)
 }
 println("gave up after ${polls} polls")
 ```

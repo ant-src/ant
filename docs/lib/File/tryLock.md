@@ -159,7 +159,7 @@ the lock is free again:
 ```ant
 let first = try File.tryLock("pair.lock")
 assert(first != null)
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 assert(!File.lock("pair.lock", ctx: ctx).isOk())
 try first.close()
 let second = try File.tryLock("pair.lock")

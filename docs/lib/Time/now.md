@@ -51,8 +51,8 @@ func expired(t: Token, ttl: Time.Duration): bool {
 
 let old = Token{ value: "a1", issued: Time.parseInstant("2020-01-01T00:00:00Z").unwrap() }
 let fresh = Token{ value: "b2", issued: Time.now() }
-println(expired(old, Time.duration(hours: 1)))
-println(expired(fresh, Time.duration(hours: 1)))
+println(expired(old, 1h))
+println(expired(fresh, 1h))
 ```
 
 ```text
@@ -79,11 +79,11 @@ It prints a line such as `{"at":1794432427050,"message":"started"}`.
 Keep trying until a deadline passes:
 
 ```ant
-let deadline = Time.now().add(Time.duration(milliseconds: 50))
+let deadline = Time.now().add(50ms)
 var tries = 0
 while Time.compare(Time.now(), deadline) < 0 {
   tries += 1
-  Time.sleep(Time.duration(milliseconds: 10))
+  Time.sleep(10ms)
 }
 println(tries > 0)
 ```
@@ -142,7 +142,7 @@ the end of a window, read the clock once and use that value:
 
 ```ant
 let now = Time.now()
-let start = now.subtract(Time.duration(hours: 1))
+let start = now.subtract(1h)
 println(Time.until(start, now, largestUnit: Time.Hour{}))
 ```
 

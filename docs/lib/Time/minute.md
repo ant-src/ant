@@ -148,9 +148,9 @@ Adding an hour leaves the minute as it was, and adding a minute carries into the
 
 ```ant
 let t = Time.plainTime(9, 59)
-assert(t.add(Time.duration(hours: 1)).minute() == 59)
-assert(t.add(Time.duration(minutes: 1)).minute() == 0)
-assert(t.add(Time.duration(minutes: 1)).hour() == 10)
+assert(t.add(1h).minute() == 59)
+assert(t.add(1m).minute() == 0)
+assert(t.add(1m).hour() == 10)
 ```
 
 A `Time.PlainDateTime` and a `Time.ZonedDateTime` have the minute of their time:
@@ -188,11 +188,11 @@ A `Time.PlainDate` has no time:
 println(Time.minute(Time.plainDate(2026, 11, 11))) // error: cannot use Time.PlainDate where Time.Timed is expected
 ```
 
-`Time.minute` reads the clock, not a span. A `Time.Duration` keeps its minutes as given, and
+`Time.minute` reads the clock, not a span. A duration literal keeps its minutes as written, and
 [Time.part](part.md) reads them:
 
 ```ant
-let d = Time.duration(minutes: 90)
+let d = 90m
 d.part(Time.Minute{}) // 90
 ```
 

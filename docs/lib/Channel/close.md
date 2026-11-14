@@ -234,7 +234,7 @@ func stopTicks(ticks: Channel[Time.Instant]) {
   ticks.close() // panic: Channel.close: a ticker's channel only receives
 }
 
-stopTicks(Time.ticker(Time.duration(seconds: 1)))
+stopTicks(Time.ticker(1s))
 ```
 
 When `T` includes `null`, a `null` value looks like the close. Here the first receive takes the

@@ -16,14 +16,14 @@ relativeTo is null.
 
 ## Details
 
-- It measures the whole duration, not one field: `PT1H30M` in minutes is `90.0`. Use
+- It measures the whole duration, not one field: `1h30m` in minutes is `90.0`. Use
   [Time.part](part.md) for a single field as given.
 
 ## Basic examples
 
 ```ant
-Time.total(Time.duration(hours: 1, minutes: 30), Time.Hour{})   // 1.5
-Time.total(Time.duration(hours: 1, minutes: 30), Time.Minute{}) // 90.0
+Time.total(1h30m, Time.Hour{})   // 1.5
+Time.total(1h30m, Time.Minute{}) // 90.0
 ```
 
 Years, months and weeks need a `relativeTo` date to count from. February 2026 has 28 days:
@@ -38,23 +38,23 @@ Time.total(Time.duration(months: 1), Time.Day{}, relativeTo: feb) // 28.0
 A part of a unit is a fraction:
 
 ```ant
-Time.duration(minutes: 20).total(Time.Hour{}) // 0.3333333333333333
-Time.duration(hours: 36).total(Time.Day{})    // 1.5
+20m.total(Time.Hour{}) // 0.3333333333333333
+36h.total(Time.Day{})  // 1.5
 ```
 
 Subsecond fields count at their exact length, in either direction:
 
 ```ant
-Time.duration(milliseconds: 1500).total(Time.Second{}) // 1.5
-Time.duration(nanoseconds: 1).total(Time.Second{})     // 1e-9
-Time.duration(seconds: 1).total(Time.Nanosecond{})     // 1000000000.0
+1500ms.total(Time.Second{}) // 1.5
+1ns.total(Time.Second{})    // 1e-9
+1s.total(Time.Nanosecond{}) // 1000000000.0
 ```
 
 The empty duration is zero, and a negative duration gives a negative total:
 
 ```ant
-Time.duration().total(Time.Hour{})                        // 0.0
-Time.duration(hours: -2, minutes: -15).total(Time.Hour{}) // -2.25
+Time.duration().total(Time.Hour{})    // 0.0
+Time.negate(2h15m).total(Time.Hour{}) // -2.25
 ```
 
 ## Named arguments
@@ -126,9 +126,9 @@ Turn lap times into seconds to average them:
 
 ```ant
 let laps = [
-  Time.duration(minutes: 1, seconds: 2, milliseconds: 300),
-  Time.duration(seconds: 59, milliseconds: 800),
-  Time.duration(minutes: 1, seconds: 1),
+  1m2s300ms,
+  59s800ms,
+  1m1s,
 ]
 let seconds = laps | Array.map({ x.total(Time.Second{}) })
 let sum = seconds.sum() ?? 0.0
@@ -159,22 +159,22 @@ println("${Math.round(used * 100.0)}% of the month used")
 The total in a smaller unit is the total in a larger one times the count between them:
 
 ```ant
-let d = Time.duration(hours: 5, minutes: 7, seconds: 3)
+let d = 5h7m3s
 assert(d.total(Time.Minute{}) == d.total(Time.Second{}) / 60.0)
 ```
 
 Negating the duration negates the total:
 
 ```ant
-let d = Time.duration(hours: 2, minutes: 30)
+let d = 2h30m
 assert(Time.negate(d).total(Time.Minute{}) == -d.total(Time.Minute{}))
 ```
 
 Durations with different fields but one length have the same total, though they are not `==`:
 
 ```ant
-let a = Time.duration(minutes: 90)
-let b = Time.duration(hours: 1, minutes: 30)
+let a = 90m
+let b = 1h30m
 assert(a.total(Time.Hour{}) == b.total(Time.Hour{}))
 assert(a != b)
 ```
@@ -198,7 +198,7 @@ Time.duration(days: 30).total(Time.Month{})
 The result is a `float64`, so compare it with a float literal:
 
 ```ant
-let hours = Time.duration(hours: 1).total(Time.Hour{})
+let hours = 1h.total(Time.Hour{})
 let one = hours == 1
 // error: float64 and int cannot be compared with ==: neither is assignable to the other
 ```

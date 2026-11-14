@@ -157,7 +157,7 @@ let done: Channel[Result[string | null, Error]] = Channel.new()
 go {
   Channel.send(done, pipe.read.readLine())
 }
-Time.sleep(Time.duration(milliseconds: 50))
+Time.sleep(50ms)
 Result.unwrap(pipe.read.close())
 println(Channel.receive(done) is Err)
 Result.unwrap(pipe.write.close())

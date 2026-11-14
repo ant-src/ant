@@ -186,7 +186,7 @@ A context bounds the command. When it ends first, the command is killed and the 
 the context's reason:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 println(Cmd.new("sleep", ["5"]).readBytes(ctx: ctx))
 ```
 

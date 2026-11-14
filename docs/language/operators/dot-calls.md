@@ -317,6 +317,14 @@ let n = -5
 let a = n.abs() // error: int has no field or function abs
 ```
 
+A [duration literal](../literals/durations.md) such as `90m` is a `Time.Duration`, not a number, so
+calls through `.` reach the `Time` namespace:
+
+```ant
+90m.total(Time.Minute{}) // 90.0
+1h.negate()              // -PT1H
+```
+
 ### Nullable values
 
 A `string | null` is not a `string`. Narrow it first, or use `?.`:

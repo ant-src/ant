@@ -151,10 +151,10 @@ func steps[T: Time.Point](start: T, step: Time.Duration, count: int): Array[T] {
   out
 }
 
-for t in steps(Time.plainTime(22), Time.duration(hours: 2), 3) {
+for t in steps(Time.plainTime(22), 2h, 3) {
   println(t)
 }
-println(steps(Time.fromEpochMillis(0), Time.duration(minutes: 15), 3))
+println(steps(Time.fromEpochMillis(0), 15m, 3))
 ```
 
 ```text
@@ -207,7 +207,7 @@ Narrow it with `is`, one member per branch. An `Instant` has no days, so it take
 func nextDay(t: Time.Point): Time.Point {
   let day = Time.duration(days: 1)
   if t is Time.Instant {
-    t.add(Time.duration(hours: 24))
+    t.add(24h)
   } else if t is Time.ZonedDateTime {
     t.add(day)
   } else if t is Time.PlainDate {
@@ -261,7 +261,7 @@ A narrowed value is a plain member type, no longer a `T`, so it cannot be return
 
 ```ant
 func shift[T: Time.Point](t: T): T {
-  if t is Time.Instant { t.add(Time.duration(hours: 1)) } else { t }
+  if t is Time.Instant { t.add(1h) } else { t }
   // error: cannot use Time.Instant where T is expected
 }
 ```
@@ -269,12 +269,12 @@ func shift[T: Time.Point](t: T): T {
 A `Time.Duration` is not a member. Compare durations with `Time.compareDuration`:
 
 ```ant
-let d = Time.compare(Time.duration(hours: 1), Time.duration(hours: 2))
+let d = Time.compare(1h, 2h)
 // error: T would be Time.Duration, which is not a member of its bound Time.Point
 ```
 
 ```ant
-Time.compareDuration(Time.duration(hours: 1), Time.duration(hours: 2)) // -1
+Time.compareDuration(1h, 2h) // -1
 ```
 
 ## See also

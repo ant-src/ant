@@ -108,7 +108,7 @@ goes on, so a later wait still gets its status:
 
 ```ant
 let child = try Cmd.new("sleep", ["1"]).start()
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 println(child.wait(ctx: ctx))
 println(child.wait())
 ```
@@ -172,13 +172,13 @@ Give a command a while to finish, and stop it when it takes longer:
 func waitOrStop(p: Cmd.Process, limit: Time.Duration): Result[int, Error] {
   let waited = p.wait(ctx: Context.new(timeout: limit))
   if waited is Ok { return waited }
-  p.stop(grace: Time.duration(seconds: 1))
+  p.stop(grace: 1s)
 }
 
 let quick = try Cmd.new("true").start()
-println(try waitOrStop(quick, Time.duration(seconds: 5)))
+println(try waitOrStop(quick, 5s))
 let stuck = try Cmd.new("sleep", ["30"]).start()
-println(try waitOrStop(stuck, Time.duration(milliseconds: 200)))
+println(try waitOrStop(stuck, 200ms))
 ```
 
 ```text
@@ -235,7 +235,7 @@ let out = try Os.openPipe()
 defer { out.read.close() }
 let child = try Cmd.new("seq", ["100000"]).start(stdout: out.write)
 try out.write.close()
-println(child.wait(ctx: Context.new(timeout: Time.duration(milliseconds: 300))))
+println(child.wait(ctx: Context.new(timeout: 300ms)))
 let text = try out.read.readAll()
 println(text.lines().length())
 println(try child.wait())

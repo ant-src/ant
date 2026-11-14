@@ -62,7 +62,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -115,7 +115,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -154,7 +154,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -195,7 +195,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -238,7 +238,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -292,7 +292,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -332,7 +332,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -343,8 +343,8 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.get("${base}/slow", timeout: Time.duration(milliseconds: 100)))
-println(Http.get("${base}/slow", timeout: Time.duration(seconds: 5)).map({ x.text() }))
+println(Http.get("${base}/slow", timeout: 100ms))
+println(Http.get("${base}/slow", timeout: 5s).map({ x.text() }))
 ```
 
 ```text
@@ -372,7 +372,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -385,7 +385,7 @@ go { Http.serve(listener, handle) }
 ```ant
 let ctx = Context.new()
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Context.cancel(ctx)
 }
 println(Http.get("${base}/slow", ctx: ctx))
@@ -412,7 +412,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -423,8 +423,8 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-let ctx = Context.new(Time.duration(seconds: 10))
-println(Http.get("${base}/slow", timeout: Time.duration(milliseconds: 100), ctx: ctx))
+let ctx = Context.new(10s)
+println(Http.get("${base}/slow", timeout: 100ms, ctx: ctx))
 ```
 
 ```text
@@ -453,7 +453,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -502,7 +502,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -554,7 +554,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -601,7 +601,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -634,7 +634,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -674,7 +674,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -716,7 +716,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/empty" { return Http.Reply{ status: 204, headers: none, body: "" } }
   if req.path == "/error" { return Http.Reply{ status: 500, headers: none, body: "database down" } }
   if req.path == "/slow" {
-    Time.sleep(Time.duration(seconds: 1))
+    Time.sleep(1s)
     return Http.Reply{ status: 200, headers: none, body: "done" }
   }
   Http.Reply{ status: 404, headers: none, body: "not found: ${req.path}" }
@@ -727,7 +727,7 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.get("${base}/slow", timeout: Time.duration(milliseconds: 100)) | Result.wrapErr("get /slow"))
+println(Http.get("${base}/slow", timeout: 100ms) | Result.wrapErr("get /slow"))
 ```
 
 ```text
@@ -741,7 +741,7 @@ not positive:
 
 ```ant
 println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
-println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
+println(Http.get("http://127.0.0.1:1/", timeout: 0s))
 ```
 
 ```text

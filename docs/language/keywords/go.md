@@ -180,10 +180,10 @@ done:
 ```ant
 let reply: Channel[string] = Channel.new()
 go {
-  Time.sleep(Time.duration(seconds: 5))
+  Time.sleep(5s)
   reply.send("late answer")
 }
-let ctx = Context.new(Time.duration(milliseconds: 50))
+let ctx = Context.new(50ms)
 println(reply.receive(ctx) ?? "timed out")
 ```
 
@@ -202,11 +202,11 @@ wg.add(1)
 go {
   defer { wg.done() }
   while !ctx.isDone() {
-    Time.sleep(Time.duration(seconds: 1), ctx)
+    Time.sleep(1s, ctx)
   }
   println("worker stopped: ${ctx.reason() ?? "running"}")
 }
-Time.sleep(Time.duration(milliseconds: 20))
+Time.sleep(20ms)
 ctx.cancel()
 wg.wait()
 println("done")
@@ -280,7 +280,7 @@ The program exits when the script body ends. A goroutine that has not finished b
 
 ```ant
 go {
-  Time.sleep(Time.duration(seconds: 1))
+  Time.sleep(1s)
   println("never printed")
 }
 println("script ends")

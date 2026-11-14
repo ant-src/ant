@@ -140,7 +140,7 @@ Adding one nanosecond to 999 carries into the microsecond:
 
 ```ant
 let t = Time.plainTime(9, nanosecond: 999)
-let u = t.add(Time.duration(nanoseconds: 1))
+let u = t.add(1ns)
 assert(u.nanosecond() == 0)
 assert(u.microsecond() == 1)
 ```
@@ -170,11 +170,12 @@ t.nanosecond()                          // 500
 t.microsecond() * 1000 + t.nanosecond() // 1500
 ```
 
-A `Time.Duration` has no wall clock either. Read its nanoseconds with [Time.part](part.md). The
-field is kept as given, so it is not limited to 0 to 999:
+A `Time.Duration` has no wall clock either. Read its nanoseconds with [Time.part](part.md). A
+literal keeps its fields as written, so the nanoseconds of `1500ns` stay 1500, not limited to 0 to
+999:
 
 ```ant
-Time.part(Time.duration(nanoseconds: 1500), Time.Nanosecond{}) // 1500
+Time.part(1500ns, Time.Nanosecond{}) // 1500
 ```
 
 A time holds nothing below the nanosecond, so a fraction of ten digits does not parse:

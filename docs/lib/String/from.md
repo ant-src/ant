@@ -280,6 +280,14 @@ println([Time.fromEpochMillis(0), Time.plainDate(2026, 11, 8)])
 [1970-01-01T00:00:00Z, 2026-11-08]
 ```
 
+A [Time.Duration](../Time/types/Duration.md) renders as its ISO 8601 string, whichever way it was
+written:
+
+```ant
+String.from(500ms) // "PT0.5S"
+String.from(2h30m) // "PT2H30M"
+```
+
 ### Sync objects, handles, and types
 
 A sync object, a `Random`, or a handle renders as its type's name:

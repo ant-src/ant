@@ -36,7 +36,9 @@ tip: 20 percent
 
 `total` is an `int`, and `exact` is a `float64`. An integer literal is always an `int`, the 64-bit
 default, and a literal with a point or an exponent, such as `2.5` or `1e9`, is always a `float64`.
-Underscores group digits, and `0x`, `0o`, and `0b` write hexadecimal, octal, and binary.
+Underscores group digits, and `0x`, `0o`, and `0b` write hexadecimal, octal, and binary. A number
+followed by a time unit, such as `500ms` or `2h30m`, is not a number but a
+[duration literal](../language/literals/durations.md) of type `Time.Duration`.
 
 Ant has ten numeric types: `int8` to `int64`, `uint8` to `uint64`, `float32`, and `float64`; `int`
 is `int64` and `byte` is `uint8`. To get one, call its name as a function, such as `float64(total)`

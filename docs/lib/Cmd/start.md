@@ -256,7 +256,7 @@ When `ctx` is done, every stage is killed, waited for or not, and every wait is 
 context's reason:
 
 ```ant
-let ctx = Context.new(Time.duration(milliseconds: 100))
+let ctx = Context.new(100ms)
 let child = try Cmd.start(Cmd.new("sleep", ["5"]), ctx: ctx)
 println(child.wait())
 ```
@@ -379,7 +379,7 @@ let out = try Os.openPipe()
 defer { out.read.close() }
 let child = try Cmd.start(Cmd.new("echo", ["done"]), stdout: out.write)
 println(try child.wait())
-println(out.read.readAll(ctx: Context.new(Time.duration(milliseconds: 100))))
+println(out.read.readAll(ctx: Context.new(100ms)))
 try out.write.close()
 ```
 

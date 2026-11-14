@@ -69,7 +69,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -129,7 +129,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -180,7 +180,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -214,7 +214,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -229,7 +229,7 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.get("${base}/slow", timeout: Time.duration(milliseconds: 50)))
+println(Http.get("${base}/slow", timeout: 50ms))
 ```
 
 ```text
@@ -246,7 +246,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -261,7 +261,7 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 50))
+let ctx = Context.new(timeout: 50ms)
 println(Http.get("${base}/slow", ctx: ctx))
 println(Http.get("${base}/hello", ctx: ctx))
 ```
@@ -304,7 +304,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -348,7 +348,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -363,9 +363,8 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-let timeout = Time.duration(milliseconds: 100)
 for path in ["/hello", "/slow", "/gone"] {
-  let res = Http.get("${base}${path}", timeout: timeout)
+  let res = Http.get("${base}${path}", timeout: 100ms)
   let state = if res is Err { res.error.message } else { "${res.value.status}" }
   println("${path}: ${state}")
 }
@@ -415,7 +414,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -445,7 +444,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -478,7 +477,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -534,7 +533,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers, body: "{\"name\": \"Ann\", \"age\": 31}" }
   }
   if req.path == "/old" { return Http.Reply{ status: 301, headers: Map{ "Location": "/hello" }, body: "" } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/lang" {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
@@ -549,7 +548,7 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
+println(Http.get("http://127.0.0.1:1/", timeout: 0s))
 println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
 ```
 

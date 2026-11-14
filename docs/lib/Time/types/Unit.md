@@ -88,7 +88,7 @@ Time.Nanosecond is the unit of a nanosecond, the smallest unit.
 Pass a unit to read one field of a duration, or to measure the whole duration:
 
 ```ant
-let d = Time.duration(hours: 1, minutes: 30)
+let d = 1h30m
 Time.part(d, Time.Minute{})  // 30
 Time.total(d, Time.Minute{}) // 90.0
 ```
@@ -106,8 +106,8 @@ Time.round(Time.plainTime(9, 47), Time.Hour{})   // 10:00:00
 Balance a duration up to a unit, or round it to one:
 
 ```ant
-Time.roundDuration(Time.duration(minutes: 90), largestUnit: Time.Hour{})            // PT1H30M
-Time.roundDuration(Time.duration(hours: 1, minutes: 47), smallestUnit: Time.Hour{}) // PT2H
+Time.roundDuration(90m, largestUnit: Time.Hour{})    // PT1H30M
+Time.roundDuration(1h47m, smallestUnit: Time.Hour{}) // PT2H
 ```
 
 ## Scope
@@ -205,7 +205,7 @@ The smaller the unit, the larger the total of the same duration:
 
 ```ant
 let exact: Array[Time.Unit] = [Time.Hour{}, Time.Minute{}, Time.Second{}, Time.Millisecond{}]
-let totals = exact.map({ Time.duration(hours: 2).total(x) })
+let totals = exact.map({ 2h.total(x) })
 assert(totals == [2.0, 120.0, 7200.0, 7200000.0])
 ```
 
@@ -214,7 +214,7 @@ A day is 24 hours without a `relativeTo` point:
 ```ant
 let d = Time.duration(days: 1)
 assert(d.total(Time.Hour{}) == 24.0)
-assert(Time.duration(hours: 36).total(Time.Day{}) == 1.5)
+assert(36h.total(Time.Day{}) == 1.5)
 ```
 
 ## Possible issues

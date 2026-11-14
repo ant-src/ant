@@ -178,7 +178,7 @@ Every function that runs a command takes a `ctx`. When it ends before the comman
 is killed and the call is `Err` with the context's reason:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 println(Cmd.new("sleep", ["10"]).run(ctx: ctx))
 ```
 

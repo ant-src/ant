@@ -252,7 +252,7 @@ let pipe = try Os.openPipe()
 defer { pipe.read.close() }
 let child = try Cmd.start(Cmd.new("seq", ["3"]), stdout: pipe.write)
 // The program's copy of the write end is still open.
-println(pipe.read.readAll(ctx: Context.new(Time.duration(milliseconds: 100))))
+println(pipe.read.readAll(ctx: Context.new(100ms)))
 try pipe.write.close()
 println(try child.wait())
 ```
@@ -271,7 +271,7 @@ let pipe = try Os.openPipe()
 defer { pipe.read.close() }
 let child = try Cmd.start(Cmd.new("seq", ["100000"]), stdout: pipe.write)
 try pipe.write.close()
-println(child.wait(ctx: Context.new(Time.duration(milliseconds: 100))))
+println(child.wait(ctx: Context.new(100ms)))
 let lines = try pipe.read.readAll() | String.lines()
 println(lines.length())
 println(try child.wait())

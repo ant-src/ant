@@ -131,7 +131,7 @@ When `ctx` ends while the command runs, `Cmd.run` kills every stage and returns 
 context's reason:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 let result = Cmd.new("sleep", ["10"]).run(ctx: ctx)
 println(result)
 ```

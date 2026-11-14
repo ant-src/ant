@@ -144,7 +144,7 @@ Give a command a deadline, then interrupt it as Ctrl-C would:
 
 ```ant
 let job = try Cmd.start(Cmd.new("sleep", ["10"]))
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 if Cmd.wait(job, ctx: ctx) is Err {
   println("no answer in time, interrupting")
   try Cmd.kill(job, signal: "SIGINT")
@@ -176,7 +176,7 @@ A short or lowercase name is `Err`, and nothing is sent:
 
 ```ant
 let p = try Cmd.start(Cmd.new("sleep", ["10"]))
-defer { Cmd.stop(p, grace: Time.duration(seconds: 0)) }
+defer { Cmd.stop(p, grace: 0s) }
 println(Cmd.kill(p, signal: "TERM"))
 println(Cmd.kill(p, signal: "sigterm"))
 ```
@@ -200,7 +200,7 @@ let stubborn = try Cmd.start(Cmd.new("sh", ["-c", script]), stdout: out.write)
 try out.write.close()
 println(try out.read.readLine())
 try Cmd.kill(stubborn)
-let ctx = Context.new(timeout: Time.duration(milliseconds: 300))
+let ctx = Context.new(timeout: 300ms)
 println(Cmd.wait(stubborn, ctx: ctx))
 try Cmd.kill(stubborn, signal: "SIGKILL")
 println(try Cmd.wait(stubborn))

@@ -152,10 +152,10 @@ assert(Time.plainDateTime(date, time) == parsed)
 [Time.compare](compare.md) orders by the date first and the time second:
 
 ```ant
-let late = Time.plainDateTime(Time.plainDate(2026, 10, 22), Time.plainTime(23))
-let early = Time.plainDateTime(Time.plainDate(2026, 10, 23), Time.plainTime(1))
-assert(Time.compare(late, early) == -1)
-assert(late.until(early) == Time.duration(hours: 2))
+let evening = Time.plainDateTime(Time.plainDate(2026, 10, 22), Time.plainTime(23))
+let morning = Time.plainDateTime(Time.plainDate(2026, 10, 23), Time.plainTime(1))
+assert(Time.compare(evening, morning) == -1)
+assert(evening.until(morning) == 2h)
 ```
 
 ## Possible issues

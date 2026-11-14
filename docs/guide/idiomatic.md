@@ -331,6 +331,29 @@ func writeAndClose(output: File.Handle, lines: Array[string]): Result[void, Erro
 The deferred close covers early exits. The final close reports a completion error. Make ownership
 clear when a function takes or returns an open resource.
 
+## Time
+
+### Write constant spans as literals
+
+Write a constant span of hours and smaller units as a duration literal: `Time.sleep(1s)`,
+`Context.new(50ms)`, `timeout: Time.Duration = 10m`, not `Time.duration(seconds: 1)`. Keep
+`Time.duration` for a span computed from a number.
+
+<!-- test: before
+func waitForRetry(attempt: int, ctx: Context): void {
+-->
+<!-- test: after
+}
+-->
+
+```ant
+let delay = if attempt == 0 { 500ms } else { Time.duration(seconds: attempt * 2) }
+Time.sleep(delay, ctx: ctx)
+```
+
+Write a calendar span with the constructor, such as `Time.duration(days: 1)`, and a negative
+constant as `Time.negate(5s)`. See [Duration literals](../language/literals/durations.md).
+
 ## Changing style safely
 
 Preserve optional chaining, interface calls, evaluation order, and failure behavior when changing

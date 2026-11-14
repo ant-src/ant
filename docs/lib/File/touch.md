@@ -31,7 +31,7 @@ let before = Time.now()
 try File.touch("stamp")
 let info = try File.stat("stamp")
 println(info.size)
-println(Time.compare(info.modified, Time.subtract(before, Time.duration(seconds: 2))) >= 0)
+println(Time.compare(info.modified, Time.subtract(before, 2s)) >= 0)
 ```
 
 ```text
@@ -180,7 +180,7 @@ for days in [1, 10, 30] {
   try File.touch("logs/${days}d.log", Time.subtract(now, Time.duration(hours: days * 24)))
 }
 
-let cutoff = Time.subtract(now, Time.duration(hours: 7 * 24))
+let cutoff = Time.subtract(now, 168h)
 for path in try File.glob("logs/*.log") {
   let info = try File.stat(path)
   if Time.compare(info.modified, cutoff) < 0 {

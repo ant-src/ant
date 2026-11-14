@@ -116,7 +116,7 @@ func clockChange(t: Time.ZonedDateTime): string {
   if next == null {
     return "no clock change ahead"
   }
-  let before = next.subtract(Time.duration(nanoseconds: 1)).offsetSeconds()
+  let before = next.subtract(1ns).offsetSeconds()
   let minutes = (next.offsetSeconds() - before) / 60
   let way = if minutes > 0 { "forward" } else { "back" }
   "on ${next.toPlainDate()} clocks go ${way} ${Math.abs(minutes)} minutes"
@@ -158,7 +158,7 @@ let next = t.nextTransition()
 assert(next != null)
 assert(Time.compare(next, t) > 0)
 assert(next.zoneOf() == t.zoneOf())
-let justBefore = next.subtract(Time.duration(nanoseconds: 1))
+let justBefore = next.subtract(1ns)
 assert(justBefore.offset() != next.offset())
 ```
 
@@ -169,7 +169,7 @@ transition, the previous one is that transition:
 let t = Time.parseZoned("2026-06-01T12:00[America/New_York]").unwrap()
 let next = t.nextTransition()
 assert(next != null)
-let after = next.add(Time.duration(nanoseconds: 1))
+let after = next.add(1ns)
 assert(after.previousTransition() == next)
 ```
 

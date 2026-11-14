@@ -142,7 +142,7 @@ let pipe = try Os.openPipe()
 defer { pipe.read.close() }
 try pipe.write.writeText("first part, ")
 
-let ctx = Context.new(Time.duration(milliseconds: 50))
+let ctx = Context.new(50ms)
 println(pipe.read.readAll(ctx: ctx))
 
 try pipe.write.writeText("second part")
@@ -289,7 +289,7 @@ defer { pipe.read.close() }
 defer { pipe.write.close() }
 try pipe.write.writeText("done")
 // The write end is still open, so the end never comes.
-println(pipe.read.readAll(ctx: Context.new(Time.duration(milliseconds: 50))))
+println(pipe.read.readAll(ctx: Context.new(50ms)))
 ```
 
 ```text

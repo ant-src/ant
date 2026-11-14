@@ -78,9 +78,7 @@ Show when a flight leaves and lands, each on its local clock:
 
 ```ant
 let departs = Time.parseZoned("2026-10-22T10:05:00+02:00[Europe/Stockholm]").unwrap()
-let arrives = departs
-  .add(Time.duration(hours: 11, minutes: 40))
-  .withZone(Time.zone("Asia/Tokyo").unwrap())
+let arrives = departs.add(11h40m).withZone(Time.zone("Asia/Tokyo").unwrap())
 println("Departs ${departs.toPlainTime()} Stockholm time")
 println("Arrives ${arrives.toPlainTime()} Tokyo time")
 ```

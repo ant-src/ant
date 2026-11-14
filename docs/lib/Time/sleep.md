@@ -28,7 +28,7 @@ Pause the script for half a second:
 
 ```ant
 println("wait")
-Time.sleep(Time.duration(milliseconds: 500))
+Time.sleep(500ms)
 println("go")
 ```
 
@@ -42,7 +42,7 @@ go
 Any span of hours and smaller units works, combined in one duration:
 
 ```ant
-Time.sleep(Time.duration(seconds: 1, milliseconds: 250))
+Time.sleep(1s250ms)
 println("slept 1.25 s")
 ```
 
@@ -50,10 +50,10 @@ println("slept 1.25 s")
 slept 1.25 s
 ```
 
-A duration parsed from text works the same way:
+A duration parsed from text, such as a config value, works the same way:
 
 ```ant
-let d = Time.parseDuration("PT0.05S").unwrap()
+let d = Time.parseDuration("50ms").unwrap()
 Time.sleep(d)
 println("slept ${d}")
 ```
@@ -66,8 +66,8 @@ A zero or negative duration does not wait at all:
 
 ```ant
 let start = Time.monotonic()
-Time.sleep(Time.duration(seconds: -5))
-Time.sleep(Time.duration(seconds: 0))
+Time.sleep(Time.negate(5s))
+Time.sleep(0s)
 println(Time.monotonic() - start < 100)
 ```
 
@@ -81,11 +81,11 @@ with the shorter sleep finishes first:
 ```ant
 let done: Channel[string] = Channel.new()
 go {
-  Time.sleep(Time.duration(milliseconds: 50))
+  Time.sleep(50ms)
   Channel.send(done, "slow")
 }
 go {
-  Time.sleep(Time.duration(milliseconds: 10))
+  Time.sleep(10ms)
   Channel.send(done, "fast")
 }
 println(Channel.receive(done))
@@ -104,12 +104,12 @@ sleep's clause wins:
 ```ant
 let results: Channel[string] = Channel.new()
 go {
-  Time.sleep(Time.duration(seconds: 5))
+  Time.sleep(5s)
   Channel.send(results, "done")
 }
 let msg = select {
   let r = Channel.receive(results) { r ?? "closed" }
-  Time.sleep(Time.duration(milliseconds: 20)) { "timed out" }
+  Time.sleep(20ms) { "timed out" }
 }
 println(msg)
 ```
@@ -126,8 +126,8 @@ With `ctx:`, the sleep ends when the context is done, whichever comes first. A o
 a 20-millisecond timeout ends after 20 milliseconds:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
-Time.sleep(Time.duration(hours: 1), ctx: ctx)
+let ctx = Context.new(timeout: 20ms)
+Time.sleep(1h, ctx: ctx)
 println(ctx.reason())
 ```
 
@@ -140,10 +140,10 @@ Another goroutine can wake the sleeper by cancelling the context:
 ```ant
 let ctx = Context.new()
 go {
-  Time.sleep(Time.duration(milliseconds: 20))
+  Time.sleep(20ms)
   ctx.cancel()
 }
-Time.sleep(Time.duration(minutes: 10), ctx: ctx)
+Time.sleep(10m, ctx: ctx)
 println(ctx.reason())
 ```
 
@@ -156,7 +156,7 @@ A context that is already done makes the sleep return at once:
 ```ant
 let ctx = Context.new()
 ctx.cancel()
-Time.sleep(Time.duration(hours: 1), ctx: ctx)
+Time.sleep(1h, ctx: ctx)
 println("returned")
 ```
 
@@ -176,7 +176,7 @@ func fetch(): Result[string, Error] {
 }
 
 func retry[T](attempts: int, f: func(): Result[T, Error]): Result[T, Error] {
-  var wait = Time.duration(milliseconds: 10)
+  var wait = 10ms
   for attempt in Iter.range(1, attempts) {
     let result = f()
     if result.isOk() { return result }
@@ -202,9 +202,9 @@ loop never waits past the deadline:
 ```ant
 func ready(): bool { false }
 
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 while !ready() && !ctx.isDone() {
-  Time.sleep(Time.duration(milliseconds: 30), ctx: ctx)
+  Time.sleep(30ms, ctx: ctx)
 }
 println(if ready() { "ready" } else { "gave up: ${ctx.reason()}" })
 ```
@@ -219,16 +219,16 @@ A sleep lasts at least `d`, as [Time.monotonic](monotonic.md) measures it:
 
 ```ant
 let start = Time.monotonic()
-Time.sleep(Time.duration(milliseconds: 30))
+Time.sleep(30ms)
 assert(Time.monotonic() - start >= 30)
 ```
 
 A sleep with a context returns once the context is done, well before `d`:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 20))
+let ctx = Context.new(timeout: 20ms)
 let start = Time.monotonic()
-Time.sleep(Time.duration(seconds: 30), ctx: ctx)
+Time.sleep(30s, ctx: ctx)
 assert(ctx.isDone())
 assert(Time.monotonic() - start < 30_000)
 ```
@@ -241,10 +241,10 @@ assert(Time.monotonic() - start < 30_000)
 Time.sleep(1000) // error: cannot use int where Time.Duration is expected
 ```
 
-Write the unit with [Time.duration](duration.md):
+Write a [duration literal](../../language/literals/durations.md):
 
 ```ant
-Time.sleep(Time.duration(milliseconds: 1000))
+Time.sleep(1s)
 ```
 
 Months, years and weeks have no fixed length, so a sleep that has them panics, even though the
@@ -270,7 +270,7 @@ let c: Channel[int] = Channel.new()
 let ctx = Context.new()
 let msg = select {
   let v = Channel.receive(c) { "got ${v}" }
-  Time.sleep(Time.duration(milliseconds: 20), ctx: ctx) { "timed out" } // error: a select clause's head takes no context: the context is a clause of its own, Context.wait(ctx) { ... }
+  Time.sleep(20ms, ctx: ctx) { "timed out" } // error: a select clause's head takes no context: the context is a clause of its own, Context.wait(ctx) { ... }
 }
 ```
 
@@ -282,7 +282,7 @@ let ctx = Context.new()
 ctx.cancel()
 let msg = select {
   let v = Channel.receive(c) { "got ${v}" }
-  Time.sleep(Time.duration(seconds: 5)) { "timed out" }
+  Time.sleep(5s) { "timed out" }
   Context.wait(ctx) { "stopped: ${ctx.reason()}" }
 }
 println(msg)
@@ -296,4 +296,4 @@ stopped: cancelled
 
 [Time.ticker](ticker.md) · [Time.duration](duration.md) · [Time.monotonic](monotonic.md) ·
 [Context.new](../Context/new.md) · [Context.wait](../Context/wait.md) ·
-[Time.Duration](types/Duration.md)
+[Time.Duration](types/Duration.md) · [Duration literals](../../language/literals/durations.md)

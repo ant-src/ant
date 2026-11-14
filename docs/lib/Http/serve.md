@@ -73,7 +73,7 @@ routes on the request's path:
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 200))
+  Time.sleep(200ms)
   println(Http.get("http://127.0.0.1:48213/health").unwrap().text())
   println(Http.get("http://127.0.0.1:48213/missing").unwrap().text())
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
@@ -237,7 +237,7 @@ released
 
 ```ant
 let listener = try Net.listen("127.0.0.1:0")
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 let result = Http.serve(listener, { Http.Reply{ status: 204, headers: Map{}, body: "" } }, ctx: ctx)
 println(result)
 ```
@@ -251,7 +251,7 @@ returning. A new request after that finds no server:
 
 ```ant
 func slow(req: Http.Request): Http.Reply {
-  Time.sleep(Time.duration(milliseconds: 200))
+  Time.sleep(200ms)
   Http.Reply{ status: 200, headers: Map{}, body: "finished" }
 }
 
@@ -261,7 +261,7 @@ let stop = Context.new()
 let served: Channel[Result[void, Error]] = Channel.new(1)
 go { served.send(Http.serve(listener, slow, stop)) }
 go {
-  Time.sleep(Time.duration(milliseconds: 50))
+  Time.sleep(50ms)
   stop.cancel()
 }
 let reply = try Http.get(url)
@@ -485,7 +485,7 @@ server cleanly:
 let listener = try Net.listen("127.0.0.1:0")
 let served: Channel[Result[void, Error]] = Channel.new(1)
 go { served.send(Http.serve(listener, { Http.Reply{ status: 204, headers: Map{}, body: "" } })) }
-Time.sleep(Time.duration(milliseconds: 50))
+Time.sleep(50ms)
 listener.close()
 println(served.receive())
 ```

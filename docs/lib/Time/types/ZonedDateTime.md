@@ -128,7 +128,7 @@ calendar day from noon on Saturday is noon on Sunday, 25 hours later, while 24 h
 ```ant
 let sat = Time.parseZoned("2026-10-31T12:00[America/New_York]").unwrap()
 sat.add(Time.duration(days: 1))            // 2026-11-01T12:00:00-05:00[America/New_York]
-sat.add(Time.duration(hours: 24))          // 2026-11-01T11:00:00-05:00[America/New_York]
+sat.add(24h)                               // 2026-11-01T11:00:00-05:00[America/New_York]
 sat.until(sat.add(Time.duration(days: 1))) // PT25H
 ```
 

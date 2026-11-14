@@ -22,7 +22,11 @@ namespaces, Time is computation and panics on an argument that cannot be.
   [Time.compare](compare.md).
 - Years, months, weeks, and days move the wall clock; hours and smaller units move the instant. An
   `Instant` has no calendar, so adding a day to it panics.
-- A [Duration](types/Duration.md) keeps its fields as given: `PT90M` and `PT1H30M` are not `==`.
+- A [Duration](types/Duration.md) keeps its fields as given: `90m` and `1h30m` are not `==`.
+- A constant span of hours and smaller units is a
+  [duration literal](../../language/literals/durations.md) such as `500ms`, `2h30m`, or `1.5s`, of
+  type `Time.Duration`, with no import and no arithmetic operators. [Time.duration](duration.md)
+  builds computed and calendar spans.
 - Every value renders as its RFC 9557 string in `String.from`, interpolation, and `Json.stringify`
   alike. The `parse` functions read it back, and `Time.zone` reads back a zone.
 
@@ -36,6 +40,14 @@ day                                     // 2026-10-22
 Time.dayOfWeek(day)                     // 4
 Time.add(day, Time.duration(months: 1)) // 2026-11-22
 Time.plainTime(14, 30)                  // 14:30:00
+```
+
+Write a constant span as a duration literal and move a clock time by it:
+
+```ant
+let d = 1h30m
+d                        // PT1H30M
+Time.plainTime(9).add(d) // 10:30:00
 ```
 
 Place a wall-clock time in a zone to get a moment, and see that moment elsewhere:
@@ -66,6 +78,7 @@ not exist, is an `Err`:
 ```ant
 Time.parseInstant("2026-10-22T14:03:05Z") // Ok{ value: 2026-10-22T14:03:05Z }
 Time.parseDuration("PT1H30M")             // Ok{ value: PT1H30M }
+Time.parseDuration("2h30m")               // Ok{ value: PT2H30M }
 Time.parsePlainDate("2026-02-30")         // Err{ error: Error{ message: "no such date: 2026-02-30" } }
 ```
 
@@ -139,7 +152,8 @@ Time.plainDate(2026, 10, 22) | Time.add(Time.duration(days: 10)) | Time.month() 
 
 - [Time.plainDate](plainDate.md), [Time.plainTime](plainTime.md),
   [Time.plainDateTime](plainDateTime.md): build a plain value; panics on one that cannot exist
-- [Time.duration](duration.md): build a duration from named fields
+- [Time.duration](duration.md): build a duration from named fields; a constant span is a literal
+  such as `2h30m`
 - [Time.parseInstant](parseInstant.md), [Time.parseZoned](parseZoned.md),
   [Time.parsePlainDate](parsePlainDate.md), [Time.parsePlainTime](parsePlainTime.md),
   [Time.parsePlainDateTime](parsePlainDateTime.md), [Time.parseDuration](parseDuration.md): read a
@@ -247,7 +261,7 @@ Measure how long a piece of work takes with [Time.monotonic](monotonic.md):
 
 ```ant
 let start = Time.monotonic()
-Time.sleep(Time.duration(milliseconds: 20))
+Time.sleep(20ms)
 let elapsed = Time.monotonic() - start
 println(elapsed >= 20)
 ```
@@ -259,9 +273,9 @@ true
 Act on a beat with a ticker that stops with its context:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(seconds: 1))
+let ctx = Context.new(timeout: 1s)
 defer { ctx.cancel() }
-let ticks = Time.ticker(Time.duration(milliseconds: 10), ctx: ctx)
+let ticks = Time.ticker(10ms, ctx: ctx)
 for i in [1, 2, 3] {
   ticks.receive()
   println("tick ${i}")
@@ -297,8 +311,8 @@ assert(utc.toInstant() == kolkata.toInstant())
 Durations compare by fields with `==` and by length with `Time.compareDuration`:
 
 ```ant
-let a = Time.duration(minutes: 90)
-let b = Time.duration(hours: 1, minutes: 30)
+let a = 90m
+let b = 1h30m
 assert(a != b)
 assert(Time.compareDuration(a, b) == 0)
 assert(Time.roundDuration(a, largestUnit: Time.Hour{}) == b)
@@ -311,8 +325,8 @@ A day added in a zone is not always 24 hours. On the day daylight saving starts,
 ```ant
 let ny = Result.unwrap(Time.zone("America/New_York"))
 let sat = Time.plainDateTime(Time.plainDate(2026, 3, 7), Time.plainTime(12)).toZoned(ny)
-sat.add(Time.duration(days: 1))   // 2026-03-08T12:00:00-04:00[America/New_York]
-sat.add(Time.duration(hours: 24)) // 2026-03-08T13:00:00-04:00[America/New_York]
+sat.add(Time.duration(days: 1)) // 2026-03-08T12:00:00-04:00[America/New_York]
+sat.add(24h)                    // 2026-03-08T13:00:00-04:00[America/New_York]
 ```
 
 A constructor panics on a date that does not exist:
@@ -357,6 +371,18 @@ Narrow it with `is` first:
 ```ant
 let t: Time.Dated = Time.plainDate(2026, 10, 22)
 if t is Time.PlainDate { Time.add(t, Time.duration(days: 1)) } // 2026-10-23
+```
+
+Comparing two duration literals of the same length with `==` is an error, since `==` compares the
+fields as written:
+
+```ant
+let same = 90m == 1h30m
+// error: 90m == 1h30m compares the fields as written, and == is false: compare the lengths with Time.compareDuration(90m, 1h30m)
+```
+
+```ant
+Time.compareDuration(90m, 1h30m) // 0
 ```
 
 ## See also

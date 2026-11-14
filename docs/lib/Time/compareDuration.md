@@ -17,7 +17,7 @@ weeks and relativeTo is null.
 
 ## Details
 
-- It compares lengths, not fields: `PT90M` and `PT1H30M` compare as `0` though they are not `==`.
+- It compares lengths, not fields: `90m` and `1h30m` compare as `0` though they are not `==`.
 - Two durations with the same fields compare as `0` without `relativeTo`, even with years, months or
   weeks.
 - A `PlainDateTime` given as `relativeTo` counts as its date; its time is ignored.
@@ -34,9 +34,9 @@ Time.compareDuration(month, Time.duration(days: 30), relativeTo: feb) // -1
 Durations without years, months or weeks need no `relativeTo`:
 
 ```ant
-Time.compareDuration(Time.duration(minutes: 30), Time.duration(hours: 1))   // -1
-Time.compareDuration(Time.duration(minutes: 90), Time.duration(hours: 1))   // 1
-Time.compareDuration(Time.duration(seconds: 3600), Time.duration(hours: 1)) // 0
+Time.compareDuration(30m, 1h)   // -1
+Time.compareDuration(90m, 1h)   // 1
+Time.compareDuration(3600s, 1h) // 0
 ```
 
 ## Scope
@@ -44,17 +44,17 @@ Time.compareDuration(Time.duration(seconds: 3600), Time.duration(hours: 1)) // 0
 Days count as 24 hours:
 
 ```ant
-Time.compareDuration(Time.duration(days: 1), Time.duration(hours: 24)) // 0
-Time.compareDuration(Time.duration(hours: 25), Time.duration(days: 1)) // 1
+Time.compareDuration(Time.duration(days: 1), 24h) // 0
+Time.compareDuration(25h, Time.duration(days: 1)) // 1
 ```
 
 Subsecond fields count at their exact length:
 
 ```ant
-let a = Time.duration(milliseconds: 1500)
-let b = Time.duration(seconds: 1, milliseconds: 500)
-Time.compareDuration(a, b)                                           // 0
-Time.compareDuration(Time.duration(nanoseconds: 1), Time.duration()) // 1
+let a = 1500ms
+let b = 1s500ms
+Time.compareDuration(a, b)                 // 0
+Time.compareDuration(1ns, Time.duration()) // 1
 ```
 
 ## Named arguments
@@ -85,9 +85,9 @@ A `ZonedDateTime` gives the day its real length. Stockholm moves its clocks forw
 ```ant
 let z = Time.parseZoned("2026-03-29T00:00:00+01:00[Europe/Stockholm]").unwrap()
 let day = Time.duration(days: 1)
-day.compareDuration(Time.duration(hours: 24), relativeTo: z) // -1
-day.compareDuration(Time.duration(hours: 23), relativeTo: z) // 0
-day.compareDuration(Time.duration(hours: 24))                // 0
+day.compareDuration(24h, relativeTo: z) // -1
+day.compareDuration(23h, relativeTo: z) // 0
+day.compareDuration(24h)                // 0
 ```
 
 A `PlainDateTime` counts as its date; its time does not change the result:
@@ -105,7 +105,7 @@ Check how long a job ran against its time budget:
 ```ant
 let started = Time.plainDateTime(Time.plainDate(2026, 5, 4), Time.plainTime(hour: 9))
 let finished = Time.plainDateTime(Time.plainDate(2026, 5, 4), Time.plainTime(hour: 11, minute: 15))
-let budget = Time.duration(hours: 2)
+let budget = 2h
 
 let took = Time.until(started, finished)
 if took.compareDuration(budget) > 0 {
@@ -123,7 +123,7 @@ Sort durations by length. `Time.compareDuration` is a comparator, so it passes t
 directly:
 
 ```ant
-let timeouts = [Time.duration(hours: 2), Time.duration(minutes: 30), Time.duration(seconds: 4000)]
+let timeouts = [2h, 30m, 4000s]
 timeouts | Array.sortWith(Time.compareDuration) // [PT30M, PT4000S, PT2H]
 ```
 
@@ -146,16 +146,16 @@ println(shorter)
 Swapping the arguments negates the result:
 
 ```ant
-let a = Time.duration(minutes: 90)
-let b = Time.duration(hours: 2)
+let a = 90m
+let b = 2h
 assert(Time.compareDuration(a, b) == -Time.compareDuration(b, a))
 ```
 
 The order agrees with [Time.total](total.md) in any unit:
 
 ```ant
-let a = Time.duration(hours: 1, minutes: 30)
-let b = Time.duration(seconds: 5000)
+let a = 1h30m
+let b = 5000s
 let longer = a.total(Time.Second{}) > b.total(Time.Second{})
 assert((Time.compareDuration(a, b) > 0) == longer)
 ```
@@ -163,8 +163,8 @@ assert((Time.compareDuration(a, b) > 0) == longer)
 `0` means the same length, while `==` compares the fields as given:
 
 ```ant
-let a = Time.duration(minutes: 90)
-let b = Time.duration(hours: 1, minutes: 30)
+let a = 90m
+let b = 1h30m
 assert(Time.compareDuration(a, b) == 0)
 assert(a != b)
 ```
@@ -206,14 +206,27 @@ assert(shorter)
 The comparison operators do not apply to durations:
 
 ```ant
-let a = Time.duration(hours: 1)
-let b = Time.duration(minutes: 30)
+let a = 1h
+let b = 30m
 let longer = a > b
 // error: > applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
+```
+
+`==` between two duration literals of the same length with different fields does not compile:
+
+```ant
+let same = 90m == 1h30m
+// error: 90m == 1h30m compares the fields as written, and == is false: compare the lengths with Time.compareDuration(90m, 1h30m)
+```
+
+Compare their lengths instead:
+
+```ant
+Time.compareDuration(90m, 1h30m) // 0
 ```
 
 ## See also
 
 [Time.compare](compare.md), [Time.total](total.md), [Time.addDuration](addDuration.md),
 [Time.sign](sign.md), [Time.roundDuration](roundDuration.md), [Time.duration](duration.md),
-[Array.sortWith](../Array/sortWith.md)
+[Array.sortWith](../Array/sortWith.md), [Duration literals](../../language/literals/durations.md)

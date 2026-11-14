@@ -138,6 +138,17 @@ type(Array[int]) == type(Array[int])     // true
 type(int | string) == type(string | int) // true
 ```
 
+A `Time.Duration` compares its fields as written, not its length. A fraction in a literal spreads
+into the smaller fields, so `1.5h` holds the same fields as `1h30m`:
+
+```ant
+let a = 90m
+let b = 1h30m
+a == b                     // false
+1.5h == 1h30m              // true
+Time.compareDuration(a, b) // 0
+```
+
 ### Cyclic values
 
 A value that contains itself compares in finite time:
@@ -306,6 +317,19 @@ let expected: Result[int, Error] = Result.ok(1)
 r == expected // true
 ```
 
+### Two duration literals with different fields
+
+`90m` and `1h30m` have the same length but different fields, so `==` between them is always `false`,
+and the checker rejects it. Compare lengths with `Time.compareDuration`:
+
+```ant
+let same = 90m == 1h30m // error: 90m == 1h30m compares the fields as written, and == is false: compare the lengths with Time.compareDuration(90m, 1h30m)
+```
+
+```ant
+Time.compareDuration(90m, 1h30m) == 0 // true
+```
+
 ### Float rounding
 
 Float arithmetic rounds, so a sum can miss the literal it seems to equal by the last bit. Compare
@@ -375,5 +399,6 @@ let b = a === a // error: unexpected '='
 
 [Comparison operators](comparison.md) · [is](is.md) · [Logical operators](logical.md) ·
 [Array.same](../../lib/Array/same.md) · [Record.same](../../lib/Record/same.md) ·
-[String.equalFold](../../lib/String/equalFold.md) · [null](../literals/null.md) ·
+[String.equalFold](../../lib/String/equalFold.md) ·
+[Time.compareDuration](../../lib/Time/compareDuration.md) · [null](../literals/null.md) ·
 [Values](../../guide/values.md)

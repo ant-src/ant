@@ -44,7 +44,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -76,7 +76,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -109,7 +109,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -144,7 +144,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -174,7 +174,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -207,7 +207,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -246,7 +246,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -277,7 +277,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -314,7 +314,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -346,7 +346,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -380,7 +380,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -394,7 +394,7 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-let res = Http.request("GET", "${base}/slow", timeout: Time.duration(milliseconds: 50))
+let res = Http.request("GET", "${base}/slow", timeout: 50ms)
 println(res)
 ```
 
@@ -411,7 +411,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -426,7 +426,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 println(Http.request("GET", "http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
-println(Http.request("GET", "http://127.0.0.1:1/", timeout: Time.duration(seconds: 0)))
+println(Http.request("GET", "http://127.0.0.1:1/", timeout: 0s))
 ```
 
 ```text
@@ -445,7 +445,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -477,7 +477,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -491,7 +491,7 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-let budget = Context.new(timeout: Time.duration(milliseconds: 500))
+let budget = Context.new(timeout: 500ms)
 for path in ["/a", "/slow", "/b"] {
   let res = Http.request("GET", "${base}${path}", ctx: budget)
   let line = if res is Ok { res.value.text() } else { "${path}: ${res.error.message}" }
@@ -518,7 +518,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -561,7 +561,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -607,7 +607,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -678,7 +678,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -710,7 +710,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -740,7 +740,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -771,7 +771,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
@@ -804,7 +804,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.path == "/new" { return Http.Reply{ status: 200, headers: Map{}, body: "the new page" } }
   if req.path == "/missing" { return Http.Reply{ status: 404, headers: Map{}, body: "no /missing" } }
   if req.path == "/search" { return Http.Reply{ status: 200, headers: Map{}, body: req.query } }
-  if req.path == "/slow" { Time.sleep(Time.duration(seconds: 1)) }
+  if req.path == "/slow" { Time.sleep(1s) }
   if req.path == "/echo" {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }

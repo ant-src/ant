@@ -152,7 +152,7 @@ Ok{ value: Bytes(61 62 63) }
 with the context's reason:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 println(Cmd.new("sleep", ["5"]).captureBytes(ctx: ctx))
 ```
 

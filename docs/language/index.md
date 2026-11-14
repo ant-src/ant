@@ -42,6 +42,7 @@ Source files are UTF-8 text with the extension `.ant`.
 
 - [Number literals](literals/numbers.md): `42`, `0xFF`, and `1_000` are `int`; `3.14` and `1e9` are
   `float64`.
+- [Duration literals](literals/durations.md): `500ms`, `2h30m`, and `1.5s` are `Time.Duration`.
 - [String literals and interpolation](literals/strings.md): `"Hello, ${name}"`, with escapes.
 - [Raw strings](literals/raw-strings.md): `` `C:\temp` ``, with no escapes and no interpolation.
 - [true and false](literals/booleans.md): the two values of `bool`.

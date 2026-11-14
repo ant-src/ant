@@ -383,6 +383,28 @@ let price = Cents(5) + 3 // error: + needs both operands of one type, got Cents 
 
 Write `Cents(5) + Cents(3)`.
 
+### Durations have no operators
+
+A duration literal is a `Time.Duration`, not a number, so `+`, `-`, `*` and unary `-` do not apply
+to it. Use the Time functions to add, subtract, and negate:
+
+```ant
+let total = 5s + 1s // error: + applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
+```
+
+```ant
+Time.addDuration(5s, 1s)              // PT6S
+Time.addDuration(5s, Time.negate(1s)) // PT4S
+Time.negate(5s)                       // -PT5S
+```
+
+For a multiple, compute the field:
+
+```ant
+let n = 3
+Time.duration(seconds: 2 * n) // PT6S
+```
+
 ### Narrow nullable and union values first
 
 A value that may be `null`, or a union such as `Number`, is not a single kind:
@@ -430,4 +452,5 @@ the divisor and take `%` again, as in the wrap-around example above:
 [Number literals](../literals/numbers.md) · [Bits.wrapAdd](../../lib/Bits/wrapAdd.md) ·
 [Array.sum](../../lib/Array/sum.md) · [String.repeat](../../lib/String/repeat.md) ·
 [String.padStart](../../lib/String/padStart.md) · [Math.abs](../../lib/Math/abs.md) ·
-[float64(x)](../../lib/prelude/float64.md)
+[float64(x)](../../lib/prelude/float64.md) · [Duration literals](../literals/durations.md) ·
+[Time.Duration](../../lib/Time/types/Duration.md)

@@ -159,7 +159,7 @@ A context given to `Cmd.start` bounds the command's life. When it ends, the comm
 every wait is `Err`:
 
 ```ant
-let ctx = Context.new(timeout: Time.duration(milliseconds: 100))
+let ctx = Context.new(timeout: 100ms)
 let slow = try Cmd.new("sleep", ["30"]).start(ctx: ctx)
 println(slow.wait())
 ```
@@ -172,8 +172,8 @@ A context given to `Cmd.wait` bounds only that wait. The command goes on running
 
 ```ant
 let slow = try Cmd.new("sleep", ["30"]).start()
-println(slow.wait(ctx: Context.new(timeout: Time.duration(milliseconds: 100))))
-println(slow.stop(grace: Time.duration(seconds: 0)))
+println(slow.wait(ctx: Context.new(timeout: 100ms)))
+println(slow.stop(grace: 0s))
 ```
 
 ```text
@@ -216,13 +216,13 @@ Wait for a while, and stop the command if it has not exited by then:
 func finish(p: Cmd.Process, limit: Time.Duration): Result[int, Error] {
   let waited = p.wait(ctx: Context.new(timeout: limit))
   if waited is Ok { return waited }
-  p.stop(grace: Time.duration(seconds: 1))
+  p.stop(grace: 1s)
 }
 
 let quick = try Cmd.new("sh", ["-c", "exit 2"]).start()
 let stuck = try Cmd.new("sleep", ["30"]).start()
-println(finish(quick, Time.duration(milliseconds: 200)))
-println(finish(stuck, Time.duration(milliseconds: 200)))
+println(finish(quick, 200ms))
+println(finish(stuck, 200ms))
 ```
 
 ```text

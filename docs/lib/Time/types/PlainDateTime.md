@@ -92,7 +92,7 @@ t.with(month: 4)                      // 2026-04-30T14:03:05
 
 ```ant
 let t = Time.parsePlainDateTime("2026-10-22T14:03:05").unwrap()
-t.add(Time.duration(hours: 12))             // 2026-10-23T02:03:05
+t.add(12h)                                  // 2026-10-23T02:03:05
 t.add(Time.duration(months: 1, minutes: 5)) // 2026-11-22T14:08:05
 t.subtract(Time.duration(days: 22))         // 2026-09-30T14:03:05
 ```

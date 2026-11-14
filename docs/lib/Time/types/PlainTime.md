@@ -94,8 +94,8 @@ Add, subtract, and round:
 
 ```ant
 let t = Time.plainTime(14, 37)
-t.add(Time.duration(minutes: 45))     // 15:22:00
-t.subtract(Time.duration(hours: 15))  // 23:37:00
+t.add(45m)                            // 15:22:00
+t.subtract(15h)                       // 23:37:00
 t.round(Time.Minute{}, increment: 15) // 14:30:00
 ```
 
@@ -193,7 +193,7 @@ Adding 24 hours wraps around the clock back to the same time, and a duration of 
 
 ```ant
 let t = Time.plainTime(10, 30)
-assert(t.add(Time.duration(hours: 24)) == t)
+assert(t.add(24h) == t)
 assert(t.add(Time.duration(days: 1)) == t)
 ```
 

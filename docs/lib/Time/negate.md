@@ -15,14 +15,16 @@ Time.negate returns d with its sign reversed.
 
 - `Time.negate` keeps the fields as given and only flips the sign: `-PT90M` gives `PT90M`, not
   `PT1H30M`.
+- `Time.negate` is how to write a negative constant span: a duration literal has no sign, and unary
+  `-` does not apply to a duration.
 - It panics when a field is the most negative `int`, whose positive counterpart does not fit.
 
 ## Basic examples
 
 ```ant
-Time.negate(Time.duration(hours: 2))     // -PT2H
+Time.negate(2h)                          // -PT2H
 Time.negate(Time.duration(minutes: -90)) // PT90M
-Time.negate(Time.duration(seconds: 0))   // PT0S
+Time.negate(0s)                          // PT0S
 ```
 
 ## Scope
@@ -31,7 +33,7 @@ Every field changes sign, the calendar fields included:
 
 ```ant
 Time.negate(Time.duration(years: 1, months: 2, days: 3, hours: 4)) // -P1Y2M3DT4H
-Time.negate(Time.duration(milliseconds: 1500))                     // -PT1.5S
+Time.negate(1500ms)                                                // -PT1.5S
 ```
 
 Call it with a dot on a duration, such as one that `Time.until` returns:
@@ -46,10 +48,18 @@ Time.until(start, end).negate() // -P43D
 Pass `Time.negate` as a function value:
 
 ```ant
-[Time.duration(hours: 1), Time.duration(minutes: -5)].map(Time.negate) // [-PT1H, PT5M]
+[1h, Time.duration(minutes: -5)].map(Time.negate) // [-PT1H, PT5M]
 ```
 
 ## Applications
+
+Keep signed offsets from a start time in one list:
+
+```ant
+let start = Time.plainTime(9)
+let offsets = [Time.negate(15m), 0s, 10m]
+offsets.map({ start.add(x) }) // [08:45:00, 09:00:00, 09:10:00]
+```
 
 Describe how far away a time is, in the past or the future:
 
@@ -74,7 +84,7 @@ duration:
 
 ```ant
 let t = Time.plainTime(9, 0, 0)
-let ds = [Time.duration(hours: -3), Time.duration(seconds: 0), Time.duration(days: 2, minutes: 5)]
+let ds = [Time.duration(hours: -3), 0s, Time.duration(days: 2, minutes: 5)]
 for d in ds {
   assert(d.negate().negate() == d)
   assert(d.negate().sign() == -d.sign())
@@ -92,11 +102,17 @@ Time.since(a, b) == Time.negate(Time.until(a, b)) // true
 
 ## Possible issues
 
-Unary `-` takes numbers only, not durations:
+Unary `-` takes numbers only, not durations, so a negative literal is an error:
 
 ```ant
-let d = Time.duration(hours: 1)
-let back = -d // error: unary - needs a number, got Time.Duration
+let d = -5s // error: unary - needs a number, got Time.Duration
+```
+
+Write the negative span with `Time.negate` instead:
+
+```ant
+Time.negate(5s) // -PT5S
+5s.negate()     // -PT5S
 ```
 
 Adding a calendar duration and then its negation does not always come back, because the day of the

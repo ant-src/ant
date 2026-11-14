@@ -31,7 +31,7 @@ Wait for Ctrl-C, then finish the work and exit:
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -52,7 +52,7 @@ Before any interrupt the context is not done and has no reason. After one, its r
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -105,7 +105,7 @@ once instead of after the full ten seconds:
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -115,7 +115,7 @@ let stop = Os.interrupt()
 var rounds = 0
 while !stop.isDone() {
   rounds += 1
-  Time.sleep(Time.duration(seconds: 10), ctx: stop)
+  Time.sleep(10s, ctx: stop)
 }
 println("stopped after ${rounds} round")
 ```
@@ -129,7 +129,7 @@ the requests in flight have finished:
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -148,7 +148,7 @@ Give the shutdown a limit of its own. A child of the interrupt context is done a
 reason `"interrupt"`, or when its timeout passes, with `"timeout"`:
 
 ```ant
-let job = Context.new(timeout: Time.duration(milliseconds: 50), parent: Os.interrupt())
+let job = Context.new(timeout: 50ms, parent: Os.interrupt())
 job.wait()
 println(job.reason())
 ```
@@ -162,7 +162,7 @@ ends when the context is done:
 
 <!-- test: before
 go {
-  Time.sleep(Time.duration(milliseconds: 100))
+  Time.sleep(100ms)
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -208,7 +208,7 @@ exits with status 130, and nothing after the interrupt runs:
 ```ant
 println("start")
 try Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"]))
-Time.sleep(Time.duration(seconds: 1))
+Time.sleep(1s)
 println("not reached")
 ```
 
@@ -218,7 +218,7 @@ second one ends it:
 ```ant
 Os.interrupt()
 try Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"]))
-Time.sleep(Time.duration(milliseconds: 100))
+Time.sleep(100ms)
 println("still running")
 ```
 
@@ -237,7 +237,7 @@ try Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"]))
 stop.wait()
 println("cleaning up")
 try Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"]))
-Time.sleep(Time.duration(seconds: 1))
+Time.sleep(1s)
 println("not reached")
 ```
 
@@ -251,7 +251,7 @@ let stop = Os.interrupt()
 stop.cancel()
 println(stop.reason())
 try Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"]))
-Time.sleep(Time.duration(seconds: 1))
+Time.sleep(1s)
 println("not reached")
 ```
 
