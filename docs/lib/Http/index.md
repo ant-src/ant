@@ -21,8 +21,8 @@ by calling a handler, a function from an [Http.Request](types/Request.md) to an
   checks it. `Err` means no response arrived: a malformed URL, no connection, the timeout, or the
   context.
 - No redirect is followed. A 3xx comes back as it is, with its `Location` header.
-- A body is read whole, by the client and by the server, and arrives twice: as received in `bytes`,
-  and as text in `body`.
+- A body is read whole, by the client and by the server, and is held once, as received, in `bytes`.
+  [Http.text](text.md) decodes it.
 - Headers hold one string per name, and a repeated header is joined with `, `. Two names that differ
   only in case name one header: the client is `Err` on them, and a reply with them panics in the
   handler's goroutine.
@@ -46,7 +46,7 @@ go { Http.serve(listener, hello, stop) }
 
 let res = try Http.get("http://${listener.address()}/docs")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -74,7 +74,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -84,8 +84,8 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println((try Http.post("${base}/echo", "buy milk")).body)
-println((try Http.request("PUT", "${base}/echo", body: "call Ann")).body)
+println((try Http.post("${base}/echo", "buy milk")).text())
+println((try Http.request("PUT", "${base}/echo", body: "call Ann")).text())
 ```
 
 ```text
@@ -110,7 +110,7 @@ func greet(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 go { Http.serve(listener, greet) }
 
-println((try Http.get("http://${listener.address()}/my%20docs?name=Ann%20Lee")).body)
+println((try Http.get("http://${listener.address()}/my%20docs?name=Ann%20Lee")).text())
 ```
 
 ```text
@@ -134,7 +134,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -147,7 +147,7 @@ go { Http.serve(listener, handle) }
 let moved = try Http.get("${base}/old")
 println("${moved.status} ${moved.headers["Location"]}")
 let page = try Http.get("${base}${moved.headers["Location"]}")
-println(page.body)
+println(page.text())
 ```
 
 ```text
@@ -185,7 +185,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -195,8 +195,8 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println((try Http.get("${base}/lang")).body)
-println((try Http.get("${base}/lang", headers: Map{ "Accept-Language": "fr" })).body)
+println((try Http.get("${base}/lang")).text())
+println((try Http.get("${base}/lang", headers: Map{ "Accept-Language": "fr" })).text())
 ```
 
 ```text
@@ -219,7 +219,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -251,7 +251,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -309,7 +309,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -324,7 +324,7 @@ func fetchName(base: string, path: string): Result[string, Error] {
   if res.status != 200 {
     return Result.fail("get ${path}: status ${res.status}")
   }
-  let user = try (Json.parse(res.body) | Result.wrapErr("parse ${path}"))
+  let user = try (Json.parse(res.text()) | Result.wrapErr("parse ${path}"))
   let name = if user is Map { user["name"] } else { null }
   Result.ok(if name is string { name } else { "unknown" })
 }
@@ -353,7 +353,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -381,7 +381,7 @@ A server and a client in one program, stopped by a context once the work is done
 
 ```ant
 func shout(req: Http.Request): Http.Reply {
-  Http.Reply{ status: 200, headers: Map{}, body: req.body.toUpper() }
+  Http.Reply{ status: 200, headers: Map{}, body: req.text().toUpper() }
 }
 
 let listener = try Net.listen("127.0.0.1:0")
@@ -391,7 +391,7 @@ let served: Channel[Result[void, Error]] = Channel.new(1)
 go { served.send(Http.serve(listener, shout, stop)) }
 
 for word in ["ant", "http"] {
-  println((try Http.post(url, word)).body)
+  println((try Http.post(url, word)).text())
 }
 stop.cancel()
 println(served.receive())
@@ -420,7 +420,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -435,7 +435,7 @@ let posted = try Http.post("${base}/echo", "hi")
 assert(posted == try Http.request("POST", "${base}/echo", body: "hi"))
 ```
 
-The body arrives as text in `body` and as received in `bytes`:
+The body arrives as received in `bytes`, and `text()` decodes it:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
@@ -450,7 +450,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -461,13 +461,13 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.post("${base}/echo", "naïve")
-assert(res.body == "POST naïve")
-assert(res.bytes == res.body.toBytes())
+assert(res.text() == "POST naïve")
+assert(res.bytes == res.text().toBytes())
 ```
 
 ## Possible issues
 
-`try` stops only on `Err`, and a 404 or a 500 is `Ok`, so a program that reads `body` without
+`try` stops only on `Err`, and a 404 or a 500 is `Ok`, so a program that reads the body without
 checking `status` reads the error page:
 
 <!-- test: before
@@ -483,7 +483,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
@@ -494,7 +494,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.get("${base}/user/42")
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -515,7 +515,7 @@ go { Http.serve(listener, early) }
 
 let res = try Http.get("http://${listener.address()}/")
 println(res.status)
-println(res.body.isEmpty())
+println(res.text().isEmpty())
 ```
 
 ```text
@@ -539,7 +539,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{}, body: req.headers["Accept-Language"] ?? "any" }
   }
   if req.path == "/echo" {
-    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.body}" }
+    return Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.text()}" }
   }
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }

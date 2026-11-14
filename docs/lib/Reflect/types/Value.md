@@ -25,8 +25,8 @@ Reflect.Value(42: int).
 - The box refers to its value and does not copy it. A change made to a boxed array or record through
   another reference shows through the box. Nothing changes a value through a box.
 - `==` compares the types, then the values, so equal copies are `==`. [`Reflect.same`](../same.md)
-  reports whether two boxes hold one record, array, map, or set, and compares any other value with
-  `==`.
+  reports whether two boxes hold one record, array, map, set, or `Bytes`, and compares any other
+  value with `==`.
 - `is` cannot test a `Reflect.Value`, so a union holds it beside no other type `is` cannot test, and
   `Json.stringify` panics on one.
 

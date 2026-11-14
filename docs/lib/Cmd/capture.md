@@ -16,8 +16,9 @@ when ctx is done every stage is killed and the result is Err with ctx's reason.
 ## Details
 
 - The result is `Err` for a program that is not found or a `dir` that does not exist.
-- `stdout` and `stderr` hold the whole output, final newline included. Bytes that are not UTF-8
-  become U+FFFD in them; `stdoutBytes` and `stderrBytes` keep the bytes as the command wrote them.
+- `stdout` and `stderr` hold the whole output as text, final newline included. Bytes that are not
+  UTF-8 become U+FFFD in them; [Cmd.captureBytes](captureBytes.md) keeps standard output as the
+  command wrote it.
 - `input` is what the first stage reads: a string as its UTF-8, `Bytes` as they are. By default the
   command reads nothing.
 - For a pipeline, `status` is that of the rightmost stage that failed, or 0, and `statuses` holds
@@ -67,7 +68,7 @@ println(out)
 ```
 
 ```text
-Cmd.Output{ status: 0, statuses: [0], stdout: "hi\n", stderr: "oops\n", stdoutBytes: Bytes(68 69 0a), stderrBytes: Bytes(6f 6f 70 73 0a) }
+Cmd.Output{ status: 0, statuses: [0], stdout: "hi\n", stderr: "oops\n" }
 ```
 
 `input` as `Bytes` reaches the command unchanged, bytes that are not text included:
@@ -82,12 +83,13 @@ println(out.stdout.trim())
 4
 ```
 
-Output that is not UTF-8 has U+FFFD in `stdout` and its bytes in `stdoutBytes`:
+Output that is not UTF-8 has U+FFFD in `stdout`; [Cmd.captureBytes](captureBytes.md) gives its
+bytes:
 
 ```ant
-let out = try Cmd.capture(Cmd.new("printf", ["\\377\\n"]))
-println(out.stdout == "\u{FFFD}\n")
-println(out.stdoutBytes)
+let c = Cmd.new("printf", ["\\377\\n"])
+println((try Cmd.capture(c)).stdout == "\u{FFFD}\n")
+println((try Cmd.captureBytes(c)).stdout)
 ```
 
 ```text
@@ -230,12 +232,13 @@ ok   test -d /
 
 ## Properties and relations
 
-For output that is UTF-8, `stdout` is `stdoutBytes` read as text:
+For output that is UTF-8, `stdout` is what [Cmd.captureBytes](captureBytes.md) gives, read as text:
 
 ```ant
-let out = try Cmd.capture(Cmd.new("echo", ["héllo"]))
-assert(String.fromBytes(out.stdoutBytes) == out.stdout)
-assert(out.stdoutBytes.length() == 7)
+let c = Cmd.new("echo", ["héllo"])
+let raw = try Cmd.captureBytes(c)
+assert(String.fromBytes(raw.stdout) == (try Cmd.capture(c)).stdout)
+assert(raw.stdout.length() == 7)
 ```
 
 On status 0, [Cmd.read](read.md) returns `stdout` without its final newline:

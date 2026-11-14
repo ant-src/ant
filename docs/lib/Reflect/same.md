@@ -7,15 +7,13 @@
 func Reflect.same(a: Reflect.Value, b: Reflect.Value): bool
 ```
 
-Reflect.same reports whether a and b hold one record, array, map, or set, as Record.same,
-Array.same, Map.same, and Set.same do, and whether they are == for any other kind. A walker tests
-each child against the boxes on its path with it to find a cycle, which the readers never detect.
+Reflect.same reports whether a and b hold one record, array, map, set, or Bytes, as Record.same, Array.same, Map.same, Set.same, and Bytes.same do, and whether they are == for any other kind. A walker tests each child against the boxes on its path with it to find a cycle, which the readers never detect.
 
 <!-- end generated -->
 
 ## Details
 
-- For a record, an array, a map, or a set, `Reflect.same` reports identity: two boxes of one value
+- For a record, an array, a map, a set, or `Bytes`, `Reflect.same` reports identity: two boxes of one value
   are the same even when their types differ, and two equal copies are not.
 - For any other kind it is `==` on the boxes, so the types must be `==` too: `1` as an `int` and `1`
   as a named type over `int` are not the same.
@@ -91,14 +89,17 @@ let none = Reflect.valueOf(type(int | null), null)
 Reflect.same(none, Reflect.valueOf(type(null), null)) // true
 ```
 
-Any other kind compares with `==`: a function by identity, and `Bytes` by its contents:
+`Bytes` are mutable, so two boxes of equal bytes are the same only when they hold one collection.
+Any other kind compares with `==`, a function by identity:
 
 ```ant
+let hi = "hi".toBytes()
+let a = Reflect.valueOf(type(Bytes), hi)
+a.same(Reflect.valueOf(type(Bytes), hi))             // true
+a.same(Reflect.valueOf(type(Bytes), "hi".toBytes())) // false
 let double = func(x: int): int { x * 2 }
 let f = Reflect.valueOf(type(func(int): int), double)
 f.same(Reflect.valueOf(type(func(int): int), double)) // true
-let a = Reflect.valueOf(type(Bytes), "hi".toBytes())
-a.same(Reflect.valueOf(type(Bytes), "hi".toBytes())) // true
 ```
 
 Children taken out with a reader are boxes of the values in the parent, so a record shared by two

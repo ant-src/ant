@@ -4,11 +4,10 @@
 # Bytes.indexOf
 
 ```ant signature
-func Bytes.indexOf(b: Bytes, sub: Bytes): int | null
+func Bytes.indexOf(b: Bytes, sub: Bytes, from: int = 0): int | null
 ```
 
-Bytes.indexOf returns the index of the first occurrence of sub in b, or null when it does not occur.
-It returns 0 for an empty sub.
+Bytes.indexOf returns the index of the first occurrence of sub in b at or after from, or null when it does not occur. It panics if from is outside 0 ..= Bytes.length(b).
 
 <!-- end generated -->
 

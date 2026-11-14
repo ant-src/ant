@@ -143,7 +143,7 @@ Reflect.makeScalar(Reflect.erase(type(string)), true) // null
 - [Reflect.valueOf](valueOf.md): a value boxed with its type
 - [Reflect.to](to.md): the value in a box, at a static type
 - [Reflect.type](type.md): the type of a box
-- [Reflect.same](same.md): whether two boxes hold one record, array, map, or set
+- [Reflect.same](same.md): whether two boxes hold one record, array, map, set, or `Bytes`
 
 ### Reading
 

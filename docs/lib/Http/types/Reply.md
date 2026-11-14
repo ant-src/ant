@@ -7,11 +7,7 @@
 type Http.Reply = { status: int, headers: Map[string, string], body: string | Bytes }
 ```
 
-Http.Reply is what an [`Http.serve`](../serve.md) handler returns to answer a request. body is sent
-as given, a string as its UTF-8 and Bytes as they are, with the headers given plus Date and
-Content-Length from the body, which replaces one the handler gives; a 204 or 304 reply has no body
-and no Content-Length. A status outside 200 to 599, or two header names that differ only in case,
-panics.
+Http.Reply is what an [`Http.serve`](../serve.md) handler returns to answer a request. body is sent as given, a string as its UTF-8 and Bytes as they are, copied when the handler returns, with the headers given plus Date and Content-Length from the body, which replaces one the handler gives; a 204 or 304 reply has no body and no Content-Length. A status outside 200 to 599, or two header names that differ only in case, panics.
 
 <!-- end generated -->
 
@@ -43,7 +39,7 @@ go { Http.serve(listener, handle, stop) }
 let res = try Http.get("http://${Net.address(listener)}/ant")
 println(res.status)
 println(res.headers["Content-Type"])
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -104,7 +100,7 @@ defer { Context.cancel(stop) }
 go { Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/")
-println(res.body)
+println(res.text())
 println(res.headers["Content-Length"])
 ```
 
@@ -135,7 +131,7 @@ go { Http.serve(listener, handle, stop) }
 let base = "http://${Net.address(listener)}"
 for path in ["/new", "/old", "/gone"] {
   let res = try Http.get("${base}${path}")
-  println("${res.status} ${res.headers["Location"] ?? res.body}")
+  println("${res.status} ${res.headers["Location"] ?? res.text()}")
 }
 ```
 
@@ -190,9 +186,9 @@ go { Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 let list = try Http.get("${base}/items")
-println("${list.status} ${list.headers["Content-Type"]} ${list.body}")
+println("${list.status} ${list.headers["Content-Type"]} ${list.text()}")
 let wrong = try Http.post("${base}/items", "{}")
-println("${wrong.status} ${wrong.body}")
+println("${wrong.status} ${wrong.text()}")
 ```
 
 ```text
@@ -225,7 +221,7 @@ go { Http.serve(listener, handle, stop) }
 let base = "http://${Net.address(listener)}"
 for path in ["/hello.txt", "/missing.txt", "/%2e%2e/secret.txt"] {
   let res = try Http.get("${base}${path}")
-  println("${res.status} ${res.body.trim()}")
+  println("${res.status} ${res.text().trim()}")
 }
 ```
 
@@ -302,7 +298,6 @@ func get(path: string, query: string): Http.Request {
     path,
     query,
     headers: Map{},
-    body: "",
     bytes: "".toBytes(),
     remote: "127.0.0.1:50000",
   }
@@ -357,7 +352,7 @@ let base = "http://${Net.address(listener)}"
 let a = try Http.get("${base}/string")
 let b = try Http.get("${base}/bytes")
 assert(a.bytes == b.bytes)
-assert(a.body == text && b.body == text)
+assert(a.text() == text && b.text() == text)
 ```
 
 ## Possible issues
@@ -402,7 +397,7 @@ defer { Context.cancel(stop) }
 go { Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/")
-println("${res.status} ${res.body.isEmpty()}")
+println("${res.status} ${res.text().isEmpty()}")
 ```
 
 ```text

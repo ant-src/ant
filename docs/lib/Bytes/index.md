@@ -7,19 +7,23 @@
 type Bytes
 ```
 
-Bytes is an immutable sequence of bytes, for binary data. It compares by contents with ==, so it
-serves as a map key; b\[i\] reads one byte and for x in b yields each.
+Bytes is a mutable, growable sequence of bytes, for binary data, shared by reference as an array is. It compares by contents with ==; b\[i\] reads one byte, b\[i\] = x writes one, and for x in b yields each.
 
 <!-- end generated -->
 
 ## Details
 
-- `Bytes` has no literal. Build it with [Bytes.fromArray](fromArray.md), from text with
+- `Bytes` has no literal. Build it with [Bytes.new](new.md) and [Bytes.push](push.md), with
+  [Bytes.fromArray](fromArray.md), from text with
   [String.toBytes](../String/toBytes.md), from hex or Base64 with
   [Encoding.fromHex](../Encoding/fromHex.md) and [Encoding.fromBase64](../Encoding/fromBase64.md),
   or read it with [File.readBytes](../File/readBytes.md).
 - An index outside `0 ..= len(b) - 1` panics.
-- `Bytes` is immutable: there is no `b[i] = x`. Every function returns a new value.
+- `Bytes` is mutable and shared by reference, as an array is: `b[i] = x`, `push` and `extend` change
+  it, and every name for it sees the change. [Bytes.slice](slice.md) and [Bytes.clone](clone.md)
+  copy.
+- What a library function returns is new and the caller's to change, and a function that takes
+  `Bytes` only reads it during the call.
 - `Json.stringify` panics on `Bytes`. Put `Encoding.toBase64(b)` or `Encoding.toHex(b)` in the JSON
   instead.
 
@@ -80,6 +84,18 @@ data.indexOf(String.toBytes("="))             // 3
 data | Bytes.slice(4, 9) | String.fromBytes() // "value"
 ```
 
+Assigning `Bytes` shares them, and a slice is a copy:
+
+```ant
+let a = Bytes.fromArray([1, 2])
+let b = a
+a.push(byte(3))
+b // Bytes(01 02 03)
+let part = a.slice(0, 1)
+part[0] = byte(9)
+a // Bytes(01 02 03)
+```
+
 `Bytes` is a map key by contents:
 
 ```ant
@@ -92,23 +108,44 @@ names[Bytes.fromArray([0x89, 0x50])] // "png"
 
 ### Building bytes
 
+- [Bytes.new](new.md): a number of zero bytes
 - [Bytes.fromArray](fromArray.md): the bytes holding an array of integers, one byte each
 - [Bytes.concat](concat.md): an array of `Bytes` joined in order
+- [Bytes.clone](clone.md): a copy
+
+### Changing bytes
+
+- [Bytes.push](push.md): append one byte
+- [Bytes.extend](extend.md): append other bytes
+- [Bytes.pop](pop.md): remove and return the last byte
+- [Bytes.truncate](truncate.md): keep the first bytes
+- [Bytes.fill](fill.md): set a range to one byte
+- [Bytes.copy](copy.md): overwrite a range with bytes from another `Bytes`, or from itself
+
+### Numbers
+
+- [Bytes.read](read.md): a fixed-size integer or float at an index, in a stated byte order
+- [Bytes.write](write.md): overwrite a number at an index
+- [Bytes.append](append.md): append a number
+- [Bytes.sizeOf](sizeOf.md): the bytes a number type takes
+- [Bytes.Order](types/Order.md): [Bytes.BigEndian](types/BigEndian.md) or
+  [Bytes.LittleEndian](types/LittleEndian.md)
 
 ### Size and parts
 
 - [Bytes.length](length.md): the number of bytes; the same as `len(b)`
-- [Bytes.slice](slice.md): the bytes from one index up to but excluding another
+- [Bytes.slice](slice.md): a copy of the bytes from one index up to but excluding another
+- [Bytes.same](same.md): whether two names hold one collection
 
 ### Searching
 
-- [Bytes.indexOf](indexOf.md): the index of the first occurrence of `sub`, or `null`
-- [Bytes.startsWith](startsWith.md): whether `b` begins with a prefix
+- [Bytes.indexOf](indexOf.md): the index of the first occurrence of `sub` from an offset, or `null`
+- [Bytes.startsWith](startsWith.md): whether a prefix is at an offset, the start by default
 - [Bytes.endsWith](endsWith.md): whether `b` ends with a suffix
 
 ### Bytes as an array
 
-- [Bytes.toArray](toArray.md): the bytes as an `Array[byte]`, to change or compute with
+- [Bytes.toArray](toArray.md): the bytes as an `Array[byte]`, to sort, filter or map
 
 ## Applications
 
@@ -120,13 +157,23 @@ let header = Bytes.concat([pngMagic, String.toBytes("rest")])
 header.startsWith(pngMagic) // true
 ```
 
-Change one byte: convert to an array, change it, and convert back:
+Change one byte in place:
 
 ```ant
 let b = String.toBytes("cat")
-let xs = b.toArray()
-xs[0] = byte(0x62)
-Bytes.fromArray(xs) // Bytes(62 61 74)
+b[0] = byte(0x62)
+b // Bytes(62 61 74)
+```
+
+Build a frame: a big-endian length, then the payload:
+
+```ant
+let payload = String.toBytes("hello")
+let frame = Bytes.new()
+frame.append(type(uint32), uint32(len(payload)), Bytes.BigEndian{})
+frame.extend(payload)
+frame                                          // Bytes(00 00 00 05 68 65 6c 6c 6f)
+frame.read(type(uint32), 0, Bytes.BigEndian{}) // 5
 ```
 
 Sum the bytes into a simple checksum:
@@ -193,12 +240,32 @@ assert(Bytes.concat([b.slice(0, 3), b.slice(3, len(b))]) == b)
 
 ## Possible issues
 
-There is no `b[i] = x`. Assigning a byte is a compile error:
+`b[i] = x` takes a `byte`, and an integer literal is an `int`, so convert it:
 
 ```ant
 let b = String.toBytes("hi")
 b[0] = 1
-// error: Bytes is immutable, so a byte cannot be assigned; build an Array[byte] and convert it with Bytes.fromArray
+// error: cannot use int where byte is expected
+```
+
+Bytes handed to another goroutine or kept elsewhere are shared, so a later change shows there.
+Hand on a copy:
+
+```ant
+let buf = String.toBytes("v1")
+let kept = [buf.clone()]
+buf[1] = byte(0x32)
+kept[0] // Bytes(76 31)
+```
+
+A parser that slices off the rest of its input again and again copies it each time. Keep an offset
+and search from it:
+
+```ant
+let line = String.toBytes("a,b,c")
+let comma = Bytes.fromArray([0x2c])
+line.indexOf(comma)    // 1
+line.indexOf(comma, 2) // 3
 ```
 
 An index past the end panics:

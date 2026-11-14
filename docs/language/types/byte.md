@@ -287,14 +287,14 @@ String.toBytes("\u{89}") // Bytes(c2 89)
 Bytes.fromArray([0x89])  // Bytes(89)
 ```
 
-### `Bytes` is immutable
+### A byte of `Bytes` takes a `byte`
 
-A `byte` inside `Bytes` cannot be assigned:
+`data[i] = x` writes a byte, so an `int` is converted first:
 
 ```ant
 let data = String.toBytes("Hi")
-data[0] = byte(104)
-// error: Bytes is immutable, so a byte cannot be assigned; build an Array[byte] and convert it with Bytes.fromArray
+data[0] = 104
+// error: cannot use int where byte is expected
 ```
 
 ## See also

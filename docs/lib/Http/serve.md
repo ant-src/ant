@@ -42,7 +42,7 @@ let stop = Context.new()
 let served: Channel[Result[void, Error]] = Channel.new(1)
 go { served.send(Http.serve(listener, hello, stop)) }
 let reply = try Http.get("http://${Net.address(listener)}/docs")
-println("${reply.status} ${reply.body}")
+println("${reply.status} ${reply.text()}")
 stop.cancel()
 println(served.receive())
 ```
@@ -60,7 +60,7 @@ let stop = Context.new()
 go {
   Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.method } }, stop)
 }
-println((try Http.get("http://${Net.address(listener)}/")).body)
+println((try Http.get("http://${Net.address(listener)}/")).text())
 stop.cancel()
 ```
 
@@ -74,8 +74,8 @@ routes on the request's path:
 <!-- test: before
 go {
   Time.sleep(Time.duration(milliseconds: 200))
-  println(Http.get("http://127.0.0.1:48213/health").unwrap().body)
-  println(Http.get("http://127.0.0.1:48213/missing").unwrap().body)
+  println(Http.get("http://127.0.0.1:48213/health").unwrap().text())
+  println(Http.get("http://127.0.0.1:48213/missing").unwrap().text())
   Cmd.read(Cmd.new("kill", ["-INT", "${Os.pid()}"])).unwrap()
 }
 -->
@@ -114,7 +114,7 @@ func echo(req: Http.Request): Http.Reply {
     "path: ${req.path}",
     "query: ${req.query}",
     "tag: ${req.headers["X-Tag"]}",
-    "body: ${req.body}",
+    "body: ${req.text()}",
   ]
   Http.Reply{ status: 200, headers: Map{}, body: lines | String.join("\n") }
 }
@@ -124,7 +124,7 @@ let stop = Context.new()
 go { Http.serve(listener, echo, stop) }
 let url = "http://${Net.address(listener)}/caf%C3%A9/menu?q=a%20b&n=2"
 let reply = try Http.post(url, "two teas", headers: Map{ "X-Tag": "order" })
-println(reply.body)
+println(reply.text())
 stop.cancel()
 ```
 
@@ -149,7 +149,7 @@ let address = Net.address(listener)
 let stop = Context.new()
 go { Http.serve(listener, whoami, stop) }
 let reply = try Http.get("http://${address}/")
-println(reply.body == "true ${address}")
+println(reply.text() == "true ${address}")
 stop.cancel()
 ```
 
@@ -218,8 +218,8 @@ let base = "http://${Net.address(listener)}"
 let stop = Context.new()
 go { Http.serve(listener, handle, stop) }
 let waited: Channel[string] = Channel.new(1)
-go { waited.send(Http.get("${base}/wait").unwrap().body) }
-println((try Http.get("${base}/go")).body)
+go { waited.send(Http.get("${base}/wait").unwrap().text()) }
+println((try Http.get("${base}/go")).text())
 println(waited.receive())
 stop.cancel()
 ```
@@ -265,7 +265,7 @@ go {
   stop.cancel()
 }
 let reply = try Http.get(url)
-println(reply.body)
+println(reply.text())
 println(served.receive())
 println(Http.get(url).isOk())
 ```
@@ -291,8 +291,8 @@ let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
 go { Http.serve(listener, greet, stop) }
-println((try Http.get("${base}/?name=Ann")).body)
-println((try Http.get("${base}/")).body)
+println((try Http.get("${base}/?name=Ann")).text())
+println((try Http.get("${base}/")).text())
 stop.cancel()
 ```
 
@@ -309,7 +309,7 @@ let lock = Mutex.new()
 
 func handle(req: Http.Request): Http.Reply {
   if req.method == "PUT" {
-    lock.withLock({ store[req.path] = req.body })
+    lock.withLock({ store[req.path] = req.text() })
     return Http.Reply{ status: 204, headers: Map{}, body: "" }
   }
   let value = lock.withLock({ store[req.path] })
@@ -326,8 +326,8 @@ go { Http.serve(listener, handle, stop) }
 try Http.request("PUT", "${base}/color", "green")
 let found = try Http.get("${base}/color")
 let missing = try Http.get("${base}/size")
-println("${found.status} ${found.body}")
-println("${missing.status} ${missing.body}")
+println("${found.status} ${found.text()}")
+println("${missing.status} ${missing.text()}")
 stop.cancel()
 ```
 
@@ -341,7 +341,7 @@ A JSON endpoint parses the body with [Json.parse](../Json/parse.md) and answers 
 
 ```ant
 func sum(req: Http.Request): Http.Reply {
-  let items = Json.parse(req.body).unwrapOr(null)
+  let items = Json.parse(req.text()).unwrapOr(null)
   if !(items is Array) {
     return Http.Reply{ status: 400, headers: Map{}, body: "want a JSON array" }
   }
@@ -354,9 +354,9 @@ let listener = try Net.listen("127.0.0.1:0")
 let url = "http://${Net.address(listener)}/sum"
 let stop = Context.new()
 go { Http.serve(listener, sum, stop) }
-println((try Http.post(url, "[1, 2, 3.5]")).body)
+println((try Http.post(url, "[1, 2, 3.5]")).text())
 let bad = try Http.post(url, "nope")
-println("${bad.status} ${bad.body}")
+println("${bad.status} ${bad.text()}")
 stop.cancel()
 ```
 
@@ -387,7 +387,7 @@ func proxy(req: Http.Request): Http.Reply {
 
 go { Http.serve(back, origin, stop) }
 go { Http.serve(front, proxy, stop) }
-println((try Http.get("http://${Net.address(front)}/a/b")).body)
+println((try Http.get("http://${Net.address(front)}/a/b")).text())
 stop.cancel()
 ```
 
@@ -397,17 +397,17 @@ origin saw GET /a/b
 
 ## Properties and relations
 
-A request body arrives twice, as text in `body` and as received in `bytes`. `Content-Length` is the
+A request body arrives once, as received, in `bytes`, and `text()` decodes it. `Content-Length` is the
 reply body's length in bytes:
 
 ```ant
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 go {
-  Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.body } }, stop)
+  Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.text() } }, stop)
 }
 let reply = try Http.post("http://${Net.address(listener)}/", "naïve")
-assert(reply.body == "naïve")
+assert(reply.text() == "naïve")
 assert(reply.bytes == "naïve".toBytes())
 assert(reply.headers["Content-Length"] == "${reply.bytes.length()}")
 stop.cancel()
@@ -443,8 +443,8 @@ let base = "http://${Net.address(listener)}"
 let stop = Context.new()
 go { Http.serve(listener, handle, stop) }
 let crashed = try Http.get("${base}/crash")
-println("${crashed.status} '${crashed.body}'")
-println((try Http.get("${base}/")).body)
+println("${crashed.status} '${crashed.text()}'")
+println((try Http.get("${base}/")).text())
 stop.cancel()
 ```
 

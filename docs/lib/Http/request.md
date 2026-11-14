@@ -49,7 +49,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -60,7 +60,7 @@ go { Http.serve(listener, handle) }
 ```ant
 let res = try Http.request("PUT", "${base}/notes/1", body: "buy milk")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -81,7 +81,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -91,7 +91,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.request("DELETE", "${base}/notes/1")
-println("${res.status} ${res.body}")
+println("${res.status} ${res.text()}")
 ```
 
 ```text
@@ -114,7 +114,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -125,7 +125,7 @@ go { Http.serve(listener, handle) }
 ```ant
 for method in ["PATCH", "OPTIONS", "PURGE"] {
   let res = try Http.request(method, "${base}/cache")
-  println(res.body)
+  println(res.text())
 }
 ```
 
@@ -149,7 +149,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -159,7 +159,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.request("GET", "${base}/missing")
-println("${res.status}: ${res.body}")
+println("${res.status}: ${res.text()}")
 ```
 
 ```text
@@ -179,7 +179,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -212,7 +212,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -225,7 +225,7 @@ let sent = Bytes.fromArray([0x41, 0x6e, 0x74, 0xff])
 let res = try Http.request("POST", "${base}/echo", body: sent)
 println(res.bytes == sent)
 println(res.bytes.length())
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -251,7 +251,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -262,7 +262,7 @@ go { Http.serve(listener, handle) }
 ```ant
 let query = Url.stringifyQuery(Map{ "q": ["tea & milk"], "page": ["2"] })
 let res = try Http.request("GET", "${base}/search?${query}")
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -282,7 +282,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -319,7 +319,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -329,7 +329,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.request("POST", "${base}/notes", body: "café")
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -351,7 +351,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -385,7 +385,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -416,7 +416,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -450,7 +450,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -482,7 +482,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -494,7 +494,7 @@ go { Http.serve(listener, handle) }
 let budget = Context.new(timeout: Time.duration(milliseconds: 500))
 for path in ["/a", "/slow", "/b"] {
   let res = Http.request("GET", "${base}${path}", ctx: budget)
-  let line = if res is Ok { res.value.body } else { "${path}: ${res.error.message}" }
+  let line = if res is Ok { res.value.text() } else { "${path}: ${res.error.message}" }
   println(line)
 }
 ```
@@ -523,7 +523,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -540,7 +540,7 @@ let res = try Http.request("PUT", "${base}/echo", body: Json.stringify(note), he
 if res.status != 200 {
   panic("unexpected status ${res.status}")
 }
-let doc = try Json.parse(res.body)
+let doc = try Json.parse(res.text())
 println(res.headers["Content-Type"])
 println(doc)
 ```
@@ -566,7 +566,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -589,7 +589,7 @@ func fetch(method: string, url: string): Result[Http.Response, Error] {
 }
 
 let res = try fetch("GET", "${base}/old")
-println("${res.status} ${res.body}")
+println("${res.status} ${res.text()}")
 ```
 
 ```text
@@ -612,7 +612,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -626,9 +626,9 @@ func send(method: string, path: string, body: string = ""): Result[string, Error
     Http.request(method, "${base}${path}", body: body) | Result.wrapErr("${method} ${path}")
   )
   if res.status >= 400 {
-    return Result.fail("${method} ${path}: status ${res.status}: ${res.body}")
+    return Result.fail("${method} ${path}: status ${res.status}: ${res.text()}")
   }
-  Result.ok(res.body)
+  Result.ok(res.text())
 }
 
 println(send("PUT", "/notes/2", body: "call Ann"))
@@ -650,7 +650,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.method != "POST" {
     return Http.Reply{ status: 405, headers: Map{ "Allow": "POST" }, body: "" }
   }
-  Http.Reply{ status: 201, headers: Map{}, body: req.body.toUpper() }
+  Http.Reply{ status: 201, headers: Map{}, body: req.text().toUpper() }
 }
 
 let listener = try Net.listen("127.0.0.1:0")
@@ -658,7 +658,7 @@ let url = "http://${Net.address(listener)}/shout"
 go { Http.serve(listener, handle) }
 
 let created = try Http.request("POST", url, body: "hi")
-println("${created.status} ${created.body}")
+println("${created.status} ${created.text()}")
 let refused = try Http.request("PATCH", url)
 println("${refused.status} allow ${refused.headers["Allow"]}")
 ```
@@ -683,7 +683,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -695,11 +695,11 @@ go { Http.serve(listener, handle) }
 let get = try Http.get("${base}/a")
 let getVia = try Http.request("GET", "${base}/a")
 assert(get.status == getVia.status)
-assert(get.body == getVia.body)
+assert(get.text() == getVia.text())
 
 let post = try Http.post("${base}/a", "x")
 let postVia = try Http.request("POST", "${base}/a", body: "x")
-assert(post.body == postVia.body)
+assert(post.text() == postVia.text())
 ```
 
 When the body is UTF-8, `body` is the text of `bytes`:
@@ -715,7 +715,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -725,8 +725,8 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.request("POST", "${base}/echo", body: "naïve ☃")
-assert(res.body == "naïve ☃")
-assert(res.bytes == res.body.toBytes())
+assert(res.text() == "naïve ☃")
+assert(res.bytes == res.text().toBytes())
 ```
 
 ## Possible issues
@@ -745,7 +745,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -755,7 +755,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = Result.unwrap(Http.request("GET", "${base}/missing"))
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -776,7 +776,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -809,7 +809,7 @@ func handle(req: Http.Request): Http.Reply {
     let kind = req.headers.get("Content-Type") ?? "none"
     return Http.Reply{ status: 200, headers: Map{ "Content-Type": kind }, body: req.bytes }
   }
-  let body = if req.body.isEmpty() { "" } else { " ${req.body}" }
+  let body = if req.text().isEmpty() { "" } else { " ${req.text()}" }
   Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}${body}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
@@ -819,7 +819,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let res = try Http.request("get", "${base}/a")
-println(res.body)
+println(res.text())
 ```
 
 ```text

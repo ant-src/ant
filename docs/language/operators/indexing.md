@@ -355,14 +355,14 @@ let user = User{ name: "ann" }
 println(user["name"]) // error: a record has no dynamic access; use a Map when the keys are data
 ```
 
-### Bytes are read-only
+### A byte of Bytes is a `byte`
 
-`Bytes` is immutable. Build an `Array[byte]` and convert it:
+Assigning into `Bytes` takes a `byte`, not an `int`:
 
 ```ant
 let b = "hi".toBytes()
-b[0] = byte(72)
-// error: Bytes is immutable, so a byte cannot be assigned; build an Array[byte] and convert it with Bytes.fromArray
+b[0] = 72
+// error: cannot use int where byte is expected
 ```
 
 ### Index type

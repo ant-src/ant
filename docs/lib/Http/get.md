@@ -18,8 +18,8 @@ with the method "GET" and an empty body.
   means no response arrived: a malformed URL, no connection, header names that differ only in case,
   the timeout, or the context.
 - No redirect is followed. A 3xx comes back as it is, with its `Location` header.
-- The whole body is read before `Http.get` returns, and it is there twice: as received in `bytes`,
-  and as text in `body`, where bytes that are not valid UTF-8 become U+FFFD.
+- The whole body is read before `Http.get` returns, and it is held once, as received, in `bytes`.
+  [Http.text](text.md) decodes it, and bytes that are not valid UTF-8 become U+FFFD.
 - `headers` holds one string per name. A header the server repeats is joined with `, `.
 - `timeout` bounds the whole call, from connecting to the end of the body. A timeout that is zero or
   negative, or that has years, months, or weeks, is `Err` before anything is sent. Without `timeout`
@@ -35,7 +35,7 @@ go { Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: "Hell
 
 let response = try Http.get("http://${Net.address(listener)}/world")
 println(response.status)
-println(response.body)
+println(response.text())
 ```
 
 ```text
@@ -73,9 +73,9 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println((try Http.get("${base}/hello")).body)
+println((try Http.get("${base}/hello")).text())
 let missing = try Http.get("${base}/nothing")
-println("${missing.status}: ${missing.body}")
+println("${missing.status}: ${missing.text()}")
 ```
 
 ```text
@@ -128,7 +128,7 @@ go { Http.serve(listener, handle) }
 ```ant
 let term = "red & blue"
 let response = try Http.get("${base}/search?q=${Url.escape(term)}&page=2")
-println(response.body)
+println(response.text())
 ```
 
 ```text
@@ -177,7 +177,7 @@ println(response.headers["Location"])
 
 ### An empty body
 
-A response without a body has `""` in `body` and no bytes in `bytes`. Here `/empty` answers 204:
+A response without a body has no bytes in `bytes`, and its `text()` is `""`. Here `/empty` answers 204:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
@@ -207,7 +207,7 @@ go { Http.serve(listener, handle) }
 ```ant
 let response = try Http.get("${base}/empty")
 println(response.status)
-println(response.body == "")
+println(response.text() == "")
 println(response.bytes.length())
 ```
 
@@ -219,7 +219,7 @@ true
 
 ### A binary body
 
-Bytes that are not UTF-8 become U+FFFD in `body`, while `bytes` keeps them as received. Here `/logo`
+Bytes that are not UTF-8 become U+FFFD in `text()`, while `bytes` keeps them as received. Here `/logo`
 answers the four bytes a PNG file starts with:
 
 <!-- test: before
@@ -250,7 +250,7 @@ go { Http.serve(listener, handle) }
 ```ant
 let response = try Http.get("${base}/logo")
 println(response.bytes)
-println(response.body.count("\u{FFFD}"))
+println(response.text().count("\u{FFFD}"))
 ```
 
 ```text
@@ -302,8 +302,8 @@ go { Http.serve(listener, handle) }
 -->
 
 ```ant
-println((try Http.get("${base}/accept", headers: Map{ "Accept": "application/json" })).body)
-println((try Http.get("${base}/accept")).body)
+println((try Http.get("${base}/accept", headers: Map{ "Accept": "application/json" })).text())
+println((try Http.get("${base}/accept")).text())
 ```
 
 ```text
@@ -343,7 +343,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 println(Http.get("${base}/slow", timeout: Time.duration(milliseconds: 100)))
-println(Http.get("${base}/slow", timeout: Time.duration(seconds: 5)).map({ x.body }))
+println(Http.get("${base}/slow", timeout: Time.duration(seconds: 5)).map({ x.text() }))
 ```
 
 ```text
@@ -468,7 +468,7 @@ func fetchJson(url: string): Result[Json.Value, Error] {
   if response.status != 200 {
     return Result.fail("get ${url}: status ${response.status}")
   }
-  Json.parse(response.body) | Result.wrapErr("parse ${url}")
+  Json.parse(response.text()) | Result.wrapErr("parse ${url}")
 }
 
 let user = try fetchJson("${base}/users/1")
@@ -525,7 +525,7 @@ func getFollowing(path: string, limit: int): Result[Http.Response, Error] {
   Result.fail("get ${path}: more than ${limit} redirects")
 }
 
-println((try getFollowing("/old", 5)).body)
+println((try getFollowing("/old", 5)).text())
 println(getFollowing("/loop", 5))
 ```
 
@@ -613,10 +613,10 @@ go { Http.serve(listener, handle) }
 ```ant
 let viaGet = try Http.get("${base}/hello")
 let viaRequest = try Http.request("GET", "${base}/hello")
-assert(viaGet.status == viaRequest.status && viaGet.body == viaRequest.body)
+assert(viaGet.status == viaRequest.status && viaGet.text() == viaRequest.text())
 ```
 
-`body` is `bytes` decoded, with U+FFFD for bytes that are not UTF-8:
+`text()` is `bytes` decoded, with U+FFFD for bytes that are not UTF-8:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
@@ -646,7 +646,7 @@ go { Http.serve(listener, handle) }
 ```ant
 for path in ["/hello", "/logo"] {
   let response = try Http.get("${base}${path}")
-  assert(response.body == String.fromBytesLossy(response.bytes))
+  assert(response.text() == String.fromBytesLossy(response.bytes))
 }
 ```
 
@@ -685,7 +685,7 @@ go { Http.serve(listener, handle) }
 
 ```ant
 let response = try Http.get("${base}/users/2")
-println(Json.parse(response.body))
+println(Json.parse(response.text()))
 ```
 
 ```text

@@ -4,10 +4,10 @@
 # Bytes.startsWith
 
 ```ant signature
-func Bytes.startsWith(b: Bytes, prefix: Bytes): bool
+func Bytes.startsWith(b: Bytes, prefix: Bytes, at: int = 0): bool
 ```
 
-Bytes.startsWith reports whether b begins with prefix.
+Bytes.startsWith reports whether prefix occurs in b at index at. It panics if at is outside 0 ..= Bytes.length(b).
 
 <!-- end generated -->
 

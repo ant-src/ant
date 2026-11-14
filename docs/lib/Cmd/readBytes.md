@@ -256,13 +256,14 @@ Err{ error: Error{ message: "printf 'h\\351': output is not valid UTF-8" } }
 
 ## Properties and relations
 
-`Cmd.readBytes` gives what [`Cmd.capture`](capture.md) keeps in `stdoutBytes` when the status is 0:
+`Cmd.readBytes` gives what [`Cmd.captureBytes`](captureBytes.md) keeps in `stdout` when the status
+is 0:
 
 ```ant
 let lines = Cmd.new("printf", ["a\\nb\\n"])
-let output = try lines.capture()
+let output = try lines.captureBytes()
 assert(output.status == 0)
-assert(output.stdoutBytes == (try lines.readBytes()))
+assert(output.stdout == (try lines.readBytes()))
 ```
 
 [`Cmd.read`](read.md) is the same output decoded with

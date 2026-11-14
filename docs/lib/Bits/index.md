@@ -280,6 +280,6 @@ Bits.shiftLeft(uint8(1), 8)
 ## See also
 
 - [Math](../Math/index.md): numeric functions, the integer limits, and the `Integer` bound
-- [Bytes](../Bytes/index.md): immutable binary data, a sequence of `byte`
+- [Bytes](../Bytes/index.md): binary data, a mutable sequence of `byte`
 - [String.fromInt](../String/fromInt.md): an integer's digits in any base, such as base 2 to show
   its bits

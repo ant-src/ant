@@ -4,13 +4,10 @@
 # Http.Response
 
 ```ant signature
-type Http.Response = { status: int, headers: Map[string, string], body: string, bytes: Bytes }
+type Http.Response = { status: int, headers: Map[string, string], bytes: Bytes }
 ```
 
-Http.Response is the response to a client request. Its body is there twice: as received in bytes,
-and as text in body, with bytes that are not valid UTF-8 as U+FFFD. The headers hold one string per
-name, a repeated header joined with ", ", in order of name, each name in canonical form, as Go's
-CanonicalHeaderKey gives it: "content-type" is read as headers\["Content-Type"\].
+Http.Response is the response to a client request. Its body is held once, as received, in bytes; [`Http.text`](../text.md) decodes it. The headers hold one string per name, a repeated header joined with ", ", in order of name, each name in canonical form, as Go's CanonicalHeaderKey gives it: "content-type" is read as headers\["Content-Type"\].
 
 <!-- end generated -->
 
@@ -22,12 +19,12 @@ CanonicalHeaderKey gives it: "content-type" is read as headers\["Content-Type"\]
 - The whole body is read before the call returns.
 - `headers` is in order of name, and each name is in canonical form, as Go's `CanonicalHeaderKey`
   gives it: a header sent as `content-type` is read as `headers["Content-Type"]`.
-- When the body is valid UTF-8, `body` and `bytes` share one copy, so reading either one costs
-  nothing.
+- The body is held once, in `bytes`. [Http.text](../text.md) decodes it on every call, so a program
+  that needs the text twice binds it once.
 
 ## Basic examples
 
-Get a page from a local server with [Http.get](../get.md) and read its `status` and `body`:
+Get a page from a local server with [Http.get](../get.md) and read its `status` and its body as text:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
@@ -39,7 +36,7 @@ go { Http.serve(server, handle) }
 
 let res = try Http.get("http://${Net.address(server)}/hello")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -159,7 +156,7 @@ let url = "http://${Net.address(server)}"
 ```ant
 let res = try Http.get("${url}/nope")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -198,7 +195,7 @@ let url = "http://${Net.address(server)}"
 let res = try Http.get("${url}/old")
 println(res.status)
 println(res.headers["Location"])
-println(res.body.isEmpty())
+println(res.text().isEmpty())
 ```
 
 ```text
@@ -237,7 +234,7 @@ let url = "http://${Net.address(server)}"
 ```ant
 let res = try Http.request("HEAD", "${url}/hello")
 println(res.headers["Content-Length"])
-println(res.body.isEmpty())
+println(res.text().isEmpty())
 println(res.bytes.length())
 ```
 
@@ -247,7 +244,7 @@ true
 0
 ```
 
-A body that is not UTF-8 is exact in `bytes`. In `body`, the bad byte becomes U+FFFD:
+A body that is not UTF-8 is exact in `bytes`. In `text()`, the bad byte becomes U+FFFD:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
@@ -277,7 +274,7 @@ let url = "http://${Net.address(server)}"
 ```ant
 let res = try Http.get("${url}/blob")
 println(res.bytes)
-println(res.body == "\u{FFFD}\u{0}h")
+println(res.text() == "\u{FFFD}\u{0}h")
 ```
 
 ```text
@@ -314,17 +311,16 @@ a response without a server:
 
 ```ant
 func describe(res: Http.Response): string {
-  if res.status >= 400 { return "error ${res.status}: ${res.body}" }
+  if res.status >= 400 { return "error ${res.status}: ${res.text()}" }
   "${res.bytes.length()} bytes of ${res.headers["Content-Type"] ?? "unknown type"}"
 }
 
 let ok = Http.Response{
   status: 200,
   headers: Map{ "Content-Type": "text/html" },
-  body: "<p>hi</p>",
   bytes: "<p>hi</p>".toBytes(),
 }
-let missing = Http.Response{ status: 404, headers: Map{}, body: "gone", bytes: "gone".toBytes() }
+let missing = Http.Response{ status: 404, headers: Map{}, bytes: "gone".toBytes() }
 println(describe(ok))
 println(describe(missing))
 ```
@@ -369,7 +365,7 @@ func fetchText(address: string): Result[string, Error] {
   if res.status < 200 || res.status > 299 {
     return Result.fail("GET ${address}: status ${res.status}")
   }
-  Result.ok(res.body)
+  Result.ok(res.text())
 }
 
 println(fetchText("${url}/hello"))
@@ -410,7 +406,7 @@ let url = "http://${Net.address(server)}"
 
 ```ant
 let res = try Http.get("${url}/user")
-let user = try Json.parse(res.body)
+let user = try Json.parse(res.text())
 if user is Map {
   println(user["name"])
 }
@@ -459,7 +455,7 @@ func getFollowing(base: string, path: string): Result[Http.Response, Error] {
 
 let res = try getFollowing(url, "/old")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -506,7 +502,7 @@ true
 
 ## Properties and relations
 
-`body` is `bytes` decoded as text:
+`text()` is `bytes` decoded as text:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
@@ -536,7 +532,7 @@ let url = "http://${Net.address(server)}"
 ```ant
 for path in ["/hello", "/user", "/blob", "/nope"] {
   let res = try Http.get("${url}${path}")
-  assert(res.body == String.fromBytesLossy(res.bytes))
+  assert(res.text() == String.fromBytesLossy(res.bytes))
 }
 ```
 
@@ -578,7 +574,7 @@ println("still here, status ${res.status}")
 still here, status 404
 ```
 
-`body` loses bytes that are not UTF-8, so turning it back into `Bytes` does not give the body that
+`text()` loses bytes that are not UTF-8, so turning it back into `Bytes` does not give the body that
 was sent. Use `bytes` for binary data:
 
 <!-- test: before
@@ -608,8 +604,8 @@ let url = "http://${Net.address(server)}"
 
 ```ant
 let res = try Http.get("${url}/blob")
-println(res.body.toBytes() == res.bytes)
-println(res.body.toBytes())
+println(res.text().toBytes() == res.bytes)
+println(res.text().toBytes())
 ```
 
 ```text

@@ -19,8 +19,8 @@ checked against it: Reflect.valueOf(type(Array\[int\]), \[\]) checks.
   at an alias it is the type the alias stands for.
 - At an anonymous record type the box's type is that anonymous type, not the record's own named
   type, so readers see only the fields it lists.
-- The box holds the value itself, not a copy. A later change to a boxed array, map, set, or record
-  shows through the box.
+- The box holds the value itself, not a copy. A later change to a boxed array, map, set, record, or
+  `Bytes` shows through the box.
 
 ## Basic examples
 

@@ -225,5 +225,5 @@ depend on the contents. Use `Crypto.equal` for a signature that comes from outsi
 ## See also
 
 - [Encoding](../Encoding/index.md): hex and base64, the text forms of digests and keys
-- [Bytes](../Bytes/index.md): immutable binary data, the input and output of every hash
+- [Bytes](../Bytes/index.md): binary data, the input and output of every hash
 - [Random](../Random/index.md): a seeded generator for simulations and tests, not for secrets

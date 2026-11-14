@@ -20,8 +20,8 @@ Http.post sends body to url in a POST request and reads the whole response. It i
 - No redirect is followed. A 3xx comes back as it is, with its `Location` header.
 - The body is sent as given: a string as its UTF-8, `Bytes` unchanged. Say what it is with a
   `Content-Type` header.
-- The whole response is read before `post` returns, and its body is there twice: as received in
-  `bytes`, and as text in `body`.
+- The whole response is read before `post` returns, and its body is held once, as received, in
+  `bytes`; [Http.text](text.md) decodes it.
 
 ## Basic examples
 
@@ -29,14 +29,14 @@ Start a server on a free local port, then post a string to it with `Http.post`:
 
 ```ant
 func echo(req: Http.Request): Http.Reply {
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}: ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path}: ${req.text()}" }
 }
 
 let listener = try Net.listen("127.0.0.1:0")
 go { Http.serve(listener, echo) }
 let res = try Http.post("http://${listener.address()}/notes", "buy milk")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -58,10 +58,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -70,7 +70,7 @@ go { Http.serve(listener, echo) }
 
 ```ant
 let res = try Http.post("${url}/notes", "buy milk", headers: Map{ "Content-Type": "text/plain" })
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -88,10 +88,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -100,9 +100,9 @@ go { Http.serve(listener, echo) }
 
 ```ant
 let text = try Http.post(url, "text")
-println(text.body)
+println(text.text())
 let bytes = try Http.post(url, Bytes.fromArray([0x68, 0x69]))
-println(bytes.body)
+println(bytes.text())
 let empty = try Http.post("${url}/raw", "")
 println(empty.bytes)
 ```
@@ -114,7 +114,7 @@ Bytes()
 ```
 
 `Bytes` are sent as they are, even when they are not UTF-8. The response keeps them in `bytes`,
-while `body` has U+FFFD where the text is not valid:
+while `text()` has U+FFFD where the text is not valid:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
@@ -123,10 +123,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -136,7 +136,7 @@ go { Http.serve(listener, echo) }
 ```ant
 let res = try Http.post("${url}/raw", Bytes.fromArray([0xFF, 0x41]))
 println(res.bytes)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -153,10 +153,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -166,7 +166,7 @@ go { Http.serve(listener, echo) }
 ```ant
 let res = try Http.post("${url}/missing", "x")
 println(res.status)
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -183,10 +183,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -215,10 +215,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -243,10 +243,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -271,10 +271,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -301,10 +301,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -329,10 +329,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -360,10 +360,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -377,7 +377,7 @@ let note = Note{ title: "buy milk", done: false }
 let headers = Map{ "Content-Type": "application/json" }
 let res = try Http.post("${url}/json", Json.stringify(note), headers: headers)
 println(res.status)
-println(try Json.parse(res.body))
+println(try Json.parse(res.text()))
 ```
 
 ```text
@@ -394,10 +394,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -407,7 +407,7 @@ go { Http.serve(listener, echo) }
 ```ant
 let form = Url.stringifyQuery(Map{ "name": ["Ann Lee"], "tag": ["a", "b"] })
 let headers = Map{ "Content-Type": "application/x-www-form-urlencoded" }
-println((try Http.post("${url}/signup", form, headers: headers)).body)
+println((try Http.post("${url}/signup", form, headers: headers)).text())
 ```
 
 ```text
@@ -424,10 +424,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -440,7 +440,7 @@ func create(endpoint: string, title: string): Result[string, Error] {
   if res.status != 200 {
     return Result.fail("create ${title}: status ${res.status}")
   }
-  Result.ok(res.body)
+  Result.ok(res.text())
 }
 
 println(create("${url}/notes", "buy milk"))
@@ -463,10 +463,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -477,10 +477,10 @@ go { Http.serve(listener, echo) }
 let a = try Http.post("${url}/notes", "x")
 let b = try Http.request("POST", "${url}/notes", body: "x")
 assert(a.status == b.status)
-assert(a.body == b.body)
+assert(a.text() == b.text())
 ```
 
-When the response is UTF-8, `body` is its `bytes` as text:
+When the response is UTF-8, `text()` is its `bytes` as text:
 
 <!-- test: before
 func echo(req: Http.Request): Http.Reply {
@@ -489,10 +489,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -501,7 +501,7 @@ go { Http.serve(listener, echo) }
 
 ```ant
 let res = try Http.post(url, "héllo")
-assert(res.body.toBytes() == res.bytes)
+assert(res.text().toBytes() == res.bytes)
 ```
 
 ## Possible issues
@@ -516,10 +516,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -546,10 +546,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
@@ -558,7 +558,7 @@ go { Http.serve(listener, echo) }
 
 ```ant
 let res = try Http.post("${url}/missing", "x")
-let text = if res.status == 200 { res.body } else { "failed: ${res.status}" }
+let text = if res.status == 200 { res.text() } else { "failed: ${res.status}" }
 println(text)
 ```
 
@@ -575,10 +575,10 @@ func echo(req: Http.Request): Http.Reply {
   if req.path == "/moved" { return Http.Reply{ status: 303, headers: Map{ "Location": "/notes/7" }, body: "" } }
   if req.path == "/raw" { return Http.Reply{ status: 200, headers: Map{}, body: req.bytes } }
   if req.path == "/json" {
-    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.body }
+    return Http.Reply{ status: 201, headers: Map{ "Content-Type": "application/json" }, body: req.text() }
   }
   let kind = req.headers.get("Content-Type") ?? "no type"
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.method} ${req.path} (${kind}): ${req.text()}" }
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"

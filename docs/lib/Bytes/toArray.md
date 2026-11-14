@@ -13,7 +13,7 @@ Bytes.toArray returns the bytes of b as an array.
 
 ## Details
 
-- The array is new. Changing it leaves `b` as it was, since `Bytes` is immutable.
+- The array is new. Changing it leaves `b` as it was, and changing `b` leaves the array.
 
 ## Basic examples
 

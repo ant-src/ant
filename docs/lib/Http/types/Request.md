@@ -4,13 +4,10 @@
 # Http.Request
 
 ```ant signature
-type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], body: string, bytes: Bytes, remote: string }
+type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], bytes: Bytes, remote: string }
 ```
 
-Http.Request is a request that [`Http.serve`](../serve.md) passes to its handler. path is decoded,
-query is raw for [`Url.parseQuery`](../../Url/parseQuery.md), and remote is the client's "ip:port".
-The body is there twice, as in [`Http.Response`](Response.md), and the headers hold one string per
-name, Host first and the rest in order of name, each name in canonical form.
+Http.Request is a request that [`Http.serve`](../serve.md) passes to its handler. path is decoded, query is raw for [`Url.parseQuery`](../../Url/parseQuery.md), and remote is the client's "ip:port". The body is held once, in bytes, as in [`Http.Response`](Response.md), and the headers hold one string per name, Host first and the rest in order of name, each name in canonical form.
 
 <!-- end generated -->
 
@@ -21,8 +18,8 @@ name, Host first and the rest in order of name, each name in canonical form.
 - A header the client sent twice arrives as one string, its values joined with `, `.
 - `headers` has `Host` first and the rest in order of name, each name in canonical form: a header
   sent as `x-request-id` is read as `headers["X-Request-Id"]`.
-- The body is read whole. `bytes` holds it as received; `body` holds it as text, with U+FFFD for
-  bytes that are not UTF-8.
+- The body is read whole and held once, as received, in `bytes`. [Http.text](../text.md) decodes
+  it, with U+FFFD for bytes that are not UTF-8.
 
 ## Basic examples
 
@@ -40,8 +37,8 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}"
-println((try Http.get("${base}/notes")).body)
-println((try Http.post("${base}/notes", "buy milk")).body)
+println((try Http.get("${base}/notes")).text())
+println((try Http.post("${base}/notes", "buy milk")).text())
 ```
 
 ```text
@@ -53,7 +50,7 @@ Read the query and the body:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
-  Http.Reply{ status: 200, headers: Map{}, body: "query=${req.query} body=${req.body}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "query=${req.query} body=${req.text()}" }
 }
 
 let l = try Net.listen("127.0.0.1:0")
@@ -62,7 +59,7 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let res = try Http.post("http://${l.address()}/search?q=ant&page=2", "hello")
-println(res.body)
+println(res.text())
 ```
 
 ```text
@@ -84,8 +81,8 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}"
-println((try Http.get("${base}/files/my%20notes.txt")).body)
-println((try Http.get(base)).body)
+println((try Http.get("${base}/files/my%20notes.txt")).text())
+println((try Http.get(base)).text())
 ```
 
 ```text
@@ -109,7 +106,7 @@ let stop = Context.new()
 go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
-println((try Http.get("http://${l.address()}/?name=Ann%20Lee&tag=a&tag=b")).body)
+println((try Http.get("http://${l.address()}/?name=Ann%20Lee&tag=a&tag=b")).text())
 ```
 
 ```text
@@ -131,7 +128,7 @@ defer { stop.cancel() }
 
 let url = "http://${l.address()}/cache"
 for method in ["GET", "DELETE", "PURGE"] {
-  println((try Http.request(method, url)).body)
+  println((try Http.request(method, url)).text())
 }
 ```
 
@@ -156,8 +153,8 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/"
-println((try Http.get(url, headers: Map{ "X-Request-Id": "42" })).body)
-println((try Http.get(url)).body)
+println((try Http.get(url, headers: Map{ "X-Request-Id": "42" })).text())
+println((try Http.get(url)).text())
 ```
 
 ```text
@@ -191,12 +188,12 @@ println(response.split("\r\n\r\n")[1])
 text/html, application/json
 ```
 
-The body is there twice: as received in `bytes`, and as text in `body`. A byte that is not UTF-8
-becomes U+FFFD in `body`:
+The body is held once, as received, in `bytes`, and `text()` decodes it. A byte that is not UTF-8
+becomes U+FFFD in the text:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
-  Http.Reply{ status: 200, headers: Map{}, body: "${req.bytes} ${req.body.length()}" }
+  Http.Reply{ status: 200, headers: Map{}, body: "${req.bytes} ${req.text().length()}" }
 }
 
 let l = try Net.listen("127.0.0.1:0")
@@ -205,9 +202,9 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/upload"
-println((try Http.post(url, "café")).body)
-println((try Http.post(url, Bytes.fromArray([0xff, 0x41]))).body)
-println((try Http.get(url)).body)
+println((try Http.post(url, "café")).text())
+println((try Http.post(url, Bytes.fromArray([0xff, 0x41]))).text())
+println((try Http.get(url)).text())
 ```
 
 ```text
@@ -229,7 +226,7 @@ let stop = Context.new()
 go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
-println((try Http.get("http://${l.address()}/")).body)
+println((try Http.get("http://${l.address()}/")).text())
 ```
 
 ```text
@@ -252,7 +249,6 @@ let req = Http.Request{
   path: "/health",
   query: "",
   headers: Map{ "Host": "example.com" },
-  body: "",
   bytes: "".toBytes(),
   remote: "127.0.0.1:50000",
 }
@@ -279,7 +275,7 @@ func handle(req: Http.Request): Http.Reply {
   if req.method == "GET" {
     Http.Reply{ status: 200, headers: Map{}, body: notes | String.join(", ") }
   } else if req.method == "POST" {
-    notes.push(req.body)
+    notes.push(req.text())
     Http.Reply{ status: 201, headers: Map{}, body: "added" }
   } else {
     Http.Reply{ status: 405, headers: Map{ "Allow": "GET, POST" }, body: "" }
@@ -294,7 +290,7 @@ defer { stop.cancel() }
 let url = "http://${l.address()}/notes"
 let _ = try Http.post(url, "milk")
 let _ = try Http.post(url, "bread")
-println((try Http.get(url)).body)
+println((try Http.get(url)).text())
 println((try Http.request("DELETE", url)).status)
 println((try Http.get("http://${l.address()}/other")).status)
 ```
@@ -324,8 +320,8 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}/greet"
-println((try Http.get("${base}?name=Ann")).body)
-println((try Http.get(base)).body)
+println((try Http.get("${base}?name=Ann")).text())
+println((try Http.get(base)).text())
 println((try Http.get("${base}?name=%zz")).status)
 ```
 
@@ -352,7 +348,7 @@ defer { stop.cancel() }
 
 let url = "http://${l.address()}/admin"
 println((try Http.get(url)).status)
-println((try Http.get(url, headers: Map{ "Authorization": "Bearer s3cret" })).body)
+println((try Http.get(url, headers: Map{ "Authorization": "Bearer s3cret" })).text())
 ```
 
 ```text
@@ -364,7 +360,7 @@ Parse a JSON body, and answer 400 when it is not JSON:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
-  let value = Json.parse(req.body)
+  let value = Json.parse(req.text())
   if value is Err {
     return Http.Reply{ status: 400, headers: Map{}, body: "invalid JSON" }
   }
@@ -385,7 +381,7 @@ defer { stop.cancel() }
 let url = "http://${l.address()}/users"
 for body in ["{\"name\": \"Ann\"}", "{\"name\": 7}", "{oops"] {
   let res = try Http.post(url, body, headers: Map{ "Content-Type": "application/json" })
-  println("${res.status} ${res.body}")
+  println("${res.status} ${res.text()}")
 }
 ```
 
@@ -423,7 +419,7 @@ decodes it:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
-  let same = req.body == String.fromBytesLossy(req.bytes)
+  let same = req.text() == String.fromBytesLossy(req.bytes)
   Http.Reply{ status: if same { 200 } else { 500 }, headers: Map{}, body: "" }
 }
 
@@ -455,8 +451,8 @@ go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}"
-println((try Http.get("${base}/a%2Fb")).body)
-println((try Http.get("${base}/a/b")).body)
+println((try Http.get("${base}/a%2Fb")).text())
+println((try Http.get("${base}/a/b")).text())
 ```
 
 ```text
@@ -478,7 +474,7 @@ let stop = Context.new()
 go { Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
-println((try Http.get("http://${l.address()}/?q=red%20ant")).body)
+println((try Http.get("http://${l.address()}/?q=red%20ant")).text())
 ```
 
 ```text
@@ -490,7 +486,7 @@ red%20ant | red ant
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
-  Http.Reply{ status: 200, headers: Map{}, body: req.body }
+  Http.Reply{ status: 200, headers: Map{}, body: req.text() }
 }
 
 let l = try Net.listen("127.0.0.1:0")
@@ -511,7 +507,7 @@ body. The panic is reported on standard error and the server goes on:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {
-  let doc = Json.parse(req.body).unwrap()
+  let doc = Json.parse(req.text()).unwrap()
   Http.Reply{ status: 200, headers: Map{}, body: Json.stringify(doc) }
 }
 
@@ -522,8 +518,8 @@ defer { stop.cancel() }
 
 let url = "http://${l.address()}/"
 let bad = try Http.post(url, "{oops")
-println("${bad.status} [${bad.body}]")
-println((try Http.post(url, "[\"ok\"]")).body)
+println("${bad.status} [${bad.text()}]")
+println((try Http.post(url, "[\"ok\"]")).text())
 ```
 
 ```text

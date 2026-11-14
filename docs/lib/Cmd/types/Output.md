@@ -4,12 +4,10 @@
 # Cmd.Output
 
 ```ant signature
-type Cmd.Output = { status: int, statuses: Array[int], stdout: string, stderr: string, stdoutBytes: Bytes, stderrBytes: Bytes }
+type Cmd.Output = { status: int, statuses: Array[int], stdout: string, stderr: string }
 ```
 
-Cmd.Output is what [`Cmd.capture`](../capture.md) collects from a command that ran to its end.
-status is its status, statuses each stage's own; each output is kept as bytes in stdoutBytes and
-stderrBytes and as text in stdout and stderr. The stages' standard error interleaves as it arrived.
+Cmd.Output is what [`Cmd.capture`](../capture.md) collects from a command that ran to its end. status is its status, statuses each stage's own, and stdout and stderr the outputs as text, with bytes that are not valid UTF-8 as U+FFFD. The stages' standard error interleaves as it arrived.
 
 <!-- end generated -->
 
@@ -19,8 +17,9 @@ stderrBytes and as text in stdout and stderr. The stages' standard error interle
   `status`. It is `Err` only when the command could not be started or run to its end.
 - `stdout` and `stderr` hold the whole output, final newline included, unlike
   [Cmd.read](../read.md).
-- Output that is not valid UTF-8 has U+FFFD in `stdout` or `stderr`; `stdoutBytes` and `stderrBytes`
-  hold the bytes as they were written.
+- Output that is not valid UTF-8 has U+FFFD in `stdout` or `stderr`.
+  [Cmd.captureBytes](../captureBytes.md) gives a [Cmd.OutputBytes](OutputBytes.md), which holds
+  standard output as it was written.
 - `statuses` has one entry per stage, in pipeline order. For a pipeline, `status` is that of the
   rightmost stage that failed, or 0, and a stage before the last that SIGPIPE ended does not count.
 - A child that a signal ended has status `128 + n`, as a shell reports it: SIGKILL is 137. On
@@ -50,7 +49,7 @@ println(try Cmd.capture(Cmd.new("echo", ["hi"])))
 ```
 
 ```text
-Cmd.Output{ status: 0, statuses: [0], stdout: "hi\n", stderr: "", stdoutBytes: Bytes(68 69 0a), stderrBytes: Bytes() }
+Cmd.Output{ status: 0, statuses: [0], stdout: "hi\n", stderr: "" }
 ```
 
 ## Scope
@@ -60,12 +59,12 @@ A command that writes nothing has empty outputs:
 ```ant
 let out = try Cmd.capture(Cmd.new("true"))
 println(out.stdout.isEmpty())
-println(out.stdoutBytes.length())
+println(out.stderr.isEmpty())
 ```
 
 ```text
 true
-0
+true
 ```
 
 What `input` sends the command shows up in its output:
@@ -126,17 +125,18 @@ y
 
 ```
 
-Output that is not UTF-8 is exact in `stdoutBytes`. In `stdout`, the bad byte becomes U+FFFD:
+Output that is not UTF-8 has the bad byte as U+FFFD in `stdout`; [Cmd.captureBytes](../captureBytes.md)
+keeps it exact:
 
 ```ant
-let out = try Cmd.capture(Cmd.new("printf", ["\\377ok"]))
-println(out.stdoutBytes)
-println(out.stdout == "\u{FFFD}ok")
+let c = Cmd.new("printf", ["\\377ok"])
+println((try Cmd.capture(c)).stdout == "\u{FFFD}ok")
+println((try Cmd.captureBytes(c)).stdout)
 ```
 
 ```text
-Bytes(ff 6f 6b)
 true
+Bytes(ff 6f 6b)
 ```
 
 `Cmd.Output` is a record type, so a literal builds one, for example to test a function that takes an
@@ -152,8 +152,6 @@ let failed = Cmd.Output{
   statuses: [1],
   stdout: "",
   stderr: "disk full\n",
-  stdoutBytes: "".toBytes(),
-  stderrBytes: "disk full\n".toBytes(),
 }
 println(summary(failed))
 ```
@@ -223,13 +221,16 @@ stage 2 (grep) exited 1
 
 ## Properties and relations
 
-`stdout` is `stdoutBytes` decoded as text, and the same holds for `stderr`:
+`stdout` is the output [Cmd.captureBytes](../captureBytes.md) gives, decoded as text, and `stderr` is
+the same in both:
 
 ```ant
 for script in ["echo plain", "printf 'caf\\303\\251'", "printf '\\377\\376'", "echo err >&2"] {
-  let out = try Cmd.capture(Cmd.new("sh", ["-c", script]))
-  assert(out.stdout == String.fromBytesLossy(out.stdoutBytes))
-  assert(out.stderr == String.fromBytesLossy(out.stderrBytes))
+  let c = Cmd.new("sh", ["-c", script])
+  let out = try Cmd.capture(c)
+  let raw = try Cmd.captureBytes(c)
+  assert(out.stdout == String.fromBytesLossy(raw.stdout))
+  assert(out.stderr == raw.stderr)
 }
 ```
 

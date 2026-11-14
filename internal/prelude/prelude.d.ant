@@ -1721,8 +1721,8 @@ func Reflect.to[T](d: Reflect.Value, t: Reflect.Type[T]): T
 //     // int
 func Reflect.type(d: Reflect.Value): Reflect.ErasedType
 
-// Reflect.same reports whether a and b hold one record, array, map, or set, as Record.same,
-// Array.same, Map.same, and Set.same do, and whether they are == for any other kind. A walker
+// Reflect.same reports whether a and b hold one record, array, map, set, or Bytes, as Record.same,
+// Array.same, Map.same, Set.same, and Bytes.same do, and whether they are == for any other kind. A walker
 // tests each child against the boxes on its path with it to find a cycle, which the readers never
 // detect.
 //

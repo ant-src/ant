@@ -7,7 +7,7 @@
 func Bytes.concat(parts: Array[Bytes]): Bytes
 ```
 
-Bytes.concat returns the byte sequences in parts joined in order.
+Bytes.concat returns the byte sequences in parts joined in order, in a new collection.
 
 <!-- end generated -->
 

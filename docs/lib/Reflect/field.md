@@ -17,7 +17,7 @@ record type that lists the field.
 
 - The box's type is the field's type with the record's type arguments substituted. When the field's
   type is a union, the box holds the member the value belongs to, never the union.
-- A field that holds a record, array, map, or set is boxed as that same value, not a copy.
+- A field that holds a record, array, map, set, or `Bytes` is boxed as that same value, not a copy.
 
 ## Basic examples
 
