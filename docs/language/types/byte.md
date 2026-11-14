@@ -187,11 +187,15 @@ println(nibbles(byte(0x3c)))
 
 ### XOR with a key
 
-Compute bytes one at a time as an `Array[byte]`, then convert it to `Bytes`:
+Compute bytes one at a time into new `Bytes`:
 
 ```ant
 func xorWith(data: Bytes, key: byte): Bytes {
-  data.toArray() | Array.map({ Bits.xor(x, key) }) | Bytes.fromArray()
+  let out = Bytes.new(len(data))
+  for i in Array.range(0, len(data)) {
+    out[i] = Bits.xor(data[i], key)
+  }
+  out
 }
 
 let secret = xorWith(String.toBytes("ant"), byte(0x2a))

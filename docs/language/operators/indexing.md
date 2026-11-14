@@ -12,7 +12,7 @@ an element of an array or the value of a map key.
 - A map read gives `V | null`: the value whose key is `==` to the index, or `null` when there is
   none. A map write inserts the key or replaces its value.
 - `let` stops a name from being rebound, not its elements: `xs[0] = v` works on a `let` array.
-- Strings, sets, and records have no indexing. `Bytes` is read-only.
+- Strings, sets, and records have no indexing. A byte of `Bytes` reads and writes as a `byte`.
 
 ## Basic examples
 

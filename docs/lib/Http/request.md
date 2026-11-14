@@ -198,8 +198,8 @@ println(res.headers["Location"])
 /new
 ```
 
-A body can be `Bytes`, sent as they are. The response has the body twice, as text in `body` and as
-received in `bytes`. Here the server sends back what it got:
+A body can be `Bytes`, sent as they are. The response holds its body once, as received, in `bytes`,
+and `text()` decodes it. Here the server sends back what it got:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
