@@ -219,6 +219,27 @@ open missing.txt: no such file or directory
 A `let` holds for the whole session: a later input cannot assign it or declare the name again. A
 `var` can be declared again.
 
+A declaration or a `void` result prints nothing. Other results print as `println` writes them: a
+string has no surrounding quotes, while a string inside an array keeps them. The prompt is `> ` for
+a new input and `. ` for a line that continues an unfinished input. Prompts also appear when you
+pipe input into `ant`.
+
+### Commands and keys
+
+Type `:help` to list the commands and editing keys:
+
+| Command                | What it does                                      |
+| ---------------------- | ------------------------------------------------- |
+| `:type expr`           | Print the type of an expression.                  |
+| `:doc name`            | Look up standard-library documentation.           |
+| `:load file.ant`       | Evaluate a file in the current session.           |
+| `:reset`               | Start a new session, forgetting its declarations. |
+| `:quit`, `:q`, `:exit` | End the session with status `0`.                  |
+
+In a terminal, Tab completes names and Up and Down browse the history, kept in `~/.ant_history`.
+Ctrl-D on an empty line ends the session with status `0`, as does the end of piped input. Ctrl-C
+drops the current input; press it again on an empty line to exit with status `130`.
+
 ## See also
 
 - [ant check](check.md)

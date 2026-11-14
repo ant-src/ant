@@ -221,6 +221,9 @@ stays bound for the whole session: you cannot declare it again or assign it. Use
 you want to declare again as you experiment. `_` is the value the last input printed. The REPL is a
 quick way to try a function before you put it in a file.
 
+Type `:quit` to leave the REPL, or press Ctrl-D on an empty line. Type `:help` to see the commands
+and editing keys.
+
 ## Next
 
 - The [Tour](../tour/01-hello.md) teaches the language one concept at a time.

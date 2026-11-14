@@ -20,7 +20,7 @@ var commands = []command{
 	{"doc", "name", "print a declaration of the standard library with its doc"},
 	{"load", "file.ant", "evaluate a file in the session"},
 	{"reset", "", "start a new session, forgetting every name"},
-	{"quit", "", "end the REPL"},
+	{"quit", "", "end the REPL (aliases: :q, :exit)"},
 }
 
 const keysHelp = `Keys:
@@ -92,7 +92,7 @@ func (l *looper) command(line string) (status int, done bool) {
 		if e, ok := l.r.(*editor); ok {
 			p.Color = e.th.class[clsKeyword] != ""
 		}
-		if !p.Print(l.stdout, f.Decls, arg, true) {
+		if !p.Print(l.stdout, f.Decls, arg, f.NamespaceDocs) {
 			fmt.Fprintf(l.stderr, "no declaration %s\n", arg)
 		}
 	case "load":

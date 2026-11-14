@@ -68,6 +68,27 @@ func TestRunExit(t *testing.T) {
 	}
 }
 
+// Section 10, Scripts: prompts are written even to a pipe, strings print without quotes,
+// and declarations and void results print nothing. EOF and each quit command exit normally.
+func TestRunTranscript(t *testing.T) {
+	const input = "var s = \"q\"\ns\n[\"x\", 1]\nfunc f() {}\nf()\nif true {\n1\n}\n"
+	const want = "> > q\n> [\"x\", 1]\n> > > . . 1\n> "
+	for _, end := range []string{"", ":quit", ":q", ":exit"} {
+		t.Run("end="+end, func(t *testing.T) {
+			src, suffix := input, "\n"
+			if end != "" {
+				src += end + "\nprintln(\"after quit\")\n"
+				suffix = ""
+			}
+			var out, errOut strings.Builder
+			status := Run(context.Background(), strings.NewReader(src), &out, &errOut)
+			if status != 0 || out.String() != want+suffix || errOut.Len() != 0 {
+				t.Errorf("status %d, stdout %q, stderr %q; want status 0, stdout %q", status, out.String(), errOut.String(), want+suffix)
+			}
+		})
+	}
+}
+
 // TestRunInterrupted: an interrupt ends the loop with status 130, at the prompt or during an
 // input, rather than leaving a session whose every later input is cancelled.
 func TestRunInterrupted(t *testing.T) {
@@ -215,7 +236,7 @@ func TestCommands(t *testing.T) {
 		t.Errorf("status %d", status)
 	}
 	o, e := out.String(), errOut.String()
-	for _, want := range []string{":type expr", "Ctrl-C", "> int\n", "func Array.map", "> 42\n", "> 41\n"} {
+	for _, want := range []string{":type expr", ":q, :exit", "Ctrl-C", "> int\n", "func Array.map", "> 42\n", "> 41\n"} {
 		if !strings.Contains(o, want) {
 			t.Errorf("stdout lacks %q:\n%s", want, o)
 		}
