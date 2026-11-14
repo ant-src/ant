@@ -16,7 +16,7 @@ go { Channel.send(served, Http.serve(listener, handle, stop)) }
 var twice = Result.unwrap(Http.get("${base}/twice", timeout: Time.duration(seconds: 5)))
 println(twice.status)
 var once = Result.unwrap(Http.get("${base}/once", timeout: Time.duration(seconds: 5)))
-println("${once.status} ${once.headers["X-A"] ?? "-"} ${once.headers["X-B"] ?? "-"} ${once.body}")
+println("${once.status} ${once.headers["X-A"] ?? "-"} ${once.headers["X-B"] ?? "-"} ${once.text()}")
 Context.cancel(stop)
 println(Channel.receive(served))
 

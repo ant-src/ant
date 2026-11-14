@@ -9,7 +9,7 @@ func fail[T](message: string): Result[T, Error] { Result.err(Error{ message }) }
 func getJson(url: string): Result[Json.Value, Error] {
   var r = try Http.get(url, headers: Map{ "Accept": "application/json" }, timeout: Time.duration(seconds: 10))
   if r.status != 200 { return fail("status ${r.status}") }
-  Json.parse(r.body)
+  Json.parse(r.text())
 }
 
 // lookup follows a path of object keys and array indexes, such as items.0.name.

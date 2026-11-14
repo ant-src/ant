@@ -1,0 +1,77 @@
+// spec: 11 Bytes; 4 Types as values
+// Bytes.read, Bytes.write and Bytes.append take a number type as a type value and an order every
+// call states; integers are two's complement, floats their IEEE 754 bits, and Bytes.sizeOf is the
+// width. A one-byte type ignores the order, and a range outside the bytes panics.
+
+func caught(f: func(): void): string {
+  let r = Panic.catch(f)
+  if r is Err { r.error.message } else { "no panic" }
+}
+
+let big = Bytes.BigEndian{}
+let little = Bytes.LittleEndian{}
+let b = Bytes.new()
+b.append(type(uint32), uint32(0x01020304), big)
+b.append(type(uint32), uint32(0x01020304), little)
+b.append(type(int16), int16(-2), big)
+b.append(type(int8), int8(-1), little)
+b.append(type(byte), byte(0xab), big)
+b.append(type(float64), 1.5, little)
+b.append(type(float32), float32(-0.5), big)
+b.append(type(int), -3, big)
+b.append(type(uint64), Bits.not(uint64(0)), little)
+println(b)
+println(b.read(type(uint32), 0, big))
+println(b.read(type(uint32), 4, big))
+println(b.read(type(uint32), 4, little))
+println(b.read(type(int16), 8, big))
+println(b.read(type(uint16), 8, big))
+println(b.read(type(int8), 10, big))
+println(b.read(type(byte), 11, little))
+println(b.read(type(float64), 12, little))
+println(b.read(type(float32), 20, big))
+println(b.read(type(int), 24, big))
+println(b.read(type(uint64), 32, little))
+b.write(type(uint16), 0, uint16(0xbeef), little)
+println(b.slice(0, 4))
+println([Bytes.sizeOf(type(byte)), Bytes.sizeOf(type(int16)), Bytes.sizeOf(type(float32)), Bytes.sizeOf(type(int))])
+
+func readAll[T: Number](b: Bytes, t: Reflect.Type[T], at: int, n: int, order: Bytes.Order): Array[T] {
+  Array.range(0, n) | Array.map({ b.read(t, at + x * Bytes.sizeOf(t), order) })
+}
+println(readAll(Bytes.fromArray([0, 1, 0, 2, 0, 3]), type(uint16), 0, 3, big))
+
+println(caught({ let _ = Bytes.new(3).read(type(uint32), 0, big) }))
+println(caught({ let _ = Bytes.new(4).read(type(uint32), -1, big) }))
+println(caught({ Bytes.new(4).write(type(uint32), 1, uint32(0), big) }))
+
+// Http.text decodes a body held as bytes, with an invalid byte as U+FFFD.
+let l = Result.unwrap(Net.listen("127.0.0.1:0"))
+let stop = Context.new()
+go {
+  let _ = Http.serve(l, { Http.Reply{ status: 200, headers: Map{}, body: Bytes.fromArray([0x61, 0xff, 0x62]) } }, stop)
+}
+let r = Result.unwrap(Http.get("http://${Net.address(l)}/"))
+println("${r.bytes} ${Http.text(r)} ${r.text() == String.fromBytesLossy(r.bytes)}")
+Context.cancel(stop)
+
+// expect
+// out: Bytes(01 02 03 04 04 03 02 01 ff fe ff ab 00 00 00 00 00 00 f8 3f bf 00 00 00 ff ff ff ff ff ff ff fd ff ff ff ff ff ff ff ff)
+// out: 16909060
+// out: 67305985
+// out: 16909060
+// out: -2
+// out: 65534
+// out: -1
+// out: 171
+// out: 1.5
+// out: -0.5
+// out: -3
+// out: 18446744073709551615
+// out: Bytes(ef be 03 04)
+// out: [1, 2, 4, 8]
+// out: [1, 2, 3]
+// out: Bytes.read: the range 0..4 is not within 0 ..= 3
+// out: Bytes.read: the range -1..3 is not within 0 ..= 4
+// out: Bytes.write: the range 1..5 is not within 0 ..= 4
+// out: Bytes(61 ff 62) a�b true

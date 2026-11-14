@@ -79,7 +79,7 @@ var sent = Bytes.fromArray([0x7b, 0xff, 0x7d])
 var r = Result.unwrap(Http.post(base, sent))
 println(Bytes.slice(r.bytes, 0, 32) == Crypto.sha256(sent))
 println(Bytes.endsWith(r.bytes, sent))
-println(String.endsWith(r.body, "{\u{FFFD}}"))
+println(String.endsWith(r.text(), "{\u{FFFD}}"))
 var text = Result.unwrap(Http.request("PUT", base, "é"))
 println(Bytes.slice(text.bytes, 32, len(text.bytes)))
 Context.cancel(stop)
@@ -87,9 +87,9 @@ Context.cancel(stop)
 // A child reads Bytes and writes them.
 var out = Result.unwrap(Cmd.capture(Cmd.new("wc", ["-c"]), input: Bytes.fromArray([0xde, 0xad, 0x00])))
 println(String.trim(out.stdout))
-var cat = Result.unwrap(Cmd.capture(Cmd.new("cat"), input: Bytes.fromArray([0x61, 0xff])))
-println(cat.stdoutBytes)
-println([cat.stdout])
+var cat = Result.unwrap(Cmd.captureBytes(Cmd.new("cat"), input: Bytes.fromArray([0x61, 0xff])))
+println(cat.stdout)
+println([Result.unwrap(Cmd.capture(Cmd.new("cat"), input: Bytes.fromArray([0x61, 0xff]))).stdout])
 
 // expect
 // out: Ok{ value: void }

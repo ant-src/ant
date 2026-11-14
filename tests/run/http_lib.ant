@@ -4,7 +4,7 @@
 var base = Os.args()[0]
 var r = Result.unwrap(Http.get("${base}/hello"))
 println(r.status)
-println(r.body)
+println(r.text())
 println(r.headers["Content-Type"])
 var maybe: Http.Response | null = r
 println(maybe is Http.Response)
@@ -12,7 +12,7 @@ var missing = Result.unwrap(Http.get("${base}/status/404"))
 println(missing.status)
 var posted = Result.unwrap(Http.post("${base}/echo", "payload", Map{ "X-Token": "secret" }))
 println(posted.status)
-println(posted.body)
+println(posted.text())
 println(posted.headers["X-Token"])
 println(Http.get("http://127.0.0.1:1/unreachable") is Err)
 println(Http.get("::not a url") is Err)

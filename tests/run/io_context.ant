@@ -44,7 +44,7 @@ Result.unwrap(File.removeAll(dir))
 // out: true
 // out: Err{ error: Error{ message: "timeout" } }
 // out: true
-// out: Ok{ value: Cmd.Output{ status: 0, statuses: [0], stdout: "", stderr: "", stdoutBytes: Bytes(), stderrBytes: Bytes() } }
+// out: Ok{ value: Cmd.Output{ status: 0, statuses: [0], stdout: "", stderr: "" } }
 // out: Err{ error: Error{ message: "cancelled" } }
 // out: Ok{ value: "one" }
 // out: Err{ error: Error{ message: "cancelled" } }

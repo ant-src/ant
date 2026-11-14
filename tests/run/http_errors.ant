@@ -17,7 +17,7 @@ println(Http.request("GE T", "http://127.0.0.1:1/"))
 let https = "https://${Net.address(l)}/"
 let plain: Result[Http.Response, Error] = Result.fail("get \"${https}\": server gave HTTP response to HTTPS client")
 println(Http.get(https) == plain)
-println(Http.get("http://${Net.address(l)}/").unwrap().body)
+println(Http.get("http://${Net.address(l)}/").unwrap().text())
 stop.cancel()
 
 // expect

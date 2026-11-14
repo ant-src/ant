@@ -1,10 +1,10 @@
 // spec: 12 Runtime panics; 11 Bytes
 // panics: index
-// Bytes is immutable: b[i] reads a byte and b[i] = x panics, since Bytes is not an array or a map
+// b[i] = x on Bytes takes a byte: an int panics, since the interpreter converts nothing
 // (section 12).
 var b = String.toBytes("a")
-b[0] = byte(98)
+b[0] = 98
 
 // expect
 // exit: 1
-// err: Bytes is immutable, so a byte cannot be assigned
+// err: a byte of Bytes must be a byte, got int

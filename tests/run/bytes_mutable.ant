@@ -1,0 +1,96 @@
+// spec: 11 Bytes; 4 Records; 12 Expressions
+// Bytes is mutable and shared by reference, as an array is: growth shows through every name,
+// slice and clone copy, == compares contents and Bytes.same identity, extend appends its source as
+// it was, copy overlaps as if the source were read first, and a for loop follows the length.
+
+func caught(f: func(): void): string {
+  let r = Panic.catch(f)
+  if r is Err { r.error.message } else { "no panic" }
+}
+
+let a = Bytes.fromArray([1, 2, 3])
+let b = a
+Bytes.push(a, byte(4))
+println(b)
+println(Bytes.same(a, b))
+let part = a.slice(0, 2)
+part[0] = byte(9)
+println("${a} ${part}")
+let c = Bytes.clone(a)
+println("${c == a} ${Bytes.same(c, a)}")
+
+Bytes.extend(a, a)
+println(a)
+println(Bytes.pop(a))
+Bytes.truncate(a, 2)
+println(a)
+a.push(byte(7))
+println(a)
+println(Bytes.pop(Bytes.new()))
+
+let z = Bytes.new(4)
+Bytes.fill(z, byte(0xff), 1)
+println(z)
+Bytes.fill(z, byte(0))
+println(z)
+
+let d = Bytes.fromArray([1, 2, 3, 4])
+Bytes.copy(d, 1, d, 0, 3)
+println(d)
+let e = Bytes.fromArray([1, 2, 3, 4])
+e.copy(0, e, 1)
+println(e)
+Bytes.copy(e, 4, Bytes.new())
+println(e)
+
+let hay = Bytes.fromArray([1, 2, 1, 2])
+let one = Bytes.fromArray([1])
+println("${hay.indexOf(one)} ${hay.indexOf(one, 1)} ${hay.indexOf(one, 3)} ${hay.indexOf(Bytes.new(), 4)}")
+println("${hay.startsWith(Bytes.fromArray([2, 1]), 1)} ${hay.startsWith(one, 1)} ${hay.startsWith(Bytes.new(), 4)}")
+println(Bytes.concat([one]) == one && !Bytes.same(Bytes.concat([one]), one))
+
+var seen = 0
+let grow = Bytes.fromArray([1, 2])
+for x in grow {
+  if seen == 0 { grow.push(byte(3)) }
+  seen += 1
+}
+println(seen)
+
+var keys: Map[Bytes, string] = Map{}
+keys[Bytes.fromArray([7])] = "seven"
+println(keys[Bytes.fromArray([7])])
+
+println(caught({ let one = Bytes.fromArray([1]); one[1] = byte(0) }))
+println(caught({ Bytes.truncate(Bytes.new(2), 3) }))
+println(caught({ Bytes.copy(Bytes.new(2), -1, Bytes.new(1)) }))
+println(caught({ Bytes.copy(Bytes.new(2), 1, Bytes.new(2)) }))
+println(caught({ let _ = Bytes.indexOf(Bytes.new(2), Bytes.new(), 3) }))
+println(caught({ let _ = Bytes.new(-1) }))
+
+// expect
+// out: Bytes(01 02 03 04)
+// out: true
+// out: Bytes(01 02 03 04) Bytes(09 02)
+// out: true false
+// out: Bytes(01 02 03 04 01 02 03 04)
+// out: 4
+// out: Bytes(01 02)
+// out: Bytes(01 02 07)
+// out: null
+// out: Bytes(00 ff ff ff)
+// out: Bytes(00 00 00 00)
+// out: Bytes(01 01 02 03)
+// out: Bytes(02 03 04 04)
+// out: Bytes(02 03 04 04)
+// out: 0 2 null 4
+// out: true false true
+// out: true
+// out: 3
+// out: seven
+// out: index 1 out of range for Bytes of length 1
+// out: Bytes.truncate needs a length within 0 ..= 2, got 3
+// out: Bytes.copy: the range -1..0 is not within 0 ..= 2
+// out: Bytes.copy: the range 1..3 is not within 0 ..= 2
+// out: Bytes.indexOf needs a from within 0 ..= 2, got 3
+// out: Bytes.new needs a size of at least 0, got -1

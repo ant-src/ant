@@ -149,7 +149,7 @@ func encode(g *interp.Goroutine, who string, k value.Kind, x value.Value, p []by
 // within panics unless at and at + size are within 0 ..= length.
 func spanWithin(g *interp.Goroutine, who string, at int64, size, length int) {
 	if at < 0 || at > int64(length) || int64(size) > int64(length)-at {
-		g.Panic("%s: %d bytes at %d are not within 0 ..= %d", who, size, at, length)
+		g.Panic("%s: the range %d..%d is not within 0 ..= %d", who, at, at+int64(size), length)
 	}
 }
 

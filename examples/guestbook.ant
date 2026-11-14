@@ -70,7 +70,7 @@ func handle(req: Http.Request): Http.Reply {
     return html(200, page(Mutex.withLock(lock, { Array.slice(entries, 0, len(entries)) })))
   }
   if req.method == "POST" && req.path == "/sign" {
-    var form = Url.parseQuery(req.body)
+    var form = Url.parseQuery(req.text())
     if form is Err { return html(400, <p>That form could not be read.</p>) }
     var name = field(form.value, "name")
     var message = field(form.value, "message")

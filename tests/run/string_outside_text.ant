@@ -29,8 +29,9 @@ println(String.fromBytes(Result.unwrap(File.readBytes(path))))
 
 // A child's output is outside text too.
 var out = Result.unwrap(Cmd.capture(Cmd.new("printf", ["a\\377b"])))
+var raw = Result.unwrap(Cmd.captureBytes(Cmd.new("printf", ["a\\377b"])))
 println("${String.from([out.stdout])} ${len(String.toBytes(out.stdout))}")
-println(out.stdoutBytes)
+println(raw.stdout)
 
 // expect
 // out: Ok{ value: void }

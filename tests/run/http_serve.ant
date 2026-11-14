@@ -14,7 +14,7 @@ func handle(req: Http.Request): Http.Reply {
     return Http.Reply{ status: 200, headers: Map{ "Content-Encoding": "x-test" }, body: req.headers["Accept-Encoding"] ?? "none" }
   }
   if req.path == "/bad" { return Http.Reply{ status: 999, headers: Map{}, body: "" } }
-  var body = "${req.method} ${req.path} ${req.query} ${req.headers["X-Token"] ?? "-"} ${req.body}"
+  var body = "${req.method} ${req.path} ${req.query} ${req.headers["X-Token"] ?? "-"} ${req.text()}"
   Http.Reply{ status: 201, headers: Map{ "X-Served": "yes" }, body }
 }
 
@@ -25,14 +25,14 @@ var served: Channel[Result[void, Error]] = Channel.new(1)
 go { Channel.send(served, Http.serve(listener, handle, stop)) }
 var r = Result.unwrap(Http.request("PUT", "${base}/items/a%20b?x=1&y=2", "payload", Map{ "X-Token": "t" }, Time.duration(seconds: 5)))
 println(r.status)
-println(r.body)
+println(r.text())
 println(r.headers["X-Served"])
 println(r.headers["Content-Length"])
 var plain = Result.unwrap(Http.get("${base}/plain", timeout: Time.duration(seconds: 5)))
-println("${plain.body} ${plain.headers["Content-Type"] ?? "untyped"} ${plain.headers["Content-Encoding"] ?? "-"}")
+println("${plain.text()} ${plain.headers["Content-Type"] ?? "untyped"} ${plain.headers["Content-Encoding"] ?? "-"}")
 var boom = Result.unwrap(Http.get("${base}/boom", timeout: Time.duration(seconds: 5)))
 println(boom.status)
-println(boom.body == "")
+println(boom.text() == "")
 var bad = Result.unwrap(Http.get("${base}/bad", timeout: Time.duration(seconds: 5)))
 println(bad.status)
 Context.cancel(stop)

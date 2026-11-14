@@ -28,7 +28,7 @@ for r in results {
   if r is Ok { println(r.value.status) } else { println("error") }
 }
 var first = results[0]
-if first is Ok { println(first.value.body) }
+if first is Ok { println(first.value.text()) }
 for r in fetchAllByHand(urls) {
   if r != null && r is Ok { println(r.value.status) } else { println("error") }
 }
