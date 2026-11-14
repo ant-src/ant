@@ -397,8 +397,8 @@ origin saw GET /a/b
 
 ## Properties and relations
 
-A request body arrives once, as received, in `bytes`, and `text()` decodes it. `Content-Length` is the
-reply body's length in bytes:
+A request body arrives once, as received, in `bytes`, and `text()` decodes it. `Content-Length` is
+the reply body's length in bytes:
 
 ```ant
 let listener = try Net.listen("127.0.0.1:0")

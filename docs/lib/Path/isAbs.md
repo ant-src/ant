@@ -18,8 +18,8 @@ Windows, where \\x and C:x are not absolute.
   absolute.
 - It follows the host's convention. The examples on this page run on Unix, where an absolute path
   begins with `/`.
-- On Windows a path is absolute with a drive and a root, `C:\x`, or as a UNC path,
-  `\\host\share\x`. `\x` and `C:x` are not, since each depends on the current drive.
+- On Windows a path is absolute with a drive and a root, `C:\x`, or as a UNC path, `\\host\share\x`.
+  `\x` and `C:x` are not, since each depends on the current drive.
 
 ## Basic examples
 

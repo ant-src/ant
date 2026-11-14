@@ -7,17 +7,19 @@
 type Bytes
 ```
 
-Bytes is a mutable, growable sequence of bytes, for binary data, shared by reference as an array is. It compares by contents with ==; b\[i\] reads one byte, b\[i\] = x writes one, and for x in b yields each.
+Bytes is a mutable, growable sequence of bytes, for binary data, shared by reference as an array is.
+It compares by contents with ==; b\[i\] reads one byte, b\[i\] = x writes one, and for x in b yields
+each.
 
 <!-- end generated -->
 
 ## Details
 
 - `Bytes` has no literal. Build it with [Bytes.new](new.md) and [Bytes.push](push.md), with
-  [Bytes.fromArray](fromArray.md), from text with
-  [String.toBytes](../String/toBytes.md), from hex or Base64 with
-  [Encoding.fromHex](../Encoding/fromHex.md) and [Encoding.fromBase64](../Encoding/fromBase64.md),
-  or read it with [File.readBytes](../File/readBytes.md).
+  [Bytes.fromArray](fromArray.md), from text with [String.toBytes](../String/toBytes.md), from hex
+  or Base64 with [Encoding.fromHex](../Encoding/fromHex.md) and
+  [Encoding.fromBase64](../Encoding/fromBase64.md), or read it with
+  [File.readBytes](../File/readBytes.md).
 - An index outside `0 ..= len(b) - 1` panics.
 - `Bytes` is mutable and shared by reference, as an array is: `b[i] = x`, `push` and `extend` change
   it, and every name for it sees the change. [Bytes.slice](slice.md) and [Bytes.clone](clone.md)
@@ -248,8 +250,8 @@ b[0] = 1
 // error: cannot use int where byte is expected
 ```
 
-Bytes handed to another goroutine or kept elsewhere are shared, so a later change shows there.
-Hand on a copy:
+Bytes handed to another goroutine or kept elsewhere are shared, so a later change shows there. Hand
+on a copy:
 
 ```ant
 let buf = String.toBytes("v1")

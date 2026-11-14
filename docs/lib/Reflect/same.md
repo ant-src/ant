@@ -7,14 +7,17 @@
 func Reflect.same(a: Reflect.Value, b: Reflect.Value): bool
 ```
 
-Reflect.same reports whether a and b hold one record, array, map, set, or Bytes, as Record.same, Array.same, Map.same, Set.same, and Bytes.same do, and whether they are == for any other kind. A walker tests each child against the boxes on its path with it to find a cycle, which the readers never detect.
+Reflect.same reports whether a and b hold one record, array, map, set, or Bytes, as Record.same,
+Array.same, Map.same, Set.same, and Bytes.same do, and whether they are == for any other kind. A
+walker tests each child against the boxes on its path with it to find a cycle, which the readers
+never detect.
 
 <!-- end generated -->
 
 ## Details
 
-- For a record, an array, a map, a set, or `Bytes`, `Reflect.same` reports identity: two boxes of one value
-  are the same even when their types differ, and two equal copies are not.
+- For a record, an array, a map, a set, or `Bytes`, `Reflect.same` reports identity: two boxes of
+  one value are the same even when their types differ, and two equal copies are not.
 - For any other kind it is `==` on the boxes, so the types must be `==` too: `1` as an `int` and `1`
   as a named type over `int` are not the same.
 

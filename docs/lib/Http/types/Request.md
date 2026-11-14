@@ -7,7 +7,10 @@
 type Http.Request = { method: string, path: string, query: string, headers: Map[string, string], bytes: Bytes, remote: string }
 ```
 
-Http.Request is a request that [`Http.serve`](../serve.md) passes to its handler. path is decoded, query is raw for [`Url.parseQuery`](../../Url/parseQuery.md), and remote is the client's "ip:port". The body is held once, in bytes, as in [`Http.Response`](Response.md), and the headers hold one string per name, Host first and the rest in order of name, each name in canonical form.
+Http.Request is a request that [`Http.serve`](../serve.md) passes to its handler. path is decoded,
+query is raw for [`Url.parseQuery`](../../Url/parseQuery.md), and remote is the client's "ip:port".
+The body is held once, in bytes, as in [`Http.Response`](Response.md), and the headers hold one
+string per name, Host first and the rest in order of name, each name in canonical form.
 
 <!-- end generated -->
 
@@ -18,8 +21,8 @@ Http.Request is a request that [`Http.serve`](../serve.md) passes to its handler
 - A header the client sent twice arrives as one string, its values joined with `, `.
 - `headers` has `Host` first and the rest in order of name, each name in canonical form: a header
   sent as `x-request-id` is read as `headers["X-Request-Id"]`.
-- The body is read whole and held once, as received, in `bytes`. [Http.text](../text.md) decodes
-  it, with U+FFFD for bytes that are not UTF-8.
+- The body is read whole and held once, as received, in `bytes`. [Http.text](../text.md) decodes it,
+  with U+FFFD for bytes that are not UTF-8.
 
 ## Basic examples
 

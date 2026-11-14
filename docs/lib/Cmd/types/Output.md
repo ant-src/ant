@@ -7,7 +7,9 @@
 type Cmd.Output = { status: int, statuses: Array[int], stdout: string, stderr: string }
 ```
 
-Cmd.Output is what [`Cmd.capture`](../capture.md) collects from a command that ran to its end. status is its status, statuses each stage's own, and stdout and stderr the outputs as text, with bytes that are not valid UTF-8 as U+FFFD. The stages' standard error interleaves as it arrived.
+Cmd.Output is what [`Cmd.capture`](../capture.md) collects from a command that ran to its end.
+status is its status, statuses each stage's own, and stdout and stderr the outputs as text, with
+bytes that are not valid UTF-8 as U+FFFD. The stages' standard error interleaves as it arrived.
 
 <!-- end generated -->
 
@@ -125,8 +127,8 @@ y
 
 ```
 
-Output that is not UTF-8 has the bad byte as U+FFFD in `stdout`; [Cmd.captureBytes](../captureBytes.md)
-keeps it exact:
+Output that is not UTF-8 has the bad byte as U+FFFD in `stdout`;
+[Cmd.captureBytes](../captureBytes.md) keeps it exact:
 
 ```ant
 let c = Cmd.new("printf", ["\\377ok"])
@@ -221,8 +223,8 @@ stage 2 (grep) exited 1
 
 ## Properties and relations
 
-`stdout` is the output [Cmd.captureBytes](../captureBytes.md) gives, decoded as text, and `stderr` is
-the same in both:
+`stdout` is the output [Cmd.captureBytes](../captureBytes.md) gives, decoded as text, and `stderr`
+is the same in both:
 
 ```ant
 for script in ["echo plain", "printf 'caf\\303\\251'", "printf '\\377\\376'", "echo err >&2"] {

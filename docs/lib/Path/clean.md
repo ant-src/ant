@@ -18,8 +18,8 @@ each run, no . elements and no trailing separator, and each .. removed with the 
 - `Path.clean` never touches the file system: it does not check that the path exists and does not
   resolve symbolic links.
 - The empty path cleans to `"."`.
-- A `..` right after the root is dropped, so `Path.clean("/../a")` is `"/a"`; a `..` at the start
-  of a relative path is kept, so `Path.clean("a/../..")` is `".."`.
+- A `..` right after the root is dropped, so `Path.clean("/../a")` is `"/a"`; a `..` at the start of
+  a relative path is kept, so `Path.clean("a/../..")` is `".."`.
 - Paths follow the host's convention: `/` on Unix, `\` and drive letters on Windows. The examples on
   this page use `/`.
 

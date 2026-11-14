@@ -27,6 +27,7 @@ nested and named groups included.
   ```ant
   Regex.find(/((a)(b))(c)/, "abc")?.groups // ["abc", "ab", "a", "b", "c"]
   ```
+
 - `named` has an entry for every named group, matched or not. Indexing it with a name the pattern
   does not have also gives `null`.
 

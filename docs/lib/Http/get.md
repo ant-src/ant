@@ -177,7 +177,8 @@ println(response.headers["Location"])
 
 ### An empty body
 
-A response without a body has no bytes in `bytes`, and its `text()` is `""`. Here `/empty` answers 204:
+A response without a body has no bytes in `bytes`, and its `text()` is `""`. Here `/empty` answers
+204:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {
@@ -219,8 +220,8 @@ true
 
 ### A binary body
 
-Bytes that are not UTF-8 become U+FFFD in `text()`, while `bytes` keeps them as received. Here `/logo`
-answers the four bytes a PNG file starts with:
+Bytes that are not UTF-8 become U+FFFD in `text()`, while `bytes` keeps them as received. Here
+`/logo` answers the four bytes a PNG file starts with:
 
 <!-- test: before
 func handle(req: Http.Request): Http.Reply {

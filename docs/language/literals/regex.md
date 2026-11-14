@@ -233,9 +233,9 @@ let word = /\w+/u // error: there is no u flag: a pattern is Unicode and a match
 
 ### A line that starts with a literal
 
-`/` after an operand is division, even when a line break comes between them. A line that starts
-with a literal, right after a line that ends in a name, a value, `)`, `]`, or `}`, is read as a
-division with no left operand:
+`/` after an operand is division, even when a line break comes between them. A line that starts with
+a literal, right after a line that ends in a name, a value, `)`, `]`, or `}`, is read as a division
+with no left operand:
 
 ```ant
 let word = "ant"

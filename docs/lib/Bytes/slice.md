@@ -7,7 +7,8 @@
 func Bytes.slice(b: Bytes, from: int, to: int): Bytes
 ```
 
-Bytes.slice returns a copy of the bytes of b from index from up to but excluding index to. It panics if from \> to, or if either is outside 0 ..= Bytes.length(b).
+Bytes.slice returns a copy of the bytes of b from index from up to but excluding index to. It panics
+if from \> to, or if either is outside 0 ..= Bytes.length(b).
 
 <!-- end generated -->
 

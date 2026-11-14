@@ -7,7 +7,10 @@
 type Http.Response = { status: int, headers: Map[string, string], bytes: Bytes }
 ```
 
-Http.Response is the response to a client request. Its body is held once, as received, in bytes; [`Http.text`](../text.md) decodes it. The headers hold one string per name, a repeated header joined with ", ", in order of name, each name in canonical form, as Go's CanonicalHeaderKey gives it: "content-type" is read as headers\["Content-Type"\].
+Http.Response is the response to a client request. Its body is held once, as received, in bytes;
+[`Http.text`](../text.md) decodes it. The headers hold one string per name, a repeated header joined
+with ", ", in order of name, each name in canonical form, as Go's CanonicalHeaderKey gives it:
+"content-type" is read as headers\["Content-Type"\].
 
 <!-- end generated -->
 
@@ -24,7 +27,8 @@ Http.Response is the response to a client request. Its body is held once, as rec
 
 ## Basic examples
 
-Get a page from a local server with [Http.get](../get.md) and read its `status` and its body as text:
+Get a page from a local server with [Http.get](../get.md) and read its `status` and its body as
+text:
 
 ```ant
 func handle(req: Http.Request): Http.Reply {

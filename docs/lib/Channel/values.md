@@ -15,8 +15,8 @@ tells a null value from a close. A ctx done already takes nothing.
 
 ## Details
 
-- The loop receives each value, so a value it yields is gone from the channel. It receives one
-  value per step and nothing ahead, so the values left after a `break` stay in the channel.
+- The loop receives each value, so a value it yields is gone from the channel. It receives one value
+  per step and nothing ahead, so the values left after a `break` stay in the channel.
 - A `ctx` that is done already yields nothing, even from a channel that holds values.
 - The sequence ends only when the channel is closed and drained, or when `ctx` is done. A loop over
   a channel nobody closes, without a context, waits until the run is cancelled.
