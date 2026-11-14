@@ -1,0 +1,9 @@
+// spec: 4 Interfaces
+// A union that does not satisfy an interface is rejected with the reason of its first member that
+// fails.
+interface Shape { area(s: Self): float64 }
+type Circle = { radius: float64 }
+type Rect = { width: float64, height: float64 }
+func Circle.area(c: Circle): float64 { c.radius }
+let g: Circle | Rect = Circle{ radius: 1.0 }
+let t: Shape = g // ERR: Rect has no function area of type func(Rect): float64

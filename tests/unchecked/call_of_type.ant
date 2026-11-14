@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; 4 Checking and running
+// Calling a type in an unchecked run panics and names the type, as ant check does.
+func f(): Result[int, Error] { Ok(1) }
+println(f())
+
+// expect
+// exit: 1
+// err: Ok is a type, not a function

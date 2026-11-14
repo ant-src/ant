@@ -1,0 +1,8 @@
+// spec: 12 Runtime panics; 4 Checking and running
+// Assigning by index to a value that is no array, map, or Bytes panics, naming all three.
+let s = "ant"
+s[0] = "A"
+
+// expect
+// exit: 1
+// err: string is not an array, a map, or Bytes, so it cannot be indexed

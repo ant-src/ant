@@ -689,6 +689,9 @@ func (g *Goroutine) callValue(fn value.Value, args []value.Value, names []string
 		}
 		return &value.Tagged{Tag: f.Tag, Payload: args[0]}
 	}
+	if t, isType := fn.(*value.Tag); isType {
+		g.panicf(pos, "%s is a type, not a function", t.Name) // as ant check says
+	}
 	g.panicf(pos, "%s is not a function and cannot be called", value.Describe(fn))
 	return nil
 }
@@ -1207,7 +1210,7 @@ func (g *Goroutine) setIndex(recv, idx, v value.Value, pos ast.Pos) {
 			g.panicf(pos, "index %d out of range for Bytes of length %d", i, x.Len())
 		}
 	default:
-		g.panicf(pos, "%s is not an array or a map, so it cannot be indexed", value.Describe(recv))
+		g.panicf(pos, "%s is not an array, a map, or Bytes, so it cannot be indexed", value.Describe(recv))
 	}
 }
 

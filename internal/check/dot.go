@@ -441,9 +441,15 @@ func (c *Checker) satisfies(s types.Type, decl *types.Decl, args []types.Type, r
 }
 
 // unsatisfied explains why s does not satisfy the interface n, for an error: the first function
-// of n that s does not offer, or offers with another type. It is "" when there is none to name.
+// of n that s does not offer, or offers with another type; for a union, that of its first member
+// that fails. It is "" when there is none to name.
 func (c *Checker) unsatisfied(s types.Type, n types.Named) string {
-	if _, isUnion := types.Expand(s).(types.Union); isUnion {
+	if u, isUnion := types.Expand(s).(types.Union); isUnion {
+		for _, m := range u.Members {
+			if why := c.unsatisfied(m, n); why != "" {
+				return why
+			}
+		}
 		return ""
 	}
 	m := types.Bindings(n.Decl.Params, n.Args)
