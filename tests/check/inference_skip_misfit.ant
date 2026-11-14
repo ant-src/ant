@@ -17,6 +17,8 @@ println(f(r.unwrap()))
 let n: int | string = r.unwrap()
 let m: int | string = Result.unwrap(r)
 let k: int | string = first(ints)
+let a: int | null = ints.removeAt(0)
+func take(q: Array[int]): int | null { if q.isEmpty() { null } else { q.removeAt(0) } }
 
 // the argument fits the expected solution, which stays
 let e: Result[void, TransferError] = Result.err(NotFound{ id: 1 })
@@ -25,3 +27,4 @@ let e: Result[void, TransferError] = Result.err(NotFound{ id: 1 })
 let s: string = Result.unwrap(r) // ERR: cannot use Result[int, Error] where Result[string,
 let t: string = r.unwrap()       // ERR: cannot use Result[int, Error] where Result[string,
 let u: string = first(ints)      // ERR: cannot use Array[int] where Array[string] is expected
+let v: string = ints.removeAt(0) // ERR: cannot use Array[int] where Array[string] is expected

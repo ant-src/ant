@@ -361,6 +361,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				mismatch = true
 			}
 			pruneSolved(unsolved, subst)
+		} else if types.Mentions(pt, soft) && c.unify(pt, recv.typ, subst) {
+			// as a typed-alone argument: a misfit can solve the parameter instead
+			synthesized = append(synthesized, pendingArg{0, recv.typ, recv.at})
 		} else if want, err := types.Subst(pt, subst); err != nil {
 			c.errorIn(recv.at, "%s", err)
 		} else {
