@@ -220,7 +220,7 @@ assert(!Bytes.same(dst, src))
 range of `dst` it would write:
 
 ```ant
-Bytes.new(3).copy(1, "abc".toBytes()) // panic: Bytes.copy: the range 1..4 is not within 0 ..= 3
+Bytes.new(3).copy(1, "abc".toBytes()) // panic: Bytes.copy: 3 bytes at 1 do not fit in dst of length 3
 ```
 
 The panic comes before any byte is written, so `dst` keeps its old bytes:
@@ -235,15 +235,15 @@ String.fromBytes(dst)                                // "abc"
 the end:
 
 ```ant
-Bytes.new(3).copy(4, Bytes.new())  // panic: Bytes.copy: the range 4..4 is not within 0 ..= 3
-Bytes.new(3).copy(-1, Bytes.new()) // panic: Bytes.copy: the range -1..-1 is not within 0 ..= 3
+Bytes.new(3).copy(4, Bytes.new())  // panic: Bytes.copy: at 4 is not within 0 ..= 3, the length of dst
+Bytes.new(3).copy(-1, Bytes.new()) // panic: Bytes.copy: at -1 is not within 0 ..= 3, the length of dst
 ```
 
 A source range that is not within `src` panics too, as [Bytes.slice](slice.md) does:
 
 ```ant
-Bytes.new(3).copy(0, "abc".toBytes(), 2, 1) // panic: Bytes.copy: the range 2..1 is not within 0 ..= 3
-Bytes.new(8).copy(0, "abc".toBytes(), 0, 5) // panic: Bytes.copy: the range 0..5 is not within 0 ..= 3
+Bytes.new(3).copy(0, "abc".toBytes(), 2, 1) // panic: Bytes.copy: the source range 2..1 is not within 0 ..= 3, the length of src
+Bytes.new(8).copy(0, "abc".toBytes(), 0, 5) // panic: Bytes.copy: the source range 0..5 is not within 0 ..= 3, the length of src
 ```
 
 The destination comes first, then where to write, then the source. Passing the source first is a

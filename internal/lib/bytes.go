@@ -213,8 +213,15 @@ func init() {
 				dst, at, src := bytesArg(g, who, a[0]), intArg(g, who, a[1]), bytesArg(g, who, a[2])
 				d, s := dst.View(), src.View()
 				from, to := optOffset(g, who, a[3]), optTo(g, who, a[4], len(s))
-				sliceBounds(g, who, from, to, len(s))
-				spanWithin(g, who, at, int(to-from), len(d))
+				if from < 0 || to > int64(len(s)) || from > to {
+					g.Panic("%s: the source range %d..%d is not within 0 ..= %d, the length of src", who, from, to, len(s))
+				}
+				if at < 0 || at > int64(len(d)) {
+					g.Panic("%s: at %d is not within 0 ..= %d, the length of dst", who, at, len(d))
+				}
+				if n := to - from; n > int64(len(d))-at {
+					g.Panic("%s: %d bytes at %d do not fit in dst of length %d", who, n, at, len(d))
+				}
 				copy(d[at:], s[from:to]) // copy handles overlap as memmove does
 				return value.Void
 			}),

@@ -66,6 +66,10 @@ println(caught({ let one = Bytes.fromArray([1]); one[1] = byte(0) }))
 println(caught({ Bytes.truncate(Bytes.new(2), 3) }))
 println(caught({ Bytes.copy(Bytes.new(2), -1, Bytes.new(1)) }))
 println(caught({ Bytes.copy(Bytes.new(2), 1, Bytes.new(2)) }))
+println(caught({ Bytes.copy(Bytes.new(8), 0, Bytes.new(3), 0, 5) }))
+let kept = Bytes.fromArray([1, 2, 3])
+println(caught({ kept.fill(byte(0), 1, 9) }))
+println(kept)
 println(caught({ let _ = Bytes.indexOf(Bytes.new(2), Bytes.new(), 3) }))
 println(caught({ let _ = Bytes.new(-1) }))
 println(caught({ let _ = Bytes.startsWith(Bytes.new(2), Bytes.new(), -1) }))
@@ -93,8 +97,11 @@ println(caught({ Bytes.fill(Bytes.new(2), byte(1), 1, 3) }))
 // out: seven
 // out: index 1 out of range for Bytes of length 1
 // out: Bytes.truncate needs a length within 0 ..= 2, got 3
-// out: Bytes.copy: the range -1..0 is not within 0 ..= 2
-// out: Bytes.copy: the range 1..3 is not within 0 ..= 2
+// out: Bytes.copy: at -1 is not within 0 ..= 2, the length of dst
+// out: Bytes.copy: 2 bytes at 1 do not fit in dst of length 2
+// out: Bytes.copy: the source range 0..5 is not within 0 ..= 3, the length of src
+// out: Bytes.fill: the range 1..9 is not within 0 ..= 3
+// out: Bytes(01 02 03)
 // out: Bytes.indexOf needs a from within 0 ..= 2, got 3
 // out: Bytes.new needs a size of at least 0, got -1
 // out: Bytes.startsWith needs an at within 0 ..= 2, got -1
