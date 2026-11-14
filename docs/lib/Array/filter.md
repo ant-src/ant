@@ -262,7 +262,6 @@ The result keeps the element type of `xs`. Filtering out `null` gives an `Array[
 let scores: Array[int | null] = [90, null, 75]
 let ints: Array[int] = scores.filter({ x != null })
 // error: cannot use Array[int | null] where Array[int] is expected
-// error: int and null cannot be compared with !=: neither is assignable to the other
 ```
 
 Use `Array.flatMap` instead. Inside the lambda the test on `x` narrows it, so the arrays it returns

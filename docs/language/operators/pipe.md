@@ -304,7 +304,8 @@ func parsePort(text: string): Result[int, Error] {
 func ports(texts: Array[string]): Result[Array[int], Error] {
   let all = try texts | Array.map(parsePort) | Result.all()
   // error: try needs a Result, got Array[string]
-  Result.ok(all) // error: cannot use Result[Array[int], Error] where Array[int] is expected
+  Result.ok(all)
+  // error: cannot use Result[Result[Array[int], Error], Error] where Result[Array[int], Error] is expected
 }
 ```
 

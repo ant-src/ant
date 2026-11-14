@@ -229,7 +229,7 @@ a `Seq[int]`:
 ```ant
 let scores: Array[int | null] = [90, null, 75]
 let ints: Array[int] = Iter.fromArray(scores).filter({ x != null }).toArray()
-// error: cannot use Seq[int | null] where Seq[int] is expected
+// error: cannot use Array[int | null] where Array[int] is expected
 ```
 
 Narrow in a loop instead, where the test on the element narrows it to `int`:

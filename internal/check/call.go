@@ -281,6 +281,7 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 // Inference) and matching positional and named arguments to its parameters. A call through a
 // dot passes its receiver, typed already, as the first argument (section 5, Calls through .).
 func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, callee *Object, recv *receiver) types.Type {
+	s = c.freshSig(s)
 	slots, ok, short := c.argSlots(s, x, recv)
 	c.recordSlots(s, x, slots, ok, callee, recv != nil)
 	if ok && recv.untyped() {
@@ -361,8 +362,10 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 				mismatch = true
 			}
 			pruneSolved(unsolved, subst)
-		} else if types.Mentions(pt, soft) && c.unify(pt, recv.typ, subst) {
-			// as a typed-alone argument: a misfit can solve the parameter instead
+		} else if types.Mentions(pt, soft) {
+			// as a typed-alone argument: a misfit can solve the parameter instead, and is
+			// reported only if the arguments' solution does not fit either
+			c.unify(pt, recv.typ, subst)
 			synthesized = append(synthesized, pendingArg{0, recv.typ, recv.at})
 		} else if want, err := types.Subst(pt, subst); err != nil {
 			c.errorIn(recv.at, "%s", err)
@@ -403,10 +406,9 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		if types.Mentions(pt, soft) && typedAlone(a.Value, pt) {
 			// typed without the expected solution, so that a misfit can solve it instead
 			got := c.synth(a.Value, sc)
-			if c.unify(pt, got, subst) {
-				synthesized = append(synthesized, pendingArg{i, got, a.Value})
-				continue
-			}
+			c.unify(pt, got, subst)
+			synthesized = append(synthesized, pendingArg{i, got, a.Value})
+			continue
 		}
 		want, err := types.Subst(pt, subst)
 		if err != nil {
@@ -456,6 +458,10 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 		pruneSolved(unsolved, subst)
 	}
+	if len(soft) > 0 && !mismatch {
+		// before the lambdas, so that a lambda sees the solution the arguments chose
+		c.argsOverExpected(s, subst, soft, synthesized, checked)
+	}
 	for i, a := range slots {
 		if a == nil {
 			continue
@@ -478,9 +484,6 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			subst[p] = types.Invalid{}
 		}
 	}
-	if len(soft) > 0 && !mismatch {
-		c.argsOverExpected(s, subst, soft, synthesized, checked)
-	}
 	c.checkBounds(s, subst, x)
 	// An argument synthesized while its parameter's type was open is checked against the
 	// solved type.
@@ -496,6 +499,37 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 	}
 	return c.resultOf(s, subst, x)
+}
+
+// freshSig gives a generic function called from its own body type parameters of its own: there
+// the declaration's are rigid, the caller's fixed types, and the call must solve them anew, as any
+// other call does. Any other signature is returned as it is.
+func (c *Checker) freshSig(s *sig) *sig {
+	rigid := false
+	for _, p := range s.tparams {
+		rigid = rigid || c.rigid[p]
+	}
+	if !rigid {
+		return s
+	}
+	m := map[*types.ParamDecl]types.Type{}
+	fresh := make([]*types.ParamDecl, len(s.tparams))
+	for i, p := range s.tparams {
+		fresh[i] = &types.ParamDecl{Name: p.Name}
+		m[p] = types.Param{Decl: fresh[i]}
+	}
+	for i, p := range s.tparams {
+		if p.Bound != nil {
+			fresh[i].Bound, _ = types.Subst(p.Bound, m)
+		}
+	}
+	fn, err := types.Subst(s.fn, m)
+	if err != nil {
+		return s
+	}
+	out := *s
+	out.tparams, out.fn = fresh, fn.(types.Func)
+	return &out
 }
 
 // pendingArg is an argument typed before its parameter's type was settled: the argument at

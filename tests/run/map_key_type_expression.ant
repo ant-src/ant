@@ -1,0 +1,11 @@
+// spec: 2 Identifiers and keywords; 4 Types as values; 4 Arrays, maps, and sets
+// In a map literal, type followed by ( is a type expression key; a keyword followed by : is the
+// string of that word.
+let names = Map{ type(int): "integer" }
+println(names)
+let words = Map{ type: 1, if: 2 }
+println(words)
+
+// expect
+// out: Map{ int: "integer" }
+// out: Map{ "type": 1, "if": 2 }

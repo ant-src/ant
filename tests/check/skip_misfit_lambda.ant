@@ -1,0 +1,9 @@
+// spec: 4 Inference
+// When the arguments reject the expected type's solution, a lambda is checked against the
+// arguments' solution: here x is a Shape, so testing it for Circle is no noise.
+type Circle = { radius: float64 }
+type Rect = { width: float64 }
+type Shape = Circle | Rect
+let shapes: Array[Shape] = [Circle{ radius: 1.0 }]
+let circles: Array[Circle] = shapes.filter({ x is Circle })     // ERR: cannot use Array[Shape] where Array[Circle] is expected
+let more: Array[Circle] = Array.filter(shapes, { x is Circle }) // ERR: cannot use Array[Shape] where Array[Circle] is expected

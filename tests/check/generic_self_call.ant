@@ -1,0 +1,26 @@
+// spec: 4 Generics; 4 Inference
+// A generic function may call itself: the call solves the function's type parameters from its
+// arguments, as any other call does, though inside the body they stand for the caller's types.
+type Nest[T] = { value: T, children: Array[Nest[T]] }
+
+func flatten[T](n: Nest[T]): Array[T] {
+  var out = [n.value]
+  for c in n.children {
+    out = out.concat(flatten(c))
+  }
+  out
+}
+
+func count[T](xs: Array[T]): int {
+  if xs.isEmpty() { 0 } else { 1 + count(xs.slice(1, xs.length())) }
+}
+
+func again[T](x: T, n: int): T {
+  if n == 0 { x } else { again(x, n - 1) }
+}
+
+let tree = Nest{ value: 1, children: [Nest{ value: 2, children: [] }, Nest{ value: 3, children: [] }] }
+println(flatten(tree))
+println(count(["a", "b"]))
+println(again("x", 3))
+let wrong: string = again(1, 2) // ERR: cannot use int where string is expected

@@ -2529,7 +2529,8 @@ func (p *parser) braceLit(head ast.Expr) ast.Expr {
 			e := ast.RecordEntry{Pos: pos(w), Spread: p.expression()}
 			e.End = p.end()
 			rec = append(rec, e)
-		case w.Kind == token.Keyword || w.Kind == token.Reserved:
+		case (w.Kind == token.Keyword || w.Kind == token.Reserved) && !(isMap && !after.Is(":") && !after.Is(",") && !after.Is("}")):
+			// In a map, a keyword not followed by ':' starts an expression key, as type(int) does.
 			p.next()
 			if !p.at(":") {
 				p.fail(w.Pos, "'%s' is %s: as a key it needs ':'", w.Text, wordKind(w))

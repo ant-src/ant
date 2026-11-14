@@ -9,7 +9,7 @@ func orElse[T](v: T | null, fallback: T): T { v ?? fallback }
 var jobs: Channel[int] = Channel.new()
 var a: int | null = pick([1, 2])
 var b: int | null = pick(jobs)
-var c: string | null = pick(jobs) // ERR: cannot use Channel[int]
+var c: string | null = pick(jobs) // ERR: cannot use int | null where string | null
 var maybe: string | null = null
 var d: string = orElse(maybe, "x")
 
