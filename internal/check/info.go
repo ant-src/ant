@@ -196,8 +196,11 @@ func (o *Object) Defaults() []bool {
 	return nil
 }
 
-// Doc is the declaration's doc comment, or "".
+// Doc is the declaration's doc comment or a namespace's section label, or "".
 func (o *Object) Doc() string {
+	if o.ent != nil && o.ent.kind == entNamespace {
+		return o.ent.doc
+	}
 	switch d := o.declaration().(type) {
 	case *ast.FuncDecl:
 		return d.Doc

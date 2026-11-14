@@ -136,7 +136,7 @@ func TestPreludeDocument(t *testing.T) {
 // checked as a declaration file, with hover and definition inside it.
 func TestDeclarationFileDocument(t *testing.T) {
 	c := start(t, workspace())
-	src := "// Db.Row is a row.\ntype Db.Row = Map[string, string]\nfunc Db.query(sql: string): Result[Array[Db.Row], Error]\nfunc Db.count(): Count\n"
+	src := "// Db\n//\n// Db queries the database.\n\n// Db.Row is a row.\ntype Db.Row = Map[string, string]\nfunc Db.query(sql: string): Result[Array[Db.Row], Error]\nfunc Db.count(): Count\n"
 	uri := c.open("db.d.ant", src)
 	diags := c.diagnostics(uri)
 	if len(diags) != 1 || !strings.Contains(diags[0].Message, "unknown type Count") || diags[0].Range.Start != at(src, "Count", 1, 0) {
@@ -165,8 +165,15 @@ func TestDeclarationFileDocument(t *testing.T) {
 	}
 	h = nil
 	c.call("textDocument/hover", c.pos(uri, at(src, "type Db.Row", 1, 5)), &h)
-	if h == nil || !strings.Contains(h.Contents.Value, "Db") {
+	if h == nil || !strings.Contains(h.Contents.Value, "Db queries the database.") {
 		t.Errorf("hover on the namespace Db: %+v", h)
+	}
+	var completions CompletionList
+	c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, "Array[Db.Row]", 1, 7))}, &completions)
+	if !slices.ContainsFunc(completions.Items, func(item CompletionItem) bool {
+		return item.Label == "Db" && item.Documentation != nil && strings.Contains(item.Documentation.Value, "Db queries the database.")
+	}) {
+		t.Errorf("namespace completion lacks its documentation: %+v", completions.Items)
 	}
 	// A namespace whose members are interrupted is listed once per run, each holding only its own.
 	split := "func Db.a(): int\ntype Point = { x: int }\nlet Point.ORIGIN: Point\nfunc Db.b(): int\n"

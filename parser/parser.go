@@ -725,6 +725,9 @@ func (p *parser) file(path string) *ast.File {
 	if p.mode == Program {
 		p.scriptRules(f)
 	}
+	if f.Declarations {
+		f.NamespaceDocs = p.namespaceDocs(f.Decls)
+	}
 	f.End = epos(p.toks[len(p.toks)-1])
 	return f
 }
@@ -1139,6 +1142,53 @@ func (p *parser) doc(t token.Token) string {
 	}
 	slices.Reverse(lines)
 	return strings.Join(lines, "\n")
+}
+
+// namespaceDocs reads standalone section labels of declaration files (section 10).
+// Use the lexer's comments so that text inside a string or a block comment is not a label.
+func (p *parser) namespaceDocs(decls []ast.Decl) map[string]string {
+	owners := map[string]bool{}
+	for _, d := range decls {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			owners[d.Owner] = true
+		case *ast.TypeDecl:
+			owners[d.Owner] = true
+		case *ast.VarDecl:
+			owners[d.Owner] = true
+		}
+	}
+	docs := map[string]string{}
+	lines := strings.Split(p.src, "\n")
+	for i := 0; i < len(p.comments); {
+		j := i + 1
+		for j < len(p.comments) && oneLineBreak(p.src[p.comments[j-1].End:p.comments[j].Off]) && lineStart(p.src, p.comments[j].Off) {
+			j++
+		}
+		block := p.comments[i:j]
+		i = j
+		first, last := block[0], block[len(block)-1]
+		name := strings.TrimSpace(strings.TrimPrefix(first.Text, "//"))
+		if len(block) < 3 || name == "" || !owners[name] || !lineStart(p.src, first.Off) || strings.TrimSpace(block[1].Text) != "//" {
+			continue
+		}
+		// A label has a blank line on either side, unless it reaches the file's edge.
+		if first.Pos.Line > 1 && strings.TrimSpace(lines[first.Pos.Line-2]) != "" ||
+			last.EndPos.Line < len(lines) && strings.TrimSpace(lines[last.EndPos.Line]) != "" {
+			continue
+		}
+		var text []string
+		for _, c := range block[2:] {
+			if !strings.HasPrefix(c.Text, "//") || strings.HasPrefix(c.Text, "//!") {
+				break
+			}
+			text = append(text, strings.TrimPrefix(strings.TrimRight(c.Text[2:], " \t\r"), " "))
+		}
+		if len(text) == len(block)-2 {
+			docs[name] = strings.Join(text, "\n")
+		}
+	}
+	return docs
 }
 
 // moduleDoc is the module doc (section 2): the //! lines, which must all come before first, the

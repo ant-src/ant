@@ -54,3 +54,51 @@ func TestDeclarationFileCommands(t *testing.T) {
 		t.Errorf("fmt wrote %q, want %q", got, want)
 	}
 }
+
+// A section label supplies a namespace's doc, but never replaces a type's own doc or
+// adds headings to the whole-file listing (spec/doc.md section 1).
+func TestDeclarationNamespaceDoc(t *testing.T) {
+	const src = `// Host
+//
+// Host describes the machine.
+//
+//     Host.cores()
+
+// Host.cores returns the number of cores.
+func Host.cores(): int
+
+// Device
+//
+// This label does not replace the type's doc.
+
+// Device is a machine handle.
+type Device
+func Device.open(): Device
+
+// Missing
+//
+// Missing has no declarations.
+`
+	dir := tree(t, map[string]string{"host.d.ant": src})
+	path := filepath.Join(dir, "host.d.ant")
+	for _, tc := range []struct {
+		name   string
+		args   []string
+		status int
+		want   string
+	}{
+		{"namespace", []string{path, "hOsT"}, 0, "Host\n\n    Host describes the machine.\n\n        Host.cores()\n\nfunc Host.cores(): int\n"},
+		{"member", []string{path, "Host.cores"}, 0, "func Host.cores(): int\n\n    Host.cores returns the number of cores.\n"},
+		{"type", []string{path, "Device"}, 0, "type Device\n\n    Device is a machine handle.\n\nfunc Device.open(): Device\n"},
+		{"file", []string{path}, 0, "func Host.cores(): int\ntype Device\nfunc Device.open(): Device\n"},
+		{"unknown", []string{path, "Missing"}, 1, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out, errOut strings.Builder
+			status := docCommand(tc.args, &out, &errOut)
+			if status != tc.status || out.String() != tc.want {
+				t.Errorf("status %d, stdout %q, stderr %q; want status %d, stdout %q", status, out.String(), errOut.String(), tc.status, tc.want)
+			}
+		})
+	}
+}

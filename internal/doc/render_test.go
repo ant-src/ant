@@ -91,7 +91,7 @@ func TestNamespaceRendering(t *testing.T) {
 	}
 	p := &Printer{Color: true}
 	var out strings.Builder
-	if !p.Print(&out, f.Decls, "array", true) {
+	if !p.Print(&out, f.Decls, "array", f.NamespaceDocs) {
 		t.Fatal("Array was not found")
 	}
 	got := out.String()
@@ -100,7 +100,7 @@ func TestNamespaceRendering(t *testing.T) {
 	}
 	p.Color = false
 	out.Reset()
-	p.Print(&out, f.Decls, "array", true)
+	p.Print(&out, f.Decls, "array", f.NamespaceDocs)
 	if ansi.ReplaceAllString(got, "") != out.String() {
 		t.Error("color changed the namespace's text or layout")
 	}

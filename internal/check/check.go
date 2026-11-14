@@ -233,6 +233,7 @@ type entity struct {
 	exported bool
 	mod      *moduleInfo
 	pos      ast.Pos
+	doc      string // a namespace's section label, when it has no declaration
 	// conversion marks the twelve conversion functions, which also unwrap named primitives.
 	conversion value.Kind
 	isConv     bool
@@ -435,7 +436,7 @@ func (c *Checker) declarationFile(f *ast.File) {
 			owners[d.Owner] = true
 		}
 	}
-	kept := &ast.File{Path: f.Path, Declarations: true}
+	kept := &ast.File{Path: f.Path, Declarations: true, NamespaceDocs: f.NamespaceDocs}
 	for _, d := range f.Decls {
 		var owner, name string
 		var pos ast.Pos
@@ -513,6 +514,9 @@ func (c *Checker) declareFile(f *ast.File) (decls []*typeInfo, funcs []*funcInfo
 		}
 		if e.members == nil {
 			e.members = map[string]*entity{}
+		}
+		if doc := f.NamespaceDocs[name]; doc != "" {
+			e.doc = doc
 		}
 		return e
 	}

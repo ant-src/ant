@@ -507,6 +507,30 @@ var a2 = 1; var b2 = 2
 	}
 }
 
+func TestNamespaceDocs(t *testing.T) {
+	for _, tc := range []struct {
+		name, src, want string
+	}{
+		{"label", "// Host\n//\n// Host describes the machine.\n\nfunc Host.cores(): int\n", "Host describes the machine."},
+		{"blank spaces and CRLF", "// Host\r\n//\r\n// Host describes the machine.\r\n \t\r\nfunc Host.cores(): int\r\n", "Host describes the machine."},
+		{"attached to declaration", "// Host\n//\n// Host describes the machine.\nfunc Host.cores(): int\n", ""},
+		{"no blank before", "func Host.cores(): int\n// Host\n//\n// Host describes the machine.\n\n", ""},
+		{"block comment", "/*\n// Host\n//\n// Host describes the machine.\n*/\n\nfunc Host.cores(): int\n", ""},
+		{"raw string", "func Host.echo(s: string = `\n\n// Host\n//\n// Host describes the machine.\n\n`): string\n", ""},
+		{"file end", "func Host.cores(): int\n\n// Host\n//\n// Host describes the machine.", "Host describes the machine."},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := Parse("host.d.ant", tc.src, Declarations)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := f.NamespaceDocs["Host"]; got != tc.want {
+				t.Errorf("namespace doc %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestModuleDoc reads the //! lines before the first import as the module doc (section 2), with
 // other comments around them, and keeps them out of the first declaration's doc.
 func TestModuleDoc(t *testing.T) {

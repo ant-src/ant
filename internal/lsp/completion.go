@@ -12,7 +12,6 @@ import (
 	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/internal/lsp/htmldata"
-	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/parser"
@@ -671,9 +670,6 @@ func (c *completer) objectItem(a *analysis, o *check.Object, prefix string) Comp
 		item.Detail = typeString(o.Type())
 	}
 	doc := o.Doc()
-	if o.Kind == check.Namespace {
-		_, doc = prelude.NamespaceDoc(o.Name)
-	}
 	if doc != "" {
 		item.Documentation = markdown(summary(doc, a.knows))
 	}

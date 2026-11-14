@@ -19,7 +19,7 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 	p := &doc.Printer{Color: colors(stdout)}
 	var decls []ast.Decl
 	var name string
-	inPrelude := false
+	var namespaceDocs map[string]string
 	switch {
 	case len(args) == 1 && !strings.HasSuffix(args[0], ".ant"):
 		f, err := prelude.Decls()
@@ -27,7 +27,7 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, err)
 			return 2
 		}
-		decls, name, inPrelude = f.Decls, args[0], true
+		decls, name, namespaceDocs = f.Decls, args[0], f.NamespaceDocs
 	case (len(args) == 1 || len(args) == 2) && strings.HasSuffix(args[0], ".ant"):
 		src, err := os.ReadFile(args[0])
 		if err != nil {
@@ -66,11 +66,12 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 			return 0
 		}
 		name = args[1]
+		namespaceDocs = f.NamespaceDocs
 	default:
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
-	if !p.Print(stdout, decls, name, inPrelude) {
+	if !p.Print(stdout, decls, name, namespaceDocs) {
 		fmt.Fprintf(stderr, "ant doc: no declaration %s\n", name)
 		return 1
 	}

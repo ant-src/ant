@@ -66,6 +66,8 @@ type File struct {
 	// Declarations is set for a declaration file (section 10, Declaration files), parsed in
 	// the parser's Declarations mode: its funcs have no bodies and its names join the prelude.
 	Declarations bool
+	// NamespaceDocs holds the section labels of a declaration file, keyed by namespace name.
+	NamespaceDocs map[string]string
 	// End is the position after the last token of the file.
 	End Pos
 	// Scope is filled by the resolver: the module record's fields.

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/types"
 )
 
@@ -157,8 +156,7 @@ func (a *analysis) describe(o *check.Object) (head, doc string) {
 		}
 		return head, "A type parameter."
 	case check.Namespace:
-		_, nsDoc := prelude.NamespaceDoc(o.Name)
-		return o.Name, nsDoc
+		return o.Name, o.Doc()
 	case check.Module:
 		head = o.Name
 		if f := a.file(o.Path); f != nil {

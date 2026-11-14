@@ -8,7 +8,6 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/highlight"
-	"github.com/ant-src/ant/internal/prelude"
 )
 
 // Printer renders documentation, preserving source line breaks and spacing. Color highlights
@@ -17,10 +16,10 @@ type Printer struct {
 	Color bool
 }
 
-// Print prints what name names among decls: a declaration with its doc, a namespace's doc
-// when inPrelude, and the signatures a namespace or a type holds. It reports whether name
+// Print prints what name names among decls: a declaration with its doc, a namespace's section
+// label from namespaceDocs, and the signatures a namespace or a type holds. It reports whether name
 // named anything. A name is matched without regard to case, and Owner.name names a member.
-func (p *Printer) Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
+func (p *Printer) Print(w io.Writer, decls []ast.Decl, name string, namespaceDocs map[string]string) bool {
 	owner, member, dotted := strings.Cut(name, ".")
 	decls = withInterfaceFuncs(decls)
 	found := false
@@ -32,8 +31,11 @@ func (p *Printer) Print(w io.Writer, decls []ast.Decl, name string, inPrelude bo
 			found = true
 		}
 	}
-	if !dotted && !found && inPrelude {
-		if ns, doc := prelude.NamespaceDoc(name); doc != "" {
+	if !dotted && !found {
+		for ns, doc := range namespaceDocs {
+			if !strings.EqualFold(ns, name) || doc == "" {
+				continue
+			}
 			if p.Color {
 				ns = "\x1b[1m" + ns + highlight.Reset
 			}
@@ -41,6 +43,7 @@ func (p *Printer) Print(w io.Writer, decls []ast.Decl, name string, inPrelude bo
 			fmt.Fprintln(w)
 			p.PrintIndented(w, doc)
 			found = true
+			break
 		}
 	}
 	if !dotted {
