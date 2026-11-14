@@ -1,4 +1,5 @@
 // spec: 11 Bytes; 4 Records; 12 Expressions
+// panics: index; Bytes.truncate; Bytes.copy; Bytes.indexOf; Bytes.startsWith; Bytes.fill; Bytes.new
 // Bytes is mutable and shared by reference, as an array is: growth shows through every name,
 // slice and clone copy, == compares contents and Bytes.same identity, extend appends its source as
 // it was, copy overlaps as if the source were read first, and a for loop follows the length.
@@ -67,6 +68,8 @@ println(caught({ Bytes.copy(Bytes.new(2), -1, Bytes.new(1)) }))
 println(caught({ Bytes.copy(Bytes.new(2), 1, Bytes.new(2)) }))
 println(caught({ let _ = Bytes.indexOf(Bytes.new(2), Bytes.new(), 3) }))
 println(caught({ let _ = Bytes.new(-1) }))
+println(caught({ let _ = Bytes.startsWith(Bytes.new(2), Bytes.new(), -1) }))
+println(caught({ Bytes.fill(Bytes.new(2), byte(1), 1, 3) }))
 
 // expect
 // out: Bytes(01 02 03 04)
@@ -94,3 +97,5 @@ println(caught({ let _ = Bytes.new(-1) }))
 // out: Bytes.copy: the range 1..3 is not within 0 ..= 2
 // out: Bytes.indexOf needs a from within 0 ..= 2, got 3
 // out: Bytes.new needs a size of at least 0, got -1
+// out: Bytes.startsWith needs an at within 0 ..= 2, got -1
+// out: Bytes.fill: the range 1..3 is not within 0 ..= 2

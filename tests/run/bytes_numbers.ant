@@ -1,4 +1,5 @@
 // spec: 11 Bytes; 4 Types as values
+// panics: Bytes.read; Bytes.write
 // Bytes.read, Bytes.write and Bytes.append take a number type as a type value and an order every
 // call states; integers are two's complement, floats their IEEE 754 bits, and Bytes.sizeOf is the
 // width. A one-byte type ignores the order, and a range outside the bytes panics.
