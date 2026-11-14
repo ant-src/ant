@@ -20,5 +20,13 @@ Encoding.toHex(String.toBytes(""))            // => ""
 Encoding.fromHex("6869")                      // => Ok{ value: Bytes(68 69) }
 Encoding.fromHex("6A6B") == Encoding.fromHex("6a6b") // => true
 Result.isOk(Encoding.fromHex("abc"))          // => false
-Encoding.fromHex("zz")                        // => Err{ error: Error{ message: "encoding/hex: invalid byte: U+007A 'z'" } }
-Encoding.fromHex("0ñ")                        // => Err{ error: Error{ message: "encoding/hex: invalid byte: U+00F1 'ñ'" } }
+Encoding.fromHex("zz")                        // => Err{ error: Error{ message: "invalid byte: U+007A 'z'" } }
+Encoding.fromHex("0ñ")                        // => Err{ error: Error{ message: "invalid byte: U+00F1 'ñ'" } }
+Encoding.fromHex("abc")                       // => Err{ error: Error{ message: "odd length hex string" } }
+// Go reports a bad character, and its offset in the text as given, line breaks counted.
+Encoding.fromBase64("aGVs bG8=")              // => Err{ error: Error{ message: "illegal base64 data at input byte 4" } }
+Encoding.fromBase64("aGVs\nbG8!")             // => Err{ error: Error{ message: "illegal base64 data at input byte 8" } }
+Encoding.fromBase64("aGVsbG8==")              // => Err{ error: Error{ message: "illegal base64 data at input byte 8" } }
+// Bits past the last byte in the final character are ignored, as in Go.
+Encoding.fromBase64("aGl=")                   // => Ok{ value: Bytes(68 69) }
+Encoding.fromBase64("aGk=")                   // => Ok{ value: Bytes(68 69) }

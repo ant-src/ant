@@ -7,8 +7,7 @@
 func Url.stringifyQuery(params: Map[string, Array[string]]): string
 ```
 
-Url.stringifyQuery writes params as k=v pairs joined by &, in the map's order, each key and value
-escaped as [`Url.escape`](escape.md) does, so it round-trips with [`Url.parseQuery`](parseQuery.md).
+Url.stringifyQuery writes params as k=v pairs joined by &, in the map's order, each key and value escaped as [`Url.escape`](escape.md) does. A key with no values writes nothing, so it round-trips with [`Url.parseQuery`](parseQuery.md) for maps whose keys each have a value.
 
 <!-- end generated -->
 
@@ -16,7 +15,8 @@ escaped as [`Url.escape`](escape.md) does, so it round-trips with [`Url.parseQue
 
 - Each value of a key becomes its own `k=v` pair, in the order of the key's array; the keys come in
   the map's insertion order.
-- An empty map gives `""`.
+- An empty map gives `""`, and a key with no values writes nothing, so it does not come back from
+  [Url.parseQuery](parseQuery.md).
 - The result has no leading `?`.
 
 ## Basic examples

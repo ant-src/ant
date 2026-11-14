@@ -31,7 +31,7 @@ func init() {
 				if given(a[1]) {
 					indent = stringArg(g, who, a[1])
 					if strings.Trim(indent, " \t") != "" {
-						g.Panic("%s needs an indent of spaces and tabs, got %q", who, indent)
+						g.Panic("%s: the indent must be spaces and tabs, got %q", who, indent)
 					}
 				}
 				var sb strings.Builder

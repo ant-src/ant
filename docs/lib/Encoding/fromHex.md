@@ -23,7 +23,7 @@ character that is not a hex digit.
 ```ant
 Encoding.fromHex("6869")     // Ok{ value: Bytes(68 69) }
 Encoding.fromHex("DEADbeef") // Ok{ value: Bytes(de ad be ef) }
-Encoding.fromHex("abc")      // Err{ error: Error{ message: "encoding/hex: odd length hex string" } }
+Encoding.fromHex("abc")      // Err{ error: Error{ message: "odd length hex string" } }
 ```
 
 ## Scope
@@ -37,7 +37,7 @@ Encoding.fromHex("") // Ok{ value: Bytes() }
 A character that is not a hex digit is an error:
 
 ```ant
-Encoding.fromHex("1g") // Err{ error: Error{ message: "encoding/hex: invalid byte: U+0067 'g'" } }
+Encoding.fromHex("1g") // Err{ error: Error{ message: "invalid byte: U+0067 'g'" } }
 ```
 
 A `0x` prefix, a space, and a letter other than `a` to `f` are all errors:
@@ -92,7 +92,7 @@ println(verify(data, "not hex"))
 ```text
 Ok{ value: true }
 Ok{ value: false }
-Err{ error: Error{ message: "digest: encoding/hex: invalid byte: U+006E 'n'" } }
+Err{ error: Error{ message: "digest: invalid byte: U+006E 'n'" } }
 ```
 
 ### Parse a color
@@ -118,7 +118,7 @@ println(parseColor("#12345z"))
 ```text
 Ok{ value: Rgb{ r: 255, g: 136, b: 0 } }
 Err{ error: Error{ message: "color #FFF: want #rrggbb" } }
-Err{ error: Error{ message: "color #12345z: encoding/hex: invalid byte: U+007A 'z'" } }
+Err{ error: Error{ message: "color #12345z: invalid byte: U+007A 'z'" } }
 ```
 
 ### Hex with separators

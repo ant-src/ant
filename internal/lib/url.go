@@ -147,7 +147,13 @@ func init() {
 		return namespace("Url",
 			constant("Parts", PartsTag),
 			fn("Url.parse", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				u, err := url.Parse(stringArg(g, who, a[0]))
+				s := stringArg(g, who, a[0])
+				u, err := url.Parse(s)
+				if err == nil && u.Scheme == "" && strings.HasPrefix(s, "///") {
+					// Go reads a schemeless /// as a path; RFC 3986 reads an empty authority
+					// first, so that stringify's //// for a path starting with // comes back.
+					u.Path, u.RawPath = u.Path[2:], strings.TrimPrefix(u.RawPath, "//")
+				}
 				if err == nil && !(utf8.ValidString(u.Host) && utf8.ValidString(u.Path) && utf8.ValidString(u.Fragment)) {
 					err = errNotUTF8
 				}
@@ -155,13 +161,21 @@ func init() {
 				if err == nil {
 					parts, err = partsRecord(u)
 				}
+				if errors.Is(err, errNotUTF8) {
+					err = &url.Error{Op: "parse", URL: s, Err: err}
+				}
 				if err != nil {
 					return errResult(err)
 				}
 				return value.Ok(parts)
 			}),
 			fn("Url.stringify", "parts", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				return partsURL(g, who, a[0]).String()
+				u := partsURL(g, who, a[0])
+				if u.Scheme == "" && u.Host == "" && u.User == nil && strings.HasPrefix(u.EscapedPath(), "//") {
+					// an empty authority first, or the path's // would read as one
+					return "//" + u.String()
+				}
+				return u.String()
 			}),
 			fn("Url.escape", "s", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return url.QueryEscape(stringArg(g, who, a[0]))

@@ -21,6 +21,10 @@ host.
 - `path` and `fragment` are decoded, `%20` read as a space, but `path` keeps `%2F` and `%25` as
   written. `query` is the raw text after `?`; read it with [Url.parseQuery](parseQuery.md).
 - `user` is the userinfo as written, a password included.
+- `host` keeps its case. An IPv6 address is held without its brackets: `http://[::1]:80/` has host
+  `::1`, and [Url.stringify](stringify.md) writes the brackets back.
+- Outside the host, `parse` is lenient as browsers are: a raw space in the path or query is kept as
+  written.
 
 ## Basic examples
 

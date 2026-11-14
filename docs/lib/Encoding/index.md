@@ -34,7 +34,7 @@ Decode them back into bytes:
 ```ant
 Encoding.fromHex("68693f")  // Ok{ value: Bytes(68 69 3f) }
 Encoding.fromBase64("aGk/") // Ok{ value: Bytes(68 69 3f) }
-Encoding.fromHex("6g")      // Err{ error: Error{ message: "encoding/hex: invalid byte: U+0067 'g'" } }
+Encoding.fromHex("6g")      // Err{ error: Error{ message: "invalid byte: U+0067 'g'" } }
 ```
 
 ## Scope

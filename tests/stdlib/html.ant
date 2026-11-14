@@ -17,3 +17,8 @@ String.from(Html.nodes(page)[1])                // => "Html.Text{ text: \"tail\"
 String.from(Html.nodes(<p id="a" hidden={true} />)) // => "[Html.Element{ name: \"p\", attributes: [Html.Attribute{ name: \"id\", value: \"a\" }, Html.Attribute{ name: \"hidden\", value: \"\" }], children: <></> }]"
 String.from(Html.nodes(<></>))                  // => "[]"
 Json.stringify(raw)                             // => panic: Json.stringify: Html has no JSON form; write String.from of it
+// An empty raw node is dropped, as an empty text node is.
+Html.unsafe("") == <></>                        // => true
+String.from(Html.nodes(Html.unsafe("")))        // => "[]"
+// A spread override keeps the earlier position and spelling of the name.
+String.from(<p TITLE="a" {...Map{ title: "b" }} id="c">x</p>) // => "<p TITLE=\"b\" id=\"c\">x</p>"

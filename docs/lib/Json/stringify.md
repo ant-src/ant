@@ -438,7 +438,7 @@ Json.stringify(n) // panic: Json.stringify: cyclic value
 
 ```ant
 Json.stringify([1], indent: "--")
-// panic: Json.stringify needs an indent of spaces and tabs, got "--"
+// panic: Json.stringify: the indent must be spaces and tabs, got "--"
 ```
 
 ## See also

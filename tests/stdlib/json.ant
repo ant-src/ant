@@ -45,7 +45,7 @@ Json.stringify(Map{ "id": "x1", "tags": ["a"], "none": noTags, "e": noEntries },
 Json.stringify([[1], Server{ host: "h", port: 1 }], indent: "\t") // => "[\n\t[\n\t\t1\n\t],\n\t{\n\t\t\"host\": \"h\",\n\t\t\"port\": 1\n\t}\n]"
 Json.stringify(1, indent: "  ")               // => "1"
 Json.stringify([1, 2], indent: "")            // => "[1,2]"
-Json.stringify([1], indent: "x")              // => panic: Json.stringify needs an indent of spaces and tabs, got "x"
+Json.stringify([1], indent: "x")              // => panic: Json.stringify: the indent must be spaces and tabs, got "x"
 var round = Json.parse(Json.stringify(Map{ x: [1.5, "s"] }))
 round                                         // => Ok{ value: Map{ "x": [1.5, "s"] } }
 

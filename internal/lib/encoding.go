@@ -31,14 +31,14 @@ func init() {
 				return enc.EncodeToString(view(bytesArg(g, who, a[0])))
 			}),
 			fn("Encoding.fromBase64", "s, url?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				// Line breaks are ignored and the padding may be present or absent: the text is
-				// decoded without it, by the raw form of the alphabet.
-				s := strings.NewReplacer("\r", "", "\n", "").Replace(stringArg(g, who, a[0]))
-				trimmed := strings.TrimRight(s, "=")
-				if pad := len(s) - len(trimmed); pad > 2 || pad > 0 && len(s)%4 != 0 {
-					return errResult(errors.New("illegal base64 padding"))
+				// The padding may be present or absent: a text that ends in = is decoded with it,
+				// any other without. Go skips line breaks and names offsets in the text as given.
+				s := stringArg(g, who, a[0])
+				enc := base64Alphabet(g, who, a[1])
+				if strings.HasSuffix(strings.TrimRight(s, "\r\n"), "=") {
+					enc = enc.WithPadding(base64.StdPadding)
 				}
-				data, err := base64Alphabet(g, who, a[1]).DecodeString(trimmed)
+				data, err := enc.DecodeString(s)
 				if err != nil {
 					return errResult(err)
 				}
@@ -55,13 +55,14 @@ func init() {
 					// non-ASCII character reads as itself.
 					for _, r := range text {
 						if !strings.ContainsRune("0123456789abcdefABCDEF", r) {
-							err = fmt.Errorf("encoding/hex: invalid byte: %#U", r)
+							err = fmt.Errorf("invalid byte: %#U", r)
 							break
 						}
 					}
 				}
 				if err != nil {
-					return errResult(err)
+					// Go's messages start with its package's name, which means nothing here.
+					return errResult(errors.New(strings.TrimPrefix(err.Error(), "encoding/hex: ")))
 				}
 				return value.Ok(bytesValue(data))
 			}),

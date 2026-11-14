@@ -23,6 +23,9 @@ Html.Attributes is what an attribute spread \{...attrs\} takes.
 - A URL attribute such as `href` or `src` is checked as when written: a scheme other than `http`,
   `https`, `mailto`, or `tel` becomes `about:invalid#ant`.
 - The value type has no numbers: write `String.from(n)` or `"${n}"`.
+- When a spread and another attribute give one name in different case, the later value wins and
+  keeps the earlier position and spelling: `<p TITLE="a" {...Map{ title: "b" }} />` renders
+  `<p TITLE="b"></p>`.
 
 ## Basic examples
 

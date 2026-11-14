@@ -22,8 +22,8 @@ Url.unescape("%zz")                           // => Err{ error: Error{ message: 
 Url.unescape("%ff")                           // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
 Url.unescape("%e2%82%ac")                     // => Ok{ value: "€" }
 Url.parseQuery("q=%c3")                       // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
-Url.parse("/a%ff")                            // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
-Url.parse("/a#%ff")                           // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("/a%ff")                            // => Err{ error: Error{ message: "parse \"/a%ff\": the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("/a#%ff")                           // => Err{ error: Error{ message: "parse \"/a#%ff\": the %XX escapes do not decode to UTF-8 text" } }
 Url.parseQuery("tag=a&q=ant&tag=b&empty=&flag") // => Ok{ value: Map{ "tag": ["a", "b"], "q": ["ant"], "empty": [""], "flag": [""] } }
 Url.parseQuery("")                            // => Ok{ value: Map{} }
 Result.isOk(Url.parseQuery("a=%zz"))          // => false
@@ -32,7 +32,7 @@ Url.stringifyQuery(params)                    // => "tag=a&tag=b&q=ant"
 Url.stringifyQuery(Map{ "k": ["v 1", "v&2"], "z": [] }) // => "k=v+1&k=v%262"
 var none: Map[string, Array[string]] = Map{}
 Url.stringifyQuery(none)                      // => ""
-Url.parse("http://a%FFb/x")                   // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("http://a%FFb/x")                   // => Err{ error: Error{ message: "parse \"http://a%FFb/x\": the %XX escapes do not decode to UTF-8 text" } }
 Url.parse("http://a%C3%A9b/x") is Ok          // => true
 
 // A path keeps %2F, a slash that is not a separator, and %25, a percent sign, escaped, so they
@@ -54,3 +54,26 @@ Url.stringify(Result.unwrap(Url.parse("file:///etc/hosts?x#y"))) // => "file:///
 Url.stringify(Result.unwrap(Url.parse("FILE:/etc/hosts"))) // => "file:///etc/hosts"
 Url.stringify(Result.unwrap(Url.parse("http://h/p"))) // => "http://h/p"
 Url.stringify(Result.unwrap(Url.parse("x://h/a"))) // => "x://h/a"
+// A path that starts with // gets an empty authority before it, with or without a scheme, and
+// parse reads a schemeless /// as that empty authority.
+var noParts = Url.Parts{ scheme: "", opaque: "", user: "", host: "", port: "", path: "", query: "", fragment: "" }
+Url.stringify(Url.Parts{ ...noParts, path: "//a/b" }) // => "////a/b"
+Url.parse("////a/b") | Result.map({ x.path })  // => Ok{ value: "//a/b" }
+Url.parse("///a?q") | Result.map({ "${x.host}|${x.path}|${x.query}" }) // => Ok{ value: "|/a|q" }
+// Fix-ups where the parts do not fit together.
+Url.stringify(Url.Parts{ ...noParts, scheme: "https", host: "h", path: "p" }) // => "https://h/p"
+Url.stringify(Url.Parts{ ...noParts, path: "a:b" }) // => "./a:b"
+// The host keeps its case; an IPv6 address is held without brackets.
+Url.parse("http://[::1]:80/") | Result.map({ "${x.host} ${x.port}" }) // => Ok{ value: "::1 80" }
+Url.stringify(Result.unwrap(Url.parse("http://[::1]:80/"))) // => "http://[::1]:80/"
+Url.parse("http://Example.COM/") | Result.map({ x.host }) // => Ok{ value: "Example.COM" }
+// Lenient outside the host: a raw space is kept.
+Url.parse("http://h/a b?q=x y") | Result.map({ "${x.path}|${x.query}" }) // => Ok{ value: "/a b|q=x y" }
+Url.parse("http://h/%FF")                       // => Err{ error: Error{ message: "parse \"http://h/%FF\": the %XX escapes do not decode to UTF-8 text" } }
+// escape writes upper-case hex; unescape reads either case and keeps other characters.
+Url.escape("é")                                 // => "%C3%A9"
+Url.unescape("%c3%a9 x")                        // => Ok{ value: "é x" }
+// parseQuery splits a pair at its first = and skips empty pairs.
+Url.parseQuery("a=b=c&&=x&")                    // => Ok{ value: Map{ "a": ["b=c"], "": ["x"] } }
+// A key with no values writes nothing.
+Url.stringifyQuery(Map{ "a": [], "b": ["1"] })  // => "b=1"

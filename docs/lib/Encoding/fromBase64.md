@@ -20,6 +20,8 @@ length no encoding produces.
   `Err`.
 - Reads one alphabet only: the standard one with `+` and `/`, or with `url: true` the URL-safe one
   with `-` and `_`.
+- Bits past the last byte in the final character are ignored, as in Go, so `aGl=` and `aGk=` both
+  decode to the bytes of `hi`.
 
 ## Basic examples
 
@@ -69,7 +71,7 @@ left over carries no whole byte, and padding must end the text at a multiple of 
 
 ```ant
 Encoding.fromBase64("aGVsb")     // Err{ error: Error{ message: "illegal base64 data at input byte 4" } }
-Encoding.fromBase64("aGVsbG8==") // Err{ error: Error{ message: "illegal base64 padding" } }
+Encoding.fromBase64("aGVsbG8==") // Err{ error: Error{ message: "illegal base64 data at input byte 8" } }
 ```
 
 The text is the first argument, so `fromBase64` ends a pipe:

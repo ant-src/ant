@@ -7,8 +7,7 @@
 func Url.escape(s: string): string
 ```
 
-Url.escape escapes s for use as one query key or value: every character but the unreserved ones
-becomes %XX, and a space becomes +.
+Url.escape escapes s for use as one query key or value: every character but the unreserved ones becomes %XX, in upper-case hex digits, and a space becomes +.
 
 <!-- end generated -->
 

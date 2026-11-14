@@ -2997,33 +2997,36 @@ type Url.Parts = { scheme: string, opaque: string, user: string, host: string, p
 // space in the host.
 func Url.parse(s: string): Result[Url.Parts, Error]
 
-// Url.stringify returns the reference parts make, escaping what needs it in every part but query,
-// which is written as it is, so a program changes a URL by parsing it, replacing a field, and
-// stringifying it. It writes // before an empty authority only for http, https, ws, wss, ftp and
-// file, so x:///a comes back as x:/a, the same reference.
+// Url.stringify returns the reference parts make, escaping what needs it in every part but query
+// and opaque, which are written as they are, so a program changes a URL by parsing it, replacing a
+// field, and stringifying it. It writes // before an empty authority only for http, https, ws, wss,
+// ftp and file, or when path starts with //, so x:///a comes back as x:/a, the same reference.
 func Url.stringify(parts: Url.Parts): string
 
 // Url.escape escapes s for use as one query key or value: every character but the unreserved ones
-// becomes %XX, and a space becomes +.
+// becomes %XX, in upper-case hex digits, and a space becomes +.
 //
 //     Url.escape("a b&c")   // "a+b%26c"
 func Url.escape(s: string): string
 
-// Url.unescape reverses [Url.escape]. It is Err on a bad %XX or on escapes that decode to bytes
-// that are not UTF-8.
+// Url.unescape reverses [Url.escape], reading %XX in either case and + as a space, and keeping
+// every other character as it is. It is Err on a bad %XX or on escapes that decode to bytes that
+// are not UTF-8.
 //
 //     Url.unescape("a+b%26c")   // Ok{ value: "a b&c" }
 func Url.unescape(s: string): Result[string, Error]
 
 // Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as [Url.unescape]
 // does. Keys are in order of first appearance, each with its values in order, and a key without =
-// has the value "". It is Err where [Url.unescape] is.
+// has the value "". A pair splits at its first =, and an empty pair is skipped. It is Err where
+// [Url.unescape] is.
 //
 //     Url.parseQuery("tag=a&tag=b&q")   // Ok{ value: Map{ "tag": ["a", "b"], "q": [""] } }
 func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
 
 // Url.stringifyQuery writes params as k=v pairs joined by &, in the map's order, each key and value
-// escaped as [Url.escape] does, so it round-trips with [Url.parseQuery].
+// escaped as [Url.escape] does. A key with no values writes nothing, so it round-trips with
+// [Url.parseQuery] for maps whose keys each have a value.
 //
 //     Url.stringifyQuery(Map{ "q": ["a b"], "tag": ["x", "y"] })   // "q=a+b&tag=x&tag=y"
 func Url.stringifyQuery(params: Map[string, Array[string]]): string

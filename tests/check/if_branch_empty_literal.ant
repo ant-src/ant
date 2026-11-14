@@ -1,0 +1,7 @@
+// spec: 4 Inference
+// Each branch of an if is typed on its own: a branch of [] or Map{} takes nothing from the others,
+// so it needs an expected type.
+let b = true
+let k = if b { [1] } else { [] } // ERR: cannot infer the element type of an empty array
+let ok: Array[int] = if b { [1] } else { [] }
+println(ok)

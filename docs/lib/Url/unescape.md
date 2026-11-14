@@ -7,14 +7,14 @@
 func Url.unescape(s: string): Result[string, Error]
 ```
 
-Url.unescape reverses [`Url.escape`](escape.md). It is Err on a bad %XX or on escapes that decode to
-bytes that are not UTF-8.
+Url.unescape reverses [`Url.escape`](escape.md), reading %XX in either case and + as a space, and keeping every other character as it is. It is Err on a bad %XX or on escapes that decode to bytes that are not UTF-8.
 
 <!-- end generated -->
 
 ## Details
 
 - `+` decodes to a space, so a `+` that is data arrives as `%2B`.
+- `%XX` is read in either case, and every other character is kept as it is.
 
 ## Basic examples
 

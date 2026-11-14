@@ -48,3 +48,5 @@ Json.stringify(Map{ "r": Random.new(1) })     // => panic: Json.stringify: Rando
 Json.stringify(Map{ Random.new(1): 1 })       // => panic: Json.stringify: a map key must be a string, got Random
 Json.stringify(Mutex.new())                   // => panic: Json.stringify: Mutex has no JSON form
 Json.stringify(nothing())                     // => panic: Json.stringify: void has no JSON form
+// The indent is checked as the other panics are, with the same prefix.
+Json.stringify([1], indent: "--")               // => panic: Json.stringify: the indent must be spaces and tabs, got "--"

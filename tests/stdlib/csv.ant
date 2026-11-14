@@ -31,3 +31,6 @@ Csv.parse("a,b", "\u{0}")                     // => panic: Csv.parse needs a sep
 // stringify applies the same separator rule as parse, before any row is written.
 Csv.stringify([["a", "b"]], "|")              // => "a|b\n"
 Csv.stringify([["a", "b"]], "\n")             // => panic: Csv.stringify needs a separator of one character other than a quote, a line break, U+0000 or U+FFFD, got "\n"
+// A row of no fields is an empty line, which parse skips.
+Csv.stringify([["a"], [], ["b"]])             // => "a\n\nb\n"
+Csv.parse(Csv.stringify([["a"], [], ["b"]]))  // => Ok{ value: [["a"], ["b"]] }

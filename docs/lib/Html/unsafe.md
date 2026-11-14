@@ -18,6 +18,7 @@ string into markup: pass only markup the program trusts, such as a sanitizer's o
   it is: no escaping, and no URL check.
 - `s` is not parsed or validated. A raw node is opaque: `Html.nodes` sees the raw node, not the
   elements its markup describes, and it is not `==` to the elements or text its markup spells.
+- `Html.unsafe("")` is the empty `Html`, `==` to `<></>`.
 
 ## Basic examples
 

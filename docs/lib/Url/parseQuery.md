@@ -7,9 +7,7 @@
 func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
 ```
 
-Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as
-[`Url.unescape`](unescape.md) does. Keys are in order of first appearance, each with its values in
-order, and a key without = has the value "". It is Err where [`Url.unescape`](unescape.md) is.
+Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as [`Url.unescape`](unescape.md) does. Keys are in order of first appearance, each with its values in order, and a key without = has the value "". A pair splits at its first =, and an empty pair is skipped. It is Err where [`Url.unescape`](unescape.md) is.
 
 <!-- end generated -->
 
@@ -17,6 +15,8 @@ order, and a key without = has the value "". It is Err where [`Url.unescape`](un
 
 - The query is the text after `?`, without it. A leading `?` or a whole URL is read as part of the
   first key; take the query from [`Url.parse`](parse.md) first.
+- A pair splits at its first `=`, so `a=b=c` gives `a` the value `b=c`. An empty pair, as in
+  `a=1&&b=2`, is skipped.
 - Only `&` separates pairs. A `+` decodes to a space, so a literal plus arrives as `%2B`.
 - The result is `Err` on a malformed escape such as `%zz`, and on escapes that do not decode to
   UTF-8 text, such as `%FF`.
