@@ -111,5 +111,3 @@ The guide chapter [HTML expressions](../guide/html.md) covers attributes, fragme
 and serving a page. The reference pages are the [HTML literal](../language/literals/html.md), the
 [`Html`](../lib/Html/index.md) namespace, and [`Html.unsafe`](../lib/Html/unsafe.md), the one way to
 insert markup from a string.
-
-Next: [Where next](22-next.md).

@@ -88,5 +88,3 @@ chmod +x greet.ant
   output; [eprintln](../lib/prelude/eprintln.md) writes to standard error.
 - [Comments](../language/lexical/comments.md), [ant run](../tools/run.md), and
   [ant check](../tools/check.md).
-
-Next: [Variables](02-variables.md).

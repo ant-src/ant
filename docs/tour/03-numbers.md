@@ -77,5 +77,3 @@ Read more in the [types chapter](../guide/types.md) of the guide, and in the ref
 [int](../language/types/int.md), [float](../language/types/float.md),
 [number literals](../language/literals/numbers.md), and
 [arithmetic operators](../language/operators/arithmetic.md).
-
-Next: [strings](04-strings.md).

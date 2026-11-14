@@ -76,5 +76,3 @@ pages cover [`if`](../language/keywords/if.md), [`for`](../language/keywords/for
 [`while`](../language/keywords/while.md), [`return`](../language/keywords/return.md),
 [`break`](../language/keywords/break.md), [`continue`](../language/keywords/continue.md), and
 [`??`](../language/operators/null-coalescing.md).
-
-Next: [sequences](09-sequences.md).

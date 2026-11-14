@@ -65,10 +65,9 @@ let names = [] // error: cannot infer the element type of an empty array; annota
 println(_)     // error: _ is write-only and cannot be read
 ```
 
-## Next
+## Learn more
 
-[Numbers](03-numbers.md) shows `int`, `float64`, and arithmetic. For more on names, scope, and when
-to pick `let` or `var`, read [Values and variables](../guide/values.md) and
-[Types](../guide/types.md). The reference pages are [let](../language/keywords/let.md),
-[var](../language/keywords/var.md), [identifiers](../language/lexical/identifiers.md), and
-[Array.push](../lib/Array/push.md).
+For more on names, scope, and when to pick `let` or `var`, read
+[Values and variables](../guide/values.md) and [Types](../guide/types.md). The reference pages are
+[let](../language/keywords/let.md), [var](../language/keywords/var.md),
+[identifiers](../language/lexical/identifiers.md), and [Array.push](../lib/Array/push.md).

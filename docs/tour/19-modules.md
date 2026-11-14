@@ -80,5 +80,3 @@ The guide chapter [Modules](../guide/modules.md) covers namespaces, how modules 
 how to lay out a project. The keywords have their own pages:
 [`import`](../language/keywords/import.md) and [`export`](../language/keywords/export.md).
 [`ant run`](../tools/run.md) runs a script.
-
-Next: [Tests](20-tests.md).

@@ -78,5 +78,3 @@ The [functions guide](../guide/functions.md) explains when to pick which form. T
 pages for [calls through `.`](../language/operators/dot-calls.md), the
 [pipe](../language/operators/pipe.md), [`Array.map`](../lib/Array/map.md), and
 [`Array.filter`](../lib/Array/filter.md).
-
-Next: [expressions](08-expressions.md).

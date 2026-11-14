@@ -105,5 +105,3 @@ skip itself, run in parallel with others, or get a temporary directory, with the
 The [Testing](../guide/testing.md) chapter shows how the parts fit together. The reference has the
 [`test`](../language/keywords/test.md) keyword, [`assert`](../lib/prelude/assert.md), and the
 [`ant test`](../tools/test.md) command with all its flags.
-
-Next: [HTML](21-html.md).

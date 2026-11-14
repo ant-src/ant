@@ -106,5 +106,4 @@ element.
 
 Read more in the [generics chapter](../guide/generics.md) of the guide, and in the reference pages
 for [`type`](../language/keywords/type.md), [`func`](../language/keywords/func.md), and
-[`Array`](../language/types/Array.md). Next, [interfaces](16-interfaces.md), bounds that list the
-functions a type must have.
+[`Array`](../language/types/Array.md).

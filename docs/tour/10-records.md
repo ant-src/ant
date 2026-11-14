@@ -89,5 +89,4 @@ let b = Server{ addr: ":80", worker: 8 } // error: Server has no field worker
 ```
 
 Records in depth are in the [Records](../guide/records.md) chapter of the guide; see also
-[record literals](../language/literals/records.md) and [`type`](../language/keywords/type.md). Next:
-[unions](11-unions.md).
+[record literals](../language/literals/records.md) and [`type`](../language/keywords/type.md).

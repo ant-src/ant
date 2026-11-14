@@ -77,5 +77,3 @@ The [concurrency chapter](../guide/concurrency.md) explains how goroutines, lock
 fit together. The reference has [`go`](../language/keywords/go.md),
 [WaitGroup](../lib/WaitGroup/index.md), [Mutex.withLock](../lib/Mutex/withLock.md),
 [Parallel.map](../lib/Parallel/map.md), and [Parallel.run](../lib/Parallel/run.md).
-
-Next: [channels](18-channels.md).

@@ -161,5 +161,3 @@ The reference has pages for [`try`](../language/keywords/try.md),
 [`Result`](../lib/Result/index.md), [`Result.wrapErr`](../lib/Result/wrapErr.md),
 [`Result.all`](../lib/Result/all.md), [`Result.unwrapOr`](../lib/Result/unwrapOr.md),
 [`Result.unwrap`](../lib/Result/unwrap.md), and [`Error.wrap`](../lib/Error/wrap.md).
-
-Next: [Panics](14-panics.md).

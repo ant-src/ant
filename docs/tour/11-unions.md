@@ -132,5 +132,4 @@ type Ids = Array[int] | Array[string] // error: a union may contain each discrim
 
 Read more in the [unions chapter](../guide/unions.md) of the guide, and in the reference pages for
 [`is`](../language/operators/is.md), [`if`](../language/keywords/if.md), and
-[`type`](../language/keywords/type.md). Next, [null](12-null.md) and the nullable type `T | null`, a
-union with `null`.
+[`type`](../language/keywords/type.md).

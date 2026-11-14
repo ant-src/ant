@@ -117,5 +117,3 @@ type with the right functions joins it, and you call it through `.`. The
 [interfaces chapter](../guide/interfaces.md) of the guide explains when to pick which. The reference
 pages are [`interface`](../language/keywords/interface.md), [`Self`](../language/types/Self.md), and
 [calls through `.`](../language/operators/dot-calls.md).
-
-Next: [Goroutines](17-goroutines.md).

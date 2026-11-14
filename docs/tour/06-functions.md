@@ -110,9 +110,8 @@ greet(greeting: "Hi", "Ann") // error: a positional argument cannot follow a nam
 - Call `twice` with a lambda that halves its argument.
 - Make two counters and check that they count separately.
 
-## Next
+## Learn more
 
-[Calls](07-calls.md) explains calls through `.` and the pipe. The
-[functions guide](../guide/functions.md) goes further, and the reference has
+The [functions guide](../guide/functions.md) goes further, and the reference has
 [func](../language/keywords/func.md), [lambdas](../language/literals/lambdas.md),
 [function types](../language/types/functions.md), and [Array.map](../lib/Array/map.md).

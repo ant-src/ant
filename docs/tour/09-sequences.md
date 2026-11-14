@@ -80,5 +80,3 @@ and the [Iter](../lib/Iter/index.md) functions: [Iter.range](../lib/Iter/range.m
 [Iter.map](../lib/Iter/map.md), [Iter.filter](../lib/Iter/filter.md),
 [Iter.take](../lib/Iter/take.md), [Iter.fromArray](../lib/Iter/fromArray.md), and
 [Iter.toArray](../lib/Iter/toArray.md).
-
-Next: [records](10-records.md).

@@ -96,5 +96,3 @@ lock, or `Parallel`. The reference has [`select`](../language/keywords/select.md
 [Channel.close](../lib/Channel/close.md), and [Channel.values](../lib/Channel/values.md), and
 [Context](../lib/Context/index.md) with [Context.new](../lib/Context/new.md),
 [Context.wait](../lib/Context/wait.md), and [Context.reason](../lib/Context/reason.md).
-
-Next: [Modules](19-modules.md).

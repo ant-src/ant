@@ -101,5 +101,3 @@ len(family.graphemes()) // 1
   [String.graphemes](../lib/String/graphemes.md), and [String.toBytes](../lib/String/toBytes.md).
 - [len](../lib/prelude/len.md) and [for](../language/keywords/for.md).
 - [Bytes](../lib/Bytes/index.md): binary data.
-
-Next: [Collections](05-collections.md).

@@ -118,5 +118,3 @@ The guide chapter [Errors](../guide/errors.md) covers when to pick a `Result` an
 reference has pages for [`panic`](../lib/prelude/panic.md), [`assert`](../lib/prelude/assert.md),
 [`defer`](../language/keywords/defer.md), [`Panic.catch`](../lib/Panic/catch.md), and
 [`Panic.raise`](../lib/Panic/raise.md), which lets a panic you caught go on.
-
-Next: [Generics](15-generics.md).

@@ -79,5 +79,3 @@ A field such as `user.address` does not narrow. Bind it to a `let` first, or use
 The guide chapter [Null](../guide/null.md) covers where narrowing holds and where it does not. The
 operators have their own pages: [`?.`](../language/operators/optional-chaining.md) and
 [`??`](../language/operators/null-coalescing.md).
-
-Next: [Errors](13-errors.md).
