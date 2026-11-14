@@ -88,7 +88,11 @@ func (l *looper) command(line string) (status int, done bool) {
 			fmt.Fprintln(l.stderr, err)
 			return 0, false
 		}
-		if !doc.Print(l.stdout, f.Decls, arg, true) {
+		p := &doc.Printer{}
+		if e, ok := l.r.(*editor); ok {
+			p.Color = e.th.class[clsKeyword] != ""
+		}
+		if !p.Print(l.stdout, f.Decls, arg, true) {
 			fmt.Fprintf(l.stderr, "no declaration %s\n", arg)
 		}
 	case "load":

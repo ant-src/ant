@@ -27,6 +27,10 @@
 // lines shows its first two and its last. On a terminal the code is highlighted as the REPL
 // highlights it; NO_COLOR or a dumb terminal turns the colors off.
 //
+// ant doc and the REPL's :doc highlight signatures and examples on a terminal, preserving
+// source line breaks and spacing. NO_COLOR, a dumb terminal, or redirected output disables
+// highlighting.
+//
 // The REPL evaluates each input on one session and prints every non-void result with
 // String.from, on a terminal colored and, when it does not fit, an element to a line; _ reads
 // the last result. An input goes on over more lines while it is unfinished, which on a terminal

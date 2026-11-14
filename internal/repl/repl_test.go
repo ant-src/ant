@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -229,6 +230,33 @@ func TestCommands(t *testing.T) {
 	}
 	if strings.Contains(o, "after quit") {
 		t.Errorf("ran after :quit:\n%s", o)
+	}
+}
+
+// TestDocTerminal uses the same editor and writer as interactive commands: :doc follows the
+// editor's theme and preserves source line breaks even on a narrow terminal.
+func TestDocTerminal(t *testing.T) {
+	strip := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	for _, th := range []*theme{&ansiTheme, &plainTheme} {
+		e, out, _ := fakeTerminal(t, 44, nil)
+		e.th = th
+		var errOut strings.Builder
+		l := &looper{r: e, stdout: e.writer(out), stderr: &errOut}
+		l.command(":doc Array.map")
+		got := out.String()
+		if strings.Contains(got, "\x1b[") != (th == &ansiTheme) {
+			t.Errorf("wrong doc theme: %q", got)
+		}
+		plain := strip.ReplaceAllString(got, "")
+		if !strings.Contains(plain, "    Array.map returns a new array holding f applied to each element of xs, in order.\n") {
+			t.Errorf("doc changed the prose line breaks: %q", plain)
+		}
+		if !strings.Contains(plain, "        Array.map([1, 2, 3], { x * 2 })   // [2, 4, 6]\n") {
+			t.Errorf("doc changed the example: %q", plain)
+		}
+		if errOut.Len() != 0 {
+			t.Errorf("stderr: %s", errOut.String())
+		}
 	}
 }
 

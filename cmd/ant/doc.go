@@ -16,6 +16,7 @@ import (
 // module with its doc comment, a module's doc, or the signatures a namespace, a type, or a module
 // holds.
 func docCommand(args []string, stdout, stderr io.Writer) int {
+	p := &doc.Printer{Color: colors(stdout)}
 	var decls []ast.Decl
 	var name string
 	inPrelude := false
@@ -54,13 +55,13 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 				return 1
 			}
 			if f.Doc != "" {
-				doc.PrintIndented(stdout, f.Doc)
+				p.PrintIndented(stdout, f.Doc)
 				if len(decls) > 0 {
 					fmt.Fprintln(stdout)
 				}
 			}
 			for _, d := range decls {
-				fmt.Fprintln(stdout, doc.Sig(d))
+				p.PrintSignature(stdout, doc.Sig(d))
 			}
 			return 0
 		}
@@ -69,7 +70,7 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
-	if !doc.Print(stdout, decls, name, inPrelude) {
+	if !p.Print(stdout, decls, name, inPrelude) {
 		fmt.Fprintf(stderr, "ant doc: no declaration %s\n", name)
 		return 1
 	}

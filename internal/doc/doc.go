@@ -7,13 +7,20 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/highlight"
 	"github.com/ant-src/ant/internal/prelude"
 )
+
+// Printer renders documentation, preserving source line breaks and spacing. Color highlights
+// signatures and examples and emphasizes namespace headings; the zero value prints no escapes.
+type Printer struct {
+	Color bool
+}
 
 // Print prints what name names among decls: a declaration with its doc, a namespace's doc
 // when inPrelude, and the signatures a namespace or a type holds. It reports whether name
 // named anything. A name is matched without regard to case, and Owner.name names a member.
-func Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
+func (p *Printer) Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
 	owner, member, dotted := strings.Cut(name, ".")
 	decls = withInterfaceFuncs(decls)
 	found := false
@@ -21,13 +28,18 @@ func Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
 		o, n := declName(d)
 		if dotted && strings.EqualFold(o, owner) && strings.EqualFold(n, member) ||
 			!dotted && o == "" && strings.EqualFold(n, name) {
-			PrintDoc(w, Sig(d), docOf(d))
+			p.PrintDoc(w, Sig(d), docOf(d))
 			found = true
 		}
 	}
 	if !dotted && !found && inPrelude {
 		if ns, doc := prelude.NamespaceDoc(name); doc != "" {
-			PrintDoc(w, ns, doc)
+			if p.Color {
+				ns = "\x1b[1m" + ns + highlight.Reset
+			}
+			fmt.Fprintln(w, ns)
+			fmt.Fprintln(w)
+			p.PrintIndented(w, doc)
 			found = true
 		}
 	}
@@ -39,7 +51,7 @@ func Print(w io.Writer, decls []ast.Decl, name string, inPrelude bool) bool {
 					fmt.Fprintln(w)
 					own = false
 				}
-				fmt.Fprintln(w, Sig(d))
+				p.PrintSignature(w, Sig(d))
 				found = true
 			}
 		}
@@ -63,22 +75,12 @@ func withInterfaceFuncs(decls []ast.Decl) []ast.Decl {
 	return out
 }
 
-// PrintDoc prints a declaration's signature, or a namespace's name, and, indented, its doc.
-func PrintDoc(w io.Writer, sig, doc string) {
-	fmt.Fprintln(w, sig)
+// PrintDoc prints a declaration's signature and, indented, its doc.
+func (p *Printer) PrintDoc(w io.Writer, sig, doc string) {
+	p.PrintSignature(w, sig)
 	if doc != "" {
 		fmt.Fprintln(w)
-		PrintIndented(w, doc)
-	}
-}
-
-// PrintIndented prints a doc with every non-empty line indented by four spaces.
-func PrintIndented(w io.Writer, doc string) {
-	for line := range strings.SplitSeq(doc, "\n") {
-		if line != "" {
-			line = "    " + line
-		}
-		fmt.Fprintln(w, line)
+		p.PrintIndented(w, doc)
 	}
 }
 
