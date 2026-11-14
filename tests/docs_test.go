@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -671,8 +672,8 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	}
 	var env []string
 	for _, d := range b.directives {
-		if name, _, ok := strings.Cut(d.arg, "="); d.name == "env" && (!ok || name == "") {
-			problems = append(problems, fmt.Sprintf("%s:%d: test: env needs NAME=value, not %q", rel, d.line, d.arg))
+		if name, _, _ := strings.Cut(d.arg, "="); d.name == "env" && (name == "" || strings.ContainsAny(name, " \t")) {
+			problems = append(problems, fmt.Sprintf("%s:%d: test: env needs NAME or NAME=value, not %q", rel, d.line, d.arg))
 		} else if d.name == "env" {
 			env = append(env, d.arg)
 		}
@@ -721,7 +722,17 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	// The built ant comes first on PATH, so a page that starts ant itself gets this one and not
 	// whatever the host has under the name, such as Apache Ant.
 	path := filepath.Dir(bin) + string(os.PathListSeparator) + os.Getenv("PATH")
-	cmd.Env = append(append(os.Environ(), "PATH="+path), env...)
+	cmd.Env = append(os.Environ(), "PATH="+path)
+	for _, e := range env {
+		name, _, set := strings.Cut(e, "=")
+		cmd.Env = slices.DeleteFunc(cmd.Env, func(v string) bool {
+			key, _, _ := strings.Cut(v, "=")
+			return key == name || runtime.GOOS == "windows" && strings.EqualFold(key, name)
+		})
+		if set {
+			cmd.Env = append(cmd.Env, e)
+		}
+	}
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	status := 0
 	if err := cmd.Run(); err != nil {

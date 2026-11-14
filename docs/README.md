@@ -181,9 +181,9 @@ cases or a program.
 ### Cases
 
 An expression followed by a `//` comment is a case: the comment is the value the expression renders
-as inside a container, so a string is quoted: `"ant".toUpper() // "ANT"`. A block with a case is a block of cases, like a notebook of inputs and
-outputs. The block is read as the REPL reads input, so a case may span lines; its comment goes at
-the end of its last line.
+as inside a container, so a string is quoted: `"ant".toUpper() // "ANT"`. A block with a case is a
+block of cases, like a notebook of inputs and outputs. The block is read as the REPL reads input, so
+a case may span lines; its comment goes at the end of its last line.
 
 ```ant
 Array.map([1, 2, 3], { x * 2 })        // [2, 4, 6]
@@ -269,17 +269,17 @@ the next ` ```ant ` block. A misspelled prefix (`tests:`, `Test:`), an unknown d
 directive of the same name on one block (`file` and `env` aside), and a directive that does not
 apply to its block all fail the test.
 
-| Directive                   | Meaning                                                               | Applies to                       |
-| --------------------------- | --------------------------------------------------------------------- | -------------------------------- |
-| `test: file <path>` + body  | Write the body to `<path>` in the page's directory.                   | any block                        |
-| `test: before` + body       | Ant code put in front of the block, hidden from the reader.           | cases, an unnamed program        |
-| `test: after` + body        | Ant code put after the block, hidden from the reader.                 | an unnamed program               |
-| `test: stdin` + body        | Feed the body to standard input.                                      | a block that runs                |
-| `test: args <a> <b>`        | Pass arguments, which `Os.args()` returns.                            | an unnamed program without `cmd` |
-| `test: env <NAME>=<value>`  | Set an environment variable for the `ant` process; may repeat.        | a block that runs                |
-| `test: cmd ant <args>`      | Run this `ant` command in the page's directory, such as `ant test .`. | a program                        |
-| `test: exit <n>`            | Expect exit status `<n>` instead of 0.                                | a block that runs                |
-| `test: check-only <reason>` | Check and format-check only. For output that changes between runs.    | an ant program, not with `cmd`   |
+| Directive                    | Meaning                                                               | Applies to                       |
+| ---------------------------- | --------------------------------------------------------------------- | -------------------------------- |
+| `test: file <path>` + body   | Write the body to `<path>` in the page's directory.                   | any block                        |
+| `test: before` + body        | Ant code put in front of the block, hidden from the reader.           | cases, an unnamed program        |
+| `test: after` + body         | Ant code put after the block, hidden from the reader.                 | an unnamed program               |
+| `test: stdin` + body         | Feed the body to standard input.                                      | a block that runs                |
+| `test: args <a> <b>`         | Pass arguments, which `Os.args()` returns.                            | an unnamed program without `cmd` |
+| `test: env <NAME>[=<value>]` | Set an environment variable, or unset it without `=`; may repeat.     | a block that runs                |
+| `test: cmd ant <args>`       | Run this `ant` command in the page's directory, such as `ant test .`. | a program                        |
+| `test: exit <n>`             | Expect exit status `<n>` instead of 0.                                | a block that runs                |
+| `test: check-only <reason>`  | Check and format-check only. For output that changes between runs.    | an ant program, not with `cmd`   |
 
 A block runs when it is an unnamed program, or a named one with `cmd`, has no `check-only`, and
 marks no line with `// error:`. `exit` and `// panic:` exclude each other.

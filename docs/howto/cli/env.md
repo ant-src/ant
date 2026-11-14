@@ -11,6 +11,7 @@ Call [Os.env](../../lib/Os/env.md). It returns `null` when the variable is not s
 default with `??`:
 
 <!-- test: env EDITOR=nano -->
+<!-- test: env PAGER -->
 
 ```ant
 let editor = Os.env("EDITOR") ?? "vi"
@@ -77,6 +78,7 @@ the `Err` that [Result.fail](../../lib/Result/fail.md) makes from the script, wh
 [String.length](../../lib/String/length.md) counts what it got:
 
 <!-- test: exit 1 -->
+<!-- test: env API_TOKEN -->
 
 ```ant
 let token = Os.env("API_TOKEN") ?? return Result.fail("API_TOKEN is not set")
