@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 3000000000000h
+
+// expect
+// exit: 2
+// err: out of range

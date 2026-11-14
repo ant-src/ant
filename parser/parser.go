@@ -11,6 +11,7 @@ import (
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/lexer"
+	"github.com/ant-src/ant/internal/temporal"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/value"
 )
@@ -1981,6 +1982,13 @@ func (p *parser) primary() ast.Expr {
 			p.fail(t.Pos, "%s", err)
 		}
 		return &ast.RegexLit{Pos: pos(t), End: epos(t), Source: re.Source, Flags: re.Flags, Pattern: re}
+	case token.Duration:
+		p.next()
+		d, err := temporal.DurationLiteral(t.Text)
+		if err != nil {
+			p.fail(t.Pos, "%s", err)
+		}
+		return &ast.DurationLit{Pos: pos(t), End: epos(t), Text: t.Text, Value: d}
 	case token.Template:
 		p.next()
 		return p.template(t)

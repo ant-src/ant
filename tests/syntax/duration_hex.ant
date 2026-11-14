@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 0x1s
+
+// expect
+// exit: 2
+// err: malformed number literal

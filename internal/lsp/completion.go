@@ -138,7 +138,7 @@ func (c *completer) run() {
 					c.importPaths(t)
 				}
 				return
-			case token.Regex:
+			case token.Regex, token.Duration:
 				return
 			case token.Html:
 				c.markup(t)

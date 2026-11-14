@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/internal/temporal"
 )
 
 // testCommand is ant test (spec/test.md): it finds the test files under its paths, runs each
@@ -32,7 +33,9 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	jsonOut := fl.Bool("json", false, "print events as JSON lines")
 	failfast := fl.Bool("failfast", false, "start no test after the first failure")
 	parallel := fl.Int("parallel", runtime.NumCPU(), "the most tests that run at once after Test.parallel()")
-	timeout := fl.Duration("timeout", 10*time.Minute, "end the run after `d`; 0 means no limit")
+	timeout := new(time.Duration)
+	*timeout = 10 * time.Minute
+	fl.Var((*testTimeout)(timeout), "timeout", "end the run after `d`, as Time.parseDuration reads it; 0 means no limit")
 	fl.Usage = func() {
 		fmt.Fprintln(stderr, "usage: ant test [flags] [path ...]")
 		fl.PrintDefaults()
@@ -353,4 +356,26 @@ func (r *reporter) stillRunning() []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// testTimeout is the -timeout flag, read as Time.parseDuration reads a string: Go's notation, such
+// as 30s or 1h30m, or ISO 8601 (test.md).
+type testTimeout time.Duration
+
+func (t *testTimeout) String() string { return time.Duration(*t).String() }
+
+func (t *testTimeout) Set(s string) error {
+	d, err := temporal.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	span, ok := d.Exact()
+	if !ok {
+		return errors.New("a timeout cannot have years, months or weeks")
+	}
+	if span < 0 {
+		return errors.New("a timeout cannot be negative")
+	}
+	*t = testTimeout(span)
+	return nil
 }

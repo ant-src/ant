@@ -137,6 +137,8 @@ func (g *Goroutine) evalExpr(e ast.Expr, env *Env) (value.Value, ctl) {
 		return e.Value, ctlNone
 	case *ast.RegexLit:
 		return e.Pattern, ctlNone
+	case *ast.DurationLit:
+		return e.Value, ctlNone
 	case *ast.BoolLit:
 		return e.Value, ctlNone
 	case *ast.NullLit:

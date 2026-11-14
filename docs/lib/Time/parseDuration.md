@@ -7,10 +7,13 @@
 func Time.parseDuration(s: string): Result[Time.Duration, Error]
 ```
 
-Time.parseDuration parses an ISO 8601 duration from s, such as P1Y2M3DT4H5M6.5S, -PT1H or PT0S. It
-takes PnYnMnWnDTnHnMnS with an optional leading sign, where only the last time component may have a
-fraction, and keeps the whole fields as written. A fraction is spread into the smaller fields, so
-PT1.5H is PT1H30M and PT1.5S is 1 second and 500 milliseconds; text it cannot parse is an Err.
+Time.parseDuration parses a duration from s, in ISO 8601, such as P1Y2M3DT4H5M6.5S, -PT1H or PT0S,
+or in Go's notation, such as 2h30m, -500ms or 1.5µs. Text whose first character after an optional
+sign is P is ISO 8601: PnYnMnWnDTnHnMnS, where only the last time component may have a fraction.
+Other text is read as Go's time.ParseDuration reads it: 0, or components of a number and a unit of
+h, m, s, ms, us, µs or ns, in any order and repeating, each adding to its own field. Either way the
+whole fields are kept as written, and a fraction is spread into the smaller fields, so PT1.5H and
+1.5h are 1 hour and 30 minutes; text it cannot parse is an Err.
 
 <!-- end generated -->
 
@@ -19,8 +22,11 @@ PT1.5H is PT1H30M and PT1.5S is 1 second and 500 milliseconds; text it cannot pa
 - The whole fields stay as written: `PT90M` is 90 minutes, not 1 hour 30 minutes. Use
   [Time.roundDuration](roundDuration.md) to balance them. A fraction is spread into the smaller
   fields, so `PT1.5H` is `PT1H30M`.
-- Letters are capitals, and a fraction takes a point and up to nine digits. Lowercase letters, a
-  comma, spaces, and Go-style text such as `1h30m` are an `Err`.
+- Text that starts with `P`, after an optional sign, is ISO 8601. Its letters are capitals, and a
+  fraction takes a point and up to nine digits; lowercase letters, a comma and spaces are an `Err`.
+- Any other text is Go's notation, as configuration files, flags and environment variables write it:
+  `2h30m`, `-500ms`, `1.5µs`. Components come in any order and may repeat, each adding to its own
+  field, and digits of a fraction below a nanosecond are dropped.
 
 ## Basic examples
 
@@ -29,6 +35,14 @@ Parse a duration and take its value:
 ```ant
 Time.parseDuration("PT1H30M").unwrap() // PT1H30M
 Time.parseDuration("P1Y2M3DT4H5M6.5S") // Ok{ value: P1Y2M3DT4H5M6.5S }
+```
+
+Go's notation, as a duration literal writes it:
+
+```ant
+Time.parseDuration("2h30m").unwrap()          // PT2H30M
+Time.parseDuration("500ms").unwrap()          // PT0.5S
+Time.parseDuration("2h30m").unwrap() == 2h30m // true
 ```
 
 Text that is not a duration is an `Err`:
@@ -85,6 +99,24 @@ Time.parseDuration("PT0S").unwrap() // PT0S
 Time.parseDuration("P0D").unwrap()  // PT0S
 ```
 
+Go's notation takes components in any order, repeated, and with a fraction anywhere, as Go does.
+Each adds to its own field:
+
+```ant
+Time.parseDuration("1m2h").unwrap()    // PT2H1M
+Time.parseDuration("1h1h").unwrap()    // PT2H
+Time.parseDuration("1.5h30m").unwrap() // PT1H60M
+```
+
+Go's spellings of microseconds, a sign, and a bare zero:
+
+```ant
+Time.parseDuration("1.5µs").unwrap()  // PT0.0000015S
+Time.parseDuration("1.5us").unwrap()  // PT0.0000015S
+Time.parseDuration("-500ms").unwrap() // -PT0.5S
+Time.parseDuration("0").unwrap()      // PT0S
+```
+
 Through a pipe:
 
 ```ant
@@ -102,17 +134,19 @@ func timeout(text: string): Result[Time.Duration, Error] {
 
 println(timeout("PT30S"))
 println(timeout("30s"))
+println(timeout("30"))
 ```
 
 ```text
 Ok{ value: PT30S }
-Err{ error: Error{ message: "config timeout: not a duration: \"30s\"" } }
+Ok{ value: PT30S }
+Err{ error: Error{ message: "config timeout: not a duration: \"30\"" } }
 ```
 
 Fall back to a default when the setting is missing or wrong:
 
 ```ant
-let fallback = Time.duration(seconds: 10)
+let fallback = 10s
 Time.parseDuration("").unwrapOr(fallback)     // PT10S
 Time.parseDuration("PT2S").unwrapOr(fallback) // PT2S
 ```
@@ -142,7 +176,7 @@ Time.plainDate(2026, 1, 31).add(period) // 2026-02-28
 Wait for a parsed duration:
 
 ```ant
-let pause = try Time.parseDuration("PT0.01S")
+let pause = try Time.parseDuration("10ms")
 Time.sleep(pause)
 println("waited ${pause}")
 ```
@@ -188,11 +222,20 @@ assert(Time.parseDuration("-PT1H30M").unwrap() == d.negate())
 
 ## Possible issues
 
-`Time.parseDuration` reads ISO 8601, not the Go or human form:
+`Time.parseDuration` reads ISO 8601 and Go's notation, not a human form. A number needs a unit, and
+there is no unit for days in Go's notation:
 
 ```ant
-Time.parseDuration("1h30m").isOk()   // false
-Time.parseDuration("PT1H30M").isOk() // true
+Time.parseDuration("1 hour").isOk() // false
+Time.parseDuration("90").isOk()     // false
+Time.parseDuration("1d").isOk()     // false
+Time.parseDuration("P1D").isOk()    // true
+```
+
+Go's notation drops what is below a nanosecond, where a duration literal is an error:
+
+```ant
+Time.parseDuration("0.1ns").unwrap() // PT0S
 ```
 
 Lowercase letters, a comma before the fraction, and surrounding spaces are an `Err`. Trim the text
@@ -213,11 +256,12 @@ Time.parseDuration("PT1.5H30M").isOk() // false
 Time.parseDuration("P1.5D").isOk()     // false
 ```
 
-A sign goes in front of the `P`, not on a field:
+A sign goes in front, not on a field:
 
 ```ant
-Time.parseDuration("PT-1H").isOk() // false
-Time.parseDuration("-PT1H").isOk() // true
+Time.parseDuration("PT-1H").isOk()  // false
+Time.parseDuration("-PT1H").isOk()  // true
+Time.parseDuration("1h-30m").isOk() // false
 ```
 
 Fields stay as written, so `==` tells apart two durations of the same length. Use

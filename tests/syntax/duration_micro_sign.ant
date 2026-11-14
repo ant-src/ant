@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 1µs
+
+// expect
+// exit: 2
+// err: write microseconds as us

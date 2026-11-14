@@ -146,7 +146,7 @@ func Inspect(n Node, f func(Node) bool) {
 		if x.Rest != nil {
 			Inspect(x.Rest, f)
 		}
-	case *Ident, *IntLit, *FloatLit, *StringLit, *BoolLit, *NullLit, *RegexLit, *VoidLit,
+	case *Ident, *IntLit, *FloatLit, *StringLit, *BoolLit, *NullLit, *RegexLit, *DurationLit, *VoidLit,
 		*Break, *Continue, *Placeholder, *BadExpr, *BadStmt, *BadType:
 	case *Template:
 		for i := range x.Parts {

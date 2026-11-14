@@ -1,0 +1,14 @@
+// spec: 2 Literals
+// A duration literal is a Time.Duration and takes no operator: unary -, + and * need numbers, and
+// == between two literals of the same length and different fields is reported, naming
+// Time.compareDuration (section 2, Literals).
+var d: Time.Duration = 5s
+var n: int = 5s       // ERR: @14 cannot use Time.Duration where int is expected
+println(-5s)          // ERR: @9 unary - needs a number, got Time.Duration
+println(5s + 1s)      // ERR: @12 + applies to a single numeric kind, string, or a named primitive type over one, not to Time.Duration
+println(2 * 1s)       // ERR: @11 * needs both operands of one type, got int and Time.Duration
+println(90m == 1h30m) // ERR: @13 90m == 1h30m compares the fields as written, and == is false: compare the lengths with Time.compareDuration(90m, 1h30m)
+println(60s != 1m)    // ERR: @13 60s != 1m compares the fields as written, and != is true: compare the lengths with Time.compareDuration(60s, 1m)
+println(1.5h == 1h30m)
+println(1s == 2s)
+println(d == 90m)

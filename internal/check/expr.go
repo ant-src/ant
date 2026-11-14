@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/temporal"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
 )
@@ -307,6 +308,8 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 		return types.StringType
 	case *ast.RegexLit:
 		return c.regexPattern()
+	case *ast.DurationLit:
+		return c.timeDuration()
 	case *ast.BoolLit:
 		return types.BoolType
 	case *ast.NullLit:
@@ -1329,6 +1332,7 @@ func (c *Checker) binary(x *ast.Binary, sc *scope) types.Type {
 			n := c.typeNames(l, r)
 			c.errorf(x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", n[0], n[1], x.Op)
 		}
+		c.durationLiterals(x)
 		return types.BoolType
 	case "<", "<=", ">", ">=":
 		l := c.synth(x.X, sc)
@@ -1945,6 +1949,30 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 }
 
 // regexPattern is the type of a regular expression literal: Regex.Pattern of the prelude.
+// durationLiterals reports == or != between two duration literals of the same length and
+// different fields, which compare unequal however alike they look (section 2).
+func (c *Checker) durationLiterals(x *ast.Binary) {
+	a, ok1 := x.X.(*ast.DurationLit)
+	b, ok2 := x.Y.(*ast.DurationLit)
+	if !ok1 || !ok2 || a.Value == b.Value {
+		return
+	}
+	if n, err := temporal.CompareDurations(a.Value, b.Value, nil); err == nil && n == 0 {
+		c.errorf(x.Pos, "%s %s %s compares the fields as written, and %s is %t: compare the lengths with Time.compareDuration(%s, %s)",
+			a.Text, x.Op, b.Text, x.Op, x.Op == "!=", a.Text, b.Text)
+	}
+}
+
+// timeDuration is Time.Duration, the type of a duration literal.
+func (c *Checker) timeDuration() types.Type {
+	if ns, ok := c.prelude["Time"]; ok {
+		if d, ok := ns.members["Duration"]; ok && d.decl != nil {
+			return types.Named{Decl: d.decl}
+		}
+	}
+	return types.Invalid{}
+}
+
 func (c *Checker) regexPattern() types.Type {
 	if ns, ok := c.prelude["Regex"]; ok {
 		if p, ok := ns.members["Pattern"]; ok && p.decl != nil {

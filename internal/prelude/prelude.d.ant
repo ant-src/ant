@@ -2365,7 +2365,8 @@ func Time.plainDateTime(date: Time.PlainDate, time: Time.PlainTime): Time.PlainD
 
 // Time.duration returns a duration with the given fields, each 0 when omitted and kept as given. It
 // panics if the fields have mixed signs, if years, months, weeks or days reach 2^32 in magnitude,
-// or if the time part, days counted as 24 hours, reaches 2^53 seconds.
+// or if the time part, days counted as 24 hours, reaches 2^53 seconds. A constant span of hours and
+// smaller units is written as a duration literal instead, such as 2h30m or 500ms.
 //
 //     Time.duration(hours: 1, minutes: 30, milliseconds: 500)   // PT1H30M0.5S
 func Time.duration(years: int = 0, months: int = 0, weeks: int = 0, days: int = 0, hours: int = 0, minutes: int = 0, seconds: int = 0, milliseconds: int = 0, microseconds: int = 0, nanoseconds: int = 0): Time.Duration
@@ -2405,11 +2406,13 @@ func Time.parsePlainTime(s: string): Result[Time.PlainTime, Error]
 // zone, and text it cannot parse, are an Err.
 func Time.parsePlainDateTime(s: string): Result[Time.PlainDateTime, Error]
 
-// Time.parseDuration parses an ISO 8601 duration from s, such as P1Y2M3DT4H5M6.5S, -PT1H or PT0S.
-// It takes PnYnMnWnDTnHnMnS with an optional leading sign, where only the last time component may
-// have a fraction, and keeps the whole fields as written. A fraction is spread into the smaller
-// fields, so PT1.5H is PT1H30M and PT1.5S is 1 second and 500 milliseconds; text it cannot parse is
-// an Err.
+// Time.parseDuration parses a duration from s, in ISO 8601, such as P1Y2M3DT4H5M6.5S, -PT1H or
+// PT0S, or in Go's notation, such as 2h30m, -500ms or 1.5µs. Text whose first character after an
+// optional sign is P is ISO 8601: PnYnMnWnDTnHnMnS, where only the last time component may have a
+// fraction. Other text is read as Go's time.ParseDuration reads it: 0, or components of a number
+// and a unit of h, m, s, ms, us, µs or ns, in any order and repeating, each adding to its own
+// field. Either way the whole fields are kept as written, and a fraction is spread into the smaller
+// fields, so PT1.5H and 1.5h are 1 hour and 30 minutes; text it cannot parse is an Err.
 func Time.parseDuration(s: string): Result[Time.Duration, Error]
 
 // Time.inZone returns the instant t seen in zone z.
@@ -2885,7 +2888,7 @@ func Cmd.kill(p: Cmd.Process, signal: string = "SIGTERM"): Result[void, Error]
 // Cmd.stop ends p: SIGTERM, then SIGKILL when it is still running after grace, or SIGKILL alone
 // when grace is zero or negative, and returns its status as [Cmd.wait] does. It panics when grace
 // has years, months or weeks.
-func Cmd.stop(p: Cmd.Process, grace: Time.Duration = Time.duration(seconds: 5)): Result[int, Error]
+func Cmd.stop(p: Cmd.Process, grace: Time.Duration = 5s): Result[int, Error]
 
 // Cmd.pid returns the process id p's last stage started with, the same after it exits; once it has
 // been reaped the system may give that id to another process, so a program does not signal it by

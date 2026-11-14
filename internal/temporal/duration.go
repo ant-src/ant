@@ -197,10 +197,20 @@ func (d Duration) String() string {
 	return sb.String()
 }
 
-// ParseDuration reads ISO 8601's PnYnMnWnDTnHnMnS with an optional sign, in capitals, where only
-// the last time component may carry a fraction, after a point and of up to nine digits, which is
-// spread over the smaller units.
+// ParseDuration reads ISO 8601 when the first character after an optional sign is P, and Go's
+// time.ParseDuration notation otherwise.
 func ParseDuration(s string) (Duration, error) {
+	body := strings.TrimLeft(s, "+-")
+	if len(s)-len(body) <= 1 && strings.HasPrefix(body, "P") {
+		return parseISODuration(s)
+	}
+	return parseGoDuration(s)
+}
+
+// parseISODuration reads ISO 8601's PnYnMnWnDTnHnMnS with an optional sign, in capitals, where
+// only the last time component may carry a fraction, after a point and of up to nine digits,
+// which is spread over the smaller units.
+func parseISODuration(s string) (Duration, error) {
 	bad := func() (Duration, error) { return Duration{}, fmt.Errorf("not a duration: %q", s) }
 	i := 0
 	sign := int64(1)

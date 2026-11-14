@@ -2,7 +2,10 @@
 // resolver annotates it.
 package ast
 
-import "github.com/ant-src/ant/value"
+import (
+	"github.com/ant-src/ant/internal/temporal"
+	"github.com/ant-src/ant/value"
+)
 
 // Pos is a position in the module's source: 1-based line and 1-based byte column.
 type Pos struct {
@@ -341,6 +344,14 @@ type (
 		Source  string // normalized
 		Flags   string // sorted
 		Pattern *value.Regex
+	}
+	// DurationLit is a duration literal (section 2), as 2h30m. Text is the literal as written,
+	// and Value the Time.Duration it evaluates to.
+	DurationLit struct {
+		Pos   Pos
+		End   Pos
+		Text  string
+		Value temporal.Duration
 	}
 	VoidLit struct{ Pos, End Pos }
 	// Template is a string with interpolations; each part is literal text or an interpolated
@@ -774,6 +785,7 @@ func (n *Ident) Position() Pos             { return n.Pos }
 func (n *IntLit) Position() Pos            { return n.Pos }
 func (n *FloatLit) Position() Pos          { return n.Pos }
 func (n *StringLit) Position() Pos         { return n.Pos }
+func (n *DurationLit) Position() Pos       { return n.Pos }
 func (n *RegexLit) Position() Pos          { return n.Pos }
 func (n *BoolLit) Position() Pos           { return n.Pos }
 func (n *NullLit) Position() Pos           { return n.Pos }
@@ -840,6 +852,7 @@ func (n *Ident) EndPosition() Pos             { return n.End }
 func (n *IntLit) EndPosition() Pos            { return n.End }
 func (n *FloatLit) EndPosition() Pos          { return n.End }
 func (n *StringLit) EndPosition() Pos         { return n.End }
+func (n *DurationLit) EndPosition() Pos       { return n.End }
 func (n *RegexLit) EndPosition() Pos          { return n.End }
 func (n *BoolLit) EndPosition() Pos           { return n.End }
 func (n *NullLit) EndPosition() Pos           { return n.End }
@@ -905,6 +918,7 @@ func (*Ident) stmtNode()       {}
 func (*IntLit) stmtNode()      {}
 func (*FloatLit) stmtNode()    {}
 func (*StringLit) stmtNode()   {}
+func (*DurationLit) stmtNode() {}
 func (*RegexLit) stmtNode()    {}
 func (*BoolLit) stmtNode()     {}
 func (*NullLit) stmtNode()     {}
@@ -943,6 +957,7 @@ func (*Ident) exprNode()       {}
 func (*IntLit) exprNode()      {}
 func (*FloatLit) exprNode()    {}
 func (*StringLit) exprNode()   {}
+func (*DurationLit) exprNode() {}
 func (*RegexLit) exprNode()    {}
 func (*BoolLit) exprNode()     {}
 func (*NullLit) exprNode()     {}

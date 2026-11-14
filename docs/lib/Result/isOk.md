@@ -90,8 +90,8 @@ Panic.catch({ [1, 2][5] }).isOk() // false
 In a pipe, the result is the first argument:
 
 ```ant
-"PT90S" | Time.parseDuration() | Result.isOk() // true
-"90s" | Time.parseDuration() | Result.isOk()   // false
+"90s" | Time.parseDuration() | Result.isOk()  // true
+"soon" | Time.parseDuration() | Result.isOk() // false
 ```
 
 ## Applications
@@ -99,14 +99,14 @@ In a pipe, the result is the first argument:
 Keep the inputs that parse, and count the rest:
 
 ```ant
-let inputs = ["PT1H", "90s", "P2D", "soon"]
+let inputs = ["PT1H", "90s", "P2D", "soon", "5"]
 let valid = inputs.filter({ Time.parseDuration(x).isOk() })
 println(valid)
 println("${inputs.length() - valid.length()} rejected")
 ```
 
 ```text
-["PT1H", "P2D"]
+["PT1H", "90s", "P2D"]
 2 rejected
 ```
 

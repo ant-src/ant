@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/ant-src/ant/internal/temporal"
 	"github.com/ant-src/ant/internal/token"
 	"github.com/ant-src/ant/value"
 )
@@ -306,7 +307,7 @@ var operandKeywords = map[string]bool{"true": true, "false": true, "null": true,
 // any kind, true, false, null, void, or a closing bracket. After an operand a / is division.
 func Operand(t token.Token) bool {
 	switch t.Kind {
-	case token.Ident, token.Int, token.Float, token.String, token.Template, token.Regex, token.Html:
+	case token.Ident, token.Int, token.Float, token.Duration, token.String, token.Template, token.Regex, token.Html:
 		return true
 	case token.Keyword:
 		return operandKeywords[t.Text]
@@ -605,8 +606,13 @@ func (l *lexer) number() {
 		l.fail(l.here(), "malformed number literal: write the prefix 0%c in lowercase", c+'a'-'A')
 	case c == 'E' && base == 10 && !strings.Contains(l.src[start:l.pos], "e"):
 		l.fail(l.here(), "malformed number literal: write the exponent with a lowercase e")
+	case isLetter(c) && base == 10:
+		l.duration(pos, start)
+		return
 	case isIdentChar(c):
 		l.fail(l.here(), "malformed number literal")
+	case base == 10 && (l.has("µ") || l.has("μ")):
+		l.fail(l.here(), "malformed duration literal: write microseconds as us")
 	}
 	text := l.src[start:l.pos]
 	clean := strings.ReplaceAll(text, "_", "")
@@ -631,6 +637,26 @@ func (l *lexer) number() {
 		t.Float = v
 	}
 	l.emit(t)
+}
+
+// duration reads the rest of a duration literal whose first number has been read: the whole
+// adjacent run of letters, digits, underscores, and points followed by a digit, checked by the
+// literal's grammar (section 2).
+func (l *lexer) duration(pos token.Pos, start int) {
+	if strings.ContainsAny(l.src[start:l.pos], "eE") {
+		l.fail(pos, "malformed duration literal: a duration has no exponent")
+	}
+	for isIdentChar(l.peek(0)) || l.peek(0) == '.' && isDigit(l.peek(1)) {
+		l.advance(1)
+	}
+	if l.has("µ") || l.has("μ") {
+		l.fail(l.here(), "malformed duration literal: write microseconds as us")
+	}
+	text := l.src[start:l.pos]
+	if _, err := temporal.DurationLiteral(text); err != nil {
+		l.fail(pos, "%s", err)
+	}
+	l.emit(token.Token{Kind: token.Duration, Text: text, Pos: pos})
 }
 
 func (l *lexer) identifier() {

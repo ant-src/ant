@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 1e3s
+
+// expect
+// exit: 2
+// err: a duration has no exponent

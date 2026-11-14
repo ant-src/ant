@@ -1,0 +1,24 @@
+// spec: 2 Literals; stdlib Time
+// A duration literal is a Time.Duration with the fields as written, a fraction spread into the
+// smaller fields; it needs no import, and a `.` after the unit is member access (section 2,
+// Literals).
+let timeout = 2h30m
+println(timeout)
+println([500ms, 90m, 1.5h, 1h30.5m, 1.5s, 0.5ms, 0s, 1_000ms, 2h30m15s])
+println(1.5h == 1h30m)
+println(1.5s == Time.duration(seconds: 1, milliseconds: 500))
+println(Time.compareDuration(90m, 1h30m))
+println(90m.roundDuration(largestUnit: Time.Hour{}) == Time.duration(hours: 1, minutes: 30))
+println(Time.negate(500ms))
+println(Time.part(90m, Time.Minute{}))
+Time.sleep(1ms)
+
+// expect
+// out: PT2H30M
+// out: [PT0.5S, PT90M, PT1H30M, PT1H30M30S, PT1.5S, PT0.0005S, PT0S, PT1S, PT2H30M15S]
+// out: true
+// out: true
+// out: 0
+// out: true
+// out: -PT0.5S
+// out: 90

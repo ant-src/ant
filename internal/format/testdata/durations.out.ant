@@ -1,0 +1,7 @@
+// spec: fmt 4.7 Spacing
+// A duration literal is printed as written, underscores and all, and a member access after its
+// unit takes no space.
+let a = 1_000ms
+let b = 90m.roundDuration(largestUnit: Time.Hour{})
+Time.sleep(1.5s)
+let c = [2h30m, 0.5ms]

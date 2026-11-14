@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ant-src/ant"
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/prelude"
+	"github.com/ant-src/ant/internal/temporal"
 )
 
 // The tests in this file keep the corpus traceable to the specification.
@@ -362,6 +364,7 @@ var pendingPanics = []string{}
 // tests/run. A sleep with a context is bounded by it, whatever its duration.
 func TestBoundedSleeps(t *testing.T) {
 	long := regexp.MustCompile(`Time\.sleep\(Time\.duration\((\w+): (\d+)\)\)`)
+	literal := regexp.MustCompile(`Time\.sleep\((\d[\w.]*)\)`)
 	ms := map[string]int64{"milliseconds": 1, "seconds": 1000, "minutes": 60000, "hours": 3600000, "days": 86400000}
 	programs, _ := corpus(t)
 	for _, p := range programs {
@@ -372,6 +375,12 @@ func TestBoundedSleeps(t *testing.T) {
 			}
 			n, err := strconv.ParseInt(m[2], 10, 64)
 			if err != nil || n > 1000/unit {
+				t.Errorf("%s: %s without a context would hold the suite; bound it with a context", p.path, m[0])
+			}
+		}
+		for _, m := range literal.FindAllStringSubmatch(p.src, -1) {
+			d, err := temporal.DurationLiteral(m[1])
+			if span, _ := d.Exact(); err != nil || span > time.Second {
 				t.Errorf("%s: %s without a context would hold the suite; bound it with a context", p.path, m[0])
 			}
 		}

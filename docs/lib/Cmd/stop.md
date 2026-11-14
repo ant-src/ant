@@ -4,7 +4,7 @@
 # Cmd.stop
 
 ```ant signature
-func Cmd.stop(p: Cmd.Process, grace: Time.Duration = Time.duration(seconds: 5)): Result[int, Error]
+func Cmd.stop(p: Cmd.Process, grace: Time.Duration = 5s): Result[int, Error]
 ```
 
 Cmd.stop ends p: SIGTERM, then SIGKILL when it is still running after grace, or SIGKILL alone when

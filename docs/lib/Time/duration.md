@@ -9,7 +9,8 @@ func Time.duration(years: int = 0, months: int = 0, weeks: int = 0, days: int = 
 
 Time.duration returns a duration with the given fields, each 0 when omitted and kept as given. It
 panics if the fields have mixed signs, if years, months, weeks or days reach 2^32 in magnitude, or
-if the time part, days counted as 24 hours, reaches 2^53 seconds.
+if the time part, days counted as 24 hours, reaches 2^53 seconds. A constant span of hours and
+smaller units is written as a duration literal instead, such as 2h30m or 500ms.
 
 <!-- end generated -->
 

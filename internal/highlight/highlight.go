@@ -77,7 +77,7 @@ func classify(cls []Class, toks []token.Token) {
 				// namespaces, types, and modules are capitalized by convention (section 10)
 				fill(cls, t.Off, t.End, Type)
 			}
-		case token.Int, token.Float:
+		case token.Int, token.Float, token.Duration:
 			fill(cls, t.Off, t.End, Number)
 		case token.String:
 			fill(cls, t.Off, t.End, String)

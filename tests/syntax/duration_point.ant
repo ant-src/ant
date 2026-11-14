@@ -1,0 +1,6 @@
+// spec: 2 Literals
+var x = 1.s
+
+// expect
+// exit: 2
+// err: a float literal needs a digit after the point

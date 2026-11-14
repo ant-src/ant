@@ -211,6 +211,8 @@ func sprint(sb *strings.Builder, n Node) {
 		sb.WriteString(strconv.Quote(x.Value))
 	case *RegexLit:
 		sb.WriteString(value.RegexLiteral(x.Source, x.Flags))
+	case *DurationLit:
+		sb.WriteString(x.Text)
 	case *BoolLit:
 		sb.WriteString(strconv.FormatBool(x.Value))
 	case *NullLit:
