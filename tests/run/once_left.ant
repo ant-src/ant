@@ -33,4 +33,4 @@ println(get())
 // out: done
 // out: 1
 // exit: 1
-// err: Once.value: the function was left by a return before it gave a value
+// err: Once.value: the function was left before it gave a value

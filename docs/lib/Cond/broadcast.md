@@ -7,7 +7,7 @@
 func Cond.broadcast(c: Cond): void
 ```
 
-Cond.broadcast wakes every goroutine waiting on c.
+Cond.broadcast wakes every goroutine waiting on c. The mutex may be locked or not.
 
 <!-- end generated -->
 
@@ -18,6 +18,7 @@ Cond.broadcast wakes every goroutine waiting on c.
 - Each woken goroutine reacquires the mutex before its `wait` returns, so they resume one at a time.
 - The broadcast orders nothing by itself; the mutex does. Change the shared state while holding the
   mutex, and have each waiter check it again in a `while` loop.
+- The mutex may be locked or not during the call.
 
 ## Basic examples
 

@@ -333,8 +333,8 @@ outer still running
 
 ### A race whose value can be null
 
-`race` and `any` return `null` when the scope ends before a winner, so when a callback's value can
-be `null` too, the result cannot tell the two apart. Here the cache answers first with `null`, and
+`race` returns `null` when the scope ends before a winner, so when a callback's value can be `null`
+too, the result cannot tell the two apart. `any` needs no wrapper, since its winner arrives in `Ok`. Here the cache answers first with `null`, and
 `race` returns `null` as it would on cancellation:
 
 ```ant

@@ -1,0 +1,18 @@
+// spec: 11 Synchronization; 11 Test
+// A Test.skip that leaves the function of a Once.value leaves it without a value and without a
+// panic, so the once is complete and a later call panics.
+let fixture = Once.value(func(): string { Test.skip("no database") })
+
+test "first" { fixture() }
+
+test "second" { println(Panic.catch(fixture) | Result.mapErr({ x.message })) }
+
+// expect
+// args: -v
+// out: === RUN   once_value_skip_test.ant: first
+// out: --- SKIP: once_value_skip_test.ant: first (0.00s)
+// out:     no database
+// out: === RUN   once_value_skip_test.ant: second
+// out:     Err{ error: "Once.value: the function was left before it gave a value" }
+// out: --- PASS: once_value_skip_test.ant: second (0.00s)
+// out: ok    1 passed, 1 skipped (0.00s)

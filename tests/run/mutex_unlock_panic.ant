@@ -10,4 +10,4 @@ Mutex.unlock(m)
 // expect
 // out: unlocked once
 // exit: 1
-// err: Mutex.unlock: unlock of a Mutex that is not locked
+// err: Mutex.unlock: the Mutex is not locked

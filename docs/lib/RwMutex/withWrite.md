@@ -7,8 +7,7 @@
 func RwMutex.withWrite[T](m: RwMutex, f: func(): T): T
 ```
 
-RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result. It releases the
-lock even if f panics.
+RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result. It releases the lock even if f panics, and panics if f returns with m not write-locked.
 
 <!-- end generated -->
 
@@ -17,7 +16,7 @@ lock even if f panics.
 - Only one goroutine at a time runs a block under `withWrite`. It waits until no reader and no other
   writer holds the lock.
 - A panic in `f` releases the lock and then goes on to the caller. What `f` wrote before the panic
-  stays written.
+  stays written. If `f` returns with the lock released, `withWrite` panics.
 - Everything `f` writes happens before every later `withRead` or `withWrite` on the same lock, so a
   reader under that lock sees the whole change.
 - The lock is not reentrant. Calling `withWrite`, `withRead`, `writeLock`, or `readLock` on the same

@@ -1,0 +1,24 @@
+// spec: 9 Visibility; 11 Synchronization
+// A new WaitGroup's counter is zero; add adds n, done subtracts one. An add that brings the
+// counter to zero unblocks wait and orders the goroutine's writes before wait returns.
+let wg = WaitGroup.new()
+wg.wait()
+println("returned at once")
+wg.add(2)
+wg.done()
+wg.add(-1)
+wg.wait()
+println("zero again")
+let marks: Array[bool] = Array.filled(2, false)
+wg.add(1)
+go {
+  defer { wg.add(-1) }
+  marks[1] = true
+}
+wg.wait()
+println(marks[1])
+
+// expect
+// out: returned at once
+// out: zero again
+// out: true

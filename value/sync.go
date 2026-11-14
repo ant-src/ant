@@ -43,7 +43,7 @@ func (m *Mutex) Unlock() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if !m.locked {
-		return errors.New("unlock of a Mutex that is not locked")
+		return errors.New("the Mutex is not locked")
 	}
 	m.locked = false
 	m.cond.Signal()
@@ -57,12 +57,14 @@ func (m *Mutex) Locked() bool {
 	return m.locked
 }
 
-// RwMutex is a reader-writer lock.
+// RwMutex is a reader-writer lock. A writer waiting in WriteLock keeps new readers out, as in
+// Go, so readers cannot starve it.
 type RwMutex struct {
 	mu      sync.Mutex
 	cond    *sync.Cond
 	readers int
 	writer  bool
+	waiting int // writers blocked in WriteLock
 }
 
 // NewRwMutex creates an unlocked RwMutex.
@@ -75,22 +77,22 @@ func NewRwMutex() *RwMutex {
 // SyncName returns "RwMutex".
 func (m *RwMutex) SyncName() string { return "RwMutex" }
 
-// ReadLock takes a shared lock.
+// ReadLock takes one shared hold, waiting while a writer holds the lock or waits for it.
 func (m *RwMutex) ReadLock() {
 	m.mu.Lock()
-	for m.writer {
+	for m.writer || m.waiting > 0 {
 		m.cond.Wait()
 	}
 	m.readers++
 	m.mu.Unlock()
 }
 
-// ReadUnlock releases a shared lock.
+// ReadUnlock releases one shared hold.
 func (m *RwMutex) ReadUnlock() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.readers == 0 {
-		return errors.New("readUnlock of an RwMutex that is not read-locked")
+		return errors.New("the RwMutex is not read-locked")
 	}
 	m.readers--
 	if m.readers == 0 {
@@ -102,9 +104,11 @@ func (m *RwMutex) ReadUnlock() error {
 // WriteLock takes the exclusive lock.
 func (m *RwMutex) WriteLock() {
 	m.mu.Lock()
+	m.waiting++
 	for m.writer || m.readers > 0 {
 		m.cond.Wait()
 	}
+	m.waiting--
 	m.writer = true
 	m.mu.Unlock()
 }
@@ -114,7 +118,7 @@ func (m *RwMutex) WriteUnlock() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if !m.writer {
-		return errors.New("writeUnlock of an RwMutex that is not write-locked")
+		return errors.New("the RwMutex is not write-locked")
 	}
 	m.writer = false
 	m.cond.Broadcast()
@@ -145,10 +149,10 @@ func (w *WaitGroup) Add(n int64) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.n+n < 0 && n < 0 {
-		return errors.New("WaitGroup counter would go negative")
+		return errors.New("the counter would go negative")
 	}
 	if n > 0 && w.n > math.MaxInt64-n {
-		return errors.New("WaitGroup counter would overflow")
+		return errors.New("the counter would pass the largest int")
 	}
 	if w.n == 0 && n > 0 {
 		w.zero = make(chan struct{})
@@ -165,7 +169,7 @@ func (w *WaitGroup) Done() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.n == 0 {
-		return errors.New("WaitGroup.done when the counter is already zero")
+		return errors.New("the counter is already zero")
 	}
 	w.n--
 	if w.n == 0 {
@@ -299,8 +303,8 @@ func (o *Once) Do(f func() error) error {
 	return err
 }
 
-// ErrOnceLeft is what later calls of a Once get when its function was left without returning,
-// by a return that unwound through it.
+// ErrOnceLeft is what later calls of a Once get when its function was left without a value and
+// without a panic: by a return unwinding through it from a for body, or by Test.skip.
 var ErrOnceLeft = errors.New("the function of the Once was left without returning a value")
 
 // Cond is a condition variable over a Mutex.
@@ -326,7 +330,7 @@ func (c *Cond) Wait() error {
 	c.mu.Lock()
 	if err := c.M.Unlock(); err != nil {
 		c.mu.Unlock()
-		return errors.New("Cond.wait when its Mutex is not locked")
+		return errors.New("the Mutex is not locked")
 	}
 	c.cond.Wait()
 	c.mu.Unlock()

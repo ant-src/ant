@@ -7,7 +7,7 @@
 func Mutex.withLock[T](m: Mutex, f: func(): T): T
 ```
 
-Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics.
+Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics, and panics if f returns with m unlocked.
 
 <!-- end generated -->
 
@@ -15,6 +15,7 @@ Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m 
 
 - `Mutex.withLock` blocks until `m` is free, as `Mutex.lock` does, with no context to give up.
 - A panic in `f` unlocks `m` and then goes on to the caller.
+- `f` must leave `m` locked: if it returns with `m` unlocked, `withLock` panics.
 - The lock is not reentrant: locking `m` again inside `f`, with `Mutex.withLock` or `Mutex.lock`,
   waits for the lock that `f` itself holds, forever.
 - Everything `f` writes happens before the next goroutine that locks `m` gets the lock, so a reader

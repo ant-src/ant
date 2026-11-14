@@ -7,7 +7,7 @@
 func Mutex.lock(m: Mutex): void
 ```
 
-Mutex.lock locks m, blocking until it is available. It takes no context.
+Mutex.lock locks m, blocking while m is locked, by any goroutine, the caller included: a mutex is not reentrant. It takes no context.
 
 <!-- end generated -->
 

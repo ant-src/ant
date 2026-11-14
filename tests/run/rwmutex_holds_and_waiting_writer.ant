@@ -1,0 +1,51 @@
+// spec: 11 Synchronization
+// Read holds are counted: one readUnlock of two keeps a writer out. A writer waiting in writeLock
+// keeps new readers out until it has taken and released the lock.
+let m = RwMutex.new()
+m.readLock()
+m.readLock()
+m.readUnlock()
+let wrote = Atomic.new(false)
+let wg = WaitGroup.new()
+wg.add(1)
+go {
+  defer { wg.done() }
+  m.writeLock()
+  wrote.store(true)
+  m.writeUnlock()
+}
+Time.sleep(50ms)
+println(wrote.load())
+m.readUnlock()
+wg.wait()
+println(wrote.load())
+
+let n = RwMutex.new()
+n.readLock()
+let writer = Atomic.new(false)
+let reader = Atomic.new(false)
+wg.add(2)
+go {
+  defer { wg.done() }
+  n.writeLock()
+  writer.store(true)
+  n.writeUnlock()
+}
+Time.sleep(50ms)
+go {
+  defer { wg.done() }
+  n.readLock()
+  reader.store(writer.load())
+  n.readUnlock()
+}
+Time.sleep(50ms)
+println(writer.load())
+n.readUnlock()
+wg.wait()
+println(reader.load())
+
+// expect
+// out: false
+// out: true
+// out: false
+// out: true

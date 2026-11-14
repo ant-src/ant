@@ -41,8 +41,27 @@ func unlock(g *interp.Goroutine, who string, m *value.Mutex) {
 	}
 }
 
+// withHeld runs f between take and release, as the with forms do (section 11). The release is
+// the unlock call: when f returned, an error from it, the lock already released by f, panics;
+// when f is leaving by a panic, the release only frees the lock and the panic goes on.
+func withHeld(g *interp.Goroutine, who string, take func(), release func() error, f value.Value) value.Value {
+	take()
+	returned := false
+	defer func() {
+		if !returned {
+			release()
+		}
+	}()
+	v := g.Call(f)
+	returned = true
+	if err := release(); err != nil {
+		g.Panic("%s: %s", who, err)
+	}
+	return v
+}
+
 // runOnce runs f under the once, sharing a panic in f with every caller. It reports whether f
-// returned, which it did not when a return unwound through it.
+// returned, which it did not when a return from a for body or Test.skip unwound through it.
 func runOnce(g *interp.Goroutine, o *value.Once, f value.Value, keep func(value.Value)) bool {
 	err := o.Do(func() (err error) {
 		defer func() {
@@ -84,10 +103,7 @@ func init() {
 			}),
 			fn("Mutex.withLock", "m, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				m := mutexArg(g, who, a[0])
-				f := funcArg(g, who, a[1])
-				lock(g, m)
-				defer m.Unlock()
-				return g.Call(f)
+				return withHeld(g, who, m.Lock, m.Unlock, funcArg(g, who, a[1]))
 			}),
 		)
 	})
@@ -100,7 +116,7 @@ func init() {
 			}),
 			fn("RwMutex.readUnlock", "m", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				if err := rwArg(g, who, a[0]).ReadUnlock(); err != nil {
-					g.Panic("RwMutex.readUnlock: %s", err)
+					g.Panic("%s: %s", who, err)
 				}
 				return value.Void
 			}),
@@ -110,23 +126,17 @@ func init() {
 			}),
 			fn("RwMutex.writeUnlock", "m", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				if err := rwArg(g, who, a[0]).WriteUnlock(); err != nil {
-					g.Panic("RwMutex.writeUnlock: %s", err)
+					g.Panic("%s: %s", who, err)
 				}
 				return value.Void
 			}),
 			fn("RwMutex.withRead", "m, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				m := rwArg(g, who, a[0])
-				f := funcArg(g, who, a[1])
-				m.ReadLock()
-				defer m.ReadUnlock()
-				return g.Call(f)
+				return withHeld(g, who, m.ReadLock, m.ReadUnlock, funcArg(g, who, a[1]))
 			}),
 			fn("RwMutex.withWrite", "m, f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				m := rwArg(g, who, a[0])
-				f := funcArg(g, who, a[1])
-				m.WriteLock()
-				defer m.WriteUnlock()
-				return g.Call(f)
+				return withHeld(g, who, m.WriteLock, m.WriteUnlock, funcArg(g, who, a[1]))
 			}),
 		)
 	})
@@ -135,13 +145,13 @@ func init() {
 			fn("WaitGroup.new", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value { return value.NewWaitGroup() }),
 			fn("WaitGroup.add", "wg, n", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				if err := wgArg(g, who, a[0]).Add(intArg(g, who, a[1])); err != nil {
-					g.Panic("WaitGroup.add: %s", err)
+					g.Panic("%s: %s", who, err)
 				}
 				return value.Void
 			}),
 			fn("WaitGroup.done", "wg", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				if err := wgArg(g, who, a[0]).Done(); err != nil {
-					g.Panic("WaitGroup.done: %s", err)
+					g.Panic("%s: %s", who, err)
 				}
 				return value.Void
 			}),
@@ -174,7 +184,7 @@ func init() {
 				var cached value.Value
 				return fn(who, "", func(g *interp.Goroutine, _ string, _ []value.Value) value.Value {
 					if !runOnce(g, o, f, func(v value.Value) { cached = v }) {
-						g.Panic("%s: the function was left by a return before it gave a value", who)
+						g.Panic("%s: the function was left before it gave a value", who)
 					}
 					return cached
 				})
@@ -189,7 +199,7 @@ func init() {
 			fn("Cond.wait", "c", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				c := condArg(g, who, a[0])
 				if err := c.Wait(); err != nil {
-					g.Panic("%s", err)
+					g.Panic("%s: %s", who, err)
 				}
 				return value.Void
 			}),

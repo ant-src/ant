@@ -7,7 +7,7 @@
 func Atomic.add[T: Number](a: Atomic[T], d: T): T
 ```
 
-Atomic.add adds d to the value in a and returns the new value. It panics on overflow.
+Atomic.add adds d to the value in a and returns the new value. It panics on overflow, leaving the value in a as it was.
 
 <!-- end generated -->
 
@@ -16,7 +16,7 @@ Atomic.add adds d to the value in a and returns the new value. It panics on over
 - The read, the addition, and the write are one atomic operation, so adds from many goroutines at
   once never lose an update.
 - On an integer cell, `add` panics when the new value does not fit the type. A float cell does not
-  panic: its value goes to infinity, as `+` does.
+  panic: its value goes to infinity, as `+` does. An `add` that panics leaves the value as it was.
 
 ## Basic examples
 

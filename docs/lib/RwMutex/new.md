@@ -178,13 +178,13 @@ A new lock is not locked, so releasing it panics:
 
 ```ant
 let lock = RwMutex.new()
-lock.readUnlock() // panic: RwMutex.readUnlock: readUnlock of an RwMutex that is not read-locked
+lock.readUnlock() // panic: RwMutex.readUnlock: the RwMutex is not read-locked
 ```
 
 ```ant
 let lock = RwMutex.new()
 lock.writeUnlock()
-// panic: RwMutex.writeUnlock: writeUnlock of an RwMutex that is not write-locked
+// panic: RwMutex.writeUnlock: the RwMutex is not write-locked
 ```
 
 A lock made inside the function it guards is a new lock on every call, so it keeps no two calls

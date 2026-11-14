@@ -184,7 +184,7 @@ port.unwrap() // panic: Result.unwrap on an Err: Error{ message: "no port" }
 
 ```ant
 let lock = Mutex.new()
-lock.unlock() // panic: Mutex.unlock: unlock of a Mutex that is not locked
+lock.unlock() // panic: Mutex.unlock: the Mutex is not locked
 ```
 
 ```ant

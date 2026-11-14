@@ -1,0 +1,16 @@
+// spec: 11 Synchronization
+// A with form whose function panics releases the lock and the panic goes on, so the lock is free.
+let l = Mutex.new()
+println(Panic.catch({ l.withLock({ panic("boom") }) }) | Result.mapErr({ x.message }))
+l.lock()
+println("locked again")
+let m = RwMutex.new()
+println(Panic.catch({ m.withWrite({ panic("boom") }) }) | Result.mapErr({ x.message }))
+m.writeLock()
+println("write-locked again")
+
+// expect
+// out: Err{ error: "boom" }
+// out: locked again
+// out: Err{ error: "boom" }
+// out: write-locked again

@@ -7,8 +7,7 @@
 func Once.value[T](f: func(): T): func(): T
 ```
 
-Once.value returns a function that runs f on its first call and returns the cached value on every
-call. If f panics, every call, waiting or later, panics with the same message.
+Once.value returns a function that runs f on its first call and returns the cached value on every call. If f panics, every call, waiting or later, panics with the same message. If that run was left without a value and without a panic, by [`Test.skip`](../Test/skip.md) or by a return from a for body unwinding through f, every later call panics.
 
 <!-- end generated -->
 
@@ -21,6 +20,8 @@ call. If f panics, every call, waiting or later, panics with the same message.
 - Calls from several goroutines at once run `f` once: the others wait for it to finish, and then see
   everything `f` wrote.
 - If `f` panics, `f` is not run again. Every call, waiting or later, panics with the same panic.
+- If the run is left without a value and without a panic, as by `Test.skip` in a test, every later
+  call panics.
 
 ## Basic examples
 

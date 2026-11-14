@@ -1,0 +1,27 @@
+// spec: 11 Synchronization
+// A lock has no owner: a goroutine may release a Mutex or RwMutex lock that another took.
+let m = RwMutex.new()
+m.writeLock()
+let wg = WaitGroup.new()
+wg.add(1)
+go {
+  defer { wg.done() }
+  m.writeUnlock()
+}
+wg.wait()
+m.readLock()
+println("read-locked")
+let l = Mutex.new()
+l.lock()
+wg.add(1)
+go {
+  defer { wg.done() }
+  l.unlock()
+}
+wg.wait()
+l.lock()
+println("locked again")
+
+// expect
+// out: read-locked
+// out: locked again

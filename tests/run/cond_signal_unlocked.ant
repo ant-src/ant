@@ -1,0 +1,10 @@
+// spec: 11 Synchronization
+// Cond.signal and Cond.broadcast may be called with the mutex unlocked.
+let m = Mutex.new()
+let c = Cond.new(m)
+c.signal()
+c.broadcast()
+println("no panic")
+
+// expect
+// out: no panic

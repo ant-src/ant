@@ -7,14 +7,16 @@
 func RwMutex.readLock(m: RwMutex): void
 ```
 
-RwMutex.readLock locks m for reading, blocking while it is locked for writing.
+RwMutex.readLock takes one read hold on m, blocking while a writer holds m or waits in [`RwMutex.writeLock`](writeLock.md). A goroutine that holds m for reading must not read-lock it again: a writer waiting between the two calls blocks both.
 
 <!-- end generated -->
 
 ## Details
 
-- Any number of goroutines can hold the read lock at once. `RwMutex.readLock` waits only while a
-  writer holds `m`.
+- Any number of goroutines can hold the read lock at once. `RwMutex.readLock` waits while a writer
+  holds `m` or waits in [`writeLock`](writeLock.md), so a stream of readers cannot starve a writer.
+- Do not read-lock `m` again in a goroutine that already holds it for reading: a writer that starts
+  waiting between the two calls blocks both, forever.
 - Each `readLock` needs one [`readUnlock`](readUnlock.md). Put `defer { m.readUnlock() }` right
   after it, or use [`RwMutex.withRead`](withRead.md).
 - What a writer changed before its `writeUnlock` is visible to a reader once its `readLock` returns.
@@ -211,7 +213,7 @@ A read lock is released with `readUnlock`, not `writeUnlock`:
 ```ant
 let m = RwMutex.new()
 m.readLock()
-m.writeUnlock() // panic: RwMutex.writeUnlock: writeUnlock of an RwMutex that is not write-locked
+m.writeUnlock() // panic: RwMutex.writeUnlock: the RwMutex is not write-locked
 ```
 
 One `readUnlock` too many panics. Pair each `readLock` with exactly one `readUnlock`, which `defer`
@@ -221,7 +223,7 @@ right after the lock does:
 let m = RwMutex.new()
 m.readLock()
 m.readUnlock()
-m.readUnlock() // panic: RwMutex.readUnlock: readUnlock of an RwMutex that is not read-locked
+m.readUnlock() // panic: RwMutex.readUnlock: the RwMutex is not read-locked
 ```
 
 A read lock that is never released, such as one skipped by an early `return`, keeps every writer

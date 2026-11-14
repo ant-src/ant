@@ -18,7 +18,8 @@ negative or past \[Math.maxInt\].
   counter is zero returns at once.
 - `add(wg, -1)` takes one off the counter, as `done` does. A goroutine signals that it finished with
   `done`.
-- A negative `add` that brings the counter to zero releases every `WaitGroup.wait` on `wg`.
+- A negative `add` that brings the counter to zero releases every `WaitGroup.wait` on `wg`, and
+  what the goroutine wrote before it is visible once `wait` returns, as with `done`.
 
 ## Basic examples
 
@@ -73,7 +74,7 @@ let wg = WaitGroup.new()
 wg.add(0)
 wg.add(3)
 wg.add(-3)
-wg.add(-1) // panic: WaitGroup.add: WaitGroup counter would go negative
+wg.add(-1) // panic: WaitGroup.add: the counter would go negative
 ```
 
 A wait group in a record field counts the work of that record. Here a server counts the requests it

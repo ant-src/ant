@@ -189,7 +189,7 @@ Releasing a lock that nobody holds panics, whether it was never taken or release
 let m = RwMutex.new()
 m.writeLock()
 m.writeUnlock()
-m.writeUnlock() // panic: RwMutex.writeUnlock: writeUnlock of an RwMutex that is not write-locked
+m.writeUnlock() // panic: RwMutex.writeUnlock: the RwMutex is not write-locked
 ```
 
 A read lock is not a write lock. Release it with `RwMutex.readUnlock`:
@@ -197,7 +197,7 @@ A read lock is not a write lock. Release it with `RwMutex.readUnlock`:
 ```ant
 let m = RwMutex.new()
 m.readLock()
-m.writeUnlock() // panic: RwMutex.writeUnlock: writeUnlock of an RwMutex that is not write-locked
+m.writeUnlock() // panic: RwMutex.writeUnlock: the RwMutex is not write-locked
 ```
 
 A panic between `writeLock` and a plain `writeUnlock` skips the release, and every later lock of `m`

@@ -10,4 +10,4 @@ WaitGroup.done(wg)
 // expect
 // out: balanced
 // exit: 1
-// err: WaitGroup.done: WaitGroup.done when the counter is already zero
+// err: WaitGroup.done: the counter is already zero

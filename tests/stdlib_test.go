@@ -55,8 +55,12 @@ func tableProblems(ctx context.Context, path, src string, timeout time.Duration)
 	if problems := checkTable(path, inputs); len(problems) > 0 {
 		return problems
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	// The timeout cancels the run rather than giving it a deadline, which every Context of the run
+	// would report: under ant run the run's context has none (section 9).
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	stop := time.AfterFunc(timeout, cancel)
+	defer stop.Stop()
 	return runTable(ctx, path, inputs)
 }
 

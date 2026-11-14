@@ -176,7 +176,7 @@ assert(m.withLock({ 42 }) == 42)
 A new mutex is unlocked, so unlocking it panics:
 
 ```ant
-Mutex.new().unlock() // panic: Mutex.unlock: unlock of a Mutex that is not locked
+Mutex.new().unlock() // panic: Mutex.unlock: the Mutex is not locked
 ```
 
 A mutex made inside the code it should guard guards nothing: each call gets its own lock, and no two

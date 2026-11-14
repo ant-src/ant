@@ -1,0 +1,11 @@
+// spec: 11 Synchronization
+// panics: RwMutex.withRead; library-value
+// The release at the end of a with form is the unlock call, so it panics when the function
+// already released the lock.
+let l = RwMutex.new()
+l.withRead({ l.readUnlock() })
+println("unreached")
+
+// expect
+// exit: 1
+// err: RwMutex.withRead: the RwMutex is not read-locked

@@ -7,7 +7,7 @@
 func Cond.signal(c: Cond): void
 ```
 
-Cond.signal wakes one goroutine waiting on c, if any.
+Cond.signal wakes one goroutine waiting on c, if any; which one is not specified. The mutex may be locked or not.
 
 <!-- end generated -->
 
@@ -18,6 +18,7 @@ Cond.signal wakes one goroutine waiting on c, if any.
 - The woken goroutine returns from `Cond.wait` only once it holds the mutex again. Make the change
   under the mutex, and have the waiter check the condition in a `while` loop. To wake every waiter,
   call `Cond.broadcast`.
+- The mutex may be locked or not during the call. Which waiter wakes is not specified.
 
 ## Basic examples
 

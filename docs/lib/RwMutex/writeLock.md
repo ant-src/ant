@@ -259,7 +259,7 @@ A read lock is released with `readUnlock`. Releasing it with `writeUnlock` panic
 ```ant
 let m = RwMutex.new()
 m.readLock()
-m.writeUnlock() // panic: RwMutex.writeUnlock: writeUnlock of an RwMutex that is not write-locked
+m.writeUnlock() // panic: RwMutex.writeUnlock: the RwMutex is not write-locked
 ```
 
 ## See also

@@ -201,7 +201,7 @@ A `readUnlock` with no read lock to release panics:
 
 ```ant
 let m = RwMutex.new()
-m.readUnlock() // panic: RwMutex.readUnlock: readUnlock of an RwMutex that is not read-locked
+m.readUnlock() // panic: RwMutex.readUnlock: the RwMutex is not read-locked
 ```
 
 ### Releasing a write lock
@@ -211,7 +211,7 @@ m.readUnlock() // panic: RwMutex.readUnlock: readUnlock of an RwMutex that is no
 ```ant
 let m = RwMutex.new()
 m.writeLock()
-m.readUnlock() // panic: RwMutex.readUnlock: readUnlock of an RwMutex that is not read-locked
+m.readUnlock() // panic: RwMutex.readUnlock: the RwMutex is not read-locked
 ```
 
 ### Taking the write lock before the read unlock

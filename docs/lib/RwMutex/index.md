@@ -7,8 +7,7 @@
 type RwMutex
 ```
 
-RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing.
-RwMutexes compare by identity.
+RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing. Any goroutine may release it. RwMutexes compare by identity.
 
 <!-- end generated -->
 
@@ -335,7 +334,7 @@ Each unlock releases only its own kind of lock. A `writeUnlock` of a read lock p
 ```ant
 let lock = RwMutex.new()
 lock.readLock()
-lock.writeUnlock() // panic: RwMutex.writeUnlock: writeUnlock of an RwMutex that is not write-locked
+lock.writeUnlock() // panic: RwMutex.writeUnlock: the RwMutex is not write-locked
 ```
 
 ## See also

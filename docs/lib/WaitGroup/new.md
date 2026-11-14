@@ -169,7 +169,7 @@ assert(Panic.catch({ wg.done() }) is Err)
 The counter of a new wait group is zero, so `done` panics:
 
 ```ant
-WaitGroup.new().done() // panic: WaitGroup.done: WaitGroup.done when the counter is already zero
+WaitGroup.new().done() // panic: WaitGroup.done: the counter is already zero
 ```
 
 Call `add` before the `go` that starts the work, not inside it. With `wg.add(1)` as the first line

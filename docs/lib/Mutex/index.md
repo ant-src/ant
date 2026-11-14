@@ -7,8 +7,7 @@
 type Mutex
 ```
 
-Mutex is a mutual-exclusion lock, held by at most one goroutine at a time. Mutexes compare by
-identity.
+Mutex is a mutual-exclusion lock: while it is locked, no other lock of it succeeds. Any goroutine may unlock it. Mutexes compare by identity.
 
 <!-- end generated -->
 
@@ -229,7 +228,7 @@ panics:
 ```ant
 let m = Mutex.new()
 m.lock()
-defer { m.unlock() } // panic: Mutex.unlock: unlock of a Mutex that is not locked
+defer { m.unlock() } // panic: Mutex.unlock: the Mutex is not locked
 m.unlock()
 ```
 

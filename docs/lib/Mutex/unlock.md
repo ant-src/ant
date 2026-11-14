@@ -15,6 +15,7 @@ Mutex.unlock unlocks m. It panics if m is not locked.
 
 - Everything written before an unlock is visible to every goroutine that locks the mutex after it.
 - It panics when `m` is not locked: a mutex never locked, or one unlocked already.
+- A mutex has no owner: any goroutine may unlock a mutex that another goroutine locked.
 - A panic between `lock` and `unlock` skips the unlock. Call it in a `defer` right after the lock,
   or use `Mutex.withLock`.
 
@@ -183,14 +184,14 @@ assert(withLockByHand(m, { xs.length() }) == Mutex.withLock(m, { xs.length() }))
 Unlocking a mutex that is not locked panics, whether it was never locked or was unlocked already:
 
 ```ant
-Mutex.unlock(Mutex.new()) // panic: Mutex.unlock: unlock of a Mutex that is not locked
+Mutex.unlock(Mutex.new()) // panic: Mutex.unlock: the Mutex is not locked
 ```
 
 ```ant
 let m = Mutex.new()
 m.lock()
 m.unlock()
-m.unlock() // panic: Mutex.unlock: unlock of a Mutex that is not locked
+m.unlock() // panic: Mutex.unlock: the Mutex is not locked
 ```
 
 A panic between `lock` and a plain `unlock` skips the unlock and leaves the mutex locked. The next

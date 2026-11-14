@@ -215,7 +215,7 @@ Cond.new(rw) // error: cannot use RwMutex where Mutex is expected
 ```ant
 let mu = Mutex.new()
 let changed = Cond.new(mu)
-changed.wait() // panic: Cond.wait when its Mutex is not locked
+changed.wait() // panic: Cond.wait: the Mutex is not locked
 ```
 
 Wait in a `while` loop that checks the condition, not after an `if`. A signal is not remembered: one

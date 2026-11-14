@@ -288,7 +288,7 @@ assert(byHand == Parallel.map(xs, func(x: int, work: Context): int { x * x }, li
 let wg = WaitGroup.new()
 wg.add(1)
 wg.done()
-wg.done() // panic: WaitGroup.done: WaitGroup.done when the counter is already zero
+wg.done() // panic: WaitGroup.done: the counter is already zero
 ```
 
 ### Adding inside the goroutine

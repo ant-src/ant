@@ -7,8 +7,7 @@
 func RwMutex.withRead[T](m: RwMutex, f: func(): T): T
 ```
 
-RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result. It releases the
-lock even if f panics.
+RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result. It releases the lock even if f panics, and panics if f returns with m not read-locked.
 
 <!-- end generated -->
 
@@ -17,6 +16,7 @@ lock even if f panics.
 - Many goroutines can be inside `withRead` on the same lock at once. A writer waits until all of
   them have left.
 - `f` runs while the read lock is held; anything it waits on keeps writers waiting too.
+- If `f` returns with its read lock released, `withRead` panics.
 
 ## Basic examples
 

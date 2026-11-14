@@ -1,0 +1,14 @@
+// spec: 11 Synchronization
+// An Atomic.add that overflows panics and leaves the value as it was.
+let a = Atomic.new(Math.maxInt - 1)
+println(Panic.catch({ a.add(5) }) | Result.mapErr({ x.message }))
+println(a.load() == Math.maxInt - 1)
+let b = Atomic.new(uint8(250))
+println(Panic.catch({ b.add(uint8(10)) }) | Result.mapErr({ x.message }))
+println(b.load())
+
+// expect
+// out: Err{ error: "Atomic.add: integer overflow" }
+// out: true
+// out: Err{ error: "Atomic.add: integer overflow" }
+// out: 250

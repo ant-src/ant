@@ -184,14 +184,14 @@ assert(tally.a == 1 && tally.b == 1)
 A `done` with no `add` before it, or one more than `add` counted, panics:
 
 ```ant
-WaitGroup.done(WaitGroup.new()) // panic: WaitGroup.done: WaitGroup.done when the counter is already zero
+WaitGroup.done(WaitGroup.new()) // panic: WaitGroup.done: the counter is already zero
 ```
 
 ```ant
 let wg = WaitGroup.new()
 wg.add(1)
 wg.done()
-wg.done() // panic: WaitGroup.done: WaitGroup.done when the counter is already zero
+wg.done() // panic: WaitGroup.done: the counter is already zero
 ```
 
 A panic before a plain `done` skips it, so the counter never reaches zero and `wait` blocks forever.

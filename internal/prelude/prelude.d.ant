@@ -1329,30 +1329,34 @@ func Test.name(): string
 
 // Synchronization
 
-// Mutex is a mutual-exclusion lock, held by at most one goroutine at a time. Mutexes compare by
-// identity.
+// Mutex is a mutual-exclusion lock: while it is locked, no other lock of it succeeds. Any goroutine
+// may unlock it. Mutexes compare by identity.
 type Mutex
 
 // Mutex.new returns a new, unlocked mutex.
 func Mutex.new(): Mutex
 
-// Mutex.lock locks m, blocking until it is available. It takes no context.
+// Mutex.lock locks m, blocking while m is locked, by any goroutine, the caller included: a mutex is
+// not reentrant. It takes no context.
 func Mutex.lock(m: Mutex): void
 
 // Mutex.unlock unlocks m. It panics if m is not locked.
 func Mutex.unlock(m: Mutex): void
 
-// Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics.
+// Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics,
+// and panics if f returns with m unlocked.
 func Mutex.withLock[T](m: Mutex, f: func(): T): T
 
-// RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing.
-// RwMutexes compare by identity.
+// RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing. Any
+// goroutine may release it. RwMutexes compare by identity.
 type RwMutex
 
 // RwMutex.new returns a new, unlocked reader-writer lock.
 func RwMutex.new(): RwMutex
 
-// RwMutex.readLock locks m for reading, blocking while it is locked for writing.
+// RwMutex.readLock takes one read hold on m, blocking while a writer holds m or waits in
+// [RwMutex.writeLock]. A goroutine that holds m for reading must not read-lock it again: a writer
+// waiting between the two calls blocks both.
 func RwMutex.readLock(m: RwMutex): void
 
 // RwMutex.readUnlock releases one read lock on m. It panics if m is not read-locked.
@@ -1365,11 +1369,11 @@ func RwMutex.writeLock(m: RwMutex): void
 func RwMutex.writeUnlock(m: RwMutex): void
 
 // RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result. It releases the
-// lock even if f panics.
+// lock even if f panics, and panics if f returns with m not read-locked.
 func RwMutex.withRead[T](m: RwMutex, f: func(): T): T
 
 // RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result. It releases
-// the lock even if f panics.
+// the lock even if f panics, and panics if f returns with m not write-locked.
 func RwMutex.withWrite[T](m: RwMutex, f: func(): T): T
 
 // WaitGroup is a counter that lets a goroutine wait until a group of others has finished.
@@ -1402,7 +1406,9 @@ func Once.new(): Once
 func Once.do[T](once: Once, f: func(): T): void
 
 // Once.value returns a function that runs f on its first call and returns the cached value on every
-// call. If f panics, every call, waiting or later, panics with the same message.
+// call. If f panics, every call, waiting or later, panics with the same message. If that run was
+// left without a value and without a panic, by [Test.skip] or by a return from a for body unwinding
+// through f, every later call panics.
 func Once.value[T](f: func(): T): func(): T
 
 // Cond is a condition variable: goroutines wait on it, under its mutex, until another signals.
@@ -1412,14 +1418,16 @@ type Cond
 // Cond.new returns a new condition variable over m.
 func Cond.new(m: Mutex): Cond
 
-// Cond.wait releases the mutex of c, waits until signalled, and reacquires the mutex before
-// returning. It panics if the mutex is not locked. It takes no context.
+// Cond.wait releases the mutex of c, waits for a signal or broadcast, and reacquires the mutex
+// before returning. Another goroutine may take the mutex and change the state first, so a waiter
+// tests its condition in a loop. It panics if the mutex is not locked. It takes no context.
 func Cond.wait(c: Cond): void
 
-// Cond.signal wakes one goroutine waiting on c, if any.
+// Cond.signal wakes one goroutine waiting on c, if any; which one is not specified. The mutex may
+// be locked or not.
 func Cond.signal(c: Cond): void
 
-// Cond.broadcast wakes every goroutine waiting on c.
+// Cond.broadcast wakes every goroutine waiting on c. The mutex may be locked or not.
 func Cond.broadcast(c: Cond): void
 
 // Atomic is a cell holding one value of T, read and written atomically. All operations on all
@@ -1435,7 +1443,8 @@ func Atomic.load[T](a: Atomic[T]): T
 // Atomic.store sets the value in a to v.
 func Atomic.store[T](a: Atomic[T], v: T): void
 
-// Atomic.add adds d to the value in a and returns the new value. It panics on overflow.
+// Atomic.add adds d to the value in a and returns the new value. It panics on overflow, leaving the
+// value in a as it was.
 func Atomic.add[T: Number](a: Atomic[T], d: T): T
 
 // Atomic.compareAndSwap sets the value in a to v if it equals expected, and reports whether it did.
@@ -1463,7 +1472,8 @@ func Context.isDone(ctx: Context): bool
 // "timeout", "interrupt", or the parent's reason.
 func Context.reason(ctx: Context): string | null
 
-// Context.deadline returns the earliest deadline of ctx and its parents, or null if none has one.
+// Context.deadline returns the earliest deadline of ctx and its parents, the run's included, or
+// null if none has one.
 func Context.deadline(ctx: Context): Time.Instant | null
 
 // Context.wait blocks until ctx is done.

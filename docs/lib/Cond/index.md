@@ -336,7 +336,7 @@ nobody was waiting
 ```ant
 let mu = Mutex.new()
 let ready = Cond.new(mu)
-ready.wait() // panic: Cond.wait when its Mutex is not locked
+ready.wait() // panic: Cond.wait: the Mutex is not locked
 ```
 
 ### Only a Mutex
