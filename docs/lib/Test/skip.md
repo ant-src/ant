@@ -58,7 +58,7 @@ test "slow import" {
 === RUN   reason_test.ant: slow import
 --- SKIP: reason_test.ant: slow import (0.00s)
     needs the full data set
-ok    1 skipped (0.00s)
+ok    0 passed, 1 skipped (0.00s)
 ```
 
 ## Scope
@@ -82,7 +82,7 @@ test "cleans up" {
     cleanup
 --- SKIP: defer_test.ant: cleans up (0.00s)
     not ready
-ok    1 skipped (0.00s)
+ok    0 passed, 1 skipped (0.00s)
 ```
 
 ### Subtests
@@ -141,7 +141,7 @@ test "worker" {
     body goes on
 --- SKIP: go_test.ant: worker (0.00s)
     the worker has nothing to do
-ok    1 skipped (0.00s)
+ok    0 passed, 1 skipped (0.00s)
 ```
 
 ## Applications
@@ -165,7 +165,7 @@ test "reads the bucket" {
 ```
 
 ```text
-ok    1 skipped (0.00s)
+ok    0 passed, 1 skipped (0.00s)
 ```
 
 ### Optional fixtures
@@ -228,7 +228,7 @@ test "caught" {
 === RUN   catch_test.ant: caught
 --- SKIP: catch_test.ant: caught (0.00s)
     skipped anyway
-ok    1 skipped (0.00s)
+ok    0 passed, 1 skipped (0.00s)
 ```
 
 ### A failed test stays failed

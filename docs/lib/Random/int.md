@@ -264,7 +264,7 @@ Each draw changes `r`, so two goroutines that call `r.int` on one generator with
 Give each goroutine its own with [Random.fork](fork.md), forked before the goroutines start:
 
 ```ant
-let root = Random.new(7)
+let root = Random.new(10)
 let gens = Array.range(0, 3) | Array.map({ root.fork() })
 let rolls = Parallel.map(gens, func(g: Random, ctx: Context): int {
   g.int(1, 7)
@@ -273,7 +273,7 @@ println(rolls)
 ```
 
 ```text
-[3, 5, 2]
+[2, 6, 3]
 ```
 
 The values are predictable from the seed, so they are not fit for keys, tokens, or passwords. Use

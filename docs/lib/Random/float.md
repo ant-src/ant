@@ -182,11 +182,15 @@ b.bool()
 assert(a.float() == b.float())
 ```
 
-A [fork](fork.md) goes on with the numbers its source would have given:
+A [fork](fork.md) draws four numbers from its source, which then goes on after them:
 
 ```ant
 let a = Random.new(42)
-let b = Random.new(42).fork()
+let b = Random.new(42)
+b.fork()
+for _ in Array.range(0, 4) {
+  _ = a.float()
+}
 assert(a.float() == b.float())
 ```
 

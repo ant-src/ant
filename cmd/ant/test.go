@@ -329,9 +329,7 @@ func (r *reporter) done(elapsed time.Duration, broken bool) {
 	if r.failed > 0 {
 		parts = append(parts, fmt.Sprintf("%d failed", r.failed))
 	}
-	if r.passed > 0 || r.failed > 0 || r.skipped == 0 && r.passed == 0 {
-		parts = append(parts, fmt.Sprintf("%d passed", r.passed))
-	}
+	parts = append(parts, fmt.Sprintf("%d passed", r.passed)) // always, so a skip-only run says 0 passed
 	if r.skipped > 0 {
 		parts = append(parts, fmt.Sprintf("%d skipped", r.skipped))
 	}

@@ -1,0 +1,38 @@
+// spec: stdlib Net
+// An Err of dial or listen names the call and the address as given. Closing a listener leaves its
+// accepted connections open and frees the address; its address and a closed connection's peer stay
+// what they were. A read is at end of file once the other end has closed.
+println(Net.dial("127.0.0.1:99999"))
+println(Net.dial("127.0.0.1"))
+println(Net.dial(""))
+println(Net.listen("127.0.0.1:x"))
+
+let l = Net.listen("127.0.0.1:0").unwrap()
+let addr = l.address()
+let client = Net.dial(addr).unwrap()
+let server = l.accept().unwrap()
+let peer = Net.peer(client)
+l.close()
+println(l.address() == addr)
+client.writeLine("still open").unwrap()
+println(server.readLine())
+println(Net.peer(File.buffered(client)) == peer)
+client.close().unwrap()
+println(Net.peer(client) == peer)
+println(server.readLine())
+server.close().unwrap()
+let again = Net.listen(addr)
+println(again.isOk())
+again.unwrap().close()
+
+// expect
+// out: Err{ error: Error{ message: "dial \"127.0.0.1:99999\": invalid port" } }
+// out: Err{ error: Error{ message: "dial \"127.0.0.1\": missing port in address" } }
+// out: Err{ error: Error{ message: "dial \"\": missing address" } }
+// out: Err{ error: Error{ message: "listen \"127.0.0.1:x\": unknown port" } }
+// out: true
+// out: Ok{ value: "still open" }
+// out: true
+// out: true
+// out: Ok{ value: null }
+// out: true

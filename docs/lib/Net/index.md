@@ -26,6 +26,8 @@ does not hold up the others.
   goes to one of them.
 - A refused connection, a closed listener, and a done context are `Err`, not a panic. A second
   [Net.close](close.md) does nothing.
+- A read of a connection is at end of file once the other end has closed it and everything it sent
+  has been read.
 - TCP only: there is no TLS, UDP, or Unix socket. [Http](../Http/index.md) serves HTTP on a
   `Net.Listener`.
 

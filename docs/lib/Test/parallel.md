@@ -7,8 +7,7 @@
 func Test.parallel(): void
 ```
 
-Test.parallel runs the current test alongside the other parallel tests of its parent, once the tests
-of that parent that did not call it have ended. It is called once, from the test's body.
+Test.parallel runs the current test alongside the other parallel tests of its parent, once the tests of that parent that did not call it have ended, and after the parent's body and deferred blocks. It is called once, from the test's body, and panics from a deferred block.
 
 <!-- end generated -->
 
@@ -24,7 +23,9 @@ of that parent that did not call it have ended. It is called once, from the test
   in different files never run at once.
 - Parallel tests share module variables and the variables of their parent. Guard what they change
   with a [Mutex](../Mutex/index.md).
-- Calling it twice in one test, from a goroutine the test started, or outside any test panics.
+- A parallel subtest resumes only after its parent's body and deferred blocks have finished.
+- Calling it twice in one test, from a deferred block or a goroutine the test started, or outside
+  any test panics.
 
 ## Basic examples
 

@@ -531,6 +531,13 @@ func (g *Goroutine) TestParallel(who string) {
 	if t.parallel {
 		g.Panic("%s: called twice", who)
 	}
+	if g.in.ctx.Err() != nil {
+		panic(&cancelSignal{})
+	}
+	if t.ctx.Done() {
+		// The test's context is done when its body ends, so this is a deferred block.
+		g.Panic("%s: called from a deferred block, after the test's body ended", who)
+	}
 	t.parallel = true
 	t.parent.children.Add(1)
 	close(t.wentParallel)

@@ -40,11 +40,19 @@ var q = Random.new(42)
 Random.pick(q, none)                                         // => null
 Random.int(q, 0, 100)                                        // => 22
 
-// fork: the child goes on with the parent's values, and the parent jumps ahead.
+// fork: the child is seeded from four draws of the parent, each through SplitMix64.
 var parent = Random.new(3)
 var child = Random.fork(parent)
-Array.map(Array.range(0, 3), { Random.int(child, 0, 100) })  // => [64, 81, 10]
-Array.map(Array.range(0, 3), { Random.int(parent, 0, 100) }) // => [73, 76, 52]
+Array.map(Array.range(0, 3), { Random.int(child, 0, 100) })  // => [56, 3, 72]
+Array.map(Array.range(0, 3), { Random.int(parent, 0, 100) }) // => [10, 3, 86]
+
+// A fork of a fork does not repeat its parent's next fork.
+var root = Random.new(42)
+var fa = Random.fork(root)
+var fb = Random.fork(root)
+var fc = Random.fork(fa)
+Array.map(Array.range(0, 5), { Random.int(fa, 0, 100) })      // => [86, 10, 32, 23, 61]
+Array.map(Array.range(0, 5), { Random.int(fb, 0, 100) })      // => [97, 56, 95, 7, 2]
 
 // A generator is a reference: compared by identity, rendered by its type's name.
 var g = Random.new(1)

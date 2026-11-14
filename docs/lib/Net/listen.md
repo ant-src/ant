@@ -7,8 +7,7 @@
 func Net.listen(addr: string): Result[Net.Listener, Error]
 ```
 
-Net.listen listens for TCP connections on addr, written "host:port". A port of 0, as in ":0", takes
-any free port, which [`Net.address`](address.md) reports.
+Net.listen listens for TCP connections on addr, written "host:port". A port of 0, as in ":0", takes any free port, which [`Net.address`](address.md) reports, and an empty host listens on every interface. An Err names the address: listen "127.0.0.1:x": unknown port.
 
 <!-- end generated -->
 
@@ -17,9 +16,11 @@ any free port, which [`Net.address`](address.md) reports.
 - `Net.listen` returns at once: it opens the socket, and [Net.accept](accept.md) waits for each
   connection.
 - It is `Err` when the address is malformed or the port is taken.
+- `addr` is `host:port`. An empty host listens on every interface, and a port may be a number or a
+  service name such as `http`.
 - The listener stays open until [Net.close](close.md) closes it, or until
   [Http.serve](../Http/serve.md), which takes it, returns.
-- An `Err` names the address, as in `listen tcp 127.0.0.1:8080: bind: address already in use`, so a
+- An `Err` names the address, as in `listen "127.0.0.1:8080": address already in use`, so a
   wrap adds what the program was doing, not the address.
 
 ## Basic examples
@@ -97,7 +98,7 @@ println(Net.listen("127.0.0.1"))
 ```
 
 ```text
-Err{ error: Error{ message: "listen tcp: address 127.0.0.1: missing port in address" } }
+Err{ error: Error{ message: "listen \"127.0.0.1\": missing port in address" } }
 ```
 
 ## Applications
@@ -227,7 +228,7 @@ A port that another listener holds is `Err`, here unwrapped into a panic:
 ```ant
 let first = Result.unwrap(Net.listen("127.0.0.1:48221"))
 let second = Result.unwrap(Net.listen("127.0.0.1:48221"))
-// panic: Result.unwrap on an Err: Error{ message: "listen tcp 127.0.0.1:48221: bind: address already in use" }
+// panic: Result.unwrap on an Err: Error{ message: "listen \"127.0.0.1:48221\": address already in use" }
 ```
 
 `Http.serve` closes its listener when it returns, so the listener cannot serve again:

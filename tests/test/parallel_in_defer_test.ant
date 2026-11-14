@@ -1,0 +1,15 @@
+// spec: 11 Test
+// Test.parallel from a deferred block panics: the test's body has ended. A run whose only passing
+// outcome is a skip still prints its passed count.
+test "in defer" {
+  defer { Test.parallel() }
+}
+
+test "skipped" { Test.skip("later") }
+
+// expect
+// exit: 1
+// out: --- FAIL: parallel_in_defer_test.ant: in defer (0.00s)
+// out:     Test.parallel: called from a deferred block, after the test's body ended
+// out:       at test "in defer" (parallel_in_defer_test.ant:5:24)
+// out: FAIL  1 failed, 0 passed, 1 skipped (0.00s)

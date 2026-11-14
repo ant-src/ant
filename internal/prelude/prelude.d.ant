@@ -1209,9 +1209,8 @@ func Random.pick[T](r: Random, xs: Array[T]): T | null
 // Random.shuffle reorders xs in place into a uniformly random permutation.
 func Random.shuffle[T](r: Random, xs: Array[T]): void
 
-// Random.fork returns a generator with r's state, and moves r 2^128 draws ahead, so neither
-// sequence reaches the other's in any run. The new generator goes on with the values r would have
-// given.
+// Random.fork returns a new generator seeded from four draws of r. Its values are unrelated to r's
+// and to every other fork's, a fork of a fork included, so each goroutine can take its own.
 func Random.fork(r: Random): Random
 
 // Result
@@ -1310,7 +1309,8 @@ func Record.same[T: {}](a: T, b: T): bool
 func Test.skip(reason: string): never
 
 // Test.parallel runs the current test alongside the other parallel tests of its parent, once the
-// tests of that parent that did not call it have ended. It is called once, from the test's body.
+// tests of that parent that did not call it have ended, and after the parent's body and deferred
+// blocks. It is called once, from the test's body, and panics from a deferred block.
 func Test.parallel(): void
 
 // Test.tempDir returns a new directory, removed with its contents when the current test ends.
@@ -2672,7 +2672,8 @@ func Time.roundDuration(d: Time.Duration, smallestUnit: Time.Unit | null = null,
 type Net.Listener
 
 // Net.listen listens for TCP connections on addr, written "host:port". A port of 0, as in ":0",
-// takes any free port, which [Net.address] reports.
+// takes any free port, which [Net.address] reports, and an empty host listens on every interface.
+// An Err names the address: listen "127.0.0.1:x": unknown port.
 func Net.listen(addr: string): Result[Net.Listener, Error]
 
 // Net.address returns the address l listens on, such as "127.0.0.1:50321".
@@ -2683,16 +2684,17 @@ func Net.address(l: Net.Listener): string
 // each connection goes to one of them.
 func Net.accept(l: Net.Listener, ctx: Context | null = null): Result[File.Handle, Error]
 
-// Net.close closes l, so pending and later [Net.accept] calls are Err. Closing it again does
-// nothing.
+// Net.close closes l, so pending and later [Net.accept] calls are Err. Connections it accepted stay
+// open, and the address is free again. Closing it again does nothing.
 func Net.close(l: Net.Listener): void
 
 // Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and
-// written with the File functions.
+// written with the File functions. ctx limits the dial only, not the connection. An Err names the
+// address: dial "127.0.0.1:99999": invalid port.
 func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Error]
 
-// Net.peer returns the address of the other end of the connection f, as "ip:port". It is null when
-// f is a file or a standard stream.
+// Net.peer returns the address of the other end of the connection f, as "ip:port", also once f is
+// closed or through [File.buffered]. It is null for any other handle.
 func Net.peer(f: File.Handle): string | null
 
 // Os

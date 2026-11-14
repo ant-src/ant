@@ -7,8 +7,7 @@
 func Net.peer(f: File.Handle): string | null
 ```
 
-Net.peer returns the address of the other end of the connection f, as "ip:port". It is null when f
-is a file or a standard stream.
+Net.peer returns the address of the other end of the connection f, as "ip:port", also once f is closed or through [`File.buffered`](../File/buffered.md). It is null for any other handle.
 
 <!-- end generated -->
 
@@ -16,6 +15,8 @@ is a file or a standard stream.
 
 - On a connection from [Net.accept](accept.md), the peer is the client; on one from
   [Net.dial](dial.md), it is the address the connection reached.
+- A closed connection keeps its peer, and a [File.buffered](../File/buffered.md) handle answers for
+  the connection under it. Any other handle gives `null`.
 
 ## Basic examples
 

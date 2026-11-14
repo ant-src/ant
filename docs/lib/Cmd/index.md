@@ -200,6 +200,7 @@ Err{ error: Error{ message: "timeout" } }
 - [Cmd.read](read.md): the standard output as text, `Err` on a nonzero status
 - [Cmd.readBytes](readBytes.md): the standard output as bytes, exactly as written
 - [Cmd.capture](capture.md): the status and both outputs, `Ok` on a nonzero status
+- [Cmd.captureBytes](captureBytes.md): the status and both outputs as bytes
 
 ### Running in the background
 
@@ -213,6 +214,7 @@ Err{ error: Error{ message: "timeout" } }
 
 - [Cmd.Pipeline](types/Pipeline.md): commands run at once, each one's output the next one's input
 - [Cmd.Output](types/Output.md): what `Cmd.capture` collects
+- [Cmd.OutputBytes](types/OutputBytes.md): what `Cmd.captureBytes` collects
 - [Cmd.Process](types/Process.md): a command started by `Cmd.start`
 
 ## Applications

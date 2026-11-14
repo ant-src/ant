@@ -182,7 +182,7 @@ test "connects to the database" {
 ```
 
 ```text
-ok    1 skipped (0.00s)
+ok    0 passed, 1 skipped (0.00s)
 ```
 
 ## See also

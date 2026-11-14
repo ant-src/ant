@@ -2,6 +2,8 @@ package lib
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"sync"
 
@@ -127,9 +129,10 @@ func init() {
 		return namespace("Net",
 			constant("Listener", value.NewTag("Net.Listener", value.SyncTag, nil)),
 			fn("Net.listen", "addr", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				l, err := net.Listen("tcp", stringArg(g, who, a[0]))
+				addr := stringArg(g, who, a[0])
+				l, err := net.Listen("tcp", addr)
 				if err != nil {
-					return errResult(err)
+					return errResult(netError("listen", addr, err))
 				}
 				return value.Ok(&Listener{l: l.(*net.TCPListener)})
 			}),
@@ -165,10 +168,11 @@ func init() {
 			fn("Net.dial", "addr, ctx?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				ctx := waitContext(g, who, a[1])
 				var d net.Dialer
-				c, err := d.DialContext(ctx, "tcp", stringArg(g, who, a[0]))
+				addr := stringArg(g, who, a[0])
+				c, err := d.DialContext(ctx, "tcp", addr)
 				g.AfterWait()
 				if err != nil {
-					return failed(ctx, err)
+					return failed(ctx, netError("dial", addr, err))
 				}
 				return value.Ok(connHandle(c))
 			}),
@@ -181,6 +185,24 @@ func init() {
 			}),
 		)
 	})
+}
+
+// netError names the call and the address as given, then the innermost reason, as stdlib.md asks
+// of a call that takes an address: dial "127.0.0.1:99999": invalid port.
+func netError(op, addr string, err error) error {
+	var dns *net.DNSError
+	var bad *net.AddrError
+	switch {
+	case errors.As(err, &dns):
+		err = errors.New(dns.Err)
+	case errors.As(err, &bad):
+		err = errors.New(bad.Err)
+	default:
+		for errors.Unwrap(err) != nil {
+			err = errors.Unwrap(err)
+		}
+	}
+	return fmt.Errorf("%s %q: %s", op, addr, err)
 }
 
 func (l *Listener) isClosed() bool {

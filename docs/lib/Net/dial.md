@@ -7,8 +7,7 @@
 func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Error]
 ```
 
-Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and
-written with the File functions.
+Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and written with the File functions. ctx limits the dial only, not the connection. An Err names the address: dial "127.0.0.1:99999": invalid port.
 
 <!-- end generated -->
 
@@ -20,6 +19,9 @@ written with the File functions.
   [File.close](../File/close.md). Close it with `defer` right after the dial.
 - `Net.dial` is `Err` when it cannot connect, as when nothing listens at `addr`, and when `ctx` is
   done first, with the context's reason as the message.
+- `ctx` limits the dial only. The connection is not tied to it: give each read that should give up
+  a context of its own.
+- An `Err` names the address as given: `dial "127.0.0.1:99999": invalid port`.
 - TCP only: there is no TLS, UDP, or Unix socket.
 
 ## Basic examples
@@ -54,7 +56,7 @@ println(Net.dial("127.0.0.1"))
 ```
 
 ```text
-Err{ error: Error{ message: "dial tcp: address 127.0.0.1: missing port in address" } }
+Err{ error: Error{ message: "dial \"127.0.0.1\": missing port in address" } }
 ```
 
 ## Scope
@@ -207,7 +209,7 @@ println(ask("localhost", "ping"))
 
 ```text
 Ok{ value: "PING" }
-Err{ error: Error{ message: "connect: dial tcp: address localhost: missing port in address" } }
+Err{ error: Error{ message: "connect: dial \"localhost\": missing port in address" } }
 ```
 
 Read a reply of several lines. This server sends a list and closes the connection, and the client

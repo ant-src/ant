@@ -22,15 +22,20 @@ type Random struct {
 // SyncName names the generator for rendering.
 func (r *Random) SyncName() string { return "Random" }
 
+// splitMix is one output of SplitMix64 started from x.
+func splitMix(x uint64) uint64 {
+	z := x + 0x9E3779B97F4A7C15
+	z = (z ^ z>>30) * 0xBF58476D1CE4E5B9
+	z = (z ^ z>>27) * 0x94D049BB133111EB
+	return z ^ z>>31
+}
+
 func newRandom(seed int64) *Random {
 	x := uint64(seed)
 	r := &Random{}
 	for i := range r.s {
+		r.s[i] = splitMix(x)
 		x += 0x9E3779B97F4A7C15
-		z := x
-		z = (z ^ z>>30) * 0xBF58476D1CE4E5B9
-		z = (z ^ z>>27) * 0x94D049BB133111EB
-		r.s[i] = z ^ z>>31
 	}
 	return r
 }
@@ -72,8 +77,6 @@ func (r *Random) below(n uint64) uint64 {
 	}
 }
 
-var randomJump = [4]uint64{0x180ec6d33cfd0aba, 0xd5a61266f0c9392c, 0xa9582618e03fc9aa, 0x39abdc4529b1661c}
-
 // draw runs f with mu held.
 func (r *Random) draw(f func()) {
 	r.mu.Lock()
@@ -81,23 +84,17 @@ func (r *Random) draw(f func()) {
 	f()
 }
 
-// fork returns a generator with r's state and moves r 2^128 draws ahead.
+// fork returns a generator seeded from four draws of r, each through SplitMix64, so that a fork of
+// a fork is as unrelated to its parent's other forks as to anything else.
 func (r *Random) fork() *Random {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	child := &Random{s: r.s}
-	var t [4]uint64
-	for _, j := range randomJump {
-		for b := 0; b < 64; b++ {
-			if j&(1<<b) != 0 {
-				for k := range t {
-					t[k] ^= r.s[k]
-				}
-			}
-			r.next()
+	child := &Random{}
+	for child.s == [4]uint64{} {
+		for i := range child.s {
+			child.s[i] = splitMix(r.next())
 		}
 	}
-	r.s = t
 	return child
 }
 

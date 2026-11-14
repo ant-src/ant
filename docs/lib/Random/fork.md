@@ -7,8 +7,7 @@
 func Random.fork(r: Random): Random
 ```
 
-Random.fork returns a generator with r's state, and moves r 2^128 draws ahead, so neither sequence
-reaches the other's in any run. The new generator goes on with the values r would have given.
+Random.fork returns a new generator seeded from four draws of r. Its values are unrelated to r's and to every other fork's, a fork of a fork included, so each goroutine can take its own.
 
 <!-- end generated -->
 
@@ -16,18 +15,21 @@ reaches the other's in any run. The new generator goes on with the values r woul
 
 - Forking a seeded generator is as repeatable as drawing from it: the same seed and the same forks,
   in the same order, give the same generators on every run.
+- A fork draws four values from `r`, so `r` goes on four draws later.
+- Forks are unrelated to each other in any shape: a goroutine that got a fork may fork it again for
+  its own workers.
 - Fork in one goroutine, before the others start. Forking is a change to `r`, so two goroutines that
   fork one shared generator without a lock race, as two that draw from it do.
 
 ## Basic examples
 
-Fork a generator. The new one gives the values `r` would have given:
+Fork a generator. The new one gives values of its own, and `r` goes on:
 
 ```ant
 let r = Random.new(42)
 let child = Random.fork(r)
-Array.range(0, 5) | Array.map({ child.int(0, 100) }) // [22, 33, 33, 56, 50]
-Array.range(0, 5) | Array.map({ r.int(0, 100) })     // [74, 3, 42, 49, 11]
+Array.range(0, 5) | Array.map({ child.int(0, 100) }) // [13, 43, 51, 86, 10]
+Array.range(0, 5) | Array.map({ r.int(0, 100) })     // [56, 50, 7, 61, 54]
 ```
 
 Give each worker a generator of its own, forked before the workers start:
@@ -42,7 +44,7 @@ println(sixes)
 ```
 
 ```text
-[153, 172, 164, 161]
+[137, 177, 171, 166]
 ```
 
 ## Scope
@@ -56,15 +58,14 @@ child      // Random
 child == r // false
 ```
 
-Each fork of one generator starts where the previous one moved it, so the forks differ from each
-other:
+Each fork of one generator is seeded from different draws, so the forks differ from each other:
 
 ```ant
 let r = Random.new(42)
 let a = r.fork()
 let b = r.fork()
-a.int(0, 100) // 22
-b.int(0, 100) // 74
+a.int(0, 100) // 13
+b.int(0, 100) // 97
 ```
 
 A generator made without a seed forks too. Its forks differ from run to run, as it does:
@@ -95,8 +96,8 @@ println(dungeon(2026, 12))
 ```
 
 ```text
-#.### sword, potion, shield
-#.#######.#. sword, potion, shield
+.##.# sword, potion, sword
+.##.###.###. sword, potion, sword
 ```
 
 Run a seeded simulation in parallel and still get the same answer every time. The trials are split
@@ -121,20 +122,37 @@ println(estimatePi(1, 4, 10000))
 ```
 
 ```text
-3.144
-3.144
+3.1292
+3.1292
 ```
 
 ## Properties and relations
 
-A fork of a fresh generator gives the same values as a fresh generator with the same seed:
+Forking draws four values from `r`: afterwards it gives what a generator with the same seed gives
+after four draws:
 
 ```ant
-func draws(r: Random): Array[int] {
-  Array.range(0, 10) | Array.map({ r.int(0, 1000) })
+let forked = Random.new(9)
+forked.fork()
+let drawn = Random.new(9)
+for _ in Array.range(0, 4) {
+  _ = drawn.float()
 }
+assert(forked.float() == drawn.float())
+```
 
-assert(draws(Random.fork(Random.new(9))) == draws(Random.new(9)))
+A fork of a fork does not repeat a stream its parent hands out later:
+
+```ant
+let r = Random.new(42)
+let a = r.fork()
+let b = r.fork()
+a.fork()
+println([a.int(0, 100), b.int(0, 100)])
+```
+
+```text
+[86, 97]
 ```
 
 Forking is repeatable: two generators with one seed, forked the same way, give the same values:
@@ -158,7 +176,7 @@ Forking moves `r`. To replay the values of a seed, make a new generator from the
 ```ant
 let r = Random.new(42)
 let child = r.fork()
-r.int(0, 100)              // 74
+r.int(0, 100)              // 56
 Random.new(42).int(0, 100) // 22
 ```
 
@@ -170,21 +188,6 @@ let r = Random.new(42)
 let same = r
 same.int(0, 100) // 22
 r.int(0, 100)    // 33
-```
-
-The streams of `r` and its fork never meet, but a fork of a fork can repeat a stream that `r` hands
-out later. Here forking `a` moves it onto `b`'s stream, so `a` gives the values of `b`:
-
-```ant
-let r = Random.new(42)
-let a = r.fork()
-let b = r.fork()
-a.fork()
-println([a.int(0, 100), b.int(0, 100)])
-```
-
-```text
-[74, 74]
 ```
 
 ## See also

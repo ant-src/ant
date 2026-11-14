@@ -7,8 +7,7 @@
 func Net.close(l: Net.Listener): void
 ```
 
-Net.close closes l, so pending and later [`Net.accept`](accept.md) calls are Err. Closing it again
-does nothing.
+Net.close closes l, so pending and later [`Net.accept`](accept.md) calls are Err. Connections it accepted stay open, and the address is free again. Closing it again does nothing.
 
 <!-- end generated -->
 
@@ -20,6 +19,8 @@ does nothing.
 - `Net.close` returns `void`, not a `Result`, so a deferred close discards no error, unlike
   `File.close`.
 - Closing a listener twice does nothing, so a deferred close can follow an explicit one.
+- Connections the listener accepted stay open until they are closed. The address is free again for
+  a later [Net.listen](listen.md), and [Net.address](address.md) still reports it.
 - `Http.serve` closes the listener when it returns, so a listener passed to it needs no close of its
   own. Closing the listener while `Http.serve` runs makes `Http.serve` return `Err`.
 

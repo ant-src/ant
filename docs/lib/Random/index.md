@@ -268,7 +268,7 @@ Goroutines that draw from one shared generator race. Fork one generator per goro
 start:
 
 ```ant
-let root = Random.new(7)
+let root = Random.new(10)
 let gens = Array.range(0, 3) | Array.map({ root.fork() })
 let rolls = Parallel.map(gens, func(g: Random, ctx: Context): int {
   g.int(1, 7)
@@ -277,7 +277,7 @@ println(rolls)
 ```
 
 ```text
-[3, 5, 2]
+[2, 6, 3]
 ```
 
 A record that holds a generator has no JSON form, and `Json.stringify` panics on it. Store the seed
