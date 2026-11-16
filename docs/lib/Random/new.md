@@ -99,6 +99,27 @@ Random.new(1).shuffle(deck)
 deck // ["K", "J", "10", "A", "Q", "9"]
 ```
 
+Make repeatable IDs for tests by passing a seeded generator to the code that makes IDs:
+
+```ant
+let alphabet = "0123456789abcdefghjkmnpqrstvwxyz".chars()
+
+func testId(r: Random): string {
+  Array.range(0, 6)
+    | Array.map({ alphabet[r.int(0, alphabet.length())] })
+    | String.join("")
+}
+
+let r = Random.new(42)
+println([testId(r), testId(r)])
+```
+
+```text
+["py114r", "j7yxh5"]
+```
+
+These IDs are predictable. For keys or tokens, use [Crypto.randomBytes](../Crypto/randomBytes.md).
+
 Estimate pi with a Monte Carlo simulation. The fixed seed makes the estimate the same on every run:
 
 ```ant

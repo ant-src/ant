@@ -200,8 +200,6 @@ shutting down after interrupt
 [Stream a command's output](../../howto/processes/stream.md) ·
 [Handle Ctrl-C](../../howto/cli/interrupt.md) ·
 [Build a pipeline](../../howto/processes/pipeline.md) ·
-[Stop or time out a process](../../howto/processes/stop.md) ·
-[Read command-line arguments](../../howto/cli/args.md) ·
+[Stop or time out a process](../../howto/processes/stop.md) · [Os.args](../Os/args.md) ·
 [Read environment variables and standard directories](../../howto/cli/env.md) ·
-[Read standard input line by line](../../howto/cli/stdin.md) ·
-[Exit with a status](../../howto/cli/exit-status.md)
+[Read standard input line by line](../../howto/cli/stdin.md) · [Os.exit](../Os/exit.md)

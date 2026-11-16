@@ -223,4 +223,4 @@ A directory missing below `dir:`, as `missing/*.txt` asks for, is no match, not 
 [File.list](../../lib/File/list.md) · [File.stat](../../lib/File/stat.md) ·
 [Path.match](../../lib/Path/match.md) · [Path.join](../../lib/Path/join.md) ·
 [Path.base](../../lib/Path/base.md) · [Result.wrapErr](../../lib/Result/wrapErr.md) ·
-[Build and split paths](paths.md)
+[Path](../../lib/Path/index.md)

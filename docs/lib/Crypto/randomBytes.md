@@ -92,6 +92,33 @@ true
 63
 ```
 
+For a code people read aloud or type, map each random byte to a character of an alphabet. This
+alphabet has 32 characters and leaves out `i`, `l`, and `o`, which people misread as `1` and `0`,
+and `u`, to keep 32 characters. 32 divides 256, so `% 32` picks every character equally often:
+
+```ant
+let alphabet = "0123456789abcdefghjkmnpqrstvwxyz".chars()
+
+func shortCode(n: int): string {
+  Crypto.randomBytes(n)
+    | Bytes.toArray()
+    | Array.map({ alphabet[int(x) % alphabet.length()] })
+    | String.join("")
+}
+
+let code = shortCode(10)
+println(code.length())
+println(code.chars().every({ alphabet.contains(x) }))
+```
+
+```text
+10
+true
+```
+
+Keep the alphabet at 2, 4, 8, 16, 32, 64, 128, or 256 characters. With another size, such as 36,
+`% 36` picks the first characters more often than the rest.
+
 Sign a message with a fresh key, then check a received signature against it with `Crypto.equal`:
 
 ```ant

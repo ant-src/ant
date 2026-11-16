@@ -154,6 +154,47 @@ site/index.html
 site/intro.html
 ```
 
+To keep each source file's directory under the output directory, use `Path.rel`. This script takes
+the source and output directories, then the source files. It rejects a source whose relative path
+starts with `..`:
+
+<!-- test: args content/ ./public content/index.md content//blog/first.post.md ./content/about/team.md -->
+
+```ant
+func firstElement(rel: string): string {
+  var head = rel
+  while Path.dir(head) != "." {
+    head = Path.dir(head)
+  }
+  head
+}
+
+func outputPath(source: string, src: string, out: string): Result[string, Error] {
+  let rel = try Path.rel(src, source)
+  if firstElement(rel) == ".." {
+    return Result.fail("${source} is outside ${src}")
+  }
+  let name = Path.base(rel).trimSuffix(Path.ext(rel))
+  Result.ok(Path.join([out, Path.dir(rel), name + ".html"]))
+}
+
+let args = Os.args()
+if args.length() < 2 {
+  return Result.fail("usage: paths <src> <out> <file>...")
+}
+let src = args[0]
+let out = args[1]
+for source in args.slice(2, args.length()) {
+  println("${source} -> ${try outputPath(source, src, out)}")
+}
+```
+
+```text
+content/index.md -> public/index.html
+content//blog/first.post.md -> public/blog/first.post.html
+./content/about/team.md -> public/about/team.html
+```
+
 Pick the test files out of a tree. [File.walk](../File/walk.md) gives paths relative to the
 directory, so `Path.join` puts the directory back in front:
 
@@ -234,5 +275,4 @@ Path.match("*.txt", Path.clean("./a.txt")) // Ok{ value: true }
 
 [File](../File/index.md) · [File.glob](../File/glob.md) · [File.walk](../File/walk.md) ·
 [File.realPath](../File/realPath.md) · [Os.cwd](../Os/cwd.md) · [Os.home](../Os/home.md) ·
-[Build and split paths](../../howto/files/paths.md) ·
 [Walk a directory and match globs](../../howto/files/walk-glob.md)

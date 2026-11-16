@@ -40,6 +40,9 @@ source <(ant --comp bash)  # in ~/.bashrc
 ant --comp fish | source   # in ~/.config/fish/config.fish
 ```
 
+Open a new shell, or source its startup file, for the line to take effect. zsh ships a completion
+named `_ant` for Apache Ant; source Ant's script after `compinit` so it replaces that one.
+
 ## Next steps
 
 - [Your first program](first-program.md)

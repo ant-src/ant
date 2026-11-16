@@ -354,7 +354,6 @@ Os.exit(1)
 ## See also
 
 [Cmd](../Cmd/index.md) · [File](../File/index.md) · [Path](../Path/index.md) ·
-[Context](../Context/index.md) · [print](../prelude/print.md) ·
-[Read command-line arguments](../../howto/cli/args.md) ·
+[Context](../Context/index.md) · [print](../prelude/print.md) · [Os.args](args.md) ·
 [Read environment variables and standard directories](../../howto/cli/env.md) ·
 [Handle Ctrl-C](../../howto/cli/interrupt.md)

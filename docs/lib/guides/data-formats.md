@@ -296,5 +296,4 @@ under a secret key, and make secrets with `Crypto.randomBytes`, not with a seede
 - [Working with text](text.md): strings, bytes, and regular expressions
 - [Files and paths](files.md): reading and writing the files that hold these formats
 - [Network](network.md): sending and receiving them over HTTP
-- How-to: [hash data and compare hashes](../../howto/data/hash.md),
-  [generate random ids](../../howto/data/uuid.md)
+- How-to: [hash data and compare hashes](../../howto/data/hash.md)

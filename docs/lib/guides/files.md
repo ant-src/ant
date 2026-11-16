@@ -204,7 +204,6 @@ true
 [File](../File/index.md) · [Path](../Path/index.md) · [Os](../Os/index.md) ·
 [Read and write a whole file](../../howto/files/read-write.md) ·
 [Read a large file line by line](../../howto/files/lines.md) ·
-[Build and split paths](../../howto/files/paths.md) ·
 [Walk a directory and match globs](../../howto/files/walk-glob.md) ·
 [Replace a file without a partial write](../../howto/files/replace-safely.md) ·
 [Use a temporary file or directory](../../howto/files/temp.md) ·

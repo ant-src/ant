@@ -78,6 +78,12 @@ chmod +x greet.ant
 ./greet.ant Ann
 ```
 
+The `#!` line must start at the first byte of the file, before any blank line, space, or comment.
+Module doc comments (`//!`) go after it. `ant` must be on your `PATH`.
+
+To run the script from any directory, put it in a directory on your `PATH`, such as `~/bin`. It may
+keep its `.ant` extension or drop it: `ant` runs any existing file.
+
 ## Exit status
 
 | Status       | When                                                                                                       |

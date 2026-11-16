@@ -355,7 +355,7 @@ wordcount/
   ```
 
 - Give a script `#!/usr/bin/env ant` as its first line and make it executable (`chmod +x main.ant`)
-  to run it as `./main.ant`; see [Run a script as a command](../howto/cli/shebang.md).
+  to run it as `./main.ant`; see [ant run](../tools/run.md#running-a-file-directly).
 - Start each library with a `//!` doc comment that says what it is for. `ant doc text.ant` prints it
   with the module's exports; see [Documenting code](docs.md).
 
