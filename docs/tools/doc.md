@@ -409,4 +409,4 @@ signature. See [Comments and doc comments](../language/lexical/comments.md).
 ## See also
 
 [Comments and doc comments](../language/lexical/comments.md), [Documenting code](../guide/docs.md),
-[`export`](../language/keywords/export.md), [`ant check`](check.md), [`ant lsp`](lsp.md)
+[`export`](../language/keywords/export.md), [`ant check`](check.md)

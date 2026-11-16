@@ -93,8 +93,7 @@ Each one works on values in memory. Read the text with [File.read](../File/read.
 ### Read a field from JSON
 
 Parse the text, then narrow the `Json.Value` with `is` before using it. `is` takes `Map` without
-type arguments. To decode into records, see
-[decode JSON into records](../../howto/data/json-decode.md):
+type arguments:
 
 ```ant
 let doc = try Json.parse("{\"name\": \"Ann\"}")
@@ -297,8 +296,5 @@ under a secret key, and make secrets with `Crypto.randomBytes`, not with a seede
 - [Working with text](text.md): strings, bytes, and regular expressions
 - [Files and paths](files.md): reading and writing the files that hold these formats
 - [Network](network.md): sending and receiving them over HTTP
-- How-to: [decode JSON into records](../../howto/data/json-decode.md),
-  [encode JSON](../../howto/data/json-encode.md), [read and write CSV](../../howto/data/csv.md),
-  [encode as base64 or hex](../../howto/data/base64-hex.md),
-  [hash data and compare hashes](../../howto/data/hash.md),
+- How-to: [hash data and compare hashes](../../howto/data/hash.md),
   [generate random ids](../../howto/data/uuid.md)

@@ -153,4 +153,4 @@ false
 [Encoding.toBase64](../../lib/Encoding/toBase64.md) · [Bytes.toArray](../../lib/Bytes/toArray.md) ·
 [Random.new](../../lib/Random/new.md) · [Random.int](../../lib/Random/int.md) ·
 [String.chars](../../lib/String/chars.md) · [String.join](../../lib/String/join.md) ·
-[Encode as base64 or hex](base64-hex.md) · [Hash data and compare hashes](hash.md)
+[Hash data and compare hashes](hash.md)

@@ -82,7 +82,7 @@ A namespace alone, such as `ant doc Csv`, prints its doc and the signature of ev
   [concurrency](../guide/concurrency.md), and [modules](../guide/modules.md), with when to pick
   what.
 - [How-to guides](../howto/files/read-write.md): one task per page, such as
-  [decoding JSON](../howto/data/json-decode.md), [running a program](../howto/processes/run.md), or
+  [running a program](../howto/processes/run.md) or
   [serving HTTP](../howto/network/http-server.md).
 - [Standard library](../lib/index.md): a page for every function and type, and topic guides such as
   [text](../lib/guides/text.md), [files](../lib/guides/files.md), and [time](../lib/guides/time.md).
