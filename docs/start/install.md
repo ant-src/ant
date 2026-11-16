@@ -1,4 +1,5 @@
 <!-- status: reviewed -->
+<!-- search: true -->
 
 # Install
 
