@@ -717,8 +717,16 @@ func (g *Goroutine) pop() {
 func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos ast.Pos) value.Value {
 	// The arguments are matched to parameters before the frame is pushed, so that an arity
 	// panic is reported at the call site, in the caller, with no frame of the callee. A call
-	// with no caller, a host's call, has only the callee's frame to name.
+	// with no caller, a host's call, has only the callee's frame to name. A callback a builtin
+	// calls on a goroutine of its own, as Parallel.map does, is matched in a frame of the
+	// builtin's caller at its call, so the panic names that call, as Array.map's does.
 	root := len(g.stack) == 0
+	spawned := root && g.startFunc != ""
+	at := pos
+	if spawned {
+		g.push(g.startFunc, g.startPath, g.startPos)
+		at, root = g.startPos, false
+	}
 	if root {
 		g.push(f.FuncName(), f.Env.mod.path, pos)
 		defer g.pop()
@@ -730,13 +738,16 @@ func (g *Goroutine) callFunc(f *Func, args []value.Value, names []string, pos as
 	var filled []bool
 	if f.Lambda {
 		if names != nil {
-			g.panicf(pos, "a lambda takes no named arguments")
+			g.panicf(at, "a lambda takes no named arguments")
 		}
 		if len(args) > 1 {
-			g.panicf(pos, "a lambda takes at most one argument, got %d", len(args))
+			g.panicf(at, "a lambda takes at most one argument, got %d", len(args))
 		}
 	} else if !exact {
-		slots, filled = g.matchParams(f, args, names, pos)
+		slots, filled = g.matchParams(f, args, names, at)
+	}
+	if spawned {
+		g.pop()
 	}
 	if !root {
 		g.push(f.FuncName(), f.Env.mod.path, pos)

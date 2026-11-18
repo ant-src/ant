@@ -645,6 +645,9 @@ type Goroutine struct {
 	id        int
 	startPath string
 	startPos  ast.Pos
+	// startFunc is the function that called the builtin which started the goroutine with Spawn,
+	// as Parallel.map does, or "": an arity panic of the callback is reported there.
+	startFunc string
 	outside   int
 	dActive   bool
 }
@@ -684,11 +687,14 @@ func (g *Goroutine) Instance() *Instance { return g.in }
 // Spawn runs body on a new Ant goroutine, as a go block does: a panic in it is reported and
 // ends it alone, and the run's grace period waits for it.
 func (g *Goroutine) Spawn(body func(*Goroutine)) {
-	path := ""
+	path, name := "", ""
 	if len(g.stack) > 0 {
-		path = g.stack[len(g.stack)-1].Path
+		path, name = g.stack[len(g.stack)-1].Path, g.stack[len(g.stack)-1].Function
 	}
-	g.spawn(path, g.pos, body)
+	g.spawn(path, g.pos, func(ng *Goroutine) {
+		ng.startFunc = name
+		body(ng)
+	})
 }
 
 // spawn starts a goroutine that a go block, or a builtin called at pos, starts.

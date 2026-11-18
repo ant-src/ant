@@ -1,0 +1,20 @@
+// spec: 8 Catching a panic
+// A callback the prelude calls on a goroutine of its own, as Parallel.map does, that does not fit
+// the arguments panics in a frame of the function that called the prelude function, here the lambda
+// Panic.catch calls, at the ( of that call, as a callback of Array.map does. The program is
+// unchecked: ant check rejects it.
+func sq(n: int): int {
+  n * n
+}
+
+func run(): string {
+  let p = Panic.catch({ Parallel.map([1, 2], sq, limit: 1) })
+  if p is Ok { return "no panic" }
+  let f = p.error.trace[0]
+  "${p.error.message} at ${f.function} ${f.line}:${f.column}"
+}
+
+println(run())
+
+// expect
+// out: sq takes 1 argument, got 2 at func 11:37
