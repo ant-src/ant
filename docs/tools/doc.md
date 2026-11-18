@@ -1,5 +1,4 @@
-<!-- status: draft -->
-<!-- brief: Tool page: looking up names and modules. The spec's tool document stays the reference; this page explains use. -->
+<!-- status: reviewed -->
 
 # ant doc
 
@@ -15,13 +14,15 @@ ant doc <file.ant> <name>   # one exported declaration of a module: Point, Point
 ## Details
 
 - A first argument that ends in `.ant` is a module path. Any other first argument is a prelude name.
-- `ant doc` finds a name without regard to case, so `array.MAP` finds `Array.map`.
 - In a module, `ant doc` sees only exported declarations. It reads only the file you give it: it
   does not follow imports and does not run the type checker, so a module that parses but fails
-  `ant check` is documented like any other. A file that does not parse exits with status 2.
+  `ant check` is documented like any other.
 - A signature stops before the body or initializer: a `func` after its result type (or its
   parameters when it has none), a `type` after its whole definition, an `interface` after its type
   parameters, and a `var` or `let` after its type annotation.
+- On a terminal, signatures and code examples use the REPL's syntax colors and namespace headings
+  are bold. `NO_COLOR`, redirected output, or `TERM=dumb` turns both off. Output keeps the source's
+  line breaks and spacing. The REPL's `:doc` prints the same way.
 - The exit status is 0 when `ant doc` finds the declaration or the module, 1 when there is no such
   declaration or a module has no doc and exports nothing, and 2 when the usage is wrong or the file
   cannot be read or parsed.
@@ -43,10 +44,6 @@ func Array.map[T, U](xs: Array[T], f: func(T): U): Array[U]
 ```
 
 The signature comes first, then the doc comment, indented by four spaces.
-
-On a terminal, signatures and examples use the REPL's syntax colors and namespace headings are bold.
-All output keeps its source line breaks and spacing. `NO_COLOR`, redirected output, or `TERM=dumb`
-disables highlighting and bold headings. The REPL's `:doc` uses the same rendering.
 
 Give a file to see what a module offers. `ant doc` prints the module's `//!` doc and then the
 signature of each exported declaration, in source order:
@@ -103,8 +100,9 @@ func fahrenheit(c: float64): float64
 
 ### Namespaces
 
-A name without a dot that names a namespace prints the namespace's own doc and then every
-declaration in it. In the standard library, that lists a whole area:
+A name without a dot that names a namespace prints the namespace's own declaration and doc, then the
+signature of every declaration in it, in source order. In the standard library, that lists a whole
+area:
 
 ```sh
 ant doc Result
@@ -120,7 +118,7 @@ its doc comment, then the signature of each function on it:
 // Money is an amount in cents of one currency.
 export type Money = { cents: int, currency: string }
 
-// Money.add returns the sum of a and b, which must share a currency.
+// Money.add returns the sum of a and b. It panics if a and b have different currencies.
 export func Money.add(a: Money, b: Money): Money {
   assert(a.currency == b.currency)
   Money{ cents: a.cents + b.cents, currency: a.currency }
@@ -145,6 +143,7 @@ func Money.format(m: Money): string
 ### Case
 
 Case does not matter when you look a name up, so you need not remember how a name is capitalized:
+`array.MAP` finds `Array.map`, although identifiers in a program are case-sensitive.
 
 <!-- test: cmd ant doc units.ant DISTANCE.TOMILES -->
 
@@ -293,9 +292,8 @@ follows these conventions, and editors may rely on them:
   block.
 - A name in brackets, such as `[Math.min]`, names a declaration, and an editor may turn it into a
   link. Brackets right after a name, as in `Array[int]`, are type arguments, not a link.
-- A namespace that no type declares gets its doc from a section label in a declaration file: a
-  comment line with the name alone, an empty `//` line, and a paragraph that starts with the name,
-  as in `host.d.ant` above.
+- A namespace that no type declares gets its doc from a section label in a declaration file, as in
+  `host.d.ant` above.
 - Parameters appear by their declared names, without markup, as in "panics if lo > hi".
 
 There are no headings, emphasis, or tables. This comment follows every convention:
@@ -395,16 +393,55 @@ Without `.ant`, the argument is a prelude name, not a file: `ant doc geometry` l
 declaration named `geometry` and exits with status 1. Write the whole file name,
 `ant doc geometry.ant`.
 
-A file that does not parse cannot be documented. Unlike a type error, which `ant doc` ignores
-because it does not run the checker, a syntax error stops it. `ant doc broken.ant` reports the error
-at its position, `broken.ant:1:16: expected a parameter name, got '{'`, and exits with status 2:
+A file that does not parse cannot be documented. Unlike a compile error, which `ant doc` ignores
+because it does not run the type checker, a syntax error stops it. `ant doc broken.ant` reports the
+error at its position, `broken.ant:1:16: expected a parameter name, got '{'`, and exits with status
+2:
 
 ```ant [broken.ant]
 export func f( { // error: expected a parameter name, got '{'
 ```
 
-A blank line between a comment and a declaration ends the doc comment, so `ant doc` prints only the
-signature. See [Comments and doc comments](../language/lexical/comments.md).
+A `//!` line after an import or declaration is a syntax error, so `ant doc` stops there too. It
+reports `a //! module doc line must come before the first import or declaration` at the `//!` line
+and exits with status 2. Put the module doc above the first `import`:
+
+<!-- test: cmd ant doc cart.ant -->
+
+```ant [cart.ant]
+//! Cart totals the items of a shopping cart.
+
+import "./tax.ant" { withTax }
+
+// total returns the price of all items, with tax.
+export func total(prices: Array[float64]): float64 {
+  withTax(prices.sum() ?? 0.0)
+}
+```
+
+```text
+    Cart totals the items of a shopping cart.
+
+func total(prices: Array[float64]): float64
+```
+
+A blank line or a block comment between the comment and the declaration ends the doc comment, so
+`ant doc` prints only the signature. Write doc comments with `//`:
+
+<!-- test: cmd ant doc area.ant area -->
+
+```ant [area.ant]
+/** area returns the area of a w by h rectangle. */
+export func area(w: float64, h: float64): float64 {
+  w * h
+}
+```
+
+```text
+func area(w: float64, h: float64): float64
+```
+
+See [Comments and doc comments](../language/lexical/comments.md).
 
 ## See also
 
