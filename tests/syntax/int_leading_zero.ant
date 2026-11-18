@@ -3,4 +3,4 @@ var x = 007
 
 // expect
 // exit: 2
-// err: other than 0 cannot start with 0
+// err: other than 0 cannot start with 0: write 0o for octal, as in 0o7

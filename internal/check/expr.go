@@ -716,7 +716,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 	}
 	fields := types.FieldsOf(recv)
 	if fields == nil {
-		c.errorf(pos, "%s is not a record, so it has no field %s", types.String(recv), name)
+		c.errorf(pos, "%s is not a record, so it has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
 		return types.Invalid{}
 	}
 	for _, f := range fields {
@@ -724,8 +724,22 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 			return f.Type
 		}
 	}
-	c.errorf(pos, "%s has no field %s", types.String(recv), name)
+	c.errorf(pos, "%s has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
 	return types.Invalid{}
+}
+
+// funcNote is the hint for a field read of a name that is a function of the value's namespace
+// instead: a value reaches a namespace function only by calling it (section 5, Calls through .).
+func (c *Checker) funcNote(recv types.Type, name string) string {
+	ns := c.namespaceOf(recv)
+	if ns == nil {
+		return ""
+	}
+	m, ok := ns.members[name]
+	if !ok || m.kind != entFunc || m.sig == nil || c.foreignPrivate(m) || !c.accepts(m.sig, recv) {
+		return ""
+	}
+	return fmt.Sprintf("; %s.%s is a function: call it with .%s(), or pass %s.%s", ns.name, name, name, ns.name, name)
 }
 
 func (c *Checker) index(x *ast.Index, sc *scope) types.Type {
@@ -1279,7 +1293,11 @@ func (c *Checker) unary(x *ast.Unary, sc *scope) types.Type {
 	case "-":
 		t := c.synth(x.X, sc)
 		if !c.operandOK(t, false) {
-			c.errorf(x.Pos, "unary - needs a number, got %s", types.String(t))
+			note := ""
+			if n, ok := types.Expand(t).(types.Named); ok && types.Equal(n, c.timeDuration()) {
+				note = ": a duration takes no operator, so write Time.negate(d)"
+			}
+			c.errorf(x.Pos, "unary - needs a number, got %s%s", types.String(t), note)
 			return types.Invalid{}
 		}
 		return t

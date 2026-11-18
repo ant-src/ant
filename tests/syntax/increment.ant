@@ -3,4 +3,4 @@ var x = 1; x++
 
 // expect
 // exit: 2
-// err: unexpected
+// err: there is no ++: write += 1

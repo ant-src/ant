@@ -1,0 +1,9 @@
+// spec: 3
+// There is no ++ or --, and the error names the Ant form. a--b stays a - -b.
+var n = 3
+n = n--1
+n--
+
+// expect
+// exit: 2
+// err: there is no --: write -= 1

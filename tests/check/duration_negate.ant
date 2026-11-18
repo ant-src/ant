@@ -1,0 +1,6 @@
+// spec: 2 Literals
+// Section 2: a duration takes no operator, and a negative span is Time.negate(5s).
+let d = -5s // ERR: unary - needs a number, got Time.Duration: a duration takes no operator, so write Time.negate(d)
+let e = 5s
+let k = -e   // ERR: a duration takes no operator, so write Time.negate(d)
+let z = -"a" // ERR: unary - needs a number, got string

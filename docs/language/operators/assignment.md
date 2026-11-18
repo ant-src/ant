@@ -334,7 +334,7 @@ Write `+= 1` and `-= 1` instead:
 
 ```ant
 var i = 0
-i++ // error: unexpected '+'
+i++ // error: there is no ++: write += 1
 ```
 
 ### Mixed types

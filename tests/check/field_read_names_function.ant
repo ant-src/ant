@@ -1,0 +1,11 @@
+// spec: 5 Calls through .
+// Section 5: a namespace function is reached through a value only by calling it, so x.f outside a
+// call is a field read, and the error names the function and how to reach it.
+type Point = { x: float64 }
+func Point.norm(p: Point): float64 { p.x }
+func Point.origin(): Point { Point{ x: 0.0 } }
+let p = Point{ x: 1.0 }
+let f = p.norm   // ERR: Point has no field norm; Point.norm is a function: call it with .norm(), or pass Point.norm
+let g = p.origin // ERR: Point has no field origin
+let xs = [1]
+let h = xs.map // ERR: Array[int] is not a record, so it has no field map; Array.map is a function: call it with .map(), or pass Array.map

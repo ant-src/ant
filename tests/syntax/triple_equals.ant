@@ -3,4 +3,4 @@ println(1 === 1)
 
 // expect
 // exit: 2
-// err: unexpected
+// err: there is no ===: write ==, which never converts

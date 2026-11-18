@@ -1,0 +1,9 @@
+// spec: 6 Functions on types
+// A function declared on a type the module does not declare is a syntax error, so the file does not
+// load and ant run does not start it.
+func String.shout(s: string): string { s.toUpper() }
+println("never")
+
+// expect
+// exit: 2
+// err: String is not a type declared at the top level of this module

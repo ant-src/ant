@@ -201,6 +201,21 @@ func (l *lexer) atEnd(k int) bool { return l.pos+k >= len(l.src) }
 
 func (l *lexer) has(s string) bool { return strings.HasPrefix(l.src[l.pos:], s) }
 
+// noOperand reports whether nothing that starts an operand follows k bytes ahead on the line:
+// only spaces and tabs, then a line break, the end, or a closing ), ], }, a comma, or a semicolon.
+func (l *lexer) noOperand(k int) bool {
+	for ; !l.atEnd(k); k++ {
+		switch c := l.src[l.pos+k]; c {
+		case ' ', '\t':
+		case '\n', '\r', ')', ']', '}', ',', ';':
+			return true
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // lineBreak reports whether a line break starts k bytes ahead: a \n, or a \r not followed by a
 // \n (section 2). The \r of a \r\n is white space before the \n.
 func (l *lexer) lineBreak(k int) bool {
@@ -519,6 +534,23 @@ func (l *lexer) regex() {
 
 func (l *lexer) operator() {
 	pos := l.here()
+	// Spellings from other languages that are never Ant (section 3, Variables; section 5,
+	// Operators) name the Ant form. A -- is one only where no operand follows, since a--b is
+	// a - -b.
+	for _, op := range [][2]string{{"===", "=="}, {"!==", "!="}} {
+		if l.has(op[0]) {
+			l.soft(pos, "there is no %s: write %s, which never converts", op[0], op[1])
+			l.advance(3)
+			l.emit(token.Token{Kind: token.Op, Text: op[1], Pos: pos})
+			return
+		}
+	}
+	if l.has("++") || l.has("--") && l.noOperand(2) {
+		op := l.src[l.pos : l.pos+2]
+		l.soft(pos, "there is no %s: write %c= 1", op, op[0])
+		l.advance(2)
+		return
+	}
 	for _, op := range []string{"...", "?.", "??", "==", "!=", "<=", ">=", "&&", "||", "+=", "-=", "*=", "/=", "%="} {
 		if l.has(op) {
 			l.advance(len(op))
@@ -582,7 +614,7 @@ func (l *lexer) number() {
 	default:
 		l.digits(isDigit, "number")
 		if l.src[start] == '0' && l.pos-start > 1 {
-			l.fail(pos, "a decimal literal other than 0 cannot start with 0")
+			l.fail(pos, "a decimal literal other than 0 cannot start with 0: write 0o for octal, as in 0o7")
 		}
 		if l.peek(0) == '.' {
 			if !isDigit(l.peek(1)) {

@@ -392,7 +392,7 @@ Ant has one equality operator. For identity, call `same` on the namespace:
 
 ```ant
 let a = [1]
-let b = a === a // error: unexpected '='
+let b = a === a // error: there is no ===: write ==, which never converts
 ```
 
 ## See also
