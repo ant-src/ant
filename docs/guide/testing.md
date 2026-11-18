@@ -410,8 +410,5 @@ ok    1 passed (0.00s)
 - [Test.tempDir](../lib/Test/tempDir.md), [Test.parallel](../lib/Test/parallel.md),
   [Test.skip](../lib/Test/skip.md), [Test.context](../lib/Test/context.md),
   [Test.name](../lib/Test/name.md)
-- [Write table tests](../howto/testing/table.md),
-  [Test code that reads and writes files](../howto/testing/files.md),
-  [Run tests in parallel](../howto/testing/parallel.md)
 - [Modules](modules.md): libraries, scripts, and imports
 - [Errors](errors.md): when to use `assert`, `Result`, and `panic`

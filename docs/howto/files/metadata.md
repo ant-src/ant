@@ -274,5 +274,4 @@ Besides the functions above, it uses [File.list](../../lib/File/list.md),
 [Time.compare](../../lib/Time/compare.md) · [Time.inZone](../../lib/Time/inZone.md) ·
 [Time.subtract](../../lib/Time/subtract.md) · [Time.parseInstant](../../lib/Time/parseInstant.md) ·
 [Replace a file without a partial write](replace-safely.md) ·
-[Walk a directory and match globs](walk-glob.md) ·
-[Get the current time and print it](../time/now-format.md)
+[Walk a directory and match globs](walk-glob.md)

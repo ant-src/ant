@@ -407,5 +407,4 @@ int(b[0]) + 1 // 98
 - [String](../lib/String/index.md), [Bytes](../lib/Bytes/index.md),
   [Encoding](../lib/Encoding/index.md)
 - [Working with text](../lib/guides/text.md) for the `String` and `Regex` functions by job
-- [Count, compare, and normalize Unicode text](../howto/text/unicode.md)
 - [Idiomatic Ant](idiomatic.md)

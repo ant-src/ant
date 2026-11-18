@@ -84,8 +84,7 @@ Time.plainDate(2026, 2, 29)       // panic: Time.plainDate: no such date: 2026-0
 
 A time value becomes text through interpolation, `String.from`, and `Json.stringify` alike. Text
 from outside goes through a `parse` function, which returns a `Result`. Time has no layout strings;
-build another form from the fields, such as `"${t.day()}.${t.month()}.${t.year()}"`, as in
-[get the current time and print it](../../howto/time/now-format.md):
+build another form from the fields, such as `"${t.day()}.${t.month()}.${t.year()}"`:
 
 ```ant
 let due = Time.plainDate(2026, 10, 22)
@@ -253,8 +252,3 @@ true
 - [Time](../Time/index.md): the namespace, with every type and function
 - [Duration literals](../../language/literals/durations.md): `500ms`, `2h30m`, and their rules
 - [Context](../Context/index.md): deadlines and timeouts, given as a `Time.Duration`
-- How-to: [get the current time and print it](../../howto/time/now-format.md),
-  [parse dates and times](../../howto/time/parse.md),
-  [convert between time zones](../../howto/time/zones.md),
-  [add and round durations](../../howto/time/durations.md),
-  [measure elapsed time](../../howto/time/measure.md)

@@ -289,4 +289,4 @@ Json.stringify(String.from(<p>hi</p>)) // "\"<p>hi</p>\""
 - [String.from](../String/from.md): render a value as a string
 - [HTML expressions](../../language/literals/html.md): the syntax that builds `Html`
 - [HTML expressions guide](../../guide/html.md): how the parts fit together
-- [Render HTML pages](../../howto/network/html-pages.md): serve markup from an HTTP handler
+- [Serving a page](../../guide/html.md#serving-a-page): serve markup from an HTTP handler

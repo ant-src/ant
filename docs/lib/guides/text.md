@@ -403,8 +403,5 @@ Regex.test(/^\p{Nd}+$/, "٣٤") // true
 - [String literals](../../language/literals/strings.md),
   [Raw strings](../../language/literals/raw-strings.md),
   [Regular expression literals](../../language/literals/regex.md)
-- [Split, search, and replace](../../howto/text/split-search-replace.md),
-  [Match with regular expressions](../../howto/text/regex.md),
-  [Count, compare, and normalize Unicode text](../../howto/text/unicode.md),
-  [Turn numbers into text](../../howto/text/number-to-text.md)
+- [Numbers](numbers.md): parsing and printing numbers
 - [Data formats](data-formats.md): JSON, CSV, and digests

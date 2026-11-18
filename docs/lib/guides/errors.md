@@ -124,5 +124,3 @@ bug: assertion failed: whole > 0 (0 > 0): callers pass a nonempty total
 - [Errors](../../guide/errors.md): how `Result`, `panic`, `assert`, `defer`, and `Panic.catch` fit
   together
 - [Tour: errors](../../tour/13-errors.md) and [Tour: panics](../../tour/14-panics.md)
-- [Add context to an error](../../howto/errors/context.md)
-- [Turn a panic into an error at a boundary](../../howto/errors/boundary.md)

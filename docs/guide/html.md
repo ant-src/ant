@@ -517,4 +517,3 @@ instead, and keep `Html.unsafe` for markup you trust.
 - [Html](../lib/Html/index.md): the type, reading nodes, and `Html.Attributes`.
 - [Html.unsafe](../lib/Html/unsafe.md): trusted markup from a string.
 - [Http.serve](../lib/Http/serve.md): serving requests.
-- [Render HTML pages](../howto/network/html-pages.md): a complete site, step by step.

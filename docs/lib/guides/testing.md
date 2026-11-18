@@ -190,7 +190,4 @@ ok    0 passed, 1 skipped (0.00s)
 - [Testing](../../guide/testing.md): how test files, subtests, and `Test` fit together
 - [test](../../language/keywords/test.md): the `test` declaration and subtests
 - [ant test](../../tools/test.md): the command, its flags, and its report
-- [Write table tests](../../howto/testing/table.md) ·
-  [Test code that reads and writes files](../../howto/testing/files.md) ·
-  [Run tests in parallel](../../howto/testing/parallel.md)
 - [Errors](errors.md): `Result`, `Error`, and `Panic`

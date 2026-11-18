@@ -380,4 +380,5 @@ wordcount/
 [Modules in the tour](../tour/19-modules.md), [`import`](../language/keywords/import.md),
 [`export`](../language/keywords/export.md), [`test`](../language/keywords/test.md),
 [Testing](testing.md), [`ant run`](../tools/run.md), [`ant test`](../tools/test.md),
-[`ant doc`](../tools/doc.md), [Run Ant from a Go program](../howto/embedding/run-from-go.md)
+[`ant doc`](../tools/doc.md), [the Go API](https://pkg.go.dev/github.com/ant-src/ant) for running Ant
+from a Go program
