@@ -52,3 +52,30 @@ func TestAddFieldsZeroValues(t *testing.T) {
 		t.Errorf("the fixed literal does not check: %+v", diags)
 	}
 }
+
+// TestCheckerFixes: a fix the checker attaches is a quick fix, preferred when it is auto, and the
+// diagnostic carries the checker's help on a line of its own.
+func TestCheckerFixes(t *testing.T) {
+	c := start(t, map[string]string{})
+	src := "func save(): Result[void, Error] {\n  Result.ok()\n}\nlet s = [\"a\"].join(\",\")\n"
+	uri := c.open("main.ant", src)
+	diags := c.diagnostics(uri)
+	if len(diags) != 2 || !strings.Contains(diags[0].Message, "\nhelp: Result.ok takes the value") || diags[1].Code != "no-member" {
+		t.Fatalf("diagnostics: %+v", diags)
+	}
+	cur := at(src, "Result.ok()", 1, 0)
+	var acts []CodeAction
+	c.call("textDocument/codeAction", CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: Range{Start: cur, End: cur}}, &acts)
+	if len(acts) != 1 || acts[0].Title != "Result.ok(void)" || !acts[0].IsPreferred {
+		t.Fatalf("code actions: %+v", acts)
+	}
+	if got := apply(src, acts[0].Edit.Changes[uri][0]); !strings.Contains(got, "  Result.ok(void)\n") {
+		t.Errorf("after the fix:\n%s", got)
+	}
+	join := at(src, "[\"a\"].join", 1, 0)
+	acts = nil
+	c.call("textDocument/codeAction", CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: Range{Start: join, End: Position{Line: join.Line + 1}}}, &acts)
+	if len(acts) != 1 || len(acts[0].Edit.Changes[uri]) != 2 || !acts[0].IsPreferred {
+		t.Errorf("code actions on the join: %+v", acts)
+	}
+}

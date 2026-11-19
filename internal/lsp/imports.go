@@ -2,17 +2,10 @@ package lsp
 
 import (
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
-)
-
-// The checker's messages for a name that nothing declares: a value, or where a type is written.
-var (
-	notDefined  = regexp.MustCompile(`^(\S+) is not defined$`)
-	unknownType = regexp.MustCompile(`^unknown type (\S+)$`)
 )
 
 // export is a top-level declaration a module exports, which another module may import.

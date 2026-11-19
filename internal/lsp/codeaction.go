@@ -2,20 +2,15 @@ package lsp
 
 import (
 	"encoding/json"
-	"regexp"
+	"github.com/ant-src/ant/internal/codes"
+	"github.com/ant-src/ant/internal/loader"
+	"github.com/ant-src/ant/internal/token"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/types"
 	"github.com/ant-src/ant/value"
-)
-
-var (
-	missingField   = regexp.MustCompile(`^(\S+) literal is missing the field (\S+)$`)
-	stateReturn    = regexp.MustCompile(`^the exported function (\S+) must state its return type$`)
-	stateVarType   = regexp.MustCompile(`^(\S+) is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func$`)
-	annotateResult = regexp.MustCompile(`annotate the result$`)
 )
 
 // codeActions answers textDocument/codeAction with the mechanical fixes for the diagnostics in
@@ -38,24 +33,32 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 		if before(rng.End, p.Range.Start) || before(p.Range.End, rng.Start) {
 			continue // the diagnostic is outside the range
 		}
-		lsp := Diagnostic{Range: rng, Severity: 1, Code: string(dg.Code), Source: "ant", Message: dg.Msg}
-		switch {
-		case missingField.MatchString(dg.Msg):
-			if act := s.addFields(a, d, dg.Pos, lsp); act != nil {
+		lsp := s.lspDiagnostic(a, rng, dg)
+		// the fixes the checker attaches (spec/check.md section 2, Help and fixes)
+		for _, f := range dg.Fixes {
+			if act := s.fixAction(a, f, len(dg.Fixes) == 1, lsp); act != nil {
 				out = append(out, *act)
 			}
-		case stateReturn.MatchString(dg.Msg):
-			if act := s.stateReturnType(a, d, dg.Pos, lsp); act != nil {
-				out = append(out, *act)
+		}
+		// the fixes that need the editor's view of the module, chosen by the diagnostic's code
+		var act *CodeAction
+		switch dg.Code {
+		case codes.MissingField:
+			act = s.addFields(a, d, dg.Pos, lsp)
+		case codes.NeedsAnnotation:
+			switch innermostDecl(a.module().File, dg.Pos).(type) {
+			case *ast.FuncDecl:
+				act = s.stateReturnType(a, d, dg.Pos, lsp)
+			case *ast.VarDecl:
+				act = s.stateVarType(a, d, dg.Pos, lsp)
 			}
-		case notDefined.MatchString(dg.Msg):
-			out = append(out, s.importActions(a, d, notDefined.FindStringSubmatch(dg.Msg)[1], false, lsp)...)
-		case unknownType.MatchString(dg.Msg):
-			out = append(out, s.importActions(a, d, unknownType.FindStringSubmatch(dg.Msg)[1], true, lsp)...)
-		case stateVarType.MatchString(dg.Msg) || annotateResult.MatchString(dg.Msg):
-			if act := s.stateVarType(a, d, dg.Pos, lsp); act != nil {
-				out = append(out, *act)
+		case codes.Undefined:
+			if name, isType, ok := undefinedName(a.module().File, d, dg.Pos); ok {
+				out = append(out, s.importActions(a, d, name, isType, lsp)...)
 			}
+		}
+		if act != nil {
+			out = append(out, *act)
 		}
 	}
 	return dedupeActions(out)
@@ -396,4 +399,57 @@ func (s *Server) stateVarType(a *analysis, d *document, pos ast.Pos, dg Diagnost
 	at := d.position(d.offsetOf(nt.End), s.utf16)
 	return &CodeAction{Title: "State the type " + ty, Kind: "quickfix", Diagnostics: []Diagnostic{dg},
 		Edit: &WorkspaceEdit{Changes: map[string][]TextEdit{d.uri: {{Range: Range{Start: at, End: at}, NewText: ": " + ty}}}}}
+}
+
+// fixAction is the quick fix that makes the edits of f, preferred when it is auto or the only
+// fix of its diagnostic.
+func (s *Server) fixAction(a *analysis, f loader.Fix, only bool, dg Diagnostic) *CodeAction {
+	changes := map[string][]TextEdit{}
+	for _, e := range f.Edits {
+		loc, ok := a.location(e.Path, e.Start, e.End)
+		if !ok {
+			return nil
+		}
+		changes[loc.URI] = append(changes[loc.URI], TextEdit{Range: loc.Range, NewText: e.Text})
+	}
+	return &CodeAction{Title: f.Title, Kind: "quickfix", Diagnostics: []Diagnostic{dg}, IsPreferred: f.Auto || only,
+		Edit: &WorkspaceEdit{Changes: changes}}
+}
+
+// innermostDecl is the innermost function or variable declaration of f around pos, or nil.
+func innermostDecl(f *ast.File, pos ast.Pos) ast.Node {
+	var out ast.Node
+	for _, n := range ast.Path(f, pos) {
+		switch n.(type) {
+		case *ast.FuncDecl, *ast.VarDecl:
+			out = n
+		}
+	}
+	return out
+}
+
+// undefinedName is the name an undefined error at pos is about, read from the source, and
+// whether it is written where a type goes; false at a name an import lists, which an import of
+// another module would not fix.
+func undefinedName(f *ast.File, d *document, pos ast.Pos) (name string, isType, ok bool) {
+	for _, imp := range f.Imports {
+		if !pos.Before(imp.Pos) && pos.Before(imp.End) {
+			return "", false, false
+		}
+	}
+	start := d.offsetOf(pos)
+	end := start
+	for end < len(d.text) && token.IsIdentByte(d.text[end]) {
+		end++
+	}
+	if end == start {
+		return "", false, false
+	}
+	isType = true
+	for _, n := range ast.Path(f, pos) {
+		if id, ok := n.(*ast.Ident); ok && id.Pos == pos {
+			isType = false
+		}
+	}
+	return d.text[start:end], isType, true
 }

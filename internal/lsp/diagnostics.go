@@ -26,7 +26,7 @@ func (s *Server) publish(d *document) {
 	root := a.module().File
 	for _, dg := range a.diags {
 		if dg.Path == root.Path {
-			out = append(out, Diagnostic{Range: a.diagRange(root.Path, dg.Pos, dg.End), Severity: 1, Code: string(dg.Code), Source: "ant", Message: dg.Msg})
+			out = append(out, s.lspDiagnostic(a, a.diagRange(root.Path, dg.Pos, dg.End), dg))
 		}
 	}
 	for _, imp := range root.Imports {
@@ -88,4 +88,19 @@ func (a *analysis) diagRange(path string, pos, end ast.Pos) Range {
 		from, to = d.offsetOf(pos), d.offsetOf(end)
 	}
 	return Range{Start: d.position(from, a.server.utf16), End: d.position(to, a.server.utf16)}
+}
+
+// lspDiagnostic is the diagnostic dg as the server publishes it, over rng: its message with its
+// help on a line of its own, and its related places as related information.
+func (s *Server) lspDiagnostic(a *analysis, rng Range, dg loader.Diagnostic) Diagnostic {
+	out := Diagnostic{Range: rng, Severity: 1, Code: string(dg.Code), Source: "ant", Message: dg.Msg}
+	if dg.Help != "" {
+		out.Message += "\nhelp: " + dg.Help
+	}
+	for _, r := range dg.Related {
+		if loc, ok := a.location(r.Path, r.Pos, r.Pos); ok {
+			out.RelatedInformation = append(out.RelatedInformation, DiagnosticRelatedInformation{Location: loc, Message: r.Msg})
+		}
+	}
+	return out
 }
