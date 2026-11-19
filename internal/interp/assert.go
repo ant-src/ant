@@ -171,7 +171,7 @@ func report(a *ast.Assert, rec *assertRec, msg string) string {
 			continue
 		}
 		seen[text] = true
-		sb.WriteString("\n  " + text + " = " + show(v))
+		sb.WriteString("\n  " + text + " = " + trimPart(show(v)))
 	}
 	return sb.String()
 }
@@ -179,6 +179,21 @@ func report(a *ast.Assert, rec *assertRec, msg string) string {
 // show renders a value in a report as String.from renders it inside an array, so that a string
 // is quoted.
 func show(v value.Value) string { return value.RenderQuoted(v) }
+
+// partLimit is the most code points a part's value shows: a longer one keeps its first and last
+// partLimit/2 around an ellipsis, so that one large input does not bury the report.
+const partLimit = 200
+
+func trimPart(s string) string {
+	if len(s) <= partLimit {
+		return s
+	}
+	r := []rune(s)
+	if len(r) <= partLimit {
+		return s
+	}
+	return string(r[:partLimit/2]) + " … " + string(r[len(r)-partLimit/2:])
+}
 
 func isNullLit(e ast.Expr) bool {
 	_, ok := e.(*ast.NullLit)

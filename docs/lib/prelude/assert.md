@@ -19,7 +19,9 @@ not a value: it can only be called by name.
 - The panic message starts with `assertion failed: ` and the condition as `ant fmt` prints it on one
   line. When the condition is a comparison or an `is` test, the two values follow in parentheses.
   The names, field accesses, indexes, and calls inside the condition that ran follow, one per line,
-  with their values; the two compared values are not repeated there.
+  with their values; the two compared values are not repeated there. A value on those lines longer
+  than 200 characters shows its first and last 100 around `…`; the compared values are always shown
+  in full.
 - `assert` is always on: no flag or build mode turns it off.
 - After `assert(cond)`, the rest of the block is narrowed as after `if !cond { panic(...) }`.
 
