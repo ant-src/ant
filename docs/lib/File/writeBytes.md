@@ -269,10 +269,13 @@ Ok{ value: Bytes(07 07 07) }
 ```
 
 The file that `saveAtomic` leaves is `0o600`, the temporary file's mode, so `File.chmod` it after
-the rename when others need to read it.
+the rename when others need to read it. Renaming the temporary file keeps readers from a
+half-written file but does not wait for the disk; for a file that must survive a crash, write
+through [File.create](create.md) with [File.writeChunk](writeChunk.md) and call [File.sync](sync.md)
+before the rename.
 
 ## See also
 
 [File.readBytes](readBytes.md) · [File.write](write.md) · [File.writeChunk](writeChunk.md) ·
-[File.create](create.md) · [File.rename](rename.md) · [String.toBytes](../String/toBytes.md) ·
-[Bytes.fromArray](../Bytes/fromArray.md)
+[File.create](create.md) · [File.sync](sync.md) · [File.rename](rename.md) ·
+[String.toBytes](../String/toBytes.md) · [Bytes.fromArray](../Bytes/fromArray.md)

@@ -32,7 +32,11 @@ port=8080
    [File.remove](../../lib/File/remove.md) first.
 3. The copy has the contents and the mode of the source, as [File.stat](../../lib/File/stat.md)
    shows; [String.fromInt](../../lib/String/fromInt.md) prints the mode in octal. The times are not
-   copied, so the copy is new to a build tool.
+   copied, so the copy is new to a build tool. Nor is the owner: `copy` gives the copy the source's
+   contents and mode only. Run as root, [File.chown](../../lib/File/chown.md) gives it the source's
+   owner from the `uid` and `gid` of the source's `File.stat`:
+   `let info = try File.stat("app.conf")` and then
+   `try File.chown(copy, info.uid ?? -1, info.gid ?? -1)`.
 
 A reader can see the copy half-written. To replace a file that others read, see
 [Replace a file without a partial write](replace-safely.md).
@@ -209,3 +213,13 @@ On Unix the rename is atomic, so a reader that opens `current/version.txt` durin
 the old release or the new one, never no link at all. To change the link in two steps instead,
 remove it with `File.remove`, which removes the link and leaves its target, and then call `symlink`
 again.
+
+## See also
+
+[File.copy](../../lib/File/copy.md) · [File.copyAll](../../lib/File/copyAll.md) ·
+[File.rename](../../lib/File/rename.md) · [File.symlink](../../lib/File/symlink.md) ·
+[File.readLink](../../lib/File/readLink.md) · [File.realPath](../../lib/File/realPath.md) ·
+[File.remove](../../lib/File/remove.md) · [File.removeAll](../../lib/File/removeAll.md) ·
+[File.stat](../../lib/File/stat.md) · [File.chown](../../lib/File/chown.md) ·
+[File.mkdir](../../lib/File/mkdir.md) · [Path.join](../../lib/Path/join.md) ·
+[Replace a file without a partial write](replace-safely.md)

@@ -131,7 +131,8 @@ true
 ```
 
 [Os.uid](uid.md) is the effective user id, so `Os.uid() == 0` asks whether the program runs as root.
-On Windows it is `null`, and the test is false:
+[Os.gid](gid.md) is the effective group id, `null` where `Os.uid` is. On Windows both are `null`,
+and the test is false:
 
 <!-- test: check-only the user differs between machines -->
 
@@ -147,6 +148,18 @@ if Os.uid() == 0 {
 
 ```ant
 println("${Os.platform()}/${Os.arch()}")
+```
+
+[Os.cpus](cpus.md) is the number of CPUs the program may use at once, at least 1, so it is the limit
+for CPU-bound [Parallel.map](../Parallel/map.md) work:
+
+```ant
+let squares = Parallel.map([1, 2, 3], func(n: int, _: Context) { n * n }, limit: Os.cpus())
+println(squares)
+```
+
+```text
+[1, 4, 9]
 ```
 
 [Os.which](which.md) finds the program a `Cmd` would start, or gives `null`:

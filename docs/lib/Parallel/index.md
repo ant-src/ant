@@ -29,6 +29,8 @@ and `any` take the first result and cancel the rest.
 - After the call, read what the callbacks wrote with no lock. Callbacks that write the same variable
   as each other still need a [Mutex](../Mutex/index.md) or an [Atomic](../Atomic/index.md).
 - `limit` counts per call, so nested `map` or `each` calls multiply it.
+- For CPU-bound work, [Os.cpus](../Os/cpus.md) is the limit: the CPUs the program may use at once,
+  at least 1. Work that waits on the network or disk takes a limit chosen for the other side.
 
 ## Basic examples
 
@@ -36,7 +38,7 @@ and `any` take the first result and cancel the rest.
 order:
 
 ```ant
-let squares = Parallel.map([1, 2, 3, 4], func(n: int, _: Context) { n * n }, limit: 2)
+let squares = Parallel.map([1, 2, 3, 4], func(n: int, _: Context) { n * n }, limit: Os.cpus())
 println(squares)
 ```
 
@@ -334,8 +336,8 @@ outer still running
 ### A race whose value can be null
 
 `race` returns `null` when the scope ends before a winner, so when a callback's value can be `null`
-too, the result cannot tell the two apart. `any` needs no wrapper, since its winner arrives in `Ok`. Here the cache answers first with `null`, and
-`race` returns `null` as it would on cancellation:
+too, the result cannot tell the two apart. `any` needs no wrapper, since its winner arrives in `Ok`.
+Here the cache answers first with `null`, and `race` returns `null` as it would on cancellation:
 
 ```ant
 func lookup(source: string, latency: Time.Duration, ctx: Context): string | null {
@@ -458,4 +460,5 @@ let winner = Parallel.race(empty) // panic: Parallel.race needs at least one fun
 - [Channel](../Channel/index.md): feed `Parallel.each` and hand values between goroutines
 - [Atomic](../Atomic/index.md) and [Mutex](../Mutex/index.md): share state between callbacks
 - [Panic.catch](../Panic/catch.md): stop a panic a callback raised
+- [Os.cpus](../Os/cpus.md): the limit for CPU-bound `map` and `each`
 - [Concurrency](../../guide/concurrency.md): how goroutines, channels, and sync objects fit together

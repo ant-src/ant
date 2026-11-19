@@ -38,8 +38,10 @@ println(counts)
 
 `Parallel.map` calls `wordCount` on every page, at most `limit: 2` at once, and returns the results
 in input order, whichever finished first. `limit` is required, so the choice of how many run at once
-stays visible: pass `pages.length()` for one goroutine per element. The result is `null` only when
-the run is cancelled before every element starts, which `?? []` covers.
+stays visible: pass `pages.length()` for one goroutine per element. For work that keeps a CPU busy,
+pass [`Os.cpus()`](../lib/Os/cpus.md), the number of CPUs the program may use at once; for work that
+waits on a server or a disk, choose a limit for what the other side can take. The result is `null`
+only when the run is cancelled before every element starts, which `?? []` covers.
 
 The callback takes a second parameter, a context. Pass it to every wait inside the callback, so the
 call can stop the callback early:
@@ -632,7 +634,7 @@ Coming from other languages, these are the surprises:
 - Library: [Concurrency](../lib/guides/concurrency.md), [Parallel](../lib/Parallel/index.md),
   [Channel](../lib/Channel/index.md), [Context](../lib/Context/index.md),
   [WaitGroup](../lib/WaitGroup/index.md), [Mutex](../lib/Mutex/index.md),
-  [Atomic](../lib/Atomic/index.md), [Once](../lib/Once/index.md),
+  [Atomic](../lib/Atomic/index.md), [Once](../lib/Once/index.md), [Os.cpus](../lib/Os/cpus.md),
   [Os.interrupt](../lib/Os/interrupt.md), [Panic.catch](../lib/Panic/catch.md)
 - How-to: [process a list in parallel](../howto/concurrency/parallel-map.md),
   [run a worker pool](../howto/concurrency/worker-pool.md),

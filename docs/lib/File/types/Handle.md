@@ -34,6 +34,9 @@ it.
 - [`File.close`](../close.md) ends a handle. A second close, and a close of a standard stream, does
   nothing and is `Ok`. The handle is closed even when the close is `Err`. A read or write after the
   close is `Err`.
+- Handed to the OS is not yet on disk. [`File.sync`](../sync.md) flushes a handle and then has the
+  OS write it to storage, for data that must survive a crash; it is `Err` for a pipe, a connection,
+  or a closed handle.
 - Two handles are equal only when they are the same handle. `String.from` renders every handle as
   `File.Handle`.
 
@@ -365,4 +368,4 @@ let json = Json.stringify(Os.stdout()) // panic: Json.stringify: File.Handle has
 [File.buffered](../buffered.md), [File.readLine](../readLine.md), [File.pipe](../pipe.md),
 [Os.openPipe](../../Os/openPipe.md), [Os.stdin](../../Os/stdin.md), [Os.stdout](../../Os/stdout.md),
 [Os.stderr](../../Os/stderr.md), [Net.accept](../../Net/accept.md), [Net.dial](../../Net/dial.md),
-[Cmd.start](../../Cmd/start.md), [File.Info](Info.md)
+[Cmd.start](../../Cmd/start.md), [File.Info](Info.md), [File.sync](../sync.md)

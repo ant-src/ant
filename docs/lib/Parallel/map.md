@@ -148,6 +148,20 @@ println(labels)
 ["user-101", "user-102", "user-103"]
 ```
 
+For CPU-bound work, pass [`Os.cpus()`](../Os/cpus.md), so at most one callback per CPU runs at once:
+
+```ant
+func sumTo(n: int, _: Context): int { Array.range(1, n + 1).sum() ?? 0 }
+println(Parallel.map([10, 100, 1000], sumTo, limit: Os.cpus()))
+```
+
+```text
+[55, 5050, 500500]
+```
+
+Work that waits on the network or disk, such as reading the files in Applications, takes a limit
+chosen for the other side instead.
+
 ### ctx
 
 The scope context is a child of `ctx`. When `ctx` ends before every element is admitted, the call
@@ -239,7 +253,7 @@ func wordCount(text: string, _: Context): int {
 }
 
 let docs = ["the quick fox", "jumps over", "the lazy dog"]
-let counts = Parallel.map(docs, wordCount, limit: 2) ?? []
+let counts = Parallel.map(docs, wordCount, limit: Os.cpus()) ?? []
 println(counts)
 println(counts.sum())
 ```
@@ -353,4 +367,4 @@ println(failures.load())
 
 [Parallel.each](each.md) · [Parallel.run](run.md) · [Parallel.race](race.md) ·
 [Parallel.any](any.md) · [Array.map](../Array/map.md) · [Context.cancel](../Context/cancel.md) ·
-[Result.all](../Result/all.md) · [Panic.catch](../Panic/catch.md)
+[Result.all](../Result/all.md) · [Panic.catch](../Panic/catch.md) · [Os.cpus](../Os/cpus.md)

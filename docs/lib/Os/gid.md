@@ -7,7 +7,7 @@
 func Os.gid(): int | null
 ```
 
-Os.gid returns the effective group id, or null on Windows, which has none.
+Os.gid returns the effective group id, or null on Windows and WebAssembly, which have none.
 
 <!-- end generated -->
 

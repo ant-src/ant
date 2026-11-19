@@ -26,6 +26,9 @@ or write in progress on f with an Err.
 - A deferred close cannot report an error, since a deferred block's value is discarded. When a close
   can fail, as a buffered close can, end with an explicit close and keep the deferred one for the
   paths that leave early.
+- `File.close` hands what was written to the OS; it does not wait for the disk, so after a crash or
+  power loss the file can still lack it. Call [`File.sync`](sync.md) before the close when the data
+  must survive.
 
 ## Basic examples
 
@@ -254,4 +257,4 @@ End the function with `out.close()` instead of `Result.ok(void)`, and it returns
 ## See also
 
 [File.open](open.md), [File.create](create.md), [File.buffered](buffered.md),
-[File.flush](flush.md), [File.lock](lock.md), [Os.openPipe](../Os/openPipe.md)
+[File.flush](flush.md), [File.sync](sync.md), [File.lock](lock.md), [Os.openPipe](../Os/openPipe.md)

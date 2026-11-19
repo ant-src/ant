@@ -18,7 +18,9 @@ string appended when there is no \*. Nothing removes it for the program.
 - `File.tempFile` creates the file only when its name is free, so it never replaces anything, a
   planted symbolic link included.
 - `File.tempFile` returns a path, not a handle. Write to it with [`File.write`](write.md) or open it
-  with [`File.create`](create.md).
+  with [`File.create`](create.md). For a file that must survive a crash, open it with
+  [`File.create`](create.md) and [`File.sync`](sync.md) the handle before renaming it; `File.write`
+  returns no handle to sync.
 - A `pattern` that holds a path separator is `Err`. Give the directory with `dir:` instead.
 - `dir` is the host's temporary directory when it is `null`: `$TMPDIR`, or `/tmp` when that is
   unset, on Unix, and `%TEMP%` on Windows. The directory must exist.
@@ -166,6 +168,10 @@ println(try File.glob(".config.json-*", hidden: true))
 []
 ```
 
+The rename keeps readers from a half-written file but does not wait for the disk; for a file that
+must survive a crash, sync it first, as
+[Replace a file without a partial write](../../howto/files/replace-safely.md) shows.
+
 Hand a function that takes a path some input of your own, without touching the working directory, as
 a test does. Add context to a failure with [`Result.wrapErr`](../Result/wrapErr.md):
 
@@ -276,4 +282,4 @@ println(String.fromInt((try File.stat(target)).mode, base: 8))
 ## See also
 
 [File.tempDir](tempDir.md) · [File.remove](remove.md) · [File.removeAll](removeAll.md) ·
-[File.rename](rename.md) · [File.write](write.md) · [File.create](create.md)
+[File.rename](rename.md) · [File.write](write.md) · [File.create](create.md) · [File.sync](sync.md)

@@ -7,7 +7,8 @@
 func Random.fork(r: Random): Random
 ```
 
-Random.fork returns a new generator seeded from four draws of r. Its values are unrelated to r's and to every other fork's, a fork of a fork included, so each goroutine can take its own.
+Random.fork returns a new generator seeded from four draws of r. Its values are unrelated to r's and
+to every other fork's, a fork of a fork included, so each goroutine can take its own.
 
 <!-- end generated -->
 
@@ -113,7 +114,7 @@ func estimatePi(seed: int, batches: int, size: int): float64 {
       let py = g.float()
       px * px + py * py < 1.0
     })
-  }, limit: batches) ?? []
+  }, limit: Os.cpus()) ?? []
   4.0 * float64(hits.sum() ?? 0) / float64(batches * size)
 }
 
@@ -125,6 +126,9 @@ println(estimatePi(1, 4, 10000))
 3.1292
 3.1292
 ```
+
+The forks are made before the workers start, so the answer is the same however many batches run at
+once. `Os.cpus()` is the limit for CPU-bound work like this.
 
 ## Properties and relations
 
@@ -193,4 +197,5 @@ r.int(0, 100)    // 33
 ## See also
 
 [Random.new](new.md) · [Random.int](int.md) · [Random.float](float.md) · [Random.pick](pick.md) ·
-[Random.shuffle](shuffle.md) · [Parallel.map](../Parallel/map.md) · [Random](index.md)
+[Random.shuffle](shuffle.md) · [Parallel.map](../Parallel/map.md) · [Os.cpus](../Os/cpus.md) ·
+[Random](index.md)

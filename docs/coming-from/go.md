@@ -85,6 +85,7 @@ return value. This page maps Go to Ant, then covers the differences that change 
 | `mu.Lock(); defer mu.Unlock()`            | `mu.withLock({ ... })`                                                               |
 | `context.WithTimeout(ctx, 2*time.Second)` | `Context.new(2s, parent: ctx)`                                                       |
 | `errgroup.SetLimit`, a pool of workers    | `Parallel.map(xs, f, limit: 8)`, every result in order; it does not stop at an `Err` |
+| `runtime.GOMAXPROCS(0)`                   | `Os.cpus()`, the CPUs the program may use; the limit for CPU-bound `Parallel.map`    |
 
 ### Programs and tools
 
@@ -250,7 +251,7 @@ goroutines, waits for them, and keeps the order of the results:
 
 ```ant
 let words = ["ant", "go", "rust"]
-let lengths = Parallel.map(words, func(word: string, _: Context): int { word.length() }, limit: 2)
+let lengths = Parallel.map(words, func(word: string, _: Context): int { word.length() }, limit: Os.cpus())
 println(lengths)
 ```
 

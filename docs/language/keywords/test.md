@@ -109,6 +109,8 @@ ok    4 passed (0.00s)
 
 The run counts the four subtests, not the test that holds them. A subtest's full name joins the
 names with `/`, such as `parsePort/65536`, and `ant test -run 'parsePort/655'` runs only that row.
+`ant test -list` shows which top-level tests a pattern selects without running them; it does not
+list subtests.
 
 A subtest sees the variables of the blocks around it, as a lambda does. Subtests nest to any depth.
 
@@ -321,8 +323,8 @@ println("setting up")
 // error: a test file cannot have top-level statements: it holds imports, declarations, and tests
 ```
 
-A top-level test's name cannot interpolate, so tools can list the tests without running anything.
-Use a subtest for a computed name:
+A top-level test's name cannot interpolate, so [`ant test -list`](../../tools/test.md) can list the
+tests without running anything. Use a subtest for a computed name:
 
 ```ant [name_test.ant]
 let size = 3

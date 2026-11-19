@@ -268,6 +268,10 @@ println(try File.list("state"))
 The temporary file is `0o600`, and keeps that mode when `File.write` writes it, so this is also how
 a private file such as a token is saved.
 
+The rename protects readers, not a crash: `File.write` hands the data to the OS without waiting for
+the disk, and it returns no handle to sync. When the file must survive a power loss, write the
+temporary file through [File.create](create.md) and call [File.sync](sync.md) before the rename.
+
 ### Pick a free name
 
 `replace: false` claims a name in one step, even against another program writing at the same time.
@@ -381,5 +385,5 @@ let r = File.write("data.bin", data) // error: cannot use Bytes where string is 
 
 [File.writeBytes](writeBytes.md) · [File.read](read.md) · [File.append](append.md) ·
 [File.create](create.md) · [File.writeLine](writeLine.md) · [File.writeText](writeText.md) ·
-[File.tempFile](tempFile.md) · [File.rename](rename.md) · [File.mkdir](mkdir.md) ·
-[Path.dir](../Path/dir.md)
+[File.tempFile](tempFile.md) · [File.rename](rename.md) · [File.sync](sync.md) ·
+[File.mkdir](mkdir.md) · [Path.dir](../Path/dir.md)

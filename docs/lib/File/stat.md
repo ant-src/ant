@@ -20,6 +20,8 @@ itself.
 - `modified` is the time of the last write, as precise as the file system keeps it: to the
   nanosecond on ext4 and APFS, to the second on HFS+, to 2 seconds on FAT.
 - `mode` holds the permissions, not the kind of file: `isDir` and `isSymlink` say that.
+- `uid` and `gid` are the numeric ids of the owning user and group, `null` on Windows and
+  WebAssembly; [File.chown](chown.md) changes them.
 - `File.stat` is `Err` when nothing is at `path`.
 
 ## Basic examples
@@ -112,6 +114,19 @@ println(String.fromInt(info.mode, base: 8))
 
 ```text
 755
+```
+
+`uid` is the id of the user that owns the file, the same as [Os.uid](../Os/uid.md) for a file this
+program just wrote:
+
+```ant
+try File.write("mine.txt", "x")
+let info = try File.stat("mine.txt")
+println(info.uid == Os.uid())
+```
+
+```text
+true
 ```
 
 A path that runs through a file is an `Err`, as is an empty path:
@@ -354,5 +369,5 @@ println(Time.compare(older.modified, newer.modified))
 ## See also
 
 [File.exists](exists.md) · [File.Info](types/Info.md) · [File.touch](touch.md) ·
-[File.chmod](chmod.md) · [File.readLink](readLink.md) · [File.realPath](realPath.md) ·
-[File.list](list.md) · [File.walk](walk.md)
+[File.chmod](chmod.md) · [File.chown](chown.md) · [File.readLink](readLink.md) ·
+[File.realPath](realPath.md) · [File.list](list.md) · [File.walk](walk.md)

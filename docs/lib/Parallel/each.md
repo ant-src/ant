@@ -205,6 +205,22 @@ println(seen.length())
 3
 ```
 
+For CPU-bound work, pass [`Os.cpus()`](../Os/cpus.md), the CPUs the program may use at once; work
+that waits on the network or disk takes a limit chosen for the other side. Each callback writes its
+own slot:
+
+```ant
+let sums = Array.filled(3, 0)
+Parallel.each([0, 1, 2], func(i: int, work: Context) {
+  sums[i] = Array.range(1, (i + 1) * 100 + 1).sum() ?? 0
+}, limit: Os.cpus())
+println(sums)
+```
+
+```text
+[5050, 20100, 45150]
+```
+
 ### ctx
 
 The scope context is a child of `ctx:`. A `ctx` that is done already admits nothing:
@@ -452,4 +468,4 @@ true
 [Parallel.map](map.md), [Parallel.run](run.md), [Parallel.race](race.md), [Parallel.any](any.md),
 [Channel.values](../Channel/values.md), [Context.new](../Context/new.md),
 [Mutex.withLock](../Mutex/withLock.md), [WaitGroup](../WaitGroup/index.md),
-[Panic.catch](../Panic/catch.md)
+[Panic.catch](../Panic/catch.md), [Os.cpus](../Os/cpus.md)

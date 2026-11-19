@@ -41,6 +41,10 @@ println(lengths.sum())
 10
 ```
 
+For CPU-bound work, `limit: Os.cpus()` runs at most one callback per CPU the program may use at
+once; see [Os.cpus](../Os/cpus.md). For I/O-bound work, such as fetching URLs, pick a limit that
+suits the remote side.
+
 ### A stream of values
 
 A goroutine sends on a channel and closes it when it is done. A `for` loop over `Channel.values`
@@ -185,6 +189,8 @@ field, or an `Atomic`, not by reassigning a local of its parent.
   results in input order
 - [Parallel.each](../Parallel/each.md): call a function on every element of an array, or every value
   of a channel, at most `limit` at once
+- [Os.cpus](../Os/cpus.md): the number of CPUs the program may use at once, the `limit` for
+  CPU-bound work
 
 ### Taking the first result
 

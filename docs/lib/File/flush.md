@@ -22,6 +22,9 @@ nothing and is Ok; on a closed buffered handle it is Err.
 - Over buffered handles stacked on each other, `File.flush` writes out every layer, the outer one
   first.
 - The first error from writing a buffer out is kept, and every later write and flush returns it.
+- What a flush hands to the OS is not yet on disk: after a crash or power loss the file can still
+  lack it. [File.sync](sync.md) flushes as `File.flush` does and then has the OS write the file to
+  storage.
 
 ## Basic examples
 
@@ -229,5 +232,5 @@ Flush `out` before writing to `f` directly.
 
 ## See also
 
-[File.buffered](buffered.md) · [File.close](close.md) · [File.writeLine](writeLine.md) ·
-[File.writeText](writeText.md) · [Os.stdout](../Os/stdout.md)
+[File.buffered](buffered.md) · [File.close](close.md) · [File.sync](sync.md) ·
+[File.writeLine](writeLine.md) · [File.writeText](writeText.md) · [Os.stdout](../Os/stdout.md)

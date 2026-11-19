@@ -18,6 +18,9 @@ Ok and nothing changes when from and to are the same file.
 - `File.rename` replaces a file at `to` without asking. It has no `replace:` parameter.
 - On Unix the replacement is atomic: a reader of `to` sees the old file or the new one, never a mix.
   Elsewhere atomicity is not promised.
+- Atomic is not durable: the rename can reach the disk before the file's data does. Sync the new
+  file with [File.sync](sync.md) before renaming it into place, as
+  [Replace a file without a partial write](../../howto/files/replace-safely.md) shows.
 - At a symbolic link, `File.rename` moves the link itself, not what it points at.
 
 ## Basic examples
@@ -119,7 +122,10 @@ version 2
 
 Save a file so that no reader ever sees it half-written: write a temporary file beside it, then
 rename it into place. The deferred `File.remove` cleans up when a step fails, and is an `Err` that
-nobody reads after the rename succeeds:
+nobody reads after the rename succeeds. This keeps readers from seeing a partial file but does not
+survive a crash. For that, write through [File.create](create.md) and call [File.sync](sync.md)
+before the rename, as [Replace a file without a partial write](../../howto/files/replace-safely.md)
+shows.
 
 ```ant
 func save(path: string, text: string): Result[void, Error] {
@@ -246,5 +252,5 @@ Ok{ value: void }
 ## See also
 
 [File.copy](copy.md) · [File.copyAll](copyAll.md) · [File.remove](remove.md) ·
-[File.tempFile](tempFile.md) · [File.mkdir](mkdir.md) · [File.exists](exists.md) ·
-[Path.join](../Path/join.md) · [Path.base](../Path/base.md)
+[File.tempFile](tempFile.md) · [File.sync](sync.md) · [File.mkdir](mkdir.md) ·
+[File.exists](exists.md) · [Path.join](../Path/join.md) · [Path.base](../Path/base.md)

@@ -23,6 +23,9 @@ itself goes past the buffer.
 - `File.close` of the buffered handle writes the buffer out and closes `f`. Check its result: a
   deferred close cannot report an error. Over a standard stream, `File.close` writes the buffer out
   and leaves the stream open.
+- A flush or a close hands the buffer to the OS but does not wait for the disk. [File.sync](sync.md)
+  writes the buffer out and then has the OS write the file to storage, for data that must survive a
+  crash.
 
 ## Basic examples
 
@@ -261,5 +264,5 @@ Ok{ value: void }
 
 ## See also
 
-[File.flush](flush.md) · [File.close](close.md) · [File.create](create.md) ·
+[File.flush](flush.md) · [File.close](close.md) · [File.sync](sync.md) · [File.create](create.md) ·
 [File.writeLine](writeLine.md) · [File.writeText](writeText.md) · [Os.stdout](../Os/stdout.md)

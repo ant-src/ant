@@ -18,6 +18,7 @@ false it creates the file only when nothing is at path, and is otherwise Err.
   exists keeps its mode; a new one gets `0o666` less the umask, `0o644` under the usual umask `022`.
 - The handle is for writing only. A read from it is `Err`.
 - Close the handle with [`File.close`](close.md), which can fail too.
+- `File.close` hands the data to the OS but does not wait for the disk; [`File.sync`](sync.md) does.
 - `File.create` follows a symbolic link at `path` and writes its target.
 - With `replace: false`, anything at `path` makes it `Err`, a directory or a link included, even a
   link that leads nowhere. The check and the creation are one atomic step.
@@ -261,6 +262,10 @@ Ok{ value: "<p>new</p>" }
 600
 ```
 
+The rename keeps readers from a half-written file but does not wait for the disk; for a file that
+must survive a crash, sync it first, as
+[Replace a file without a partial write](../../howto/files/replace-safely.md) shows.
+
 ## Properties and relations
 
 A file created and closed without a write is empty:
@@ -331,4 +336,4 @@ Applications.
 
 [File.open](open.md), [File.append](append.md), [File.write](write.md), [File.close](close.md),
 [File.buffered](buffered.md), [File.writeLine](writeLine.md), [File.writeText](writeText.md),
-[File.tempFile](tempFile.md), [File.rename](rename.md), [File.mkdir](mkdir.md)
+[File.tempFile](tempFile.md), [File.rename](rename.md), [File.mkdir](mkdir.md), [File.sync](sync.md)

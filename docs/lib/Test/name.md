@@ -293,4 +293,5 @@ FAIL  1 failed, 0 passed (0.00s)
 - [Test.skip](skip.md): end the current test as skipped
 - [Test.tempDir](tempDir.md): a directory for the current test
 - [Test.context](context.md): a context that ends with the current test
-- [ant test](../../tools/test.md): run tests by name with `-run`
+- [ant test](../../tools/test.md): run tests by name with `-run`, or list the top-level tests a
+  pattern selects with `-list`

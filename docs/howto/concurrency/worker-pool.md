@@ -70,7 +70,8 @@ logs/web.log: 2 lines
    [File.readLine](../../lib/File/readLine.md) and stops at the end of the input or at a read error.
 3. Run the workers with [Parallel.each](../../lib/Parallel/each.md) over the channel. `limit:` is
    the number of workers. The call takes a job only when a worker is free, and returns once the
-   channel is closed and empty and every job has finished.
+   channel is closed and empty and every job has finished. Here four bounds the files open at once.
+   For jobs that keep a CPU busy, use [`Os.cpus()`](../../lib/Os/cpus.md) workers.
 4. Collect the results in a map guarded by [Mutex.withLock](../../lib/Mutex/withLock.md), since
    several workers write it at once. Read it after `Parallel.each` returns, with no lock.
 
@@ -183,6 +184,6 @@ keep that worker taking jobs, run each job through [Panic.catch](../../lib/Panic
 [WaitGroup](../../lib/WaitGroup/index.md) · [Context.new](../../lib/Context/new.md) ·
 [Context.cancel](../../lib/Context/cancel.md) · [Mutex.withLock](../../lib/Mutex/withLock.md) ·
 [Atomic.compareAndSwap](../../lib/Atomic/compareAndSwap.md) · [Os.stdin](../../lib/Os/stdin.md) ·
-[File.readLine](../../lib/File/readLine.md) · [File.read](../../lib/File/read.md) ·
-[Process a list in parallel](parallel-map.md) · [Cancel a group of goroutines](cancel.md) ·
-[Concurrency](../../guide/concurrency.md)
+[Os.cpus](../../lib/Os/cpus.md) · [File.readLine](../../lib/File/readLine.md) ·
+[File.read](../../lib/File/read.md) · [Process a list in parallel](parallel-map.md) ·
+[Cancel a group of goroutines](cancel.md) · [Concurrency](../../guide/concurrency.md)

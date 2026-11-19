@@ -60,7 +60,12 @@ path, `ant test` runs every test file under the current directory:
 ant test                    # every test file under .
 ant test stack_test.ant     # one file
 ant test -run 'pop on'      # only the tests whose names match
+ant test -list 'pop'        # list the matching top-level tests, run none
 ```
+
+A `-run` or `-skip` pattern that leaves no test to run is not an error: `ant test` warns
+`ant test: warning: no tests to run` and exits with status 0. To see which top-level tests a pattern
+names before running them, use `-list`.
 
 Each test file runs as a program of its own, so module state never leaks from one file into another.
 Top-level tests of one file run one at a time, in source order, after the file's modules are
@@ -201,7 +206,7 @@ them.
 - A subtest's full name joins the names with `/`: `countWords/tabs`.
   `ant test -run 'countWords/tabs'` runs that row alone.
 - A subtest's name may interpolate; a top-level test's name is a plain string, so tools list the
-  tests without running anything.
+  tests without running anything, as `ant test -list` does.
 - A subtest sees the variables around it, as a lambda does, and subtests nest to any depth.
 - Two subtests of one test with the same name are told apart by ` #2`, ` #3`, and so on; an empty
   subtest name panics.
@@ -283,7 +288,8 @@ ok    0 passed, 1 skipped (0.00s)
 
 Tests run one at a time unless they call `Test.parallel()`. A test that calls it waits until every
 test of the same parent that did not call it has ended, then runs alongside the parent's other
-parallel tests, at most `ant test -parallel n` at a time.
+parallel tests, at most `ant test -parallel n` at a time; `n` defaults to
+[`Os.cpus()`](../lib/Os/cpus.md), the CPUs the program may use.
 
 Call `Test.parallel()` once, from the test's body; a second call, or a call from a deferred block or
 a goroutine, panics. Rows of a table are the usual candidates:

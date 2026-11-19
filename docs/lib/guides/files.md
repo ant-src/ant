@@ -63,6 +63,10 @@ north,12
 south,7
 ```
 
+A close hands the data to the OS but does not wait for the disk. When a file must survive a crash or
+a power loss, call `try out.sync()` before the final close, as when a temporary file is renamed into
+place: see [Replace a file without a partial write](../../howto/files/replace-safely.md).
+
 A `Path` function works on the text alone, so the path does not have to exist:
 
 ```ant
@@ -168,12 +172,15 @@ true
 - [File.pipe](../File/pipe.md): copy the rest of one handle to another
 - [File.buffered](../File/buffered.md): a handle that holds its writes until full, flush, or close
 - [File.flush](../File/flush.md): hand what a buffered handle holds to the OS
+- [File.sync](../File/sync.md): flush, then have the OS write the file to storage, so it survives a
+  crash
 
 ### Metadata and modes
 
 - [File.stat](../File/stat.md): the [File.Info](../File/types/Info.md) of a path: name, size, kind,
-  modified time, and mode
+  modified time, mode, and owner ids
 - [File.chmod](../File/chmod.md): set the mode
+- [File.chown](../File/chown.md): set the user and group that own a file, by id
 - [File.touch](../File/touch.md): set the modified time, creating an empty file when missing
 
 ### Creating, moving, copying, and removing
@@ -208,5 +215,5 @@ true
 [Replace a file without a partial write](../../howto/files/replace-safely.md) ·
 [Use a temporary file or directory](../../howto/files/temp.md) ·
 [Copy, move, and link files](../../howto/files/copy-link.md) ·
-[Read and change modes and times](../../howto/files/metadata.md) ·
+[Read and change modes, owners, and times](../../howto/files/metadata.md) ·
 [Lock a file between processes](../../howto/files/lock.md)

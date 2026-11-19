@@ -105,10 +105,14 @@ assert(!os.isEmpty())
 assert(os == os.toLower())
 ```
 
-[Os.uid](uid.md) is `null` exactly on Windows:
+[Os.uid](uid.md) and [Os.gid](gid.md) are `null` on Windows, which has no user or group ids, and on
+other hosts without them, such as WebAssembly:
 
 ```ant
-assert((Os.uid() == null) == (Os.platform() == "windows"))
+if Os.platform() == "windows" {
+  assert(Os.uid() == null)
+}
+assert((Os.uid() == null) == (Os.gid() == null))
 ```
 
 ## Possible issues
@@ -122,4 +126,5 @@ assert(Os.platform() != "Darwin")
 
 ## See also
 
-[Os.arch](arch.md) · [Os.uid](uid.md) · [Os.env](env.md) · [Cmd.new](../Cmd/new.md) · [Os](index.md)
+[Os.arch](arch.md) · [Os.uid](uid.md) · [Os.gid](gid.md) · [Os.env](env.md) ·
+[Cmd.new](../Cmd/new.md) · [Os](index.md)

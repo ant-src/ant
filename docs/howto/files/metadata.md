@@ -1,16 +1,18 @@
 <!-- status: reviewed -->
 
-# Read and change modes and times
+# Read and change modes, owners, and times
 
-Check and set who may read, write, and run a file, and when it last changed.
+Check and set who owns a file, who may read, write, and run it, and when it last changed.
 
 1. Read the mode and the modified time with [File.stat](../../lib/File/stat.md). Both are fields of
    the [File.Info](../../lib/File/types/Info.md) it returns.
 2. Set the mode with [File.chmod](../../lib/File/chmod.md). It sets every bit, so build the new mode
    from the old one with [Bits.or](../../lib/Bits/or.md) and [Bits.and](../../lib/Bits/and.md) to
    change only a few.
-3. Set the modified time with [File.touch](../../lib/File/touch.md).
-4. Compare two times with [Time.compare](../../lib/Time/compare.md).
+3. Read the owner and group ids from the `uid` and `gid` fields, and change them with
+   [File.chown](../../lib/File/chown.md).
+4. Set the modified time with [File.touch](../../lib/File/touch.md).
+5. Compare two times with [Time.compare](../../lib/Time/compare.md).
 
 ## Read the mode and the modified time
 
@@ -76,8 +78,9 @@ println("runnable: ${runnable}, world-writable: ${worldWritable}")
 runnable: true, world-writable: false
 ```
 
-The mode does not tell whether your program can write the file: the owner, root, access control
-lists, and read-only mounts decide too. To find out, try the write and handle the `Err`.
+The mode does not tell whether your program can write the file:
+[the owner](#read-and-change-the-owner), root, access control lists, and read-only mounts decide
+too. To find out, try the write and handle the `Err`.
 
 ## Change the mode
 
@@ -130,6 +133,32 @@ file that exists keeps its mode. To write a file nobody else may read, such as a
 it and then call `File.chmod`; [Replace a file without a partial write](replace-safely.md) shows a
 file that is private from the start.
 
+## Read and change the owner
+
+`File.stat` reads the owner into `uid` and the group into `gid`. They are numeric ids, as `ls -n`
+shows them, and `int | null`: on Windows and WebAssembly they are null, as
+[Os.uid](../../lib/Os/uid.md) and [Os.gid](../../lib/Os/gid.md) are. Give `File.chown` the user id
+and the group id; `-1` keeps one as it is. A new file may take its directory's group, as it does on
+macOS, so this example sets the group first and then compares it:
+
+```ant
+try File.write("report.txt", "total: 42\n")
+let info = try File.stat("report.txt")
+println(info.uid == Os.uid())
+try File.chown("report.txt", -1, Os.gid() ?? -1)
+println((try File.stat("report.txt")).gid == Os.gid())
+```
+
+```text
+true
+true
+```
+
+Only root may give a file to another user, and an owner may set the group only to one it belongs to;
+anything else is an `Err`. At a symbolic link `File.chown` changes the file the link points to; pass
+`follow: false` to change the link itself. The ids are numbers, so look a user name up first with
+`Cmd.read(Cmd.new("id", ["-u", name]))`. On Windows `File.chown` is an `Err`.
+
 ## Set the modified time
 
 Pass an instant to `File.touch`. Without one, it sets the time to now. Either way it creates an
@@ -151,8 +180,8 @@ v1.2
 `File.stat` reads the time back rounded as the file system keeps it: to 2 seconds on FAT, to the
 second on HFS+, and to the nanosecond on ext4 and APFS.
 
-[File.copy](../../lib/File/copy.md) copies the mode but not the times. To keep the time too, touch
-the copy with the original's:
+[File.copy](../../lib/File/copy.md) copies the mode but not the times or the owner. To keep the time
+too, touch the copy with the original's:
 
 ```ant
 let taken = try Time.parseInstant("2024-07-04T08:00:00Z")
@@ -267,11 +296,13 @@ Besides the functions above, it uses [File.list](../../lib/File/list.md),
 ## See also
 
 [File.stat](../../lib/File/stat.md) · [File.Info](../../lib/File/types/Info.md) ·
-[File.chmod](../../lib/File/chmod.md) · [File.touch](../../lib/File/touch.md) ·
-[File.copy](../../lib/File/copy.md) · [File.glob](../../lib/File/glob.md) ·
-[Bits.and](../../lib/Bits/and.md) · [Bits.or](../../lib/Bits/or.md) ·
-[Bits.not](../../lib/Bits/not.md) · [String.fromInt](../../lib/String/fromInt.md) ·
-[Time.compare](../../lib/Time/compare.md) · [Time.inZone](../../lib/Time/inZone.md) ·
-[Time.subtract](../../lib/Time/subtract.md) · [Time.parseInstant](../../lib/Time/parseInstant.md) ·
+[File.chmod](../../lib/File/chmod.md) · [File.chown](../../lib/File/chown.md) ·
+[File.touch](../../lib/File/touch.md) · [Os.uid](../../lib/Os/uid.md) ·
+[Os.gid](../../lib/Os/gid.md) · [File.copy](../../lib/File/copy.md) ·
+[File.glob](../../lib/File/glob.md) · [Bits.and](../../lib/Bits/and.md) ·
+[Bits.or](../../lib/Bits/or.md) · [Bits.not](../../lib/Bits/not.md) ·
+[String.fromInt](../../lib/String/fromInt.md) · [Time.compare](../../lib/Time/compare.md) ·
+[Time.inZone](../../lib/Time/inZone.md) · [Time.subtract](../../lib/Time/subtract.md) ·
+[Time.parseInstant](../../lib/Time/parseInstant.md) ·
 [Replace a file without a partial write](replace-safely.md) ·
 [Walk a directory and match globs](walk-glob.md)

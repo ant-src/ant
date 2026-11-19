@@ -127,6 +127,8 @@ and: 1
 | `open(p).read()`                                        | `try File.read(p)`                                     |
 | `open(p, "w").write(s)`                                 | `try File.write(p, s)`                                 |
 | `with open(p) as f:`                                    | `let f = try File.open(p)`, then `defer { f.close() }` |
+| `f.flush(); os.fsync(f.fileno())`                       | `try f.sync()`                                         |
+| `os.chown(p, uid, gid)`                                 | `try File.chown(p, uid, gid)`                          |
 | `os.path.join(a, b)`                                    | `Path.join([a, b])`                                    |
 | `os.path.exists(p)`                                     | `File.exists(p)`                                       |
 | `glob.glob("*.txt")`, `os.walk(d)`                      | `try File.glob("*.txt")`, `try File.walk(d)`           |
@@ -138,6 +140,9 @@ and: 1
 | `json.loads(text)`                                      | `try Json.parse(text)`                                 |
 | `json.dumps(value, indent=2)`                           | `Json.stringify(value, indent: "  ")`                  |
 
+A close hands what was written to the OS but does not wait for the disk. `f.sync()` flushes and then
+has the OS write the file to storage, as `os.fsync` does.
+
 `Cmd` runs the program with no shell, so each argument reaches it as written. `Cmd.run` returns the
 exit status; `Cmd.read` returns the output without its final line break, and a nonzero status is an
 `Err`. `Json.parse` gives a `Json.Value`, which you narrow with `is` before you read it, and every
@@ -145,21 +150,27 @@ JSON number in it is a `float64`.
 
 ### Concurrency
 
-| Python                                      | Ant                                            |
-| ------------------------------------------- | ---------------------------------------------- |
-| `threading.Thread(target=f).start()`        | `go { f() }`                                   |
-| `pool.map(f, xs)` in a `ThreadPoolExecutor` | `Parallel.map(xs, f, limit: 8)`                |
-| `asyncio.gather(a(), b())`                  | `Parallel.run([{ ra = a(x) }, { rb = b(x) }])` |
-| `async def` and `await`                     | ordinary functions and calls                   |
-| `queue.Queue()`                             | `let q: Channel[Job] = Channel.new(100)`       |
-| `threading.Lock()`                          | `Mutex.new()`                                  |
-| `time.sleep(0.5)`                           | `Time.sleep(500ms)`                            |
+| Python                                               | Ant                                                  |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| `threading.Thread(target=f).start()`                 | `go { f() }`                                         |
+| `pool.map(f, xs)` in a `ThreadPoolExecutor`          | `Parallel.map(xs, f, limit: 8)`                      |
+| `ProcessPoolExecutor().map(f, xs)`, `os.cpu_count()` | `Parallel.map(xs, f, limit: Os.cpus())`, `Os.cpus()` |
+| `asyncio.gather(a(), b())`                           | `Parallel.run([{ ra = a(x) }, { rb = b(x) }])`       |
+| `async def` and `await`                              | ordinary functions and calls                         |
+| `queue.Queue()`                                      | `let q: Channel[Job] = Channel.new(100)`             |
+| `threading.Lock()`                                   | `Mutex.new()`                                        |
+| `time.sleep(0.5)`                                    | `Time.sleep(500ms)`                                  |
 
 The callbacks of `Parallel.run` receive the context as `x` and return nothing, so results go into
 variables declared before the call. A channel's capacity bounds it, where a `queue.Queue()` grows
 without limit: a `send` to a full channel waits, and `Channel.new()` with no capacity is a
 rendezvous, whose `send` waits until a receiver takes the value. The declared type gives
 `Channel.new` its element type, which its arguments do not fix.
+
+`Os.cpus()` is not `os.cpu_count()`, which counts every CPU of the host. It is the number of CPUs
+the program may use at once: fewer under a container's CPU limit, and the `GOMAXPROCS` environment
+variable's value when that is a positive number. It is the limit for CPU-bound work, and it can
+change while the program runs, so read it when you size the work.
 
 ## Differences that bite
 

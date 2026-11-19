@@ -21,6 +21,9 @@ file.
   [Path.join](../Path/join.md).
 - The copy gets the mode of `from`, also when it replaces a file that had another mode. Times are
   not copied, so a build tool sees the copy as new.
+- The owner is not copied either: `File.copy` copies the contents and the mode, nothing else. To
+  give the copy the owner of `from`, read `uid` and `gid` with [File.stat](stat.md) and set them
+  with [File.chown](chown.md), which needs root to give a file away.
 - A symbolic link at `to` is followed: the file it points to is replaced, and the link stays.
 - The copy is not atomic: a reader can see `to` half-written. Copy to a temporary file and
   [File.rename](rename.md) it to avoid that.
@@ -355,4 +358,4 @@ false
 
 [File.copyAll](copyAll.md) · [File.rename](rename.md) · [File.write](write.md) ·
 [File.tempFile](tempFile.md) · [File.remove](remove.md) · [File.stat](stat.md) ·
-[Path.join](../Path/join.md) · [Path.base](../Path/base.md)
+[File.chown](chown.md) · [Path.join](../Path/join.md) · [Path.base](../Path/base.md)

@@ -234,13 +234,13 @@ pipe input into `ant`.
 
 Type `:help` to list the commands and editing keys:
 
-| Command                | What it does                                      |
-| ---------------------- | ------------------------------------------------- |
-| `:type expr`           | Print the type of an expression.                  |
-| `:doc name`            | Look up standard-library documentation.           |
-| `:load file.ant`       | Evaluate a file in the current session.           |
-| `:reset`               | Start a new session, forgetting its declarations. |
-| `:quit`, `:q`, `:exit` | End the session with status `0`.                  |
+| Command                | What it does                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `:type expr`           | Print the type of an expression.                                                                       |
+| `:doc name`            | Look up standard-library documentation as `ant doc` does; for a name not found it suggests near names. |
+| `:load file.ant`       | Evaluate a file in the current session.                                                                |
+| `:reset`               | Start a new session, forgetting its declarations.                                                      |
+| `:quit`, `:q`, `:exit` | End the session with status `0`.                                                                       |
 
 In a terminal, Tab completes names and Up and Down browse the history, kept in `~/.ant_history`.
 Ctrl-D on an empty line ends the session with status `0`, as does the end of piped input. Ctrl-C
@@ -249,6 +249,7 @@ drops the current input; press it again on an empty line to exit with status `13
 ## See also
 
 - [ant check](check.md)
+- [ant doc](doc.md)
 - [ant test](test.md)
 - [Runtime panics](../language/panics.md)
 - [Os.args](../lib/Os/args.md)

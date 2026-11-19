@@ -60,7 +60,9 @@ contents of /pages/faq
    [Http.text](../../lib/Http/text.md) for a page.
 2. Call [Parallel.map](../../lib/Parallel/map.md) with `limit:`, the most callbacks that run at
    once. Here at most three requests are in flight; the next path starts when one of them ends.
-   `limit` must be at least 1; a smaller value panics.
+   `limit` must be at least 1; a smaller value panics. Choose the limit for what the work waits on.
+   For requests, pick what the server can take. For work that keeps a CPU busy, such as hashing or
+   parsing, pass [`Os.cpus()`](../../lib/Os/cpus.md): more callbacks than CPUs only wait for one.
 3. Bound the whole batch with a deadline from [Context.new](../../lib/Context/new.md), passed as
    `ctx:`. Parallel.map returns `null` when the context ends before every element has started, and
    [Context.reason](../../lib/Context/reason.md) says why.
@@ -240,5 +242,6 @@ The request for `/pages/home` was running when `/missing` failed, so its context
 ## See also
 
 [Parallel.map](../../lib/Parallel/map.md) · [Parallel.each](../../lib/Parallel/each.md) ·
-[Context.new](../../lib/Context/new.md) · [Run a worker pool over a channel](worker-pool.md) ·
+[Context.new](../../lib/Context/new.md) · [Os.cpus](../../lib/Os/cpus.md) ·
+[Run a worker pool over a channel](worker-pool.md) ·
 [Give up after a timeout or deadline](timeout.md)

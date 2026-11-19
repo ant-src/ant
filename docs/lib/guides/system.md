@@ -139,7 +139,8 @@ shutting down after interrupt
 - [Os.args](../Os/args.md): the arguments after the program path
 - [Os.program](../Os/program.md): the program path, as the command gave it
 - [Os.pid](../Os/pid.md): this process's id
-- [Os.uid](../Os/uid.md): the effective user id, or `null` on Windows
+- [Os.uid](../Os/uid.md), [Os.gid](../Os/gid.md): the effective user and group ids, or `null` on
+  Windows and WebAssembly
 
 ### Environment and host
 
@@ -148,6 +149,8 @@ shutting down after interrupt
 - [Os.platform](../Os/platform.md), [Os.arch](../Os/arch.md): the operating system and processor, by
   Go's names
 - [Os.hostname](../Os/hostname.md): the host's name
+- [Os.cpus](../Os/cpus.md): the number of CPUs the program may use at once, the limit for CPU-bound
+  `Parallel` work
 - [Os.cwd](../Os/cwd.md): the working directory
 - [Os.home](../Os/home.md): the user's home directory
 - [Os.configDir](../Os/configDir.md), [Os.cacheDir](../Os/cacheDir.md): where programs keep

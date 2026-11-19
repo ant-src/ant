@@ -1821,7 +1821,8 @@ type File.Handle
 // isSymlink is true only when stat was told not to follow a link. name is the last element of the
 // path, also when a link is followed. size is a regular file's length in bytes; for a directory, and
 // for a link described with follow false, it is what the host reports, as is a link's own mode.
-// uid and gid are the ids of the user and the group that own the file, or null on Windows.
+// uid and gid are the ids of the user and the group that own the file, or null on Windows and
+// WebAssembly, which have none.
 type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int, uid: int | null, gid: int | null }
 
 // File.stat returns the name, size, kind, modification time, mode and owner of the file at path. It
@@ -2776,10 +2777,11 @@ func Os.cacheDir(): Result[string, Error]
 // Os.pid returns this process's id.
 func Os.pid(): int
 
-// Os.uid returns the effective user id, 0 for root, or null on Windows, which has none.
+// Os.uid returns the effective user id, 0 for root, or null on Windows and WebAssembly, which have
+// none.
 func Os.uid(): int | null
 
-// Os.gid returns the effective group id, or null on Windows, which has none.
+// Os.gid returns the effective group id, or null on Windows and WebAssembly, which have none.
 func Os.gid(): int | null
 
 // Os.hostname returns the name the host's kernel reports, as hostname prints it, Go's os.Hostname.

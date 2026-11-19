@@ -18,6 +18,7 @@ read-only.
 - The mode replaces the old one, bits that are clear included. To add or remove a few bits, read the
   current mode with [File.stat](stat.md) and change it with [Bits.or](../Bits/or.md) or
   [Bits.and](../Bits/and.md).
+- `File.chmod` sets the mode, not the owner; [File.chown](chown.md) sets the owning user and group.
 
 ## Basic examples
 
@@ -219,6 +220,6 @@ println(String.fromInt(info.mode, base: 8))
 
 ## See also
 
-[File.stat](stat.md) · [File.Info](types/Info.md) · [File.copy](copy.md) ·
+[File.stat](stat.md) · [File.Info](types/Info.md) · [File.chown](chown.md) · [File.copy](copy.md) ·
 [File.tempFile](tempFile.md) · [File.rename](rename.md) · [File.touch](touch.md) ·
 [Bits.or](../Bits/or.md) · [Bits.and](../Bits/and.md) · [String.fromInt](../String/fromInt.md)

@@ -191,6 +191,18 @@ module with compile errors is documented like any other. It exits with status 1 
 found or when a module has no doc and exports nothing, and with 2 when the usage is wrong or the
 file cannot be read or parsed.
 
+When a name is not found, `ant doc` suggests the nearest names it knows, so a guess from another
+language leads to the right one:
+
+```text
+$ ant doc Array.join
+ant doc: no declaration Array.join; did you mean Path.join or String.join?
+```
+
+When no name is close but the owner exists, the line ends with where to look instead:
+`ant doc Json.decode` ends with `; ant doc Json lists its members`. The REPL's `:doc` reports the
+same, without the `ant doc: ` prefix.
+
 ## Mistakes to avoid
 
 ### A blank line ends the comment

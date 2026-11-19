@@ -26,7 +26,9 @@ missing, and those that write a file are Err when a directory is at the path.
   buffer over one, and the same reads and writes serve each. The reads of a handle share one buffer,
   so lines and bytes can follow each other.
 - A write is handed to the OS before it returns, so nothing needs a flush, except on a handle from
-  [File.buffered](buffered.md), which holds its writes until it is full, flushed, or closed.
+  [File.buffered](buffered.md), which holds its writes until it is full, flushed, or closed. Handed
+  to the OS is not yet on disk; [File.sync](sync.md) waits for storage, for data that must survive a
+  crash or power loss.
 - A deferred close cannot report an error. A function that writes ends with an explicit
   `try File.close(out)`; the deferred close then does nothing.
 - `write`, `writeBytes`, `create`, and `copy` replace what is at the path. With `replace: false`
@@ -218,7 +220,7 @@ println(try File.glob("**/*.txt", dir: "notes"))
 
 - [File.Handle](types/Handle.md): an open file, a standard stream, a connection, or a buffer over
   one
-- [File.Info](types/Info.md): the name, size, kind, modified time, and mode of a file
+- [File.Info](types/Info.md): the name, size, kind, modified time, mode, and owner of a file
 
 ### Whole files
 
@@ -329,6 +331,10 @@ println(try File.glob(".save-*", hidden: true))
 port=8080
 []
 ```
+
+The rename keeps readers from a half-written file but does not wait for the disk; for a file that
+must survive a crash, sync it first with [File.sync](sync.md), as
+[Replace a file without a partial write](../../howto/files/replace-safely.md) shows.
 
 Count the lines of every text file in a directory:
 

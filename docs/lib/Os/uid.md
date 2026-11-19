@@ -7,13 +7,15 @@
 func Os.uid(): int | null
 ```
 
-Os.uid returns the effective user id, 0 for root, or null on Windows, which has none.
+Os.uid returns the effective user id, 0 for root, or null on Windows and WebAssembly, which have none.
 
 <!-- end generated -->
 
 ## Details
 
 - The id is the effective one, the id that decides what the process may touch.
+- It is null on Windows and on other hosts without user ids, such as WebAssembly. [Os.gid](gid.md)
+  is null on the same hosts.
 
 ## Basic examples
 
@@ -39,7 +41,7 @@ println(if root { "running as root" } else { "running as a regular user" })
 ### Handling `null`
 
 Comparing with `==` needs no `null` check, since `null == 0` is false. Arithmetic does: `??` gives a
-value to use on Windows:
+value to use where there is no id:
 
 <!-- test: check-only the id differs between users -->
 
@@ -126,6 +128,23 @@ func log(message: string) {
 log("starting")
 ```
 
+### Check who owns a file
+
+[File.stat](../File/stat.md) reports a file's owner as `uid`, null on the same hosts, so guard
+first:
+
+<!-- test: check-only the answer depends on the user and the file -->
+
+```ant
+let uid = Os.uid()
+if uid == null {
+  println("no user ids on this platform")
+  return
+}
+let info = try File.stat("/etc/hosts")
+println(if info.uid == uid { "mine" } else { "owned by ${info.uid}" })
+```
+
 ## Properties and relations
 
 On Unix the id is what `id -u` prints for the same process user:
@@ -145,10 +164,10 @@ The result is `int | null`, so it does not go where an `int` is expected:
 let next: int = Os.uid() + 1 // error: + needs both operands of one type, got int | null and int
 ```
 
-### `!= 0` is true on Windows
+### `!= 0` is true where there are no user ids
 
-`Os.uid() != 0` holds on Windows too, where there is no root to compare with, so the installer above
-stops there. Check for `null` first when the program supports Windows:
+`Os.uid() != 0` holds on Windows and WebAssembly too, where there is no root to compare with, so the
+installer above stops there. Check for `null` first when the program runs on such hosts:
 
 <!-- test: check-only the outcome depends on the platform and the user -->
 
@@ -160,4 +179,5 @@ println(privileged)
 
 ## See also
 
-[Os.pid](pid.md) · [Os.home](home.md) · [Os.platform](platform.md) · [Os](index.md)
+[Os.gid](gid.md) · [File.stat](../File/stat.md) · [File.chown](../File/chown.md) · [Os.pid](pid.md)
+· [Os.home](home.md) · [Os.platform](platform.md) · [Os](index.md)
