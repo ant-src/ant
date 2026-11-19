@@ -16,7 +16,9 @@ ant test [flags] [path ...]
 - Flags come before the paths.
 - Files run one after another, in the order of the paths, and a directory's files in lexical order.
   Each file runs as a program of its own, so module state never carries from one file to the next.
-- `ant test` does not type-check. Run `ant check .` to check your test files with their imports.
+- Before any test runs, `ant test` type-checks the test files with their imports, as
+  [ant check](check.md) does. An error stops the run before the first test. `-nocheck` leaves the
+  check out.
 - A passing test prints nothing. What a test prints is shown when it fails, or under `-v`.
 - Output printed while a file's modules initialize, outside any test, is not collected: it goes to
   standard output, or to standard error under `-json`.
@@ -103,6 +105,7 @@ parent that fails only because a subtest did is not reported again.
 | `-v`           | Print every test as it starts and ends, with its output                                    |
 | `-json`        | Print events as JSON lines instead of the report                                           |
 | `-failfast`    | Start no test after the first failure                                                      |
+| `-nocheck`     | Run the tests without type-checking the test files first                                   |
 | `-parallel n`  | The most tests that run at once after `Test.parallel()`; the default is the number of CPUs |
 | `-timeout d`   | End the run after `d`, such as `30s` or `2m`; the default is `10m`, and `0` means no limit |
 
@@ -297,7 +300,8 @@ ant test -json broken_test.ant
 ```
 
 `elapsed` is in seconds. A `"fail"` event's `message` holds the test's failures as the report shows
-them.
+them. When the checker stops the run, each of its errors is an `"error"` event with the fields of an
+[ant check -json](check.md) error, and there is no `"done"` event.
 
 ## Applications
 
@@ -328,12 +332,12 @@ exit status 1
 | Status | When                                                                                              |
 | ------ | ------------------------------------------------------------------------------------------------- |
 | `0`    | No test failed, including when tests were skipped and when there were none                        |
-| `1`    | A test failed, or the time ran out                                                                |
+| `1`    | A test failed, the checker reported an error, or the time ran out                                 |
 | `2`    | A file could not be loaded, such as for a syntax error or a missing module, or the usage is wrong |
 
-A file that cannot be loaded is reported on standard error, and the other files still run.
-`ant test syntax_test.ant sum_test.ant` reports the syntax error, runs `sum_test.ant`, and exits
-with status 2:
+A file that cannot be loaded is reported on standard error, and no test runs.
+`ant test syntax_test.ant sum_test.ant` reports the syntax error, prints nothing on standard output,
+and exits with status 2:
 
 ```ant [syntax_test.ant]
 test "sum" {
@@ -350,9 +354,8 @@ test "sum" {
 }
 ```
 
-```text
-FAIL  1 passed (0.00s)
-```
+Under `-nocheck` the other files still run: the same command with `-nocheck` runs `sum_test.ant`,
+prints `FAIL  1 passed`, and exits with status 2.
 
 `Os.exit` in a test ends the whole command with its status, as it ends a program. The tests after it
 do not run:
@@ -373,6 +376,22 @@ test "never runs" {
 `ant test exit_test.ant` prints nothing and exits with status 3.
 
 ## Possible issues
+
+### A type error stops the run
+
+`ant test` checks the test files before it runs them, so a compile error anywhere in them, or in a
+module they import, runs no test. `ant test typed_test.ant` writes the error to standard error, as
+`ant check` does, and exits with status 1:
+
+```ant [typed_test.ant]
+test "count" {
+  let count: int = "3" // error: cannot use string where int is expected
+  assert("${count}" == "3")
+}
+```
+
+Types are erased when a program runs, so `ant test -nocheck typed_test.ant` runs the test, and it
+passes. Use `-nocheck` to run tests while part of the program does not check yet.
 
 ### A panic while a file loads
 
@@ -456,4 +475,4 @@ ant test: words.ant is not a test file, whose name ends in _test.ant
 - [Testing](../guide/testing.md): how test files, subtests, and `Test` fit together
 - [assert](../lib/prelude/assert.md): the check a test makes
 - [Test](../lib/Test/index.md): skip, run in parallel, temporary directories
-- [ant check](check.md): type-check test files with their imports
+- [ant check](check.md): type-check every file, including the scripts no test imports

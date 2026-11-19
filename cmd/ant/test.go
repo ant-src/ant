@@ -30,6 +30,7 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	verbose := fl.Bool("v", false, "print every test as it starts and ends, with its output")
 	jsonOut := fl.Bool("json", false, "print events as JSON lines")
 	failfast := fl.Bool("failfast", false, "start no test after the first failure")
+	nocheck := fl.Bool("nocheck", false, "run the tests without type-checking the test files first")
 	parallel := fl.Int("parallel", runtime.NumCPU(), "the most tests that run at once after Test.parallel()")
 	timeout := new(time.Duration)
 	*timeout = 10 * time.Minute
@@ -62,6 +63,20 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if err != nil {
 		fmt.Fprintf(stderr, "ant test: %s\n", err)
 		return 2
+	}
+	if !*nocheck {
+		// A green run means the test files check (test.md section 1): an error runs nothing.
+		if diags, loaded := ant.Check(files); len(diags) > 0 {
+			if *jsonOut {
+				writeJSONCheckErrors(stdout, diags)
+			} else {
+				printDiagnostics(stderr, diags)
+			}
+			if !loaded {
+				return 2
+			}
+			return 1
+		}
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

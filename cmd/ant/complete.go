@@ -43,7 +43,7 @@ var commands = []command{
 	{name: "check", flags: []string{"-json"}, args: func(n int, word string) []candidate {
 		return files(word, ".ant")
 	}},
-	{name: "test", flags: []string{"-run", "-skip", "-v", "-json", "-failfast", "-parallel", "-timeout"}, args: func(n int, word string) []candidate {
+	{name: "test", flags: []string{"-run", "-skip", "-v", "-json", "-failfast", "-nocheck", "-parallel", "-timeout"}, args: func(n int, word string) []candidate {
 		return files(word, "_test.ant")
 	}},
 	{name: "fmt", flags: []string{"--check"}, args: func(n int, word string) []candidate {

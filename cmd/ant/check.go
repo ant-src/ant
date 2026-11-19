@@ -72,10 +72,30 @@ type jsonDiagnostic struct {
 // as the text output prints it, line and column 0 for an error about a whole file, its message,
 // and the span the text output underlines.
 func writeJSONDiagnostics(w io.Writer, diags []ant.Diagnostic) {
+	for _, jd := range jsonDiagnostics(diags) {
+		b, _ := json.Marshal(jd)
+		w.Write(append(b, '\n'))
+	}
+}
+
+// writeJSONCheckErrors writes the diagnostics as ant test -json events: each as ant check -json
+// writes it, with the action "error".
+func writeJSONCheckErrors(w io.Writer, diags []ant.Diagnostic) {
+	for _, jd := range jsonDiagnostics(diags) {
+		b, _ := json.Marshal(struct {
+			Action string `json:"action"`
+			jsonDiagnostic
+		}{"error", jd})
+		w.Write(append(b, '\n'))
+	}
+}
+
+func jsonDiagnostics(diags []ant.Diagnostic) []jsonDiagnostic {
 	p := &diag.Printer{Read: func(path string) (string, error) {
 		b, err := os.ReadFile(path)
 		return string(b), err
 	}}
+	out := make([]jsonDiagnostic, 0, len(diags))
 	for _, d := range diags {
 		jd := jsonDiagnostic{Path: d.Pos.Path, Line: d.Pos.Line, Column: d.Pos.Col, Message: d.Message}
 		from, to := p.Range(d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col})
@@ -83,7 +103,7 @@ func writeJSONDiagnostics(w io.Writer, diags []ant.Diagnostic) {
 			jd.Start = &jsonPos{from.Line, from.Col}
 			jd.End = &jsonPos{to.Line, to.Col}
 		}
-		b, _ := json.Marshal(jd)
-		w.Write(append(b, '\n'))
+		out = append(out, jd)
 	}
+	return out
 }

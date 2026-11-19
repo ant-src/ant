@@ -157,9 +157,9 @@ says why.
 
 ## What it costs
 
-- **You run the checker yourself.** No flag makes `ant run` check first, and `ant test` does not
-  check either. Run `ant check .` in your editor and in continuous integration; it checks every
-  script, library, and test file.
+- **You run the checker yourself.** No flag makes `ant run` check first. `ant test` checks the test
+  files it runs and their imports, and nothing else. Run `ant check .` in your editor and in
+  continuous integration; it checks every script, library, and test file.
 - **A wrong annotation can go unnoticed.** In a program nobody checked, a wrong annotation fails
   only where a value is misused, and sometimes nowhere:
 

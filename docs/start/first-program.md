@@ -193,8 +193,8 @@ The report names the test, quotes the condition, and shows both sides of the com
 then exits with status 1, so a script or continuous integration sees the failure. Put the greeting
 back before you go on.
 
-Like `ant run`, `ant test` does not check types. Run `ant check greeting_test.ant` to check the
-tests and the library they import.
+Unlike `ant run`, `ant test` checks types first: it checks the tests and the library they import,
+and runs nothing when the checker reports an error.
 
 ## Try the REPL
 

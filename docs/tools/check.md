@@ -70,8 +70,8 @@ println(distance(origin, 5.0)) // error: cannot use float64 where Point is expec
 
 ### Test files
 
-`ant test` runs tests without checking them, so check your test files with `ant check` before you
-run them. A directory includes its test files, and the checker reads each with the modules it
+`ant test` checks the test files it runs, with their imports, before it runs them. `ant check`
+checks them too: a directory includes its test files, and the checker reads each with the modules it
 imports:
 
 ```ant [geometry_test.ant]

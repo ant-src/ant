@@ -104,6 +104,11 @@ func TestTestCommandErrors(t *testing.T) {
 	}
 	ok := write("a_test.ant", "test \"a\" {}\n")
 	bad := write("b_test.ant", "test \"b\" { \n")
+	// the checker rejects it, and it runs: annotations are erased
+	typed := filepath.Join(t.TempDir(), "t_test.ant")
+	if err := os.WriteFile(typed, []byte("test \"t\" {\n  let n: int = \"s\"\n  assert(n == \"s\")\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	plain := write("c.ant", "println(1)\n")
 	slash := write("s_test.ant", "test \"x/y\" {\n  for i in [1, 2] { test \"c\" {} }\n  test \"d\" { assert(false) }\n}\ntest \"x\" { assert(false) }\n")
 	cases := []struct {
@@ -116,8 +121,13 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", plain}, 2, "", "is not a test file"},
 		{[]string{"test", "-run", "(", ok}, 2, "", "-run:"},
 		{[]string{"test", "-parallel", "0", ok}, 2, "", "-parallel must be at least 1"},
-		{[]string{"test", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
-		{[]string{"test", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
+		// an error the checker reports runs nothing; -nocheck runs what loads
+		{[]string{"test", ok, bad}, 2, "", "b_test.ant:2:1"},
+		{[]string{"test", "-nocheck", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
+		{[]string{"test", "-nocheck", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
+		{[]string{"test", ok, typed}, 1, "", "t_test.ant:2:16: cannot use string where int is expected"},
+		{[]string{"test", "-json", ok, typed}, 1, `{"action":"error","path":"` + typed + `","line":2,"column":16,"message":"cannot use string where int is expected","start":{"line":2,"column":16},"end":{"line":2,"column":19}}` + "\n", ""},
+		{[]string{"test", "-nocheck", typed}, 0, "ok    1 passed", ""},
 		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", ""},
 		// -timeout is read as Time.parseDuration reads it: Go's notation or ISO 8601
 		{[]string{"test", "-timeout", "1h30m", ok}, 0, "ok    1 passed", ""},
