@@ -134,7 +134,33 @@ func ParseRecover(path, src string) (*ast.File, *Layout, []*Error) {
 		}
 		return a.Pos.Col - b.Pos.Col
 	})
-	return f, l, p.errs
+	return f, l, settle(p.errs, toks)
+}
+
+// settle drops the errors that only follow from an earlier one, of errs sorted by position: a
+// second error at one position, where recovery stumbled on the token the first error is about,
+// and, after the first error, those at or past the end of the last token of the file, which
+// only say that what an earlier error broke never closed, as an unterminated literal or an
+// unclosed bracket leaves the file ending where something else was expected.
+func settle(errs []*Error, toks []token.Token) []*Error {
+	if len(errs) < 2 {
+		return errs
+	}
+	var last ast.Pos // the end of the last token that is not a line break or the end
+	for i := len(toks) - 1; i >= 0; i-- {
+		if k := toks[i].Kind; k != token.Newline && k != token.EOF {
+			last = epos(toks[i])
+			break
+		}
+	}
+	out := errs[:1]
+	for _, e := range errs[1:] {
+		if e.Pos == out[len(out)-1].Pos || last.Line > 0 && !e.Pos.Before(last) {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
 }
 
 // Parse parses one module. path only labels the result.
@@ -406,16 +432,24 @@ func (p *parser) sync(close string, list bool, from int) {
 
 // statementStarts reports whether the token at j begins a statement on a line of its own: a
 // keyword that begins one, after a line break, which the lexer may have joined to the line
-// before when that line ended in an operator or an open bracket (section 2).
+// before when that line ended in an operator or an open bracket (section 2). A keyword that
+// also begins an expression does not, where an expression is what comes next: func before (,
+// which begins a function literal, and if or select as an item of a list, after its opening
+// bracket or a comma.
 func (p *parser) statementStarts(j int) bool {
 	t := p.toks[j]
 	if t.Kind != token.Keyword || !statementStart[t.Text] {
+		return false
+	}
+	if t.Text == "func" && j+1 < len(p.toks) && p.toks[j+1].Is("(") {
 		return false
 	}
 	for k := j - 1; k >= 0; k-- {
 		switch prev := p.toks[k]; {
 		case prev.Kind == token.Newline:
 			continue
+		case (t.Text == "if" || t.Text == "select") && (prev.Is(",") || prev.Is("(") || prev.Is("[")):
+			return false
 		default:
 			return t.Pos.Line > prev.EndPos.Line
 		}
@@ -908,6 +942,7 @@ func (p *parser) interfaceDecl() *ast.InterfaceDecl {
 	p.mark(open, Role{Block: true})
 	saved := p.enterBlock(nil)
 	p.inInterface++
+	before := len(p.errs) // a signature that does not parse is not an interface without one
 	p.skipTerms()
 	for !p.at("}") {
 		if p.atKind(token.EOF) {
@@ -931,8 +966,8 @@ func (p *parser) interfaceDecl() *ast.InterfaceDecl {
 	p.inInterface--
 	p.leave(saved)
 	p.expectClose()
-	if len(d.Funcs) == 0 && !p.recovering {
-		p.fail(open.Pos, "the interface %s declares no function; an interface lists at least one", d.Name)
+	if len(d.Funcs) == 0 && len(p.errs) == before {
+		p.soft(open.Pos, "the interface %s declares no function; an interface lists at least one", d.Name)
 	}
 	d.End = p.end()
 	return d
@@ -2296,9 +2331,18 @@ func (p *parser) headerExpr(what string) ast.Expr {
 	e := p.expression()
 	p.header = saved
 	if !p.at("{") {
-		p.fail(p.peek().Pos, "expected '{' after the %s header, got %s", what, p.peek())
-	}
-	if p.toks[p.i-1].Kind == token.Newline {
+		next := p.i
+		for next < len(p.toks) && p.toks[next].Kind == token.Newline {
+			next++
+		}
+		if !p.recovering || next == p.i || next == len(p.toks) || !p.toks[next].Is("{") {
+			p.fail(p.peek().Pos, "expected '{' after the %s header, got %s", what, p.peek())
+		}
+		// The block on the next line is the body the author meant: read it as one, so that
+		// its statements are checked in the scope they were written for.
+		p.soft(p.peek().Pos, "expected '{' after the %s header, got %s", what, p.peek())
+		p.i = next
+	} else if p.toks[p.i-1].Kind == token.Newline {
 		// Inside parentheses the parser skips the line break, but the { still belongs on the
 		// header's line (section 5, Blocks).
 		p.fail(p.peek().Pos, "expected '{' after the %s header on its line, got a line break", what)
@@ -2376,6 +2420,7 @@ func (p *parser) selectExpr() *ast.Select {
 	p.mark(open, Role{Block: true})
 	saved := p.enterBlock(p.curBlock)
 	heads, hasElse := 0, false
+	failed := false // a clause that did not parse, whose head may have been the one
 	p.skipClauseBreaks()
 	for !p.at("}") {
 		if p.atKind(token.EOF) {
@@ -2387,6 +2432,7 @@ func (p *parser) selectExpr() *ast.Select {
 		begin := p.i
 		var c *ast.SelectClause
 		if !p.attempt(func() { c = p.selectClause(&heads, &hasElse) }) || p.i == begin {
+			failed = true
 			p.sync("}", false, begin)
 			p.skipClauseBreaks()
 			continue
@@ -2408,7 +2454,7 @@ func (p *parser) selectExpr() *ast.Select {
 	p.expectClose()
 	p.leave(saved)
 	s.End = p.end()
-	if heads == 0 {
+	if heads == 0 && !failed {
 		p.fail(open.Pos, "a select needs at least one clause with a head: %s", selectHeadNames)
 	}
 	return s

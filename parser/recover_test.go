@@ -176,8 +176,9 @@ func TestRecoverCases(t *testing.T) {
 			"(file (func export f() {}) (call println 1))"},
 		{"bad top-level item", "var x = 1\n)\nvar y = 2", []string{"unexpected ')'"},
 			"(file (var x 1) (var y 2) (bad))"},
-		// The lexer ends the source with a line break, which the lambda's body meets first.
-		{"lambda left open", "var f: func(int): int = { x +", []string{"unexpected newline", "expected '}', got end of file"},
+		// The lexer ends the source with a line break, which the lambda's body meets first; that
+		// the lambda never closed only follows from it.
+		{"lambda left open", "var f: func(int): int = { x +", []string{"unexpected newline"},
 			"(file (var f:(func (int):int) (lambda (+ x (bad)) )))"},
 		{"import left open", "import \"./a.ant\" {\nvar x = 1", []string{"expected '}', got 'var'"},
 			`(file (import "./a.ant" {}) (var x 1))`},
@@ -198,6 +199,23 @@ func TestRecoverCases(t *testing.T) {
 			"(file (func f() { a; b }))"},
 		{"local type redeclares a prelude name", "func f() {\n  type Math = int\n  1\n}", nil,
 			"(file (func f() { (type Math int); 1 }))"},
+		// The block on the line after the header is the body the author meant.
+		{"brace on the next line", "func f() {\n  if x\n  {\n    y\n  }\n}", []string{"expected '{' after the if header, got newline"},
+			"(file (func f() { (if x { y }) }))"},
+		// A select whose only clause did not parse is not also a select without heads.
+		{"select clause that is not a head", "func f() {\n  select {\n    c.receive() { 1 }\n  }\n}",
+			[]string{"a select clause's head must be a call of Channel.receive, Channel.send, Context.wait, WaitGroup.wait or Time.sleep"},
+			"(file (func f() { (select) }))"},
+		{"interface without functions", "interface Empty {}", []string{"the interface Empty declares no function; an interface lists at least one"},
+			"(file (interface Empty))"},
+		// The line after an unterminated regular expression is what it meant to hold; that it
+		// ends the file unfinished only follows from the first error.
+		{"regular expression on two lines", "var p = /one\ntwo/\n", []string{"unterminated regular expression"},
+			"(file (var p (bad)) (/ two (bad)))"},
+		// func before ( is a function literal, and if after a comma an item: neither ends the
+		// list as a statement on a line of its own would.
+		{"expression keywords in a list", "var xs = g(\n  1,\n  func(n: int) { n },\n  if c { 1 } else { 2 },\n)", nil,
+			"(file (var xs (call g 1 (func(n:int) { n }) (if c { 1 } { 2 }))))"},
 		// A Bad token is the lexer's error alone; for the parser it ends the statement.
 		{"bad token", "var x = 1 @ 2\nvar y = 3", []string{"unexpected character '@'"},
 			"(file (var x 1) (var y 3) 2)"},
