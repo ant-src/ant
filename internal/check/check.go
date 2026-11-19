@@ -84,20 +84,8 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 				c.warnUnused(c.mods[m.Index])
 			}
 		}
-		// A warning is about code the checker accepts: a module with an error, or one recovery
-		// read past, was not checked as written, so its warnings may be wrong.
-		broken := map[string]bool{}
-		for _, m := range prog.Modules {
-			broken[m.File.Path] = m.Recovered
-		}
-		for _, d := range c.diags {
-			broken[d.Path] = true
-		}
-		for _, w := range c.warns {
-			if !broken[w.Path] {
-				c.diags = append(c.diags, w)
-			}
-		}
+		// loader.Settle drops those of a module with an error, which was not checked as written
+		c.diags = append(c.diags, c.warns...)
 	}
 	c.info.finish(c)
 	// What the check needed only while it ran; the Info keeps the checker for what it alone
@@ -198,8 +186,6 @@ type Checker struct {
 	info *Info
 	// prior counts the errors the loader reported before checking (Config.Prior).
 	prior int
-	// expectedOf holds the type each call was expected to have, for a fix that depends on it.
-	expectedOf map[*ast.Call]types.Type
 	// pathTests holds, by function and field path, where an is test tested a field path, which
 	// narrows nothing (pathHint).
 	pathTests map[pathTest]ast.Pos

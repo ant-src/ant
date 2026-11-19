@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"strings"
 	"testing"
 )
@@ -46,20 +45,6 @@ func TestCheckWarnings(t *testing.T) {
 	_, out, _ := checkRun("-json", "main.ant")
 	if !strings.Contains(out, `"severity":"warning","code":"unused-import"`) {
 		t.Errorf("-json:\n%s", out)
-	}
-}
-
-// TestCodeFixUnusedImport checks that fix removes an unused import name when another name of the
-// import stays, and leaves the warnings it cannot fix.
-func TestCodeFixUnusedImport(t *testing.T) {
-	dir := tree(t, warned)
-	t.Chdir(dir)
-	status, out, _ := codeRun("fix", "main.ant")
-	if status != 0 || out != "main.ant: 1 fix\n" {
-		t.Errorf("status %d, stdout %q", status, out)
-	}
-	if got, _ := os.ReadFile("main.ant"); !strings.HasPrefix(string(got), "import \"./lib.ant\" { save, Count }\n") {
-		t.Errorf("main.ant:\n%s", got)
 	}
 }
 

@@ -41,8 +41,8 @@ type Diagnostic struct {
 	Related []Related
 }
 
-// Fix is a set of edits that removes a diagnostic. Auto marks one that ant code fix applies
-// without asking (spec/check.md section 2, Help and fixes).
+// Fix is a set of edits that removes a diagnostic. Auto marks one that is safe to apply unread
+// (spec/check.md section 2, Help and fixes).
 type Fix struct {
 	Title string
 	Auto  bool

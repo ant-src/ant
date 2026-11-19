@@ -16,12 +16,6 @@ import (
 // call checks a call: a direct call of a declared function, which may be generic and take
 // named arguments; a constructor call; or a call through a function value.
 func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
-	if expected != nil {
-		if c.expectedOf == nil {
-			c.expectedOf = map[*ast.Call]types.Type{}
-		}
-		c.expectedOf[x] = expected
-	}
 	if x.Optional {
 		fn, short := c.chainRecv(x.Fn, sc)
 		if !types.Includes(fn, types.Null{}) {

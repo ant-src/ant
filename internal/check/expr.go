@@ -1187,9 +1187,7 @@ func (c *Checker) waitingUnion(pos ast.Pos, es []ast.Expr, sc *scope, what, plur
 
 func (c *Checker) checkMapLit(x *ast.MapLit, sc *scope, m types.Map) types.Type {
 	for _, en := range x.Entries {
-		before := len(c.diags)
 		c.check(en.Key, sc, m.Key)
-		c.computedKeyHint(before, en.Key)
 		c.check(en.Value, sc, m.Val)
 	}
 	return m

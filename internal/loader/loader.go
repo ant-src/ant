@@ -35,8 +35,8 @@ type Diagnostic struct {
 	Related []Related
 }
 
-// Fix is a set of edits that removes a diagnostic. Auto marks one ant code fix applies without
-// asking: the only fix offered, and, for an error, the one edit that could be meant.
+// Fix is a set of edits that removes a diagnostic. Auto marks one that is safe to apply unread:
+// the only fix offered, and, for an error, the one edit that could be meant.
 type Fix struct {
 	Title string
 	Auto  bool
@@ -422,18 +422,6 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 // diagnostic, since the line was not read as written. It drops the warnings of a file that has an
 // error too: a warning is about code the checker accepts (spec/check.md section 4).
 func Settle(diags []Diagnostic) []Diagnostic {
-	keep := Settled(diags)
-	out := diags[:0:0]
-	for i, d := range diags {
-		if keep[i] {
-			out = append(out, d)
-		}
-	}
-	return out
-}
-
-// Settled reports, for each of diags, whether Settle keeps it.
-func Settled(diags []Diagnostic) []bool {
 	type line struct {
 		path string
 		n    int
@@ -448,9 +436,11 @@ func Settled(diags []Diagnostic) []bool {
 			broken[d.Path] = true
 		}
 	}
-	keep := make([]bool, len(diags))
-	for i, d := range diags {
-		keep[i] = (d.Code == codes.Syntax || !syntax[line{d.Path, d.Pos.Line}]) && !(d.Warning && broken[d.Path])
+	out := diags[:0:0]
+	for _, d := range diags {
+		if (d.Code == codes.Syntax || !syntax[line{d.Path, d.Pos.Line}]) && !(d.Warning && broken[d.Path]) {
+			out = append(out, d)
+		}
 	}
-	return keep
+	return out
 }

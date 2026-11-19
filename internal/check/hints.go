@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/codes"
 	"github.com/ant-src/ant/internal/loader"
 	"github.com/ant-src/ant/internal/types"
 )
@@ -252,45 +251,12 @@ func (c *Checker) visibleNames(sc *scope) []string {
 }
 
 // okVoidHint adds to the error at i, that Result.ok() has no value, that a Result[void, E] holds
-// void, with the fix that passes it: auto when the call is expected to be one, where it is the
-// one edit that could be meant.
+// void, with the fix that passes it. The fix is not auto: the author may have left out a value.
 func (c *Checker) okVoidHint(i int, x *ast.Call) {
 	c.help(i, "Result.ok takes the value; the value of a Result[void, E] is void, as in Result.ok(void)")
 	paren := ast.Pos{Line: x.End.Line, Col: x.End.Col - 1}
-	if c.srcByte(paren) != ')' {
-		return
-	}
-	auto := false
-	if want := c.expectedOf[x]; want != nil {
-		for _, m := range types.Members(types.Expand(want)) {
-			if n, ok := m.(types.Named); ok && n.Decl == c.prelude["Ok"].decl && len(n.Args) == 1 {
-				_, auto = types.Expand(n.Args[0]).(types.Void)
-			}
-		}
-	}
-	c.fix(i, "Result.ok(void)", auto, loader.Edit{Start: paren, End: paren, Text: "void"})
-}
-
-// computedKeyHint adds to a type mismatch reported at key, a map literal's key written as an
-// array of one element, [k], that a computed key is written in parentheses, (k), as JavaScript
-// writes it in brackets. The fix is not auto: an array may be the key the author meant.
-func (c *Checker) computedKeyHint(before int, key ast.Expr) {
-	al, ok := key.(*ast.ArrayLit)
-	if !ok || len(al.Elems) != 1 || al.Elems[0].Spread {
-		return
-	}
-	for i := before; i < len(c.diags); i++ {
-		if c.diags[i].Code != codes.TypeMismatch || c.diags[i].Pos != al.Pos {
-			continue
-		}
-		c.help(i, "a computed key is written in parentheses, as Map{ (key): value }")
-		closing := ast.Pos{Line: al.End.Line, Col: al.End.Col - 1}
-		if c.srcByte(al.Pos) == '[' && c.srcByte(closing) == ']' {
-			c.fix(i, "write the key in parentheses", false,
-				loader.Edit{Start: al.Pos, End: ast.Pos{Line: al.Pos.Line, Col: al.Pos.Col + 1}, Text: "("},
-				loader.Edit{Start: closing, End: al.End, Text: ")"})
-		}
-		return
+	if c.srcByte(paren) == ')' {
+		c.fix(i, "Result.ok(void)", false, loader.Edit{Start: paren, End: paren, Text: "void"})
 	}
 }
 

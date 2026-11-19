@@ -153,8 +153,6 @@ main.ant:2:16: Array[string] has no field or function join [no-member]
    = fix: String.join(tags, ...)
 ```
 
-[ant code fix](code.md#fixing) applies the fixes `ant check` is sure of.
-
 ### JSON
 
 With `-json`, `ant check` writes each error to standard output as a JSON object on a line of its

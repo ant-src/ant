@@ -13,7 +13,6 @@ ant code refs    [flags] <loc>          # every use of a declaration
 ant code type    [flags] <loc>          # the type and doc of a name or an expression
 ant code symbols [flags] [path...]      # the declarations of modules
 ant code rename  [flags] <loc> <name>   # rename a declaration and its uses
-ant code fix     [flags] [path...]      # apply the fixes ant check is sure of
 ```
 
 ## Details
@@ -301,36 +300,6 @@ Without `-diff`, `rename` writes each file it changes and prints how many names 
 Renaming an export changes it in every module of the workspace that imports it. A rename changes
 only names: renaming `celsius` would leave its doc comment as it is. A record entry written short
 keeps its field, so renaming the variable `value` turns `{ value }` into `{ value: amount }`.
-
-### Fixing
-
-`fix` applies the fixes `ant check` is sure of: those it marks `auto`, such as calling a function
-through the namespace that has it. `fix -diff` prints the change and writes nothing:
-
-```sh
-ant code fix -diff tags.ant
-```
-
-<!-- test: cmd ant code fix -diff tags.ant -->
-
-```ant [tags.ant]
-let tags = ["red", "blue"]
-println(tags.join(", ")) // error: Array[string] has no field or function join
-```
-
-```text
---- a/tags.ant
-+++ b/tags.ant
-@@ -1,2 +1,2 @@
- let tags = ["red", "blue"]
--println(tags.join(", ")) // error: Array[string] has no field or function join
-+println(String.join(tags, ", ")) // error: Array[string] has no field or function join
-```
-
-Without `-diff`, `fix` writes each file it changes and prints how many fixes it applied in each. It
-checks again after each round of fixes, leaves a file with a syntax error as it is, and prints the
-errors left as `ant check` does, exiting with status 1 when there are any. `-code` limits it to the
-codes it names, such as `-code arguments,no-member`.
 
 ### JSON
 

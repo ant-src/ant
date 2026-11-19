@@ -23,7 +23,6 @@ var codeSubcommands = map[string][]string{
 	"type":    nil,
 	"symbols": {"-match", "-all"},
 	"rename":  {"-diff", "-force"},
-	"fix":     {"-diff", "-code"},
 }
 
 var codeOperands = map[string]string{
@@ -32,13 +31,12 @@ var codeOperands = map[string]string{
 	"type":    "<loc>",
 	"symbols": "[path...]",
 	"rename":  "<loc> <name>",
-	"fix":     "[path...]",
 }
 
 // codeStatus is the exit status of each error code (code.md section 3).
 var codeStatus = map[string]int{
 	"usage": 2, "load": 2, "not-found": 1, "ambiguous": 1, "refused": 1, "check": 1,
-	"incomplete": 2, "changed": 1, "write": 2, "unsettled": 2,
+	"incomplete": 2, "changed": 1, "write": 2,
 }
 
 // codeCommand is ant code (private/tools/code.md): the questions an editor asks the language
@@ -68,7 +66,6 @@ func codeCommand(args []string, stdout, stderr io.Writer) int {
 	all := fl.Bool("all", false, "include fields and the declarations in functions")
 	diff := fl.Bool("diff", false, "print a unified diff and write nothing")
 	force := fl.Bool("force", false, "rename even when the search is incomplete or a program has errors")
-	only := fl.String("code", "", "fix only the diagnostics with these codes, comma-separated")
 	err := fl.Parse(args[1:])
 	if errors.Is(err, flag.ErrHelp) {
 		fmt.Fprintln(stdout, c.usage())
@@ -89,7 +86,7 @@ func codeCommand(args []string, stdout, stderr io.Writer) int {
 	operands := fl.Args()
 	if err == nil {
 		switch sub {
-		case "symbols", "fix":
+		case "symbols":
 		case "rename":
 			if len(operands) != 2 {
 				err = errors.New("rename takes a location and a new name")
@@ -102,15 +99,6 @@ func codeCommand(args []string, stdout, stderr io.Writer) int {
 	}
 	if err != nil {
 		return c.fail(&lsp.CodeError{Code: "usage", Message: err.Error() + "\n" + c.usage()})
-	}
-	if sub == "fix" {
-		codes := map[string]bool{}
-		for _, code := range strings.Split(*only, ",") {
-			if code = strings.TrimSpace(code); code != "" {
-				codes[code] = true
-			}
-		}
-		return c.fix(*root, operands, codes, *diff)
 	}
 	an, err := lsp.NewCode(*root)
 	if err != nil {
@@ -152,8 +140,6 @@ func (c *coder) usage() string {
 		switch f {
 		case "-match":
 			flags += " [-match text]"
-		case "-code":
-			flags += " [-code list]"
 		default:
 			flags += " [" + f + "]"
 		}
@@ -488,7 +474,7 @@ func (c *coder) rename(an *lsp.Code, loc, name string, diff, force bool) int {
 }
 
 // write replaces each file with its new text, after checking that none changed since it was
-// read (code.md section 10).
+// read (code.md section 9).
 func (c *coder) write(files []lsp.CodeFile) int {
 	var changed []string
 	for _, f := range files {
