@@ -1,3 +1,4 @@
+// spec: 10 Tests
 // Under -json, the tests still running when the time runs out each get a "fail" event, and the
 // "done" event counts as failed each one with no subtest still running (test.md section 3).
 
