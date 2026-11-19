@@ -90,6 +90,14 @@ func (c *Checker) resetAssigned(assigned []string, sc *scope) {
 
 // cond checks a condition and returns the flow when it holds and when it does not.
 func (c *Checker) cond(e ast.Expr, sc *scope) (whenTrue, whenFalse flow) {
+	// A test that narrows is a bool too, recorded for the editor as a checked one is.
+	defer func() {
+		if c.info != nil {
+			if _, ok := c.info.Types[e]; !ok {
+				c.info.recordType(e, types.BoolType)
+			}
+		}
+	}()
 	switch x := e.(type) {
 	case *ast.Binary:
 		switch x.Op {
