@@ -2,7 +2,7 @@
 //
 //	ant run file.ant [args...]   run a program
 //	ant file.ant [args...]       the same, for a #!/usr/bin/env ant line
-//	ant check file.ant           type-check a program and every module it imports
+//	ant check [-json] [path...]  type-check the files under the paths and every module they import
 //	ant test [flags] [path...]   run the tests of the test files under the paths (spec/test.md)
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
@@ -25,7 +25,8 @@
 // message, then the lines of code it is about, numbered, with what it covers underlined (the
 // range the language server reports), then how many errors there were. A span longer than four
 // lines shows its first two and its last. On a terminal the code is highlighted as the REPL
-// highlights it; NO_COLOR or a dumb terminal turns the colors off.
+// highlights it; NO_COLOR or a dumb terminal turns the colors off. ant check -json instead
+// writes each error to standard output as a JSON object on a line of its own.
 //
 // ant doc and the REPL's :doc highlight signatures and examples on a terminal, preserving
 // source line breaks and spacing. NO_COLOR, a dumb terminal, or redirected output disables
@@ -69,7 +70,7 @@ import (
 const usage = `usage:
   ant run <file.ant> [args...]
   ant <file.ant> [args...]
-  ant check <file.ant>
+  ant check [-json] [path...]
   ant test [flags] [path...]
   ant fmt [--check] <path>...   (- for standard input)
   ant doc <name> | <file.ant> [name]
@@ -143,20 +144,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		return ant.ExitStatus(err)
 	case "check":
-		if len(args) != 2 {
-			fmt.Fprintln(stderr, usage)
-			return 2
-		}
-		prog, err := ant.Load(args[1])
-		if err != nil {
-			printLoadError(stderr, err)
-			return ant.ExitStatus(err)
-		}
-		if diags := prog.Check(); len(diags) > 0 {
-			printDiagnostics(stderr, diags)
-			return 1
-		}
-		return 0
+		return checkCommand(args[1:], stdout, stderr)
 	case "test":
 		return testCommand(args[1:], stdin, stdout, stderr)
 	case "fmt":

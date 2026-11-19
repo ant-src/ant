@@ -40,11 +40,8 @@ var commands = []command{
 		}
 		return files(word, "") // the program's own arguments
 	}},
-	{name: "check", args: func(n int, word string) []candidate {
-		if n == 0 {
-			return files(word, ".ant")
-		}
-		return nil
+	{name: "check", flags: []string{"-json"}, args: func(n int, word string) []candidate {
+		return files(word, ".ant")
 	}},
 	{name: "test", flags: []string{"-run", "-skip", "-v", "-json", "-failfast", "-parallel", "-timeout"}, args: func(n int, word string) []candidate {
 		return files(word, "_test.ant")

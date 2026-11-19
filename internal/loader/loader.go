@@ -79,14 +79,18 @@ type loader struct {
 	cfg     Config
 	diags   []Diagnostic
 	modules []*Module
-	state   map[string]int // 1: in progress, 2: done
+	state   map[string]int // 1: in progress, 2: done, 3: failed to parse
 	index   map[string]*Module
 	files   map[string]os.FileInfo // each module file read from the OS, by key
 }
 
+func newLoader(cfg Config) *loader {
+	return &loader{cfg: cfg, state: map[string]int{}, index: map[string]*Module{}, files: map[string]os.FileInfo{}}
+}
+
 // Load loads the module at root and everything it imports.
 func Load(root string, cfg Config) (*Program, []Diagnostic) {
-	l := &loader{cfg: cfg, state: map[string]int{}, index: map[string]*Module{}, files: map[string]os.FileInfo{}}
+	l := newLoader(cfg)
 	key, display := l.canonical(root, "")
 	m := l.visit(key, display, root, root, Diagnostic{}, true)
 	if len(l.diags) > 0 {
@@ -104,6 +108,73 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 		}
 	}
 	return &Program{Modules: l.modules, Root: m}, l.diags
+}
+
+// LoadRoots loads the modules at roots and everything they import as one graph, in which each
+// module is loaded once however many roots reach it, so that the programs can be checked
+// together. It returns every diagnostic of the load, and the program of the roots whose own
+// graphs loaded without one: a root that does not load is left out, with every module that only
+// it reaches. The program has no Root. A root must not be a declaration file, and cfg must not
+// ask to Recover.
+func LoadRoots(roots []string, cfg Config) (*Program, []Diagnostic) {
+	l := newLoader(cfg)
+	mods := make([]*Module, len(roots))
+	for i, r := range roots {
+		key, display := l.canonical(r, "")
+		mods[i] = l.visit(key, display, r, r, Diagnostic{}, true)
+	}
+	if len(l.diags) == 0 {
+		return &Program{Modules: l.modules}, nil
+	}
+	diags := dedupe(l.diags)
+	bad := map[string]bool{}
+	for _, d := range diags {
+		bad[d.Path] = true
+	}
+	var clean []string
+	for i, m := range mods {
+		if m != nil && l.loaded(m, bad, map[int]bool{}) {
+			clean = append(clean, roots[i])
+		}
+	}
+	// The modules of the clean roots are loaded again on their own, so that the program holds
+	// them alone and indexes them from 0. They loaded without an error, and do again.
+	l = newLoader(cfg)
+	for _, r := range clean {
+		key, display := l.canonical(r, "")
+		l.visit(key, display, r, r, Diagnostic{}, true)
+	}
+	return &Program{Modules: l.modules}, diags
+}
+
+// loaded reports whether m and every module it reaches loaded without a diagnostic.
+func (l *loader) loaded(m *Module, bad map[string]bool, seen map[int]bool) bool {
+	if seen[m.Index] {
+		return true
+	}
+	seen[m.Index] = true
+	if bad[m.File.Path] {
+		return false
+	}
+	for _, imp := range m.File.Imports {
+		if imp.Module < 0 || !l.loaded(l.modules[imp.Module], bad, seen) {
+			return false
+		}
+	}
+	return true
+}
+
+// dedupe drops each diagnostic equal to one before it.
+func dedupe(diags []Diagnostic) []Diagnostic {
+	seen := map[Diagnostic]bool{}
+	out := diags[:0:0]
+	for _, d := range diags {
+		if !seen[d] {
+			seen[d] = true
+			out = append(out, d)
+		}
+	}
+	return out
 }
 
 // canonical returns a module's identity key and the path used in messages. raw is the path as
@@ -174,6 +245,8 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		return nil
 	case 2:
 		return l.index[key]
+	case 3:
+		return nil // its syntax error is reported once
 	}
 	if !root && parser.ModeOf(display) == parser.Declarations {
 		l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf(
@@ -210,6 +283,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		if err != nil {
 			pe := err.(*parser.Error)
 			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
+			l.state[key] = 3
 			return nil
 		}
 	}

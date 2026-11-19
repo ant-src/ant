@@ -2,15 +2,17 @@
 
 # ant check
 
-`ant check` runs the type checker over a file and every module it imports.
+`ant check` runs the type checker over the files you name and every module they import. A directory
+stands for every `.ant` file under it, and with no path `ant check` checks the current directory.
 
 ```sh
 ant check main.ant
+ant check .
 ```
 
-When the program has no errors, it prints nothing and exits with status 0. Otherwise it prints
-every error and their count and exits with status 1, or with 2 when the file cannot be loaded or
-the usage is wrong.
+When there are no errors, it prints nothing and exits with status 0. Otherwise it prints every error
+and their count and exits with status 1, or with 2 when a file cannot be loaded or the usage is
+wrong.
 
 ## What it checks
 
@@ -68,8 +70,9 @@ println(distance(origin, 5.0)) // error: cannot use float64 where Point is expec
 
 ### Test files
 
-`ant test` runs tests without checking them, so check a test file with `ant check` before you run
-it. The checker reads the test file and the modules it imports:
+`ant test` runs tests without checking them, so check your test files with `ant check` before you
+run them. A directory includes its test files, and the checker reads each with the modules it
+imports:
 
 ```ant [geometry_test.ant]
 import "./geometry.ant" { distance, Point }
@@ -94,6 +97,23 @@ func Shout.loud(text: string): Strin // error: unknown type Strin
 func Shout.loud(text: string, marks: int): string // error: Shout.loud is already declared
 ```
 
+## Checking a project
+
+Each path is a file or a directory:
+
+- A file is checked whatever its name, so a script installed without its `.ant` suffix can be named
+  directly.
+- A directory is searched for `.ant` files, test files and declaration files included, through every
+  directory below it except those whose names begin with `.`.
+
+```sh
+ant check                  # everything under the current directory
+ant check main.ant lib     # one script, and every file under lib
+```
+
+A module is checked once however many of the files import it, so an error in a shared library is
+reported once.
+
 ## Reading errors
 
 Each error starts with the file, line, and column it is about, and then its message. Below it come
@@ -114,11 +134,37 @@ main.ant:6:3: an if without else has type void when the condition is false, whic
 2 errors
 ```
 
+### JSON
+
+With `-json`, `ant check` writes each error to standard output as a JSON object on a line of its
+own, and nothing else. The status is the same as without it.
+
+```sh
+ant check -json .
+```
+
+```json
+{
+  "path": "main.ant",
+  "line": 3,
+  "column": 13,
+  "message": "+ needs both operands of one type, got int | null and int",
+  "start": { "line": 3, "column": 9 },
+  "end": { "line": 3, "column": 16 }
+}
+```
+
+`line` and `column` are where the error is reported, as the text output's first line gives them.
+`start` and `end` are the span it underlines, with `end` just past its last character. Columns count
+bytes from 1. An error about a whole file, such as one that cannot be read, has no position and no
+span.
+
 ## Errors before checking
 
-Some errors stop a program from loading at all. `ant check` and `ant run` report them alike, and
-neither goes further: a syntax error in any module, a module that does not exist, an import cycle,
-and an import of a script.
+Some errors stop a program from loading at all. `ant check` and `ant run` report them alike: a
+syntax error in any module, a module that does not exist, an import cycle, and an import of a
+script. `ant run` stops there. `ant check` does not check that program, but it still checks the
+other files it was given, and then exits with status 2.
 
 ```ant [report.ant]
 let total = 3
@@ -170,18 +216,13 @@ Declare `name` before the line that calls `welcome`.
 
 Editors with Ant support run the checker and show its errors in the file.
 
-In CI, run `ant check` on each script beside `ant fmt --check` and `ant test`. A non-zero status
-fails the step:
+In CI, run `ant check` beside `ant fmt --check` and `ant test`. A non-zero status fails the step:
 
 ```sh
 ant fmt --check .
-ant check main.ant
-ant check geometry_test.ant
+ant check .
 ant test .
 ```
-
-`ant check` takes one file. Check each script, and each test file, with a command of its own; a
-library that one of them imports is checked with it.
 
 ## See also
 

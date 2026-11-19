@@ -247,3 +247,59 @@ func (p *Program) runnable() error {
 func (p *Program) Check() []Diagnostic {
 	return convert(check.Program(p.prog, check.Config{Namespaces: p.nsDecls, Removed: p.cfg.removed}))
 }
+
+// Check checks the programs rooted at paths together: the module at each path and every module
+// it imports, each module once however many paths reach it. A path ending in .d.ant is a
+// declaration file, checked on its own. A program that does not load, as Load reports, is not
+// checked, and its load errors are returned in its place; the others are still checked. Check
+// returns every error sorted by path and position, and whether every program loaded.
+func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
+	cfg := defaultConfig().with(opts)
+	_, extra, nsDecls, err := cfg.prelude()
+	if err != nil {
+		return []Diagnostic{{Message: err.Error()}}, false
+	}
+	loaded = true
+	var roots []string
+	for _, path := range paths {
+		if parser.ModeOf(path) != parser.Declarations {
+			roots = append(roots, path)
+			continue
+		}
+		p, err := Load(path, opts...)
+		if err != nil {
+			diags = append(diags, loadDiagnostics(err)...)
+			loaded = false
+			continue
+		}
+		diags = append(diags, p.Check()...)
+	}
+	if len(roots) > 0 {
+		prog, lds := loader.LoadRoots(roots, loader.Config{FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, Extra: extra})
+		if len(lds) > 0 {
+			diags = append(diags, convert(lds)...)
+			loaded = false
+		}
+		if len(prog.Modules) > 0 {
+			diags = append(diags, convert(check.Program(prog, check.Config{Namespaces: nsDecls, Removed: cfg.removed}))...)
+		}
+	}
+	sort.SliceStable(diags, func(i, j int) bool {
+		a, b := diags[i].Pos, diags[j].Pos
+		if a.Path != b.Path {
+			return a.Path < b.Path
+		}
+		if a.Line != b.Line {
+			return a.Line < b.Line
+		}
+		return a.Col < b.Col
+	})
+	return diags, loaded
+}
+
+func loadDiagnostics(err error) []Diagnostic {
+	if le, ok := err.(*LoadError); ok && len(le.Diagnostics) > 0 {
+		return le.Diagnostics
+	}
+	return []Diagnostic{{Message: err.Error()}}
+}

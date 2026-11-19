@@ -34,7 +34,7 @@ func TestRunCommand(t *testing.T) {
 		{"check errors", []string{"check", broken}, "", 1, "", "types.ant:"},
 		{"check shows the code", []string{"check", broken}, "", 1, "", " │ "},
 		{"check counts the errors", []string{"check", broken}, "", 1, "", " errors\n"},
-		{"check wrong arity", []string{"check"}, "", 2, "", "usage"},
+		{"check unknown flag", []string{"check", "-x"}, "", 2, "", "usage"},
 		{"check cannot load", []string{"check", missing}, "", 2, "", "main"},
 		{"help", []string{"help"}, "", 0, "usage", ""},
 		{"help flag", []string{"--help"}, "", 0, "usage", ""},
@@ -66,7 +66,7 @@ func TestRunCommand(t *testing.T) {
 func TestHelpAfterCommand(t *testing.T) {
 	for _, c := range []struct{ args, want string }{
 		{"run --help", "usage: ant run <file.ant> [args...]"},
-		{"check -h", "usage: ant check <file.ant>"},
+		{"check -h", "usage: ant check [-json] [path...]"},
 		{"fmt --help", "usage: ant fmt"},
 		{"doc --help", "usage: ant doc"},
 		{"lsp -h", "usage: ant lsp"},

@@ -16,7 +16,7 @@ ant test [flags] [path ...]
 - Flags come before the paths.
 - Files run one after another, in the order of the paths, and a directory's files in lexical order.
   Each file runs as a program of its own, so module state never carries from one file to the next.
-- `ant test` does not type-check. Run `ant check` on a test file to check it with its imports.
+- `ant test` does not type-check. Run `ant check .` to check your test files with their imports.
 - A passing test prints nothing. What a test prints is shown when it fails, or under `-v`.
 - Output printed while a file's modules initialize, outside any test, is not collected: it goes to
   standard output, or to standard error under `-json`.
@@ -456,4 +456,4 @@ ant test: words.ant is not a test file, whose name ends in _test.ant
 - [Testing](../guide/testing.md): how test files, subtests, and `Test` fit together
 - [assert](../lib/prelude/assert.md): the check a test makes
 - [Test](../lib/Test/index.md): skip, run in parallel, temporary directories
-- [ant check](check.md): type-check a test file with its imports
+- [ant check](check.md): type-check test files with their imports

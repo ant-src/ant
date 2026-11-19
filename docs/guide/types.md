@@ -14,9 +14,9 @@ another.
 
 Two commands read your program, and only one of them looks at types:
 
-- `ant check` runs the type checker over the file and every module it imports, including code that
-  nothing calls. It reports every compile error it finds, and exits with a non-zero status when
-  there is one.
+- `ant check` runs the type checker over the files you name, or every file under a directory, and
+  every module they import, including code that nothing calls. It reports every compile error it
+  finds, and exits with a non-zero status when there is one.
 - `ant run` parses the program and runs it. It discards the annotations and checks nothing in
   advance.
 

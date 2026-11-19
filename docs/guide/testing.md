@@ -397,8 +397,8 @@ ok    1 passed (0.00s)
   tests share a top-level `var`, so a change one test makes is seen by the tests after it.
 - **Private names are reachable.** Import them into the test file; there is no need to export a
   function for its tests.
-- **`ant test` does not type-check.** Neither does `ant run`. Run `ant check` on your test files
-  too; it accepts a test file and checks it with its imports.
+- **`ant test` does not type-check.** Neither does `ant run`. Run `ant check .` too; it checks your
+  test files with everything else, each with its imports.
 
 ## See also
 

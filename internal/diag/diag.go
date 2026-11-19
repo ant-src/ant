@@ -253,6 +253,28 @@ func (p *Printer) PrintSpan(w io.Writer, path string, pos, end ast.Pos, msg stri
 	io.WriteString(w, sb.String())
 }
 
+// Range is the span of a diagnostic at pos in the file at path, as the lines and byte columns
+// where it starts and just past where it ends: from pos to end when end is set, else what Span
+// finds, which may start before pos when pos is an operator's. Both are zero when pos is, or
+// when the file cannot be read.
+func (p *Printer) Range(path string, pos, end ast.Pos) (from, to ast.Pos) {
+	if end.Line > 0 {
+		return pos, end
+	}
+	s := p.source(path)
+	if s == nil || pos.Line == 0 || pos.Line > len(s.lines) {
+		return ast.Pos{}, ast.Pos{}
+	}
+	start, stop := s.Span(pos)
+	return s.pos(start), s.pos(stop)
+}
+
+// pos is the line and byte column of the byte at off.
+func (s *Source) pos(off int) ast.Pos {
+	i := s.lineOf(off)
+	return ast.Pos{Line: i + 1, Col: off - s.lines[i] + 1}
+}
+
 // Summary writes how many errors there were.
 func (p *Printer) Summary(w io.Writer, n int) {
 	var sb strings.Builder

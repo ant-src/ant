@@ -7,10 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -166,24 +164,11 @@ func testFiles(paths []string) ([]string, error) {
 			files = append(files, p)
 			continue
 		}
-		err = filepath.WalkDir(p, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if d.IsDir() {
-				if path != p && strings.HasPrefix(d.Name(), ".") {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if ant.IsTestFile(d.Name()) {
-				files = append(files, path)
-			}
-			return nil
-		})
+		found, err := antFiles(p, ant.IsTestFile)
 		if err != nil {
 			return nil, err
 		}
+		files = append(files, found...)
 	}
 	return files, nil
 }
