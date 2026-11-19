@@ -48,9 +48,12 @@ const (
 
 // TestEvent is one event of a test's run.
 type TestEvent struct {
-	Kind    TestEventKind
-	File    string
-	Name    string // the full name, as "parse/0x10"
+	Kind TestEventKind
+	File string
+	Name string // the full name, as "parse/0x10"
+	// Parent is the full name of the test a subtest runs in, on its TestRun event; "" for a
+	// top-level test. A name may hold a /, so Name alone does not say.
+	Parent  string
 	Output  string
 	Message string
 	Elapsed time.Duration
@@ -184,7 +187,7 @@ func (g *Goroutine) runTest(parent *testRun, node *ast.Test, name string, env *E
 	t.kill, t.killStop = context.WithCancel(in.ctx)
 	t.ctx = value.NewContext(in.ctx, 0)
 	t.start = time.Now()
-	tf.report(TestEvent{Kind: TestRun, Name: full})
+	tf.report(TestEvent{Kind: TestRun, Name: full, Parent: parent.full})
 	done := make(chan struct{})
 	ng := in.newGoroutine(false)
 	ng.test, ng.startPath, ng.startPos = t, env.mod.path, node.Pos

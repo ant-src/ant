@@ -1,0 +1,24 @@
+// spec: 10 Tests
+// The "done" event of a timeout counts each running test with no subtest still running, by the
+// test tree and not by the names: a top-level test named "x/y" is not a subtest of "x"
+// (test.md section 3).
+
+test "x" {
+  Test.parallel()
+  Context.new().wait()
+}
+
+test "x/y" {
+  Test.parallel()
+  Context.new().wait()
+}
+
+// expect
+// args: -json -timeout 100ms
+// out: {"action":"run","file":"timeout_slash_test.ant","test":"x"}
+// out: {"action":"run","file":"timeout_slash_test.ant","test":"x/y"}
+// out: {"action":"fail","file":"timeout_slash_test.ant","test":"x","elapsed":0,"message":"test timed out after 100ms"}
+// out: {"action":"fail","file":"timeout_slash_test.ant","test":"x/y","elapsed":0,"message":"test timed out after 100ms"}
+// out: {"action":"done","elapsed":0,"passed":0,"failed":2,"skipped":0}
+// exit: 1
+// err: test timed out after 100ms

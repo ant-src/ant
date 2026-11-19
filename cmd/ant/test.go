@@ -188,23 +188,28 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 // listTests answers -list: the top-level tests of files whose name matches re, in source order,
-// one per line as "file: name", or under -json as "list" events (test.md section 1).
+// one per line as "file: name", or under -json as "list" events. A file that does not parse lists
+// nothing, of any file (test.md section 1).
 func listTests(files []string, re *regexp.Regexp, jsonOut bool, stdout, stderr io.Writer) int {
+	parsed := make([]*ast.File, len(files))
 	status := 0
-	for _, file := range files {
+	for i, file := range files {
 		src, err := os.ReadFile(file)
 		if err != nil {
 			fmt.Fprintf(stderr, "ant test: %s\n", err)
 			status = 2
 			continue
 		}
-		f, err := parser.Parse(file, string(src), parser.Program)
-		if err != nil {
+		if parsed[i], err = parser.Parse(file, string(src), parser.Program); err != nil {
 			fmt.Fprintf(stderr, "%s:%s\n", file, err)
 			status = 2
-			continue
 		}
-		for _, t := range f.Tests {
+	}
+	if status != 0 {
+		return status
+	}
+	for i, file := range files {
+		for _, t := range parsed[i].Tests {
 			name := t.Name.(*ast.StringLit).Value
 			if !re.MatchString(name) {
 				continue
@@ -217,7 +222,7 @@ func listTests(files []string, re *regexp.Regexp, jsonOut bool, stdout, stderr i
 			}
 		}
 	}
-	return status
+	return 0
 }
 
 // testSources are the files ant test takes: the test files the paths name, or those under a
@@ -246,8 +251,8 @@ type reporter struct {
 
 // runningTest is a test that started and has not ended.
 type runningTest struct {
-	file, name string
-	start      time.Time
+	file, name, parent string
+	start              time.Time
 }
 
 func (r *reporter) event(e ant.TestEvent) {
@@ -259,7 +264,7 @@ func (r *reporter) event(e ant.TestEvent) {
 	key := e.File + ": " + e.Name
 	switch e.Kind {
 	case ant.TestRun:
-		r.running[key] = runningTest{e.File, e.Name, time.Now()}
+		r.running[key] = runningTest{e.File, e.Name, e.Parent, time.Now()}
 	case ant.TestOutput:
 	default:
 		delete(r.running, key)
@@ -426,7 +431,7 @@ func (r *reporter) timedOut(running []runningTest, msg string, elapsed time.Dura
 		r.writeJSON(jsonEvent{Action: "fail", File: t.file, Test: t.name, Elapsed: &secs, Message: msg})
 		parent := false
 		for _, u := range running {
-			parent = parent || u.file == t.file && strings.HasPrefix(u.name, t.name+"/")
+			parent = parent || u.file == t.file && u.parent == t.name
 		}
 		if !parent {
 			r.failed++

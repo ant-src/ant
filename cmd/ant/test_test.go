@@ -147,6 +147,11 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", "-v", "-run", `^x\/y$/^c( #[0-9]+)?$`, slash}, 0, "--- PASS: " + slash + ": x/y/c #2", ""},
 		{[]string{"test", "-v", "-run", `[/]/c`, slash}, 0, "ok    2 passed", ""},
 	}
+	// a file that does not parse lists nothing, of any file
+	var lout, lerr bytes.Buffer
+	if status := run([]string{"test", "-nocheck", "-list", ".", ok, bad}, strings.NewReader(""), &lout, &lerr); status != 2 || lout.Len() != 0 || !strings.Contains(lerr.String(), "b_test.ant:2:1") {
+		t.Errorf("-list with a file that does not parse: status %d, stdout %q, stderr %q", status, lout.String(), lerr.String())
+	}
 	for _, c := range cases {
 		var stdout, stderr bytes.Buffer
 		status := run(c.args, strings.NewReader(""), &stdout, &stderr)

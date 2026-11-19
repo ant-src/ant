@@ -39,9 +39,12 @@ const (
 
 // TestEvent is one event of a test run (test.md).
 type TestEvent struct {
-	Kind    TestEventKind
-	File    string
-	Name    string // the full name, as "parse/0x10"
+	Kind TestEventKind
+	File string
+	Name string // the full name, as "parse/0x10"
+	// Parent is the full name of the test a subtest runs in, on its TestRun event; "" for a
+	// top-level test. A name may hold a /, so Name alone does not say.
+	Parent  string
 	Output  string
 	Message string
 	Elapsed time.Duration
@@ -63,7 +66,7 @@ func (p *Program) Test(ctx context.Context, cfg TestConfig, opts ...Option) erro
 		Report: func(e interp.TestEvent) {
 			if report != nil {
 				report(TestEvent{Kind: TestEventKind(e.Kind), File: e.File, Name: e.Name, Output: e.Output,
-					Message: e.Message, Elapsed: e.Elapsed, Counted: e.Counted})
+					Message: e.Message, Elapsed: e.Elapsed, Counted: e.Counted, Parent: e.Parent})
 			}
 		}}
 	return convertRunError(interp.RunTests(ctx, p.prog, p.cfg.with(opts).run(p.prelude), tc))
