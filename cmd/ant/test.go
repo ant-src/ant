@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -17,7 +18,10 @@ import (
 	"time"
 
 	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/temporal"
+	"github.com/ant-src/ant/parser"
+	"github.com/ant-src/ant/value"
 )
 
 // testCommand is ant test (spec/test.md): it finds the test files under its paths, runs each
@@ -26,6 +30,7 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fl := flag.NewFlagSet("ant test", flag.ContinueOnError)
 	fl.SetOutput(stderr)
 	runPat := fl.String("run", "", "run only the tests whose full name matches `regexp`")
+	listPat := fl.String("list", "", "list the top-level tests whose name matches `regexp`, and run none")
 	skipPat := fl.String("skip", "", "leave out the tests whose full name matches `regexp`")
 	verbose := fl.Bool("v", false, "print every test as it starts and ends, with its output")
 	jsonOut := fl.Bool("json", false, "print events as JSON lines")
@@ -55,6 +60,15 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "ant test: -skip: %s\n", err)
 		return 2
 	}
+	var list *regexp.Regexp
+	if *listPat != "" {
+		re, err := value.NewRegex(*listPat, "")
+		if err != nil {
+			fmt.Fprintf(stderr, "ant test: -list: %s\n", err)
+			return 2
+		}
+		list = re.Re
+	}
 	if *parallel < 1 {
 		fmt.Fprintln(stderr, "ant test: -parallel must be at least 1")
 		return 2
@@ -79,6 +93,9 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			}
 			return 1
 		}
+	}
+	if list != nil {
+		return listTests(files, list, *jsonOut, stdout, stderr)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -161,8 +178,44 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 130
 	}
 	rep.done(time.Since(start), status == 2)
+	if (*runPat != "" || *skipPat != "") && status == 0 && rep.passed+rep.failed+rep.skipped == 0 {
+		fmt.Fprintln(stderr, "ant test: warning: no tests to run")
+	}
 	if status == 0 && rep.failed > 0 {
 		status = 1
+	}
+	return status
+}
+
+// listTests answers -list: the top-level tests of files whose name matches re, in source order,
+// one per line as "file: name", or under -json as "list" events (test.md section 1).
+func listTests(files []string, re *regexp.Regexp, jsonOut bool, stdout, stderr io.Writer) int {
+	status := 0
+	for _, file := range files {
+		src, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Fprintf(stderr, "ant test: %s\n", err)
+			status = 2
+			continue
+		}
+		f, err := parser.Parse(file, string(src), parser.Program)
+		if err != nil {
+			fmt.Fprintf(stderr, "%s:%s\n", file, err)
+			status = 2
+			continue
+		}
+		for _, t := range f.Tests {
+			name := t.Name.(*ast.StringLit).Value
+			if !re.MatchString(name) {
+				continue
+			}
+			if jsonOut {
+				b, _ := json.Marshal(jsonEvent{Action: "list", File: file, Test: name})
+				stdout.Write(append(b, '\n'))
+			} else {
+				fmt.Fprintf(stdout, "%s: %s\n", file, name)
+			}
+		}
 	}
 	return status
 }

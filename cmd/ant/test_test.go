@@ -130,7 +130,11 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", ok, typed}, 1, "", "t_test.ant:2:16: cannot use string where int is expected"},
 		{[]string{"test", "-json", ok, typed}, 1, `{"action":"error","path":"` + typed + `","line":2,"column":16,"severity":"error","code":"type-mismatch","message":"cannot use string where int is expected","start":{"line":2,"column":16},"end":{"line":2,"column":19}}` + "\n", ""},
 		{[]string{"test", "-nocheck", typed}, 0, "ok    1 passed", ""},
-		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", ""},
+		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", "ant test: warning: no tests to run"},
+		// -list names the top-level tests that match, and runs none
+		{[]string{"test", "-list", "x", slash}, 0, slash + ": x/y\n" + slash + ": x\n", ""},
+		{[]string{"test", "-list", "^x$", "-json", slash}, 0, `{"action":"list","file":"` + slash + `","test":"x"}` + "\n", ""},
+		{[]string{"test", "-list", "(", ok}, 2, "", "-list:"},
 		// -timeout is read as Time.parseDuration reads it: Go's notation or ISO 8601
 		{[]string{"test", "-timeout", "1h30m", ok}, 0, "ok    1 passed", ""},
 		{[]string{"test", "-timeout", "PT10M", ok}, 0, "ok    1 passed", ""},

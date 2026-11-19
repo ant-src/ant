@@ -102,6 +102,7 @@ parent that fails only because a subtest did is not reported again.
 | -------------- | ------------------------------------------------------------------------------------------ |
 | `-run regexp`  | Run only the tests whose full name matches, one part of the pattern per level              |
 | `-skip regexp` | Leave out the tests that match, the same way                                               |
+| `-list regexp` | List the top-level tests whose names match, and run none                                   |
 | `-v`           | Print every test as it starts and ends, with its output                                    |
 | `-json`        | Print events as JSON lines instead of the report                                           |
 | `-failfast`    | Start no test after the first failure                                                      |
@@ -179,6 +180,35 @@ ok    2 passed (0.00s)
 
 `-run parse` alone runs `parse` with all its rows. A test that is left out is neither run nor
 counted.
+
+### Listing tests
+
+`-list` prints the top-level tests whose names match a regular expression, without running them. `.`
+matches every test:
+
+<!-- test: cmd ant test -list . list_test.ant -->
+
+```ant [list_test.ant]
+test "split" {
+  for input in ["a b", "a  b"] {
+    test "${input}" {
+      assert(input.fields() == ["a", "b"])
+    }
+  }
+}
+
+test "join" {
+  assert(String.join(["a", "b"], " ") == "a b")
+}
+```
+
+```text
+list_test.ant: split
+list_test.ant: join
+```
+
+Subtests are not listed, since a test's body computes their names as it runs. Under `-json`, each
+test is a line such as `{"action":"list","file":"list_test.ant","test":"split"}`.
 
 ### Leaving tests out with `-skip`
 
@@ -448,8 +478,10 @@ part of a name.
 
 ### A pattern that matches nothing
 
-A `-run` pattern that matches no test is not an error: `ant test` prints `ok    no tests (0.00s)`
-and exits with status 0. Patterns are case-sensitive, so `-run Parse` matches no test named `parse`.
+A `-run` pattern that matches no test is not an error: `ant test` prints `ok    no tests (0.00s)`,
+writes `ant test: warning: no tests to run` to standard error, and exits with status 0. Patterns are
+case-sensitive, so `-run Parse` matches no test named `parse`. Use `-list` with the same first part
+to see which tests a pattern selects.
 
 ### A file that is not a test file
 
