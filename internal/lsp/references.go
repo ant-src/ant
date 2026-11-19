@@ -594,22 +594,51 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 }
 
 // importers lists the documents, open or in the workspace, whose imports lead to the module at
-// path, other than the one at skip: each becomes the root of a program the rename reaches into.
-// Which files import it is read from their parsed imports, so only those are analyzed.
+// path, directly or through other modules, other than the one at skip: each becomes the root of a
+// program the search reaches into, since a module that gets a value of a type from another can
+// call the functions on it. Which files import which is read from their parsed imports, so only
+// those that lead to path are analyzed.
 func (s *Server) importers(path, skip string) []*document {
-	var out []*document
+	canonical := map[string]string{}
+	key := func(p string) string {
+		if k, ok := canonical[p]; ok {
+			return k
+		}
+		k := filepath.Clean(p)
+		if real, err := filepath.EvalSymlinks(k); err == nil {
+			k = real
+		}
+		canonical[p] = k
+		return k
+	}
+	// the files that import each module, by the module's key
+	importedBy := map[string][]*workspaceFile{}
 	for _, f := range s.workspaceFiles() {
-		if f.doc.uri == skip || f.doc.path == path {
-			continue
-		}
-		imports := false
 		for _, imp := range f.file.Imports {
-			if sameFile(filepath.Join(filepath.Dir(f.doc.path), filepath.FromSlash(imp.Path)), path) {
-				imports = true
+			target := filepath.FromSlash(imp.Path)
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(filepath.Dir(f.doc.path), target)
 			}
+			k := key(target)
+			importedBy[k] = append(importedBy[k], f)
 		}
-		if imports {
-			out = append(out, f.doc)
+	}
+	var out []*document
+	reached := map[string]bool{key(path): true}
+	queue := []string{key(path)}
+	for len(queue) > 0 {
+		p := queue[0]
+		queue = queue[1:]
+		for _, f := range importedBy[p] {
+			k := key(f.doc.path)
+			if reached[k] {
+				continue
+			}
+			reached[k] = true
+			queue = append(queue, k)
+			if f.doc.uri != skip {
+				out = append(out, f.doc)
+			}
 		}
 	}
 	return out

@@ -163,3 +163,23 @@ func TestReferencesReachImporters(t *testing.T) {
 		t.Errorf("references of twice: %+v", got)
 	}
 }
+
+// TestReferencesThroughModules checks that a function on a type is found, and renamed, in a module
+// that gets a value of the type through another module without importing the type's own.
+func TestReferencesThroughModules(t *testing.T) {
+	lib := "export type Pos = { line: int }\n\nexport func Pos.next(p: Pos): Pos { Pos{ line: p.line + 1 } }\n"
+	mid := "import \"./lib.ant\" { Pos }\n\nexport func start(): Pos { Pos{ line: 1 } }\n"
+	app := "import \"./mid.ant\" { start }\n\nprintln(start().next())\n"
+	c := start(t, map[string]string{"lib.ant": lib, "mid.ant": mid, "app.ant": app})
+	libURI := c.open("lib.ant", lib)
+	rp := ReferenceParams{TextDocumentPositionParams: c.pos(libURI, at(lib, "next", 1, 0))}
+	var locs []Location
+	c.call("textDocument/references", rp, &locs)
+	if len(locs) != 1 || locs[0].URI != c.uri("app.ant") {
+		t.Errorf("references of Pos.next: %+v", locs)
+	}
+	edit, err := rename(c, libURI, at(lib, "next", 1, 0), "advance")
+	if err != nil || applyAll(app, edit.Changes[c.uri("app.ant")]) != strings.Replace(app, "next", "advance", 1) {
+		t.Errorf("renaming Pos.next: %v %+v", err, edit.Changes)
+	}
+}
