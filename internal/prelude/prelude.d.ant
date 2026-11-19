@@ -2738,9 +2738,9 @@ func Os.platform(): string
 func Os.arch(): string
 
 // Os.cpus returns the number of CPUs the program may use at once: the host's logical CPUs, or fewer
-// under a container's CPU limit, and at least 1. $GOMAXPROCS, when set, is the count instead. It can change while the
-// program runs, as a container's limit can. It is the limit to give [Parallel.map] for CPU-bound
-// work.
+// under a container's CPU limit, and at least 1. $GOMAXPROCS, set to a positive number, is the
+// count instead. It can change while the program runs, as a container's limit can. It is the limit
+// to give [Parallel.map] for CPU-bound work.
 func Os.cpus(): int
 
 // Os.env returns the value of the environment variable name, or null when it is not set; a

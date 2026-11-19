@@ -7,7 +7,9 @@
 func Test.parallel(): void
 ```
 
-Test.parallel runs the current test alongside the other parallel tests of its parent, once the tests of that parent that did not call it have ended, and after the parent's body and deferred blocks. It is called once, from the test's body, and panics from a deferred block.
+Test.parallel runs the current test alongside the other parallel tests of its parent, once the tests
+of that parent that did not call it have ended, and after the parent's body and deferred blocks. It
+is called once, from the test's body, and panics from a deferred block.
 
 <!-- end generated -->
 
@@ -19,8 +21,8 @@ Test.parallel runs the current test alongside the other parallel tests of its pa
 - A subtest that calls `Test.parallel` returns control to its parent at the call, so the parent's
   body goes on. The parent ends only after its parallel subtests end, and its deferred blocks run
   before they end.
-- At most `-parallel n` tests run at once after the call; the default is the number of CPUs. Tests
-  in different files never run at once.
+- At most `-parallel n` tests run at once after the call; the default is what
+  [Os.cpus](../Os/cpus.md) returns. Tests in different files never run at once.
 - Parallel tests share module variables and the variables of their parent. Guard what they change
   with a [Mutex](../Mutex/index.md).
 - A parallel subtest resumes only after its parent's body and deferred blocks have finished.

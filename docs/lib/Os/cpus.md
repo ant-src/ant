@@ -8,8 +8,8 @@ func Os.cpus(): int
 ```
 
 Os.cpus returns the number of CPUs the program may use at once: the host's logical CPUs, or fewer
-under a container's CPU limit, and at least 1. $GOMAXPROCS, when set, is the count instead. It can
-change while the program runs, as a container's limit can. It is the limit to give
+under a container's CPU limit, and at least 1. $GOMAXPROCS, set to a positive number, is the count
+instead. It can change while the program runs, as a container's limit can. It is the limit to give
 [`Parallel.map`](../Parallel/map.md) for CPU-bound work.
 
 <!-- end generated -->
