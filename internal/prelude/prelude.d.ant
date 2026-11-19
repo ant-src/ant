@@ -2737,6 +2737,12 @@ func Os.platform(): string
 // "amd64", and so on.
 func Os.arch(): string
 
+// Os.cpus returns the number of CPUs the program may use at once: the host's logical CPUs, or fewer
+// when a container's CPU limit or $GOMAXPROCS lowers it, and at least 1. It can change while the
+// program runs, as a container's limit can. It is the limit to give [Parallel.map] for CPU-bound
+// work.
+func Os.cpus(): int
+
 // Os.env returns the value of the environment variable name, or null when it is not set; a
 // variable set empty gives "". Names are matched as the host matches them: exactly on Unix, and
 // ignoring case on Windows. An empty name, or one holding =, names no variable and gives null.

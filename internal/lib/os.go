@@ -31,6 +31,9 @@ func init() {
 			fn("Os.arch", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return value.Text(runtime.GOARCH)
 			}),
+			fn("Os.cpus", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				return int64(runtime.GOMAXPROCS(0))
+			}),
 			fn("Os.env", "name", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				v, ok := g.Instance().LookupEnv(stringArg(g, who, a[0]))
 				if !ok {

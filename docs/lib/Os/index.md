@@ -214,6 +214,7 @@ interrupted: interrupt
 ### Host and directories
 
 - [Os.platform](platform.md), [Os.arch](arch.md): the operating system and processor, by Go's names
+- [Os.cpus](cpus.md): the CPUs the program may use at once
 - [Os.hostname](hostname.md): the host's name
 - [Os.cwd](cwd.md): the working directory
 - [Os.home](home.md): the user's home directory
