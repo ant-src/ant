@@ -342,7 +342,7 @@ func (s *server) launch(raw json.RawMessage) error {
 		return fmt.Errorf("%s: test names a test to run, and the program is not a test file", prog.Root.File.Path)
 	}
 	if isTest {
-		s.tests = &interp.TestConfig{File: filepath.Base(program), Parallel: runtime.NumCPU(), Report: s.testEvent}
+		s.tests = &interp.TestConfig{File: filepath.Base(program), Parallel: runtime.GOMAXPROCS(0), Report: s.testEvent}
 		if args.Test != nil {
 			run, err := interp.TestPattern(*args.Test)
 			if err != nil {

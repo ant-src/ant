@@ -98,17 +98,17 @@ parent that fails only because a subtest did is not reported again.
 
 ## Flags
 
-| Flag           | Meaning                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------ |
-| `-run regexp`  | Run only the tests whose full name matches, one part of the pattern per level              |
-| `-skip regexp` | Leave out the tests that match, the same way                                               |
-| `-list regexp` | List the top-level tests whose names match, and run none                                   |
-| `-v`           | Print every test as it starts and ends, with its output                                    |
-| `-json`        | Print events as JSON lines instead of the report                                           |
-| `-failfast`    | Start no test after the first failure                                                      |
-| `-nocheck`     | Run the tests without type-checking the test files first                                   |
-| `-parallel n`  | The most tests that run at once after `Test.parallel()`; the default is the number of CPUs |
-| `-timeout d`   | End the run after `d`, such as `30s` or `2m`; the default is `10m`, and `0` means no limit |
+| Flag           | Meaning                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `-run regexp`  | Run only the tests whose full name matches, one part of the pattern per level                                             |
+| `-skip regexp` | Leave out the tests that match, the same way                                                                              |
+| `-list regexp` | List the top-level tests whose names match, and run none                                                                  |
+| `-v`           | Print every test as it starts and ends, with its output                                                                   |
+| `-json`        | Print events as JSON lines instead of the report                                                                          |
+| `-failfast`    | Start no test after the first failure                                                                                     |
+| `-nocheck`     | Run the tests without type-checking the test files first                                                                  |
+| `-parallel n`  | The most tests that run at once after `Test.parallel()`; the default is the CPUs it may use, [Os.cpus](../lib/Os/cpus.md) |
+| `-timeout d`   | End the run after `d`, such as `30s` or `2m`; the default is `10m`, and `0` means no limit                                |
 
 ## Scope
 

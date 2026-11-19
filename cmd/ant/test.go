@@ -36,7 +36,7 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	jsonOut := fl.Bool("json", false, "print events as JSON lines")
 	failfast := fl.Bool("failfast", false, "start no test after the first failure")
 	nocheck := fl.Bool("nocheck", false, "run the tests without type-checking the test files first")
-	parallel := fl.Int("parallel", runtime.NumCPU(), "the most tests that run at once after Test.parallel()")
+	parallel := fl.Int("parallel", runtime.GOMAXPROCS(0), "the most tests that run at once after Test.parallel()")
 	timeout := new(time.Duration)
 	*timeout = 10 * time.Minute
 	fl.Var((*testTimeout)(timeout), "timeout", "end the run after `d`, as Time.parseDuration reads it; 0 means no limit")
