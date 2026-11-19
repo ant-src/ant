@@ -60,6 +60,25 @@ func TestDocCommand(t *testing.T) {
 		{"no args", nil, 2, ""},
 		{"too many", []string{mod, "a", "b"}, 2, ""},
 	}
+	// a name that names nothing gets a suggestion on standard error (doc.md section 1)
+	suggestions := []struct{ name, err string }{
+		{"Array.join", "ant doc: no declaration Array.join; did you mean Path.join or String.join?\n"},
+		{"join", "ant doc: no declaration join; did you mean Path.join or String.join?\n"},
+		{"Json.prase", "ant doc: no declaration Json.prase; did you mean Json.parse?\n"},
+		{"Arry", "ant doc: no declaration Arry; did you mean Array?\n"},
+		{"Json.decode", "ant doc: no declaration Json.decode; ant doc Json lists its members\n"},
+		{"percentile", "ant doc: no declaration percentile\n"},
+	}
+	for _, c := range suggestions {
+		var out, errOut strings.Builder
+		if status := run([]string{"doc", c.name}, strings.NewReader(""), &out, &errOut); status != 1 || errOut.String() != c.err {
+			t.Errorf("ant doc %s: status %d, stderr %q, want %q", c.name, status, errOut.String(), c.err)
+		}
+	}
+	var out, errOut strings.Builder
+	if run([]string{"doc", mod, "Point.nrom"}, strings.NewReader(""), &out, &errOut); errOut.String() != "ant doc: no declaration Point.nrom; did you mean Point.norm?\n" {
+		t.Errorf("ant doc %s Point.nrom: stderr %q", mod, errOut.String())
+	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out, errOut strings.Builder

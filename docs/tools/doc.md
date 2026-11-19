@@ -333,6 +333,17 @@ reader of the whole module needs: its main types, how its functions fit together
 
 ## Possible issues
 
+A name that is misspelled, or that belongs to another namespace, is not found, and the error says
+what to look at instead. `ant doc Array.join` exits with status 1 and prints to standard error:
+
+```text
+ant doc: no declaration Array.join; did you mean Path.join or String.join?
+```
+
+It suggests the same name in other namespaces first, then names one or two edits away, as
+`Json.prase` suggests `Json.parse`. When neither exists and the namespace does, it points to the
+listing: `ant doc Json.decode` ends with `ant doc Json lists its members`.
+
 A declaration that is not exported is not found. `ant doc tax.ant rate` prints
 `ant doc: no declaration rate` and exits with status 1:
 

@@ -4,10 +4,12 @@ package doc
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/highlight"
+	"github.com/ant-src/ant/internal/near"
 )
 
 // Printer renders documentation, preserving source line breaks and spacing. Color highlights
@@ -60,6 +62,58 @@ func (p *Printer) Print(w io.Writer, decls []ast.Decl, name string, namespaceDoc
 		}
 	}
 	return found
+}
+
+// Suggest is what to look at instead when name names nothing among decls (spec/doc.md section 1):
+// the declarations of other owners with its member name, else the names nearest to it, else, for
+// Owner.name with a known owner, the owner's listing; "" when there is nothing to suggest.
+func Suggest(decls []ast.Decl, name string, namespaceDocs map[string]string) string {
+	var names []string
+	owners := map[string]string{}
+	for ns := range namespaceDocs {
+		names = append(names, ns)
+		owners[strings.ToLower(ns)] = ns
+	}
+	for _, d := range withInterfaceFuncs(decls) {
+		o, n := declName(d)
+		switch {
+		case n == "":
+		case o == "":
+			names = append(names, n)
+		default:
+			names = append(names, o+"."+n)
+			owners[strings.ToLower(o)] = o
+		}
+	}
+	sort.Strings(names)
+	owner, member, dotted := strings.Cut(name, ".")
+	if !dotted {
+		member = name
+	}
+	// the same member of another owner first, as String.join for Array.join, nearest first
+	var same []string
+	for _, n := range names {
+		if _, m, ok := strings.Cut(n, "."); ok && strings.EqualFold(m, member) {
+			same = append(same, n)
+		}
+	}
+	lower := strings.ToLower(name)
+	sort.SliceStable(same, func(i, j int) bool {
+		return near.Distance(lower, strings.ToLower(same[i])) < near.Distance(lower, strings.ToLower(same[j]))
+	})
+	if len(same) > 3 {
+		same = same[:3]
+	}
+	if len(same) == 0 {
+		same = near.Nearest(name, names)
+	}
+	if len(same) > 0 {
+		return "did you mean " + strings.Join(same, " or ") + "?"
+	}
+	if o, ok := owners[strings.ToLower(owner)]; dotted && ok {
+		return "ant doc " + o + " lists its members"
+	}
+	return ""
 }
 
 // withInterfaceFuncs adds, after each interface, its functions as declarations the interface owns

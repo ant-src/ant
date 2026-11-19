@@ -72,7 +72,11 @@ func docCommand(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if !p.Print(stdout, decls, name, namespaceDocs) {
-		fmt.Fprintf(stderr, "ant doc: no declaration %s\n", name)
+		msg := "ant doc: no declaration " + name
+		if hint := doc.Suggest(decls, name, namespaceDocs); hint != "" {
+			msg += "; " + hint
+		}
+		fmt.Fprintln(stderr, msg)
 		return 1
 	}
 	return 0

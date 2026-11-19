@@ -93,7 +93,11 @@ func (l *looper) command(line string) (status int, done bool) {
 			p.Color = e.th.class[clsKeyword] != ""
 		}
 		if !p.Print(l.stdout, f.Decls, arg, f.NamespaceDocs) {
-			fmt.Fprintf(l.stderr, "no declaration %s\n", arg)
+			msg := "no declaration " + arg
+			if hint := doc.Suggest(f.Decls, arg, f.NamespaceDocs); hint != "" {
+				msg += "; " + hint
+			}
+			fmt.Fprintln(l.stderr, msg)
 		}
 	case "load":
 		return l.show(l.s.EvalFile(arg))
