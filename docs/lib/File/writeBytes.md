@@ -224,7 +224,7 @@ assert((try File.stat("run.sh")).mode == 0o755)
 program reports success although nothing was written:
 
 ```ant
-File.writeBytes("nowhere/out.bin", Bytes.fromArray([1]))
+_ = File.writeBytes("nowhere/out.bin", Bytes.fromArray([1]))
 println("saved")
 ```
 

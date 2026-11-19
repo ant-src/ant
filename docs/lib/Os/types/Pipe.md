@@ -188,7 +188,7 @@ func startJob(name: string, c: Cmd): Result[Job, Error] {
   let started = Cmd.start(c, stdout: out.write)
   try out.write.close()
   if started is Err {
-    out.read.close()
+    _ = out.read.close()
     return Result.err(started.error)
   }
   Result.ok(Job{ name, out, process: started.value })

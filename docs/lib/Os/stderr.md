@@ -183,11 +183,14 @@ try Os.stderr().writeLine("${count}")
 
 ### A dropped `Result` hides a failed write
 
-A write called as a statement compiles, and its `Result` is dropped with any error in it. Use `try`
-when the write matters, or [eprintln](../prelude/eprintln.md) when it does not:
+A write called as a statement compiles, and its `Result` is dropped with any error in it, so
+`ant check` warns about it. Use `try` when the write matters, `_ =` to drop the `Result` on purpose,
+or [eprintln](../prelude/eprintln.md) when it does not matter:
 
 ```ant
 Os.stderr().writeLine("ignored if it fails")
+// warning: the Result of writeLine is discarded, so its Err is lost
+_ = Os.stderr().writeLine("dropped on purpose")
 try Os.stderr().writeLine("checked")
 ```
 

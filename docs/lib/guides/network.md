@@ -18,7 +18,7 @@ func search(req: Http.Request): Http.Reply {
 }
 
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, search) }
+go { _ = Http.serve(listener, search) }
 
 let url = try Url.parse("http://${listener.address()}/find")
 url.query = Url.stringifyQuery(Map{ "q": ["ant & bee"] })

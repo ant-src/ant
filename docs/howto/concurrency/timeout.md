@@ -72,7 +72,7 @@ answer `/report`:
 ```ant
 let listener = try Net.listen("127.0.0.1:0")
 go {
-  Http.serve(listener, {
+  _ = Http.serve(listener, {
     Time.sleep(1s)
     Http.Reply{ status: 200, headers: Map{}, body: "report" }
   })

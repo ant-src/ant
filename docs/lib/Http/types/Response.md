@@ -36,7 +36,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 
 let server = try Net.listen("127.0.0.1:0")
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 
 let res = try Http.get("http://${Net.address(server)}/hello")
 println(res.status)
@@ -75,7 +75,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -113,7 +113,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -153,7 +153,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -191,7 +191,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -231,7 +231,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -271,7 +271,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -359,7 +359,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -404,7 +404,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -443,7 +443,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -490,7 +490,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -529,7 +529,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -565,7 +565,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 
@@ -602,7 +602,7 @@ func handle(req: Http.Request): Http.Reply {
   Http.Reply{ status: 404, headers: Map{}, body: "no ${req.path}" }
 }
 let server = Result.unwrap(Net.listen("127.0.0.1:0"))
-go { Http.serve(server, handle) }
+go { _ = Http.serve(server, handle) }
 let url = "http://${Net.address(server)}"
 -->
 

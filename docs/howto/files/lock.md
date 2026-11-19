@@ -48,7 +48,7 @@ To queue behind the run that holds the lock instead of giving up, call
 let other = File.lock("deploy.lock").unwrap()
 go {
   Time.sleep(100ms)
-  other.close()
+  _ = other.close()
 }
 -->
 

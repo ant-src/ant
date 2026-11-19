@@ -176,7 +176,7 @@ go {
 while true {
   let conn = Result.unwrap(listener.accept())
   // panic: Result.unwrap on an Err: Error{ message: "the listener is closed" }
-  conn.close()
+  _ = conn.close()
 }
 ```
 

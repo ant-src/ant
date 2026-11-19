@@ -471,7 +471,7 @@ wg.add(1)
 let r = Panic.catch({
   go {
     defer { wg.done() }
-    Panic.catch({ panic("job failed") })
+    _ = Panic.catch({ panic("job failed") })
   }
   1
 })

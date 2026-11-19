@@ -33,7 +33,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 let res = try Http.post("http://${listener.address()}/notes", "buy milk")
 println(res.status)
 println(res.text())
@@ -65,7 +65,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -95,7 +95,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -130,7 +130,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -160,7 +160,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -190,7 +190,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -222,7 +222,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -250,7 +250,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -278,7 +278,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -308,7 +308,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -336,7 +336,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -367,7 +367,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -401,7 +401,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -431,7 +431,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -470,7 +470,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -496,7 +496,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -523,7 +523,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -553,7 +553,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant
@@ -582,7 +582,7 @@ func echo(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let url = "http://${listener.address()}"
-go { Http.serve(listener, echo) }
+go { _ = Http.serve(listener, echo) }
 -->
 
 ```ant

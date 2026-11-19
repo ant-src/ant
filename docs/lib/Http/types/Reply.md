@@ -38,7 +38,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/ant")
 println(res.status)
@@ -79,7 +79,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/logo.png")
 println(res.bytes)
@@ -101,7 +101,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/")
 println(res.text())
@@ -130,7 +130,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 for path in ["/new", "/old", "/gone"] {
@@ -186,7 +186,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 let list = try Http.get("${base}/items")
@@ -220,7 +220,7 @@ try File.write("secret.txt", "not for clients\n")
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 for path in ["/hello.txt", "/missing.txt", "/%2e%2e/secret.txt"] {
@@ -249,7 +249,7 @@ let backendListener = try Net.listen("127.0.0.1:0")
 let origin = "http://${Net.address(backendListener)}"
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(backendListener, backend, stop) }
+go { _ = Http.serve(backendListener, backend, stop) }
 
 func front(req: Http.Request): Http.Reply {
   let res = Http.get("${origin}${req.path}")
@@ -265,7 +265,7 @@ func front(req: Http.Request): Http.Reply {
 }
 
 let frontListener = try Net.listen("127.0.0.1:0")
-go { Http.serve(frontListener, front, stop) }
+go { _ = Http.serve(frontListener, front, stop) }
 
 let direct = try Http.get("${origin}/blob")
 let proxied = try Http.get("http://${Net.address(frontListener)}/blob")
@@ -327,7 +327,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 for { key, value } in bodies {
@@ -350,7 +350,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 let a = try Http.get("${base}/string")
@@ -374,7 +374,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let base = "http://${Net.address(listener)}"
 println((try Http.get("${base}/early")).status)
@@ -398,7 +398,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/")
 println("${res.status} ${res.text().isEmpty()}")
@@ -419,7 +419,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { Context.cancel(stop) }
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let res = try Http.get("http://${Net.address(listener)}/")
 println(res.headers["Content-Type"] ?? "no Content-Type")

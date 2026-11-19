@@ -197,7 +197,7 @@ the error; at the top of a script it prints the message and exits with status 1:
 <!-- test: exit 1 -->
 
 ```ant
-File.remove("report.txt")
+_ = File.remove("report.txt")
 println("removed, or so it seems")
 try File.remove("report.txt")
 println("not reached")

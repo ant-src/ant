@@ -51,9 +51,14 @@ Time.fromEpochMillis(0).inZone(tokyo).toPlainDateTime() // 1970-01-01T09:00:00
 In a pipe, the zoned value from a parse goes through `Result.map`:
 
 ```ant
-"2026-12-24T18:00+01:00[Europe/Berlin]"
+let local = "2026-12-24T18:00+01:00[Europe/Berlin]"
   | Time.parseZoned()
-  | Result.map({ x.toPlainDateTime() }) // Ok{ value: 2026-12-24T18:00:00 }
+  | Result.map({ x.toPlainDateTime() })
+println(local)
+```
+
+```text
+Ok{ value: 2026-12-24T18:00:00 }
 ```
 
 ## Applications

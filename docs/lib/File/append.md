@@ -60,7 +60,7 @@ func addLine(path: string, line: string): Result[void, Error] {
   file.close()
 }
 
-File.write("todo.txt", "buy milk\n")
+try File.write("todo.txt", "buy milk\n")
 println(addLine("todo.txt", "call Ann"))
 println(File.read("todo.txt"))
 ```
@@ -106,8 +106,8 @@ func appendVia(link: string, line: string): Result[void, Error] {
   file.close()
 }
 
-File.write("history.txt", "one\n")
-File.symlink("history.txt", "latest.txt")
+try File.write("history.txt", "one\n")
+try File.symlink("history.txt", "latest.txt")
 println(appendVia("latest.txt", "two"))
 println(File.read("history.txt"))
 ```
@@ -206,7 +206,7 @@ func appendText(path: string, text: string): Result[void, Error] {
   file.close()
 }
 
-File.write("notes.txt", "a\n")
+try File.write("notes.txt", "a\n")
 let before = Result.unwrap(File.read("notes.txt"))
 Result.unwrap(appendText("notes.txt", "b\n"))
 assert(Result.unwrap(File.read("notes.txt")) == before + "b\n")
@@ -237,7 +237,7 @@ func openAndClose(path: string): Result[void, Error] {
 
 Result.unwrap(openAndClose("empty.txt"))
 assert(Result.unwrap(File.read("empty.txt")) == "")
-File.write("kept.txt", "kept\n")
+try File.write("kept.txt", "kept\n")
 Result.unwrap(openAndClose("kept.txt"))
 assert(Result.unwrap(File.read("kept.txt")) == "kept\n")
 ```
@@ -257,8 +257,8 @@ func writeReport(path: string): Result[void, Error] {
   file.close()
 }
 
-writeReport("report.txt")
-writeReport("report.txt")
+try writeReport("report.txt")
+try writeReport("report.txt")
 println(File.read("report.txt"))
 ```
 

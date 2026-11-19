@@ -60,9 +60,14 @@ values.map(Time.toPlainTime) // [16:03:05, 10:00:00]
 In a pipe, the value is the first argument:
 
 ```ant
-"2026-10-22T09:15:00+02:00[Europe/Stockholm]"
+let clock = "2026-10-22T09:15:00+02:00[Europe/Stockholm]"
   | Time.parseZoned()
-  | Result.map(Time.toPlainTime) // Ok{ value: 09:15:00 }
+  | Result.map(Time.toPlainTime)
+println(clock)
+```
+
+```text
+Ok{ value: 09:15:00 }
 ```
 
 ## Applications

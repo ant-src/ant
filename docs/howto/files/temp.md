@@ -118,7 +118,7 @@ func canWrite(dir: string): bool {
   if probe is Err {
     return false
   }
-  File.remove(probe.value)
+  _ = File.remove(probe.value)
   true
 }
 
@@ -145,7 +145,7 @@ let input = Path.join([work, "input.txt"])
 try File.write(input, "")
 if (try File.read(input)).isEmpty() {
   eprintln("nothing to convert")
-  File.removeAll(work)
+  _ = File.removeAll(work)
   Os.exit(3)
 }
 ```

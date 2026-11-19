@@ -144,7 +144,7 @@ server and reads the status line of the reply:
 ```ant
 let listener = try Net.listen("127.0.0.1:0")
 go {
-  Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: "hi" } })
+  _ = Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: "hi" } })
 }
 
 let conn = try Net.dial(listener.address())
@@ -163,7 +163,7 @@ Check whether something listens at an address:
 func reachable(addr: string): bool {
   let dialed = Net.dial(addr, ctx: Context.new(timeout: 1s))
   if dialed is Err { return false }
-  dialed.value.close()
+  _ = dialed.value.close()
   true
 }
 

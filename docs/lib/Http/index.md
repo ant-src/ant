@@ -42,7 +42,7 @@ func hello(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { stop.cancel() }
-go { Http.serve(listener, hello, stop) }
+go { _ = Http.serve(listener, hello, stop) }
 
 let res = try Http.get("http://${listener.address()}/docs")
 println(res.status)
@@ -80,7 +80,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -108,7 +108,7 @@ func greet(req: Http.Request): Http.Reply {
 }
 
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, greet) }
+go { _ = Http.serve(listener, greet) }
 
 println((try Http.get("http://${listener.address()}/my%20docs?name=Ann%20Lee")).text())
 ```
@@ -140,7 +140,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -191,7 +191,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -225,7 +225,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -257,7 +257,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -315,7 +315,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -359,7 +359,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -425,7 +425,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -455,7 +455,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -488,7 +488,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -510,7 +510,7 @@ func early(req: Http.Request): Http.Reply {
 }
 
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, early) }
+go { _ = Http.serve(listener, early) }
 
 let res = try Http.get("http://${listener.address()}/")
 println(res.status)
@@ -544,7 +544,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant

@@ -61,9 +61,14 @@ Time.plainDateTime(arrival.toPlainDate(), Time.plainTime(9)) // 2026-10-22T09:00
 Inside a pipe, pass it in a lambda to combine a parsed date with a fixed time:
 
 ```ant
-"2026-12-24"
+let evening = "2026-12-24"
   | Time.parsePlainDate()
-  | Result.map({ Time.plainDateTime(x, Time.plainTime(18)) }) // Ok{ value: 2026-12-24T18:00:00 }
+  | Result.map({ Time.plainDateTime(x, Time.plainTime(18)) })
+println(evening)
+```
+
+```text
+Ok{ value: 2026-12-24T18:00:00 }
 ```
 
 Naming the arguments lets them come in either order:

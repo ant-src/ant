@@ -358,7 +358,7 @@ A call whose `Result` is not used loses its error, so the program goes on as if 
 written:
 
 ```ant
-File.write("lost/out.txt", "data")
+_ = File.write("lost/out.txt", "data")
 println(File.exists("lost/out.txt"))
 ```
 

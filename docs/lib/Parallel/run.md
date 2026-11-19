@@ -298,7 +298,7 @@ for it. Here the call holds until the timeout:
 ```ant
 let ctx = Context.new(50ms)
 let started = Time.monotonic()
-Panic.catch({
+_ = Panic.catch({
   Parallel.run([{ panic("boom") }, { ctx.wait() }], ctx: ctx)
 })
 println(Time.monotonic() - started >= 40)
@@ -313,7 +313,7 @@ Wait on `x` instead, and the call ends as soon as the panic cancels the scope:
 ```ant
 let ctx = Context.new(50ms)
 let started = Time.monotonic()
-Panic.catch({
+_ = Panic.catch({
   Parallel.run([{ panic("boom") }, { x.wait() }], ctx: ctx)
 })
 println(Time.monotonic() - started >= 40)

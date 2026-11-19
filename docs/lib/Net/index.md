@@ -154,8 +154,8 @@ func ask(addr: string, word: string): Result[string, Error] {
 
 let listener = try Net.listen("127.0.0.1:0")
 defer { listener.close() }
-go { serveOne(listener) }
-go { serveOne(listener) }
+go { _ = serveOne(listener) }
+go { _ = serveOne(listener) }
 let replies = [try ask(listener.address(), "ant"), try ask(listener.address(), "bee")]
 println(replies)
 ```
@@ -255,7 +255,7 @@ go {
   while true {
     let conn = listener.accept()
     if conn is Err { break }
-    go { shout(conn.value) }
+    go { _ = shout(conn.value) }
   }
 }
 

@@ -26,7 +26,7 @@ Get a page from a local server and decode its body:
 
 ```ant
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: "Hello, ${x.path}" } }) }
+go { _ = Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: "Hello, ${x.path}" } }) }
 
 let response = try Http.get("http://${Net.address(listener)}/world")
 println(Http.text(response))
@@ -44,7 +44,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 
 let response = try Http.post("http://${Net.address(listener)}/shout", "hello")
 println(response.text())
@@ -138,7 +138,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -174,7 +174,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -209,7 +209,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -243,7 +243,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -274,7 +274,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 
 let listener = try Net.listen("127.0.0.1:0")
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 
 let base = "http://${Net.address(listener)}"
 let form = Map{ "Content-Type": "application/x-www-form-urlencoded" }
@@ -309,7 +309,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -363,7 +363,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -399,7 +399,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -444,7 +444,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant

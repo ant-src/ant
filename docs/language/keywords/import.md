@@ -156,8 +156,8 @@ println(count)
 ### Initialization order
 
 A module is initialized after everything it imports, depth first in source order, and only once.
-Here `b.ant` runs its initializers before `a.ant`, and the second import of `b.ant` does not run
-them again:
+Here `b.ant` runs its initializers before `a.ant`, whose `a` reads `b`, and the second import of
+`b.ant` does not run them again:
 
 ```ant [b.ant]
 export let b = loaded("b")
@@ -171,7 +171,7 @@ func loaded(name: string): string {
 ```ant [a.ant]
 import "./b.ant" { b }
 
-export let a = loaded("a")
+export let a = loaded("a, after ${b}")
 
 func loaded(name: string): string {
   println("init ${name}")
@@ -183,13 +183,13 @@ func loaded(name: string): string {
 import "./a.ant" { a }
 import "./b.ant" { b }
 
-println("main ${a} ${b}")
+println("main: ${a}; ${b}")
 ```
 
 ```text
 init b
-init a
-main a b
+init a, after b
+main: a, after b; b
 ```
 
 ### Private names in test files

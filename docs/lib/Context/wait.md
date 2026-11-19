@@ -174,7 +174,7 @@ let served = WaitGroup.new()
 served.add(1)
 go {
   defer { served.done() }
-  Http.serve(listener, hello, ctx: stop)
+  _ = Http.serve(listener, hello, ctx: stop)
 }
 println("serving")
 stop.wait()

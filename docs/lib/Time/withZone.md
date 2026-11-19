@@ -88,9 +88,14 @@ In a pipe, the zoned value from a parse goes through `Result.map`:
 
 ```ant
 let tokyo = Time.zone("Asia/Tokyo").unwrap()
-"2026-10-22T16:03:05+02:00[Europe/Stockholm]"
+let there = "2026-10-22T16:03:05+02:00[Europe/Stockholm]"
   | Time.parseZoned()
-  | Result.map({ x.withZone(tokyo) }) // Ok{ value: 2026-10-22T23:03:05+09:00[Asia/Tokyo] }
+  | Result.map({ x.withZone(tokyo) })
+println(there)
+```
+
+```text
+Ok{ value: 2026-10-22T23:03:05+09:00[Asia/Tokyo] }
 ```
 
 ## Applications

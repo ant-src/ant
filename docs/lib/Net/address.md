@@ -119,7 +119,7 @@ let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 defer { stop.cancel() }
 let addr = listener.address()
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 let reply = try Http.get("http://${addr}/health")
 println(reply.text())
 ```

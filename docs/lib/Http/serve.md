@@ -58,7 +58,7 @@ A handler can be a lambda, with the request as `x`:
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 go {
-  Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.method } }, stop)
+  _ = Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.method } }, stop)
 }
 println((try Http.get("http://${Net.address(listener)}/")).text())
 stop.cancel()
@@ -121,7 +121,7 @@ func echo(req: Http.Request): Http.Reply {
 
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(listener, echo, stop) }
+go { _ = Http.serve(listener, echo, stop) }
 let url = "http://${Net.address(listener)}/caf%C3%A9/menu?q=a%20b&n=2"
 let reply = try Http.post(url, "two teas", headers: Map{ "X-Tag": "order" })
 println(reply.text())
@@ -147,7 +147,7 @@ func whoami(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let address = Net.address(listener)
 let stop = Context.new()
-go { Http.serve(listener, whoami, stop) }
+go { _ = Http.serve(listener, whoami, stop) }
 let reply = try Http.get("http://${address}/")
 println(reply.text() == "true ${address}")
 stop.cancel()
@@ -168,7 +168,7 @@ func logo(req: Http.Request): Http.Reply {
 
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(listener, logo, stop) }
+go { _ = Http.serve(listener, logo, stop) }
 let reply = try Http.get("http://${Net.address(listener)}/logo.png")
 println(reply.headers["Content-Type"])
 println(reply.bytes)
@@ -189,7 +189,7 @@ func moved(req: Http.Request): Http.Reply {
 
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(listener, moved, stop) }
+go { _ = Http.serve(listener, moved, stop) }
 let reply = try Http.get("http://${Net.address(listener)}/page")
 println("${reply.status} ${reply.headers["Location"]}")
 stop.cancel()
@@ -216,7 +216,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 let waited: Channel[string] = Channel.new(1)
 go { waited.send(Http.get("${base}/wait").unwrap().text()) }
 println((try Http.get("${base}/go")).text())
@@ -290,7 +290,7 @@ func greet(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
-go { Http.serve(listener, greet, stop) }
+go { _ = Http.serve(listener, greet, stop) }
 println((try Http.get("${base}/?name=Ann")).text())
 println((try Http.get("${base}/")).text())
 stop.cancel()
@@ -322,7 +322,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 try Http.request("PUT", "${base}/color", "green")
 let found = try Http.get("${base}/color")
 let missing = try Http.get("${base}/size")
@@ -353,7 +353,7 @@ func sum(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let url = "http://${Net.address(listener)}/sum"
 let stop = Context.new()
-go { Http.serve(listener, sum, stop) }
+go { _ = Http.serve(listener, sum, stop) }
 println((try Http.post(url, "[1, 2, 3.5]")).text())
 let bad = try Http.post(url, "nope")
 println("${bad.status} ${bad.text()}")
@@ -385,8 +385,8 @@ func proxy(req: Http.Request): Http.Reply {
   Http.Reply{ status: reply.value.status, headers: Map{}, body: reply.value.bytes }
 }
 
-go { Http.serve(back, origin, stop) }
-go { Http.serve(front, proxy, stop) }
+go { _ = Http.serve(back, origin, stop) }
+go { _ = Http.serve(front, proxy, stop) }
 println((try Http.get("http://${Net.address(front)}/a/b")).text())
 stop.cancel()
 ```
@@ -404,7 +404,7 @@ the reply body's length in bytes:
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
 go {
-  Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.text() } }, stop)
+  _ = Http.serve(listener, { Http.Reply{ status: 200, headers: Map{}, body: x.text() } }, stop)
 }
 let reply = try Http.post("http://${Net.address(listener)}/", "naïve")
 assert(reply.text() == "naïve")
@@ -441,7 +441,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 let crashed = try Http.get("${base}/crash")
 println("${crashed.status} '${crashed.text()}'")
 println((try Http.get("${base}/")).text())
@@ -467,7 +467,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 println((try Http.get("${base}/continue")).status)
 println((try Http.get("${base}/twice")).status)
 stop.cancel()

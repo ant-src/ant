@@ -210,7 +210,7 @@ exiting:
 let dir = try File.tempDir("job-*")
 defer { File.removeAll(dir) }
 if !File.exists(Path.join([dir, "result.txt"])) {
-  File.removeAll(dir)
+  _ = File.removeAll(dir)
   Os.exit(1)
 }
 ```

@@ -21,7 +21,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -91,7 +91,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 func fetch(path: string, work: Context): Result[string, Error] {
   let response = try Http.get("${base}${path}", ctx: work)
   if response.status != 200 {
@@ -141,7 +141,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 func fetch(path: string, work: Context): Result[string, Error] {
   let response = try Http.get("${base}${path}", ctx: work)
   if response.status != 200 {
@@ -203,7 +203,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 func fetch(path: string, work: Context): Result[string, Error] {
   let response = try Http.get("${base}${path}", ctx: work)
   if response.status != 200 {

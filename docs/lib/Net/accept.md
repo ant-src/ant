@@ -169,7 +169,7 @@ func shout(conn: File.Handle): Result[void, Error] {
 func serve(listener: Net.Listener): Result[void, Error] {
   while true {
     let conn = try listener.accept()
-    go { shout(conn) }
+    go { _ = shout(conn) }
   }
 }
 

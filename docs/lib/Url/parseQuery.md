@@ -99,7 +99,7 @@ func greet(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${Net.address(listener)}"
 let stop = Context.new()
-go { Http.serve(listener, greet, stop) }
+go { _ = Http.serve(listener, greet, stop) }
 println((try Http.get("${base}/?name=Ann")).text())
 println((try Http.get("${base}/")).text())
 stop.cancel()

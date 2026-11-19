@@ -390,7 +390,7 @@ func handle(req: Http.Request): Http.Reply {
 let listener = try Net.listen("127.0.0.1:0")
 let base = "http://${listener.address()}"
 let stop = Context.new()
-go { Http.serve(listener, handle, stop) }
+go { _ = Http.serve(listener, handle, stop) }
 
 let home = try Http.get("${base}/")
 println(home.headers["Content-Type"])

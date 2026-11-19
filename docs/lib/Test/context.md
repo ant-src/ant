@@ -231,7 +231,7 @@ test "the listener outlives the test" {
   let listener = try Net.listen("127.0.0.1:0")
   go {
     defer { listener.close() }
-    listener.accept()
+    _ = listener.accept()
   }
 }
 ```

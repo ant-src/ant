@@ -121,13 +121,13 @@ func echo(conn: File.Handle): Result[void, Error] {
 func serve(listener: Net.Listener): Result[void, Error] {
   while true {
     let conn = try Net.accept(listener)
-    go { echo(conn) }
+    go { _ = echo(conn) }
   }
 }
 
 let listener = try Net.listen("127.0.0.1:0")
 defer { Net.close(listener) }
-go { serve(listener) }
+go { _ = serve(listener) }
 
 let client = try Net.dial(Net.address(listener))
 defer { client.close() }
@@ -154,7 +154,7 @@ func hello(req: Http.Request): Http.Reply {
 
 let listener = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(listener, hello, stop) }
+go { _ = Http.serve(listener, hello, stop) }
 let reply = try Http.get("http://${Net.address(listener)}/ants")
 println(reply.text())
 stop.cancel()

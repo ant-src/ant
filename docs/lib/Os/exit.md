@@ -231,7 +231,7 @@ before the call:
 let dir = try File.tempDir("job-*")
 defer { File.removeAll(dir) }
 if Os.args().isEmpty() {
-  File.removeAll(dir)
+  _ = File.removeAll(dir)
   Os.exit(1)
 }
 ```

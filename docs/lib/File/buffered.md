@@ -50,9 +50,9 @@ Buffer standard output for a loop of many small writes, and flush it at the end:
 ```ant
 let out = File.buffered(Os.stdout())
 for i in Iter.range(1, 4) {
-  out.writeLine("line ${i}")
+  try out.writeLine("line ${i}")
 }
-out.flush()
+try out.flush()
 ```
 
 ```text
@@ -67,11 +67,11 @@ The file stays empty until the buffer is written out:
 
 ```ant
 let out = File.buffered(Result.unwrap(File.create("log.txt")))
-out.writeLine("started")
+try out.writeLine("started")
 println(File.read("log.txt"))
-out.flush()
+try out.flush()
 println(File.read("log.txt"))
-out.close()
+try out.close()
 ```
 
 ```text
@@ -83,7 +83,7 @@ Closing a buffered standard output writes it out and leaves standard output open
 
 ```ant
 let out = File.buffered(Os.stdout())
-out.writeLine("buffered")
+try out.writeLine("buffered")
 println(out.close())
 println("stdout still open")
 ```
@@ -119,7 +119,7 @@ Buffering a buffered handle again with no larger size returns the same handle:
 let out = File.buffered(Result.unwrap(File.create("twice.txt")))
 println(File.buffered(out) == out)
 println(File.buffered(out, size: 8192) == out)
-out.close()
+try out.close()
 ```
 
 ```text
@@ -133,11 +133,11 @@ false
 
 ```ant
 let out = File.buffered(Result.unwrap(File.create("small.txt")), size: 8)
-out.writeText("abc")
+try out.writeText("abc")
 println(File.read("small.txt"))
-out.writeText("defghijk")
+try out.writeText("defghijk")
 println(Result.unwrap(File.read("small.txt")).startsWith("abc"))
-out.close()
+try out.close()
 println(File.read("small.txt"))
 ```
 
@@ -151,8 +151,8 @@ A `size` below 1 gives the default:
 
 ```ant
 let out = File.buffered(Os.stdout(), size: 0)
-out.writeText("held until flush\n")
-out.flush()
+try out.writeText("held until flush\n")
+try out.flush()
 ```
 
 ```text
@@ -227,16 +227,16 @@ prints nothing:
 
 ```ant
 let out = File.buffered(Os.stdout())
-out.writeLine("lost")
+try out.writeLine("lost")
 ```
 
 A `println` goes past the buffer of a buffered standard output, so it comes out first:
 
 ```ant
 let out = File.buffered(Os.stdout())
-out.writeLine("written first")
+try out.writeLine("written first")
 println("printed second")
-out.flush()
+try out.flush()
 ```
 
 ```text

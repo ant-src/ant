@@ -109,7 +109,7 @@ let path = "app.conf"
 -->
 
 ```ant
-parseConfig(text) | Result.wrapErr("parse ${path}")
+parseConfig(text) | Result.wrapErr("parse ${path}") // Ok{ value: Config{ name: "app" } }
 ```
 
 ## Control flow

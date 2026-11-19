@@ -36,7 +36,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}"
@@ -58,7 +58,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let res = try Http.post("http://${l.address()}/search?q=ant&page=2", "hello")
@@ -80,7 +80,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}"
@@ -106,7 +106,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 println((try Http.get("http://${l.address()}/?name=Ann%20Lee&tag=a&tag=b")).text())
@@ -126,7 +126,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/cache"
@@ -152,7 +152,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/"
@@ -175,7 +175,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let conn = try Net.dial(l.address())
@@ -201,7 +201,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/upload"
@@ -226,7 +226,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 println((try Http.get("http://${l.address()}/")).text())
@@ -287,7 +287,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/notes"
@@ -319,7 +319,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}/greet"
@@ -346,7 +346,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/admin"
@@ -378,7 +378,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/users"
@@ -403,7 +403,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let data = Bytes.fromArray([0x89, 0x50, 0x4e, 0x47, 0xff])
@@ -428,7 +428,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/"
@@ -450,7 +450,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let base = "http://${l.address()}"
@@ -474,7 +474,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 println((try Http.get("http://${l.address()}/?q=red%20ant")).text())
@@ -494,7 +494,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let res = try Http.post("http://${l.address()}/", Bytes.fromArray([0xff, 0x41]))
@@ -516,7 +516,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let l = try Net.listen("127.0.0.1:0")
 let stop = Context.new()
-go { Http.serve(l, handle, ctx: stop) }
+go { _ = Http.serve(l, handle, ctx: stop) }
 defer { stop.cancel() }
 
 let url = "http://${l.address()}/"

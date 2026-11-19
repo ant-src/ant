@@ -341,14 +341,15 @@ func attachPanics(inputs []caseInput) []caseInput {
 }
 
 // docMarker is a comment that marks the line of a program that fails: "// error: <message>" for a
-// line ant check rejects, "// panic: <message>" for a line that panics. At the end of a line it
-// marks that line; on a line of its own, the code line above it.
+// line ant check rejects, "// warning: <message>" for a line it warns about, "// panic: <message>"
+// for a line that panics. At the end of a line it marks that line; on a line of its own, the code
+// line above it.
 type docMarker struct {
 	kind, text string
 	line       int // in the block, from 1
 }
 
-var markerLine = regexp.MustCompile(`^//\s*(error|panic):\s*(.*)$`)
+var markerLine = regexp.MustCompile(`^//\s*(error|warning|panic):\s*(.*)$`)
 
 // blockMarkers finds the markers of a block. The comments come from the lexer, so a // inside a
 // string is not one; a block the lexer rejects, which can only show a compile error, is read line
@@ -421,8 +422,8 @@ func caseSplit(src string) (string, string, bool) {
 	}
 	expr := strings.TrimRight(src[:c.Off], " \t")
 	value := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
-	if strings.HasPrefix(value, "error:") {
-		return "", "", false // a line ant check rejects, not a value
+	if strings.HasPrefix(value, "error:") || strings.HasPrefix(value, "warning:") {
+		return "", "", false // a line ant check rejects or warns about, not a value
 	}
 	f, err := parser.Parse("case.ant", expr, parser.Session)
 	if err != nil || len(f.Decls) > 0 || len(f.Stmts) != 1 || len(f.Imports) > 0 {
@@ -572,11 +573,14 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	for _, p := range mp {
 		bad("%s", p)
 	}
-	var errs, panics []docMarker
+	var errs, warns, panics []docMarker
 	for _, m := range markers {
-		if m.kind == "error" {
+		switch m.kind {
+		case "error":
 			errs = append(errs, m)
-		} else {
+		case "warning":
+			warns = append(warns, m)
+		default:
 			panics = append(panics, m)
 		}
 	}
@@ -713,10 +717,16 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		case fails && status == 0:
 			bad("ant check passes, but the block marks a line with // error:")
 		case fails:
-			problems = append(problems, errorMarkerProblems(rel, out, code, errs)...)
+			problems = append(problems, errorMarkerProblems(rel, out, code, append(errs, warns...))...)
 			problems = append(problems, entryCodeProblems(rel, out, b)...)
 		case status != 0:
 			bad("ant check:\n%s", out)
+		default:
+			// a block that checks is held to its warnings: each marked, each marker reported
+			problems = append(problems, errorMarkerProblems(rel, out, code, warns)...)
+			if len(warns) > 0 {
+				problems = append(problems, entryCodeProblems(rel, out, b)...)
+			}
 		}
 	}
 	if !running {
@@ -879,11 +889,13 @@ func headingProblems(rel string, parts docPageParts, status string) []string {
 	return problems
 }
 
-// errorMarkerProblems holds the errors ant check reports, out, to the lines // error: marks: each
-// marked line has an error containing its text, and each error is on a marked line.
-func errorMarkerProblems(rel, out string, code int, errs []docMarker) []string {
+// errorMarkerProblems holds the errors and warnings ant check reports, out, to the lines // error:
+// and // warning: mark: each marked line has a diagnostic of its kind containing its text, and
+// each diagnostic is on a line marked with its kind.
+func errorMarkerProblems(rel, out string, code int, marks []docMarker) []string {
 	type diag struct {
 		line int // 0 on a hidden line of test: before or test: after
+		kind string
 		msg  string
 	}
 	var diags []diag
@@ -891,25 +903,32 @@ func errorMarkerProblems(rel, out string, code int, errs []docMarker) []string {
 	for _, l := range strings.Split(out, "\n") {
 		if m := re.FindStringSubmatch(l); m != nil {
 			n, _ := strconv.Atoi(m[1])
-			diags = append(diags, diag{n, m[2]})
+			kind, msg := "error", m[2]
+			if rest, ok := strings.CutPrefix(msg, "warning: "); ok {
+				kind, msg = "warning", rest
+			}
+			diags = append(diags, diag{n, kind, msg})
 		}
 	}
 	var problems []string
-	marked := map[int]bool{}
-	for _, e := range errs {
+	marked := map[int]map[string]bool{}
+	for _, e := range marks {
 		line := code + e.line - 1
-		marked[line] = true
+		if marked[line] == nil {
+			marked[line] = map[string]bool{}
+		}
+		marked[line][e.kind] = true
 		found := false
 		for _, d := range diags {
-			found = found || d.line == line && strings.Contains(d.msg, e.text)
+			found = found || d.line == line && d.kind == e.kind && strings.Contains(d.msg, e.text)
 		}
 		if !found {
-			problems = append(problems, fmt.Sprintf("%s:%d: ant check does not report %q at this line:\n%s", rel, line, e.text, out))
+			problems = append(problems, fmt.Sprintf("%s:%d: ant check does not report the %s %q at this line:\n%s", rel, line, e.kind, e.text, out))
 		}
 	}
 	for _, d := range diags {
-		if !marked[d.line] {
-			problems = append(problems, fmt.Sprintf("%s:%d: ant check reports %q, but no // error: marks this line", rel, d.line, d.msg))
+		if !marked[d.line][d.kind] {
+			problems = append(problems, fmt.Sprintf("%s:%d: ant check reports %q, but no // %s: marks this line", rel, d.line, d.msg, d.kind))
 		}
 		if m := codeSuffix.FindStringSubmatch(d.msg); m == nil || !codes.Known(codes.Code(m[1])) {
 			problems = append(problems, fmt.Sprintf("%s:%d: ant check reports %q without a known code", rel, d.line, d.msg))

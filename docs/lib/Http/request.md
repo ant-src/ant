@@ -54,7 +54,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -86,7 +86,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -119,7 +119,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -154,7 +154,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -184,7 +184,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -217,7 +217,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -256,7 +256,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -287,7 +287,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -324,7 +324,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -356,7 +356,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -390,7 +390,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -421,7 +421,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -455,7 +455,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -487,7 +487,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -528,7 +528,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -571,7 +571,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -617,7 +617,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -655,7 +655,7 @@ func handle(req: Http.Request): Http.Reply {
 
 let listener = try Net.listen("127.0.0.1:0")
 let url = "http://${Net.address(listener)}/shout"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 
 let created = try Http.request("POST", url, body: "hi")
 println("${created.status} ${created.text()}")
@@ -688,7 +688,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -720,7 +720,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -750,7 +750,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -781,7 +781,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
@@ -814,7 +814,7 @@ func handle(req: Http.Request): Http.Reply {
 }
 let listener = Result.unwrap(Net.listen("127.0.0.1:0"))
 let base = "http://${Net.address(listener)}"
-go { Http.serve(listener, handle) }
+go { _ = Http.serve(listener, handle) }
 -->
 
 ```ant
