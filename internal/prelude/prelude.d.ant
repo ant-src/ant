@@ -2909,7 +2909,9 @@ func Cmd.pid(p: Cmd.Process): int
 
 // Json
 //
-// Json converts between JSON text and values.
+// Json converts between JSON text and values. A decoder into records narrows a [Json.Value] with
+// is, builds the record, and returns errors with try; one decoder for every type walks the type
+// with [Reflect].
 
 // Json.Value is a JSON value: null, a boolean, a number, a string, an array, or an object. Every
 // number is a float64; [Math.toInt] converts one to an int when it is whole and in range.
