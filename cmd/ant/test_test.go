@@ -123,6 +123,8 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", "-parallel", "0", ok}, 2, "", "-parallel must be at least 1"},
 		// an error the checker reports runs nothing; -nocheck runs what loads
 		{[]string{"test", ok, bad}, 2, "", "b_test.ant:2:1"},
+		// a file that does not load decides the status, whatever else the checker reports
+		{[]string{"test", "-json", ok, bad, typed}, 2, `"message":"cannot use string where int is expected"`, ""},
 		{[]string{"test", "-nocheck", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
 		{[]string{"test", "-nocheck", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
 		{[]string{"test", ok, typed}, 1, "", "t_test.ant:2:16: cannot use string where int is expected"},
