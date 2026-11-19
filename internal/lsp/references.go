@@ -491,15 +491,18 @@ func (s *Server) renameAt(a *analysis, t *target, name string) ([]renameEdit, *r
 }
 
 // reachesImporters reports whether renaming o changes other modules: an export, or a
-// parameter of an exported function, which named arguments elsewhere spell; and, since a test
+// parameter of an exported function, which named arguments elsewhere spell; since a test
 // file may import any top-level declaration of a module (section 10, Tests), any top-level
-// declaration and any parameter of a top-level function.
+// declaration and any parameter of a top-level function; and a field of a declared record type,
+// which any module that gets a value of the type can read.
 func (a *analysis) reachesImporters(o *check.Object) bool {
 	switch o.Kind {
 	case check.Module:
 		return false
 	case check.Param:
 		return a.enclosingFunc(o) != nil
+	case check.Field:
+		return o.Decl != nil
 	}
 	return o.Exported || a.topLevel(o)
 }
@@ -551,7 +554,7 @@ func (a *analysis) enclosingFunc(o *check.Object) *ast.FuncDecl {
 }
 
 // objectDeclaredAt finds the object whose name is declared at a position of a module in this
-// analysis: a top-level declaration, or a parameter.
+// analysis: a top-level declaration, a parameter, or a field of a record type.
 func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 	f := a.file(path)
 	if f == nil {
@@ -584,6 +587,10 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 				found = a.info.Decls[x]
 			}
 		case *ast.Param:
+			if x.Pos == pos {
+				found = a.info.Decls[x]
+			}
+		case *ast.FieldType:
 			if x.Pos == pos {
 				found = a.info.Decls[x]
 			}

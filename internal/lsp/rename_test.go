@@ -164,6 +164,30 @@ func TestReferencesReachImporters(t *testing.T) {
 	}
 }
 
+// TestFieldReferencesReachImporters checks that the references of a record field cover the
+// modules that import its type's module, test files among them, and give the same answer from the
+// field's declaration as from a use in an importer.
+func TestFieldReferencesReachImporters(t *testing.T) {
+	lib := "export type Metric = { p95Ms: int }\nexport func metric(): Metric { Metric{ p95Ms: 12 } }\n"
+	main := "import \"./lib.ant\" { Metric, metric }\nlet direct = Metric{ p95Ms: 20 }\nprintln(direct.p95Ms + metric().p95Ms)\n"
+	test := "import \"./lib.ant\" { metric }\ntest \"p95\" { assert(metric().p95Ms == 12) }\n"
+	c := start(t, map[string]string{"lib.ant": lib, "main.ant": main, "lib_test.ant": test})
+	refs := func(uri string, p Position) []Location {
+		var locs []Location
+		c.call("textDocument/references", ReferenceParams{TextDocumentPositionParams: c.pos(uri, p)}, &locs)
+		return locs
+	}
+	// the literal in lib, the literal and the two reads in main, the read in the test file
+	libURI := c.open("lib.ant", lib)
+	if got := refs(libURI, at(lib, "p95Ms", 1, 0)); len(got) != 5 {
+		t.Errorf("references of p95Ms from lib: %d, want 5: %+v", len(got), got)
+	}
+	mainURI := c.open("main.ant", main)
+	if got := refs(mainURI, at(main, "p95Ms +", 1, 0)); len(got) != 5 {
+		t.Errorf("references of p95Ms from main: %d, want 5: %+v", len(got), got)
+	}
+}
+
 // TestReferencesThroughModules checks that a function on a type is found, and renamed, in a module
 // that gets a value of the type through another module without importing the type's own.
 func TestReferencesThroughModules(t *testing.T) {
