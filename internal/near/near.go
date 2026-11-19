@@ -5,13 +5,14 @@ package near
 import (
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 // Nearest is the candidates within a small edit distance of name, nearest first: one edit for a
 // name of up to four characters, two for a longer one, where swapping two neighbors is one edit.
 func Nearest(name string, candidates []string) []string {
 	most := 1
-	if len(name) > 4 {
+	if utf8.RuneCountInString(name) > 4 {
 		most = 2
 	}
 	type hit struct {
