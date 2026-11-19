@@ -10,10 +10,10 @@ ant check main.ant
 ant check .
 ```
 
-When there are no errors, it prints nothing and exits with status 0. Otherwise it prints every error
-and their count and exits with status 1, or with 2 when a file cannot be loaded or the usage is
-wrong. Each error names its rule with a code, and `ant check -explain code` says what the code
-means:
+When there are no errors, it exits with status 0, after printing any [warnings](#warnings).
+Otherwise it prints every error and their count and exits with status 1, or with 2 when a file
+cannot be loaded or the usage is wrong. Each error names its rule with a code, and
+`ant check -explain code` says what the code means:
 
 ```sh
 ant check -explain type-mismatch
@@ -175,6 +175,23 @@ with related places has `related`. `start` and `end` are the span it underlines,
 past its last character. Columns count bytes from 1. An error about a whole file, such as one that
 cannot be read, has `line` and `column` 0 and no span.
 
+## Warnings
+
+A warning reports code that checks but is almost always a mistake, such as a `Result` whose error is
+dropped. Warnings print like errors, with `warning:` before the message, and leave the status 0:
+
+```ant
+func save(path: string): Result[void, Error] { File.write(path, "saved\n") }
+
+save("out.txt") // warning: the Result of save is discarded, so its Err is lost
+```
+
+Each warning goes away when the code says what it means: here `try save("out.txt")` to pass the
+error on, or `_ = save("out.txt")` to drop it on purpose. There are four, listed under
+[Codes](#codes): `unused-result`, `unused-import`, `unused-variable`, and `named-interpolation`. A
+module with an error gets no warnings until the error is fixed, since it was not checked as written.
+`-strict` makes a warning fail the check as an error does.
+
 ## Errors before checking
 
 Some errors stop a program from loading at all. `ant check` and `ant run` report them alike: a
@@ -232,13 +249,14 @@ Declare `name` before the line that calls `welcome`.
 
 ## In editors and CI
 
-Editors with Ant support run the checker and show its errors in the file.
+Editors with Ant support run the checker and show its errors and warnings in the file.
 
-In CI, run `ant check` beside `ant fmt --check` and `ant test`. A non-zero status fails the step:
+In CI, run `ant check -strict` beside `ant fmt --check` and `ant test`, so that a warning fails the
+step as an error does:
 
 ```sh
 ant fmt --check .
-ant check .
+ant check -strict .
 ant test .
 ```
 
@@ -802,6 +820,89 @@ Fixed:
 
 ```ant
 let t = type(int)
+```
+
+### `unused-result`
+
+A warning: a `Result`, or a union with one, is discarded, so its `Err` is lost. A statement of a
+block other than its last, the last of a block whose value is discarded, such as a loop's body or
+the body of a function that returns `void`, and a statement of a script's top level discard their
+values. A `defer` block discards its values on purpose and is not reported.
+
+```ant
+func save(path: string): Result[void, Error] { File.write(path, "saved\n") }
+
+save("out.txt") // warning: the Result of save is discarded, so its Err is lost
+```
+
+Fixed, propagating the `Err`, or discarding it on purpose:
+
+```ant
+func save(path: string): Result[void, Error] { File.write(path, "saved\n") }
+
+try save("out.txt")
+_ = save("again.txt")
+```
+
+### `unused-import`
+
+A warning: a name an import binds is never used, as a value or as a type.
+
+```ant
+import "./geometry.ant" { distance, Point } // warning: distance is imported but never used
+
+println(Point{ x: 1.0, y: 2.0 })
+```
+
+Fixed:
+
+```ant
+import "./geometry.ant" { Point }
+
+println(Point{ x: 1.0, y: 2.0 })
+```
+
+### `unused-variable`
+
+A warning: a `let` or `var` in a function, a block, or a test is never used. A top-level declaration
+is not reported, since the module or another one may use it.
+
+```ant
+func area(w: int, h: int): int {
+  let half = w / 2 // warning: half is declared with let but never used
+  w * h
+}
+```
+
+Fixed:
+
+```ant
+func area(w: int, h: int): int {
+  w * h
+}
+```
+
+### `named-interpolation`
+
+A warning: a value of a named primitive type in a string's `${...}`, which shows it as its
+constructor, `UserId("u-1")`, not as its value. Markup rejects one for that reason.
+
+```ant
+type UserId = string
+
+let id = UserId("u-1")
+println("user ${id}")
+// warning: id is a UserId, which a string shows as UserId(...), not as its value
+```
+
+Fixed, converting it to its base type, or `String.from` for the constructor form on purpose:
+
+```ant
+type UserId = string
+
+let id = UserId("u-1")
+println("user ${string(id)}")
+println("debug ${String.from(id)}")
 ```
 
 ### `internal`

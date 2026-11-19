@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/diag"
@@ -94,6 +95,12 @@ func (a *analysis) diagRange(path string, pos, end ast.Pos) Range {
 // help on a line of its own, and its related places as related information.
 func (s *Server) lspDiagnostic(a *analysis, rng Range, dg loader.Diagnostic) Diagnostic {
 	out := Diagnostic{Range: rng, Severity: 1, Code: string(dg.Code), Source: "ant", Message: dg.Msg}
+	if dg.Warning {
+		out.Severity = 2
+	}
+	if dg.Code == codes.UnusedImport || dg.Code == codes.UnusedVariable {
+		out.Tags = []int{1} // editors fade what is unused
+	}
 	if dg.Help != "" {
 		out.Message += "\nhelp: " + dg.Help
 	}

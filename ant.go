@@ -217,7 +217,7 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 			End:      Position{Path: d.Path, Line: d.End.Line, Col: d.End.Col},
 			Message:  d.Msg,
 			Code:     string(d.Code),
-			Severity: "error",
+			Severity: severity(d),
 			Help:     d.Help,
 		}
 		for _, f := range d.Fixes {
@@ -337,12 +337,31 @@ func loadDiagnostics(err error) []Diagnostic {
 func settle(diags []Diagnostic) []Diagnostic {
 	ld := make([]loader.Diagnostic, len(diags))
 	for i, d := range diags {
-		ld[i] = loader.Diagnostic{Path: d.Pos.Path, Pos: ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, Msg: d.Message, Code: codes.Code(d.Code)}
+		ld[i] = loader.Diagnostic{Path: d.Pos.Path, Pos: ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, Msg: d.Message, Code: codes.Code(d.Code), Warning: d.Severity == "warning"}
 	}
 	keep := loader.Settled(ld)
 	out := diags[:0:0]
 	for i, d := range diags {
 		if keep[i] {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// severity is "warning" for a warning and "error" for everything else.
+func severity(d loader.Diagnostic) string {
+	if d.Warning {
+		return "warning"
+	}
+	return "error"
+}
+
+// Errors is the diagnostics of diags that are errors, without the warnings.
+func Errors(diags []Diagnostic) []Diagnostic {
+	var out []Diagnostic
+	for _, d := range diags {
+		if d.Severity != "warning" {
 			out = append(out, d)
 		}
 	}

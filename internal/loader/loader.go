@@ -26,6 +26,8 @@ type Diagnostic struct {
 	Msg string
 	// Code names the rule the diagnostic reports (spec/check.md section 3).
 	Code codes.Code
+	// Warning marks a warning, which reports code the checker accepts (spec/check.md section 4).
+	Warning bool
 	// Help says how to fix it, when the message does not; Fixes are edits that would, and
 	// Related are other places that explain it.
 	Help    string
@@ -375,17 +377,16 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 			opts.Session = true
 			opts.Fields = l.cfg.Session
 		}
-		if l.cfg.Recover {
-			opts.Info = resolve.NewInfo()
-		}
+		// what each name refers to, which the language server and the checker's warnings read
+		opts.Info = resolve.NewInfo()
 		for _, e := range resolve.Resolve(f, opts) {
 			l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg, Code: e.Code, Help: e.Help})
 		}
 		info = opts.Info
 	}
-	m := &Module{Path: key, File: f}
+	m := &Module{Path: key, File: f, Resolve: info}
 	if l.cfg.Recover {
-		m.Src, m.Layout, m.Resolve = src, layout, info
+		m.Src, m.Layout = src, layout
 		m.Recovered = recovered
 	}
 	for _, imp := range f.Imports {
@@ -418,7 +419,8 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 
 // Settle drops the diagnostics that only follow from a syntax error that recovery read past, as
 // ant check and the language server report them: on a line with a syntax error, every other
-// diagnostic, since the line was not read as written.
+// diagnostic, since the line was not read as written. It drops the warnings of a file that has an
+// error too: a warning is about code the checker accepts (spec/check.md section 4).
 func Settle(diags []Diagnostic) []Diagnostic {
 	keep := Settled(diags)
 	out := diags[:0:0]
@@ -437,14 +439,18 @@ func Settled(diags []Diagnostic) []bool {
 		n    int
 	}
 	syntax := map[line]bool{}
+	broken := map[string]bool{} // the files with an error, whose warnings are dropped
 	for _, d := range diags {
 		if d.Code == codes.Syntax && d.Pos.Line > 0 {
 			syntax[line{d.Path, d.Pos.Line}] = true
 		}
+		if !d.Warning {
+			broken[d.Path] = true
+		}
 	}
 	keep := make([]bool, len(diags))
 	for i, d := range diags {
-		keep[i] = d.Code == codes.Syntax || !syntax[line{d.Path, d.Pos.Line}]
+		keep[i] = (d.Code == codes.Syntax || !syntax[line{d.Path, d.Pos.Line}]) && !(d.Warning && broken[d.Path])
 	}
 	return keep
 }

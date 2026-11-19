@@ -322,7 +322,7 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 	case *ast.Template:
 		for _, p := range x.Parts {
 			if p.Expr != nil {
-				c.synth(p.Expr, sc)
+				c.namedInterpolation(p.Expr, c.synth(p.Expr, sc))
 			}
 		}
 		return types.StringType
@@ -1307,6 +1307,7 @@ func (c *Checker) testBody(t *ast.Test, sc *scope) {
 	c.check(t.Name, sc, types.StringType)
 	ctx := &fnCtx{parent: c.fn, kind: "test", name: "test"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
+	c.discard(t.Body)
 	c.withNested(ctx, func() types.Type { c.block(t.Body, inner, nil); return types.Void{} })
 }
 
@@ -1314,6 +1315,11 @@ func (c *Checker) testBody(t *ast.Test, sc *scope) {
 func (c *Checker) nestedBody(body *ast.Block, sc *scope, kind string) {
 	ctx := &fnCtx{parent: c.fn, kind: kind, name: kind + " block"}
 	inner := &scope{parent: sc, names: map[string]*local{}}
+	c.discard(body)
+	if kind == "defer" {
+		c.deferred++
+		defer func() { c.deferred-- }()
+	}
 	c.withNested(ctx, func() types.Type { c.block(body, inner, nil); return types.Void{} })
 }
 

@@ -31,7 +31,8 @@ type Diagnostic struct {
 	// section 3). It is empty for a failure that is not about the program, such as a prelude
 	// that does not load.
 	Code string
-	// Severity is "error".
+	// Severity is "error", or "warning" for code the checker accepts that is almost always a
+	// mistake (spec/check.md section 4).
 	Severity string
 	// Help says how to fix it, when the message does not; Fixes are edits that would, and
 	// Related are other places that explain it.

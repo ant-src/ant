@@ -13,7 +13,8 @@ import (
 )
 
 // TestCheckRunCorpus checks that every program under run/ and examples/ passes ant check:
-// those programs reach only value-dependent panics, which the checker allows.
+// those programs reach only value-dependent panics, which the checker allows. Their warnings are
+// not counted: they test what the interpreter does, such as with a Result left unread.
 func TestCheckRunCorpus(t *testing.T) {
 	paths, _ := filepath.Glob("run/*.ant")
 	examples, _ := filepath.Glob(filepath.Join("..", "examples", "*.ant"))
@@ -30,7 +31,7 @@ func TestCheckRunCorpus(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, d := range prog.Check() {
+			for _, d := range ant.Errors(prog.Check()) {
 				t.Error(d.Error())
 			}
 		})

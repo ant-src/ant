@@ -229,10 +229,17 @@ func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type
 			// what recovery could not read has a value no one knows
 			last = types.Invalid{}
 		case ast.Expr:
+			dropped := !isLast || c.discarded[b]
+			if dropped {
+				c.discardBranches(st)
+			}
 			if isLast && expected != nil {
 				last = c.check(st, inner, expected)
 			} else {
 				last = c.synth(st, inner)
+			}
+			if dropped {
+				c.droppedResult(st, last)
 			}
 			if _, isAssign := st.(*ast.Assign); isAssign {
 				last = types.Void{}
@@ -530,6 +537,7 @@ func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
 		var wt flow
 		wt, wf = c.cond(x.Cond, sc)
 		c.flow = wt
+		c.discard(x.Body)
 		c.block(x.Body, sc, nil)
 	})
 	c.flow = joinBreaks(wf, breaks)
@@ -548,6 +556,7 @@ func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	c.declareTarget(x.Target, elem, inner)
 	c.resetAssigned(x.Assigned, sc)
 	before := c.flow.copy()
+	c.discard(x.Body)
 	breaks := c.loop(func() { c.block(x.Body, inner, nil) })
 	c.flow = joinBreaks(joinFlows(before, c.flow), breaks)
 	return types.Void{}

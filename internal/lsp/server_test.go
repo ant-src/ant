@@ -230,8 +230,10 @@ func workspace() map[string]string {
 func TestDiagnostics(t *testing.T) {
 	c := start(t, workspace())
 	uri := c.open("main.ant", mainSrc)
-	if diags := c.diagnostics(uri); len(diags) != 0 {
-		t.Fatalf("diagnostics on a clean program: %v", diags)
+	for _, d := range c.diagnostics(uri) {
+		if d.Severity == 1 { // the fixture leaves names unused, which only warns
+			t.Fatalf("errors on a clean program: %v", d)
+		}
 	}
 	// a type error and a syntax error, with analysis past the latter
 	broken := strings.Replace(mainSrc, `var label = s.name`, "var label: int = s.name\n  var q = ", 1)
@@ -253,7 +255,12 @@ func TestDiagnostics(t *testing.T) {
 	// an error in the imported module shows on the import
 	c.change(uri, 3, mainSrc)
 	libURI := c.open("lib/geometry.ant", strings.Replace(geometry, "var dx = a.x - b.x", "var dx = a.x - b.z", 1))
-	diags = c.diagnostics(uri)
+	diags = nil
+	for _, d := range c.diagnostics(uri) {
+		if d.Severity == 1 {
+			diags = append(diags, d)
+		}
+	}
 	if len(diags) != 2 || !strings.Contains(diags[0].Message, "./lib/geometry.ant has errors") || diags[0].RelatedInformation == nil || diags[0].Code != "no-member" {
 		t.Errorf("import diagnostics: %+v", diags)
 	}
@@ -1143,5 +1150,17 @@ func TestSemanticReadonly(t *testing.T) {
 		if got, ok := readonly[name]; !ok || got != want {
 			t.Errorf("%s: readonly %v (listed %v), want %v", name, got, ok, want)
 		}
+	}
+}
+
+// TestWarnings: a warning is published with severity 2, and an unused name with the tag that
+// fades it.
+func TestWarnings(t *testing.T) {
+	c := start(t, map[string]string{})
+	src := "func f(): int {\n  let unused = 1\n  2\n}\nprintln(f())\n"
+	uri := c.open("main.ant", src)
+	diags := c.diagnostics(uri)
+	if len(diags) != 1 || diags[0].Severity != 2 || diags[0].Code != "unused-variable" || len(diags[0].Tags) != 1 || diags[0].Tags[0] != 1 {
+		t.Errorf("diagnostics: %+v", diags)
 	}
 }

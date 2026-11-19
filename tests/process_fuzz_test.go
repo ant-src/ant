@@ -142,7 +142,8 @@ func FuzzProcess(f *testing.F) {
 		if err != nil {
 			t.Fatalf("%v\n%s", err, src)
 		}
-		if diags := prog.Check(); len(diags) > 0 {
+		// a generated program may leave a Result unread, which only warns
+		if diags := ant.Errors(prog.Check()); len(diags) > 0 {
 			t.Fatalf("%v\n%s", diags, src)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

@@ -79,6 +79,25 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 		for _, m := range prog.Modules {
 			c.checkModule(c.mods[m.Index])
 		}
+		for _, m := range prog.Modules {
+			if !m.Recovered {
+				c.warnUnused(c.mods[m.Index])
+			}
+		}
+		// A warning is about code the checker accepts: a module with an error, or one recovery
+		// read past, was not checked as written, so its warnings may be wrong.
+		broken := map[string]bool{}
+		for _, m := range prog.Modules {
+			broken[m.File.Path] = m.Recovered
+		}
+		for _, d := range c.diags {
+			broken[d.Path] = true
+		}
+		for _, w := range c.warns {
+			if !broken[w.Path] {
+				c.diags = append(c.diags, w)
+			}
+		}
 	}
 	c.info.finish(c)
 	// What the check needed only while it ran; the Info keeps the checker for what it alone
@@ -184,6 +203,12 @@ type Checker struct {
 	// pathTests holds, by function and field path, where an is test tested a field path, which
 	// narrows nothing (pathHint).
 	pathTests map[pathTest]ast.Pos
+	// warns are the warnings, kept apart from the errors (warnings.go).
+	warns []Diagnostic
+	// discarded holds the blocks whose value the language discards, and deferred counts the
+	// defer blocks being checked, whose results are discarded on purpose.
+	discarded map[*ast.Block]bool
+	deferred  int
 	// quiet is above 0 while the checker reads the body of a lambda it rejected for its
 	// parameters: a name the body leaves undefined is one of the parameters the author meant,
 	// so it is not reported.
@@ -343,6 +368,9 @@ type moduleInfo struct {
 	// script is the state of a script's body (section 10): 0 not checked, 1 in progress, 2
 	// done.
 	script int
+	// typeRefs holds the names the module writes where a type goes, which count as uses of an
+	// import (warnUnused).
+	typeRefs map[string]bool
 	// decls holds the module's own top-level declarations, exported or not, without the names
 	// it imports.
 	decls map[string]*entity
@@ -1624,6 +1652,13 @@ func (c *Checker) resolveTypeName(x *ast.TypeName, sc *scope, whole bool) types.
 
 func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) types.Type {
 	name := x.Path[0]
+	if c.mod != nil {
+		// a use the resolver does not see, since it binds values: an import used as a type
+		if c.mod.typeRefs == nil {
+			c.mod.typeRefs = map[string]bool{}
+		}
+		c.mod.typeRefs[name] = true
+	}
 	if len(x.Path) == 1 {
 		if p, outside := sc.lookupTypeParam(name); p != nil {
 			if outside != "" {
@@ -1916,7 +1951,9 @@ func (c *Checker) checkScript(mi *moduleInfo) {
 		case *ast.VarDecl:
 			c.scriptVar(st, sc)
 		case ast.Expr:
-			c.synth(st, sc)
+			// a statement of a script's top level is discarded (section 10, Scripts)
+			c.discardBranches(st)
+			c.droppedResult(st, c.synth(st, sc))
 		}
 	}
 	mi.script = 2
@@ -2193,6 +2230,9 @@ func (c *Checker) declareParams(params []ast.Param, s *sig, sc *scope, ctx *fnCt
 // inferBody checks a function body against its declared return type, or infers one from the
 // body's value and its returns.
 func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
+	if _, void := ctx.declared.(types.Void); void {
+		c.discard(body)
+	}
 	if ctx.declared != nil {
 		c.block(body, sc, ctx.declared)
 		return ctx.declared

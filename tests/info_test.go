@@ -51,8 +51,10 @@ func TestInfo(t *testing.T) {
 		t.Fatalf("load: %v", diags)
 	}
 	info := check.NewInfo()
-	if cdiags := check.Program(prog, check.Config{Info: info}); len(cdiags) > 0 {
-		t.Fatalf("check: %v", cdiags)
+	for _, d := range check.Program(prog, check.Config{Info: info}) {
+		if !d.Warning { // the fixture leaves names unused on purpose
+			t.Fatalf("check: %v", d)
+		}
 	}
 	f := prog.Root.File
 	rinfo := prog.Root.Resolve

@@ -235,7 +235,8 @@ func checkTable(path string, inputs []tableInput) []string {
 		}
 		return problems
 	}
-	for _, d := range prog.Check() {
+	// a table shows values, as the REPL does; its warnings are ant check's to report
+	for _, d := range ant.Errors(prog.Check()) {
 		report(d)
 	}
 	return problems

@@ -119,7 +119,7 @@ func (c *coder) fix(root string, paths []string, only map[string]bool, diff bool
 			printDiagnostics(c.stderr, left)
 		}
 	}
-	if len(left) > 0 {
+	if len(ant.Errors(left)) > 0 {
 		return 1
 	}
 	return 0

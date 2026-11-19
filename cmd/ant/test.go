@@ -66,7 +66,9 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	if !*nocheck {
 		// A green run means the test files check (test.md section 1): an error runs nothing.
-		if diags, loaded := ant.Check(files); len(diags) > 0 {
+		// warnings are ant check's to report; the test report stays the tests' (test.md section 2)
+		if diags, loaded := ant.Check(files); len(ant.Errors(diags)) > 0 || !loaded {
+			diags = ant.Errors(diags)
 			if *jsonOut {
 				writeJSONCheckErrors(stdout, diags)
 			} else {

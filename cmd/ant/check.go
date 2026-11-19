@@ -20,9 +20,10 @@ func checkCommand(args []string, stdout, stderr io.Writer) int {
 	fl := flag.NewFlagSet("ant check", flag.ContinueOnError)
 	fl.SetOutput(stderr)
 	jsonOut := fl.Bool("json", false, "print each error as a JSON line on standard output")
+	strict := fl.Bool("strict", false, "fail on warnings as on errors")
 	explainCode := fl.String("explain", "", "print what a code means, with an example, and exit")
 	fl.Usage = func() {
-		fmt.Fprintln(stderr, "usage: ant check [-json] [path ...]\n       ant check -explain code")
+		fmt.Fprintln(stderr, "usage: ant check [-json] [-strict] [path ...]\n       ant check -explain code")
 		fl.PrintDefaults()
 	}
 	if err := fl.Parse(args); err != nil {
@@ -56,7 +57,7 @@ func checkCommand(args []string, stdout, stderr io.Writer) int {
 	switch {
 	case !loaded:
 		return 2
-	case len(diags) > 0:
+	case len(ant.Errors(diags)) > 0, *strict && len(diags) > 0:
 		return 1
 	}
 	return 0

@@ -285,13 +285,23 @@ func (s *Source) pos(off int) ast.Pos {
 }
 
 // Summary writes how many errors there were.
-func (p *Printer) Summary(w io.Writer, n int) {
+func (p *Printer) Summary(w io.Writer, n int, warnings ...int) {
 	var sb strings.Builder
-	noun := "errors"
-	if n == 1 {
-		noun = "error"
+	count := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return fmt.Sprintf("%d %s", n, many)
 	}
-	p.style(&sb, red, fmt.Sprintf("%d %s", n, noun))
+	text := count(n, "error", "errors")
+	if len(warnings) > 0 && warnings[0] > 0 {
+		if n == 0 {
+			text = count(warnings[0], "warning", "warnings")
+		} else {
+			text += ", " + count(warnings[0], "warning", "warnings")
+		}
+	}
+	p.style(&sb, red, text)
 	sb.WriteString("\n")
 	io.WriteString(w, sb.String())
 }

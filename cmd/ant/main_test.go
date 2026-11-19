@@ -66,7 +66,7 @@ func TestRunCommand(t *testing.T) {
 func TestHelpAfterCommand(t *testing.T) {
 	for _, c := range []struct{ args, want string }{
 		{"run --help", "usage: ant run <file.ant> [args...]"},
-		{"check -h", "usage: ant check [-json] [path...]"},
+		{"check -h", "usage: ant check [-json] [-strict] [path...]"},
 		{"fmt --help", "usage: ant fmt"},
 		{"doc --help", "usage: ant doc"},
 		{"lsp -h", "usage: ant lsp"},

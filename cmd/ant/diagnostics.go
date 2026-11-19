@@ -22,7 +22,8 @@ func printDiagnostics(w io.Writer, diags []ant.Diagnostic) {
 	for _, d := range diags {
 		p.PrintSpan(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col}, withCode(d), notes(d)...)
 	}
-	p.Summary(w, len(diags))
+	errs := len(ant.Errors(diags))
+	p.Summary(w, errs, len(diags)-errs)
 }
 
 // printLoadError writes why a program could not be loaded: its diagnostics with their code.
@@ -50,10 +51,14 @@ func colors(w io.Writer) bool {
 // withCode is the message of d followed by its code in brackets, as spec/check.md section 2 has
 // ant check print it; a diagnostic with no code, which is not about the program, prints bare.
 func withCode(d ant.Diagnostic) string {
-	if d.Code == "" {
-		return d.Message
+	msg := d.Message
+	if d.Severity == "warning" {
+		msg = "warning: " + msg
 	}
-	return d.Message + " [" + d.Code + "]"
+	if d.Code == "" {
+		return msg
+	}
+	return msg + " [" + d.Code + "]"
 }
 
 // notes are the lines printed under a diagnostic's source: its help, the title of each fix, and

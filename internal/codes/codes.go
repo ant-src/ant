@@ -41,6 +41,12 @@ const (
 	VoidValue        Code = "void-value"
 	Reflect          Code = "reflect"
 	Internal         Code = "internal"
+
+	// The warnings (spec/check.md section 4).
+	UnusedResult       Code = "unused-result"
+	UnusedImport       Code = "unused-import"
+	UnusedVariable     Code = "unused-variable"
+	NamedInterpolation Code = "named-interpolation"
 )
 
 // All is every code, in the order of the catalog.
@@ -50,6 +56,7 @@ var All = []Code{
 	NeedsAnnotation, NoCommonType, Bound, InvalidUnion, TypeDeclaration, Spread, MissingField,
 	MissingElse, Try, Assign, Lambda, IsTest, UselessTest, DurationEquality, Markup, Conversion,
 	VoidValue, Reflect, Internal,
+	UnusedResult, UnusedImport, UnusedVariable, NamedInterpolation,
 }
 
 // Known reports whether c is a code of the catalog.

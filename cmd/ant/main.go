@@ -2,7 +2,7 @@
 //
 //	ant run file.ant [args...]   run a program
 //	ant file.ant [args...]       the same, for a #!/usr/bin/env ant line
-//	ant check [-json] [path...]  type-check the files under the paths and every module they import
+//	ant check [-json] [-strict] [path...]  type-check the files under the paths and every module they import
 //	ant test [flags] [path...]   run the tests of the test files under the paths (spec/test.md)
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
@@ -73,7 +73,8 @@ import (
 const usage = `usage:
   ant run <file.ant> [args...]
   ant <file.ant> [args...]
-  ant check [-json] [path...]
+  ant check [-json] [-strict] [path...]
+  ant check -explain <code>
   ant test [flags] [path...]
   ant fmt [--check] <path>...   (- for standard input)
   ant doc <name> | <file.ant> [name]
