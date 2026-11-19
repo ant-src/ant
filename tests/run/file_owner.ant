@@ -1,0 +1,32 @@
+// spec: stdlib File; stdlib Os
+// File (stdlib.md, Modes; File.sync): stat's uid is the process's effective user id for a file it
+// created, and uid and gid are null exactly where Os.uid and Os.gid are; chown with -1 keeps both,
+// which only Windows refuses, and an id below -1 is Err; sync flushes a buffered handle and writes
+// the file out, and is Err once the handle is closed.
+var dir = Os.args()[0]
+var path = "${dir}/owned.txt"
+Result.unwrap(File.write(path, "x"))
+var info = Result.unwrap(File.stat(path))
+println(info.uid == Os.uid())
+println((info.gid == null) == (Os.gid() == null))
+println((File.chown(path, -1, -1) is Ok) == (Os.uid() != null))
+println((File.chown(path, -1, -1, follow: false) is Ok) == (Os.uid() != null))
+println(File.chown(path, -2, -1) is Err)
+
+var out = File.buffered(Result.unwrap(File.create(path)))
+Result.unwrap(File.writeText(out, "synced"))
+println(File.sync(out))
+println(File.read(path))
+Result.unwrap(File.close(out))
+println(File.sync(out) is Err)
+
+// expect
+// args: $TMP
+// out: true
+// out: true
+// out: true
+// out: true
+// out: true
+// out: Ok{ value: void }
+// out: Ok{ value: "synced" }
+// out: true

@@ -1,0 +1,12 @@
+//go:build !unix
+
+package lib
+
+import (
+	"io/fs"
+
+	"github.com/ant-src/ant/value"
+)
+
+// owner is File.Info's uid and gid, which a host without user ids, as Windows, does not have.
+func owner(fs.FileInfo) (uid, gid value.Value) { return value.Null, value.Null }

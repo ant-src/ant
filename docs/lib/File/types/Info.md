@@ -4,7 +4,7 @@
 # File.Info
 
 ```ant signature
-type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int }
+type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int, uid: int | null, gid: int | null }
 ```
 
 File.Info describes the file at a path, as [`File.stat`](../stat.md) reports it. modified is the
@@ -13,6 +13,7 @@ most 0o7777; on Windows a file is 0o444 when read-only and 0o666 when not, and a
 0o111. isSymlink is true only when stat was told not to follow a link. name is the last element of
 the path, also when a link is followed. size is a regular file's length in bytes; for a directory,
 and for a link described with follow false, it is what the host reports, as is a link's own mode.
+uid and gid are the ids of the user and the group that own the file, or null on Windows.
 
 <!-- end generated -->
 
@@ -23,6 +24,8 @@ and for a link described with follow false, it is what the host reports, as is a
 - `mode` does not say what kind of file it is; `isDir` and `isSymlink` do.
 - `modified` is rounded as the file system keeps times: to 2 seconds on FAT, to the second on HFS+,
   to the nanosecond on ext4 and APFS. The access time is not in `File.Info`.
+- `uid` and `gid` are the numeric ids of the owning user and group, as `ls -n` shows them, and
+  `null` on Windows, which has no such ids. [File.chown](../chown.md) changes them.
 - A `File.Info` is a snapshot: it does not change when the file does. Call [File.stat](../stat.md)
   again for the current values.
 
@@ -44,8 +47,10 @@ notes.txt
 false
 ```
 
-A `File.Info` prints as a record. [File.touch](../touch.md) fixes `modified` here so the output is
-the same on every run:
+A `File.Info` prints as a record. [File.touch](../touch.md) fixes `modified` here; `uid` and `gid`
+are those of the user who runs it:
+
+<!-- test: check-only uid and gid are the running user's -->
 
 ```ant
 try File.write("notes.txt", "buy milk\n")
@@ -54,8 +59,10 @@ try File.chmod("notes.txt", 0o644)
 println(try File.stat("notes.txt"))
 ```
 
+For a user and a group whose ids are 1000, it prints:
+
 ```text
-File.Info{ name: "notes.txt", size: 9, isDir: false, isSymlink: false, modified: 2026-03-01T09:30:00Z, mode: 420 }
+File.Info{ name: "notes.txt", size: 9, isDir: false, isSymlink: false, modified: 2026-03-01T09:30:00Z, mode: 420, uid: 1000, gid: 1000 }
 ```
 
 ## Scope
@@ -102,6 +109,19 @@ println(String.fromInt(info.mode, base: 8))
 1777
 ```
 
+A file the program creates belongs to the user it runs as, so its `uid` is
+[Os.uid](../../Os/uid.md); both are `null` on Windows:
+
+```ant
+try File.write("mine.txt", "x")
+let info = try File.stat("mine.txt")
+println(info.uid == Os.uid())
+```
+
+```text
+true
+```
+
 Destructure the fields you need:
 
 ```ant
@@ -123,8 +143,12 @@ func describe(info: File.Info): string {
 }
 
 let when = try Time.parseInstant("2026-01-01T00:00:00Z")
-let file = File.Info{ name: "a.txt", size: 3, isDir: false, isSymlink: false, modified: when, mode: 0o644 }
-let dir = File.Info{ name: "src", size: 0, isDir: true, isSymlink: false, modified: when, mode: 0o755 }
+let file = File.Info{
+  name: "a.txt", size: 3, isDir: false, isSymlink: false, modified: when, mode: 0o644, uid: null, gid: null,
+}
+let dir = File.Info{
+  name: "src", size: 0, isDir: true, isSymlink: false, modified: when, mode: 0o755, uid: null, gid: null,
+}
 println(describe(file))
 println(describe(dir))
 ```

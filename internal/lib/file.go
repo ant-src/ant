@@ -20,8 +20,9 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// InfoTag is File.Info: { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int }.
-var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "isSymlink", "modified", "mode"})
+// InfoTag is File.Info: { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int,
+// uid: int | null, gid: int | null }.
+var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "isSymlink", "modified", "mode", "uid", "gid"})
 
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
@@ -375,6 +376,31 @@ func (h *Handle) flush() error {
 	return nil
 }
 
+// sync is File.sync: h flushed, then the file under it written to storage, Go's (*os.File).Sync.
+// A standard stream syncs the file it stands for; a connection has no file to sync.
+func (h *Handle) sync() error {
+	if err := h.flush(); err != nil {
+		return err
+	}
+	h = h.sink()
+	if h.isClosed() {
+		return errors.New(errClosed)
+	}
+	var f *os.File
+	switch {
+	case h.std && h.childIn != nil:
+		f, _ = h.childIn.(*os.File)
+	case h.std:
+		f, _ = h.childOut.(*os.File)
+	default:
+		f = h.file()
+	}
+	if f == nil {
+		return errors.New("the handle is not a file, which sync writes to storage")
+	}
+	return f.Sync()
+}
+
 // close closes h: a buffered handle writes its buffer out and closes the handle under it,
 // returning the first error of the two. A write or flush in progress on another goroutine, which
 // may wait on a peer that stopped reading, is not waited for: the handle under is closed first,
@@ -619,6 +645,12 @@ func init() {
 			}),
 			fn("File.flush", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				if err := handleArg(g, who, a[0]).flush(); err != nil {
+					return handleErr(err)
+				}
+				return value.Ok(value.Void)
+			}),
+			fn("File.sync", "f", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				if err := handleArg(g, who, a[0]).sync(); err != nil {
 					return handleErr(err)
 				}
 				return value.Ok(value.Void)

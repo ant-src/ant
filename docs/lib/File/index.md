@@ -247,6 +247,7 @@ println(try File.glob("**/*.txt", dir: "notes"))
 - [File.writeChunk](writeChunk.md): bytes as they are
 - [File.pipe](pipe.md): copy the rest of one handle to another
 - [File.flush](flush.md): hand what a buffered handle holds to the OS
+- [File.sync](sync.md): flush, then have the OS write the file to storage
 
 ### Directories and listings
 
@@ -260,6 +261,7 @@ println(try File.glob("**/*.txt", dir: "notes"))
 - [File.exists](exists.md): whether anything is at a path
 - [File.stat](stat.md): the [File.Info](types/Info.md) of a path
 - [File.chmod](chmod.md): set the mode
+- [File.chown](chown.md): set the owning user and group
 - [File.touch](touch.md): set the modified time, creating an empty file when missing
 
 ### Moving, copying, and removing

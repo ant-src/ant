@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -87,8 +88,9 @@ func statFile(path string, follow bool) value.Value {
 	if err != nil {
 		return errResult(err)
 	}
+	uid, gid := owner(fi)
 	return value.Ok(value.NewRecord(InfoTag, []value.Value{
-		value.Text(fi.Name()), fi.Size(), fi.IsDir(), fi.Mode()&fs.ModeSymlink != 0, modified, antMode(fi.Mode()),
+		value.Text(fi.Name()), fi.Size(), fi.IsDir(), fi.Mode()&fs.ModeSymlink != 0, modified, antMode(fi.Mode()), uid, gid,
 	}))
 }
 
@@ -102,6 +104,22 @@ func chmod(path string, mode int64) value.Value {
 		return errResult(fmt.Errorf("chmod %s: mode %s is outside 0 ..= 0o7777", path, m))
 	}
 	return okVoid(os.Chmod(path, goMode(mode)))
+}
+
+// maxID is the largest user or group id: a Unix id is 32 bits, and all ones means -1, "keep".
+const maxID = math.MaxUint32 - 1
+
+// chown is File.chown: os.Chown, or os.Lchown when follow is false; -1 keeps an id.
+func chown(path string, uid, gid int64, follow bool) value.Value {
+	for _, id := range []int64{uid, gid} {
+		if id < -1 || id > maxID {
+			return errResult(fmt.Errorf("chown %s: id %d is not -1 or in 0 ..= %d", path, id, int64(maxID)))
+		}
+	}
+	if !follow {
+		return okVoid(os.Lchown(path, int(uid), int(gid)))
+	}
+	return okVoid(os.Chown(path, int(uid), int(gid)))
 }
 
 // createFlags are the flags of a file opened for writing from its start: truncated when it
@@ -464,6 +482,9 @@ func init() {
 	fileFS = []any{
 		fn("File.chmod", "path, mode", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			return chmod(stringArg(g, who, a[0]), intArg(g, who, a[1]))
+		}),
+		fn("File.chown", "path, uid, gid, follow?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+			return chown(stringArg(g, who, a[0]), intArg(g, who, a[1]), intArg(g, who, a[2]), boolOr(g, who, a[3], true))
 		}),
 		fn("File.touch", "path, time?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 			t := time.Now()

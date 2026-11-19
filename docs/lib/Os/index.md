@@ -204,6 +204,7 @@ interrupted: interrupt
 - [Os.program](program.md): the program path, as the command gave it
 - [Os.pid](pid.md): this process's id
 - [Os.uid](uid.md): the effective user id, or `null` on Windows
+- [Os.gid](gid.md): the effective group id, or `null` on Windows
 
 ### Environment
 

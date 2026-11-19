@@ -1821,9 +1821,10 @@ type File.Handle
 // isSymlink is true only when stat was told not to follow a link. name is the last element of the
 // path, also when a link is followed. size is a regular file's length in bytes; for a directory, and
 // for a link described with follow false, it is what the host reports, as is a link's own mode.
-type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int }
+// uid and gid are the ids of the user and the group that own the file, or null on Windows.
+type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int, uid: int | null, gid: int | null }
 
-// File.stat returns the name, size, kind, modification time and mode of the file at path. It
+// File.stat returns the name, size, kind, modification time, mode and owner of the file at path. It
 // follows a symbolic link and describes its target, unless follow is false, when it describes the
 // link itself.
 func File.stat(path: string, follow: bool = true): Result[File.Info, Error]
@@ -1834,6 +1835,13 @@ func File.stat(path: string, follow: bool = true): Result[File.Info, Error]
 //
 //     try File.chmod("deploy.ant", 0o755)
 func File.chmod(path: string, mode: int): Result[void, Error]
+
+// File.chown sets the user and the group that own the file at path to the ids uid and gid; -1 keeps
+// one as it is. It follows a symbolic link, unless follow is false, when it changes the link itself.
+// Only root may give a file away. It is Err on Windows.
+//
+//     try File.chown("/home/deploy/.ssh/authorized_keys", 1000, 1000)
+func File.chown(path: string, uid: int, gid: int, follow: bool = true): Result[void, Error]
 
 // File.touch sets the modified and access times of the file at path to time, or to now when time is
 // null, creating an empty file when nothing is there. It never truncates, and it follows a link.
@@ -2021,6 +2029,11 @@ func File.buffered(f: File.Handle, size: int = 4096): File.Handle
 // that what was written to f has been handed to the OS. On a handle that is not buffered it does
 // nothing and is Ok; on a closed buffered handle it is Err.
 func File.flush(f: File.Handle): Result[void, Error]
+
+// File.sync flushes f as [File.flush] does, then has the OS write the file to storage, so that what
+// was written survives a crash or a power loss. Sync a temporary file before renaming it into place.
+// It is Err where the OS refuses, as for a pipe, and for a connection or a closed handle.
+func File.sync(f: File.Handle): Result[void, Error]
 
 // Path
 //
@@ -2759,6 +2772,9 @@ func Os.pid(): int
 
 // Os.uid returns the effective user id, 0 for root, or null on Windows, which has none.
 func Os.uid(): int | null
+
+// Os.gid returns the effective group id, or null on Windows, which has none.
+func Os.gid(): int | null
 
 // Os.hostname returns the name the host's kernel reports, as hostname prints it, Go's os.Hostname.
 // It is not looked up in DNS, so it may or may not hold a domain. It is Err only when the host
