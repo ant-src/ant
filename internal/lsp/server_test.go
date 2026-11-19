@@ -1164,3 +1164,14 @@ func TestWarnings(t *testing.T) {
 		t.Errorf("diagnostics: %+v", diags)
 	}
 }
+
+// TestImportOfWarnings: an import of a module with only warnings is not marked as broken.
+func TestImportOfWarnings(t *testing.T) {
+	lib := "export func f(): int {\n  let unused = 1\n  2\n}\n"
+	c := start(t, map[string]string{"lib.ant": lib})
+	src := "import \"./lib.ant\" { f }\n\nprintln(f())\n"
+	uri := c.open("main.ant", src)
+	if diags := c.diagnostics(uri); len(diags) != 0 {
+		t.Errorf("diagnostics: %+v", diags)
+	}
+}

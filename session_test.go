@@ -650,3 +650,16 @@ func TestSessionLetFailures(t *testing.T) {
 		t.Errorf("TypeOf(c) after an untyped let destructuring = %q, %v", ty, err)
 	}
 }
+
+// TestSessionTypeOfWarns checks that code that only warns, such as a block with an unused let,
+// still has a type.
+func TestSessionTypeOfWarns(t *testing.T) {
+	s, err := ant.NewSession(context.Background(), ant.WithStdout(io.Discard), ant.WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if got, err := s.TypeOf("func(): int { let q = 3\n 4 }"); err != nil || got != "func(): int" {
+		t.Errorf("TypeOf = %q, %v; want func(): int", got, err)
+	}
+}

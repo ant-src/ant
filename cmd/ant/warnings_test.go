@@ -58,3 +58,35 @@ func TestTestIgnoresWarnings(t *testing.T) {
 		t.Errorf("status %d, stdout %q, stderr %q", status, out.String(), errOut.String())
 	}
 }
+
+// TestRenameWithWarnings checks that a warning does not stop a rename, as an error does.
+func TestRenameWithWarnings(t *testing.T) {
+	dir := tree(t, map[string]string{"a.ant": "func f(): int {\n  let unused = 1\n  2\n}\n\nprintln(f())\n"})
+	t.Chdir(dir)
+	if status, out, errOut := codeRun("rename", "a.ant:1:6", "g"); status != 0 || out != "a.ant: 2 edits\n" {
+		t.Errorf("status %d, stdout %q, stderr %q", status, out, errOut)
+	}
+}
+
+// TestRedeclaredKeepsFirst checks that a name declared twice is checked as its first declaration,
+// so that the only error is the redeclaration.
+func TestRedeclaredKeepsFirst(t *testing.T) {
+	dir := tree(t, map[string]string{"r.ant": "func f(): int { 1 }\nfunc f(): string { \"a\" }\nlet n: int = f()\n" +
+		"type Point = { x: int }\ntype Point = { y: int }\nlet p = Point{ x: 1 }\nprintln(\"${n} ${p.x}\")\n"})
+	t.Chdir(dir)
+	_, _, errOut := checkRun("r.ant")
+	if strings.Count(errOut, "[redeclared]") != 2 || !strings.HasSuffix(errOut, "\n2 errors\n") {
+		t.Errorf("stderr:\n%s", errOut)
+	}
+}
+
+// TestUnusedImportAllNames checks that when no name of an import is used, the warnings offer no
+// auto fix, whose edits would share commas and leave an empty import.
+func TestUnusedImportAllNames(t *testing.T) {
+	dir := tree(t, map[string]string{"lib.ant": "export func mk(): int { 1 }\nexport func g(): int { 2 }\n", "main.ant": "import \"./lib.ant\" { mk, g }\n\nprintln(1)\n"})
+	t.Chdir(dir)
+	_, out, _ := checkRun("-json", "main.ant")
+	if strings.Count(out, `"code":"unused-import"`) != 2 || strings.Contains(out, `"fixes"`) || !strings.Contains(out, `"help":"remove the import"`) {
+		t.Errorf("-json:\n%s", out)
+	}
+}

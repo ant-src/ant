@@ -51,12 +51,13 @@ func (c *Checker) receiverHint(i int, recv types.Type, x *ast.Call, f *ast.Field
 }
 
 // callThrough adds to the error at i the fix that rewrites recv.name(args) as ns.name(recv,
-// args), when the source shows the call's ( right after the name: recv is left as written, so
-// the fix inserts the namespace before it and turns .name( into a comma, or into nothing when
-// the call has no arguments. It is auto when it is the only fix.
+// args), when the source shows the . right after recv and the call's ( right after the name:
+// recv is left as written, so the fix inserts the namespace before it and turns .name( into a
+// comma, or into nothing when the call has no arguments. A receiver in parentheses, (xs).name,
+// gets no fix, since its start is inside them. It is auto when it is the only fix.
 func (c *Checker) callThrough(i int, ns string, x *ast.Call, f *ast.Field) {
 	paren := ast.Pos{Line: f.NamePos.Line, Col: f.NamePos.Col + len(f.Name)}
-	if f.Optional || x == nil || c.srcByte(paren) != '(' {
+	if f.Optional || x == nil || f.X.EndPosition() != f.Pos || c.srcByte(paren) != '(' {
 		return
 	}
 	sep, rest := ", ", ", ..."

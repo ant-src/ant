@@ -492,7 +492,7 @@ func (s *Session) TypeOf(expr string) (string, error) {
 	inExpr := func(ds []loader.Diagnostic) []Diagnostic {
 		var out []Diagnostic
 		for _, d := range ds {
-			if d.Path == "<input>" && d.Pos.Line > baseLine {
+			if d.Path == "<input>" && d.Pos.Line > baseLine && !d.Warning {
 				d.Pos.Line -= baseLine
 				if d.Pos.Line == 1 {
 					d.Pos.Col = max(1, d.Pos.Col-len(typeDecl))

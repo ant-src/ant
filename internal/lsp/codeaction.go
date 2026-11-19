@@ -46,9 +46,13 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 		case codes.MissingField:
 			act = s.addFields(a, d, dg.Pos, lsp)
 		case codes.NeedsAnnotation:
-			switch innermostDecl(a.module().File, dg.Pos).(type) {
+			switch decl := innermostDecl(a.module().File, dg.Pos).(type) {
 			case *ast.FuncDecl:
-				act = s.stateReturnType(a, d, dg.Pos, lsp)
+				// only an error about the function itself, reported at its declaration: one
+				// inside its body, as at return [], is not answered by its return type
+				if decl.Pos == dg.Pos {
+					act = s.stateReturnType(a, d, dg.Pos, lsp)
+				}
 			case *ast.VarDecl:
 				act = s.stateVarType(a, d, dg.Pos, lsp)
 			}

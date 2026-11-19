@@ -1031,6 +1031,9 @@ func (c *Code) Rename(loc, name string, force bool) (RenameResult, *CodeError) {
 	seen := map[string]bool{}
 	for pa := range changed {
 		for _, dg := range pa.diags {
+			if dg.Warning {
+				continue // a warning does not make a use the rename may miss
+			}
 			key := fmt.Sprintf("%s:%d:%d:%s", dg.Path, dg.Pos.Line, dg.Pos.Col, dg.Msg)
 			if !seen[key] {
 				seen[key] = true

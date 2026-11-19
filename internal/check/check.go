@@ -732,6 +732,19 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			c.info.alias(n, ent)
 		}
 	}
+	// bind makes name refer to ent, unless an earlier declaration or import of the module took
+	// it: the resolver reports the redeclaration, and the uses are checked against the first, as
+	// written for it, so that the one mistake is reported once.
+	bind := func(name string, ent *entity, export bool) {
+		if _, taken := mi.names[name]; taken {
+			return
+		}
+		mi.names[name] = ent
+		mi.decls[name] = ent
+		if export {
+			mi.exports[name] = ent
+		}
+	}
 	for _, d := range f.Decls {
 		switch d := d.(type) {
 		case *ast.TypeDecl:
@@ -742,13 +755,9 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 				c.info.typeParam(pd, &d.TypeParams[i], mi.path)
 			}
 			ent := &entity{name: d.Name, kind: entType, decl: decl, exported: d.Export, pos: d.Pos, members: map[string]*entity{}}
-			mi.names[d.Name] = ent
-			mi.decls[d.Name] = ent
+			bind(d.Name, ent, d.Export)
 			c.info.declared(ent, d, mi.path, "")
 			mi.types = append(mi.types, &typeInfo{decl: d, t: decl, ent: ent, mod: mi})
-			if d.Export {
-				mi.exports[d.Name] = ent
-			}
 		case *ast.InterfaceDecl:
 			decl := &types.Decl{Name: d.Name, Pos: d.Pos, Path: mi.path, Kind: types.InterfaceDecl, Self: &types.ParamDecl{Name: "Self"}}
 			for i := range d.TypeParams {
@@ -770,8 +779,7 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			}
 			decl.Satisfies = c.satisfier(decl)
 			ent := &entity{name: d.Name, kind: entType, decl: decl, exported: d.Export, pos: d.Pos}
-			mi.names[d.Name] = ent
-			mi.decls[d.Name] = ent
+			bind(d.Name, ent, d.Export)
 			c.info.declared(ent, d, mi.path, "")
 			ii := &ifaceInfo{decl: d, t: decl, ent: ent, mod: mi}
 			mi.ifaces = append(mi.ifaces, ii)
@@ -779,9 +787,6 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 				c.ifaces = map[*types.Decl]*ifaceInfo{}
 			}
 			c.ifaces[decl] = ii
-			if d.Export {
-				mi.exports[d.Name] = ent
-			}
 		case *ast.FuncDecl:
 			fi := &funcInfo{decl: d, mod: mi}
 			mi.funcs = append(mi.funcs, fi)
@@ -790,12 +795,8 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			}
 			ent := &entity{name: d.Name, kind: entFunc, fn: fi, exported: d.Export, pos: d.Pos}
 			fi.ent = ent
-			mi.names[d.Name] = ent
-			mi.decls[d.Name] = ent
+			bind(d.Name, ent, d.Export)
 			c.info.declared(ent, d, mi.path, "")
-			if d.Export {
-				mi.exports[d.Name] = ent
-			}
 		case *ast.VarDecl:
 			group := &varGroup{decl: d}
 			names := targetNames(d.Target)
@@ -808,12 +809,8 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 				v := &varInfo{decl: d, mod: mi, name: name.Name, index: len(mi.vars), group: group}
 				mi.vars = append(mi.vars, v)
 				ent := &entity{name: name.Name, kind: entVar, v: v, exported: d.Export, pos: name.Pos}
-				mi.names[name.Name] = ent
-				mi.decls[name.Name] = ent
+				bind(name.Name, ent, d.Export)
 				c.info.declared(ent, name, mi.path, "")
-				if d.Export {
-					mi.exports[name.Name] = ent
-				}
 			}
 		}
 	}

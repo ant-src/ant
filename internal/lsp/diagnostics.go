@@ -60,7 +60,7 @@ func (a *analysis) firstError(i int, seen map[int]bool) *loader.Diagnostic {
 	seen[i] = true
 	m := a.prog.Modules[i]
 	for k := range a.diags {
-		if a.diags[k].Path == m.File.Path {
+		if a.diags[k].Path == m.File.Path && !a.diags[k].Warning {
 			return &a.diags[k]
 		}
 	}

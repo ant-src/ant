@@ -328,7 +328,6 @@ func loadDiagnostics(err error) []Diagnostic {
 	return []Diagnostic{{Message: err.Error()}}
 }
 
-
 // severity is "warning" for a warning and "error" for everything else.
 func severity(d loader.Diagnostic) string {
 	if d.Warning {

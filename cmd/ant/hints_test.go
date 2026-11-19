@@ -20,6 +20,8 @@ func TestCheckHelp(t *testing.T) {
 			"String.join(..., ...)", true, "let s = String.join([\"a\"], \",\")\n"},
 		{"no arguments", "let b = \"x\".toBytes()\nlet h = b.toHex()\n", "toHex is Encoding.toHex, which takes the Bytes first",
 			"Encoding.toHex(b)", true, "let b = \"x\".toBytes()\nlet h = Encoding.toHex(b)\n"},
+		// the receiver's start is inside its parentheses, so no edit there can be right
+		{"receiver in parentheses", "let xs = [\"a\"]\nlet s = (xs).join(\",\")\n", "join is String.join", "", false, ""},
 		{"another type's function", "let xs = [3, 1]\nlet n = xs.fields()\n", "", "", false, ""},
 		{"misspelled function", "let n = \"ab\".lenght()\n", "did you mean length?", "", false, ""},
 		{"misspelled field", "type U = { name: string }\nlet u = U{ name: \"a\" }\nprintln(u.nmae)\n", "did you mean name?", "", false, ""},

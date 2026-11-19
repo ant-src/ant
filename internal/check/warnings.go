@@ -221,7 +221,13 @@ func (c *Checker) removeImportName(i int, imp *ast.Import, j int) {
 	if start < 0 || end < 0 {
 		return
 	}
-	if len(imp.Names) == 1 {
+	used := false
+	for k := range imp.Names {
+		used = used || len(c.mod.m.Resolve.Uses[&imp.Names[k]]) > 0 || c.mod.typeRefs[imp.Names[k].Alias]
+	}
+	if !used {
+		// every name is unused: removing them one by one would leave an empty import, and the
+		// edits of neighbors share a comma
 		c.warnHelp(i, "remove the import")
 		return
 	}

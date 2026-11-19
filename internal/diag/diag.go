@@ -185,11 +185,12 @@ type Printer struct {
 }
 
 const (
-	bold  = "\x1b[1m"
-	red   = "\x1b[1;31m"
-	faint = "\x1b[90m"
-	reset = highlight.Reset
-	tab   = 4 // the columns between tab stops
+	bold   = "\x1b[1m"
+	red    = "\x1b[1;31m"
+	yellow = "\x1b[1;33m"
+	faint  = "\x1b[90m"
+	reset  = highlight.Reset
+	tab    = 4 // the columns between tab stops
 	// most lines a span shows in full; a longer one shows its first two, the diagnostic's, and
 	// its last
 	most = 4
@@ -301,7 +302,11 @@ func (p *Printer) Summary(w io.Writer, n int, warnings ...int) {
 			text += ", " + count(warnings[0], "warning", "warnings")
 		}
 	}
-	p.style(&sb, red, text)
+	color := red
+	if n == 0 {
+		color = yellow // only warnings, which do not fail the check
+	}
+	p.style(&sb, color, text)
 	sb.WriteString("\n")
 	io.WriteString(w, sb.String())
 }

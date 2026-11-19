@@ -79,3 +79,22 @@ func TestCheckerFixes(t *testing.T) {
 		t.Errorf("code actions on the join: %+v", acts)
 	}
 }
+
+// TestNoReturnTypeForBodyErrors: an error that asks for an annotation inside a function's body is
+// not answered by stating the function's return type.
+func TestNoReturnTypeForBodyErrors(t *testing.T) {
+	c := start(t, map[string]string{})
+	src := "func g() {\n  println([])\n  1\n}\n"
+	uri := c.open("main.ant", src)
+	if diags := c.diagnostics(uri); len(diags) != 1 || diags[0].Code != "needs-annotation" {
+		t.Fatalf("diagnostics: %+v", diags)
+	}
+	cur := at(src, "[])", 1, 0)
+	var acts []CodeAction
+	c.call("textDocument/codeAction", CodeActionParams{TextDocument: TextDocumentIdentifier{URI: uri}, Range: Range{Start: cur, End: cur}}, &acts)
+	for _, a := range acts {
+		if strings.HasPrefix(a.Title, "State the return type") {
+			t.Errorf("code actions: %+v", acts)
+		}
+	}
+}

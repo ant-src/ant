@@ -128,7 +128,15 @@ func TestSummary(t *testing.T) {
 	p := &Printer{}
 	p.Summary(&sb, 1)
 	p.Summary(&sb, 3)
-	if got := sb.String(); got != "1 error\n3 errors\n" {
+	p.Summary(&sb, 1, 2)
+	p.Summary(&sb, 0, 1)
+	if got := sb.String(); got != "1 error\n3 errors\n1 error, 2 warnings\n1 warning\n" {
+		t.Errorf("got %q", got)
+	}
+	// only warnings, which do not fail the check, in yellow, not red
+	sb.Reset()
+	(&Printer{Color: true}).Summary(&sb, 0, 2)
+	if got := sb.String(); !strings.HasPrefix(got, yellow) {
 		t.Errorf("got %q", got)
 	}
 }
