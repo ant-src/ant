@@ -58,7 +58,7 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "ant test: -parallel must be at least 1")
 		return 2
 	}
-	files, err := testFiles(fl.Args())
+	files, err := testSources.files(fl.Args())
 	if err != nil {
 		fmt.Fprintf(stderr, "ant test: %s\n", err)
 		return 2
@@ -145,33 +145,14 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	return status
 }
 
-// testFiles lists the test files the paths name: a test file itself, or every test file under a
-// directory, in lexical order, leaving out directories whose names begin with a dot.
-func testFiles(paths []string) ([]string, error) {
-	if len(paths) == 0 {
-		paths = []string{"."}
+// testSources are the files ant test takes: the test files the paths name, or those under a
+// directory; a file named directly that is not a test file is an error.
+var testSources = sources{keep: ant.IsTestFile, named: func(path string) error {
+	if !ant.IsTestFile(path) {
+		return fmt.Errorf("%s is not a test file, whose name ends in _test.ant", path)
 	}
-	var files []string
-	for _, p := range paths {
-		info, err := os.Stat(p)
-		if err != nil {
-			return nil, err
-		}
-		if !info.IsDir() {
-			if !ant.IsTestFile(p) {
-				return nil, fmt.Errorf("%s is not a test file, whose name ends in _test.ant", p)
-			}
-			files = append(files, p)
-			continue
-		}
-		found, err := antFiles(p, ant.IsTestFile)
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, found...)
-	}
-	return files, nil
-}
+	return nil
+}}
 
 // reporter writes the report of test.md section 2, or its JSON events.
 type reporter struct {

@@ -131,20 +131,40 @@ func LoadRoots(roots []string, cfg Config) (*Program, []Diagnostic) {
 	for _, d := range diags {
 		bad[d.Path] = true
 	}
-	var clean []string
-	for i, m := range mods {
+	// The program keeps the modules the clean roots reach, in their order, which keeps each
+	// after the modules it imports, and every one of them is numbered again by its place.
+	keep := map[int]bool{}
+	for _, m := range mods {
 		if m != nil && l.loaded(m, bad, map[int]bool{}) {
-			clean = append(clean, roots[i])
+			l.reach(m, keep)
 		}
 	}
-	// The modules of the clean roots are loaded again on their own, so that the program holds
-	// them alone and indexes them from 0. They loaded without an error, and do again.
-	l = newLoader(cfg)
-	for _, r := range clean {
-		key, display := l.canonical(r, "")
-		l.visit(key, display, r, r, Diagnostic{}, true)
+	index := map[int]int{}
+	var kept []*Module
+	for _, m := range l.modules {
+		if keep[m.Index] {
+			index[m.Index] = len(kept)
+			kept = append(kept, m)
+		}
 	}
-	return &Program{Modules: l.modules}, diags
+	for _, m := range kept {
+		m.Index = index[m.Index]
+		for _, imp := range m.File.Imports {
+			imp.Module = index[imp.Module]
+		}
+	}
+	return &Program{Modules: kept}, diags
+}
+
+// reach adds m and every module it reaches to seen, by index.
+func (l *loader) reach(m *Module, seen map[int]bool) {
+	if seen[m.Index] {
+		return
+	}
+	seen[m.Index] = true
+	for _, imp := range m.File.Imports {
+		l.reach(l.modules[imp.Module], seen)
+	}
 }
 
 // loaded reports whether m and every module it reaches loaded without a diagnostic.

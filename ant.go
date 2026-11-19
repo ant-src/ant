@@ -55,9 +55,11 @@ package ant
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/ant-src/ant/internal/check"
@@ -261,11 +263,18 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 	}
 	loaded = true
 	var roots []string
+	seen := map[string]bool{}
 	for _, path := range paths {
 		if parser.ModeOf(path) != parser.Declarations {
 			roots = append(roots, path)
 			continue
 		}
+		// the loader settles which roots are one module; a declaration file, checked on its own,
+		// is named once
+		if seen[filepath.Clean(path)] {
+			continue
+		}
+		seen[filepath.Clean(path)] = true
 		p, err := Load(path, opts...)
 		if err != nil {
 			diags = append(diags, loadDiagnostics(err)...)
@@ -298,7 +307,8 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 }
 
 func loadDiagnostics(err error) []Diagnostic {
-	if le, ok := err.(*LoadError); ok && len(le.Diagnostics) > 0 {
+	var le *LoadError
+	if errors.As(err, &le) && len(le.Diagnostics) > 0 {
 		return le.Diagnostics
 	}
 	return []Diagnostic{{Message: err.Error()}}

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ant-src/ant"
 )
 
 func checkRun(args ...string) (int, string, string) {
@@ -120,5 +123,55 @@ func TestCheckPaths(t *testing.T) {
 	}
 	if status, _, errOut := checkRun("-x"); status != 2 || !strings.Contains(errOut, "usage: ant check") {
 		t.Errorf("unknown flag: status %d, stderr:\n%s", status, errOut)
+	}
+}
+
+// TestCheckSymlinkDirectory checks that a directory named through a symbolic link is walked
+// through its target, by ant check and ant test alike.
+func TestCheckSymlinkDirectory(t *testing.T) {
+	dir := tree(t, map[string]string{
+		"real/a.ant":      "let x: int = \"s\"\n",
+		"real/a_test.ant": "test \"t\" {\n  assert(1 == 2)\n}\n",
+	})
+	link := filepath.Join(dir, "link")
+	if err := os.Symlink(filepath.Join(dir, "real"), link); err != nil {
+		t.Skip(err)
+	}
+	if status, _, errOut := checkRun(link); status != 1 || !strings.Contains(errOut, filepath.Join(link, "a.ant")+":1:14:") {
+		t.Errorf("check: status %d, stderr:\n%s", status, errOut)
+	}
+	var out, errOut strings.Builder
+	if status := run([]string{"test", link}, strings.NewReader(""), &out, &errOut); status != 1 {
+		t.Errorf("test: status %d, stdout:\n%s", status, out.String())
+	}
+}
+
+// TestCheckDeclarationOnce checks that a declaration file two paths reach is checked once.
+func TestCheckDeclarationOnce(t *testing.T) {
+	dir := tree(t, map[string]string{"sub/x.d.ant": "// Shout.loud is loud.\nfunc Shout.loud(text: string): Strin\n"})
+	t.Chdir(dir)
+	status, _, errOut := checkRun(".", "sub", "sub/x.d.ant", "./sub/x.d.ant")
+	if status != 1 || strings.Count(errOut, "unknown type Strin") != 1 || !strings.HasSuffix(errOut, "1 error\n") {
+		t.Errorf("status %d, stderr:\n%s", status, errOut)
+	}
+}
+
+// TestCheckEmptyDirectory checks that a directory with no .ant file under it is an error, so
+// that a check of the wrong directory does not pass.
+func TestCheckEmptyDirectory(t *testing.T) {
+	dir := tree(t, map[string]string{"notes.txt": "", ".hidden/x.ant": "let x = 1\n"})
+	status, _, errOut := checkRun(dir)
+	if status != 2 || errOut != "ant check: no .ant files under "+dir+"\n" {
+		t.Errorf("status %d, stderr %q", status, errOut)
+	}
+}
+
+// TestCheckJSONWholeFile checks that an error with no position has line and column 0 and no
+// span.
+func TestCheckJSONWholeFile(t *testing.T) {
+	var out strings.Builder
+	writeJSONDiagnostics(&out, []ant.Diagnostic{{Pos: ant.Position{Path: "gone.ant"}, Message: "cannot read the module"}})
+	if want := `{"path":"gone.ant","line":0,"column":0,"message":"cannot read the module"}` + "\n"; out.String() != want {
+		t.Errorf("got %s, want %s", out.String(), want)
 	}
 }

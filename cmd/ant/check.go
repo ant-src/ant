@@ -6,9 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/ant-src/ant"
@@ -32,7 +30,7 @@ func checkCommand(args []string, stdout, stderr io.Writer) int {
 		}
 		return 2
 	}
-	files, err := checkFiles(fl.Args())
+	files, err := checkSources.files(fl.Args())
 	if err != nil {
 		fmt.Fprintf(stderr, "ant check: %s\n", err)
 		return 2
@@ -52,52 +50,9 @@ func checkCommand(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// checkFiles lists the files the paths name: a file itself, whatever its name, or every .ant
-// file under a directory. With no path, it is ".".
-func checkFiles(paths []string) ([]string, error) {
-	if len(paths) == 0 {
-		paths = []string{"."}
-	}
-	var files []string
-	for _, p := range paths {
-		info, err := os.Stat(p)
-		if err != nil {
-			return nil, err
-		}
-		if !info.IsDir() {
-			files = append(files, p)
-			continue
-		}
-		found, err := antFiles(p, func(name string) bool { return strings.HasSuffix(name, ".ant") })
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, found...)
-	}
-	return files, nil
-}
-
-// antFiles lists the files under dir whose names keep accepts, in lexical order, leaving out
-// the directories whose names begin with a dot.
-func antFiles(dir string, keep func(name string) bool) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			if path != dir && strings.HasPrefix(d.Name(), ".") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if keep(d.Name()) {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, err
-}
+// checkSources are the files ant check takes: any file named directly, and the .ant files under
+// a directory, of which there must be one.
+var checkSources = sources{keep: func(name string) bool { return strings.HasSuffix(name, ".ant") }, what: ".ant files"}
 
 type jsonPos struct {
 	Line   int `json:"line"`
@@ -105,16 +60,17 @@ type jsonPos struct {
 }
 
 type jsonDiagnostic struct {
-	Path    string   `json:"path,omitempty"`
-	Line    int      `json:"line,omitempty"`
-	Column  int      `json:"column,omitempty"`
+	Path    string   `json:"path"`
+	Line    int      `json:"line"`
+	Column  int      `json:"column"`
 	Message string   `json:"message"`
 	Start   *jsonPos `json:"start,omitempty"`
 	End     *jsonPos `json:"end,omitempty"`
 }
 
 // writeJSONDiagnostics writes each diagnostic as a JSON object on a line of its own: its position
-// as the text output prints it, its message, and the span the text output underlines.
+// as the text output prints it, line and column 0 for an error about a whole file, its message,
+// and the span the text output underlines.
 func writeJSONDiagnostics(w io.Writer, diags []ant.Diagnostic) {
 	p := &diag.Printer{Read: func(path string) (string, error) {
 		b, err := os.ReadFile(path)

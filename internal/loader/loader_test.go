@@ -91,3 +91,37 @@ func TestSameFile(t *testing.T) {
 		t.Errorf("%d modules, want 2", len(prog.Modules))
 	}
 }
+
+// TestLoadRoots checks that roots share their modules, that a root that does not load is left
+// out with the modules only it reaches, and that the modules kept are numbered by their place,
+// their imports with them.
+func TestLoadRoots(t *testing.T) {
+	sources := map[string]string{
+		"broken.ant": "import \"./only.ant\" { o }\nlet x = (",
+		"only.ant":   "export let o = 1",
+		"bad.ant":    "import \"./only.ant\" { o }\nimport \"./missing.ant\" { m }",
+		"a.ant":      "import \"./lib.ant\" { l }\nimport \"./base.ant\" { b }",
+		"b.ant":      "import \"./lib.ant\" { l }",
+		"lib.ant":    "import \"./base.ant\" { b }\nexport let l = b",
+		"base.ant":   "export let b = 1",
+	}
+	prog, diags := LoadRoots([]string{"bad.ant", "broken.ant", "a.ant", "b.ant", "a.ant"}, Config{Sources: sources})
+	if len(diags) != 2 {
+		t.Errorf("diagnostics %v, want a missing module and a syntax error", diags)
+	}
+	var order []string
+	for i, m := range prog.Modules {
+		order = append(order, m.Path)
+		if m.Index != i {
+			t.Errorf("%s has index %d at %d", m.Path, m.Index, i)
+		}
+		for _, imp := range m.File.Imports {
+			if imp.Module < 0 || imp.Module >= i || "./"+prog.Modules[imp.Module].Path != imp.Path {
+				t.Errorf("%s imports %s as module %d", m.Path, imp.Path, imp.Module)
+			}
+		}
+	}
+	if got, want := strings.Join(order, " "), "base.ant lib.ant a.ant b.ant"; got != want {
+		t.Errorf("modules %q, want %q", got, want)
+	}
+}

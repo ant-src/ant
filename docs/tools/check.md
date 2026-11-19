@@ -104,7 +104,8 @@ Each path is a file or a directory:
 - A file is checked whatever its name, so a script installed without its `.ant` suffix can be named
   directly.
 - A directory is searched for `.ant` files, test files and declaration files included, through every
-  directory below it except those whose names begin with `.`.
+  directory below it except those whose names begin with `.`. A directory with no `.ant` file under
+  it is an error, so a check of the wrong directory does not pass.
 
 ```sh
 ant check                  # everything under the current directory
@@ -143,21 +144,14 @@ own, and nothing else. The status is the same as without it.
 ant check -json .
 ```
 
-```json
-{
-  "path": "main.ant",
-  "line": 3,
-  "column": 13,
-  "message": "+ needs both operands of one type, got int | null and int",
-  "start": { "line": 3, "column": 9 },
-  "end": { "line": 3, "column": 16 }
-}
+```text
+{"path":"main.ant","line":3,"column":13,"message":"+ needs both operands of one type, got int | null and int","start":{"line":3,"column":9},"end":{"line":3,"column":16}}
 ```
 
 `line` and `column` are where the error is reported, as the text output's first line gives them.
 `start` and `end` are the span it underlines, with `end` just past its last character. Columns count
-bytes from 1. An error about a whole file, such as one that cannot be read, has no position and no
-span.
+bytes from 1. An error about a whole file, such as one that cannot be read, has `line` and `column`
+0 and no span.
 
 ## Errors before checking
 
