@@ -280,6 +280,9 @@ running tests:
     slow_test.ant: waits
 ```
 
+Under `-json`, each test still running also gets a `"fail"` event with the message
+`test timed out after 100ms`, and the run ends with the `"done"` event, which counts them as failed.
+
 ### JSON events
 
 Under `-json`, `ant test` writes one JSON object per line to standard output and nothing else. Each

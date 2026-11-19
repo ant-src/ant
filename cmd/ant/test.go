@@ -96,7 +96,7 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	rep := &reporter{w: stdout, verbose: *verbose, json: *jsonOut, output: map[string]*strings.Builder{},
-		running: map[string]time.Time{}}
+		running: map[string]runningTest{}}
 	var halt atomic.Bool
 	cfg := ant.TestConfig{Run: run, Skip: skip, Parallel: *parallel, Report: rep.event}
 	if *failfast {
@@ -143,12 +143,17 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 	}
 	if timedOut.Load() {
-		fmt.Fprintf(stderr, "test timed out after %s\n", *timeout)
-		if names := rep.stillRunning(); len(names) > 0 {
+		msg := fmt.Sprintf("test timed out after %s", *timeout)
+		fmt.Fprintln(stderr, msg)
+		running := rep.stop()
+		if len(running) > 0 {
 			fmt.Fprintln(stderr, "running tests:")
-			for _, n := range names {
-				fmt.Fprintf(stderr, "    %s\n", n)
+			for _, t := range running {
+				fmt.Fprintf(stderr, "    %s: %s\n", t.file, t.name)
 			}
+		}
+		if *jsonOut {
+			rep.timedOut(running, msg, time.Since(start))
 		}
 		return 1
 	}
@@ -179,18 +184,29 @@ type reporter struct {
 	json    bool
 	// output collects each running test's output, by file and name
 	output  map[string]*strings.Builder
-	running map[string]time.Time
+	running map[string]runningTest
+	// stopped is set when the time ran out: what the tests report after that is dropped
+	stopped bool
 
 	passed, failed, skipped int
+}
+
+// runningTest is a test that started and has not ended.
+type runningTest struct {
+	file, name string
+	start      time.Time
 }
 
 func (r *reporter) event(e ant.TestEvent) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.stopped {
+		return
+	}
 	key := e.File + ": " + e.Name
 	switch e.Kind {
 	case ant.TestRun:
-		r.running[key] = time.Now()
+		r.running[key] = runningTest{e.File, e.Name, time.Now()}
 	case ant.TestOutput:
 	default:
 		delete(r.running, key)
@@ -327,16 +343,44 @@ func (r *reporter) done(elapsed time.Duration, broken bool) {
 	fmt.Fprintf(r.w, "%s  %s (%.2fs)\n", head, summary, elapsed.Seconds())
 }
 
-// stillRunning lists the tests that started and have not ended.
-func (r *reporter) stillRunning() []string {
+// stop drops the events that come after it and lists the tests that started and have not ended,
+// by file and name.
+func (r *reporter) stop() []runningTest {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	var names []string
-	for n := range r.running {
-		names = append(names, n)
+	r.stopped = true
+	var out []runningTest
+	for _, t := range r.running {
+		out = append(out, t)
 	}
-	sort.Strings(names)
-	return names
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].file != out[j].file {
+			return out[i].file < out[j].file
+		}
+		return out[i].name < out[j].name
+	})
+	return out
+}
+
+// timedOut writes, under -json, a "fail" event for each test still running when the time ran
+// out, then the "done" event, which counts as failed each of them with no subtest still running
+// (test.md section 3).
+func (r *reporter) timedOut(running []runningTest, msg string, elapsed time.Duration) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, t := range running {
+		secs := time.Since(t.start).Seconds()
+		r.writeJSON(jsonEvent{Action: "fail", File: t.file, Test: t.name, Elapsed: &secs, Message: msg})
+		parent := false
+		for _, u := range running {
+			parent = parent || u.file == t.file && strings.HasPrefix(u.name, t.name+"/")
+		}
+		if !parent {
+			r.failed++
+		}
+	}
+	secs := elapsed.Seconds()
+	r.writeJSON(jsonEvent{Action: "done", Passed: &r.passed, Failed: &r.failed, Skipped: &r.skipped, Elapsed: &secs})
 }
 
 // testTimeout is the -timeout flag, read as Time.parseDuration reads a string: Go's notation, such

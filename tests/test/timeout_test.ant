@@ -1,0 +1,23 @@
+// Under -json, the tests still running when the time runs out each get a "fail" event, and the
+// "done" event counts as failed each one with no subtest still running (test.md section 3).
+
+test "quick" {}
+
+test "stuck" {
+  test "inner" {
+    Context.new().wait()
+  }
+}
+
+// expect
+// args: -json -timeout 100ms
+// out: {"action":"run","file":"timeout_test.ant","test":"quick"}
+// out: {"action":"pass","file":"timeout_test.ant","test":"quick","elapsed":0}
+// out: {"action":"run","file":"timeout_test.ant","test":"stuck"}
+// out: {"action":"run","file":"timeout_test.ant","test":"stuck/inner"}
+// out: {"action":"fail","file":"timeout_test.ant","test":"stuck","elapsed":0,"message":"test timed out after 100ms"}
+// out: {"action":"fail","file":"timeout_test.ant","test":"stuck/inner","elapsed":0,"message":"test timed out after 100ms"}
+// out: {"action":"done","elapsed":0,"passed":1,"failed":1,"skipped":0}
+// exit: 1
+// err: test timed out after 100ms
+// err: running tests:
