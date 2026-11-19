@@ -240,7 +240,7 @@ println(double("21")) // error: cannot use string where int is expected
 ```
 
 Generics are erased too: `x is Box` tests the tag, never `Box[int]`. See
-[Types are advisory](../design/advisory-types.md).
+[Types at run time](../guide/runtime-types.md).
 
 ### Goroutines have no handle
 
@@ -295,7 +295,7 @@ Path.clean("a/b/../c")                        // "a/c"
 ```
 
 `Time` is the exception: it follows JavaScript's Temporal, not Go's `time`. See
-[Why the standard library mirrors Go](../design/stdlib-like-go.md).
+[`Time`](../lib/Time/index.md).
 
 ### Smaller surprises
 
@@ -322,6 +322,5 @@ Path.clean("a/b/../c")                        // "a/c"
 ## See also
 
 [Tour](../tour/01-hello.md) · [Idiomatic Ant](../guide/idiomatic.md) · [Errors](../guide/errors.md)
-· [Concurrency](../guide/concurrency.md) ·
-[Why the standard library mirrors Go](../design/stdlib-like-go.md) ·
-[Coming from JavaScript](javascript.md) · [Coming from Python](python.md)
+· [Concurrency](../guide/concurrency.md) · [Coming from JavaScript](javascript.md) ·
+[Coming from Python](python.md)

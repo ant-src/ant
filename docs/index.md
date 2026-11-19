@@ -90,23 +90,18 @@ run it. The program shows most of what makes Ant code look the way it does:
 
 ## Principles
 
-Six rules shape the language. The design note linked from each of the first five explains the rule
+Four rules shape the language. The design note linked from each of the first three explains the rule
 and what it costs.
 
-- **[One obvious way.](design/one-way.md)** When two constructs would do the same job, Ant keeps
-  one. `if` chooses between values, so there is no `?:`. `if x is T` narrows a union, so there is no
-  `switch`. `ant fmt` has one layout and no configuration file.
 - **[No implicit coercion.](design/no-coercion.md)** A value never changes type without a conversion
   you can see. With `n` an `int`, `ant check` rejects `"n = " + n`; write `"n = ${n}"`. `n + 1.5`
   needs `float64(n)`, and a condition must be a `bool`.
 - **[Everything is an expression.](design/expressions.md)** Blocks, `if`, and loops produce values,
-  so a name can be bound once, to the result of a choice, instead of assigned in two branches.
+  so a name can be bound once, to the result of a choice, instead of assigned in two branches, and
+  markup chooses what to show with an ordinary `if`.
 - **[Errors are values.](design/errors-are-values.md)** `Result` carries an expected failure, such
   as a missing file, and `null` carries absence. `try` passes a failure up to the caller. `panic` is
   for bugs, such as an index out of range.
-- **[Types are advisory.](design/advisory-types.md)** `ant check` reads every annotation and reports
-  type errors before anything runs. `ant run` discards the annotations and runs the program without
-  checking it, so check before you trust a run.
 - **Minimal syntax.** The parser reads one token ahead and never asks the type checker what a name
   means, so you can see the shape of a line without knowing the types of its names.
 

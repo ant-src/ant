@@ -264,5 +264,6 @@ goroutines still running: wait on a channel or a `WaitGroup`, or use `Parallel`.
 - [Idiomatic Ant](../guide/idiomatic.md)
 - [Values](../guide/values.md#coming-from-other-languages), for `let`, `var`, and assignment
 - [Coming from Go](go.md) and [Coming from Python](python.md)
-- [One obvious way](../design/one-way.md) and [Why no exceptions](../design/errors-are-values.md)
+- [Why everything is an expression](../design/expressions.md) and
+  [Why no exceptions](../design/errors-are-values.md)
 - [Keywords and reserved words](../language/lexical/reserved.md)

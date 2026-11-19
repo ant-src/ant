@@ -208,5 +208,5 @@ The [errors guide](../guide/errors.md) shows how to use each piece. The tour pag
 [`try`](../language/keywords/try.md), [`Result`](../lib/Result/index.md),
 [`Result.wrapErr`](../lib/Result/wrapErr.md), [`Result.all`](../lib/Result/all.md),
 [`panic`](../lib/prelude/panic.md), [`assert`](../lib/prelude/assert.md),
-[`Panic.catch`](../lib/Panic/catch.md). The design notes [One obvious way](one-way.md) and
-[Why goroutines and not async](no-async.md) cover related decisions.
+[`Panic.catch`](../lib/Panic/catch.md). The design note [Why goroutines and not async](no-async.md)
+covers a related decision.

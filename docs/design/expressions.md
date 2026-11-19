@@ -4,7 +4,8 @@
 
 In Ant, a block gives the value of its last expression, `if` gives the value of the branch it runs,
 and `return`, `break`, and `continue` fit anywhere a value does. What other languages call a
-statement, such as an assignment or a loop, is an expression whose value is `void`. This page
+statement, such as an assignment or a loop, is an expression whose value is `void`. So the `if` that
+chooses a value in code is the same `if` that chooses what a page shows in markup. This page
 explains why Ant has no separate kind of statement, and what that costs.
 
 ## One way to choose a value
@@ -34,6 +35,85 @@ if stock == 0 {
   label = "in stock"
 }
 label // "low stock"
+```
+
+## Choices inside markup
+
+Markup is an expression too: `<p>Hello</p>` is a value of type `Html`, and `{...}` puts any
+expression inside it. Because `if` is one of those expressions, a component chooses what to show
+with the `if` it already uses everywhere else:
+
+```ant
+type Task = { title: string, done: bool }
+
+func summary(tasks: Array[Task]): Html {
+  let left = tasks.filter({ !x.done }).length()
+  <section>
+    <h2>Tasks {if left > 0 { <span class="badge">{left}</span> }}</h2>
+    {if tasks.isEmpty() {
+      <p>Nothing to do.</p>
+    } else if left == 0 {
+      <p>All done.</p>
+    } else {
+      <ul>{tasks.map({ <li class={["task", if x.done { "done" }]}>{x.title}</li> })}</ul>
+    }}
+  </section>
+}
+
+println(summary([]))
+println(summary([Task{ title: "Milk", done: true }]))
+println(summary([Task{ title: "Milk", done: true }, Task{ title: "Eggs", done: false }]))
+```
+
+```text
+<section><h2>Tasks </h2> <p>Nothing to do.</p></section>
+<section><h2>Tasks </h2> <p>All done.</p></section>
+<section><h2>Tasks <span class="badge">1</span></h2> <ul><li class="task done">Milk</li><li class="task">Eggs</li></ul></section>
+```
+
+An `if` without `else` gives `void` when its condition is false, and markup renders `void` as
+nothing, so the badge and the `done` class need no second branch. An `else if` chain picks one of
+three pieces of markup. The markup is the last expression of `summary`, so it is the result.
+
+JSX, the markup of React, has the same braces, but JavaScript's `if` is a statement and cannot go
+inside them. A choice in JSX takes a second construct, `?:` for two branches, nested `?:` for three,
+and `&&` for one:
+
+```jsx
+function Summary({ tasks }) {
+  const left = tasks.filter((t) => !t.done).length;
+  return (
+    <section>
+      <h2>Tasks {left > 0 && <span className="badge">{left}</span>}</h2>
+      {tasks.length === 0 ? (
+        <p>Nothing to do.</p>
+      ) : left === 0 ? (
+        <p>All done.</p>
+      ) : (
+        <ul>
+          {tasks.map((t) => (
+            <li key={t.title} className={t.done ? "task done" : "task"}>
+              {t.title}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+```
+
+The alternative is to assign a variable with `if` statements above the `return` and put the variable
+in the markup, which moves the choice away from the place it shows up. `&&` has a trap of its own:
+`{left && <span>...</span>}` gives `left` when it is `0`, and React renders the `0`. In Ant the slip
+cannot happen. `&&` takes only `bool` operands, and markup rejects a `bool`, so the checker stops
+both:
+
+```ant
+let left = 0
+let badge = <h2>Tasks {left > 0 && <span>{left}</span>}</h2>
+// error: markup takes a string, a number, void, Html, or an array of them, got bool
+// error: cannot use Html where bool is expected
 ```
 
 ## The result is the last expression
@@ -182,6 +262,20 @@ as in `a = b = 0`.
   without a loop. A `while true` that contains no `break` is the exception: only `return` or a panic
   can leave it, so its type is `never`.
 
+- **A loop in markup renders nothing.** Markup takes `void`, so a `for` inside braces passes the
+  checker, and its body's values are dropped. `map` is the loop in markup:
+
+  ```ant
+  let tasks = ["milk", "eggs"]
+  println(<ul>{for t in tasks { <li>{t}</li> }}</ul>)
+  println(<ul>{tasks.map({ <li>{x}</li> })}</ul>)
+  ```
+
+  ```text
+  <ul></ul>
+  <ul><li>milk</li><li>eggs</li></ul>
+  ```
+
 - **A body must end in its value.** A function that computes its result in a loop and forgets to
   name it at the end ends in the loop, which is `void`. The checker reports the loop:
 
@@ -242,5 +336,6 @@ The tour page [Everything is an expression](../tour/08-expressions.md) introduce
 [control flow guide](../guide/control-flow.md) shows how the pieces fit together. Reference:
 [`if`](../language/keywords/if.md), [`return`](../language/keywords/return.md),
 [`try`](../language/keywords/try.md), [`??`](../language/operators/null-coalescing.md),
-[`never`](../language/types/never.md), [lambdas](../language/literals/lambdas.md). The design notes
-[One obvious way](one-way.md) and [Why no exceptions](errors-are-values.md) cover related decisions.
+[`never`](../language/types/never.md), [lambdas](../language/literals/lambdas.md). The
+[HTML guide](../guide/html.md) covers markup in full. The design note
+[Why no exceptions](errors-are-values.md) covers a related decision.

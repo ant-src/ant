@@ -204,5 +204,5 @@ Reference: [arithmetic operators](../language/operators/arithmetic.md),
 [logical operators](../language/operators/logical.md),
 [`??`](../language/operators/null-coalescing.md), [`bool`](../language/types/bool.md),
 [`int`](../lib/prelude/int.md), [`float64`](../lib/prelude/float64.md),
-[`String.toInt`](../lib/String/toInt.md), [`String.from`](../lib/String/from.md). The design notes
-[One obvious way](one-way.md) and [Types are advisory](advisory-types.md) cover related decisions.
+[`String.toInt`](../lib/String/toInt.md), [`String.from`](../lib/String/from.md). The design note
+[Why everything is an expression](expressions.md) covers a related decision.

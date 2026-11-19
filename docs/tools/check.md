@@ -915,4 +915,3 @@ with the program.
 - [ant fmt](fmt.md)
 - [Types](../guide/types.md)
 - [Modules](../guide/modules.md)
-- [Advisory types](../design/advisory-types.md)

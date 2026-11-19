@@ -239,6 +239,6 @@ The [concurrency guide](../guide/concurrency.md) shows how goroutines, channels,
 [`go`](../language/keywords/go.md), [`select`](../language/keywords/select.md),
 [`Parallel`](../lib/Parallel/index.md), [`Context`](../lib/Context/index.md),
 [`Channel`](../lib/Channel/index.md), [`Atomic`](../lib/Atomic/index.md),
-[`Mutex`](../lib/Mutex/index.md). The design notes [Why no exceptions](errors-are-values.md) and
-[One obvious way](one-way.md) cover related decisions, and
-[Coming from JavaScript](../coming-from/javascript.md) lists the differences side by side.
+[`Mutex`](../lib/Mutex/index.md). The design note [Why no exceptions](errors-are-values.md) covers a
+related decision, and [Coming from JavaScript](../coming-from/javascript.md) lists the differences
+side by side.

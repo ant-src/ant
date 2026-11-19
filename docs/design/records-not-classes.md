@@ -282,12 +282,11 @@ field that holds a function is data, not a function on the type, so it satisfies
 - **Functions stay functions.** A function on a type is a value, so it passes to `map`, `filter`, or
   `sortBy` as it is. With no `this`, no call depends on how the function was reached.
 - **One function, whatever the spelling.** `p.norm()`, `Point.norm(p)`, and `p | Point.norm()` call
-  the same function with the same arguments. There is no method beside a function to keep in step,
-  which is the [one obvious way](one-way.md) applied to behavior.
+  the same function with the same arguments. There is no method beside a function to keep in step.
 - **Types are advisory.** `ant run` discards annotations. A record carries its type's tag, and a
   call through `.` looks up the function among those the tag holds. Interfaces cost nothing at run
   time: the interpreter keeps nothing of them, and the type checker alone checks that every call
-  they promise exists. The design note on [advisory types](advisory-types.md) has more.
+  they promise exists.
 - **Abstractions come later.** An interface can be added when a second type appears, without editing
   the first.
 
@@ -332,5 +331,4 @@ The guide chapters [Records](../guide/records.md), [Functions](../guide/function
 [Records](../tour/10-records.md) and [Interfaces](../tour/16-interfaces.md) introduce them.
 Reference: [`type`](../language/keywords/type.md), [`interface`](../language/keywords/interface.md),
 [`Self`](../language/types/Self.md), and [Calls through `.`](../language/operators/dot-calls.md).
-The design notes [One obvious way](one-way.md) and [Why no exceptions](errors-are-values.md) cover
-related decisions.
+The design note [Why no exceptions](errors-are-values.md) covers a related decision.
