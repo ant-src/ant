@@ -38,7 +38,7 @@ func (s *Server) codeActions(p *CodeActionParams) []CodeAction {
 		if before(rng.End, p.Range.Start) || before(p.Range.End, rng.Start) {
 			continue // the diagnostic is outside the range
 		}
-		lsp := Diagnostic{Range: rng, Severity: 1, Source: "ant", Message: dg.Msg}
+		lsp := Diagnostic{Range: rng, Severity: 1, Code: string(dg.Code), Source: "ant", Message: dg.Msg}
 		switch {
 		case missingField.MatchString(dg.Msg):
 			if act := s.addFields(a, d, dg.Pos, lsp); act != nil {

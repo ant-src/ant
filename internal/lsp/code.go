@@ -78,6 +78,7 @@ type CodeDiag struct {
 	Path     string
 	Pos, End ast.Pos
 	Message  string
+	Code     string
 }
 
 // loc makes the location of a span in the module at path.
@@ -1033,7 +1034,7 @@ func (c *Code) Rename(loc, name string, force bool) (RenameResult, *CodeError) {
 			key := fmt.Sprintf("%s:%d:%d:%s", dg.Path, dg.Pos.Line, dg.Pos.Col, dg.Msg)
 			if !seen[key] {
 				seen[key] = true
-				res.Errors = append(res.Errors, CodeDiag{Path: dg.Path, Pos: dg.Pos, End: dg.End, Message: dg.Msg})
+				res.Errors = append(res.Errors, CodeDiag{Path: dg.Path, Pos: dg.Pos, End: dg.End, Message: dg.Msg, Code: string(dg.Code)})
 			}
 		}
 	}

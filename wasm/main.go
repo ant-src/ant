@@ -354,6 +354,7 @@ func diagnostics(diags []ant.Diagnostic, files map[string]string) js.Value {
 		o.Set("line", d.Pos.Line)
 		o.Set("column", utf16Col(files, d.Pos))
 		o.Set("message", d.Message)
+		o.Set("code", d.Code)
 		out.Call("push", o)
 	}
 	return out

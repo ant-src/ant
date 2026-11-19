@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ant-src/ant"
+	"github.com/ant-src/ant/internal/codes"
 )
 
 // TestCheckRunCorpus checks that every program under run/ and examples/ passes ant check:
@@ -93,6 +94,11 @@ func TestCheckCorpus(t *testing.T) {
 				t.Fatal(err)
 			}
 			diags := prog.Check()
+			for _, d := range diags {
+				if !codes.Known(codes.Code(d.Code)) || d.Severity != "error" {
+					t.Errorf("no known code or severity: %s (code %q, severity %q)", d.Error(), d.Code, d.Severity)
+				}
+			}
 			used := make([]bool, len(diags))
 			for _, w := range wants {
 				found := false

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"io"
 	"io/fs"
 	"os"
@@ -67,11 +68,11 @@ func (f *formatter) unformatted(name string) {
 	}
 }
 
-// format formats src, reporting a syntax error under name.
+// format formats src, reporting a syntax error under name, with its code as ant check prints it.
 func (f *formatter) format(name string, src []byte) ([]byte, bool) {
 	out, err := format.Source(name, src)
 	if err != nil {
-		f.fail(fmt.Errorf("%s:%w", name, err))
+		f.fail(fmt.Errorf("%s:%w [%s]", name, err, codes.Syntax))
 		return nil, false
 	}
 	return out, true

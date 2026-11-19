@@ -75,7 +75,7 @@ item gets a comma.
 - `ant fmt` reads only the files it is given. It does not follow imports and does not run the type
   checker, so a file with compile errors is formatted like any other.
 - A file that does not parse is left untouched, and its syntax error is reported as
-  `path:line:col: message`. The other files are still formatted.
+  `path:line:col: message [syntax]`. The other files are still formatted.
 
 ## Format standard input
 

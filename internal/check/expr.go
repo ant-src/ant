@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"maps"
 	"slices"
 
@@ -36,7 +37,7 @@ func (c *Checker) lookup(sc *scope, name string) (*local, *entity) {
 // hiddenX reports the x of a lambda of arity zero, which is not in scope.
 func (c *Checker) hiddenX(l *local, pos ast.Pos) bool {
 	if l.hidden {
-		c.errorf(pos, "x is not defined: a lambda that takes no argument has no x")
+		c.errorf(codes.Undefined, pos, "x is not defined: a lambda that takes no argument has no x")
 	}
 	return l.hidden
 }
@@ -136,7 +137,7 @@ func (c *Checker) typeNameForTypeValue(e ast.Expr, sc *scope, expected types.Typ
 	}
 	c.notePath(e, sc)
 	name := pathName(e)
-	c.errorf(e.Position(), "%s is a type name; write type(%s) for its value", name, name)
+	c.errorf(codes.WrongKind, e.Position(), "%s is a type name; write type(%s) for its value", name, name)
 	return true
 }
 
@@ -181,19 +182,19 @@ func (c *Checker) genericValue(e ast.Expr, sc *scope, expected types.Type) types
 	}
 	subst := map[*types.ParamDecl]types.Type{}
 	if !c.unifyFuncValue(s, f, subst) {
-		c.errorf(e.Position(), "cannot use %s where %s is expected", s.fullName(), types.String(expected))
+		c.errorf(codes.TypeMismatch, e.Position(), "cannot use %s where %s is expected", s.fullName(), types.String(expected))
 		return types.Invalid{}
 	}
 	for _, p := range s.tparams {
 		if _, bound := subst[p]; !bound {
-			c.errorf(e.Position(), "%s does not fix %s of %s", types.String(expected), p.Name, s.fullName())
+			c.errorf(codes.NeedsAnnotation, e.Position(), "%s does not fix %s of %s", types.String(expected), p.Name, s.fullName())
 			return types.Invalid{}
 		}
 	}
 	c.checkBounds(s, subst, e)
 	inst, err := types.Subst(s.fn, subst)
 	if err != nil {
-		c.errorf(e.Position(), "%s", err)
+		c.errorf(codes.InvalidUnion, e.Position(), "%s", err)
 		return types.Invalid{}
 	}
 	return inst
@@ -245,14 +246,14 @@ func convValue(ent *entity, f types.Func) types.Type {
 // expect reports a type that is not assignable to the expected one.
 func (c *Checker) expect(pos ast.Pos, t, expected types.Type) {
 	if msg := c.misfit(t, expected); msg != "" {
-		c.errorf(pos, "%s", msg)
+		c.errorf(codes.TypeMismatch, pos, "%s", msg)
 	}
 }
 
 // expectIn is expect for the expression e, reported at its start and spanning it.
 func (c *Checker) expectIn(e ast.Expr, t, expected types.Type) {
 	if msg := c.misfit(t, expected); msg != "" {
-		c.errorIn(e, "%s", msg)
+		c.errorIn(codes.TypeMismatch, e, "%s", msg)
 	}
 }
 
@@ -332,7 +333,7 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 	case *ast.ArrayLit:
 		return c.synthArrayLit(x, sc)
 	case *ast.Lambda:
-		c.errorf(x.Pos, "a lambda needs an expected function type; annotate the variable or use func with typed parameters")
+		c.errorf(codes.Lambda, x.Pos, "a lambda needs an expected function type; annotate the variable or use func with typed parameters")
 		c.lambdaBodyAnyway(x, sc)
 		return types.Invalid{}
 	case *ast.FuncLit:
@@ -382,7 +383,7 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 	case *ast.Placeholder, *ast.BadExpr:
 		return types.Invalid{}
 	}
-	c.errorf(e.Position(), "internal error: cannot check %T", e)
+	c.errorf(codes.Internal, e.Position(), "internal error: cannot check %T", e)
 	return types.Invalid{}
 }
 
@@ -390,7 +391,7 @@ func (c *Checker) synthExpr(e ast.Expr, sc *scope) types.Type {
 
 func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 	if x.Ref.Kind == ast.RefDiscard {
-		c.errorf(x.Pos, "_ is write-only and cannot be read")
+		c.errorf(codes.VoidValue, x.Pos, "_ is write-only and cannot be read")
 		return types.Invalid{}
 	}
 	l, ent := c.lookup(sc, x.Name)
@@ -400,18 +401,18 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 			return types.Invalid{}
 		}
 		if l.unset && l.ctx == c.fn {
-			c.errorf(x.Pos, "%s is a parameter whose default has not run yet; a default may read only the parameters before it and those without a default", x.Name)
+			c.errorf(codes.DeclarationOrder, x.Pos, "%s is a parameter whose default has not run yet; a default may read only the parameters before it and those without a default", x.Name)
 			return types.Invalid{}
 		}
 		if l.pending {
 			if l.ctx == c.fn {
-				c.errorf(x.Pos, "%s is read in its own initializer", x.Name)
+				c.errorf(codes.DeclarationOrder, x.Pos, "%s is read in its own initializer", x.Name)
 				return types.Invalid{}
 			}
 			if !l.stated {
 				if !l.selfReported {
 					l.selfReported = true
-					c.errorf(x.Pos, "%s is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func", x.Name)
+					c.errorf(codes.NeedsAnnotation, x.Pos, "%s is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func", x.Name)
 				}
 				return types.Invalid{}
 			}
@@ -420,10 +421,10 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 	}
 	if ent == nil {
 		if p, _ := sc.lookupTypeParam(x.Name); p != nil {
-			c.errorf(x.Pos, "%s is a type parameter, not a value", x.Name)
+			c.errorf(codes.WrongKind, x.Pos, "%s is a type parameter, not a value", x.Name)
 			return types.Invalid{}
 		}
-		c.errorf(x.Pos, "%s is not defined", x.Name)
+		c.errorf(codes.Undefined, x.Pos, "%s is not defined", x.Name)
 		return types.Invalid{}
 	}
 	c.info.recordIdent(x, c.info.object(ent))
@@ -448,7 +449,7 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 			return types.Invalid{}
 		}
 		if len(s.tparams) > 0 {
-			c.errorf(pos, "%s is generic; call it, or give the expected function type that fixes its type parameters", s.fullName())
+			c.errorf(codes.NeedsAnnotation, pos, "%s is generic; call it, or give the expected function type that fixes its type parameters", s.fullName())
 			return types.Invalid{}
 		}
 		return s.fn
@@ -461,16 +462,16 @@ func (c *Checker) entityValue(ent *entity, pos ast.Pos) types.Type {
 			}
 			args := make([]types.Type, len(ent.decl.Params))
 			for i, p := range ent.decl.Params {
-				c.errorf(pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, ent.decl.Name)
+				c.errorf(codes.NeedsAnnotation, pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, ent.decl.Name)
 				args[i] = types.Invalid{}
 			}
 			fn.Return = types.Named{Decl: ent.decl, Args: args}
 			return fn
 		}
-		c.errorf(pos, "%s is a type, not a value; a type appears only as a literal head, after is, or before a dot", ent.decl.Name)
+		c.errorf(codes.WrongKind, pos, "%s is a type, not a value; a type appears only as a literal head, after is, or before a dot", ent.decl.Name)
 		return types.Invalid{}
 	case entModule, entNamespace:
-		c.errorf(pos, "%s is a namespace, not a value", ent.name)
+		c.errorf(codes.WrongKind, pos, "%s is a namespace, not a value", ent.name)
 		return types.Invalid{}
 	case entMissing:
 		return types.Invalid{}
@@ -564,9 +565,9 @@ func (c *Checker) moduleMember(base *entity, name string, pos ast.Pos) *entity {
 		return m
 	}
 	if _, ok := base.mod.names[name]; ok {
-		c.errorf(pos, "%s is not exported by %s", name, base.name)
+		c.errorf(codes.NotExported, pos, "%s is not exported by %s", name, base.name)
 	} else {
-		c.errorf(pos, "%s has no declaration %s", base.name, name)
+		c.errorf(codes.Undefined, pos, "%s has no declaration %s", base.name, name)
 	}
 	return nil
 }
@@ -587,7 +588,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 		case entNamespace, entType:
 			c.notePath(x.X, sc)
 			if base.kind == entType && base.decl.Kind == types.InterfaceDecl {
-				c.errorf(x.Pos, "%s is an interface, not a namespace: call %s on a value, as x.%s(...)", base.name, x.Name, x.Name)
+				c.errorf(codes.WrongKind, x.Pos, "%s is an interface, not a namespace: call %s on a value, as x.%s(...)", base.name, x.Name, x.Name)
 				return types.Invalid{}
 			}
 			m, ok := base.members[x.Name]
@@ -595,11 +596,11 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 				if base.kind == entType && base.decl.Kind == types.PrimitiveDecl {
 					break
 				}
-				c.errorf(x.Pos, "%s has no member %s", base.name, x.Name)
+				c.errorf(codes.NoMember, x.Pos, "%s has no member %s", base.name, x.Name)
 				return types.Invalid{}
 			}
 			if c.foreignPrivate(m) {
-				c.errorf(x.Pos, "%s.%s is not exported", base.name, x.Name)
+				c.errorf(codes.NotExported, x.Pos, "%s.%s is not exported", base.name, x.Name)
 				return types.Invalid{}
 			}
 			c.info.recordMember(x, c.info.object(m))
@@ -609,7 +610,7 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 	recv, short := c.chainRecv(x.X, sc)
 	if x.Optional {
 		if !types.Includes(recv, types.Null{}) {
-			c.errorf(x.Pos, "?. needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "."))
+			c.errorf(codes.NotNullable, x.Pos, "?. needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "."))
 			return types.Invalid{}
 		}
 		c.info.recordMember(x, c.info.fieldOf(types.Without(recv, types.Null{}), x.Name))
@@ -692,7 +693,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 		for _, m := range r.Members {
 			fields := types.FieldsOf(m)
 			if fields == nil {
-				c.errorf(pos, "%s has no field %s: narrow the value first%s", types.String(recv), name, note())
+				c.errorf(codes.NeedsNarrowing, pos, "%s has no field %s: narrow the value first%s", types.String(recv), name, note())
 				return types.Invalid{}
 			}
 			found := false
@@ -703,20 +704,20 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 				}
 			}
 			if !found {
-				c.errorf(pos, "%s has no field %s on every member: narrow the value first%s", types.String(recv), name, note())
+				c.errorf(codes.NeedsNarrowing, pos, "%s has no field %s on every member: narrow the value first%s", types.String(recv), name, note())
 				return types.Invalid{}
 			}
 		}
 		u, err := types.MakeUnion(members)
 		if err != nil {
-			c.errorf(pos, "reading %s through %s: %s", name, types.String(recv), err)
+			c.errorf(codes.InvalidUnion, pos, "reading %s through %s: %s", name, types.String(recv), err)
 			return types.Invalid{}
 		}
 		return u
 	}
 	fields := types.FieldsOf(recv)
 	if fields == nil {
-		c.errorf(pos, "%s is not a record, so it has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
+		c.errorf(codes.NoMember, pos, "%s is not a record, so it has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
 		return types.Invalid{}
 	}
 	for _, f := range fields {
@@ -724,7 +725,7 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 			return f.Type
 		}
 	}
-	c.errorf(pos, "%s has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
+	c.errorf(codes.NoMember, pos, "%s has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
 	return types.Invalid{}
 }
 
@@ -746,7 +747,7 @@ func (c *Checker) index(x *ast.Index, sc *scope) types.Type {
 	recv, short := c.chainRecv(x.X, sc)
 	if x.Optional {
 		if !types.Includes(recv, types.Null{}) {
-			c.errorf(x.Pos, "?.[ needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "["))
+			c.errorf(codes.NotNullable, x.Pos, "?.[ needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "["))
 			return types.Invalid{}
 		}
 		inner := c.indexOf(types.Without(recv, types.Null{}), x, sc)
@@ -778,9 +779,9 @@ func (c *Checker) indexOf(recv types.Type, x *ast.Index, sc *scope) types.Type {
 	}
 	c.synth(x.Index, sc)
 	if types.FieldsOf(recv) != nil {
-		c.errorf(x.Pos, "a record has no dynamic access; use a Map when the keys are data")
+		c.errorf(codes.NoMember, x.Pos, "a record has no dynamic access; use a Map when the keys are data")
 	} else {
-		c.errorf(x.Pos, "%s cannot be indexed", types.String(recv))
+		c.errorf(codes.NoMember, x.Pos, "%s cannot be indexed", types.String(recv))
 	}
 	return types.Invalid{}
 }
@@ -828,9 +829,9 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 	}
 	if head == nil || head.kind != entType {
 		if id, ok := x.Head.(*ast.Ident); ok && head == nil && c.undefined(id.Name, sc) {
-			c.errorf(x.Pos, "unknown type %s%s", id.Name, c.namespaceHint(id.Name))
+			c.errorf(codes.Undefined, x.Pos, "unknown type %s%s", id.Name, c.namespaceHint(id.Name))
 		} else {
-			c.errorf(x.Pos, "a record literal needs a record type as its head")
+			c.errorf(codes.WrongKind, x.Pos, "a record literal needs a record type as its head")
 		}
 		for _, en := range x.Entries {
 			if en.Spread != nil {
@@ -844,7 +845,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 	c.notePath(x.Head, sc)
 	decl := head.decl
 	if decl.Kind != types.RecordDecl {
-		c.errorf(x.Pos, "%s is not a record type, so it has no literal", decl.Name)
+		c.errorf(codes.WrongKind, x.Pos, "%s is not a record type, so it has no literal", decl.Name)
 		return types.Invalid{}
 	}
 	// type arguments: from the expected type, else inferred from the entries
@@ -898,7 +899,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 			n, ok := types.Expand(st).(types.Named)
 			if !ok || n.Decl.Kind != types.RecordDecl {
 				if !types.IsInvalid(st) {
-					c.errorf(en.Pos, "a spread needs a value of a named record type, got %s", types.String(st))
+					c.errorf(codes.Spread, en.Pos, "a spread needs a value of a named record type, got %s", types.String(st))
 				}
 				spreadUnknown = true
 				continue
@@ -906,7 +907,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 			for _, f := range n.FieldsOf() {
 				idx := fieldIndex(decl, f.Name)
 				if idx < 0 {
-					c.errorf(en.Pos, "%s has no field %s, which the spread of %s would copy", decl.Name, f.Name, types.String(st))
+					c.errorf(codes.Spread, en.Pos, "%s has no field %s, which the spread of %s would copy", decl.Name, f.Name, types.String(st))
 					continue
 				}
 				lastSpread[f.Name] = i
@@ -923,7 +924,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		}
 		idx := fieldIndex(decl, en.Name)
 		if idx < 0 {
-			c.errorf(en.Pos, "%s has no field %s", decl.Name, en.Name)
+			c.errorf(codes.NoMember, en.Pos, "%s has no field %s", decl.Name, en.Name)
 			c.synth(en.Value, sc)
 			continue
 		}
@@ -937,7 +938,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		} else {
 			w, err := types.Subst(want, subst)
 			if err != nil {
-				c.errorf(en.Pos, "%s", err)
+				c.errorf(codes.InvalidUnion, en.Pos, "%s", err)
 				w = types.Invalid{}
 			}
 			c.check(en.Value, sc, w)
@@ -951,14 +952,14 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 	}
 	for _, f := range decl.Fields {
 		if !given[f.Name] && !spreadUnknown && !f.Default {
-			c.errorf(x.Pos, "%s literal is missing the field %s", decl.Name, f.Name)
+			c.errorf(codes.MissingField, x.Pos, "%s literal is missing the field %s", decl.Name, f.Name)
 		}
 	}
 	var args []types.Type
 	for _, p := range decl.Params {
 		t, ok := subst[p]
 		if !ok {
-			c.errorf(x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
+			c.errorf(codes.NeedsAnnotation, x.Pos, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
 			t = types.Invalid{}
 		}
 		args = append(args, t)
@@ -971,7 +972,7 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 // a field already reported is not repeated.
 func (c *Checker) checkInferred(n types.Named, pos ast.Pos) types.Type {
 	if err := c.checkArgs(n); err != nil {
-		c.errorf(pos, "%s: %s", types.String(n), err)
+		c.errorf(codes.InvalidUnion, pos, "%s: %s", types.String(n), err)
 		return types.Invalid{}
 	}
 	c.checkWrittenBounds(n, pos)
@@ -991,7 +992,7 @@ func fieldIndex(decl *types.Decl, name string) int {
 func (c *Checker) matchField(want, got types.Type, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool, pos ast.Pos, name string) {
 	if !c.unify(want, got, subst) {
 		w, _ := types.Subst(want, subst)
-		c.errorf(pos, "cannot use %s for the field %s of type %s", types.String(got), name, types.String(w))
+		c.errorf(codes.TypeMismatch, pos, "cannot use %s for the field %s of type %s", types.String(got), name, types.String(w))
 		return
 	}
 	pruneSolved(unsolved, subst)
@@ -999,7 +1000,7 @@ func (c *Checker) matchField(want, got types.Type, subst map[*types.ParamDecl]ty
 
 func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 	if len(x.Elems) == 0 {
-		c.errorf(x.Pos, "cannot infer the element type of an empty array; annotate it")
+		c.errorf(codes.NeedsAnnotation, x.Pos, "cannot infer the element type of an empty array; annotate it")
 		return types.Invalid{}
 	}
 	// The element type is the union of the elements' types. An element that fixes nothing, such
@@ -1016,7 +1017,7 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 			a, ok := types.Expand(t).(types.Array)
 			if !ok {
 				if !types.IsInvalid(t) && !hasHole(t) { // ? in it: an error was reported
-					c.errorf(el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
+					c.errorf(codes.Spread, el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
 				}
 				// the literal is invalid: no error about its other elements follows
 				elems = append(elems, types.Invalid{})
@@ -1038,7 +1039,7 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 			}
 		}
 		if len(elems) == 0 {
-			c.errorf(x.Pos, "cannot infer the element type of %s; annotate it", "an array of empty literals")
+			c.errorf(codes.NeedsAnnotation, x.Pos, "cannot infer the element type of %s; annotate it", "an array of empty literals")
 			return types.Invalid{}
 		}
 		empties = literals
@@ -1051,7 +1052,7 @@ func (c *Checker) synthArrayLit(x *ast.ArrayLit, sc *scope) types.Type {
 	}
 	u, err := types.MakeUnion(elems)
 	if err != nil {
-		c.errorf(x.Pos, "the elements do not form a valid type: %s; give the array an expected type", err)
+		c.errorf(codes.NoCommonType, x.Pos, "the elements do not form a valid type: %s; give the array an expected type", err)
 		return types.Invalid{}
 	}
 	for _, e := range empties {
@@ -1078,7 +1079,7 @@ func (c *Checker) checkArrayLit(x *ast.ArrayLit, sc *scope, elem types.Type) typ
 			a, ok := types.Expand(t).(types.Array)
 			if !ok {
 				if !types.IsInvalid(t) && !hasHole(t) { // ? in it: an error was reported
-					c.errorf(el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
+					c.errorf(codes.Spread, el.Value.Position(), "a spread in an array literal needs an array, got %s", types.String(t))
 				}
 				continue
 			}
@@ -1092,7 +1093,7 @@ func (c *Checker) checkArrayLit(x *ast.ArrayLit, sc *scope, elem types.Type) typ
 
 func (c *Checker) synthMapLit(x *ast.MapLit, sc *scope) types.Type {
 	if len(x.Entries) == 0 {
-		c.errorf(x.Pos, "cannot infer the key and value types of an empty map; annotate it")
+		c.errorf(codes.NeedsAnnotation, x.Pos, "cannot infer the key and value types of an empty map; annotate it")
 		return types.Invalid{}
 	}
 	// As in an array literal, a key or value that fixes nothing, such as [] or Set.of([]), waits
@@ -1134,7 +1135,7 @@ func (c *Checker) waitingUnion(pos ast.Pos, es []ast.Expr, sc *scope, what, plur
 			}
 		}
 		if len(ts) == 0 {
-			c.errorf(pos, "cannot infer the %s type of a map of empty literals; annotate it", what)
+			c.errorf(codes.NeedsAnnotation, pos, "cannot infer the %s type of a map of empty literals; annotate it", what)
 			return nil, false
 		}
 		empties = literals
@@ -1146,7 +1147,7 @@ func (c *Checker) waitingUnion(pos ast.Pos, es []ast.Expr, sc *scope, what, plur
 	}
 	u, err := types.MakeUnion(ts)
 	if err != nil {
-		c.errorf(pos, "the %s do not form a valid type: %s; give the map an expected type", plural, err)
+		c.errorf(codes.NoCommonType, pos, "the %s do not form a valid type: %s; give the map an expected type", plural, err)
 		return nil, false
 	}
 	for _, e := range empties {
@@ -1169,20 +1170,20 @@ func (c *Checker) checkLambda(x *ast.Lambda, sc *scope, expected types.Type) typ
 	ft, found := types.MemberOf[types.Func](expected)
 	if !found {
 		if !types.IsInvalid(expected) {
-			c.errorf(x.Pos, "a lambda needs an expected function type, but %s is expected", types.String(expected))
+			c.errorf(codes.Lambda, x.Pos, "a lambda needs an expected function type, but %s is expected", types.String(expected))
 		}
 		c.lambdaBodyAnyway(x, sc)
 		return types.Invalid{}
 	}
 	if len(ft.Params) > 1 {
-		c.errorf(x.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
+		c.errorf(codes.Lambda, x.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
 		c.lambdaBodyAnyway(x, sc)
 		return types.Invalid{}
 	}
 	t := c.lambda(x, sc, ft)
 	if ft.Required < len(ft.Params) {
 		// A lambda has no default, so a call that leaves x out would find it unbound.
-		c.errorf(x.Pos, "cannot use %s where %s is expected", types.String(t), types.String(expected))
+		c.errorf(codes.TypeMismatch, x.Pos, "cannot use %s where %s is expected", types.String(t), types.String(expected))
 	}
 	return t
 }
@@ -1297,7 +1298,7 @@ func (c *Checker) unary(x *ast.Unary, sc *scope) types.Type {
 			if n, ok := types.Expand(t).(types.Named); ok && types.Equal(n, c.timeDuration()) {
 				note = ": a duration takes no operator, so write Time.negate(d)"
 			}
-			c.errorf(x.Pos, "unary - needs a number, got %s%s", types.String(t), note)
+			c.errorf(codes.Operands, x.Pos, "unary - needs a number, got %s%s", types.String(t), note)
 			return types.Invalid{}
 		}
 		return t
@@ -1354,7 +1355,7 @@ func (c *Checker) binary(x *ast.Binary, sc *scope) types.Type {
 		r := c.synth(x.Y, sc)
 		if !types.Assignable(l, r) && !types.Assignable(r, l) {
 			n := c.typeNames(l, r)
-			c.errorf(x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", n[0], n[1], x.Op)
+			c.errorf(codes.Operands, x.Pos, "%s and %s cannot be compared with %s: neither is assignable to the other", n[0], n[1], x.Op)
 		}
 		c.durationLiterals(x)
 		return types.BoolType
@@ -1381,7 +1382,7 @@ func (c *Checker) sameOperands(l, r types.Type, op string, strings bool, pos ast
 		return true
 	}
 	if !types.Equal(l, r) {
-		c.errorf(pos, "%s needs both operands of one type, got %s and %s", op, types.String(l), types.String(r))
+		c.errorf(codes.Operands, pos, "%s needs both operands of one type, got %s and %s", op, types.String(l), types.String(r))
 		return false
 	}
 	if !c.operandOK(l, strings) {
@@ -1394,7 +1395,7 @@ func (c *Checker) sameOperands(l, r types.Type, op string, strings bool, pos ast
 		if ms := types.Members(l); len(ms) > 1 && slices.ContainsFunc(ms, func(m types.Type) bool { return c.operandOK(m, strings) }) {
 			hint = "; narrow first"
 		}
-		c.errorf(pos, "%s applies to %s, not to %s%s", op, what, types.String(l), hint)
+		c.errorf(codes.Operands, pos, "%s applies to %s, not to %s%s", op, what, types.String(l), hint)
 		return false
 	}
 	return true
@@ -1405,7 +1406,7 @@ func (c *Checker) sameOperands(l, r types.Type, op string, strings bool, pos ast
 func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.Type {
 	l := c.synth(x.X, sc)
 	if !types.IsInvalid(l) && !types.Includes(l, types.Null{}) {
-		c.errorf(x.Pos, "?? needs a nullable left side, got %s", types.String(l))
+		c.errorf(codes.NotNullable, x.Pos, "?? needs a nullable left side, got %s", types.String(l))
 	}
 	nonNull := types.Without(l, types.Null{})
 	var r types.Type
@@ -1448,7 +1449,7 @@ func (c *Checker) nullish(x *ast.Binary, sc *scope, expected types.Type) types.T
 	}
 	u, err := types.Join(nonNull, r)
 	if err != nil {
-		c.errorf(x.Pos, "the sides of ?? do not form a valid type: %s; narrow first or give the whole an expected type", err)
+		c.errorf(codes.NoCommonType, x.Pos, "the sides of ?? do not form a valid type: %s; narrow first or give the whole an expected type", err)
 		return types.Invalid{}
 	}
 	return u
@@ -1460,17 +1461,17 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 		return t
 	}
 	if _, isParam := types.Expand(t).(types.Param); isParam {
-		c.errorf(x.Pos, "try needs a Result, not a value of the type parameter %s", types.String(t))
+		c.errorf(codes.Try, x.Pos, "try needs a Result, not a value of the type parameter %s", types.String(t))
 		return types.Invalid{}
 	}
 	okT, errT, ok := resultParts(t)
 	if !ok {
-		c.errorf(x.Pos, "try needs a Result, got %s", types.String(t))
+		c.errorf(codes.Try, x.Pos, "try needs a Result, got %s", types.String(t))
 		return types.Invalid{}
 	}
 	fn := c.fn
 	if fn == nil || fn.kind == "go" || fn.kind == "defer" || fn.kind == "init" {
-		c.errorf(x.Pos, "try needs an enclosing function that returns a Result")
+		c.errorf(codes.Try, x.Pos, "try needs an enclosing function that returns a Result")
 		return okT
 	}
 	errRec := types.Named{Decl: c.prelude["Err"].decl, Args: []types.Type{errT}}
@@ -1480,7 +1481,7 @@ func (c *Checker) tryExpr(x *ast.Unary, sc *scope) types.Type {
 	if fn.declared != nil {
 		_, declaredErr, isResult := resultParts(types.Without(fn.declared, types.Null{}))
 		if !isResult || !types.Assignable(errT, declaredErr) {
-			c.errorf(x.Pos, "try would return %s, but the function returns %s", types.String(errRec), types.String(fn.declared))
+			c.errorf(codes.Try, x.Pos, "try would return %s, but the function returns %s", types.String(errRec), types.String(fn.declared))
 		}
 	} else {
 		fn.returns = append(fn.returns, errRec)
@@ -1544,7 +1545,7 @@ func (c *Checker) typeExpr(x *ast.TypeExpr, sc *scope) types.Type {
 		if p, _ := sc.lookupTypeParam(name); p == nil {
 			l, ent := c.lookup(sc, name)
 			if l != nil || ent != nil && (ent.kind == entVar || ent.kind == entFunc) {
-				c.errorf(tn.Pos, "type(...) takes a type, not a value; %s is a value", name)
+				c.errorf(codes.Reflect, tn.Pos, "type(...) takes a type, not a value; %s is a value", name)
 				return types.Invalid{}
 			}
 		}
@@ -1556,7 +1557,7 @@ func (c *Checker) typeExpr(x *ast.TypeExpr, sc *scope) types.Type {
 	if d := reachesInterface(t); d != nil {
 		// An interface has no run-time identity and no members a format could decode into
 		// (section 4, Types as values).
-		c.errorf(x.Pos, "type(...) cannot reach an interface: %s is one, and an interface has no run-time identity", d.Name)
+		c.errorf(codes.Reflect, x.Pos, "type(...) cannot reach an interface: %s is one, and an interface has no run-time identity", d.Name)
 		return types.Invalid{}
 	}
 	var param *types.ParamDecl
@@ -1566,12 +1567,12 @@ func (c *Checker) typeExpr(x *ast.TypeExpr, sc *scope) types.Type {
 		}
 	})
 	if param != nil {
-		c.errorf(x.Pos, "type(...) cannot mention %s, a type parameter of the enclosing function or type, since nothing is bound to it at run time; take a Reflect.Type[%s] parameter and build the type from it with Reflect.arrayOf, Reflect.setOf, Reflect.mapOf, or Reflect.nullable", param.Name, param.Name)
+		c.errorf(codes.Reflect, x.Pos, "type(...) cannot mention %s, a type parameter of the enclosing function or type, since nothing is bound to it at run time; take a Reflect.Type[%s] parameter and build the type from it with Reflect.arrayOf, Reflect.setOf, Reflect.mapOf, or Reflect.nullable", param.Name, param.Name)
 		return types.Invalid{}
 	}
 	decl := c.reflectDecl("Type")
 	if decl == nil {
-		c.errorf(x.Pos, "Reflect is not available in this run, so type(...) cannot be used")
+		c.errorf(codes.Reflect, x.Pos, "Reflect is not available in this run, so type(...) cannot be used")
 		return types.Invalid{}
 	}
 	return types.Named{Decl: decl, Args: []types.Type{t}}
@@ -1627,18 +1628,18 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 		return nil
 	}
 	if ent == nil || ent.kind != entType {
-		c.errorf(x.Pos, "the right side of is must be a type")
+		c.errorf(codes.WrongKind, x.Pos, "the right side of is must be a type")
 		return nil
 	}
 	switch ent.decl.Kind {
 	case types.AliasDecl:
-		c.errorf(x.Pos, "%s is an alias and has no run-time identity; test its members instead", ent.decl.Name)
+		c.errorf(codes.IsTest, x.Pos, "%s is an alias and has no run-time identity; test its members instead", ent.decl.Name)
 		return nil
 	case types.InterfaceDecl:
-		c.errorf(x.Pos, "is cannot test %s, an interface: test a type that satisfies it", ent.decl.Name)
+		c.errorf(codes.IsTest, x.Pos, "is cannot test %s, an interface: test a type that satisfies it", ent.decl.Name)
 		return nil
 	case types.OpaqueDecl:
-		c.errorf(x.Pos, "is cannot test %s; narrow by testing the other members", ent.decl.Name)
+		c.errorf(codes.IsTest, x.Pos, "is cannot test %s; narrow by testing the other members", ent.decl.Name)
 		return nil
 	}
 	return types.Named{Decl: ent.decl}
@@ -1688,7 +1689,7 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 			}
 		}
 		n := c.typeNames(t, target)
-		c.errorf(pos, "%s is never a %s, so the test is always false", n[0], n[1])
+		c.errorf(codes.UselessTest, pos, "%s is never a %s, so the test is always false", n[0], n[1])
 		return nil, nil, false
 	}
 	wt, _ := types.MakeUnion(yes)
@@ -1703,7 +1704,7 @@ func (c *Checker) alwaysTrue(declared, target types.Type, pos ast.Pos) bool {
 			return false
 		}
 	}
-	c.errorf(pos, "the test is always true: %s is already %s", types.String(declared), targetName(target))
+	c.errorf(codes.UselessTest, pos, "the test is always true: %s is already %s", types.String(declared), targetName(target))
 	return true
 }
 
@@ -1760,11 +1761,11 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 	for _, want := range r.Fields {
 		idx := fieldIndex(decl, want.Name)
 		if idx < 0 {
-			c.errorf(pos, "%s has no field %s, so it is never a %s", decl.Name, want.Name, types.String(r))
+			c.errorf(codes.UselessTest, pos, "%s has no field %s, so it is never a %s", decl.Name, want.Name, types.String(r))
 			return nil, false
 		}
 		if !c.unify(decl.Fields[idx].Type, want.Type, subst) {
-			c.errorf(pos, "the field %s of %s does not match %s", want.Name, decl.Name, types.String(r))
+			c.errorf(codes.TypeMismatch, pos, "the field %s of %s does not match %s", want.Name, decl.Name, types.String(r))
 			return nil, false
 		}
 	}
@@ -1772,18 +1773,18 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 	for _, p := range decl.Params {
 		t, ok := subst[p]
 		if !ok {
-			c.errorf(pos, "%s does not determine the type parameter %s of %s", types.String(r), p.Name, decl.Name)
+			c.errorf(codes.NeedsAnnotation, pos, "%s does not determine the type parameter %s of %s", types.String(r), p.Name, decl.Name)
 			return nil, false
 		}
 		args = append(args, t)
 	}
 	n := types.Named{Decl: decl, Args: args}
 	if err := c.checkArgs(n); err != nil {
-		c.errorf(pos, "%s: %s", types.String(n), err)
+		c.errorf(codes.InvalidUnion, pos, "%s: %s", types.String(n), err)
 		return nil, false
 	}
 	if err := types.CheckBounds(n); err != nil {
-		c.errorf(pos, "%s: %s", types.String(n), err)
+		c.errorf(codes.Bound, pos, "%s: %s", types.String(n), err)
 		return nil, false
 	}
 	return n, true
@@ -1797,7 +1798,7 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 		if t.Ref.Kind == ast.RefDiscard {
 			if x.Op != "=" {
 				// a compound assignment reads its target
-				c.errorf(t.Pos, "_ is write-only and cannot be read")
+				c.errorf(codes.VoidValue, t.Pos, "_ is write-only and cannot be read")
 			}
 			c.synth(x.Value, sc)
 			return types.Void{}
@@ -1816,15 +1817,15 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 				c.assignValue(x, sc, c.typeOfLocal(l))
 			}
 		case ent == nil:
-			c.errorf(t.Pos, "%s is not defined", t.Name)
+			c.errorf(codes.Undefined, t.Pos, "%s is not defined", t.Name)
 			c.synth(x.Value, sc)
 		case ent.kind == entVar:
 			if ent.v.mod != c.mod {
-				c.errorf(t.Pos, "cannot assign to the imported variable %s", t.Name)
+				c.errorf(codes.Assign, t.Pos, "cannot assign to the imported variable %s", t.Name)
 			}
 			c.assignValue(x, sc, c.varType(ent.v, t.Pos, c.fn != nil && (c.fn.kind == "init" || c.fn.kind == "script")))
 		default:
-			c.errorf(t.Pos, "cannot assign to %s", t.Name)
+			c.errorf(codes.Assign, t.Pos, "cannot assign to %s", t.Name)
 			c.synth(x.Value, sc)
 		}
 	case *ast.Field, *ast.Index:
@@ -1837,7 +1838,7 @@ func (c *Checker) assign(x *ast.Assign, sc *scope) types.Type {
 			// (section 11, Map), which no operator takes.
 			c.synth(x.Value, sc)
 			if !types.IsInvalid(pt) {
-				c.errorf(x.Pos, "%s on a map element reads it first, and the read is %s | null; write m[k] = (m[k] ?? init) %s v", x.Op, types.String(pt), x.Op[:len(x.Op)-1])
+				c.errorf(codes.Operands, x.Pos, "%s on a map element reads it first, and the read is %s | null; write m[k] = (m[k] ?? init) %s v", x.Op, types.String(pt), x.Op[:len(x.Op)-1])
 			}
 		default:
 			c.assignValue(x, sc, pt)
@@ -1864,9 +1865,9 @@ func (c *Checker) fixedTarget(t *ast.Ident, l *local, ent *entity) bool {
 	case ast.Assignable:
 		return false
 	case ast.FixedLet:
-		c.errorf(t.Pos, "cannot assign to %s, a let; declare it with var to reassign it", t.Name)
+		c.errorf(codes.Assign, t.Pos, "cannot assign to %s, a let; declare it with var to reassign it", t.Name)
 	default:
-		c.errorf(t.Pos, "cannot assign to %s, %s; declare a var to hold a value that changes", t.Name, fixed.What())
+		c.errorf(codes.Assign, t.Pos, "cannot assign to %s, %s; declare a var to hold a value that changes", t.Name, fixed.What())
 	}
 	return true
 }
@@ -1890,7 +1891,7 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 	switch t := p.(type) {
 	case *ast.Field:
 		if base := c.entityPath(t.X, sc); base != nil && base.kind == entModule {
-			c.errorf(t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
+			c.errorf(codes.Assign, t.Pos, "cannot assign to %s.%s: imports are read-only", base.name, t.Name)
 			return nil, false
 		}
 		recv := c.synth(t.X, sc)
@@ -1899,7 +1900,7 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 			through = bp.Decl.Bound // a T bounded by a union is assigned through as the union is
 		}
 		if _, isUnion := types.Expand(through).(types.Union); isUnion {
-			c.errorf(t.Pos, "cannot assign a field through the union %s; narrow first", types.String(through))
+			c.errorf(codes.NeedsNarrowing, t.Pos, "cannot assign a field through the union %s; narrow first", types.String(through))
 			return nil, false
 		}
 		return c.fieldOf(recv, t.Name, t.Pos, nil), false
@@ -1919,7 +1920,7 @@ func (c *Checker) placeType(p ast.Expr, sc *scope) (_ types.Type, isMap bool) {
 		}
 		c.synth(t.Index, sc)
 		if !types.IsInvalid(recv) {
-			c.errorf(t.Pos, "%s cannot be indexed", types.String(recv))
+			c.errorf(codes.NoMember, t.Pos, "%s cannot be indexed", types.String(recv))
 		}
 	}
 	return nil, false
@@ -1929,7 +1930,7 @@ func (c *Checker) assignArray(t *ast.AssignArray, v types.Type, sc *scope) {
 	a, ok := types.Expand(v).(types.Array)
 	if !ok {
 		if !types.IsInvalid(v) {
-			c.errorf(t.Pos, "a destructuring assignment needs an array, got %s", types.String(v))
+			c.errorf(codes.TypeMismatch, t.Pos, "a destructuring assignment needs an array, got %s", types.String(v))
 		}
 		a = types.Array{Elem: types.Invalid{}}
 	}
@@ -1962,11 +1963,11 @@ func (c *Checker) assignPlace(p ast.Expr, v types.Type, sc *scope) {
 			c.narrowLocal(l, v)
 		case ent != nil && ent.kind == entVar:
 			if ent.v.mod != c.mod {
-				c.errorf(t.Pos, "cannot assign to the imported variable %s", t.Name)
+				c.errorf(codes.Assign, t.Pos, "cannot assign to the imported variable %s", t.Name)
 			}
 			c.expect(t.Pos, v, c.varType(ent.v, t.Pos, false))
 		default:
-			c.errorf(t.Pos, "cannot assign to %s", t.Name)
+			c.errorf(codes.Assign, t.Pos, "cannot assign to %s", t.Name)
 		}
 	case *ast.Field, *ast.Index:
 		// the rules of a plain field or index assignment: no import, no union
@@ -1986,7 +1987,7 @@ func (c *Checker) durationLiterals(x *ast.Binary) {
 		return
 	}
 	if n, err := temporal.CompareDurations(a.Value, b.Value, nil); err == nil && n == 0 {
-		c.errorf(x.Pos, "%s %s %s compares the fields as written, and %s is %t: compare the lengths with Time.compareDuration(%s, %s)",
+		c.errorf(codes.DurationEquality, x.Pos, "%s %s %s compares the fields as written, and %s is %t: compare the lengths with Time.compareDuration(%s, %s)",
 			a.Text, x.Op, b.Text, x.Op, x.Op == "!=", a.Text, b.Text)
 	}
 }

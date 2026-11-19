@@ -20,8 +20,9 @@ func checkCommand(args []string, stdout, stderr io.Writer) int {
 	fl := flag.NewFlagSet("ant check", flag.ContinueOnError)
 	fl.SetOutput(stderr)
 	jsonOut := fl.Bool("json", false, "print each error as a JSON line on standard output")
+	explainCode := fl.String("explain", "", "print what a code means, with an example, and exit")
 	fl.Usage = func() {
-		fmt.Fprintln(stderr, "usage: ant check [-json] [path ...]")
+		fmt.Fprintln(stderr, "usage: ant check [-json] [path ...]\n       ant check -explain code")
 		fl.PrintDefaults()
 	}
 	if err := fl.Parse(args); err != nil {
@@ -29,6 +30,17 @@ func checkCommand(args []string, stdout, stderr io.Writer) int {
 			return 0
 		}
 		return 2
+	}
+	if *explainCode != "" {
+		if fl.NArg() > 0 || *jsonOut {
+			fmt.Fprintln(stderr, "ant check: -explain takes a code and nothing else")
+			return 2
+		}
+		if !explain(stdout, *explainCode) {
+			fmt.Fprintf(stderr, "ant check: unknown code %q; the codes are listed under Codes in the documentation of ant check\n", *explainCode)
+			return 2
+		}
+		return 0
 	}
 	files, err := checkSources.files(fl.Args())
 	if err != nil {
@@ -60,12 +72,14 @@ type jsonPos struct {
 }
 
 type jsonDiagnostic struct {
-	Path    string   `json:"path"`
-	Line    int      `json:"line"`
-	Column  int      `json:"column"`
-	Message string   `json:"message"`
-	Start   *jsonPos `json:"start,omitempty"`
-	End     *jsonPos `json:"end,omitempty"`
+	Path     string   `json:"path"`
+	Line     int      `json:"line"`
+	Column   int      `json:"column"`
+	Severity string   `json:"severity,omitempty"`
+	Code     string   `json:"code,omitempty"`
+	Message  string   `json:"message"`
+	Start    *jsonPos `json:"start,omitempty"`
+	End      *jsonPos `json:"end,omitempty"`
 }
 
 // writeJSONDiagnostics writes each diagnostic as a JSON object on a line of its own: its position
@@ -97,7 +111,7 @@ func jsonDiagnostics(diags []ant.Diagnostic) []jsonDiagnostic {
 	}}
 	out := make([]jsonDiagnostic, 0, len(diags))
 	for _, d := range diags {
-		jd := jsonDiagnostic{Path: d.Pos.Path, Line: d.Pos.Line, Column: d.Pos.Col, Message: d.Message}
+		jd := jsonDiagnostic{Path: d.Pos.Path, Line: d.Pos.Line, Column: d.Pos.Col, Severity: d.Severity, Code: d.Code, Message: d.Message}
 		from, to := p.Range(d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col})
 		if from.Line > 0 {
 			jd.Start = &jsonPos{from.Line, from.Col}

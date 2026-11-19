@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"maps"
 	"slices"
 	"strconv"
@@ -18,7 +19,7 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 	if x.Optional {
 		fn, short := c.chainRecv(x.Fn, sc)
 		if !types.Includes(fn, types.Null{}) {
-			c.errorf(x.Pos, "?.( needs a nullable left side, got %s%s", types.String(fn), chainNote(short, "("))
+			c.errorf(codes.NotNullable, x.Pos, "?.( needs a nullable left side, got %s%s", types.String(fn), chainNote(short, "("))
 		}
 		inner := c.callValue(types.Without(fn, types.Null{}), x, sc)
 		return c.endLink(x, x.Grouped, inner, true)
@@ -54,11 +55,11 @@ func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
 				c.info.recordCall(x, &CallInfo{Fn: constructorType(ent.decl), Callee: c.info.object(ent), Slots: positional(x)})
 				return c.construct(ent.decl, x, sc, expected)
 			}
-			c.errorIn(x, "%s is a type, not a function", ent.decl.Name)
+			c.errorIn(codes.WrongKind, x, "%s is a type, not a function", ent.decl.Name)
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
 		case entModule, entNamespace:
-			c.errorIn(x, "%s is a namespace, not a function", ent.name)
+			c.errorIn(codes.WrongKind, x, "%s is a namespace, not a function", ent.name)
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
 		case entMissing:
@@ -103,7 +104,7 @@ func (c *Checker) callValue(fn types.Type, x *ast.Call, sc *scope) types.Type {
 	ft, ok := types.Expand(fn).(types.Func)
 	if !ok {
 		if !types.IsInvalid(fn) {
-			c.errorIn(x, "%s is not a function and cannot be called", types.String(fn))
+			c.errorIn(codes.WrongKind, x, "%s is not a function and cannot be called", types.String(fn))
 		}
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
@@ -111,13 +112,13 @@ func (c *Checker) callValue(fn types.Type, x *ast.Call, sc *scope) types.Type {
 	c.info.recordCall(x, &CallInfo{Fn: ft, Slots: positional(x)})
 	for _, a := range x.Args {
 		if a.Name != "" {
-			c.errorf(a.Pos, "a call through a function value is positional; named arguments apply only to a declared function")
+			c.errorf(codes.Arguments, a.Pos, "a call through a function value is positional; named arguments apply only to a declared function")
 			c.synthArgs(x.Args, sc)
 			return ft.Return
 		}
 	}
 	if len(x.Args) < ft.Required || len(x.Args) > len(ft.Params) {
-		c.errorIn(x, "%s takes %s, got %d", types.String(fn), countParams(ft), len(x.Args))
+		c.errorIn(codes.Arguments, x, "%s takes %s, got %d", types.String(fn), countParams(ft), len(x.Args))
 		c.synthArgs(x.Args, sc)
 		return ft.Return
 	}
@@ -161,7 +162,7 @@ func plural(n int, noun string) string {
 // construct checks a named primitive type's constructor call.
 func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope, expected types.Type) types.Type {
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorIn(x, "the constructor %s takes exactly one positional argument", decl.Name)
+		c.errorIn(codes.Arguments, x, "the constructor %s takes exactly one positional argument", decl.Name)
 		c.synthArgs(x.Args, sc)
 	} else {
 		c.check(x.Args[0].Value, sc, types.Prim{Kind: decl.Base})
@@ -179,7 +180,7 @@ func (c *Checker) construct(decl *types.Decl, x *ast.Call, sc *scope, expected t
 	}
 	var args []types.Type
 	for _, p := range decl.Params {
-		c.errorIn(x, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
+		c.errorIn(codes.NeedsAnnotation, x, "cannot infer the type parameter %s of %s; annotate the result", p.Name, decl.Name)
 		args = append(args, types.Invalid{})
 	}
 	return types.Named{Decl: decl, Args: args}
@@ -191,7 +192,7 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 	result := types.Prim{Kind: ent.conversion}
 	name := types.String(result) // int for int64, byte for uint8, as everywhere (section 4)
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorIn(x, "%s takes exactly one positional argument", name)
+		c.errorIn(codes.Arguments, x, "%s takes exactly one positional argument", name)
 		c.synthArgs(x.Args, sc)
 		return result
 	}
@@ -207,14 +208,14 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 	switch {
 	case ent.conversion == value.KindString || ent.conversion == value.KindBool:
 		if !ok || p.Kind != ent.conversion {
-			c.errorIn(x, "%s converts only a %s or a named primitive type over %s, got %s", name, ent.conversion, ent.conversion, types.String(t))
+			c.errorIn(codes.Conversion, x, "%s converts only a %s or a named primitive type over %s, got %s", name, ent.conversion, ent.conversion, types.String(t))
 		}
 	default:
 		if !ok || !p.Kind.IsNumber() {
 			if pp, isParam := types.Expand(base).(types.Param); isParam && pp.Decl.Bound != nil && c.operandOK(base, false) {
 				return result
 			}
-			c.errorIn(x, "%s converts a number or a named primitive type over a number, got %s", name, types.String(t))
+			c.errorIn(codes.Conversion, x, "%s converts a number or a named primitive type over a number, got %s", name, types.String(t))
 		}
 	}
 	return result
@@ -223,13 +224,13 @@ func (c *Checker) conversion(ent *entity, x *ast.Call, sc *scope) types.Type {
 // length checks len: one positional argument that has a size (section 11, Prelude).
 func (c *Checker) length(x *ast.Call, sc *scope) types.Type {
 	if len(x.Args) != 1 || x.Args[0].Name != "" {
-		c.errorIn(x, "len takes exactly one positional argument")
+		c.errorIn(codes.Arguments, x, "len takes exactly one positional argument")
 		c.synthArgs(x.Args, sc)
 		return types.IntType
 	}
 	t := c.synth(x.Args[0].Value, sc)
 	if !c.sized(t) {
-		c.errorIn(x, "len needs an array, a map, a set, a string, Bytes, or a channel, got %s", types.String(t))
+		c.errorIn(codes.TypeMismatch, x, "len needs an array, a map, a set, a string, Bytes, or a channel, got %s", types.String(t))
 	}
 	return types.IntType
 }
@@ -271,7 +272,7 @@ func (c *Checker) lenValue(ent *entity, f types.Func, pos ast.Pos) types.Type {
 		return nil
 	}
 	if len(f.Params) != 1 || !c.sized(f.Params[0]) {
-		c.errorf(pos, "cannot use len where %s is expected", types.String(f))
+		c.errorf(codes.WrongKind, pos, "cannot use len where %s is expected", types.String(f))
 		return types.Invalid{}
 	}
 	return types.Func{Params: []types.Type{f.Params[0]}, Return: types.IntType, Required: 1}
@@ -358,7 +359,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			} else {
 				want, _ := types.Subst(pt, subst)
 				n := c.typeNames(recv.typ, want)
-				c.errorIn(recv.at, "cannot use %s where %s is expected", n[0], n[1])
+				c.errorIn(codes.TypeMismatch, recv.at, "cannot use %s where %s is expected", n[0], n[1])
 				mismatch = true
 			}
 			pruneSolved(unsolved, subst)
@@ -368,7 +369,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			c.unify(pt, recv.typ, subst)
 			synthesized = append(synthesized, pendingArg{0, recv.typ, recv.at})
 		} else if want, err := types.Subst(pt, subst); err != nil {
-			c.errorIn(recv.at, "%s", err)
+			c.errorIn(codes.InvalidUnion, recv.at, "%s", err)
 		} else {
 			c.expectIn(recv.at, recv.typ, want)
 		}
@@ -394,7 +395,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 			if !c.unify(pt, got, subst) {
 				want, _ := types.Subst(pt, subst)
 				n := c.typeNames(got, want)
-				c.errorIn(a.Value, "cannot use %s where %s is expected", n[0], n[1])
+				c.errorIn(codes.TypeMismatch, a.Value, "cannot use %s where %s is expected", n[0], n[1])
 				mismatch = true
 				pruneSolved(unsolved, subst)
 				continue // reported once, not again against the solved types
@@ -412,7 +413,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 		}
 		want, err := types.Subst(pt, subst)
 		if err != nil {
-			c.errorf(a.Pos, "%s", err)
+			c.errorf(codes.InvalidUnion, a.Pos, "%s", err)
 			continue
 		}
 		t := c.check(a.Value, sc, want)
@@ -426,7 +427,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, w := range empties {
 		want, err := types.Subst(s.fn.Params[w.i], subst)
 		if err != nil {
-			c.errorf(w.e.Position(), "%s", err)
+			c.errorf(codes.InvalidUnion, w.e.Position(), "%s", err)
 			continue
 		}
 		if types.Mentions(want, unsolved) {
@@ -440,7 +441,7 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 					continue
 				}
 			} else if !mismatch {
-				c.errorf(w.e.Position(), "%s", emptyError(w.e))
+				c.errorf(codes.NeedsAnnotation, w.e.Position(), "%s", emptyError(w.e))
 			}
 			bindInvalid(s.fn.Params[w.i], subst)
 			pruneSolved(unsolved, subst)
@@ -474,11 +475,11 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, p := range s.tparams {
 		if _, done := subst[p]; !done {
 			if !misfit {
-				c.errorIn(x, "cannot infer the type parameter %s of %s; annotate the result", p.Name, s.fullName())
+				c.errorIn(codes.NeedsAnnotation, x, "cannot infer the type parameter %s of %s; annotate the result", p.Name, s.fullName())
 			} else if !misfitSaid {
 				// Only the expected type could solve p, and the result does not fit it: an
 				// annotation would not help, so name the two types, once.
-				c.errorIn(x, "cannot use %s where %s is expected: it returns %s", s.fullName(), types.String(expected), types.String(s.fn.Return))
+				c.errorIn(codes.TypeMismatch, x, "cannot use %s where %s is expected: it returns %s", s.fullName(), types.String(expected), types.String(s.fn.Return))
 				misfitSaid = true
 			}
 			subst[p] = types.Invalid{}
@@ -490,12 +491,12 @@ func (c *Checker) applySig(s *sig, x *ast.Call, sc *scope, expected types.Type, 
 	for _, pe := range synthesized {
 		want, err := types.Subst(s.fn.Params[pe.i], subst)
 		if err != nil {
-			c.errorIn(pe.at, "%s", err)
+			c.errorIn(codes.InvalidUnion, pe.at, "%s", err)
 			continue
 		}
 		if !types.Assignable(pe.t, want) && !hasHole(want) {
 			n := c.typeNames(pe.t, want)
-			c.errorIn(pe.at, "cannot use %s where %s is expected", n[0], n[1])
+			c.errorIn(codes.TypeMismatch, pe.at, "cannot use %s where %s is expected", n[0], n[1])
 		}
 	}
 	return c.resultOf(s, subst, x)
@@ -652,9 +653,9 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 					}
 				}
 				if recv != nil {
-					c.errorf(a.Pos, "%s takes %s after the receiver, got %d", s.fullName(), s.arity(first), got)
+					c.errorf(codes.Arguments, a.Pos, "%s takes %s after the receiver, got %d", s.fullName(), s.arity(first), got)
 				} else {
-					c.errorf(a.Pos, "%s takes %s, got %d", s.fullName(), s.arity(first), got)
+					c.errorf(codes.Arguments, a.Pos, "%s takes %s, got %d", s.fullName(), s.arity(first), got)
 				}
 				ok = false
 				break
@@ -664,7 +665,7 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 			continue
 		}
 		if recv != nil && recv.positional {
-			c.errorf(a.Pos, "a call through %s is positional, since each implementation names its parameters as it likes", types.String(recv.typ))
+			c.errorf(codes.Arguments, a.Pos, "a call through %s is positional, since each implementation names its parameters as it likes", types.String(recv.typ))
 			ok = false
 			continue
 		}
@@ -676,17 +677,17 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 			}
 		}
 		if idx < 0 {
-			c.errorf(a.Pos, "%s has no parameter %s", s.fullName(), a.Name)
+			c.errorf(codes.Arguments, a.Pos, "%s has no parameter %s", s.fullName(), a.Name)
 			ok = false
 			continue
 		}
 		if idx < first {
-			c.errorf(a.Pos, "the parameter %s is the receiver, which the call passes first", a.Name)
+			c.errorf(codes.Arguments, a.Pos, "the parameter %s is the receiver, which the call passes first", a.Name)
 			ok = false
 			continue
 		}
 		if slots[idx] != nil {
-			c.errorf(a.Pos, "the parameter %s is given twice", a.Name)
+			c.errorf(codes.Arguments, a.Pos, "the parameter %s is given twice", a.Name)
 			ok = false
 			continue
 		}
@@ -704,7 +705,7 @@ func (c *Checker) argSlots(s *sig, x *ast.Call, recv *receiver) ([]*ast.Arg, boo
 			if !named {
 				return slots, false, true
 			}
-			c.errorIn(x, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
+			c.errorIn(codes.Arguments, x, "%s needs an argument for %s", s.fullName(), s.fn.Names[i])
 			ok = false
 		}
 	}
@@ -753,14 +754,14 @@ func (c *Checker) missingArg(s *sig, x *ast.Call, recv bool, got []types.Type) {
 	if fits(-1) {
 		for j := len(got); j < len(params); j++ {
 			if required(j) {
-				c.errorIn(x, "%s needs an argument for %s", s.fullName(), names[j])
+				c.errorIn(codes.Arguments, x, "%s needs an argument for %s", s.fullName(), names[j])
 				return
 			}
 		}
 	}
 	for k := 0; k < len(got) && k < len(params); k++ {
 		if required(k) && fits(k) {
-			c.errorIn(x, "%s needs an argument for %s", s.fullName(), names[k])
+			c.errorIn(codes.Arguments, x, "%s needs an argument for %s", s.fullName(), names[k])
 			return
 		}
 	}
@@ -772,7 +773,7 @@ func (c *Checker) missingArg(s *sig, x *ast.Call, recv bool, got []types.Type) {
 	if recv {
 		after = " after the receiver"
 	}
-	c.errorIn(x, "%s takes %s%s, got %d; the parameters are %s", s.fullName(), s.arity(first), after, len(got), strings.Join(parts, ", "))
+	c.errorIn(codes.Arguments, x, "%s takes %s%s, got %d; the parameters are %s", s.fullName(), s.arity(first), after, len(got), strings.Join(parts, ", "))
 }
 
 // lambdaArg checks a lambda argument against its parameter's type pt, once the other arguments
@@ -780,22 +781,22 @@ func (c *Checker) missingArg(s *sig, x *ast.Call, recv bool, got []types.Type) {
 func (c *Checker) lambdaArg(a *ast.Arg, lam *ast.Lambda, pt types.Type, sc *scope, subst map[*types.ParamDecl]types.Type, unsolved map[*types.ParamDecl]bool) {
 	pt, err := types.Subst(pt, subst)
 	if err != nil {
-		c.errorf(a.Pos, "%s", err)
+		c.errorf(codes.InvalidUnion, a.Pos, "%s", err)
 		return
 	}
 	ft, isFunc := types.Expand(pt).(types.Func)
 	if !isFunc {
-		c.errorf(a.Pos, "a lambda needs an expected function type, but %s is expected", types.String(pt))
+		c.errorf(codes.Lambda, a.Pos, "a lambda needs an expected function type, but %s is expected", types.String(pt))
 		c.lambdaBodyAnyway(lam, sc)
 		return
 	}
 	if types.Mentions(ft, unsolved) && anyParamMentions(ft.Params, unsolved) {
-		c.errorf(a.Pos, "the lambda's parameter type %s is not fixed yet; pass the other arguments first or annotate", types.String(ft.Params[0]))
+		c.errorf(codes.NeedsAnnotation, a.Pos, "the lambda's parameter type %s is not fixed yet; pass the other arguments first or annotate", types.String(ft.Params[0]))
 		c.lambdaBodyAnyway(lam, sc)
 		return
 	}
 	if len(ft.Params) > 1 {
-		c.errorf(a.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
+		c.errorf(codes.Lambda, a.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
 		c.lambdaBodyAnyway(lam, sc)
 		return
 	}
@@ -809,7 +810,7 @@ func (c *Checker) lambdaArg(a *ast.Arg, lam *ast.Lambda, pt types.Type, sc *scop
 		}
 		if !c.unify(ft.Return, g.Return, subst) {
 			want, _ := types.Subst(ft.Return, subst)
-			c.errorf(a.Pos, "the lambda returns %s where %s is expected", types.String(g.Return), types.String(want))
+			c.errorf(codes.TypeMismatch, a.Pos, "the lambda returns %s where %s is expected", types.String(g.Return), types.String(want))
 			bindInvalid(ft.Return, subst) // the error explains the type parameters it left open
 		}
 		pruneSolved(unsolved, subst)
@@ -870,7 +871,7 @@ func (c *Checker) resultOf(s *sig, subst map[*types.ParamDecl]types.Type, at ast
 	}
 	t, err := types.Subst(s.fn.Return, subst)
 	if err != nil {
-		c.errorIn(at, "the result of %s: %s", s.fullName(), err)
+		c.errorIn(codes.InvalidUnion, at, "the result of %s: %s", s.fullName(), err)
 		return types.Invalid{}
 	}
 	return t
@@ -892,7 +893,7 @@ func (c *Checker) checkBounds(s *sig, subst map[*types.ParamDecl]types.Type, at 
 		if !ok || boundFits(p, t, subst, s.tparams) {
 			continue
 		}
-		c.errorIn(at, "%s would be %s, which is not %s its bound %s%s", p.Name, types.String(t), boundRelation(t, bound), types.String(bound), c.boundHint(p, t, subst, s.tparams))
+		c.errorIn(codes.Bound, at, "%s would be %s, which is not %s its bound %s%s", p.Name, types.String(t), boundRelation(t, bound), types.String(bound), c.boundHint(p, t, subst, s.tparams))
 	}
 }
 
@@ -1263,7 +1264,7 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 			}
 			u, err := types.MakeUnion(elems)
 			if err != nil {
-				c.errorf(x.Pos, "the elements do not form a valid type: %s; give the array an expected type", err)
+				c.errorf(codes.NoCommonType, x.Pos, "the elements do not form a valid type: %s; give the array an expected type", err)
 				return types.Invalid{}
 			}
 			for _, e := range empties {
@@ -1292,7 +1293,7 @@ func (c *Checker) synthWithPattern(e ast.Expr, pattern types.Type, subst map[*ty
 			k, errK := types.MakeUnion(keys)
 			v, errV := types.MakeUnion(vals)
 			if errK != nil || errV != nil {
-				c.errorf(x.Pos, "the entries do not form a valid type; give the map an expected type")
+				c.errorf(codes.NoCommonType, x.Pos, "the entries do not form a valid type; give the map an expected type")
 				return types.Invalid{}
 			}
 			return types.Map{Key: k, Val: v}
@@ -1517,7 +1518,7 @@ func (c *Checker) genericArg(e ast.Expr, pattern types.Type, subst map[*types.Pa
 		if !c.unify(s.fn.Params[i], pf.Params[i], argSubst) {
 			// The expected parameter is known and does not fit: a mismatch, not a missing
 			// expected type, so say so rather than leave it to the plain path.
-			c.errorf(e.Position(), "cannot use %s where %s is expected: it takes %s, not %s", s.fullName(), types.String(pat), types.String(s.fn.Params[i]), types.String(pf.Params[i]))
+			c.errorf(codes.TypeMismatch, e.Position(), "cannot use %s where %s is expected: it takes %s, not %s", s.fullName(), types.String(pat), types.String(s.fn.Params[i]), types.String(pf.Params[i]))
 			return types.Invalid{}
 		}
 	}

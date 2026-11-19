@@ -12,7 +12,12 @@ ant check .
 
 When there are no errors, it prints nothing and exits with status 0. Otherwise it prints every error
 and their count and exits with status 1, or with 2 when a file cannot be loaded or the usage is
-wrong.
+wrong. Each error names its rule with a code, and `ant check -explain code` says what the code
+means:
+
+```sh
+ant check -explain type-mismatch
+```
 
 ## What it checks
 
@@ -117,17 +122,17 @@ reported once.
 
 ## Reading errors
 
-Each error starts with the file, line, and column it is about, and then its message. Below it come
-the lines of code, numbered, with the part the error covers underlined. The last line counts the
-errors. For the first example above, the output is:
+Each error starts with the file, line, and column it is about, then its message, then its code in
+brackets (see [Codes](#codes)). Below it come the lines of code, numbered, with the part the error
+covers underlined. The last line counts the errors. For the first example above, the output is:
 
 ```text
-main.ant:3:13: + needs both operands of one type, got int | null and int
+main.ant:3:13: + needs both operands of one type, got int | null and int [operands]
    │
  3 │ println(age + 1)
    │         ^^^^^^^
 
-main.ant:6:3: an if without else has type void when the condition is false, which cannot be used where string is expected
+main.ant:6:3: an if without else has type void when the condition is false, which cannot be used where string is expected [missing-else]
    │
  6 │   if n > 0 { "positive" }
    │   ^^
@@ -145,13 +150,13 @@ ant check -json .
 ```
 
 ```text
-{"path":"main.ant","line":3,"column":13,"message":"+ needs both operands of one type, got int | null and int","start":{"line":3,"column":9},"end":{"line":3,"column":16}}
+{"path":"main.ant","line":3,"column":13,"severity":"error","code":"operands","message":"+ needs both operands of one type, got int | null and int","start":{"line":3,"column":9},"end":{"line":3,"column":16}}
 ```
 
 `line` and `column` are where the error is reported, as the text output's first line gives them.
-`start` and `end` are the span it underlines, with `end` just past its last character. Columns count
-bytes from 1. An error about a whole file, such as one that cannot be read, has `line` and `column`
-0 and no span.
+`severity` is `"error"`, and `code` is the rule the error breaks. `start` and `end` are the span it
+underlines, with `end` just past its last character. Columns count bytes from 1. An error about a
+whole file, such as one that cannot be read, has `line` and `column` 0 and no span.
 
 ## Errors before checking
 
@@ -217,6 +222,573 @@ ant fmt --check .
 ant check .
 ant test .
 ```
+
+## Codes
+
+Every error carries a code that names the rule it breaks, printed in brackets after the message and
+written as `code` under `-json`. A message may be reworded from one release to the next; its code
+stays. `ant check -explain code` prints the code's entry below.
+
+### `syntax`
+
+The source does not parse: a token, a keyword, a reserved word, an escape, or a construct out of
+place.
+
+```ant
+let n = 1 as int // error: 'as' is a reserved word
+```
+
+Fixed:
+
+```ant
+let n: int = 1
+```
+
+### `missing-module`
+
+A module given or imported cannot be read.
+
+```ant
+import "./words.ant" { parse } // error: cannot find module "./words.ant"
+```
+
+Fixed, importing a module that exists:
+
+```ant
+import "./geometry.ant" { Point }
+
+println(Point{ x: 1.0, y: 2.0 })
+```
+
+### `import`
+
+An import that is not allowed: an import cycle, or an import of a script, a declaration file, or,
+outside a test file, a test file.
+
+```ant
+import "./report.ant" { total }
+// error: cannot import "./report.ant": it is a script, made one by the statement at report.ant:2:1, and a script cannot be imported
+```
+
+Fixed, importing a library:
+
+```ant
+import "./geometry.ant" { distance, Point }
+
+println(distance(Point{ x: 0.0, y: 0.0 }, Point{ x: 3.0, y: 4.0 }))
+```
+
+### `undefined`
+
+A name, type, or member of a namespace is not declared.
+
+```ant
+println(lenght("ant")) // error: lenght is not defined
+```
+
+Fixed:
+
+```ant
+println(len("ant"))
+```
+
+### `not-exported`
+
+A name is used outside its module without `export`, or an export names a private type in its
+signature.
+
+```ant [temperature.ant]
+export func celsius(f: float64): float64 { (f - 32.0) * ratio() }
+
+func ratio(): float64 { 5.0 / 9.0 }
+```
+
+```ant
+import "./temperature.ant" { celsius, ratio } // error: ratio is not exported by ./temperature.ant
+```
+
+Fixed, importing only the export:
+
+```ant
+import "./temperature.ant" { celsius }
+
+println(celsius(212.0))
+```
+
+### `redeclared`
+
+A name is declared twice in one scope, a field twice in one record type, a declaration takes a
+prelude name, or a function on a type shares its name with a field.
+
+```ant
+type Entry = { key: string } // error: Entry is a prelude name and cannot be redeclared
+```
+
+Fixed:
+
+```ant
+type Item = { key: string }
+```
+
+### `declaration-order`
+
+A name is read before it is initialized: a later top-level variable, a variable in its own
+initializer, or a later parameter in a default.
+
+```ant
+let total = price * 2
+// error: price is declared later in the module; a top-level initializer or statement may refer only to the variables above it
+let price = 5
+```
+
+Fixed:
+
+```ant
+let price = 5
+let total = price * 2
+```
+
+### `misplaced`
+
+A construct is outside the place it is allowed: `return` outside a function, a function on a type
+not declared at the top level of the module, or a local type that mentions what it cannot.
+
+```ant
+func String.shout(s: string): string { s.toUpper() + "!" }
+// error: func String.shout: String is not a type declared at the top level of this module
+```
+
+Fixed, as a plain function:
+
+```ant
+func shout(s: string): string { s.toUpper() + "!" }
+```
+
+### `wrong-kind`
+
+A name is used as a kind of thing it is not: a namespace or a type as a value, a variable as a type,
+a value called that is not a function.
+
+```ant
+let m = Math // error: Math is a namespace, not a value
+```
+
+Fixed:
+
+```ant
+let pi = Math.PI
+```
+
+### `type-mismatch`
+
+A value's type does not fit where it is used.
+
+```ant
+let port: int = "8080" // error: cannot use string where int is expected
+```
+
+Fixed:
+
+```ant
+let port: int = "8080".toInt() ?? 80
+```
+
+### `no-member`
+
+A type or namespace has no field or function of that name, or a function cannot be called on that
+receiver.
+
+```ant
+let s = ["a", "b"].join(",") // error: Array[string] has no field or function join
+```
+
+Fixed: `join` is `String.join`, which takes the array first.
+
+```ant
+let s = String.join(["a", "b"], ",")
+```
+
+### `needs-narrowing`
+
+A field or function exists on some members of a union but not all, so the value must be narrowed
+first.
+
+```ant
+type Circle = { radius: float64 }
+type Square = { side: float64 }
+type Shape = Circle | Square
+
+func size(s: Shape): float64 {
+  s.radius // error: Shape has no field radius on every member: narrow the value first
+}
+```
+
+Fixed:
+
+```ant
+type Circle = { radius: float64 }
+type Square = { side: float64 }
+type Shape = Circle | Square
+
+func size(s: Shape): float64 {
+  if s is Circle { s.radius } else { s.side }
+}
+```
+
+### `not-nullable`
+
+`??`, `?.`, `?.(`, or `?.[` applies to a value that cannot be `null`.
+
+```ant
+let n = 5 ?? 0 // error: ?? needs a nullable left side, got int
+```
+
+Fixed:
+
+```ant
+let n = "5".toInt() ?? 0
+```
+
+### `operands`
+
+An operator's operands do not fit it.
+
+```ant
+let total = "3" + 4 // error: + needs both operands of one type, got string and int
+```
+
+Fixed:
+
+```ant
+let total = ("3".toInt() ?? 0) + 4
+```
+
+### `arguments`
+
+A call's arguments, or a type's type arguments, do not fit what it takes.
+
+```ant
+let saved: Result[void, Error] = Result.ok() // error: Result.ok needs an argument for value
+```
+
+Fixed: the value of a `Result[void, E]` is `void`.
+
+```ant
+let saved: Result[void, Error] = Result.ok(void)
+```
+
+### `needs-annotation`
+
+The checker cannot infer a type, and asks for it to be written.
+
+```ant
+let names = [] // error: cannot infer the element type of an empty array; annotate it
+```
+
+Fixed:
+
+```ant
+let names: Array[string] = []
+```
+
+### `no-common-type`
+
+The branches, clauses, elements, entries, or returns of a construct have no type in common.
+
+```ant
+let c = true
+let xs = if c { [1] } else { ["a"] }
+// error: the branches of this if do not form a valid type: a union may contain each discriminator at most once: Array[int] and Array[string] are both an array; narrow first or give the whole an expected type
+```
+
+Fixed, with an expected type:
+
+```ant
+let c = true
+let xs: Array[int | string] = if c { [1] } else { ["a"] }
+```
+
+### `bound`
+
+A type argument is outside its parameter's bound, or a bound does not provide what is used.
+
+```ant
+let sorted = [true, false].sort() // error: T would be bool, which is not a member of its bound Ordered
+```
+
+Fixed, sorting by a key that is ordered:
+
+```ant
+let sorted = [true, false].sortBy({ if x { 1 } else { 0 } })
+```
+
+### `invalid-union`
+
+A union, written or formed by substitution, breaks a rule of unions, such as two members `is` cannot
+tell apart.
+
+```ant
+type Ids = Array[int] | Array[string]
+// error: a union may contain each discriminator at most once: Array[int] and Array[string] are both an array; write Array[int | string]
+```
+
+Fixed:
+
+```ant
+type Ids = Array[int | string]
+```
+
+### `type-declaration`
+
+A `type` declaration the language does not allow: an alias that names itself, a recursion that never
+ends, or a second tag for one type.
+
+```ant
+type Point = { x: int }
+type Spot = Point
+// error: type Spot = Point would mint a second tag for one type; declare the fields or the base type again
+```
+
+Fixed, declaring the fields again:
+
+```ant
+type Point = { x: int }
+type Spot = { x: int }
+```
+
+### `spread`
+
+A spread in a literal of a value it cannot spread, or of a record with a field the literal's type
+lacks.
+
+```ant
+type Point = { x: int, y: int }
+
+let p = Point{ ...5, y: 3 } // error: a spread needs a value of a named record type, got int
+```
+
+Fixed:
+
+```ant
+type Point = { x: int, y: int }
+
+let origin = Point{ x: 0, y: 0 }
+let p = Point{ ...origin, y: 3 }
+```
+
+### `missing-field`
+
+A record literal leaves out a field that has no default.
+
+```ant
+type Server = { addr: string, workers: int = 4 }
+
+let s = Server{ workers: 8 } // error: Server literal is missing the field addr
+```
+
+Fixed:
+
+```ant
+type Server = { addr: string, workers: int = 4 }
+
+let s = Server{ addr: ":8080", workers: 8 }
+```
+
+### `missing-else`
+
+An `if` without `else` is used where a value is needed, including a chain of `is` tests that does
+not cover a union.
+
+```ant
+func label(n: int): string {
+  if n > 0 { "positive" }
+  // error: an if without else has type void when the condition is false, which cannot be used where string is expected
+}
+```
+
+Fixed:
+
+```ant
+func label(n: int): string {
+  if n > 0 { "positive" } else { "not positive" }
+}
+```
+
+### `try`
+
+`try` on a value that is not a `Result`, or where the enclosing function does not return a
+compatible `Result`.
+
+```ant
+func size(path: string): int {
+  let text = try File.read(path) // error: try would return Err[Error], but the function returns int
+  text.length()
+}
+```
+
+Fixed, returning a `Result`:
+
+```ant
+func size(path: string): Result[int, Error] {
+  let text = try File.read(path)
+  Result.ok(text.length())
+}
+```
+
+### `assign`
+
+An assignment to a `let`, an import, or something else that cannot be assigned.
+
+```ant
+let count = 0
+count += 1 // error: cannot assign to count, a let; declare it with var to reassign it
+```
+
+Fixed:
+
+```ant
+var count = 0
+count += 1
+```
+
+### `lambda`
+
+A lambda `{ ... }` whose shape does not fit its expected type, or that has no expected type.
+
+```ant
+let double = { x * 2 }
+// error: a lambda needs an expected function type; annotate the variable or use func with typed parameters
+```
+
+Fixed:
+
+```ant
+let double = func(x: int): int { x * 2 }
+```
+
+### `is-test`
+
+An `is` test the checker cannot carry out: of an interface, an alias, or a type whose type arguments
+the value does not fix.
+
+```ant
+type Id = int | string
+
+func isId(v: Id | bool): bool {
+  v is Id // error: Id is an alias and has no run-time identity; test its members instead
+}
+```
+
+Fixed:
+
+```ant
+type Id = int | string
+
+func isId(v: Id | bool): bool {
+  v is int || v is string
+}
+```
+
+### `useless-test`
+
+A test whose result is known, or an `else` that cannot run.
+
+```ant
+func describe(n: int | null): string {
+  if n is int { "number" } else if n == null { "none" } else { "?" }
+  // error: this else cannot run: the tests before it cover every case
+}
+```
+
+Fixed:
+
+```ant
+func describe(n: int | null): string {
+  if n is int { "number" } else if n == null { "none" }
+}
+```
+
+### `duration-equality`
+
+`==` or `!=` between two duration literals of the same length and different fields.
+
+```ant
+let same = 60s == 1m
+// error: 60s == 1m compares the fields as written, and == is false: compare the lengths with Time.compareDuration(60s, 1m)
+```
+
+Fixed:
+
+```ant
+let same = Time.compareDuration(60s, 1m) == 0
+```
+
+### `markup`
+
+Markup holds a value or an attribute that it does not take.
+
+```ant
+let user: string | null = null
+let page = <p>{user}</p>
+// error: markup takes a string, a number, void, Html, or an array of them, got string | null; decide what null shows, as {x ?? "none"}, or use an if
+```
+
+Fixed:
+
+```ant
+let user: string | null = null
+let page = <p>{user ?? "guest"}</p>
+```
+
+### `conversion`
+
+A conversion to a type it does not apply to.
+
+```ant
+let n = int("42") // error: int converts a number or a named primitive type over a number, got string
+```
+
+Fixed:
+
+```ant
+let n = "42".toInt() ?? 0
+```
+
+### `void-value`
+
+`_` is read, or a call that returns `void` is bound.
+
+```ant
+let _ = 5
+println(_) // error: _ is write-only and cannot be read
+```
+
+Fixed:
+
+```ant
+let five = 5
+println(five)
+```
+
+### `reflect`
+
+`type(...)` is used where it cannot be.
+
+```ant
+let n = 5
+let t = type(n) // error: type(...) takes a type, not a value; n is a value
+```
+
+Fixed:
+
+```ant
+let t = type(int)
+```
+
+### `internal`
+
+The checker failed on a program it should have checked. This is a bug in `ant`; please report it
+with the program.
 
 ## See also
 

@@ -239,13 +239,13 @@ func TestDiagnostics(t *testing.T) {
 	diags := c.diagnostics(uri)
 	var msgs []string
 	for _, d := range diags {
-		msgs = append(msgs, fmt.Sprintf("%d:%d-%d:%d %s", d.Range.Start.Line, d.Range.Start.Character, d.Range.End.Line, d.Range.End.Character, d.Message))
+		msgs = append(msgs, fmt.Sprintf("%d:%d-%d:%d %s [%s]", d.Range.Start.Line, d.Range.Start.Character, d.Range.End.Line, d.Range.End.Character, d.Message, d.Code))
 	}
 	// The lexer joins the line after = with the next, so the syntax error names its var.
 	want := []string{
-		"7:19-7:25 cannot use string where int is expected",
-		"9:2-9:5 unexpected 'var'",
-		"12:20-12:25 cannot use int where string is expected",
+		"7:19-7:25 cannot use string where int is expected [type-mismatch]",
+		"9:2-9:5 unexpected 'var' [syntax]",
+		"12:20-12:25 cannot use int where string is expected [type-mismatch]",
 	}
 	if strings.Join(msgs, "\n") != strings.Join(want, "\n") {
 		t.Errorf("diagnostics:\n%s\nwant:\n%s", strings.Join(msgs, "\n"), strings.Join(want, "\n"))
@@ -254,7 +254,7 @@ func TestDiagnostics(t *testing.T) {
 	c.change(uri, 3, mainSrc)
 	libURI := c.open("lib/geometry.ant", strings.Replace(geometry, "var dx = a.x - b.x", "var dx = a.x - b.z", 1))
 	diags = c.diagnostics(uri)
-	if len(diags) != 2 || !strings.Contains(diags[0].Message, "./lib/geometry.ant has errors") || diags[0].RelatedInformation == nil {
+	if len(diags) != 2 || !strings.Contains(diags[0].Message, "./lib/geometry.ant has errors") || diags[0].RelatedInformation == nil || diags[0].Code != "no-member" {
 		t.Errorf("import diagnostics: %+v", diags)
 	}
 	if ld := c.diagnostics(libURI); len(ld) != 1 || !strings.Contains(ld[0].Message, "no field z") {

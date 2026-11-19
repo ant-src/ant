@@ -92,8 +92,8 @@ func TestCheckJSON(t *testing.T) {
 	})
 	status, out, errOut := checkRun("-json", dir)
 	a, b := filepath.Join(dir, "a.ant"), filepath.Join(dir, "b.ant")
-	want := `{"path":"` + a + `","line":2,"column":12,"message":"int and string cannot be compared with ==: neither is assignable to the other","start":{"line":2,"column":10},"end":{"line":2,"column":18}}
-{"path":"` + b + `","line":1,"column":17,"message":"cannot use int where string is expected","start":{"line":1,"column":17},"end":{"line":1,"column":18}}
+	want := `{"path":"` + a + `","line":2,"column":12,"severity":"error","code":"operands","message":"int and string cannot be compared with ==: neither is assignable to the other","start":{"line":2,"column":10},"end":{"line":2,"column":18}}
+{"path":"` + b + `","line":1,"column":17,"severity":"error","code":"type-mismatch","message":"cannot use int where string is expected","start":{"line":1,"column":17},"end":{"line":1,"column":18}}
 `
 	if status != 1 || out != want || errOut != "" {
 		t.Errorf("status %d, stderr %q, stdout:\n%s\nwant:\n%s", status, errOut, out, want)

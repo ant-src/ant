@@ -11,15 +11,16 @@ import (
 	"github.com/ant-src/ant/internal/diag"
 )
 
-// printDiagnostics writes each diagnostic with the code it is about, then how many there were;
-// colored when w is a terminal, unless NO_COLOR is set or the terminal is dumb.
+// printDiagnostics writes each diagnostic, its code in brackets after the message, with the
+// source it is about, then how many there were; colored when w is a terminal, unless NO_COLOR is
+// set or the terminal is dumb.
 func printDiagnostics(w io.Writer, diags []ant.Diagnostic) {
 	p := &diag.Printer{Color: colors(w), Read: func(path string) (string, error) {
 		b, err := os.ReadFile(path)
 		return string(b), err
 	}}
 	for _, d := range diags {
-		p.PrintSpan(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col}, d.Message)
+		p.PrintSpan(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col}, withCode(d))
 	}
 	p.Summary(w, len(diags))
 }
@@ -44,4 +45,13 @@ func colors(w io.Writer) bool {
 	}
 	info, err := f.Stat()
 	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+// withCode is the message of d followed by its code in brackets, as spec/check.md section 2 has
+// ant check print it; a diagnostic with no code, which is not about the program, prints bare.
+func withCode(d ant.Diagnostic) string {
+	if d.Code == "" {
+		return d.Message
+	}
+	return d.Message + " [" + d.Code + "]"
 }

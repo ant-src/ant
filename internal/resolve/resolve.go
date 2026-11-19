@@ -6,6 +6,7 @@ package resolve
 
 import (
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"slices"
 
 	"github.com/ant-src/ant/ast"
@@ -15,8 +16,9 @@ import (
 
 // Error is a scope error. It is a syntax error in the sense of section 10.
 type Error struct {
-	Pos ast.Pos
-	Msg string
+	Pos  ast.Pos
+	Msg  string
+	Code codes.Code
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
@@ -264,8 +266,8 @@ func (r *resolver) keepTypes(f *ast.File) {
 	}
 }
 
-func (r *resolver) errorf(pos ast.Pos, format string, args ...any) {
-	r.errs = append(r.errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+func (r *resolver) errorf(code codes.Code, pos ast.Pos, format string, args ...any) {
+	r.errs = append(r.errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...), Code: code})
 }
 
 func (r *resolver) push(s *scope) *scope {
@@ -305,7 +307,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 		return b
 	}
 	if r.isPrelude(name) {
-		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
+		r.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", name)
 		return b
 	}
 	// A type parameter names one type in its whole declaration, so nothing in a generic
@@ -314,7 +316,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	if !s.module {
 		for i := len(r.hides) - 1; i >= 0; i-- {
 			if h := r.hides[i]; h.names[name] && encloses(h.from, s) {
-				r.errorf(pos, "%s is a type parameter of the enclosing %s and cannot be redeclared", name, h.what)
+				r.errorf(codes.Redeclared, pos, "%s is a type parameter of the enclosing %s and cannot be redeclared", name, h.what)
 				return b
 			}
 		}
@@ -333,10 +335,10 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 			return b
 		case s.module && r.session && old.imp < 0 && old.pos != (ast.Pos{}):
 			// declared earlier in this same input, which is one scope like any other
-			r.errorf(pos, "%s is already declared in this scope", name)
+			r.errorf(codes.Redeclared, pos, "%s is already declared in this scope", name)
 			return b
 		case s.module && r.session && old.fixed == ast.FixedLet:
-			r.errorf(pos, "%s is bound by let earlier in the session and cannot be declared again", name)
+			r.errorf(codes.Redeclared, pos, "%s is bound by let earlier in the session and cannot be declared again", name)
 			return b
 		case s.module && r.session:
 			// A session replaces the binding; the field keeps its index, unless the earlier
@@ -353,10 +355,10 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 			r.noteBinding(s, b)
 			return b
 		case old.imp >= 0:
-			r.errorf(pos, "%s is already bound by an import", name)
+			r.errorf(codes.Redeclared, pos, "%s is already bound by an import", name)
 			return b
 		default:
-			r.errorf(pos, "%s is already declared in this scope", name)
+			r.errorf(codes.Redeclared, pos, "%s is already declared in this scope", name)
 			return b
 		}
 	}
@@ -405,14 +407,14 @@ func (r *resolver) noteLet(b *binding) {
 
 func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, impName string, node ast.Node) {
 	if r.isPrelude(name) {
-		r.errorf(pos, "%s is a prelude name and cannot be redeclared", name)
+		r.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", name)
 		return
 	}
 	if old, ok := s.names[name]; ok && !r.session {
-		r.errorf(pos, "%s is already bound by an import", name)
+		r.errorf(codes.Redeclared, pos, "%s is already bound by an import", name)
 		return
 	} else if ok && old.fixed == ast.FixedLet {
-		r.errorf(pos, "%s is bound by let earlier in the session and cannot be declared again", name)
+		r.errorf(codes.Redeclared, pos, "%s is bound by let earlier in the session and cannot be declared again", name)
 		return
 	}
 	b := &binding{name: name, pos: pos, scope: s, imp: imp, impName: impName, node: node}
@@ -461,20 +463,20 @@ func (r *resolver) declareModule(f *ast.File) {
 			td, ok = r.fields.Types[fd.Owner] // a type of an earlier input, not redeclared here
 		}
 		if !ok {
-			r.errorf(fd.Pos, "func %s.%s: %s is not a type declared at the top level of this module", fd.Owner, fd.Name, fd.Owner)
+			r.errorf(codes.Misplaced, fd.Pos, "func %s.%s: %s is not a type declared at the top level of this module", fd.Owner, fd.Name, fd.Owner)
 			continue
 		}
 		if typeFuncs[fd.Owner] == nil {
 			typeFuncs[fd.Owner] = map[string]bool{}
 		}
 		if typeFuncs[fd.Owner][fd.Name] {
-			r.errorf(fd.Pos, "%s.%s is already declared", fd.Owner, fd.Name)
+			r.errorf(codes.Redeclared, fd.Pos, "%s.%s is already declared", fd.Owner, fd.Name)
 		}
 		typeFuncs[fd.Owner][fd.Name] = true
 		if rt, ok := td.Body.(*ast.RecordType); ok {
 			for _, fld := range rt.Fields {
 				if fld.Name == fd.Name {
-					r.errorf(fd.Pos, "%s.%s shares its name with a field of %s", fd.Owner, fd.Name, fd.Owner)
+					r.errorf(codes.Redeclared, fd.Pos, "%s.%s shares its name with a field of %s", fd.Owner, fd.Name, fd.Owner)
 				}
 			}
 		}
@@ -488,9 +490,9 @@ func (r *resolver) typeParams(tps []ast.TypeParam) {
 	for _, tp := range tps {
 		switch {
 		case r.isPrelude(tp.Name):
-			r.errorf(tp.Pos, "%s is a prelude name and cannot be redeclared", tp.Name)
+			r.errorf(codes.Redeclared, tp.Pos, "%s is a prelude name and cannot be redeclared", tp.Name)
 		case seen[tp.Name]:
-			r.errorf(tp.Pos, "%s is already declared in this scope", tp.Name)
+			r.errorf(codes.Redeclared, tp.Pos, "%s is already declared in this scope", tp.Name)
 		}
 		seen[tp.Name] = true
 	}
@@ -763,7 +765,7 @@ func (r *resolver) expr(e ast.Expr, s *scope) {
 	case *ast.Ident:
 		r.use(e, s)
 		if e.Ref.Kind == ast.RefPrelude && e.Name == "assert" {
-			r.errorf(e.Pos, "assert is not a value; it can only be called, as assert(cond) or assert(cond, message)")
+			r.errorf(codes.WrongKind, e.Pos, "assert is not a value; it can only be called, as assert(cond) or assert(cond, message)")
 		}
 	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.RegexLit, *ast.DurationLit, *ast.BoolLit, *ast.NullLit, *ast.VoidLit,
 		*ast.Break, *ast.Continue, *ast.Placeholder, *ast.BadExpr:
@@ -968,7 +970,7 @@ func (r *resolver) use(id *ast.Ident, s *scope) {
 				break
 			}
 			if r.defaultOf != nil && !b.module && b.imp < 0 && !b.isType && encloses(b.scope, r.defaultOf) {
-				r.errorf(id.Pos, "a field default of a local type cannot use %s, a variable or parameter of an enclosing block", id.Name)
+				r.errorf(codes.Misplaced, id.Pos, "a field default of a local type cannot use %s, a variable or parameter of an enclosing block", id.Name)
 			}
 			r.info.def(id, b.node)
 			switch {

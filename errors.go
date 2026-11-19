@@ -27,6 +27,12 @@ type Diagnostic struct {
 	// its start; else its Line is 0.
 	End     Position
 	Message string
+	// Code names the rule the diagnostic reports, such as "type-mismatch" (spec/check.md
+	// section 3). It is empty for a failure that is not about the program, such as a prelude
+	// that does not load.
+	Code string
+	// Severity is "error".
+	Severity string
 }
 
 func (d Diagnostic) Error() string {

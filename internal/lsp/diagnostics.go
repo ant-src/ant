@@ -26,7 +26,7 @@ func (s *Server) publish(d *document) {
 	root := a.module().File
 	for _, dg := range a.diags {
 		if dg.Path == root.Path {
-			out = append(out, Diagnostic{Range: a.diagRange(root.Path, dg.Pos, dg.End), Severity: 1, Source: "ant", Message: dg.Msg})
+			out = append(out, Diagnostic{Range: a.diagRange(root.Path, dg.Pos, dg.End), Severity: 1, Code: string(dg.Code), Source: "ant", Message: dg.Msg})
 		}
 	}
 	for _, imp := range root.Imports {
@@ -39,7 +39,7 @@ func (s *Server) publish(d *document) {
 		if first == nil {
 			continue
 		}
-		dg := Diagnostic{Range: s.rng(d, imp.PathPos, imp.PathEnd), Severity: 1, Source: "ant",
+		dg := Diagnostic{Range: s.rng(d, imp.PathPos, imp.PathEnd), Severity: 1, Code: string(first.Code), Source: "ant",
 			Message: fmt.Sprintf("%s has errors: %s", imp.Path, first.String())}
 		if loc, ok := a.location(first.Path, first.Pos, first.Pos); ok {
 			dg.RelatedInformation = []DiagnosticRelatedInformation{{Location: loc, Message: first.Msg}}

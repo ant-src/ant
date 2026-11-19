@@ -6,6 +6,7 @@ package check
 import (
 	"errors"
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"maps"
 	"path/filepath"
 	"slices"
@@ -173,16 +174,16 @@ type Checker struct {
 	info *Info
 }
 
-func (c *Checker) errorf(pos ast.Pos, format string, args ...any) {
-	c.report(pos, ast.Pos{}, fmt.Sprintf(format, args...))
+func (c *Checker) errorf(code codes.Code, pos ast.Pos, format string, args ...any) {
+	c.report(code, pos, ast.Pos{}, fmt.Sprintf(format, args...))
 }
 
 // errorIn reports an error about the expression e as a whole, at its start and spanning it.
-func (c *Checker) errorIn(e ast.Expr, format string, args ...any) {
-	c.report(ast.Start(e), e.EndPosition(), fmt.Sprintf(format, args...))
+func (c *Checker) errorIn(code codes.Code, e ast.Expr, format string, args ...any) {
+	c.report(code, ast.Start(e), e.EndPosition(), fmt.Sprintf(format, args...))
 }
 
-func (c *Checker) report(pos, end ast.Pos, msg string) {
+func (c *Checker) report(code codes.Code, pos, end ast.Pos, msg string) {
 	path := ""
 	if c.mod != nil {
 		path = c.mod.path
@@ -192,7 +193,7 @@ func (c *Checker) report(pos, end ast.Pos, msg string) {
 		return
 	}
 	c.seen[key] = true
-	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, End: end, Msg: msg})
+	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, End: end, Msg: msg, Code: code})
 }
 
 // retract drops the error msg reported at pos, if there is one.
@@ -465,7 +466,7 @@ func (c *Checker) declarationFile(f *ast.File) {
 			top = name
 		}
 		if _, bound := c.prelude[top]; bound && !isPrelude {
-			c.errorf(pos, "%s is a prelude name and cannot be redeclared", top)
+			c.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", top)
 			continue
 		}
 		full := name
@@ -473,12 +474,12 @@ func (c *Checker) declarationFile(f *ast.File) {
 			full = owner + "." + name
 		}
 		if seen[full] {
-			c.errorf(pos, "%s is already declared", full)
+			c.errorf(codes.Redeclared, pos, "%s is already declared", full)
 			continue
 		}
 		if _, isFunc := d.(*ast.FuncDecl); isFunc && owner == "" && owners[name] {
 			// a type may own declarations; a function cannot
-			c.errorf(pos, "%s is declared as a function and owns declarations as a namespace", name)
+			c.errorf(codes.Redeclared, pos, "%s is declared as a function and owns declarations as a namespace", name)
 			continue
 		}
 		seen[full] = true
@@ -635,9 +636,9 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			ent, ok := visible[n.Name]
 			if !ok {
 				if _, bound := target.names[n.Name]; bound {
-					c.errorf(n.Pos, "%s is not exported by %s", n.Name, imp.Path)
+					c.errorf(codes.NotExported, n.Pos, "%s is not exported by %s", n.Name, imp.Path)
 				} else {
-					c.errorf(n.Pos, "%s has no declaration %s", imp.Path, n.Name)
+					c.errorf(codes.Undefined, n.Pos, "%s has no declaration %s", imp.Path, n.Name)
 				}
 				continue
 			}
@@ -778,7 +779,7 @@ func (c *Checker) resolveTypes(mi *moduleInfo) {
 			continue // the resolver reported it: an interface declares its functions in its body
 		}
 		if d.Export && !owner.exported {
-			c.errorf(d.Pos, "%s.%s is exported but %s is not", d.Owner, d.Name, d.Owner)
+			c.errorf(codes.NotExported, d.Pos, "%s.%s is exported but %s is not", d.Owner, d.Name, d.Owner)
 		}
 		ent := &entity{name: d.Name, kind: entFunc, fn: fi, exported: d.Export, pos: d.Pos}
 		fi.ent = ent
@@ -872,7 +873,7 @@ func (c *Checker) bareBounds(params []*types.ParamDecl, syntax []ast.TypeParam) 
 			if syntax[i].Bound != nil {
 				pos = syntax[i].Bound.Position()
 			}
-			c.errorf(pos, "%s", types.BareBoundError(p, q))
+			c.errorf(codes.Bound, pos, "%s", types.BareBoundError(p, q))
 			p.Bound = types.Invalid{}
 		}
 	}
@@ -887,7 +888,7 @@ func (c *Checker) checkWrittenBounds(n types.Named, pos ast.Pos) {
 		return
 	}
 	if err := types.CheckBounds(n); err != nil {
-		c.errorf(pos, "%s: %s", types.String(n), err)
+		c.errorf(codes.Bound, pos, "%s: %s", types.String(n), err)
 	}
 }
 
@@ -963,7 +964,7 @@ func (c *Checker) ownTypes() map[*types.Decl]bool {
 // substitutes (types.UnionSelf), and makes its body invalid, as an alias cycle's is.
 func (c *Checker) checkUnionSelf(ti *typeInfo, in func(*types.Decl) bool) {
 	if msg := types.UnionSelfIn(ti.t, in); msg != "" {
-		c.errorf(ti.decl.Pos, "%s", msg)
+		c.errorf(codes.TypeDeclaration, ti.decl.Pos, "%s", msg)
 		ti.t.Body = types.Invalid{}
 		c.epoch++
 	}
@@ -999,7 +1000,7 @@ func (c *Checker) checkCycleUnions(ti *typeInfo, in func(*types.Decl) func(*type
 	for _, d := range order {
 		if msg := types.UnionSelfIn(d, in(d)); msg != "" {
 			pos, _ := d.Pos.(ast.Pos)
-			c.errorf(pos, "%s", msg)
+			c.errorf(codes.TypeDeclaration, pos, "%s", msg)
 			d.Body = types.Invalid{}
 			c.epoch++
 		}
@@ -1024,7 +1025,7 @@ func (c *Checker) checkCycleUnions(ti *typeInfo, in func(*types.Decl) func(*type
 				}
 				if err != nil {
 					pos, _ := d.Pos.(ast.Pos)
-					c.errorf(pos, "type %s: %s", d.Name, err)
+					c.errorf(codes.InvalidUnion, pos, "type %s: %s", d.Name, err)
 					ok = false
 				}
 			})
@@ -1150,7 +1151,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 		seen := map[string]bool{}
 		for _, f := range body.Fields {
 			if seen[f.Name] {
-				c.errorf(f.Pos, "%s declares the field %s twice", d.Name, f.Name)
+				c.errorf(codes.Redeclared, f.Pos, "%s declares the field %s twice", d.Name, f.Name)
 			}
 			seen[f.Name] = true
 			decl.Fields = append(decl.Fields, types.Field{Name: f.Name, Type: c.resolveType(f.Type, sc), Default: f.Default != nil})
@@ -1167,7 +1168,7 @@ func (c *Checker) resolveTypeDecl(ti *typeInfo) {
 		// Interfaces); every use of the alias is then checked as a use of the interface.
 		t := c.resolveTypeName(body, sc, true)
 		if n, ok := t.(types.Named); ok && (n.Decl.Kind == types.RecordDecl || n.Decl.Kind == types.PrimitiveDecl) {
-			c.errorf(d.Pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
+			c.errorf(codes.TypeDeclaration, d.Pos, "type %s = %s would mint a second tag for one type; declare the fields or the base type again", d.Name, n.Decl.Name)
 			decl.Kind = types.AliasDecl
 			decl.Body = types.Invalid{}
 			return
@@ -1190,7 +1191,7 @@ func (c *Checker) checkAliasCycle(ti *typeInfo, in func(*types.Decl) bool) {
 		return
 	}
 	pos, _ := blame.Pos.(ast.Pos)
-	c.errorf(pos, "%s", msg)
+	c.errorf(codes.TypeDeclaration, pos, "%s", msg)
 	blame.Body = types.Invalid{}
 	c.epoch++
 }
@@ -1205,7 +1206,7 @@ func (c *Checker) checkGenericRecursive(ti *typeInfo, in func(*types.Decl) bool)
 		return
 	}
 	pos, _ := blame.Pos.(ast.Pos)
-	c.errorf(pos, "%s", msg)
+	c.errorf(codes.TypeDeclaration, pos, "%s", msg)
 	blame.Body = types.Invalid{}
 	c.epoch++
 }
@@ -1260,7 +1261,7 @@ func (c *Checker) checkSelfArgs(ti *typeInfo, in func(*types.Decl) func(*types.D
 	}
 	for _, v := range bad {
 		pos, _ := v.decl.Pos.(ast.Pos) // only this module's types can still be in a cycle
-		c.errorf(pos, "%s", v.msg)
+		c.errorf(codes.TypeDeclaration, pos, "%s", v.msg)
 		if v.decl.Kind == types.AliasDecl {
 			v.decl.Body = types.Invalid{}
 			c.epoch++
@@ -1275,7 +1276,7 @@ func (c *Checker) resolveSignatures(mi *moduleInfo) {
 	for _, fi := range mi.funcs {
 		c.resolveSignature(fi)
 		if fi.decl.Export && fi.decl.Return == nil {
-			c.errorf(fi.decl.Pos, "the exported function %s must state its return type", fi.sig.fullName())
+			c.errorf(codes.NeedsAnnotation, fi.decl.Pos, "the exported function %s must state its return type", fi.sig.fullName())
 		}
 		if fi.decl.Export {
 			ts := append(funcTypes(fi.sig.fn), bounds(fi.sig.tparams)...)
@@ -1372,7 +1373,7 @@ func (c *Checker) exportedInterfaces(private map[*types.Decl]string, ts []types.
 			}
 			if name, ok := private[n.Decl]; ok && !reported[n.Decl] {
 				reported[n.Decl] = true
-				c.errorf(pos, "%s is exported but names the private interface %s in its %s", export, name, where)
+				c.errorf(codes.NotExported, pos, "%s is exported but names the private interface %s in its %s", export, name, where)
 			}
 		})
 	}
@@ -1499,7 +1500,7 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 		seen := map[string]bool{}
 		for _, f := range x.Fields {
 			if seen[f.Name] {
-				c.errorf(f.Pos, "the field %s is listed twice", f.Name)
+				c.errorf(codes.Redeclared, f.Pos, "the field %s is listed twice", f.Name)
 			}
 			seen[f.Name] = true
 			fields = append(fields, types.Field{Name: f.Name, Type: c.resolveType(f.Type, sc)})
@@ -1527,7 +1528,7 @@ func (c *Checker) resolveType(t ast.Type, sc *scope) types.Type {
 					hint = "; write " + types.String(t)
 				}
 			}
-			c.errorf(x.Pos, "%s%s", err, hint)
+			c.errorf(codes.InvalidUnion, x.Pos, "%s%s", err, hint)
 			return types.Invalid{}
 		}
 		return u
@@ -1554,11 +1555,11 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 	if len(x.Path) == 1 {
 		if p, outside := sc.lookupTypeParam(name); p != nil {
 			if outside != "" {
-				c.errorf(x.Pos, "%s is declared in a block and cannot mention %s, a type parameter of the enclosing function", outside, name)
+				c.errorf(codes.Misplaced, x.Pos, "%s is declared in a block and cannot mention %s, a type parameter of the enclosing function", outside, name)
 				return types.Invalid{}
 			}
 			if len(x.Args) > 0 {
-				c.errorf(x.Pos, "the type parameter %s takes no type arguments", name)
+				c.errorf(codes.Arguments, x.Pos, "the type parameter %s takes no type arguments", name)
 			}
 			if c.info != nil {
 				c.info.TypeNames[x] = []*Object{c.info.typeParamObject(p)}
@@ -1574,32 +1575,32 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 			return types.Never{}
 		case "Array":
 			if len(x.Args) != 1 {
-				c.errorf(x.Pos, "Array takes one type argument")
+				c.errorf(codes.Arguments, x.Pos, "Array takes one type argument")
 				return types.Invalid{}
 			}
 			return types.Array{Elem: c.resolveType(x.Args[0], sc)}
 		case "Map":
 			if len(x.Args) != 2 {
-				c.errorf(x.Pos, "Map takes two type arguments")
+				c.errorf(codes.Arguments, x.Pos, "Map takes two type arguments")
 				return types.Invalid{}
 			}
 			return types.Map{Key: c.resolveType(x.Args[0], sc), Val: c.resolveType(x.Args[1], sc)}
 		case "Set":
 			if len(x.Args) != 1 {
-				c.errorf(x.Pos, "Set takes one type argument")
+				c.errorf(codes.Arguments, x.Pos, "Set takes one type argument")
 				return types.Invalid{}
 			}
 			return types.Set{Elem: c.resolveType(x.Args[0], sc)}
 		}
 		if k, ok := builtinKinds[name]; ok {
 			if len(x.Args) > 0 {
-				c.errorf(x.Pos, "%s takes no type arguments", name)
+				c.errorf(codes.Arguments, x.Pos, "%s takes no type arguments", name)
 			}
 			return types.Prim{Kind: k}
 		}
 	}
 	if p, _ := sc.lookupTypeParam(name); p != nil {
-		c.errorf(x.Pos, "%s is a type parameter, not a namespace", name)
+		c.errorf(codes.WrongKind, x.Pos, "%s is a type parameter, not a namespace", name)
 		return types.Invalid{}
 	}
 	l, ent := c.lookup(sc, name)
@@ -1611,11 +1612,11 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 		if len(x.Path) > 1 {
 			what = "namespace"
 		}
-		c.errorf(x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
+		c.errorf(codes.WrongKind, x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
 		return types.Invalid{}
 	}
 	if ent == nil {
-		c.errorf(x.Pos, "unknown type %s%s", name, c.namespaceHint(name))
+		c.errorf(codes.Undefined, x.Pos, "unknown type %s%s", name, c.namespaceHint(name))
 		return types.Invalid{}
 	}
 	if ent.kind == entMissing {
@@ -1640,12 +1641,12 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 			continue
 		}
 		if ent.members == nil {
-			c.errorf(x.Pos, "%s has no type %s", ent.name, part)
+			c.errorf(codes.Undefined, x.Pos, "%s has no type %s", ent.name, part)
 			return types.Invalid{}
 		}
 		next, ok := ent.members[part]
 		if !ok {
-			c.errorf(x.Pos, "%s has no type %s", ent.name, part)
+			c.errorf(codes.Undefined, x.Pos, "%s has no type %s", ent.name, part)
 			return types.Invalid{}
 		}
 		ent = next
@@ -1653,20 +1654,20 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 	}
 	if ent.kind != entType {
 		if ent.kind == entNamespace {
-			c.errorf(x.Pos, "%s is a namespace, not a type", x.Path[len(x.Path)-1])
+			c.errorf(codes.WrongKind, x.Pos, "%s is a namespace, not a type", x.Path[len(x.Path)-1])
 		} else {
-			c.errorf(x.Pos, "%s is not a type", x.Path[len(x.Path)-1])
+			c.errorf(codes.WrongKind, x.Pos, "%s is not a type", x.Path[len(x.Path)-1])
 		}
 		return types.Invalid{}
 	}
 	decl := ent.decl
 	asType := !whole
 	if decl.Kind == types.InterfaceDecl && decl.BoundOnly && asType {
-		c.errorf(x.Pos, "%s mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name)
+		c.errorf(codes.WrongKind, x.Pos, "%s mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name)
 		return types.Invalid{}
 	}
 	if len(x.Args) != len(decl.Params) {
-		c.errorf(x.Pos, "%s takes %s, got %d", decl.Name, plural(len(decl.Params), "type argument"), len(x.Args))
+		c.errorf(codes.Arguments, x.Pos, "%s takes %s, got %d", decl.Name, plural(len(decl.Params), "type argument"), len(x.Args))
 		return types.Invalid{}
 	}
 	var args []types.Type
@@ -1683,13 +1684,13 @@ func (c *Checker) resolveTypeNameParts(x *ast.TypeName, sc *scope, whole bool) t
 	// Substituting the arguments forms unions under the same rules, at the use, in an alias's
 	// body or a record's fields and in every instantiation they reach.
 	if err := c.checkArgs(n); err != nil {
-		c.errorf(x.Pos, "%s: %s", types.String(n), err)
+		c.errorf(codes.InvalidUnion, x.Pos, "%s: %s", types.String(n), err)
 		return types.Invalid{}
 	}
 	c.checkWrittenBounds(n, x.Pos)
 	if decl.Kind == types.AliasDecl && asType {
 		if ie := c.boundOnlyAlias(decl); ie != nil {
-			c.errorf(x.Pos, "%s is %s, which mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name, ie.Name)
+			c.errorf(codes.WrongKind, x.Pos, "%s is %s, which mentions Self beyond its receiver, so it is a bound only and not a type", decl.Name, ie.Name)
 			return types.Invalid{}
 		}
 	}
@@ -1898,7 +1899,7 @@ func (c *Checker) scriptResult(e ast.Expr, sc *scope) {
 				continue // Result[void, E], which is void or an Err
 			}
 		}
-		c.errorf(e.Position(), "%s returns void or an Err, not %s", what, c.typeNames(t)[0])
+		c.errorf(codes.TypeMismatch, e.Position(), "%s returns void or an Err, not %s", what, c.typeNames(t)[0])
 		return
 	}
 }
@@ -1908,7 +1909,7 @@ func (c *Checker) scriptResult(e ast.Expr, sc *scope) {
 // variables above may be referred to (section 10).
 func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 	if direct && c.fn != nil && c.fn.kind == "script" && c.fn.initVar == nil && v.mod == c.mod && !v.reached {
-		c.errorf(pos, "%s is declared later in the module; a top-level initializer or statement may refer only to the variables above it", v.name)
+		c.errorf(codes.DeclarationOrder, pos, "%s is declared later in the module; a top-level initializer or statement may refer only to the variables above it", v.name)
 		return types.Invalid{}
 	}
 	if v.typ == nil && v.mod.m.File.Script && v.mod.script == 0 {
@@ -1919,7 +1920,7 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 		}
 	}
 	if direct && c.fn != nil && c.fn.initVar != nil && c.fn.initVar.mod == v.mod && v.index >= c.fn.initVar.index {
-		c.errorf(pos, "%s is declared later in the module; a top-level initializer or statement may refer only to the variables above it", v.name)
+		c.errorf(codes.DeclarationOrder, pos, "%s is declared later in the module; a top-level initializer or statement may refer only to the variables above it", v.name)
 		return types.Invalid{}
 	}
 	if v.typ != nil {
@@ -1928,7 +1929,7 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 	g := v.group
 	if g.state == 1 {
 		if c.fn != nil && c.fn.initVar == v {
-			c.errorf(pos, "%s is read in its own initializer", v.name)
+			c.errorf(codes.DeclarationOrder, pos, "%s is read in its own initializer", v.name)
 			return types.Invalid{}
 		}
 		if g.stated != nil {
@@ -1937,11 +1938,11 @@ func (c *Checker) varType(v *varInfo, pos ast.Pos, direct bool) types.Type {
 		if c.inInitOf(v) {
 			if !g.selfReported {
 				g.selfReported = true
-				c.errorf(pos, "%s is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func", v.name)
+				c.errorf(codes.NeedsAnnotation, pos, "%s is used by a function in its own initializer; state its type, as a type on the binding or a return type on the func", v.name)
 			}
 			return types.Invalid{}
 		}
-		c.errorf(pos, "the type of %s depends on itself; annotate it", v.name)
+		c.errorf(codes.NeedsAnnotation, pos, "the type of %s depends on itself; annotate it", v.name)
 		return types.Invalid{}
 	}
 	if g.state == 2 {
@@ -2128,13 +2129,13 @@ func (c *Checker) inferBody(body *ast.Block, sc *scope, ctx *fnCtx) types.Type {
 	all := append([]types.Type{t}, ctx.returns...)
 	u, err := types.Join(all...)
 	if err != nil {
-		c.errorf(body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
+		c.errorf(codes.NoCommonType, body.Pos, "the returns of %s do not form a valid type: %s; annotate the return type", ctx.name, err)
 		return types.Invalid{}
 	}
 	if _, _, isResult := resultParts(types.Without(u, types.Null{})); !isResult && !invalidResult(u) {
 		// A member that failed, such as Result.ok with E unsolved, was reported where it failed.
 		for _, x := range ctx.tries {
-			c.errorf(x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
+			c.errorf(codes.Try, x.Pos, "try needs an enclosing function that returns a Result, but %s returns %s", ctx.name, types.String(u))
 		}
 	}
 	return u
@@ -2151,7 +2152,7 @@ func (c *Checker) returnTypeOf(ent *entity, pos ast.Pos) types.Type {
 		return types.Invalid{}
 	}
 	if s.inferring || ent.fn.state == 1 {
-		c.errorf(pos, "%s is recursive; state its return type", s.fullName())
+		c.errorf(codes.NeedsAnnotation, pos, "%s is recursive; state its return type", s.fullName())
 		return types.Invalid{}
 	}
 	c.checkFunc(ent.fn)

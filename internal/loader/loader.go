@@ -4,6 +4,7 @@ package loader
 
 import (
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"io/fs"
 	"os"
 	"path"
@@ -23,6 +24,8 @@ type Diagnostic struct {
 	// its start. Else it is zero, and the span is found from Pos (diag.Span).
 	End ast.Pos
 	Msg string
+	// Code names the rule the diagnostic reports (spec/check.md section 3).
+	Code codes.Code
 }
 
 func (d Diagnostic) String() string {
@@ -261,7 +264,7 @@ func (l *loader) read(key, raw string) (string, bool) {
 func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bool) *Module {
 	switch l.state[key] {
 	case 1:
-		l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf("import cycle through %s", display)})
+		l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf("import cycle through %s", display), Code: codes.Import})
 		return nil
 	case 2:
 		return l.index[key]
@@ -270,15 +273,15 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	}
 	if !root && parser.ModeOf(display) == parser.Declarations {
 		l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf(
-			"cannot import %q: a declaration file declares names for the prelude and cannot be imported", written)})
+			"cannot import %q: a declaration file declares names for the prelude and cannot be imported", written), Code: codes.Import})
 		return nil
 	}
 	src, ok := l.read(key, raw)
 	if !ok {
 		if root {
-			l.diags = append(l.diags, Diagnostic{Path: display, Msg: "cannot read the module"})
+			l.diags = append(l.diags, Diagnostic{Path: display, Msg: "cannot read the module", Code: codes.MissingModule})
 		} else {
-			l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf("cannot find module %q", written)})
+			l.diags = append(l.diags, Diagnostic{Path: at.Path, Pos: at.Pos, Msg: fmt.Sprintf("cannot find module %q", written), Code: codes.MissingModule})
 		}
 		return nil
 	}
@@ -295,14 +298,14 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		var errs []*parser.Error
 		f, layout, errs = parser.ParseRecover(display, src)
 		for _, pe := range errs {
-			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax})
 		}
 	} else {
 		var err error
 		f, err = parser.Parse(display, src, mode)
 		if err != nil {
 			pe := err.(*parser.Error)
-			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg})
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax})
 			l.state[key] = 3
 			return nil
 		}
@@ -328,7 +331,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 			opts.Info = resolve.NewInfo()
 		}
 		for _, e := range resolve.Resolve(f, opts) {
-			l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg})
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg, Code: e.Code})
 		}
 		info = opts.Info
 	}
@@ -344,7 +347,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		}
 		if child != nil && parser.IsTestFile(childDisplay) && !parser.IsTestFile(display) {
 			l.diags = append(l.diags, Diagnostic{Path: display, Pos: imp.Pos, Msg: fmt.Sprintf(
-				"cannot import %q: it is a test file, which only another test file can import", imp.Path)})
+				"cannot import %q: it is a test file, which only another test file can import", imp.Path), Code: codes.Import})
 		}
 		if child != nil {
 			imp.Module = child.Index
@@ -353,7 +356,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 				// since that statement is the likelier mistake (section 10, Scripts).
 				l.diags = append(l.diags, Diagnostic{Path: display, Pos: imp.Pos, Msg: fmt.Sprintf(
 					"cannot import %q: it is a script, made one by the statement at %s:%d:%d, and a script cannot be imported",
-					imp.Path, childDisplay, child.File.FirstStmt.Line, child.File.FirstStmt.Col)})
+					imp.Path, childDisplay, child.File.FirstStmt.Line, child.File.FirstStmt.Col), Code: codes.Import})
 			}
 		}
 	}

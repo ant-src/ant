@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -55,6 +56,9 @@ type docBlock struct {
 	src        string
 	output     *docBlock // the text block right after it: its expected standard output
 	directives []docDirective
+	// code is, on the page of ant check, the code of the ### entry of ## Codes the block is in:
+	// every error its // error: lines mark must carry that code.
+	code string
 }
 
 // docDirective is a <!-- test: ... --> comment, which prepares or changes the test of the next ant
@@ -81,6 +85,8 @@ type docPageParts struct {
 var (
 	fenceOpen   = regexp.MustCompile("^( {0,3})(`{3,}|~{3,})\\s*([\\w-]*)\\s*(.*)$")
 	heading2    = regexp.MustCompile(`^ {0,3}## +(.+?)\s*$`)
+	codeEntry   = regexp.MustCompile("^### `([a-z-]+)`$")
+	codeSuffix  = regexp.MustCompile(` \[([a-z-]+)\]$`)
 	mdLink      = regexp.MustCompile(`\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)`)
 	codeSpan    = regexp.MustCompile("`[^`]*`")
 	testComment = regexp.MustCompile(`(?i)^tests?\s*:`)
@@ -109,6 +115,7 @@ func parsePage(rel, src string) (docPageParts, []string) {
 	var pending []docDirective
 	var last *docBlock // the last ant block, while only blank lines follow it
 	inGenerated := false
+	entry := "" // on the page of ant check, the code of the ### entry the line is in
 	bad := func(line int, format string, args ...any) {
 		problems = append(problems, fmt.Sprintf("%s:%d: %s", rel, line, fmt.Sprintf(format, args...)))
 	}
@@ -141,7 +148,7 @@ func parsePage(rel, src string) (docPageParts, []string) {
 				bad(start, "the block is not closed")
 				break
 			}
-			b := &docBlock{line: start, src: strings.Join(body, "\n") + "\n"}
+			b := &docBlock{line: start, src: strings.Join(body, "\n") + "\n", code: entry}
 			switch {
 			case lang == "text" && last != nil:
 				last.output = b
@@ -184,6 +191,13 @@ func parsePage(rel, src string) (docPageParts, []string) {
 				last = nil
 			}
 			parts.prose = append(parts.prose, docLine{i + 1, line})
+			if rel == checkPage {
+				if m := codeEntry.FindStringSubmatch(line); m != nil {
+					entry = m[1]
+				} else if heading2.MatchString(line) {
+					entry = ""
+				}
+			}
 			continue
 		}
 		start := i + 1
@@ -697,6 +711,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 			bad("ant check passes, but the block marks a line with // error:")
 		case fails:
 			problems = append(problems, errorMarkerProblems(rel, out, code, errs)...)
+			problems = append(problems, entryCodeProblems(rel, out, b)...)
 		case status != 0:
 			bad("ant check:\n%s", out)
 		}
@@ -892,6 +907,29 @@ func errorMarkerProblems(rel, out string, code int, errs []docMarker) []string {
 	for _, d := range diags {
 		if !marked[d.line] {
 			problems = append(problems, fmt.Sprintf("%s:%d: ant check reports %q, but no // error: marks this line", rel, d.line, d.msg))
+		}
+		if m := codeSuffix.FindStringSubmatch(d.msg); m == nil || !codes.Known(codes.Code(m[1])) {
+			problems = append(problems, fmt.Sprintf("%s:%d: ant check reports %q without a known code", rel, d.line, d.msg))
+		}
+	}
+	return problems
+}
+
+// checkPage is the page of ant check, whose ## Codes holds an entry for each code.
+const checkPage = "tools/check.md"
+
+// entryCodeProblems holds the errors ant check reports, out, for a block of an entry of ## Codes
+// on the page of ant check that do not carry the entry's code, which ant check -explain prints
+// the entry for.
+func entryCodeProblems(rel, out string, b *docBlock) []string {
+	if b.code == "" {
+		return nil
+	}
+	var problems []string
+	re := regexp.MustCompile(`^` + regexp.QuoteMeta(rel) + `:(\d+):\d+: (.*)$`)
+	for _, l := range strings.Split(out, "\n") {
+		if m := re.FindStringSubmatch(l); m != nil && !strings.HasSuffix(m[2], " ["+b.code+"]") {
+			problems = append(problems, fmt.Sprintf("%s:%s: the entry for %s shows an error with another code: %s", rel, m[1], b.code, m[2]))
 		}
 	}
 	return problems

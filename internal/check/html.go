@@ -1,6 +1,7 @@
 package check
 
 import (
+	"github.com/ant-src/ant/internal/codes"
 	"strings"
 
 	"github.com/ant-src/ant/ast"
@@ -27,9 +28,9 @@ func (c *Checker) markup(content []ast.HtmlNode, sc *scope, textOnly bool) {
 			if !c.renders(t, !textOnly, nil) {
 				switch {
 				case textOnly && c.renders(t, true, nil):
-					c.errorf(n.Expr.Position(), "<title> and <textarea> hold text only, so they cannot hold Html")
+					c.errorf(codes.Markup, n.Expr.Position(), "<title> and <textarea> hold text only, so they cannot hold Html")
 				default:
-					c.errorf(n.Expr.Position(), "markup takes a string, a number, void, Html, or an array of them, got %s%s", types.String(t), contentHint(t))
+					c.errorf(codes.Markup, n.Expr.Position(), "markup takes a string, a number, void, Html, or an array of them, got %s%s", types.String(t), contentHint(t))
 				}
 			}
 		}
@@ -152,11 +153,11 @@ func (c *Checker) htmlAttr(a ast.HtmlAttr, sc *scope) {
 		}
 		switch {
 		case attrValue(t, true, class, 0):
-			c.errorf(a.Expr.Position(), "%s is not a boolean attribute, so it takes a string, not a bool; write the words, as {if on { \"true\" } else { \"false\" }}", a.Name)
+			c.errorf(codes.Markup, a.Expr.Position(), "%s is not a boolean attribute, so it takes a string, not a bool; write the words, as {if on { \"true\" } else { \"false\" }}", a.Name)
 		case class:
-			c.errorf(a.Expr.Position(), "class takes a string, a number, null, or an array of string, null, and void, got %s", types.String(t))
+			c.errorf(codes.Markup, a.Expr.Position(), "class takes a string, a number, null, or an array of string, null, and void, got %s", types.String(t))
 		default:
-			c.errorf(a.Expr.Position(), "attribute %s takes a string, a number, or null, got %s%s", a.Name, types.String(t), contentHint(t))
+			c.errorf(codes.Markup, a.Expr.Position(), "attribute %s takes a string, a number, or null, got %s%s", a.Name, types.String(t), contentHint(t))
 		}
 	}
 }

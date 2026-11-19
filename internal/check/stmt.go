@@ -2,6 +2,7 @@ package check
 
 import (
 	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/codes"
 	"github.com/ant-src/ant/internal/types"
 )
 
@@ -340,7 +341,7 @@ func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string
 	case *ast.RecordTarget:
 		if types.FieldsOf(src) == nil && !types.IsInvalid(src) {
 			if _, isUnion := types.Expand(src).(types.Union); !isUnion {
-				c.errorf(t.Pos, "a record destructuring needs a record, got %s", types.String(src))
+				c.errorf(codes.TypeMismatch, t.Pos, "a record destructuring needs a record, got %s", types.String(src))
 			}
 		}
 		for _, f := range t.Fields {
@@ -355,7 +356,7 @@ func (c *Checker) bindTargetTypes(t ast.Target, src types.Type, bind func(string
 		if a, ok := types.Expand(src).(types.Array); ok {
 			elem = a.Elem
 		} else if !types.IsInvalid(src) {
-			c.errorf(t.Pos, "an array destructuring needs an array, got %s", types.String(src))
+			c.errorf(codes.TypeMismatch, t.Pos, "an array destructuring needs an array, got %s", types.String(src))
 		}
 		for _, e := range t.Elems {
 			c.bindTargetTypes(e, elem, bind)
@@ -399,12 +400,12 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 		}
 	case *ast.If:
 		if complete {
-			c.errorf(el.Pos, "this else cannot run: the tests before it cover every case")
+			c.errorf(codes.UselessTest, el.Pos, "this else cannot run: the tests before it cover every case")
 		}
 		elseT = c.checkIf(el, sc, expected)
 	case *ast.Block:
 		if complete {
-			c.errorf(el.Pos, "this else cannot run: the tests before it cover every case")
+			c.errorf(codes.UselessTest, el.Pos, "this else cannot run: the tests before it cover every case")
 		}
 		elseT = c.block(el, sc, expected)
 	}
@@ -421,7 +422,7 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 	}
 	if x.Else == nil && !complete && expected != nil && !types.IsNever(thenT) {
 		if !types.Assignable(types.Void{}, expected) {
-			c.errorf(x.Pos, "an if without else has type void when the condition is false, which cannot be used where %s is expected", types.String(expected))
+			c.errorf(codes.MissingElse, x.Pos, "an if without else has type void when the condition is false, which cannot be used where %s is expected", types.String(expected))
 		}
 	}
 	if expected != nil {
@@ -434,7 +435,7 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 	}
 	u, err := types.Join(thenT, elseT)
 	if err != nil {
-		c.errorf(x.Pos, "the branches of this if do not form a valid type: %s; narrow first or give the whole an expected type", err)
+		c.errorf(codes.NoCommonType, x.Pos, "the branches of this if do not form a valid type: %s; narrow first or give the whole an expected type", err)
 		return types.Invalid{}
 	}
 	return u
@@ -467,12 +468,12 @@ func (c *Checker) checkSelect(x *ast.Select, sc *scope, expected types.Type) typ
 		if cl.Head != nil {
 			name := selectHeadName(cl.Head)
 			if len(cl.Head.Args) > selectHeadArity[name] {
-				c.errorf(cl.Head.Pos, "a select clause's head takes no context: the context is a clause of its own, Context.wait(ctx) { ... }")
+				c.errorf(codes.Arguments, cl.Head.Pos, "a select clause's head takes no context: the context is a clause of its own, Context.wait(ctx) { ... }")
 			}
 			t := c.call(cl.Head, sc, nil)
 			if cl.Target != nil {
 				if _, isVoid := types.Expand(t).(types.Void); isVoid {
-					c.errorf(cl.Target.Pos, "%s returns void, so there is nothing to bind to %s", name, cl.Target.Name)
+					c.errorf(codes.VoidValue, cl.Target.Pos, "%s returns void, so there is nothing to bind to %s", name, cl.Target.Name)
 					t = types.Invalid{}
 				}
 				c.declareTarget(cl.Target, t, inner)
@@ -499,7 +500,7 @@ func (c *Checker) checkSelect(x *ast.Select, sc *scope, expected types.Type) typ
 	}
 	u, err := types.Join(bodyTypes...)
 	if err != nil {
-		c.errorf(x.Pos, "the clauses of this select do not form a valid type: %s; narrow first or give the whole an expected type", err)
+		c.errorf(codes.NoCommonType, x.Pos, "the clauses of this select do not form a valid type: %s; narrow first or give the whole an expected type", err)
 		return types.Invalid{}
 	}
 	return u
@@ -591,14 +592,14 @@ func (c *Checker) elementType(it types.Type, pos ast.Pos) types.Type {
 			}
 		}
 	}
-	c.errorf(pos, "for needs an array, a map, a set, a string, Bytes, or a sequence, got %s", types.String(it))
+	c.errorf(codes.TypeMismatch, pos, "for needs an array, a map, a set, a string, Bytes, or a sequence, got %s", types.String(it))
 	return types.Invalid{}
 }
 
 func (c *Checker) returnExpr(x *ast.Return, sc *scope) types.Type {
 	fn := c.fn
 	if fn == nil || fn.kind == "init" {
-		c.errorf(x.Pos, "return outside a function")
+		c.errorf(codes.Misplaced, x.Pos, "return outside a function")
 		if x.Value != nil {
 			c.synth(x.Value, sc)
 		}
@@ -651,7 +652,7 @@ func (c *Checker) hiddenInBody(d *ast.TypeDecl, sc *scope) {
 				// With no outer type of the name, resolving the body reported it unknown;
 				// this error says why.
 				c.retract(x.Pos, "unknown type "+name)
-				c.errorf(x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
+				c.errorf(codes.WrongKind, x.Pos, "%s is a variable, not a %s%s", name, what, c.hiddenType(sc, l))
 			}
 			for _, a := range x.Args {
 				walk(a)

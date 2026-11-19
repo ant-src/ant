@@ -128,7 +128,7 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", "-nocheck", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
 		{[]string{"test", "-nocheck", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
 		{[]string{"test", ok, typed}, 1, "", "t_test.ant:2:16: cannot use string where int is expected"},
-		{[]string{"test", "-json", ok, typed}, 1, `{"action":"error","path":"` + typed + `","line":2,"column":16,"message":"cannot use string where int is expected","start":{"line":2,"column":16},"end":{"line":2,"column":19}}` + "\n", ""},
+		{[]string{"test", "-json", ok, typed}, 1, `{"action":"error","path":"` + typed + `","line":2,"column":16,"severity":"error","code":"type-mismatch","message":"cannot use string where int is expected","start":{"line":2,"column":16},"end":{"line":2,"column":19}}` + "\n", ""},
 		{[]string{"test", "-nocheck", typed}, 0, "ok    1 passed", ""},
 		{[]string{"test", "-run", "nothing", ok}, 0, "ok    no tests", ""},
 		// -timeout is read as Time.parseDuration reads it: Go's notation or ISO 8601

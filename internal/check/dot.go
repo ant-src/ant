@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"slices"
 	"strings"
 
@@ -53,7 +54,7 @@ func (c *Checker) dotCall(x *ast.Call, f *ast.Field, sc *scope, expected types.T
 	recv, short := c.chainRecv(f.X, sc)
 	if f.Optional {
 		if !types.Includes(recv, types.Null{}) {
-			c.errorf(f.Pos, "?. needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "."))
+			c.errorf(codes.NotNullable, f.Pos, "?. needs a nullable left side, got %s%s", types.String(recv), chainNote(short, "."))
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}, true
 		}
@@ -81,11 +82,11 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		for _, m := range r.Members {
 			if !c.offers(m, f.Name) {
 				if alias := c.aliasFunc(recv, f.Name); alias != "" {
-					c.errorf(f.Pos, "%s.%s is declared on the alias %s, which a value does not reach; call it as %s.%s(...)", alias, f.Name, alias, alias, f.Name)
+					c.errorf(codes.NoMember, f.Pos, "%s.%s is declared on the alias %s, which a value does not reach; call it as %s.%s(...)", alias, f.Name, alias, alias, f.Name)
 					c.synthArgs(x.Args, sc)
 					return types.Invalid{}
 				}
-				c.errorf(f.Pos, "%s has no field or function %s on every member: narrow the value first%s", types.String(recv), f.Name, c.outerVarHint(f.X, sc))
+				c.errorf(codes.NeedsNarrowing, f.Pos, "%s has no field or function %s on every member: narrow the value first%s", types.String(recv), f.Name, c.outerVarHint(f.X, sc))
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
 			}
@@ -93,7 +94,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		for _, a := range x.Args {
 			if a.Name != "" {
 				// one error for the call, not one per member (section 5, Calls through .)
-				c.errorf(a.Pos, "a call through %s is positional, since each member's %s names its parameters as it likes; pass %s positionally", types.String(recv), f.Name, a.Name)
+				c.errorf(codes.Arguments, a.Pos, "a call through %s is positional, since each member's %s names its parameters as it likes; pass %s positionally", types.String(recv), f.Name, a.Name)
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
 			}
@@ -104,14 +105,14 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		}
 		u, err := types.MakeUnion(results)
 		if err != nil {
-			c.errorIn(x, "the results of %s through %s do not form a valid type: %s; narrow first or give the whole an expected type", f.Name, types.String(recv), err)
+			c.errorIn(codes.NoCommonType, x, "the results of %s through %s do not form a valid type: %s; narrow first or give the whole an expected type", f.Name, types.String(recv), err)
 			return types.Invalid{}
 		}
 		return u
 	case types.Param:
 		// as for its bound, with the parameter itself as the receiver
 		if r.Decl.Bound == nil {
-			c.errorf(f.Pos, "%s has no field or function %s: it has no bound", r.Decl.Name, f.Name)
+			c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s: it has no bound", r.Decl.Name, f.Name)
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
 		}
@@ -123,7 +124,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 		}
 		ns := c.sharedNamespace(types.Members(r.Decl.Bound))
 		if ns == nil {
-			c.errorf(f.Pos, "%s has no field or function %s on every member of its bound %s", r.Decl.Name, f.Name, types.String(r.Decl.Bound))
+			c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s on every member of its bound %s", r.Decl.Name, f.Name, types.String(r.Decl.Bound))
 			c.synthArgs(x.Args, sc)
 			return types.Invalid{}
 		}
@@ -137,7 +138,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 	}
 	ns := c.namespaceOf(t)
 	if ns == nil {
-		c.errorf(f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
+		c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
@@ -262,12 +263,12 @@ func (c *Checker) sharedNamespace(members []types.Type) *entity {
 func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast.Field, sc *scope, expected types.Type, positional bool) types.Type {
 	m, ok := ns.members[f.Name]
 	if !ok || m.kind != entFunc {
-		c.errorf(f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
+		c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
 	if c.foreignPrivate(m) {
-		c.errorf(f.Pos, "%s.%s is not exported", ns.name, f.Name)
+		c.errorf(codes.NotExported, f.Pos, "%s.%s is not exported", ns.name, f.Name)
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
@@ -278,7 +279,7 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 	}
 	if !c.accepts(s, recv) {
 		if len(s.fn.Params) == 0 {
-			c.errorf(f.Pos, "%s does not take a %s first, so a value does not reach it; call it as %s()", s.fullName(), types.String(recv), s.fullName())
+			c.errorf(codes.NoMember, f.Pos, "%s does not take a %s first, so a value does not reach it; call it as %s()", s.fullName(), types.String(recv), s.fullName())
 		} else {
 			// The direct call would fail the same way, so the hint is to narrow, and only a
 			// union with a member the function takes can.
@@ -287,7 +288,7 @@ func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast
 				hint = "; narrow it first"
 			}
 			n := c.typeNames(recv, s.fn.Params[0])
-			c.errorf(f.Pos, "%s takes %s first, so a %s does not reach it%s", s.fullName(), n[1], n[0], hint)
+			c.errorf(codes.NoMember, f.Pos, "%s takes %s first, so a %s does not reach it%s", s.fullName(), n[1], n[0], hint)
 		}
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
@@ -381,7 +382,7 @@ func (c *Checker) accepts(s *sig, recv types.Type) bool {
 func (c *Checker) interfaceCall(self types.Type, n types.Named, x *ast.Call, f *ast.Field, sc *scope, expected types.Type) types.Type {
 	s := c.interfaceSig(n, f.Name, self)
 	if s == nil {
-		c.errorf(f.Pos, "%s has no field or function %s", types.String(self), f.Name)
+		c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(self), f.Name)
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
@@ -619,14 +620,14 @@ func narrowPattern(target types.Type) (pattern types.Type, free []*types.ParamDe
 func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamDecl, name string, iface types.Named, pos ast.Pos) (types.Type, bool) {
 	if len(free) == 0 {
 		if !types.Assignable(pattern, iface) {
-			c.errorf(pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
+			c.errorf(codes.UselessTest, pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
 			return nil, false
 		}
 		return pattern, true
 	}
 	ns := c.namespaceOf(pattern)
 	if ns == nil {
-		c.errorf(pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
+		c.errorf(codes.UselessTest, pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
 		return nil, false
 	}
 	m := types.Bindings(iface.Decl.Params, iface.Args)
@@ -639,7 +640,7 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 		want := wt.(types.Func)
 		ent, ok := ns.members[fname]
 		if !ok || ent.kind != entFunc || c.foreignPrivate(ent) {
-			c.errorf(pos, "%s has no function %s, so it does not satisfy %s and the test is always false", name, fname, types.String(iface))
+			c.errorf(codes.UselessTest, pos, "%s has no function %s, so it does not satisfy %s and the test is always false", name, fname, types.String(iface))
 			return nil, false
 		}
 		sg := c.sigReady(ent)
@@ -647,7 +648,7 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 			return nil, false
 		}
 		if len(sg.fn.Params) == 0 {
-			c.errorf(pos, "%s takes no argument, so %s does not satisfy %s and the test is always false", sg.fullName(), name, types.String(iface))
+			c.errorf(codes.UselessTest, pos, "%s takes no argument, so %s does not satisfy %s and the test is always false", sg.fullName(), name, types.String(iface))
 			return nil, false
 		}
 		subst := map[*types.ParamDecl]types.Type{}
@@ -657,7 +658,7 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 		c.unify(sg.fn.Return, want.Return, subst)
 		r, err := types.Subst(sg.fn.Params[0], subst)
 		if err != nil {
-			c.errorf(pos, "%s", err)
+			c.errorf(codes.InvalidUnion, pos, "%s", err)
 			return nil, false
 		}
 		open := map[*types.ParamDecl]bool{}
@@ -668,7 +669,7 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 		}
 		bind := map[*types.ParamDecl]types.Type{}
 		if !c.unify(pattern, r, bind) {
-			c.errorf(pos, "%s takes %s first, not %s, so %s does not satisfy %s and the test is always false", sg.fullName(), types.String(r), withArticle(name), name, types.String(iface))
+			c.errorf(codes.UselessTest, pos, "%s takes %s first, not %s, so %s does not satisfy %s and the test is always false", sg.fullName(), types.String(r), withArticle(name), name, types.String(iface))
 			return nil, false
 		}
 		for _, p := range free {
@@ -679,34 +680,34 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 			if prev, done := fixed[p]; !done {
 				fixed[p] = t
 			} else if !types.Equal(prev, t) {
-				c.errorf(pos, "%s fixes the type parameter %s of %s to %s through one function and to %s through %s, so the test cannot narrow it", types.String(iface), p.Name, name, types.String(prev), types.String(t), fname)
+				c.errorf(codes.IsTest, pos, "%s fixes the type parameter %s of %s to %s through one function and to %s through %s, so the test cannot narrow it", types.String(iface), p.Name, name, types.String(prev), types.String(t), fname)
 				return nil, false
 			}
 		}
 	}
 	for _, p := range free {
 		if _, ok := fixed[p]; !ok {
-			c.errorf(pos, "%s does not determine the type parameter %s of %s, so the test cannot narrow to it", types.String(iface), p.Name, name)
+			c.errorf(codes.IsTest, pos, "%s does not determine the type parameter %s of %s, so the test cannot narrow to it", types.String(iface), p.Name, name)
 			return nil, false
 		}
 	}
 	inst, err := types.Subst(pattern, fixed)
 	if err != nil {
-		c.errorf(pos, "%s", err)
+		c.errorf(codes.InvalidUnion, pos, "%s", err)
 		return nil, false
 	}
 	if n, ok := inst.(types.Named); ok {
 		if err := c.checkArgs(n); err != nil {
-			c.errorf(pos, "%s: %s", types.String(n), err)
+			c.errorf(codes.InvalidUnion, pos, "%s: %s", types.String(n), err)
 			return nil, false
 		}
 		if err := types.CheckBounds(n); err != nil {
-			c.errorf(pos, "%s: %s", types.String(n), err)
+			c.errorf(codes.Bound, pos, "%s: %s", types.String(n), err)
 			return nil, false
 		}
 	}
 	if !types.Assignable(inst, iface) {
-		c.errorf(pos, "%s does not satisfy %s, so the test is always false", types.String(inst), types.String(iface))
+		c.errorf(codes.UselessTest, pos, "%s does not satisfy %s, so the test is always false", types.String(inst), types.String(iface))
 		return nil, false
 	}
 	return inst, true
@@ -785,7 +786,7 @@ func (c *Checker) resolveInterfaces(mi *moduleInfo) {
 		for i := range d.Funcs {
 			f := &d.Funcs[i]
 			if _, dup := decl.Funcs[f.Name]; dup {
-				c.errorf(f.Pos, "%s declares %s twice", d.Name, f.Name)
+				c.errorf(codes.Redeclared, f.Pos, "%s declares %s twice", d.Name, f.Name)
 				continue
 			}
 			fn := &types.Func{Required: len(f.Params)}

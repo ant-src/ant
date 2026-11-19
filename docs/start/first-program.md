@@ -41,7 +41,7 @@ ant check hello.ant
 ```
 
 ```text
-hello.ant:2:19: + needs both operands of one type, got string and int
+hello.ant:2:19: + needs both operands of one type, got string and int [operands]
    │
  2 │ println("Hello, " + 2)
    │         ^^^^^^^^^^^^^

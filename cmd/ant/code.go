@@ -263,7 +263,8 @@ func antDiags(ds []lsp.CodeDiag) []ant.Diagnostic {
 	out := make([]ant.Diagnostic, len(ds))
 	for i, d := range ds {
 		out[i] = ant.Diagnostic{Pos: ant.Position{Path: rel(d.Path), Line: d.Pos.Line, Col: d.Pos.Col},
-			End: ant.Position{Path: rel(d.Path), Line: d.End.Line, Col: d.End.Col}, Message: d.Message}
+			End: ant.Position{Path: rel(d.Path), Line: d.End.Line, Col: d.End.Col}, Message: d.Message,
+			Code: d.Code, Severity: "error"}
 	}
 	return out
 }

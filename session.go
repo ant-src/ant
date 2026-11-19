@@ -3,6 +3,7 @@ package ant
 import (
 	"context"
 	"fmt"
+	"github.com/ant-src/ant/internal/codes"
 	"os"
 	"slices"
 	"strings"
@@ -77,7 +78,8 @@ func (s *Session) Eval(src string) (value.Value, error) { return s.evalAt("<inpu
 func (s *Session) EvalFile(path string) (value.Value, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
-		return nil, &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: path}, Message: err.Error()}}}
+		return nil, &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: path}, Message: err.Error(),
+			Code: string(codes.MissingModule), Severity: "error"}}}
 	}
 	return s.evalAt(path, string(src))
 }
