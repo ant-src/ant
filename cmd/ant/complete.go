@@ -31,6 +31,8 @@ type command struct {
 	args func(n int, word string) []candidate
 	// sub holds the flags of each subcommand, which follow it, for a command that has them.
 	sub map[string][]string
+	// values lists the flags that take the next word as their value.
+	values []string
 }
 
 // commands are ant's commands, in the order the shell offers them. A flag a command accepts
@@ -45,7 +47,7 @@ var commands = []command{
 	{name: "check", flags: []string{"-json"}, args: func(n int, word string) []candidate {
 		return files(word, ".ant")
 	}},
-	{name: "test", flags: []string{"-run", "-skip", "-v", "-json", "-failfast", "-nocheck", "-parallel", "-timeout"}, args: func(n int, word string) []candidate {
+	{name: "test", flags: []string{"-run", "-skip", "-v", "-json", "-failfast", "-nocheck", "-parallel", "-timeout"}, values: []string{"-run", "-skip", "-parallel", "-timeout"}, args: func(n int, word string) []candidate {
 		return files(word, "_test.ant")
 	}},
 	{name: "fmt", flags: []string{"--check"}, args: func(n int, word string) []candidate {
@@ -57,7 +59,7 @@ var commands = []command{
 		}
 		return nil
 	}},
-	{name: "code", sub: codeFlags(), args: func(n int, word string) []candidate {
+	{name: "code", sub: codeFlags(), values: []string{"-root", "-match"}, args: func(n int, word string) []candidate {
 		if n == 0 {
 			return words([]string{"def", "refs", "type", "symbols", "rename"}, word)
 		}
@@ -165,10 +167,17 @@ func complete(line string) []candidate {
 			continue
 		}
 		n := 0
-		for _, w := range before[1:] {
-			if !strings.HasPrefix(w, "-") || w == "-" {
+		for i, w := range before[1:] {
+			isValue := i > 0 && slices.Contains(c.values, before[i]) // before[i] is the word before w
+			if (!strings.HasPrefix(w, "-") || w == "-") && !isValue {
 				n++
 			}
+		}
+		if prev := before[len(before)-1]; len(before) > 1 && slices.Contains(c.values, prev) {
+			if prev == "-root" {
+				return files(word, "") // a directory
+			}
+			return nil // the flag's value
 		}
 		if n == 0 && strings.HasPrefix(word, "-") {
 			return words(c.flags, word)

@@ -998,9 +998,8 @@ func (c *Code) Rename(loc, name string, force bool) (RenameResult, *CodeError) {
 	// The files changed, and the programs: each analysis an edit was found in.
 	byPath := map[string]*CodeFile{}
 	changed := map[*analysis]bool{}
-	root := c.s.roots[0] + string(filepath.Separator)
 	for _, e := range edits {
-		if !strings.HasPrefix(e.path, root) {
+		if rel, err := filepath.Rel(c.s.roots[0], e.path); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return RenameResult{}, codeErr("refused", "%s is outside the root %s", e.path, c.s.roots[0])
 		}
 		changed[e.a] = true

@@ -384,4 +384,52 @@ func TestCodeCompletion(t *testing.T) {
 	if got := complete("ant code refs -"); !has(got, "-decl") || !has(got, "-json") || has(got, "-diff") {
 		t.Errorf("flags of refs: %v", got)
 	}
+	// the value of -root is not an operand
+	if got := complete("ant code refs -root src -"); !has(got, "-decl") {
+		t.Errorf("flags after -root: %v", got)
+	}
+	if got := complete("ant code symbols -match "); len(got) != 0 {
+		t.Errorf("the value of -match: %v", got)
+	}
+}
+
+// TestCodeRoots checks a workspace reached through a symbolic link, named as the root or entered
+// as the current directory, and a root that is the file system's.
+func TestCodeRoots(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symbolic links need privileges on Windows")
+	}
+	dir := tree(t, codeWorkspace)
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(dir, link); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(link)
+	status, out, errOut := codeRun("refs", "calc/lexer.ant:Pos")
+	if status != 0 || strings.Count(out, "\n") != 10 || !strings.HasPrefix(out, "calc/eval.ant:1:24:") {
+		t.Errorf("refs under a linked current directory: %d\n%s%s", status, out, errOut)
+	}
+	if status, out, errOut := codeRun("symbols", "-match", "posof", "."); status != 0 || out != "calc/lexer.ant:6:6: func posOf(line: int, col: int): Pos\n" {
+		t.Errorf("symbols under a linked current directory: %d %q %q", status, out, errOut)
+	}
+	t.Chdir(t.TempDir())
+	if status, out, errOut := codeRun("refs", "-root", link, filepath.Join(link, "calc/lexer.ant:Pos")); status != 0 || strings.Count(out, "\n") != 10 {
+		t.Errorf("refs with a linked root: %d\n%s%s", status, out, errOut)
+	}
+	t.Chdir(dir)
+	// a local's rename reads no file but its own, so the root / is not walked
+	if status, out, errOut := codeRun("rename", "-diff", "-root", "/", "calc/eval.ant:9:total", "sum"); status != 0 || !strings.Contains(out, "+  var sum = 0") {
+		t.Errorf("rename with the root /: %d\n%s%s", status, out, errOut)
+	}
+}
+
+// TestCodeUsageJSON checks that a wrong subcommand is a JSON error under -json.
+func TestCodeUsageJSON(t *testing.T) {
+	status, out, errOut := codeRun("bogus", "-json")
+	if status != 2 || !strings.HasPrefix(out, `{"error":{"code":"usage","message":"usage: ant code def`) || errOut != "" {
+		t.Errorf("status %d, stdout %q, stderr %q", status, out, errOut)
+	}
+	if status, out, errOut := codeRun("bogus"); status != 2 || out != "" || !strings.HasPrefix(errOut, "usage: ant code def") {
+		t.Errorf("text: status %d, stdout %q, stderr %q", status, out, errOut)
+	}
 }

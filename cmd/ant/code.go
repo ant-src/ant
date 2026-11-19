@@ -42,12 +42,21 @@ var codeStatus = map[string]int{
 // codeCommand is ant code (private/tools/code.md): the questions an editor asks the language
 // server, answered from a terminal by the server's own analysis.
 func codeCommand(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 || codeSubcommands[args[0]] == nil && codeOperands[args[0]] == "" {
-		fmt.Fprintln(stderr, commandUsage("code"))
-		return 2
+	c := &coder{stdout: stdout, stderr: stderr}
+	for _, a := range args {
+		if a == "-json" || a == "--json" {
+			c.json = true // so that a usage error is JSON too
+		}
+	}
+	if len(args) == 0 || codeOperands[args[0]] == "" {
+		if !c.json {
+			fmt.Fprintln(stderr, commandUsage("code"))
+			return 2
+		}
+		return c.fail(&lsp.CodeError{Code: "usage", Message: commandUsage("code")})
 	}
 	sub := args[0]
-	c := &coder{sub: sub, stdout: stdout, stderr: stderr}
+	c.sub = sub
 	fl := flag.NewFlagSet("ant code "+sub, flag.ContinueOnError)
 	fl.SetOutput(io.Discard)
 	fl.BoolVar(&c.json, "json", false, "print JSON instead of text")
@@ -57,11 +66,6 @@ func codeCommand(args []string, stdout, stderr io.Writer) int {
 	all := fl.Bool("all", false, "include fields and the declarations in functions")
 	diff := fl.Bool("diff", false, "print a unified diff and write nothing")
 	force := fl.Bool("force", false, "rename even when the search is incomplete or a program has errors")
-	for _, a := range args[1:] {
-		if a == "-json" || a == "--json" {
-			c.json = true // so that a usage error is JSON too
-		}
-	}
 	err := fl.Parse(args[1:])
 	if errors.Is(err, flag.ErrHelp) {
 		fmt.Fprintln(stdout, c.usage())
