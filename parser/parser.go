@@ -79,6 +79,8 @@ type Error struct {
 	Pos        ast.Pos
 	Msg        string
 	Incomplete bool
+	// Help says how to fix the error, when the message does not.
+	Help string
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
@@ -324,8 +326,13 @@ func (p *parser) recover(err *error) {
 }
 
 func (p *parser) fail(pos token.Pos, format string, args ...any) {
+	p.failHelp(pos, "", format, args...)
+}
+
+// failHelp is fail for an error with help, a sentence on how to fix it.
+func (p *parser) failHelp(pos token.Pos, help, format string, args ...any) {
 	incomplete := p.i < len(p.toks) && p.toks[p.i].Kind == token.EOF
-	e := &Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...), Incomplete: incomplete}
+	e := &Error{Pos: ast.Pos{Line: pos.Line, Col: pos.Col}, Msg: fmt.Sprintf(format, args...), Incomplete: incomplete, Help: help}
 	if p.recovering {
 		p.record(e)
 		panic(bail{})
@@ -489,9 +496,28 @@ func (p *parser) badStmt(start int) *ast.BadStmt {
 // word is the likelier mistake than whatever was expected in its place.
 func (p *parser) failAt(t token.Token, format string, args ...any) {
 	if t.Kind == token.Reserved {
-		p.fail(t.Pos, "'%s' is a reserved word", t.Text)
+		p.failHelp(t.Pos, reservedHelp[t.Text], "'%s' is a reserved word", t.Text)
 	}
 	p.fail(t.Pos, format, args...)
+}
+
+// reservedHelp says, for each reserved word, what Ant writes in its place.
+var reservedHelp = map[string]string{
+	"as":        "Ant has no casts: test the type with is, which narrows a local, and convert a number with its type's name, as int(x)",
+	"async":     "Ant has no async: a call blocks only its goroutine; run work alongside with go or Parallel",
+	"await":     "Ant has no async: a call blocks only its goroutine; run work alongside with go or Parallel",
+	"catch":     "Ant has no exceptions: return a Result and propagate it with try; Panic.catch recovers a panic",
+	"class":     "Ant has no classes: declare a record type and functions on it, as func Point.norm(p: Point): float64",
+	"const":     "write let for a name that is never reassigned",
+	"enum":      "an enumeration is a union of empty records, as type Red = {}, type Green = {}, type Color = Red | Green",
+	"finally":   "Ant has no exceptions: defer runs cleanup when its block ends",
+	"function":  "write func",
+	"match":     "Ant has no match: chain if and else if, testing types with is",
+	"Self":      "Self names the satisfying type only in an interface's signatures",
+	"switch":    "Ant has no switch: chain if and else if, testing types with is",
+	"this":      "Ant has no this: a function on a type takes its receiver as its first parameter",
+	"throw":     "Ant has no exceptions: return Result.fail(...) for an expected failure, or panic for a bug",
+	"undefined": "Ant has no undefined: a missing value is null",
 }
 
 func pos(t token.Token) ast.Pos { return ast.Pos{Line: t.Pos.Line, Col: t.Pos.Col} }
@@ -568,7 +594,7 @@ func (p *parser) expectIdent(what string) token.Token {
 	t := p.peek()
 	if t.Kind != token.Ident {
 		if t.Kind == token.Reserved {
-			p.fail(t.Pos, "'%s' is a reserved word and cannot be %s", t.Text, what)
+			p.failHelp(t.Pos, "choose another name", "'%s' is a reserved word and cannot be %s", t.Text, what)
 		}
 		if t.Kind == token.Keyword {
 			p.fail(t.Pos, "'%s' is a keyword and cannot be %s", t.Text, what)
@@ -622,8 +648,10 @@ func (p *parser) expectTerm() {
 		return
 	}
 	if p.skipTerms() == 0 {
-		if t.Is(":") && p.i >= 2 && p.toks[p.i-2].Is("{") && (p.toks[p.i-1].Kind == token.Ident || p.toks[p.i-1].Kind == token.String) {
-			// { name: value } reads as a block or lambda; the author meant a literal without a head.
+		if p.i >= 2 && p.toks[p.i-2].Is("{") && (t.Is(":") && (p.toks[p.i-1].Kind == token.Ident || p.toks[p.i-1].Kind == token.String) ||
+			t.Is(",") && p.toks[p.i-1].Kind == token.Ident && p.i >= 3 && valueFollows(p.toks[p.i-3])) {
+			// { name: value } and { a, b } read as a block or lambda; the author meant a literal
+			// without a head.
 			p.failAt(t, "a record or map literal names its type, as in Point{ x: 1 } or Map{ \"a\": 1 }")
 		}
 		if t.Kind == token.Reserved {
@@ -1057,7 +1085,7 @@ func (p *parser) varDecl() *ast.VarDecl {
 	default:
 		n := p.peek()
 		if n.Kind == token.Reserved || n.Kind == token.Keyword {
-			p.fail(n.Pos, "'%s' cannot be a variable name", n.Text)
+			p.failHelp(n.Pos, "choose another name", "'%s' cannot be a variable name", n.Text)
 		}
 		p.fail(n.Pos, "expected a name or a destructuring after %s, got %s", t.Text, n)
 	}
@@ -1516,7 +1544,7 @@ func (p *parser) testDecl(t token.Token) *ast.Test {
 	case n.Kind == token.Template:
 		p.fail(n.Pos, "a top-level test's name is a string without interpolation, so tools know it without running anything")
 	case n.Kind != token.String:
-		p.fail(n.Pos, "expected the test's name, a string, got %s", n)
+		p.failHelp(n.Pos, "a top-level test's name is a string literal, as test \"parse\" { ... }", "expected the test's name, a string, got %s", n)
 	case n.Text == "":
 		p.fail(n.Pos, "a test's name cannot be empty")
 	}
@@ -1553,7 +1581,11 @@ func (p *parser) subtest(t token.Token) *ast.Test {
 		p.next()
 		name = p.template(n)
 	default:
-		p.fail(n.Pos, "expected the test's name, a string, got %s", n)
+		help := "a test's name is a string; interpolate a value in it, as test \"${name}\" { ... }"
+		if text := p.textBefore("{"); text != "" {
+			help = fmt.Sprintf("a test's name is a string; interpolate the value: test \"${%s}\" { ... }", text)
+		}
+		p.failHelp(n.Pos, help, "expected the test's name, a string, got %s", n)
 	}
 	d := &ast.Test{Pos: pos(t), Name: name}
 	saved := p.enterBoundary("test")
@@ -2861,4 +2893,29 @@ func isOp(t token.Token, text string) bool {
 
 func before(a token.Pos, b ast.Pos) bool {
 	return a.Line < b.Line || a.Line == b.Line && a.Col < b.Col
+}
+
+// textBefore is the source from the cursor up to the next token close on the same line, without
+// the white space around it, or "" when close does not follow on the line.
+func (p *parser) textBefore(close string) string {
+	start := p.toks[p.i]
+	for j := p.i; j < len(p.toks); j++ {
+		t := p.toks[j]
+		if t.Kind == token.Newline || t.Kind == token.EOF || t.Pos.Line != start.Pos.Line {
+			return ""
+		}
+		if t.Is(close) {
+			if j == p.i {
+				return ""
+			}
+			return strings.TrimSpace(p.src[start.Off:t.Off])
+		}
+	}
+	return ""
+}
+
+// valueFollows reports whether a value comes after t: an argument, an element, the right side of
+// = or :, or what return gives back. A { there is a literal the author meant, not a block.
+func valueFollows(t token.Token) bool {
+	return t.Is("(") || t.Is(",") || t.Is("=") || t.Is(":") || t.Is("[") || t.Is("return")
 }

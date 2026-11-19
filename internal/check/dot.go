@@ -86,7 +86,7 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 					c.synthArgs(x.Args, sc)
 					return types.Invalid{}
 				}
-				c.errorf(codes.NeedsNarrowing, f.Pos, "%s has no field or function %s on every member: narrow the value first%s", types.String(recv), f.Name, c.outerVarHint(f.X, sc))
+				c.pathHint(c.errorf(codes.NeedsNarrowing, f.Pos, "%s has no field or function %s on every member: narrow the value first%s", types.String(recv), f.Name, c.outerVarHint(f.X, sc)), f.X)
 				c.synthArgs(x.Args, sc)
 				return types.Invalid{}
 			}
@@ -138,7 +138,8 @@ func (c *Checker) dotCallOn(recv types.Type, x *ast.Call, f *ast.Field, sc *scop
 	}
 	ns := c.namespaceOf(t)
 	if ns == nil {
-		c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
+		i := c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
+		c.receiverHint(i, recv, x, f, c.memberNames(recv, nil))
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}
@@ -263,7 +264,8 @@ func (c *Checker) sharedNamespace(members []types.Type) *entity {
 func (c *Checker) namespaceCall(recv types.Type, ns *entity, x *ast.Call, f *ast.Field, sc *scope, expected types.Type, positional bool) types.Type {
 	m, ok := ns.members[f.Name]
 	if !ok || m.kind != entFunc {
-		c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
+		i := c.errorf(codes.NoMember, f.Pos, "%s has no field or function %s", types.String(recv), f.Name)
+		c.receiverHint(i, recv, x, f, c.memberNames(recv, ns))
 		c.synthArgs(x.Args, sc)
 		return types.Invalid{}
 	}

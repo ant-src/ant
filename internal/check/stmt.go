@@ -425,7 +425,8 @@ func (c *Checker) checkIf(x *ast.If, sc *scope, expected types.Type) types.Type 
 	}
 	if x.Else == nil && !complete && expected != nil && !types.IsNever(thenT) {
 		if !types.Assignable(types.Void{}, expected) {
-			c.errorf(codes.MissingElse, x.Pos, "an if without else has type void when the condition is false, which cannot be used where %s is expected", types.String(expected))
+			i := c.errorf(codes.MissingElse, x.Pos, "an if without else has type void when the condition is false, which cannot be used where %s is expected", types.String(expected))
+			c.coverHint(i, x.Cond, sc, wf)
 		}
 	}
 	if expected != nil {
@@ -540,7 +541,9 @@ func (c *Checker) whileLoop(x *ast.While, sc *scope) types.Type {
 
 func (c *Checker) forLoop(x *ast.For, sc *scope) types.Type {
 	it := c.synth(x.Iter, sc)
+	reported := len(c.diags)
 	elem := c.elementType(it, x.Iter.Position())
+	c.pathHintSince(reported, x.Iter)
 	inner := &scope{parent: sc, names: map[string]*local{}}
 	c.declareTarget(x.Target, elem, inner)
 	c.resetAssigned(x.Assigned, sc)

@@ -228,8 +228,8 @@ func (p *Printer) Print(w io.Writer, path string, pos ast.Pos, msg string) {
 }
 
 // PrintSpan is Print for a diagnostic that covers pos up to end; a zero end leaves the span to
-// Span.
-func (p *Printer) PrintSpan(w io.Writer, path string, pos, end ast.Pos, msg string) {
+// Span. Each of notes, such as "help: ...", follows the source on a line of its own.
+func (p *Printer) PrintSpan(w io.Writer, path string, pos, end ast.Pos, msg string, notes ...string) {
 	var sb strings.Builder
 	switch {
 	case path == "":
@@ -248,6 +248,15 @@ func (p *Printer) PrintSpan(w io.Writer, path string, pos, end ast.Pos, msg stri
 			from, to = Offset(s.Text, s.lines, pos), Offset(s.Text, s.lines, end)
 		}
 		p.snippet(&sb, s, from, to, pos.Line-1)
+		gutter := len(strconv.Itoa(s.lineOf(max(from, to-1)) + 1))
+		for _, n := range notes {
+			p.style(&sb, faint, fmt.Sprintf(" %*s =", gutter, ""))
+			sb.WriteString(" " + n + "\n")
+		}
+	} else {
+		for _, n := range notes {
+			sb.WriteString("    = " + n + "\n")
+		}
 	}
 	sb.WriteString("\n")
 	io.WriteString(w, sb.String())

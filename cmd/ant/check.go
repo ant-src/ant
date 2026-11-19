@@ -72,14 +72,37 @@ type jsonPos struct {
 }
 
 type jsonDiagnostic struct {
-	Path     string   `json:"path"`
-	Line     int      `json:"line"`
-	Column   int      `json:"column"`
-	Severity string   `json:"severity,omitempty"`
-	Code     string   `json:"code,omitempty"`
-	Message  string   `json:"message"`
-	Start    *jsonPos `json:"start,omitempty"`
-	End      *jsonPos `json:"end,omitempty"`
+	Path     string        `json:"path"`
+	Line     int           `json:"line"`
+	Column   int           `json:"column"`
+	Severity string        `json:"severity,omitempty"`
+	Code     string        `json:"code,omitempty"`
+	Message  string        `json:"message"`
+	Start    *jsonPos      `json:"start,omitempty"`
+	End      *jsonPos      `json:"end,omitempty"`
+	Help     string        `json:"help,omitempty"`
+	Fixes    []jsonFix     `json:"fixes,omitempty"`
+	Related  []jsonRelated `json:"related,omitempty"`
+}
+
+type jsonFix struct {
+	Title string     `json:"title"`
+	Auto  bool       `json:"auto"`
+	Edits []jsonEdit `json:"edits"`
+}
+
+type jsonEdit struct {
+	Path  string  `json:"path"`
+	Start jsonPos `json:"start"`
+	End   jsonPos `json:"end"`
+	Text  string  `json:"text"`
+}
+
+type jsonRelated struct {
+	Path    string `json:"path"`
+	Line    int    `json:"line"`
+	Column  int    `json:"column"`
+	Message string `json:"message"`
 }
 
 // writeJSONDiagnostics writes each diagnostic as a JSON object on a line of its own: its position
@@ -116,6 +139,17 @@ func jsonDiagnostics(diags []ant.Diagnostic) []jsonDiagnostic {
 		if from.Line > 0 {
 			jd.Start = &jsonPos{from.Line, from.Col}
 			jd.End = &jsonPos{to.Line, to.Col}
+		}
+		jd.Help = d.Help
+		for _, f := range d.Fixes {
+			jf := jsonFix{Title: f.Title, Auto: f.Auto, Edits: []jsonEdit{}}
+			for _, e := range f.Edits {
+				jf.Edits = append(jf.Edits, jsonEdit{Path: e.Start.Path, Start: jsonPos{e.Start.Line, e.Start.Col}, End: jsonPos{e.End.Line, e.End.Col}, Text: e.Text})
+			}
+			jd.Fixes = append(jd.Fixes, jf)
+		}
+		for _, r := range d.Related {
+			jd.Related = append(jd.Related, jsonRelated{Path: r.Pos.Path, Line: r.Pos.Line, Column: r.Pos.Col, Message: r.Message})
 		}
 		out = append(out, jd)
 	}

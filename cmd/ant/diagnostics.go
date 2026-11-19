@@ -20,7 +20,7 @@ func printDiagnostics(w io.Writer, diags []ant.Diagnostic) {
 		return string(b), err
 	}}
 	for _, d := range diags {
-		p.PrintSpan(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col}, withCode(d))
+		p.PrintSpan(w, d.Pos.Path, ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, ast.Pos{Line: d.End.Line, Col: d.End.Col}, withCode(d), notes(d)...)
 	}
 	p.Summary(w, len(diags))
 }
@@ -54,4 +54,20 @@ func withCode(d ant.Diagnostic) string {
 		return d.Message
 	}
 	return d.Message + " [" + d.Code + "]"
+}
+
+// notes are the lines printed under a diagnostic's source: its help, the title of each fix, and
+// each related place (spec/check.md section 2).
+func notes(d ant.Diagnostic) []string {
+	var out []string
+	if d.Help != "" {
+		out = append(out, "help: "+d.Help)
+	}
+	for _, f := range d.Fixes {
+		out = append(out, "fix: "+f.Title)
+	}
+	for _, r := range d.Related {
+		out = append(out, fmt.Sprintf("note: %s: %s", r.Pos, r.Message))
+	}
+	return out
 }

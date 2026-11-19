@@ -26,7 +26,46 @@ type Diagnostic struct {
 	Msg string
 	// Code names the rule the diagnostic reports (spec/check.md section 3).
 	Code codes.Code
+	// Help says how to fix it, when the message does not; Fixes are edits that would, and
+	// Related are other places that explain it.
+	Help    string
+	Fixes   []Fix
+	Related []Related
 }
+
+// Fix is a set of edits that removes a diagnostic. Auto marks one ant code fix applies without
+// asking: the only fix offered, and, for an error, the one edit that could be meant.
+type Fix struct {
+	Title string
+	Auto  bool
+	Edits []Edit
+}
+
+// Edit replaces the text of the module at Path from Start up to End with Text; Start == End
+// inserts.
+type Edit struct {
+	Path       string
+	Start, End ast.Pos
+	Text       string
+}
+
+// Related is another place that explains a diagnostic, such as the test a field path did not
+// narrow by.
+type Related struct {
+	Path string
+	Pos  ast.Pos
+	Msg  string
+}
+
+// diagKey is what tells two diagnostics apart.
+type diagKey struct {
+	path     string
+	pos, end ast.Pos
+	msg      string
+	code     codes.Code
+}
+
+func (d Diagnostic) key() diagKey { return diagKey{d.Path, d.Pos, d.End, d.Msg, d.Code} }
 
 func (d Diagnostic) String() string {
 	if d.Pos.Line == 0 {
@@ -196,11 +235,11 @@ func (l *loader) loaded(m *Module, bad map[string]bool, seen map[int]bool) bool 
 
 // dedupe drops each diagnostic equal to one before it.
 func dedupe(diags []Diagnostic) []Diagnostic {
-	seen := map[Diagnostic]bool{}
+	seen := map[diagKey]bool{}
 	out := diags[:0:0]
 	for _, d := range diags {
-		if !seen[d] {
-			seen[d] = true
+		if !seen[d.key()] {
+			seen[d.key()] = true
 			out = append(out, d)
 		}
 	}
@@ -307,14 +346,14 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 		f, layout, errs = parser.ParseRecover(display, src)
 		recovered = len(errs) > 0
 		for _, pe := range errs {
-			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax})
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax, Help: pe.Help})
 		}
 	} else {
 		var err error
 		f, err = parser.Parse(display, src, mode)
 		if err != nil {
 			pe := err.(*parser.Error)
-			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax})
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax, Help: pe.Help})
 			l.state[key] = 3
 			return nil
 		}
@@ -340,7 +379,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 			opts.Info = resolve.NewInfo()
 		}
 		for _, e := range resolve.Resolve(f, opts) {
-			l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg, Code: e.Code})
+			l.diags = append(l.diags, Diagnostic{Path: display, Pos: e.Pos, Msg: e.Msg, Code: e.Code, Help: e.Help})
 		}
 		info = opts.Info
 	}
@@ -381,6 +420,18 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 // ant check and the language server report them: on a line with a syntax error, every other
 // diagnostic, since the line was not read as written.
 func Settle(diags []Diagnostic) []Diagnostic {
+	keep := Settled(diags)
+	out := diags[:0:0]
+	for i, d := range diags {
+		if keep[i] {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// Settled reports, for each of diags, whether Settle keeps it.
+func Settled(diags []Diagnostic) []bool {
 	type line struct {
 		path string
 		n    int
@@ -391,15 +442,9 @@ func Settle(diags []Diagnostic) []Diagnostic {
 			syntax[line{d.Path, d.Pos.Line}] = true
 		}
 	}
-	if len(syntax) == 0 {
-		return diags
+	keep := make([]bool, len(diags))
+	for i, d := range diags {
+		keep[i] = d.Code == codes.Syntax || !syntax[line{d.Path, d.Pos.Line}]
 	}
-	out := diags[:0:0]
-	for _, d := range diags {
-		if d.Code != codes.Syntax && syntax[line{d.Path, d.Pos.Line}] {
-			continue
-		}
-		out = append(out, d)
-	}
-	return out
+	return keep
 }

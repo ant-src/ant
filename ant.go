@@ -218,6 +218,18 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 			Message:  d.Msg,
 			Code:     string(d.Code),
 			Severity: "error",
+			Help:     d.Help,
+		}
+		for _, f := range d.Fixes {
+			fix := Fix{Title: f.Title, Auto: f.Auto}
+			for _, e := range f.Edits {
+				fix.Edits = append(fix.Edits, Edit{Start: Position{Path: e.Path, Line: e.Start.Line, Col: e.Start.Col},
+					End: Position{Path: e.Path, Line: e.End.Line, Col: e.End.Col}, Text: e.Text})
+			}
+			out[i].Fixes = append(out[i].Fixes, fix)
+		}
+		for _, r := range d.Related {
+			out[i].Related = append(out[i].Related, Related{Pos: Position{Path: r.Path, Line: r.Pos.Line, Col: r.Pos.Col}, Message: r.Msg})
 		}
 	}
 	return out
@@ -327,13 +339,10 @@ func settle(diags []Diagnostic) []Diagnostic {
 	for i, d := range diags {
 		ld[i] = loader.Diagnostic{Path: d.Pos.Path, Pos: ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, Msg: d.Message, Code: codes.Code(d.Code)}
 	}
-	keep := map[loader.Diagnostic]bool{}
-	for _, d := range loader.Settle(ld) {
-		keep[d] = true
-	}
+	keep := loader.Settled(ld)
 	out := diags[:0:0]
 	for i, d := range diags {
-		if keep[ld[i]] {
+		if keep[i] {
 			out = append(out, d)
 		}
 	}

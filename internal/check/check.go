@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ant-src/ant/internal/codes"
+	"github.com/ant-src/ant/internal/resolve"
 	"maps"
 	"path/filepath"
 	"regexp"
@@ -178,6 +179,11 @@ type Checker struct {
 	info *Info
 	// prior counts the errors the loader reported before checking (Config.Prior).
 	prior int
+	// expectedOf holds the type each call was expected to have, for a fix that depends on it.
+	expectedOf map[*ast.Call]types.Type
+	// pathTests holds, by function and field path, where an is test tested a field path, which
+	// narrows nothing (pathHint).
+	pathTests map[pathTest]ast.Pos
 	// quiet is above 0 while the checker reads the body of a lambda it rejected for its
 	// parameters: a name the body leaves undefined is one of the parameters the author meant,
 	// so it is not reported.
@@ -188,26 +194,55 @@ type Checker struct {
 // own, as in "got ?" or "Array[?]", never ?? or ?. of an operator.
 var invalidType = regexp.MustCompile(`(^|[\s\[(,|])\?($|[\s\]),|;:])`)
 
-func (c *Checker) errorf(code codes.Code, pos ast.Pos, format string, args ...any) {
-	c.report(code, pos, ast.Pos{}, fmt.Sprintf(format, args...))
+// errorf reports an error at pos and returns its index, for help, fix, and related to add to,
+// or -1 when it is not reported.
+func (c *Checker) errorf(code codes.Code, pos ast.Pos, format string, args ...any) int {
+	return c.report(code, pos, ast.Pos{}, fmt.Sprintf(format, args...))
 }
 
 // errorIn reports an error about the expression e as a whole, at its start and spanning it.
-func (c *Checker) errorIn(code codes.Code, e ast.Expr, format string, args ...any) {
-	c.report(code, ast.Start(e), e.EndPosition(), fmt.Sprintf(format, args...))
+func (c *Checker) errorIn(code codes.Code, e ast.Expr, format string, args ...any) int {
+	return c.report(code, ast.Start(e), e.EndPosition(), fmt.Sprintf(format, args...))
 }
 
-func (c *Checker) report(code codes.Code, pos, end ast.Pos, msg string) {
+// help adds to the error at i, as errorf returns it, a sentence on how to fix it.
+func (c *Checker) help(i int, format string, args ...any) {
+	if i >= 0 {
+		c.diags[i].Help = fmt.Sprintf(format, args...)
+	}
+}
+
+// fix adds to the error at i an edit of the current module that removes it.
+func (c *Checker) fix(i int, title string, auto bool, edits ...loader.Edit) {
+	if i < 0 {
+		return
+	}
+	for k := range edits {
+		if edits[k].Path == "" {
+			edits[k].Path = c.mod.path
+		}
+	}
+	c.diags[i].Fixes = append(c.diags[i].Fixes, loader.Fix{Title: title, Auto: auto, Edits: edits})
+}
+
+// related adds to the error at i a place of the current module that explains it.
+func (c *Checker) related(i int, pos ast.Pos, msg string) {
+	if i >= 0 {
+		c.diags[i].Related = append(c.diags[i].Related, loader.Related{Path: c.mod.path, Pos: pos, Msg: msg})
+	}
+}
+
+func (c *Checker) report(code codes.Code, pos, end ast.Pos, msg string) int {
 	// A message that names a type the checker could not determine follows from an error already
 	// reported. With none reported, it is kept: then the checker itself went wrong, and passing
 	// in silence would hide that.
 	if invalidType.MatchString(msg) && (len(c.diags) > 0 || c.prior > 0) {
-		return
+		return -1
 	}
 	// In a module recovery read past, a name may be undefined only because the declaration was
 	// in what the parser dropped; it is reported once the syntax error is fixed.
 	if code == codes.Undefined && c.mod != nil && c.mod.m != nil && c.mod.m.Recovered {
-		return
+		return -1
 	}
 	path := ""
 	if c.mod != nil {
@@ -215,10 +250,11 @@ func (c *Checker) report(code codes.Code, pos, end ast.Pos, msg string) {
 	}
 	key := fmt.Sprintf("%s:%d:%d:%s", path, pos.Line, pos.Col, msg)
 	if c.seen[key] {
-		return
+		return -1
 	}
 	c.seen[key] = true
 	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, End: end, Msg: msg, Code: code})
+	return len(c.diags) - 1
 }
 
 // retract drops the error msg reported at pos, if there is one.
@@ -492,7 +528,7 @@ func (c *Checker) declarationFile(f *ast.File) {
 			top = name
 		}
 		if _, bound := c.prelude[top]; bound && !isPrelude {
-			c.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", top)
+			c.help(c.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", top), "%s", resolve.PreludeHelp(top))
 			continue
 		}
 		full := name

@@ -16,6 +16,12 @@ import (
 // call checks a call: a direct call of a declared function, which may be generic and take
 // named arguments; a constructor call; or a call through a function value.
 func (c *Checker) call(x *ast.Call, sc *scope, expected types.Type) types.Type {
+	if expected != nil {
+		if c.expectedOf == nil {
+			c.expectedOf = map[*ast.Call]types.Type{}
+		}
+		c.expectedOf[x] = expected
+	}
 	if x.Optional {
 		fn, short := c.chainRecv(x.Fn, sc)
 		if !types.Includes(fn, types.Null{}) {
@@ -754,7 +760,10 @@ func (c *Checker) missingArg(s *sig, x *ast.Call, recv bool, got []types.Type) {
 	if fits(-1) {
 		for j := len(got); j < len(params); j++ {
 			if required(j) {
-				c.errorIn(codes.Arguments, x, "%s needs an argument for %s", s.fullName(), names[j])
+				i := c.errorIn(codes.Arguments, x, "%s needs an argument for %s", s.fullName(), names[j])
+				if s.fullName() == "Result.ok" && len(x.Args) == 0 {
+					c.okVoidHint(i, x)
+				}
 				return
 			}
 		}

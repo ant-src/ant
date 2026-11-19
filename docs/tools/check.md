@@ -140,6 +140,21 @@ main.ant:6:3: an if without else has type void when the condition is false, whic
 2 errors
 ```
 
+When `ant check` can say how to fix an error, lines after the code say it: `= help:` with a
+sentence, `= fix:` with a change that would remove the error, and `= note:` with another place that
+explains it:
+
+```text
+main.ant:2:16: Array[string] has no field or function join [no-member]
+   │
+ 2 │ let line = tags.join(", ")
+   │            ^^^^^^^^^
+   = help: join is String.join, which takes the array first; call it through its namespace
+   = fix: String.join(tags, ...)
+```
+
+[ant code fix](code.md#fixing) applies the fixes `ant check` is sure of.
+
 ### JSON
 
 With `-json`, `ant check` writes each error to standard output as a JSON object on a line of its
@@ -154,9 +169,11 @@ ant check -json .
 ```
 
 `line` and `column` are where the error is reported, as the text output's first line gives them.
-`severity` is `"error"`, and `code` is the rule the error breaks. `start` and `end` are the span it
-underlines, with `end` just past its last character. Columns count bytes from 1. An error about a
-whole file, such as one that cannot be read, has `line` and `column` 0 and no span.
+`severity` is `"error"`, and `code` is the rule the error breaks. An error with help has `help`, one
+with fixes has `fixes`, each a `title`, whether it is `auto`, and the `edits` that make it, and one
+with related places has `related`. `start` and `end` are the span it underlines, with `end` just
+past its last character. Columns count bytes from 1. An error about a whole file, such as one that
+cannot be read, has `line` and `column` 0 and no span.
 
 ## Errors before checking
 

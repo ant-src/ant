@@ -19,6 +19,8 @@ type Error struct {
 	Pos  ast.Pos
 	Msg  string
 	Code codes.Code
+	// Help says how to fix the error, when the message does not.
+	Help string
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d:%d: %s", e.Pos.Line, e.Pos.Col, e.Msg) }
@@ -270,6 +272,18 @@ func (r *resolver) errorf(code codes.Code, pos ast.Pos, format string, args ...a
 	r.errs = append(r.errs, &Error{Pos: pos, Msg: fmt.Sprintf(format, args...), Code: code})
 }
 
+// help adds help to the error the resolver reported last.
+func (r *resolver) help(text string) {
+	if n := len(r.errs); n > 0 {
+		r.errs[n-1].Help = text
+	}
+}
+
+// PreludeHelp is the help for a declaration that takes the prelude name name.
+func PreludeHelp(name string) string {
+	return fmt.Sprintf("choose another name; ant doc %s shows the prelude's %s", name, name)
+}
+
 func (r *resolver) push(s *scope) *scope {
 	s.names = map[string]*binding{}
 	r.scopes = append(r.scopes, s)
@@ -308,6 +322,7 @@ func (r *resolver) declare(s *scope, name string, pos ast.Pos, node ast.Node, fi
 	}
 	if r.isPrelude(name) {
 		r.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", name)
+		r.help(PreludeHelp(name))
 		return b
 	}
 	// A type parameter names one type in its whole declaration, so nothing in a generic
@@ -408,6 +423,7 @@ func (r *resolver) noteLet(b *binding) {
 func (r *resolver) declareImport(s *scope, name string, pos ast.Pos, imp int, impName string, node ast.Node) {
 	if r.isPrelude(name) {
 		r.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", name)
+		r.help(PreludeHelp(name))
 		return
 	}
 	if old, ok := s.names[name]; ok && !r.session {
@@ -491,6 +507,7 @@ func (r *resolver) typeParams(tps []ast.TypeParam) {
 		switch {
 		case r.isPrelude(tp.Name):
 			r.errorf(codes.Redeclared, tp.Pos, "%s is a prelude name and cannot be redeclared", tp.Name)
+			r.help(PreludeHelp(tp.Name))
 		case seen[tp.Name]:
 			r.errorf(codes.Redeclared, tp.Pos, "%s is already declared in this scope", tp.Name)
 		}

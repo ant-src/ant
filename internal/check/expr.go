@@ -253,7 +253,7 @@ func (c *Checker) expect(pos ast.Pos, t, expected types.Type) {
 // expectIn is expect for the expression e, reported at its start and spanning it.
 func (c *Checker) expectIn(e ast.Expr, t, expected types.Type) {
 	if msg := c.misfit(t, expected); msg != "" {
-		c.errorIn(codes.TypeMismatch, e, "%s", msg)
+		c.pathHint(c.errorIn(codes.TypeMismatch, e, "%s", msg), e)
 	}
 }
 
@@ -425,7 +425,8 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 			return types.Invalid{}
 		}
 		if c.quiet == 0 {
-			c.errorf(codes.Undefined, x.Pos, "%s is not defined", x.Name)
+			i := c.errorf(codes.Undefined, x.Pos, "%s is not defined", x.Name)
+			c.nearHint(i, x.Name, c.visibleNames(sc), "")
 		}
 		return types.Invalid{}
 	}
@@ -600,7 +601,16 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 					break
 				}
 				if base.kind != entModule || !base.mod.m.Recovered {
-					c.errorf(codes.NoMember, x.Pos, "%s has no member %s", base.name, x.Name)
+					i := c.errorf(codes.NoMember, x.Pos, "%s has no member %s", base.name, x.Name)
+					names := make([]string, 0, len(base.members))
+					for name := range base.members {
+						names = append(names, name)
+					}
+					listed := ""
+					if base.mod == nil && (base.kind == entNamespace || base.kind == entType) {
+						listed = base.name // a prelude namespace or type
+					}
+					c.nearHint(i, x.Name, names, listed)
 				}
 				return types.Invalid{}
 			}
@@ -623,7 +633,10 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 		return c.endLink(x, x.Grouped, inner, true)
 	}
 	c.info.recordMember(x, c.info.fieldOf(recv, x.Name))
-	return c.endLink(x, x.Grouped, c.fieldOf(recv, x.Name, x.Pos, func() string { return c.outerVarHint(x.X, sc) }), short)
+	before := len(c.diags)
+	t := c.fieldOf(recv, x.Name, x.Pos, func() string { return c.outerVarHint(x.X, sc) })
+	c.pathHintSince(before, x.X)
+	return c.endLink(x, x.Grouped, t, short)
 }
 
 // chainNote explains a ?. on a left side that is not nullable when a ?. earlier in the chain
@@ -725,12 +738,18 @@ func (c *Checker) fieldOf(recv types.Type, name string, pos ast.Pos, hint func()
 		c.errorf(codes.NoMember, pos, "%s is not a record, so it has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
 		return types.Invalid{}
 	}
+	var names []string
 	for _, f := range fields {
 		if f.Name == name {
 			return f.Type
 		}
+		names = append(names, f.Name)
 	}
-	c.errorf(codes.NoMember, pos, "%s has no field %s%s", types.String(recv), name, c.funcNote(recv, name))
+	fnote := c.funcNote(recv, name)
+	i := c.errorf(codes.NoMember, pos, "%s has no field %s%s", types.String(recv), name, fnote)
+	if fnote == "" {
+		c.nearHint(i, name, names, "")
+	}
 	return types.Invalid{}
 }
 
@@ -929,7 +948,12 @@ func (c *Checker) recordLit(x *ast.RecordLit, sc *scope, expected types.Type) ty
 		}
 		idx := fieldIndex(decl, en.Name)
 		if idx < 0 {
-			c.errorf(codes.NoMember, en.Pos, "%s has no field %s", decl.Name, en.Name)
+			i := c.errorf(codes.NoMember, en.Pos, "%s has no field %s", decl.Name, en.Name)
+			var names []string
+			for _, f := range decl.Fields {
+				names = append(names, f.Name)
+			}
+			c.nearHint(i, en.Name, names, "")
 			c.synth(en.Value, sc)
 			continue
 		}
@@ -1163,7 +1187,9 @@ func (c *Checker) waitingUnion(pos ast.Pos, es []ast.Expr, sc *scope, what, plur
 
 func (c *Checker) checkMapLit(x *ast.MapLit, sc *scope, m types.Map) types.Type {
 	for _, en := range x.Entries {
+		before := len(c.diags)
 		c.check(en.Key, sc, m.Key)
+		c.computedKeyHint(before, en.Key)
 		c.check(en.Value, sc, m.Val)
 	}
 	return m
@@ -1535,6 +1561,8 @@ func (c *Checker) isExpr(x *ast.Is, sc *scope) types.Type {
 		if l := c.narrowable(sc, id); l != nil {
 			declared = l.typ
 		}
+	} else {
+		c.notePathTest(x.X, x.Pos)
 	}
 	if c.alwaysTrue(declared, target, x.Pos) {
 		return types.BoolType

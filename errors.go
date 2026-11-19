@@ -33,6 +33,31 @@ type Diagnostic struct {
 	Code string
 	// Severity is "error".
 	Severity string
+	// Help says how to fix it, when the message does not; Fixes are edits that would, and
+	// Related are other places that explain it.
+	Help    string
+	Fixes   []Fix
+	Related []Related
+}
+
+// Fix is a set of edits that removes a diagnostic. Auto marks one that ant code fix applies
+// without asking (spec/check.md section 2, Help and fixes).
+type Fix struct {
+	Title string
+	Auto  bool
+	Edits []Edit
+}
+
+// Edit replaces the text from Start up to End, both in Start's file, with Text.
+type Edit struct {
+	Start, End Position
+	Text       string
+}
+
+// Related is another place that explains a diagnostic.
+type Related struct {
+	Pos     Position
+	Message string
 }
 
 func (d Diagnostic) Error() string {
