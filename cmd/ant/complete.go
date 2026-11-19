@@ -29,6 +29,8 @@ type command struct {
 	flags []string
 	// args lists the candidates for the nth argument after the flags, or nil for none.
 	args func(n int, word string) []candidate
+	// sub holds the flags of each subcommand, which follow it, for a command that has them.
+	sub map[string][]string
 }
 
 // commands are ant's commands, in the order the shell offers them. A flag a command accepts
@@ -55,10 +57,25 @@ var commands = []command{
 		}
 		return nil
 	}},
+	{name: "code", sub: codeFlags(), args: func(n int, word string) []candidate {
+		if n == 0 {
+			return words([]string{"def", "refs", "type", "symbols", "rename"}, word)
+		}
+		return files(word, ".ant")
+	}},
 	{name: "lsp"},
 	{name: "dap"},
 	{name: "version"},
 	{name: "help"},
+}
+
+// codeFlags are the flags of each subcommand of ant code.
+func codeFlags() map[string][]string {
+	out := map[string][]string{}
+	for sub, extra := range codeSubcommands {
+		out[sub] = append([]string{"-json", "-root"}, extra...)
+	}
+	return out
 }
 
 // flags are those ant takes in place of a command, as run's switch accepts them.
@@ -155,6 +172,10 @@ func complete(line string) []candidate {
 		}
 		if n == 0 && strings.HasPrefix(word, "-") {
 			return words(c.flags, word)
+		}
+		if c.sub != nil && n == 1 && strings.HasPrefix(word, "-") {
+			sub := before[1]
+			return words(c.sub[sub], word)
 		}
 		if c.args == nil {
 			return nil

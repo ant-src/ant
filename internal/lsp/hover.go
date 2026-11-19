@@ -40,18 +40,24 @@ func (s *Server) hover(p *TextDocumentPositionParams) *Hover {
 	case t.obj == nil:
 		return nil
 	}
-	head, doc := a.describe(t.obj)
-	// A variable's type at this use, narrowed, when it differs from the declared one.
-	if id, ok := t.node.(*ast.Ident); ok && (t.obj.Kind == check.Var || t.obj.Kind == check.Param) {
-		if ty, ok := a.info.Types[id]; ok && ty != nil && typeString(ty) != typeString(t.obj.Type()) {
-			head += "\n// here: " + typeString(ty)
-		}
-	}
+	head, doc := a.describeAt(t)
 	text := code(head)
 	if doc != "" {
 		text += "\n\n" + docMarkdown(doc, a.knows)
 	}
 	return &Hover{Contents: *markdown(text), Range: &rng}
+}
+
+// describeAt is what hover shows for a name: the object's description, with a line for a
+// variable's type at this use, narrowed, when it differs from the declared one, and its doc.
+func (a *analysis) describeAt(t *target) (head, doc string) {
+	head, doc = a.describe(t.obj)
+	if id, ok := t.node.(*ast.Ident); ok && (t.obj.Kind == check.Var || t.obj.Kind == check.Param) {
+		if ty, ok := a.info.Types[id]; ok && ty != nil && typeString(ty) != typeString(t.obj.Type()) {
+			head += "\n// here: " + typeString(ty)
+		}
+	}
+	return head, doc
 }
 
 // elementHover describes a markup element (section 5, HTML expressions).

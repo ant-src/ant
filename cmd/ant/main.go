@@ -6,6 +6,7 @@
 //	ant test [flags] [path...]   run the tests of the test files under the paths (spec/test.md)
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
+//	ant code <subcommand> ...    find declarations, uses, and types, and rename (private/tools/code.md)
 //	ant lsp                      serve the Language Server Protocol to an editor
 //	ant dap                      serve the Debug Adapter Protocol to an editor
 //	ant --comp bash|zsh|fish     print the script that completes ant's commands in the shell
@@ -18,6 +19,8 @@
 // signal, SIGINT or SIGTERM, as a shell's child does, or exits with 130 where there are none.
 // Os.exit sets its own status. ant fmt exits 1 when --check finds a file to change and 2 when a
 // file cannot be read, parsed, or written. ant doc exits 1 when there is no such declaration.
+// ant code exits 1 when nothing was found, a location is ambiguous, or a rename was refused, and
+// 2 when the usage is wrong, a file cannot be read, parsed, or written, or an answer is incomplete.
 // ant lsp exits 0 when the client sends shutdown and then exit, 1 when the connection ends
 // otherwise. ant dap exits 0 when the client disconnects, 1 when the connection ends first.
 //
@@ -74,6 +77,11 @@ const usage = `usage:
   ant test [flags] [path...]
   ant fmt [--check] <path>...   (- for standard input)
   ant doc <name> | <file.ant> [name]
+  ant code def [flags] <loc>
+  ant code refs [flags] <loc>
+  ant code type [flags] <loc>
+  ant code symbols [flags] [path...]
+  ant code rename [flags] <loc> <name>
   ant lsp
   ant dap
   ant --comp bash|zsh|fish
@@ -151,6 +159,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return fmtCommand(args[1:], stdin, stdout, stderr)
 	case "doc":
 		return docCommand(args[1:], stdout, stderr)
+	case "code":
+		return codeCommand(args[1:], stdout, stderr)
 	case "lsp":
 		return lspCommand(args[1:], stdin, stdout, stderr)
 	case "dap":

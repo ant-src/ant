@@ -19,7 +19,7 @@ func TestComplete(t *testing.T) {
 		line string
 		want []string
 	}{
-		{"ant ", []string{"run", "check", "test", "fmt", "doc", "lsp", "dap", "version", "help", "lib", "main.ant", "my dir"}},
+		{"ant ", []string{"run", "check", "test", "fmt", "doc", "code", "lsp", "dap", "version", "help", "lib", "main.ant", "my dir"}},
 		{"ant r", []string{"run"}},
 		{"ant m", []string{"main.ant", "my dir"}},
 		{"ant -", []string{"-h", "--help", "--version", "--comp"}},
@@ -91,7 +91,7 @@ func TestCompletionReply(t *testing.T) {
 		want     string
 	}{
 		{"COMP_ZSH", "ant run ", nil, "lib/\tlib\tdir\nmain.ant\tmain.ant\tfile\n"},
-		{"COMP_ZSH", "ant c", nil, "check\tcheck\tword\n"},
+		{"COMP_ZSH", "ant c", nil, "check\tcheck\tword\ncode\tcode\tword\n"},
 		{"COMP_FISH", "ant run ", nil, "lib/\nmain.ant\n"},
 		{"COMP_LINE", "ant run m", []string{"ant", "m", "run"}, "main.ant\n"},
 	}

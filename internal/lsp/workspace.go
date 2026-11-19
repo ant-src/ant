@@ -18,6 +18,8 @@ type workspaceFile struct {
 	modTime int64
 	size    int64
 	version int
+	// broken is set when the file has syntax errors, so that its imports may be incomplete.
+	broken bool
 }
 
 // workspaceFiles lists the parsed .ant files of the workspace: every open document, and every
@@ -31,8 +33,8 @@ func (s *Server) workspaceFiles() []*workspaceFile {
 	for path, d := range open {
 		f := s.files[path]
 		if f == nil || f.doc != d || f.version != d.version || f.version == 0 {
-			parsed, _, _ := parser.ParseRecover(path, d.text)
-			f = &workspaceFile{doc: d, file: parsed, version: d.version}
+			parsed, _, errs := parser.ParseRecover(path, d.text)
+			f = &workspaceFile{doc: d, file: parsed, version: d.version, broken: len(errs) > 0}
 			s.files[path] = f
 		}
 		out = append(out, f)
@@ -64,9 +66,11 @@ func (s *Server) walk() []*workspaceFile {
 	}
 	seen := map[string]bool{}
 	out := []*workspaceFile{}
+	s.unreadable = nil
 	for _, root := range s.roots {
 		filepath.WalkDir(root, func(p string, e os.DirEntry, err error) error {
 			if err != nil {
+				s.unreadable = append(s.unreadable, p)
 				return nil
 			}
 			if e.IsDir() {
@@ -81,6 +85,7 @@ func (s *Server) walk() []*workspaceFile {
 			seen[p] = true
 			info, err := e.Info()
 			if err != nil {
+				s.unreadable = append(s.unreadable, p)
 				return nil
 			}
 			// parsed again only when its size or modification time changed
@@ -88,10 +93,11 @@ func (s *Server) walk() []*workspaceFile {
 			if f == nil || f.modTime != info.ModTime().UnixNano() || f.size != info.Size() {
 				src, err := os.ReadFile(p)
 				if err != nil {
+					s.unreadable = append(s.unreadable, p)
 					return nil
 				}
-				parsed, _, _ := parser.ParseRecover(p, string(src))
-				f = &workspaceFile{doc: newDocument(fileURI(p), 0, string(src)), file: parsed, modTime: info.ModTime().UnixNano(), size: info.Size()}
+				parsed, _, errs := parser.ParseRecover(p, string(src))
+				f = &workspaceFile{doc: newDocument(fileURI(p), 0, string(src)), file: parsed, modTime: info.ModTime().UnixNano(), size: info.Size(), broken: len(errs) > 0}
 				s.disk[p] = f
 			}
 			out = append(out, f)
@@ -103,6 +109,7 @@ func (s *Server) walk() []*workspaceFile {
 			delete(s.disk, path)
 		}
 	}
+	sort.Strings(s.unreadable)
 	s.walked, s.walkedGen = out, s.diskGen
 	return out
 }

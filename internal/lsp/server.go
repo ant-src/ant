@@ -41,8 +41,10 @@ type Server struct {
 	// reports no change; otherwise each walk walks again.
 	walked    []*workspaceFile
 	walkedGen int
-	diskGen   int
-	watching  bool
+	// unreadable lists the files and directories the last walk could not read.
+	unreadable []string
+	diskGen    int
+	watching   bool
 
 	initialized bool
 	shutdown    bool
