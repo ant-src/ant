@@ -94,8 +94,9 @@ failing row while you fix it, pass `-run`:
 ant test -run 'split/extra'
 ```
 
-`ant run` refuses a test file: tests run only under `ant test`. Like `ant run`, `ant test` does not
-type-check; run `ant check words_test.ant` to check the tests and the code they import.
+`ant run` refuses a test file: tests run only under `ant test`. Unlike `ant run`, `ant test` checks
+types first: it checks the test files and the code they import, and runs no test if the checker
+reports an error. `-nocheck` skips the check.
 
 Use `try` in a test body: an `Err` it returns fails the test. To check that code panics, wrap it in
 [`Panic.catch`](../lib/Panic/catch.md) and assert that the result is an `Err`. A test body can also
