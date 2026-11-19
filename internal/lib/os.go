@@ -69,13 +69,13 @@ func init() {
 				return int64(os.Getpid())
 			}),
 			fn("Os.uid", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				if uid := os.Geteuid(); uid >= 0 {
+				if uid := os.Geteuid(); userIDs && uid >= 0 {
 					return int64(uid)
 				}
 				return value.Null
 			}),
 			fn("Os.gid", "", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
-				if gid := os.Getegid(); gid >= 0 {
+				if gid := os.Getegid(); userIDs && gid >= 0 {
 					return int64(gid)
 				}
 				return value.Null
