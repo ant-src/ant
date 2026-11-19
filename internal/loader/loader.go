@@ -251,16 +251,7 @@ func dedupe(diags []Diagnostic) []Diagnostic {
 // canonical returns a module's identity key and the path used in messages. raw is the path as
 // written; importer is the raw path of the importing module, or "" for the root.
 func (l *loader) canonical(raw, importer string) (key, display string) {
-	joined := raw
-	// An absolute path names the module itself, wherever it was written; a relative one is
-	// resolved against the importing file.
-	if importer != "" && !path.IsAbs(raw) && !filepath.IsAbs(raw) {
-		if l.cfg.FS != nil || l.isSource(importer) {
-			joined = path.Join(path.Dir(importer), raw)
-		} else {
-			joined = filepath.Join(filepath.Dir(importer), raw)
-		}
-	}
+	joined := l.join(raw, importer)
 	if l.cfg.FS != nil || l.isSource(joined) {
 		return path.Clean(joined), path.Clean(joined)
 	}
@@ -282,6 +273,19 @@ func (l *loader) canonical(raw, importer string) (key, display string) {
 		l.files[abs] = info
 	}
 	return abs, joined
+}
+
+// join returns the path of the module raw names, as written in importer, the raw path of the
+// importing module, or "" for the root. An absolute path names the module itself, wherever it was
+// written; a relative one is resolved against the importing file.
+func (l *loader) join(raw, importer string) string {
+	if importer == "" || path.IsAbs(raw) || filepath.IsAbs(raw) {
+		return raw
+	}
+	if l.cfg.FS != nil || l.isSource(importer) {
+		return path.Join(path.Dir(importer), raw)
+	}
+	return filepath.Join(filepath.Dir(importer), raw)
 }
 
 func (l *loader) isSource(p string) bool {
@@ -391,7 +395,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	}
 	for _, imp := range f.Imports {
 		childKey, childDisplay := l.canonical(imp.Path, raw)
-		child := l.visit(childKey, childDisplay, path.Join(path.Dir(raw), imp.Path), imp.Path, Diagnostic{Path: display, Pos: imp.Pos}, false)
+		child := l.visit(childKey, childDisplay, l.join(imp.Path, raw), imp.Path, Diagnostic{Path: display, Pos: imp.Pos}, false)
 		if child == nil {
 			imp.Module = -1
 		}

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -174,6 +176,32 @@ func TestSessionImportInFailedInput(t *testing.T) {
 	}
 	if v, err := s.Eval("L.bump()"); err != nil || v != int64(2) {
 		t.Errorf("L.bump() = %v, %v", v, err)
+	}
+}
+
+// TestSessionTransitiveImport checks that a module an input imports may import another, in the
+// input that imports it and in the inputs after it, which take the import by its absolute path.
+func TestSessionTransitiveImport(t *testing.T) {
+	dir := t.TempDir()
+	for name, src := range map[string]string{
+		"b.ant": "export func b(): int { 2 }",
+		"a.ant": "import \"./b.ant\" { b }\nexport func a(): int { b() + 1 }",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(dir)
+	s, err := ant.NewSession(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if v, err := s.Eval("import \"./a.ant\" { a }\na()"); err != nil || v != int64(3) {
+		t.Fatalf("a() = %v, %v", v, err)
+	}
+	if v, err := s.Eval("a()"); err != nil || v != int64(3) {
+		t.Errorf("a() in a later input = %v, %v", v, err)
 	}
 }
 
