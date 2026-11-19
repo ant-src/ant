@@ -68,7 +68,17 @@ func (s *Server) walk() []*workspaceFile {
 	out := []*workspaceFile{}
 	s.unreadable = nil
 	for _, root := range s.roots {
-		filepath.WalkDir(root, func(p string, e os.DirEntry, err error) error {
+		// A folder that is a symbolic link is walked through its target, which WalkDir would not
+		// enter, and its files are named under the link.
+		target, err := filepath.EvalSymlinks(root)
+		if err != nil {
+			s.unreadable = append(s.unreadable, root)
+			continue
+		}
+		filepath.WalkDir(target, func(p string, e os.DirEntry, err error) error {
+			if rel, rerr := filepath.Rel(target, p); rerr == nil {
+				p = filepath.Join(root, rel)
+			}
 			if err != nil {
 				s.unreadable = append(s.unreadable, p)
 				return nil
