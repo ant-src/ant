@@ -82,6 +82,7 @@ const usage = `usage:
   ant code type [flags] <loc>
   ant code symbols [flags] [path...]
   ant code rename [flags] <loc> <name>
+  ant code fix [flags] [path...]
   ant lsp
   ant dap
   ant --comp bash|zsh|fish

@@ -64,7 +64,9 @@ func TestDocsHarness(t *testing.T) {
 		{name: "error on another line", page: f + "ant\nvar x: int = 1 // error: cannot use\nvar y: string = 1\n" + f + "\n", want: []string{"p.md:4: ant check does not report"}},
 		{name: "panic on another line", page: f + "ant\nvar ys = [1] // panic: index 5\nys[5] = 2\n" + f + "\n", want: []string{"not at line 4"}},
 		{name: "error marker with cases", page: f + "ant\n1 + 1 // 2\nvar x: int = \"s\" // error: cannot use\n" + f + "\n", want: []string{"has no cases"}},
-		{name: "error marker on a module that runs", page: "<!-- test: cmd ant test . -->\n\n" + f + "ant [x_test.ant]\nvar x: int = \"s\" // error: cannot use\n" + f + "\n", want: []string{"without test: check-only or test: cmd"}},
+		// a named block with // error: and a command is checked, then runs, and its status counts
+		{name: "error marker on a module that runs", page: "<!-- test: cmd ant test . -->\n\n" + f + "ant [x_test.ant]\nvar x: int = \"s\" // error: cannot use\n" + f + "\n", want: []string{"ant test . exits with 1, not 0"}},
+		{name: "error marker on a program with a command", page: "<!-- test: cmd ant check . -->\n\n" + f + "ant\nvar x: int = \"s\" // error: cannot use\n" + f + "\n", want: []string{"of an unnamed block with test: cmd"}},
 		{name: "exit needs a number", page: "<!-- test: exit one -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"needs a number"}},
 		{name: "wrong exit", page: "<!-- test: exit 3 -->\n\n" + f + "ant\nprintln(1)\n" + f + "\n", want: []string{"exits with 0, not 3"}},
 		{name: "no panic", page: f + "ant\nvar a = 1 // panic: boom\n" + f + "\n", want: []string{"does not panic"}},

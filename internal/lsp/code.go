@@ -128,7 +128,7 @@ func (c *Code) open(path string) (*document, *CodeError) {
 
 // broken lists the files a search across the workspace and the programs of progs may have missed
 // uses in: the files of the workspace that cannot be read or have syntax errors, and the modules
-// of the programs that have syntax errors (code.md section 10).
+// of the programs that have syntax errors (code.md section 11).
 func (c *Code) broken(progs []program) []string {
 	c.workspace()
 	set := map[string]bool{}

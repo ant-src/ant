@@ -635,19 +635,22 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 	}
 
 	// A program. It runs when it is the page's script or names a command; a named block is a
-	// module, a test file, or a data file the others use.
+	// module, a test file, or a data file the others use. A named block with // error: may name
+	// a command that works on code that does not check, such as ant code fix: the errors are
+	// checked as marked, and then the command runs.
+	brokenCmd := fails && has("cmd") && b.name != ""
 	if fails {
 		if _, isCases := caseInputs(b.src); isCases {
 			bad("a block with // error: has no cases: it does not run, so their values would not be checked")
 		}
-		if !isAnt || has("check-only") || has("cmd") {
-			bad("// error: marks a line of an ant program without test: check-only or test: cmd")
+		if !isAnt || has("check-only") || has("cmd") && !brokenCmd {
+			bad("// error: marks a line of an ant program without test: check-only, or of an unnamed block with test: cmd")
 		}
 		if len(panics) > 0 {
 			bad("a block with // error: does not run, so it has no // panic:")
 		}
 	}
-	running := !fails && !has("check-only") && (b.name == "" || has("cmd"))
+	running := (!fails || brokenCmd) && !has("check-only") && (b.name == "" || has("cmd"))
 	if len(panics) > 0 && !running {
 		bad("// panic: marks a line of a block that runs")
 	}
@@ -662,7 +665,7 @@ func blockProblems(t *testing.T, bin, rel, dir string, b *docBlock) []string {
 		case "stdin", "exit", "env":
 			ok = running
 		case "cmd":
-			ok = !fails && !has("check-only")
+			ok = (!fails || brokenCmd) && !has("check-only")
 		case "check-only":
 			ok = isAnt
 		}
