@@ -216,7 +216,8 @@ func (a *analysis) refsAt(t *target) []reference {
 	return a.referencesOf(t.obj)
 }
 
-// references answers textDocument/references.
+// references answers textDocument/references: the mentions in the declaration's program and,
+// for one that reaches importers, in theirs (spec/lsp.md section 4).
 func (s *Server) references(p *ReferenceParams) []Location {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {
@@ -228,12 +229,68 @@ func (s *Server) references(p *ReferenceParams) []Location {
 		return nil
 	}
 	out := []Location{}
-	for _, r := range a.refsAt(t) {
-		if r.decl && !p.Context.IncludeDeclaration {
+	for _, m := range s.mentionsAt(a, t) {
+		if m.decl && !p.Context.IncludeDeclaration {
 			continue
 		}
-		if loc, ok := a.location(r.path, r.from, r.to); ok {
+		if loc, ok := m.a.location(m.path, m.from, m.to); ok {
 			out = append(out, loc)
+		}
+	}
+	return out
+}
+
+// program is a program a declaration's uses are searched in, with the declaration's object in it.
+type program struct {
+	a *analysis
+	o *check.Object
+}
+
+// mention is a reference found in the program of an analysis.
+type mention struct {
+	a *analysis
+	reference
+}
+
+// programs lists the programs the uses of o are searched in: a's own, and, when o reaches
+// importers, the program rooted at each module of the workspace that imports o's module (spec/
+// lsp.md section 4), each with the object it finds declared where o is.
+func (s *Server) programs(a *analysis, o *check.Object) []program {
+	out := []program{{a, o}}
+	if !a.reachesImporters(o) {
+		return out
+	}
+	declPath, from, _, ok := a.declRange(o)
+	if !ok {
+		return out
+	}
+	for _, other := range s.importers(declPath, a.root.uri) {
+		oa := s.analyze(other)
+		if same := oa.objectDeclaredAt(declPath, from); same != nil {
+			out = append(out, program{oa, same})
+		}
+	}
+	return out
+}
+
+// mentionsAt finds the mentions of what the target names, each once: of an alias in its module
+// when the target is on one, else of its object in every program it reaches.
+func (s *Server) mentionsAt(a *analysis, t *target) []mention {
+	var out []mention
+	if alias := a.aliasAt(t); alias != nil {
+		for _, r := range a.aliasRefs(t.path, alias) {
+			out = append(out, mention{a, r})
+		}
+		return out
+	}
+	seen := map[reference]bool{}
+	for _, pr := range s.programs(a, t.obj) {
+		for _, r := range pr.a.referencesOf(pr.o) {
+			key := reference{path: r.path, from: r.from}
+			if !seen[key] {
+				seen[key] = true
+				out = append(out, mention{pr.a, r})
+			}
 		}
 	}
 	return out
@@ -366,61 +423,71 @@ func (s *Server) rename(p *RenameParams) (any, *rpcError) {
 		return nil, err
 	}
 	a := s.analyze(d)
-	path := a.module().File.Path
-	t := a.at(path, d.posOf(d.offset(p.Position, s.utf16)))
+	edits, err := s.renameAt(a, a.at(a.module().File.Path, d.posOf(d.offset(p.Position, s.utf16))), p.NewName)
+	if err != nil {
+		return nil, err
+	}
+	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
+	for _, e := range edits {
+		rd := e.a.doc(e.path)
+		edit.Changes[rd.uri] = append(edit.Changes[rd.uri], TextEdit{Range: s.rng(rd, e.from, e.to), NewText: e.text})
+	}
+	return edit, nil
+}
+
+// renameEdit is one name a rename changes, with the analysis whose program it was found in.
+type renameEdit struct {
+	mention
+	text string
+}
+
+// renameAt finds the edits that rename what the target names to name, each once, or why it
+// cannot be renamed. The name is valid (validName).
+func (s *Server) renameAt(a *analysis, t *target, name string) ([]renameEdit, *rpcError) {
 	if t == nil || t.obj == nil {
 		return nil, &rpcError{Code: codeInvalidParams, Message: "nothing to rename here"}
 	}
 	if err := renamable(t.obj); err != nil {
 		return nil, err
 	}
-	edit := WorkspaceEdit{Changes: map[string][]TextEdit{}}
+	var edits []renameEdit
+	seen := map[reference]bool{}
+	add := func(m mention, field string) {
+		key := reference{path: m.path, from: m.from}
+		if !seen[key] && m.a.doc(m.path) != nil {
+			seen[key] = true
+			edits = append(edits, renameEdit{m, m.newText(name, field)})
+		}
+	}
 	if alias := a.aliasAt(t); alias != nil {
 		// the alias and its uses in this module only, which must not clash with the names bound
 		// around them
-		refs := a.aliasRefs(path, alias)
+		refs := a.aliasRefs(t.path, alias)
 		for _, r := range refs {
-			if a.boundAround(path, r.from, p.NewName, func(b resolve.Binding) bool { return b.Node == ast.Node(alias) }) {
-				return nil, &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared where %s is used", p.NewName, alias.Alias)}
+			if a.boundAround(t.path, r.from, name, func(b resolve.Binding) bool { return b.Node == ast.Node(alias) }) {
+				return nil, &rpcError{Code: codeInvalidParams, Message: fmt.Sprintf("%s is already declared where %s is used", name, alias.Alias)}
 			}
 		}
 		for _, r := range refs {
-			add2(&edit, s, a, r, p.NewName, alias.Alias)
+			add(mention{a, r}, alias.Alias)
 		}
-		return edit, nil
+		return edits, nil
 	}
-	if err := a.collides(t.obj, p.NewName); err != nil {
-		return nil, err
-	}
-	for _, r := range a.referencesOf(t.obj) {
-		if !r.viaAlias {
-			add2(&edit, s, a, r, p.NewName, t.obj.Name)
+	// Every module of the workspace that imports the declaring module, when the declaration
+	// reaches importers (spec/lsp.md section 4), is the root of a program of its own, in which
+	// the object is found again by where it is declared. A name the importer binds must not
+	// clash there.
+	for _, pr := range s.programs(a, t.obj) {
+		if err := pr.a.collides(pr.o, name); err != nil {
+			return nil, err
 		}
-	}
-	if a.reachesImporters(t.obj) {
-		// Every module of the workspace that imports the declaring module (spec/lsp.md
-		// section 4): each is the root of a program of its own, in which the object is found
-		// again by where it is declared. A name the importer binds must not clash there.
-		declPath, from, _, ok := a.declRange(t.obj)
-		if ok {
-			for _, other := range s.importers(declPath, a.root.uri) {
-				oa := s.analyze(other)
-				same := oa.objectDeclaredAt(declPath, from)
-				if same == nil {
-					continue
-				}
-				if err := oa.collides(same, p.NewName); err != nil {
-					return nil, err
-				}
-				for _, r := range oa.referencesOf(same) {
-					if r.path != declPath && !r.viaAlias {
-						add2(&edit, s, oa, r, p.NewName, t.obj.Name)
-					}
-				}
+		for _, r := range pr.a.referencesOf(pr.o) {
+			if !r.viaAlias {
+				add(mention{pr.a, r}, t.obj.Name)
 			}
 		}
 	}
-	return edit, nil
+	return edits, nil
 }
 
 // reachesImporters reports whether renaming o changes other modules: an export, or a
@@ -481,21 +548,6 @@ func (a *analysis) enclosingFunc(o *check.Object) *ast.FuncDecl {
 		}
 	}
 	return nil
-}
-
-// add2 adds a rename edit, once per document and range.
-func add2(edit *WorkspaceEdit, s *Server, a *analysis, r reference, name, field string) {
-	rd := a.doc(r.path)
-	if rd == nil {
-		return
-	}
-	te := TextEdit{Range: s.rng(rd, r.from, r.to), NewText: r.newText(name, field)}
-	for _, have := range edit.Changes[rd.uri] {
-		if have == te {
-			return
-		}
-	}
-	edit.Changes[rd.uri] = append(edit.Changes[rd.uri], te)
 }
 
 // objectDeclaredAt finds the object whose name is declared at a position of a module in this

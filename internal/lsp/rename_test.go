@@ -132,3 +132,34 @@ func TestRenameCapturedInImporter(t *testing.T) {
 		t.Errorf("renaming helper to bar through a namespace: %v %+v", err, edit.Changes)
 	}
 }
+
+// TestReferencesReachImporters checks that references, as rename does, cover the modules of the
+// workspace that import the declaring module, opened or not, and give the same answer from the
+// declaration and from a use.
+func TestReferencesReachImporters(t *testing.T) {
+	lib := "export func helper(): int { 1 }\n\nfunc twice(): int { helper() + helper() }\n"
+	main := "import \"./lib.ant\" { helper }\n\nprintln(helper())\n"
+	other := "import \"./lib.ant\" { helper: h }\n\nprintln(h())\n"
+	c := start(t, map[string]string{"lib.ant": lib, "main.ant": main, "other.ant": other})
+	libURI := c.open("lib.ant", lib)
+	refs := func(uri string, p Position) []Location {
+		rp := ReferenceParams{TextDocumentPositionParams: c.pos(uri, p)}
+		rp.Context.IncludeDeclaration = true
+		var locs []Location
+		c.call("textDocument/references", rp, &locs)
+		return locs
+	}
+	// the declaration, two uses in lib, the import and the use in main, the import and the use
+	// through the alias in other
+	if got := refs(libURI, at(lib, "helper", 1, 0)); len(got) != 7 {
+		t.Errorf("references of helper from lib: %d, want 7: %+v", len(got), got)
+	}
+	mainURI := c.open("main.ant", main)
+	if got := refs(mainURI, at(main, "helper())", 1, 0)); len(got) != 7 {
+		t.Errorf("references of helper from main: %d, want 7: %+v", len(got), got)
+	}
+	// a private top-level function, which a test file may import, reaches importers too
+	if got := refs(libURI, at(lib, "twice", 1, 0)); len(got) != 1 {
+		t.Errorf("references of twice: %+v", got)
+	}
+}
