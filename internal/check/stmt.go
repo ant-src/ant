@@ -225,6 +225,9 @@ func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type
 			c.checkDefaults(c.localTypes[st])
 			c.hiddenInBody(st, inner)
 			last = types.Void{}
+		case *ast.BadStmt:
+			// what recovery could not read has a value no one knows
+			last = types.Invalid{}
 		case ast.Expr:
 			if isLast && expected != nil {
 				last = c.check(st, inner, expected)
@@ -239,7 +242,7 @@ func (c *Checker) block(b *ast.Block, sc *scope, expected types.Type) types.Type
 	if expected != nil {
 		if len(b.Stmts) == 0 {
 			c.expect(b.Pos, types.Void{}, expected)
-		} else if _, isExpr := b.Stmts[len(b.Stmts)-1].(ast.Expr); !isExpr {
+		} else if _, isExpr := b.Stmts[len(b.Stmts)-1].(ast.Expr); !isExpr && !types.IsInvalid(last) {
 			c.expect(b.Pos, types.Void{}, expected)
 		}
 	}

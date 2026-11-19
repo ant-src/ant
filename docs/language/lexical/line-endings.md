@@ -272,12 +272,12 @@ func double(n: int): int {
 }
 ```
 
-A line that starts with `.` does not continue a bare `return` either, and since no statement starts
-with `.`, it is a syntax error:
+A line that starts with `.` does not continue a bare `return` either. No statement starts with `.`,
+so that line is a syntax error, and the bare `return` fails as in the example above:
 
 ```ant
 func shout(s: string): string {
-  return
+  return // error: cannot use void where string is expected
   .toUpper() // error: unexpected '.'
 }
 ```

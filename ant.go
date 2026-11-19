@@ -56,6 +56,8 @@ package ant
 import (
 	"context"
 	"errors"
+	"github.com/ant-src/ant/ast"
+	"github.com/ant-src/ant/internal/codes"
 	"io"
 	"io/fs"
 	"os"
@@ -286,15 +288,18 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 		diags = append(diags, p.Check()...)
 	}
 	if len(roots) > 0 {
-		prog, lds := loader.LoadRoots(roots, loader.Config{FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, Extra: extra})
+		// Recovery keeps checking past a syntax error, so that every error of a file is reported
+		// in one run; a load error still makes the program one that cannot be loaded.
+		prog, lds := loader.LoadRoots(roots, loader.Config{FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, Extra: extra, Recover: true})
 		if len(lds) > 0 {
 			diags = append(diags, convert(lds)...)
 			loaded = false
 		}
 		if len(prog.Modules) > 0 {
-			diags = append(diags, convert(check.Program(prog, check.Config{Namespaces: nsDecls, Removed: cfg.removed}))...)
+			diags = append(diags, convert(check.Program(prog, check.Config{Namespaces: nsDecls, Removed: cfg.removed, Prior: len(lds)}))...)
 		}
 	}
+	diags = settle(diags)
 	sort.SliceStable(diags, func(i, j int) bool {
 		a, b := diags[i].Pos, diags[j].Pos
 		if a.Path != b.Path {
@@ -314,4 +319,23 @@ func loadDiagnostics(err error) []Diagnostic {
 		return le.Diagnostics
 	}
 	return []Diagnostic{{Message: err.Error()}}
+}
+
+// settle drops the diagnostics that only follow from a syntax error (loader.Settle).
+func settle(diags []Diagnostic) []Diagnostic {
+	ld := make([]loader.Diagnostic, len(diags))
+	for i, d := range diags {
+		ld[i] = loader.Diagnostic{Path: d.Pos.Path, Pos: ast.Pos{Line: d.Pos.Line, Col: d.Pos.Col}, Msg: d.Message, Code: codes.Code(d.Code)}
+	}
+	keep := map[loader.Diagnostic]bool{}
+	for _, d := range loader.Settle(ld) {
+		keep[d] = true
+	}
+	out := diags[:0:0]
+	for i, d := range diags {
+		if keep[ld[i]] {
+			out = append(out, d)
+		}
+	}
+	return out
 }

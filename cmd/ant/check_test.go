@@ -61,8 +61,9 @@ func TestCheckSharedModule(t *testing.T) {
 	}
 }
 
-// TestCheckLoadError checks that a program that does not load is reported and left unchecked,
-// that the others are still checked, and that the status is then 2.
+// TestCheckLoadError checks that a program that does not load is reported and checked past its
+// syntax error, as are the programs that import it, with no error about a name the error hid,
+// and that the status is then 2.
 func TestCheckLoadError(t *testing.T) {
 	dir := tree(t, map[string]string{
 		"broken.ant":      "let x = (1 +\n",
@@ -73,12 +74,12 @@ func TestCheckLoadError(t *testing.T) {
 	if status != 2 {
 		t.Errorf("status %d, want 2", status)
 	}
-	for _, want := range []string{"broken.ant:2:1: unexpected end of file", "fine.ant:1:14:", "2 errors\n"} {
+	for _, want := range []string{"broken.ant:2:1: unexpected end of file", "fine.ant:1:14:", "uses_broken.ant:3:14:", "3 errors\n"} {
 		if !strings.Contains(errOut, want) {
 			t.Errorf("stderr lacks %q:\n%s", want, errOut)
 		}
 	}
-	if strings.Count(errOut, "unexpected end of file") != 1 || strings.Contains(errOut, "uses_broken.ant:3") {
+	if strings.Count(errOut, "unexpected end of file") != 1 || strings.Contains(errOut, "uses_broken.ant:1") {
 		t.Errorf("stderr:\n%s", errOut)
 	}
 }
@@ -173,5 +174,47 @@ func TestCheckJSONWholeFile(t *testing.T) {
 	writeJSONDiagnostics(&out, []ant.Diagnostic{{Pos: ant.Position{Path: "gone.ant"}, Message: "cannot read the module"}})
 	if want := `{"path":"gone.ant","line":0,"column":0,"message":"cannot read the module"}` + "\n"; out.String() != want {
 		t.Errorf("got %s, want %s", out.String(), want)
+	}
+}
+
+// TestCheckEveryError checks that a file with syntax errors is checked past them, so that one run
+// reports every error of it, and that an error that only follows from another is not reported:
+// a type the checker could not determine, the parameters a lambda rejected for its shape, a name
+// imported without export, a declaration a syntax error hid, and a line a syntax error broke.
+func TestCheckEveryError(t *testing.T) {
+	dir := tree(t, map[string]string{
+		"multi.ant":   "let a = 1 as int\nlet b: int = \"x\"\nlet match = 2\nlet c: string = 5\n",
+		"chain.ant":   "type Op = { op: string }\nfunc f(k: Op | int): string {\n  let m = k.foo\n  m?.bar ?? \"x\"\n}\n",
+		"lambda.ant":  "func top(xs: Array[int]): Array[int] {\n  xs.sortWith({ b - a })\n}\n",
+		"temp.ant":    "export func celsius(f: float64): float64 { (f - 32.0) * ratio() }\nfunc ratio(): float64 { 5.0 / 9.0 }\n",
+		"private.ant": "import \"./temp.ant\" { celsius, ratio }\nprintln(ratio())\n",
+		"broken.ant":  "let x = (1 +\nexport func f(): int { 1 }\n",
+		"hidden.ant":  "import \"./broken.ant\" B\nimport \"./broken.ant\" { x }\nprintln(B.x + x)\nlet q: int = \"s\"\n",
+		"line.ant":    "export func f( {\n",
+	})
+	status, _, errOut := checkRun(dir)
+	if status != 2 {
+		t.Errorf("status %d, want 2", status)
+	}
+	var got []string
+	for _, l := range strings.Split(errOut, "\n") {
+		if strings.HasPrefix(l, dir) {
+			got = append(got, strings.TrimPrefix(l, dir+string(filepath.Separator)))
+		}
+	}
+	want := []string{
+		"broken.ant:2:1: unexpected 'export' [syntax]",
+		"chain.ant:3:12: Op | int has no field foo on every member: narrow the value first [needs-narrowing]",
+		"hidden.ant:4:14: cannot use string where int is expected [type-mismatch]",
+		"lambda.ant:2:15: a lambda has at most one parameter, x; func(int, int): int expects 2: write func with named parameters [lambda]",
+		"line.ant:1:16: expected a parameter name, got '{' [syntax]",
+		"multi.ant:1:11: 'as' is a reserved word [syntax]",
+		"multi.ant:2:14: cannot use string where int is expected [type-mismatch]",
+		"multi.ant:3:5: 'match' cannot be a variable name [syntax]",
+		"multi.ant:4:17: cannot use int where string is expected [type-mismatch]",
+		"private.ant:1:32: ratio is not exported by ./temp.ant [not-exported]",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }

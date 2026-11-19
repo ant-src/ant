@@ -9,6 +9,7 @@ import (
 	"github.com/ant-src/ant/internal/codes"
 	"maps"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -36,6 +37,9 @@ type Config struct {
 	Removed    []string
 	// Info, when set, is filled with what the checker learns (NewInfo).
 	Info *Info
+	// Prior is the number of errors reported before checking, by the loader: a syntax error
+	// recovery read past, or an import that failed. What follows from one is not reported again.
+	Prior int
 }
 
 // Program checks every module of prog and returns the errors sorted by position. A program whose
@@ -43,7 +47,7 @@ type Config struct {
 // declarations join the prelude as a host namespace's do, and the errors are those of its
 // signatures.
 func Program(prog *loader.Program, cfg Config) []Diagnostic {
-	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}, info: cfg.Info}
+	c := &Checker{prog: prog, seen: map[string]bool{}, flow: flow{}, shorted: map[ast.Expr]types.Type{}, info: cfg.Info, prior: cfg.Prior}
 	if c.info != nil {
 		c.info.c = c
 	}
@@ -172,7 +176,17 @@ type Checker struct {
 	shorted map[ast.Expr]types.Type
 	// info, when set, records what the checker learns for an editor; its methods accept nil.
 	info *Info
+	// prior counts the errors the loader reported before checking (Config.Prior).
+	prior int
+	// quiet is above 0 while the checker reads the body of a lambda it rejected for its
+	// parameters: a name the body leaves undefined is one of the parameters the author meant,
+	// so it is not reported.
+	quiet int
 }
+
+// invalidType matches a type the checker could not determine as a message prints it: ? on its
+// own, as in "got ?" or "Array[?]", never ?? or ?. of an operator.
+var invalidType = regexp.MustCompile(`(^|[\s\[(,|])\?($|[\s\]),|;:])`)
 
 func (c *Checker) errorf(code codes.Code, pos ast.Pos, format string, args ...any) {
 	c.report(code, pos, ast.Pos{}, fmt.Sprintf(format, args...))
@@ -184,6 +198,17 @@ func (c *Checker) errorIn(code codes.Code, e ast.Expr, format string, args ...an
 }
 
 func (c *Checker) report(code codes.Code, pos, end ast.Pos, msg string) {
+	// A message that names a type the checker could not determine follows from an error already
+	// reported. With none reported, it is kept: then the checker itself went wrong, and passing
+	// in silence would hide that.
+	if invalidType.MatchString(msg) && (len(c.diags) > 0 || c.prior > 0) {
+		return
+	}
+	// In a module recovery read past, a name may be undefined only because the declaration was
+	// in what the parser dropped; it is reported once the syntax error is fixed.
+	if code == codes.Undefined && c.mod != nil && c.mod.m != nil && c.mod.m.Recovered {
+		return
+	}
 	path := ""
 	if c.mod != nil {
 		path = c.mod.path
@@ -216,8 +241,9 @@ const (
 	entVar                         // a module variable
 	entConst                       // a namespace constant
 	entModule                      // an imported module
-	// entMissing is a name imported from a module the loader could not load (loader.Config
-	// Recover): its uses are checked no further and reported nowhere, since the import is.
+	// entMissing is a name an import could not bind: from a module the loader could not load
+	// (loader.Config Recover) or a script, or a name the module does not declare. Its uses are
+	// checked no further and reported nowhere, since the import is.
 	entMissing
 )
 
@@ -609,7 +635,9 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 	c.mod = mi
 	f := mi.m.File
 	for _, imp := range f.Imports {
-		if imp.Module < 0 || imp.Module >= len(c.mods) {
+		// An import of a script is reported by the loader, and binds nothing: its names are
+		// missing, as those of a module that did not load.
+		if imp.Module < 0 || imp.Module >= len(c.mods) || c.mods[imp.Module].m.File.Script {
 			if imp.Namespace != "" {
 				mi.names[imp.Namespace] = &entity{name: imp.Namespace, kind: entMissing, pos: imp.Pos}
 			}
@@ -635,11 +663,19 @@ func (c *Checker) declareModule(mi *moduleInfo) {
 			n := &imp.Names[j]
 			ent, ok := visible[n.Name]
 			if !ok {
-				if _, bound := target.names[n.Name]; bound {
+				if private, bound := target.names[n.Name]; bound {
 					c.errorf(codes.NotExported, n.Pos, "%s is not exported by %s", n.Name, imp.Path)
-				} else {
+					// bound anyway, so that its uses are checked against what it is
+					mi.names[n.Alias] = private
+					continue
+				}
+				// A module recovery read past may have lost the declaration with the syntax
+				// error, which is reported in that module.
+				if !target.m.Recovered {
 					c.errorf(codes.Undefined, n.Pos, "%s has no declaration %s", imp.Path, n.Name)
 				}
+				// missing, so that its uses are not reported again
+				mi.names[n.Alias] = &entity{name: n.Alias, kind: entMissing, pos: n.Pos}
 				continue
 			}
 			mi.names[n.Alias] = ent

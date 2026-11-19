@@ -69,7 +69,8 @@ func (s *Server) analyze(doc *document) *analysis {
 		}
 	}
 	a.info = check.NewInfo()
-	a.diags = append(a.diags, check.Program(prog, check.Config{Info: a.info})...)
+	a.diags = append(a.diags, check.Program(prog, check.Config{Info: a.info, Prior: len(a.diags)})...)
+	a.diags = loader.Settle(a.diags)
 	sort.SliceStable(a.diags, func(i, j int) bool {
 		x, y := a.diags[i], a.diags[j]
 		if x.Path != y.Path {

@@ -69,6 +69,9 @@ type Module struct {
 	Src     string
 	Layout  *parser.Layout
 	Resolve *resolve.Info
+	// Recovered is set when recovery read past a syntax error of the module, so that what the
+	// parser dropped, declarations among it, is missing from File.
+	Recovered bool
 }
 
 // Program is a loaded module graph.
@@ -117,8 +120,9 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 // module is loaded once however many roots reach it, so that the programs can be checked
 // together. It returns every diagnostic of the load, and the program of the roots whose own
 // graphs loaded without one: a root that does not load is left out, with every module that only
-// it reaches. The program has no Root. A root must not be a declaration file, and cfg must not
-// ask to Recover.
+// it reaches. Under cfg.Recover it keeps every module that parsed, with what recovery kept of
+// it, so that the program can be checked past its errors. The program has no Root. A root must
+// not be a declaration file.
 func LoadRoots(roots []string, cfg Config) (*Program, []Diagnostic) {
 	l := newLoader(cfg)
 	mods := make([]*Module, len(roots))
@@ -128,6 +132,9 @@ func LoadRoots(roots []string, cfg Config) (*Program, []Diagnostic) {
 	}
 	if len(l.diags) == 0 {
 		return &Program{Modules: l.modules}, nil
+	}
+	if cfg.Recover {
+		return &Program{Modules: l.modules}, dedupe(l.diags)
 	}
 	diags := dedupe(l.diags)
 	bad := map[string]bool{}
@@ -294,9 +301,11 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	}
 	var f *ast.File
 	var layout *parser.Layout
+	recovered := false
 	if l.cfg.Recover {
 		var errs []*parser.Error
 		f, layout, errs = parser.ParseRecover(display, src)
+		recovered = len(errs) > 0
 		for _, pe := range errs {
 			l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax})
 		}
@@ -338,6 +347,7 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	m := &Module{Path: key, File: f}
 	if l.cfg.Recover {
 		m.Src, m.Layout, m.Resolve = src, layout, info
+		m.Recovered = recovered
 	}
 	for _, imp := range f.Imports {
 		childKey, childDisplay := l.canonical(imp.Path, raw)
@@ -365,4 +375,31 @@ func (l *loader) visit(key, display, raw, written string, at Diagnostic, root bo
 	l.modules = append(l.modules, m)
 	l.index[key] = m
 	return m
+}
+
+// Settle drops the diagnostics that only follow from a syntax error that recovery read past, as
+// ant check and the language server report them: on a line with a syntax error, every other
+// diagnostic, since the line was not read as written.
+func Settle(diags []Diagnostic) []Diagnostic {
+	type line struct {
+		path string
+		n    int
+	}
+	syntax := map[line]bool{}
+	for _, d := range diags {
+		if d.Code == codes.Syntax && d.Pos.Line > 0 {
+			syntax[line{d.Path, d.Pos.Line}] = true
+		}
+	}
+	if len(syntax) == 0 {
+		return diags
+	}
+	out := diags[:0:0]
+	for _, d := range diags {
+		if d.Code != codes.Syntax && syntax[line{d.Path, d.Pos.Line}] {
+			continue
+		}
+		out = append(out, d)
+	}
+	return out
 }

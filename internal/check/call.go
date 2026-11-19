@@ -797,7 +797,9 @@ func (c *Checker) lambdaArg(a *ast.Arg, lam *ast.Lambda, pt types.Type, sc *scop
 	}
 	if len(ft.Params) > 1 {
 		c.errorf(codes.Lambda, a.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
+		c.quiet++
 		c.lambdaBodyAnyway(lam, sc)
+		c.quiet--
 		return
 	}
 	got := c.lambda(lam, sc, ft)

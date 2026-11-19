@@ -162,8 +162,10 @@ whole file, such as one that cannot be read, has `line` and `column` 0 and no sp
 
 Some errors stop a program from loading at all. `ant check` and `ant run` report them alike: a
 syntax error in any module, a module that does not exist, an import cycle, and an import of a
-script. `ant run` stops there. `ant check` does not check that program, but it still checks the
-other files it was given, and then exits with status 2.
+script. `ant run` stops there. `ant check` reads past them and checks what it can read, so one run
+reports every error, and then exits with status 2. An error that only follows from one of these is
+left out: a name whose declaration a syntax error hid, or an error on the line of a syntax error.
+Once those are fixed, `ant check` may report errors they hid.
 
 ```ant [report.ant]
 let total = 3

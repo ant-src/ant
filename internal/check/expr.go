@@ -424,7 +424,9 @@ func (c *Checker) ident(x *ast.Ident, sc *scope) types.Type {
 			c.errorf(codes.WrongKind, x.Pos, "%s is a type parameter, not a value", x.Name)
 			return types.Invalid{}
 		}
-		c.errorf(codes.Undefined, x.Pos, "%s is not defined", x.Name)
+		if c.quiet == 0 {
+			c.errorf(codes.Undefined, x.Pos, "%s is not defined", x.Name)
+		}
 		return types.Invalid{}
 	}
 	c.info.recordIdent(x, c.info.object(ent))
@@ -566,7 +568,8 @@ func (c *Checker) moduleMember(base *entity, name string, pos ast.Pos) *entity {
 	}
 	if _, ok := base.mod.names[name]; ok {
 		c.errorf(codes.NotExported, pos, "%s is not exported by %s", name, base.name)
-	} else {
+	} else if !base.mod.m.Recovered {
+		// a module recovery read past may have lost the declaration with its syntax error
 		c.errorf(codes.Undefined, pos, "%s has no declaration %s", base.name, name)
 	}
 	return nil
@@ -596,7 +599,9 @@ func (c *Checker) field(x *ast.Field, sc *scope) types.Type {
 				if base.kind == entType && base.decl.Kind == types.PrimitiveDecl {
 					break
 				}
-				c.errorf(codes.NoMember, x.Pos, "%s has no member %s", base.name, x.Name)
+				if base.kind != entModule || !base.mod.m.Recovered {
+					c.errorf(codes.NoMember, x.Pos, "%s has no member %s", base.name, x.Name)
+				}
 				return types.Invalid{}
 			}
 			if c.foreignPrivate(m) {
@@ -1177,7 +1182,9 @@ func (c *Checker) checkLambda(x *ast.Lambda, sc *scope, expected types.Type) typ
 	}
 	if len(ft.Params) > 1 {
 		c.errorf(codes.Lambda, x.Pos, "a lambda has at most one parameter, x; %s expects %d: write func with named parameters", types.String(ft), len(ft.Params))
+		c.quiet++
 		c.lambdaBodyAnyway(x, sc)
+		c.quiet--
 		return types.Invalid{}
 	}
 	t := c.lambda(x, sc, ft)
