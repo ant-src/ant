@@ -7,7 +7,15 @@
 curl -fsSL https://ant-lang.org/install.sh | sh
 ```
 
-The script downloads `ant` into `/usr/local/bin`, or `~/bin`.
+The script downloads `ant` into `/usr/local/bin`, or `~/bin` under Git Bash.
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://ant-lang.org/install.ps1 | iex
+```
+
+The script downloads `ant.exe` into `~\bin` and adds that directory to your `PATH`.
 
 Or build it from source:
 
