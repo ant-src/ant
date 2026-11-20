@@ -675,7 +675,6 @@ func (f *frame) path() string {
 	return f.Path
 }
 
-const maxDepth = 10000
 
 func (in *Instance) newGoroutine(main bool) *Goroutine {
 	return &Goroutine{in: in, main: main, d: in.dbg}
