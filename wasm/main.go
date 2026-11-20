@@ -2,7 +2,8 @@
 
 // Command wasm is Ant compiled to WebAssembly for JavaScript hosts, browsers and Node: the
 // @ant-lang/wasm package loads it. It formats and checks sources, runs programs whose modules
-// it is given, and serves the language server over messages instead of a stream.
+// it is given, and serves the language server and the debug adapter over messages instead of a
+// stream.
 //
 // The host passes the name of a global function as the first argument; main calls it once
 // with the API object and then waits for calls.
@@ -26,6 +27,7 @@ import (
 
 	"github.com/ant-src/ant"
 	"github.com/ant-src/ant/internal/batch"
+	"github.com/ant-src/ant/internal/dap"
 	"github.com/ant-src/ant/internal/format"
 	"github.com/ant-src/ant/internal/frame"
 	"github.com/ant-src/ant/internal/lsp"
@@ -40,6 +42,7 @@ func main() {
 	api.Set("check", js.FuncOf(check))
 	api.Set("run", js.FuncOf(run))
 	api.Set("languageServer", js.FuncOf(languageServer))
+	api.Set("debugAdapter", js.FuncOf(debugAdapter))
 	js.Global().Get(os.Args[1]).Invoke(api)
 	select {}
 }
@@ -154,16 +157,43 @@ func result(status int, diags any) js.Value {
 // log lines reach onLog when it is given. The connection's send takes a message as a JSON
 // string, and close ends the server as the end of its input stream does.
 func languageServer(this js.Value, args []js.Value) any {
-	onMessage := args[0]
-	var logw io.Writer = io.Discard
-	if len(args) > 1 && truthy(args[1]) {
-		logw = lineWriter(args[1])
+	logw := logWriter(args, 1)
+	return connection(args[0], func(in io.Reader, out io.Writer) {
+		lsp.Serve(context.Background(), in, out, logw)
+	})
+}
+
+// debugAdapter is debugAdapter(files, onMessage, onLog): it starts a debug adapter (dap.md) for
+// one session on a program whose modules are files, as run takes them, and returns a connection
+// to it, as languageServer does. The launch request's program and the sources of breakpoints
+// are paths among files. A message reaches the adapter only when the program waits or is
+// stopped, since JavaScript runs only then; a host stops a program that never waits by ending
+// its worker.
+func debugAdapter(this js.Value, args []js.Value) any {
+	fsys := mapFS(sources(args[0]))
+	logw := logWriter(args, 2)
+	return connection(args[1], func(in io.Reader, out io.Writer) {
+		dap.ServeFS(context.Background(), fsys, in, out, logw)
+	})
+}
+
+// logWriter passes each line a server logs to the function that is argument i, when it is given.
+func logWriter(args []js.Value, i int) io.Writer {
+	if len(args) > i && truthy(args[i]) {
+		return lineWriter(args[i])
 	}
+	return io.Discard
+}
+
+// connection runs serve, a server of framed messages on a stream, and returns a connection to
+// it: the server's messages reach onMessage as JSON strings, send takes a message as a JSON
+// string, and close ends the server as the end of its input stream does.
+func connection(onMessage js.Value, serve func(in io.Reader, out io.Writer)) js.Value {
 	in := &queue{}
 	in.cond.L = &in.mu
 	outr, outw := io.Pipe()
 	go func() {
-		lsp.Serve(context.Background(), in, outw, logw)
+		serve(in, outw)
 		outw.Close()
 	}()
 	go func() {

@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/ant-src/ant/internal/frame"
@@ -24,7 +26,10 @@ type client struct {
 	status chan int
 }
 
-func newClient(t *testing.T) *client {
+func newClient(t *testing.T) *client { return newClientFS(t, nil) }
+
+// newClientFS drives a ServeFS on fsys, or on the operating system's files when it is nil.
+func newClientFS(t *testing.T, fsys fs.FS) *client {
 	t.Helper()
 	wd, _ := os.Getwd()
 	t.Cleanup(func() { os.Chdir(wd) }) // launch changes the working directory
@@ -34,7 +39,7 @@ func newClient(t *testing.T) *client {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go func() {
-		c.status <- Serve(ctx, inR, outW, io.Discard)
+		c.status <- ServeFS(ctx, fsys, inR, outW, io.Discard)
 		outW.Close()
 	}()
 	go func() {
@@ -924,4 +929,70 @@ func TestPauseWhenNothingRuns(t *testing.T) {
 		t.Errorf("a stopped event: %v", e)
 	}
 	ok(t, c.request("disconnect", nil))
+}
+
+// A program in a file system: its modules, the sources of breakpoints and of frames are paths
+// in it, and nothing reads the operating system's files or environment.
+func TestSessionFS(t *testing.T) {
+	t.Setenv("ANT_DAP_FS", "host")
+	fsys := fstest.MapFS{
+		"app/main.ant": {Data: []byte(`import "./lib/math.ant" { double }
+
+var total = 0
+for i in [1, 2] {
+  total = total + double(i)
+}
+println("${total} ${Os.env("ANT_DAP_FS") ?? "unset"} ${Os.env("WHO") ?? ""}")
+`)},
+		"app/lib/math.ant": {Data: []byte(`export func double(n: int): int {
+  return n * 2
+}
+`)},
+	}
+	c := newClientFS(t, fsys)
+	ok(t, c.request("initialize", map[string]any{"adapterID": "ant"}))
+	ok(t, c.request("launch", map[string]any{"program": "/app/main.ant", "env": map[string]string{"WHO": "ada"}}))
+	c.event("initialized")
+	bps := ok(t, c.request("setBreakpoints", map[string]any{
+		"source":      map[string]any{"path": "/app/lib/math.ant"},
+		"breakpoints": []map[string]any{{"line": 2}},
+	}))["breakpoints"].([]any)
+	if b := bps[0].(map[string]any); b["verified"] != true {
+		t.Fatalf("breakpoint in an imported module: %v", b)
+	}
+	ok(t, c.request("configurationDone", nil))
+
+	for _, want := range []string{"0", "2"} {
+		stop := c.event("stopped")
+		frames := ok(t, c.request("stackTrace", map[string]any{"threadId": stop["threadId"]}))["stackFrames"].([]any)
+		top, caller := frames[0].(map[string]any), frames[1].(map[string]any)
+		if top["name"] != "double" || top["source"].(map[string]any)["path"] != "app/lib/math.ant" {
+			t.Fatalf("top frame: %v", top)
+		}
+		if caller["line"] != 5.0 || caller["source"].(map[string]any)["path"] != "app/main.ant" {
+			t.Fatalf("caller frame: %v", caller)
+		}
+		scopes := ok(t, c.request("scopes", map[string]any{"frameId": caller["id"]}))["scopes"].([]any)
+		var module map[string]any
+		for _, sc := range scopes {
+			if sc := sc.(map[string]any); sc["name"] == "Module" {
+				module = sc
+			}
+		}
+		if module == nil {
+			t.Fatalf("no Module scope: %v", scopes)
+		}
+		vars := ok(t, c.request("variables", map[string]any{"variablesReference": module["variablesReference"]}))["variables"].([]any)
+		if v := vars[0].(map[string]any); v["name"] != "total" || v["value"] != want {
+			t.Fatalf("total: %v, want %s", v, want)
+		}
+		ok(t, c.request("continue", map[string]any{"threadId": stop["threadId"]}))
+	}
+	if code := c.event("exited")["exitCode"]; code != 0.0 {
+		t.Errorf("exit code: %v", code)
+	}
+	c.event("terminated")
+	if got := c.output("stdout"); got != "6 unset ada\n" {
+		t.Errorf("output: %q", got)
+	}
 }

@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -30,7 +32,15 @@ import (
 // Serve serves one debug session on in and out until the client disconnects, logging to log.
 // It returns the command's exit status (dap.md section 1).
 func Serve(ctx context.Context, in io.Reader, out, log io.Writer) int {
-	s := &server{r: bufio.NewReader(in), w: out, log: log, lines1: true, cols1: true}
+	return ServeFS(ctx, nil, in, out, log)
+}
+
+// ServeFS is Serve for a program whose modules are in fsys instead of the operating system's
+// files, as where there are none, on js/wasm: the program, the sources of breakpoints and the
+// stdin file are then paths in fsys, with or without a leading slash, and the environment is
+// the launch's env alone. A nil fsys is the operating system.
+func ServeFS(ctx context.Context, fsys fs.FS, in io.Reader, out, log io.Writer) int {
+	s := &server{r: bufio.NewReader(in), w: out, log: log, fsys: fsys, lines1: true, cols1: true}
 	s.out = batch.New(outputDelay, func(category string, p []byte) { s.sendOutput(category, string(p)) })
 	s.ctx, s.cancel = context.WithCancel(ctx)
 	defer s.cancel()
@@ -70,6 +80,8 @@ type server struct {
 	w   io.Writer
 	log io.Writer
 	out *batch.Writer // the program's standard output and error, sent in batches
+
+	fsys fs.FS // where the program's modules are; nil is the operating system
 
 	wmu sync.Mutex // one writer at a time
 	seq int
@@ -314,19 +326,23 @@ func (s *server) launch(raw json.RawMessage) error {
 	// A relative program is resolved against cwd, which defaults to the program's directory
 	// (dap.md section 2); without a cwd, a relative program is relative to the adapter's.
 	cwd, program := args.Cwd, args.Program
-	if cwd == "" {
-		program, _ = filepath.Abs(program)
-		cwd = filepath.Dir(program)
+	if s.fsys != nil {
+		program = s.abs(program) // a file system has no working directory
 	} else {
-		cwd, _ = filepath.Abs(cwd)
-		if !filepath.IsAbs(program) {
-			program = filepath.Join(cwd, program)
+		if cwd == "" {
+			program, _ = filepath.Abs(program)
+			cwd = filepath.Dir(program)
+		} else {
+			cwd, _ = filepath.Abs(cwd)
+			if !filepath.IsAbs(program) {
+				program = filepath.Join(cwd, program)
+			}
+		}
+		if err := os.Chdir(cwd); err != nil {
+			return err
 		}
 	}
-	if err := os.Chdir(cwd); err != nil {
-		return err
-	}
-	prog, diags := loader.Load(program, loader.Config{Mode: parser.Program})
+	prog, diags := loader.Load(program, loader.Config{Mode: parser.Program, FS: s.fsys})
 	if len(diags) > 0 {
 		msgs := make([]string, len(diags))
 		for i, d := range diags {
@@ -353,7 +369,13 @@ func (s *server) launch(raw json.RawMessage) error {
 	}
 	var stdin io.Reader
 	if args.Stdin != "" {
-		f, err := os.Open(args.Stdin)
+		var f io.Reader
+		var err error
+		if s.fsys != nil {
+			f, err = s.fsys.Open(s.abs(args.Stdin))
+		} else {
+			f, err = os.Open(args.Stdin)
+		}
 		if err != nil {
 			return err // before anything of the launch is kept, so that the next one can succeed
 		}
@@ -362,15 +384,22 @@ func (s *server) launch(raw json.RawMessage) error {
 	s.prog = prog
 	s.modules = map[string]*module{}
 	for _, m := range prog.Modules {
-		abs, _ := filepath.Abs(m.File.Path)
-		src, _ := os.ReadFile(m.File.Path)
+		abs := s.abs(m.File.Path)
+		var src []byte
+		if s.fsys != nil {
+			src, _ = fs.ReadFile(s.fsys, m.File.Path)
+		} else {
+			src, _ = os.ReadFile(m.File.Path)
+		}
 		s.modules[abs] = &module{file: m.File, path: m.File.Path, abs: abs, lines: strings.Split(string(src), "\n"), stops: interp.StopPoints(m.File)}
 	}
 
 	env := map[string]string{}
-	for _, kv := range os.Environ() {
-		k, v, _ := strings.Cut(kv, "=")
-		env[k] = v
+	if s.fsys == nil {
+		for _, kv := range os.Environ() {
+			k, v, _ := strings.Cut(kv, "=")
+			env[k] = v
+		}
 	}
 	for k, v := range args.Env {
 		env[k] = v
@@ -544,8 +573,7 @@ func (s *server) setBreakpoints(req *request) {
 			asked = append(asked, sourceBreakpoint{Line: l})
 		}
 	}
-	abs, _ := filepath.Abs(args.Source.Path)
-	m := s.modules[abs]
+	m := s.modules[s.abs(args.Source.Path)]
 	out := make([]map[string]any, len(asked))
 	var set []interp.Breakpoint
 	var setAt []int // the index in out of each breakpoint set
@@ -715,7 +743,14 @@ func (s *server) col(m *module, p ast.Pos) int {
 	return c - 1
 }
 
-func (s *server) moduleOf(path string) *module {
-	abs, _ := filepath.Abs(path)
-	return s.modules[abs]
+func (s *server) moduleOf(path string) *module { return s.modules[s.abs(path)] }
+
+// abs is the key of the module at p in modules, and its path as the client names it: the
+// absolute path, or with a file system the path in it.
+func (s *server) abs(p string) string {
+	if s.fsys != nil {
+		return path.Clean(strings.TrimPrefix(filepath.ToSlash(p), "/"))
+	}
+	abs, _ := filepath.Abs(p)
+	return abs
 }
