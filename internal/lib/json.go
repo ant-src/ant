@@ -44,9 +44,6 @@ func init() {
 	})
 }
 
-// maxJSONDepth is how many arrays and objects Json.parse lets nest (stdlib.md, Json).
-const maxJSONDepth = 10000
-
 // jsonParser reads one JSON text (RFC 8259) by recursive descent.
 type jsonParser struct {
 	src   string

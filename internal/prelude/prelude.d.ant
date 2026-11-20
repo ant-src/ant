@@ -2942,8 +2942,8 @@ func Cmd.pid(p: Cmd.Process): int
 type Json.Value = null | bool | float64 | string | Array[Json.Value] | Map[string, Json.Value]
 
 // Json.parse parses text as one JSON value. A repeated key keeps its first place and its last
-// value. It is Err when text is not valid JSON, nests arrays and objects deeper than 10000, or
-// holds a number too large for a float64.
+// value. It is Err when text is not valid JSON, nests arrays and objects deeper than 10000 (1000
+// on WebAssembly), or holds a number too large for a float64.
 //
 //     Json.parse("{\"a\": [1, 2.5]}")   // Ok{ value: Map{ "a": [1.0, 2.5] } }
 func Json.parse(text: string): Result[Json.Value, Error]

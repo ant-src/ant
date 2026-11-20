@@ -8,8 +8,8 @@ func Json.parse(text: string): Result[Json.Value, Error]
 ```
 
 Json.parse parses text as one JSON value. A repeated key keeps its first place and its last value.
-It is Err when text is not valid JSON, nests arrays and objects deeper than 10000, or holds a number
-too large for a float64.
+It is Err when text is not valid JSON, nests arrays and objects deeper than 10000 (1000 on
+WebAssembly), or holds a number too large for a float64.
 
 <!-- end generated -->
 
