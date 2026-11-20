@@ -41,8 +41,11 @@ func NewInstant(sec, nsec int64) (Instant, error) {
 }
 
 // Now is the current moment.
-func Now() Instant {
-	t := time.Now()
+func Now() Instant { return FromGoTime(time.Now()) }
+
+// FromGoTime is the moment of a time Go's clock read, such as a timer's, on the clock Now reads.
+func FromGoTime(t time.Time) Instant {
+	t = wall(t)
 	return Instant{sec: t.Unix(), nsec: int32(t.Nanosecond())}
 }
 

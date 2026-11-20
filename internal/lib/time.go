@@ -333,7 +333,7 @@ func init() {
 							return
 						}
 						select {
-						case ticks.Raw() <- temporal.FromEpochNanos(at.UnixNano()):
+						case ticks.Raw() <- temporal.FromGoTime(at):
 						default:
 						}
 					}
