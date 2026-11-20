@@ -14,7 +14,8 @@ const Size = 4096
 
 // Writer collects writes to several streams and sends them in batches, in the order written: a
 // write to another stream sends what the first one holds first. A batch is sent once it holds
-// Size bytes, delay after its first write, and at Flush.
+// Size bytes, delay after its first write, and at Flush. A write also sends a batch whose delay
+// has passed, since on js/wasm no timer fires while the program computes without waiting.
 type Writer struct {
 	mu    sync.Mutex
 	send  func(stream string, p []byte)
@@ -22,6 +23,7 @@ type Writer struct {
 	cur   string
 	buf   []byte
 	timer *time.Timer
+	first time.Time // of the first write of the batch
 }
 
 // New returns a Writer that hands each batch to send, under its lock, so send must not write to
@@ -55,7 +57,10 @@ func (w *Writer) write(name string, p []byte) {
 	case len(w.buf) >= Size:
 		w.flushLocked()
 	case w.timer == nil:
+		w.first = time.Now()
 		w.timer = time.AfterFunc(w.delay, w.Flush)
+	case time.Since(w.first) >= w.delay:
+		w.flushLocked()
 	}
 }
 

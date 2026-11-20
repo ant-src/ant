@@ -58,3 +58,18 @@ func TestSizeAndDelay(t *testing.T) {
 		t.Errorf("sent %q after the delay", got)
 	}
 }
+
+// TestOverdue: a write sends the batch whose delay has passed, where the timer could not.
+func TestOverdue(t *testing.T) {
+	l := &log{}
+	w := New(time.Millisecond, l.send)
+	w.mu.Lock() // as while a program computes on js/wasm: the timer's flush cannot run
+	w.buf, w.cur = []byte("a"), "out"
+	w.first = time.Now().Add(-time.Second)
+	w.timer = time.NewTimer(time.Hour)
+	w.mu.Unlock()
+	io.WriteString(w.Stream("out"), "b")
+	if got := fmt.Sprint(l.get()); got != "[out:ab]" {
+		t.Errorf("sent %s", got)
+	}
+}
