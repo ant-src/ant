@@ -296,8 +296,8 @@ A function that waits on the caller's context does not see the scope end, so a s
 for it. Here the call holds until the timeout:
 
 ```ant
-let ctx = Context.new(50ms)
 let started = Time.monotonic()
+let ctx = Context.new(50ms)
 _ = Panic.catch({
   Parallel.run([{ panic("boom") }, { ctx.wait() }], ctx: ctx)
 })
@@ -311,8 +311,8 @@ true
 Wait on `x` instead, and the call ends as soon as the panic cancels the scope:
 
 ```ant
-let ctx = Context.new(50ms)
 let started = Time.monotonic()
+let ctx = Context.new(50ms)
 _ = Panic.catch({
   Parallel.run([{ panic("boom") }, { x.wait() }], ctx: ctx)
 })

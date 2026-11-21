@@ -268,11 +268,11 @@ On an unbuffered channel, `send` returns only after a receiver has taken the val
 
 ```ant
 let c: Channel[int] = Channel.new()
+let start = Time.monotonic()
 go {
   Time.sleep(30ms)
   c.receive()
 }
-let start = Time.monotonic()
 c.send(1)
 assert(Time.monotonic() - start >= 30)
 ```
