@@ -195,6 +195,7 @@ func test(this js.Value, args []js.Value) any {
 		var mu sync.Mutex
 		var passed, failed, skipped int
 		emit := func(e testEvent) {
+			out.Flush() // what the modules printed before the event shows before it
 			if onEvent.Type() == js.TypeFunction {
 				b, _ := json.Marshal(e)
 				call(onEvent, string(b))
