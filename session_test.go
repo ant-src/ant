@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -371,8 +373,10 @@ func TestSessionComplete(t *testing.T) {
 	if _, err := s.Eval("var r: Result[Point, Error] = Ok{ value: p }"); err != nil {
 		t.Fatal(err)
 	}
-	if got := labels("r."); got["value"].Kind != "field" || got["value"].Detail != "Point" || got["unwrap"].Kind != "function" || got["all"].Label != "" {
+	if got := labels("r."); got["value"].Kind != "field" || got["value"].Detail != "Point" || got["unwrap"].Kind != "function" {
 		t.Errorf("r.: %v", got)
+	} else if names := slices.Sorted(maps.Keys(got)); strings.Join(names, " ") != "err isOk map mapErr ok unwrap unwrapOr value wrapErr" {
+		t.Errorf("r.: %q", names)
 	}
 	if got := labels("r.va"); got["value"].Label != "value" {
 		t.Errorf("r.va: %v", got)

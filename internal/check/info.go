@@ -531,6 +531,44 @@ func (in *Info) Namespace(t types.Type) *Object {
 	return in.object(ent)
 }
 
+// TakesFirst reports whether a value of type t can be the first argument of the function fn, as
+// a pipe or a call through a dot passes it (section 5): the value solves the type parameters the
+// first parameter mentions as a call's inference would (section 4, Inference), each solution fits
+// its bound, and the value fits the solved parameter. Type parameters only the other arguments
+// solve are left open, as are bounds that name them.
+func (in *Info) TakesFirst(fn *Object, t types.Type) bool {
+	ft, ok := fn.Type().(types.Func)
+	if !ok || len(ft.Params) == 0 {
+		return false
+	}
+	pt := ft.Params[0]
+	tparams := fn.TypeParams()
+	if len(tparams) == 0 || in == nil || in.c == nil {
+		return types.Assignable(t, pt)
+	}
+	c := in.c
+	subst := map[*types.ParamDecl]types.Type{}
+	if !c.unify(pt, t, subst) {
+		return false
+	}
+	for _, p := range tparams {
+		if s, done := subst[p]; done && !types.IsInvalid(s) && !boundFits(p, s, subst, tparams) {
+			return false
+		}
+	}
+	want, err := types.Subst(pt, subst)
+	if err != nil {
+		return false
+	}
+	open := map[*types.ParamDecl]bool{}
+	for _, p := range tparams {
+		if _, done := subst[p]; !done {
+			open[p] = true
+		}
+	}
+	return hasHole(want) || types.Mentions(want, open) || types.Assignable(t, want)
+}
+
 func (in *Info) recordType(e ast.Expr, t types.Type) {
 	if in != nil && e != nil && t != nil {
 		in.Types[e] = t

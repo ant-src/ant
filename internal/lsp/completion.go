@@ -286,7 +286,7 @@ func (c *completer) members(dot *token.Token) {
 		// A module's members are what the import sees: its exports, or in a test file every
 		// declaration (section 10, Tests).
 		for _, m := range obj.Members() {
-			if piped != nil && m.Kind == check.Func && !acceptsFirst(m, piped) {
+			if piped != nil && m.Kind == check.Func && !a.info.TakesFirst(m, piped) {
 				continue
 			}
 			c.add(c.objectItem(a, m, ""))
@@ -308,7 +308,7 @@ func (c *completer) members(dot *token.Token) {
 	// it first (section 5, Calls through .)
 	if ns := a.info.Namespace(recv); ns != nil {
 		for _, m := range ns.Members() {
-			if m.Kind != check.Func || !acceptsFirst(m, recv) {
+			if m.Kind != check.Func || !a.info.TakesFirst(m, recv) {
 				continue
 			}
 			if slices.ContainsFunc(fields, func(f types.Field) bool { return f.Name == m.Name }) {
@@ -475,7 +475,7 @@ func (c *completer) pipe(prev *token.Token) bool {
 	c.incomplete = true
 	offer := func(owner *check.Object) {
 		for _, m := range owner.Members() {
-			if m.Kind == check.Func && acceptsFirst(m, left) {
+			if m.Kind == check.Func && a.info.TakesFirst(m, left) {
 				item := c.objectItem(a, m, owner.Name+".")
 				if !strings.HasPrefix(strings.ToLower(item.Label), word) {
 					item.FilterText = m.Name
@@ -489,7 +489,7 @@ func (c *completer) pipe(prev *token.Token) bool {
 		case check.Namespace, check.TypeKind:
 			offer(o)
 		case check.Func:
-			if acceptsFirst(o, left) {
+			if a.info.TakesFirst(o, left) {
 				c.add(c.objectItem(a, o, ""))
 			}
 		}
@@ -500,97 +500,13 @@ func (c *completer) pipe(prev *token.Token) bool {
 			case check.Module, check.TypeKind:
 				offer(o)
 			case check.Func:
-				if acceptsFirst(o, left) {
+				if a.info.TakesFirst(o, left) {
 					c.add(c.objectItem(a, o, ""))
 				}
 			}
 		}
 	}
 	return true
-}
-
-// acceptsFirst reports whether a function's first parameter can take a value of type t.
-func acceptsFirst(fn *check.Object, t types.Type) bool {
-	ft, ok := fn.Type().(types.Func)
-	if !ok || len(ft.Params) == 0 {
-		return false
-	}
-	return accepts(ft.Params[0], t)
-}
-
-// accepts reports whether a parameter type can take an argument type, binding a type parameter
-// to anything, as a call's inference would (section 4, Inference).
-func accepts(param, arg types.Type) bool {
-	if !types.HasParam(param) {
-		return types.Assignable(arg, param)
-	}
-	switch p := types.Expand(param).(type) {
-	case types.Param:
-		if p.Decl.Bound == nil {
-			return true
-		}
-		// a union bound is solved by a single member of it, never a union (section 4, Generics)
-		if _, ok := types.Expand(p.Decl.Bound).(types.Union); ok {
-			if _, ok := types.Expand(arg).(types.Union); ok {
-				return false
-			}
-		}
-		return accepts(p.Decl.Bound, arg)
-	case types.Array:
-		a, ok := types.Expand(arg).(types.Array)
-		return ok && accepts(p.Elem, a.Elem)
-	case types.Map:
-		m, ok := types.Expand(arg).(types.Map)
-		return ok && accepts(p.Key, m.Key) && accepts(p.Val, m.Val)
-	case types.Set:
-		s, ok := types.Expand(arg).(types.Set)
-		return ok && accepts(p.Elem, s.Elem)
-	case types.Named:
-		n, ok := types.Expand(arg).(types.Named)
-		if !ok || n.Decl != p.Decl || len(n.Args) != len(p.Args) {
-			return false
-		}
-		for i := range p.Args {
-			if !accepts(p.Args[i], n.Args[i]) {
-				return false
-			}
-		}
-		return true
-	case types.Func:
-		f, ok := types.Expand(arg).(types.Func)
-		return ok && len(f.Params) == len(p.Params)
-	case types.Union:
-		// a union argument, such as a Result[T, E], fits when each of its members does
-		if u, ok := types.Expand(arg).(types.Union); ok {
-			for _, m := range u.Members {
-				if !accepts(p, m) {
-					return false
-				}
-			}
-			return true
-		}
-		for _, m := range p.Members {
-			if accepts(m, arg) {
-				return true
-			}
-		}
-		return false
-	case types.Record:
-		fields := types.FieldsOf(arg)
-		for _, f := range p.Fields {
-			found := false
-			for _, g := range fields {
-				if g.Name == f.Name && accepts(f.Type, g.Type) {
-					found = true
-				}
-			}
-			if !found {
-				return false
-			}
-		}
-		return true
-	}
-	return false
 }
 
 // ---- names in scope

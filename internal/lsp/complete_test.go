@@ -254,10 +254,30 @@ func TestCompleteUnionFirst(t *testing.T) {
 		{"var r: Result[int, Error] = Result.ok(1)\nvar x = r.|>\n", "map", "all"},
 		{"var r: Result[int, Error] = Result.ok(1)\nvar x = r | |>\n", "Record.same", "Math.min"},
 		{"var r: int | string = 1\nvar x = r | |>\n", "String.from", "Math.min"},
+		// a union bound inside a union parameter still takes a single member
+		{"type O = int | string\nfunc f[T: O](x: T | null): int { 1 }\nfunc h(x: int | string | null): int { 1 }\nvar r: int | string | null = 1\nvar x = r | |>\n", "h", "f"},
+		// one type parameter, bound once across the members
+		{"type P[T] = { p: T }\ntype Q[T] = { q: T }\nfunc g[T](x: P[T] | Q[T]): int { 1 }\nvar v: P[int] | Q[string] = P{ p: 1 }\nvar x = v | |>\n", "String.from", "g"},
+		{"type P[T] = { p: T }\ntype Q[T] = { q: T }\nfunc g[T](x: P[T] | Q[T]): int { 1 }\nvar w: P[int] | Q[int] = P{ p: 1 }\nvar x = w | |>\n", "g", "Math.min"},
 	} {
 		got := itemLabels(completeItems(t, ClientCapabilities{}, tc.text))
 		if !contains(got, tc.has) || contains(got, tc.lacks) {
 			t.Errorf("%q: want %s and not %s among %q", tc.text, tc.has, tc.lacks, got)
 		}
+	}
+}
+
+// TestCompleteBoundOnly: a union is no solution for a type parameter bounded by an interface
+// that is a bound only, though each member satisfies it (section 4, Interfaces).
+func TestCompleteBoundOnly(t *testing.T) {
+	const decls = "interface Compare {\n  compare(a: Self, b: Self): int\n}\n" +
+		"type Job = { priority: int }\ntype Task = { priority: int }\n" +
+		"func Job.compare(a: Job, b: Job): int { 1 }\nfunc Task.compare(a: Task, b: Task): int { 1 }\n" +
+		"func top[T: Compare](x: T): int { 1 }\n"
+	if got := itemLabels(completeItems(t, ClientCapabilities{}, decls+"var j: Job | Task = Job{ priority: 1 }\nvar x = j | |>\n")); contains(got, "top") {
+		t.Errorf("Job | Task: top offered among %q", got)
+	}
+	if got := itemLabels(completeItems(t, ClientCapabilities{}, decls+"var j = Job{ priority: 1 }\nvar x = j | |>\n")); !contains(got, "top") {
+		t.Errorf("Job: top not offered among %q", got)
 	}
 }
