@@ -2,7 +2,7 @@
 
 // Command wasm is Ant compiled to WebAssembly for JavaScript hosts, browsers and Node: the
 // @ant-lang/wasm package loads it. It formats and checks sources, runs programs whose modules
-// it is given, and serves the language server and the debug adapter over messages instead of a
+// it is given and the tests of test files, and serves the language server and the debug adapter over messages instead of a
 // stream.
 //
 // The host passes the name of a global function as the first argument; main calls it once
@@ -12,13 +12,16 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall/js"
 	"testing/fstest"
 	"time"
@@ -41,6 +44,7 @@ func main() {
 	api.Set("format", js.FuncOf(formatSource))
 	api.Set("check", js.FuncOf(check))
 	api.Set("run", js.FuncOf(run))
+	api.Set("test", js.FuncOf(test))
 	api.Set("languageServer", js.FuncOf(languageServer))
 	api.Set("debugAdapter", js.FuncOf(debugAdapter))
 	js.Global().Get(os.Args[1]).Invoke(api)
@@ -110,19 +114,12 @@ func run(this js.Value, args []js.Value) any {
 		}
 		if signal := opts.Get("signal"); truthy(signal) {
 			interrupts := make(chan struct{}, 2)
-			onAbort := js.FuncOf(func(js.Value, []js.Value) any {
+			defer onAbort(signal, func() {
 				select {
 				case interrupts <- struct{}{}:
 				default:
 				}
-				return nil
-			})
-			defer onAbort.Release()
-			signal.Call("addEventListener", "abort", onAbort)
-			defer signal.Call("removeEventListener", "abort", onAbort)
-			if signal.Get("aborted").Bool() {
-				interrupts <- struct{}{}
-			}
+			})()
 			runOpts = append(runOpts, ant.WithInterrupts(interrupts))
 		}
 		err = prog.Run(context.Background(), runOpts...)
@@ -131,6 +128,171 @@ func run(this js.Value, args []js.Value) any {
 		}
 		return result(ant.ExitStatus(err), js.Global().Get("Array").New()), nil
 	})
+}
+
+// onAbort calls f when the AbortSignal aborts, at once when it has already. The function it
+// returns stops listening.
+func onAbort(signal js.Value, f func()) (stop func()) {
+	listener := js.FuncOf(func(js.Value, []js.Value) any {
+		f()
+		return nil
+	})
+	signal.Call("addEventListener", "abort", listener)
+	if signal.Get("aborted").Bool() {
+		f()
+	}
+	return func() {
+		signal.Call("removeEventListener", "abort", listener)
+		listener.Release()
+	}
+}
+
+// test is test(options): it runs the tests of test files as ant test does (spec/test.md) and
+// returns a Promise of the command's exit status, with the checker's errors when there are any,
+// in which case no test ran. The options are files, as check takes them, paths (the test files
+// to run, in order), the optional run and skip (patterns, as the -run and -skip flags), failfast,
+// env, stdin, stdout and stderr, as run takes them, signal (an AbortSignal, which ends the run),
+// and onEvent, a function given each event of ant test -json as a JSON string. What a test
+// prints is in its events; stdout and stderr get what the modules print as they initialize.
+func test(this js.Value, args []js.Value) any {
+	opts := args[0]
+	files, paths := sources(opts.Get("files")), strs(opts.Get("paths"))
+	onEvent := opts.Get("onEvent")
+	sinks := map[string]io.Writer{"stdout": writer(opts.Get("stdout")), "stderr": writer(opts.Get("stderr"))}
+	out := batch.New(outputDelay, func(stream string, p []byte) { sinks[stream].Write(p) })
+	stdout, stderr := out.Stream("stdout"), out.Stream("stderr")
+	return promise(func() (any, error) {
+		defer out.Flush()
+		for i, path := range paths {
+			paths[i] = root(path)
+			if !ant.IsTestFile(path) {
+				return nil, fmt.Errorf("%s is not a test file, whose name ends in _test.ant", path)
+			}
+		}
+		run, err := ant.TestPattern(str(opts.Get("run")))
+		if err != nil {
+			return nil, fmt.Errorf("run: %s", err)
+		}
+		skip, err := ant.TestPattern(str(opts.Get("skip")))
+		if err != nil {
+			return nil, fmt.Errorf("skip: %s", err)
+		}
+		fsys := ant.WithFS(mapFS(files))
+		// A green run means the test files check (test.md section 1): an error runs nothing.
+		if diags, loaded := ant.Check(paths, fsys); len(ant.Errors(diags)) > 0 || !loaded {
+			status := 1
+			if !loaded {
+				status = 2
+			}
+			return result(status, diagnostics(ant.Errors(diags), files)), nil
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		if signal := opts.Get("signal"); truthy(signal) {
+			defer onAbort(signal, cancel)()
+		}
+		var mu sync.Mutex
+		var passed, failed, skipped int
+		emit := func(e testEvent) {
+			if onEvent.Type() == js.TypeFunction {
+				b, _ := json.Marshal(e)
+				call(onEvent, string(b))
+			}
+		}
+		var halt atomic.Bool
+		cfg := ant.TestConfig{Run: run, Skip: skip, Parallel: runtime.GOMAXPROCS(0), Report: func(e ant.TestEvent) {
+			mu.Lock()
+			defer mu.Unlock()
+			if ctx.Err() != nil {
+				return
+			}
+			je := testEvent{File: e.File, Test: e.Name}
+			secs := e.Elapsed.Seconds()
+			switch e.Kind {
+			case ant.TestRun:
+				je.Action = "run"
+			case ant.TestOutput:
+				je.Action, je.Output = "output", e.Output
+			case ant.TestPass:
+				je.Action, je.Elapsed = "pass", &secs
+			case ant.TestSkip:
+				je.Action, je.Elapsed, je.Reason = "skip", &secs, e.Message
+			case ant.TestFail:
+				je.Action, je.Elapsed, je.Message = "fail", &secs, e.Message
+			}
+			if e.Counted {
+				switch e.Kind {
+				case ant.TestPass:
+					passed++
+				case ant.TestFail:
+					failed++
+				case ant.TestSkip:
+					skipped++
+				}
+			}
+			emit(je)
+		}}
+		failfast := opts.Get("failfast").Truthy()
+		if failfast {
+			cfg.Stop = &halt
+		}
+		start := time.Now()
+		for _, file := range paths {
+			if ctx.Err() != nil || failfast && halt.Load() {
+				break
+			}
+			prog, err := ant.Load(file, fsys)
+			if err != nil {
+				return nil, err // the files loaded a moment ago
+			}
+			cfg.File = file
+			err = prog.Test(ctx, cfg, ant.WithStdout(stdout), ant.WithStderr(stderr),
+				ant.WithStdin(strings.NewReader(str(opts.Get("stdin")))), ant.WithEnvironment(env(opts.Get("env"))))
+			var pe *ant.PanicError
+			var ee *ant.ExitError
+			switch {
+			case err == nil:
+			case errors.As(err, &ee):
+				return result(ee.Status, js.Global().Get("Array").New()), nil
+			case errors.As(err, &pe):
+				// the runtime has reported the panic of an initializer; the file's tests did not run
+				mu.Lock()
+				failed++
+				mu.Unlock()
+				halt.Store(true)
+			case ctx.Err() != nil:
+			default:
+				return nil, err
+			}
+		}
+		if ctx.Err() != nil {
+			return result(130, js.Global().Get("Array").New()), nil
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		secs := time.Since(start).Seconds()
+		emit(testEvent{Action: "done", Passed: &passed, Failed: &failed, Skipped: &skipped, Elapsed: &secs})
+		status := 0
+		if failed > 0 {
+			status = 1
+		}
+		return result(status, js.Global().Get("Array").New()), nil
+	})
+}
+
+// testEvent is an event of ant test -json (test.md section 2).
+type testEvent struct {
+	Action  string   `json:"action"`
+	File    string   `json:"file,omitempty"`
+	Test    string   `json:"test,omitempty"`
+	Output  string   `json:"output,omitempty"`
+	Elapsed *float64 `json:"elapsed,omitempty"`
+	Reason  string   `json:"reason,omitempty"`
+	Message string   `json:"message,omitempty"`
+	Passed  *int     `json:"passed,omitempty"`
+	Failed  *int     `json:"failed,omitempty"`
+	Skipped *int     `json:"skipped,omitempty"`
 }
 
 // outputDelay is the longest the program's output waits for a batch to fill.
