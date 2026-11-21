@@ -367,11 +367,11 @@ func TestSessionComplete(t *testing.T) {
 	}
 	// a Result is an Ok or an Err, which share no field, so the type promises none; the
 	// value at runtime is an Ok, whose value is read through, and the Result functions that
-	// take any value first are offered on it (section 5, Calls through .)
+	// take it first are offered on it (section 5, Calls through .)
 	if _, err := s.Eval("var r: Result[Point, Error] = Ok{ value: p }"); err != nil {
 		t.Fatal(err)
 	}
-	if got := labels("r."); got["value"].Kind != "field" || got["value"].Detail != "Point" || got["ok"].Kind != "function" || len(got) != 3 {
+	if got := labels("r."); got["value"].Kind != "field" || got["value"].Detail != "Point" || got["unwrap"].Kind != "function" || got["all"].Label != "" {
 		t.Errorf("r.: %v", got)
 	}
 	if got := labels("r.va"); got["value"].Label != "value" {

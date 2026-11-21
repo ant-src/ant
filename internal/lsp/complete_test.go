@@ -240,3 +240,24 @@ func TestCompleteIs(t *testing.T) {
 		}
 	}
 }
+
+// TestCompleteUnionFirst: a union left side, such as a Result, is taken by a function whose first
+// parameter is the same union over type parameters, and not by one whose union bound needs a
+// single member.
+func TestCompleteUnionFirst(t *testing.T) {
+	for _, tc := range []struct {
+		text       string
+		has, lacks string
+	}{
+		{"var d = Time.nowIn(Time.zone(\"UTC\") | Result.|>)\n", "unwrap", "all"},
+		{"var r: Result[int, Error] = Result.ok(1)\nvar x = r | |>\n", "Result.unwrapOr", "Result.all"},
+		{"var r: Result[int, Error] = Result.ok(1)\nvar x = r.|>\n", "map", "all"},
+		{"var r: Result[int, Error] = Result.ok(1)\nvar x = r | |>\n", "Record.same", "Math.min"},
+		{"var r: int | string = 1\nvar x = r | |>\n", "String.from", "Math.min"},
+	} {
+		got := itemLabels(completeItems(t, ClientCapabilities{}, tc.text))
+		if !contains(got, tc.has) || contains(got, tc.lacks) {
+			t.Errorf("%q: want %s and not %s among %q", tc.text, tc.has, tc.lacks, got)
+		}
+	}
+}

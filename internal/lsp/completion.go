@@ -529,6 +529,12 @@ func accepts(param, arg types.Type) bool {
 		if p.Decl.Bound == nil {
 			return true
 		}
+		// a union bound is solved by a single member of it, never a union (section 4, Generics)
+		if _, ok := types.Expand(p.Decl.Bound).(types.Union); ok {
+			if _, ok := types.Expand(arg).(types.Union); ok {
+				return false
+			}
+		}
 		return accepts(p.Decl.Bound, arg)
 	case types.Array:
 		a, ok := types.Expand(arg).(types.Array)
@@ -554,6 +560,15 @@ func accepts(param, arg types.Type) bool {
 		f, ok := types.Expand(arg).(types.Func)
 		return ok && len(f.Params) == len(p.Params)
 	case types.Union:
+		// a union argument, such as a Result[T, E], fits when each of its members does
+		if u, ok := types.Expand(arg).(types.Union); ok {
+			for _, m := range u.Members {
+				if !accepts(p, m) {
+					return false
+				}
+			}
+			return true
+		}
 		for _, m := range p.Members {
 			if accepts(m, arg) {
 				return true
