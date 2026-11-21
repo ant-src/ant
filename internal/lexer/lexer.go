@@ -758,7 +758,7 @@ func (l *lexer) escape() string {
 				return l.src[start:l.pos]
 			}
 		}
-		v, err := strconv.ParseUint(l.src[digits:l.pos], 16, 32)
+		v, err := strconv.ParseUint(l.src[digits:l.pos], 16, 21)
 		if err != nil || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF) {
 			if l.soft(pos, "bad escape: \\u{%s} is not a Unicode scalar value", l.src[digits:l.pos]) {
 				l.advance(1)

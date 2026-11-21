@@ -381,6 +381,9 @@ func referenceValue(body string) (string, bool) {
 	if err != nil || digits == "" {
 		return "", false
 	}
+	if v > utf8.MaxRune {
+		return string(utf8.RuneError), true
+	}
 	return string(rune(v)), true
 }
 
