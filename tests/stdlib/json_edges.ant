@@ -26,6 +26,14 @@ Json.parse("\"\\ud83d\\udc1c\"")              // => Ok{ value: "🐜" }
 Json.parse("\"\\ud800x\"")                    // => Err{ error: Error{ message: "unpaired surrogate \\ud800 at line 1, column 2" } }
 Json.parse("\"a\\uDC1C\\ud83d\"")             // => Err{ error: Error{ message: "unpaired surrogate \\udc1c at line 1, column 3" } }
 Json.parse("\"\\ud83d\\u0041\"")              // => Err{ error: Error{ message: "unpaired surrogate \\ud83d at line 1, column 2" } }
+// A text that ends where the low half could still come is cut short; after a low half it is wrong.
+Json.parse("\"\\ud83d")                        // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("\"\\ud83d\\")                      // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("\"\\ud83d\\udc")                   // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("\"\\udc1c")                        // => Err{ error: Error{ message: "unpaired surrogate \\udc1c at line 1, column 2" } }
+Json.parse("\"\\ud83d\\uzz\"")                // => Err{ error: Error{ message: "unpaired surrogate \\ud83d at line 1, column 2" } }
+Json.parse("\"\\ud83d\\ud83d\\udc1c\"")       // => Err{ error: Error{ message: "unpaired surrogate \\ud83d at line 1, column 2" } }
+Json.parse("\"\\ud83dx\"")                    // => Err{ error: Error{ message: "unpaired surrogate \\ud83d at line 1, column 2" } }
 
 // A repeated name is Err, at any depth, and two names are one when they are equal after their
 // escapes are read. Nesting is allowed 10000 deep, no deeper, and the errors say where the text

@@ -192,9 +192,6 @@ func (p *jsonParser) object() (value.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		if m.Has(key) {
-			return nil, &jsonError{fmt.Sprintf("duplicate name %q at %s", key, p.at(start))}
-		}
 		if p.next() != ':' {
 			return nil, p.fail("':' after an object key")
 		}
@@ -203,7 +200,9 @@ func (p *jsonParser) object() (value.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		m.Set(key, v)
+		if !m.Add(key, v) {
+			return nil, &jsonError{fmt.Sprintf("duplicate name %q at %s", key, p.at(start))}
+		}
 		switch p.next() {
 		case ',':
 			p.pos++
@@ -322,15 +321,20 @@ func (p *jsonParser) escape(sb *strings.Builder) error {
 			return err
 		}
 		if utf16.IsSurrogate(r) {
-			// The low half follows as another \u escape.
-			if rest := p.src[p.pos:]; len(rest) >= 6 && rest[0] == '\\' && rest[1] == 'u' {
+			// A high half pairs with the low half that follows as another \u escape. A text that
+			// ends where the low half could still come is cut short, not wrong.
+			if rest := p.src[p.pos:]; r < 0xDC00 && strings.HasPrefix(rest, `\u`) {
 				p.pos += 2
-				if r2, err := p.hex4(); err == nil {
-					if pair := utf16.DecodeRune(r, r2); pair != utf8.RuneError {
-						sb.WriteRune(pair)
-						return nil
-					}
+				r2, err := p.hex4()
+				if err == errEndOfJSON {
+					return err
 				}
+				if pair := utf16.DecodeRune(r, r2); err == nil && pair != utf8.RuneError {
+					sb.WriteRune(pair)
+					return nil
+				}
+			} else if r < 0xDC00 && len(rest) < 2 && strings.HasPrefix(`\u`, rest) {
+				return errEndOfJSON
 			}
 			return &jsonError{fmt.Sprintf(`unpaired surrogate \u%04x at %s`, r, p.at(start))}
 		}

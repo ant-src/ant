@@ -106,6 +106,11 @@ func (m *Map) Set(k, v Value) {
 	m.insert(k, v, true)
 }
 
+// Add inserts v under k and reports whether k was new; an existing entry is left alone.
+func (m *Map) Add(k, v Value) bool {
+	return m.insert(k, v, false)
+}
+
 // insert adds k with the value v and reports whether it was new; an existing entry gets v when
 // replace is set and is left alone otherwise.
 func (m *Map) insert(k, v Value, replace bool) bool {
