@@ -7,8 +7,8 @@
 func Json.parse(text: string): Result[Json.Value, Error]
 ```
 
-Json.parse parses text as one JSON value. A repeated key keeps its first place and its last value.
-It is Err when text is not valid JSON, nests arrays and objects deeper than 10000 (1000 on
+Json.parse parses text as one JSON value. It is Err when text is not valid JSON, repeats a name in
+an object, escapes a surrogate outside a pair, nests arrays and objects deeper than 10000 (1000 on
 WebAssembly), or holds a number too large for a float64.
 
 <!-- end generated -->
@@ -17,7 +17,8 @@ WebAssembly), or holds a number too large for a float64.
 
 - Every number becomes a `float64`, so `1` parses as `1.0`. Convert one with
   [Math.toInt](../Math/toInt.md) where an `int` is needed.
-- An object becomes a `Map` with its keys in the order they first appear.
+- An object becomes a `Map` with its keys in the order of the text. An object that repeats a name is
+  an `Err`, since readers that disagree on which value counts would read one text two ways.
 - White space may surround the value; anything else after it is an `Err`. Comments, trailing commas,
   single quotes, and `NaN` are not JSON and are `Err` too.
 
@@ -54,11 +55,16 @@ White space around the value is allowed, line breaks included:
 Json.parse("\n  42  \n") // Ok{ value: 42.0 }
 ```
 
-Keys keep the order of the text. A repeated key keeps its first place and its last value:
+Keys keep the order of the text:
 
 ```ant
-Json.parse(`{"b": 1, "a": 2}`)         // Ok{ value: Map{ "b": 1.0, "a": 2.0 } }
-Json.parse(`{"a": 1, "b": 2, "a": 3}`) // Ok{ value: Map{ "a": 3.0, "b": 2.0 } }
+Json.parse(`{"b": 1, "a": 2}`) // Ok{ value: Map{ "b": 1.0, "a": 2.0 } }
+```
+
+A name may appear once in an object. The error points at the second one:
+
+```ant
+Json.parse(`{"a": 1, "b": 2, "a": 3}`) // Err{ error: Error{ message: "duplicate name \"a\" at line 1, column 18" } }
 ```
 
 Escapes decode to the characters they name, a surrogate pair to one code point:
@@ -66,7 +72,12 @@ Escapes decode to the characters they name, a surrogate pair to one code point:
 ```ant
 Json.parse(`"caf\u00e9 \ud83d\ude00"`) // Ok{ value: "café 😀" }
 Json.parse(`"tab\there"`)              // Ok{ value: "tab\there" }
-Json.parse(`"\ud800"`)                 // Ok{ value: "�" }
+```
+
+A surrogate escape outside a pair encodes no text and is an `Err`:
+
+```ant
+Json.parse(`"\ud800"`) // Err{ error: Error{ message: "unpaired surrogate \\ud800 at line 1, column 2" } }
 ```
 
 A number too small for a `float64` rounds to zero; one too large is an `Err`:

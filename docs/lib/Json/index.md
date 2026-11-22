@@ -3,7 +3,9 @@
 
 # Json
 
-Json converts between JSON text and values. A decoder into records narrows a [`Json.Value`](types/Value.md) with is, builds the record, and returns errors with try; one decoder for every type walks the type with [`Reflect`](../Reflect/index.md).
+Json converts between JSON text and values. A decoder into records narrows a
+[`Json.Value`](types/Value.md) with is, builds the record, and returns errors with try; one decoder
+for every type walks the type with [`Reflect`](../Reflect/index.md).
 
 <!-- end generated -->
 

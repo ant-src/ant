@@ -83,9 +83,14 @@ func (p *jsonParser) fail(wanted string) error {
 	if r < ' ' || r == utf8.RuneError {
 		found = fmt.Sprintf("U+%04X", r)
 	}
-	line := 1 + strings.Count(p.src[:p.pos], "\n")
-	col := 1 + utf8.RuneCountInString(p.src[strings.LastIndexByte(p.src[:p.pos], '\n')+1:p.pos])
-	return &jsonError{fmt.Sprintf("expected %s, found %s at line %d, column %d", wanted, found, line, col)}
+	return &jsonError{fmt.Sprintf("expected %s, found %s at %s", wanted, found, p.at(p.pos))}
+}
+
+// at names the line and column of the byte at pos, as an error message ends.
+func (p *jsonParser) at(pos int) string {
+	line := 1 + strings.Count(p.src[:pos], "\n")
+	col := 1 + utf8.RuneCountInString(p.src[strings.LastIndexByte(p.src[:pos], '\n')+1:pos])
+	return fmt.Sprintf("line %d, column %d", line, col)
 }
 
 func (p *jsonParser) space() {
@@ -169,8 +174,9 @@ func (p *jsonParser) array() (value.Value, error) {
 	}
 }
 
-// object reads the members and the } after the {. A repeated key keeps its first place and its
-// last value.
+// object reads the members and the } after the {. A repeated name is an error, as in Go's
+// encoding/json/v2: readers that disagree on which of its values counts can be told different
+// things by one text.
 func (p *jsonParser) object() (value.Value, error) {
 	m := value.NewMap()
 	if p.next() == '}' {
@@ -181,9 +187,13 @@ func (p *jsonParser) object() (value.Value, error) {
 		if p.next() != '"' {
 			return nil, p.fail("a string key")
 		}
+		start := p.pos
 		key, err := p.string()
 		if err != nil {
 			return nil, err
+		}
+		if m.Has(key) {
+			return nil, &jsonError{fmt.Sprintf("duplicate name %q at %s", key, p.at(start))}
 		}
 		if p.next() != ':' {
 			return nil, p.fail("':' after an object key")
@@ -253,7 +263,8 @@ func (p *jsonParser) digits() error {
 }
 
 // string reads a string from its opening quote. A \u escape of a surrogate pair is the code point
-// the pair encodes, and a surrogate escape outside a pair, like a byte that is not UTF-8, U+FFFD.
+// the pair encodes, and a surrogate escape outside a pair, which encodes no text, is an error. A
+// byte that is not UTF-8 is U+FFFD, as it is wherever a string is read.
 func (p *jsonParser) string() (value.Value, error) {
 	p.pos++
 	var sb strings.Builder
@@ -305,14 +316,14 @@ func (p *jsonParser) escape(sb *strings.Builder) error {
 	case 't':
 		sb.WriteByte('\t')
 	case 'u':
+		start := p.pos - 2
 		r, err := p.hex4()
 		if err != nil {
 			return err
 		}
 		if utf16.IsSurrogate(r) {
-			// The low half follows as another \u escape; one that does not pair is read again.
+			// The low half follows as another \u escape.
 			if rest := p.src[p.pos:]; len(rest) >= 6 && rest[0] == '\\' && rest[1] == 'u' {
-				save := p.pos
 				p.pos += 2
 				if r2, err := p.hex4(); err == nil {
 					if pair := utf16.DecodeRune(r, r2); pair != utf8.RuneError {
@@ -320,9 +331,8 @@ func (p *jsonParser) escape(sb *strings.Builder) error {
 						return nil
 					}
 				}
-				p.pos = save
 			}
-			r = utf8.RuneError
+			return &jsonError{fmt.Sprintf(`unpaired surrogate \u%04x at %s`, r, p.at(start))}
 		}
 		sb.WriteRune(r)
 	default:

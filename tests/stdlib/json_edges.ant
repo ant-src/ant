@@ -5,7 +5,6 @@
 Json.parse("\"\\u00e9\\n\"")                    // => Ok{ value: "é\n" }
 Json.parse("1e30") | Result.map({ if x is float64 { Math.toInt(x) } else { -1 } }) // => Ok{ value: null }
 Json.parse("-0") | Result.map({ x == 0.0 })   // => Ok{ value: true }
-Json.parse("{\"a\": 1, \"a\": 2}")                // => Ok{ value: Map{ "a": 2.0 } }
 Json.parse("[[[[1]]]]")                       // => Ok{ value: [[[[1.0]]]] }
 Json.parse("  true  ")                        // => Ok{ value: true }
 Json.parse("nul") is Err                      // => true
@@ -21,15 +20,19 @@ roundTrip                                     // => Ok{ value: Map{ "k": [1.5, "
 Json.stringify(Json.parse("{}") | Result.unwrapOr(null)) // => "{}"
 Json.stringify(Json.parse("[]") | Result.unwrapOr(null)) // => "[]"
 
-// A \u escape of a surrogate pair is the one code point it encodes; a lone surrogate escape,
-// which encodes no text, becomes U+FFFD.
+// A \u escape of a surrogate pair is the one code point it encodes; a surrogate escape outside
+// a pair, which encodes no text, is Err.
 Json.parse("\"\\ud83d\\udc1c\"")              // => Ok{ value: "🐜" }
-Result.unwrap(Json.parse("\"\\ud800x\"")) == "\u{FFFD}x"   // => true
-Result.unwrap(Json.parse("\"\\udc1c\\ud83d\"")) == "\u{FFFD}\u{FFFD}"   // => true
+Json.parse("\"\\ud800x\"")                    // => Err{ error: Error{ message: "unpaired surrogate \\ud800 at line 1, column 2" } }
+Json.parse("\"a\\uDC1C\\ud83d\"")             // => Err{ error: Error{ message: "unpaired surrogate \\udc1c at line 1, column 3" } }
+Json.parse("\"\\ud83d\\u0041\"")              // => Err{ error: Error{ message: "unpaired surrogate \\ud83d at line 1, column 2" } }
 
-// A repeated key keeps its first place and its last value. Nesting is allowed 10000 deep, no
-// deeper, and the errors say where the text goes wrong in Ant's words.
-Json.parse("{\"a\": 1, \"b\": 2, \"a\": 3}")        // => Ok{ value: Map{ "a": 3.0, "b": 2.0 } }
+// A repeated name is Err, at any depth, and two names are one when they are equal after their
+// escapes are read. Nesting is allowed 10000 deep, no deeper, and the errors say where the text
+// goes wrong in Ant's words.
+Json.parse("{\"a\": 1, \"b\": 2, \"a\": 3}")        // => Err{ error: Error{ message: "duplicate name \"a\" at line 1, column 18" } }
+Json.parse("[{\"k\": {\"x\": 1,\n \"\\u0078\": 2}}]") // => Err{ error: Error{ message: "duplicate name \"x\" at line 2, column 2" } }
+Json.parse("{\"a\": {\"b\": 1}, \"c\": {\"b\": 2}}") is Ok // => true
 Json.parse(String.repeat("[", 10000) + String.repeat("]", 10000)) is Ok // => true
 Json.parse(String.repeat("[", 10001) + String.repeat("]", 10001)) // => Err{ error: Error{ message: "arrays and objects nested deeper than 10000 levels" } }
 Json.parse("1e400")                           // => Err{ error: Error{ message: "number 1e400 is too large for a float64" } }
