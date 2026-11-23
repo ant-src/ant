@@ -63,6 +63,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -287,26 +288,22 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 		return []Diagnostic{{Message: err.Error()}}, false
 	}
 	loaded = true
-	var roots []string
-	seen := map[string]bool{}
-	for _, path := range paths {
-		if parser.ModeOf(path) != parser.Declarations {
-			roots = append(roots, path)
-			continue
+	// file names a file whatever way it is spelled, as it was given or as it was found.
+	file := func(p string) string {
+		if cfg.fsys == nil {
+			if abs, err := filepath.Abs(p); err == nil {
+				return abs
+			}
 		}
-		// the loader settles which roots are one module; a declaration file, checked on its own,
-		// is named once
-		if seen[filepath.Clean(path)] {
-			continue
+		return path.Clean(filepath.ToSlash(p))
+	}
+	var roots, declarations []string
+	for _, p := range paths {
+		if parser.ModeOf(p) == parser.Declarations {
+			declarations = append(declarations, p)
+		} else {
+			roots = append(roots, p)
 		}
-		seen[filepath.Clean(path)] = true
-		p, err := Load(path, opts...)
-		if err != nil {
-			diags = append(diags, loadDiagnostics(err)...)
-			loaded = false
-			continue
-		}
-		diags = append(diags, p.Check()...)
 	}
 	// Recovery keeps checking past a syntax error, so that every error of a file is reported in
 	// one run; a load error still makes the program one that cannot be loaded.
@@ -316,8 +313,13 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 	// such directory are a group, and a module two groups reach is checked in each.
 	var keys []string
 	groups := map[string][]string{}
+	checked := map[string]bool{} // the declaration files checked already
 	for _, root := range roots {
-		key := strings.Join(loader.Beside(root, lcfg), "\x00")
+		beside := loader.Beside(root, lcfg)
+		for _, p := range beside {
+			checked[file(p)] = true
+		}
+		key := strings.Join(beside, "\x00")
 		if _, ok := groups[key]; !ok {
 			keys = append(keys, key)
 		}
@@ -331,6 +333,21 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 		}
 		diags = append(diags, convert(loader.Settle(lds))...)
 	}
+	// A declaration file is checked on its own, once, unless a program it is beside had it
+	// checked, which reports the same errors.
+	for _, p := range declarations {
+		if checked[file(p)] {
+			continue
+		}
+		checked[file(p)] = true
+		prog, err := Load(p, opts...)
+		if err != nil {
+			diags = append(diags, loadDiagnostics(err)...)
+			loaded = false
+			continue
+		}
+		diags = append(diags, prog.Check()...)
+	}
 	sort.SliceStable(diags, func(i, j int) bool {
 		a, b := diags[i].Pos, diags[j].Pos
 		if a.Path != b.Path {
@@ -341,15 +358,15 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 		}
 		return a.Col < b.Col
 	})
-	// A declaration file is checked on its own and with each program it is beside, and a module
-	// with each group that reaches it: what they agree on is reported once.
+	// A module two groups reach is checked with each: what they agree on is reported once.
 	type key struct {
+		path          string
 		pos, end      Position
 		message, code string
 	}
 	seenDiag := map[key]bool{}
 	diags = slices.DeleteFunc(diags, func(d Diagnostic) bool {
-		k := key{d.Pos, d.End, d.Message, d.Code}
+		k := key{file(d.Pos.Path), Position{Line: d.Pos.Line, Col: d.Pos.Col}, Position{Line: d.End.Line, Col: d.End.Col}, d.Message, d.Code}
 		dup := seenDiag[k]
 		seenDiag[k] = true
 		return dup

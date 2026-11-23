@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -1001,5 +1003,67 @@ println(Loop.run(handle, elsewhere: `+elsewhere+`))`, context.Background())
 			t.Errorf("elsewhere %s, a cancelled run: %v, output %q", elsewhere, err, out)
 		}
 		cancel()
+	}
+}
+
+// TestBrokenDeclarationFile: a syntax error in a declaration file beside the root is the
+// checker's to report. The program loads and, reading none of the file's names, runs; a host
+// that provides the names runs a program that reads them. ant.Check reports the error once,
+// however the file is spelled.
+func TestBrokenDeclarationFile(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("tui.d.ant", "func Tui.width(s: string): int\nfunc Tui.broken(\n")
+	write("plain.ant", "println(\"plain\")\n")
+	write("uses.ant", "println(Tui.width(\"ab\"))\n")
+	plain, uses, decl := filepath.Join(dir, "plain.ant"), filepath.Join(dir, "uses.ant"), filepath.Join(dir, "tui.d.ant")
+
+	prog, err := ant.Load(plain)
+	if err != nil {
+		t.Fatalf("load beside a broken declaration file: %v", err)
+	}
+	var out strings.Builder
+	if err := prog.Run(context.Background(), ant.WithStdout(&out)); err != nil || out.String() != "plain\n" {
+		t.Errorf("run beside a broken declaration file: %v, output %q", err, out.String())
+	}
+	if diags := prog.Check(); len(diags) != 1 || diags[0].Code != "syntax" || diags[0].Pos.Path != decl || diags[0].Pos.Line != 3 {
+		t.Errorf("Program.Check beside a broken declaration file: %v", diags)
+	}
+
+	host := ant.Namespace{
+		Name:       "Tui",
+		Signatures: "func Tui.width(s: string): int",
+		Funcs: map[string]ant.HostFunc{
+			"width": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				return int64(len(args[0].(string))), nil
+			},
+		},
+	}
+	hosted, err := ant.Load(uses, ant.WithNamespace(host))
+	if err != nil {
+		t.Fatalf("load in a host, beside a broken declaration file: %v", err)
+	}
+	out.Reset()
+	if err := hosted.Run(context.Background(), ant.WithStdout(&out)); err != nil || out.String() != "2\n" {
+		t.Errorf("run in a host: %v, output %q", err, out.String())
+	}
+
+	// Once, whether the file is named, found beside a root, or both, under any spelling.
+	spelled := filepath.Join(dir, ".", "sub", "..", "tui.d.ant")
+	for _, paths := range [][]string{{uses}, {decl, uses}, {dir + string(filepath.Separator) + "." + string(filepath.Separator) + "tui.d.ant", uses, plain}, {spelled, uses}} {
+		diags, loaded := ant.Check(paths)
+		n := 0
+		for _, d := range diags {
+			if d.Code == "syntax" {
+				n++
+			}
+		}
+		if n != 1 || loaded {
+			t.Errorf("ant.Check(%v): the syntax error %d times, loaded %v: %v", paths, n, loaded, diags)
+		}
 	}
 }

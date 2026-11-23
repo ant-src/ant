@@ -135,6 +135,10 @@ type Declared struct {
 	// Names are the prelude names the file binds: the owners of its declarations and its
 	// unqualified names.
 	Names []string
+	// Err is the file's syntax error when the load does not recover: the file then declares
+	// nothing, and the program loads without it, since only the checker reads the file. Under
+	// Recover the error is among the load's diagnostics, as a module's is.
+	Err *Diagnostic
 }
 
 type loader struct {
@@ -274,7 +278,8 @@ func Beside(root string, cfg Config) []string {
 
 // declare reads the host's declaration files of the program rooted at root, each once, and adds
 // the names they bind to those the resolver takes as the prelude's. A file with a syntax error
-// is reported, and declares nothing unless the load recovers.
+// declares what recovery kept of it when the load recovers, and is reported with the load's
+// diagnostics; else it declares nothing and carries its error for the checker (Declared.Err).
 func (l *loader) declare(root string) {
 	for _, p := range Beside(root, l.cfg) {
 		key, display := l.canonical(p, "")
@@ -296,8 +301,12 @@ func (l *loader) declare(root string) {
 		} else {
 			f, err := parser.Parse(display, src, parser.Declarations)
 			if err != nil {
+				// A program runs whatever state the files beside it are in, and a host that
+				// provides the names never needed the file: the checker reports the error.
 				pe := err.(*parser.Error)
-				l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax, Help: pe.Help})
+				d.Err = &Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax, Help: pe.Help}
+				d.File = &ast.File{Path: display, Declarations: true}
+				l.declared = append(l.declared, d)
 				continue
 			}
 			d.File = f

@@ -61,6 +61,10 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 			host[ns.Name] = true
 		}
 		for _, d := range prog.Declared {
+			if d.Err != nil {
+				c.diags = append(c.diags, *d.Err)
+				continue
+			}
 			c.declarationFile(d.File, host)
 		}
 	}
