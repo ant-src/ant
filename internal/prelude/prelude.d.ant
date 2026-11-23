@@ -1825,6 +1825,12 @@ type File.Handle
 // WebAssembly, which have none.
 type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int, uid: int | null, gid: int | null }
 
+// File.Entry is one entry of a directory, as [File.readDir] reports it. name is the entry's name,
+// without the directory. isDir and isSymlink describe the entry itself and not what a link points
+// to: a symbolic link has isSymlink true and isDir false, also when it points to a directory, and
+// [File.stat] of its path tells what it points to.
+type File.Entry = { name: string, isDir: bool, isSymlink: bool }
+
 // File.stat returns the name, size, kind, modification time, mode and owner of the file at path. It
 // follows a symbolic link and describes its target, unless follow is false, when it describes the
 // link itself.
@@ -1945,6 +1951,12 @@ func File.remove(path: string): Result[void, Error]
 // strings compare, so "10.txt" comes before "9.txt". It follows a link at dir. Unlike [File.walk] it
 // does not descend, and it returns names rather than paths.
 func File.list(dir: string): Result[Array[string], Error]
+
+// File.readDir returns the entries directly in dir, in the order of [File.list], each with its
+// name and its kind. The kind comes with the listing, so telling directories from files costs no
+// [File.stat] per entry. It follows a link at dir. An entry that is a symbolic link is reported
+// as the link, whatever it points to.
+func File.readDir(dir: string): Result[Array[File.Entry], Error]
 
 // File.open opens the file at path for reading. Close it with [File.close]. A directory opens, and a
 // read of it is Err.

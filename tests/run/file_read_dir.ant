@@ -1,0 +1,44 @@
+// spec: stdlib File
+// File.readDir (stdlib.md, File): the entries of a directory in the order of File.list, each with
+// the kind the directory holds: a link is a link, whatever it points to; it follows a link at dir.
+var dir = Os.args()[0]
+File.mkdir("${dir}/sub/inner")
+File.write("${dir}/b.txt", "b")
+File.write("${dir}/10.txt", "ten")
+File.write("${dir}/9.txt", "nine")
+File.write("${dir}/.hidden", "")
+File.symlink("sub", "${dir}/to-dir")
+File.symlink("b.txt", "${dir}/to-file")
+File.symlink("nowhere", "${dir}/dangling")
+
+var entries = Result.unwrap(File.readDir(dir))
+for e in entries { println(e) }
+println(entries.map({ x.name }) == Result.unwrap(File.list(dir)))
+
+// what a link points to is File.stat's to tell
+println(File.stat("${dir}/to-dir") | Result.map({ x.isDir }))
+
+// a link at dir is followed
+println(File.readDir("${dir}/to-dir"))
+println(File.readDir("${dir}/sub/inner"))
+println(File.readDir("${dir}/b.txt") is Err)
+println(File.readDir("${dir}/missing") is Err)
+println(File.readDir("") is Err)
+
+// expect
+// args: $TMP
+// out: File.Entry{ name: ".hidden", isDir: false, isSymlink: false }
+// out: File.Entry{ name: "10.txt", isDir: false, isSymlink: false }
+// out: File.Entry{ name: "9.txt", isDir: false, isSymlink: false }
+// out: File.Entry{ name: "b.txt", isDir: false, isSymlink: false }
+// out: File.Entry{ name: "dangling", isDir: false, isSymlink: true }
+// out: File.Entry{ name: "sub", isDir: true, isSymlink: false }
+// out: File.Entry{ name: "to-dir", isDir: false, isSymlink: true }
+// out: File.Entry{ name: "to-file", isDir: false, isSymlink: true }
+// out: true
+// out: Ok{ value: true }
+// out: Ok{ value: [File.Entry{ name: "inner", isDir: true, isSymlink: false }] }
+// out: Ok{ value: [] }
+// out: true
+// out: true
+// out: true

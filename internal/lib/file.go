@@ -24,6 +24,9 @@ import (
 // uid: int | null, gid: int | null }.
 var InfoTag = value.NewTag("File.Info", value.RecordTag, []string{"name", "size", "isDir", "isSymlink", "modified", "mode", "uid", "gid"})
 
+// EntryTag is File.Entry: { name: string, isDir: bool, isSymlink: bool }, an entry of a directory.
+var EntryTag = value.NewTag("File.Entry", value.RecordTag, []string{"name", "isDir", "isSymlink"})
+
 // The File namespace (stdlib.md): every operation that can fail returns a Result with Error.
 
 // deadliner is what a connection has and a regular file lacks: a read deadline, which a context
@@ -485,6 +488,7 @@ func init() {
 		entries := []any{
 			constant("Handle", value.NewTag("File.Handle", value.SyncTag, nil)),
 			constant("Info", InfoTag),
+			constant("Entry", EntryTag),
 			fn("File.stat", "path, follow?", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				return statFile(stringArg(g, who, a[0]), boolOr(g, who, a[1], true))
 			}),
@@ -577,6 +581,18 @@ func init() {
 					names[i] = value.Text(e.Name())
 				}
 				return value.Ok(value.NewArray(names))
+			}),
+			fn("File.readDir", "dir", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				entries, err := os.ReadDir(stringArg(g, who, a[0]))
+				if err != nil {
+					return errResult(err)
+				}
+				out := make([]value.Value, len(entries))
+				for i, e := range entries {
+					// the kind the directory holds: a link is a link, whatever it points to
+					out[i] = value.NewRecord(EntryTag, []value.Value{value.Text(e.Name()), e.IsDir(), e.Type()&fs.ModeSymlink != 0})
+				}
+				return value.Ok(value.NewArray(out))
 			}),
 			fn("File.open", "path", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				f, err := os.Open(stringArg(g, who, a[0]))

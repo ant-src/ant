@@ -221,6 +221,7 @@ println(try File.glob("**/*.txt", dir: "notes"))
 - [File.Handle](types/Handle.md): an open file, a standard stream, a connection, or a buffer over
   one
 - [File.Info](types/Info.md): the name, size, kind, modified time, mode, and owner of a file
+- [File.Entry](types/Entry.md): the name and kind of an entry of a directory
 
 ### Whole files
 
@@ -255,6 +256,7 @@ println(try File.glob("**/*.txt", dir: "notes"))
 
 - [File.mkdir](mkdir.md): make a directory with its parents
 - [File.list](list.md): the names in a directory
+- [File.readDir](readDir.md): the entries in a directory, each with its kind
 - [File.walk](walk.md): every file below a directory
 - [File.glob](glob.md): the paths that match a pattern
 
