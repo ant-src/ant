@@ -86,14 +86,14 @@ keep its `.ant` extension or drop it: `ant` runs any existing file.
 
 ## Exit status
 
-| Status       | When                                                                                                       |
-| ------------ | ---------------------------------------------------------------------------------------------------------- |
-| `0`          | The script ends with its last line, or returns anything but an `Err`.                                      |
-| `1`          | The script returns an `Err`, or the main goroutine panics.                                                 |
-| `2`          | The program cannot be loaded: a syntax error, a missing module, an import cycle, or an import of a script. |
-| `141`        | A write to standard output or standard error after its reader has gone, as in `ant run gen.ant \| head`.   |
-| `130`, `143` | Ctrl-C or SIGTERM ends a program that has not called `Os.interrupt()`.                                     |
-| any          | `Os.exit(n)` ends the process with `n`.                                                                    |
+| Status       | When                                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `0`          | The script ends with its last line, or returns anything but an `Err`.                                                                                              |
+| `1`          | The script returns an `Err`, or the main goroutine panics.                                                                                                         |
+| `2`          | The program cannot be loaded: a syntax error, a missing module, an import cycle, an import of a script, or a read of a name that only a declaration file declares. |
+| `141`        | A write to standard output or standard error after its reader has gone, as in `ant run gen.ant \| head`.                                                           |
+| `130`, `143` | Ctrl-C or SIGTERM ends a program that has not called `Os.interrupt()`.                                                                                             |
+| any          | `Os.exit(n)` ends the process with `n`.                                                                                                                            |
 
 ### Failing with an error
 
@@ -198,7 +198,15 @@ one, before anything runs, with status `2`.
 `ant run` refuses a test file, a file whose name ends in `_test.ant`; run it with
 [`ant test`](test.md). It refuses a declaration file too, and a program that reads a name which only
 a declaration file beside it declares: such a program runs in the host that provides the name
-([Modules](../guide/modules.md#declaration-files)).
+([Modules](../guide/modules.md#declaration-files)). Such a program is refused before any module is
+initialized, with status `2`, and the error points at the first place the name is read:
+
+```text
+greet.ant:1:17: Store is declared in store.d.ant, which does not implement it: the program runs only in a host that provides Store [undefined]
+```
+
+A script beside the file that reads none of its names runs as it would without the file. An error in
+the declaration file itself never stops a run: `ant check` reports it.
 
 ## The REPL
 
@@ -231,6 +239,10 @@ A declaration or a `void` result prints nothing. Other results print as `println
 string has no surrounding quotes, while a string inside an array keeps them. The prompt is `> ` for
 a new input and `. ` for a line that continues an unfinished input. Prompts also appear when you
 pipe input into `ant`.
+
+The REPL reads no declaration files, so a host's names are not defined in it, even when it starts in
+the directory of a `.d.ant` file: with `store.d.ant` there, `Store.LIMIT` gives
+`panic: Store is not defined`.
 
 ### Commands and keys
 

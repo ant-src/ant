@@ -18,6 +18,8 @@ strings compare, so "10.txt" comes before "9.txt". It follows a link at dir. Unl
 - The names are bare: to read or stat an entry, join it to `dir` with
   [`Path.join`](../Path/join.md).
 - Subdirectories, hidden names that begin with a dot, and symbolic links are listed like files.
+- The names do not say what kind of entry each is. [File.readDir](readDir.md) returns the same
+  entries in the same order, each with `isDir` and `isSymlink`, with no `File.stat` per name.
 - An empty directory gives `Ok` with an empty array. A missing `dir`, or a `dir` that is a file, is
   `Err`.
 
@@ -221,6 +223,19 @@ let names = try File.list("mixed")
 assert(names == names.sort())
 ```
 
+The names are those of the entries [`File.readDir`](readDir.md) returns, in the same order:
+
+<!-- test: file notes/todo.txt
+buy milk
+-->
+<!-- test: file notes/archive/2025.md
+# 2025
+-->
+
+```ant
+assert((try File.list("notes")) == (try File.readDir("notes")).map({ x.name }))
+```
+
 `File.list` gives what [`File.glob`](glob.md) gives for `*` with hidden names included:
 
 <!-- test: file config/.env
@@ -295,5 +310,5 @@ Err{ error: Error{ message: "open notes/todo.txt: not a directory" } }
 
 ## See also
 
-[File.walk](walk.md), [File.glob](glob.md), [File.stat](stat.md), [File.exists](exists.md),
-[File.mkdir](mkdir.md), [Path.join](../Path/join.md)
+[File.readDir](readDir.md), [File.walk](walk.md), [File.glob](glob.md), [File.stat](stat.md),
+[File.exists](exists.md), [File.mkdir](mkdir.md), [Path.join](../Path/join.md)

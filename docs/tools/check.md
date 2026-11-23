@@ -103,7 +103,12 @@ func Shout.loud(text: string, marks: int): string // error: Shout.loud is alread
 ```
 
 A declaration file beside a program is part of it: `ant check` of the program reads the file's
-declarations into the prelude and reports the file's errors with the program's. The
+declarations into the prelude and reports the file's errors with the program's. The declarations
+reach every module the program imports, wherever it is, but only the directory of the file being
+checked is searched for declaration files, not the directories above it and not those of the modules
+it imports, and `prelude.d.ant` is never such a file. A module checked on its own sees only the
+declaration files beside itself, so `ant check .` reports a library in a subdirectory that reads a
+host's name, since a directory check takes each file as a program of its own. The
 [Modules](../guide/modules.md#declaration-files) chapter shows one.
 
 ## Checking a project
@@ -249,6 +254,12 @@ println(greeting)
 
 Declare `name` before the line that calls `welcome`.
 
+A program that reads a name which only a declaration file beside it declares passes `ant check` too.
+`ant run` and `ant test` refuse it with a load error and status 2 before anything runs, because the
+file declares the name and nothing outside the host implements it (see
+[Libraries and scripts](run.md#libraries-and-scripts)). The file's own errors go the other way:
+`ant check` of the program reports them, and they never stop `ant run`.
+
 ## In editors and CI
 
 Editors with Ant support run the checker and show its errors and warnings in the file.
@@ -330,6 +341,10 @@ Fixed:
 ```ant
 println(len("ant"))
 ```
+
+`ant run` uses this code too, for a name that only a declaration file beside the program declares,
+and `ant test` prints the same message. It is a load error, with status 2:
+`Store is declared in store.d.ant, which does not implement it: the program runs only in a host that provides Store`.
 
 ### `not-exported`
 

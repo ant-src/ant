@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # File.Entry
@@ -19,9 +19,8 @@ directory, and [`File.stat`](../stat.md) of its path tells what it points to.
 - `name` is the entry's name alone, as [File.list](../list.md) gives it. Join it to the directory
   with [`Path.join`](../../Path/join.md) to get a path.
 - `isDir` and `isSymlink` are never both true: a symbolic link is a link, whatever it points to.
-- An entry that is neither is a regular file, or something rarer such as a socket or a device.
-- A `File.Entry` is a snapshot of the listing. It has no size, time, or mode;
-  [File.stat](../stat.md) has those, as a [File.Info](Info.md).
+- A `File.Entry` has no size, time, or mode; [File.stat](../stat.md) has those, as a
+  [File.Info](Info.md).
 
 ## Basic examples
 
@@ -54,10 +53,11 @@ buy milk
 -->
 
 ```ant
-let { name, isDir } = (try File.readDir("inbox"))[0]
+let entry = (try File.readDir("inbox"))[0]
+let { name, isDir } = entry
 println(name)
 println(isDir)
-println((try File.readDir("inbox"))[0] == File.Entry{ name: "todo.txt", isDir: false, isSymlink: false })
+println(entry == File.Entry{ name: "todo.txt", isDir: false, isSymlink: false })
 ```
 
 ```text
@@ -66,21 +66,66 @@ false
 true
 ```
 
-A link has `isSymlink` true and `isDir` false:
+A `File.Entry` prints as a record:
 
-<!-- test: file links/sub/inner.txt
+<!-- test: file shelf/archive/2025.md
+# 2025
 -->
 
 ```ant
-try File.symlink("sub", "links/to-dir")
-println((try File.readDir("links"))[1])
+println((try File.readDir("shelf"))[0])
 ```
 
 ```text
-File.Entry{ name: "to-dir", isDir: false, isSymlink: true }
+File.Entry{ name: "archive", isDir: true, isSymlink: false }
 ```
+
+## Properties and relations
+
+A `File.Entry` holds the three fields of the same names that a [File.Info](Info.md) has when
+[File.stat](../stat.md) is told not to follow a link:
+
+<!-- test: file desk/todo.txt
+buy milk
+-->
+<!-- test: file desk/archive/2025.md
+# 2025
+-->
+
+```ant
+try File.symlink("archive", "desk/old")
+for entry in try File.readDir("desk") {
+  let info = try File.stat(Path.join(["desk", entry.name]), follow: false)
+  assert(entry.name == info.name)
+  assert(entry.isDir == info.isDir)
+  assert(entry.isSymlink == info.isSymlink)
+}
+```
+
+## Possible issues
+
+`isDir` is false for a link to a directory. Ask [File.stat](../stat.md), which follows the link,
+what it points to:
+
+```ant
+try File.mkdir("shortcuts/sub")
+try File.symlink("sub", "shortcuts/to-dir")
+let entry = (try File.readDir("shortcuts")).find({ x.name == "to-dir" })
+println(entry?.isDir)
+println((try File.stat("shortcuts/to-dir")).isDir)
+```
+
+```text
+false
+true
+```
+
+`name` is not a path. Join it to the directory with [`Path.join`](../../Path/join.md) before you
+read or stat the entry, as the same issue on [File.readDir](../readDir.md) shows.
 
 ## See also
 
 - [File.readDir](../readDir.md): the entries of a directory
+- [File.list](../list.md): the names alone
 - [File.Info](Info.md): what [File.stat](../stat.md) reports of one path
+- [Path.join](../../Path/join.md): the path of an entry, from the directory and its name

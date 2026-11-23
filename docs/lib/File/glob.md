@@ -461,4 +461,5 @@ println(try File.glob("*/main.ant", dir: "app"))
 ## See also
 
 [Path.match](../Path/match.md) · [File.walk](walk.md) · [File.list](list.md) ·
-[File.exists](exists.md) · [Path.join](../Path/join.md) · [File.stat](stat.md)
+[File.readDir](readDir.md) · [File.exists](exists.md) · [Path.join](../Path/join.md) ·
+[File.stat](stat.md)

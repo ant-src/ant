@@ -131,6 +131,7 @@ and: 1
 | `os.chown(p, uid, gid)`                                 | `try File.chown(p, uid, gid)`                          |
 | `os.path.join(a, b)`                                    | `Path.join([a, b])`                                    |
 | `os.path.exists(p)`                                     | `File.exists(p)`                                       |
+| `os.listdir(d)`, `os.scandir(d)`                        | `try File.list(d)`, `try File.readDir(d)`              |
 | `glob.glob("*.txt")`, `os.walk(d)`                      | `try File.glob("*.txt")`, `try File.walk(d)`           |
 | `sys.argv[1:]`                                          | `Os.args()`                                            |
 | `os.environ.get("HOME")`                                | `Os.env("HOME")`                                       |

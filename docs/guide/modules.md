@@ -320,9 +320,9 @@ such as `Store.Handle`, is opaque: its values come only from the functions decla
 no `export`, since every declaration is visible, and no `import`. `ant check store.d.ant` checks
 that the signatures are sound.
 
-Put the declaration file in the directory of the script the host runs. The checker and your editor
-then read it for that script and every module it imports, so `Store` checks, completes, and jumps to
-`store.d.ant` with no host running:
+Put the declaration file in the directory of the script the host runs. `ant check`, your editor, and
+`ant code` then read it for that script and every module it imports, so `Store` checks, completes,
+and jumps to `store.d.ant` with no host running:
 
 <!-- test: cmd ant check greet.ant -->
 
@@ -331,12 +331,16 @@ let store = try Store.open("notes")
 println(Store.get(store, "greeting") ?? "nothing stored")
 ```
 
-Only the script's own directory is searched. A host that gives the program a `Store` namespace
-itself has its own signatures used, and the file is not read for that name, so a host can keep its
+Only the directory of the script is searched, not the directories above it and not those of the
+modules it imports. A module checked on its own, as an editor checks the file you have open or as
+`ant check lib/inner.ant` does, sees the declaration files beside itself, so with `store.d.ant` one
+directory up `Store` is not defined there. A host that gives the program a `Store` namespace itself
+has its own signatures used, and the file is not read for that name, so a host can keep its
 signatures in this one file and embed it.
 
 The file declares `Store` and does not implement it. A script that reads a name of `Store` runs only
-in the host, and plain `ant run` refuses it before anything runs, with status `2`:
+in the host. Without the host, `ant run` and `ant test` refuse it before anything runs: a load error
+at the first place the name is read, and exit status `2`:
 
 <!-- test: cmd ant run limit.ant -->
 <!-- test: exit 2 -->
@@ -345,12 +349,20 @@ in the host, and plain `ant run` refuses it before anything runs, with status `2
 println("a value holds up to ${Store.LIMIT} bytes")
 ```
 
-The error names the file: `Store is declared in store.d.ant, which does not implement it`.
+The error names the file: `Store is declared in store.d.ant, which does not implement it`. A script
+beside the file that reads none of its names runs as it would without the file. The REPL reads no
+declaration files: there `Store.LIMIT` is `panic: Store is not defined`.
+
+`ant check` of a script reports the errors of the declaration files beside it with the script's own:
+a `shout.d.ant` that misspells a type gives `shout.d.ant:1:32: unknown type Strin [undefined]`. Such
+an error never stops `ant run`. A declaration file with a syntax error declares nothing for a run,
+so a script that reads its names then fails as it does for any name that is not defined, and a
+script that reads none runs.
 
 You cannot import a declaration file, and `ant run` refuses one:
 
 ```ant
-import "./store.d.ant" Store
+import "./store.d.ant" { open }
 // error: cannot import "./store.d.ant": a declaration file declares names for the prelude and cannot be imported
 ```
 
@@ -407,5 +419,6 @@ wordcount/
 [Modules in the tour](../tour/19-modules.md), [`import`](../language/keywords/import.md),
 [`export`](../language/keywords/export.md), [`test`](../language/keywords/test.md),
 [Testing](testing.md), [`ant run`](../tools/run.md), [`ant test`](../tools/test.md),
-[`ant doc`](../tools/doc.md), [the Go API](https://pkg.go.dev/github.com/ant-src/ant) for running
-Ant from a Go program
+[`ant check`](../tools/check.md), [`ant code`](../tools/code.md), [`ant doc`](../tools/doc.md),
+[the Go API](https://pkg.go.dev/github.com/ant-src/ant) for running Ant from a Go program, where a
+host gives its namespaces

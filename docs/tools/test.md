@@ -362,13 +362,13 @@ exit status 1
 
 ## Exit status
 
-| Status | When                                                                                              |
-| ------ | ------------------------------------------------------------------------------------------------- |
-| `0`    | No test failed, including when tests were skipped and when there were none                        |
-| `1`    | A test failed, the checker reported an error, or the time ran out                                 |
-| `2`    | A file could not be loaded, such as for a syntax error or a missing module, or the usage is wrong |
+| Status | When                                                                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `0`    | No test failed, including when tests were skipped and when there were none                                                                       |
+| `1`    | A test failed, the checker reported an error, or the time ran out                                                                                |
+| `2`    | A file could not be loaded, such as for a syntax error, a missing module, or a name that only a declaration file declares, or the usage is wrong |
 
-A file that cannot be loaded is reported on standard error, and no test runs.
+A file the check cannot load is reported on standard error, and no test runs.
 `ant test syntax_test.ant sum_test.ant` reports the syntax error, prints nothing on standard output,
 and exits with status 2:
 
@@ -447,6 +447,41 @@ test "third port" {
 ```text
 FAIL  1 failed, 0 passed (0.00s)
 ```
+
+### A test that needs a host
+
+A [declaration file](../guide/modules.md#declaration-files) beside a test file is read by the check,
+so a test that reads a host's namespace type-checks. `ant test` still cannot run it, since the file
+declares the names and does not implement them. Here `store.d.ant` declares a constant of a host:
+
+```ant [store.d.ant]
+// Store.LIMIT is the most bytes a value may hold.
+let Store.LIMIT: int
+```
+
+`ant test greet_test.ant` passes the check and then refuses the file when it loads:
+
+<!-- test: cmd ant test greet_test.ant -->
+<!-- test: exit 2 -->
+
+```ant [greet_test.ant]
+test "limit" {
+  assert(Store.LIMIT > 0)
+}
+```
+
+```text
+FAIL  no tests (0.00s)
+```
+
+The reason goes to standard error:
+
+```text
+greet_test.ant:2:10: Store is declared in store.d.ant, which does not implement it: the program runs only in a host that provides Store
+```
+
+No test of that file runs, the tests of the other files still run, and the command exits with status
+2, with or without `-nocheck`. Run such tests in the host that provides the namespace.
 
 ### A name that holds `/`
 

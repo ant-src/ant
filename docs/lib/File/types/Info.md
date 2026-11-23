@@ -7,7 +7,14 @@
 type File.Info = { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int, uid: int | null, gid: int | null }
 ```
 
-File.Info describes the file at a path, as [`File.stat`](../stat.md) reports it. modified is the time of the last write. mode holds the permission bits and the setuid, setgid and sticky bits, at most 0o7777; on Windows a file is 0o444 when read-only and 0o666 when not, and a directory adds 0o111. isSymlink is true only when stat was told not to follow a link. name is the last element of the path, also when a link is followed. size is a regular file's length in bytes; for a directory, and for a link described with follow false, it is what the host reports, as is a link's own mode. uid and gid are the ids of the user and the group that own the file, or null on Windows and WebAssembly, which have none.
+File.Info describes the file at a path, as [`File.stat`](../stat.md) reports it. modified is the
+time of the last write. mode holds the permission bits and the setuid, setgid and sticky bits, at
+most 0o7777; on Windows a file is 0o444 when read-only and 0o666 when not, and a directory adds
+0o111. isSymlink is true only when stat was told not to follow a link. name is the last element of
+the path, also when a link is followed. size is a regular file's length in bytes; for a directory,
+and for a link described with follow false, it is what the host reports, as is a link's own mode.
+uid and gid are the ids of the user and the group that own the file, or null on Windows and
+WebAssembly, which have none.
 
 <!-- end generated -->
 
@@ -19,9 +26,12 @@ File.Info describes the file at a path, as [`File.stat`](../stat.md) reports it.
 - `modified` is rounded as the file system keeps times: to 2 seconds on FAT, to the second on HFS+,
   to the nanosecond on ext4 and APFS. The access time is not in `File.Info`.
 - `uid` and `gid` are the numeric ids of the owning user and group, as `ls -n` shows them, and
-  `null` on Windows, which has no such ids. [File.chown](../chown.md) changes them.
+  `null` on Windows and WebAssembly, which have no such ids. [File.chown](../chown.md) changes them.
 - A `File.Info` is a snapshot: it does not change when the file does. Call [File.stat](../stat.md)
   again for the current values.
+- To tell only directories, files and links apart in a listing, [File.readDir](../readDir.md) gives
+  a [File.Entry](Entry.md) per name, with `name`, `isDir`, and `isSymlink`, and no call to
+  `File.stat`.
 
 ## Basic examples
 
@@ -104,7 +114,7 @@ println(String.fromInt(info.mode, base: 8))
 ```
 
 A file the program creates belongs to the user it runs as, so its `uid` is
-[Os.uid](../../Os/uid.md); both are `null` on Windows:
+[Os.uid](../../Os/uid.md); both are `null` on Windows and WebAssembly:
 
 ```ant
 try File.write("mine.txt", "x")
@@ -170,6 +180,28 @@ println("${total} bytes")
 
 ```text
 17 bytes
+```
+
+Add up only the files directly in a directory. `File.list` names subdirectories too, so `isDir`
+leaves them out; their `size` is what the host reports:
+
+```ant
+try File.mkdir("project")
+try File.mkdir("project/src")
+try File.write("project/src/main.go", "package main\n")
+try File.write("project/README.md", "# Project\n")
+try File.write("project/go.mod", "module project\n")
+
+var total = 0
+for name in try File.list("project") {
+  let info = try File.stat(Path.join(["project", name]))
+  if !info.isDir { total += info.size }
+}
+println("${total} bytes")
+```
+
+```text
+25 bytes
 ```
 
 Rebuild an output only when its source changed after it, as `make` does:
@@ -243,29 +275,6 @@ println(permissions(try File.stat("public")))
 ```text
 -rwxr-x---
 drwxr-xr-x
-```
-
-Split the entries of a directory into directories and files:
-
-```ant
-try File.mkdir("project")
-try File.mkdir("project/src")
-try File.write("project/README.md", "")
-try File.write("project/go.mod", "")
-
-let dirs: Array[string] = []
-let files: Array[string] = []
-for name in try File.list("project") {
-  let info = try File.stat("project/${name}")
-  if info.isDir { dirs.push(name) } else { files.push(name) }
-}
-println(dirs)
-println(files)
-```
-
-```text
-["src"]
-["README.md", "go.mod"]
 ```
 
 ## Properties and relations
@@ -383,6 +392,7 @@ println((try File.stat("log.txt")).size)
 
 ## See also
 
-[File.stat](../stat.md) · [File.chmod](../chmod.md) · [File.touch](../touch.md) ·
-[File.list](../list.md) · [File.walk](../walk.md) · [File.exists](../exists.md) ·
-[Time.Instant](../../Time/types/Instant.md) · [String.fromInt](../../String/fromInt.md)
+[File.stat](../stat.md) · [File.Entry](Entry.md) · [File.readDir](../readDir.md) ·
+[File.chmod](../chmod.md) · [File.touch](../touch.md) · [File.list](../list.md) ·
+[File.walk](../walk.md) · [File.exists](../exists.md) · [Time.Instant](../../Time/types/Instant.md)
+· [String.fromInt](../../String/fromInt.md)

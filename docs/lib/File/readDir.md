@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # File.readDir
@@ -17,6 +17,9 @@ reported as the link, whatever it points to.
 ## Details
 
 - Each entry is a [File.Entry](types/Entry.md) with the fields `name`, `isDir`, and `isSymlink`.
+- The entries come in lexical order, the order of [File.list](list.md).
+- Names that begin with a dot and symbolic links are entries like any other, as in
+  [File.list](list.md).
 - The names are bare, as those of [File.list](list.md) are: to read or stat an entry, join its name
   to `dir` with [`Path.join`](../Path/join.md).
 - The kind is the one the directory holds. A symbolic link has `isSymlink` true and `isDir` false,
@@ -264,6 +267,25 @@ println(entry.isDir == info.isDir)
 to-dir
 true
 true
+```
+
+`File.readDir` reports the directories in `dir`, empty ones too, and does not descend.
+[File.walk](walk.md) lists only the files below:
+
+<!-- test: file project/readme.md
+-->
+<!-- test: file project/src/main.ant
+-->
+
+```ant
+try File.mkdir("project/build")
+println((try File.readDir("project")).map({ x.name }))
+println(try File.walk("project"))
+```
+
+```text
+["build", "readme.md", "src"]
+["readme.md", "src/main.ant"]
 ```
 
 ## Possible issues

@@ -177,6 +177,19 @@ for target in ["a.txt", "../up/b.txt", "/abs/c", "dir/", "ünï cødé"] {
 }
 ```
 
+In a listing, [File.readDir](readDir.md) reports a link as a link, also when it points to a
+directory:
+
+```ant
+try File.mkdir("deploy/v2")
+try File.symlink("v2", "deploy/current")
+println(try File.readDir("deploy"))
+```
+
+```text
+[File.Entry{ name: "current", isDir: false, isSymlink: true }, File.Entry{ name: "v2", isDir: true, isSymlink: false }]
+```
+
 [File.remove](remove.md) removes the link and leaves its target alone:
 
 ```ant
@@ -235,5 +248,5 @@ Ok{ value: "v2" }
 ## See also
 
 [File.readLink](readLink.md) · [File.realPath](realPath.md) · [File.stat](stat.md) ·
-[File.rename](rename.md) · [File.remove](remove.md) · [File.exists](exists.md) ·
-[Path.join](../Path/join.md)
+[File.readDir](readDir.md) · [File.rename](rename.md) · [File.remove](remove.md) ·
+[File.exists](exists.md) · [Path.join](../Path/join.md)

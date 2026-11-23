@@ -279,6 +279,12 @@ func Host.name(): string
 func Host.cores(): int
 ```
 
+A host program that embeds Ant keeps the signatures of its namespace in such a file, in the
+directory of the scripts it runs, where `ant check` and your editor read it for those scripts (see
+[Declaration files](../guide/modules.md#declaration-files)). `ant doc` reads a declaration file only
+when you name it, so the doc of a host name is `ant doc host.d.ant Host.name`. `ant doc Host.name`
+without the file looks in the standard library alone and finds no such declaration.
+
 ## Writing doc comments
 
 A doc comment is plain text, read in a terminal as often as in an editor. The standard library

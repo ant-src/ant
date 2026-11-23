@@ -241,26 +241,6 @@ Ok{ value: true }
 Ok{ value: false }
 ```
 
-List a directory with the kind of each entry, without following links:
-
-```ant
-try File.mkdir("project/src")
-try File.write("project/README.md", "# Project")
-try File.symlink("README.md", "project/readme")
-
-for name in try File.list("project") {
-  let info = try File.stat(Path.join(["project", name]), follow: false)
-  let kind = if info.isSymlink { "link" } else if info.isDir { "dir" } else { "file" }
-  println("${kind}\t${name}")
-}
-```
-
-```text
-file	README.md
-link	readme
-dir	src
-```
-
 Check that a script is executable by its owner before running it:
 
 ```ant
@@ -318,6 +298,23 @@ assert(viaLink.mode == file.mode)
 assert(viaLink.modified == file.modified)
 ```
 
+For each entry of a directory, [File.readDir](readDir.md) reports the `isDir` and `isSymlink` that
+`File.stat` reports with `follow: false`, in one call:
+
+```ant
+try File.mkdir("project/src")
+try File.write("project/README.md", "# Project")
+try File.symlink("README.md", "project/readme")
+
+for entry in try File.readDir("project") {
+  let info = try File.stat(Path.join(["project", entry.name]), follow: false)
+  assert(entry.isDir == info.isDir && entry.isSymlink == info.isSymlink)
+}
+```
+
+Use `File.readDir` when only the kind is wanted, and `File.stat` when the size, modified time, mode
+or owner is.
+
 ## Possible issues
 
 Without `follow: false`, `isSymlink` is false, so a check for links that leaves it out never finds
@@ -370,4 +367,5 @@ println(Time.compare(older.modified, newer.modified))
 
 [File.exists](exists.md) · [File.Info](types/Info.md) · [File.touch](touch.md) ·
 [File.chmod](chmod.md) · [File.chown](chown.md) · [File.readLink](readLink.md) ·
-[File.realPath](realPath.md) · [File.list](list.md) · [File.walk](walk.md)
+[File.realPath](realPath.md) · [File.list](list.md) · [File.readDir](readDir.md) ·
+[File.Entry](types/Entry.md) · [File.walk](walk.md)

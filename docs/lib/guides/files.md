@@ -144,6 +144,9 @@ true
 
 - [File.exists](../File/exists.md): whether anything is at a path
 - [File.list](../File/list.md): the names in one directory
+- [File.readDir](../File/readDir.md): the entries of one directory, each a
+  [File.Entry](../File/types/Entry.md) with its name and whether it is a directory or a symbolic
+  link
 - [File.walk](../File/walk.md): every file below a directory
 - [File.glob](../File/glob.md): the paths below a directory that match a pattern
 - [Path.match](../Path/match.md): whether a path matches a pattern, without reading the disk

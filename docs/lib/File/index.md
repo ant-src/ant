@@ -195,8 +195,9 @@ HELLO
 ANT
 ```
 
-[File.list](list.md) gives the names in one directory, [File.walk](walk.md) the files below it, and
-[File.glob](glob.md) the paths that match a pattern:
+[File.list](list.md) gives the names in one directory, [File.readDir](readDir.md) the same entries
+with their kinds, [File.walk](walk.md) the files below it, and [File.glob](glob.md) the paths that
+match a pattern:
 
 ```ant
 try File.mkdir("notes/2026")
@@ -204,12 +205,14 @@ try File.write("notes/todo.txt", "")
 try File.write("notes/2026/march.txt", "")
 try File.write("notes/2026/march.md", "")
 println(try File.list("notes"))
+println((try File.readDir("notes")).filter({ x.isDir }).map({ x.name }))
 println(try File.walk("notes"))
 println(try File.glob("**/*.txt", dir: "notes"))
 ```
 
 ```text
 ["2026", "todo.txt"]
+["2026"]
 ["2026/march.md", "2026/march.txt", "todo.txt"]
 ["2026/march.txt", "todo.txt"]
 ```

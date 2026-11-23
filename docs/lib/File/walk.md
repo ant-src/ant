@@ -277,6 +277,9 @@ println(try File.walk("proj/src"))
 ["main.ant", "util/strings.ant", "util/strings_test.ant"]
 ```
 
+For a descent of your own, one that needs the directories too or skips some,
+[File.readDir](readDir.md) gives each entry of a directory with its kind.
+
 ## Possible issues
 
 The paths are relative to `dir`. Reading one as it comes back looks for it in the working directory
@@ -342,7 +345,10 @@ Ok{ value: true }
 false
 ```
 
+[File.readDir](readDir.md) reports such an entry with `isSymlink` true and `isDir` false, so a
+listing of your own can tell links from files.
+
 ## See also
 
-[File.list](list.md) · [File.glob](glob.md) · [File.stat](stat.md) · [File.copyAll](copyAll.md) ·
-[Path.join](../Path/join.md) · [Path.match](../Path/match.md)
+[File.list](list.md) · [File.readDir](readDir.md) · [File.glob](glob.md) · [File.stat](stat.md) ·
+[File.copyAll](copyAll.md) · [Path.join](../Path/join.md) · [Path.match](../Path/match.md)

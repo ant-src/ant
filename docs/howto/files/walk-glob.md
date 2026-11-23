@@ -196,6 +196,29 @@ println(try File.glob("**/", dir: "app"))
 ["docs/", "src/", "src/util/", "tests/"]
 ```
 
+## List one directory
+
+To list only what is directly in a directory, with the kind of each entry, call
+[File.readDir](../../lib/File/readDir.md). It does not descend, and it includes hidden names:
+
+```ant
+for { name, isDir } in try File.readDir("app") {
+  println(if isDir { name + "/" } else { name })
+}
+```
+
+```text
+.env
+.git/
+README.md
+docs/
+src/
+tests/
+```
+
+The names are bare, so join one with `Path.join(["app", name])` to use it.
+[File.list](../../lib/File/list.md) gives the names alone.
+
 ## Report a bad pattern
 
 `File.glob` returns `Err` for a malformed pattern and for a `dir:` that is not a directory. Add the
@@ -220,7 +243,7 @@ A directory missing below `dir:`, as `missing/*.txt` asks for, is no match, not 
 ## See also
 
 [File.glob](../../lib/File/glob.md) · [File.walk](../../lib/File/walk.md) ·
-[File.list](../../lib/File/list.md) · [File.stat](../../lib/File/stat.md) ·
-[Path.match](../../lib/Path/match.md) · [Path.join](../../lib/Path/join.md) ·
-[Path.base](../../lib/Path/base.md) · [Result.wrapErr](../../lib/Result/wrapErr.md) ·
-[Path](../../lib/Path/index.md)
+[File.list](../../lib/File/list.md) · [File.readDir](../../lib/File/readDir.md) ·
+[File.stat](../../lib/File/stat.md) · [Path.match](../../lib/Path/match.md) ·
+[Path.join](../../lib/Path/join.md) · [Path.base](../../lib/Path/base.md) ·
+[Result.wrapErr](../../lib/Result/wrapErr.md) · [Path](../../lib/Path/index.md)

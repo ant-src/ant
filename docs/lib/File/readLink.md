@@ -142,8 +142,8 @@ println("live release: ${Path.base(target)}")
 live release: v1.5.0
 ```
 
-Find the dangling links in a directory: [File.stat](stat.md) with `follow: false` picks the links,
-and `File.exists` follows each one:
+Find the dangling links in a directory: [File.readDir](readDir.md) says which entries are links, and
+`File.exists` follows each one:
 
 ```ant
 try File.mkdir("bin")
@@ -151,10 +151,11 @@ try File.write("bin/tool-1.0", "")
 try File.symlink("tool-1.0", "bin/tool")
 try File.symlink("helper-0.9", "bin/helper")
 
-for name in try File.list("bin") {
-  let path = Path.join(["bin", name])
-  let info = try File.stat(path, follow: false)
-  if !info.isSymlink || File.exists(path) { continue }
+for entry in try File.readDir("bin") {
+  let path = Path.join(["bin", entry.name])
+  if !entry.isSymlink || File.exists(path) {
+    continue
+  }
   let target = try File.readLink(path)
   println("${path} -> ${target} (missing)")
 }
@@ -239,5 +240,5 @@ To read what a link leads to, read the link itself: [File.read](read.md) follows
 ## See also
 
 [File.symlink](symlink.md) · [File.realPath](realPath.md) · [File.stat](stat.md) ·
-[File.exists](exists.md) · [File.remove](remove.md) · [Path.join](../Path/join.md) ·
-[Path.dir](../Path/dir.md)
+[File.readDir](readDir.md) · [File.exists](exists.md) · [File.remove](remove.md) ·
+[Path.join](../Path/join.md) · [Path.dir](../Path/dir.md)

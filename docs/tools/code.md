@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 
 # ant code
 
@@ -31,6 +31,9 @@ ant code rename  [flags] <loc> <name>   # rename a declaration and its uses
 - Text output is one location per line, `path:line:col: text`, as `ant check` and `grep -n` print
   them. Counts, warnings, and errors go to standard error.
 - `ant code` parses and type-checks, and never runs your code: no initializer, function, or test.
+- A [declaration file](../guide/modules.md#declaration-files) (`.d.ant`) in the directory of a
+  program's root module is read with that program, as `ant check` reads it. A name a host provides
+  then resolves to its declaration in that file.
 - The exit status is 0 for an answer, 1 when nothing is found, a location is ambiguous, or a rename
   is refused, and 2 when the usage is wrong, a file cannot be read, parsed, or written, or an answer
   may be incomplete.
@@ -168,6 +171,42 @@ func Money.add(a: Money, b: Money): Money
 ```
 
 `type` prints the signature, then the doc comment indented by four spaces.
+
+### Host declarations
+
+A script written for a host program reads names the host adds to the prelude. With the host's
+declaration file beside the script, those names resolve as the standard library's do:
+
+```ant [scripts/store.d.ant]
+// Store.Handle is an open store.
+type Store.Handle
+// Store.open opens the store called name.
+func Store.open(name: string): Result[Store.Handle, Error]
+// Store.get returns the value stored under key, or null.
+func Store.get(store: Store.Handle, key: string): string | null
+// Store.LIMIT is the most bytes a value may hold.
+let Store.LIMIT: int
+```
+
+```sh
+ant code def scripts/greet.ant:1:open
+```
+
+<!-- test: cmd ant code def scripts/greet.ant:1:open -->
+
+```ant [scripts/greet.ant]
+let store = try Store.open("notes")
+println(Store.get(store, "greeting") ?? "nothing stored")
+```
+
+```text
+scripts/store.d.ant:4:12: func Store.open(name: string): Result[Store.Handle, Error]
+```
+
+`ant code type scripts/greet.ant:2:get` prints the signature of `Store.get` and its doc comment, a
+bare `ant code def Store.LIMIT` finds the constant in the file, and `ant code symbols scripts` lists
+the file's four declarations after the script's, without `export`. Nothing runs, so no host is
+needed.
 
 ### Ambiguous locations
 
@@ -360,6 +399,13 @@ ant code type -json words.ant:2:groups | jq -r .text
   unless you add `-force`.
 - A rename covers the workspace only. A module outside the root that imports the declaration, and a
   name kept in a string, stay as they are.
+- A host's declaration file declares names that the host program implements outside the workspace,
+  so `rename` cannot rename them in the host. Change a host name in the host and in its declaration
+  file, then let `ant check .` list the scripts to update.
+- `ant code` analyzes the file a location names as a root of its own, so it reads only the
+  declaration files in that file's directory. A host name in a module that a script imports from
+  another directory does not resolve there (`ant code: LIMIT is not declared`, status 1), although
+  `ant check` of the script passes.
 - `rename` writes nothing if a file changed after it read it. Run it again.
 - A rename can make a line longer than `ant fmt` keeps it. Run `ant fmt` after.
 
