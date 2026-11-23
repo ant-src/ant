@@ -120,25 +120,43 @@ type Program struct {
 	// Modules in initialization order: every module after the modules it imports, the root last.
 	Modules []*Module
 	Root    *Module
+	// Declared is the host's declaration files of the program: those beside its root (section
+	// 10, Declaration files), in the order of their names.
+	Declared []*Declared
+}
+
+// Declared is a host's declaration file, parsed.
+type Declared struct {
+	Path string // as messages show it
+	File *ast.File
+	Src  string
+	// Layout is kept when loading with Recover, as a module's is.
+	Layout *parser.Layout
+	// Names are the prelude names the file binds: the owners of its declarations and its
+	// unqualified names.
+	Names []string
 }
 
 type loader struct {
-	cfg     Config
-	diags   []Diagnostic
-	modules []*Module
-	state   map[string]int // 1: in progress, 2: done, 3: failed to parse
-	index   map[string]*Module
-	files   map[string]os.FileInfo // each module file read from the OS, by key
+	cfg      Config
+	diags    []Diagnostic
+	modules  []*Module
+	declared []*Declared
+	beside   map[string]bool // each directory searched for declaration files, and each file read
+	state    map[string]int  // 1: in progress, 2: done, 3: failed to parse
+	index    map[string]*Module
+	files    map[string]os.FileInfo // each module file read from the OS, by key
 }
 
 func newLoader(cfg Config) *loader {
-	return &loader{cfg: cfg, state: map[string]int{}, index: map[string]*Module{}, files: map[string]os.FileInfo{}}
+	return &loader{cfg: cfg, state: map[string]int{}, index: map[string]*Module{}, files: map[string]os.FileInfo{}, beside: map[string]bool{}}
 }
 
 // Load loads the module at root and everything it imports.
 func Load(root string, cfg Config) (*Program, []Diagnostic) {
 	l := newLoader(cfg)
 	key, display := l.canonical(root, "")
+	l.declare(root)
 	m := l.visit(key, display, root, root, Diagnostic{}, true)
 	if len(l.diags) > 0 {
 		sort.SliceStable(l.diags, func(i, j int) bool {
@@ -154,7 +172,7 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 			return nil, l.diags
 		}
 	}
-	return &Program{Modules: l.modules, Root: m}, l.diags
+	return &Program{Modules: l.modules, Root: m, Declared: l.declared}, l.diags
 }
 
 // LoadRoots loads the modules at roots and everything they import as one graph, in which each
@@ -167,15 +185,20 @@ func Load(root string, cfg Config) (*Program, []Diagnostic) {
 func LoadRoots(roots []string, cfg Config) (*Program, []Diagnostic) {
 	l := newLoader(cfg)
 	mods := make([]*Module, len(roots))
+	// The declaration files first, since a root may be a module another root imports, and each
+	// module is resolved once, with the names of them all.
+	for _, r := range roots {
+		l.declare(r)
+	}
 	for i, r := range roots {
 		key, display := l.canonical(r, "")
 		mods[i] = l.visit(key, display, r, r, Diagnostic{}, true)
 	}
 	if len(l.diags) == 0 {
-		return &Program{Modules: l.modules}, nil
+		return &Program{Modules: l.modules, Declared: l.declared}, nil
 	}
 	if cfg.Recover {
-		return &Program{Modules: l.modules}, dedupe(l.diags)
+		return &Program{Modules: l.modules, Declared: l.declared}, dedupe(l.diags)
 	}
 	diags := dedupe(l.diags)
 	bad := map[string]bool{}
@@ -204,7 +227,138 @@ func LoadRoots(roots []string, cfg Config) (*Program, []Diagnostic) {
 			imp.Module = index[imp.Module]
 		}
 	}
-	return &Program{Modules: kept}, diags
+	return &Program{Modules: kept, Declared: l.declared}, diags
+}
+
+// Beside lists the host's declaration files of the program rooted at root: the files beside it
+// whose names end in .d.ant, but for prelude.d.ant, by the paths that read them, in the order of
+// their names (section 10, Declaration files). A root that is a declaration file, or an input of
+// a session, has none.
+func Beside(root string, cfg Config) []string {
+	if cfg.Session != nil || cfg.Mode != parser.Program || parser.ModeOf(root) == parser.Declarations {
+		return nil
+	}
+	// The root is a path of the file system, or of cfg.FS, or one only cfg.Sources knows; its
+	// neighbors are found the same three ways.
+	dir, join := filepath.Dir(root), filepath.Join
+	if cfg.FS != nil {
+		dir, join = path.Dir(path.Clean(root)), path.Join
+	}
+	names := map[string]bool{}
+	var entries []fs.DirEntry
+	if cfg.FS != nil {
+		entries, _ = fs.ReadDir(cfg.FS, dir)
+	} else {
+		entries, _ = os.ReadDir(dir)
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			names[e.Name()] = true
+		}
+	}
+	// a file an editor has open and not saved, or one a host gives as text
+	for p := range cfg.Sources {
+		if path.Dir(p) == path.Clean(filepath.ToSlash(dir)) {
+			names[path.Base(p)] = true
+		}
+	}
+	var out []string
+	for name := range names {
+		if parser.ModeOf(name) == parser.Declarations && name != "prelude.d.ant" {
+			out = append(out, join(dir, name))
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// declare reads the host's declaration files of the program rooted at root, each once, and adds
+// the names they bind to those the resolver takes as the prelude's. A file with a syntax error
+// is reported, and declares nothing unless the load recovers.
+func (l *loader) declare(root string) {
+	for _, p := range Beside(root, l.cfg) {
+		key, display := l.canonical(p, "")
+		if l.beside[key] {
+			continue
+		}
+		l.beside[key] = true
+		src, ok := l.read(key, p)
+		if !ok {
+			continue
+		}
+		d := &Declared{Path: display, Src: src}
+		if l.cfg.Recover {
+			var errs []*parser.Error
+			d.File, d.Layout, errs = parser.ParseRecover(display, src)
+			for _, pe := range errs {
+				l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax, Help: pe.Help})
+			}
+		} else {
+			f, err := parser.Parse(display, src, parser.Declarations)
+			if err != nil {
+				pe := err.(*parser.Error)
+				l.diags = append(l.diags, Diagnostic{Path: display, Pos: pe.Pos, Msg: pe.Msg, Code: codes.Syntax, Help: pe.Help})
+				continue
+			}
+			d.File = f
+		}
+		f := d.File
+		seen := map[string]bool{}
+		name := func(owner, name string) {
+			if owner == "" {
+				owner = name
+			}
+			if owner != "" && !seen[owner] {
+				seen[owner] = true
+				d.Names = append(d.Names, owner)
+			}
+		}
+		for _, decl := range f.Decls {
+			switch decl := decl.(type) {
+			case *ast.FuncDecl:
+				name(decl.Owner, decl.Name)
+			case *ast.TypeDecl:
+				name(decl.Owner, decl.Name)
+			case *ast.VarDecl:
+				name(decl.Owner, "")
+			}
+		}
+		l.declared = append(l.declared, d)
+		l.cfg.Extra = append(l.cfg.Extra[:len(l.cfg.Extra):len(l.cfg.Extra)], d.Names...)
+	}
+}
+
+// Unprovided reports why the program cannot run in a host: the first read, in initialization
+// order, of a name that a host's declaration file declares and the host does not provide, as
+// provided tells. A declaration file declares and does not implement (section 10, Declaration
+// files). It is nil for a program that reads no such name.
+func (p *Program) Unprovided(provided func(name string) bool) *Diagnostic {
+	from := map[string]string{}
+	for _, d := range p.Declared {
+		for _, name := range d.Names {
+			if _, seen := from[name]; !seen && !provided(name) {
+				from[name] = d.Path
+			}
+		}
+	}
+	if len(from) == 0 {
+		return nil
+	}
+	var found *Diagnostic
+	for _, m := range p.Modules {
+		ast.Inspect(m.File, func(n ast.Node) bool {
+			if id, ok := n.(*ast.Ident); ok && found == nil && id.Ref.Kind == ast.RefPrelude && from[id.Name] != "" {
+				found = &Diagnostic{Path: m.File.Path, Pos: id.Pos, End: id.End, Code: codes.Undefined, Msg: fmt.Sprintf(
+					"%s is declared in %s, which does not implement it: the program runs only in a host that provides %s",
+					id.Name, from[id.Name], id.Name)}
+			}
+			return found == nil
+		})
+		if found != nil {
+			break
+		}
+	}
+	return found
 }
 
 // reach adds m and every module it reaches to seen, by index.

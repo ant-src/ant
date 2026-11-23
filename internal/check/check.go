@@ -53,8 +53,19 @@ func Program(prog *loader.Program, cfg Config) []Diagnostic {
 		c.info.c = c
 	}
 	c.loadPrelude(cfg)
+	if len(prog.Declared) > 0 {
+		// The host's declaration files join the prelude, less the names the host provides
+		// itself, whose signatures are its own (section 10, Declaration files).
+		host := map[string]bool{}
+		for _, ns := range cfg.Namespaces {
+			host[ns.Name] = true
+		}
+		for _, d := range prog.Declared {
+			c.declarationFile(d.File, host)
+		}
+	}
 	if prog.Root != nil && prog.Root.File.Declarations {
-		c.declarationFile(prog.Root.File)
+		c.declarationFile(prog.Root.File, nil)
 	} else {
 		c.mods = make([]*moduleInfo, len(prog.Modules))
 		for _, m := range prog.Modules {
@@ -481,13 +492,15 @@ func (c *Checker) markBuiltins() {
 	}
 }
 
-// declarationFile checks a declaration file given as the root of a program: no declaration may
+// declarationFile checks a declaration file, the root of a program or a host's declaration file
+// of one, for which host holds the names the host provides itself: what the file declares on
+// one of those is not read. No declaration may
 // take a name the prelude binds, the host namespaces included, or be declared twice; the others
 // join the prelude, which resolves every type they mention, and their field and parameter
 // defaults are checked as a module's are. A file named prelude.d.ant is the prelude's own
 // source, or a copy of it being edited: its declarations stand in for the built-in ones, so they
 // may take prelude names. The built-in prelude is declared already.
-func (c *Checker) declarationFile(f *ast.File) {
+func (c *Checker) declarationFile(f *ast.File, host map[string]bool) {
 	if pf, _ := prelude.Decls(); f == pf {
 		// declared already: check its defaults, which also records its parameters for an editor
 		for _, ti := range c.preludeTypes {
@@ -540,6 +553,9 @@ func (c *Checker) declarationFile(f *ast.File) {
 		top := owner
 		if top == "" {
 			top = name
+		}
+		if host[top] {
+			continue
 		}
 		if _, bound := c.prelude[top]; bound && !isPrelude {
 			c.help(c.errorf(codes.Redeclared, pos, "%s is a prelude name and cannot be redeclared", top), "%s", resolve.PreludeHelp(top))

@@ -51,7 +51,10 @@ type Namespace struct {
 	//	func Db.query(sql: string, args: Array[string]): Result[Array[Db.Row], Error]
 	//	type Db.Row = Map[string, string]
 	//
-	// The checker types calls from them; the runtime takes parameter names from them.
+	// The checker types calls from them; the runtime takes parameter names from them. Kept in
+	// a declaration file beside the script, and embedded from it, they are also what ant check
+	// and an editor read for the script with no host running; the host's own, given here, are
+	// then the ones its programs use (section 10, Declaration files).
 	Signatures string
 	// Funcs maps each function's name, without the namespace, to its implementation.
 	Funcs map[string]HostFunc

@@ -196,7 +196,9 @@ the program exits with `0`. A script cannot be imported, so `ant run` refuses a 
 one, before anything runs, with status `2`.
 
 `ant run` refuses a test file, a file whose name ends in `_test.ant`; run it with
-[`ant test`](test.md). It refuses a declaration file too.
+[`ant test`](test.md). It refuses a declaration file too, and a program that reads a name which only
+a declaration file beside it declares: such a program runs in the host that provides the name
+([Modules](../guide/modules.md#declaration-files)).
 
 ## The REPL
 

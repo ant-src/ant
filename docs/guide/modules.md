@@ -320,6 +320,33 @@ such as `Store.Handle`, is opaque: its values come only from the functions decla
 no `export`, since every declaration is visible, and no `import`. `ant check store.d.ant` checks
 that the signatures are sound.
 
+Put the declaration file in the directory of the script the host runs. The checker and your editor
+then read it for that script and every module it imports, so `Store` checks, completes, and jumps to
+`store.d.ant` with no host running:
+
+<!-- test: cmd ant check greet.ant -->
+
+```ant [greet.ant]
+let store = try Store.open("notes")
+println(Store.get(store, "greeting") ?? "nothing stored")
+```
+
+Only the script's own directory is searched. A host that gives the program a `Store` namespace
+itself has its own signatures used, and the file is not read for that name, so a host can keep its
+signatures in this one file and embed it.
+
+The file declares `Store` and does not implement it. A script that reads a name of `Store` runs only
+in the host, and plain `ant run` refuses it before anything runs, with status `2`:
+
+<!-- test: cmd ant run limit.ant -->
+<!-- test: exit 2 -->
+
+```ant [limit.ant]
+println("a value holds up to ${Store.LIMIT} bytes")
+```
+
+The error names the file: `Store is declared in store.d.ant, which does not implement it`.
+
 You cannot import a declaration file, and `ant run` refuses one:
 
 ```ant
@@ -380,5 +407,5 @@ wordcount/
 [Modules in the tour](../tour/19-modules.md), [`import`](../language/keywords/import.md),
 [`export`](../language/keywords/export.md), [`test`](../language/keywords/test.md),
 [Testing](testing.md), [`ant run`](../tools/run.md), [`ant test`](../tools/test.md),
-[`ant doc`](../tools/doc.md), [the Go API](https://pkg.go.dev/github.com/ant-src/ant) for running Ant
-from a Go program
+[`ant doc`](../tools/doc.md), [the Go API](https://pkg.go.dev/github.com/ant-src/ant) for running
+Ant from a Go program

@@ -62,7 +62,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strings"
 
 	"github.com/ant-src/ant/internal/check"
 	"github.com/ant-src/ant/internal/interp"
@@ -246,8 +248,10 @@ func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	return convertRunError(interp.Run(ctx, p.prog, p.cfg.with(opts).run(p.prelude)))
 }
 
-// runnable is the *LoadError Run and Start return for a root that is a declaration file (section
-// 10, Declaration files), which declares names and holds nothing to run; Check checks one.
+// runnable is the *LoadError Run, Start and Test return for a program that cannot run: a root
+// that is a declaration file (section 10, Declaration files), which declares names and holds
+// nothing to run, though Check checks one, or a program that reads a name which only a host's
+// declaration file declares.
 func (p *Program) runnable() error {
 	if root := p.prog.Root; root != nil && parser.IsTestFile(root.File.Path) {
 		return &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: root.File.Path},
@@ -256,6 +260,9 @@ func (p *Program) runnable() error {
 	if root := p.prog.Root; root != nil && root.File.Declarations {
 		return &LoadError{Diagnostics: []Diagnostic{{Pos: Position{Path: root.File.Path},
 			Message: "a declaration file declares names for the prelude and cannot be run"}}}
+	}
+	if d := p.prog.Unprovided(func(name string) bool { _, ok := p.prelude[name]; return ok }); d != nil {
+		return &LoadError{Diagnostics: convert([]loader.Diagnostic{*d})}
 	}
 	return nil
 }
@@ -299,10 +306,23 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 		}
 		diags = append(diags, p.Check()...)
 	}
-	if len(roots) > 0 {
-		// Recovery keeps checking past a syntax error, so that every error of a file is reported
-		// in one run; a load error still makes the program one that cannot be loaded.
-		prog, lds := loader.LoadRoots(roots, loader.Config{FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, Extra: extra, Recover: true})
+	// Recovery keeps checking past a syntax error, so that every error of a file is reported in
+	// one run; a load error still makes the program one that cannot be loaded.
+	lcfg := loader.Config{FS: cfg.fsys, Sources: cfg.sources, Mode: parser.Program, Extra: extra, Recover: true}
+	// The roots are checked together, but for those with a host's declaration files beside
+	// them (section 10, Declaration files): their prelude is their own, so the roots of each
+	// such directory are a group, and a module two groups reach is checked in each.
+	var keys []string
+	groups := map[string][]string{}
+	for _, root := range roots {
+		key := strings.Join(loader.Beside(root, lcfg), "\x00")
+		if _, ok := groups[key]; !ok {
+			keys = append(keys, key)
+		}
+		groups[key] = append(groups[key], root)
+	}
+	for _, key := range keys {
+		prog, lds := loader.LoadRoots(groups[key], lcfg)
 		loaded = loaded && len(lds) == 0
 		if len(prog.Modules) > 0 {
 			lds = append(lds, check.Program(prog, check.Config{Namespaces: nsDecls, Removed: cfg.removed, Prior: len(lds)})...)
@@ -318,6 +338,19 @@ func Check(paths []string, opts ...Option) (diags []Diagnostic, loaded bool) {
 			return a.Line < b.Line
 		}
 		return a.Col < b.Col
+	})
+	// A declaration file is checked on its own and with each program it is beside, and a module
+	// with each group that reaches it: what they agree on is reported once.
+	type key struct {
+		pos, end      Position
+		message, code string
+	}
+	seenDiag := map[key]bool{}
+	diags = slices.DeleteFunc(diags, func(d Diagnostic) bool {
+		k := key{d.Pos, d.End, d.Message, d.Code}
+		dup := seenDiag[k]
+		seenDiag[k] = true
+		return dup
 	})
 	return diags, loaded
 }

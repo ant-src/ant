@@ -2,6 +2,7 @@ package ant
 
 import (
 	"context"
+	"github.com/ant-src/ant/internal/loader"
 	"regexp"
 	"sync/atomic"
 	"time"
@@ -69,6 +70,9 @@ func (p *Program) Test(ctx context.Context, cfg TestConfig, opts ...Option) erro
 					Message: e.Message, Elapsed: e.Elapsed, Counted: e.Counted, Parent: e.Parent})
 			}
 		}}
+	if d := p.prog.Unprovided(func(name string) bool { _, ok := p.prelude[name]; return ok }); d != nil {
+		return &LoadError{Diagnostics: convert([]loader.Diagnostic{*d})}
+	}
 	return convertRunError(interp.RunTests(ctx, p.prog, p.cfg.with(opts).run(p.prelude), tc))
 }
 

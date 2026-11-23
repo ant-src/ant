@@ -48,8 +48,12 @@ var (
 // "// error: <line>: <text>" lines. A text that starts with "@<column> " expects the error at
 // that column too, and one that ends in "$" expects the message to end with it. A file without
 // any must check clean. Every expected error must be reported, and nothing else may be reported.
+// A declaration file is in a directory of its own, check/*/, since beside a program it would
+// be a host's declaration file of that program (section 10, Declaration files).
 func TestCheckCorpus(t *testing.T) {
 	paths, _ := filepath.Glob("check/*.ant")
+	nested, _ := filepath.Glob("check/*/*.ant")
+	paths = append(paths, nested...)
 	if len(paths) == 0 {
 		t.Skip("no check programs yet")
 	}

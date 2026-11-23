@@ -68,6 +68,16 @@ func (s *Server) analyze(doc *document) *analysis {
 			a.docs[m.File.Path] = newDocument(fileURI(m.File.Path), 0, m.Src)
 		}
 	}
+	// A host's declaration file is a document of the program as a module is, though no module:
+	// its names lead to it.
+	for _, d := range prog.Declared {
+		a.modules[d.Path] = &loader.Module{Path: d.Path, File: d.File, Index: -1, Src: d.Src, Layout: d.Layout}
+		if open, ok := open[d.Path]; ok {
+			a.docs[d.Path] = open
+		} else {
+			a.docs[d.Path] = newDocument(fileURI(d.Path), 0, d.Src)
+		}
+	}
 	a.info = check.NewInfo()
 	a.diags = append(a.diags, check.Program(prog, check.Config{Info: a.info, Prior: len(a.diags)})...)
 	a.diags = loader.Settle(a.diags)

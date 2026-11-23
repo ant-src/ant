@@ -353,6 +353,9 @@ func (s *server) launch(raw json.RawMessage) error {
 	if prog.Root.File.Declarations {
 		return fmt.Errorf("%s: a declaration file declares names for the prelude and cannot be run", prog.Root.File.Path)
 	}
+	if d := prog.Unprovided(func(name string) bool { _, ok := lib.Prelude()[name]; return ok }); d != nil {
+		return errors.New(d.String())
+	}
 	isTest := parser.IsTestFile(prog.Root.File.Path)
 	if args.Test != nil && !isTest {
 		return fmt.Errorf("%s: test names a test to run, and the program is not a test file", prog.Root.File.Path)

@@ -94,13 +94,17 @@ test "distance to itself is zero" {
 names must exist, every default must fit its parameter's type, each name is declared once, and no
 declaration may take a prelude name:
 
-```ant [shout.d.ant]
+```ant [host/shout.d.ant]
 // Shout.loud returns text in capitals.
 func Shout.loud(text: string): Strin // error: unknown type Strin
 
 // Shout.loud returns text in capitals, with marks.
 func Shout.loud(text: string, marks: int): string // error: Shout.loud is already declared
 ```
+
+A declaration file beside a program is part of it: `ant check` of the program reads the file's
+declarations into the prelude and reports the file's errors with the program's. The
+[Modules](../guide/modules.md#declaration-files) chapter shows one.
 
 ## Checking a project
 

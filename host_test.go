@@ -710,3 +710,110 @@ func TestProgram(t *testing.T) {
 		t.Errorf("got %q, %v", out.String(), err)
 	}
 }
+
+// TestHostDeclarationFiles: a declaration file beside the root joins the program's prelude for
+// the checker; the names a host provides are the host's; and a program that reads a name no
+// host provides does not run (section 10, Declaration files).
+func TestHostDeclarationFiles(t *testing.T) {
+	decl := "func Tui.width(s: string): int\nfunc Tui.height(): int\ntype Tui.Key = { key: string }\n"
+	fsys := fstest.MapFS{
+		"app/tui.d.ant":     {Data: []byte(decl)},
+		"app/main.ant":      {Data: []byte("import \"../lib/text.ant\" { wide }\nprintln(wide(\"ab\"))\nprintln(Tui.height())\n")},
+		"app/plain.ant":     {Data: []byte("println(\"plain\")\n")},
+		"app/wide_test.ant": {Data: []byte("test \"width\" { assert(Tui.width(\"ab\") == 2) }\n")},
+		"app/prelude.d.ant": {Data: []byte("func Nope.nope(): int\n")},
+		"lib/text.ant":      {Data: []byte("export func wide(s: string): int { Tui.width(s) }\n")},
+		"lib/own.ant":       {Data: []byte("println(Tui.width(\"x\"))\n")},
+		"bad/bad.d.ant":     {Data: []byte("func Bad.f(): Missing\nfunc File.extra(): int\n")},
+		"bad/main.ant":      {Data: []byte("println(Bad.f())\nprintln(Nope.nope())\n")},
+	}
+	messages := func(diags []ant.Diagnostic) string {
+		var lines []string
+		for _, d := range diags {
+			lines = append(lines, d.Error())
+		}
+		return strings.Join(lines, "\n")
+	}
+
+	// The checker reads the file for the root's whole program, a module in another directory
+	// included, and not for a root elsewhere.
+	prog, err := ant.Load("app/main.ant", ant.WithFS(fsys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diags := prog.Check(); len(diags) != 0 {
+		t.Errorf("check with a declaration file: %s", messages(diags))
+	}
+	own, err := ant.Load("lib/own.ant", ant.WithFS(fsys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(own.Check()); !strings.Contains(got, "Tui is not defined") {
+		t.Errorf("a root in another directory: %s", got)
+	}
+
+	// Its own errors are reported with the program's, and prelude.d.ant is never read.
+	diags, _ := ant.Check([]string{"bad/main.ant", "bad/bad.d.ant", "app/main.ant", "lib/text.ant"}, ant.WithFS(fsys))
+	got := messages(diags)
+	for _, want := range []string{"bad/bad.d.ant:1:15: unknown type Missing", "bad/bad.d.ant:2:6: File is a prelude name", "bad/main.ant:2:9: Nope is not defined", "lib/text.ant:1:36: Tui is not defined"} {
+		if strings.Count(got, want) != 1 {
+			t.Errorf("ant.Check: want %q once in:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "app/") {
+		t.Errorf("ant.Check reports app, which is well typed:\n%s", got)
+	}
+
+	// No host provides Tui: the run is a load error at the first read, in initialization order,
+	// and so is a test; a program beside the file that reads none of its names runs.
+	var out strings.Builder
+	err = prog.Run(context.Background(), ant.WithStdout(&out))
+	var le *ant.LoadError
+	if !errors.As(err, &le) || ant.ExitStatus(err) != 2 || len(le.Diagnostics) != 1 ||
+		!strings.HasPrefix(le.Diagnostics[0].Error(), "lib/text.ant:1:36: Tui is declared in app/tui.d.ant, which does not implement it") || out.Len() != 0 {
+		t.Errorf("run without a host: %v, output %q", err, out.String())
+	}
+	if _, err := prog.Start(context.Background()); !errors.As(err, &le) {
+		t.Errorf("start without a host: %v", err)
+	}
+	test, err := ant.Load("app/wide_test.ant", ant.WithFS(fsys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := test.Test(context.Background(), ant.TestConfig{}); !errors.As(err, &le) {
+		t.Errorf("test without a host: %v", err)
+	}
+	plain, err := ant.Load("app/plain.ant", ant.WithFS(fsys))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := plain.Run(context.Background(), ant.WithStdout(&out)); err != nil || out.String() != "plain\n" {
+		t.Errorf("a program that reads no declared name: %v, output %q", err, out.String())
+	}
+
+	// A host that provides Tui has its own signatures read, and the file's are not: the file
+	// declares Tui.height, the host does not, and the host gives width another type.
+	host := ant.Namespace{
+		Name:       "Tui",
+		Signatures: "func Tui.width(s: string): string",
+		Funcs: map[string]ant.HostFunc{
+			"width": func(rt ant.Runtime, args []value.Value) (value.Value, error) { return "wide", nil },
+		},
+	}
+	hosted, err := ant.Load("app/main.ant", ant.WithFS(fsys), ant.WithNamespace(host))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(hosted.Check()); !strings.Contains(got, "Tui has no member height") || !strings.Contains(got, "lib/text.ant:1:36") {
+		t.Errorf("check with the host's own signatures: %s", got)
+	}
+	fsys["app/main.ant"] = &fstest.MapFile{Data: []byte("println(Tui.width(\"ab\"))\n")}
+	hosted, err = ant.Load("app/main.ant", ant.WithFS(fsys), ant.WithNamespace(host))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := hosted.Run(context.Background(), ant.WithStdout(&out)); err != nil || out.String() != "wide\n" {
+		t.Errorf("run in a host that provides Tui: %v, output %q", err, out.String())
+	}
+}

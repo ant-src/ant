@@ -188,3 +188,50 @@ func TestDeclarationFileDocument(t *testing.T) {
 		t.Errorf("symbols of a split namespace: %v %+v", names, syms)
 	}
 }
+
+// TestHostDeclarationFile: a declaration file beside the root is part of the program's prelude
+// (section 10, Declaration files): its names check, hover, complete, and lead to the file.
+func TestHostDeclarationFile(t *testing.T) {
+	decl := "// Tui\n//\n// Tui draws on the terminal.\n\n// Tui.width is the number of cells s takes.\nfunc Tui.width(s: string): int\ntype Tui.Key = { key: string }\n"
+	c := start(t, map[string]string{"tui.d.ant": decl, "sub/other.ant": "println(Tui.width(\"x\"))\n"})
+	src := "let k = Tui.Key{ key: \"q\" }\nprintln(Tui.width(k.key) + 1)\nprintln(Tui.height())\n"
+	uri := c.open("main.ant", src)
+	diags := c.diagnostics(uri)
+	if len(diags) != 1 || !strings.Contains(diags[0].Message, "height") || diags[0].Range.Start != at(src, "Tui.height", 1, 0) {
+		t.Errorf("diagnostics with a host's declaration file: %+v", diags)
+	}
+	var h *Hover
+	c.call("textDocument/hover", c.pos(uri, at(src, "Tui.width", 1, 5)), &h)
+	if h == nil || !strings.Contains(h.Contents.Value, "func Tui.width(s: string): int") || !strings.Contains(h.Contents.Value, "the number of cells") {
+		t.Errorf("hover on Tui.width: %+v", h)
+	}
+	declURI := c.uri("tui.d.ant")
+	var locs []Location
+	c.call("textDocument/definition", c.pos(uri, at(src, "Tui.width", 1, 5)), &locs)
+	if len(locs) != 1 || locs[0].URI != declURI || locs[0].Range.Start != at(decl, "func Tui.width", 1, 9) {
+		t.Errorf("definition of Tui.width: %+v, want it in %s", locs, declURI)
+	}
+	locs = nil
+	c.call("textDocument/definition", c.pos(uri, at(src, "Tui.Key", 1, 5)), &locs)
+	if len(locs) != 1 || locs[0].URI != declURI || locs[0].Range.Start != at(decl, "type Tui.Key", 1, 9) {
+		t.Errorf("definition of Tui.Key: %+v", locs)
+	}
+	var completions CompletionList
+	c.call("textDocument/completion", CompletionParams{TextDocumentPositionParams: c.pos(uri, at(src, "Tui.height", 1, 4))}, &completions)
+	if !slices.ContainsFunc(completions.Items, func(item CompletionItem) bool { return item.Label == "width" }) {
+		t.Errorf("completion after Tui.: %+v", completions.Items)
+	}
+	// Only the root's directory is searched.
+	other := c.open("sub/other.ant", "println(Tui.width(\"x\"))\n")
+	if diags := c.diagnostics(other); len(diags) != 1 || !strings.Contains(diags[0].Message, "Tui is not defined") {
+		t.Errorf("a module in another directory: %+v", diags)
+	}
+	// The file as the editor has it, saved or not, is the one read.
+	declOpen := c.open("tui.d.ant", decl)
+	c.diagnostics(declOpen)
+	c.change(declOpen, 2, decl+"func Tui.height(): int\n")
+	c.diagnostics(declOpen)
+	if diags := c.diagnostics(uri); len(diags) != 0 {
+		t.Errorf("after the declaration file gained Tui.height: %+v", diags)
+	}
+}
