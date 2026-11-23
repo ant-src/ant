@@ -16,8 +16,35 @@ import (
 
 // Runtime is what a host function sees of the running program.
 type Runtime interface {
-	// Call calls an Ant function value with positional arguments. An Ant panic raised inside
-	// unwinds through the host function as a Go panic, so use defer for any cleanup.
+	// Call calls an Ant function value with positional arguments.
+	//
+	// Whatever ends the call early unwinds through the host function as a Go panic: an Ant
+	// panic, Os.exit, and the end of a run that was cancelled or interrupted. Use defer for
+	// cleanup, and let the panic go on: the run ends as it would have without the host function.
+	// When a library stands between the call and the host function and recovers panics, as an
+	// event loop does to restore a terminal, it would keep the unwinding from the run. Recover
+	// first, in the callback the library calls, keep the value, have the library return, and
+	// panic with the value again in the host function:
+	//
+	//	var unwound any
+	//	loop.OnEvent(func(e Event) {
+	//		defer func() {
+	//			if r := recover(); r != nil {
+	//				unwound = r
+	//				loop.Stop()
+	//			}
+	//		}()
+	//		rt.Call(handler, toValue(e))
+	//	})
+	//	loop.Run()
+	//	if unwound != nil {
+	//		panic(unwound)
+	//	}
+	//
+	// Call is for one caller at a time, while the host function that was given the Runtime has
+	// not returned. It may be called from another Go goroutine that the host function waits
+	// for, and what unwinds does so on that goroutine, to be carried back the same way. Two
+	// calls at once on one Runtime are a data race.
 	Call(fn value.Value, args ...value.Value) value.Value
 	// Context is the run's context; blocking host functions should observe it.
 	Context() context.Context

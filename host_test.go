@@ -910,3 +910,96 @@ Clock.tooFar()
 		t.Errorf("output\n%swant\n%s", out.String(), wantOut)
 	}
 }
+
+// TestUnwindThroughForeignLoop: what ends Runtime.Call early, a panic, Os.exit or a cancelled
+// run, passes a library that recovers panics when the host carries it past, as the doc comment
+// of Runtime.Call shows, and ends the run as it would have with no host function between. The
+// second call is from another goroutine the host function waits for.
+func TestUnwindThroughForeignLoop(t *testing.T) {
+	// loop stands for a library's event loop: it runs step until stop, and recovers a panic
+	// of a step, as bubbletea does to restore the terminal.
+	loop := func(step func(stop func())) (swallowed any) {
+		defer func() { swallowed = recover() }()
+		stopped := false
+		for !stopped {
+			step(func() { stopped = true })
+		}
+		return nil
+	}
+	started := make(chan struct{}, 1)
+	ns := ant.Namespace{
+		Name:       "Loop",
+		Signatures: "func Loop.run(handler: func(int): void, elsewhere: bool = false): string\nfunc Loop.started(): void",
+		Funcs: map[string]ant.HostFunc{
+			"started": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				started <- struct{}{}
+				return nil, nil
+			},
+			"run": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				var unwound any
+				n := int64(0)
+				call := func() {
+					defer func() { unwound = recover() }()
+					rt.Call(args[0], n)
+				}
+				if swallowed := loop(func(stop func()) {
+					n++
+					if args[1] == true {
+						done := make(chan struct{})
+						go func() { defer close(done); call() }()
+						<-done
+					} else {
+						call()
+					}
+					if unwound != nil || n == 3 {
+						stop()
+					}
+				}); swallowed != nil {
+					return nil, fmt.Errorf("the loop recovered %v", swallowed)
+				}
+				if unwound != nil {
+					panic(unwound)
+				}
+				return "ran to the end", nil
+			},
+		},
+	}
+	run := func(src string, ctx context.Context) (string, string, error) {
+		prog := loadSrc(t, src, ant.WithNamespace(ns))
+		var out, errOut strings.Builder
+		err := prog.Run(ctx, ant.WithStdout(&out), ant.WithStderr(&errOut))
+		return out.String(), errOut.String(), err
+	}
+	for _, elsewhere := range []string{"false", "true"} {
+		out, _, err := run(`println(Loop.run({ print(x) }, elsewhere: `+elsewhere+`))`, context.Background())
+		if err != nil || out != "123ran to the end\n" {
+			t.Errorf("elsewhere %s, nothing unwinds: %q, %v", elsewhere, out, err)
+		}
+
+		out, errOut, err := run(`
+func handle(n: int): void { if n == 2 { panic("boom") } }
+println(Loop.run(handle, elsewhere: `+elsewhere+`))`, context.Background())
+		var pe *ant.PanicError
+		if !errors.As(err, &pe) || pe.Message != "boom" || len(pe.Trace) != 2 || pe.Trace[0].Function != "handle" || out != "" ||
+			!strings.HasPrefix(errOut, "panic: boom\n  at handle (main.ant:2:46)\n  at module main.ant (main.ant:3:17)") {
+			t.Errorf("elsewhere %s, a panic: %v, trace %+v, stderr %q", elsewhere, err, pe, errOut)
+		}
+
+		out, _, err = run(`println(Loop.run({ if x == 2 { Os.exit(7) } }, elsewhere: `+elsewhere+`))`, context.Background())
+		var ee *ant.ExitError
+		if !errors.As(err, &ee) || ee.Status != 7 || strings.Contains(out, "ran") {
+			t.Errorf("elsewhere %s, Os.exit: %v, output %q", elsewhere, err, out)
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			<-started
+			cancel()
+		}()
+		out, _, err = run(`println(Loop.run({ Loop.started(); Time.sleep(1m) }, elsewhere: `+elsewhere+`))`, ctx)
+		if !errors.Is(err, context.Canceled) || out != "" {
+			t.Errorf("elsewhere %s, a cancelled run: %v, output %q", elsewhere, err, out)
+		}
+		cancel()
+	}
+}
