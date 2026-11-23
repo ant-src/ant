@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -815,5 +816,97 @@ func TestHostDeclarationFiles(t *testing.T) {
 	out.Reset()
 	if err := hosted.Run(context.Background(), ant.WithStdout(&out)); err != nil || out.String() != "wide\n" {
 		t.Errorf("run in a host that provides Tui: %v, output %q", err, out.String())
+	}
+}
+
+// TestHostTimeValues: a host reads a Time.Instant and a Time.Duration as Go's time.Time and
+// time.Duration, and builds them from those.
+func TestHostTimeValues(t *testing.T) {
+	var seen []string
+	note := func(format string, a ...any) { seen = append(seen, fmt.Sprintf(format, a...)) }
+	ns := ant.Namespace{
+		Name: "Clock",
+		Signatures: `
+func Clock.takeInstant(t: Time.Instant | Time.ZonedDateTime): void
+func Clock.takeDuration(d: Time.Duration): void
+func Clock.takeOther(v: Time.PlainDate | Time.Zone | string): void
+func Clock.instant(): Time.Instant
+func Clock.duration(ms: int): Time.Duration
+func Clock.tooFar(): Time.Instant
+`,
+		Funcs: map[string]ant.HostFunc{
+			"takeInstant": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				at, ok := value.GoTime(args[0])
+				note("%s %v", at.Format(time.RFC3339Nano), ok)
+				return nil, nil
+			},
+			"takeDuration": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				d, ok := value.GoDuration(args[0])
+				note("%v %v", d, ok)
+				return nil, nil
+			},
+			"takeOther": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				_, isTime := value.GoTime(args[0])
+				_, isDuration := value.GoDuration(args[0])
+				note("%v %v", isTime, isDuration)
+				return nil, nil
+			},
+			"instant": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				// a location other than UTC: the instant is the moment
+				return value.NewInstant(time.Date(2026, 11, 23, 13, 30, 0, 5, time.FixedZone("", 3600)))
+			},
+			"duration": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				return value.NewDuration(time.Duration(args[0].(int64)) * time.Millisecond), nil
+			},
+			"tooFar": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				return value.NewInstant(time.Date(290000, 1, 1, 0, 0, 0, 0, time.UTC))
+			},
+		},
+	}
+	prog := loadSrc(t, `
+let at = Time.parseInstant("2026-11-23T12:30:00.000000005Z").unwrap()
+Clock.takeInstant(at)
+Clock.takeInstant(at.inZone(Time.zone("Europe/Zurich").unwrap()))
+Clock.takeDuration(1h30m)
+Clock.takeDuration(Time.duration(days: 1, milliseconds: 250))
+Clock.takeDuration(Time.negate(2s))
+Clock.takeDuration(Time.duration(months: 1))
+Clock.takeOther(Time.plainDate(2026, 11, 23))
+Clock.takeOther(Time.zone("UTC").unwrap())
+Clock.takeOther("2s")
+println(Clock.instant() == at)
+println(Clock.instant())
+println(Clock.duration(90250))
+println(Clock.duration(-1500))
+println(Clock.duration(0))
+println(Clock.duration(90000) == 1m30s)
+println(Time.compareDuration(Clock.duration(90000), 90s))
+println(at.add(Clock.duration(1000)))
+Clock.tooFar()
+`, ant.WithNamespace(ns), ant.WithStderr(io.Discard))
+	if diags := prog.Check(); len(diags) != 0 {
+		t.Fatalf("check: %v", diags)
+	}
+	var out strings.Builder
+	err := prog.Run(context.Background(), ant.WithStdout(&out))
+	var pe *ant.PanicError
+	if !errors.As(err, &pe) {
+		t.Errorf("an instant out of range: %v", err)
+	}
+	wantSeen := []string{
+		"2026-11-23T12:30:00.000000005Z true",
+		"2026-11-23T13:30:00.000000005+01:00 true",
+		"1h30m0s true",
+		"24h0m0.25s true",
+		"-2s true",
+		"0s false",
+		"false false", "false false", "false false",
+	}
+	if !slices.Equal(seen, wantSeen) {
+		t.Errorf("the host saw\n%s\nwant\n%s", strings.Join(seen, "\n"), strings.Join(wantSeen, "\n"))
+	}
+	wantOut := "true\n2026-11-23T12:30:00.000000005Z\nPT1M30.25S\n-PT1.5S\nPT0S\ntrue\n0\n2026-11-23T12:30:01.000000005Z\n"
+	if out.String() != wantOut {
+		t.Errorf("output\n%swant\n%s", out.String(), wantOut)
 	}
 }

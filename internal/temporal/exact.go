@@ -24,3 +24,21 @@ func (d Duration) Exact() (time.Duration, bool) {
 	}
 	return time.Duration(ns), true
 }
+
+// FromGoDuration is a Go duration as hours, minutes, seconds, milliseconds, microseconds and
+// nanoseconds, each below the next unit, as Go prints one. Every Go duration is in range.
+func FromGoDuration(d time.Duration) Duration {
+	ns := int64(d)
+	part := func(unit int64) int64 {
+		n := ns / unit
+		ns -= n * unit
+		return n
+	}
+	return Duration{
+		Hours: part(int64(time.Hour)), Minutes: part(int64(time.Minute)), Seconds: part(int64(time.Second)),
+		Milliseconds: part(int64(time.Millisecond)), Microseconds: part(int64(time.Microsecond)), Nanoseconds: ns,
+	}
+}
+
+// GoTime is the moment as a Go time, in the zone's location.
+func (z ZonedDateTime) GoTime() time.Time { return z.inst.goTime(z.zone) }

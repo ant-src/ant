@@ -42,7 +42,9 @@
 //	Entry[K, V], Indexed[T]     records built by value.Entry and value.Indexed
 //	a function                  an opaque value.Callable: pass it back to Func.Call or Runtime.Call
 //	a type                      *value.Tag, from Instance.Value("Name"), Runtime.Tag or Program.Tag
-//	a time value                an opaque value.Time: its String is the RFC 9557 form; pass it back
+//	Time.Instant                value.Time: value.NewInstant from a time.Time, value.GoTime to one
+//	Time.Duration               value.Time: value.NewDuration from a time.Duration, value.GoDuration to one
+//	another time value          an opaque value.Time: its String is the RFC 9557 form; pass it back
 //	a Regex.Pattern             *value.Regex, from value.NewRegex: its String is the literal form
 //	a sync object, Channel, Context  an opaque value.Sync: pass it back
 //
