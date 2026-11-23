@@ -1,0 +1,14 @@
+// App
+//
+// App is the namespace of the example host, which feeds a script the lines of its standard
+// input.
+
+// App.Event is one line of input, and when the host read it.
+type App.Event = { line: string, at: Time.Instant }
+
+// App.run calls handle with each line of standard input, until the input ends or handle
+// returns false.
+func App.run(handle: func(event: App.Event): bool): void
+
+// App.since returns how long ago at was, by the host's clock.
+func App.since(at: Time.Instant): Time.Duration

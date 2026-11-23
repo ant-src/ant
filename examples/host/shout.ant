@@ -1,0 +1,13 @@
+var count = 0
+
+func handle(event: App.Event): bool {
+  if event.line == "quit" {
+    return false
+  }
+  count += 1
+  println("${count}: ${event.line.toUpper()}")
+  Time.compareDuration(App.since(event.at), 1m) < 0
+}
+
+App.run(handle)
+println("${count} lines")

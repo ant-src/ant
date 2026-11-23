@@ -138,6 +138,10 @@ func corpus(t *testing.T) (programs, modules []program) {
 	var paths []string
 	for _, root := range []string{".", filepath.Join("..", "examples")} {
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			if err == nil && d.IsDir() && path == filepath.Join("..", "examples", "host") {
+				// the Go host of docs/guide/embedding.md, which its own package tests
+				return filepath.SkipDir
+			}
 			if err == nil && !d.IsDir() && strings.HasSuffix(path, ".ant") {
 				paths = append(paths, path)
 			}

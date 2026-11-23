@@ -126,10 +126,10 @@ and what it costs.
   [reading the environment](howto/cli/env.md).
 - **Embedding.** The Go package
   [`github.com/ant-src/ant`](https://pkg.go.dev/github.com/ant-src/ant) loads, checks, and runs Ant
-  programs inside a Go program, and calls their functions. Its documentation is on pkg.go.dev. A
-  host declares its namespaces in a [declaration file](guide/modules.md#declaration-files), a
-  `.d.ant` file kept beside its scripts, so `ant check` and the editor work on those scripts with no
-  host running.
+  programs inside a Go program, and calls their functions. [Embedding Ant](guide/embedding.md)
+  builds a host step by step, and the package's documentation is on pkg.go.dev. A host declares its
+  namespaces in a [declaration file](guide/modules.md#declaration-files), a `.d.ant` file kept
+  beside its scripts, so `ant check` and the editor work on those scripts with no host running.
 
 To look something up, the [language guide](guide/types.md) explains each area and when to pick what,
 the [language reference](language/index.md) has a page for every keyword, operator, literal, and
