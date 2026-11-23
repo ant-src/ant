@@ -21,6 +21,12 @@ type Runtime interface {
 	Call(fn value.Value, args ...value.Value) value.Value
 	// Context is the run's context; blocking host functions should observe it.
 	Context() context.Context
+	// Tag returns the tag of a record type of the prelude, for value.NewRecord: a type one of
+	// the program's namespaces declares, as "Db.Row", or one of the standard library's, as
+	// "Cmd.Output". A record takes part in is and in field access only under the tag the
+	// program holds, so one made with value.NewTag is of no type the program knows. It is false
+	// for a name that is not a record type.
+	Tag(name string) (*value.Tag, bool)
 }
 
 // A HostFunc is a Go function Ant code can call. It receives its arguments positionally, in
@@ -162,6 +168,12 @@ func (c config) prelude() (map[string]value.Value, []string, []check.HostNamespa
 	}
 	return table, extra, decls, nil
 }
+
+// Tag returns the tag of a record type of the program's prelude, as Runtime.Tag does, for a
+// host that builds the arguments of a Func.Call outside any host function. The tags of a
+// namespace's types are made anew by each Load, so two programs given the same Namespace
+// do not share them.
+func (p *Program) Tag(name string) (*value.Tag, bool) { return interp.RecordTag(p.prelude, name) }
 
 // An Instance is a started program: its modules are initialized and its functions can be
 // called from Go until Close.

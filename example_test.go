@@ -3,7 +3,9 @@ package ant_test
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/ant-src/ant"
@@ -67,8 +69,11 @@ func Example_namespace() {
 	kv := ant.Namespace{
 		Name: "Kv",
 		Signatures: `
+type Kv.Pair = { key: string, v: string }
+
 func Kv.get(key: string): string | null
 func Kv.set(key: string, v: string): void
+func Kv.pairs(): Array[Kv.Pair]
 `,
 		Funcs: map[string]ant.HostFunc{
 			"get": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
@@ -81,12 +86,22 @@ func Kv.set(key: string, v: string): void
 				store[args[0].(string)] = args[1].(string)
 				return value.Void, nil
 			},
+			"pairs": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				// The program holds the tag of Kv.Pair; a record needs that one.
+				pair, _ := rt.Tag("Kv.Pair")
+				var pairs []value.Value
+				for _, key := range slices.Sorted(maps.Keys(store)) {
+					pairs = append(pairs, value.NewRecord(pair, []value.Value{key, store[key]}))
+				}
+				return value.NewArray(pairs), nil
+			},
 		},
 	}
 	src := `
 Kv.set("greeting", "hi")
 println(Kv.get("greeting") ?? "missing")
 println(Kv.get("other") ?? "missing")
+for p in Kv.pairs() { println("${p.key} = ${p.v}") }
 `
 	prog, err := ant.Load("main.ant", ant.WithSource("main.ant", src), ant.WithNamespace(kv), ant.WithoutNamespaces("File", "Http"))
 	if err != nil {
@@ -99,4 +114,5 @@ println(Kv.get("other") ?? "missing")
 	// Output:
 	// hi
 	// missing
+	// greeting = hi
 }

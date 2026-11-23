@@ -41,13 +41,15 @@
 //	Result[T, E], Error         records built by value.Ok, value.Err, and value.ErrorValue
 //	Entry[K, V], Indexed[T]     records built by value.Entry and value.Indexed
 //	a function                  an opaque value.Callable: pass it back to Func.Call or Runtime.Call
-//	a type                      *value.Tag, from Instance.Value("Name")
+//	a type                      *value.Tag, from Instance.Value("Name"), Runtime.Tag or Program.Tag
 //	a time value                an opaque value.Time: its String is the RFC 9557 form; pass it back
 //	a Regex.Pattern             *value.Regex, from value.NewRegex: its String is the literal form
 //	a sync object, Channel, Context  an opaque value.Sync: pass it back
 //
-// A record's tag comes from the instance, since the program declares it: the Example_call test
-// builds a Point that way. A host function receives its arguments in the order its signature
+// A record's tag comes from the program, which holds one for each record type: the instance has
+// those the root module declares, and the Example_call test builds a Point that way; Runtime.Tag
+// and Program.Tag have those of the prelude, a host namespace's among them, as the
+// Example_namespace test builds a Kv.Pair. A host function receives its arguments in the order its signature
 // lists them, already of these representations, and returns a value of them; an error it
 // returns becomes an Ant panic with the error's message. value.Render renders any value the way
 // String.from does.

@@ -3,6 +3,7 @@ package ant_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"syscall"
@@ -486,6 +487,99 @@ func TestHostTypeOwner(t *testing.T) {
 	_, err := ant.Load("main.ant", ant.WithSource("main.ant", "println(1)\n"), ant.WithFS(fstest.MapFS{}), ant.WithNamespace(ns))
 	if err == nil || !strings.Contains(err.Error(), "namespace Db: type Row must be declared as Db.Row") {
 		t.Errorf("unqualified host type: %v", err)
+	}
+}
+
+// TestRecordTags: Runtime.Tag and Program.Tag give the tag the program holds for a record type
+// of the prelude, a host namespace's or the standard library's, so a record the host builds is
+// of that type; a tag the host makes itself is of none.
+func TestRecordTags(t *testing.T) {
+	var sawPoint value.Value
+	ns := ant.Namespace{
+		Name: "Geo",
+		Signatures: `
+type Geo.Point = { x: int, y: int }
+type Geo.Id = int
+type Geo.Shape = Geo.Point | null
+type Geo.Handle
+func Geo.origin(): Geo.Shape
+func Geo.forged(): Geo.Shape
+func Geo.output(): Cmd.Output | null
+func Geo.take(p: Geo.Point): void
+`,
+		Funcs: map[string]ant.HostFunc{
+			"origin": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				tag, ok := rt.Tag("Geo.Point")
+				if !ok {
+					return nil, errors.New("no tag for Geo.Point")
+				}
+				return value.NewRecord(tag, []value.Value{int64(0), int64(0)}), nil
+			},
+			"forged": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				tag := value.NewTag("Geo.Point", value.RecordTag, []string{"x", "y"})
+				return value.NewRecord(tag, []value.Value{int64(0), int64(0)}), nil
+			},
+			"output": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				tag, ok := rt.Tag("Cmd.Output")
+				if !ok {
+					return nil, errors.New("no tag for Cmd.Output")
+				}
+				return value.NewRecord(tag, []value.Value{int64(3), value.NewArray(nil), "out", "err"}), nil
+			},
+			"take": func(rt ant.Runtime, args []value.Value) (value.Value, error) {
+				sawPoint = args[0]
+				for _, name := range []string{"Geo.Id", "Geo.Shape", "Geo.Handle", "Geo.origin", "Geo.Missing", "Missing.Point", "Geo", "String", "println", "Geo.Point.x", ""} {
+					if tag, ok := rt.Tag(name); ok {
+						return nil, fmt.Errorf("Tag(%q) = %v, want none", name, tag.Name)
+					}
+				}
+				for _, name := range []string{"Error", "Ok", "Cmd", "File.Info", "Panic.Frame"} {
+					if tag, ok := rt.Tag(name); !ok || tag.Name != name {
+						return nil, fmt.Errorf("Tag(%q) = %v, %v", name, tag, ok)
+					}
+				}
+				return nil, nil
+			},
+		},
+	}
+	src := `
+let p = Geo.origin()
+println(p is Geo.Point)
+println(Geo.forged() is Geo.Point)
+println(Geo.output()?.status)
+println(Geo.output() is Cmd.Output)
+Geo.take(Geo.Point{ x: 1, y: 2 })
+func same(p: Geo.Shape): bool { p is Geo.Point && p.x == 5 }
+`
+	prog := loadSrc(t, src, ant.WithNamespace(ns))
+	if diags := prog.Check(); len(diags) != 0 {
+		t.Fatalf("check: %v", diags)
+	}
+	var out strings.Builder
+	in, err := prog.Start(context.Background(), ant.WithStdout(&out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	if out.String() != "true\nfalse\n3\ntrue\n" {
+		t.Errorf("output %q", out.String())
+	}
+	// The tag a program gives is the one its records carry, in both directions.
+	tag, ok := prog.Tag("Geo.Point")
+	if !ok {
+		t.Fatal("Program.Tag: no Geo.Point")
+	}
+	if r, ok := sawPoint.(*value.Record); !ok || r.Tag != tag {
+		t.Errorf("the record Ant built has tag %v, the program gives %v", sawPoint, tag)
+	}
+	same, _ := in.Func("same")
+	if v, err := same.Call(value.NewRecord(tag, []value.Value{int64(5), int64(0)})); err != nil || v != true {
+		t.Errorf("same(Point from Program.Tag) = %v, %v", v, err)
+	}
+	// Each Load makes the namespace's tags anew.
+	other := loadSrc(t, src, ant.WithNamespace(ns))
+	if tag2, _ := other.Tag("Geo.Point"); tag2 == nil || tag2 == tag {
+		t.Errorf("a second program's tag: %v, the first's: %v", tag2, tag)
 	}
 }
 

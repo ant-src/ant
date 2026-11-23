@@ -2,6 +2,7 @@ package interp
 
 import (
 	"context"
+	"strings"
 
 	"github.com/ant-src/ant/ast"
 	"github.com/ant-src/ant/internal/loader"
@@ -61,6 +62,31 @@ func (in *Instance) Lookup(name string) (value.Value, bool) {
 func (in *Instance) Close() {
 	in.finish(context.Canceled)
 	in.stop(true)
+}
+
+// Tag returns the tag of the record type a prelude name names, as the running program has it.
+func (g *Goroutine) Tag(name string) (*value.Tag, bool) { return RecordTag(g.in.cfg.Prelude, name) }
+
+// RecordTag finds the tag of a record type in a prelude table by its name, Name or Owner.Name,
+// where the owner is a namespace or a type. It is false for a name that is not a record type: an
+// alias, an opaque type, a named primitive, a function.
+func RecordTag(prelude map[string]value.Value, name string) (*value.Tag, bool) {
+	owner, member, qualified := strings.Cut(name, ".")
+	v, ok := prelude[owner]
+	if ok && qualified {
+		switch o := v.(type) {
+		case *value.Record:
+			v, ok = o.Field(member)
+		case *value.Tag:
+			v, ok = o.Func(member)
+		default:
+			ok = false
+		}
+	}
+	if tag, isTag := v.(*value.Tag); ok && isTag && tag.Kind == value.RecordTag {
+		return tag, true
+	}
+	return nil, false
 }
 
 // Context returns the run's context, for blocking host functions.
