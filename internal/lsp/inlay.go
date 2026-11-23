@@ -6,7 +6,7 @@ import (
 )
 
 // inlayHints answers textDocument/inlayHint: the inferred type of a var without an annotation,
-// and the parameter name before a positional argument (spec/lsp.md section 4).
+// and the parameter name before a positional argument.
 func (s *Server) inlayHints(p *InlayHintParams) []InlayHint {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {

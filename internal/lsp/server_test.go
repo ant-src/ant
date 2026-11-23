@@ -968,7 +968,7 @@ func TestDocRendering(t *testing.T) {
 }
 
 func TestExitStatus(t *testing.T) {
-	// shutdown followed by the end of the stream, not by exit, ends with 1 (spec/lsp.md section 1)
+	// shutdown followed by the end of the stream, not by exit, ends with 1
 	var in bytes.Buffer
 	for _, m := range []string{
 		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}`,
@@ -1124,7 +1124,7 @@ func counter(): int {
 }
 
 // TestSemanticReadonly: a let, a parameter, and a for variable carry the readonly modifier and a
-// var does not (lsp.md section 4).
+// var does not.
 func TestSemanticReadonly(t *testing.T) {
 	c := start(t, workspace())
 	src := "let a = 1\nvar b = 2\nfunc f(p: int): int {\n  for i in [p] { println(i) }\n  p + a + b\n}\n"

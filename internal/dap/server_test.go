@@ -431,7 +431,7 @@ println(Point.sum(p) + n + scores["ada"] + limit)
 	if r := ok(t, c.request("setVariable", map[string]any{"variablesReference": pRef, "name": "y", "value": "p.x * 100"})); r["value"] != "100" {
 		t.Errorf("p.y: %v", r)
 	}
-	// a parameter and a let are listed read-only and cannot be set (dap.md section 6)
+	// a parameter and a let are listed read-only and cannot be set
 	readOnly := func(v map[string]any) bool {
 		hint, _ := v["presentationHint"].(map[string]any)
 		attrs, _ := hint["attributes"].([]any)

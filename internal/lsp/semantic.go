@@ -8,7 +8,7 @@ import (
 	"github.com/ant-src/ant/internal/prelude"
 )
 
-// The semantic token types and modifiers the server emits (spec/lsp.md section 4).
+// The semantic token types and modifiers the server emits.
 var semanticLegend = SemanticTokensLegend{
 	TokenTypes:     []string{"namespace", "type", "typeParameter", "parameter", "variable", "property", "function", "method", "element", "attribute"},
 	TokenModifiers: []string{"declaration", "defaultLibrary", "readonly"},

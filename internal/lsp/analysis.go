@@ -11,10 +11,10 @@ import (
 	"github.com/ant-src/ant/parser"
 )
 
-// preludeURI is the document the prelude's declarations are shown in (spec/lsp.md section 4).
+// preludeURI is the document the prelude's declarations are shown in.
 const preludeURI = "ant:/" + prelude.Path
 
-// analysis is a program rooted at one document (spec/lsp.md section 2): its modules, the
+// analysis is a program rooted at one document: its modules, the
 // checker's findings, and every diagnostic.
 type analysis struct {
 	root    *document

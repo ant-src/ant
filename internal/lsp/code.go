@@ -22,7 +22,7 @@ import (
 	"github.com/ant-src/ant/parser"
 )
 
-// Code answers the requests of ant code (private/tools/code.md) with the server's own analysis,
+// Code answers the requests of ant code with the server's own analysis,
 // in process: a server whose workspace folder is the root, which counts columns in bytes, and
 // whose open documents are the files as they are on disk, each read once.
 type Code struct {
@@ -47,7 +47,7 @@ func NewCode(root string) (*Code, error) {
 	return &Code{s: s}, nil
 }
 
-// CodeError is a request ant code could not answer, with its code (code.md section 3).
+// CodeError is a request ant code could not answer, with its code.
 type CodeError struct {
 	Code       string
 	Message    string
@@ -128,7 +128,7 @@ func (c *Code) open(path string) (*document, *CodeError) {
 
 // broken lists the files a search across the workspace and the programs of progs may have missed
 // uses in: the files of the workspace that cannot be read or have syntax errors, and the modules
-// of the programs that have syntax errors (code.md section 10).
+// of the programs that have syntax errors.
 func (c *Code) broken(progs []program) []string {
 	c.workspace()
 	set := map[string]bool{}
@@ -170,7 +170,7 @@ type spot struct {
 
 var lineNumber = regexp.MustCompile(`^[0-9]+$`)
 
-// resolve finds what a location selects (code.md section 2). A location that selects no name
+// resolve finds what a location selects. A location that selects no name
 // gives a spot without a target, which only type answers.
 func (c *Code) resolve(loc string) (*spot, *CodeError) {
 	i := strings.LastIndex(loc, ":")
@@ -1027,7 +1027,7 @@ func (c *Code) Rename(loc, name string, force bool) (RenameResult, *CodeError) {
 		res.Files = append(res.Files, *f)
 	}
 	sort.Slice(res.Files, func(i, j int) bool { return res.Files[i].Path < res.Files[j].Path })
-	// Checked before it is written: every program it changes (code.md section 8).
+	// Checked before it is written: every program it changes.
 	seen := map[string]bool{}
 	for pa := range changed {
 		for _, dg := range pa.diags {

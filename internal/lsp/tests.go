@@ -8,7 +8,7 @@ import (
 	"github.com/ant-src/ant/ast"
 )
 
-// The tests of a test file as the editor sees them (spec/lsp.md section 4): document symbols, and
+// The tests of a test file as the editor sees them: document symbols, and
 // a code lens on each test to run or debug it, which the client carries out with ant test and
 // ant dap (spec/test.md).
 

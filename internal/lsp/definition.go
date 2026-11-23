@@ -4,7 +4,7 @@ import (
 	"github.com/ant-src/ant/ast"
 )
 
-// definition answers textDocument/definition (spec/lsp.md section 4).
+// definition answers textDocument/definition.
 func (s *Server) definition(p *TextDocumentPositionParams) []Location {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {

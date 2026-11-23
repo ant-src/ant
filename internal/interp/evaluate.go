@@ -15,7 +15,7 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// An expression a debugger evaluates (dap.md section 6) runs as the only statement of a module
+// An expression a debugger evaluates runs as the only statement of a module
 // of its own, whose fields are the names the frame sees, holding their values at the stop.
 
 // evalPath is the path of the module an evaluation runs in.
@@ -33,7 +33,7 @@ type compiled struct {
 
 // visible lists the names env sees, innermost first, with their values: the bindings of its
 // environments, then the module's declarations, then its imports. A binding whose declaration
-// has not run is not seen (dap.md section 3, Scopes).
+// has not run is not seen.
 func visible(env *Env) (names []string, vals []value.Value) {
 	seen := map[string]bool{}
 	add := func(n string, v value.Value) {
@@ -157,7 +157,7 @@ func (in *Instance) run(c *compiled, vals []value.Value) (v value.Value, err err
 	return g.evalValue(c.expr, m.root), nil
 }
 
-// Evaluate evaluates src in a frame of the stopped run (dap.md section 6, Expressions).
+// Evaluate evaluates src in a frame of the stopped run.
 func (d *Debugger) Evaluate(sf StackFrame, src string) (value.Value, error) {
 	d.mu.Lock()
 	if !d.stopped || sf.g == nil || sf.i >= len(sf.g.stack) || sf.g.stack[sf.i].env == nil {
@@ -188,7 +188,7 @@ func (d *Debugger) Evaluate(sf StackFrame, src string) (value.Value, error) {
 	}
 }
 
-// ---- breakpoint expressions (dap.md section 6, Breakpoint expressions)
+// ---- breakpoint expressions
 
 // Breakpoint is a line breakpoint bound to a stop point, with what decides whether it stops.
 type Breakpoint struct {

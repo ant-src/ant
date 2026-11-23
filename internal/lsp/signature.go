@@ -11,7 +11,7 @@ import (
 )
 
 // signatureHelp answers textDocument/signatureHelp: the signature of the call the cursor is in
-// and its active parameter (spec/lsp.md section 4).
+// and its active parameter.
 func (s *Server) signatureHelp(p *SignatureHelpParams) *SignatureHelp {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {

@@ -18,7 +18,7 @@ type export struct {
 }
 
 // importable lists the top-level declarations of the workspace's modules that the module at path
-// may import (spec/lsp.md section 4, Imports): their exports, and for a test file the private ones
+// may import: their exports, and for a test file the private ones
 // too, since its imports reach them (ant-lang.md section 10, Tests); not its own, nor a script's or
 // a declaration file's, nor a test file's unless the module is a test file too, nor those of a
 // module that imports it, directly or through others, since importing that would make a cycle.

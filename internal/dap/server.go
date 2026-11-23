@@ -1,4 +1,4 @@
-// Package dap is ant dap, the debug adapter (spec/dap.md): it serves the Debug Adapter Protocol
+// Package dap is ant dap, the debug adapter: it serves the Debug Adapter Protocol
 // on a stream and runs one program under the interpreter's debugger, in its own process.
 package dap
 
@@ -30,7 +30,7 @@ import (
 )
 
 // Serve serves one debug session on in and out until the client disconnects, logging to log.
-// It returns the command's exit status (dap.md section 1).
+// It returns the command's exit status.
 func Serve(ctx context.Context, in io.Reader, out, log io.Writer) int {
 	return ServeFS(ctx, nil, in, out, log)
 }
@@ -93,7 +93,7 @@ type server struct {
 
 	d    *interp.Debugger
 	prog *loader.Program
-	// tests is set when the program is a test file, whose tests the run runs (dap.md section 2);
+	// tests is set when the program is a test file, whose tests the run runs;
 	// testsFailed once one of them fails.
 	tests       *interp.TestConfig
 	testsFailed atomic.Bool
@@ -156,7 +156,7 @@ func (s *server) event(name string, body any) {
 	s.send(m)
 }
 
-// outputDelay is the longest the program's output waits for a batch to fill (dap.md, Streams).
+// outputDelay is the longest the program's output waits for a batch to fill.
 const outputDelay = 50 * time.Millisecond
 
 // output sends text as an output event: the program's standard output and error in batches, so
@@ -303,7 +303,7 @@ func (s *server) resume(reply, f func()) {
 	f()
 }
 
-// launch loads the program (dap.md section 2).
+// launch loads the program.
 func (s *server) launch(raw json.RawMessage) error {
 	var args struct {
 		Program     string            `json:"program"`
@@ -324,7 +324,7 @@ func (s *server) launch(raw json.RawMessage) error {
 		return errors.New("launch needs a program")
 	}
 	// A relative program is resolved against cwd, which defaults to the program's directory
-	// (dap.md section 2); without a cwd, a relative program is relative to the adapter's.
+	//; without a cwd, a relative program is relative to the adapter's.
 	cwd, program := args.Cwd, args.Program
 	if s.fsys != nil {
 		program = s.abs(program) // a file system has no working directory
@@ -516,7 +516,7 @@ func exitStatus(err error) int {
 	return 1
 }
 
-// terminate interrupts the program, as Ctrl-C does under ant run (dap.md section 2): the
+// terminate interrupts the program, as Ctrl-C does under ant run: the
 // second interrupt cancels the run, with the same exit status.
 func (s *server) terminate() {
 	if !s.started {
@@ -680,7 +680,7 @@ func bindFunction(m *module, name string) (interp.StopPoint, bool) {
 }
 
 // bind finds the stop point a breakpoint on line binds to: the first that starts on the line,
-// or else on the next line that has one, in the body the line is in (dap.md section 4).
+// or else on the next line that has one, in the body the line is in.
 func bind(m *module, line int) (interp.StopPoint, bool) {
 	if m == nil {
 		return interp.StopPoint{}, false

@@ -10,7 +10,7 @@ import (
 )
 
 // conn carries JSON-RPC 2.0 messages over a stream with the base protocol's Content-Length
-// framing (spec/lsp.md section 1).
+// framing.
 type conn struct {
 	r  *bufio.Reader
 	w  io.Writer

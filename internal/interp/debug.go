@@ -11,7 +11,7 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// Debugger stops a run at its stop points, for ant dap (dap.md): at breakpoints, at the end of a
+// Debugger stops a run at its stop points, for ant dap: at breakpoints, at the end of a
 // step, on a pause, and at a panic. When one goroutine stops, every goroutine stops.
 //
 // Each goroutine is in Ant code or outside it, in a builtin or the host's code. One in Ant code
@@ -86,7 +86,7 @@ const (
 	StepOut
 )
 
-// NewDebugger returns a debugger that stops at uncaught panics, as dap.md section 5 defaults.
+// NewDebugger returns a debugger that stops at uncaught panics, the default.
 func NewDebugger() *Debugger {
 	d := &Debugger{gs: map[int]*Goroutine{}, uncaught: true}
 	d.cond = sync.NewCond(&d.mu)
@@ -153,7 +153,7 @@ func (d *Debugger) SetFunctionBreakpoints(list []FunctionBreakpoint) []error {
 	return errs
 }
 
-// SetPanicFilters sets which panics stop the run (dap.md section 5).
+// SetPanicFilters sets which panics stop the run.
 func (d *Debugger) SetPanicFilters(uncaught, all bool) {
 	d.mu.Lock()
 	d.uncaught, d.all = uncaught, all
@@ -187,7 +187,7 @@ func (d *Debugger) Resume() {
 }
 
 // Step resumes every goroutine until the goroutine id reaches the stop point the step looks
-// for (dap.md section 4, Stepping). It calls ack as Continue does.
+// for. It calls ack as Continue does.
 func (d *Debugger) Step(id int, kind StepKind, ack func()) {
 	d.rmu.Lock()
 	defer d.rmu.Unlock()
@@ -418,7 +418,7 @@ func (g *Goroutine) frameID() uint64 {
 	return g.stack[len(g.stack)-1].id
 }
 
-// stopPoint is the hook before a statement (dap.md section 4, Stop points).
+// stopPoint is the hook before a statement.
 func (g *Goroutine) stopPoint(env *Env, pos ast.Pos) {
 	if len(g.stack) == 0 || g.outside > 0 {
 		return
@@ -600,8 +600,7 @@ type Var struct {
 // Settable reports whether SetVar can give v a new value.
 func (v Var) Settable() bool { return v.set != nil }
 
-// SetVar gives a variable of a stopped frame's scopes a new value (dap.md section 6, Setting
-// variables).
+// SetVar gives a variable of a stopped frame's scopes a new value.
 func (d *Debugger) SetVar(v Var, x value.Value) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -615,7 +614,7 @@ func (d *Debugger) SetVar(v Var, x value.Value) error {
 	return nil
 }
 
-// Scopes returns the Locals, Closure and Module variables of a frame (dap.md section 3).
+// Scopes returns the Locals, Closure and Module variables of a frame.
 func (d *Debugger) Scopes(sf StackFrame) (locals, closure, module []Var) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -680,7 +679,7 @@ func (d *Debugger) Panic() *AntPanic {
 	return d.stop.Panic
 }
 
-// StopPoint is a place a run can stop (dap.md section 4).
+// StopPoint is a place a run can stop.
 type StopPoint struct {
 	Pos ast.Pos
 	// Body is the function, lambda, go block, defer block, test, or file the point is in.

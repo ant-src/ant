@@ -317,7 +317,7 @@ type Completion struct {
 }
 
 // Complete lists what can be written at byte offset off of src, the input being typed, as the
-// language server's completion does (spec/lsp.md section 4): the names the session has
+// language server's completion does: the names the session has
 // declared, with their types, the imports in force, the prelude, and what the position allows,
 // as the members after a dot, the functions that take the left side after a pipe, the
 // parameters of a call, and the keywords. After a dot it also offers the fields of the record

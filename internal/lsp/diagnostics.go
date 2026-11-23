@@ -10,7 +10,7 @@ import (
 	"github.com/ant-src/ant/internal/token"
 )
 
-// publishAll publishes the diagnostics of every open document (spec/lsp.md section 3).
+// publishAll publishes the diagnostics of every open document.
 func (s *Server) publishAll() {
 	for _, d := range s.docs {
 		if d.path != "" {

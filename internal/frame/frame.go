@@ -1,6 +1,5 @@
 // Package frame reads and writes messages framed by a Content-Length header, as the Language
-// Server Protocol and the Debug Adapter Protocol frame them (spec/lsp.md and spec/dap.md,
-// section 1).
+// Server Protocol and the Debug Adapter Protocol frame them.
 package frame
 
 import (

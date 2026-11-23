@@ -8,7 +8,7 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// hover answers textDocument/hover (spec/lsp.md section 4).
+// hover answers textDocument/hover.
 func (s *Server) hover(p *TextDocumentPositionParams) *Hover {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {

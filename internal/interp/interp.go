@@ -43,7 +43,7 @@ type Config struct {
 	// hold back its keyboard signals meanwhile; that function reports whether one it held is
 	// now the program's interrupt, which Cmd.run delivers before it returns. Nil holds nothing.
 	Foreground func() func(os.Signal) bool
-	// Debugger, when set, stops the run at its breakpoints and steps (dap.md).
+	// Debugger, when set, stops the run at its breakpoints and steps.
 	Debugger *Debugger
 }
 

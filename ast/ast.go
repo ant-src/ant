@@ -440,7 +440,7 @@ type (
 		Pipe     bool
 		Grouped  bool
 		// Bar is the position of a pipe's |, and Stage is set on each pipe of a pipeline of two
-		// or more, where a debugger stops before the stage (dap.md section 4).
+		// or more, where a debugger stops before the stage.
 		Bar   Pos
 		Stage bool
 		// Assert is set on a call of assert, which the parser recognizes by its name, since no

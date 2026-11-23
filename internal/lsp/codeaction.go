@@ -14,7 +14,7 @@ import (
 )
 
 // codeActions answers textDocument/codeAction with the mechanical fixes for the diagnostics in
-// the range (spec/lsp.md section 4): stating a type the checker inferred where a message asks
+// the range: stating a type the checker inferred where a message asks
 // for an annotation, adding the fields a record literal leaves out, and importing a name that
 // is not defined from a module that exports it.
 func (s *Server) codeActions(p *CodeActionParams) []CodeAction {

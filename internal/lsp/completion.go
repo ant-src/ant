@@ -22,7 +22,7 @@ import (
 // learn what the cursor is in (see fixup).
 const placeholder = "__ant_cmp__"
 
-// completion answers textDocument/completion (spec/lsp.md section 4).
+// completion answers textDocument/completion.
 func (s *Server) completion(p *CompletionParams) *CompletionList {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {
@@ -55,7 +55,7 @@ func (s *Server) complete(d *document, off int) ([]CompletionItem, bool) {
 // names the input is resolved against; the text itself overrides whatever cfg.Sources holds at
 // path. The text is parsed as a script, since the checker types the statements of a script
 // and not those of a session input; the scope still lets a name be declared again. The items
-// are those the language server would offer (spec/lsp.md section 4), unsorted.
+// are those the language server would offer, unsorted.
 func Complete(cfg loader.Config, path, text string, off int) []CompletionItem {
 	return completeText(cfg, path, text, off, ClientCapabilities{})
 }

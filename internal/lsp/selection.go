@@ -5,7 +5,7 @@ import (
 )
 
 // selectionRanges answers textDocument/selectionRange: the nodes enclosing each position,
-// innermost first (spec/lsp.md section 4).
+// innermost first.
 func (s *Server) selectionRanges(p *SelectionRangeParams) []SelectionRange {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {

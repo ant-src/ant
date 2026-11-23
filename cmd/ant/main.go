@@ -6,7 +6,7 @@
 //	ant test [flags] [path...]   run the tests of the test files under the paths (spec/test.md)
 //	ant fmt [--check] path...    format files in place, or list those that are not formatted
 //	ant doc [file.ant] [name]    print a declaration's signature and doc comment
-//	ant code <subcommand> ...    find declarations, uses, and types, and rename (private/tools/code.md)
+//	ant code <subcommand> ...    find declarations, uses, and types, and rename
 //	ant lsp                      serve the Language Server Protocol to an editor
 //	ant dap                      serve the Debug Adapter Protocol to an editor
 //	ant --comp bash|zsh|fish     print the script that completes ant's commands in the shell

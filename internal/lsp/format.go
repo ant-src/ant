@@ -4,7 +4,7 @@ import (
 	"github.com/ant-src/ant/internal/format"
 )
 
-// formatting answers textDocument/formatting with ant fmt (spec/lsp.md section 4): one edit that
+// formatting answers textDocument/formatting with ant fmt: one edit that
 // replaces what changed, or nothing when the document does not parse or is formatted already.
 func (s *Server) formatting(p *DocumentFormattingParams) []TextEdit {
 	d := s.doc(p.TextDocument.URI)

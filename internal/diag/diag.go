@@ -44,7 +44,7 @@ func Offset(text string, lines []int, p ast.Pos) int {
 	return min(lines[p.Line-1]+p.Col-1, len(text))
 }
 
-// Span is the byte span of what a diagnostic at pos is about (spec/lsp.md section 3): the token
+// Span is the byte span of what a diagnostic at pos is about: the token
 // there when it is a keyword or an operator, as in a syntax error; else the innermost expression
 // or declaration that starts there, or whose operator stands there; else the token or word
 // there. f and toks are the file's tree and tokens, either of which may be nil.

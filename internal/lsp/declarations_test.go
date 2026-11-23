@@ -9,7 +9,7 @@ import (
 	"github.com/ant-src/ant/internal/prelude"
 )
 
-// TestPreludeDocument: the prelude's document is served as a file is (spec/lsp.md section 4):
+// TestPreludeDocument: the prelude's document is served as a file is:
 // hover, definition, and semantic tokens work inside it, as in any declaration file.
 func TestPreludeDocument(t *testing.T) {
 	c := start(t, workspace())
@@ -132,7 +132,7 @@ func TestPreludeDocument(t *testing.T) {
 	}
 }
 
-// TestDeclarationFileDocument: a .d.ant file is a program of its own (spec/lsp.md section 2),
+// TestDeclarationFileDocument: a .d.ant file is a program of its own,
 // checked as a declaration file, with hover and definition inside it.
 func TestDeclarationFileDocument(t *testing.T) {
 	c := start(t, workspace())

@@ -315,7 +315,7 @@ func result(status int, diags any) js.Value {
 	return r
 }
 
-// languageServer is languageServer(onMessage, onLog): it starts a language server (spec/lsp.md)
+// languageServer is languageServer(onMessage, onLog): it starts a language server
 // and returns a connection to it. The server's messages reach onMessage as JSON strings, and its
 // log lines reach onLog when it is given. The connection's send takes a message as a JSON
 // string, and close ends the server as the end of its input stream does.
@@ -326,7 +326,7 @@ func languageServer(this js.Value, args []js.Value) any {
 	})
 }
 
-// debugAdapter is debugAdapter(files, onMessage, onLog): it starts a debug adapter (dap.md) for
+// debugAdapter is debugAdapter(files, onMessage, onLog): it starts a debug adapter for
 // one session on a program whose modules are files, as run takes them, and returns a connection
 // to it, as languageServer does. The launch request's program and the sources of breakpoints
 // are paths among files. A message reaches the adapter only when the program waits or is

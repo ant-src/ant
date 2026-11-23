@@ -8,7 +8,7 @@ import (
 )
 
 // documentSymbols answers textDocument/documentSymbol: the module's imports, types with their
-// fields and functions, functions, and top-level variables (spec/lsp.md section 4). In a
+// fields and functions, functions, and top-level variables. In a
 // declaration file, the types and constants an owner qualifies go under it too, and an owner
 // with no type declaration of its own is a namespace, listed where its first member is.
 func (s *Server) documentSymbols(p *DocumentSymbolParams) []DocumentSymbol {

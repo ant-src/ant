@@ -224,7 +224,7 @@ func (a *analysis) refsAt(t *target) []reference {
 }
 
 // references answers textDocument/references: the mentions in the declaration's program and,
-// for one that reaches importers, in theirs (spec/lsp.md section 4).
+// for one that reaches importers, in theirs.
 func (s *Server) references(p *ReferenceParams) []Location {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {
@@ -260,8 +260,7 @@ type mention struct {
 }
 
 // programs lists the programs the uses of o are searched in: a's own, and, when o reaches
-// importers, the program rooted at each module of the workspace that imports o's module (spec/
-// lsp.md section 4), each with the object it finds declared where o is. A declaration of a host's
+// importers, the program rooted at each module of the workspace that imports o's module, each with the object it finds declared where o is. A declaration of a host's
 // declaration file reaches every program it is read for (hosted).
 func (s *Server) programs(a *analysis, o *check.Object) []program {
 	out := []program{{a, o}}
@@ -325,7 +324,7 @@ func (s *Server) highlight(p *TextDocumentPositionParams) []DocumentHighlight {
 	return out
 }
 
-// renamable says whether an object can be renamed, or why not (spec/lsp.md section 4).
+// renamable says whether an object can be renamed, or why not.
 func renamable(o *check.Object) *rpcError {
 	switch {
 	case o == nil:
@@ -482,7 +481,7 @@ func (s *Server) renameAt(a *analysis, t *target, name string) ([]renameEdit, *r
 		return edits, nil
 	}
 	// Every module of the workspace that imports the declaring module, when the declaration
-	// reaches importers (spec/lsp.md section 4), is the root of a program of its own, in which
+	// reaches importers, is the root of a program of its own, in which
 	// the object is found again by where it is declared. A name the importer binds must not
 	// clash there.
 	for _, pr := range s.programs(a, t.obj) {

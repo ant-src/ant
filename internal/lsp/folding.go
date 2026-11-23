@@ -8,7 +8,7 @@ import (
 )
 
 // foldingRanges answers textDocument/foldingRange: blocks, lists, markup elements, comment runs,
-// and the imports (spec/lsp.md section 4).
+// and the imports.
 func (s *Server) foldingRanges(p *FoldingRangeParams) []FoldingRange {
 	d := s.doc(p.TextDocument.URI)
 	if d == nil {

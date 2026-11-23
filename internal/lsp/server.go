@@ -1,4 +1,4 @@
-// Package lsp is the language server behind ant lsp (spec/lsp.md): it speaks the Language Server
+// Package lsp is the language server behind ant lsp: it speaks the Language Server
 // Protocol over a stream, analyzing each open document as the root of its own program.
 package lsp
 
@@ -52,7 +52,7 @@ type Server struct {
 }
 
 // Serve runs a server over r and w until the client sends exit or the stream ends, logging to
-// logw, and returns the exit status (spec/lsp.md section 1).
+// logw, and returns the exit status.
 func Serve(ctx context.Context, r io.Reader, w io.Writer, logw io.Writer) int {
 	s := &Server{
 		conn:  &conn{r: bufio.NewReaderSize(r, 1<<20), w: w},
@@ -72,7 +72,7 @@ func (s *Server) run(ctx context.Context) int {
 		m, err := s.conn.read()
 		if err != nil {
 			if err == errClosed {
-				return 1 // only exit after shutdown ends with 0 (spec/lsp.md section 1)
+				return 1 // only exit after shutdown ends with 0
 			}
 			var re *rpcError
 			if e, ok := err.(*rpcError); ok {
@@ -369,7 +369,7 @@ func (s *Server) byPath() map[string]*document {
 }
 
 // initialize answers the client's first request: the server's capabilities, and the position
-// encoding, utf-8 when the client offers it (spec/lsp.md section 2).
+// encoding, utf-8 when the client offers it.
 func (s *Server) initialize(p *InitializeParams) InitializeResult {
 	s.caps = p.Capabilities
 	for _, f := range p.WorkspaceFolders {

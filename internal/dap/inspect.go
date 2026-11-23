@@ -10,7 +10,7 @@ import (
 	"github.com/ant-src/ant/value"
 )
 
-// maxValue is how many characters of a value a variable shows (dap.md section 3, Variables).
+// maxValue is how many characters of a value a variable shows.
 const maxValue = 200
 
 func (s *server) stackTrace(req *request) {
@@ -156,7 +156,7 @@ func (s *server) variables(req *request) {
 	s.reply(req, map[string]any{"variables": out})
 }
 
-// setVariable gives a variable a new value (dap.md section 6, Setting variables).
+// setVariable gives a variable a new value.
 func (s *server) setVariable(req *request) {
 	var args struct {
 		Ref   int    `json:"variablesReference"`
@@ -240,7 +240,7 @@ func (s *server) variable(v item, frame interp.StackFrame) map[string]any {
 	return m
 }
 
-// typeName is a value's runtime type (dap.md section 3, Variables).
+// typeName is a value's runtime type.
 func typeName(v value.Value) string {
 	switch x := v.(type) {
 	case *value.Record:

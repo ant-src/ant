@@ -16,7 +16,7 @@ import (
 )
 
 // codeSubcommands are the subcommands of ant code, with the flags each takes beyond -json and
-// -root (private/tools/code.md section 1).
+// -root.
 var codeSubcommands = map[string][]string{
 	"def":     nil,
 	"refs":    {"-decl"},
@@ -33,13 +33,13 @@ var codeOperands = map[string]string{
 	"rename":  "<loc> <name>",
 }
 
-// codeStatus is the exit status of each error code (code.md section 3).
+// codeStatus is the exit status of each error code.
 var codeStatus = map[string]int{
 	"usage": 2, "load": 2, "not-found": 1, "ambiguous": 1, "refused": 1, "check": 1,
 	"incomplete": 2, "changed": 1, "write": 2,
 }
 
-// codeCommand is ant code (private/tools/code.md): the questions an editor asks the language
+// codeCommand is ant code: the questions an editor asks the language
 // server, answered from a terminal by the server's own analysis.
 func codeCommand(args []string, stdout, stderr io.Writer) int {
 	c := &coder{stdout: stdout, stderr: stderr}
@@ -474,7 +474,7 @@ func (c *coder) rename(an *lsp.Code, loc, name string, diff, force bool) int {
 }
 
 // write replaces each file with its new text, after checking that none changed since it was
-// read (code.md section 9).
+// read.
 func (c *coder) write(files []lsp.CodeFile) int {
 	var changed []string
 	for _, f := range files {

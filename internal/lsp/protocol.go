@@ -6,7 +6,7 @@ import "encoding/json"
 // reads and writes, with the field names the protocol gives them.
 
 // Position is a line and a character in a document, both from 0. The character counts UTF-16
-// code units, or bytes when the client agreed to utf-8 (spec/lsp.md section 2).
+// code units, or bytes when the client agreed to utf-8.
 type Position struct {
 	Line      int `json:"line"`
 	Character int `json:"character"`
@@ -508,7 +508,7 @@ type LogMessageParams struct {
 }
 
 // SourceParams is the parameter of the request ant/source, which the client makes for the text
-// of a document the server owns, such as the prelude (spec/lsp.md section 4, Definition).
+// of a document the server owns, such as the prelude.
 type SourceParams struct {
 	URI string `json:"uri"`
 }
