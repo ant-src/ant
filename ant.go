@@ -244,6 +244,14 @@ func convert(diags []loader.Diagnostic) []Diagnostic {
 // for a script runs its body. It returns nil when the script ends, a *ResultError when it returns
 // an Err, a *PanicError when the main goroutine panics, an *ExitError
 // when the program calls Os.exit, and ctx.Err() when the context is cancelled first.
+//
+// It returns a *LoadError, and runs nothing, for a program that cannot run: one whose root is a
+// test file or a declaration file, or which reads a name that only a host's declaration file
+// declares (section 10, Declaration files). Load accepts such a program because Check checks it.
+//
+// A panic and a returned Err are the program's own output, and the run writes them to its
+// standard error. Any other error is returned and not written: a host that wants it shown
+// prints it.
 func (p *Program) Run(ctx context.Context, opts ...Option) error {
 	if err := p.runnable(); err != nil {
 		return err

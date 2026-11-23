@@ -213,7 +213,8 @@ type Instance struct {
 
 // Start initializes the program's modules, the root last, and returns an Instance to call into.
 // A root that is a script runs its body here, as Run would; a library runs only its
-// initializers. The options given to Load apply, and options given here override them.
+// initializers. The options given to Load apply, and options given here override them. It
+// returns a *LoadError for a program that cannot run, as Run does.
 func (p *Program) Start(ctx context.Context, opts ...Option) (*Instance, error) {
 	if err := p.runnable(); err != nil {
 		return nil, err
