@@ -27,7 +27,8 @@ ant code rename  [flags] <loc> <name>   # rename a declaration and its uses
   workspace, which is the current directory by default. `refs` takes `-decl`, `symbols` takes
   `-match text` and `-all`, and `rename` takes `-diff` and `-force`. Flags come before the operands.
 - The workspace is every `.ant` file under the root, skipping directories whose names start with a
-  dot and `node_modules`. `refs` and `rename` search it for the modules that import a declaration.
+  dot and `node_modules`. `refs` and `rename` search it for the modules that import a declaration,
+  and, for a name of a host's declaration file, for the scripts in that file's directory.
 - Text output is one location per line, `path:line:col: text`, as `ant check` and `grep -n` print
   them. Counts, warnings, and errors go to standard error.
 - `ant code` parses and type-checks, and never runs your code: no initializer, function, or test.
@@ -399,9 +400,9 @@ ant code type -json words.ant:2:groups | jq -r .text
   unless you add `-force`.
 - A rename covers the workspace only. A module outside the root that imports the declaration, and a
   name kept in a string, stay as they are.
-- A host's declaration file declares names that the host program implements outside the workspace,
-  so `rename` cannot rename them in the host. Change a host name in the host and in its declaration
-  file, then let `ant check .` list the scripts to update.
+- A host's declaration file declares names that the host program implements outside the workspace.
+  `rename` changes such a name in the declaration file and in the scripts beside it, and cannot
+  change it in the host. Rename it in the host as well.
 - `ant code` analyzes the file a location names as a root of its own, so it reads only the
   declaration files in that file's directory. A host name in a module that a script imports from
   another directory does not resolve there (`ant code: LIMIT is not declared`, status 1), although

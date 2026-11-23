@@ -110,6 +110,18 @@ func TestTestCommandErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	plain := write("c.ant", "println(1)\n")
+	// a test for a host: the checker accepts it through the declaration file beside it, and it
+	// cannot be loaded for a run; the other file still runs
+	hostDir := t.TempDir()
+	for name, src := range map[string]string{
+		"store.d.ant":   "let Store.LIMIT: int\n",
+		"host_test.ant": "test \"limit\" {\n  assert(Store.LIMIT > 0)\n}\n",
+		"sum_test.ant":  "test \"sum\" { assert(1 + 1 == 2) }\n",
+	} {
+		if err := os.WriteFile(filepath.Join(hostDir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	slash := write("s_test.ant", "test \"x/y\" {\n  for i in [1, 2] { test \"c\" {} }\n  test \"d\" { assert(false) }\n}\ntest \"x\" { assert(false) }\n")
 	cases := []struct {
 		args   []string
@@ -127,6 +139,10 @@ func TestTestCommandErrors(t *testing.T) {
 		{[]string{"test", "-json", ok, bad, typed}, 2, `"message":"cannot use string where int is expected"`, ""},
 		{[]string{"test", "-nocheck", ok, bad}, 2, "FAIL  1 passed", "b_test.ant:2:1"},
 		{[]string{"test", "-nocheck", dir}, 2, "FAIL  2 failed, 3 passed", "b_test.ant"},
+		{[]string{"test", hostDir}, 2, "FAIL  1 passed", "which does not implement it: the program runs only in a host that provides Store [undefined]\n   │\n 2 │   assert(Store.LIMIT > 0)"},
+		{[]string{"test", "-json", hostDir}, 2, `"severity":"error","code":"undefined","message":"Store is declared in`, ""},
+		{[]string{"test", "-json", hostDir}, 2, `"passed":1,"failed":0,"skipped":0}`, ""},
+		{[]string{"test", "-json", "-nocheck", ok, bad}, 2, `"severity":"error","code":"syntax"`, ""},
 		{[]string{"test", ok, typed}, 1, "", "t_test.ant:2:16: cannot use string where int is expected"},
 		{[]string{"test", "-json", ok, typed}, 1, `{"action":"error","path":"` + typed + `","line":2,"column":16,"severity":"error","code":"type-mismatch","message":"cannot use string where int is expected","start":{"line":2,"column":16},"end":{"line":2,"column":19}}` + "\n", ""},
 		{[]string{"test", "-nocheck", typed}, 0, "ok    1 passed", ""},

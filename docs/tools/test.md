@@ -334,7 +334,8 @@ ant test -json broken_test.ant
 
 `elapsed` is in seconds. A `"fail"` event's `message` holds the test's failures as the report shows
 them. When the checker stops the run, each of its errors is an `"error"` event with the fields of an
-[ant check -json](check.md) error, and there is no `"done"` event.
+[ant check -json](check.md) error, and there is no `"done"` event. A file that cannot be loaded when
+it is run is reported with the same event, and the run goes on to its `"done"` event.
 
 ## Applications
 
@@ -477,11 +478,17 @@ FAIL  no tests (0.00s)
 The reason goes to standard error:
 
 ```text
-greet_test.ant:2:10: Store is declared in store.d.ant, which does not implement it: the program runs only in a host that provides Store
+greet_test.ant:2:10: Store is declared in store.d.ant, which does not implement it: the program runs only in a host that provides Store [undefined]
+   │
+ 2 │   assert(Store.LIMIT > 0)
+   │          ^^^^^
+
+1 error
 ```
 
 No test of that file runs, the tests of the other files still run, and the command exits with status
-2, with or without `-nocheck`. Run such tests in the host that provides the namespace.
+2, with or without `-nocheck`. Under `-json` the reason is an `"error"` event on standard output.
+Run such tests in the host that provides the namespace.
 
 ### A name that holds `/`
 

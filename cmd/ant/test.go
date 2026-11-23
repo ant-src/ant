@@ -121,14 +121,24 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	start := time.Now()
 	status := 0
+	// A file that cannot be loaded when it is run is reported as ant run reports one, or under
+	// -json as "error" events (test.md section 4); the other files still run.
+	loadFailed := func(err error) {
+		status = 2
+		var le *ant.LoadError
+		if *jsonOut && errors.As(err, &le) && len(le.Diagnostics) > 0 {
+			writeJSONCheckErrors(stdout, le.Diagnostics)
+			return
+		}
+		printLoadError(stderr, err)
+	}
 	for _, file := range files {
 		if ctx.Err() != nil || *failfast && halt.Load() {
 			break
 		}
 		prog, err := ant.Load(file)
 		if err != nil {
-			printLoadError(stderr, err)
-			status = 2
+			loadFailed(err)
 			continue
 		}
 		cfg.File = file
@@ -155,8 +165,7 @@ func testCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			}
 		case ctx.Err() != nil:
 		default:
-			fmt.Fprintln(stderr, err)
-			status = 2
+			loadFailed(err)
 		}
 	}
 	if timedOut.Load() {

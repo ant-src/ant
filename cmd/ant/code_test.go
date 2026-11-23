@@ -433,3 +433,35 @@ func TestCodeUsageJSON(t *testing.T) {
 		t.Errorf("text: status %d, stdout %q, stderr %q", status, out, errOut)
 	}
 }
+
+// TestCodeHostDeclarations checks that refs and rename of a name of a host's declaration file
+// cover every script beside the file, from the declaration and from a use, a constant included.
+func TestCodeHostDeclarations(t *testing.T) {
+	dir := codeTree(t, map[string]string{
+		"host/store.d.ant": "type Store.Handle\nfunc Store.open(name: string): Result[Store.Handle, Error]\nlet Store.LIMIT: int\n",
+		"host/greet.ant":   "let store = try Store.open(\"notes\")\nprintln(store)\n",
+		"host/other.ant":   "let s = try Store.open(\"x\")\nprintln(Store.LIMIT)\n",
+	})
+	uses := "host/greet.ant:1:23: let store = try Store.open(\"notes\")\nhost/other.ant:1:19: let s = try Store.open(\"x\")\n"
+	for _, loc := range []string{"host/store.d.ant:Store.open", "Store.open", "host/greet.ant:1:open"} {
+		if status, out, errOut := codeRun("refs", loc); status != 0 || out != uses {
+			t.Errorf("refs %s: %d %q %q", loc, status, out, errOut)
+		}
+	}
+	if status, out, errOut := codeRun("rename", "host/other.ant:2:LIMIT", "MAX"); status != 0 {
+		t.Fatalf("rename LIMIT: %d %q %q", status, out, errOut)
+	}
+	if status, out, errOut := codeRun("rename", "host/store.d.ant:Store.open", "load"); status != 0 {
+		t.Fatalf("rename open: %d %q %q", status, out, errOut)
+	}
+	want := map[string]string{
+		"host/store.d.ant": "type Store.Handle\nfunc Store.load(name: string): Result[Store.Handle, Error]\nlet Store.MAX: int\n",
+		"host/greet.ant":   "let store = try Store.load(\"notes\")\nprintln(store)\n",
+		"host/other.ant":   "let s = try Store.load(\"x\")\nprintln(Store.MAX)\n",
+	}
+	for name, text := range want {
+		if got := read(t, filepath.Join(dir, name)); got != text {
+			t.Errorf("%s after the renames:\n%s", name, got)
+		}
+	}
+}

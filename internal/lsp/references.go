@@ -9,6 +9,7 @@ import (
 	"github.com/ant-src/ant/internal/prelude"
 	"github.com/ant-src/ant/internal/resolve"
 	"github.com/ant-src/ant/internal/token"
+	"github.com/ant-src/ant/parser"
 )
 
 // reference is one mention of an object: the module and the span of the name. shorthand is set
@@ -119,6 +120,12 @@ func (a *analysis) referencesOf(o *check.Object) []reference {
 			case *ast.NameTarget:
 				if in.Decls[x] == o {
 					refs = append(refs, reference{path: path, from: x.Pos, to: x.End, decl: true, shorthand: shortTargets[x]})
+				}
+			case *ast.VarDecl:
+				// a constant of a declaration file, let Owner.NAME: T, is declared by the whole
+				// declaration and named by its target
+				if nt, ok := x.Target.(*ast.NameTarget); ok && x.Owner != "" && in.Decls[x] == o {
+					refs = append(refs, reference{path: path, from: nt.Pos, to: nt.End, decl: true})
 				}
 			case *ast.Param:
 				if in.Decls[x] == o {
@@ -254,7 +261,8 @@ type mention struct {
 
 // programs lists the programs the uses of o are searched in: a's own, and, when o reaches
 // importers, the program rooted at each module of the workspace that imports o's module (spec/
-// lsp.md section 4), each with the object it finds declared where o is.
+// lsp.md section 4), each with the object it finds declared where o is. A declaration of a host's
+// declaration file reaches every program it is read for (hosted).
 func (s *Server) programs(a *analysis, o *check.Object) []program {
 	out := []program{{a, o}}
 	if !a.reachesImporters(o) {
@@ -264,7 +272,7 @@ func (s *Server) programs(a *analysis, o *check.Object) []program {
 	if !ok {
 		return out
 	}
-	for _, other := range s.importers(declPath, a.root.uri) {
+	for _, other := range append(s.importers(declPath, a.root.uri), s.hosted(declPath, a.root.uri)...) {
 		oa := s.analyze(other)
 		if same := oa.objectDeclaredAt(declPath, from); same != nil {
 			out = append(out, program{oa, same})
@@ -586,6 +594,11 @@ func (a *analysis) objectDeclaredAt(path string, pos ast.Pos) *check.Object {
 			if x.Pos == pos {
 				found = a.info.Decls[x]
 			}
+		case *ast.VarDecl:
+			if nt, ok := x.Target.(*ast.NameTarget); ok && x.Owner != "" && nt.Pos == pos {
+				found = a.info.Decls[x]
+				return false
+			}
 		case *ast.Param:
 			if x.Pos == pos {
 				found = a.info.Decls[x]
@@ -646,6 +659,24 @@ func (s *Server) importers(path, skip string) []*document {
 			if f.doc.uri != skip {
 				out = append(out, f.doc)
 			}
+		}
+	}
+	return out
+}
+
+// hosted lists the documents of the workspace that a host's declaration file at path is read
+// for (section 10, Declaration files), other than the one at skip: the modules in its directory,
+// each the root of a program whose prelude its declarations join with no import. It lists none
+// for a path that is not a declaration file.
+func (s *Server) hosted(path, skip string) []*document {
+	if parser.ModeOf(path) != parser.Declarations || filepath.Base(path) == prelude.Path {
+		return nil
+	}
+	var out []*document
+	for _, f := range s.workspaceFiles() {
+		p := f.doc.path
+		if f.doc.uri != skip && parser.ModeOf(p) != parser.Declarations && sameFile(filepath.Dir(p), filepath.Dir(path)) {
+			out = append(out, f.doc)
 		}
 	}
 	return out
