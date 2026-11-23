@@ -29,6 +29,18 @@ func TestUnwind(t *testing.T) {
 	if status != 1 || out != "" || !strings.Contains(errOut, "panic: index 2 out of range") || strings.Contains(errOut, "loop:") {
 		t.Errorf("a panic: status %d, stdout %q, stderr %q", status, out, errOut)
 	}
+	// a script that reads a name only a declaration file beside it declares is refused, and
+	// the host says why
+	fsys := fstest.MapFS{"main.ant": {Data: []byte("println(Other.N)\n")}, "other.d.ant": {Data: []byte("let Other.N: int\n")}}
+	var out2, err2 strings.Builder
+	if status := run(fsys, "main.ant", strings.NewReader(""), &out2, &err2); status != 2 || !strings.Contains(err2.String(), "Other is declared in other.d.ant") {
+		t.Errorf("a refused program: status %d, stderr %q", status, err2.String())
+	}
+	for _, name := range []string{"File", "Http", "Net", "Os", "Cmd"} {
+		if status, _, errOut := host(t, "println("+name+")\n", ""); status != 1 || !strings.Contains(errOut, name) {
+			t.Errorf("removed %s: status %d, stderr %q", name, status, errOut)
+		}
+	}
 	// without the script's own namespaces
 	if status, _, errOut := host(t, "println(File.exists(\"x\"))\n", ""); status != 1 || !strings.Contains(errOut, "File") {
 		t.Errorf("a removed namespace: status %d, stderr %q", status, errOut)

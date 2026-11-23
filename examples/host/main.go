@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -29,10 +30,10 @@ func run(fsys fs.FS, path string, stdin io.Reader, stdout, stderr io.Writer) int
 	prog, err := ant.Load(path,
 		ant.WithFS(fsys),
 		ant.WithNamespace(app(stdin, stderr)),
-		ant.WithoutNamespaces("File", "Http", "Os"))
+		ant.WithoutNamespaces("File", "Http", "Net", "Os"))
 	if err != nil {
 		fmt.Fprintln(stderr, err)
-		return 2
+		return ant.ExitStatus(err)
 	}
 	if errs := ant.Errors(prog.Check()); len(errs) > 0 {
 		for _, d := range errs {
@@ -41,6 +42,12 @@ func run(fsys fs.FS, path string, stdin io.Reader, stdout, stderr io.Writer) int
 		return 1
 	}
 	err = prog.Run(context.Background(), ant.WithStdout(stdout), ant.WithStderr(stderr))
+	// The run has reported a panic and a returned Err itself. A program it refused to start
+	// it has not.
+	var refused *ant.LoadError
+	if errors.As(err, &refused) {
+		fmt.Fprintln(stderr, err)
+	}
 	return ant.ExitStatus(err)
 }
 
@@ -67,6 +74,7 @@ func feed(rt ant.Runtime, handle value.Value, stdin io.Reader, stderr io.Writer)
 	event, _ := rt.Tag("App.Event")
 	loop := &Loop{Log: stderr}
 	var unwound any
+	var failed error
 	loop.Handle = func(line string) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -76,10 +84,12 @@ func feed(rt ant.Runtime, handle value.Value, stdin io.Reader, stderr io.Writer)
 		}()
 		at, err := value.NewInstant(time.Now())
 		if err != nil {
-			panic(err)
+			failed = err
+			loop.Stop()
+			return
 		}
 		more := rt.Call(handle, value.NewRecord(event, []value.Value{line, at}))
-		if more == false {
+		if !more.(bool) {
 			loop.Stop()
 		}
 	}
@@ -87,5 +97,5 @@ func feed(rt ant.Runtime, handle value.Value, stdin io.Reader, stderr io.Writer)
 	if unwound != nil {
 		panic(unwound)
 	}
-	return err
+	return errors.Join(failed, err)
 }
