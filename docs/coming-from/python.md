@@ -2,14 +2,14 @@
 
 # Ant for Python developers
 
-Ant keeps what makes Python good for scripts: a file of statements that runs top to bottom, no
-`main`, and a standard library for files, processes, and JSON. It differs in three places. Types are
-static, and `ant check` checks them before you run. Expected failures are values, not exceptions.
-Concurrency is goroutines, not threads or `asyncio`.
+Ant keeps what makes Python good for scripts: a file of statements that runs from top to bottom, no
+`main`, and a standard library for files, processes, and JSON. It differs in a few places, and this
+page is about those. It does not try to cover the whole language. The [Tour](../tour/01-hello.md)
+does that.
 
-## A script, side by side
+## A first script
 
-This Python script prints the three most common words of the file named on its command line:
+This Python script counts the words in the file named on its command line:
 
 ```python
 import sys
@@ -17,194 +17,89 @@ from collections import Counter
 
 text = open(sys.argv[1]).read()
 counts = Counter(text.lower().split())
-for word, n in counts.most_common(3):
+for word, n in counts.most_common():
     print(f"{word}: {n}")
 ```
 
 The same script in Ant, run as `ant run words.ant notes.txt`:
 
 <!-- test: file notes.txt
-the ant and the bee
-an ant on the hill
+The ant and the bee
 the ant
 -->
 <!-- test: args notes.txt -->
 
 ```ant
 let text = try File.read(Os.args()[0])
+
 let counts: Map[string, int] = Map{}
 for word in text.toLower().fields() {
   counts[word] = (counts[word] ?? 0) + 1
 }
-let top = counts.entries() | Array.sortBy({ -x.value }) | Iter.fromArray() | Iter.take(3)
-for { key, value } in top {
+
+for { key, value } in counts.entries().sortBy({ -x.value }) {
   println("${key}: ${value}")
 }
 ```
 
 ```text
-the: 4
-ant: 3
+the: 3
+ant: 2
 and: 1
+bee: 1
 ```
 
-- `Os.args()` holds only the arguments: index 0 is the first one, not the script path.
-- `File.read` returns a `Result`. `try` unwraps it, or ends the script with the error on standard
-  error and status 1.
-- A map read such as `counts[word]` is `int | null`, so `?? 0` supplies the missing count.
-- `let` names a value that never changes, and `var` one you reassign. An undeclared name is an
-  error, not a new variable.
-- `"${key}"` interpolates, as an f-string does.
+A few things to notice:
 
-## Equivalents
+- `let` names a value that never changes, and `var` one that you reassign. Using a name you never
+  declared is an error, not a new variable.
+- `File.read` can fail, so `try` goes in front of it. If the file is missing, the script stops there
+  and prints the error.
+- `Os.args()` holds only the arguments. Index 0 is the first one, not the script's path.
+- `counts[word]` is `null` for a word not seen yet, and `?? 0` turns that into `0`.
+- `{ -x.value }` is a short function, like a `lambda`. Its one parameter is always named `x`.
+- `"${key}"` works like an f-string.
 
-### The language
+## What carries over
 
-| Python                                   | Ant                                                                |
-| ---------------------------------------- | ------------------------------------------------------------------ |
-| `n = 0`                                  | `var n = 0`, or `let n = 0` when it never changes                  |
-| `None`                                   | `null`                                                             |
-| `a and not b`                            | `a && !b`                                                          |
-| `x if cond else y`                       | `if cond { x } else { y }`                                         |
-| `def area(w, h=1): return w * h`         | `func area(w: int, h: int = 1): int { w * h }`                     |
-| `area(3, h=2)`                           | `area(3, h: 2)`                                                    |
-| `lambda x: x * 2`                        | `{ x * 2 }`                                                        |
-| `@dataclass class Point: x: int; y: int` | `type Point = { x: int, y: int }`                                  |
-| `Point(1, 2)`                            | `Point{ x: 1, y: 2 }`                                              |
-| `def norm(self): ...` inside the class   | `func Point.norm(p: Point): float64 { ... }`, called as `p.norm()` |
-| `isinstance(p, Point)`                   | `p is Point`, when `p`'s type is a union such as `Shape`           |
-| `str(n)`, `int(s)`                       | `"${n}"`, `s.toInt()`, which is `null` when not a number           |
-| `float(n) / 2`                           | `float64(n) / 2.0`                                                 |
-| `a, b = b, a`                            | `[a, b] = [b, a]`                                                  |
-| `raise ValueError("bad")`                | `return Result.fail("bad")`                                        |
-| `assert n > 0`                           | `assert(n > 0)`                                                    |
-| `from util import f`                     | `import "./util.ant" { f }`                                        |
-| `def test_f(): ...` with pytest          | `test "f" { ... }` with `ant test`                                 |
+| Python                           | Ant                                            |
+| -------------------------------- | ---------------------------------------------- |
+| `None`                           | `null`                                         |
+| `a and not b`                    | `a && !b`                                      |
+| `x if cond else y`               | `if cond { x } else { y }`                     |
+| `def area(w, h=1): return w * h` | `func area(w: int, h: int = 1): int { w * h }` |
+| `area(3, h=2)`                   | `area(3, h: 2)`                                |
+| `lambda x: x * 2`                | `{ x * 2 }`                                    |
+| `f"{name}: {n}"`                 | `"${name}: ${n}"`                              |
+| `len(s)`, `s.strip()`            | `s.length()`, `s.trim()`                       |
+| `xs.append(3)`                   | `xs.push(3)`                                   |
+| `[x * 2 for x in xs if x > 0]`   | `xs.filter({ x > 0 }).map({ x * 2 })`          |
+| `for i, x in enumerate(xs)`      | `for { index, value } in xs.entries()`         |
+| `d = {"a": 1}`, `d.get(k, 0)`    | `let d = Map{ a: 1 }`, `d[k] ?? 0`             |
+| `open(p).read()`                 | `try File.read(p)`                             |
+| `json.loads(text)`               | `try Json.parse(text)`                         |
+| `from util import f`             | `import "./util.ant" { f }`                    |
 
-### Strings
+## What works differently
 
-| Python                      | Ant                                                                |
-| --------------------------- | ------------------------------------------------------------------ |
-| `f"{name}: {n}"`            | `"${name}: ${n}"`                                                  |
-| `"""..."""`                 | `"..."`, which may span lines                                      |
-| `r"C:\temp"`                | `` `C:\temp` ``                                                    |
-| `len(s)`                    | `len(s)` or `s.length()`, both counting code points as Python does |
-| `s.strip()`, `s.lower()`    | `s.trim()`, `s.toLower()`                                          |
-| `s.split(",")`, `s.split()` | `s.split(",")`, `s.fields()`                                       |
-| `s.splitlines()`            | `s.lines()`                                                        |
-| `", ".join(parts)`          | `String.join(parts, ", ")`                                         |
-| `s[1:3]`                    | `s.slice(1, 3)`, which panics when a bound is past the end         |
-| `f"{x:.2f}"`                | `"${String.fromFloat(x, 2)}"`                                      |
-| `f"{n:08x}"`                | `String.padStart(String.fromInt(n, 16), 8, "0")`                   |
-| `s.find("ab")`              | `s.indexOf("ab")`, which is `null` when absent, not -1             |
-| `"ab" in s`                 | `s.contains("ab")`                                                 |
-| `s.startswith("#")`         | `s.startsWith("#")`                                                |
+### Types are checked before you run
 
-### Collections
-
-| Python                                             | Ant                                                                           |
-| -------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `xs.append(3)`                                     | `xs.push(3)`                                                                  |
-| `xs[-1]`                                           | `xs.last()`, which is `null` when `xs` is empty                               |
-| `xs.sort()`, `sorted(xs)`                          | `let sorted = xs.sort()`, which returns a new array and leaves `xs` unchanged |
-| `x in xs`                                          | `xs.contains(x)`                                                              |
-| `[x * 2 for x in xs if x > 0]`                     | `xs \| Array.filter({ x > 0 }) \| Array.map({ x * 2 })`                       |
-| `sorted(words, key=len)`                           | `words.sortBy({ x.length() })`                                                |
-| `sum(xs)`                                          | `xs.sum() ?? 0`                                                               |
-| `any(x > 0 for x in xs)`, `all(x > 0 for x in xs)` | `xs.some({ x > 0 })`, `xs.every({ x > 0 })`                                   |
-| `for i, x in enumerate(xs)`                        | `for { index, value } in xs.entries()`                                        |
-| `range(10)`                                        | `Array.range(0, 10)`, or lazily `Iter.range(0, 10)`                           |
-| `d = {"a": 1}`                                     | `let d = Map{ "a": 1 }`                                                       |
-| `d.get(k, 0)`                                      | `d[k] ?? 0`                                                                   |
-| `k in d`                                           | `d.has(k)`                                                                    |
-| `for k, v in d.items()`                            | `for { key, value } in d`                                                     |
-| `set(xs)`                                          | `Set.of(xs)`                                                                  |
-
-### Files, processes, and JSON
-
-| Python                                                  | Ant                                                    |
-| ------------------------------------------------------- | ------------------------------------------------------ |
-| `open(p).read()`                                        | `try File.read(p)`                                     |
-| `open(p, "w").write(s)`                                 | `try File.write(p, s)`                                 |
-| `with open(p) as f:`                                    | `let f = try File.open(p)`, then `defer { f.close() }` |
-| `f.flush(); os.fsync(f.fileno())`                       | `try f.sync()`                                         |
-| `os.chown(p, uid, gid)`                                 | `try File.chown(p, uid, gid)`                          |
-| `os.path.join(a, b)`                                    | `Path.join([a, b])`                                    |
-| `os.path.exists(p)`                                     | `File.exists(p)`                                       |
-| `os.listdir(d)`, `os.scandir(d)`                        | `try File.list(d)`, `try File.readDir(d)`              |
-| `glob.glob("*.txt")`, `os.walk(d)`                      | `try File.glob("*.txt")`, `try File.walk(d)`           |
-| `sys.argv[1:]`                                          | `Os.args()`                                            |
-| `os.environ.get("HOME")`                                | `Os.env("HOME")`                                       |
-| `sys.exit(2)`                                           | `Os.exit(2)`                                           |
-| `subprocess.run(["git", "status"]).returncode`          | `try Cmd.run(Cmd.new("git", ["status"]))`              |
-| `subprocess.check_output(["git", "status"], text=True)` | `try Cmd.read(Cmd.new("git", ["status"]))`             |
-| `json.loads(text)`                                      | `try Json.parse(text)`                                 |
-| `json.dumps(value, indent=2)`                           | `Json.stringify(value, indent: "  ")`                  |
-
-A close hands what was written to the OS but does not wait for the disk. `f.sync()` flushes and then
-has the OS write the file to storage, as `os.fsync` does.
-
-`Cmd` runs the program with no shell, so each argument reaches it as written. `Cmd.run` returns the
-exit status; `Cmd.read` returns the output without its final line break, and a nonzero status is an
-`Err`. `Json.parse` gives a `Json.Value`, which you narrow with `is` before you read it, and every
-JSON number in it is a `float64`.
-
-### Concurrency
-
-| Python                                               | Ant                                                  |
-| ---------------------------------------------------- | ---------------------------------------------------- |
-| `threading.Thread(target=f).start()`                 | `go { f() }`                                         |
-| `pool.map(f, xs)` in a `ThreadPoolExecutor`          | `Parallel.map(xs, f, limit: 8)`                      |
-| `ProcessPoolExecutor().map(f, xs)`, `os.cpu_count()` | `Parallel.map(xs, f, limit: Os.cpus())`, `Os.cpus()` |
-| `asyncio.gather(a(), b())`                           | `Parallel.run([{ ra = a(x) }, { rb = b(x) }])`       |
-| `async def` and `await`                              | ordinary functions and calls                         |
-| `queue.Queue()`                                      | `let q: Channel[Job] = Channel.new(100)`             |
-| `threading.Lock()`                                   | `Mutex.new()`                                        |
-| `time.sleep(0.5)`                                    | `Time.sleep(500ms)`                                  |
-
-The callbacks of `Parallel.run` receive the context as `x` and return nothing, so results go into
-variables declared before the call. A channel's capacity bounds it, where a `queue.Queue()` grows
-without limit: a `send` to a full channel waits, and `Channel.new()` with no capacity is a
-rendezvous, whose `send` waits until a receiver takes the value. The declared type gives
-`Channel.new` its element type, which its arguments do not fix.
-
-`Os.cpus()` is not `os.cpu_count()`, which counts every CPU of the host. It is the number of CPUs
-the program may use at once: fewer under a container's CPU limit, and the `GOMAXPROCS` environment
-variable's value when that is a positive number. It is the limit for CPU-bound work, and it can
-change while the program runs, so read it when you size the work.
-
-## Differences that bite
-
-### Types are checked by `ant check`
-
-Every parameter has a type, and `ant check` reports a mismatch before the program runs. `ant run`
-does not check, so run `ant check` in your editor and CI. The checker rejects habits that Python
-allows: an array as a condition, `1 == 1.0`, `s[0]` on a string, a value of another type assigned to
-a name. See [Types](../guide/types.md#mistakes-to-avoid),
-[Strings](../guide/strings.md#habits-from-other-languages), and
-[Variables](../guide/values.md#coming-from-other-languages).
-
-Numbers are fixed-size. An `int` has 64 bits and overflows with a panic instead of growing. Python's
-`/` always gives a float; Ant's `/` on two `int`s gives an `int` that truncates toward zero, and `%`
-takes the sign of the dividend, where Python's `//` rounds down and its `%` takes the sign of the
-divisor:
+Every parameter has a type, and `ant check` tells you about a mismatch before the program runs:
 
 ```ant
-7 / 2            // 3
--7 / 2           // -3
--7 % 2           // -1
-float64(7) / 2.0 // 3.5
+func double(n: int): int { n * 2 }
+
+println(double("21")) // error: cannot use string where int is expected
 ```
 
-```ant
-let big = 9223372036854775807
-big + 1 // panic: integer overflow
-```
+`ant run` does not check types, so run `ant check` too, or let your editor run it with the
+[Ant extension](/vscode). Ant infers the type of a variable from its value, so most lines carry no
+annotation.
 
 ### Errors are values, not exceptions
 
-A function that can fail returns a `Result`, so you see the failure at the call. Where Python
-catches an `OSError`, Ant reads the `Result`:
+A function that can fail returns a `Result`, so you see the failure where you make the call. Where
+Python catches an exception:
 
 ```python
 try:
@@ -212,6 +107,8 @@ try:
 except OSError:
     text = ""
 ```
+
+Ant reads the `Result`:
 
 ```ant
 let text = File.read("settings.ini") | Result.unwrapOr("")
@@ -222,87 +119,48 @@ println(text.isEmpty())
 true
 ```
 
-`try` passes the error to the caller, and `panic` is for bugs, not for control flow. See
-[Errors](../guide/errors.md#coming-from-other-languages).
+`try` passes an error on to the caller, as an exception would travel up, but only where you write
+it. `panic` exists for bugs, not for control flow. See [Errors](../guide/errors.md).
 
-### `null` only where the type says
+### Missing values are `null`, not exceptions
 
-A `string` is never `null`; a `string | null` may be, and you narrow it before you use it. A map
-read, `xs.last()`, and `s.toInt()` return a nullable value, where Python raises `KeyError`,
-`IndexError`, or `ValueError`. A condition must be a `bool`, so write `if name != null`, not
-`if name:`. Indexes and slices do not count from the end or clamp: `xs[-1]` and `xs.slice(0, 10)` on
-a shorter array panic; use `xs.last()` or `Iter.take`. See
-[Null](../guide/null.md#coming-from-other-languages).
-
-### Two Python traps are gone
-
-A default value runs on every call, so a default array is new each time. Each loop iteration binds a
-fresh variable, so a closure created in the loop keeps that iteration's value:
+Where Python raises `KeyError` or `ValueError`, Ant gives you `null`, and the type says so:
 
 ```ant
-func add(n: int, into: Array[int] = []): Array[int] {
-  into.push(n)
-  into
-}
-
-println(add(1))
-println(add(2))
-
-let getters: Array[func(): int] = []
-for i in [1, 2, 3] {
-  getters.push({ i })
-}
-println(getters.map({ x() }))
+let ages = Map{ ann: 31 }
+ages["bob"]      // null
+ages["bob"] ?? 0 // 0
+"42".toInt()     // 42
+"4x".toInt()     // null
+[1, 2, 3].last() // 3
 ```
 
-```text
-[1]
-[2]
-[1, 2, 3]
-```
+A condition must be a `bool`, so write `if name != null`, not `if name:`. Indexes do not count from
+the end: use `xs.last()` instead of `xs[-1]`. See [Null](../guide/null.md).
 
-### Modules are files
+### Numbers have a fixed size
 
-An import names a file, extension included, and a file is either a script or a library: there is no
-`if __name__ == "__main__"`. A library marks what other files may import with `export`, as in
-`export func f()`; everything else is private. See
-[Modules](../guide/modules.md#coming-from-other-languages).
-
-### Goroutines instead of threads and `asyncio`
-
-There is no `async` and no `await`. A blocking call, such as reading a file or sleeping, blocks only
-its goroutine, so an ordinary function runs concurrently as it is. `Parallel.map` runs it on many
-inputs and waits for all of them:
+An `int` has 64 bits. Dividing two `int`s gives an `int`, as `//` does in Python, and an `int` never
+turns into a float on its own:
 
 ```ant
-func fetch(name: string, ctx: Context): string {
-  Time.sleep(10ms, ctx: ctx)
-  name.toUpper()
-}
-
-println(Parallel.map(["ann", "bob", "eve"], fetch, limit: 3))
+7 / 2            // 3
+float64(7) / 2.0 // 3.5
 ```
 
-```text
-["ANN", "BOB", "EVE"]
-```
+An `int` that grows past its limit panics instead of growing.
 
-The function takes the element and a `Context`, which it passes to its blocking calls.
-`Parallel.map` returns `null` only when it is cancelled before every element starts, so the result
-needs `??` before you use it as an array.
+### No `async`
 
-The program exits when the script ends, even with goroutines still running, and a `go` block returns
-no result. See [Concurrency](../guide/concurrency.md#pitfalls) and
-[No async](../design/no-async.md).
+A call that waits, such as reading a file or sleeping, pauses only its own goroutine. There is no
+`async` and no `await`: ordinary functions run concurrently as they are. To run a function over a
+list in parallel, see [process a list in parallel](../howto/concurrency/parallel-map.md).
 
-## See also
+## Where to go next
 
-- [Tour](../tour/01-hello.md): the language one step at a time
-- [Idiomatic Ant](../guide/idiomatic.md)
+- The [Tour](../tour/01-hello.md) walks through the language one small program at a time.
 - [Files](../lib/guides/files.md), [System](../lib/guides/system.md), and
-  [Data formats](../lib/guides/data-formats.md) in the standard library
-- How-to: [read and write a whole file](../howto/files/read-write.md),
-  [read a large file line by line](../howto/files/lines.md),
-  [run a command](../howto/processes/run.md),
-  [process a list in parallel](../howto/concurrency/parallel-map.md)
-- [Coming from JavaScript](javascript.md) and [Coming from Go](go.md)
+  [Data formats](../lib/guides/data-formats.md) cover the standard library for scripts.
+- How-to: [read and write a file](../howto/files/read-write.md) and
+  [run a command](../howto/processes/run.md).
+- [Coming from JavaScript](javascript.md) and [Coming from Go](go.md).

@@ -162,8 +162,10 @@ result the code needs.
 
 A tour page is one concept and one editable program, about three minutes of reading. A guide chapter
 explains how an area fits together and when to pick what. A how-to is one complete program for one
-task, with numbered steps when there are several. A coming-from page is a table of equivalents and
-then the differences that bite. A design note argues one decision.
+task, with numbered steps when there are several. A coming-from page is a short article for a
+newcomer: one program side by side with its version in the other language, a small table of everyday
+equivalents, and the few differences met first. It leaves the rest to the tour and the guide. A
+design note argues one decision.
 
 ### Links
 
