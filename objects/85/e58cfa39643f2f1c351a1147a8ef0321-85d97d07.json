@@ -1,0 +1,1 @@
+[["check/","0bfdeaf4bf1662e85479f0bb659bf4a5-d60e3b35"],["conformance_test.go",{"inventory":[[{"path":0,"lines":125,"bytes":3656,"language":"go","analysed":true,"provider":"go-ast/parse","unmeasured":["classes"]}]],"data":"fcd5dade6eadf611fd73903e1d882189-afd0389e"}],["run/","b39b0cd553213f8ceac458d7904aaf60-fe9b3778"],["unchecked/","cbf4d621d9a3d9f42728e88c0afeb660-3ad539d0"]]

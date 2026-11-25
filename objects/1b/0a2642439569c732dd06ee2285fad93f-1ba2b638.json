@@ -1,0 +1,1 @@
+{"findings":[[{"tool":"secrets","rule":"generic-secret-assignment","category":"secret","level":"medium","message":"Likely hard-coded token","path":0,"line":143,"endLine":143}]]}
