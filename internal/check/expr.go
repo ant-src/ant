@@ -761,7 +761,7 @@ func (c *Checker) funcNote(recv types.Type, name string) string {
 		return ""
 	}
 	m, ok := ns.members[name]
-	if !ok || m.kind != entFunc || m.sig == nil || c.foreignPrivate(m) || !c.accepts(m.sig, recv) {
+	if !ok || m.kind != entFunc || m.sig == nil || c.foreignPrivate(m) || !c.acceptsInBound(m.sig, recv) {
 		return ""
 	}
 	return fmt.Sprintf("; %s.%s is a function: call it with .%s(), or pass %s.%s", ns.name, name, name, ns.name, name)

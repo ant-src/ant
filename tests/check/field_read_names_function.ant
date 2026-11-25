@@ -9,3 +9,7 @@ let f = p.norm   // ERR: Point has no field norm; Point.norm is a function: call
 let g = p.origin // ERR: Point has no field origin
 let xs = [1]
 let h = xs.map // ERR: Array[int] is not a record, so it has no field map; Array.map is a function: call it with .map(), or pass Array.map
+// Time.with takes a T bounded by Time.Wall, so a Time.Duration does not reach it, and the error
+// names no function.
+let d = 1s
+let w = d.with // ERR: Time.Duration is not a record, so it has no field with$
