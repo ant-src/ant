@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Error.NotExist
@@ -113,25 +113,25 @@ Ok{ value: 8080 }
 Err{ error: Error{ message: "port.txt: not a port", kind: null } }
 ```
 
-Count the lines of the logs that are there, and skip the ones a rotation already removed:
+Write a file, and make its directory only when the write says it is missing:
 
 ```ant
-func lineCount(path: string): Result[int, Error] {
-  let text = File.read(path)
-  if text is Err && text.error.kind is Error.NotExist {
-    return Result.ok(0)
+func save(path: string, text: string): Result[void, Error] {
+  let written = File.write(path, text)
+  if written is Err && written.error.kind is Error.NotExist {
+    try File.mkdir(Path.dir(path))
+    return File.write(path, text)
   }
-  Result.ok((try text).lines().length())
+  written
 }
 
-try File.write("app.log", "started\nstopped\n")
-println(try lineCount("app.log"))
-println(try lineCount("app.log.1"))
+println(save("reports/2026/today.txt", "done"))
+println(try File.read("reports/2026/today.txt"))
 ```
 
 ```text
-2
-0
+Ok{ value: void }
+done
 ```
 
 ## Properties and relations

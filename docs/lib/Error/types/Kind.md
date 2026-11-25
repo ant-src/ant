@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Error.Kind
@@ -14,12 +14,12 @@ with is, on the result of the call it is about: a kind survives [`Error.wrap`](.
 
 ## Details
 
-- `kind` is the second field of an [Error](../index.md). The library sets it on an `Err` that comes
-  from the operating system, where it can say what failed. Every other error has `kind: null`.
+- `kind` is the second field of an [Error](../index.md). The library sets it where the failure of
+  the operating system is one Go tells apart, and where a function reports one of those conditions
+  itself, as [File.copyAll](../../File/copyAll.md) onto something it refuses. Most other errors have
+  `kind: null`.
 - The three members are records with no fields, so a value is written with braces:
   `Error.NotExist{}`.
-- A kind says what failed, not which call failed, and [Error.wrap](../wrap.md) keeps it. Test it on
-  the result of the call it is about.
 - `r.error.kind` does not narrow. To cover every kind in one chain, bind the kind to a `let` first
   and add an arm for `null`.
 
@@ -60,8 +60,8 @@ Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
 
 ## Scope
 
-Each member, from a call that gives it. `Error.Exist` is also the kind of a directory that is not
-empty:
+`Error.NotExist` and `Error.Exist`, from calls that give them. `Error.Exist` is also the kind of a
+directory that is not empty:
 
 ```ant
 try File.write("report.txt", "monday")
@@ -79,8 +79,8 @@ Err{ error: Error{ message: "open report.txt: file exists", kind: Error.Exist{} 
 Err{ error: Error{ message: "remove logs: directory not empty", kind: Error.Exist{} } }
 ```
 
-Bind the kind to a local to branch on several kinds. The last `else` takes `null` and any kind the
-chain does not name:
+Bind the kind to a local, and a chain with an arm for each member and one for `null` covers every
+case:
 
 ```ant
 func describe(e: Error): string {
@@ -91,7 +91,7 @@ func describe(e: Error): string {
     "something is there already"
   } else if kind is Error.Permission {
     "the OS denied it"
-  } else {
+  } else if kind is null {
     e.message
   }
 }
@@ -180,7 +180,8 @@ assert(missing.kind == Error.NotExist{})
 assert(plain.kind == null)
 ```
 
-`Result.mapErr` builds a new error, so it keeps a kind only when its function copies it:
+`Result.mapErr` returns the error its function builds, so the kind stays only when the function
+copies it:
 
 ```ant
 let e = Error{ message: "open a.txt: not found", kind: Error.NotExist{} }
@@ -215,13 +216,17 @@ no site in blog: load theme: open blog/theme.css: no such file or directory
 
 Test the kind inside `loadSite`, on the result of the `File.read` it is about.
 
-A test of `e.kind` does not narrow it, so a chain on the field never covers every kind. Bind the
-kind to a `let` first, as in Scope:
+A test of `e.kind` does not narrow it, so the same chain on the field is not complete, even with an
+arm for every member. Bind the kind to a `let` first, as in Scope:
 
 ```ant
 func describe(e: Error): string {
   if e.kind is Error.NotExist {
     "nothing is there"
+  } else if e.kind is Error.Exist {
+    "something is there already"
+  } else if e.kind is Error.Permission {
+    "the OS denied it"
   } else if e.kind is null {
     // error: an if without else has type void when the condition is false, which cannot be used where string is expected
     e.message

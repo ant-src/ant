@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Error.Permission
@@ -14,18 +14,17 @@ Error.Permission is the kind of an error for an operation the OS denied.
 ## Details
 
 - The library sets it when the operating system denies an operation: a read of a file you may not
-  read, a write where you may not write, a [File.chown](../../File/chown.md) to another user, a
-  listener on a port below 1024.
+  read, a write where you may not write, a [File.chown](../../File/chown.md) to another user.
 - A path in a directory you may not search is `Error.Permission`, not [Error.NotExist](NotExist.md),
   although [File.exists](../../File/exists.md) is `false` for both.
-- The administrator is denied almost nothing, so a script that runs as root rarely sees it.
+- Run as root, most of these calls succeed, so the examples here show an ordinary user.
 - `Error.Permission` is an empty record, so the value is `Error.Permission{}`.
 
 ## Basic examples
 
 Say what to do about a denied operation, and report any other failure as it is:
 
-<!-- test: check-only root is denied nothing -->
+<!-- test: check-only the result depends on the user -->
 
 ```ant
 try File.write("server.key", "")
@@ -41,7 +40,7 @@ Run by an ordinary user, the script writes `run this script as root` and exits w
 
 The printed error carries the kind:
 
-<!-- test: check-only root is denied nothing -->
+<!-- test: check-only the result depends on the user -->
 
 ```ant
 try File.write("server.key", "")
@@ -55,7 +54,7 @@ It prints
 
 A file whose mode lets nobody read it:
 
-<!-- test: check-only root is denied nothing -->
+<!-- test: check-only the result depends on the user -->
 
 ```ant
 try File.write("secret.txt", "x")
@@ -78,7 +77,7 @@ Error.wrap(denied, "read users").message                  // "read users: open /
 
 Read the files you may, and name the ones you may not:
 
-<!-- test: check-only root is denied nothing -->
+<!-- test: check-only the result depends on the user -->
 
 ```ant
 try File.write("public.txt", "hello")
@@ -104,7 +103,7 @@ It prints `public.txt: hello` and `private.txt: skipped, not readable`.
 [File.exists](../../File/exists.md) is `false` for a path it may not reach, as for a missing one.
 The kind of [File.stat](../../File/stat.md)'s `Err` tells them apart:
 
-<!-- test: check-only root is denied nothing -->
+<!-- test: check-only the result depends on the user -->
 
 ```ant
 try File.mkdir("vault")
@@ -120,8 +119,8 @@ if info is Err {
 
 It prints `false` and then `Error.Permission{}`.
 
-Do not check the user instead of the kind: an ordinary user may own the file, and root can be denied
-too, as on a read-only mount. Try the operation and test what it returns.
+Do not test the user instead of the kind: modes and owners decide what the OS allows, not the user
+alone. Try the operation and test the kind of its `Err`.
 
 ## See also
 

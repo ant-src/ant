@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: reviewed -->
 <!-- generated from internal/prelude/prelude.d.ant; ANT_DOCS_UPDATE=1 go test ./tests -run TestDocsReference rewrites it -->
 
 # Error.Exist
@@ -15,11 +15,12 @@ replace: false finds, and for a directory that is not empty.
 ## Details
 
 - The library sets it when something is at a path where a call needs nothing: a write, a create or a
-  copy with `replace: false`, a [File.symlink](../../File/symlink.md) or a
-  [File.copyAll](../../File/copyAll.md) onto something.
+  copy with `replace: false`, a [File.symlink](../../File/symlink.md) onto something, a
+  [File.copyAll](../../File/copyAll.md) that refuses what is at its destination.
 - It is also the kind of a directory that is not empty, so [File.remove](../../File/remove.md) of a
   directory with entries gives it.
-- Anything at the path counts: a file, a directory, a link.
+- With `replace: false`, anything at the path counts: a file, a directory, a link, even one that
+  leads nowhere.
 - `Error.Exist` is an empty record, so the value is `Error.Exist{}`.
 
 ## Basic examples
@@ -60,14 +61,14 @@ try File.write("page.html", "<p>")
 try File.mkdir("site")
 try File.write("site/index.html", "<p>")
 
-println(File.create("page.html", replace: false) is Err)
+println(File.create("page.html", replace: false))
 println(File.copy("site/index.html", "page.html", replace: false))
 println(File.symlink("site", "page.html"))
 println(File.copyAll("site", "page.html"))
 ```
 
 ```text
-true
+Err{ error: Error{ message: "open page.html: file exists", kind: Error.Exist{} } }
 Err{ error: Error{ message: "open page.html: file exists", kind: Error.Exist{} } }
 Err{ error: Error{ message: "symlink site page.html: file exists", kind: Error.Exist{} } }
 Err{ error: Error{ message: "copy site to page.html: page.html exists", kind: Error.Exist{} } }
@@ -116,27 +117,6 @@ summary-1.txt
 Err{ error: Error{ message: "open missing/summary.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
-Take a lock file, and tell a job that already runs from a failure to take the lock:
-
-```ant
-func start(job: string): Result[string, Error] {
-  let taken = File.write("${job}.lock", "running", replace: false)
-  if taken is Err && taken.error.kind is Error.Exist {
-    return Result.ok("${job} already runs")
-  }
-  try taken
-  Result.ok("${job} started")
-}
-
-println(try start("backup"))
-println(try start("backup"))
-```
-
-```text
-backup started
-backup already runs
-```
-
 ## Properties and relations
 
 [File.mkdir](../../File/mkdir.md) takes a directory that is already there as done, so it gives no
@@ -149,8 +129,8 @@ assert(File.mkdir("out").isOk())
 
 ## Possible issues
 
-The name says more than the kind does: for [File.remove](../../File/remove.md) it means the
-directory is not empty. Read the message, or use [File.removeAll](../../File/removeAll.md):
+From [File.remove](../../File/remove.md), `Error.Exist` means the directory has entries, not that
+something is in the way. To remove the entries too, use [File.removeAll](../../File/removeAll.md):
 
 ```ant
 try File.mkdir("cache")
@@ -167,7 +147,7 @@ remove cache: directory not empty
 Ok{ value: void }
 ```
 
-Without `replace: false` a write replaces what is there, and nothing is an error:
+Without `replace: false` a write replaces what is there, and returns `Ok`:
 
 ```ant
 try File.write("report.txt", "monday")

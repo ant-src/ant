@@ -20,8 +20,8 @@ it in the `Err` of an operation that fails.
 ## Details
 
 - `message` is for a person and `kind` is for the program. The library sets a [kind](types/Kind.md)
-  for a missing path, a path that is already taken, and an operation the OS denied; every other
-  error has `kind: null`.
+  for a missing path, a path that is already taken, and an operation the OS denied; its other errors
+  have `kind: null`, as does an `Error` you build without one.
 - There is no cause to walk, and a program cannot add kinds. An error of your own that code branches
   on is a type of your own, usually a union of records.
 - A message is lowercase and has no closing punctuation, so that it reads well inside a longer one.
