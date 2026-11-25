@@ -17,6 +17,8 @@ such as ParseError \| Error, write Result.err.
 
 - A message is lowercase and has no closing punctuation, since [Result.wrapErr](wrapErr.md) may put
   a context in front of it.
+- The `Error` has no [kind](../Error/types/Kind.md). To reuse one of the library's, write
+  `Result.err(Error{ message: "...", kind: Error.NotExist{} })`.
 
 ## Basic examples
 

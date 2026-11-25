@@ -8,10 +8,12 @@ with its error. A bug or an impossible state is a panic: [`panic`](../prelude/pa
 [`assert`](../prelude/assert.md) stops the goroutine. If the program can recover by doing something
 else, return a `Result`; if the only fix is to change the code, panic.
 
-The standard library's error type is [`Error`](../Error/index.md), a record with a `message`. An
-error that code branches on is a type of its own, often a tagged union such as
-`EmptyInput | BadDigit`: build it with [`Result.err`](../Result/err.md), and turn it into an `Error`
-with [`Result.mapErr`](../Result/mapErr.md) when a person is to read it.
+The standard library's error type is [`Error`](../Error/index.md), a record with a `message` for a
+person and a [`kind`](../Error/types/Kind.md) for the program: `Error.NotExist`, `Error.Exist` or
+`Error.Permission` when the operating system says what failed, `null` otherwise. Any other error
+that code branches on is a type of its own, often a tagged union such as `EmptyInput | BadDigit`:
+build it with [`Result.err`](../Result/err.md), and turn it into an `Error` with
+[`Result.mapErr`](../Result/mapErr.md) when a person is to read it.
 
 [`try`](../../language/keywords/try.md) reads a result inside a function: it gives the value of an
 `Ok` and passes an `Err` up to the caller. Each caller that knows more adds context in front of the
@@ -97,7 +99,8 @@ bug: assertion failed: whole > 0 (0 > 0): callers pass a nonempty total
 
 ### Adding context
 
-- [Error](../Error/index.md): the library's error, a record with a `message`
+- [Error](../Error/index.md): the library's error, a record with a `message` and a `kind`
+- [Error.Kind](../Error/types/Kind.md): what failed, where the operating system can say
 - [Error.wrap](../Error/wrap.md): a new `Error` with context in front of the message
 - [Result.wrapErr](../Result/wrapErr.md): wrap the error of an `Err`, and keep an `Ok` as it is
 

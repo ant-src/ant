@@ -178,9 +178,11 @@ The design has a price, paid in the code you write:
   The change is visible in review, which is the point, but it touches more code than adding a
   `throw` would.
 
-- **Context by hand.** An `Error` holds only a message, with no stack trace. It says what happened
-  only as far as each caller wrapped it, and a wrapped `Error` keeps only text, with no chain of
-  causes to walk. Code that needs the cause makes it a field of an error type of its own.
+- **Context by hand.** An `Error` holds a message and a kind, with no stack trace. It says what
+  happened only as far as each caller wrapped it, and a wrapped `Error` keeps its text and its kind,
+  with no chain of causes to walk. The kind covers the few failures of the operating system every
+  program tells apart, a missing path, a taken one, a denied operation; code that needs any other
+  cause makes it a field of an error type of its own.
 - **Callbacks return results.** `Array.map(xs, parse)` gives an array of `Result`s, not a failure
   halfway through. `Result.all` or a loop with `try` turns them into one.
 

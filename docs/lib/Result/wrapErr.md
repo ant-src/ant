@@ -16,7 +16,8 @@ it is an Err.
 
 - The new message is `context`, `: `, and the old message. An empty `context` is joined like any
   other, so the message then starts with `: `.
-- An `Err` comes back as a new `Err` holding a new `Error`; `r` and its error are untouched.
+- An `Err` comes back as a new `Err` holding a new `Error` with the same
+  [kind](../Error/types/Kind.md); `r` and its error are untouched.
 
 ## Basic examples
 
@@ -163,8 +164,9 @@ func parse(text: string): Result[Json.Value, Error] {
 }
 ```
 
-The wrapped error is a new record that holds only text. `Record.same` with the original is false,
-and nothing leads back from it to the original error. Branch on an error type of your own instead:
+The wrapped error is a new record that holds the text and the kind. `Record.same` with the original
+is false, and nothing leads back from it to the original error. Branch on the kind, or on an error
+type of your own:
 
 ```ant
 let cause = Error{ message: "timeout" }

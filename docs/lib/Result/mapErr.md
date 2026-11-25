@@ -17,6 +17,8 @@ error type.
 
 - `f` returns the new error itself, not a `Result`. To change the value of an `Ok`, use
   [Result.map](map.md).
+- An `Error` that `f` builds has only the fields `f` gives it, so it drops the
+  [kind](../Error/types/Kind.md) of the old one unless `f` copies it.
 
 ## Basic examples
 

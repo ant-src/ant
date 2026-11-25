@@ -215,10 +215,13 @@ its arguments without testing them.
 `App.Event | null` returns the record or `value.Null`.
 
 **Failures.** A failure the script handles is a `Result` in the signature. The function returns
-`value.Ok(v)`, or `value.Err(value.ErrorValue("message"))` for a `Result[T, Error]`: `value.Err`
-wraps what it is given as it is, so a bare string there is an `Err` whose `error` is not an `Error`.
-A Go `error` returned from a host function becomes an Ant panic with the error's message, which is
-for bugs. A Go panic of the host's own is not converted: it ends the process, as in any Go program.
+`value.Ok(v)`, or `value.Err(value.ErrorValue("message"))` for a `Result[T, Error]`, an `Error` of
+no kind. For the `Err` of a Go `error`, `value.Err(value.ErrorOf(err))` takes the error's text as
+the message and gives it the kind the standard library would, so a script tests
+`r.error.kind is Error.NotExist` on a host's file errors as on its own. `value.Err` wraps what it is
+given as it is, so a bare string there is an `Err` whose `error` is not an `Error`. A Go `error`
+returned from a host function becomes an Ant panic with the error's message, which is for bugs. A Go
+panic of the host's own is not converted: it ends the process, as in any Go program.
 
 **State.** A script may start goroutines, and they run in parallel, so two of them may call a host
 function at the same time. A host function that reads or writes Go state shared between calls locks
