@@ -9,8 +9,10 @@ permissions: {}
 jobs:
   check:
     uses: ./.github/workflows/check.yaml
+    # What check's jobs ask for. Neither job runs for a tag, but the call must allow it.
     permissions:
-      contents: write # check's report job asks for it; it never runs for a tag
+      contents: write # check's report job
+      pull-requests: write # check's review job
 
   test:
     uses: ./.github/workflows/test.yaml
