@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: stable
           cache: false
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: stable
           cache: false
@@ -58,7 +58,7 @@ jobs:
           repository: ant-src/spec
           path: spec
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: stable
           cache: false
@@ -97,7 +97,7 @@ jobs:
           fetch-depth: 0 # Git history for the merge base
           persist-credentials: false
       # Repometry records the Go version it analyses with. Keep it the same as in report.
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: '1.27.0'
           cache: false
@@ -178,7 +178,7 @@ jobs:
           name: coverage
           path: ${{ runner.temp }}/coverage
       # Repometry parses Go with this toolchain and records its version, so it is pinned.
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: '1.27.0'
           cache: false
@@ -188,10 +188,12 @@ jobs:
           package-manager-cache: false
       # Commits whose report never ran, was replaced in the queue or failed are analyzed here,
       # without coverage: --import describes one checkout and cannot be used with a range.
+      # Exit code 2 means some of them could not be analyzed in full. That must not hold back the
+      # report for this commit, so it only warns.
       - name: catch up
-        run: >-
-          npx --yes repometry@0.10.0 analyze "$GITHUB_SHA~20..$GITHUB_SHA~1"
-          --store .repometry --skip-saved
+        run: |
+          npx --yes repometry@0.10.0 analyze "$GITHUB_SHA~20..$GITHUB_SHA~1" --store .repometry --skip-saved ||
+            { [ "$?" = 2 ] && echo "::warning::Repometry could not analyze every earlier commit in full. See the log of this step."; }
       - name: analyze
         run: >-
           npx --yes repometry@0.10.0 analyze --store .repometry
