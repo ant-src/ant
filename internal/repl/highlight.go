@@ -3,7 +3,7 @@ package repl
 import (
 	"strings"
 
-	"github.com/ant-src/ant/internal/highlight"
+	"ant-lang.org/internal/highlight"
 )
 
 // A class is what a byte of an input is, for its color: a class of the highlight package, or the

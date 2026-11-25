@@ -3,9 +3,9 @@ package lsp
 import (
 	"sort"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/prelude"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/prelude"
 )
 
 // The semantic token types and modifiers the server emits.

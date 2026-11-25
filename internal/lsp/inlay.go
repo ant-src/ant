@@ -1,8 +1,8 @@
 package lsp
 
 import (
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/types"
 )
 
 // inlayHints answers textDocument/inlayHint: the inferred type of a var without an annotation,

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/internal/token"
 )
 
 // FuzzLex checks that the lexer never panics, that it ends every token stream with EOF, and

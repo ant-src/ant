@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // ResponseTag is Http.Response: { status: int, headers: Map[string, string], bytes: Bytes }, the

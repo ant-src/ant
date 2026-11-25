@@ -12,8 +12,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/value"
 )
 
 // The script, and the declaration file that holds the signatures of App.

@@ -7,8 +7,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant/internal/lexer"
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/internal/lexer"
+	"ant-lang.org/internal/token"
 )
 
 // A Class is what a byte of source is, for its color.

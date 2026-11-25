@@ -1,7 +1,7 @@
 package lsp
 
 import (
-	"github.com/ant-src/ant/internal/format"
+	"ant-lang.org/internal/format"
 )
 
 // formatting answers textDocument/formatting with ant fmt: one edit that

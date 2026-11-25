@@ -14,8 +14,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // Commands (stdlib.md, Cmd): a Cmd says what to run and a verb how, Cmd.run in the foreground

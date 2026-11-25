@@ -69,11 +69,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 type config struct {

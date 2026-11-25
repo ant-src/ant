@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/format"
-	"github.com/ant-src/ant/internal/prelude"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/format"
+	"ant-lang.org/internal/prelude"
 )
 
 // TestDocsReference keeps the standard library reference under ../docs/lib in step with

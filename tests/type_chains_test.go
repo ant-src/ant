@@ -9,7 +9,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // TestLongTypeChains checks and runs programs with long chains of type declarations, each naming

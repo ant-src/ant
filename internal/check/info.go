@@ -3,8 +3,8 @@ package check
 import (
 	"sort"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/types"
 )
 
 // Info is what the checker learned about a program beyond its errors, for an editor: the type of

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/parser"
 )
 
 // TestRecoverCheck checks that a program loaded past its syntax errors can be checked without a

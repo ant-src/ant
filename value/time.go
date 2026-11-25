@@ -3,7 +3,7 @@ package value
 import (
 	"time"
 
-	"github.com/ant-src/ant/internal/temporal"
+	"ant-lang.org/internal/temporal"
 )
 
 // A host reads and builds the two time values that have a Go form: a Time.Instant is a

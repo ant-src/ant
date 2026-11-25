@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org"
+	"ant-lang.org/internal/token"
 )
 
 // fakeTerminal runs an editor over scripted keys on a screen of a given size, with the plain

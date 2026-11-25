@@ -4,7 +4,7 @@ import (
 	"hash/maphash"
 	"unsafe"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // TypeValue is a type as a run-time value (section 4, Types as values): what a type expression

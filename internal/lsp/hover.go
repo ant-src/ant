@@ -3,9 +3,9 @@ package lsp
 import (
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/value"
 )
 
 // hover answers textDocument/hover.

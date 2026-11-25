@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ant-src/ant/internal/highlight"
+	"ant-lang.org/internal/highlight"
 )
 
 // PrintSignature prints a signature as written, highlighted when Color is set.

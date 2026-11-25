@@ -20,7 +20,7 @@ The script downloads `ant.exe` into `~\bin` and adds that directory to your `PAT
 Or build it from source:
 
 ```sh
-go install github.com/ant-src/ant/cmd/ant@latest
+go install ant-lang.org/cmd/ant@latest
 ```
 
 ## Run a program

@@ -10,11 +10,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/grapheme"
-	"github.com/ant-src/ant/internal/highlight"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/grapheme"
+	"ant-lang.org/internal/highlight"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/parser"
 )
 
 // LineStarts returns the offset of each line's start. Lines end at the line breaks of section 2:

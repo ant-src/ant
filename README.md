@@ -45,7 +45,7 @@ println(next) // 2024-09-30
 ## Install
 
 ```sh
-go install github.com/ant-src/ant/cmd/ant@latest
+go install ant-lang.org/cmd/ant@latest
 ```
 
 Type-check and run:

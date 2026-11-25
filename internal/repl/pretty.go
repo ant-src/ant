@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // prettyMaxItems is how many elements of an array, a map, or a set a result shows.

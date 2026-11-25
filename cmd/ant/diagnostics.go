@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/diag"
+	"ant-lang.org"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/diag"
 )
 
 // printDiagnostics writes each diagnostic, its code in brackets after the message, with the

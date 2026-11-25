@@ -3,21 +3,21 @@ package ant
 import (
 	"context"
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"os"
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/lexer"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/lsp"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/lexer"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/lsp"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // A Session evaluates one input at a time on a persistent module, which is what the REPL is

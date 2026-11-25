@@ -4,8 +4,8 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 func init() {

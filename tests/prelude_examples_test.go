@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // TestPreludeExamples runs the examples in the doc comments of the prelude, as the header of

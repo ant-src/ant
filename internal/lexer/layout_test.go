@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/internal/token"
 )
 
 // TestSpans checks that every token's span slices back to the token as written, for each kind,

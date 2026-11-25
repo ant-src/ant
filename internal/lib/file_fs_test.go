@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // TestModeRoundTrip: an Ant mode in 0 ..= 0o7777 survives the trip through Go's FileMode, setuid,

@@ -7,8 +7,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // The Net namespace (stdlib.md): TCP listeners and connections, a connection being a

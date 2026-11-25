@@ -4,11 +4,11 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/parser"
 )
 
 // preludeURI is the document the prelude's declarations are shown in.

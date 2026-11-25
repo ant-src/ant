@@ -1,8 +1,8 @@
 package interp
 
 import (
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/value"
 )
 
 // Env is an environment: the slots of one block, loop iteration, or function body, with its

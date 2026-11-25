@@ -3,8 +3,8 @@
 package ast
 
 import (
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/value"
 )
 
 // Pos is a position in the module's source: 1-based line and 1-based byte column.

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // The programs under ../examples are written to be read and run by hand, so they carry no

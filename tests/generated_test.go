@@ -13,8 +13,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/value"
 )
 
 // TestGenerated builds random typed expressions from a small grammar and checks that the

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // TestNoWaitOnFIFO: File.touch sets a FIFO's times and File.copy refuses one as its source, and

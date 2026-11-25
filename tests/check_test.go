@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/internal/codes"
+	"ant-lang.org"
+	"ant-lang.org/internal/codes"
 )
 
 // TestCheckRunCorpus checks that every program under run/ and examples/ passes ant check:

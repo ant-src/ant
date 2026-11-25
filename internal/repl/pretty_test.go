@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/value"
 )
 
 func TestPretty(t *testing.T) {

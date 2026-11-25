@@ -5,10 +5,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/near"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/near"
+	"ant-lang.org/internal/types"
 )
 
 // This file adds help and fixes to errors whose repair the checker can name (spec/check.md

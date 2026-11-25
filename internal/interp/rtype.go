@@ -4,10 +4,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 // Type expressions (section 4, Types as values; section 12, Expressions). A tag keeps its

@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/doc"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/doc"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/parser"
 )
 
 // docCommand is ant doc (spec/doc.md section 1): it prints a declaration of the prelude or of a

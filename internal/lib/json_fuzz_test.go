@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // FuzzJSON checks that the JSON decoder never panics and that a decoded value survives a round

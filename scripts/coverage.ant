@@ -13,7 +13,7 @@
 //! its statements that some test ran, not an average over its functions. A block that several
 //! test binaries report is counted once.
 
-var modulePath = "github.com/ant-src/ant"
+var modulePath = "ant-lang.org"
 
 // Block is one line of the profile: a block of statements and how often a test binary ran it.
 type Block = { id: string, statements: int, count: int }
@@ -33,7 +33,7 @@ func threshold(arg: string | null, fallback: int): int {
   String.toInt(text) ?? fail("not a number: ${text}")
 }
 
-// parseBlock reads a line such as github.com/ant-src/ant/value/numeric.go:12.30,14.2 3 1, or
+// parseBlock reads a line such as ant-lang.org/value/numeric.go:12.30,14.2 3 1, or
 // gives null when the line is not one.
 func parseBlock(line: string): Block | null {
   var fields = String.fields(line)

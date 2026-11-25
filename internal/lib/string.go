@@ -14,9 +14,9 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/ant-src/ant/internal/grapheme"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/grapheme"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // CutTag is String.Cut: { before: string, after: string }.

@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/diag"
+	"ant-lang.org"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/diag"
 )
 
 // checkCommand checks the files the paths name, and every .ant file under the directories,

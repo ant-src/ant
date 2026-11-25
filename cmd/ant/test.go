@@ -17,11 +17,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // testCommand is ant test (spec/test.md): it finds the test files under its paths, runs each

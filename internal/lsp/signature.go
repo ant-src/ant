@@ -4,10 +4,10 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/internal/types"
 )
 
 // signatureHelp answers textDocument/signatureHelp: the signature of the call the cursor is in

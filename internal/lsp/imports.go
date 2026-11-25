@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // export is a top-level declaration a module exports, which another module may import.

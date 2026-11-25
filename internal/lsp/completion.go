@@ -8,14 +8,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/lsp/htmldata"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/lsp/htmldata"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // placeholder stands in for the name being typed when the server parses the document again to

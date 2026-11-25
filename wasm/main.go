@@ -28,12 +28,12 @@ import (
 	_ "time/tzdata" // the zone database, which js/wasm has no file system to read
 	"unicode/utf16"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/internal/batch"
-	"github.com/ant-src/ant/internal/dap"
-	"github.com/ant-src/ant/internal/format"
-	"github.com/ant-src/ant/internal/frame"
-	"github.com/ant-src/ant/internal/lsp"
+	"ant-lang.org"
+	"ant-lang.org/internal/batch"
+	"ant-lang.org/internal/dap"
+	"ant-lang.org/internal/format"
+	"ant-lang.org/internal/frame"
+	"ant-lang.org/internal/lsp"
 )
 
 func main() {

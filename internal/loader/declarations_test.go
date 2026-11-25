@@ -5,8 +5,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/parser"
 )
 
 // TestDeclarationFile: a root whose name ends in .d.ant is a declaration file (section 10,

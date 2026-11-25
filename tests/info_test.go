@@ -5,12 +5,12 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/resolve"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/resolve"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/parser"
 )
 
 const infoMain = `import "./lib.ant" { Point, distance: dist }

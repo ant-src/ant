@@ -125,7 +125,7 @@ and what it costs.
   [reading standard input](howto/cli/stdin.md), [running a command](howto/processes/run.md), and
   [reading the environment](howto/cli/env.md).
 - **Embedding.** The Go package
-  [`github.com/ant-src/ant`](https://pkg.go.dev/github.com/ant-src/ant) loads, checks, and runs Ant
+  [`ant-lang.org`](https://pkg.go.dev/ant-lang.org) loads, checks, and runs Ant
   programs inside a Go program, and calls their functions. [Embedding Ant](guide/embedding.md)
   builds a host step by step, and the package's documentation is on pkg.go.dev. A host declares its
   namespaces in a [declaration file](guide/modules.md#declaration-files), a `.d.ant` file kept

@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/ant-src/ant/internal/format"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/format"
 )
 
 // fmtCommand is ant fmt (spec/fmt.md section 1): it rewrites each named file and each .ant file

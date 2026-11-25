@@ -1,8 +1,8 @@
 package lib
 
 import (
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // The Test namespace of section 11: what a test body needs beyond assert, Panic.catch, and

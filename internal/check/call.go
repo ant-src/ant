@@ -2,15 +2,15 @@ package check
 
 import (
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"maps"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 // call checks a call: a direct call of a declared function, which may be generic and take

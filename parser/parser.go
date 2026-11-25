@@ -9,11 +9,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/lexer"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/lexer"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/value"
 )
 
 // Mode selects what a source may contain at the top level.

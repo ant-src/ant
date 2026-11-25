@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/codes"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 // This file reports warnings: code the checker accepts that is almost always a mistake

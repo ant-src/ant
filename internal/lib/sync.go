@@ -1,8 +1,8 @@
 package lib
 
 import (
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // The sync types of section 9 as tags with functions (section 11).

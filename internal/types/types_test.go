@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 func decls() (point, boxDecl, id, shape *Decl, tParam *ParamDecl) {

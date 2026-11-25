@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/loader"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/loader"
 )
 
 // TestComplete drives Complete as a REPL does: the text is the declarations of earlier inputs

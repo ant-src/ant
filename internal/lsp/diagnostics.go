@@ -2,12 +2,12 @@ package lsp
 
 import (
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/diag"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/diag"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/token"
 )
 
 // publishAll publishes the diagnostics of every open document.

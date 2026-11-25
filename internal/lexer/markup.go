@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/value"
 )
 
 // markupAllowed reports whether a < here begins an HTML expression (section 2): when the last

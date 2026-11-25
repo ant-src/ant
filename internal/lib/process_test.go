@@ -3,10 +3,10 @@ package lib
 import (
 	"testing"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/value"
 )
 
 // TestCmdDefaults keeps the defaults the library fills in a Cmd literal and in Cmd.new in step

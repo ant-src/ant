@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // eofWithData returns io.EOF together with its last bytes, as io.Reader allows.

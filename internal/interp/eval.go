@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/value"
 )
 
 // ctl is how control leaves an expression: normally, or by return, break, or continue.

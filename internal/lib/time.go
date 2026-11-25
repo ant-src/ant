@@ -3,9 +3,9 @@ package lib
 import (
 	"time"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/value"
 )
 
 // The Time namespace (stdlib.md), over internal/temporal. Time is computation, so a field that

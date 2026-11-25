@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org"
+	"ant-lang.org/internal/token"
 )
 
 // completion is the state of completing the line being edited: the replies for the word at

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 func TestPreludeParses(t *testing.T) {

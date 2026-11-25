@@ -1,6 +1,6 @@
 package types
 
-import "github.com/ant-src/ant/value"
+import "ant-lang.org/value"
 
 // Assignable reports whether a value of type s can be used where t is expected (section 4,
 // Assignability). Equal types are tried first, once: it is the common case, and the walk below

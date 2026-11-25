@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/value"
 )
 
 // The File functions of the file system beyond reads and writes (stdlib.md, File: Modes,

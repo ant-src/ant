@@ -11,8 +11,8 @@ import (
 	"encoding/hex"
 	"hash"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // digest is a Crypto function that hashes one byte array.

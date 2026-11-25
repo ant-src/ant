@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/value"
 )
 
 // TestPreludeMatchesLibrary checks that every function and constant the prelude declares has

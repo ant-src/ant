@@ -13,7 +13,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant/internal/frame"
+	"ant-lang.org/internal/frame"
 )
 
 // client drives a Serve over pipes, as an editor would.

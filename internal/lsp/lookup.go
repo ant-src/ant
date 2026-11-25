@@ -1,8 +1,8 @@
 package lsp
 
 import (
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
 )
 
 // target is what the cursor is on: a name with the object it refers to, an import's path, or a

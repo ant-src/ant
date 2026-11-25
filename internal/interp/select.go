@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/value"
 )
 
 // A select (section 5) waits on several heads at once: a receive or a send on a channel, a

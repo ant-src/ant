@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/ant-src/ant/internal/interp"
+	"ant-lang.org/internal/interp"
 )
 
 // terminate is the signal Cmd.stop sends first; a platform without processes, such as js/wasm,

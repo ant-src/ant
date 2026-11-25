@@ -36,7 +36,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 type expectation struct {

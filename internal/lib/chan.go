@@ -1,8 +1,8 @@
 package lib
 
 import (
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // Channel of section 9 (Waiting) and section 11: a channel as a sync type with functions. A select

@@ -9,12 +9,12 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/lib"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/lib"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // debugRun is a program running under a debugger, driven by a test.

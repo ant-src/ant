@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/parser"
 )
 
 //go:embed prelude.d.ant

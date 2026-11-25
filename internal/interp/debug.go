@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/value"
 )
 
 // Debugger stops a run at its stop points, for ant dap: at breakpoints, at the end of a

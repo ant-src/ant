@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/lib"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/lib"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // Runtime is what a host function sees of the running program.

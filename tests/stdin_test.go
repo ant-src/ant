@@ -8,7 +8,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // runWithLateStdin runs src with standard input that delivers text after a delay and then

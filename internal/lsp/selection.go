@@ -1,7 +1,7 @@
 package lsp
 
 import (
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // selectionRanges answers textDocument/selectionRange: the nodes enclosing each position,

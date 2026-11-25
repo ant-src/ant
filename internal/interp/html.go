@@ -3,8 +3,8 @@ package interp
 import (
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/value"
 )
 
 // html evaluates an HTML expression (section 12, Expressions): attributes and then content, left

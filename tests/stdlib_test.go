@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/ast"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // TestStdlib runs the library tables under stdlib/, as stdlib/README.md specifies: each file

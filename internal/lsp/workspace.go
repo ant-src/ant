@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/parser"
 )
 
 // workspaceFile is a .ant file of the workspace, parsed: an open document as it is, or a file on

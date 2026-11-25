@@ -3,8 +3,8 @@ package lexer
 import (
 	"testing"
 
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/value"
 )
 
 // TestQuotedSpan checks that the text of a \Q...\E span is kept as written by the normalization

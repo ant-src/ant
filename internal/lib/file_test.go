@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // failingWriter accepts nothing, as a full disk does once the buffer is written out.

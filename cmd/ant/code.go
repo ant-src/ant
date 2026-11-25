@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/internal/lsp"
+	"ant-lang.org"
+	"ant-lang.org/internal/lsp"
 )
 
 // codeSubcommands are the subcommands of ant code, with the flags each takes beyond -json and

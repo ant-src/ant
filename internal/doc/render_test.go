@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/internal/prelude"
+	"ant-lang.org/internal/prelude"
 )
 
 var ansi = regexp.MustCompile(`\x1b\[[0-9;]*m`)

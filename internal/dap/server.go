@@ -20,13 +20,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/batch"
-	"github.com/ant-src/ant/internal/frame"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/lib"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/batch"
+	"ant-lang.org/internal/frame"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/lib"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/parser"
 )
 
 // Serve serves one debug session on in and out until the client disconnects, logging to log.

@@ -1,14 +1,14 @@
 package ant
 
 import (
+	"ant-lang.org/internal/loader"
 	"context"
-	"github.com/ant-src/ant/internal/loader"
 	"regexp"
 	"sync/atomic"
 	"time"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/parser"
 )
 
 // TestConfig configures Program.Test.

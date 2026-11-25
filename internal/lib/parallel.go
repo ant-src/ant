@@ -3,8 +3,8 @@ package lib
 import (
 	"sync"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // Parallel of section 11: structured fan-out. Each call makes a scope, a context that is a child

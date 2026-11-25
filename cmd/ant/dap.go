@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ant-src/ant/internal/dap"
+	"ant-lang.org/internal/dap"
 )
 
 // dapCommand is ant dap: it serves the Debug Adapter Protocol on

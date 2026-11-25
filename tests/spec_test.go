@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/internal/temporal"
+	"ant-lang.org"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/internal/temporal"
 )
 
 // The tests in this file keep the corpus traceable to the specification.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // AliasCycleError describes the cycle the alias d is in when it reaches itself without passing

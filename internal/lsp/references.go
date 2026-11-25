@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/internal/resolve"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/internal/resolve"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/parser"
 )
 
 // reference is one mention of an object: the module and the span of the name. shorthand is set

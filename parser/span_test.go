@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // corpus lists the programs the span tests run over: every .ant file of the test corpus, the

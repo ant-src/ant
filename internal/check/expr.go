@@ -2,14 +2,14 @@ package check
 
 import (
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"maps"
 	"slices"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 // lookup finds a name: a local or a block's type in the scope chain, else a module-level or

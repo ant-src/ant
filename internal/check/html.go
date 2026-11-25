@@ -1,12 +1,12 @@
 package check
 
 import (
-	"github.com/ant-src/ant/internal/codes"
+	"ant-lang.org/internal/codes"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 // htmlExpr checks an HTML expression (section 5, HTML expressions), whose type is Html.

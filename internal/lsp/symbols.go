@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // documentSymbols answers textDocument/documentSymbol: the module's imports, types with their

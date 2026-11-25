@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/temporal"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/temporal"
+	"ant-lang.org/value"
 )
 
 // The Context sync type of section 9 (Waiting), and the helpers every blocking call uses to

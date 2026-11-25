@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // foldingRanges answers textDocument/foldingRange: blocks, lists, markup elements, comment runs,

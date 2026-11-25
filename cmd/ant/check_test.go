@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 func checkRun(args ...string) (int, string, string) {

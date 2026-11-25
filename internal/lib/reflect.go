@@ -4,9 +4,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 // The Reflect namespace (section 11, Reflect): type values, shapes, and reflected values. The

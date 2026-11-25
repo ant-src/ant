@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ant-src/ant/docs"
-	"github.com/ant-src/ant/internal/codes"
+	"ant-lang.org/docs"
+	"ant-lang.org/internal/codes"
 )
 
 // explain writes the entry of code from ## Codes of the ant check page: its rule and examples,

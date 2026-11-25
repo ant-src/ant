@@ -7,8 +7,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // fn declares a builtin. params is its parameter list, comma separated; a name ending in ? is

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/internal/prelude"
+	"ant-lang.org/internal/prelude"
 )
 
 // TestPreludeDocument: the prelude's document is served as a file is:

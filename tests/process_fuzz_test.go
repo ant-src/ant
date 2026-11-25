@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // processChildren are the programs a generated script starts: quick ones, ones that wait for

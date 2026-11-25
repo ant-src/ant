@@ -4,8 +4,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/parser"
 )
 
 // TestRecover checks that a recovering load keeps every module it can read, parsed as far as

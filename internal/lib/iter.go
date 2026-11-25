@@ -1,8 +1,8 @@
 package lib
 
 import (
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // A sequence is a function that pushes elements to a yield function until it returns false

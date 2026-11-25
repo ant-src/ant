@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/docs"
-	"github.com/ant-src/ant/internal/codes"
+	"ant-lang.org/docs"
+	"ant-lang.org/internal/codes"
 )
 
 // TestExplainEveryCode checks that the page of ant check has an entry for every code, and only

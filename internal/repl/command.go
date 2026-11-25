@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/internal/doc"
-	"github.com/ant-src/ant/internal/prelude"
+	"ant-lang.org"
+	"ant-lang.org/internal/doc"
+	"ant-lang.org/internal/prelude"
 )
 
 // A command is a line of the REPL that begins with a colon.

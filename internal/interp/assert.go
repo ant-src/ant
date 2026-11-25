@@ -4,9 +4,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/format"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/format"
+	"ant-lang.org/value"
 )
 
 // assertRec holds the values of the parts of an assert's condition (section 8, assert), in the

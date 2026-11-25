@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // TestRun feeds a scripted session through the loop: declarations and expressions across

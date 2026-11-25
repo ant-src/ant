@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // The tests of a test file as the editor sees them: document symbols, and

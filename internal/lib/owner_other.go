@@ -5,7 +5,7 @@ package lib
 import (
 	"io/fs"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // userIDs reports whether the host has user and group ids: Windows and WebAssembly do not, so Os.uid,

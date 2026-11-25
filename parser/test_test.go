@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // TestTestFiles covers the syntax of tests (section 10, Tests): where test declares a test or

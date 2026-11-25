@@ -9,7 +9,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // runWithInterrupts runs src with interrupts sent at the given delays, and returns what the

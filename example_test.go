@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/value"
 )
 
 // Running a program from a string, with its output captured.

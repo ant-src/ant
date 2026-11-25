@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ant-src/ant/internal/lsp"
+	"ant-lang.org/internal/lsp"
 )
 
 // lspCommand is ant lsp: it serves the Language Server Protocol on

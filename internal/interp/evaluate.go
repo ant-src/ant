@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/resolve"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/resolve"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // An expression a debugger evaluates runs as the only statement of a module

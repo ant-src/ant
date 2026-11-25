@@ -1,4 +1,4 @@
-module github.com/ant-src/ant
+module ant-lang.org
 
 go 1.27
 

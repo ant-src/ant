@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant/internal/grapheme"
+	"ant-lang.org/internal/grapheme"
 )
 
 // Render is String.from (section 11): the rendering print, println and string interpolation use.

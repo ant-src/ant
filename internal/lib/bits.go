@@ -3,8 +3,8 @@ package lib
 import (
 	"math/bits"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // Bitwise and wrapping operations on the eight integer kinds (section 11). Every operand is

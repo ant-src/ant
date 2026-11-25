@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/parser"
 )
 
 // FuzzFormat checks the guarantees of fmt.md section 2 on any input that parses as a module.

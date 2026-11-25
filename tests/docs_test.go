@@ -1,11 +1,11 @@
 package tests
 
 import (
+	"ant-lang.org/internal/codes"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/format"
-	"github.com/ant-src/ant/internal/lexer"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/format"
+	"ant-lang.org/internal/lexer"
+	"ant-lang.org/parser"
 )
 
 // TestDocs holds every page under ../docs to the contract ../docs/README.md states for writers:
@@ -485,7 +485,7 @@ func buildAnt(t *testing.T) string {
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
-	out, err := exec.Command("go", "build", "-o", bin, "github.com/ant-src/ant/cmd/ant").CombinedOutput()
+	out, err := exec.Command("go", "build", "-o", bin, "ant-lang.org/cmd/ant").CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}

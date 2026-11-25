@@ -1,9 +1,9 @@
 package check
 
 import (
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/codes"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/types"
 )
 
 // flow is the narrowing state: the current type of each local that differs from its declared

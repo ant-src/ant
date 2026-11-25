@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // TestFarDeadline checks that Context.deadline is right for a deadline past 2262, where

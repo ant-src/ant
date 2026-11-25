@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/internal/lsp"
+	"ant-lang.org/internal/lsp"
 )
 
 // codeWorkspace is a lexer, a module that imports it under its name and an alias, a test file

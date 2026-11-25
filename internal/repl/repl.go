@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/value"
 )
 
 // Run reads inputs from stdin until it ends, evaluating each on one session, printing every

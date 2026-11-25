@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // errInterrupt is what readLine returns when Ctrl-C drops the line.

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // TestDeepTypes relates types nested far deeper than one small Go stack holds, so the walks must

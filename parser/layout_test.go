@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/internal/token"
 )
 
 // roleString lists the opening brackets of src in order, each with its role: B for a block, T

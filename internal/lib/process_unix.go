@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/ant-src/ant/internal/interp"
+	"ant-lang.org/internal/interp"
 )
 
 // terminate is the signal Cmd.stop sends first.

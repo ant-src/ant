@@ -6,8 +6,6 @@ package check
 import (
 	"errors"
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
-	"github.com/ant-src/ant/internal/resolve"
 	"maps"
 	"path/filepath"
 	"regexp"
@@ -15,12 +13,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/parser"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/internal/resolve"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/parser"
+	"ant-lang.org/value"
 )
 
 // Diagnostic is one checker error, of the loader's shape.

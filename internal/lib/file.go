@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // InfoTag is File.Info: { name: string, size: int, isDir: bool, isSymlink: bool, modified: Time.Instant, mode: int,

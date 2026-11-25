@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // TestRecoverAgrees checks that on a module without syntax errors the recovering parser builds

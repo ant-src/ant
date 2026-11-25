@@ -6,8 +6,8 @@ import (
 	"math/bits"
 	"sync"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // Random is the seeded generator of section 11: xoshiro256** over four words, seeded by

@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/internal/grapheme"
-	"github.com/ant-src/ant/internal/lexer"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/internal/grapheme"
+	"ant-lang.org/internal/lexer"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/parser"
 )
 
 // Source formats one module. A source that does not parse returns the parser's error.

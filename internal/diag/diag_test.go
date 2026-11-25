@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 func printed(t *testing.T, src string, pos ast.Pos, msg string, color bool) string {

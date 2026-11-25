@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // Type is a static type. Named types are compared by declaration identity and arguments;

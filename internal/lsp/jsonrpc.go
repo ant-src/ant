@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ant-src/ant/internal/frame"
+	"ant-lang.org/internal/frame"
 )
 
 // conn carries JSON-RPC 2.0 messages over a stream with the base protocol's Content-Length

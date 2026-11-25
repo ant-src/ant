@@ -1,6 +1,6 @@
 package types
 
-import "github.com/ant-src/ant/value"
+import "ant-lang.org/value"
 
 // The built-in type names, which no declaration binds and which the runtime resolves by name,
 // as is does (section 12, Expressions). The resolver, the checker, and the runtime resolver of

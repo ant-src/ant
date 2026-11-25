@@ -3,7 +3,7 @@
 # Embedding Ant in a Go program
 
 A Go program can run Ant scripts and give them functions of its own. That Go program is the
-**host**. The Go package [`github.com/ant-src/ant`](https://pkg.go.dev/github.com/ant-src/ant)
+**host**. The Go package [`ant-lang.org`](https://pkg.go.dev/ant-lang.org)
 loads, checks, and runs a script, and a **host namespace** is a set of Go functions that the script
 calls as it calls the standard library.
 
@@ -75,7 +75,8 @@ no host running. `ant check shout.ant` passes here, although nothing implements 
 
 ## Loading, checking, and running
 
-The host needs two packages, which `go get github.com/ant-src/ant` adds to its module:
+The host needs two packages, which `go get ant-lang.org` adds to its module. The package at
+`ant-lang.org` is named `ant`:
 
 ```go
 import (
@@ -88,8 +89,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ant-src/ant"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org"
+	"ant-lang.org/value"
 )
 ```
 
@@ -205,7 +206,7 @@ the Go representation of its Ant type:
 | a function                        | an opaque value, for `rt.Call`                             |
 | `Time.Instant`, `Time.Duration`   | an opaque value, for `value.GoTime` and `value.GoDuration` |
 
-The [package documentation](https://pkg.go.dev/github.com/ant-src/ant#hdr-Values) has the full
+The [package documentation](https://pkg.go.dev/ant-lang.org#hdr-Values) has the full
 table. `prog.Check` has checked every call against the signatures, so a host function asserts the
 types of its arguments without testing them.
 
@@ -329,7 +330,7 @@ script runs only in the host. A host ships `app.d.ant` for the people who write 
 
 ## See also
 
-- [The Go API](https://pkg.go.dev/github.com/ant-src/ant): every option, `Program.Start` and
+- [The Go API](https://pkg.go.dev/ant-lang.org): every option, `Program.Start` and
   `Instance.Func` for calling the functions of an Ant library from Go, and `Session` for evaluating
   inputs one at a time
 - [Modules](modules.md#declaration-files): the declaration file format

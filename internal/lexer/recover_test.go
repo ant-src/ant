@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/internal/token"
 )
 
 // corpusFiles lists every .ant file of the corpus and the examples.

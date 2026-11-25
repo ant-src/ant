@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/highlight"
-	"github.com/ant-src/ant/internal/near"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/highlight"
+	"ant-lang.org/internal/near"
 )
 
 // Printer renders documentation, preserving source line breaks and spacing. Color highlights

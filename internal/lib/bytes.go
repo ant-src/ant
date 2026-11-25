@@ -5,9 +5,9 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/internal/types"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/internal/types"
+	"ant-lang.org/value"
 )
 
 func bytesArg(g *interp.Goroutine, who string, v value.Value) *value.Bytes {

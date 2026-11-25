@@ -13,7 +13,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ant-src/ant/internal/loader"
+	"ant-lang.org/internal/loader"
 )
 
 // Server is one language server, serving one client.

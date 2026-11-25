@@ -8,8 +8,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // Json (stdlib.md): parse produces Json.Value trees with float64 numbers and maps in document

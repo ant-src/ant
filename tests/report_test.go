@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // TestPanicReport checks the format of a panic report: "panic: <message>" and then one "at"

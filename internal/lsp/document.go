@@ -7,9 +7,9 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/diag"
-	"github.com/ant-src/ant/internal/token"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/diag"
+	"ant-lang.org/internal/token"
 )
 
 // document is an open document: its text and the line table that maps the protocol's positions

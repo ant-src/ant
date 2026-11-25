@@ -4,16 +4,16 @@ package loader
 
 import (
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"sort"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/resolve"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/resolve"
+	"ant-lang.org/parser"
 )
 
 // Diagnostic is a load error with its position.

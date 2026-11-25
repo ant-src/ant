@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // A tag the library made is shared by every program in the process, so what reflection resolves

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/parser"
 )
 
 func parse(t *testing.T, src string) *ast.File {

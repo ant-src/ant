@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // The lock tests run on every platform CI has (stdlib.md, File: Locks), Windows included, where

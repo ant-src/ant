@@ -11,7 +11,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 func loadSource(t *testing.T, src string) *ant.Program {

@@ -4,9 +4,9 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/loader"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/loader"
+	"ant-lang.org/value"
 )
 
 // module is a module's run-time state: its record and resolved imports.

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // Sprint renders a node as an S-expression, for tests and debugging.

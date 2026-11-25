@@ -3,7 +3,7 @@ package lsp
 import (
 	"strings"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // markupContext is where a cursor stands inside an HTML expression, read from the text between

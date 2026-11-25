@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
+	"ant-lang.org/ast"
 )
 
 // specPath finds the specification, a sibling checkout of github.com/ant-src/spec or the file

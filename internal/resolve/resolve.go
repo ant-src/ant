@@ -6,12 +6,12 @@ package resolve
 
 import (
 	"fmt"
-	"github.com/ant-src/ant/internal/codes"
 	"slices"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/prelude"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/codes"
+	"ant-lang.org/internal/prelude"
+	"ant-lang.org/internal/types"
 )
 
 // Error is a scope error. It is a syntax error in the sense of section 10.

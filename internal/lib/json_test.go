@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // TestStringifyDeep writes a value nested far deeper than one small Go stack holds, so the walk

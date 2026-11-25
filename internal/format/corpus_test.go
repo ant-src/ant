@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/lexer"
-	"github.com/ant-src/ant/internal/token"
-	"github.com/ant-src/ant/parser"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/lexer"
+	"ant-lang.org/internal/token"
+	"ant-lang.org/parser"
 )
 
 // corpusDirs hold the modules of the repository: every file in them parses as a module, or as a

@@ -1,9 +1,9 @@
 package lib
 
 import (
-	"github.com/ant-src/ant/ast"
-	"github.com/ant-src/ant/internal/interp"
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/ast"
+	"ant-lang.org/internal/interp"
+	"ant-lang.org/value"
 )
 
 // result requires an Ok or an Err.

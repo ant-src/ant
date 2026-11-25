@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ant-src/ant"
+	"ant-lang.org"
 )
 
 // TestCoverageScript runs scripts/coverage.ant, the coverage gate, on a small profile: a block
@@ -30,7 +30,7 @@ func TestCoverageScript(t *testing.T) {
 		t.Fatalf("check: %v", diags)
 	}
 	profile := filepath.Join(t.TempDir(), "cover.out")
-	const module = "github.com/ant-src/ant/"
+	const module = "ant-lang.org/"
 	lines := []string{
 		"mode: set",
 		module + "value/a.go:1.1,2.2 4 1",

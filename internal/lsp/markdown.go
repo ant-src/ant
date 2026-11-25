@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ant-src/ant/internal/check"
-	"github.com/ant-src/ant/internal/types"
+	"ant-lang.org/internal/check"
+	"ant-lang.org/internal/types"
 )
 
 // docMarkdown renders a doc comment by the conventions of doc.md section 2: paragraphs separated

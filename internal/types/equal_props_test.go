@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ant-src/ant/value"
+	"ant-lang.org/value"
 )
 
 // TestEqualProperties checks on random types that Equal is an equivalence, that Hash agrees with

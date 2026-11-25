@@ -66,8 +66,8 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/ant-src/ant"
-	replpkg "github.com/ant-src/ant/internal/repl"
+	"ant-lang.org"
+	replpkg "ant-lang.org/internal/repl"
 )
 
 const usage = `usage:
