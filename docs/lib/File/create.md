@@ -203,7 +203,7 @@ func claim(base: string): Result[string, Error] {
     let name = "${base}-${n}.txt"
     let out = File.create(name, replace: false)
     if out is Err {
-      if File.exists(name) { continue }
+      if out.error.kind is Error.Exist { continue }
       return Result.err(out.error)
     }
     try out.value.close()
@@ -328,9 +328,8 @@ Err{ error: Error{ message: "template missing", kind: null } }
 Ok{ value: "" }
 ```
 
-The `Err` of `replace: false` carries only the OS's message, with nothing a program can test. Check
-[`File.exists`](exists.md) after it to tell an existing file from other failures, as `claim` does in
-Applications.
+The `Err` of `replace: false` has the kind [Error.Exist](../Error/types/Exist.md) when something is
+at the path. Test it to tell an existing file from other failures, as `claim` does in Applications.
 
 ## See also
 

@@ -43,15 +43,15 @@ A reader can see the copy half-written. To replace a file that others read, see
 
 ## Keep a file that is already there
 
-Pass `replace: false` to copy only when nothing is at the path. The `Err` does not say why the copy
-failed, so check [File.exists](../../lib/File/exists.md) to tell an existing file from other
+Pass `replace: false` to copy only when nothing is at the path. When something is, the `Err` has the
+kind [Error.Exist](../../lib/Error/types/Exist.md), which tells an existing file from other
 failures:
 
 ```ant
 try File.write("report.txt", "monday\n")
 try File.write("draft.txt", "tuesday\n")
 let copied = File.copy("draft.txt", "report.txt", replace: false)
-if !copied.isOk() && File.exists("report.txt") {
+if copied is Err && copied.error.kind is Error.Exist {
   println("report.txt is already there; keeping it")
 }
 print(try File.read("report.txt"))
@@ -62,8 +62,7 @@ report.txt is already there; keeping it
 monday
 ```
 
-[Result.isOk](../../lib/Result/isOk.md) tests the outcome. Anything at the path counts, a directory
-and a symbolic link included.
+Anything at the path counts, a directory and a symbolic link included.
 
 ## Copy a directory
 

@@ -129,7 +129,8 @@ println(try File.list("logs"))
 ["README"]
 ```
 
-Remove a file that may already be gone, and fail only when it is still there afterwards:
+Remove a file that may already be gone. A missing file is the kind
+[Error.NotExist](../Error/types/NotExist.md), and any other failure stays an `Err`:
 
 <!-- test: file cache.json
 {}
@@ -138,7 +139,9 @@ Remove a file that may already be gone, and fail only when it is still there aft
 ```ant
 func discard(path: string): Result[void, Error] {
   let removed = File.remove(path)
-  if removed.isOk() || !File.exists(path) { return Result.ok(void) }
+  if removed is Err && removed.error.kind is Error.NotExist {
+    return Result.ok(void)
+  }
   removed
 }
 

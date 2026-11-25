@@ -275,18 +275,19 @@ temporary file through [File.create](create.md) and call [File.sync](sync.md) be
 ### Pick a free name
 
 `replace: false` claims a name in one step, even against another program writing at the same time.
-After an `Err`, `File.exists` tells a taken name from another failure:
+The kind [Error.Exist](../Error/types/Exist.md) of the `Err` tells a taken name from another
+failure:
 
 ```ant
 func writeNew(base: string, text: string): Result[string, Error] {
   for n in Iter.range(1, 100) {
     let path = "${base}-${n}.txt"
     let r = File.write(path, text, replace: false)
-    if r.isOk() {
+    if r is Ok {
       return Result.ok(path)
     }
-    if !File.exists(path) {
-      try r
+    if !(r.error.kind is Error.Exist) {
+      return Result.err(r.error)
     }
   }
   Result.fail("no free name for ${base}")

@@ -238,9 +238,10 @@ written as `String.from` prints it, such as `BadDigit{ at: 1 }`, so turn it into
 
 ## Error types
 
-`Error` is a record with a `message`, the error type of the standard library. Use it for errors a
-person reads. When code must branch on the kind of failure, declare a type of your own, often a
-union of records, so the caller can tell the kinds apart with `is`.
+`Error` is the error type of the standard library: a `message` for a person to read, and a `kind`
+for the few failures of the operating system a program tells apart ([Error kinds](#error-kinds),
+below). Use it for errors a person reads. When code must branch on a failure of your own, declare a
+type of your own, often a union of records, so the caller can tell the cases apart with `is`.
 
 Unions are flat, so error types combine without wrapping. A function that reads a file and parses it
 returns both kinds, and `try` passes each on:
@@ -321,6 +322,43 @@ Write `parseCount(text) | Result.mapErr({ x })` to widen it where `try` does not
 reason `Result.fail` works only where the error type is `Error` itself; under a wider one, such as
 `BadDigit | Error`, write `Result.err(Error{ message: "..." })`.
 
+## Error kinds
+
+A library error says what failed where the operating system can tell. Its `kind` is `Error.NotExist`
+when nothing is at the path, `Error.Exist` when something is there already or a directory is not
+empty, `Error.Permission` when the OS denied the operation, and `null` for every other failure. Test
+it with `is`:
+
+```ant
+func loadTheme(path: string): Result[string, Error] {
+  let text = File.read(path)
+  if text is Err && text.error.kind is Error.NotExist {
+    return Result.ok("light")
+  }
+  Result.ok((try text).trim())
+}
+
+println(loadTheme("theme.txt"))
+try File.mkdir("themes")
+println(loadTheme("themes"))
+```
+
+```text
+Ok{ value: "light" }
+Err{ error: Error{ message: "read themes: is a directory", kind: null } }
+```
+
+A missing file gives the default, and any other failure is still an error. A call to `File.exists`
+before the read cannot do this: it is `false` for a missing file and also for one the program may
+not reach.
+
+- Test the kind on the result of the call it is about. `Result.wrapErr` keeps the kind, so three
+  functions up `Error.NotExist` no longer says which path is missing.
+- `text.error.kind` does not narrow. To branch on several kinds, bind the kind to a `let` first, and
+  end the chain with `else`: most errors have no kind.
+- A program cannot add kinds. A failure in your program's own terms is a type of your own, as in
+  [Error types](#error-types).
+
 ## Adding context
 
 An error says what went wrong; the caller knows what it was doing. `Result.wrapErr` puts that in
@@ -343,9 +381,9 @@ Each layer adds one piece, and the final message reads as one line:
 - Do not repeat what the callee already says. `File.read` names the path in its message, so a caller
   of `File.read` adds what it was doing, not the path.
 
-A wrapped error keeps only text. It is a new record, and there is no chain of causes to walk. When
-code needs the cause, make it a field of an error type of your own, and turn that into an `Error`
-with `Result.mapErr` where a person reads it.
+A wrapped error keeps its text and its kind, and nothing else. It is a new record, and there is no
+chain of causes to walk. When code needs the cause, make it a field of an error type of your own,
+and turn that into an `Error` with `Result.mapErr` where a person reads it.
 
 ## Panics for bugs
 
@@ -538,16 +576,21 @@ reminds them to.
 ## Coming from other languages
 
 - **Exceptions (Java, Python, JavaScript, C#).** Ant has no `throw` and no `catch` for expected
-  failures. A failure is a `Result` in the return type, so you see it at the call. `Panic.catch`
-  catches every panic, not one kind, and belongs at a boundary, not around each call.
+  failures. A failure is a `Result` in the return type, so you see it at the call. Python's
+  `except FileNotFoundError` and Node's `err.code === "ENOENT"` are
+  `r.error.kind is Error.NotExist`. `Panic.catch` catches every panic, not one kind, and belongs at
+  a boundary, not around each call.
 - **`try` is not a block.** It is a prefix on one expression that passes the error to the caller.
   There is no `try { ... } catch`.
 - **Go.** `try` replaces `if err != nil { return err }`. There is no `nil` error: a `Result` is
-  either `Ok` or `Err`. `Result.wrapErr` is `fmt.Errorf("context: %w", err)`, but a wrapped error
-  has no chain, so there is no `errors.Is` or `errors.As`; branch on an error type of your own
-  instead. `defer` runs when the enclosing block exits, not the function.
-- **Rust.** `try x` is `x?`, written in front and binding tighter than a pipe. `Result.unwrap`
-  panics as Rust's does, and `Panic.catch` plays the part of `catch_unwind`.
+  either `Ok` or `Err`. `Result.wrapErr` is `fmt.Errorf("context: %w", err)`, and the wrapped error
+  keeps its kind: `r.error.kind is Error.NotExist` is `errors.Is(err, fs.ErrNotExist)`, with
+  `Error.Exist` and `Error.Permission` beside it. There is no chain beyond that and no `errors.As`;
+  for an error of your own, branch on a type of your own. `defer` runs when the enclosing block
+  exits, not the function.
+- **Rust.** `try x` is `x?`, written in front and binding tighter than a pipe. `Error.kind` is
+  `io::Error::kind()` with three members and `null` for the rest. `Result.unwrap` panics as Rust's
+  does, and `Panic.catch` plays the part of `catch_unwind`.
 - **C and Python asserts.** `assert` is always on: no flag or build mode removes it, as `NDEBUG` or
   `python -O` would.
 

@@ -51,9 +51,10 @@ skipped: quantity of figs: "many" is not a number
 ```
 
 `Result[int, Error]` is a tagged union of two records, `Ok{ value }` and `Err{ error }`. `Result.ok`
-and `Result.err` build them. `Error` is the standard library's error type, a record with a
-`message`, and `Result.fail("...")` is short for `Result.err(Error{ message: "..." })`. You can use
-any type for the error, such as a union of your own records.
+and `Result.err` build them. `Error` is the standard library's error type, a record with a `message`
+and a `kind`, which is `null` for all but a few failures of the operating system, and
+`Result.fail("...")` is short for `Result.err(Error{ message: "..." })`. You can use any type for
+the error, such as a union of your own records.
 
 `try` unwraps a `Result`. On `Ok` it gives the value, so `qty` is a plain `int`. On `Err` it returns
 that error from the enclosing function right away. The loop takes the result apart with `is`, as any

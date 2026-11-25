@@ -95,8 +95,9 @@ println("config: ${config ?? "built-in defaults"}")
 config: app.toml
 ```
 
-Tell an existing report apart from other failures after a write with `replace: false`. The `Err`
-does not say why the write failed, so check `File.exists` after it:
+Do not ask `File.exists` why a write with `replace: false` failed: the answer can change between the
+write and the question. The `Err` says so itself, with the kind
+[Error.Exist](../Error/types/Exist.md):
 
 <!-- test: file report.txt
 yesterday
@@ -105,8 +106,10 @@ yesterday
 ```ant
 func save(path: string, text: string): Result[void, Error] {
   let written = File.write(path, text, replace: false)
-  if written.isOk() || !File.exists(path) { return written }
-  Result.fail("${path} is already there; remove it to write a new one")
+  if written is Err && written.error.kind is Error.Exist {
+    return Result.fail("${path} is already there; remove it to write a new one")
+  }
+  written
 }
 
 println(save("report.txt", "today"))

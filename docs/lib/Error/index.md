@@ -19,8 +19,11 @@ it in the `Err` of an operation that fails.
 
 ## Details
 
-- An `Error` carries only text: there is no code, kind, or cause to branch on. An error that code
-  branches on is a type of your own, usually a union of records.
+- `message` is for a person and `kind` is for the program. The library sets a [kind](types/Kind.md)
+  for a missing path, a path that is already taken, and an operation the OS denied; every other
+  error has `kind: null`.
+- There is no cause to walk, and a program cannot add kinds. An error of your own that code branches
+  on is a type of your own, usually a union of records.
 - A message is lowercase and has no closing punctuation, so that it reads well inside a longer one.
 
 ## Basic examples
@@ -52,6 +55,19 @@ if r is Err {
 bad input: unexpected end of JSON input
 ```
 
+Test the kind to treat one failure differently from the rest:
+
+```ant
+let saved = File.read("theme.txt")
+if saved is Err && saved.error.kind is Error.NotExist {
+  println("no theme saved, using light")
+}
+```
+
+```text
+no theme saved, using light
+```
+
 ## Scope
 
 Return an `Error` from a function of your own. [Result.fail](../Result/fail.md) builds the `Err`
@@ -81,6 +97,14 @@ checkPort(8080)  // null
 checkPort(70000) // Error{ message: "port 70000 is out of range", kind: null }
 ```
 
+An `Error` you build has no kind unless you give it one of the library's:
+
+```ant
+Error{ message: "disk full" }.kind // null
+let missing = Error{ message: "open a.txt: not found", kind: Error.NotExist{} }
+missing.kind is Error.NotExist // true
+```
+
 A script whose body returns an `Err`, here through `try`, writes the error's message alone and a
 newline to standard error, and exits with status 1:
 
@@ -97,6 +121,8 @@ This script writes `parse input: unexpected end of JSON input` to standard error
 
 - [Error.wrap](wrap.md): a new `Error` with context in front of the message
 - [Result.wrapErr](../Result/wrapErr.md): the same, applied to the error of an `Err`
+- [Error.Kind](types/Kind.md): [Error.NotExist](types/NotExist.md), [Error.Exist](types/Exist.md) or
+  [Error.Permission](types/Permission.md)
 
 ## Applications
 
@@ -188,11 +214,12 @@ Err{ error: Error{ message: "no work", kind: null } }
 
 ## Properties and relations
 
-Errors compare by message, and `Error.wrap` builds the joined message:
+Errors compare by message and kind, and `Error.wrap` builds the joined message and keeps the kind:
 
 ```ant
 let e = Error{ message: "timeout" }
 assert(e == Error{ message: "timeout" })
+assert(e != Error{ message: "timeout", kind: Error.NotExist{} })
 assert(Error.wrap(e, "fetch") == Error{ message: "fetch: ${e.message}" })
 ```
 
@@ -209,7 +236,7 @@ assert((good | Result.wrapErr("fetch")) == good)
 
 ## Possible issues
 
-`message` has no default, and `Error` has no other field:
+`message` has no default, and `Error` has no field besides `message` and `kind`:
 
 ```ant
 let empty = Error{}
@@ -230,6 +257,6 @@ if caught is Err {
 
 ## See also
 
-[Error.wrap](wrap.md), [Result](../Result/index.md), [Result.wrapErr](../Result/wrapErr.md),
-[Result.mapErr](../Result/mapErr.md), [Panic](../Panic/index.md),
-[try](../../language/keywords/try.md), [Errors](../guides/errors.md)
+[Error.wrap](wrap.md), [Error.Kind](types/Kind.md), [Result](../Result/index.md),
+[Result.wrapErr](../Result/wrapErr.md), [Result.mapErr](../Result/mapErr.md),
+[Panic](../Panic/index.md), [try](../../language/keywords/try.md), [Errors](../guides/errors.md)

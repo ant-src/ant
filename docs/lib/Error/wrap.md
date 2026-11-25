@@ -14,7 +14,8 @@ is e's, leaving e untouched. An empty context is joined like any other.
 
 ## Details
 
-- The result keeps only the joined text; nothing leads from it back to `e`.
+- The result keeps the joined text and the [kind](types/Kind.md) of `e`; nothing leads from it back
+  to `e`.
 
 ## Basic examples
 
@@ -58,6 +59,13 @@ Call it through `.`:
 ```ant
 let e = Error{ message: "refused" }
 e.wrap("connect") // Error{ message: "connect: refused", kind: null }
+```
+
+The kind of `e` is the kind of the result, so a caller can still test it:
+
+```ant
+let missing = Error{ message: "open app.json: no such file or directory", kind: Error.NotExist{} }
+missing.wrap("load config").kind is Error.NotExist // true
 ```
 
 ## Applications
@@ -144,9 +152,9 @@ let wrapped = Error.wrap(NotFound{ id: 7 }, "load profile")
 // error: cannot use NotFound where Error is expected
 ```
 
-The result is a new record that holds only text. [`Record.same`](../Record/same.md) with the
-original is false, and the original cannot be recovered from it. Branch on an error type of your own
-instead:
+The result is a new record that holds the text and the kind. [`Record.same`](../Record/same.md) with
+the original is false, and the original cannot be recovered from it. Branch on the kind, or on an
+error type of your own:
 
 ```ant
 let e = Error{ message: "timeout" }

@@ -319,16 +319,19 @@ println(try File.readBytes("copy.png") == original)
 false
 ```
 
-### A missing file is not told apart in the Err
+### A missing file is one `Err` among others
 
-The `Err` does not say why the read failed, so a program that treats a missing file differently from
-other failures checks [File.exists](exists.md) first. Here a missing file means no entries, while a
+The `Err` of a missing file has the kind [Error.NotExist](../Error/types/NotExist.md). Test it to
+treat a missing file differently from other failures. Here a missing file means no entries, while a
 directory or a file the program may not read is still an `Err`:
 
 ```ant
 func loadEntries(path: string): Result[Array[string], Error] {
-  let text = if File.exists(path) { try File.read(path) } else { "" }
-  Result.ok(text.lines())
+  let text = File.read(path)
+  if text is Err && text.error.kind is Error.NotExist {
+    return Result.ok([])
+  }
+  Result.ok((try text).lines())
 }
 
 println(loadEntries("history.txt"))

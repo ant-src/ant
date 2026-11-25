@@ -158,13 +158,13 @@ Err{ error: Error{ message: "open planted: file exists", kind: Error.Exist{} } }
 false
 ```
 
-The `Err` does not say why the copy failed, so check `File.exists` after it to tell a destination
-that is already there from other failures:
+The `Err` has the kind [Error.Exist](../Error/types/Exist.md) when something is at the destination,
+which tells it from other failures:
 
 ```ant
 func copyNew(from: string, to: string): Result[bool, Error] {
   let r = File.copy(from, to, replace: false)
-  if !r.isOk() && File.exists(to) {
+  if r is Err && r.error.kind is Error.Exist {
     return Result.ok(false)
   }
   try r

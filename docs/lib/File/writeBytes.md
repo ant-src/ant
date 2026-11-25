@@ -165,14 +165,14 @@ Ok{ value: Bytes(01 02 03) }
 ```
 
 Save a random key that a later run reads back. `replace: false` creates the key only when nothing is
-at the path, so a second run keeps the first key. After an `Err`, `File.exists` tells an existing
-key from a failed write:
+at the path, so a second run keeps the first key. The kind [Error.Exist](../Error/types/Exist.md)
+tells an existing key from a failed write:
 
 ```ant
 func ensureKey(path: string): Result[Bytes, Error] {
   let written = File.writeBytes(path, Crypto.randomBytes(32), replace: false)
-  if !File.exists(path) {
-    try written
+  if written is Err && !(written.error.kind is Error.Exist) {
+    return Result.err(written.error)
   }
   File.readBytes(path)
 }
