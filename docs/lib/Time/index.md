@@ -79,7 +79,7 @@ not exist, is an `Err`:
 Time.parseInstant("2026-10-22T14:03:05Z") // Ok{ value: 2026-10-22T14:03:05Z }
 Time.parseDuration("PT1H30M")             // Ok{ value: PT1H30M }
 Time.parseDuration("2h30m")               // Ok{ value: PT2H30M }
-Time.parsePlainDate("2026-02-30")         // Err{ error: Error{ message: "no such date: 2026-02-30" } }
+Time.parsePlainDate("2026-02-30")         // Err{ error: Error{ message: "no such date: 2026-02-30", kind: null } }
 ```
 
 A zone is an IANA name, in any letter case and including aliases, or a fixed offset. `Time.utc` is
@@ -88,7 +88,7 @@ the named zone UTC, and a named zone never equals an offset zone:
 ```ant
 Time.zone("asia/calcutta") == Time.zone("Asia/Kolkata") // true
 Time.zoneId(Result.unwrap(Time.zone("+0530")))          // "+05:30"
-Time.zone("Mars/Olympus")                               // Err{ error: Error{ message: "unknown time zone \"Mars/Olympus\"" } }
+Time.zone("Mars/Olympus")                               // Err{ error: Error{ message: "unknown time zone \"Mars/Olympus\"", kind: null } }
 Time.fromEpochMillis(0).inZone(Time.utc)                // 1970-01-01T00:00:00+00:00[UTC]
 Time.utc == Result.unwrap(Time.zone("+00:00"))          // false
 ```

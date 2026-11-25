@@ -196,7 +196,7 @@ println(unpack(Blob{ sha256: blob.sha256, data: "AAAA" }))
 ```text
 {"sha256":"0f4636c78f65d3639ece5a064b5ae753e3408614a14fb18ab4d7540d2c248543","data":"iVBORw=="}
 Ok{ value: Bytes(89 50 4e 47) }
-Err{ error: Error{ message: "sha256 does not match" } }
+Err{ error: Error{ message: "sha256 does not match", kind: null } }
 ```
 
 ### Render CSV as an HTML table
@@ -280,7 +280,7 @@ let h: Html = "<b>x</b>"          // error: cannot use string where Html is expe
 `fromBase64` reads only the alphabet `url:` names, so a URL-safe token needs `url: true`:
 
 ```ant
-Encoding.fromBase64("-_8")            // Err{ error: Error{ message: "illegal base64 data at input byte 0" } }
+Encoding.fromBase64("-_8")            // Err{ error: Error{ message: "illegal base64 data at input byte 0", kind: null } }
 Encoding.fromBase64("-_8", url: true) // Ok{ value: Bytes(fb ff) }
 ```
 

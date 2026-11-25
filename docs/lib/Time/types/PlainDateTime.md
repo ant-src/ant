@@ -35,7 +35,7 @@ Parse one from text with [`Time.parsePlainDateTime`](../parsePlainDateTime.md), 
 ```ant
 Time.parsePlainDateTime("2026-10-22T14:03") // Ok{ value: 2026-10-22T14:03:00 }
 Time.parsePlainDateTime("2026-10-22 14:03") // Ok{ value: 2026-10-22T14:03:00 }
-Time.parsePlainDateTime("2026-02-30T10:00") // Err{ error: Error{ message: "no such date: 2026-02-30" } }
+Time.parsePlainDateTime("2026-02-30T10:00") // Err{ error: Error{ message: "no such date: 2026-02-30", kind: null } }
 ```
 
 A full zoned string parses too. It keeps the wall clock and drops the zone:
@@ -248,14 +248,14 @@ t.toPlainDate() == Time.plainDate(2026, 10, 22) // true
 Text with `Z` names a moment, not a wall-clock time, so it does not parse:
 
 ```ant
-Time.parsePlainDateTime("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainDateTime("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time", kind: null } }
 ```
 
 A bare date does not parse, since it has no time. Parse it with
 [`Time.parsePlainDate`](../parsePlainDate.md) and add a time with `Time.plainDateTime`:
 
 ```ant
-Time.parsePlainDateTime("2026-10-22") // Err{ error: Error{ message: "a date-time needs a date and a time: \"2026-10-22\"" } }
+Time.parsePlainDateTime("2026-10-22") // Err{ error: Error{ message: "a date-time needs a date and a time: \"2026-10-22\"", kind: null } }
 ```
 
 ```ant

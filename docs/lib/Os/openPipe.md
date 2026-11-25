@@ -258,7 +258,7 @@ println(try child.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 0
 ```
 
@@ -278,7 +278,7 @@ println(try child.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 100000
 0
 ```
@@ -294,7 +294,7 @@ println("still running")
 ```
 
 ```text
-Err{ error: Error{ message: "broken pipe" } }
+Err{ error: Error{ message: "broken pipe", kind: null } }
 still running
 ```
 

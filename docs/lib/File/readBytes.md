@@ -47,7 +47,7 @@ println(File.readBytes("missing.bin"))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing.bin: no such file or directory" } }
+Err{ error: Error{ message: "open missing.bin: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -105,7 +105,7 @@ println(File.readBytes("logs"))
 ```
 
 ```text
-Err{ error: Error{ message: "read logs: is a directory" } }
+Err{ error: Error{ message: "read logs: is a directory", kind: null } }
 ```
 
 Call it in a pipe, with the path first:
@@ -208,7 +208,7 @@ println(readStrict("bad.txt"))
 
 ```text
 Ok{ value: "héllo\n" }
-Err{ error: Error{ message: "bad.txt is not valid UTF-8" } }
+Err{ error: Error{ message: "bad.txt is not valid UTF-8", kind: null } }
 ```
 
 Embed a small file in a data URL:

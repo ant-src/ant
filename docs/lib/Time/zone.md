@@ -28,7 +28,7 @@ offset. An alias such as Asia/Calcutta is accepted, and an offset may be written
 ```ant
 Time.zone("Europe/Stockholm") // Ok{ value: Europe/Stockholm }
 Time.zone("+05:30")           // Ok{ value: +05:30 }
-Time.zone("Mars/Base")        // Err{ error: Error{ message: "unknown time zone \"Mars/Base\"" } }
+Time.zone("Mars/Base")        // Err{ error: Error{ message: "unknown time zone \"Mars/Base\"", kind: null } }
 ```
 
 Unwrap the zone to place an instant in it:
@@ -66,10 +66,10 @@ Time.zone("-08")    // Ok{ value: -08:00 }
 Anything else is an `Err`, the empty string included:
 
 ```ant
-Time.zone("")      // Err{ error: Error{ message: "unknown time zone \"\"" } }
-Time.zone("+5:30") // Err{ error: Error{ message: "unknown time zone \"+5:30\"" } }
-Time.zone("Z")     // Err{ error: Error{ message: "unknown time zone \"Z\"" } }
-Time.zone(" UTC")  // Err{ error: Error{ message: "unknown time zone \" UTC\"" } }
+Time.zone("")      // Err{ error: Error{ message: "unknown time zone \"\"", kind: null } }
+Time.zone("+5:30") // Err{ error: Error{ message: "unknown time zone \"+5:30\"", kind: null } }
+Time.zone("Z")     // Err{ error: Error{ message: "unknown time zone \"Z\"", kind: null } }
+Time.zone(" UTC")  // Err{ error: Error{ message: "unknown time zone \" UTC\"", kind: null } }
 ```
 
 ## Applications
@@ -90,7 +90,7 @@ println(meetingIn("Chicago"))
 
 ```text
 Ok{ value: 2026-12-01T09:00:00-06:00[America/Chicago] }
-Err{ error: Error{ message: "meeting zone: unknown time zone \"Chicago\"" } }
+Err{ error: Error{ message: "meeting zone: unknown time zone \"Chicago\"", kind: null } }
 ```
 
 Fall back to UTC when a configured zone is missing or does not parse:

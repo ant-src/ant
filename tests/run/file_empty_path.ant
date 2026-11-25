@@ -41,36 +41,36 @@ println(Path.clean(""))
 
 // expect
 // args: $TMP
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
-// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
 // out: false
 // out: Ok{ value: ["a.txt"] }
 // out: .

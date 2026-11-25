@@ -105,7 +105,7 @@ println(Cmd.new("sh", ["-c", "echo disk full >&2; exit 3"]).readBytes())
 ```
 
 ```text
-Err{ error: Error{ message: "sh: exit status 3: disk full" } }
+Err{ error: Error{ message: "sh: exit status 3: disk full", kind: null } }
 ```
 
 Standard error is captured even when the command succeeds, and then it is dropped:
@@ -125,7 +125,7 @@ println(Cmd.new("no-such-program").readBytes())
 ```
 
 ```text
-Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH" } }
+Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH", kind: null } }
 ```
 
 A pipeline reads the output of its last stage:
@@ -150,7 +150,7 @@ println(Cmd.pipe([Cmd.new("false"), Cmd.new("cat")]).readBytes())
 ```
 
 ```text
-Err{ error: Error{ message: "false: exit status 1" } }
+Err{ error: Error{ message: "false: exit status 1", kind: null } }
 ```
 
 Call it in a pipe, with the command first:
@@ -191,7 +191,7 @@ println(Cmd.new("sleep", ["5"]).readBytes(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context that is already done starts nothing:
@@ -203,7 +203,7 @@ println(Cmd.new("echo", ["never"]).readBytes(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -251,7 +251,7 @@ println(readUtf8(Cmd.new("printf", ["h\\351"])))
 
 ```text
 Ok{ value: "hé" }
-Err{ error: Error{ message: "printf 'h\\351': output is not valid UTF-8" } }
+Err{ error: Error{ message: "printf 'h\\351': output is not valid UTF-8", kind: null } }
 ```
 
 ## Properties and relations
@@ -287,7 +287,7 @@ println(grep.capture(input: "abc\n") | Result.map({ x.status }))
 ```
 
 ```text
-Err{ error: Error{ message: "grep: exit status 1" } }
+Err{ error: Error{ message: "grep: exit status 1", kind: null } }
 Ok{ value: 1 }
 ```
 

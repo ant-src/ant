@@ -35,7 +35,7 @@ Time.parsePlainDateTime("2026-10-22 14:03")    // Ok{ value: 2026-10-22T14:03:00
 Text that is not a date and a time is an `Err`:
 
 ```ant
-Time.parsePlainDateTime("tomorrow at noon") // Err{ error: Error{ message: "not a date or time: \"tomorrow at noon\"" } }
+Time.parsePlainDateTime("tomorrow at noon") // Err{ error: Error{ message: "not a date or time: \"tomorrow at noon\"", kind: null } }
 ```
 
 ## Scope
@@ -60,7 +60,7 @@ The ISO calendar annotation is accepted, and any other calendar is an `Err`:
 
 ```ant
 Time.parsePlainDateTime("2026-10-22T14:03[u-ca=iso8601]") // Ok{ value: 2026-10-22T14:03:00 }
-Time.parsePlainDateTime("2026-10-22T14:03[u-ca=gregory]") // Err{ error: Error{ message: "calendar gregory is not supported; only iso8601 is" } }
+Time.parsePlainDateTime("2026-10-22T14:03[u-ca=gregory]") // Err{ error: Error{ message: "calendar gregory is not supported; only iso8601 is", kind: null } }
 ```
 
 A year outside 0 to 9999 is written with a sign and six digits, the form it renders in:
@@ -73,16 +73,16 @@ Time.parsePlainDateTime("-000001-01-01T00:00") // Ok{ value: -000001-01-01T00:00
 A date or a time alone is not enough:
 
 ```ant
-Time.parsePlainDateTime("2026-10-22") // Err{ error: Error{ message: "a date-time needs a date and a time: \"2026-10-22\"" } }
-Time.parsePlainDateTime("14:03:05")   // Err{ error: Error{ message: "a date-time needs a date and a time: \"14:03:05\"" } }
+Time.parsePlainDateTime("2026-10-22") // Err{ error: Error{ message: "a date-time needs a date and a time: \"2026-10-22\"", kind: null } }
+Time.parsePlainDateTime("14:03:05")   // Err{ error: Error{ message: "a date-time needs a date and a time: \"14:03:05\"", kind: null } }
 ```
 
 A field out of range names the field:
 
 ```ant
-Time.parsePlainDateTime("2026-02-30T10:00")    // Err{ error: Error{ message: "no such date: 2026-02-30" } }
-Time.parsePlainDateTime("2026-10-22T24:00")    // Err{ error: Error{ message: "hour out of range: 24" } }
-Time.parsePlainDateTime("2026-12-31T23:59:60") // Err{ error: Error{ message: "second out of range: 60" } }
+Time.parsePlainDateTime("2026-02-30T10:00")    // Err{ error: Error{ message: "no such date: 2026-02-30", kind: null } }
+Time.parsePlainDateTime("2026-10-22T24:00")    // Err{ error: Error{ message: "hour out of range: 24", kind: null } }
+Time.parsePlainDateTime("2026-12-31T23:59:60") // Err{ error: Error{ message: "second out of range: 60", kind: null } }
 ```
 
 ## Applications
@@ -114,7 +114,7 @@ println(parseEvent("review, 2026-11-31T15:00"))
 
 ```text
 Ok{ value: Event{ name: "standup", at: 2026-11-12T09:30:00 } }
-Err{ error: Error{ message: "review: no such date: 2026-11-31" } }
+Err{ error: Error{ message: "review: no such date: 2026-11-31", kind: null } }
 ```
 
 Sort parsed times with [`Time.compare`](compare.md):
@@ -186,17 +186,17 @@ Time.parseInstant(s)       // Ok{ value: 2026-10-22T14:03:05Z }
 
 ```ant
 let s = "2026-10-22T14:03:05Z"
-Time.parsePlainDateTime(s)                                         // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainDateTime(s)                                         // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time", kind: null } }
 Time.parseInstant(s).map({ x.inZone(Time.utc).toPlainDateTime() }) // Ok{ value: 2026-10-22T14:03:05 }
 ```
 
 Close spellings that ISO 8601 or other libraries allow are an `Err`:
 
 ```ant
-Time.parsePlainDateTime("2026-10-22t14:03")      // Err{ error: Error{ message: "not a date or time: \"2026-10-22t14:03\"" } }
-Time.parsePlainDateTime("2026-10-22T14:03:05,5") // Err{ error: Error{ message: "not a date or time: \"2026-10-22T14:03:05,5\"" } }
-Time.parsePlainDateTime("2026-10-22T14")         // Err{ error: Error{ message: "not a date or time: \"2026-10-22T14\"" } }
-Time.parsePlainDateTime(" 2026-10-22T14:03")     // Err{ error: Error{ message: "not a date or time: \" 2026-10-22T14:03\"" } }
+Time.parsePlainDateTime("2026-10-22t14:03")      // Err{ error: Error{ message: "not a date or time: \"2026-10-22t14:03\"", kind: null } }
+Time.parsePlainDateTime("2026-10-22T14:03:05,5") // Err{ error: Error{ message: "not a date or time: \"2026-10-22T14:03:05,5\"", kind: null } }
+Time.parsePlainDateTime("2026-10-22T14")         // Err{ error: Error{ message: "not a date or time: \"2026-10-22T14\"", kind: null } }
+Time.parsePlainDateTime(" 2026-10-22T14:03")     // Err{ error: Error{ message: "not a date or time: \" 2026-10-22T14:03\"", kind: null } }
 ```
 
 Trim text from a file or a form before parsing it:

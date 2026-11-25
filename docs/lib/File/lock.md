@@ -95,8 +95,8 @@ println(File.lock("."))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing/dir/app.lock: no such file or directory" } }
-Err{ error: Error{ message: "open .: is a directory" } }
+Err{ error: Error{ message: "open missing/dir/app.lock: no such file or directory", kind: Error.NotExist{} } }
+Err{ error: Error{ message: "open .: is a directory", kind: null } }
 ```
 
 ## Named arguments
@@ -111,7 +111,7 @@ println(File.lock("slow.lock", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A cancelled context gives up at once:
@@ -125,7 +125,7 @@ println(File.lock("busy.lock", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -168,9 +168,9 @@ first has the lock
 second has the lock
 ```
 
-Do not keep a process id in the lock file: the lock never truncates the file, so a shorter id
-leaves the tail of a longer one behind. Whether the lock is held is what
-[File.tryLock](tryLock.md) answers, not what the file holds.
+Do not keep a process id in the lock file: the lock never truncates the file, so a shorter id leaves
+the tail of a longer one behind. Whether the lock is held is what [File.tryLock](tryLock.md)
+answers, not what the file holds.
 
 ## Properties and relations
 
@@ -203,7 +203,7 @@ println(File.tryLock("step.lock"))
 ```
 
 ```text
-Err{ error: Error{ message: "step failed" } }
+Err{ error: Error{ message: "step failed", kind: null } }
 Ok{ value: null }
 ```
 
@@ -218,7 +218,7 @@ println(File.lock("twice.lock", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## See also

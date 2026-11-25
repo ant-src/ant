@@ -45,7 +45,7 @@ print(try File.read("report.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open report.txt: file exists" } }
+Err{ error: Error{ message: "open report.txt: file exists", kind: Error.Exist{} } }
 first report
 ```
 
@@ -68,7 +68,7 @@ println(countWords("missing.txt"))
 
 ```text
 Ok{ value: 8 }
-Err{ error: Error{ message: "count words: open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "count words: open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 [String.fields](../../lib/String/fields.md) splits the text at runs of white space.
@@ -89,7 +89,7 @@ print(try File.read(path))
 ```
 
 ```text
-Err{ error: Error{ message: "open out/2026/summary.txt: no such file or directory" } }
+Err{ error: Error{ message: "open out/2026/summary.txt: no such file or directory", kind: Error.NotExist{} } }
 done
 ```
 

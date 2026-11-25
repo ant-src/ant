@@ -367,8 +367,8 @@ println(Url.parse("/100%"))
 ```
 
 ```text
-Err{ error: Error{ message: "parse \"http://my host/\": invalid character \" \" in host name" } }
-Err{ error: Error{ message: "parse \"/100%\": invalid URL escape \"%\"" } }
+Err{ error: Error{ message: "parse \"http://my host/\": invalid character \" \" in host name", kind: null } }
+Err{ error: Error{ message: "parse \"/100%\": invalid URL escape \"%\"", kind: null } }
 ```
 
 ## See also

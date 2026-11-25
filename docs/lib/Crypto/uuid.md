@@ -137,7 +137,7 @@ println(parseId("42"))
 
 ```text
 true
-Err{ error: Error{ message: "not a version 4 UUID: 42" } }
+Err{ error: Error{ message: "not a version 4 UUID: 42", kind: null } }
 ```
 
 ## Properties and relations

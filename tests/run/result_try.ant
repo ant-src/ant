@@ -60,5 +60,5 @@ println(Result.unwrap(parseDigits("77")))
 // out: Ok{ value: 1 }
 // out: Ok{ value: 1 }
 // out: true
-// out: Err{ error: Error{ message: "m" } }
+// out: Err{ error: Error{ message: "m", kind: null } }
 // out: 77

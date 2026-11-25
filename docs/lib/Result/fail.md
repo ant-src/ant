@@ -24,7 +24,7 @@ Fail with a message. The annotation fixes the value type:
 
 ```ant
 let r: Result[int, Error] = Result.fail("no input")
-r // Err{ error: Error{ message: "no input" } }
+r // Err{ error: Error{ message: "no input", kind: null } }
 ```
 
 Return a failure from a function. The declared return type fixes the value type:
@@ -38,7 +38,7 @@ func half(n: int): Result[int, Error] {
 }
 
 half(8) // Ok{ value: 4 }
-half(3) // Err{ error: Error{ message: "3 is odd" } }
+half(3) // Err{ error: Error{ message: "3 is odd", kind: null } }
 ```
 
 Test the result with `is` and read the message of its error:
@@ -54,21 +54,21 @@ The value type can be any type, `void` included, for an operation that has no va
 
 ```ant
 let saved: Result[void, Error] = Result.fail("disk full")
-saved // Err{ error: Error{ message: "disk full" } }
+saved // Err{ error: Error{ message: "disk full", kind: null } }
 ```
 
 The message can be any string, even an empty one:
 
 ```ant
 let blank: Result[int, Error] = Result.fail("")
-blank // Err{ error: Error{ message: "" } }
+blank // Err{ error: Error{ message: "", kind: null } }
 ```
 
 Elements of an annotated array take their type from it:
 
 ```ant
 let rs: Array[Result[int, Error]] = [Result.ok(1), Result.fail("a"), Result.fail("b")]
-Result.all(rs) // Err{ error: Error{ message: "a" } }
+Result.all(rs) // Err{ error: Error{ message: "a", kind: null } }
 ```
 
 A function that returns a `Result` or `null` can fail the same way:
@@ -81,7 +81,7 @@ func setting(key: string): Result[int, Error] | null {
   null
 }
 
-setting("")     // Err{ error: Error{ message: "empty key" } }
+setting("")     // Err{ error: Error{ message: "empty key", kind: null } }
 setting("port") // null
 ```
 
@@ -89,14 +89,14 @@ Call it in a pipe:
 
 ```ant
 let r: Result[int, Error] = "bad input" | Result.fail()
-r // Err{ error: Error{ message: "bad input" } }
+r // Err{ error: Error{ message: "bad input", kind: null } }
 ```
 
 Name the argument to say what the string is:
 
 ```ant
 let r: Result[int, Error] = Result.fail(message: "no input")
-r // Err{ error: Error{ message: "no input" } }
+r // Err{ error: Error{ message: "no input", kind: null } }
 ```
 
 A parameter type fixes the value type too:
@@ -117,7 +117,7 @@ println(["a", "b"] | Array.map(toErr))
 ```
 
 ```text
-[Err{ error: Error{ message: "a" } }, Err{ error: Error{ message: "b" } }]
+[Err{ error: Error{ message: "a", kind: null } }, Err{ error: Error{ message: "b", kind: null } }]
 ```
 
 ## Applications
@@ -138,7 +138,7 @@ println(greet(7))
 
 ```text
 Ok{ value: "Hello, Ann" }
-Err{ error: Error{ message: "no such user 7" } }
+Err{ error: Error{ message: "no such user 7", kind: null } }
 ```
 
 Reject invalid input in guards, one message each, and keep the successful path last. The caller adds
@@ -169,8 +169,8 @@ println(address("70000"))
 
 ```text
 Ok{ value: "localhost:8080" }
-Err{ error: Error{ message: "read app.conf: port must be an integer" } }
-Err{ error: Error{ message: "read app.conf: port 70000 out of range" } }
+Err{ error: Error{ message: "read app.conf: port must be an integer", kind: null } }
+Err{ error: Error{ message: "read app.conf: port 70000 out of range", kind: null } }
 ```
 
 A script that returns an `Err` ends with exit status 1 and writes the message to standard error:
@@ -255,7 +255,7 @@ func digits(s: string): Result[int, ParseError] {
   Result.ok(n)
 }
 
-digits("")   // Err{ error: Error{ message: "empty input" } }
+digits("")   // Err{ error: Error{ message: "empty input", kind: null } }
 digits("x7") // Err{ error: BadDigit{ at: 0 } }
 digits("42") // Ok{ value: 42 }
 ```
@@ -264,7 +264,7 @@ digits("42") // Ok{ value: 42 }
 
 ```ant
 let r: Result[int, Error] = Result.fail("no input")
-r.unwrap() // panic: Result.unwrap on an Err: Error{ message: "no input" }
+r.unwrap() // panic: Result.unwrap on an Err: Error{ message: "no input", kind: null }
 ```
 
 ## See also

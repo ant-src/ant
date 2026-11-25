@@ -237,9 +237,9 @@ println(decode(`[1, 2.5]`, type(Array[int])))
 ```text
 Ok{ value: Reading{ sensor: "a1", value: Celsius(21.5), tags: [], note: null } }
 Ok{ value: [Reading{ sensor: "b2", value: Celsius(19.0), tags: [], note: "roof" }] }
-Err{ error: Error{ message: "missing field value" } }
-Err{ error: Error{ message: "sensor: 7.0 does not fit string" } }
-Err{ error: Error{ message: "2.5 does not fit int" } }
+Err{ error: Error{ message: "missing field value", kind: null } }
+Err{ error: Error{ message: "sensor: 7.0 does not fit string", kind: null } }
+Err{ error: Error{ message: "2.5 does not fit int", kind: null } }
 ```
 
 The result of `decode(text, type(Reading))` is a `Result[Reading, Error]`, so the caller reads its

@@ -175,7 +175,7 @@ println(Cmd.capture(Cmd.new("sleep", ["5"]), ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Applications
@@ -271,7 +271,7 @@ println(Cmd.read(Cmd.new("false")))
 
 ```text
 false
-Err{ error: Error{ message: "false: exit status 1" } }
+Err{ error: Error{ message: "false: exit status 1", kind: null } }
 ```
 
 A program that is not found is `Err`, not the status 127 a shell gives. Only a shell started by the
@@ -284,7 +284,7 @@ println(out.status)
 ```
 
 ```text
-Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH" } }
+Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH", kind: null } }
 127
 ```
 

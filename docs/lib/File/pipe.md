@@ -137,7 +137,7 @@ println(p.read.pipe(Os.stdout(), ctx: ctx))
 
 ```text
 arrived in time
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A regular file never waits. A context that is already done stops the copy before it reads anything,
@@ -158,7 +158,7 @@ println(src.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 Ok{ value: "Ann" }
 ```
 
@@ -304,8 +304,8 @@ println(File.pipe(src, dst))
 ```
 
 ```text
-Err{ error: Error{ message: "the source is not open for reading" } }
-Err{ error: Error{ message: "the destination is not open for writing" } }
+Err{ error: Error{ message: "the source is not open for reading", kind: null } }
+Err{ error: Error{ message: "the destination is not open for writing", kind: null } }
 ```
 
 ## See also

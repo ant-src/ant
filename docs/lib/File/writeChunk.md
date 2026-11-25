@@ -247,7 +247,7 @@ println(f.writeChunk("late".toBytes()))
 ```
 
 ```text
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 ```
 
 ## See also

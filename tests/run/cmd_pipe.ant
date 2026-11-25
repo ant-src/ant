@@ -74,9 +74,9 @@ println(Cmd.wait(lines))
 // out: Ok{ value: "" }
 // out: Ok{ value: "a" }
 // out: Ok{ value: "y" }
-// out: Err{ error: Error{ message: "false: exit status 1" } }
-// out: Err{ error: Error{ message: "false (stage 2): exit status 1" } }
-// out: Err{ error: Error{ message: "sh (stage 2): exit status 4: why" } }
+// out: Err{ error: Error{ message: "false: exit status 1", kind: null } }
+// out: Err{ error: Error{ message: "false (stage 2): exit status 1", kind: null } }
+// out: Err{ error: Error{ message: "sh (stage 2): exit status 4: why", kind: null } }
 // out: 5 [141, 0, 5] y
 // out: y
 // out: [0]
@@ -86,6 +86,6 @@ println(Cmd.wait(lines))
 // out: Ok{ value: "one\ntwo\n/" }
 // out: true
 // out: Ok{ value: 143 }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: "a\nb\n" }
 // out: Ok{ value: 0 }

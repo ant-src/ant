@@ -91,7 +91,7 @@ let due = Time.plainDate(2026, 10, 22)
 "due ${due}"                      // "due 2026-10-22"
 Json.stringify(Map{ "due": due }) // "{\"due\":\"2026-10-22\"}"
 Time.parsePlainDate("2026-10-22") // Ok{ value: 2026-10-22 }
-Time.parsePlainDate("22/10/2026") // Err{ error: Error{ message: "not a date or time: \"22/10/2026\"" } }
+Time.parsePlainDate("22/10/2026") // Err{ error: Error{ message: "not a date or time: \"22/10/2026\"", kind: null } }
 Time.parseDuration("1h30m")       // Ok{ value: PT1H30M }
 ```
 

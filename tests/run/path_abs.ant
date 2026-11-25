@@ -15,6 +15,6 @@ println(Path.clean(""))
 // out: Ok{ value: "/etc/hosts" }
 // out: true
 // out: true
-// out: Err{ error: Error{ message: "empty path" } }
+// out: Err{ error: Error{ message: "empty path", kind: null } }
 // out: .
 // out: .

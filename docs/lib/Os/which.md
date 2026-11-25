@@ -110,7 +110,7 @@ println(requireTool("sh").isOk())
 ```
 
 ```text
-Err{ error: Error{ message: "no-such-tool not found in PATH; install it first" } }
+Err{ error: Error{ message: "no-such-tool not found in PATH; install it first", kind: null } }
 true
 ```
 

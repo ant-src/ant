@@ -12,9 +12,9 @@ Result.unwrap(Regex.compile("a/b")) == /a\/b/ // => true
 Regex.compile("a/b")                          // => Ok{ value: /a\/b/ }
 Regex.compile("")                             // => Ok{ value: /(?:)/ }
 Regex.compile("a", "si")                      // => Ok{ value: /a/is }
-Regex.compile("(")                            // => Err{ error: Error{ message: "invalid regular expression: missing closing ): `(`" } }
-Regex.compile("a", "g")                       // => Err{ error: Error{ message: "there is no g flag: Regex.findAll and Regex.replace work on every match" } }
-Regex.compile("a", "ii")                      // => Err{ error: Error{ message: "the flag i is repeated" } }
+Regex.compile("(")                            // => Err{ error: Error{ message: "invalid regular expression: missing closing ): `(`", kind: null } }
+Regex.compile("a", "g")                       // => Err{ error: Error{ message: "there is no g flag: Regex.findAll and Regex.replace work on every match", kind: null } }
+Regex.compile("a", "ii")                      // => Err{ error: Error{ message: "the flag i is repeated", kind: null } }
 Regex.test(/^añ/, "añb")                      // => true
 Regex.test(/^b/, "añb")                       // => false
 Regex.find(/ñ(b)/, "añb")                     // => Regex.Match{ text: "ñb", start: 1, end: 3, groups: ["ñb", "b"], named: Map{} }

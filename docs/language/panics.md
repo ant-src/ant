@@ -179,7 +179,7 @@ A library function panics in the cases its page documents, such as `Result.unwra
 
 ```ant
 let port: Result[int, Error] = Result.fail("no port")
-port.unwrap() // panic: Result.unwrap on an Err: Error{ message: "no port" }
+port.unwrap() // panic: Result.unwrap on an Err: Error{ message: "no port", kind: null }
 ```
 
 ```ant
@@ -523,7 +523,7 @@ println(ratio(6, 0))
 
 ```text
 Ok{ value: 2 }
-Err{ error: Error{ message: "ratio of 6 to zero" } }
+Err{ error: Error{ message: "ratio of 6 to zero", kind: null } }
 ```
 
 ### Caught data may be half changed

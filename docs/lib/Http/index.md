@@ -233,7 +233,7 @@ println(Http.get("${base}/slow", timeout: 50ms))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 `ctx` bounds a call too, and one context can bound several calls, or stop a server:
@@ -267,8 +267,8 @@ println(Http.get("${base}/hello", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Functions by job
@@ -335,7 +335,7 @@ println(fetchName(base, "/nobody"))
 
 ```text
 Ok{ value: "Ann" }
-Err{ error: Error{ message: "get /nobody: status 404" } }
+Err{ error: Error{ message: "get /nobody: status 404", kind: null } }
 ```
 
 Check several pages, with a short timeout for each:
@@ -553,8 +553,8 @@ println(Http.get("http://127.0.0.1:1/", timeout: Time.duration(weeks: 1)))
 ```
 
 ```text
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative", kind: null } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length", kind: null } }
 ```
 
 A script ends when its last line runs, and a server on a goroutine ends with it. A script that only

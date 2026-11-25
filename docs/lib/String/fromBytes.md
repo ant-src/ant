@@ -148,7 +148,7 @@ println(decodeUtf8(Bytes.fromArray([0xff])))
 
 ```text
 Ok{ value: "ok" }
-Err{ error: Error{ message: "not UTF-8" } }
+Err{ error: Error{ message: "not UTF-8", kind: null } }
 ```
 
 ### Warn before a lossy decode

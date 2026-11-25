@@ -113,7 +113,7 @@ println(save("report.txt", "today"))
 ```
 
 ```text
-Err{ error: Error{ message: "report.txt is already there; remove it to write a new one" } }
+Err{ error: Error{ message: "report.txt is already there; remove it to write a new one", kind: null } }
 ```
 
 ## Properties and relations
@@ -141,7 +141,7 @@ println(File.write(output, "second", replace: false))
 ```
 
 ```text
-Err{ error: Error{ message: "open out.txt: file exists" } }
+Err{ error: Error{ message: "open out.txt: file exists", kind: Error.Exist{} } }
 ```
 
 A dangling link is not there for `File.exists`, but it still occupies the name, so a write with
@@ -157,7 +157,7 @@ println(File.write("broken", "text", replace: false))
 
 ```text
 false
-Err{ error: Error{ message: "open broken: file exists" } }
+Err{ error: Error{ message: "open broken: file exists", kind: Error.Exist{} } }
 ```
 
 `true` does not mean the path is a file. Reading a directory is an `Err`:
@@ -173,7 +173,7 @@ if File.exists("logs") {
 ```
 
 ```text
-Err{ error: Error{ message: "read logs: is a directory" } }
+Err{ error: Error{ message: "read logs: is a directory", kind: null } }
 ```
 
 ## See also

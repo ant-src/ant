@@ -36,7 +36,7 @@ func TestReadExactlyWithEOF(t *testing.T) {
 		}
 	}
 	h := newHandle(nil, &eofWithData{[]byte("abc")}, nil)
-	if got := value.Render(h.readExactly(5)); got != `Err{ error: Error{ message: "unexpected end of file" } }` {
+	if got := value.Render(h.readExactly(5)); got != `Err{ error: Error{ message: "unexpected end of file", kind: null } }` {
 		t.Errorf("short: %s", got)
 	}
 	if got := value.Render(h.readChunk(10)); got != "Ok{ value: null }" {

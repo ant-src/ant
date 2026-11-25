@@ -114,7 +114,7 @@ println(appointment("2026-11-03", "3pm"))
 
 ```text
 Ok{ value: 2026-11-03T15:45:00 }
-Err{ error: Error{ message: "time: not a date or time: \"3pm\"" } }
+Err{ error: Error{ message: "time: not a date or time: \"3pm\"", kind: null } }
 ```
 
 Agree on a meeting by date and time, then place it in the office's zone to get a moment everyone can

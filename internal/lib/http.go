@@ -84,14 +84,14 @@ func plainTransport() http.RoundTripper {
 // httpReason is the innermost reason of a failed request, without Go's layers: the text of a
 // system error alone, as File errors give it ("connection refused"), and no "net/http:" or
 // "http:" prefix.
-func httpReason(err error) string {
+func httpReason(err error) error {
 	var errno syscall.Errno
 	if errors.As(err, &errno) {
-		return errno.Error()
+		return errno
 	}
 	var dns *net.DNSError
 	if errors.As(err, &dns) {
-		return dns.Err
+		return errors.New(dns.Err)
 	}
 	for {
 		inner := errors.Unwrap(err)
@@ -101,7 +101,7 @@ func httpReason(err error) string {
 		err = inner
 	}
 	text := strings.TrimPrefix(err.Error(), "net/http: ")
-	return strings.TrimPrefix(text, "http: ")
+	return errors.New(strings.TrimPrefix(text, "http: "))
 }
 
 // isToken reports whether s is an HTTP token (RFC 9110), as a method must be.
@@ -137,7 +137,7 @@ func request(g *interp.Goroutine, who, method, url, body string, hdrs, limit, c 
 		return errResult(fmt.Errorf("request %q: the method %q is not a token", url, method))
 	}
 	fail := func(err error) value.Value {
-		return errResult(fmt.Errorf("%s %q: %s", strings.ToLower(method), url, httpReason(err)))
+		return errResult(fmt.Errorf("%s %q: %w", strings.ToLower(method), url, httpReason(err)))
 	}
 	wait, err := timeout(g, who, limit)
 	if err != nil {

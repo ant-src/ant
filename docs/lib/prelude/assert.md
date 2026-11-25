@@ -336,7 +336,7 @@ println(parseAge("31"))
 ```
 
 ```text
-Err{ error: Error{ message: "age is negative: -4" } }
+Err{ error: Error{ message: "age is negative: -4", kind: null } }
 Ok{ value: 31 }
 ```
 

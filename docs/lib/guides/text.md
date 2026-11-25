@@ -129,7 +129,7 @@ let data = "hi?".toBytes()
 Encoding.toHex(data)                                          // "68693f"
 Encoding.toBase64(data)                                       // "aGk/"
 "aGk/" | Encoding.fromBase64() | Result.map(String.fromBytes) // Ok{ value: "hi?" }
-Encoding.fromHex("6g")                                        // Err{ error: Error{ message: "invalid byte: U+0067 'g'" } }
+Encoding.fromHex("6g")                                        // Err{ error: Error{ message: "invalid byte: U+0067 'g'", kind: null } }
 ```
 
 ## Putting them together

@@ -90,8 +90,8 @@ Url.parseQuery("debug&page=2") // Ok{ value: Map{ "debug": [""], "page": ["2"] }
 Text that does not decode is an `Err`:
 
 ```ant
-Url.unescape("%zz")     // Err{ error: Error{ message: "invalid URL escape \"%zz\"" } }
-Url.parseQuery("q=%FF") // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.unescape("%zz")     // Err{ error: Error{ message: "invalid URL escape \"%zz\"", kind: null } }
+Url.parseQuery("q=%FF") // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text", kind: null } }
 ```
 
 ## Functions by job
@@ -141,7 +141,7 @@ println(withParam("https://example.com/%zz", "utm_source", "docs"))
 
 ```text
 Ok{ value: "https://example.com/a?b=1&utm_source=docs#top" }
-Err{ error: Error{ message: "link: parse \"https://example.com/%zz\": invalid URL escape \"%zz\"" } }
+Err{ error: Error{ message: "link: parse \"https://example.com/%zz\": invalid URL escape \"%zz\"", kind: null } }
 ```
 
 Read a form body, which uses the same `k=v&k=v` encoding as a query, with `get` and `??` for a key

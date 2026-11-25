@@ -128,7 +128,7 @@ println(greeting(2))
 
 ```text
 Ok{ value: "Hello, Ann" }
-Err{ error: Error{ message: "no user 2" } }
+Err{ error: Error{ message: "no user 2", kind: null } }
 ```
 
 ### In an `if` expression
@@ -176,8 +176,8 @@ println(parsePort("70000"))
 
 ```text
 Ok{ value: 8080 }
-Err{ error: Error{ message: "not a number: http" } }
-Err{ error: Error{ message: "out of range: 70000" } }
+Err{ error: Error{ message: "not a number: http", kind: null } }
+Err{ error: Error{ message: "out of range: 70000", kind: null } }
 ```
 
 ### With `defer`
@@ -270,8 +270,8 @@ println(validate(Signup{ name: "Bob", age: 9 }))
 
 ```text
 Ok{ value: Signup{ name: "Ann", age: 30 } }
-Err{ error: Error{ message: "name is required" } }
-Err{ error: Error{ message: "Bob: too young" } }
+Err{ error: Error{ message: "name is required", kind: null } }
+Err{ error: Error{ message: "Bob: too young", kind: null } }
 ```
 
 Stop a search at the first hit in a nested loop:

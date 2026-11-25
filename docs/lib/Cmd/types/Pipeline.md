@@ -162,7 +162,7 @@ println(runAll(steps))
 ```text
 greet: echo hi
 check: echo ant | grep bee
-Err{ error: Error{ message: "check: grep: exit status 1" } }
+Err{ error: Error{ message: "check: grep: exit status 1", kind: null } }
 ```
 
 ### Extend a pipeline
@@ -264,7 +264,7 @@ from 1, when another stage runs the same program:
 
 ```ant
 let p = Cmd.pipe([Cmd.new("echo", ["a"]), Cmd.new("grep", ["b"]), Cmd.new("grep", ["c"])])
-p.read() // Err{ error: Error{ message: "grep (stage 3): exit status 1" } }
+p.read() // Err{ error: Error{ message: "grep (stage 3): exit status 1", kind: null } }
 ```
 
 ### An empty pipeline

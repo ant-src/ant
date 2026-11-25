@@ -105,7 +105,7 @@ func clockTime(h: int, m: int): Result[Time.PlainTime, Error] {
 }
 
 clockTime(7, 45) // Ok{ value: 07:45:00 }
-clockTime(25, 0) // Err{ error: Error{ message: "hour 25 is not 0 to 23" } }
+clockTime(25, 0) // Err{ error: Error{ message: "hour 25 is not 0 to 23", kind: null } }
 ```
 
 Put a time on a date and in a zone:

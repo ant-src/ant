@@ -172,7 +172,7 @@ for text in [good, bad] {
 
 ```text
 Ok{ value: [Server{ host: "a", port: 80 }, Server{ host: "b", port: 8080 }] }
-Err{ error: Error{ message: "$.servers[1].port: want an integer" } }
+Err{ error: Error{ message: "$.servers[1].port: want an integer", kind: null } }
 ```
 
 Rewrite a document of unknown shape, here hiding every `password` at any depth:

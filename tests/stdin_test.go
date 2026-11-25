@@ -45,7 +45,7 @@ println(File.readLine(Os.stdin()))
 println(File.readLine(Os.stdin()))
 println(File.readLine(Os.stdin()))
 `, "hello\nworld\n", 200*time.Millisecond)
-		want := "Err{ error: Error{ message: \"timeout\" } }\nOk{ value: \"hello\" }\nOk{ value: \"world\" }\nOk{ value: null }\n"
+		want := "Err{ error: Error{ message: \"timeout\", kind: null } }\nOk{ value: \"hello\" }\nOk{ value: \"world\" }\nOk{ value: null }\n"
 		if out != want {
 			t.Fatalf("printed %q, want %q", out, want)
 		}
@@ -56,7 +56,7 @@ println(File.pipe(Os.stdin(), Os.stdout(), Context.new(Time.duration(millisecond
 println(File.readLine(Os.stdin()))
 println(File.readAll(Os.stdin()))
 `, "late\nrest\n", 200*time.Millisecond)
-		want := "Err{ error: Error{ message: \"timeout\" } }\nOk{ value: \"late\" }\nOk{ value: \"rest\\n\" }\n"
+		want := "Err{ error: Error{ message: \"timeout\", kind: null } }\nOk{ value: \"late\" }\nOk{ value: \"rest\\n\" }\n"
 		if out != want {
 			t.Fatalf("printed %q, want %q", out, want)
 		}

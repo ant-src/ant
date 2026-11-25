@@ -154,7 +154,7 @@ func checkAge(age: int): Result[int, Error] {
   if age < 0 { return Result.fail("age must not be negative, got ${age}") }
   Result.ok(age)
 }
-checkAge(-2) // Err{ error: Error{ message: "age must not be negative, got -2" } }
+checkAge(-2) // Err{ error: Error{ message: "age must not be negative, got -2", kind: null } }
 ```
 
 ## Properties and relations

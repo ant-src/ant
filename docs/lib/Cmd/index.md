@@ -183,7 +183,7 @@ println(Cmd.new("sleep", ["10"]).run(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Functions by job
@@ -332,7 +332,7 @@ println(Cmd.new("sh", ["-c", "echo bad >&2; exit 2"]).read())
 
 ```text
 Ok{ value: 1 }
-Err{ error: Error{ message: "sh: exit status 2: bad" } }
+Err{ error: Error{ message: "sh: exit status 2: bad", kind: null } }
 ```
 
 `Cmd.read` removes one final newline and no other white space:

@@ -34,7 +34,7 @@ Decode them back into bytes:
 ```ant
 Encoding.fromHex("68693f")  // Ok{ value: Bytes(68 69 3f) }
 Encoding.fromBase64("aGk/") // Ok{ value: Bytes(68 69 3f) }
-Encoding.fromHex("6g")      // Err{ error: Error{ message: "invalid byte: U+0067 'g'" } }
+Encoding.fromHex("6g")      // Err{ error: Error{ message: "invalid byte: U+0067 'g'", kind: null } }
 ```
 
 ## Scope
@@ -79,7 +79,7 @@ Base64 whose length no bytes encode to is `Err`:
 Encoding.fromHex("6A3F")      // Ok{ value: Bytes(6a 3f) }
 Encoding.fromBase64("aGk")    // Ok{ value: Bytes(68 69) }
 Encoding.fromBase64("aGk\n/") // Ok{ value: Bytes(68 69 3f) }
-Encoding.fromBase64("abcde")  // Err{ error: Error{ message: "illegal base64 data at input byte 4" } }
+Encoding.fromBase64("abcde")  // Err{ error: Error{ message: "illegal base64 data at input byte 4", kind: null } }
 ```
 
 ## Functions by job
@@ -154,7 +154,7 @@ println(parseBasicAuth("Basic YW50OnMzY3JldA!"))
 
 ```text
 Ok{ value: "ant:s3cret" }
-Err{ error: Error{ message: "bad credentials: illegal base64 data at input byte 14" } }
+Err{ error: Error{ message: "bad credentials: illegal base64 data at input byte 14", kind: null } }
 ```
 
 Put binary data in JSON, which has no form for `Bytes`:

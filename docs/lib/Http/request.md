@@ -297,9 +297,9 @@ println(Http.request("GET", "http://127.0.0.1:1/", headers: Map{ "Accept": "a", 
 ```
 
 ```text
-Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"\" is not a token" } }
-Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"GE T\" is not a token" } }
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
+Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"\" is not a token", kind: null } }
+Err{ error: Error{ message: "request \"http://127.0.0.1:1/\": the method \"GE T\" is not a token", kind: null } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case", kind: null } }
 ```
 
 ## Named arguments
@@ -399,7 +399,7 @@ println(res)
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A timeout with weeks, months, or years has no fixed length, and one that is zero or negative has
@@ -430,8 +430,8 @@ println(Http.request("GET", "http://127.0.0.1:1/", timeout: 0s))
 ```
 
 ```text
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length", kind: null } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative", kind: null } }
 ```
 
 ### ctx
@@ -465,7 +465,7 @@ println(Http.request("GET", base, ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 One context can bound several requests at once, where a `timeout` bounds one. Here a half-second
@@ -637,7 +637,7 @@ println(send("GET", "/missing"))
 
 ```text
 Ok{ value: "PUT /notes/2 call Ann" }
-Err{ error: Error{ message: "GET /missing: status 404: no /missing" } }
+Err{ error: Error{ message: "GET /missing: status 404: no /missing", kind: null } }
 ```
 
 ### Test your own server
@@ -792,7 +792,7 @@ println(Http.request("POST", "http://127.0.0.1:1/echo", body: "a,b", headers: he
 ```
 
 ```text
-Err{ error: Error{ message: "post \"http://127.0.0.1:1/echo\": the headers \"Content-Type\" and \"content-type\" differ only in case" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/echo\": the headers \"Content-Type\" and \"content-type\" differ only in case", kind: null } }
 ```
 
 The method is sent as given, not upper-cased, so `"get"` reaches the server as `get`, and a server

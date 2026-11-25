@@ -12,7 +12,7 @@ Encoding.fromBase64("aGkgdGhlcmU")            // => Ok{ value: Bytes(68 69 20 74
 Encoding.fromBase64("aGkg\ndGhlcmU=\n")       // => Ok{ value: Bytes(68 69 20 74 68 65 72 65) }
 Encoding.fromBase64("-_8=", url: true)        // => Ok{ value: Bytes(fb ff) }
 Encoding.fromBase64("+/8=")                   // => Ok{ value: Bytes(fb ff) }
-Encoding.fromBase64("-_8=")                   // => Err{ error: Error{ message: "illegal base64 data at input byte 0" } }
+Encoding.fromBase64("-_8=")                   // => Err{ error: Error{ message: "illegal base64 data at input byte 0", kind: null } }
 Result.isOk(Encoding.fromBase64("a"))         // => false
 Encoding.fromBase64("aGkgdGhlcmU=") | Result.map(String.fromBytes) // => Ok{ value: "hi there" }
 Encoding.toHex(bytes)                         // => "6869207468657265"
@@ -20,13 +20,13 @@ Encoding.toHex(String.toBytes(""))            // => ""
 Encoding.fromHex("6869")                      // => Ok{ value: Bytes(68 69) }
 Encoding.fromHex("6A6B") == Encoding.fromHex("6a6b") // => true
 Result.isOk(Encoding.fromHex("abc"))          // => false
-Encoding.fromHex("zz")                        // => Err{ error: Error{ message: "invalid byte: U+007A 'z'" } }
-Encoding.fromHex("0ñ")                        // => Err{ error: Error{ message: "invalid byte: U+00F1 'ñ'" } }
-Encoding.fromHex("abc")                       // => Err{ error: Error{ message: "odd length hex string" } }
+Encoding.fromHex("zz")                        // => Err{ error: Error{ message: "invalid byte: U+007A 'z'", kind: null } }
+Encoding.fromHex("0ñ")                        // => Err{ error: Error{ message: "invalid byte: U+00F1 'ñ'", kind: null } }
+Encoding.fromHex("abc")                       // => Err{ error: Error{ message: "odd length hex string", kind: null } }
 // Go reports a bad character, and its offset in the text as given, line breaks counted.
-Encoding.fromBase64("aGVs bG8=")              // => Err{ error: Error{ message: "illegal base64 data at input byte 4" } }
-Encoding.fromBase64("aGVs\nbG8!")             // => Err{ error: Error{ message: "illegal base64 data at input byte 8" } }
-Encoding.fromBase64("aGVsbG8==")              // => Err{ error: Error{ message: "illegal base64 data at input byte 8" } }
+Encoding.fromBase64("aGVs bG8=")              // => Err{ error: Error{ message: "illegal base64 data at input byte 4", kind: null } }
+Encoding.fromBase64("aGVs\nbG8!")             // => Err{ error: Error{ message: "illegal base64 data at input byte 8", kind: null } }
+Encoding.fromBase64("aGVsbG8==")              // => Err{ error: Error{ message: "illegal base64 data at input byte 8", kind: null } }
 // Bits past the last byte in the final character are ignored, as in Go.
 Encoding.fromBase64("aGl=")                   // => Ok{ value: Bytes(68 69) }
 Encoding.fromBase64("aGk=")                   // => Ok{ value: Bytes(68 69) }

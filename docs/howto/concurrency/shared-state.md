@@ -110,7 +110,7 @@ println(account.withdraw(50))
 
 ```text
 3 paid, 10 left
-Err{ error: Error{ message: "insufficient funds: balance 10" } }
+Err{ error: Error{ message: "insufficient funds: balance 10", kind: null } }
 ```
 
 Reading `account.balance` after `Parallel.each` needs no lock: the call returns only after every

@@ -47,7 +47,7 @@ println(File.rename("missing.txt", "other.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "rename missing.txt other.txt: no such file or directory" } }
+Err{ error: Error{ message: "rename missing.txt other.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -190,7 +190,7 @@ println(moveInto("report.csv", "done/2026"))
 
 ```text
 ["2026/report.csv"]
-Err{ error: Error{ message: "archive report.csv: rename report.csv done/2026/report.csv: no such file or directory" } }
+Err{ error: Error{ message: "archive report.csv: rename report.csv done/2026/report.csv: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations
@@ -245,7 +245,7 @@ println(File.rename("photo.jpg", "albums/2026/photo.jpg"))
 ```
 
 ```text
-Err{ error: Error{ message: "rename photo.jpg albums/2026/photo.jpg: no such file or directory" } }
+Err{ error: Error{ message: "rename photo.jpg albums/2026/photo.jpg: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: void }
 ```
 

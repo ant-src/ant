@@ -246,14 +246,14 @@ A date that does not exist panics in `Time.plainDate`. Text from outside goes th
 
 ```ant
 Time.plainDate(2026, 2, 29)       // panic: Time.plainDate: no such date: 2026-02-29
-Time.parsePlainDate("2026-02-29") // Err{ error: Error{ message: "no such date: 2026-02-29" } }
+Time.parsePlainDate("2026-02-29") // Err{ error: Error{ message: "no such date: 2026-02-29", kind: null } }
 ```
 
 A string that ends in `Z` with no zone in brackets names a moment, not a wall-clock date, so the
 parser refuses it:
 
 ```ant
-Time.parsePlainDate("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainDate("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time", kind: null } }
 ```
 
 The ISO week number belongs to the week's year, which differs from the date's year around New Year.

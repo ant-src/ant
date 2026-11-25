@@ -126,7 +126,7 @@ println(File.read("~/notes.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open ~/notes.txt: no such file or directory" } }
+Err{ error: Error{ message: "open ~/notes.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 A program started without `$HOME` gets `Err` from `Os.home`. Here a child Ant program runs with an
@@ -142,7 +142,7 @@ print(try Cmd.read(child))
 ```
 
 ```text
-Err{ error: Error{ message: "$HOME is not defined" } }
+Err{ error: Error{ message: "$HOME is not defined", kind: null } }
 ```
 
 Where the program can go on without it, fall back to a directory of its own choosing with

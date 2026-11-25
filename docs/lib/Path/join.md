@@ -214,7 +214,7 @@ println(inside("/srv/files", "../../etc/passwd"))
 
 ```text
 Ok{ value: "/srv/files/docs/a.txt" }
-Err{ error: Error{ message: "../../etc/passwd: outside /srv/files" } }
+Err{ error: Error{ message: "../../etc/passwd: outside /srv/files", kind: null } }
 ```
 
 A `~` in a part is not expanded. The result is a relative path that names a directory called `~`:

@@ -39,7 +39,7 @@ Turn an error of your own into an `Error` with a readable message:
 ```ant
 type NotFound = { key: string }
 let r: Result[int, NotFound] = Result.err(NotFound{ key: "port" })
-Result.mapErr(r, { Error{ message: "missing key ${x.key}" } }) // Err{ error: Error{ message: "missing key port" } }
+Result.mapErr(r, { Error{ message: "missing key ${x.key}" } }) // Err{ error: Error{ message: "missing key port", kind: null } }
 ```
 
 ## Scope
@@ -107,7 +107,7 @@ println(listen("80x"))
 
 ```text
 Ok{ value: "listening on 8080" }
-Err{ error: Error{ message: "bad port 80x" } }
+Err{ error: Error{ message: "bad port 80x", kind: null } }
 ```
 
 Return a narrower `Result` from a function with a wider error type. `try` widens on its own, but a
@@ -132,7 +132,7 @@ println(portOf("port"))
 ```
 
 ```text
-Err{ error: Error{ message: "no key" } }
+Err{ error: Error{ message: "no key", kind: null } }
 Ok{ value: 8080 }
 ```
 

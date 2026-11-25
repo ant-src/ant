@@ -206,8 +206,8 @@ for n in Iter.range(1, 5) {
 ```
 
 ```text
-Err{ error: Error{ message: "attempt 1: timeout" } }
-Err{ error: Error{ message: "attempt 2: timeout" } }
+Err{ error: Error{ message: "attempt 1: timeout", kind: null } }
+Err{ error: Error{ message: "attempt 2: timeout", kind: null } }
 Ok{ value: "pong" }
 ```
 

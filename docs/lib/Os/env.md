@@ -114,7 +114,7 @@ println(parsePort("http"))
 ```text
 Ok{ value: 8080 }
 Ok{ value: 3000 }
-Err{ error: Error{ message: "APP_PORT: want a port from 1 to 65535, got http" } }
+Err{ error: Error{ message: "APP_PORT: want a port from 1 to 65535, got http", kind: null } }
 ```
 
 Require a variable, and treat an empty value as missing:
@@ -134,7 +134,7 @@ println(required("APP_DATABASE_URL"))
 
 ```text
 true
-Err{ error: Error{ message: "APP_DATABASE_URL is not set" } }
+Err{ error: Error{ message: "APP_DATABASE_URL is not set", kind: null } }
 ```
 
 Give a child a small environment of its own, with the program's `PATH` and one variable more:

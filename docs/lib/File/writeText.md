@@ -253,8 +253,8 @@ println(w.writeText("late"))
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for writing" } }
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is not open for writing", kind: null } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 ```
 
 `File.writeText` takes a string. Write `Bytes` with [File.writeChunk](writeChunk.md):

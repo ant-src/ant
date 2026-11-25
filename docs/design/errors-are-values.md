@@ -74,7 +74,7 @@ println(loadConfig("app.conf"))
 ```
 
 ```text
-Err{ error: Error{ message: "parse app.conf: port 80x is not a number" } }
+Err{ error: Error{ message: "parse app.conf: port 80x is not a number", kind: null } }
 ```
 
 `try` and `return` are the only ways an error leaves `loadConfig` early, and each is written where
@@ -104,7 +104,7 @@ func parsePort(text: string): Result[int, Error] {
 ```ant
 let results = ["80", "http", "443"].map(parsePort)
 results.countWhere({ x is Err }) // 1
-Result.all(results)              // Err{ error: Error{ message: "port http is not a number" } }
+Result.all(results)              // Err{ error: Error{ message: "port http is not a number", kind: null } }
 ```
 
 No second set of rules applies to errors. A function that validates a whole form keeps every `Err`;

@@ -30,7 +30,7 @@ Path.rel("/srv/app", "/srv/app/lib/db.ant") // Ok{ value: "lib/db.ant" }
 It is `Err` when no relative path leads from `base` to `target`:
 
 ```ant
-Path.rel("/a", "b") // Err{ error: Error{ message: "no relative path leads from /a to b" } }
+Path.rel("/a", "b") // Err{ error: Error{ message: "no relative path leads from /a to b", kind: null } }
 ```
 
 ## Scope
@@ -74,7 +74,7 @@ Path.rel("docs", "docs/")         // Ok{ value: "." }
 
 ```ant
 Path.rel("../a", "../b") // Ok{ value: "../b" }
-Path.rel("../a", "b")    // Err{ error: Error{ message: "no relative path leads from ../a to b" } }
+Path.rel("../a", "b")    // Err{ error: Error{ message: "no relative path leads from ../a to b", kind: null } }
 ```
 
 From `../a`, the way to `b` goes through the name of the current directory, which the text does not
@@ -204,7 +204,7 @@ A pipe passes its value as the first argument, which is `base`:
 is `Err` even when both name the same place:
 
 ```ant
-Path.rel("/srv/app", "lib") // Err{ error: Error{ message: "no relative path leads from /srv/app to lib" } }
+Path.rel("/srv/app", "lib") // Err{ error: Error{ message: "no relative path leads from /srv/app to lib", kind: null } }
 ```
 
 Make both absolute with [Path.abs](abs.md) first, as in

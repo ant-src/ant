@@ -143,8 +143,8 @@ println(File.write("reports", "x"))
 ```
 
 ```text
-Err{ error: Error{ message: "open nowhere/out.txt: no such file or directory" } }
-Err{ error: Error{ message: "open reports: is a directory" } }
+Err{ error: Error{ message: "open nowhere/out.txt: no such file or directory", kind: Error.NotExist{} } }
+Err{ error: Error{ message: "open reports: is a directory", kind: null } }
 ```
 
 ## Named arguments
@@ -162,7 +162,7 @@ print(try File.read("first.txt"))
 
 ```text
 Ok{ value: void }
-Err{ error: Error{ message: "open first.txt: file exists" } }
+Err{ error: Error{ message: "open first.txt: file exists", kind: Error.Exist{} } }
 first
 ```
 
@@ -176,7 +176,7 @@ println(File.exists("elsewhere.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open planted: file exists" } }
+Err{ error: Error{ message: "open planted: file exists", kind: Error.Exist{} } }
 false
 ```
 
@@ -236,7 +236,7 @@ println(saveNote("drafts/note.txt", "remember\n"))
 ```
 
 ```text
-Err{ error: Error{ message: "save note: open drafts/note.txt: no such file or directory" } }
+Err{ error: Error{ message: "save note: open drafts/note.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ### Replace a file atomically

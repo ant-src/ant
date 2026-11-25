@@ -182,8 +182,8 @@ println(Cmd.kill(p, signal: "sigterm"))
 ```
 
 ```text
-Err{ error: Error{ message: "unknown signal TERM" } }
-Err{ error: Error{ message: "unknown signal sigterm" } }
+Err{ error: Error{ message: "unknown signal TERM", kind: null } }
+Err{ error: Error{ message: "unknown signal sigterm", kind: null } }
 ```
 
 Without `try`, the `Err` from a misspelled name is dropped and the command keeps running. Write
@@ -208,7 +208,7 @@ println(try Cmd.wait(stubborn))
 
 ```text
 ready
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 137
 ```
 

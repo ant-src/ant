@@ -7,7 +7,8 @@
 func Net.close(l: Net.Listener): void
 ```
 
-Net.close closes l, so pending and later [`Net.accept`](accept.md) calls are Err. Connections it accepted stay open, and the address is free again. Closing it again does nothing.
+Net.close closes l, so pending and later [`Net.accept`](accept.md) calls are Err. Connections it
+accepted stay open, and the address is free again. Closing it again does nothing.
 
 <!-- end generated -->
 
@@ -19,8 +20,8 @@ Net.close closes l, so pending and later [`Net.accept`](accept.md) calls are Err
 - `Net.close` returns `void`, not a `Result`, so a deferred close discards no error, unlike
   `File.close`.
 - Closing a listener twice does nothing, so a deferred close can follow an explicit one.
-- Connections the listener accepted stay open until they are closed. The address is free again for
-  a later [Net.listen](listen.md), and [Net.address](address.md) still reports it.
+- Connections the listener accepted stay open until they are closed. The address is free again for a
+  later [Net.listen](listen.md), and [Net.address](address.md) still reports it.
 - `Http.serve` closes the listener when it returns, so a listener passed to it needs no close of its
   own. Closing the listener while `Http.serve` runs makes `Http.serve` return `Err`.
 
@@ -35,7 +36,7 @@ println(Net.accept(listener))
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 Close a listener with `defer`, right after opening it, so that every way out of the block closes it:
@@ -73,7 +74,7 @@ println(Channel.receive(accepted))
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ### A closed listener
@@ -89,8 +90,8 @@ println(listener.accept())
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ## Applications
@@ -126,7 +127,7 @@ println(Channel.receive(stopped))
 ```text
 hello, Ann
 hello, Bob
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ### Stop an HTTP server
@@ -144,7 +145,7 @@ println(Channel.receive(served))
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ## Properties and relations
@@ -175,7 +176,7 @@ go {
 }
 while true {
   let conn = Result.unwrap(listener.accept())
-  // panic: Result.unwrap on an Err: Error{ message: "the listener is closed" }
+  // panic: Result.unwrap on an Err: Error{ message: "the listener is closed", kind: null }
   _ = conn.close()
 }
 ```

@@ -114,7 +114,7 @@ let settings = Map{ host: "web" }
 
 ```ant
 parsePort(settings["port"] ?? "8080") // Ok{ value: 8080 }
-parsePort("80x")                      // Err{ error: Error{ message: "port 80x is not a number" } }
+parsePort("80x")                      // Err{ error: Error{ message: "port 80x is not a number", kind: null } }
 ```
 
 The missing `port` gets its default, and a `port` written as `80x` still fails.
@@ -162,7 +162,7 @@ println(total(["1", "two", "3"]))
 
 ```text
 Ok{ value: 6 }
-Err{ error: Error{ message: "two is not a number" } }
+Err{ error: Error{ message: "two is not a number", kind: null } }
 ```
 
 `Result.all` gives the first `Err`, or `Ok` of every value. `Array.map` runs `parse` on every
@@ -191,7 +191,7 @@ println(total(["1", "two", "x"]))
 ```
 
 ```text
-Err{ error: Error{ message: "two is not a number" } }
+Err{ error: Error{ message: "two is not a number", kind: null } }
 ```
 
 To report every failure instead of the first, keep the errors:
@@ -328,9 +328,9 @@ front of the message, joined by `: `, and leaves an `Ok` as it is:
 
 ```ant
 let e = Error{ message: "unexpected end" }
-Error.wrap(e, "parse app.json") // Error{ message: "parse app.json: unexpected end" }
+Error.wrap(e, "parse app.json") // Error{ message: "parse app.json: unexpected end", kind: null }
 let failed: Result[int, Error] = Result.err(e)
-failed | Result.wrapErr("load")          // Err{ error: Error{ message: "load: unexpected end" } }
+failed | Result.wrapErr("load")          // Err{ error: Error{ message: "load: unexpected end", kind: null } }
 Result.ok(8080) | Result.wrapErr("load") // Ok{ value: 8080 }
 ```
 
@@ -366,7 +366,7 @@ func parsePort(text: string): Result[int, Error] {
 let fallback = Result.unwrap(parsePort("8080"))
 println(fallback)
 let broken = Result.unwrap(parsePort("80x"))
-// panic: Result.unwrap on an Err: Error{ message: "port 80x is not a number" }
+// panic: Result.unwrap on an Err: Error{ message: "port 80x is not a number", kind: null }
 ```
 
 ```text
@@ -436,7 +436,7 @@ println(firstLine("missing.txt"))
 
 ```text
 Ok{ value: "Ann" }
-Err{ error: Error{ message: "open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Deferred blocks run in reverse order of registration, so resources are released in the reverse of

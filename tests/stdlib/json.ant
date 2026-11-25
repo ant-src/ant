@@ -13,16 +13,16 @@ func decodeServer(v: Json.Value, path: string): Result[Server, Error] {
   Result.ok(Server{ host: host, port: p })
 }
 Json.parse("{\"b\": 1, \"a\": [true, null, \"x\", 2.5], \"c\": {\"d\": {}}}") // => Ok{ value: Map{ "b": 1.0, "a": [true, null, "x", 2.5], "c": Map{ "d": Map{} } } }
-Json.parse("[1, 2")                           // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("[1, 2")                           // => Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
 Json.parse("{} extra") is Err                 // => true
 Json.parse("") is Err                         // => true
-Json.parse("\"abc")                            // => Err{ error: Error{ message: "unexpected end of JSON input" } }
-Json.parse("{\"a\":")                           // => Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("\"abc")                            // => Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
+Json.parse("{\"a\":")                           // => Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
 Json.parse("42")                              // => Ok{ value: 42.0 }
 var parsed = Json.parse("{\"host\": \"example.com\", \"port\": 8080}")
 decodeServer(Result.unwrap(parsed), "$")      // => Ok{ value: Server{ host: "example.com", port: 8080 } }
 var bad = Json.parse("{\"host\": \"example.com\", \"port\": 80.5}")
-decodeServer(Result.unwrap(bad), "$")         // => Err{ error: Error{ message: "$.port: not an integer" } }
+decodeServer(Result.unwrap(bad), "$")         // => Err{ error: Error{ message: "$.port: not an integer", kind: null } }
 Json.stringify(Server{ host: "h", port: 1 })  // => "{\"host\":\"h\",\"port\":1}"
 Json.stringify([1, "two", 3.5, null, true, Map{ k: [0] }]) // => "[1,\"two\",3.5,null,true,{\"k\":[0]}]"
 Json.stringify("quote \" and \n newline")     // => "\"quote \\\" and \\n newline\""

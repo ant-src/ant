@@ -160,7 +160,7 @@ println(pipe.read.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Ok{ value: "partial" }
 ```
 
@@ -191,7 +191,7 @@ println(sum(Os.stdin()))
 ```
 
 ```text
-Err{ error: Error{ message: "line 3: not a number: x" } }
+Err{ error: Error{ message: "line 3: not a number: x", kind: null } }
 ```
 
 Read `key=value` settings into a map, skipping blank lines and comments:
@@ -297,7 +297,7 @@ println(f.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 Ok{ value: "data" }
 ```
 
@@ -310,7 +310,7 @@ println(out.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for reading" } }
+Err{ error: Error{ message: "the file is not open for reading", kind: null } }
 ```
 
 ## See also

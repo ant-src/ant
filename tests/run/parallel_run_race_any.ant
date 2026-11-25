@@ -54,7 +54,7 @@ println(unrun)
 
 // expect
 // out: Loaded{ user: "ann", orders: [1, 2] }
-// out: Err{ error: Error{ message: "fast failure" } }
+// out: Err{ error: Error{ message: "fast failure", kind: null } }
 // out: cancelled
 // out: Ok{ value: "mirror" }
 // out: Err{ error: ["first", "second"] }

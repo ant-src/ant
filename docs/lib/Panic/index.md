@@ -268,7 +268,7 @@ func load(): Result[int, Error] {
   Result.ok(n)
 }
 
-load() // Err{ error: Error{ message: "division by zero" } }
+load() // Err{ error: Error{ message: "division by zero", kind: null } }
 ```
 
 A goroutine started inside the caught block panics on its own, so `Panic.catch` does not see its

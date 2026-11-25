@@ -160,7 +160,7 @@ println(r)
 ```
 
 ```text
-Err{ error: Error{ message: "link the latest log: symlink app.log logs/latest: no such file or directory" } }
+Err{ error: Error{ message: "link the latest log: symlink app.log logs/latest: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations
@@ -211,7 +211,7 @@ println(File.symlink("latest.pdf", "report.pdf"))
 ```
 
 ```text
-Err{ error: Error{ message: "symlink latest.pdf report.pdf: file exists" } }
+Err{ error: Error{ message: "symlink latest.pdf report.pdf: file exists", kind: Error.Exist{} } }
 ```
 
 A relative target is read from the link's directory, not from the working directory. A target
@@ -226,7 +226,7 @@ println(File.read("out/users.csv"))
 ```
 
 ```text
-Err{ error: Error{ message: "open out/users.csv: no such file or directory" } }
+Err{ error: Error{ message: "open out/users.csv: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 `File.symlink` does not replace a link. Remove the old one first, or use the rename above when the
@@ -241,7 +241,7 @@ println(File.readLink("previous"))
 ```
 
 ```text
-Err{ error: Error{ message: "symlink v2 previous: file exists" } }
+Err{ error: Error{ message: "symlink v2 previous: file exists", kind: Error.Exist{} } }
 Ok{ value: "v2" }
 ```
 

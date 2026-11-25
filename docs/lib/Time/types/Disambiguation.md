@@ -164,7 +164,7 @@ println(parseDisambiguation("first"))
 
 ```text
 Ok{ value: Time.Later{} }
-Err{ error: Error{ message: "unknown disambiguation first" } }
+Err{ error: Error{ message: "unknown disambiguation first", kind: null } }
 ```
 
 A night shift that ends at 01:30 on the night the clocks go back lasts four or five hours, depending
@@ -230,7 +230,7 @@ println(strict(Time.parsePlainDateTime("2026-11-01T12:00").unwrap(), ny))
 ```
 
 ```text
-Err{ error: Error{ message: "2026-11-01T01:30:00 is skipped or repeated in America/New_York" } }
+Err{ error: Error{ message: "2026-11-01T01:30:00 is skipped or repeated in America/New_York", kind: null } }
 Ok{ value: 2026-11-01T12:00:00-05:00[America/New_York] }
 ```
 

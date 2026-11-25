@@ -87,7 +87,7 @@ println(job.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Stop a background process on Ctrl-C

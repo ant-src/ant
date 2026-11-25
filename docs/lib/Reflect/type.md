@@ -174,7 +174,7 @@ println(asInt(Reflect.valueOf(type(int | string), "3")))
 
 ```text
 Ok{ value: 3 }
-Err{ error: Error{ message: "want int, got string" } }
+Err{ error: Error{ message: "want int, got string", kind: null } }
 ```
 
 ## Properties and relations

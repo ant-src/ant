@@ -98,7 +98,7 @@ println(dataDir("data"))
 
 ```text
 Ok{ value: "/srv/data" }
-Err{ error: Error{ message: "data dir must be absolute, got data" } }
+Err{ error: Error{ message: "data dir must be absolute, got data", kind: null } }
 ```
 
 ## Properties and relations

@@ -189,7 +189,7 @@ println(configs.map(Json.parse) | Result.all() | Result.wrapErr("load configs"))
 ```
 
 ```text
-Err{ error: Error{ message: "load configs: unexpected end of JSON input" } }
+Err{ error: Error{ message: "load configs: unexpected end of JSON input", kind: null } }
 ```
 
 ## Properties and relations

@@ -10,5 +10,5 @@ println(Net.accept(l))
 File.close(c)
 
 // expect
-// out: Err{ error: Error{ message: "timeout" } }
-// out: Err{ error: Error{ message: "the listener is closed" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
+// out: Err{ error: Error{ message: "the listener is closed", kind: null } }

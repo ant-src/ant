@@ -7,8 +7,8 @@
 func Error.wrap(e: Error, context: string): Error
 ```
 
-Error.wrap returns a new Error whose message is context, ": ", and the message of e, leaving e
-untouched. An empty context is joined like any other.
+Error.wrap returns a new Error whose message is context, ": ", and the message of e, and whose kind
+is e's, leaving e untouched. An empty context is joined like any other.
 
 <!-- end generated -->
 
@@ -22,7 +22,7 @@ Put the operation in front of the message:
 
 ```ant
 let e = Error{ message: "no such file" }
-Error.wrap(e, "load config") // Error{ message: "load config: no such file" }
+Error.wrap(e, "load config") // Error{ message: "load config: no such file", kind: null }
 ```
 
 Read the joined message:
@@ -38,26 +38,26 @@ Each wrap adds one more context in front, so the outermost caller reads first:
 
 ```ant
 let e = Error{ message: "timeout" }
-e | Error.wrap("fetch user") | Error.wrap("render page") // Error{ message: "render page: fetch user: timeout" }
+e | Error.wrap("fetch user") | Error.wrap("render page") // Error{ message: "render page: fetch user: timeout", kind: null }
 ```
 
 An empty context still adds the separator:
 
 ```ant
-Error.wrap(Error{ message: "timeout" }, "") // Error{ message: ": timeout" }
+Error.wrap(Error{ message: "timeout" }, "") // Error{ message: ": timeout", kind: null }
 ```
 
 An empty message keeps the separator too:
 
 ```ant
-Error.wrap(Error{ message: "" }, "fetch") // Error{ message: "fetch: " }
+Error.wrap(Error{ message: "" }, "fetch") // Error{ message: "fetch: ", kind: null }
 ```
 
 Call it through `.`:
 
 ```ant
 let e = Error{ message: "refused" }
-e.wrap("connect") // Error{ message: "connect: refused" }
+e.wrap("connect") // Error{ message: "connect: refused", kind: null }
 ```
 
 ## Applications
@@ -130,7 +130,7 @@ Wrapping leaves the original error as it was:
 ```ant
 let e = Error{ message: "timeout" }
 let wrapped = e.wrap("fetch")
-e // Error{ message: "timeout" }
+e // Error{ message: "timeout", kind: null }
 ```
 
 ## Possible issues
@@ -156,7 +156,7 @@ Record.same(e.wrap("fetch"), e) // false
 `Error.wrap` adds `: ` itself, so a context that ends in a colon gets two:
 
 ```ant
-Error.wrap(Error{ message: "no such file" }, "failed to load config:") // Error{ message: "failed to load config:: no such file" }
+Error.wrap(Error{ message: "no such file" }, "failed to load config:") // Error{ message: "failed to load config:: no such file", kind: null }
 ```
 
 Name the operation and its argument in lowercase, with no trailing punctuation: `load config`.

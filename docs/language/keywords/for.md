@@ -369,7 +369,7 @@ println(parseAll(["1", "x", "3"]))
 
 ```text
 Ok{ value: [1, 2, 3] }
-Err{ error: Error{ message: "line 2: not a number: x" } }
+Err{ error: Error{ message: "line 2: not a number: x", kind: null } }
 ```
 
 Build a map of counts, updating one entry per element:

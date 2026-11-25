@@ -60,8 +60,8 @@ println(File.remove("missing.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "remove build: directory not empty" } }
-Err{ error: Error{ message: "remove missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "remove build: directory not empty", kind: Error.Exist{} } }
+Err{ error: Error{ message: "remove missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 A symbolic link is removed itself, and its target stays. A dangling link is removed the same way:
@@ -187,7 +187,7 @@ println(File.removeAll("out"))
 ```
 
 ```text
-Err{ error: Error{ message: "remove out: directory not empty" } }
+Err{ error: Error{ message: "remove out: directory not empty", kind: Error.Exist{} } }
 Ok{ value: void }
 ```
 

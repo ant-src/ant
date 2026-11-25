@@ -12,6 +12,6 @@ println(plus())
 println(plus(1))
 
 // expect
-// out: Err{ error: Error{ message: "no default" } }
+// out: Err{ error: Error{ message: "no default", kind: null } }
 // out: body runs
 // out: Ok{ value: 101 }

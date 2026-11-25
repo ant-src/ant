@@ -151,7 +151,7 @@ println(pipe.read.readAll())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Ok{ value: "first part, second part" }
 ```
 
@@ -171,7 +171,7 @@ println(f.readAll(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -293,7 +293,7 @@ println(pipe.read.readAll(ctx: Context.new(50ms)))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A handle from [`File.create`](create.md) or [`File.append`](append.md) is for writing, and a closed
@@ -309,8 +309,8 @@ println(f.readAll())
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for reading" } }
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is not open for reading", kind: null } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 ```
 
 ## See also

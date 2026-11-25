@@ -23,8 +23,8 @@ _ = Channel.send(timedOut, true)
 println(File.readAll(c))
 
 // expect
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: "hello" }
 // out: Ok{ value: "second" }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: "abcdef" }

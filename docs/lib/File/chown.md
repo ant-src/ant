@@ -67,7 +67,7 @@ println(File.chown("absent.txt", -1, -1))
 
 ```text
 Ok{ value: void }
-Err{ error: Error{ message: "chown absent.txt: no such file or directory" } }
+Err{ error: Error{ message: "chown absent.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Named arguments
@@ -83,7 +83,7 @@ println(File.chown("current", -1, -1, follow: false))
 ```
 
 ```text
-Err{ error: Error{ message: "chown current: no such file or directory" } }
+Err{ error: Error{ message: "chown current: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: void }
 ```
 
@@ -146,7 +146,7 @@ println(r)
 ```
 
 ```text
-Err{ error: Error{ message: "hand the log to deploy: chown deploy.log: no such file or directory" } }
+Err{ error: Error{ message: "hand the log to deploy: chown deploy.log: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations

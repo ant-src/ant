@@ -137,7 +137,7 @@ println(result)
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context that is already done starts nothing:
@@ -149,7 +149,7 @@ println(Cmd.new("echo", ["never printed"]).run(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications

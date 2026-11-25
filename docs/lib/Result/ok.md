@@ -110,7 +110,7 @@ func validate(s: Signup): Result[Signup, Error] {
 }
 
 validate(Signup{ name: "Ann", age: 31 }) // Ok{ value: Signup{ name: "Ann", age: 31 } }
-validate(Signup{ name: "", age: 31 })    // Err{ error: Error{ message: "name is empty" } }
+validate(Signup{ name: "", age: 31 })    // Err{ error: Error{ message: "name is empty", kind: null } }
 ```
 
 Wrap the total at the end of a loop that returns early on bad input:

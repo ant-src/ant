@@ -7,7 +7,10 @@
 func Url.parseQuery(query: string): Result[Map[string, Array[string]], Error]
 ```
 
-Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as [`Url.unescape`](unescape.md) does. Keys are in order of first appearance, each with its values in order, and a key without = has the value "". A pair splits at its first =, and an empty pair is skipped. It is Err where [`Url.unescape`](unescape.md) is.
+Url.parseQuery parses query, k=v pairs joined by &, decoding each key and value as
+[`Url.unescape`](unescape.md) does. Keys are in order of first appearance, each with its values in
+order, and a key without = has the value "". A pair splits at its first =, and an empty pair is
+skipped. It is Err where [`Url.unescape`](unescape.md) is.
 
 <!-- end generated -->
 
@@ -73,8 +76,8 @@ params["b"]   // ["1", "3"]
 A bad escape is `Err`:
 
 ```ant
-Url.parseQuery("a=%zz") // Err{ error: Error{ message: "invalid URL escape \"%zz\"" } }
-Url.parseQuery("a=%FF") // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.parseQuery("a=%zz") // Err{ error: Error{ message: "invalid URL escape \"%zz\"", kind: null } }
+Url.parseQuery("a=%FF") // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text", kind: null } }
 ```
 
 The query of a parsed URL is raw, ready for `parseQuery`:
@@ -129,8 +132,8 @@ println(pageNumber("page=%zz"))
 ```text
 Ok{ value: 3 }
 Ok{ value: 1 }
-Err{ error: Error{ message: "page two is not a number" } }
-Err{ error: Error{ message: "query: invalid URL escape \"%zz\"" } }
+Err{ error: Error{ message: "page two is not a number", kind: null } }
+Err{ error: Error{ message: "query: invalid URL escape \"%zz\"", kind: null } }
 ```
 
 Collect a repeated filter, such as checkboxes in a search form:

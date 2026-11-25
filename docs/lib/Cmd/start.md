@@ -262,7 +262,7 @@ println(child.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context already done starts nothing:
@@ -274,7 +274,7 @@ println(Cmd.start(Cmd.new("echo", ["never"]), ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -385,7 +385,7 @@ try out.write.close()
 
 ```text
 0
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A program that is not found is `Err`, and nothing is started:
@@ -395,7 +395,7 @@ println(Cmd.start(Cmd.new("no-such-program")))
 ```
 
 ```text
-Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH" } }
+Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH", kind: null } }
 ```
 
 ## See also

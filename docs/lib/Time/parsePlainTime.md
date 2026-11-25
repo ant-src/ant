@@ -33,7 +33,7 @@ Time.parsePlainTime("09:30")    // Ok{ value: 09:30:00 }
 Text that is not a time is an `Err`:
 
 ```ant
-Time.parsePlainTime("noon") // Err{ error: Error{ message: "not a date or time: \"noon\"" } }
+Time.parsePlainTime("noon") // Err{ error: Error{ message: "not a date or time: \"noon\"", kind: null } }
 ```
 
 ## Scope
@@ -93,8 +93,8 @@ println(parseHours("9 to 5"))
 
 ```text
 Ok{ value: Hours{ open: 09:00:00, close: 17:30:00 } }
-Err{ error: Error{ message: "closing time: hour out of range: 25" } }
-Err{ error: Error{ message: "want open-close, got 9 to 5" } }
+Err{ error: Error{ message: "closing time: hour out of range: 25", kind: null } }
+Err{ error: Error{ message: "want open-close, got 9 to 5", kind: null } }
 ```
 
 Sort the times of a schedule written as text:
@@ -171,14 +171,14 @@ assert(t.millisecond() == 123 && t.microsecond() == 456 && t.nanosecond() == 789
 Each field takes exactly two digits, so a single-digit hour is an `Err`:
 
 ```ant
-Time.parsePlainTime("9:15")  // Err{ error: Error{ message: "not a date or time: \"9:15\"" } }
+Time.parsePlainTime("9:15")  // Err{ error: Error{ message: "not a date or time: \"9:15\"", kind: null } }
 Time.parsePlainTime("09:15") // Ok{ value: 09:15:00 }
 ```
 
 The parser does not trim spaces, so trim the input first:
 
 ```ant
-Time.parsePlainTime(" 14:03")        // Err{ error: Error{ message: "not a date or time: \" 14:03\"" } }
+Time.parsePlainTime(" 14:03")        // Err{ error: Error{ message: "not a date or time: \" 14:03\"", kind: null } }
 Time.parsePlainTime(" 14:03".trim()) // Ok{ value: 14:03:00 }
 ```
 
@@ -192,14 +192,14 @@ let t = "18:45".parsePlainTime() // error: string has no field or function parse
 Midnight is `00:00`. An hour of 24 and a leap second are out of range:
 
 ```ant
-Time.parsePlainTime("24:00")    // Err{ error: Error{ message: "hour out of range: 24" } }
-Time.parsePlainTime("23:59:60") // Err{ error: Error{ message: "second out of range: 60" } }
+Time.parsePlainTime("24:00")    // Err{ error: Error{ message: "hour out of range: 24", kind: null } }
+Time.parsePlainTime("23:59:60") // Err{ error: Error{ message: "second out of range: 60", kind: null } }
 ```
 
 A string with `Z` and no bracketed zone names a moment, not a wall-clock time, so it is an `Err`:
 
 ```ant
-Time.parsePlainTime("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainTime("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time", kind: null } }
 ```
 
 Parse it with [Time.parseInstant](parseInstant.md) and put it in a zone to read its time there:
@@ -212,7 +212,7 @@ instant.inZone(Time.utc).toPlainTime() // 14:03:05
 The date before the time must exist, though the result has no date:
 
 ```ant
-Time.parsePlainTime("2026-02-30T10:00") // Err{ error: Error{ message: "no such date: 2026-02-30" } }
+Time.parsePlainTime("2026-02-30T10:00") // Err{ error: Error{ message: "no such date: 2026-02-30", kind: null } }
 ```
 
 A date alone, a time with `T` in front, more than nine digits of fraction, a comma before the

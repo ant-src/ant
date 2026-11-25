@@ -183,7 +183,7 @@ println(File.removeAll("logs"))
 ```
 
 ```text
-Err{ error: Error{ message: "remove logs: directory not empty" } }
+Err{ error: Error{ message: "remove logs: directory not empty", kind: Error.Exist{} } }
 Ok{ value: void }
 ```
 

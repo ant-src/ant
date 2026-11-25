@@ -424,7 +424,7 @@ println(Http.serve(listener, { Http.Reply{ status: 204, headers: Map{}, body: ""
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ## Possible issues
@@ -491,7 +491,7 @@ println(served.receive())
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ## See also

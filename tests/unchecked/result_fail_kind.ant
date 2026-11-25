@@ -5,6 +5,6 @@ println(Result.fail("no such file"))
 println(Result.fail(404))
 
 // expect
-// out: Err{ error: Error{ message: "no such file" } }
+// out: Err{ error: Error{ message: "no such file", kind: null } }
 // exit: 1
 // err: Result.fail needs a string, got int

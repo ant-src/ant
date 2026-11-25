@@ -272,7 +272,7 @@ println(pipe.write.writeLine("late"))
 ```
 
 ```text
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 ```
 
 A literal that takes its ends from two pipes is not connected: what is written to its `write` goes
@@ -292,7 +292,7 @@ println(try b.read.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 hello
 ```
 

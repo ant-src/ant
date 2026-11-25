@@ -90,7 +90,7 @@ println(Http.get("http://127.0.0.1:1/"))
 ```
 
 ```text
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": connection refused" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": connection refused", kind: null } }
 ```
 
 ## Scope
@@ -268,7 +268,7 @@ println(Http.get("example.com/index.html"))
 ```
 
 ```text
-Err{ error: Error{ message: "get \"example.com/index.html\": unsupported protocol scheme \"\"" } }
+Err{ error: Error{ message: "get \"example.com/index.html\": unsupported protocol scheme \"\"", kind: null } }
 ```
 
 ## Named arguments
@@ -348,7 +348,7 @@ println(Http.get("${base}/slow", timeout: 5s).map({ x.text() }))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Ok{ value: "done" }
 ```
 
@@ -392,7 +392,7 @@ println(Http.get("${base}/slow", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 When both are given, the earlier bound wins:
@@ -428,7 +428,7 @@ println(Http.get("${base}/slow", timeout: 100ms, ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Applications
@@ -532,7 +532,7 @@ println(getFollowing("/loop", 5))
 
 ```text
 Hello, Ant
-Err{ error: Error{ message: "get /loop: more than 5 redirects" } }
+Err{ error: Error{ message: "get /loop: more than 5 redirects", kind: null } }
 ```
 
 ### Fetch several pages at once
@@ -690,7 +690,7 @@ println(Json.parse(response.text()))
 ```
 
 ```text
-Err{ error: Error{ message: "expected \"null\", found 'o' at line 1, column 2" } }
+Err{ error: Error{ message: "expected \"null\", found 'o' at line 1, column 2", kind: null } }
 ```
 
 Check `status` before reading the body, as [Fetch JSON](#fetch-json) does.
@@ -731,7 +731,7 @@ println(Http.get("${base}/slow", timeout: 100ms) | Result.wrapErr("get /slow"))
 ```
 
 ```text
-Err{ error: Error{ message: "get /slow: timeout" } }
+Err{ error: Error{ message: "get /slow: timeout", kind: null } }
 ```
 
 ### A timeout in weeks
@@ -745,8 +745,8 @@ println(Http.get("http://127.0.0.1:1/", timeout: 0s))
 ```
 
 ```text
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length", kind: null } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative", kind: null } }
 ```
 
 ### Header names that differ only in case
@@ -759,7 +759,7 @@ println(Http.get("http://127.0.0.1:1/", headers: Map{ "Accept": "text/html", "ac
 ```
 
 ```text
-Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
+Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case", kind: null } }
 ```
 
 ### The result is a Result

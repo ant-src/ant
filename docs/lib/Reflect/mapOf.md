@@ -98,7 +98,7 @@ println(decodeTable(`{"on": true}`, type(bool)))
 ```text
 Ok{ value: Map{ "apples": 3, "pears": 5 } }
 Ok{ value: Map{ "apples": 3.0, "pears": 5.0 } }
-Err{ error: Error{ message: "apples does not fit int" } }
+Err{ error: Error{ message: "apples does not fit int", kind: null } }
 Ok{ value: Map{ "on": true } }
 ```
 

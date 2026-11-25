@@ -50,7 +50,7 @@ println(File.copy("missing.txt", "copy.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "stat missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "stat missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -118,7 +118,7 @@ println(File.copy("/dev/zero", "zeros"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy /dev/zero: not a regular file" } }
+Err{ error: Error{ message: "copy /dev/zero: not a regular file", kind: null } }
 ```
 
 ## Named arguments
@@ -136,7 +136,7 @@ print(try File.read("keep.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open keep.txt: file exists" } }
+Err{ error: Error{ message: "open keep.txt: file exists", kind: Error.Exist{} } }
 first
 ```
 
@@ -153,8 +153,8 @@ println(File.exists("elsewhere.html"))
 ```
 
 ```text
-Err{ error: Error{ message: "open public: file exists" } }
-Err{ error: Error{ message: "open planted: file exists" } }
+Err{ error: Error{ message: "open public: file exists", kind: Error.Exist{} } }
+Err{ error: Error{ message: "open planted: file exists", kind: Error.Exist{} } }
 false
 ```
 
@@ -180,7 +180,7 @@ println(copyNew("missing.txt", "other.txt"))
 ```text
 true
 false
-Err{ error: Error{ message: "stat missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "stat missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Applications
@@ -218,7 +218,7 @@ print(try File.read("hosts.orig"))
 ```
 
 ```text
-Err{ error: Error{ message: "back up hosts: open hosts.orig: file exists" } }
+Err{ error: Error{ message: "back up hosts: open hosts.orig: file exists", kind: Error.Exist{} } }
 127.0.0.1 localhost
 ```
 
@@ -296,7 +296,7 @@ println(File.copy("photo.jpg", "album"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy photo.jpg to album: album is a directory" } }
+Err{ error: Error{ message: "copy photo.jpg to album: album is a directory", kind: null } }
 ```
 
 A directory at `from` is an `Err`; [File.copyAll](copyAll.md) copies a tree:
@@ -307,7 +307,7 @@ println(File.copy("src", "src-copy"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy src: is a directory; File.copyAll copies a tree" } }
+Err{ error: Error{ message: "copy src: is a directory; File.copyAll copies a tree", kind: null } }
 ```
 
 `File.copy` does not create missing parent directories. Make them with [File.mkdir](mkdir.md) first:
@@ -318,7 +318,7 @@ println(File.copy("a.txt", "out/a.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open out/a.txt: no such file or directory" } }
+Err{ error: Error{ message: "open out/a.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Copying a file onto itself is an `Err` and leaves the file as it was, whatever path names it:
@@ -332,8 +332,8 @@ print(try File.read("data.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy data.txt to ./data.txt: the same file" } }
-Err{ error: Error{ message: "copy data.txt to alias: the same file" } }
+Err{ error: Error{ message: "copy data.txt to ./data.txt: the same file", kind: null } }
+Err{ error: Error{ message: "copy data.txt to alias: the same file", kind: null } }
 keep me
 ```
 

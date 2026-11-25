@@ -39,7 +39,7 @@ Regex.compile("ant", "i") // Ok{ value: /ant/i }
 Bad syntax gives an `Err`, not a panic:
 
 ```ant
-Regex.compile("(ab") // Err{ error: Error{ message: "invalid regular expression: missing closing ): `(ab`" } }
+Regex.compile("(ab") // Err{ error: Error{ message: "invalid regular expression: missing closing ): `(ab`", kind: null } }
 ```
 
 ## Scope
@@ -232,7 +232,7 @@ or check the `Result`:
 
 ```ant
 Regex.compile("[a-") | Result.unwrap()
-// panic: Result.unwrap on an Err: Error{ message: "invalid regular expression: missing closing ]: `[a-`" }
+// panic: Result.unwrap on an Err: Error{ message: "invalid regular expression: missing closing ]: `[a-`", kind: null }
 ```
 
 A source fixed in the program is better written as a literal: `ant check` reports its syntax error,

@@ -142,7 +142,7 @@ println(decode(type(Server), `{"host": "example.com", "port": "http"}`))
 
 ```text
 Ok{ value: Server{ host: "example.com", port: 9000, debug: false } }
-Err{ error: Error{ message: "port: expected int" } }
+Err{ error: Error{ message: "port: expected int", kind: null } }
 ```
 
 List the fields of a record that differ from their defaults, as an encoder that leaves out default

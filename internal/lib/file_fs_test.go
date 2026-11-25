@@ -107,7 +107,7 @@ func TestCopyAllUnderLinkedWorkingDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(filepath.Join(root, "via"))
-	want := `Err{ error: Error{ message: "copy site to site/backup: site/backup lies inside site" } }`
+	want := `Err{ error: Error{ message: "copy site to site/backup: site/backup lies inside site", kind: null } }`
 	if r := value.Render(copyAll("site", "site/backup")); r != want {
 		t.Fatalf("copyAll = %s; want %s", r, want)
 	}

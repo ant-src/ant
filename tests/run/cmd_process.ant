@@ -100,8 +100,8 @@ println(File.readLine(given.read, ctx: Context.new(timeout: Time.duration(second
 // out: true
 // out: Ok{ value: "a\n" }
 // out: Ok{ value: "crlf" }
-// out: Err{ error: Error{ message: "sh: exit status 2: broke" } }
-// out: Err{ error: Error{ message: "sh: exit status 4" } }
+// out: Err{ error: Error{ message: "sh: exit status 2: broke", kind: null } }
+// out: Err{ error: Error{ message: "sh: exit status 4", kind: null } }
 // out: Ok{ value: "fed" }
 // out: true
 // out: null
@@ -117,17 +117,17 @@ println(File.readLine(given.read, ctx: Context.new(timeout: Time.duration(second
 // out: Ok{ value: "body\n" }
 // out: Ok{ value: 0 }
 // out: true
-// out: Err{ error: Error{ message: "unknown signal SIGNOPE" } }
+// out: Err{ error: Error{ message: "unknown signal SIGNOPE", kind: null } }
 // out: Ok{ value: 143 }
 // out: Ok{ value: void }
 // out: Ok{ value: 137 }
 // out: Ok{ value: void }
 // out: Ok{ value: 130 }
-// out: Err{ error: Error{ message: "timeout" } }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: 143 }
 // out: Ok{ value: 0 }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: "a" }
 // out: Ok{ value: 0 }
 // out: Ok{ value: "c" }

@@ -23,4 +23,4 @@ println(Net.accept(l))
 // expect
 // out: short: timeout
 // out: long: connection
-// out: Err{ error: Error{ message: "the listener is closed" } }
+// out: Err{ error: Error{ message: "the listener is closed", kind: null } }

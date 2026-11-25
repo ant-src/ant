@@ -50,7 +50,7 @@ println(File.open("missing.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -136,7 +136,7 @@ println(countLines("nope.txt"))
 
 ```text
 Ok{ value: 3 }
-Err{ error: Error{ message: "count lines: open nope.txt: no such file or directory" } }
+Err{ error: Error{ message: "count lines: open nope.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Copy a file to standard output, as `cat` does, with [File.pipe](pipe.md):
@@ -229,7 +229,7 @@ println(f.writeLine("more"))
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for writing" } }
+Err{ error: Error{ message: "the file is not open for writing", kind: null } }
 ```
 
 ## See also

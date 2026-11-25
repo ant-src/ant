@@ -38,7 +38,7 @@ println(sum("2", "forty"))
 
 ```text
 Ok{ value: 42 }
-Err{ error: Error{ message: "not a number: forty" } }
+Err{ error: Error{ message: "not a number: forty", kind: null } }
 ```
 
 Unwrap the result of a library call:
@@ -101,7 +101,7 @@ println(loadPort("db.conf", "five"))
 
 ```text
 Ok{ value: "web.conf listens on 8080" }
-Err{ error: Error{ message: "load db.conf: not a number: five" } }
+Err{ error: Error{ message: "load db.conf: not a number: five", kind: null } }
 ```
 
 ### A whole pipeline
@@ -126,7 +126,7 @@ println(total(["1", "two", "3"]))
 
 ```text
 Ok{ value: 6 }
-Err{ error: Error{ message: "not a number: two" } }
+Err{ error: Error{ message: "not a number: two", kind: null } }
 ```
 
 ### In a lambda
@@ -145,7 +145,7 @@ println(doubled)
 ```
 
 ```text
-[Ok{ value: 8 }, Err{ error: Error{ message: "not a number: x" } }, Ok{ value: 20 }]
+[Ok{ value: 8 }, Err{ error: Error{ message: "not a number: x", kind: null } }, Ok{ value: 20 }]
 ```
 
 ### Error unions
@@ -184,7 +184,7 @@ println(register("Ann", "old"))
 Ok{ value: "Ann (31)" }
 Err{ error: EmptyInput{} }
 Err{ error: TooLong{ length: 11 } }
-Err{ error: Error{ message: "bad age: old" } }
+Err{ error: Error{ message: "bad age: old", kind: null } }
 ```
 
 ### A function that may return `null`
@@ -212,7 +212,7 @@ println(half("eight"))
 ```text
 null
 Ok{ value: 4 }
-Err{ error: Error{ message: "not a number: eight" } }
+Err{ error: Error{ message: "not a number: eight", kind: null } }
 ```
 
 ### Nested results
@@ -233,7 +233,7 @@ println(unwrapOnce())
 ```
 
 ```text
-Ok{ value: "got Err{ error: Error{ message: \"inner failure\" } }" }
+Ok{ value: "got Err{ error: Error{ message: \"inner failure\", kind: null } }" }
 ```
 
 ## Applications
@@ -292,7 +292,7 @@ println(parseAll("width=80\nheight"))
 
 ```text
 Ok{ value: Map{ "width": 80, "height": 24 } }
-Err{ error: Error{ message: "line \"height\": expected key=value" } }
+Err{ error: Error{ message: "line \"height\": expected key=value", kind: null } }
 ```
 
 ## Properties and relations
@@ -375,7 +375,7 @@ println(price())
 ```
 
 ```text
-Err{ error: Error{ message: "no price for tea" } }
+Err{ error: Error{ message: "no price for tea", kind: null } }
 ```
 
 ### `try` binds before a pipe

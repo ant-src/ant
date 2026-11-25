@@ -29,7 +29,7 @@ Time.parseInstant("2026-10-22T16:03:05+02:00") // Ok{ value: 2026-10-22T14:03:05
 Text it cannot parse is an `Err` with a message:
 
 ```ant
-Time.parseInstant("yesterday") // Err{ error: Error{ message: "not a date or time: \"yesterday\"" } }
+Time.parseInstant("yesterday") // Err{ error: Error{ message: "not a date or time: \"yesterday\"", kind: null } }
 ```
 
 ## Scope
@@ -112,7 +112,7 @@ println(elapsed(["2026-10-22T14:03:05Z", "2026-10-22T14:05:35"]))
 
 ```text
 Ok{ value: PT150.5S }
-Err{ error: Error{ message: "last line: an instant needs a date, a time and an offset: \"2026-10-22T14:05:35\"" } }
+Err{ error: Error{ message: "last line: an instant needs a date, a time and an offset: \"2026-10-22T14:05:35\"", kind: null } }
 ```
 
 Order timestamps written with different offsets by the moment they name. Sorting the strings would
@@ -180,8 +180,8 @@ Text without an offset is a wall-clock time, not a moment, and is an `Err`. Pars
 [Time.toZoned](toZoned.md):
 
 ```ant
-Time.parseInstant("2026-10-22T14:03:05") // Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22T14:03:05\"" } }
-Time.parseInstant("2026-10-22")          // Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22\"" } }
+Time.parseInstant("2026-10-22T14:03:05") // Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22T14:03:05\"", kind: null } }
+Time.parseInstant("2026-10-22")          // Err{ error: Error{ message: "an instant needs a date, a time and an offset: \"2026-10-22\"", kind: null } }
 ```
 
 Spellings that other ISO 8601 parsers accept are an `Err`: a lowercase `z`, a comma before the
@@ -203,8 +203,8 @@ Trim text from a file or a form first:
 A field out of range is an `Err`, and so is a leap second:
 
 ```ant
-Time.parseInstant("2026-02-30T00:00:00Z") // Err{ error: Error{ message: "no such date: 2026-02-30" } }
-Time.parseInstant("2026-12-31T23:59:60Z") // Err{ error: Error{ message: "second out of range: 60" } }
+Time.parseInstant("2026-02-30T00:00:00Z") // Err{ error: Error{ message: "no such date: 2026-02-30", kind: null } }
+Time.parseInstant("2026-12-31T23:59:60Z") // Err{ error: Error{ message: "second out of range: 60", kind: null } }
 ```
 
 The zone name in brackets is not looked up, so it does not confirm the offset. A zone that disagrees

@@ -38,7 +38,8 @@
 //	Set[T]                      *value.Set    (value.NewSet, Has, Add, Remove, Values)
 //	a record                    *value.Record (value.NewRecord with its *value.Tag, Field, SetField)
 //	a named primitive type      *value.Tagged (Tag and Payload)
-//	Result[T, E], Error         records built by value.Ok, value.Err, and value.ErrorValue
+//	Result[T, E], Error         records built by value.Ok, value.Err, and value.ErrorValue or,
+//	                            from a Go error and with its kind, value.ErrorOf
 //	Entry[K, V], Indexed[T]     records built by value.Entry and value.Indexed
 //	a function                  an opaque value.Callable: pass it back to Func.Call or Runtime.Call
 //	a type                      *value.Tag, from Instance.Value("Name"), Runtime.Tag or Program.Tag

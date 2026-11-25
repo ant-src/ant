@@ -29,7 +29,7 @@ Look up a zone of the IANA database by name with [Time.zone](../zone.md):
 
 ```ant
 Time.zone("Europe/Stockholm") // Ok{ value: Europe/Stockholm }
-Time.zone("Mars/Olympus")     // Err{ error: Error{ message: "unknown time zone \"Mars/Olympus\"" } }
+Time.zone("Mars/Olympus")     // Err{ error: Error{ message: "unknown time zone \"Mars/Olympus\"", kind: null } }
 ```
 
 Make a fixed-offset zone from an offset:
@@ -67,7 +67,7 @@ as the database spells the name, and an offset always as `±HH:MM`:
 Time.zone("europe/stockholm") // Ok{ value: Europe/Stockholm }
 Time.zone("+0530")            // Ok{ value: +05:30 }
 Time.zone("-03")              // Ok{ value: -03:00 }
-Time.zone("")                 // Err{ error: Error{ message: "unknown time zone \"\"" } }
+Time.zone("")                 // Err{ error: Error{ message: "unknown time zone \"\"", kind: null } }
 ```
 
 `Time.utc` is the named zone UTC:
@@ -168,7 +168,7 @@ println(parseSettings(Map{ zone: "CEST" }))
 ```text
 Ok{ value: Settings{ zone: Europe/Stockholm } }
 Ok{ value: Settings{ zone: UTC } }
-Err{ error: Error{ message: "setting zone: unknown time zone \"CEST\"" } }
+Err{ error: Error{ message: "setting zone: unknown time zone \"CEST\"", kind: null } }
 ```
 
 ## Properties and relations
@@ -211,7 +211,7 @@ let b: Time.Zone = "Europe/Stockholm" // error: cannot use string where Time.Zon
 An abbreviation such as `CEST` is not a name of the database; write the full name, or an offset:
 
 ```ant
-Time.zone("CEST") // Err{ error: Error{ message: "unknown time zone \"CEST\"" } }
+Time.zone("CEST") // Err{ error: Error{ message: "unknown time zone \"CEST\"", kind: null } }
 ```
 
 Two named zones with the same rules today are still different zones:

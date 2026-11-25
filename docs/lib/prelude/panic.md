@@ -305,7 +305,7 @@ println(port("80x"))
 ```
 
 ```text
-Err{ error: Error{ message: "not a port: 80x" } }
+Err{ error: Error{ message: "not a port: 80x", kind: null } }
 ```
 
 Catching a panic does not undo what ran before it. Data the code changed stays changed:

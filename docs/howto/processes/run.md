@@ -50,7 +50,7 @@ println(saved)
 ```
 
 ```text
-Err{ error: Error{ message: "save report: sh: exit status 3: disk full" } }
+Err{ error: Error{ message: "save report: sh: exit status 3: disk full", kind: null } }
 ```
 
 With `try`, a script stops there, writes the message to standard error, and exits with status 1:
@@ -153,7 +153,7 @@ println(Cmd.read(Cmd.new("sleep", ["5"]), ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 [Stop or time out a process](stop.md) shows more.

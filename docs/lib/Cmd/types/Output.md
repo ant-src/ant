@@ -203,7 +203,7 @@ println(step("lint", "echo 'main.ant:3: unused variable' >&2; exit 1"))
 
 ```text
 Ok{ value: "1.4.2" }
-Err{ error: Error{ message: "lint failed with status 1: main.ant:3: unused variable" } }
+Err{ error: Error{ message: "lint failed with status 1: main.ant:3: unused variable", kind: null } }
 ```
 
 Find which stage of a pipeline failed:

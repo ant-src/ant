@@ -41,7 +41,7 @@ println(File.writeBytes("missing/out.bin", Bytes.fromArray([1])))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing/out.bin: no such file or directory" } }
+Err{ error: Error{ message: "open missing/out.bin: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -89,7 +89,7 @@ println(File.writeBytes("out", Bytes.fromArray([1])))
 ```
 
 ```text
-Err{ error: Error{ message: "open out: is a directory" } }
+Err{ error: Error{ message: "open out: is a directory", kind: null } }
 ```
 
 ## Named arguments
@@ -109,7 +109,7 @@ println(File.readBytes("once.bin"))
 
 ```text
 Ok{ value: void }
-Err{ error: Error{ message: "open once.bin: file exists" } }
+Err{ error: Error{ message: "open once.bin: file exists", kind: Error.Exist{} } }
 Ok{ value: Bytes(01 02) }
 ```
 
@@ -131,7 +131,7 @@ println(savePayload("bad.bin", "not base64!"))
 ```text
 Ok{ value: void }
 Ok{ value: Bytes(47 49 46 38 39 61) }
-Err{ error: Error{ message: "decode bad.bin: illegal base64 data at input byte 3" } }
+Err{ error: Error{ message: "decode bad.bin: illegal base64 data at input byte 3", kind: null } }
 ```
 
 Write a small binary header: a magic number, a version byte, and a count:
@@ -187,7 +187,7 @@ println(ensureKey("nope/secret.key"))
 ```text
 32
 true
-Err{ error: Error{ message: "open nope/secret.key: no such file or directory" } }
+Err{ error: Error{ message: "open nope/secret.key: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations
@@ -245,7 +245,7 @@ println(save("nowhere/out.bin", Bytes.fromArray([1])))
 ```
 
 ```text
-Err{ error: Error{ message: "open nowhere/out.bin: no such file or directory" } }
+Err{ error: Error{ message: "open nowhere/out.bin: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 A reader can see the file half-written while `File.writeBytes` replaces it. To replace a file in one

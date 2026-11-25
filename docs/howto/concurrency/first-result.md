@@ -156,7 +156,7 @@ println(firstOk)
 ```
 
 ```text
-Err{ error: Error{ message: "a: refused" } }
+Err{ error: Error{ message: "a: refused", kind: null } }
 Ok{ value: "b: 93.184.216.34" }
 ```
 
@@ -190,7 +190,7 @@ println(refused)
 
 ```text
 no answer in time
-Err{ error: [Error{ message: "c: refused" }, Error{ message: "a: refused" }] }
+Err{ error: [Error{ message: "c: refused", kind: null }, Error{ message: "a: refused", kind: null }] }
 ```
 
 The errors keep the input order: `c` is first although it failed last.

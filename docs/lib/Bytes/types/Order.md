@@ -150,8 +150,8 @@ println(magic(Bytes.fromArray([0x49, 0x49])))
 ```text
 Ok{ value: 42 }
 Ok{ value: 42 }
-Err{ error: Error{ message: "not a TIFF file" } }
-Err{ error: Error{ message: "not a TIFF file" } }
+Err{ error: Error{ message: "not a TIFF file", kind: null } }
+Err{ error: Error{ message: "not a TIFF file", kind: null } }
 ```
 
 Convert a number from one order to the other by writing it in one and reading it in the other:

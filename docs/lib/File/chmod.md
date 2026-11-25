@@ -142,7 +142,7 @@ println(r)
 ```
 
 ```text
-Err{ error: Error{ message: "protect the key: chmod server.key: no such file or directory" } }
+Err{ error: Error{ message: "protect the key: chmod server.key: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations
@@ -182,8 +182,8 @@ println(File.chmod("deploy.sh", -1))
 ```
 
 ```text
-Err{ error: Error{ message: "chmod deploy.sh: mode 0o10000 is outside 0 ..= 0o7777" } }
-Err{ error: Error{ message: "chmod deploy.sh: mode -1 is outside 0 ..= 0o7777" } }
+Err{ error: Error{ message: "chmod deploy.sh: mode 0o10000 is outside 0 ..= 0o7777", kind: null } }
+Err{ error: Error{ message: "chmod deploy.sh: mode -1 is outside 0 ..= 0o7777", kind: null } }
 ```
 
 `File.chmod` does not create the file. A missing file is an `Err`, which `try` turns into the end of

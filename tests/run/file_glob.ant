@@ -54,7 +54,7 @@ println(File.glob("${dir}/*/") | Result.map({ x | Array.every({ String.endsWith(
 // out: Ok{ value: [] }
 // out: Ok{ value: [] }
 // out: Ok{ value: [] }
-// out: Err{ error: Error{ message: "malformed pattern [a: [ without ]" } }
+// out: Err{ error: Error{ message: "malformed pattern [a: [ without ]", kind: null } }
 // out: true
 // out: Ok{ value: ["c.md"] }
 // out: Ok{ value: ["a/", "a-b/", "link/", "real/", "real/up/", "src/", "src/deep/"] }

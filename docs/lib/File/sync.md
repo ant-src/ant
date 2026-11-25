@@ -80,7 +80,7 @@ println(conn.sync())
 ```
 
 ```text
-Err{ error: Error{ message: "the handle is not a file, which sync writes to storage" } }
+Err{ error: Error{ message: "the handle is not a file, which sync writes to storage", kind: null } }
 ```
 
 A closed handle is `Err`, buffered or not:
@@ -95,8 +95,8 @@ println(out.sync())
 ```
 
 ```text
-Err{ error: Error{ message: "the file is closed" } }
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 ```
 
 ## Applications

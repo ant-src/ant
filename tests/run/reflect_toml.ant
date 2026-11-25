@@ -237,17 +237,17 @@ println(encode(type(Big), Big{ m: Map{ a: null } }))
 // out: t = ""
 // out: strings round trip equal: true
 // out:
-// out: Err{ error: Error{ message: "toml: title: want string, got an integer" } }
-// out: Err{ error: Error{ message: "toml: a: 300 does not fit int8" } }
-// out: Err{ error: Error{ message: "toml: top level: unknown key z" } }
-// out: Err{ error: Error{ message: "toml: top level: missing key y" } }
-// out: Err{ error: Error{ message: "toml: line 2: duplicate key \"x\"" } }
-// out: Err{ error: Error{ message: "toml: line 2: table [a] defined twice" } }
-// out: Err{ error: Error{ message: "toml: line 1: bad value \"01\"" } }
-// out: Err{ error: Error{ message: "toml: line 1: bad value \"1__0\"" } }
-// out: Err{ error: Error{ message: "toml: the top level must be a named record, not Map[string, int]" } }
-// out: Err{ error: Error{ message: "toml: the top level must be a named record, not { x: int }" } }
-// out: Err{ error: Error{ message: "toml: the top level must be a named record, not Map[string, int]" } }
-// out: Err{ error: Error{ message: "toml: u: 9223372036854775808 does not fit a TOML integer" } }
-// out: Err{ error: Error{ message: "toml: xs.1: TOML has no null" } }
-// out: Err{ error: Error{ message: "toml: m: TOML has no null, for map key a" } }
+// out: Err{ error: Error{ message: "toml: title: want string, got an integer", kind: null } }
+// out: Err{ error: Error{ message: "toml: a: 300 does not fit int8", kind: null } }
+// out: Err{ error: Error{ message: "toml: top level: unknown key z", kind: null } }
+// out: Err{ error: Error{ message: "toml: top level: missing key y", kind: null } }
+// out: Err{ error: Error{ message: "toml: line 2: duplicate key \"x\"", kind: null } }
+// out: Err{ error: Error{ message: "toml: line 2: table [a] defined twice", kind: null } }
+// out: Err{ error: Error{ message: "toml: line 1: bad value \"01\"", kind: null } }
+// out: Err{ error: Error{ message: "toml: line 1: bad value \"1__0\"", kind: null } }
+// out: Err{ error: Error{ message: "toml: the top level must be a named record, not Map[string, int]", kind: null } }
+// out: Err{ error: Error{ message: "toml: the top level must be a named record, not { x: int }", kind: null } }
+// out: Err{ error: Error{ message: "toml: the top level must be a named record, not Map[string, int]", kind: null } }
+// out: Err{ error: Error{ message: "toml: u: 9223372036854775808 does not fit a TOML integer", kind: null } }
+// out: Err{ error: Error{ message: "toml: xs.1: TOML has no null", kind: null } }
+// out: Err{ error: Error{ message: "toml: m: TOML has no null, for map key a", kind: null } }

@@ -1,0 +1,106 @@
+// spec: 8 Result; 8 Wrapping errors; stdlib File
+// Error kinds (section 8, Result; stdlib.md): an Err from the OS has the kind of the first Go
+// sentinel its error matches and null when none does, where Ant words the message itself too;
+// Error.wrap keeps the kind, and a kind is an ordinary field of the record.
+let dir = Os.args()[0]
+func kind(e: Error): string {
+  let k = e.kind
+  if k is Error.NotExist { "NotExist" }
+  else if k is Error.Exist { "Exist" }
+  else if k is Error.Permission { "Permission" }
+  else if k is null { "null" }
+}
+func of[T](r: Result[T, Error]): string {
+  if r is Ok { "Ok" } else { kind(r.error) }
+}
+func readOr(path: string, fallback: string): Result[string, Error] {
+  let text = File.read(path)
+  if text is Err && text.error.kind is Error.NotExist { return Result.ok(fallback) }
+  text
+}
+
+// Nothing is at the path.
+let missing = "${dir}/missing.txt"
+println(of(File.read(missing)))
+println(of(File.stat(missing)))
+println(of(File.remove(missing)))
+println(of(File.open(missing)))
+println(of(File.readDir(missing)))
+println(of(File.realPath(missing)))
+println(of(File.copy(missing, "${dir}/copy.txt")))
+println(of(Cmd.new(missing, []) | Cmd.run()))
+println(readOr(missing, "defaults"))
+
+// Something is at the path already, or a directory is not empty.
+try File.write("${dir}/a.txt", "a")
+try File.mkdir("${dir}/site")
+try File.write("${dir}/site/index.html", "<p>")
+println(of(File.write("${dir}/a.txt", "b", replace: false)))
+println(of(File.create("${dir}/a.txt", replace: false)))
+println(of(File.copy("${dir}/site/index.html", "${dir}/a.txt", replace: false)))
+println(of(File.symlink("a.txt", "${dir}/a.txt")))
+println(of(File.remove("${dir}/site")))
+println(of(File.copyAll("${dir}/site", "${dir}/a.txt")))
+println(try File.read("${dir}/a.txt"))
+
+// A failure Go has no sentinel for has no kind, and neither has a call its context ended.
+println(of(File.read("${dir}/a.txt/b")))
+println(of(File.copyAll("${dir}/site", "${dir}/site/backup")))
+println(of(Json.parse("{")))
+println(of(Cmd.new("ant-no-such-program-xyz", []) | Cmd.run()))
+let listener = try Net.listen("127.0.0.1:0")
+let gone = Context.new(1ms)
+gone.wait()
+println(Net.accept(listener, gone))
+Net.close(listener)
+
+// Error.wrap and Result.wrapErr keep the kind; Result.fail has none, and mapErr decides.
+let r = File.read(missing)
+if r is Err { println(Error.wrap(r.error, "load").kind) }
+println(of(r | Result.wrapErr("load") | Result.wrapErr("start")))
+println(of(r | Result.mapErr(func(e: Error) { Error{ message: e.message } })))
+let failed: Result[int, Error] = Result.fail("no")
+println(failed)
+
+// A program may set a kind; it prints, == compares it, and JSON writes it without its tag.
+let e = Error{ message: "open x: not found", kind: Error.NotExist{} }
+println(e)
+println(Error.wrap(e, "load"))
+println(e == Error{ message: "open x: not found" })
+println(e == Error{ message: "open x: not found", kind: Error.NotExist{} })
+println(Json.stringify(e))
+println(Json.stringify(Error{ message: "plain" }))
+
+// expect
+// args: $TMP
+// out: NotExist
+// out: NotExist
+// out: NotExist
+// out: NotExist
+// out: NotExist
+// out: NotExist
+// out: NotExist
+// out: NotExist
+// out: Ok{ value: "defaults" }
+// out: Exist
+// out: Exist
+// out: Exist
+// out: Exist
+// out: Exist
+// out: Exist
+// out: a
+// out: null
+// out: null
+// out: null
+// out: null
+// out: Err{ error: Error{ message: "timeout", kind: null } }
+// out: Error.NotExist{}
+// out: NotExist
+// out: null
+// out: Err{ error: Error{ message: "no", kind: null } }
+// out: Error{ message: "open x: not found", kind: Error.NotExist{} }
+// out: Error{ message: "load: open x: not found", kind: Error.NotExist{} }
+// out: false
+// out: true
+// out: {"message":"open x: not found","kind":{}}
+// out: {"message":"plain","kind":null}

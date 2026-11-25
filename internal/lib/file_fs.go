@@ -309,8 +309,9 @@ func copyAll(from, to string) value.Value {
 			}
 			empty = len(entries) == 0
 		}
-		if !empty {
-			return errResult(fmt.Errorf("copy %s to %s: %s exists", from, to, to))
+		if !empty { // Ant's own check and words, with the kind the OS's refusal would have
+			msg := value.Text(fmt.Sprintf("copy %s to %s: %s exists", from, to, to))
+			return value.Err(value.NewRecord(value.ErrorTag, []value.Value{msg, value.NewRecord(value.ExistTag, nil)}))
 		}
 		existing = true
 	} else if !errors.Is(err, fs.ErrNotExist) {
@@ -398,7 +399,11 @@ func realPath(path string) value.Value {
 		abs, err = filepath.EvalSymlinks(abs)
 	}
 	if err != nil {
-		return errResult(fmt.Errorf("realpath %s: %s", path, strings.TrimPrefix(reason(err).Error(), "EvalSymlinks: ")))
+		err = reason(err)
+		if text, ok := strings.CutPrefix(err.Error(), "EvalSymlinks: "); ok {
+			err = errors.New(text)
+		}
+		return errResult(fmt.Errorf("realpath %s: %w", path, err))
 	}
 	return value.Ok(value.Text(abs))
 }

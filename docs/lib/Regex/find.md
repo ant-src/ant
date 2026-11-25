@@ -143,7 +143,7 @@ func parseSetting(line: string): Result[Setting, Error] {
 }
 
 parseSetting("  port = 8080") // Ok{ value: Setting{ key: "port", value: "8080" } }
-parseSetting("# comment")     // Err{ error: Error{ message: "not a setting: # comment" } }
+parseSetting("# comment")     // Err{ error: Error{ message: "not a setting: # comment", kind: null } }
 ```
 
 Cut a string at the first match, using `start` and `end`:

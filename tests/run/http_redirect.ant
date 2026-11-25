@@ -32,6 +32,6 @@ println(Net.accept(l))
 // out: [302, "/new"]
 // out: 302
 // out: true
-// out: Err{ error: Error{ message: "request \"http://127.0.0.1:1/new\": the method \"\" is not a token" } }
+// out: Err{ error: Error{ message: "request \"http://127.0.0.1:1/new\": the method \"\" is not a token", kind: null } }
 // out: true
-// out: Err{ error: Error{ message: "the listener is closed" } }
+// out: Err{ error: Error{ message: "the listener is closed", kind: null } }

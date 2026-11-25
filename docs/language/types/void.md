@@ -111,7 +111,7 @@ println(register(-1))
 
 ```text
 Ok{ value: "registered" }
-Err{ error: Error{ message: "age is negative" } }
+Err{ error: Error{ message: "age is negative", kind: null } }
 ```
 
 ### `if` without `else`

@@ -260,7 +260,7 @@ let t = Time.PlainTime{ hour: 9 } // error: Time.PlainTime is not a record type,
 A `Z` or an offset names a moment, not a wall-clock time, so `Time.parsePlainTime` rejects it:
 
 ```ant
-Time.parsePlainTime("2026-10-22T14:00Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainTime("2026-10-22T14:00Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time", kind: null } }
 ```
 
 ## See also

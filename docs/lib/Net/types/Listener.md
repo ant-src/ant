@@ -149,7 +149,7 @@ println(server.accept(ctx: Context.new(50ms)))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ### HTTP
@@ -177,7 +177,7 @@ println(server.accept())
 ```text
 hello /ant
 Ok{ value: void }
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ## Applications

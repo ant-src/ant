@@ -39,7 +39,7 @@ Time.parsePlainDate(s) // Ok{ value: 2026-10-22 }
 Text that is not a date is an `Err`:
 
 ```ant
-Time.parsePlainDate("22/10/2026") // Err{ error: Error{ message: "not a date or time: \"22/10/2026\"" } }
+Time.parsePlainDate("22/10/2026") // Err{ error: Error{ message: "not a date or time: \"22/10/2026\"", kind: null } }
 ```
 
 ## Scope
@@ -65,7 +65,7 @@ Time.parsePlainDate("2026-10-22[u-ca=iso8601]") // Ok{ value: 2026-10-22 }
 ```
 
 ```ant
-Time.parsePlainDate("2026-10-22[u-ca=gregory]") // Err{ error: Error{ message: "calendar gregory is not supported; only iso8601 is" } }
+Time.parsePlainDate("2026-10-22[u-ca=gregory]") // Err{ error: Error{ message: "calendar gregory is not supported; only iso8601 is", kind: null } }
 ```
 
 A year outside 0 to 9999 takes a sign and six digits, the form such a date renders in:
@@ -79,8 +79,8 @@ A date the calendar lacks is an `Err`, not a panic:
 
 ```ant
 Time.parsePlainDate("2024-02-29") // Ok{ value: 2024-02-29 }
-Time.parsePlainDate("2026-02-29") // Err{ error: Error{ message: "no such date: 2026-02-29" } }
-Time.parsePlainDate("2026-13-01") // Err{ error: Error{ message: "no such date: 2026-13-01" } }
+Time.parsePlainDate("2026-02-29") // Err{ error: Error{ message: "no such date: 2026-02-29", kind: null } }
+Time.parsePlainDate("2026-13-01") // Err{ error: Error{ message: "no such date: 2026-13-01", kind: null } }
 ```
 
 Pass it as a function value to parse many strings:
@@ -93,7 +93,7 @@ Pass it as a function value to parse many strings:
 
 ```ant
 ["2026-03-01", "2026-01-15"].map(Time.parsePlainDate) | Result.all() // Ok{ value: [2026-03-01, 2026-01-15] }
-["2026-03-01", "2026-02-30"].map(Time.parsePlainDate) | Result.all() // Err{ error: Error{ message: "no such date: 2026-02-30" } }
+["2026-03-01", "2026-02-30"].map(Time.parsePlainDate) | Result.all() // Err{ error: Error{ message: "no such date: 2026-02-30", kind: null } }
 ```
 
 In a pipeline, the result feeds the `Result` functions:
@@ -147,7 +147,7 @@ println(parseDates(["2026-01-05", "2026-02-30"]))
 
 ```text
 Ok{ value: [2026-01-05, 2026-01-12] }
-Err{ error: Error{ message: "line 2: no such date: 2026-02-30" } }
+Err{ error: Error{ message: "line 2: no such date: 2026-02-30", kind: null } }
 ```
 
 Fall back to a default date when the text does not parse:
@@ -220,17 +220,17 @@ at.inZone(Time.utc).toPlainDate() // 2026-10-23
 `Time.parseInstant`:
 
 ```ant
-Time.parsePlainDate("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time" } }
+Time.parsePlainDate("2026-10-22T14:03:05Z") // Err{ error: Error{ message: "Z names an exact time; a plain value needs a wall-clock time", kind: null } }
 ```
 
 The rest of a longer string is checked, not skipped, so a bad time makes the whole string an `Err`:
 
 ```ant
-Time.parsePlainDate("2026-10-22T25:00") // Err{ error: Error{ message: "hour out of range: 25" } }
+Time.parsePlainDate("2026-10-22T25:00") // Err{ error: Error{ message: "hour out of range: 25", kind: null } }
 ```
 
 ```ant
-Time.parsePlainDate("2026-10-22 trailing") // Err{ error: Error{ message: "not a date or time: \"2026-10-22 trailing\"" } }
+Time.parsePlainDate("2026-10-22 trailing") // Err{ error: Error{ message: "not a date or time: \"2026-10-22 trailing\"", kind: null } }
 ```
 
 Only the ISO form parses. Leading spaces, single-digit months and days, and compact dates are all

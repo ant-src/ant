@@ -134,7 +134,7 @@ p.test("1+1=2?") // false
 Or it may not compile at all:
 
 ```ant
-Regex.compile("1+1=2?)") // Err{ error: Error{ message: "invalid regular expression: unexpected ): `1+1=2?)`" } }
+Regex.compile("1+1=2?)") // Err{ error: Error{ message: "invalid regular expression: unexpected ): `1+1=2?)`", kind: null } }
 ```
 
 Escaping text that is escaped already escapes its backslashes, and the pattern then looks for them:

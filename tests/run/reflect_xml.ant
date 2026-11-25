@@ -99,12 +99,12 @@ roundTrip(type(int | null), 5)
 // out: break</item><item>tab	here</item></Array>
 // out: round trip Array[string]: true
 // out: Ok{ value: Box{ label: "<raw> & stuff AB<", value: Circle{ radius: 3.5 } } }
-// out: Err{ error: Error{ message: "xml: Circle/radius: want float64, got \"x\"" } }
-// out: Err{ error: Error{ message: "xml: Circle: missing <radius>" } }
-// out: Err{ error: Error{ message: "xml: want <Circle>, got <Rect>" } }
-// out: Err{ error: Error{ message: "xml: Item/qty: want int8, got \"300\"" } }
-// out: Err{ error: Error{ message: "xml: offset 33: </Circl> closes <Circle>" } }
-// out: Err{ error: Error{ message: "xml: <Triangle> is not a member of Shape" } }
+// out: Err{ error: Error{ message: "xml: Circle/radius: want float64, got \"x\"", kind: null } }
+// out: Err{ error: Error{ message: "xml: Circle: missing <radius>", kind: null } }
+// out: Err{ error: Error{ message: "xml: want <Circle>, got <Rect>", kind: null } }
+// out: Err{ error: Error{ message: "xml: Item/qty: want int8, got \"300\"", kind: null } }
+// out: Err{ error: Error{ message: "xml: offset 33: </Circl> closes <Circle>", kind: null } }
+// out: Err{ error: Error{ message: "xml: <Triangle> is not a member of Shape", kind: null } }
 // out: <null/>
 // out: round trip Shape | null: true
 // out: <int>5</int>

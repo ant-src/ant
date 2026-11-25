@@ -337,7 +337,7 @@ record with a `message` and a `trace`:
 let parsed: Result[int, Error] = Result.ok(1)
 parsed == Ok{ value: 1 }                                // true
 Error{ message: "disk full" }.message                   // "disk full"
-Error.wrap(Error{ message: "disk full" }, "save notes") // Error{ message: "save notes: disk full" }
+Error.wrap(Error{ message: "disk full" }, "save notes") // Error{ message: "save notes: disk full", kind: null }
 ```
 
 Destructuring works on them as on your own records:

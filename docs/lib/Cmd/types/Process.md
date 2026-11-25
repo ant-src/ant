@@ -165,7 +165,7 @@ println(slow.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context given to `Cmd.wait` bounds only that wait. The command goes on running:
@@ -177,7 +177,7 @@ println(slow.stop(grace: 0s))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Ok{ value: 137 }
 ```
 

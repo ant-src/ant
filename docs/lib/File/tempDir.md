@@ -124,7 +124,7 @@ println(File.tempDir("job-*", dir: "missing").isOk())
 ```
 
 ```text
-Err{ error: Error{ message: "stat missing: no such file or directory" } }
+Err{ error: Error{ message: "stat missing: no such file or directory", kind: Error.NotExist{} } }
 true
 ```
 
@@ -197,7 +197,7 @@ println(File.tempDir("run-*", dir: "out").isOk())
 ```
 
 ```text
-Err{ error: Error{ message: "mkdirtemp out/run-*: pattern contains path separator" } }
+Err{ error: Error{ message: "mkdirtemp out/run-*: pattern contains path separator", kind: null } }
 true
 ```
 

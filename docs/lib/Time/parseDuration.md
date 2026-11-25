@@ -48,7 +48,7 @@ Time.parseDuration("2h30m").unwrap() == 2h30m // true
 Text that is not a duration is an `Err`:
 
 ```ant
-Time.parseDuration("90 minutes") // Err{ error: Error{ message: "not a duration: \"90 minutes\"" } }
+Time.parseDuration("90 minutes") // Err{ error: Error{ message: "not a duration: \"90 minutes\"", kind: null } }
 ```
 
 ## Scope
@@ -140,7 +140,7 @@ println(timeout("30"))
 ```text
 Ok{ value: PT30S }
 Ok{ value: PT30S }
-Err{ error: Error{ message: "config timeout: not a duration: \"30\"" } }
+Err{ error: Error{ message: "config timeout: not a duration: \"30\"", kind: null } }
 ```
 
 Fall back to a default when the setting is missing or wrong:
@@ -301,14 +301,14 @@ println(wait("P1M"))
 
 ```text
 Ok{ value: PT5S }
-Err{ error: Error{ message: "not a fixed length: P1M" } }
+Err{ error: Error{ message: "not a fixed length: P1M", kind: null } }
 ```
 
 Unwrapping text that does not parse panics:
 
 ```ant
 Time.parseDuration("1 hour").unwrap()
-// panic: Result.unwrap on an Err: Error{ message: "not a duration: \"1 hour\"" }
+// panic: Result.unwrap on an Err: Error{ message: "not a duration: \"1 hour\"", kind: null }
 ```
 
 ## See also

@@ -178,7 +178,7 @@ println(try conn.readChunk(100))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Bytes(6c 61 74 65 0a)
 ```
 
@@ -197,7 +197,7 @@ println(f.readChunk(4, ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -291,7 +291,7 @@ println(f.readChunk(0))
 ```
 
 ```text
-Err{ error: Error{ message: "the most to read is 0; it must be at least 1" } }
+Err{ error: Error{ message: "the most to read is 0; it must be at least 1", kind: null } }
 ```
 
 A chunk ends at a byte count, not at a character, so it can split a multi-byte character. Decoding

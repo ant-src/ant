@@ -130,7 +130,7 @@ println(Range.new(10, 1))
 
 ```text
 Ok{ value: Range{ low: 1, high: 10 } }
-Err{ error: Error{ message: "range 10..1: low is above high" } }
+Err{ error: Error{ message: "range 10..1: low is above high", kind: null } }
 ```
 
 `Range.new` is a function like any other: it returns a `Result` the caller handles, and its name

@@ -93,7 +93,7 @@ println(Cmd.read(errors, input: "INFO start\n"))
 ```
 
 ```text
-Err{ error: Error{ message: "grep: exit status 1" } }
+Err{ error: Error{ message: "grep: exit status 1", kind: null } }
 ```
 
 To tell "no match" from a real failure, run the pipeline with

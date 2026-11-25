@@ -237,8 +237,8 @@ println(awaitReply(replies, wait))
 
 ```text
 Ok{ value: "pong" }
-Err{ error: Error{ message: "no reply in time" } }
-Err{ error: Error{ message: "replies closed" } }
+Err{ error: Error{ message: "no reply in time", kind: null } }
+Err{ error: Error{ message: "replies closed", kind: null } }
 ```
 
 ## Properties and relations

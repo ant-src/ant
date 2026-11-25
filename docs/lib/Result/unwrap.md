@@ -38,7 +38,7 @@ An `Err` panics, and the message shows the error:
 
 ```ant
 Result.unwrap(Json.parse("[1,"))
-// panic: Result.unwrap on an Err: Error{ message: "unexpected end of JSON input" }
+// panic: Result.unwrap on an Err: Error{ message: "unexpected end of JSON input", kind: null }
 ```
 
 ## Scope

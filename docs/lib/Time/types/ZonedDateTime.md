@@ -239,8 +239,8 @@ Text needs a zone in brackets. An offset is optional, but when the text has one,
 that offset at that time:
 
 ```ant
-Time.parseZoned("2026-10-22T14:03:05Z")                        // Err{ error: Error{ message: "a zoned date-time needs a date and a [zone]: \"2026-10-22T14:03:05Z\"" } }
-Time.parseZoned("2026-10-22T16:03:05+03:00[Europe/Stockholm]") // Err{ error: Error{ message: "the offset +03:00 is not the offset of Europe/Stockholm at 2026-10-22T16:03:05" } }
+Time.parseZoned("2026-10-22T14:03:05Z")                        // Err{ error: Error{ message: "a zoned date-time needs a date and a [zone]: \"2026-10-22T14:03:05Z\"", kind: null } }
+Time.parseZoned("2026-10-22T16:03:05+03:00[Europe/Stockholm]") // Err{ error: Error{ message: "the offset +03:00 is not the offset of Europe/Stockholm at 2026-10-22T16:03:05", kind: null } }
 ```
 
 ## See also

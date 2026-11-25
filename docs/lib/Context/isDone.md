@@ -152,7 +152,7 @@ println(retry(Atomic.new(-100), Context.new(25ms)))
 
 ```text
 Ok{ value: "connected" }
-Err{ error: Error{ message: "gave up: timeout" } }
+Err{ error: Error{ message: "gave up: timeout", kind: null } }
 ```
 
 ### Stop a losing Parallel.race callback

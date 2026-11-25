@@ -46,9 +46,9 @@ println(Result.isOk(Net.listen("256.256.256.256:1")))
 // out: null
 // out: Ok{ value: "echo: hello" }
 // out: Ok{ value: "echo: world" }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: "echo: still here" }
-// out: Err{ error: Error{ message: "timeout" } }
-// out: Err{ error: Error{ message: "the listener is closed" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
+// out: Err{ error: Error{ message: "the listener is closed", kind: null } }
 // out: false
 // out: false

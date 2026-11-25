@@ -380,7 +380,7 @@ println(File.read(Path.join(["app", paths[0]])))
 ```
 
 ```text
-Err{ error: Error{ message: "open README.md: no such file or directory" } }
+Err{ error: Error{ message: "open README.md: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: "# App\n" }
 ```
 
@@ -422,7 +422,7 @@ println(File.glob("[a-"))
 ```
 
 ```text
-Err{ error: Error{ message: "malformed pattern [a-: [ without ]" } }
+Err{ error: Error{ message: "malformed pattern [a-: [ without ]", kind: null } }
 ```
 
 The order is lexical element by element, so `a/x` comes before `a-b/x`. Sorting the paths as strings

@@ -133,7 +133,7 @@ println(verify(secret, body, "md5=00"))
 ```text
 Ok{ value: true }
 Ok{ value: false }
-Err{ error: Error{ message: "signature: missing sha1= prefix" } }
+Err{ error: Error{ message: "signature: missing sha1= prefix", kind: null } }
 ```
 
 ### Base64 signatures

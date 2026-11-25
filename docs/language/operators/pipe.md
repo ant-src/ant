@@ -103,7 +103,7 @@ println(parsePort("http") | Result.wrapErr("config line 3"))
 ```
 
 ```text
-Err{ error: Error{ message: "config line 3: want a port from 1 to 65535, got http" } }
+Err{ error: Error{ message: "config line 3: want a port from 1 to 65535, got http", kind: null } }
 ```
 
 ### With `try`
@@ -132,7 +132,7 @@ println(countPorts(["80", "http"]))
 
 ```text
 Ok{ value: 2 }
-Err{ error: Error{ message: "want a port from 1 to 65535, got http" } }
+Err{ error: Error{ message: "want a port from 1 to 65535, got http", kind: null } }
 ```
 
 ### Ending with output

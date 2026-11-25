@@ -9,7 +9,7 @@ println(File.readLine(Os.stdin()))
 
 // expect
 // stdin: kept
-// out: Err{ error: Error{ message: "the file is not open for writing" } }
-// out: Err{ error: Error{ message: "the file is not open for reading" } }
-// out: Err{ error: Error{ message: "the file is not open for reading" } }
+// out: Err{ error: Error{ message: "the file is not open for writing", kind: null } }
+// out: Err{ error: Error{ message: "the file is not open for reading", kind: null } }
+// out: Err{ error: Error{ message: "the file is not open for reading", kind: null } }
 // out: Ok{ value: "kept" }

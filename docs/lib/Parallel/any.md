@@ -46,7 +46,7 @@ println(Parallel.any([primary, mirror]))
 ```
 
 ```text
-Err{ error: [Error{ message: "primary is down" }, Error{ message: "mirror is down" }] }
+Err{ error: [Error{ message: "primary is down", kind: null }, Error{ message: "mirror is down", kind: null }] }
 ```
 
 ## Scope
@@ -197,7 +197,7 @@ println(readFirst(["a.json", "b.json"]))
 
 ```text
 Ok{ value: "{\"port\": 8080}\n" }
-Err{ error: Error{ message: "open a.json: no such file or directory; open b.json: no such file or directory" } }
+Err{ error: Error{ message: "open a.json: no such file or directory; open b.json: no such file or directory", kind: null } }
 ```
 
 ### Ask replicas with a deadline
@@ -228,7 +228,7 @@ println(quote([1s, 1s]))
 
 ```text
 Ok{ value: "quote from b" }
-Err{ error: Error{ message: "no replica answered in time" } }
+Err{ error: Error{ message: "no replica answered in time", kind: null } }
 ```
 
 ## Properties and relations

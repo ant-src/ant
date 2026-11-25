@@ -39,11 +39,11 @@ println(Result.mapErr(e, { Error{ message: "wrapped: ${x.message}" } }))
 
 // expect
 // out: Ok{ value: [1, 2, 3] }
-// out: Err{ error: Error{ message: "not a number: x" } }
+// out: Err{ error: Error{ message: "not a number: x", kind: null } }
 // out: Ok{ value: 42 }
-// out: Err{ error: Error{ message: "not a number: no" } }
+// out: Err{ error: Error{ message: "not a number: no", kind: null } }
 // out: Ok{ value: 5 }
 // out: Ok{ value: 5 }
 // out: true
 // out: true
-// out: Err{ error: Error{ message: "wrapped: e" } }
+// out: Err{ error: Error{ message: "wrapped: e", kind: null } }

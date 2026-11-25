@@ -8,6 +8,6 @@ println(File.writeChunk(pipe.write, Bytes.fromArray([121])))
 println("still running")
 
 // expect
-// out: Err{ error: Error{ message: "broken pipe" } }
-// out: Err{ error: Error{ message: "broken pipe" } }
+// out: Err{ error: Error{ message: "broken pipe", kind: null } }
+// out: Err{ error: Error{ message: "broken pipe", kind: null } }
 // out: still running

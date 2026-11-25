@@ -173,7 +173,7 @@ An offset with seconds is not one the parsers accept, so text built from it does
 
 ```ant
 let t = Result.unwrap(Time.parseZoned("1800-07-01T12:00[Europe/Paris]"))
-Time.parseInstant("${t.toPlainDateTime()}${t.offset()}") // Err{ error: Error{ message: "not a date or time: \"1800-07-01T12:00:00+00:09:21\"" } }
+Time.parseInstant("${t.toPlainDateTime()}${t.offset()}") // Err{ error: Error{ message: "not a date or time: \"1800-07-01T12:00:00+00:09:21\"", kind: null } }
 ```
 
 Use the string of `t` instead, which rounds the offset to the minute and parses back to the same

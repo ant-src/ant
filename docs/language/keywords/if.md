@@ -317,7 +317,7 @@ println(setting("workers", 4))
 ```text
 Ok{ value: 3000 }
 Ok{ value: 30 }
-Err{ error: Error{ message: "workers: not an integer: many" } }
+Err{ error: Error{ message: "workers: not an integer: many", kind: null } }
 ```
 
 ## Properties and relations

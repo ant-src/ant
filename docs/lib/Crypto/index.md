@@ -163,7 +163,7 @@ println(checksum("missing.bin"))
 
 ```text
 ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
-Err{ error: Error{ message: "checksum missing.bin: open missing.bin: no such file or directory" } }
+Err{ error: Error{ message: "checksum missing.bin: open missing.bin: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Make a session token that is safe to put in a URL or a cookie:

@@ -7,7 +7,9 @@
 func Net.dial(addr: string, ctx: Context | null = null): Result[File.Handle, Error]
 ```
 
-Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and written with the File functions. ctx limits the dial only, not the connection. An Err names the address: dial "127.0.0.1:99999": invalid port.
+Net.dial opens a TCP connection to addr, written "host:port". The connection is a handle read and
+written with the File functions. ctx limits the dial only, not the connection. An Err names the
+address: dial "127.0.0.1:99999": invalid port.
 
 <!-- end generated -->
 
@@ -19,8 +21,8 @@ Net.dial opens a TCP connection to addr, written "host:port". The connection is 
   [File.close](../File/close.md). Close it with `defer` right after the dial.
 - `Net.dial` is `Err` when it cannot connect, as when nothing listens at `addr`, and when `ctx` is
   done first, with the context's reason as the message.
-- `ctx` limits the dial only. The connection is not tied to it: give each read that should give up
-  a context of its own.
+- `ctx` limits the dial only. The connection is not tied to it: give each read that should give up a
+  context of its own.
 - An `Err` names the address as given: `dial "127.0.0.1:99999": invalid port`.
 - TCP only: there is no TLS, UDP, or Unix socket.
 
@@ -56,7 +58,7 @@ println(Net.dial("127.0.0.1"))
 ```
 
 ```text
-Err{ error: Error{ message: "dial \"127.0.0.1\": missing port in address" } }
+Err{ error: Error{ message: "dial \"127.0.0.1\": missing port in address", kind: null } }
 ```
 
 ## Scope
@@ -118,7 +120,7 @@ println(Net.dial(listener.address(), ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 A timeout bounds how long the dial waits for the server to answer; a listener on this machine
@@ -209,7 +211,7 @@ println(ask("localhost", "ping"))
 
 ```text
 Ok{ value: "PING" }
-Err{ error: Error{ message: "connect: dial \"localhost\": missing port in address" } }
+Err{ error: Error{ message: "connect: dial \"localhost\": missing port in address", kind: null } }
 ```
 
 Read a reply of several lines. This server sends a list and closes the connection, and the client
@@ -305,7 +307,7 @@ println(conn.readLine(ctx: Context.new(timeout: 50ms)))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## See also

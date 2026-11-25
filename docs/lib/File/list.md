@@ -206,7 +206,7 @@ println(checkEmpty("build"))
 ```
 
 ```text
-Err{ error: Error{ message: "build is not empty: old.js" } }
+Err{ error: Error{ message: "build is not empty: old.js", kind: null } }
 ```
 
 ## Properties and relations
@@ -288,7 +288,7 @@ println(File.read(Path.join(["inbox", names[0]])))
 ```
 
 ```text
-Err{ error: Error{ message: "open todo.txt: no such file or directory" } }
+Err{ error: Error{ message: "open todo.txt: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: "buy milk\n" }
 ```
 
@@ -304,8 +304,8 @@ println(File.list("notes/todo.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing: no such file or directory" } }
-Err{ error: Error{ message: "open notes/todo.txt: not a directory" } }
+Err{ error: Error{ message: "open missing: no such file or directory", kind: Error.NotExist{} } }
+Err{ error: Error{ message: "open notes/todo.txt: not a directory", kind: null } }
 ```
 
 ## See also

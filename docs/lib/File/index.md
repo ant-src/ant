@@ -76,7 +76,7 @@ println(File.read("missing.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -168,7 +168,7 @@ println(Context.reason(ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 timeout
 ```
 
@@ -413,7 +413,7 @@ println(File.removeAll("build"))
 ```
 
 ```text
-Err{ error: Error{ message: "remove build: directory not empty" } }
+Err{ error: Error{ message: "remove build: directory not empty", kind: Error.Exist{} } }
 Ok{ value: void }
 ```
 
@@ -426,7 +426,7 @@ println(try File.read("first.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open first.txt: file exists" } }
+Err{ error: Error{ message: "open first.txt: file exists", kind: Error.Exist{} } }
 one
 ```
 
@@ -469,8 +469,8 @@ println(f.writeLine("x") | Result.wrapErr("write log.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for writing" } }
-Err{ error: Error{ message: "write log.txt: the file is not open for writing" } }
+Err{ error: Error{ message: "the file is not open for writing", kind: null } }
+Err{ error: Error{ message: "write log.txt: the file is not open for writing", kind: null } }
 ```
 
 ## See also

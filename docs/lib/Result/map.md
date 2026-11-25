@@ -104,7 +104,7 @@ println(parseEvent("launch", "soon"))
 
 ```text
 Ok{ value: Event{ name: "launch", date: 2026-11-09 } }
-Err{ error: Error{ message: "not a date or time: \"soon\"" } }
+Err{ error: Error{ message: "not a date or time: \"soon\"", kind: null } }
 ```
 
 Count the values of [`Result.all`](all.md), which stops at the first error:
@@ -120,7 +120,7 @@ println(countDates(["2024-02-29", "2023-02-29"]))
 
 ```text
 Ok{ value: 2 }
-Err{ error: Error{ message: "no such date: 2023-02-29" } }
+Err{ error: Error{ message: "no such date: 2023-02-29", kind: null } }
 ```
 
 Inside a function that returns a `Result`, map a pipeline and `try` it as a whole:
@@ -137,7 +137,7 @@ println(hostOf("http://[::1"))
 
 ```text
 Ok{ value: "ANT-LANG.ORG" }
-Err{ error: Error{ message: "parse \"http://[::1\": missing ']' in host" } }
+Err{ error: Error{ message: "parse \"http://[::1\": missing ']' in host", kind: null } }
 ```
 
 ## Properties and relations

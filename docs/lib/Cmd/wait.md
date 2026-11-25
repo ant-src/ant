@@ -114,7 +114,7 @@ println(child.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Ok{ value: 0 }
 ```
 
@@ -130,8 +130,8 @@ println(child.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -242,7 +242,7 @@ println(try child.wait())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 100000
 0
 ```
@@ -265,7 +265,7 @@ println(build())
 ```
 
 ```text
-Err{ error: Error{ message: "build: exit status 2" } }
+Err{ error: Error{ message: "build: exit status 2", kind: null } }
 ```
 
 ### A Result is not a process

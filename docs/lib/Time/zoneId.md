@@ -100,7 +100,7 @@ println(canonicalZone("Nowhere"))
 
 ```text
 Ok{ value: "Asia/Kolkata" }
-Err{ error: Error{ message: "unknown time zone \"Nowhere\"" } }
+Err{ error: Error{ message: "unknown time zone \"Nowhere\"", kind: null } }
 ```
 
 Save a wall-clock time with its zone as text, and restore it later:

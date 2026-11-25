@@ -68,7 +68,7 @@ println(File.create("draft.txt", replace: false))
 ```
 
 ```text
-Err{ error: Error{ message: "open draft.txt: file exists" } }
+Err{ error: Error{ message: "open draft.txt: file exists", kind: Error.Exist{} } }
 ```
 
 ## Scope
@@ -104,7 +104,7 @@ println(File.exists("logs/today.log"))
 ```
 
 ```text
-Err{ error: Error{ message: "open logs/today.log: no such file or directory" } }
+Err{ error: Error{ message: "open logs/today.log: no such file or directory", kind: Error.NotExist{} } }
 true
 ```
 
@@ -116,7 +116,7 @@ println(File.create("cache"))
 ```
 
 ```text
-Err{ error: Error{ message: "open cache: is a directory" } }
+Err{ error: Error{ message: "open cache: is a directory", kind: null } }
 ```
 
 A symbolic link at `path` is followed, so the write goes to its target:
@@ -151,7 +151,7 @@ println(File.read("fresh.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open fresh.txt: file exists" } }
+Err{ error: Error{ message: "open fresh.txt: file exists", kind: Error.Exist{} } }
 Ok{ value: "first" }
 ```
 
@@ -164,7 +164,7 @@ println(File.exists("missing.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open planted.txt: file exists" } }
+Err{ error: Error{ message: "open planted.txt: file exists", kind: Error.Exist{} } }
 false
 ```
 
@@ -235,7 +235,7 @@ println(save("nowhere/out.txt", "hello"))
 ```
 
 ```text
-Err{ error: Error{ message: "save: open nowhere/out.txt: no such file or directory" } }
+Err{ error: Error{ message: "save: open nowhere/out.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Replace a file only once its new contents are complete. Write them to a temporary file beside it,
@@ -303,7 +303,7 @@ try out.close()
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for reading" } }
+Err{ error: Error{ message: "the file is not open for reading", kind: null } }
 ```
 
 `File.create` truncates the file before the first write. When the program fails before it writes,
@@ -324,7 +324,7 @@ println(File.read("page.html"))
 ```
 
 ```text
-Err{ error: Error{ message: "template missing" } }
+Err{ error: Error{ message: "template missing", kind: null } }
 Ok{ value: "" }
 ```
 

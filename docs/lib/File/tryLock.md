@@ -99,8 +99,8 @@ println(File.tryLock("."))
 ```
 
 ```text
-Err{ error: Error{ message: "open missing/dir/app.lock: no such file or directory" } }
-Err{ error: Error{ message: "open .: is a directory" } }
+Err{ error: Error{ message: "open missing/dir/app.lock: no such file or directory", kind: Error.NotExist{} } }
+Err{ error: Error{ message: "open .: is a directory", kind: null } }
 ```
 
 ## Applications

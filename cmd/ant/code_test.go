@@ -133,7 +133,7 @@ calc/lexer_test.ant:6:12: assert(posOf(1, 2).col == 2)
 		{[]string{"def", "main.ant:3:5"}, 0, "main.ant:3:5: let label: string\n", ""},
 		{[]string{"def", "main.ant:1:9"}, 0, "calc/eval.ant:1:1: import \"./calc/eval.ant\"\n", ""},
 		{[]string{"def", "-json", "Pos"}, 0, `{"location":{"path":"calc/lexer.ant","line":2,"column":13,"start":{"line":2,"column":13},"end":{"line":2,"column":16}},"signature":"type Pos = { line: int, col: int }"}` + "\n", ""},
-		{[]string{"def", "String.toInt"}, 0, "prelude.d.ant:689:13: func String.toInt(s: string, base: int = 10): int | null\n", ""},
+		{[]string{"def", "String.toInt"}, 0, "prelude.d.ant:706:13: func String.toInt(s: string, base: int = 10): int | null\n", ""},
 
 		// type: a name, narrowed; an operator; a step of a pipeline; and no answer
 		{[]string{"type", "calc/eval.ant:18:doubled"}, 0, "let doubled: int\n", ""},

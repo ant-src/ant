@@ -4,12 +4,13 @@
 # Error
 
 ```ant signature
-type Error = { message: string }
+type Error = { message: string, kind: Error.Kind | null = null }
 ```
 
 Error is the error the standard library returns in an [`Err`](../Result/index.md): a message for a
-person to read. [`Error.wrap`](wrap.md) and [`Result.wrapErr`](../Result/wrapErr.md) add context in
-front of the message.
+person to read, and a kind for the program where the library can say what failed, null otherwise.
+[`Error.wrap`](wrap.md) and [`Result.wrapErr`](../Result/wrapErr.md) add context in front of the
+message and keep the kind.
 
 <!-- end generated -->
 
@@ -28,14 +29,14 @@ Build an `Error` with a record literal and read its message:
 
 ```ant
 let e = Error{ message: "disk full" }
-e         // Error{ message: "disk full" }
+e         // Error{ message: "disk full", kind: null }
 e.message // "disk full"
 ```
 
 A library call that fails returns an `Err` holding an `Error`:
 
 ```ant
-Json.parse("{") // Err{ error: Error{ message: "unexpected end of JSON input" } }
+Json.parse("{") // Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
 ```
 
 Narrow the result with `is`, then read the message:
@@ -64,7 +65,7 @@ func half(n: int): Result[int, Error] {
   Result.ok(n / 2)
 }
 half(10) // Ok{ value: 5 }
-half(7)  // Err{ error: Error{ message: "7 is odd" } }
+half(7)  // Err{ error: Error{ message: "7 is odd", kind: null } }
 ```
 
 An `Error` is an ordinary value outside a `Result` too, such as a check that returns one or `null`:
@@ -77,7 +78,7 @@ func checkPort(port: int): Error | null {
   null
 }
 checkPort(8080)  // null
-checkPort(70000) // Error{ message: "port 70000 is out of range" }
+checkPort(70000) // Error{ message: "port 70000 is out of range", kind: null }
 ```
 
 A script whose body returns an `Err`, here through `try`, writes the error's message alone and a
@@ -182,7 +183,7 @@ for n in [4, 0] {
 
 ```text
 Ok{ value: 25 }
-Err{ error: Error{ message: "no work" } }
+Err{ error: Error{ message: "no work", kind: null } }
 ```
 
 ## Properties and relations

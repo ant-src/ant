@@ -199,8 +199,8 @@ println(report.prices)
 ```
 
 ```text
-Err{ error: Error{ message: "stock: cancelled" } }
-Err{ error: Error{ message: "prices: unavailable" } }
+Err{ error: Error{ message: "stock: cancelled", kind: null } }
+Err{ error: Error{ message: "prices: unavailable", kind: null } }
 ```
 
 ### Catch a panic from any of the functions

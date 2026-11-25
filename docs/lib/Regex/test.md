@@ -147,7 +147,7 @@ println(grep("(", ["ant"]))
 
 ```text
 Ok{ value: ["ant", "aphid"] }
-Err{ error: Error{ message: "pattern (: invalid regular expression: missing closing ): `(`" } }
+Err{ error: Error{ message: "pattern (: invalid regular expression: missing closing ): `(`", kind: null } }
 ```
 
 ## Properties and relations

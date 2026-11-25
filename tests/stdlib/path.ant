@@ -18,7 +18,7 @@ Path.rel("/a/b", "/a/b/c/d")                  // => Ok{ value: "c/d" }
 Path.rel("/a/b", "/a/c")                      // => Ok{ value: "../c" }
 Path.rel("a", "/b") is Err                    // => true
 Path.rel("/a", "b") is Err                    // => true
-Path.rel("../a", "b")                         // => Err{ error: Error{ message: "no relative path leads from ../a to b" } }
+Path.rel("../a", "b")                         // => Err{ error: Error{ message: "no relative path leads from ../a to b", kind: null } }
 Path.rel("../a", "../b")                      // => Ok{ value: "../b" }
 // Path.match (stdlib.md, Path): Go's filepath.Match per element, ** across elements, [!...], and
 // the shell's leading-dot rule.
@@ -52,13 +52,13 @@ Path.match("../*.txt", "../a.txt")                 // => Ok{ value: true }
 Path.match("*/", "src/")                           // => Ok{ value: true }
 Path.match("*/", "src")                            // => Ok{ value: false }
 Path.match("/x/*", "/x/y")                         // => Ok{ value: true }
-Path.match("[a", "a")                              // => Err{ error: Error{ message: "malformed pattern [a: [ without ]" } }
+Path.match("[a", "a")                              // => Err{ error: Error{ message: "malformed pattern [a: [ without ]", kind: null } }
 Path.match("[z-a]", "a") is Err                    // => true
 Path.match("[]", "a") is Err                       // => true
 Path.match("[-a]", "a") is Err                     // => true
 Path.match("a\\", "a") is Err                      // => true
-Path.match("[]a]", "a")                            // => Err{ error: Error{ message: "malformed pattern []a]: ] first in a set; escape it, or the set is empty" } }
-Path.match("[a-]]", "a")                           // => Err{ error: Error{ message: "malformed pattern [a-]]: ] ends a range; escape it" } }
+Path.match("[]a]", "a")                            // => Err{ error: Error{ message: "malformed pattern []a]: ] first in a set; escape it, or the set is empty", kind: null } }
+Path.match("[a-]]", "a")                           // => Err{ error: Error{ message: "malformed pattern [a-]]: ] ends a range; escape it", kind: null } }
 Path.match("[\\]a]", "]")                          // => Ok{ value: true }
 Path.match("a/**/b", "a/b")                        // => Ok{ value: true }
 Path.match("a/**/b", "a/.x/b")                     // => Ok{ value: false }

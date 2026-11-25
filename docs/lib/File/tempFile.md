@@ -109,7 +109,7 @@ println(File.tempFile("cache/entry-*"))
 ```
 
 ```text
-Err{ error: Error{ message: "createtemp cache/entry-*: pattern contains path separator" } }
+Err{ error: Error{ message: "createtemp cache/entry-*: pattern contains path separator", kind: null } }
 ```
 
 ## Named arguments

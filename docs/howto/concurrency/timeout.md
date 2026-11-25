@@ -35,7 +35,7 @@ println(lookup("db", Context.new(50ms)))
 
 ```text
 Ok{ value: "db: 10.0.0.7" }
-Err{ error: Error{ message: "lookup db: timeout" } }
+Err{ error: Error{ message: "lookup db: timeout", kind: null } }
 ```
 
 The context does not stop the goroutine that sends. The buffer of one lets its send finish when
@@ -84,7 +84,7 @@ println(Http.get(url, ctx: ctx) | Result.wrapErr("get report"))
 ```
 
 ```text
-Err{ error: Error{ message: "get report: timeout" } }
+Err{ error: Error{ message: "get report: timeout", kind: null } }
 ```
 
 For one request on its own, [Http.get](../../lib/Http/get.md) also takes `timeout:`, which gives the
@@ -158,7 +158,7 @@ println(contextUntil(past))
 
 ```text
 timeout
-Err{ error: Error{ message: "the deadline 2020-01-01T00:00:00Z has passed" } }
+Err{ error: Error{ message: "the deadline 2020-01-01T00:00:00Z has passed", kind: null } }
 ```
 
 [Context.deadline](../../lib/Context/deadline.md) gives the instant back, the earliest of the

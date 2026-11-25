@@ -117,8 +117,8 @@ for text in ["2026-06-01T12:00", "2026-03-08T02:30", "2026-11-01T01:30"] {
 
 ```text
 Ok{ value: 2026-06-01T12:00:00-04:00[America/New_York] }
-Err{ error: Error{ message: "2026-03-08T02:30:00 does not exist in America/New_York" } }
-Err{ error: Error{ message: "2026-11-01T01:30:00 happens twice in America/New_York" } }
+Err{ error: Error{ message: "2026-03-08T02:30:00 does not exist in America/New_York", kind: null } }
+Err{ error: Error{ message: "2026-11-01T01:30:00 happens twice in America/New_York", kind: null } }
 ```
 
 Warn about the half hours of a day that a daily job at that time would miss or run twice:

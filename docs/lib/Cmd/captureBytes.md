@@ -114,7 +114,7 @@ println(Cmd.captureBytes(Cmd.new("no-such-program")))
 ```
 
 ```text
-Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH" } }
+Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH", kind: null } }
 ```
 
 Call it with a dot, or in a pipe with the command first:
@@ -157,7 +157,7 @@ println(Cmd.new("sleep", ["5"]).captureBytes(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Applications
@@ -180,7 +180,7 @@ println(gunzip(Bytes.fromArray([1, 2, 3])))
 
 ```text
 hello, ant
-Err{ error: Error{ message: "gunzip: status 1" } }
+Err{ error: Error{ message: "gunzip: status 1", kind: null } }
 ```
 
 Keep a tool's binary output and pass its warnings on. The digest covers the output only, never the
@@ -256,7 +256,7 @@ println(Cmd.new("sh", ["-c", "printf partial; exit 1"]).readBytes())
 
 ```text
 1 Bytes(70 61 72 74 69 61 6c)
-Err{ error: Error{ message: "sh: exit status 1" } }
+Err{ error: Error{ message: "sh: exit status 1", kind: null } }
 ```
 
 ## See also

@@ -79,7 +79,7 @@ println("slept: ${ctx.isDone()}")
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 null
 slept: true
 ```
@@ -204,8 +204,8 @@ println(nextJob(jobs))
 
 ```text
 Ok{ value: "resize" }
-Err{ error: Error{ message: "timeout" } }
-Err{ error: Error{ message: "no more jobs" } }
+Err{ error: Error{ message: "timeout", kind: null } }
+Err{ error: Error{ message: "no more jobs", kind: null } }
 ```
 
 ### Stop the rest when one finishes
@@ -352,7 +352,7 @@ println(Cmd.read(Cmd.new("sleep", ["5"]), ctx: ctx).wrapErr("run sleep"))
 ```
 
 ```text
-Err{ error: Error{ message: "run sleep: cancelled" } }
+Err{ error: Error{ message: "run sleep: cancelled", kind: null } }
 ```
 
 ### Locks take no context

@@ -230,7 +230,7 @@ println(Http.post("http://127.0.0.1:1/", "x", headers: Map{ "Accept": "text/plai
 ```
 
 ```text
-Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the headers \"Accept\" and \"accept\" differ only in case", kind: null } }
 ```
 
 `timeout` bounds the whole call, from connecting to the end of the body. When it passes, the result
@@ -258,7 +258,7 @@ println(Http.post("${url}/slow", "x", timeout: 100ms))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 `ctx` bounds the call too, and the result is `Err` with the context's reason. A context shares one
@@ -288,8 +288,8 @@ println(Http.post(url, "second", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 When both are given, the earlier bound wins:
@@ -317,7 +317,7 @@ println(Http.post("${url}/slow", "x", timeout: 100ms, ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context cancelled by the program gives the reason `cancelled`:
@@ -346,7 +346,7 @@ println(Http.post(url, "x", ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -449,7 +449,7 @@ println(create("${url}/missing", "call Bob"))
 
 ```text
 Ok{ value: "POST /notes (no type): buy milk" }
-Err{ error: Error{ message: "create call Bob: status 404" } }
+Err{ error: Error{ message: "create call Bob: status 404", kind: null } }
 ```
 
 ## Properties and relations
@@ -532,8 +532,8 @@ println(Http.post("http://127.0.0.1:1/", "x", timeout: Time.duration(weeks: 1)))
 ```
 
 ```text
-Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
-Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the timeout is zero or negative", kind: null } }
+Err{ error: Error{ message: "post \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length", kind: null } }
 ```
 
 `try` returns early only when there is no response. A 404 is `Ok`, so check `status` before using
@@ -590,7 +590,7 @@ println(Http.post("http://example.com/%zz", "x"))
 ```
 
 ```text
-Err{ error: Error{ message: "post \"http://example.com/%zz\": invalid URL escape \"%zz\"" } }
+Err{ error: Error{ message: "post \"http://example.com/%zz\": invalid URL escape \"%zz\"", kind: null } }
 ```
 
 ## See also

@@ -176,7 +176,7 @@ row[0] < row[1]                               // false
 A quote inside an unquoted field is an `Err`, not a panic:
 
 ```ant
-Csv.parse("id,note\n1,say \"hi\"") // Err{ error: Error{ message: "parse error on line 2, column 7: bare \" in non-quoted-field" } }
+Csv.parse("id,note\n1,say \"hi\"") // Err{ error: Error{ message: "parse error on line 2, column 7: bare \" in non-quoted-field", kind: null } }
 ```
 
 A separator of more than one code point panics:

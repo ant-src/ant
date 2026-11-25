@@ -37,8 +37,8 @@ println(File.read("${dir}/out.txt"))
 // out: Ok{ value: "one" }
 // out: Ok{ value: "two" }
 // out: Ok{ value: void }
-// out: Err{ error: Error{ message: "a file cannot be piped into itself" } }
-// out: Err{ error: Error{ message: "a file cannot be piped into itself" } }
+// out: Err{ error: Error{ message: "a file cannot be piped into itself", kind: null } }
+// out: Err{ error: Error{ message: "a file cannot be piped into itself", kind: null } }
 // out: Ok{ value: void }
 // out: Ok{ value: void }
 // out: Ok{ value: null }

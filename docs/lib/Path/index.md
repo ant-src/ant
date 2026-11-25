@@ -81,7 +81,7 @@ Path.match("*.TXT", "a.txt")    // Ok{ value: false }
 A malformed pattern is `Err`, not `false`:
 
 ```ant
-Path.match("[a-", "x") // Err{ error: Error{ message: "malformed pattern [a-: [ without ]" } }
+Path.match("[a-", "x") // Err{ error: Error{ message: "malformed pattern [a-: [ without ]", kind: null } }
 ```
 
 `Path.rel` climbs out of `base` with `..` when it has to. It is `Err` when no relative path leads
@@ -90,8 +90,8 @@ from `base` to `target`: when one is absolute and the other is not, or when `bas
 
 ```ant
 Path.rel("src/lib", "src/test/a.ant") // Ok{ value: "../test/a.ant" }
-Path.rel("/srv", "app")               // Err{ error: Error{ message: "no relative path leads from /srv to app" } }
-Path.rel("../a", "b")                 // Err{ error: Error{ message: "no relative path leads from ../a to b" } }
+Path.rel("/srv", "app")               // Err{ error: Error{ message: "no relative path leads from /srv to app", kind: null } }
+Path.rel("../a", "b")                 // Err{ error: Error{ message: "no relative path leads from ../a to b", kind: null } }
 ```
 
 `Path.abs` resolves a relative path against the working directory. It still looks only at the text:

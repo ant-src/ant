@@ -33,12 +33,12 @@ println(decode(text, type(Outer), Map{ (anon): Reflect.erase(type(R)) }))
 println(decode(text, type(Outer), Map{ (anon): anon }))
 
 // expect
-// out: Err{ error: Error{ message: "$.inner: cannot decode into { x: int }: name a record type for it" } }
+// out: Err{ error: Error{ message: "$.inner: cannot decode into { x: int }: name a record type for it", kind: null } }
 // out: Outer{ inner: P{ x: 1 } }
 // out: true
 // out: true
 // out: {"inner":{"x":1}}
 // out: Outer{ inner: Q{ x: 1, y: 0 } }
 // out: Ok{ value: [P{ x: 2 }] }
-// out: Err{ error: Error{ message: "$.inner: R is not assignable to { x: int }" } }
-// out: Err{ error: Error{ message: "$.inner: { x: int } is not a named record type" } }
+// out: Err{ error: Error{ message: "$.inner: R is not assignable to { x: int }", kind: null } }
+// out: Err{ error: Error{ message: "$.inner: { x: int } is not a named record type", kind: null } }

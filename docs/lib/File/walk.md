@@ -292,7 +292,7 @@ println(File.read(Path.join(["proj/docs", paths[0]])))
 ```
 
 ```text
-Err{ error: Error{ message: "open guide.md: no such file or directory" } }
+Err{ error: Error{ message: "open guide.md: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: "# Guide\n\nStart here.\n" }
 ```
 
@@ -304,8 +304,8 @@ println(File.walk("proj/README.md"))
 ```
 
 ```text
-Err{ error: Error{ message: "stat nothing: no such file or directory" } }
-Err{ error: Error{ message: "proj/README.md is not a directory" } }
+Err{ error: Error{ message: "stat nothing: no such file or directory", kind: Error.NotExist{} } }
+Err{ error: Error{ message: "proj/README.md is not a directory", kind: null } }
 ```
 
 Copying a tree file by file with `File.walk` loses its empty directories, since they are not listed:

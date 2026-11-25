@@ -15,8 +15,9 @@ func result(g *interp.Goroutine, who string, v value.Value) *value.Record {
 	return r
 }
 
-// errResult is the Err of a Go error, with its message, which may quote outside text.
-func errResult(err error) value.Value { return value.Err(value.ErrorValue(value.Text(err.Error()))) }
+// errResult is the Err of a Go error, with its message, which may quote outside text, and its
+// kind. errors.Is finds the kind, so an error built from another's text has lost it: wrap with %w.
+func errResult(err error) value.Value { return value.Err(value.ErrorOf(err)) }
 
 // okVoid is Ok(void), or the Err of err when there is one.
 func okVoid(err error) value.Value {
@@ -26,21 +27,26 @@ func okVoid(err error) value.Value {
 	return value.Ok(value.Void)
 }
 
-// errorArg requires an Error and returns its message.
-func errorArg(g *interp.Goroutine, who string, v value.Value) string {
+// errorArg requires an Error and returns its message and its kind.
+func errorArg(g *interp.Goroutine, who string, v value.Value) (string, value.Value) {
 	r, ok := v.(*value.Record)
 	if !ok || r.Tag != value.ErrorTag {
 		g.Panic("%s needs an Error, got %s", who, value.Describe(v))
 	}
-	return stringArg(g, who, r.Get(0))
+	return stringArg(g, who, r.Get(0)), r.Get(1)
 }
 
-// wrapError is Error.wrap: a new Error whose message is context, ": ", and e's message.
+// wrapError is Error.wrap: a new Error whose message is context, ": ", and e's message, and
+// whose kind is e's.
 func wrapError(g *interp.Goroutine, who string, e, context value.Value) value.Value {
-	msg := errorArg(g, who, e)
+	msg, kind := errorArg(g, who, e)
 	ctx := stringArg(g, who, context)
 	boundSize(g, who, int64(len(ctx))+2+int64(len(msg)))
-	return value.ErrorValue(ctx + ": " + msg)
+	return value.NewRecord(value.ErrorTag, []value.Value{ctx + ": " + msg, kind})
+}
+
+func init() {
+	value.ErrorTag.Defaults = interp.NativeDefaults{nil, func() value.Value { return value.Null }}
 }
 
 func errorFuncs() []*interp.Builtin {

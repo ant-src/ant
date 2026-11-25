@@ -59,7 +59,7 @@ println(File.stat("missing.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "stat missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "stat missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -138,8 +138,8 @@ println(File.stat(""))
 ```
 
 ```text
-Err{ error: Error{ message: "stat plain.txt/inner: not a directory" } }
-Err{ error: Error{ message: "empty path" } }
+Err{ error: Error{ message: "stat plain.txt/inner: not a directory", kind: null } }
+Err{ error: Error{ message: "empty path", kind: null } }
 ```
 
 ## Named arguments
@@ -174,7 +174,7 @@ println(File.stat("broken", follow: false).map({ x.isSymlink }))
 ```
 
 ```text
-Err{ error: Error{ message: "stat broken: no such file or directory" } }
+Err{ error: Error{ message: "stat broken: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: true }
 ```
 
@@ -259,8 +259,8 @@ println(checkExecutable("test.sh"))
 ```
 
 ```text
-Err{ error: Error{ message: "build.sh is not executable; run chmod +x build.sh" } }
-Err{ error: Error{ message: "check test.sh: stat test.sh: no such file or directory" } }
+Err{ error: Error{ message: "build.sh is not executable; run chmod +x build.sh", kind: null } }
+Err{ error: Error{ message: "check test.sh: stat test.sh: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations

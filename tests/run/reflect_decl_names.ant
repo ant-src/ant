@@ -61,5 +61,5 @@ println(names(Reflect.erase(type(Distinct))) | Result.map({ Map.keys(x) }))
 // out: Point
 // out: Panic.Frame
 // out: true
-// out: Err{ error: Error{ message: "Both: two members are named Point" } }
+// out: Err{ error: Error{ message: "Both: two members are named Point", kind: null } }
 // out: Ok{ value: ["Point", "Box"] }

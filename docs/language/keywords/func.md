@@ -318,7 +318,7 @@ func parseOrder(id: string, quantity: string): Result[Order, Error] {
 }
 
 parseOrder("a1", "3") // Ok{ value: Order{ id: "a1", quantity: 3 } }
-parseOrder("a2", "0") // Err{ error: Error{ message: "order a2: quantity must be positive" } }
+parseOrder("a2", "0") // Err{ error: Error{ message: "order a2: quantity must be positive", kind: null } }
 ```
 
 Build a function from settings, then pass it to `filter`:

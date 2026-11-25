@@ -59,7 +59,7 @@ println(Cmd.read(Cmd.new("sh", ["-c", "echo 'disk full' >&2; exit 3"])))
 ```
 
 ```text
-Err{ error: Error{ message: "sh: exit status 3: disk full" } }
+Err{ error: Error{ message: "sh: exit status 3: disk full", kind: null } }
 ```
 
 ## Scope
@@ -157,7 +157,7 @@ println(Cmd.read(pipeline))
 ```
 
 ```text
-Err{ error: Error{ message: "grep (stage 3): exit status 1" } }
+Err{ error: Error{ message: "grep (stage 3): exit status 1", kind: null } }
 ```
 
 A stage that ends because a later stage stopped reading does not fail the pipeline:
@@ -178,8 +178,8 @@ println(Cmd.read(Cmd.new("ls", dir: "/no/such/dir")))
 ```
 
 ```text
-Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH" } }
-Err{ error: Error{ message: "chdir /no/such/dir: no such file or directory" } }
+Err{ error: Error{ message: "exec: \"no-such-program\": executable file not found in $PATH", kind: null } }
+Err{ error: Error{ message: "chdir /no/such/dir: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Named arguments
@@ -208,7 +208,7 @@ println(Cmd.read(Cmd.new("sleep", ["10"]), ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context that is already done starts nothing:
@@ -220,7 +220,7 @@ println(Cmd.read(Cmd.new("echo", ["never"]), ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Applications
@@ -253,7 +253,7 @@ println(lineCount(["a.txt", "missing.txt"]))
 
 ```text
 Ok{ value: 3 }
-Err{ error: Error{ message: "count lines: cat: exit status 1: cat: missing.txt: No such file or directory" } }
+Err{ error: Error{ message: "count lines: cat: exit status 1: cat: missing.txt: No such file or directory", kind: null } }
 ```
 
 Run a short shell script when you need the shell's features, passing values as arguments, not by
@@ -300,7 +300,7 @@ println(try Cmd.read(Cmd.new("echo", ["$HOME", "*.txt"])))
 ```
 
 ```text
-Err{ error: Error{ message: "exec: \"echo hello\": executable file not found in $PATH" } }
+Err{ error: Error{ message: "exec: \"echo hello\": executable file not found in $PATH", kind: null } }
 $HOME *.txt
 ```
 
@@ -315,7 +315,7 @@ println(out.status)
 ```
 
 ```text
-Err{ error: Error{ message: "grep: exit status 1" } }
+Err{ error: Error{ message: "grep: exit status 1", kind: null } }
 1
 ```
 

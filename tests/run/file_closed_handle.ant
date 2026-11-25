@@ -44,21 +44,21 @@ if bad is Err { println(String.replace(bad.error.message, dir, "DIR")) }
 // args: $TMP
 // out: false
 // out: false
-// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
 // out: Ok{ value: void }
-// out: Err{ error: Error{ message: "the file is closed" } }
-// out: Err{ error: Error{ message: "the file is closed" } }
-// out: Err{ error: Error{ message: "the file is closed" } }
-// out: Err{ error: Error{ message: "the file is closed" } }
-// out: Err{ error: Error{ message: "the file is closed" } }
-// out: Err{ error: Error{ message: "the file is closed" } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
+// out: Err{ error: Error{ message: "the file is closed", kind: null } }
 // out: false
-// out: Err{ error: Error{ message: "the file is not open for reading" } }
-// out: Err{ error: Error{ message: "the file is not open for writing" } }
+// out: Err{ error: Error{ message: "the file is not open for reading", kind: null } }
+// out: Err{ error: Error{ message: "the file is not open for writing", kind: null } }
 // out: Ok{ value: void }
 // out: Ok{ value: "line\n" }
-// out: Err{ error: Error{ message: "is a directory" } }
-// out: Err{ error: Error{ message: "is a directory" } }
-// out: Err{ error: Error{ message: "is a directory" } }
-// out: Err{ error: Error{ message: "is a directory" } }
+// out: Err{ error: Error{ message: "is a directory", kind: null } }
+// out: Err{ error: Error{ message: "is a directory", kind: null } }
+// out: Err{ error: Error{ message: "is a directory", kind: null } }
+// out: Err{ error: Error{ message: "is a directory", kind: null } }
 // out: chmod DIR/in.txt: mode -1 is outside 0 ..= 0o7777

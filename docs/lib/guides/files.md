@@ -22,7 +22,7 @@ println(File.read(Path.join([dir, "done.txt"])))
 ```text
 notes/todo.txt
 buy milk
-Err{ error: Error{ message: "open notes/done.txt: no such file or directory" } }
+Err{ error: Error{ message: "open notes/done.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 A read of a missing file is an `Err`, and its message names the path. Only `File.mkdir` makes
@@ -40,7 +40,7 @@ println(try File.read("out.txt"))
 ```
 
 ```text
-Err{ error: Error{ message: "open out.txt: file exists" } }
+Err{ error: Error{ message: "open out.txt: file exists", kind: Error.Exist{} } }
 first
 ```
 

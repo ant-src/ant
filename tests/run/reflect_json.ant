@@ -38,9 +38,9 @@ println(decode(`[null]`, type(Array[void])))
 // out: {"sensor":"s1","value":21.5,"seen":[1,2],"extra":{"a":1.5}}
 // out: [1.0, 2.5, "x", null, true, [1.0], Map{ "a": null }]
 // out: [1.0,2.5,"x",null,true,[1.0],{"a":null}]
-// out: Err{ error: Error{ message: "$.servers[0]: missing field host" } }
-// out: Err{ error: Error{ message: "$.servers[0].port: want int" } }
-// out: Err{ error: Error{ message: "$[1]: want int" } }
-// out: Err{ error: Error{ message: "$: cannot decode into { a: int }: name a record type for it" } }
-// out: Err{ error: Error{ message: "$.value: want Celsius" } }
-// out: Err{ error: Error{ message: "$[0]: want void" } }
+// out: Err{ error: Error{ message: "$.servers[0]: missing field host", kind: null } }
+// out: Err{ error: Error{ message: "$.servers[0].port: want int", kind: null } }
+// out: Err{ error: Error{ message: "$[1]: want int", kind: null } }
+// out: Err{ error: Error{ message: "$: cannot decode into { a: int }: name a record type for it", kind: null } }
+// out: Err{ error: Error{ message: "$.value: want Celsius", kind: null } }
+// out: Err{ error: Error{ message: "$[0]: want void", kind: null } }

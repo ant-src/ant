@@ -166,7 +166,7 @@ println(moment("2026-10-22", "9.30", "America/Chicago"))
 
 ```text
 Ok{ value: 2026-10-22T14:30:00Z }
-Err{ error: Error{ message: "time: not a date or time: \"9.30\"" } }
+Err{ error: Error{ message: "time: not a date or time: \"9.30\"", kind: null } }
 ```
 
 ## Properties and relations

@@ -12,6 +12,8 @@
 package value
 
 import (
+	"errors"
+	"io/fs"
 	"sync/atomic"
 )
 
@@ -490,7 +492,7 @@ type Time interface {
 var (
 	OkTag      = NewTag("Ok", RecordTag, []string{"value"})
 	ErrTag     = NewTag("Err", RecordTag, []string{"error"})
-	ErrorTag   = NewTag("Error", RecordTag, []string{"message"})
+	ErrorTag   = NewTag("Error", RecordTag, []string{"message", "kind"})
 	EntryTag   = NewTag("Entry", RecordTag, []string{"key", "value"})
 	IndexedTag = NewTag("Indexed", RecordTag, []string{"index", "value"})
 )
@@ -501,8 +503,31 @@ func Ok(v Value) *Record { return NewRecord(OkTag, []Value{v}) }
 // Err builds Err{ error: e }.
 func Err(e Value) *Record { return NewRecord(ErrTag, []Value{e}) }
 
-// ErrorValue builds Error{ message: msg }.
-func ErrorValue(msg string) *Record { return NewRecord(ErrorTag, []Value{msg}) }
+// The members of Error.Kind (section 8, Error kinds), each an empty record.
+var (
+	NotExistTag   = NewTag("Error.NotExist", RecordTag, nil)
+	ExistTag      = NewTag("Error.Exist", RecordTag, nil)
+	PermissionTag = NewTag("Error.Permission", RecordTag, nil)
+)
+
+// ErrorValue builds Error{ message: msg }, an error of no kind.
+func ErrorValue(msg string) *Record { return NewRecord(ErrorTag, []Value{msg, Null}) }
+
+// ErrorOf builds the Error of a Go error as the standard library does (stdlib.md): the error's
+// text as the message, and the kind of the first of fs.ErrNotExist, fs.ErrExist and
+// fs.ErrPermission that errors.Is matches, or no kind when none does.
+func ErrorOf(err error) *Record {
+	var kind Value = Null
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		kind = NewRecord(NotExistTag, nil)
+	case errors.Is(err, fs.ErrExist):
+		kind = NewRecord(ExistTag, nil)
+	case errors.Is(err, fs.ErrPermission):
+		kind = NewRecord(PermissionTag, nil)
+	}
+	return NewRecord(ErrorTag, []Value{Text(err.Error()), kind})
+}
 
 // Entry builds Entry{ key: k, value: v }.
 func Entry(k, v Value) *Record { return NewRecord(EntryTag, []Value{k, v}) }

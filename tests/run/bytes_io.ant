@@ -101,12 +101,12 @@ println([Result.unwrap(Cmd.capture(Cmd.new("cat"), input: Bytes.fromArray([0x61,
 // out: Ok{ value: null }
 // out: Ok{ value: Bytes() }
 // out: Ok{ value: Bytes(53 49 5a 45) }
-// out: Err{ error: Error{ message: "unexpected end of file" } }
+// out: Err{ error: Error{ message: "unexpected end of file", kind: null } }
 // out: Ok{ value: null }
-// out: Err{ error: Error{ message: "the most to read is 0; it must be at least 1" } }
-// out: Err{ error: Error{ message: "the count to read is -1; it must be at least 0" } }
+// out: Err{ error: Error{ message: "the most to read is 0; it must be at least 1", kind: null } }
+// out: Err{ error: Error{ message: "the count to read is -1; it must be at least 0", kind: null } }
 // out: Ok{ value: Bytes(ff 00 fe 01 02 03) }
-// out: Err{ error: Error{ message: "unexpected end of file" } }
+// out: Err{ error: Error{ message: "unexpected end of file", kind: null } }
 // out: Ok{ value: 0 }
 // out: true
 // out: true

@@ -178,7 +178,7 @@ let worked = 1h20m
 bill(worked, "up")      // Ok{ value: PT1H30M }
 bill(worked, "down")    // Ok{ value: PT1H15M }
 bill(worked, "nearest") // Ok{ value: PT1H15M }
-bill(worked, "weekly")  // Err{ error: Error{ message: "unknown rounding policy: weekly" } }
+bill(worked, "weekly")  // Err{ error: Error{ message: "unknown rounding policy: weekly", kind: null } }
 ```
 
 ## Properties and relations

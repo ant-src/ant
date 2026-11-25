@@ -186,7 +186,7 @@ println(meetingIn("2026-10-22T15:00", tokyo))
 
 ```text
 Ok{ value: "2026-10-22 22:00:00 in Asia/Tokyo" }
-Err{ error: Error{ message: "meeting time: a zoned date-time needs a date and a [zone]: \"2026-10-22T15:00\"" } }
+Err{ error: Error{ message: "meeting time: a zoned date-time needs a date and a [zone]: \"2026-10-22T15:00\"", kind: null } }
 ```
 
 Refuse a wall-clock time that a daylight-saving change made ambiguous, instead of letting
@@ -208,7 +208,7 @@ println(strictZoned("2024-11-03T03:30", "America/New_York"))
 ```
 
 ```text
-Err{ error: Error{ message: "2024-11-03T01:30 has 2 instants in America/New_York" } }
+Err{ error: Error{ message: "2024-11-03T01:30 has 2 instants in America/New_York", kind: null } }
 Ok{ value: 2024-11-03T03:30:00-05:00[America/New_York] }
 ```
 
@@ -257,7 +257,7 @@ println(Time.parseInstant(s).unwrap().inZone(stockholm))
 ```
 
 ```text
-Err{ error: Error{ message: "the offset +05:00 is not the offset of Europe/Stockholm at 2026-10-22T16:03:05" } }
+Err{ error: Error{ message: "the offset +05:00 is not the offset of Europe/Stockholm at 2026-10-22T16:03:05", kind: null } }
 2026-10-22T13:03:05+02:00[Europe/Stockholm]
 ```
 
@@ -266,7 +266,7 @@ Text without a bracketed zone is an `Err`, even with `Z` or an offset. Use
 
 ```ant
 Time.parseZoned("2026-10-22T14:03:05Z").unwrap()
-// panic: Result.unwrap on an Err: Error{ message: "a zoned date-time needs a date and a [zone]: \"2026-10-22T14:03:05Z\"" }
+// panic: Result.unwrap on an Err: Error{ message: "a zoned date-time needs a date and a [zone]: \"2026-10-22T14:03:05Z\"", kind: null }
 ```
 
 A wall-clock time in a daylight-saving gap is moved, not refused, so the result can show another

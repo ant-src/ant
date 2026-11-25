@@ -26,10 +26,10 @@ println(again.isOk())
 again.unwrap().close()
 
 // expect
-// out: Err{ error: Error{ message: "dial \"127.0.0.1:99999\": invalid port" } }
-// out: Err{ error: Error{ message: "dial \"127.0.0.1\": missing port in address" } }
-// out: Err{ error: Error{ message: "dial \"\": missing address" } }
-// out: Err{ error: Error{ message: "listen \"127.0.0.1:x\": unknown port" } }
+// out: Err{ error: Error{ message: "dial \"127.0.0.1:99999\": invalid port", kind: null } }
+// out: Err{ error: Error{ message: "dial \"127.0.0.1\": missing port in address", kind: null } }
+// out: Err{ error: Error{ message: "dial \"\": missing address", kind: null } }
+// out: Err{ error: Error{ message: "listen \"127.0.0.1:x\": unknown port", kind: null } }
 // out: true
 // out: Ok{ value: "still open" }
 // out: true

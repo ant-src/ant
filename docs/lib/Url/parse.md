@@ -53,7 +53,7 @@ Ok{ value: Url.Parts{ scheme: "https", opaque: "", user: "", host: "example.com"
 A malformed reference is an `Err`:
 
 ```ant
-Url.parse("https://example.com/%zz") // Err{ error: Error{ message: "parse \"https://example.com/%zz\": invalid URL escape \"%zz\"" } }
+Url.parse("https://example.com/%zz") // Err{ error: Error{ message: "parse \"https://example.com/%zz\": invalid URL escape \"%zz\"", kind: null } }
 ```
 
 ## Scope
@@ -151,7 +151,7 @@ println(param("https://example.com/%zz", "q"))
 ```text
 Ok{ value: "ant lang" }
 Ok{ value: "" }
-Err{ error: Error{ message: "link: parse \"https://example.com/%zz\": invalid URL escape \"%zz\"" } }
+Err{ error: Error{ message: "link: parse \"https://example.com/%zz\": invalid URL escape \"%zz\"", kind: null } }
 ```
 
 Change a URL by parsing it, replacing a field with a record spread, and writing it back with
@@ -193,9 +193,9 @@ for link in ["https://example.com/", "mailto:alice@example.com", "/about", "http
 
 ```text
 Ok{ value: "example.com" }
-Err{ error: Error{ message: "not a web link: mailto:alice@example.com" } }
-Err{ error: Error{ message: "not a web link: /about" } }
-Err{ error: Error{ message: "no host: http:///x" } }
+Err{ error: Error{ message: "not a web link: mailto:alice@example.com", kind: null } }
+Err{ error: Error{ message: "not a web link: /about", kind: null } }
+Err{ error: Error{ message: "no host: http:///x", kind: null } }
 ```
 
 Fill in the port a URL leaves out with an `if` expression:

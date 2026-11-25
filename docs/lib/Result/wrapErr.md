@@ -24,7 +24,7 @@ Put the operation in front of the message of an error:
 
 ```ant
 let failed: Result[int, Error] = Result.fail("no such file")
-Result.wrapErr(failed, "load config") // Err{ error: Error{ message: "load config: no such file" } }
+Result.wrapErr(failed, "load config") // Err{ error: Error{ message: "load config: no such file", kind: null } }
 ```
 
 An `Ok` passes through:
@@ -37,7 +37,7 @@ Result.wrapErr(loaded, "load config") // Ok{ value: 8080 }
 Wrap the result of a call in a pipe:
 
 ```ant
-Json.parse("{") | Result.wrapErr("parse app.json") // Err{ error: Error{ message: "parse app.json: unexpected end of JSON input" } }
+Json.parse("{") | Result.wrapErr("parse app.json") // Err{ error: Error{ message: "parse app.json: unexpected end of JSON input", kind: null } }
 ```
 
 ## Scope
@@ -46,21 +46,21 @@ Each wrap adds one more context in front, so the outermost caller reads first:
 
 ```ant
 let failed: Result[int, Error] = Result.fail("timeout")
-failed | Result.wrapErr("fetch user") | Result.wrapErr("render page") // Err{ error: Error{ message: "render page: fetch user: timeout" } }
+failed | Result.wrapErr("fetch user") | Result.wrapErr("render page") // Err{ error: Error{ message: "render page: fetch user: timeout", kind: null } }
 ```
 
 An empty context still adds the separator:
 
 ```ant
 let failed: Result[int, Error] = Result.fail("timeout")
-Result.wrapErr(failed, "") // Err{ error: Error{ message: ": timeout" } }
+Result.wrapErr(failed, "") // Err{ error: Error{ message: ": timeout", kind: null } }
 ```
 
 Call it through `.`:
 
 ```ant
 let failed: Result[int, Error] = Result.fail("refused")
-failed.wrapErr("connect") // Err{ error: Error{ message: "connect: refused" } }
+failed.wrapErr("connect") // Err{ error: Error{ message: "connect: refused", kind: null } }
 ```
 
 ## Named arguments
@@ -69,7 +69,7 @@ Name the arguments to pass them in any order:
 
 ```ant
 let failed: Result[int, Error] = Result.fail("refused")
-Result.wrapErr(context: "connect", r: failed) // Err{ error: Error{ message: "connect: refused" } }
+Result.wrapErr(context: "connect", r: failed) // Err{ error: Error{ message: "connect: refused", kind: null } }
 ```
 
 ## Applications
@@ -104,7 +104,7 @@ Name the input that failed when you process several, then keep the first error w
 ```ant
 type Source = { name: string, text: string }
 let sources = [Source{ name: "a.json", text: "[1]" }, Source{ name: "b.json", text: "[1," }]
-sources | Array.map({ Json.parse(x.text) | Result.wrapErr("parse ${x.name}") }) | Result.all() // Err{ error: Error{ message: "parse b.json: unexpected end of JSON input" } }
+sources | Array.map({ Json.parse(x.text) | Result.wrapErr("parse ${x.name}") }) | Result.all() // Err{ error: Error{ message: "parse b.json: unexpected end of JSON input", kind: null } }
 ```
 
 Turn an error of your own type into an `Error` for a person to read, then add the context:
@@ -112,7 +112,7 @@ Turn an error of your own type into an `Error` for a person to read, then add th
 ```ant
 type NotFound = { id: int }
 let missing: Result[string, NotFound] = Result.err(NotFound{ id: 7 })
-missing | Result.mapErr({ Error{ message: "user ${x.id} not found" } }) | Result.wrapErr("load profile") // Err{ error: Error{ message: "load profile: user 7 not found" } }
+missing | Result.mapErr({ Error{ message: "user ${x.id} not found" } }) | Result.wrapErr("load profile") // Err{ error: Error{ message: "load profile: user 7 not found", kind: null } }
 ```
 
 ## Properties and relations
@@ -137,7 +137,7 @@ Wrapping leaves the original error as it was:
 let cause = Error{ message: "timeout" }
 let failed: Result[int, Error] = Result.err(cause)
 let wrapped = failed.wrapErr("fetch")
-cause // Error{ message: "timeout" }
+cause // Error{ message: "timeout", kind: null }
 ```
 
 ## Possible issues

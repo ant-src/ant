@@ -99,7 +99,7 @@ println(out.close())
 
 ```text
 Ok{ value: void }
-Err{ error: Error{ message: "broken pipe" } }
+Err{ error: Error{ message: "broken pipe", kind: null } }
 Ok{ value: void }
 ```
 
@@ -132,7 +132,7 @@ println(file.writeLine("late"))
 ```text
 Ok{ value: void }
 Ok{ value: void }
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 ```
 
 ### Standard streams

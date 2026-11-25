@@ -37,18 +37,18 @@ Result.unwrap(File.removeAll(dir))
 
 // expect
 // args: $HTTP
-// out: Err{ error: Error{ message: "timeout" } }
-// out: Err{ error: Error{ message: "cancelled" } }
-// out: Err{ error: Error{ message: "cancelled" } }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
+// out: Err{ error: Error{ message: "cancelled", kind: null } }
+// out: Err{ error: Error{ message: "cancelled", kind: null } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: true
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: true
 // out: Ok{ value: Cmd.Output{ status: 0, statuses: [0], stdout: "", stderr: "" } }
-// out: Err{ error: Error{ message: "cancelled" } }
+// out: Err{ error: Error{ message: "cancelled", kind: null } }
 // out: Ok{ value: "one" }
-// out: Err{ error: Error{ message: "cancelled" } }
+// out: Err{ error: Error{ message: "cancelled", kind: null } }
 // out: Ok{ value: "two\n" }
-// out: Err{ error: Error{ message: "cancelled" } }
+// out: Err{ error: Error{ message: "cancelled", kind: null } }
 // out: Ok{ value: void }
 // out: Ok{ value: "one\ntwo\n" }

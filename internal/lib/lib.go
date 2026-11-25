@@ -147,6 +147,10 @@ func Prelude() map[string]value.Value {
 		table["Ok"] = value.OkTag
 		table["Err"] = value.ErrTag
 		table["Error"] = withFuncs(value.ErrorTag, errorFuncs())
+		value.ErrorTag.SetFunc("Kind", value.NewTag("Error.Kind", value.AliasTag, nil))
+		value.ErrorTag.SetFunc("NotExist", value.NotExistTag)
+		value.ErrorTag.SetFunc("Exist", value.ExistTag)
+		value.ErrorTag.SetFunc("Permission", value.PermissionTag)
 		table["Panic"] = withFuncs(PanicTag, panicFuncs())
 		PanicTag.SetFunc("Frame", FrameTag)
 		table["Entry"] = value.EntryTag

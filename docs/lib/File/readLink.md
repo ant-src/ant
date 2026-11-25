@@ -118,9 +118,9 @@ println(File.readLink("nowhere"))
 ```
 
 ```text
-Err{ error: Error{ message: "readlink plain.txt: invalid argument" } }
-Err{ error: Error{ message: "readlink folder: invalid argument" } }
-Err{ error: Error{ message: "readlink nowhere: no such file or directory" } }
+Err{ error: Error{ message: "readlink plain.txt: invalid argument", kind: null } }
+Err{ error: Error{ message: "readlink folder: invalid argument", kind: null } }
+Err{ error: Error{ message: "readlink nowhere: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Applications
@@ -192,7 +192,7 @@ println(r)
 ```
 
 ```text
-Err{ error: Error{ message: "find the active config: readlink config/active: no such file or directory" } }
+Err{ error: Error{ message: "find the active config: readlink config/active: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations
@@ -231,7 +231,7 @@ println(File.read("conf/active/app.toml"))
 ```
 
 ```text
-Err{ error: Error{ message: "open ../app.toml: no such file or directory" } }
+Err{ error: Error{ message: "open ../app.toml: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: "port = 8080" }
 ```
 

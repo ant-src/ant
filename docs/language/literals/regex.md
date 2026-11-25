@@ -151,7 +151,7 @@ println(checkUsername("9lives"))
 
 ```text
 Ok{ value: "ant_lang" }
-Err{ error: Error{ message: "username 9lives: use 3 to 16 lowercase letters, digits, or _" } }
+Err{ error: Error{ message: "username 9lives: use 3 to 16 lowercase letters, digits, or _", kind: null } }
 ```
 
 ### Rewrite with groups
@@ -200,7 +200,7 @@ let open = /(/ // error: invalid regular expression: missing closing ): `(`
 The same pattern from data is an `Err`, not a compile error:
 
 ```ant
-Regex.compile("(") // Err{ error: Error{ message: "invalid regular expression: missing closing ): `(`" } }
+Regex.compile("(") // Err{ error: Error{ message: "invalid regular expression: missing closing ): `(`", kind: null } }
 ```
 
 ### No lookahead or backreferences

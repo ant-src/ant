@@ -98,7 +98,7 @@ println(parsed)
 ```
 
 ```text
-[Ok{ value: 4 }, Err{ error: Error{ message: "not a number: x" } }, Ok{ value: 15 }]
+[Ok{ value: 4 }, Err{ error: Error{ message: "not a number: x", kind: null } }, Ok{ value: 15 }]
 ```
 
 Call it in a pipe. A `.` call on an array finds `Array.map`, not this function:
@@ -242,7 +242,7 @@ println(lineCounts(["a.txt", "missing.txt"]))
 
 ```text
 Ok{ value: [2, 1] }
-Err{ error: Error{ message: "open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Count the words of each document in parallel, then add the counts up:

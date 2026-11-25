@@ -195,7 +195,7 @@ println(balance(accounts, "b2"))
 
 ```text
 Ok{ value: 50 }
-Err{ error: Error{ message: "no account b2" } }
+Err{ error: Error{ message: "no account b2", kind: null } }
 ```
 
 ### Optional settings

@@ -105,7 +105,7 @@ println(listener.accept(ctx: Context.new(timeout: 20ms)))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 ## Applications
@@ -139,7 +139,7 @@ println(collect(silent, Context.new(timeout: 50ms)))
 
 ```text
 Ok{ value: ["a", "b"] }
-Err{ error: Error{ message: "collect: timeout" } }
+Err{ error: Error{ message: "collect: timeout", kind: null } }
 ```
 
 ### Report why a worker stopped

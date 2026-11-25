@@ -119,7 +119,7 @@ println(outcome)
 ```
 
 ```text
-Err{ error: Error{ message: "connection refused" } }
+Err{ error: Error{ message: "connection refused", kind: null } }
 ```
 
 The functions share one result type. For results of different kinds, annotate the array with a
@@ -264,7 +264,7 @@ println(ping(done))
 
 ```text
 Ok{ value: "PONG FROM US" }
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Properties and relations

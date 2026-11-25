@@ -157,7 +157,7 @@ println(fingerprint(Cmd.new("sh", ["-c", "echo 'no data' >&2; exit 1"])))
 
 ```text
 Ok{ value: "ae4b3280e56e" }
-Err{ error: Error{ message: "sh: no data" } }
+Err{ error: Error{ message: "sh: no data", kind: null } }
 ```
 
 Treat the output as text only when it is valid UTF-8:

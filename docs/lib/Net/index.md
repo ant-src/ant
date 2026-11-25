@@ -186,7 +186,7 @@ println(conn.readLine(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A context that is already cancelled makes `Net.accept` give up at once:
@@ -200,7 +200,7 @@ println(listener.accept(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 ```
 
 ## Functions by job
@@ -353,7 +353,7 @@ println(try conn.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 got hello
 ```
 

@@ -81,7 +81,7 @@ println(File.copyAll("site", "site-backup"))
 
 ```text
 ["css/main.css", "index.html"]
-Err{ error: Error{ message: "copy site to site-backup: site-backup exists" } }
+Err{ error: Error{ message: "copy site to site-backup: site-backup exists", kind: Error.Exist{} } }
 ```
 
 1. Copy the tree. Every directory and file keeps its mode, and a symbolic link inside the tree is

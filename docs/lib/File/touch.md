@@ -202,7 +202,7 @@ println(r)
 ```
 
 ```text
-Err{ error: Error{ message: "mark the cache fresh: open cache/stamp: no such file or directory" } }
+Err{ error: Error{ message: "mark the cache fresh: open cache/stamp: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Properties and relations
@@ -249,7 +249,7 @@ println(File.touch("out/stamp"))
 ```
 
 ```text
-Err{ error: Error{ message: "open out/stamp: no such file or directory" } }
+Err{ error: Error{ message: "open out/stamp: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: void }
 ```
 

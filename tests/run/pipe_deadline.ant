@@ -15,4 +15,4 @@ var sent = Channel.send(done, true)
 
 // expect
 // out: arrived before the deadline
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }

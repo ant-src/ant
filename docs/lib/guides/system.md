@@ -71,7 +71,7 @@ println("${out.status}: ${out.stdout.trim()} / ${out.stderr.trim()}")
 ```
 
 ```text
-Err{ error: Error{ message: "sh: exit status 2: oops" } }
+Err{ error: Error{ message: "sh: exit status 2: oops", kind: null } }
 2: data / oops
 ```
 

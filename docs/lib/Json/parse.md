@@ -32,7 +32,7 @@ Json.parse("[1, 2.5]")                           // Ok{ value: [1.0, 2.5] }
 Text that is not JSON is an `Err` that says what went wrong and where:
 
 ```ant
-Json.parse("[1, 2,]") // Err{ error: Error{ message: "expected a value, found ']' at line 1, column 7" } }
+Json.parse("[1, 2,]") // Err{ error: Error{ message: "expected a value, found ']' at line 1, column 7", kind: null } }
 ```
 
 ## Scope
@@ -64,7 +64,7 @@ Json.parse(`{"b": 1, "a": 2}`) // Ok{ value: Map{ "b": 1.0, "a": 2.0 } }
 A name may appear once in an object. The error points at the second one:
 
 ```ant
-Json.parse(`{"a": 1, "b": 2, "a": 3}`) // Err{ error: Error{ message: "duplicate name \"a\" at line 1, column 18" } }
+Json.parse(`{"a": 1, "b": 2, "a": 3}`) // Err{ error: Error{ message: "duplicate name \"a\" at line 1, column 18", kind: null } }
 ```
 
 Escapes decode to the characters they name, a surrogate pair to one code point:
@@ -77,28 +77,28 @@ Json.parse(`"tab\there"`)              // Ok{ value: "tab\there" }
 A surrogate escape outside a pair encodes no text and is an `Err`:
 
 ```ant
-Json.parse(`"\ud800"`) // Err{ error: Error{ message: "unpaired surrogate \\ud800 at line 1, column 2" } }
+Json.parse(`"\ud800"`) // Err{ error: Error{ message: "unpaired surrogate \\ud800 at line 1, column 2", kind: null } }
 ```
 
 A number too small for a `float64` rounds to zero; one too large is an `Err`:
 
 ```ant
 Json.parse("1e-400") // Ok{ value: 0.0 }
-Json.parse("1e400")  // Err{ error: Error{ message: "number 1e400 is too large for a float64" } }
+Json.parse("1e400")  // Err{ error: Error{ message: "number 1e400 is too large for a float64", kind: null } }
 ```
 
 Text that stops early, and text that goes on after the value, each have their own message:
 
 ```ant
-Json.parse("")      // Err{ error: Error{ message: "unexpected end of JSON input" } }
-Json.parse(`{"a":`) // Err{ error: Error{ message: "unexpected end of JSON input" } }
-Json.parse("1 2")   // Err{ error: Error{ message: "unexpected text after the JSON value" } }
+Json.parse("")      // Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
+Json.parse(`{"a":`) // Err{ error: Error{ message: "unexpected end of JSON input", kind: null } }
+Json.parse("1 2")   // Err{ error: Error{ message: "unexpected text after the JSON value", kind: null } }
 ```
 
 Any other error names the line and column:
 
 ```ant
-Json.parse("{\n  \"on\": yes\n}") // Err{ error: Error{ message: "expected a value, found 'y' at line 2, column 9" } }
+Json.parse("{\n  \"on\": yes\n}") // Err{ error: Error{ message: "expected a value, found 'y' at line 2, column 9", kind: null } }
 ```
 
 In a pipe, the text is the first argument:
@@ -173,9 +173,9 @@ println(decodeServers(`{"host": "a"}`))
 
 ```text
 Ok{ value: [Server{ host: "a", port: 80 }, Server{ host: "b", port: 8080 }] }
-Err{ error: Error{ message: "$[1].port: want an integer" } }
-Err{ error: Error{ message: "$[0].port: want an integer" } }
-Err{ error: Error{ message: "$: want an array" } }
+Err{ error: Error{ message: "$[1].port: want an integer", kind: null } }
+Err{ error: Error{ message: "$[0].port: want an integer", kind: null } }
+Err{ error: Error{ message: "$: want an array", kind: null } }
 ```
 
 Sum the numbers of an array, skipping the other values:
@@ -264,16 +264,16 @@ m.has("b") // false
 Common extensions of JSON are not JSON, and each is an `Err`:
 
 ```ant
-Json.parse("{'a': 1}")   // Err{ error: Error{ message: "expected a string key, found '\\'' at line 1, column 2" } }
-Json.parse("// note\n1") // Err{ error: Error{ message: "expected a value, found '/' at line 1, column 1" } }
-Json.parse("NaN")        // Err{ error: Error{ message: "expected a value, found 'N' at line 1, column 1" } }
+Json.parse("{'a': 1}")   // Err{ error: Error{ message: "expected a string key, found '\\'' at line 1, column 2", kind: null } }
+Json.parse("// note\n1") // Err{ error: Error{ message: "expected a value, found '/' at line 1, column 1", kind: null } }
+Json.parse("NaN")        // Err{ error: Error{ message: "expected a value, found 'N' at line 1, column 1", kind: null } }
 ```
 
 `Result.unwrap` on malformed text panics. Use `try` or test the result where the text comes from
 outside:
 
 ```ant
-Json.parse("{").unwrap() // panic: Result.unwrap on an Err: Error{ message: "unexpected end of JSON input" }
+Json.parse("{").unwrap() // panic: Result.unwrap on an Err: Error{ message: "unexpected end of JSON input", kind: null }
 ```
 
 ## See also

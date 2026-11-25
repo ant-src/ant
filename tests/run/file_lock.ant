@@ -33,7 +33,7 @@ println(again is Ok)
 // out: false
 // out: true
 // out: Ok{ value: null }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: Ok{ value: void }
 // out: closing
 // out: Ok{ value: void }

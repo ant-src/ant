@@ -9,8 +9,8 @@ println(Cmd.capture(c))
 println(Cmd.start(Cmd.pipe([Cmd.new("echo"), c])))
 
 // expect
-// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
-// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
-// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
-// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
-// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory" } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory", kind: Error.NotExist{} } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory", kind: Error.NotExist{} } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory", kind: Error.NotExist{} } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory", kind: Error.NotExist{} } }
+// out: Err{ error: Error{ message: "chdir ant-no-such-dir-xyz: no such file or directory", kind: Error.NotExist{} } }

@@ -227,19 +227,19 @@ println(decode("shapes:\n  - {radius: 1}\n", type(Drawing)))
 // out:     - true
 // out:     - {}
 // out: drawing round trip: true
-// out: Err{ error: Error{ message: "$.Ok (line 1): want a mapping for Ok[int], got \"1\"" } }
+// out: Err{ error: Error{ message: "$.Ok (line 1): want a mapping for Ok[int], got \"1\"", kind: null } }
 // out: Err{ error: "yaml: cannot encode a cyclic value" }
-// out: Err{ error: Error{ message: "$ (line 1): missing field name" } }
-// out: Err{ error: Error{ message: "$.limits.cpu (line 4): want float64, got \"lots\"" } }
-// out: Err{ error: Error{ message: "$ (line 3): unknown field extra in Config" } }
-// out: Err{ error: Error{ message: "line 2: duplicate key name" } }
-// out: Err{ error: Error{ message: "$.small (line 1): \"200\" does not fit int8" } }
-// out: Err{ error: Error{ message: "$.big (line 2): \"-1\" does not fit uint64" } }
-// out: Err{ error: Error{ message: "line 1: want , or ] in a flow sequence" } }
-// out: Err{ error: Error{ message: "line 2: unexpected indentation" } }
-// out: Err{ error: Error{ message: "$.key (line 1): illegal base64 data at input byte 0" } }
-// out: Err{ error: Error{ message: "$.count (line 1): want int, got a quoted string" } }
-// out: Err{ error: Error{ message: "$ (line 1): cannot build the anonymous record type { a: int }" } }
-// out: Err{ error: Error{ message: "$[0] (line 1): want int, got \"x\"" } }
-// out: Err{ error: Error{ message: "$.shapes[0] (line 2): unknown tag Square, want one of Circle, Rect" } }
-// out: Err{ error: Error{ message: "$.shapes[0] (line 2): unknown tag radius, want one of Circle, Rect" } }
+// out: Err{ error: Error{ message: "$ (line 1): missing field name", kind: null } }
+// out: Err{ error: Error{ message: "$.limits.cpu (line 4): want float64, got \"lots\"", kind: null } }
+// out: Err{ error: Error{ message: "$ (line 3): unknown field extra in Config", kind: null } }
+// out: Err{ error: Error{ message: "line 2: duplicate key name", kind: null } }
+// out: Err{ error: Error{ message: "$.small (line 1): \"200\" does not fit int8", kind: null } }
+// out: Err{ error: Error{ message: "$.big (line 2): \"-1\" does not fit uint64", kind: null } }
+// out: Err{ error: Error{ message: "line 1: want , or ] in a flow sequence", kind: null } }
+// out: Err{ error: Error{ message: "line 2: unexpected indentation", kind: null } }
+// out: Err{ error: Error{ message: "$.key (line 1): illegal base64 data at input byte 0", kind: null } }
+// out: Err{ error: Error{ message: "$.count (line 1): want int, got a quoted string", kind: null } }
+// out: Err{ error: Error{ message: "$ (line 1): cannot build the anonymous record type { a: int }", kind: null } }
+// out: Err{ error: Error{ message: "$[0] (line 1): want int, got \"x\"", kind: null } }
+// out: Err{ error: Error{ message: "$.shapes[0] (line 2): unknown tag Square, want one of Circle, Rect", kind: null } }
+// out: Err{ error: Error{ message: "$.shapes[0] (line 2): unknown tag radius, want one of Circle, Rect", kind: null } }

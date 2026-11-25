@@ -179,7 +179,7 @@ println(port("http"))
 ```text
 Ok{ value: 8080 }
 Ok{ value: 80 }
-Err{ error: Error{ message: "port http is not a number" } }
+Err{ error: Error{ message: "port http is not a number", kind: null } }
 ```
 
 `??` gives its right side when the left is `null`, and here the right side leaves the function. The
@@ -212,7 +212,7 @@ println(total(["3", "three"]))
 
 ```text
 Ok{ value: 7 }
-Err{ error: Error{ message: "three is not a number" } }
+Err{ error: Error{ message: "three is not a number", kind: null } }
 ```
 
 ## Statements are `void`

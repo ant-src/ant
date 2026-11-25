@@ -100,7 +100,7 @@ println(File.tempFile("work/job-*.log"))
 
 ```text
 work
-Err{ error: Error{ message: "createtemp work/job-*.log: pattern contains path separator" } }
+Err{ error: Error{ message: "createtemp work/job-*.log: pattern contains path separator", kind: null } }
 ```
 
 A temporary file in the destination's own directory is how you replace a file so that no reader sees

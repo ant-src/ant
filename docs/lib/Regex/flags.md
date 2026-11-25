@@ -152,8 +152,8 @@ let every = /ant/g
 [Regex.compile](compile.md) is `Err` on an unknown flag, a capital letter, or a repeated one:
 
 ```ant
-Regex.compile("a", "I")  // Err{ error: Error{ message: "unknown flag 'I'; the flags are i, m and s" } }
-Regex.compile("a", "ii") // Err{ error: Error{ message: "the flag i is repeated" } }
+Regex.compile("a", "I")  // Err{ error: Error{ message: "unknown flag 'I'; the flags are i, m and s", kind: null } }
+Regex.compile("a", "ii") // Err{ error: Error{ message: "the flag i is repeated", kind: null } }
 ```
 
 ## See also

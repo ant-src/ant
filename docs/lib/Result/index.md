@@ -137,7 +137,7 @@ func save(ok: bool): Result[void, Error] {
   Result.ok(void)
 }
 save(true)  // Ok{ value: void }
-save(false) // Err{ error: Error{ message: "disk full" } }
+save(false) // Err{ error: Error{ message: "disk full", kind: null } }
 ```
 
 A record literal builds the same value as the constructor:

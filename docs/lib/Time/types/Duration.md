@@ -306,8 +306,8 @@ Text in neither ISO 8601 nor Go's notation is an `Err`, and so is a bare number 
 which has no unit:
 
 ```ant
-Time.parseDuration("1 hour") // Err{ error: Error{ message: "not a duration: \"1 hour\"" } }
-Time.parseDuration("5")      // Err{ error: Error{ message: "not a duration: \"5\"" } }
+Time.parseDuration("1 hour") // Err{ error: Error{ message: "not a duration: \"1 hour\"", kind: null } }
+Time.parseDuration("5")      // Err{ error: Error{ message: "not a duration: \"5\"", kind: null } }
 ```
 
 ## See also

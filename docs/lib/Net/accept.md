@@ -49,7 +49,7 @@ println(Net.accept(listener))
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ## Scope
@@ -83,7 +83,7 @@ println(Channel.receive(result))
 ```
 
 ```text
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 Several goroutines may accept on one listener. Each connection goes to exactly one of them, so three
@@ -125,7 +125,7 @@ println(listener.accept(ctx: ctx))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 A cancelled context gives up at once, and the listener stays open for the next `accept`:
@@ -144,7 +144,7 @@ println(Net.peer(client) == listener.address())
 ```
 
 ```text
-Err{ error: Error{ message: "cancelled" } }
+Err{ error: Error{ message: "cancelled", kind: null } }
 true
 ```
 
@@ -189,7 +189,7 @@ println(Channel.receive(stopped))
 ```text
 ANT
 BEE
-Err{ error: Error{ message: "the listener is closed" } }
+Err{ error: Error{ message: "the listener is closed", kind: null } }
 ```
 
 ### Stop accepting after a deadline
@@ -218,7 +218,7 @@ println(greet(listener, Context.new(timeout: 100ms)))
 
 ```text
 welcome
-Err{ error: Error{ message: "accept: timeout" } }
+Err{ error: Error{ message: "accept: timeout", kind: null } }
 ```
 
 ## Properties and relations
@@ -255,7 +255,7 @@ println(client.readAll(ctx: Context.new(timeout: 50ms)))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 ```
 
 Add `defer { conn.close() }` right after `accept` to end the input on every path.

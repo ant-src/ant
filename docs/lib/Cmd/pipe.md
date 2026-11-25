@@ -248,7 +248,7 @@ println(Cmd.read(p))
 ```
 
 ```text
-Err{ error: Error{ message: "grep (stage 3): exit status 1" } }
+Err{ error: Error{ message: "grep (stage 3): exit status 1", kind: null } }
 ```
 
 ## See also

@@ -7,7 +7,9 @@
 func Url.unescape(s: string): Result[string, Error]
 ```
 
-Url.unescape reverses [`Url.escape`](escape.md), reading %XX in either case and + as a space, and keeping every other character as it is. It is Err on a bad %XX or on escapes that decode to bytes that are not UTF-8.
+Url.unescape reverses [`Url.escape`](escape.md), reading %XX in either case and + as a space, and
+keeping every other character as it is. It is Err on a bad %XX or on escapes that decode to bytes
+that are not UTF-8.
 
 <!-- end generated -->
 
@@ -29,7 +31,7 @@ Url.unescape("hello")     // Ok{ value: "hello" }
 A bad escape is `Err`:
 
 ```ant
-Url.unescape("100%") // Err{ error: Error{ message: "invalid URL escape \"%\"" } }
+Url.unescape("100%") // Err{ error: Error{ message: "invalid URL escape \"%\"", kind: null } }
 ```
 
 ## Scope
@@ -57,24 +59,24 @@ Url.unescape("%2525") // Ok{ value: "%25" }
 A `%` that is not followed by two hex digits is `Err`:
 
 ```ant
-Url.unescape("%")   // Err{ error: Error{ message: "invalid URL escape \"%\"" } }
-Url.unescape("%4")  // Err{ error: Error{ message: "invalid URL escape \"%4\"" } }
-Url.unescape("%zz") // Err{ error: Error{ message: "invalid URL escape \"%zz\"" } }
+Url.unescape("%")   // Err{ error: Error{ message: "invalid URL escape \"%\"", kind: null } }
+Url.unescape("%4")  // Err{ error: Error{ message: "invalid URL escape \"%4\"", kind: null } }
+Url.unescape("%zz") // Err{ error: Error{ message: "invalid URL escape \"%zz\"", kind: null } }
 ```
 
 Escapes whose bytes are not UTF-8 are `Err`, such as `%FF`, or `%C3` without the byte that completes
 it:
 
 ```ant
-Url.unescape("%FF")    // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
-Url.unescape("caf%C3") // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.unescape("%FF")    // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text", kind: null } }
+Url.unescape("caf%C3") // Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text", kind: null } }
 ```
 
 Through a pipe, with the error given context:
 
 ```ant
 "q%3Dant" | Url.unescape() | Result.wrapErr("search") // Ok{ value: "q=ant" }
-"q%3" | Url.unescape() | Result.wrapErr("search")     // Err{ error: Error{ message: "search: invalid URL escape \"%3\"" } }
+"q%3" | Url.unescape() | Result.wrapErr("search")     // Err{ error: Error{ message: "search: invalid URL escape \"%3\"", kind: null } }
 ```
 
 ## Applications
@@ -97,7 +99,7 @@ println(greeting("Ann%2"))
 ```text
 Ann+Lee+%26+co
 Ok{ value: "Hello, Ann Lee & co!" }
-Err{ error: Error{ message: "saved name: invalid URL escape \"%2\"" } }
+Err{ error: Error{ message: "saved name: invalid URL escape \"%2\"", kind: null } }
 ```
 
 A whole `k=v&k=v` string is a query; read it with [`Url.parseQuery`](parseQuery.md), which splits it
@@ -169,7 +171,7 @@ println(Url.unescape(once))
 
 ```text
 50%off
-Err{ error: Error{ message: "invalid URL escape \"%of\"" } }
+Err{ error: Error{ message: "invalid URL escape \"%of\"", kind: null } }
 ```
 
 ## See also

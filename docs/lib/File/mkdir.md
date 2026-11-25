@@ -163,8 +163,8 @@ println(File.mkdir("notes/2026"))
 ```
 
 ```text
-Err{ error: Error{ message: "mkdir notes: not a directory" } }
-Err{ error: Error{ message: "mkdir notes: not a directory" } }
+Err{ error: Error{ message: "mkdir notes: not a directory", kind: null } }
+Err{ error: Error{ message: "mkdir notes: not a directory", kind: null } }
 ```
 
 [File.write](write.md) does not create missing directories. Call `File.mkdir` first:
@@ -176,7 +176,7 @@ println(File.write("logs/today.log", "started"))
 ```
 
 ```text
-Err{ error: Error{ message: "open logs/today.log: no such file or directory" } }
+Err{ error: Error{ message: "open logs/today.log: no such file or directory", kind: Error.NotExist{} } }
 Ok{ value: void }
 ```
 

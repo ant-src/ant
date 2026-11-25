@@ -202,7 +202,7 @@ println(columnSum(rows, "price"))
 
 ```text
 Ok{ value: 10 }
-Err{ error: Error{ message: "no column price" } }
+Err{ error: Error{ message: "no column price", kind: null } }
 ```
 
 ## Properties and relations
@@ -233,19 +233,19 @@ assert(Csv.parse("a,b\r\nc,d\r\n") == Csv.parse("a,b\nc,d\n"))
 A quote inside a field that is not quoted is `Err`. The message names the line and column:
 
 ```ant
-Csv.parse("id,note\n1,say \"hi\"") // Err{ error: Error{ message: "parse error on line 2, column 7: bare \" in non-quoted-field" } }
+Csv.parse("id,note\n1,say \"hi\"") // Err{ error: Error{ message: "parse error on line 2, column 7: bare \" in non-quoted-field", kind: null } }
 ```
 
 A space before an opening quote makes the field unquoted, so the quote is out of place:
 
 ```ant
-Csv.parse("a, \"b\"") // Err{ error: Error{ message: "parse error on line 1, column 4: bare \" in non-quoted-field" } }
+Csv.parse("a, \"b\"") // Err{ error: Error{ message: "parse error on line 1, column 4: bare \" in non-quoted-field", kind: null } }
 ```
 
 A quoted field that never closes is `Err`:
 
 ```ant
-Csv.parse("a,b\n\"open\n") // Err{ error: Error{ message: "parse error on line 2, column 7: extraneous or missing \" in quoted-field" } }
+Csv.parse("a,b\n\"open\n") // Err{ error: Error{ message: "parse error on line 2, column 7: extraneous or missing \" in quoted-field", kind: null } }
 ```
 
 A separator that is empty, longer than one code point, a quote, a line break, U+0000, or U+FFFD

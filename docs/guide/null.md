@@ -318,7 +318,7 @@ println(userName(2))
 
 ```text
 Ok{ value: "Ann" }
-Err{ error: Error{ message: "no user 2" } }
+Err{ error: Error{ message: "no user 2", kind: null } }
 ```
 
 `try` unwraps a `Result` and has no nullable form; `?? return` is its counterpart for `null`.
@@ -342,7 +342,7 @@ println(port(Map{ "port": "oops" }))
 ```text
 Ok{ value: 8080 }
 Ok{ value: 9000 }
-Err{ error: Error{ message: "port: not a number: oops" } }
+Err{ error: Error{ message: "port: not a number: oops", kind: null } }
 ```
 
 Writing `(settings["port"] ?? "8080").toInt() ?? 8080` instead would turn `port=oops` into 8080

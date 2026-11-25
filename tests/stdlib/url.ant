@@ -12,18 +12,18 @@ Url.parse("/relative/path?x=1")               // => Ok{ value: Url.Parts{ scheme
 Url.parse("http://[::1]:80/")                 // => Ok{ value: Url.Parts{ scheme: "http", opaque: "", user: "", host: "::1", port: "80", path: "/", query: "", fragment: "" } }
 Url.stringify(Result.unwrap(Url.parse("http://[::1]:80/"))) // => "http://[::1]:80/"
 Result.isOk(Url.parse("http://exa mple.com/")) // => false
-Url.parse("%zz")                              // => Err{ error: Error{ message: "parse \"%zz\": invalid URL escape \"%zz\"" } }
+Url.parse("%zz")                              // => Err{ error: Error{ message: "parse \"%zz\": invalid URL escape \"%zz\"", kind: null } }
 var p = Result.unwrap(Url.parse("http://example.com/x"))
 var q = Url.Parts{ ...p, path: "/y", query: Url.stringifyQuery(Map{ "q": ["a b"] }) }
 Url.stringify(q)                              // => "http://example.com/y?q=a+b"
 Url.escape("a b&c=d/é")                       // => "a+b%26c%3Dd%2F%C3%A9"
 Url.unescape("a+b%26c")                       // => Ok{ value: "a b&c" }
-Url.unescape("%zz")                           // => Err{ error: Error{ message: "invalid URL escape \"%zz\"" } }
-Url.unescape("%ff")                           // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
+Url.unescape("%zz")                           // => Err{ error: Error{ message: "invalid URL escape \"%zz\"", kind: null } }
+Url.unescape("%ff")                           // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text", kind: null } }
 Url.unescape("%e2%82%ac")                     // => Ok{ value: "€" }
-Url.parseQuery("q=%c3")                       // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text" } }
-Url.parse("/a%ff")                            // => Err{ error: Error{ message: "parse \"/a%ff\": the %XX escapes do not decode to UTF-8 text" } }
-Url.parse("/a#%ff")                           // => Err{ error: Error{ message: "parse \"/a#%ff\": the %XX escapes do not decode to UTF-8 text" } }
+Url.parseQuery("q=%c3")                       // => Err{ error: Error{ message: "the %XX escapes do not decode to UTF-8 text", kind: null } }
+Url.parse("/a%ff")                            // => Err{ error: Error{ message: "parse \"/a%ff\": the %XX escapes do not decode to UTF-8 text", kind: null } }
+Url.parse("/a#%ff")                           // => Err{ error: Error{ message: "parse \"/a#%ff\": the %XX escapes do not decode to UTF-8 text", kind: null } }
 Url.parseQuery("tag=a&q=ant&tag=b&empty=&flag") // => Ok{ value: Map{ "tag": ["a", "b"], "q": ["ant"], "empty": [""], "flag": [""] } }
 Url.parseQuery("")                            // => Ok{ value: Map{} }
 Result.isOk(Url.parseQuery("a=%zz"))          // => false
@@ -32,7 +32,7 @@ Url.stringifyQuery(params)                    // => "tag=a&tag=b&q=ant"
 Url.stringifyQuery(Map{ "k": ["v 1", "v&2"], "z": [] }) // => "k=v+1&k=v%262"
 var none: Map[string, Array[string]] = Map{}
 Url.stringifyQuery(none)                      // => ""
-Url.parse("http://a%FFb/x")                   // => Err{ error: Error{ message: "parse \"http://a%FFb/x\": the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("http://a%FFb/x")                   // => Err{ error: Error{ message: "parse \"http://a%FFb/x\": the %XX escapes do not decode to UTF-8 text", kind: null } }
 Url.parse("http://a%C3%A9b/x") is Ok          // => true
 
 // A path keeps %2F, a slash that is not a separator, and %25, a percent sign, escaped, so they
@@ -69,7 +69,7 @@ Url.stringify(Result.unwrap(Url.parse("http://[::1]:80/"))) // => "http://[::1]:
 Url.parse("http://Example.COM/") | Result.map({ x.host }) // => Ok{ value: "Example.COM" }
 // Lenient outside the host: a raw space is kept.
 Url.parse("http://h/a b?q=x y") | Result.map({ "${x.path}|${x.query}" }) // => Ok{ value: "/a b|q=x y" }
-Url.parse("http://h/%FF")                       // => Err{ error: Error{ message: "parse \"http://h/%FF\": the %XX escapes do not decode to UTF-8 text" } }
+Url.parse("http://h/%FF")                       // => Err{ error: Error{ message: "parse \"http://h/%FF\": the %XX escapes do not decode to UTF-8 text", kind: null } }
 // escape writes upper-case hex; unescape reads either case and keeps other characters.
 Url.escape("é")                                 // => "%C3%A9"
 Url.unescape("%c3%a9 x")                        // => Ok{ value: "é x" }

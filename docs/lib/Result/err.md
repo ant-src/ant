@@ -53,7 +53,7 @@ same result from the message alone:
 
 ```ant
 let r: Result[string, Error] = Result.err(Error{ message: "no such file" })
-r // Err{ error: Error{ message: "no such file" } }
+r // Err{ error: Error{ message: "no such file", kind: null } }
 let short: Result[string, Error] = Result.fail("no such file")
 assert(short == r)
 ```

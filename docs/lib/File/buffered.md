@@ -258,7 +258,7 @@ println(out.close())
 
 ```text
 Ok{ value: void }
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 Ok{ value: void }
 ```
 

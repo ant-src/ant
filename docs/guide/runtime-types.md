@@ -257,7 +257,7 @@ println(parseServer(`{"host": "a.example", "port": "80"}`))
 
 ```text
 Ok{ value: Server{ host: "a.example", port: 8080 } }
-Err{ error: Error{ message: "port: want a number" } }
+Err{ error: Error{ message: "port: want a number", kind: null } }
 ```
 
 Every rule is in plain sight, and the checker checks the record literal at the end. The cost is a
@@ -341,10 +341,10 @@ println(decode(`["a", 1]`, type(Array[int | string])))
 ```text
 Server{ host: "a.example", port: Port(8080), tags: [] }
 Server{ host: "b.example", port: Port(9000), tags: [] }
-Err{ error: Error{ message: "$.servers[0]: missing field host" } }
-Err{ error: Error{ message: "$.servers[0].port: want int, got 80.5" } }
+Err{ error: Error{ message: "$.servers[0]: missing field host", kind: null } }
+Err{ error: Error{ message: "$.servers[0].port: want int, got 80.5", kind: null } }
 Ok{ value: [1, null, 3] }
-Err{ error: Error{ message: "$[0]: cannot decode int | string" } }
+Err{ error: Error{ message: "$[0]: cannot decode int | string", kind: null } }
 ```
 
 A few things make this short:

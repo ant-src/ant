@@ -75,3 +75,32 @@ func TestChownAndSync(t *testing.T) {
 		t.Error("sync of a pipe is nil, want an error")
 	}
 }
+
+// TestKindPermission: an operation the OS denies is Error.Permission, a path in a directory the
+// user may not search included, which File.exists cannot tell from a missing one (stdlib.md).
+func TestKindPermission(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root is denied nothing")
+	}
+	dir := filepath.Join(t.TempDir(), "locked")
+	if err := os.Mkdir(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	conf := filepath.Join(dir, "app.conf")
+	if err := os.WriteFile(conf, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(dir, 0o700)
+	for name, got := range map[string]value.Value{
+		"stat":  statFile(conf, true),
+		"write": writeFile(conf, []byte("y"), true),
+		"chown": chown(filepath.Dir(dir), 0, 0, true),
+	} {
+		if s := value.Render(got); !strings.HasSuffix(s, "kind: Error.Permission{} } }") {
+			t.Errorf("%s = %s, want Error.Permission", name, s)
+		}
+	}
+}

@@ -60,7 +60,7 @@ println(File.readExactly(f, 6))
 
 ```text
 Ok{ value: Bytes(41 42 43 44 45 46) }
-Err{ error: Error{ message: "unexpected end of file" } }
+Err{ error: Error{ message: "unexpected end of file", kind: null } }
 Ok{ value: null }
 ```
 
@@ -156,7 +156,7 @@ println(conn.readExactly(4))
 ```
 
 ```text
-Err{ error: Error{ message: "timeout" } }
+Err{ error: Error{ message: "timeout", kind: null } }
 Ok{ value: Bytes(61 62 63 64) }
 ```
 
@@ -191,7 +191,7 @@ println(readMessages("cut.bin"))
 
 ```text
 Ok{ value: ["hi", "", "ant"] }
-Err{ error: Error{ message: "unexpected end of file" } }
+Err{ error: Error{ message: "unexpected end of file", kind: null } }
 ```
 
 Read a file of fixed-size records, here 3-byte colors, and print each as hex:
@@ -246,7 +246,7 @@ println(f.readChunk(4))
 ```text
 Ok{ value: Bytes(41 42 43 44) }
 Ok{ value: Bytes(45 46 47 48) }
-Err{ error: Error{ message: "unexpected end of file" } }
+Err{ error: Error{ message: "unexpected end of file", kind: null } }
 Ok{ value: null }
 ```
 
@@ -279,7 +279,7 @@ println(f.readExactly(-1))
 ```
 
 ```text
-Err{ error: Error{ message: "the count to read is -1; it must be at least 0" } }
+Err{ error: Error{ message: "the count to read is -1; it must be at least 0", kind: null } }
 ```
 
 ## See also

@@ -323,8 +323,8 @@ println(w.readLine())
 ```
 
 ```text
-Err{ error: Error{ message: "the file is not open for writing" } }
-Err{ error: Error{ message: "the file is not open for reading" } }
+Err{ error: Error{ message: "the file is not open for writing", kind: null } }
+Err{ error: Error{ message: "the file is not open for reading", kind: null } }
 ```
 
 A closed handle stays closed. A write after the close is `Err`, and a second close is `Ok`:
@@ -337,7 +337,7 @@ println(out.close())
 ```
 
 ```text
-Err{ error: Error{ message: "the file is closed" } }
+Err{ error: Error{ message: "the file is closed", kind: null } }
 Ok{ value: void }
 ```
 

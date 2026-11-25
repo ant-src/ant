@@ -183,7 +183,7 @@ println(scaffold("rocket"))
 ```text
 Ok{ value: void }
 ["README.md", "src/main.ant"]
-Err{ error: Error{ message: "scaffold rocket: copy template to rocket: rocket exists" } }
+Err{ error: Error{ message: "scaffold rocket: copy template to rocket: rocket exists", kind: Error.Exist{} } }
 ```
 
 ### Copy into a directory
@@ -272,10 +272,10 @@ println(File.copyAll("site/index.html", "pages"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy site to full: full exists" } }
+Err{ error: Error{ message: "copy site to full: full exists", kind: Error.Exist{} } }
 Ok{ value: void }
-Err{ error: Error{ message: "copy site/index.html to home-page.html: home-page.html exists" } }
-Err{ error: Error{ message: "copy site/index.html to pages: pages exists" } }
+Err{ error: Error{ message: "copy site/index.html to home-page.html: home-page.html exists", kind: Error.Exist{} } }
+Err{ error: Error{ message: "copy site/index.html to pages: pages exists", kind: Error.Exist{} } }
 ```
 
 A file copied onto an empty directory is an `Err` too, not a copy into it. Join the directory and
@@ -291,7 +291,7 @@ println(File.copyAll("site", "site/backup"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy site to site/backup: site/backup lies inside site" } }
+Err{ error: Error{ message: "copy site to site/backup: site/backup lies inside site", kind: null } }
 ```
 
 Copy to a sibling path such as `backup` instead.
@@ -325,7 +325,7 @@ println(File.copy("site", "site-copy"))
 ```
 
 ```text
-Err{ error: Error{ message: "copy site: is a directory; File.copyAll copies a tree" } }
+Err{ error: Error{ message: "copy site: is a directory; File.copyAll copies a tree", kind: null } }
 ```
 
 ## See also

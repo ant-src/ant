@@ -44,14 +44,14 @@ println(Http.request("PATCH", "ftp://example.invalid/"))
 // out: GET
 // out: p
 // out: POST
-// out: Err{ error: Error{ message: "timeout" } }
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: true
-// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
-// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length" } }
-// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
-// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative" } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length", kind: null } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout has years, months or weeks, which have no fixed length", kind: null } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative", kind: null } }
+// out: Err{ error: Error{ message: "get \"http://127.0.0.1:1/\": the timeout is zero or negative", kind: null } }
 // out: true
 // out: false
 // out: false
-// out: Err{ error: Error{ message: "patch \"ftp://example.invalid/\": unsupported protocol scheme \"ftp\"" } }
+// out: Err{ error: Error{ message: "patch \"ftp://example.invalid/\": unsupported protocol scheme \"ftp\"", kind: null } }

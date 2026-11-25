@@ -28,7 +28,7 @@ length no encoding produces.
 ```ant
 Encoding.fromBase64("aGVsbG8=")                                        // Ok{ value: Bytes(68 65 6c 6c 6f) }
 Encoding.fromBase64("aGVsbG8=") | Result.unwrap() | String.fromBytes() // "hello"
-Encoding.fromBase64("hello!")                                          // Err{ error: Error{ message: "illegal base64 data at input byte 5" } }
+Encoding.fromBase64("hello!")                                          // Err{ error: Error{ message: "illegal base64 data at input byte 5", kind: null } }
 ```
 
 ## Scope
@@ -70,8 +70,8 @@ A length no encoding produces is an `Err`. Four characters carry three bytes, so
 left over carries no whole byte, and padding must end the text at a multiple of four:
 
 ```ant
-Encoding.fromBase64("aGVsb")     // Err{ error: Error{ message: "illegal base64 data at input byte 4" } }
-Encoding.fromBase64("aGVsbG8==") // Err{ error: Error{ message: "illegal base64 data at input byte 8" } }
+Encoding.fromBase64("aGVsb")     // Err{ error: Error{ message: "illegal base64 data at input byte 4", kind: null } }
+Encoding.fromBase64("aGVsbG8==") // Err{ error: Error{ message: "illegal base64 data at input byte 8", kind: null } }
 ```
 
 The text is the first argument, so `fromBase64` ends a pipe:
@@ -120,8 +120,8 @@ println(parseBasic("Basic YW5u"))
 
 ```text
 Ok{ value: Login{ user: "ann", password: "s3cret" } }
-Err{ error: Error{ message: "credentials: illegal base64 data at input byte 4" } }
-Err{ error: Error{ message: "credentials: no colon" } }
+Err{ error: Error{ message: "credentials: illegal base64 data at input byte 4", kind: null } }
+Err{ error: Error{ message: "credentials: no colon", kind: null } }
 ```
 
 ### Read the payload of a JSON Web Token
@@ -201,7 +201,7 @@ Text in one alphabet that uses `+`, `/`, `-`, or `_` fails in the other. Pass `u
 from URLs, file names, and JSON Web Tokens:
 
 ```ant
-Encoding.fromBase64("aGk_")            // Err{ error: Error{ message: "illegal base64 data at input byte 3" } }
+Encoding.fromBase64("aGk_")            // Err{ error: Error{ message: "illegal base64 data at input byte 3", kind: null } }
 Encoding.fromBase64("aGk_", url: true) // Ok{ value: Bytes(68 69 3f) }
 ```
 

@@ -202,7 +202,7 @@ func netError(op, addr string, err error) error {
 			err = errors.Unwrap(err)
 		}
 	}
-	return fmt.Errorf("%s %q: %s", op, addr, err)
+	return fmt.Errorf("%s %q: %w", op, addr, err)
 }
 
 func (l *Listener) isClosed() bool {

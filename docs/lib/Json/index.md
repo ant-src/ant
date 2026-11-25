@@ -30,7 +30,7 @@ Parse JSON text with `Json.parse`:
 
 ```ant
 Json.parse(`{"name": "Ann", "tags": ["admin"]}`) // Ok{ value: Map{ "name": "Ann", "tags": ["admin"] } }
-Json.parse("[1, 2,]")                            // Err{ error: Error{ message: "expected a value, found ']' at line 1, column 7" } }
+Json.parse("[1, 2,]")                            // Err{ error: Error{ message: "expected a value, found ']' at line 1, column 7", kind: null } }
 ```
 
 Write any value as JSON text with `Json.stringify`:
@@ -82,7 +82,7 @@ A `Result` is a tagged union of records, so it writes as the fields of its membe
 let done: Result[int, Error] = Result.ok(3)
 let failed: Result[int, Error] = Result.fail("bad")
 Json.stringify(done)   // "{\"value\":3}"
-Json.stringify(failed) // "{\"error\":{\"message\":\"bad\"}}"
+Json.stringify(failed) // "{\"error\":{\"message\":\"bad\",\"kind\":null}}"
 ```
 
 ## Functions by job
@@ -167,7 +167,7 @@ println(total("{\"ms\": 12}\n{\"ms\": }"))
 
 ```text
 Ok{ value: 42.5 }
-Err{ error: Error{ message: "line 2: expected a value, found '}' at line 1, column 8" } }
+Err{ error: Error{ message: "line 2: expected a value, found '}' at line 1, column 8", kind: null } }
 ```
 
 ### Decode nested records with a path in the error
@@ -211,7 +211,7 @@ println(decodeFleet(doc, "$"))
 ```
 
 ```text
-Err{ error: Error{ message: "$.servers[1].port: want an integer" } }
+Err{ error: Error{ message: "$.servers[1].port: want an integer", kind: null } }
 ```
 
 ### Decode a tagged union
@@ -254,7 +254,7 @@ if doc is Array {
 ```text
 Ok{ value: Circle{ radius: 1.0 } }
 Ok{ value: Square{ side: 2.0 } }
-Err{ error: Error{ message: "kind: want \"circle\" or \"square\", got \"star\"" } }
+Err{ error: Error{ message: "kind: want \"circle\" or \"square\", got \"star\"", kind: null } }
 ```
 
 ### Change one field of a document
@@ -349,7 +349,7 @@ Malformed text makes `Result.unwrap` panic. Use `try` where the text comes from 
 or a user:
 
 ```ant
-Json.parse("{").unwrap() // panic: Result.unwrap on an Err: Error{ message: "unexpected end of JSON input" }
+Json.parse("{").unwrap() // panic: Result.unwrap on an Err: Error{ message: "unexpected end of JSON input", kind: null }
 ```
 
 ## See also

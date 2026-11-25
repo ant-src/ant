@@ -136,8 +136,8 @@ Path.match("*/", "src")  // Ok{ value: false }
 A malformed pattern is `Err`, with a message that says what is wrong:
 
 ```ant
-Path.match("[a-z", "b")  // Err{ error: Error{ message: "malformed pattern [a-z: [ without ]" } }
-Path.match("[z-a]", "b") // Err{ error: Error{ message: "malformed pattern [z-a]: range z-a ends before it starts" } }
+Path.match("[a-z", "b")  // Err{ error: Error{ message: "malformed pattern [a-z: [ without ]", kind: null } }
+Path.match("[z-a]", "b") // Err{ error: Error{ message: "malformed pattern [z-a]: range z-a ends before it starts", kind: null } }
 ```
 
 ## Named arguments
@@ -216,7 +216,7 @@ println(checkPattern("[*.ant"))
 
 ```text
 Ok{ value: "*.ant" }
-Err{ error: Error{ message: "--include: malformed pattern [*.ant: [ without ]" } }
+Err{ error: Error{ message: "--include: malformed pattern [*.ant: [ without ]", kind: null } }
 ```
 
 Match a name alone, wherever the file is, with `Path.base`. The pattern is a literal that is well

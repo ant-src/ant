@@ -45,7 +45,7 @@ Regex.replace(/(\w+)@(\w+)/, "ann@home bob@work", "$2:$1") // "home:ann work:bob
 
 ```ant
 Regex.compile("a+", "i") // Ok{ value: /a+/i }
-Regex.compile("[a-z")    // Err{ error: Error{ message: "invalid regular expression: missing closing ]: `[a-z`" } }
+Regex.compile("[a-z")    // Err{ error: Error{ message: "invalid regular expression: missing closing ]: `[a-z`", kind: null } }
 ```
 
 ## Scope
@@ -302,7 +302,7 @@ println(matches("[a-z", "caat"))
 
 ```text
 Ok{ value: true }
-Err{ error: Error{ message: "invalid regular expression: missing closing ]: `[a-z`" } }
+Err{ error: Error{ message: "invalid regular expression: missing closing ]: `[a-z`", kind: null } }
 ```
 
 `//` begins a comment, so the empty pattern has no literal. Write `Regex.compile("")`:

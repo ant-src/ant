@@ -18,8 +18,8 @@ println(Channel.receive(served))
 println(Net.accept(l))
 
 // expect
-// out: Err{ error: Error{ message: "timeout" } }
+// out: Err{ error: Error{ message: "timeout", kind: null } }
 // out: ok
 // out: ok
 // out: Ok{ value: void }
-// out: Err{ error: Error{ message: "the listener is closed" } }
+// out: Err{ error: Error{ message: "the listener is closed", kind: null } }

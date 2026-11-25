@@ -38,7 +38,7 @@ println(File.read("missing.txt"))
 
 ```text
 Ok{ value: "buy milk\ncall Ann\n" }
-Err{ error: Error{ message: "open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 Inside a function that returns a `Result`, `try` gives the text and returns the `Err` early:
@@ -60,7 +60,7 @@ println(countLines("missing.txt"))
 
 ```text
 Ok{ value: 2 }
-Err{ error: Error{ message: "open missing.txt: no such file or directory" } }
+Err{ error: Error{ message: "open missing.txt: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ## Scope
@@ -123,7 +123,7 @@ println(File.read("logs"))
 ```
 
 ```text
-Err{ error: Error{ message: "read logs: is a directory" } }
+Err{ error: Error{ message: "read logs: is a directory", kind: null } }
 ```
 
 ### A symbolic link
@@ -188,7 +188,7 @@ println(loadSettings("other.json"))
 
 ```text
 true
-Err{ error: Error{ message: "load settings: open other.json: no such file or directory" } }
+Err{ error: Error{ message: "load settings: open other.json: no such file or directory", kind: Error.NotExist{} } }
 ```
 
 ### Sum a column of a CSV file
@@ -338,7 +338,7 @@ println(loadEntries("cache"))
 
 ```text
 Ok{ value: [] }
-Err{ error: Error{ message: "read cache: is a directory" } }
+Err{ error: Error{ message: "read cache: is a directory", kind: null } }
 ```
 
 ### The result is a `Result`
