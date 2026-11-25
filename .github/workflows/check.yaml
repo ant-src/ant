@@ -116,7 +116,8 @@ jobs:
           --import "go-cover=$RUNNER_TEMP/coverage/cover.out"
           --ci github --markdown "$RUNNER_TEMP/review.md"
       # One comment per pull request, updated on every push. When the run ends before its review,
-      # an existing comment says that its result no longer applies.
+      # an existing comment says that its result no longer applies. A run for an older commit,
+      # such as a re-run, leaves the comment to the run for the current one.
       - name: comment
         if: >-
           !cancelled() && env.PR_COMMENT == 'own' &&
@@ -126,6 +127,8 @@ jobs:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL_NUMBER" --jq .head.sha)
+          [ "$head" = "$HEAD_SHA" ] || { echo "The pull request is now at ${head:0:7}, whose run comments."; exit 0; }
           marker='<!-- repometry-review -->'
           body="$RUNNER_TEMP/review.md"
           if [ ! -f "$body" ]; then
@@ -183,6 +186,12 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
+      # Commits whose report never ran, was replaced in the queue or failed are analyzed here,
+      # without coverage: --import describes one checkout and cannot be used with a range.
+      - name: catch up
+        run: >-
+          npx --yes repometry@0.10.0 analyze "$GITHUB_SHA~20..$GITHUB_SHA~1"
+          --store .repometry --skip-saved
       - name: analyze
         run: >-
           npx --yes repometry@0.10.0 analyze --store .repometry
