@@ -1,0 +1,60 @@
+name: review comment
+
+# Posts the Repometry review of a pull request as one comment, updated on every push.
+# workflow_run gives it a write token for pull requests from forks too. It runs from the default
+# branch and never checks out or runs the pull request's code.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows: [check] # its review job
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: review-comment-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      actions: read # the review artifact
+      pull-requests: write # the comment
+    steps:
+      # A run that failed before its review left no artifact; the next step then has nothing to post.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: review
+          path: review
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      # The artifact came from the pull request's code: its number is checked against the run's
+      # head commit.
+      - name: comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          [ -f review/pull.json ] || { echo "No review to post."; exit 0; }
+          number=$(jq -r '.number' review/pull.json)
+          case "$number" in ''|*[!0-9]*) echo "Invalid pull request number."; exit 1 ;; esac
+          head=$(gh api "repos/$REPOSITORY/pulls/$number" --jq .head.sha)
+          [ "$head" = "$HEAD_SHA" ] || { echo "Pull request $number has moved past $HEAD_SHA; its newer run posts."; exit 0; }
+          marker='<!-- repometry-review -->'
+          if [ ! -f review/review.md ]; then # the run ended before its review: an older comment no longer applies
+            stale=1
+            printf '%s\n## repometry\n\nNo review for `%s`: the run ended before the review, so an earlier result no longer applies.\n' \
+              "$marker" "${HEAD_SHA:0:7}" > review/review.md
+          fi
+          [ "$(head -n 1 review/review.md)" = "$marker" ] || { echo "Unexpected review text."; exit 1; }
+          ids=$(gh api --paginate "repos/$REPOSITORY/issues/$number/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id")
+          id=${ids%%[!0-9]*} # the first ID
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$REPOSITORY/issues/comments/$id" -F body=@review/review.md > /dev/null
+          elif [ -z "${stale:-}" ]; then
+            gh api --method POST "repos/$REPOSITORY/issues/$number/comments" -F body=@review/review.md > /dev/null
+          fi
