@@ -379,6 +379,27 @@ func (c *Checker) accepts(s *sig, recv types.Type) bool {
 	return c.unify(s.fn.Params[0], recv, map[*types.ParamDecl]types.Type{})
 }
 
+// acceptsInBound is accepts, with each type parameter that recv solves also held to its bound:
+// Time.with[T: Time.Wall] does not take a record, although its T would match one.
+func (c *Checker) acceptsInBound(s *sig, recv types.Type) bool {
+	if len(s.fn.Params) == 0 {
+		return false
+	}
+	if len(s.tparams) == 0 {
+		return types.Assignable(recv, s.fn.Params[0])
+	}
+	subst := map[*types.ParamDecl]types.Type{}
+	if !c.unify(s.fn.Params[0], recv, subst) {
+		return false
+	}
+	for _, p := range s.tparams {
+		if t, ok := subst[p]; ok && !boundFits(p, t, subst, s.tparams) {
+			return false
+		}
+	}
+	return true
+}
+
 // interfaceCall checks a call of the function f.Name of the interface n on a receiver of type
 // self: the interface itself, or a type parameter bounded by it.
 func (c *Checker) interfaceCall(self types.Type, n types.Named, x *ast.Call, f *ast.Field, sc *scope, expected types.Type) types.Type {

@@ -23,6 +23,8 @@ func TestCheckHelp(t *testing.T) {
 		// the receiver's start is inside its parentheses, so no edit there can be right
 		{"receiver in parentheses", "let xs = [\"a\"]\nlet s = (xs).join(\",\")\n", "join is String.join", "", false, ""},
 		{"another type's function", "let xs = [3, 1]\nlet n = xs.fields()\n", "", "", false, ""},
+		// Time.with takes a T bounded by Time.Wall, which a record is not
+		{"outside the bound", "type P = { a: int }\nlet q = P{ a: 1 }.with(a: 2)\n", "", "", false, ""},
 		{"misspelled function", "let n = \"ab\".lenght()\n", "did you mean length?", "", false, ""},
 		{"misspelled field", "type U = { name: string }\nlet u = U{ name: \"a\" }\nprintln(u.nmae)\n", "did you mean name?", "", false, ""},
 		{"misspelled literal field", "type P = { x: int }\nlet p = P{ x: 1, yy: 2 }\n", "", "", false, ""},

@@ -27,7 +27,7 @@ func (c *Checker) receiverHint(i int, recv types.Type, x *ast.Call, f *ast.Field
 		if ns.kind != entNamespace {
 			continue
 		}
-		if m, ok := ns.members[f.Name]; ok && m.kind == entFunc && m.sig != nil && c.accepts(m.sig, recv) && takes(m.sig, x) {
+		if m, ok := ns.members[f.Name]; ok && m.kind == entFunc && m.sig != nil && c.acceptsInBound(m.sig, recv) && takes(m.sig, x) {
 			found = append(found, name)
 		}
 	}
