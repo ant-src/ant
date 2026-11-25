@@ -420,6 +420,5 @@ wordcount/
 [`export`](../language/keywords/export.md), [`test`](../language/keywords/test.md),
 [Testing](testing.md), [`ant run`](../tools/run.md), [`ant test`](../tools/test.md),
 [`ant check`](../tools/check.md), [`ant code`](../tools/code.md), [`ant doc`](../tools/doc.md),
-[Embedding Ant in a Go program](embedding.md) and
-[the Go API](https://pkg.go.dev/ant-lang.org) for running Ant from a Go program, where a
-host gives its namespaces
+[Embedding Ant in a Go program](embedding.md) and [the Go API](https://pkg.go.dev/ant-lang.org) for
+running Ant from a Go program, where a host gives its namespaces

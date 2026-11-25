@@ -7,7 +7,8 @@
 func RwMutex.withRead[T](m: RwMutex, f: func(): T): T
 ```
 
-RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result. It releases the lock even if f panics, and panics if f returns with m not read-locked.
+RwMutex.withRead read-locks m, runs f, releases the lock, and returns f's result. It releases the
+lock even if f panics, and panics if f returns with m not read-locked.
 
 <!-- end generated -->
 

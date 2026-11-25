@@ -7,7 +7,8 @@
 type RwMutex
 ```
 
-RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing. Any goroutine may release it. RwMutexes compare by identity.
+RwMutex is a reader-writer lock: many goroutines may hold it for reading, or one for writing. Any
+goroutine may release it. RwMutexes compare by identity.
 
 <!-- end generated -->
 

@@ -116,8 +116,8 @@ and no visit is lost.
   Windows other processes cannot read or write the file while the lock is held.
 - To lock again right after a close, call `File.lock`, which waits, not `File.tryLock`: a child
   process that another goroutine starts at that moment can hold the lock a moment after the close.
-- Whether the lock is held is what `File.tryLock` answers, not what the file holds. Do not keep a pid
-  in it: the lock never truncates the file, so a shorter pid leaves the tail of a longer one.
+- Whether the lock is held is what `File.tryLock` answers, not what the file holds. Do not keep a
+  pid in it: the lock never truncates the file, so a shorter pid leaves the tail of a longer one.
 
 ## See also
 

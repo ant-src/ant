@@ -7,7 +7,8 @@
 type Mutex
 ```
 
-Mutex is a mutual-exclusion lock: while it is locked, no other lock of it succeeds. Any goroutine may unlock it. Mutexes compare by identity.
+Mutex is a mutual-exclusion lock: while it is locked, no other lock of it succeeds. Any goroutine
+may unlock it. Mutexes compare by identity.
 
 <!-- end generated -->
 

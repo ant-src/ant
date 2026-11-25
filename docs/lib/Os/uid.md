@@ -7,7 +7,8 @@
 func Os.uid(): int | null
 ```
 
-Os.uid returns the effective user id, 0 for root, or null on Windows and WebAssembly, which have none.
+Os.uid returns the effective user id, 0 for root, or null on Windows and WebAssembly, which have
+none.
 
 <!-- end generated -->
 

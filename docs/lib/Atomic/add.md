@@ -7,7 +7,8 @@
 func Atomic.add[T: Number](a: Atomic[T], d: T): T
 ```
 
-Atomic.add adds d to the value in a and returns the new value. It panics on overflow, leaving the value in a as it was.
+Atomic.add adds d to the value in a and returns the new value. It panics on overflow, leaving the
+value in a as it was.
 
 <!-- end generated -->
 

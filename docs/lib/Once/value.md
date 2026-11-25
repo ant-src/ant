@@ -7,7 +7,10 @@
 func Once.value[T](f: func(): T): func(): T
 ```
 
-Once.value returns a function that runs f on its first call and returns the cached value on every call. If f panics, every call, waiting or later, panics with the same message. If that run was left without a value and without a panic, by [`Test.skip`](../Test/skip.md) or by a return from a for body unwinding through f, every later call panics.
+Once.value returns a function that runs f on its first call and returns the cached value on every
+call. If f panics, every call, waiting or later, panics with the same message. If that run was left
+without a value and without a panic, by [`Test.skip`](../Test/skip.md) or by a return from a for
+body unwinding through f, every later call panics.
 
 <!-- end generated -->
 

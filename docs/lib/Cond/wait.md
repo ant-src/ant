@@ -7,7 +7,9 @@
 func Cond.wait(c: Cond): void
 ```
 
-Cond.wait releases the mutex of c, waits for a signal or broadcast, and reacquires the mutex before returning. Another goroutine may take the mutex and change the state first, so a waiter tests its condition in a loop. It panics if the mutex is not locked. It takes no context.
+Cond.wait releases the mutex of c, waits for a signal or broadcast, and reacquires the mutex before
+returning. Another goroutine may take the mutex and change the state first, so a waiter tests its
+condition in a loop. It panics if the mutex is not locked. It takes no context.
 
 <!-- end generated -->
 

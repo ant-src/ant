@@ -3,9 +3,9 @@
 # Embedding Ant in a Go program
 
 A Go program can run Ant scripts and give them functions of its own. That Go program is the
-**host**. The Go package [`ant-lang.org`](https://pkg.go.dev/ant-lang.org)
-loads, checks, and runs a script, and a **host namespace** is a set of Go functions that the script
-calls as it calls the standard library.
+**host**. The Go package [`ant-lang.org`](https://pkg.go.dev/ant-lang.org) loads, checks, and runs a
+script, and a **host namespace** is a set of Go functions that the script calls as it calls the
+standard library.
 
 This chapter explains how the parts of a host fit, on one small example: a host that reads lines
 from its standard input and hands each one to a script. The whole example is in
@@ -206,9 +206,9 @@ the Go representation of its Ant type:
 | a function                        | an opaque value, for `rt.Call`                             |
 | `Time.Instant`, `Time.Duration`   | an opaque value, for `value.GoTime` and `value.GoDuration` |
 
-The [package documentation](https://pkg.go.dev/ant-lang.org#hdr-Values) has the full
-table. `prog.Check` has checked every call against the signatures, so a host function asserts the
-types of its arguments without testing them.
+The [package documentation](https://pkg.go.dev/ant-lang.org#hdr-Values) has the full table.
+`prog.Check` has checked every call against the signatures, so a host function asserts the types of
+its arguments without testing them.
 
 **Results.** A function returns a value in the same representations, and an `int` result is an
 `int64`, never a Go `int`. A union needs no wrapper: a function declared to return
@@ -330,9 +330,9 @@ script runs only in the host. A host ships `app.d.ant` for the people who write 
 
 ## See also
 
-- [The Go API](https://pkg.go.dev/ant-lang.org): every option, `Program.Start` and
-  `Instance.Func` for calling the functions of an Ant library from Go, and `Session` for evaluating
-  inputs one at a time
+- [The Go API](https://pkg.go.dev/ant-lang.org): every option, `Program.Start` and `Instance.Func`
+  for calling the functions of an Ant library from Go, and `Session` for evaluating inputs one at a
+  time
 - [Modules](modules.md#declaration-files): the declaration file format
 - [`ant check`](../tools/check.md) and [`ant run`](../tools/run.md): what each does with a
   declaration file beside a script

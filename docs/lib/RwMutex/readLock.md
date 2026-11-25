@@ -7,7 +7,9 @@
 func RwMutex.readLock(m: RwMutex): void
 ```
 
-RwMutex.readLock takes one read hold on m, blocking while a writer holds m or waits in [`RwMutex.writeLock`](writeLock.md). A goroutine that holds m for reading must not read-lock it again: a writer waiting between the two calls blocks both.
+RwMutex.readLock takes one read hold on m, blocking while a writer holds m or waits in
+[`RwMutex.writeLock`](writeLock.md). A goroutine that holds m for reading must not read-lock it
+again: a writer waiting between the two calls blocks both.
 
 <!-- end generated -->
 

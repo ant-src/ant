@@ -7,7 +7,8 @@
 func Net.peer(f: File.Handle): string | null
 ```
 
-Net.peer returns the address of the other end of the connection f, as "ip:port", also once f is closed or through [`File.buffered`](../File/buffered.md). It is null for any other handle.
+Net.peer returns the address of the other end of the connection f, as "ip:port", also once f is
+closed or through [`File.buffered`](../File/buffered.md). It is null for any other handle.
 
 <!-- end generated -->
 

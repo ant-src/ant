@@ -7,7 +7,8 @@
 func Context.deadline(ctx: Context): Time.Instant | null
 ```
 
-Context.deadline returns the earliest deadline of ctx and its parents, the run's included, or null if none has one.
+Context.deadline returns the earliest deadline of ctx and its parents, the run's included, or null
+if none has one.
 
 <!-- end generated -->
 

@@ -7,7 +7,8 @@
 func Cond.signal(c: Cond): void
 ```
 
-Cond.signal wakes one goroutine waiting on c, if any; which one is not specified. The mutex may be locked or not.
+Cond.signal wakes one goroutine waiting on c, if any; which one is not specified. The mutex may be
+locked or not.
 
 <!-- end generated -->
 

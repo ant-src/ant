@@ -7,7 +7,8 @@
 func RwMutex.withWrite[T](m: RwMutex, f: func(): T): T
 ```
 
-RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result. It releases the lock even if f panics, and panics if f returns with m not write-locked.
+RwMutex.withWrite write-locks m, runs f, releases the lock, and returns f's result. It releases the
+lock even if f panics, and panics if f returns with m not write-locked.
 
 <!-- end generated -->
 

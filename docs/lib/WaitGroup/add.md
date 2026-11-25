@@ -18,8 +18,8 @@ negative or past \[Math.maxInt\].
   counter is zero returns at once.
 - `add(wg, -1)` takes one off the counter, as `done` does. A goroutine signals that it finished with
   `done`.
-- A negative `add` that brings the counter to zero releases every `WaitGroup.wait` on `wg`, and
-  what the goroutine wrote before it is visible once `wait` returns, as with `done`.
+- A negative `add` that brings the counter to zero releases every `WaitGroup.wait` on `wg`, and what
+  the goroutine wrote before it is visible once `wait` returns, as with `done`.
 
 ## Basic examples
 

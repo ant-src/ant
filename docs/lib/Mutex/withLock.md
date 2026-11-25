@@ -7,7 +7,8 @@
 func Mutex.withLock[T](m: Mutex, f: func(): T): T
 ```
 
-Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics, and panics if f returns with m unlocked.
+Mutex.withLock locks m, runs f, unlocks m, and returns f's result. It unlocks m even if f panics,
+and panics if f returns with m unlocked.
 
 <!-- end generated -->
 
