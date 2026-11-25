@@ -8,6 +8,12 @@ on:
 
 permissions: {}
 
+# A new push to a pull request cancels the run for its previous commit, review comment included.
+# Other runs get a group of their own.
+concurrency:
+  group: check-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -15,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: stable
           cache: false
@@ -28,7 +34,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: stable
           cache: false
@@ -37,22 +43,182 @@ jobs:
       - name: build
         run: go build ./cmd/ant
 
+  # The profile is kept for the review and report jobs below, so the tests run once.
   coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: ant
+          # A pull request's own commit, which the review reads, not the merge with its base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ant-src/spec
           path: spec
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: stable
           cache: false
+      - name: test
+        working-directory: ant
+        run: go test -coverpkg=./... -coverprofile=cover.out ./...
+      # Uploaded before the gate: coverage below the minimum is still measured.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: ant/cover.out
+          if-no-files-found: error
+          retention-days: 1
       - name: coverage
         working-directory: ant
-        run: go run ./cmd/ant run scripts/coverage.ant -run cover.out 90 80
+        run: go run ./cmd/ant run scripts/coverage.ant cover.out 90 80
+
+  # Reviews the lines a pull request changes: new and worsened issues, and their coverage. The
+  # result goes to the run summary, to annotations on the diff and, by PR_COMMENT, to a comment.
+  # It runs after coverage even when the gate fails.
+  review:
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    needs: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pull-requests: write # the comment; GitHub makes it read-only for pull requests from forks
+    env:
+      # own: comment on pull requests from this repository's branches. off: never comment.
+      # Pull requests from forks get no comment either way, only the summary and annotations.
+      PR_COMMENT: own
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # Git history for the merge base
+          persist-credentials: false
+      # Repometry records the Go version it analyses with. Keep it the same as in report.
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      # Fails when the tests did, as there is then no profile to review with.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage
+          path: ${{ runner.temp }}/coverage
+      - name: review
+        run: >-
+          npx --yes repometry@0.10.0 review "origin/$GITHUB_BASE_REF"
+          --import "go-cover=$RUNNER_TEMP/coverage/cover.out"
+          --ci github --markdown "$RUNNER_TEMP/review.md"
+      # One comment per pull request, updated on every push. When the run ends before its review,
+      # an existing comment says that its result no longer applies. A run for an older commit,
+      # such as a re-run, leaves the comment to the run for the current one.
+      - name: comment
+        if: >-
+          !cancelled() && env.PR_COMMENT == 'own' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL_NUMBER" --jq .head.sha)
+          [ "$head" = "$HEAD_SHA" ] || { echo "The pull request is now at ${head:0:7}, whose run comments."; exit 0; }
+          marker='<!-- repometry-review -->'
+          body="$RUNNER_TEMP/review.md"
+          if [ ! -f "$body" ]; then
+            stale=1
+            printf '%s\n## repometry\n\nNo review for `%s`: the run ended before the review, so an earlier result no longer applies.\n' \
+              "$marker" "${HEAD_SHA:0:7}" > "$body"
+          fi
+          ids=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PULL_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id")
+          id=${ids%%[!0-9]*} # the first ID
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F "body=@$body" > /dev/null
+          elif [ -z "${stale:-}" ]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PULL_NUMBER/comments" -F "body=@$body" > /dev/null
+          fi
+
+  # On a push to master: adds the commit to the history on the repometry branch and republishes
+  # the report on gh-pages. It runs when the coverage gate fails too, but needs the profile.
+  report:
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    needs: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: repometry # one writer at a time
+      cancel-in-progress: false
+    permissions:
+      contents: write # pushes to the repometry and gh-pages branches
+    env:
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      GIT_COMMITTER_NAME: github-actions[bot]
+      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      # The token stays out of both checkouts and reaches only the two steps that push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Git history for churn
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: repometry
+          path: .repometry
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage
+          path: ${{ runner.temp }}/coverage
+      # Repometry parses Go with this toolchain and records its version, so it is pinned.
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      # Commits whose report never ran, was replaced in the queue or failed are analyzed here,
+      # without coverage: --import describes one checkout and cannot be used with a range.
+      # Exit code 2 means some of them could not be analyzed in full. That must not hold back the
+      # report for this commit, so it only warns.
+      - name: catch up
+        run: |
+          npx --yes repometry@0.10.0 analyze "$GITHUB_SHA~20..$GITHUB_SHA~1" --store .repometry --skip-saved ||
+            { [ "$?" = 2 ] && echo "::warning::Repometry could not analyze every earlier commit in full. See the log of this step."; }
+      - name: analyze
+        run: >-
+          npx --yes repometry@0.10.0 analyze --store .repometry
+          --import "go-cover=$RUNNER_TEMP/coverage/cover.out"
+      - name: save the data
+        working-directory: .repometry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add commits objects
+          git diff --cached --quiet && exit 0 # a re-run finds the commit already saved
+          git commit -qm "chore(metrics): inspect ${GITHUB_SHA::7} [skip ci]"
+          git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/repometry
+      - name: build the report
+        run: >-
+          npx --yes repometry@0.10.0 report "html=$RUNNER_TEMP/site" --store .repometry
+          --sources github --branch master --title ant
+      # gh-pages holds a single commit, replaced each time: the report is generated from the data.
+      - name: publish the report
+        working-directory: ${{ runner.temp }}/site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          touch .nojekyll # served as is, without a Jekyll build
+          git init -q
+          git add -A
+          git commit -qm "docs: repometry report for ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/gh-pages
