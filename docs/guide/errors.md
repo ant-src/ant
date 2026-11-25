@@ -588,9 +588,9 @@ reminds them to.
   `Error.Exist` and `Error.Permission` beside it. There is no chain beyond that and no `errors.As`;
   for an error of your own, branch on a type of your own. `defer` runs when the enclosing block
   exits, not the function.
-- **Rust.** `try x` is `x?`, written in front and binding tighter than a pipe. `Error.kind` is
-  `io::Error::kind()` with three members and `null` for the rest. `Result.unwrap` panics as Rust's
-  does, and `Panic.catch` plays the part of `catch_unwind`.
+- **Rust.** `try x` is `x?`, written in front and binding tighter than a pipe. The `kind` field of
+  an `Error`, `e.kind`, is `io::Error::kind()` with three members and `null` for the rest.
+  `Result.unwrap` panics as Rust's does, and `Panic.catch` plays the part of `catch_unwind`.
 - **C and Python asserts.** `assert` is always on: no flag or build mode removes it, as `NDEBUG` or
   `python -O` would.
 

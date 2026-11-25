@@ -246,6 +246,15 @@ println(File.read("todo.txt/today"))
 Err{ error: Error{ message: "open todo.txt/today: not a directory", kind: null } }
 ```
 
+`Json.stringify` writes a record without its name, so every kind becomes `{}` in JSON. Write
+`String.from(e.kind)` to keep it in a log:
+
+```ant
+let e = Error{ message: "open a.txt: not found", kind: Error.NotExist{} }
+Json.stringify(e)   // "{\"message\":\"open a.txt: not found\",\"kind\":{}}"
+String.from(e.kind) // "Error.NotExist{}"
+```
+
 A program cannot add kinds. An error of your own that code branches on is a type of your own:
 
 ```ant

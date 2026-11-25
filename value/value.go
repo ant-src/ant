@@ -406,6 +406,10 @@ func NewRecord(tag *Tag, fields []Value) *Record {
 			r.fields[i].Store(v)
 		}
 	}
+	// An Error built as it was before it had a kind, with its message alone, has no kind.
+	if tag == ErrorTag && r.fields[1].Load() == Uninitialized {
+		r.fields[1].Store(Null)
+	}
 	return r
 }
 
@@ -515,7 +519,7 @@ func ErrorValue(msg string) *Record { return NewRecord(ErrorTag, []Value{msg, Nu
 
 // ErrorOf builds the Error of a Go error as the standard library does (stdlib.md): the error's
 // text as the message, and the kind of the first of fs.ErrNotExist, fs.ErrExist and
-// fs.ErrPermission that errors.Is matches, or no kind when none does.
+// fs.ErrPermission that errors.Is matches, or no kind when none does. err must not be nil.
 func ErrorOf(err error) *Record {
 	var kind Value = Null
 	switch {

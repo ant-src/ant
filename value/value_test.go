@@ -452,3 +452,15 @@ func indexOf(s, sub string) int {
 	}
 	return -1
 }
+
+// TestErrorWithoutKind: an Error a host builds with its message alone, as before Error had a
+// kind, has kind null, not an uninitialized field.
+func TestErrorWithoutKind(t *testing.T) {
+	e := NewRecord(ErrorTag, []Value{"boom"})
+	if e.Get(1) != Null {
+		t.Errorf("kind = %v, want null", e.Get(1))
+	}
+	if got := Render(e); got != `Error{ message: "boom", kind: null }` {
+		t.Errorf("Render = %s", got)
+	}
+}
