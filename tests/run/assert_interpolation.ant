@@ -1,0 +1,27 @@
+// spec: 8 assert
+// An assert shows the parts of an interpolation in its condition by their source, as it shows
+// any other part, in a string inside an interpolation too.
+let s = "x"
+let xs = [1, 2]
+let checks: Array[func(): void] = [
+  { assert(String.contains("a${s}b${xs[0] + 1}", "q")) },
+  { assert("${s}${(xs[1])}" == "y") },
+  { assert("<${"[${s.length()}]"}>" == s) },
+]
+for c in checks {
+  let r = Panic.catch(c)
+  if r is Err {
+    println(r.error.message)
+  }
+}
+
+// expect
+// out: assertion failed: String.contains("a${s}b${xs[0] + 1}", "q")
+// out:   s = "x"
+// out:   xs[0] = 1
+// out: assertion failed: "${s}${(xs[1])}" == "y" ("x2" == "y")
+// out:   s = "x"
+// out:   xs[1] = 2
+// out: assertion failed: "<${"[${s.length()}]"}>" == s ("<[1]>" == "x")
+// out:   s = "x"
+// out:   s.length() = 1

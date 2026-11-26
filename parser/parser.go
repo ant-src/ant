@@ -2812,11 +2812,17 @@ func (p *parser) assertInfo(call *ast.Call) *ast.Assert {
 		case *ast.Is:
 			part(x.X)
 		case *ast.Template:
-			for _, tp := range x.Parts {
-				if tp.Expr != nil {
+			// An interpolation was parsed on the tokens of its part of the string's token, and
+			// text finds the source of its parts among them.
+			saved := p.toks
+			t := sort.Search(len(saved), func(i int) bool { return !before(saved[i].Pos, x.Pos) })
+			for i, tp := range x.Parts {
+				if tp.Expr != nil && t < len(saved) && i < len(saved[t].Parts) {
+					p.toks = saved[t].Parts[i].Tokens
 					part(tp.Expr)
 				}
 			}
+			p.toks = saved
 		case *ast.ArrayLit:
 			for _, el := range x.Elems {
 				part(el.Value)
