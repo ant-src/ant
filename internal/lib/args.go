@@ -163,12 +163,14 @@ func sortCompare(g *interp.Goroutine, who string, a, b value.Value) int {
 		return 0
 	case an:
 		return 1
-	case bn, less(g, who, a, b):
+	case bn:
 		return -1
-	case less(g, who, b, a):
-		return 1
 	}
-	return 0
+	c, err := value.Order(a, b)
+	if err != nil {
+		g.Panic("%s: %s", who, err)
+	}
+	return c
 }
 
 // sliceBounds checks a half-open range against a length.

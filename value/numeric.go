@@ -321,44 +321,9 @@ func isZero(v Value) bool {
 
 // Compare applies < <= > >=.
 func Compare(op string, a, b Value) (bool, error) {
-	if ta, ok := a.(*Tagged); ok {
-		tb, ok := b.(*Tagged)
-		if !ok || ta.Tag != tb.Tag {
-			return false, operandError(op, a, b)
-		}
-		return Compare(op, ta.Payload, tb.Payload)
-	}
-	if _, ok := b.(*Tagged); ok {
-		return false, operandError(op, a, b)
-	}
-	var c int // -1, 0, 1; 2 for unordered floats
-	var ok bool
-	switch x := a.(type) {
-	case string:
-		c, ok = order(x, b)
-	case int64:
-		c, ok = order(x, b)
-	case float64:
-		c, ok = order(x, b)
-	case float32:
-		c, ok = order(x, b)
-	case int8:
-		c, ok = order(x, b)
-	case int16:
-		c, ok = order(x, b)
-	case int32:
-		c, ok = order(x, b)
-	case uint8:
-		c, ok = order(x, b)
-	case uint16:
-		c, ok = order(x, b)
-	case uint32:
-		c, ok = order(x, b)
-	case uint64:
-		c, ok = order(x, b)
-	}
-	if !ok {
-		return false, operandError(op, a, b)
+	c, err := order(op, a, b)
+	if err != nil {
+		return false, err
 	}
 	if c == 2 {
 		return false, nil
@@ -376,10 +341,56 @@ func Compare(op string, a, b Value) (bool, error) {
 	panic("unknown operator " + op)
 }
 
-// order compares x with b, which must have x's kind, as the second result reports: -1, 0 or 1,
-// and 2 when either is NaN, which is unordered. Strings order by code point, which for valid
-// UTF-8 is byte order.
-func order[T cmp.Ordered](x T, b Value) (int, bool) {
+// Order is how < orders a and b: -1, 0 or 1, and 2 when either is NaN, which is unordered. Its
+// error is the one a < b gives.
+func Order(a, b Value) (int, error) {
+	return order("<", a, b)
+}
+
+// order is Order for the operator op, which its error names.
+func order(op string, a, b Value) (int, error) {
+	if ta, ok := a.(*Tagged); ok {
+		tb, ok := b.(*Tagged)
+		if !ok || ta.Tag != tb.Tag {
+			return 0, operandError(op, a, b)
+		}
+		return order(op, ta.Payload, tb.Payload)
+	}
+	var c int
+	var ok bool
+	switch x := a.(type) {
+	case string:
+		c, ok = orderOf(x, b)
+	case int64:
+		c, ok = orderOf(x, b)
+	case float64:
+		c, ok = orderOf(x, b)
+	case float32:
+		c, ok = orderOf(x, b)
+	case int8:
+		c, ok = orderOf(x, b)
+	case int16:
+		c, ok = orderOf(x, b)
+	case int32:
+		c, ok = orderOf(x, b)
+	case uint8:
+		c, ok = orderOf(x, b)
+	case uint16:
+		c, ok = orderOf(x, b)
+	case uint32:
+		c, ok = orderOf(x, b)
+	case uint64:
+		c, ok = orderOf(x, b)
+	}
+	if !ok {
+		return 0, operandError(op, a, b)
+	}
+	return c, nil
+}
+
+// orderOf compares x with b, which must have x's kind, as the second result reports: -1, 0 or
+// 1, and 2 when either is NaN. Strings order by code point, which for valid UTF-8 is byte order.
+func orderOf[T cmp.Ordered](x T, b Value) (int, bool) {
 	y, ok := b.(T)
 	switch {
 	case !ok:
