@@ -114,6 +114,21 @@ func (m *Map) Add(k, v Value) bool {
 // insert adds k with the value v and reports whether it was new; an existing entry gets v when
 // replace is set and is left alone otherwise.
 func (m *Map) insert(k, v Value, replace bool) bool {
+	added := false
+	m.Update(k, func(old Value, ok bool) Value {
+		added = !ok
+		if ok && !replace {
+			return old
+		}
+		return v
+	})
+	return added
+}
+
+// Update stores f(v, true) under k when k holds v, and inserts f(nil, false) otherwise, finding k
+// once. A replaced entry keeps its position. f runs with the map locked, so it must not use the
+// map or run Ant code.
+func (m *Map) Update(k Value, f func(v Value, ok bool) Value) {
 	for {
 		i, h, ver := m.find(k)
 		m.mu.Lock()
@@ -123,17 +138,15 @@ func (m *Map) insert(k, v Value, replace bool) bool {
 		}
 		defer m.mu.Unlock()
 		if i >= 0 {
-			if replace {
-				m.entries[i].value = v
-			}
-			return false
+			m.entries[i].value = f(m.entries[i].value, true)
+			return
 		}
 		m.seq++
 		m.ver++
-		m.entries = append(m.entries, mapEntry{key: k, value: v, seq: m.seq, hash: h})
+		m.entries = append(m.entries, mapEntry{key: k, value: f(nil, false), seq: m.seq, hash: h})
 		m.index[h] = append(m.index[h], len(m.entries)-1)
 		m.live++
-		return true
+		return
 	}
 }
 

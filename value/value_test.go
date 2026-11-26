@@ -136,6 +136,30 @@ func TestEqualAndHash(t *testing.T) {
 	}
 }
 
+func TestMapUpdate(t *testing.T) {
+	m := NewMap()
+	m.Set("a", int64(1))
+	m.Set("b", int64(2))
+	inc := func(v Value, ok bool) Value {
+		if !ok {
+			return int64(100)
+		}
+		return v.(int64) + 1
+	}
+	m.Update("a", inc)
+	m.Update("c", inc)
+	m.Update("c", inc)
+	if got := Render(m); got != `Map{ "a": 2, "b": 2, "c": 101 }` {
+		t.Errorf("after update: %q", got)
+	}
+	if !m.Add("d", int64(4)) || m.Add("d", int64(40)) {
+		t.Errorf("Add reports a new key only")
+	}
+	if v, _ := m.Get("d"); v != int64(4) {
+		t.Errorf("Add replaced an existing key: %v", v)
+	}
+}
+
 func TestMapOrder(t *testing.T) {
 	m := NewMap()
 	m.Set("c", int64(3))

@@ -310,10 +310,10 @@ func init() {
 				f := funcArg(g, who, a[1])
 				m := value.NewMap()
 				for _, x := range xs {
-					k := g.Call(f, x)
-					n, _ := m.Get(k)
-					c, _ := n.(int64)
-					m.Set(k, c+1)
+					m.Update(g.Call(f, x), func(n value.Value, _ bool) value.Value {
+						c, _ := n.(int64)
+						return c + 1
+					})
 				}
 				return m
 			}),
