@@ -107,13 +107,6 @@ Group the characters of a string by splitting it into graphemes first:
 
 ## Applications
 
-Count how often each word occurs:
-
-```ant
-let words = ["the", "ant", "and", "the", "bee"]
-words.groupBy({ x }).map({ len(x.value) }) // Map{ "the": 2, "ant": 1, "and": 1, "bee": 1 }
-```
-
 Print a roster by team:
 
 ```ant
@@ -247,6 +240,6 @@ The copy protects the key only. The group holds the elements themselves, so it s
 
 ## See also
 
-[Array.uniqueBy](uniqueBy.md) · [Array.filter](filter.md) · [Array.countWhere](countWhere.md) ·
-[Array.chunk](chunk.md) · [Array.sortBy](sortBy.md) · [Map.map](../Map/map.md) ·
-[Map.keys](../Map/keys.md) · [Map.values](../Map/values.md)
+[Array.countBy](countBy.md) · [Array.uniqueBy](uniqueBy.md) · [Array.filter](filter.md) ·
+[Array.countWhere](countWhere.md) · [Array.chunk](chunk.md) · [Array.sortBy](sortBy.md) ·
+[Map.map](../Map/map.md) · [Map.keys](../Map/keys.md) · [Map.values](../Map/values.md)

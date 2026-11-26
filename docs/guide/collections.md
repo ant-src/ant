@@ -98,7 +98,8 @@ println(counts)
 Map{ "a": 2, "b": 1 }
 ```
 
-To collect the values themselves, `Array.groupBy` builds a map of arrays in one call.
+When the counts come from an array, `Array.countBy` does this in one call: `words.countBy({ x })`.
+To collect the values themselves, `Array.groupBy` builds a map of arrays.
 
 Use `xs[i]` when an index outside the array is a bug, and `xs.get(i)` when it is an ordinary case.
 `Map.has` tells a missing key apart from a key whose value is `null`, when the value type allows

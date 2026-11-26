@@ -163,6 +163,7 @@ maybe                   // [1, null]
 - [Array.sum](sum.md): the sum of numbers, or `null` when empty
 - [Array.chunk](chunk.md): split into arrays of `n` elements
 - [Array.groupBy](groupBy.md): a map from each key to its elements
+- [Array.countBy](countBy.md): a map from each key to how many elements have it
 
 ### Identity
 
@@ -170,12 +171,12 @@ maybe                   // [1, null]
 
 ## Applications
 
-Count the words of each length. `Array.groupBy` keeps the keys in first-seen order:
+Count the words of each length. `Array.countBy` keeps the keys in first-seen order:
 
 ```ant
 let words = ["ant", "bee", "wasp", "fly", "moth"]
-let groups = words.groupBy({ x.length() })
-groups.entries().map({ "${x.key}: ${len(x.value)}" }) // ["3: 3", "4: 2"]
+let counts = words.countBy({ x.length() })
+counts.entries().map({ "${x.key}: ${x.value}" }) // ["3: 3", "4: 2"]
 ```
 
 Build a list of results in a loop, then summarize it:

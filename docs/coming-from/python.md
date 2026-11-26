@@ -31,11 +31,7 @@ the ant
 
 ```ant
 let text = try File.read(Os.args()[0])
-
-let counts: Map[string, int] = Map{}
-for word in text.toLower().fields() {
-  counts[word] = (counts[word] ?? 0) + 1
-}
+let counts = text.toLower().fields().countBy({ x })
 
 for { key, value } in counts.entries().sortBy({ -x.value }) {
   println("${key}: ${value}")
@@ -56,7 +52,8 @@ A few things to notice:
 - `File.read` can fail, so `try` goes in front of it. If the file is missing, the script stops there
   and prints the error.
 - `Os.args()` holds only the arguments. Index 0 is the first one, not the script's path.
-- `counts[word]` is `null` for a word not seen yet, and `?? 0` turns that into `0`.
+- `countBy` plays the part of `Counter`: a map from each word to how often it occurs, in the order
+  the words first appear.
 - `{ -x.value }` is a short function, like a `lambda`. Its one parameter is always named `x`.
 - `"${key}"` works like an f-string.
 

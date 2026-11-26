@@ -202,7 +202,7 @@ Count requests per hour, rounding each instant down to the start of its hour:
 ```ant
 let stamps = ["2026-10-22T14:03:05Z", "2026-10-22T14:59:59Z", "2026-10-22T15:00:00Z"]
 let requests = stamps.map({ Time.parseInstant(x) | Result.unwrap() })
-requests.groupBy({ x.round(Time.Hour{}, mode: Time.Floor{}) }).map({ x.value.length() }) // Map{ 2026-10-22T14:00:00Z: 2, 2026-10-22T15:00:00Z: 1 }
+requests.countBy({ x.round(Time.Hour{}, mode: Time.Floor{}) }) // Map{ 2026-10-22T14:00:00Z: 2, 2026-10-22T15:00:00Z: 1 }
 ```
 
 Stamp a log line with the moment it was written:

@@ -328,4 +328,5 @@ d
 - [Entry](types/Entry.md), the record a map yields
 - [Array](../Array/index.md), [Set](../Set/index.md): the other built-in containers
 - [Array.groupBy](../Array/groupBy.md): a map from each key to its elements
+- [Array.countBy](../Array/countBy.md): a map from each key to how many elements have it
 - [len](../prelude/len.md): the number of entries, as for any container

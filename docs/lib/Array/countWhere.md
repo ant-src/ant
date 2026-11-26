@@ -226,5 +226,5 @@ xs                                  // [1, 2, 3, 1, 2, 3]
 ## See also
 
 [Array.filter](filter.md) · [Array.some](some.md) · [Array.every](every.md) · [Array.find](find.md)
-· [Array.contains](contains.md) · [Array.reduce](reduce.md) · [Array.groupBy](groupBy.md) ·
-[Array.length](length.md)
+· [Array.contains](contains.md) · [Array.reduce](reduce.md) · [Array.countBy](countBy.md) ·
+[Array.groupBy](groupBy.md) · [Array.length](length.md)
