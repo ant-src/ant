@@ -118,14 +118,13 @@ func (g *Goroutine) runDeferred(d deferred) (p any) {
 	return nil
 }
 
+// eval evaluates an expression. It is one function, with no wrapper around the switch, because
+// every expression of a program passes through it: a second call on the way costs about a tenth
+// of a run.
 func (g *Goroutine) eval(e ast.Expr, env *Env) (value.Value, ctl) {
-	if g.rec != nil {
-		return g.evalRecorded(e, env)
+	if rec := g.rec; rec != nil && rec.at != e {
+		return g.evalRecorded(e, env) // an assert's condition (assert.go)
 	}
-	return g.evalExpr(e, env)
-}
-
-func (g *Goroutine) evalExpr(e ast.Expr, env *Env) (value.Value, ctl) {
 	switch e := e.(type) {
 	case *ast.Ident:
 		return g.ident(e, env), ctlNone

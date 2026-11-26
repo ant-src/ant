@@ -15,13 +15,17 @@ type assertRec struct {
 	a     *ast.Assert
 	vals  []value.Value // by part, nil until it ran
 	order []int         // the parts in the order they finished
+	at    ast.Expr      // the expression evalRecorded has sent back to eval, for eval to go on with
 }
 
 // evalRecorded evaluates e while an assert's condition is evaluated, keeping its value when it
-// is a part of that condition.
+// is a part of that condition. eval sends every expression here while a recording is on, and
+// rec.at names the one it gets back, to evaluate.
 func (g *Goroutine) evalRecorded(e ast.Expr, env *Env) (value.Value, ctl) {
 	rec := g.rec
-	v, c := g.evalExpr(e, env)
+	rec.at = e
+	v, c := g.eval(e, env)
+	rec.at = nil
 	if i, ok := rec.a.Index[e]; ok && c == ctlNone && !rec.a.Parts[i].Receiver {
 		rec.keep(e, v)
 	}
@@ -103,7 +107,7 @@ func (g *Goroutine) evalCond(cond ast.Expr, env *Env, rec *assertRec) (value.Val
 	saved := g.rec
 	g.rec = rec
 	defer g.restoreRec(saved)
-	return g.evalExpr(cond, env)
+	return g.eval(cond, env)
 }
 
 func (g *Goroutine) restoreRec(r *assertRec) { g.rec = r }
