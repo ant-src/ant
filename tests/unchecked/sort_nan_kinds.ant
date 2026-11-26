@@ -1,0 +1,29 @@
+// spec: 11 Array; 12 Runtime panics
+// Array.sort and Array.sortBy put NaN after every number, and panic on two kinds as < does, when
+// one of the two is NaN too.
+let nan = 0.0 / 0.0
+println(Array.sort([2.0, nan, -1.0, nan, 0.5]))
+println(Array.sortBy(["b", "a", "c"], { if x == "b" { nan } else { 1.0 } }))
+
+func report(r: Result[Array[float64 | bool | int | string], Panic]): void {
+  if r is Err {
+    println(r.error.message)
+  } else {
+    println("sorted")
+  }
+}
+
+report(Panic.catch({ Array.sort([nan, true]) }))
+report(Panic.catch({ Array.sort([true, nan]) }))
+report(Panic.catch({ Array.sort([1, nan, 2]) }))
+report(Panic.catch({ Array.sort([1.0, "a"]) }))
+report(Panic.catch({ Array.sortBy([1, 2], { if x == 1 { nan } else { "a" } }) }))
+
+// expect
+// out: [-1.0, 0.5, 2.0, NaN, NaN]
+// out: ["a", "c", "b"]
+// out: Array.sort: < needs two numbers of one kind or two strings, got bool and float64
+// out: Array.sort: < needs two numbers of one kind or two strings, got float64 and bool
+// out: Array.sort: < needs two numbers of one kind or two strings, got float64 and int
+// out: Array.sort: < needs two numbers of one kind or two strings, got string and float64
+// out: Array.sortBy: < needs two numbers of one kind or two strings, got string and float64
