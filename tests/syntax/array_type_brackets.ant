@@ -1,0 +1,7 @@
+// spec: 4 Arrays, maps, and sets
+// Square brackets after a type hold its type arguments, so int[] is not an array type.
+func total(xs: int[]): int { 0 }
+
+// expect
+// exit: 2
+// err: expected a type argument, got ']'

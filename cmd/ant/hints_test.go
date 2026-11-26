@@ -36,6 +36,8 @@ func TestCheckHelp(t *testing.T) {
 		{"Result.ok of a value", "let r: Result[int, Error] = Result.ok()\n", "Result.ok takes the value", "Result.ok(void)", false, ""},
 		{"cast", "let n = 1 as int\n", "Ant has no casts", "", false, ""},
 		{"reserved name", "let match = 1\n", "choose another name", "", false, ""},
+		{"array type", "func f(xs: int[]): int { 0 }\n", "an array of int is Array[int]", "", false, ""},
+		{"empty type parameters", "func id[](x: int): int { x }\n", "leave out the brackets", "", false, ""},
 		{"subtest name", "test \"t\" {\n  for c in [\"a\"] {\n    test c {}\n  }\n}\n", "test \"${c}\"", "", false, ""},
 		{"field path", "type A = { n: int }\ntype B = { s: string }\ntype R = { x: A | B }\nfunc f(r: R): int {\n  if r.x is A { r.x.n } else { 0 }\n}\n",
 			"bind it first, as let v = r.x", "", false, ""},

@@ -1291,6 +1291,9 @@ func lineStart(src string, off int) bool {
 
 func (p *parser) typeParams() []ast.TypeParam {
 	p.expect("[")
+	if p.at("]") {
+		p.failHelp(p.peek().Pos, "leave out the brackets when there are no type parameters", "expected a type parameter, got ']'")
+	}
 	var params []ast.TypeParam
 	p.list("]", func() {
 		n := p.expectIdent("a type parameter")
@@ -1388,6 +1391,15 @@ func (p *parser) typeTerm() ast.Type {
 		}
 		if p.at("[") {
 			p.next()
+			if p.at("]") {
+				// T[] reads as an array type in other languages; brackets after a type hold its type
+				// arguments, at least one (section 4, Arrays, maps, and sets).
+				name, help := strings.Join(tn.Path, "."), ""
+				if name != "Array" && name != "Map" && name != "Set" {
+					help = fmt.Sprintf("an array of %s is Array[%s]", name, name)
+				}
+				p.failHelp(p.peek().Pos, help, "expected a type argument, got ']'")
+			}
 			p.list("]", func() { tn.Args = append(tn.Args, p.parseType()) })
 		}
 		tn.End = p.end()

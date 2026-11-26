@@ -1,0 +1,7 @@
+// spec: 4 Arrays, maps, and sets
+// Square brackets after a type hold at least one type argument.
+var xs: Array[] = []
+
+// expect
+// exit: 2
+// err: expected a type argument, got ']'
