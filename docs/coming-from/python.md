@@ -53,7 +53,8 @@ A few things to notice:
   and prints the error.
 - `Os.args()` holds only the arguments. Index 0 is the first one, not the script's path.
 - `countBy` plays the part of `Counter`: a map from each word to how often it occurs, in the order
-  the words first appear.
+  the words first appear. Unlike a `Counter`, it gives `null` for a word it never saw, so write
+  `counts[word] ?? 0` to read a count.
 - `{ -x.value }` is a short function, like a `lambda`. Its one parameter is always named `x`.
 - `"${key}"` works like an f-string.
 
