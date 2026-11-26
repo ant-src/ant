@@ -99,7 +99,7 @@ Array.sum([int8(100), int8(28)])              // => panic: Array.sum: integer ov
 // More Array functions: first and last; insert and removeAt in the middle; flatMap;
 // the index and last forms of find; countWhere; lastIndexOf; min and max with null on an empty
 // array and NaN when one is in it; minBy and maxBy taking the first of equal keys; unique and
-// uniqueBy keeping the first of each; chunk with a shorter last chunk; and groupBy in
+// uniqueBy keeping the first of each; chunk with a shorter last chunk; and groupBy and countBy in
 // first-seen order.
 type P = { name: string, age: int }
 xs = [3, 1, 2]
@@ -157,3 +157,7 @@ Array.groupBy([1, 2, 3, 4, 5], { x % 2 })     // => Map{ 1: [1, 3, 5], 0: [2, 4]
 Array.groupBy(people, { x.age })              // => Map{ 30: [P{ name: "ann", age: 30 }, P{ name: "cy", age: 30 }], 25: [P{ name: "bo", age: 25 }] }
 Array.groupBy(["apple", "avocado", "banana"], { String.slice(x, 0, 1) }) // => Map{ "a": ["apple", "avocado"], "b": ["banana"] }
 Array.groupBy(empty, { x })                   // => Map{}
+Array.countBy([1, 2, 3, 4, 5], { x % 2 })     // => Map{ 1: 3, 0: 2 }
+Array.countBy(people, { x.age })              // => Map{ 30: 2, 25: 1 }
+Array.countBy([[1], [2], [1]], { x })         // => Map{ [1]: 2, [2]: 1 }
+Array.countBy(empty, { x })                   // => Map{}

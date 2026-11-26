@@ -325,6 +325,12 @@ func Array.chunk[T](xs: Array[T], n: int): Array[Array[T]]
 //     Array.groupBy([1, 2, 3, 4, 5], { x % 2 })   // Map{ 1: [1, 3, 5], 0: [2, 4] }
 func Array.groupBy[T, K](xs: Array[T], key: func(T): K): Map[K, Array[T]]
 
+// Array.countBy returns a map from each key to how many elements of xs have that key. Keys are in
+// first-seen order.
+//
+//     Array.countBy(["ant", "bee", "wasp"], { String.length(x) })   // Map{ 3: 2, 4: 1 }
+func Array.countBy[T, K](xs: Array[T], key: func(T): K): Map[K, int]
+
 // Array.entries returns each element of xs paired with its index, in order.
 func Array.entries[T](xs: Array[T]): Array[Indexed[T]]
 

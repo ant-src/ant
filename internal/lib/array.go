@@ -305,6 +305,18 @@ func init() {
 				}
 				return m
 			}),
+			fn("Array.countBy", "xs, key", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
+				xs := arrayArg(g, who, a[0]).Values()
+				f := funcArg(g, who, a[1])
+				m := value.NewMap()
+				for _, x := range xs {
+					k := g.Call(f, x)
+					n, _ := m.Get(k)
+					c, _ := n.(int64)
+					m.Set(k, c+1)
+				}
+				return m
+			}),
 			fn("Array.entries", "xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				vals := arrayArg(g, who, a[0]).Values()
 				out := make([]value.Value, len(vals))
