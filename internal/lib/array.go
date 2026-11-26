@@ -1,8 +1,9 @@
 package lib
 
 import (
+	"cmp"
 	"math"
-	"sort"
+	"slices"
 
 	"ant-lang.org/internal/interp"
 	"ant-lang.org/value"
@@ -231,32 +232,28 @@ func init() {
 			extremeBy("Array.maxBy", false),
 			fn("Array.sort", "xs", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				vals := arrayArg(g, who, a[0]).Values()
-				sort.SliceStable(vals, func(i, j int) bool { return sortLess(g, who, vals[i], vals[j]) })
+				slices.SortStableFunc(vals, func(x, y value.Value) int { return sortCompare(g, who, x, y) })
 				return value.NewArray(vals)
 			}),
 			fn("Array.sortBy", "xs, key", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				vals := arrayArg(g, who, a[0]).Values()
 				f := funcArg(g, who, a[1])
-				keys := make([]value.Value, len(vals))
+				type keyed struct{ key, x value.Value }
+				pairs := make([]keyed, len(vals))
 				for i, x := range vals {
-					keys[i] = g.Call(f, x)
+					pairs[i] = keyed{g.Call(f, x), x}
 				}
-				idx := make([]int, len(vals))
-				for i := range idx {
-					idx[i] = i
+				slices.SortStableFunc(pairs, func(a, b keyed) int { return sortCompare(g, who, a.key, b.key) })
+				for i, p := range pairs {
+					vals[i] = p.x
 				}
-				sort.SliceStable(idx, func(i, j int) bool { return sortLess(g, who, keys[idx[i]], keys[idx[j]]) })
-				out := make([]value.Value, len(vals))
-				for i, k := range idx {
-					out[i] = vals[k]
-				}
-				return value.NewArray(out)
+				return value.NewArray(vals)
 			}),
 			fn("Array.sortWith", "xs, cmp", func(g *interp.Goroutine, who string, a []value.Value) value.Value {
 				vals := arrayArg(g, who, a[0]).Values()
 				f := funcArg(g, who, a[1])
-				sort.SliceStable(vals, func(i, j int) bool {
-					return intResult(g, who, g.Call(f, vals[i], vals[j])) < 0
+				slices.SortStableFunc(vals, func(x, y value.Value) int {
+					return cmp.Compare(intResult(g, who, g.Call(f, x, y)), 0)
 				})
 				return value.NewArray(vals)
 			}),

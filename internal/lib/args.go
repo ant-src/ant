@@ -154,13 +154,21 @@ func zeroSign(v value.Value) int {
 	return 1
 }
 
-// sortLess is less with NaN after every number, so that a sort has a total order to follow.
-func sortLess(g *interp.Goroutine, who string, a, b value.Value) bool {
+// sortCompare orders a and b by <, with NaN after every number, so that a sort has a total order
+// to follow.
+func sortCompare(g *interp.Goroutine, who string, a, b value.Value) int {
 	an, bn := isNaN(a), isNaN(b)
-	if an || bn {
-		return !an && bn
+	switch {
+	case an && bn:
+		return 0
+	case an:
+		return 1
+	case bn, less(g, who, a, b):
+		return -1
+	case less(g, who, b, a):
+		return 1
 	}
-	return less(g, who, a, b)
+	return 0
 }
 
 // sliceBounds checks a half-open range against a length.
