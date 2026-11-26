@@ -107,6 +107,9 @@ func (g *Goroutine) evalCond(cond ast.Expr, env *Env, rec *assertRec) (value.Val
 	saved := g.rec
 	g.rec = rec
 	defer g.restoreRec(saved)
+	if rec != nil {
+		rec.at = cond // the condition is no part of itself, so eval goes straight on with it
+	}
 	return g.eval(cond, env)
 }
 
@@ -121,7 +124,7 @@ func (g *Goroutine) newRec(a *ast.Assert) *assertRec {
 	} else {
 		rec = &assertRec{}
 	}
-	rec.a = a
+	rec.a, rec.at = a, nil
 	rec.vals = slices.Grow(rec.vals[:0], len(a.Parts))[:len(a.Parts)]
 	clear(rec.vals)
 	rec.order = rec.order[:0]
