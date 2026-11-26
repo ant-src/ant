@@ -136,12 +136,12 @@ let stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
 stock.entries().sortBy({ x.value }).map({ x.key }) // ["nut", "gear", "bolt"]
 ```
 
-Count words and print them from the most frequent, with `Array.groupBy`:
+Count words and print them from the most frequent, with `Array.countBy`:
 
 ```ant
 let words = "the ant and the bee and the ant".split(" ")
-for entry in words.groupBy({ x }).entries().sortBy({ -x.value.length() }) {
-  println("${entry.key}: ${entry.value.length()}")
+for entry in words.countBy({ x }).entries().sortBy({ -x.value }) {
+  println("${entry.key}: ${entry.value}")
 }
 ```
 

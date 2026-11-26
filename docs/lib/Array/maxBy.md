@@ -126,11 +126,11 @@ let stock = Map{ "nut": 3, "bolt": 12, "gear": 7 }
 stock.entries().maxBy({ x.value })?.key // "bolt"
 ```
 
-Find the most frequent word, with `Array.groupBy`:
+Find the most frequent word, with `Array.countBy`:
 
 ```ant
 let words = "the ant and the bee and the ant".split(" ")
-words.groupBy({ x }).entries().maxBy({ x.value.length() })?.key // "the"
+words.countBy({ x }).entries().maxBy({ x.value })?.key // "the"
 ```
 
 Find the index of the greatest element, through `Array.entries`:

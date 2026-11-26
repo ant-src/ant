@@ -264,6 +264,12 @@ for word in text.split(" ") {
 counts // Map{ "the": 3, "ant": 1, "and": 2, "bee": 1, "wasp": 1 }
 ```
 
+`Array.countBy` does the same in one call:
+
+```ant
+"the ant and the bee and the wasp".split(" ").countBy({ x }) // Map{ "the": 3, "ant": 1, "and": 2, "bee": 1, "wasp": 1 }
+```
+
 Rank the counts. `Map.entries` turns the map into an array, which sorts:
 
 <!-- test: before
