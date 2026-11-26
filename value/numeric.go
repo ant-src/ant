@@ -1,6 +1,7 @@
 package value
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
@@ -32,41 +33,51 @@ func Binary(op string, a, b Value) (Value, error) {
 	}
 	switch x := a.(type) {
 	case string:
-		if op != "+" {
-			return nil, operandError(op, a, b)
+		if y, ok := b.(string); ok && op == "+" {
+			return x + y, nil
 		}
-		return binary(op, x, a, b, func(_ string, x, y string) (Value, error) { return x + y, nil })
 	case int64:
-		return binary(op, x, a, b, int64Op)
+		if y, ok := b.(int64); ok {
+			return int64Op(op, x, y)
+		}
 	case float64:
-		return binary(op, x, a, b, floatOp[float64])
+		if y, ok := b.(float64); ok {
+			return floatOp(op, x, y)
+		}
 	case float32:
-		return binary(op, x, a, b, floatOp[float32])
+		if y, ok := b.(float32); ok {
+			return floatOp(op, x, y)
+		}
 	case int8:
-		return binary(op, x, a, b, signedOp[int8])
+		if y, ok := b.(int8); ok {
+			return signedOp(op, x, y)
+		}
 	case int16:
-		return binary(op, x, a, b, signedOp[int16])
+		if y, ok := b.(int16); ok {
+			return signedOp(op, x, y)
+		}
 	case int32:
-		return binary(op, x, a, b, signedOp[int32])
+		if y, ok := b.(int32); ok {
+			return signedOp(op, x, y)
+		}
 	case uint8:
-		return binary(op, x, a, b, unsignedOp[uint8])
+		if y, ok := b.(uint8); ok {
+			return unsignedOp(op, x, y)
+		}
 	case uint16:
-		return binary(op, x, a, b, unsignedOp[uint16])
+		if y, ok := b.(uint16); ok {
+			return unsignedOp(op, x, y)
+		}
 	case uint32:
-		return binary(op, x, a, b, unsignedOp[uint32])
+		if y, ok := b.(uint32); ok {
+			return unsignedOp(op, x, y)
+		}
 	case uint64:
-		return binary(op, x, a, b, uint64Op)
+		if y, ok := b.(uint64); ok {
+			return uint64Op(op, x, y)
+		}
 	}
 	return nil, operandError(op, a, b)
-}
-
-// binary applies f to x, a's payload, and b's, which must have x's kind.
-func binary[T Value](op string, x T, a, b Value, f func(string, T, T) (Value, error)) (Value, error) {
-	y, ok := b.(T)
-	if !ok {
-		return nil, operandError(op, a, b)
-	}
-	return f(op, x, y)
 }
 
 func operandError(op string, a, b Value) error {
@@ -321,35 +332,33 @@ func Compare(op string, a, b Value) (bool, error) {
 		return false, operandError(op, a, b)
 	}
 	var c int // -1, 0, 1; 2 for unordered floats
-	var err error
+	var ok bool
 	switch x := a.(type) {
 	case string:
-		c, err = order(op, x, a, b, compareStrings)
+		c, ok = order(x, b)
 	case int64:
-		c, err = order(op, x, a, b, cmp[int64])
+		c, ok = order(x, b)
 	case float64:
-		c, err = order(op, x, a, b, cmpFloat[float64])
+		c, ok = order(x, b)
 	case float32:
-		c, err = order(op, x, a, b, cmpFloat[float32])
+		c, ok = order(x, b)
 	case int8:
-		c, err = order(op, x, a, b, cmp[int8])
+		c, ok = order(x, b)
 	case int16:
-		c, err = order(op, x, a, b, cmp[int16])
+		c, ok = order(x, b)
 	case int32:
-		c, err = order(op, x, a, b, cmp[int32])
+		c, ok = order(x, b)
 	case uint8:
-		c, err = order(op, x, a, b, cmp[uint8])
+		c, ok = order(x, b)
 	case uint16:
-		c, err = order(op, x, a, b, cmp[uint16])
+		c, ok = order(x, b)
 	case uint32:
-		c, err = order(op, x, a, b, cmp[uint32])
+		c, ok = order(x, b)
 	case uint64:
-		c, err = order(op, x, a, b, cmp[uint64])
-	default:
-		return false, operandError(op, a, b)
+		c, ok = order(x, b)
 	}
-	if err != nil {
-		return false, err
+	if !ok {
+		return false, operandError(op, a, b)
 	}
 	if c == 2 {
 		return false, nil
@@ -367,46 +376,18 @@ func Compare(op string, a, b Value) (bool, error) {
 	panic("unknown operator " + op)
 }
 
-func cmp[T int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64](x, y T) int {
-	switch {
-	case x < y:
-		return -1
-	case x > y:
-		return 1
-	}
-	return 0
-}
-
-// order compares x, a's payload, with b's, which must have x's kind.
-func order[T Value](op string, x T, a, b Value, f func(T, T) int) (int, error) {
+// order compares x with b, which must have x's kind, as the second result reports: -1, 0 or 1,
+// and 2 when either is NaN, which is unordered. Strings order by code point, which for valid
+// UTF-8 is byte order.
+func order[T cmp.Ordered](x T, b Value) (int, bool) {
 	y, ok := b.(T)
-	if !ok {
-		return 0, operandError(op, a, b)
-	}
-	return f(x, y), nil
-}
-
-func cmpFloat[T float32 | float64](x, y T) int {
 	switch {
-	case x < y:
-		return -1
-	case x > y:
-		return 1
-	case x == y:
-		return 0
+	case !ok:
+		return 0, false
+	case x != x || y != y:
+		return 2, true
 	}
-	return 2
-}
-
-// compareStrings orders by code point, which for valid UTF-8 is byte order.
-func compareStrings(x, y string) int {
-	switch {
-	case x < y:
-		return -1
-	case x > y:
-		return 1
-	}
-	return 0
+	return cmp.Compare(x, y), true
 }
 
 // ---- Conversions
