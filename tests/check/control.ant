@@ -1,9 +1,9 @@
 // spec: 5 if; 5 is; 5 Loops; 5 Blocks; 5 return, break, continue; 6 Anonymous functions; 6 Calling; 6 Functions on types; 4 Inference
 // Section 5 and 6: an if without else is void on that branch; an explicit else after a complete
-// chain cannot run; is takes no type arguments and needs a union or an anonymous record that
-// determines the type; while true without break is never; a lambda needs an expected type and x
-// is out of scope at arity zero; named arguments need a declared function; a method call is a
-// field read; and a recursive function states its return type.
+// chain cannot run; is takes no type arguments and needs a union or an anonymous record, alone or
+// in a union, that determines the type; while true without break is never; a lambda needs an
+// expected type and x is out of scope at arity zero; named arguments need a declared function; a
+// method call is a field read; and a recursive function states its return type.
 type Point = { x: int, y: int }
 type Box[T] = { value: T }
 type Circle = { radius: float64 }
@@ -30,6 +30,10 @@ var b: { value: int } = Box{ value: 1 }
 if b is Box { println(b.value + 1) }
 var e: {} = Box{ value: 1 }
 println(e is Box) // ERR: does not determine the type parameter T
+var m: { value: int } | null = Box{ value: 1 }
+if m is Box { println(m.value + 1) }
+var o: { foo: int } | null = null
+println(o is Box) // ERR: Box has no field foo
 var p = Point{ x: 1, y: 2 }
 println(p is Point)          // ERR: the test is always true
 if p is Point { println(p) } // ERR: the test is always true

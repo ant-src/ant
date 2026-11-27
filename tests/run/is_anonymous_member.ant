@@ -1,0 +1,30 @@
+// spec: 5 is
+// is (section 5): a named record type is tested through an anonymous record member of a union,
+// narrows to its instantiation there, and the member keeps its place when the test fails.
+type P = { foo: int }
+type Q = { foo: int, bar: string }
+type Box[T] = { value: T }
+
+func show(x: { foo: int } | int): string {
+  if x is P { "P ${x.foo}" } else if x is int { "int ${x}" } else { "other ${x.foo}" }
+}
+
+func bump(b: { value: int } | string): int {
+  if b is Box { b.value + 1 } else { 0 }
+}
+
+println(show(P{ foo: 12 }))
+println(show(Q{ foo: 1, bar: "b" }))
+println(show(3))
+println(bump(Box{ value: 41 }))
+println(bump("s"))
+var p: { foo: int } | null = P{ foo: 12 }
+println(p is P)
+
+// expect
+// out: P 12
+// out: other 1
+// out: int 3
+// out: 42
+// out: 0
+// out: true

@@ -1707,19 +1707,22 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 				continue
 			}
 		}
-		no = append(no, m)
-	}
-	// an anonymous record type admits a named record type assignable to it
-	if len(yes) == 0 {
+		// An anonymous record type admits a named record type assignable to it, alone or as
+		// a member of a union, and keeps its place otherwise, since other records fit it too.
 		if n, isNamed := target.(types.Named); isNamed && n.Decl.Kind == types.RecordDecl {
-			if r, isRecord := types.Expand(t).(types.Record); isRecord {
+			if r, isRecord := types.Expand(m).(types.Record); isRecord {
 				inst, found := c.instantiateFor(n.Decl, r, pos)
 				if !found {
 					return nil, nil, false
 				}
-				return inst, t, true
+				yes = append(yes, inst)
+				no = append(no, m)
+				continue
 			}
 		}
+		no = append(no, m)
+	}
+	if len(yes) == 0 {
 		if p, isParam := types.Expand(t).(types.Param); isParam && p.Decl.Bound != nil {
 			for _, m := range types.Members(p.Decl.Bound) {
 				if matchesTarget(m, target) {
