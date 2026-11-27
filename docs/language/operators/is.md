@@ -14,6 +14,8 @@ otherwise. It tells the members of a union apart at run time, and as a condition
   anonymous record type that `T` is assignable to, an interface that `T` satisfies, or a type
   parameter whose bound has such a member. A test that is always true or always false is a compile
   error.
+- When `T` takes type arguments, or is `Array`, `Map`, `Set`, or `func`, the members that hold a `T`
+  must hold the same one, and so must each type parameter that shares the union.
 - In the `then` branch `x` has type `T`. In the `else` branch a union loses `T`, and an interface,
   an anonymous record type, or a type parameter stays. Only a local variable, a parameter, or a
   top-level `let` narrows.
@@ -395,6 +397,20 @@ let n = 3
 let a = n is int // error: the test is always true: int is already int
 let id: int | string = 1
 let b = id is bool // error: int | string is never a bool, so the test is always false
+```
+
+### A generic type through two type parameters
+
+A tag carries no type arguments. Where type parameters share a union, a `Box` could come in through
+any of them, so each must hold a `Box` with the same arguments:
+
+```ant
+type Box[T] = { value: T }
+
+func isBox[A: { value: int }, B: { value: string }](x: A | B): bool {
+  x is Box
+  // error: is cannot tell a Box[int] from a Box[string], and A holds one and B the other
+}
 ```
 
 ### An else after a complete chain

@@ -1685,114 +1685,142 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 }
 
 // narrowTo computes the types of a value when x is T holds and when it does not. target has
-// no type arguments; the member of t supplies them.
+// no type arguments; the members of t that hold it supply them.
 func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFalse types.Type, ok bool) {
-	var yes, no []types.Type
-	mark, never := len(c.diags), false
+	var held, through []types.Type // what the members hold of the target, and those members
+	var no, without []types.Type   // the members left when the test fails, and the type parameters that hold none
+	var whys []*miss
 	for _, m := range types.Members(t) {
-		narrowed, stays, ok := c.narrowMember(m, target, pos)
+		narrowed, why, ok := c.narrowMember(m, target, pos)
 		if !ok {
-			// A member shown never to hold a target leaves the test to the others; any other
-			// failure, such as a type argument the member cannot determine, ends it.
-			if !c.onlyUseless(mark) {
-				return nil, nil, false
-			}
-			never = true
-			no = append(no, m)
-			continue
+			return nil, nil, false
 		}
 		if narrowed != nil {
-			yes = append(yes, narrowed)
+			held, through = append(held, narrowed), append(through, m)
+		} else {
+			if why != nil {
+				whys = append(whys, why)
+			}
+			if _, isParam := types.Expand(m).(types.Param); isParam {
+				without = append(without, m)
+			}
 		}
-		if stays {
+		// A member that is the target leaves when the test fails; an interface, an anonymous
+		// record type, or a type parameter holds other types too and stays (section 5, is).
+		if narrowed == nil || !matchesTarget(m, target) {
 			no = append(no, m)
 		}
 	}
-	if len(yes) > 0 {
-		c.dropSince(mark)
-	} else if never {
-		return nil, nil, false
-	} else {
-		n := c.typeNames(t, target)
-		c.errorf(codes.UselessTest, pos, "%s is never a %s, so the test is always false", n[0], n[1])
+	if len(held) == 0 {
+		for _, why := range whys {
+			c.errorf(why.code, pos, "%s", why.msg)
+		}
+		if len(whys) == 0 {
+			n := c.typeNames(t, target)
+			c.errorf(codes.UselessTest, pos, "%s is never a %s, so the test is always false", n[0], n[1])
+		}
 		return nil, nil, false
 	}
-	wt, _ := types.MakeUnion(yes)
+	wt, ok := c.agreed(held, through, pos)
+	if !ok {
+		return nil, nil, false
+	}
+	// A type parameter that holds no target as far as its bound shows may still stand for one,
+	// with type arguments of its own, where another member holds one (section 5, is).
+	if len(without) > 0 && manyTypes(target) {
+		c.errorf(codes.IsTest, pos, "is cannot tell %s from another %s, so every type parameter of %s must hold one, and %s does not",
+			withArticle(types.String(wt)), targetName(target), types.String(t), types.String(without[0]))
+		return nil, nil, false
+	}
 	wf, _ := types.MakeUnion(no)
 	return wt, wf, true
 }
 
-// onlyUseless reports whether the errors since mark, at least one, all say that a member never
-// holds the target of an is test.
-func (c *Checker) onlyUseless(mark int) bool {
-	if len(c.diags) == mark {
-		return false
-	}
-	for _, d := range c.diags[mark:] {
-		if d.Code != codes.UselessTest && d.Code != codes.TypeMismatch {
-			return false
+// A miss is why a member of a value's type never holds the target of an is test: the error to
+// report when no other member holds it either.
+type miss struct {
+	code codes.Code
+	msg  string
+}
+
+func missf(code codes.Code, format string, args ...any) *miss {
+	return &miss{code: code, msg: fmt.Sprintf(format, args...)}
+}
+
+// agreed is the one type that the members holding the target of an is test narrow to. The
+// discriminator carries no type arguments, so where two members hold the target with different
+// ones, the test cannot say which a value has (section 5, is).
+func (c *Checker) agreed(held, through []types.Type, pos ast.Pos) (types.Type, bool) {
+	for i, h := range held[1:] {
+		if !types.Equal(held[0], h) {
+			c.errorf(codes.IsTest, pos, "is cannot tell %s from %s, and %s holds one and %s the other, so the test cannot narrow",
+				withArticle(types.String(held[0])), withArticle(types.String(h)), types.String(through[0]), types.String(through[i+1]))
+			return nil, false
 		}
 	}
-	return true
+	return held[0], true
 }
 
-// dropSince withdraws the errors reported since mark, so that the same ones can be reported
-// again.
-func (c *Checker) dropSince(mark int) {
-	for _, d := range c.diags[mark:] {
-		delete(c.seen, diagKey(d.Path, d.Pos, d.Msg))
+// manyTypes reports whether the target of an is test names more than one type, which the
+// discriminator cannot tell apart: a type that takes type arguments, or the kind of the arrays,
+// maps, sets, or functions.
+func manyTypes(target types.Type) bool {
+	switch t := target.(type) {
+	case types.Named:
+		return len(t.Decl.Params) > 0
+	case types.Array, types.Map, types.Set, types.Func:
+		return true
 	}
-	c.diags = c.diags[:mark]
+	return false
 }
 
-// narrowMember is what the member m of a value's type narrows to when x is target holds, nil
-// when m never holds a target, and whether m stays when the test fails. A member that is the
-// target leaves; an interface, an anonymous record type, or a bounded type parameter holds a
-// target among other types and stays (section 5, is).
-func (c *Checker) narrowMember(m, target types.Type, pos ast.Pos) (narrowed types.Type, stays, ok bool) {
+// narrowMember is what the member m of a value's type narrows to when x is target holds: nil
+// when m never holds a target, with the reason when there is more to say than that m is another
+// type. A member holds the target when it is the target, or when it is an interface, an
+// anonymous record type, or a bounded type parameter with the target among the types it holds
+// (section 5, is). It is not ok, and reported, when m holds a target the test cannot narrow to.
+func (c *Checker) narrowMember(m, target types.Type, pos ast.Pos) (narrowed types.Type, why *miss, ok bool) {
 	if matchesTarget(m, target) {
-		return m, false, true
+		return m, nil, true
 	}
 	switch e := types.Expand(m).(type) {
 	case types.Named:
-		// A value of an interface narrows to a satisfying type, since the set of satisfying
-		// types is open (section 4, Interfaces).
+		// A value of an interface narrows to a satisfying type (section 4, Interfaces).
 		if e.Decl.Kind != types.InterfaceDecl {
 			break
 		}
 		if pattern, free, name, ok := narrowPattern(target); ok {
-			inst, found := c.instantiateSatisfying(pattern, free, name, e, pos)
-			return inst, true, found
+			return c.instantiateSatisfying(pattern, free, name, e, pos)
 		}
 	case types.Record:
 		// An anonymous record type admits a named record type assignable to it.
 		if n, isNamed := target.(types.Named); isNamed && n.Decl.Kind == types.RecordDecl {
-			inst, found := c.instantiateFor(n.Decl, e, pos)
-			return inst, true, found
+			return c.instantiateFor(n.Decl, e, pos)
 		}
 	case types.Param:
-		// A bounded type parameter is tested as a value of its bound is, and stays itself
-		// otherwise, since it stands for one member it does not name (section 4, Generics).
+		// A bounded type parameter is tested as a value of its bound is (section 4, Generics).
 		if e.Decl.Bound == nil {
 			break
 		}
-		var yes []types.Type
+		var held, through []types.Type
 		for _, b := range types.Members(e.Decl.Bound) {
-			narrowed, _, ok := c.narrowMember(b, target, pos)
+			narrowed, w, ok := c.narrowMember(b, target, pos)
 			if !ok {
-				return nil, false, false
+				return nil, nil, false
 			}
 			if narrowed != nil {
-				yes = append(yes, narrowed)
+				held, through = append(held, narrowed), append(through, b)
+			} else if w != nil {
+				why = w
 			}
 		}
-		if len(yes) == 0 {
-			break
+		if len(held) == 0 {
+			return nil, why, true
 		}
-		u, _ := types.MakeUnion(yes)
-		return u, true, true
+		narrowed, ok = c.agreed(held, through, pos)
+		return narrowed, nil, ok
 	}
-	return nil, true, true
+	return nil, nil, true
 }
 
 // alwaysTrue reports a test that cannot fail: the value's declared type has no other member,
@@ -1868,18 +1896,18 @@ func matchesTarget(m, target types.Type) bool {
 }
 
 // instantiateFor finds the one instantiation of a named record type assignable to an
-// anonymous record type, when its fields determine every type argument.
-func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) (types.Type, bool) {
+// anonymous record type, when its fields determine every type argument. It is nil, with the
+// reason, when no instantiation is assignable, and not ok when it reported why the one that is
+// cannot be named.
+func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) (types.Type, *miss, bool) {
 	subst := map[*types.ParamDecl]types.Type{}
 	for _, want := range r.Fields {
 		idx := fieldIndex(decl, want.Name)
 		if idx < 0 {
-			c.errorf(codes.UselessTest, pos, "%s has no field %s, so it is never a %s", decl.Name, want.Name, types.String(r))
-			return nil, false
+			return nil, missf(codes.UselessTest, "%s has no field %s, so it is never a %s", decl.Name, want.Name, types.String(r)), true
 		}
 		if !c.unify(decl.Fields[idx].Type, want.Type, subst) {
-			c.errorf(codes.TypeMismatch, pos, "the field %s of %s does not match %s", want.Name, decl.Name, types.String(r))
-			return nil, false
+			return nil, missf(codes.TypeMismatch, "the field %s of %s does not match %s", want.Name, decl.Name, types.String(r)), true
 		}
 	}
 	var args []types.Type
@@ -1887,20 +1915,20 @@ func (c *Checker) instantiateFor(decl *types.Decl, r types.Record, pos ast.Pos) 
 		t, ok := subst[p]
 		if !ok {
 			c.errorf(codes.NeedsAnnotation, pos, "%s does not determine the type parameter %s of %s", types.String(r), p.Name, decl.Name)
-			return nil, false
+			return nil, nil, false
 		}
 		args = append(args, t)
 	}
 	n := types.Named{Decl: decl, Args: args}
 	if err := c.checkArgs(n); err != nil {
 		c.errorf(codes.InvalidUnion, pos, "%s: %s", types.String(n), err)
-		return nil, false
+		return nil, nil, false
 	}
 	if err := types.CheckBounds(n); err != nil {
 		c.errorf(codes.Bound, pos, "%s: %s", types.String(n), err)
-		return nil, false
+		return nil, nil, false
 	}
-	return n, true
+	return n, nil, true
 }
 
 // ---- assignment

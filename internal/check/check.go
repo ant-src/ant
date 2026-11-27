@@ -274,18 +274,13 @@ func (c *Checker) report(code codes.Code, pos, end ast.Pos, msg string) int {
 	if c.mod != nil {
 		path = c.mod.path
 	}
-	key := diagKey(path, pos, msg)
+	key := fmt.Sprintf("%s:%d:%d:%s", path, pos.Line, pos.Col, msg)
 	if c.seen[key] {
 		return -1
 	}
 	c.seen[key] = true
 	c.diags = append(c.diags, Diagnostic{Path: path, Pos: pos, End: end, Msg: msg, Code: code})
 	return len(c.diags) - 1
-}
-
-// diagKey identifies a diagnostic, so that one reported twice at a place is kept once.
-func diagKey(path string, pos ast.Pos, msg string) string {
-	return fmt.Sprintf("%s:%d:%d:%s", path, pos.Line, pos.Col, msg)
 }
 
 // retract drops the error msg reported at pos, if there is one.

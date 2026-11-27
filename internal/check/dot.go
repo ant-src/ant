@@ -639,40 +639,38 @@ func narrowPattern(target types.Type) (pattern types.Type, free []*types.ParamDe
 // satisfies the interface. Each function of the interface, matched against the function of that
 // name the pattern's namespace offers, fixes the parameters its receiver mentions, the functions
 // must agree, and together they must fix every parameter; a pattern without parameters is
-// simply checked. name names the target in messages.
-func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamDecl, name string, iface types.Named, pos ast.Pos) (types.Type, bool) {
+// simply checked. name names the target in messages. The type is nil, with the reason, when the
+// target does not satisfy the interface, and it is not ok when what satisfies it cannot be
+// named, which is reported.
+func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamDecl, name string, iface types.Named, pos ast.Pos) (types.Type, *miss, bool) {
 	if len(free) == 0 {
 		if !types.Assignable(pattern, iface) {
-			c.errorf(codes.UselessTest, pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
-			return nil, false
+			return nil, missf(codes.UselessTest, "%s does not satisfy %s, so the test is always false", name, types.String(iface)), true
 		}
-		return pattern, true
+		return pattern, nil, true
 	}
 	ns := c.namespaceOf(pattern)
 	if ns == nil {
-		c.errorf(codes.UselessTest, pos, "%s does not satisfy %s, so the test is always false", name, types.String(iface))
-		return nil, false
+		return nil, missf(codes.UselessTest, "%s does not satisfy %s, so the test is always false", name, types.String(iface)), true
 	}
 	m := types.Bindings(iface.Decl.Params, iface.Args)
 	fixed := map[*types.ParamDecl]types.Type{} // the free parameters some function has fixed
 	for _, fname := range iface.Decl.Order {
 		wt, err := types.Subst(*iface.Decl.Funcs[fname], m)
 		if err != nil {
-			return nil, false
+			return nil, nil, false
 		}
 		want := wt.(types.Func)
 		ent, ok := ns.members[fname]
 		if !ok || ent.kind != entFunc || c.foreignPrivate(ent) {
-			c.errorf(codes.UselessTest, pos, "%s has no function %s, so it does not satisfy %s and the test is always false", name, fname, types.String(iface))
-			return nil, false
+			return nil, missf(codes.UselessTest, "%s has no function %s, so it does not satisfy %s and the test is always false", name, fname, types.String(iface)), true
 		}
 		sg := c.sigReady(ent)
 		if sg == nil {
-			return nil, false
+			return nil, nil, false
 		}
 		if len(sg.fn.Params) == 0 {
-			c.errorf(codes.UselessTest, pos, "%s takes no argument, so %s does not satisfy %s and the test is always false", sg.fullName(), name, types.String(iface))
-			return nil, false
+			return nil, missf(codes.UselessTest, "%s takes no argument, so %s does not satisfy %s and the test is always false", sg.fullName(), name, types.String(iface)), true
 		}
 		subst := map[*types.ParamDecl]types.Type{}
 		for i := 1; i < len(sg.fn.Params) && i < len(want.Params); i++ {
@@ -682,7 +680,7 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 		r, err := types.Subst(sg.fn.Params[0], subst)
 		if err != nil {
 			c.errorf(codes.InvalidUnion, pos, "%s", err)
-			return nil, false
+			return nil, nil, false
 		}
 		open := map[*types.ParamDecl]bool{}
 		for _, p := range sg.tparams {
@@ -692,8 +690,7 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 		}
 		bind := map[*types.ParamDecl]types.Type{}
 		if !c.unify(pattern, r, bind) {
-			c.errorf(codes.UselessTest, pos, "%s takes %s first, not %s, so %s does not satisfy %s and the test is always false", sg.fullName(), types.String(r), withArticle(name), name, types.String(iface))
-			return nil, false
+			return nil, missf(codes.UselessTest, "%s takes %s first, not %s, so %s does not satisfy %s and the test is always false", sg.fullName(), types.String(r), withArticle(name), name, types.String(iface)), true
 		}
 		for _, p := range free {
 			t, ok := bind[p]
@@ -704,36 +701,35 @@ func (c *Checker) instantiateSatisfying(pattern types.Type, free []*types.ParamD
 				fixed[p] = t
 			} else if !types.Equal(prev, t) {
 				c.errorf(codes.IsTest, pos, "%s fixes the type parameter %s of %s to %s through one function and to %s through %s, so the test cannot narrow it", types.String(iface), p.Name, name, types.String(prev), types.String(t), fname)
-				return nil, false
+				return nil, nil, false
 			}
 		}
 	}
 	for _, p := range free {
 		if _, ok := fixed[p]; !ok {
 			c.errorf(codes.IsTest, pos, "%s does not determine the type parameter %s of %s, so the test cannot narrow to it", types.String(iface), p.Name, name)
-			return nil, false
+			return nil, nil, false
 		}
 	}
 	inst, err := types.Subst(pattern, fixed)
 	if err != nil {
 		c.errorf(codes.InvalidUnion, pos, "%s", err)
-		return nil, false
+		return nil, nil, false
 	}
 	if n, ok := inst.(types.Named); ok {
 		if err := c.checkArgs(n); err != nil {
 			c.errorf(codes.InvalidUnion, pos, "%s: %s", types.String(n), err)
-			return nil, false
+			return nil, nil, false
 		}
 		if err := types.CheckBounds(n); err != nil {
 			c.errorf(codes.Bound, pos, "%s: %s", types.String(n), err)
-			return nil, false
+			return nil, nil, false
 		}
 	}
 	if !types.Assignable(inst, iface) {
-		c.errorf(codes.UselessTest, pos, "%s does not satisfy %s, so the test is always false", types.String(inst), types.String(iface))
-		return nil, false
+		return nil, missf(codes.UselessTest, "%s does not satisfy %s, so the test is always false", types.String(inst), types.String(iface)), true
 	}
-	return inst, true
+	return inst, nil, true
 }
 
 // withArticle prefixes a type's name with a or an.
