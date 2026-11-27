@@ -4,8 +4,8 @@
 // cannot pass is an error; a member that never holds the target leaves the test to the others,
 // unless it might hold one it cannot name; a target that takes type arguments, or the kind of the
 // arrays, needs every type parameter of the union to hold it, with the same ones; a union bound
-// admits a single type that fits one of its members; and a named record joins into the anonymous
-// record type it fits.
+// admits a single type that fits one of its members; a named record joins into the anonymous
+// record type it fits; and a rejected test is the only error, with none for the branch it guards.
 interface Shape {
   area(s: Self): float64
 }
@@ -38,9 +38,11 @@ func noBound[T, U: { value: int }](x: T | U): bool { x is Box }                 
 func noBox[T: { bar: int }, U: { value: int }](x: T | U): bool { x is Box }                   // ERR: every type parameter of T | U must hold one, and T does not
 func boundOnParam[V, T: { value: V }, U: { value: Array[int] }](x: T | U): bool { x is Wrap } // ERR: is cannot tell a Wrap[int] from another Wrap
 func sameArray[T: Array[int] | null, U: Array[int] | string](x: T | U): int { if x is Array { x[0] + 1 } else { 0 } }
-func otherArray[T: Array[int] | null, U: Array[string] | null](x: T | U): bool { x is Array } // ERR: is cannot tell an Array[int] from an Array[string]
-func anyArray[T, U: Array[int] | null](x: T | U): bool { x is Array }                         // ERR: is cannot tell an Array[int] from another Array
-func anyFunc[T, U: (func(int): int) | null](x: T | U): bool { x is func }                     // ERR: so every type parameter of T | U must hold one, and T does not
+func otherArray[T: Array[int] | null, U: Array[string] | null](x: T | U): bool { x is Array }       // ERR: is cannot tell an Array[int] from an Array[string]
+func anyArray[T, U: Array[int] | null](x: T | U): bool { x is Array }                               // ERR: is cannot tell an Array[int] from another Array
+func anyFunc[T, U: (func(int): int) | null](x: T | U): bool { x is func }                           // ERR: so every type parameter of T | U must hold one, and T does not
+func onlyError[T, U: { value: int }](x: T | U): int { if x is Box { x.value + 1 } else { 0 } }      // ERR: is cannot tell a Box[int] from another Box
+func onlyNever[T: { foo: int } | int](t: T): int { if t is string { String.length(t) } else { 0 } } // ERR: T is never a string
 
 func joined(x: { foo: int } | int): { foo: int } | int {
   let y = if x is P { x } else { x }

@@ -2,7 +2,8 @@
 // is (sections 4, 5, 7): a named record type is tested through an anonymous record member of a
 // union, narrows to its instantiation there, and the member keeps its place when the test fails;
 // a bounded type parameter is tested through its bound, interface or anonymous record, and a
-// union bound takes a record that fits its anonymous member; branches join into that member.
+// union bound takes a record that fits its anonymous member; branches join into that member; and
+// the member that stays is what !, &&, ||, a guard, and while see where the test fails.
 interface Shape {
   area(s: Self): float64
 }
@@ -28,6 +29,37 @@ func shape[T: Shape](t: T): string { if t is Circle { "circle ${t.radius}" } els
 func foo[T: { foo: int } | int](t: T): string { if t is P { "P ${t.foo}" } else { "not P" } }
 func either(x: { foo: int } | int): { foo: int } | int { if x is P { x } else { x } }
 
+func negated(x: { foo: int } | int): string {
+  if !(x is P) {
+    if x is int { "int ${x}" } else { "other ${x.foo}" }
+  } else {
+    "P ${x.foo}"
+  }
+}
+
+func both(x: { foo: int } | int, y: { foo: int } | null): int {
+  if x is P && y is P { x.foo + y.foo } else { -1 }
+}
+
+func oneOf(x: { foo: int } | int | string): string {
+  if x is P || x is string { "P or string" } else if x is int { "int" } else { "other ${x.foo}" }
+}
+
+func guarded(x: { foo: int } | int): int {
+  if !(x is P) { return -1 }
+  x.foo
+}
+
+func looped(x: { foo: int } | int): int {
+  var cur: { foo: int } | int = x
+  var n = 0
+  while cur is P {
+    n += cur.foo
+    cur = n
+  }
+  n
+}
+
 println(show(P{ foo: 12 }))
 println(show(Q{ foo: 1, bar: "b" }))
 println(show(3))
@@ -41,6 +73,20 @@ println(foo(P{ foo: 7 }))
 println(foo(Q{ foo: 8, bar: "b" }))
 println(foo(9))
 println(either(P{ foo: 1 }))
+println(negated(P{ foo: 1 }))
+println(negated(Q{ foo: 2, bar: "b" }))
+println(negated(3))
+println(both(P{ foo: 1 }, P{ foo: 2 }))
+println(both(P{ foo: 1 }, Q{ foo: 2, bar: "b" }))
+println(both(1, null))
+println(oneOf(P{ foo: 1 }))
+println(oneOf("s"))
+println(oneOf(1))
+println(oneOf(Q{ foo: 5, bar: "b" }))
+println(guarded(P{ foo: 7 }))
+println(guarded(Q{ foo: 7, bar: "b" }))
+println(looped(P{ foo: 4 }))
+println(looped(9))
 
 // expect
 // out: P 12
@@ -55,3 +101,17 @@ println(either(P{ foo: 1 }))
 // out: not P
 // out: not P
 // out: P{ foo: 1 }
+// out: P 1
+// out: other 2
+// out: int 3
+// out: 3
+// out: -1
+// out: -1
+// out: P or string
+// out: P or string
+// out: int
+// out: other 5
+// out: 7
+// out: -1
+// out: 4
+// out: 0

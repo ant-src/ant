@@ -143,7 +143,11 @@ func (c *Checker) cond(e ast.Expr, sc *scope) (whenTrue, whenFalse flow) {
 				}
 				wt, wf, ok := c.narrowTo(t, target, x.Pos)
 				if !ok {
-					return c.flow.copy(), c.flow.copy()
+					// The test is an error, so what the value is where it holds is not known, and
+					// an error about using it there would only follow from this one.
+					yes := c.flow.copy()
+					c.setIn(yes, l, types.Invalid{})
+					return yes, c.flow.copy()
 				}
 				yes, no := c.flow.copy(), c.flow.copy()
 				c.setIn(yes, l, wt)
