@@ -1688,10 +1688,18 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 // no type arguments; the member of t supplies them.
 func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFalse types.Type, ok bool) {
 	var yes, no []types.Type
+	mark, never := len(c.diags), false
 	for _, m := range types.Members(t) {
 		narrowed, stays, ok := c.narrowMember(m, target, pos)
 		if !ok {
-			return nil, nil, false
+			// A member shown never to hold a target leaves the test to the others; any other
+			// failure, such as a type argument the member cannot determine, ends it.
+			if !c.onlyUseless(mark) {
+				return nil, nil, false
+			}
+			never = true
+			no = append(no, m)
+			continue
 		}
 		if narrowed != nil {
 			yes = append(yes, narrowed)
@@ -1700,7 +1708,11 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 			no = append(no, m)
 		}
 	}
-	if len(yes) == 0 {
+	if len(yes) > 0 {
+		c.dropSince(mark)
+	} else if never {
+		return nil, nil, false
+	} else {
 		n := c.typeNames(t, target)
 		c.errorf(codes.UselessTest, pos, "%s is never a %s, so the test is always false", n[0], n[1])
 		return nil, nil, false
@@ -1708,6 +1720,29 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 	wt, _ := types.MakeUnion(yes)
 	wf, _ := types.MakeUnion(no)
 	return wt, wf, true
+}
+
+// onlyUseless reports whether the errors since mark, at least one, all say that a member never
+// holds the target of an is test.
+func (c *Checker) onlyUseless(mark int) bool {
+	if len(c.diags) == mark {
+		return false
+	}
+	for _, d := range c.diags[mark:] {
+		if d.Code != codes.UselessTest && d.Code != codes.TypeMismatch {
+			return false
+		}
+	}
+	return true
+}
+
+// dropSince withdraws the errors reported since mark, so that the same ones can be reported
+// again.
+func (c *Checker) dropSince(mark int) {
+	for _, d := range c.diags[mark:] {
+		delete(c.seen, diagKey(d.Path, d.Pos, d.Msg))
+	}
+	c.diags = c.diags[:mark]
 }
 
 // narrowMember is what the member m of a value's type narrows to when x is target holds, nil

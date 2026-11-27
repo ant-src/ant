@@ -10,9 +10,10 @@ otherwise. It tells the members of a union apart at run time, and as a condition
 
 - `T` is a name without type arguments: a primitive type, `null`, `void`, `Bytes`, `Html`, `Array`,
   `Map`, `Set`, `func`, a named record or primitive type, a time type, or `Regex.Pattern`.
-- The static type of `x`, or one of its members, must be `T`, an anonymous record type that `T` is
-  assignable to, an interface that `T` satisfies, or a type parameter whose bound has such a member.
-  A test that is always true or always false is a compile error.
+- A member of the static type of `x`, or the type itself when it is not a union, must be `T`, an
+  anonymous record type that `T` is assignable to, an interface that `T` satisfies, or a type
+  parameter whose bound has such a member. A test that is always true or always false is a compile
+  error.
 - In the `then` branch `x` has type `T`. In the `else` branch a union loses `T`, and an interface,
   an anonymous record type, or a type parameter stays. Only a local variable, a parameter, or a
   top-level `let` narrows.

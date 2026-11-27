@@ -1,8 +1,9 @@
 // spec: 4 Generics; 5 is; 7 Narrowing
 // Sections 4, 5 and 7: a bounded T is tested as a value of its bound is, through an interface or
 // an anonymous record type, and also as a member of a union; a test its bound cannot fail or
-// cannot pass is an error; a union bound admits a single type that fits one of its members; and a
-// named record joins into the anonymous record type it fits.
+// cannot pass is an error; a member that never holds the target leaves the test to the others,
+// unless it might hold one it cannot name; a union bound admits a single type that fits one of its
+// members; and a named record joins into the anonymous record type it fits.
 interface Shape {
   area(s: Self): float64
 }
@@ -10,6 +11,8 @@ interface Shape {
 type Circle = { radius: float64 }
 type P = { foo: int }
 type R = { bar: int }
+type Box[T] = { value: T }
+type UserId = string
 
 func Circle.area(c: Circle): float64 { 3.0 * c.radius * c.radius }
 
@@ -20,6 +23,11 @@ func inUnion[T: string | int](t: T | null): bool { t is string }
 func noField[T: { foo: int }](t: T): bool { t is R }            // ERR: R has no field foo
 func nothing[T: { foo: int } | int](t: T): bool { t is string } // ERR: T is never a string
 func only[T: int](t: T): bool { t is int }                      // ERR: the test is always true: T is already int
+func otherMember[T: { bar: int }](x: T | P): bool { x is P }
+func otherParam[T: { foo: int }, U: { bar: int }](x: T | U): bool { x is P }
+func namedPrimitive[T: Shape](x: T | UserId): bool { x is UserId }
+func openParam[T: { value: int }, U: {}](x: T | U): bool { x is Box } // ERR: {} does not determine the type parameter T of Box
+func noMember[T: { bar: int }](x: T | UserId): bool { x is P }        // ERR: P has no field bar
 func nullableShape[T: Shape | null](t: T): bool { t is Circle }
 
 func joined(x: { foo: int } | int): { foo: int } | int {
