@@ -142,9 +142,9 @@ pear
 ["Alien"]
 ```
 
-A solution for a union bound is always one member of the union, never the union itself. In one call
-of `largest` `T` is `int`, in the next `string`, and that is what makes `x > best` sound: both sides
-are the same member.
+A solution for a union bound is always a single type that fits one member of the union, never the
+union itself. In one call of `largest` `T` is `int`, in the next `string`, and that is what makes
+`x > best` sound: both sides are the same member.
 
 Two arguments of one `T` must have the same type. The first argument below fixes `T` as `int`, and
 literals never convert, so write `2` or `float64(1)`:
@@ -185,7 +185,7 @@ The [interfaces chapter](interfaces.md) covers declaring and satisfying interfac
 
 ### Narrowing leaves `T` behind
 
-`is` can test a bounded `T` against a member of its bound. The narrowed value is that member, a
+`is` tests a bounded `T` as it tests a value of its bound. The narrowed value is the tested type, a
 plain `string` here, and no longer a `T`, so it cannot be returned where a `T` is expected:
 
 ```ant

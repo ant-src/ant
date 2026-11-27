@@ -20,8 +20,8 @@ func BareBoundError(p *ParamDecl, q Param) string {
 }
 
 // FitsBound reports whether t may stand for a type parameter whose bound, read with the other
-// parameters' solutions in place, is bound (section 4, Generics): a single member of a union
-// bound, or a type assignable to any other bound. A bounded type parameter fits any bound its
+// parameters' solutions in place, is bound (section 4, Generics): a single type assignable to
+// one member of a union bound, or a type assignable to any other bound. A bounded type parameter fits any bound its
 // own bound is assignable to, since it stands for one member of its own.
 func FitsBound(t, bound Type) bool {
 	if tp, ok := t.(Param); ok && tp.Decl.Bound != nil && Assignable(tp.Decl.Bound, bound) {
@@ -36,8 +36,9 @@ func FitsBound(t, bound Type) bool {
 	}
 	members := Members(bound)
 	if len(members) > 1 {
+		_, isUnion := Expand(t).(Union)
 		for _, m := range members {
-			if Equal(m, t) {
+			if Equal(m, t) || !isUnion && Assignable(t, m) {
 				return true
 			}
 		}

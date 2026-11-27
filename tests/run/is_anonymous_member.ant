@@ -1,6 +1,17 @@
-// spec: 5 is
-// is (section 5): a named record type is tested through an anonymous record member of a union,
-// narrows to its instantiation there, and the member keeps its place when the test fails.
+// spec: 5 is; 4 Generics; 7 Narrowing
+// is (sections 4, 5, 7): a named record type is tested through an anonymous record member of a
+// union, narrows to its instantiation there, and the member keeps its place when the test fails;
+// a bounded type parameter is tested through its bound, interface or anonymous record, and a
+// union bound takes a record that fits its anonymous member; branches join into that member.
+interface Shape {
+  area(s: Self): float64
+}
+
+type Circle = { radius: float64 }
+type Square = { side: float64 }
+
+func Circle.area(c: Circle): float64 { 3.0 * c.radius * c.radius }
+func Square.area(s: Square): float64 { s.side * s.side }
 type P = { foo: int }
 type Q = { foo: int, bar: string }
 type Box[T] = { value: T }
@@ -13,6 +24,10 @@ func bump(b: { value: int } | string): int {
   if b is Box { b.value + 1 } else { 0 }
 }
 
+func shape[T: Shape](t: T): string { if t is Circle { "circle ${t.radius}" } else { "area ${t.area()}" } }
+func foo[T: { foo: int } | int](t: T): string { if t is P { "P ${t.foo}" } else { "not P" } }
+func either(x: { foo: int } | int): { foo: int } | int { if x is P { x } else { x } }
+
 println(show(P{ foo: 12 }))
 println(show(Q{ foo: 1, bar: "b" }))
 println(show(3))
@@ -20,6 +35,12 @@ println(bump(Box{ value: 41 }))
 println(bump("s"))
 var p: { foo: int } | null = P{ foo: 12 }
 println(p is P)
+println(shape(Circle{ radius: 2.0 }))
+println(shape(Square{ side: 2.0 }))
+println(foo(P{ foo: 7 }))
+println(foo(Q{ foo: 8, bar: "b" }))
+println(foo(9))
+println(either(P{ foo: 1 }))
 
 // expect
 // out: P 12
@@ -28,3 +49,9 @@ println(p is P)
 // out: 42
 // out: 0
 // out: true
+// out: circle 2.0
+// out: area 4.0
+// out: P 7
+// out: not P
+// out: not P
+// out: P{ foo: 1 }

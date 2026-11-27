@@ -142,7 +142,7 @@ func TestUnionsAndSubst(t *testing.T) {
 	for _, bad := range [][]Type{
 		{Array{IntType}, Array{StringType}},
 		{box(IntType), box(StringType)},
-		{Record{}, Named{Decl: point}},
+		{Record{Fields: []Field{{Name: "z", Type: Float64Type}}}, Named{Decl: point}},
 		{Record{Fields: []Field{{Name: "a", Type: IntType}}}, Record{Fields: []Field{{Name: "b", Type: IntType}}}},
 		{Param{tParam}, Array{IntType}},
 		{Param{tParam}, box(IntType)},
@@ -161,6 +161,11 @@ func TestUnionsAndSubst(t *testing.T) {
 		if _, err := Join(fine...); err != nil {
 			t.Errorf("%s: %v", String(Union{Members: fine}), err)
 		}
+	}
+	// a named record type that fits an anonymous record type in the join is absorbed by it
+	xRec := Record{Fields: []Field{{Name: "x", Type: Float64Type}}}
+	if j, err := Join(Named{Decl: point}, Union{Members: []Type{xRec, Null{}}}); err != nil || !Equal(j, Union{Members: []Type{xRec, Null{}}}) {
+		t.Errorf("Point | { x: float64 } | null joins to %v, %v", j, err)
 	}
 	shapeT := Named{Decl: shape}
 	if m := Members(shapeT); len(m) != 2 {

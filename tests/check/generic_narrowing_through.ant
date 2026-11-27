@@ -1,0 +1,37 @@
+// spec: 4 Generics; 5 is; 7 Narrowing
+// Sections 4, 5 and 7: a bounded T is tested as a value of its bound is, through an interface or
+// an anonymous record type, and also as a member of a union; a test its bound cannot fail or
+// cannot pass is an error; a union bound admits a single type that fits one of its members; and a
+// named record joins into the anonymous record type it fits.
+interface Shape {
+  area(s: Self): float64
+}
+
+type Circle = { radius: float64 }
+type P = { foo: int }
+type R = { bar: int }
+
+func Circle.area(c: Circle): float64 { 3.0 * c.radius * c.radius }
+
+func viaInterface[T: Shape](t: T): bool { t is Circle }
+func viaRecord[T: { foo: int }](t: T): bool { t is P }
+func viaUnionBound[T: { foo: int } | int](t: T): bool { t is P }
+func inUnion[T: string | int](t: T | null): bool { t is string }
+func noField[T: { foo: int }](t: T): bool { t is R }            // ERR: R has no field foo
+func nothing[T: { foo: int } | int](t: T): bool { t is string } // ERR: T is never a string
+func only[T: int](t: T): bool { t is int }                      // ERR: the test is always true: T is already int
+func nullableShape[T: Shape | null](t: T): bool { t is Circle }
+
+func joined(x: { foo: int } | int): { foo: int } | int {
+  let y = if x is P { x } else { x }
+  y
+}
+
+println(viaInterface(Circle{ radius: 1.0 }))
+println(viaRecord(P{ foo: 1 }))
+println(viaUnionBound(P{ foo: 1 }))
+println(viaUnionBound(R{ bar: 1 })) // ERR: T would be R, which is not a member of its bound
+println(inUnion("s"))
+println(nullableShape(Circle{ radius: 1.0 }))
+println(noField(P{ foo: 1 }) || nothing(1) || only(1))
+println(joined(1))

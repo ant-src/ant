@@ -114,27 +114,28 @@ func sameDiscriminator(a, b Type) bool {
 }
 
 // Join forms the union of branch types where control merges, or returns an error to report. A
-// member that satisfies an interface among the others is absorbed by it: the join of a Circle
-// and a Shape is the Shape, as the value narrowed in one branch is a Shape still in the other
-// (section 7, Narrowing).
+// member that satisfies an interface among the others is absorbed by it, and so is a named
+// record type assignable to an anonymous record type among them: the join of a Circle and a
+// Shape is the Shape, as the value narrowed in one branch is a Shape still in the other (section
+// 7, Narrowing).
 func Join(ts ...Type) (Type, error) {
-	var ifaces []Type
+	var absorbers []Type
 	for _, t := range ts {
 		for _, m := range Members(t) {
-			if IsInterface(m) {
-				ifaces = append(ifaces, m)
+			if absorbs(m) {
+				absorbers = append(absorbers, m)
 			}
 		}
 	}
-	if len(ifaces) == 0 {
+	if len(absorbers) == 0 {
 		return MakeUnion(ts)
 	}
 	var kept []Type
 	for _, t := range ts {
 		for _, m := range Members(t) {
 			absorbed := false
-			for _, i := range ifaces {
-				if !IsInterface(m) && Assignable(m, i) {
+			for _, a := range absorbers {
+				if !absorbs(m) && Assignable(m, a) {
 					absorbed = true
 					break
 				}
@@ -145,6 +146,16 @@ func Join(ts ...Type) (Type, error) {
 		}
 	}
 	return MakeUnion(kept)
+}
+
+// absorbs reports whether a member of a join takes in the members assignable to it: an
+// interface or an anonymous record type, which hold more types than they name.
+func absorbs(m Type) bool {
+	if IsInterface(m) {
+		return true
+	}
+	_, isRecord := Expand(m).(Record)
+	return isRecord
 }
 
 // expandTop expands an alias as far as a union needs to see it: a body that is a union, a type

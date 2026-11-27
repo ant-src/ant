@@ -10,11 +10,12 @@ otherwise. It tells the members of a union apart at run time, and as a condition
 
 - `T` is a name without type arguments: a primitive type, `null`, `void`, `Bytes`, `Html`, `Array`,
   `Map`, `Set`, `func`, a named record or primitive type, a time type, or `Regex.Pattern`.
-- The static type of `x` must be a union with `T` as a member, or must be or have as a member an
-  anonymous record type that `T` is assignable to, or an interface that `T` satisfies. A test that
-  is always true or always false is a compile error.
-- In the `then` branch `x` has type `T`. In the `else` branch a union loses `T`, and an interface or
-  an anonymous record type stays. Only a local variable, a parameter, or a top-level `let` narrows.
+- The static type of `x`, or one of its members, must be `T`, an anonymous record type that `T` is
+  assignable to, an interface that `T` satisfies, or a type parameter whose bound has such a member.
+  A test that is always true or always false is a compile error.
+- In the `then` branch `x` has type `T`. In the `else` branch a union loses `T`, and an interface,
+  an anonymous record type, or a type parameter stays. Only a local variable, a parameter, or a
+  top-level `let` narrows.
 - `is` binds like `<`: tighter than `==`, `&&`, and `||`, looser than `+`.
 
 ## Basic examples
@@ -191,6 +192,27 @@ if found is Box {
 42
 ```
 
+### Type parameters
+
+A bounded type parameter is tested as a value of its bound is. The `else` branch keeps the `T`:
+
+```ant
+type Point = { x: int, y: int }
+type Pixel = { x: int, y: int, color: string }
+
+func label[T: { x: int }](v: T): string {
+  if v is Point { "point ${v.x},${v.y}" } else { "x ${v.x}" }
+}
+
+println(label(Point{ x: 1, y: 2 }))
+println(label(Pixel{ x: 3, y: 4, color: "red" }))
+```
+
+```text
+point 1,2
+x 3
+```
+
 ### Guards
 
 With `return` in the branch, the narrowing holds for the rest of the block:
@@ -364,8 +386,8 @@ let b = v is Array[int] // error: 'is' tests a kind or a tag, written without ty
 
 ### A test that cannot fail, or cannot pass
 
-The value's type must be a union with `T` as one member, or be or have as a member an interface or
-anonymous record type that `T` fits:
+The value's type, or one of its members, must be `T` or a type that holds a `T` among others, and
+the test must be able to fail:
 
 ```ant
 let n = 3

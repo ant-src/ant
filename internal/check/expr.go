@@ -1687,49 +1687,20 @@ func (c *Checker) isTarget(x *ast.Is, sc *scope) types.Type {
 // narrowTo computes the types of a value when x is T holds and when it does not. target has
 // no type arguments; the member of t supplies them.
 func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFalse types.Type, ok bool) {
-	members := types.Members(t)
 	var yes, no []types.Type
-	for _, m := range members {
-		if matchesTarget(m, target) {
-			yes = append(yes, m)
-			continue
+	for _, m := range types.Members(t) {
+		narrowed, stays, ok := c.narrowMember(m, target, pos)
+		if !ok {
+			return nil, nil, false
 		}
-		if types.IsInterface(m) {
-			// A value of an interface narrows to a satisfying type, and keeps the interface
-			// otherwise, since the set of satisfying types is open (section 4, Interfaces).
-			if pattern, free, name, ok := narrowPattern(target); ok {
-				inst, found := c.instantiateSatisfying(pattern, free, name, types.Expand(m).(types.Named), pos)
-				if !found {
-					return nil, nil, false
-				}
-				yes = append(yes, inst)
-				no = append(no, m)
-				continue
-			}
+		if narrowed != nil {
+			yes = append(yes, narrowed)
 		}
-		// An anonymous record type admits a named record type assignable to it, alone or as
-		// a member of a union, and keeps its place otherwise, since other records fit it too.
-		if n, isNamed := target.(types.Named); isNamed && n.Decl.Kind == types.RecordDecl {
-			if r, isRecord := types.Expand(m).(types.Record); isRecord {
-				inst, found := c.instantiateFor(n.Decl, r, pos)
-				if !found {
-					return nil, nil, false
-				}
-				yes = append(yes, inst)
-				no = append(no, m)
-				continue
-			}
+		if stays {
+			no = append(no, m)
 		}
-		no = append(no, m)
 	}
 	if len(yes) == 0 {
-		if p, isParam := types.Expand(t).(types.Param); isParam && p.Decl.Bound != nil {
-			for _, m := range types.Members(p.Decl.Bound) {
-				if matchesTarget(m, target) {
-					return m, t, true
-				}
-			}
-		}
 		n := c.typeNames(t, target)
 		c.errorf(codes.UselessTest, pos, "%s is never a %s, so the test is always false", n[0], n[1])
 		return nil, nil, false
@@ -1739,15 +1710,80 @@ func (c *Checker) narrowTo(t, target types.Type, pos ast.Pos) (whenTrue, whenFal
 	return wt, wf, true
 }
 
-// alwaysTrue reports a test that cannot fail: the value's declared type has no other member.
+// narrowMember is what the member m of a value's type narrows to when x is target holds, nil
+// when m never holds a target, and whether m stays when the test fails. A member that is the
+// target leaves; an interface, an anonymous record type, or a bounded type parameter holds a
+// target among other types and stays (section 5, is).
+func (c *Checker) narrowMember(m, target types.Type, pos ast.Pos) (narrowed types.Type, stays, ok bool) {
+	if matchesTarget(m, target) {
+		return m, false, true
+	}
+	switch e := types.Expand(m).(type) {
+	case types.Named:
+		// A value of an interface narrows to a satisfying type, since the set of satisfying
+		// types is open (section 4, Interfaces).
+		if e.Decl.Kind != types.InterfaceDecl {
+			break
+		}
+		if pattern, free, name, ok := narrowPattern(target); ok {
+			inst, found := c.instantiateSatisfying(pattern, free, name, e, pos)
+			return inst, true, found
+		}
+	case types.Record:
+		// An anonymous record type admits a named record type assignable to it.
+		if n, isNamed := target.(types.Named); isNamed && n.Decl.Kind == types.RecordDecl {
+			inst, found := c.instantiateFor(n.Decl, e, pos)
+			return inst, true, found
+		}
+	case types.Param:
+		// A bounded type parameter is tested as a value of its bound is, and stays itself
+		// otherwise, since it stands for one member it does not name (section 4, Generics).
+		if e.Decl.Bound == nil {
+			break
+		}
+		var yes []types.Type
+		for _, b := range types.Members(e.Decl.Bound) {
+			narrowed, _, ok := c.narrowMember(b, target, pos)
+			if !ok {
+				return nil, false, false
+			}
+			if narrowed != nil {
+				yes = append(yes, narrowed)
+			}
+		}
+		if len(yes) == 0 {
+			break
+		}
+		u, _ := types.MakeUnion(yes)
+		return u, true, true
+	}
+	return nil, true, true
+}
+
+// alwaysTrue reports a test that cannot fail: the value's declared type has no other member,
+// and neither has the bound of a type parameter among them.
 func (c *Checker) alwaysTrue(declared, target types.Type, pos ast.Pos) bool {
 	for _, m := range types.Members(declared) {
-		if !matchesTarget(m, target) {
+		if !onlyTarget(m, target) {
 			return false
 		}
 	}
 	c.errorf(codes.UselessTest, pos, "the test is always true: %s is already %s", types.String(declared), targetName(target))
 	return true
+}
+
+// onlyTarget reports whether every value of the member m is a target: m is the target, or a
+// type parameter whose bound has no other member.
+func onlyTarget(m, target types.Type) bool {
+	if p, ok := types.Expand(m).(types.Param); ok && p.Decl.Bound != nil {
+		for _, b := range types.Members(p.Decl.Bound) {
+			if !matchesTarget(b, target) {
+				return false
+			}
+		}
+		return true
+	}
+	return matchesTarget(m, target)
 }
 
 // targetName names the target of an is test: a kind word for func, Array, Map and Set, which carry
