@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="repometry-view" content="private">
+    <meta name="repometry-project" content="ant">
+    <title>Repometry</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1 -1 32 32'%3E%3Cstyle%3E.f%7Bfill:%231f6b35%7D.s%7Bfill:%235fae6a%7D@media (prefers-color-scheme:dark)%7B.f%7Bfill:%238fe08f%7D.s%7Bfill:%233f8a4c%7D%7D%3C/style%3E%3Cpath class='f' d='M3 4 29 3 3 15z'/%3E%3Cpath class='s' d='M3 19 9 16.23V29H3zM13 14.38l6-2.77V29h-6zM23 9.77 29 7v22h-6z'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./files.css">
+    <link rel="stylesheet" href="./viewer-pulls.css">
+    <script type="module" src="./viewer.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to report</a>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="topbar-row">
+          <a class="brand" href="#overview" title="Repometry"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="brand-flag" d="M3 4 29 3 3 15z"/><path d="M3 19 9 16.23V29H3zM13 14.38l6-2.77V29h-6zM23 9.77 29 7v22h-6z"/></svg><span class="visually-hidden">Repometry</span></a>
+          <h1 id="project-name">Repository report</h1>
+          <div id="commit-control" class="commit-control" hidden></div>
+        </div>
+        <div class="tabs-row">
+        <nav id="navigation" class="tabs" aria-label="Report">
+          <a data-page="overview" href="#overview">Overview</a>
+          <a data-page="issues" href="#issues" data-loaded hidden>Issues<span class="tab-count" id="issues-count"></span></a>
+          <a data-page="hotspots" href="#hotspots" data-loaded hidden>Hotspots</a>
+          <a data-page="metrics" href="#metrics" data-loaded hidden>Metrics</a>
+          <a data-page="trends" href="#trends">Trends</a>
+          <a data-page="pulls" href="#pulls" data-loaded hidden>Pull requests</a>
+          <a data-page="settings" href="#settings" data-loaded hidden>Profile</a>
+          <a data-page="diagnostics" href="#diagnostics" data-loaded hidden>Diagnostics<span class="tab-count" id="diagnostics-count"></span></a>
+        </nav>
+        <div id="inspection-meta" class="inspection-meta" hidden>
+          <a class="download" href="./history.json" download>Download data</a>
+        </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <p id="message" role="status">Loading reports…</p>
+      <noscript>This viewer requires JavaScript. The summary is available as JSON.</noscript>
+
+      <section id="overview" aria-labelledby="overview-title" hidden>
+        <h2 id="overview-title" class="visually-hidden">Overview</h2>
+        <div class="overview-grid">
+          <div class="overview-main">
+            <div class="card verdict-card">
+              <div class="verdicts" role="tablist" aria-label="Quality area">
+                <div class="verdict">
+                  <span id="maintainability" class="mark grade"></span>
+                  <span class="verdict-text"><button type="button" role="tab" class="verdict-tab" data-metric="debt" aria-controls="trend" aria-describedby="maintainability maintainability-detail maintainability-scope">Maintainability</button><span id="maintainability-detail" class="verdict-detail"></span><span id="maintainability-scope" class="verdict-detail verdict-more" hidden></span></span>
+                </div>
+                <div class="verdict">
+                  <span id="coverage-mark" class="mark ring" aria-hidden="true"></span>
+                  <span class="verdict-text"><button type="button" role="tab" class="verdict-tab" data-metric="coverage" aria-controls="trend" aria-describedby="coverage-detail coverage-kinds">Coverage</button><span id="coverage-detail" class="verdict-detail"></span><span id="coverage-kinds" class="verdict-detail verdict-more" hidden></span></span>
+                </div>
+                <div class="verdict" id="security-verdict" data-loaded hidden>
+                  <span id="security-mark" class="mark severity"></span>
+                  <span class="verdict-text"><button type="button" role="tab" class="verdict-tab" data-metric="security" aria-controls="trend" aria-describedby="security-mark security-detail">Security</button><span id="security-detail" class="verdict-detail"></span></span>
+                </div>
+              </div>
+              <section id="trend" class="trend" role="tabpanel" aria-labelledby="trend-title">
+                <h3 id="trend-title" class="visually-hidden"></h3>
+                <div id="chart" class="chart" role="group" aria-label="Select an inspection" aria-describedby="trend-detail"></div>
+                <p id="trend-key" class="trend-key" hidden></p>
+                <p id="trend-empty" class="empty detail" hidden>No measurements for this series in the shown inspections.</p>
+                <p id="trend-detail" class="detail legend"></p>
+              </section>
+              <dl id="lead" class="lead"></dl>
+            </div>
+          </div>
+          <aside id="overview-hotspots" class="overview-aside" aria-labelledby="overview-hotspots-title" data-loaded hidden>
+            <div id="overview-sunburst"></div>
+            <div class="section-heading">
+              <h3 id="overview-hotspots-title">Hotspots</h3>
+              <a id="all-hotspots" class="text-link" href="#hotspots">All</a>
+            </div>
+            <div id="overview-hotspot-list"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="trends" aria-labelledby="trends-title" hidden>
+        <h2 id="trends-title" class="visually-hidden">Trends</h2>
+        <div id="trends-content"></div>
+      </section>
+
+      <section id="metrics" aria-labelledby="metrics-title" hidden>
+        <h2 id="metrics-title">Metrics</h2>
+        <div id="metrics-content"></div>
+      </section>
+      <section id="hotspots" aria-labelledby="hotspots-title" hidden>
+        <h2 id="hotspots-title">Hotspots</h2>
+        <div id="hotspots-content"></div>
+      </section>
+      <section id="pulls" aria-label="Pull requests" hidden></section>
+      <section id="diagnostics" aria-labelledby="diagnostics-title" hidden>
+        <h2 id="diagnostics-title">Diagnostics</h2>
+        <div id="diagnostics-content"></div>
+      </section>
+      <section id="issues" aria-labelledby="issues-title" hidden>
+        <h2 id="issues-title">Issues</h2>
+        <div id="issues-content"></div>
+      </section>
+      <section id="settings" aria-labelledby="settings-title" hidden>
+        <h2 id="settings-title">Profile</h2>
+        <div id="settings-content"></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <p class="site-footer-project"><a href="https://github.com/idleware/repometry"><svg class="site-footer-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>idleware/repometry</a><span>Track repository metrics without SaaS</span></p>
+        <p class="site-footer-legal"><a href="https://github.com/idleware/repometry/blob/main/LICENSE">MIT licensed</a><span>© 2026 Idleware</span></p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,616 @@
+.fx-view { display: grid; gap: 1rem; min-width: 0; }
+.fx-view h2 { margin: 0; }
+.fx-note { color: var(--secondary); font-size: .875rem; line-height: 1.45; }
+.fx-results { margin-block-end: -.45rem; }
+.fx-tools { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem 1rem; }
+.fx-field { display: block; min-width: 0; }
+.fx-field :is(input, select) { inline-size: 100%; min-inline-size: 0; min-block-size: var(--control); }
+.fx-field:has(input) { flex: 1 1 14rem; max-width: 22rem; }
+.fx-field:has(select) { flex: 0 1 auto; }
+.fx-hotspot-tools { justify-content: space-between; align-items: center; }
+.fx-breadcrumbs { min-width: 0; font-size: .875rem; }
+.fx-breadcrumbs ol { display: flex; flex-wrap: wrap; gap: 0 .45rem; align-items: center; padding: 0; margin: 0; list-style: none; }
+.fx-breadcrumbs li { min-width: 0; overflow-wrap: anywhere; }
+.fx-breadcrumbs li + li::before { content: '/'; margin-inline-end: .45rem; color: var(--secondary); }
+.fx-breadcrumbs [aria-current] { color: var(--ink); font-weight: 650; }
+.fx-breadcrumbs a, .fx-inline-link, .fx-close { display: inline-flex; min-height: 2rem; align-items: center; }
+.fx-inline-link, .fx-close { font-size: .875rem; }
+.fx-inline-link { overflow-wrap: anywhere; }
+
+.fx-table-scroll {
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.fx-table { min-width: 40rem; table-layout: auto; }
+.fx-table th { padding-block: 0; }
+.fx-table td { padding-block: .4375rem; }
+.fx-table .numeric { display: table-cell; }
+.fx-table .numeric, .fx-rank-score, .fx-function-score { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fx-table th:first-child { min-width: min(35vw, 12rem); }
+.fx-table thead th { background: var(--band); color: var(--secondary); font-weight: 600; }
+.fx-table tbody tr:last-child { border-bottom: 0; }
+.fx-table tbody :is(tr:hover, tr[data-selected]) { background: var(--selected); }
+.fx-sort {
+  min-height: 2.25rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fx-sort:hover { color: var(--accent); }
+.fx-table [aria-sort] .fx-sort { color: var(--accent); }
+.fx-table [aria-sort] .fx-sort::after { margin-inline-start: .35em; }
+.fx-table [aria-sort="ascending"] .fx-sort::after { content: '↑' / ''; }
+.fx-table [aria-sort="descending"] .fx-sort::after { content: '↓' / ''; }
+.fx-entry { display: inline-flex; gap: .5rem; align-items: center; min-height: 1.5rem; overflow-wrap: anywhere; white-space: normal; }
+/* Row glyphs, solid and small: a page tinted by its language, a folder, a component as a diamond. */
+.fx-folder-icon, .fx-file-icon, .fx-component-icon { flex: none; display: inline-block; background: currentColor; }
+.fx-file-icon { width: .5625rem; height: .75rem; color: var(--neutral-2); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M1.5 0h6l4.5 4.5V14.5A1.5 1.5 0 0 1 10.5 16h-9A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M1.5 0h6l4.5 4.5V14.5A1.5 1.5 0 0 1 10.5 16h-9A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.fx-folder-icon { width: .8125rem; height: .6875rem; color: var(--neutral-3); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 13'%3E%3Cpath d='M0 1.5A1.5 1.5 0 0 1 1.5 0h4l1.5 2h7.5A1.5 1.5 0 0 1 16 3.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 11.5z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 13'%3E%3Cpath d='M0 1.5A1.5 1.5 0 0 1 1.5 0h4l1.5 2h7.5A1.5 1.5 0 0 1 16 3.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 11.5z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.fx-component-icon { width: .625rem; height: .625rem; color: var(--accent); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0l6 6-6 6-6-6z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0l6 6-6 6-6-6z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.fx-page-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; justify-content: flex-end; }
+.fx-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem 1.25rem; }
+.fx-pager > .fx-results { margin: 0; }
+.fx-page-buttons button:disabled { opacity: .6; cursor: default; }
+.fx-pager + .fx-note { margin-top: -.25rem; }
+
+.fx-file-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+}
+.fx-file-heading h2, .fx-path { overflow-wrap: anywhere; }
+.fx-path { color: var(--secondary); font-size: .875rem; }
+.fx-functions { margin-top: .9rem; padding-top: .25rem; border-top: 1px solid var(--rule); }
+.fx-functions summary { min-height: 44px; padding-block: .65rem; color: var(--accent); cursor: pointer; }
+.fx-function-list, .fx-event-list, .fx-event-paths, .fx-ranking { margin: 0; padding: 0; list-style: none; }
+.fx-function-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 1rem;
+  border-top: 1px solid var(--rule);
+  padding: .4375rem 0;
+  overflow-wrap: anywhere;
+}
+.fx-function-list > li > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .625rem; min-width: 0; }
+.fx-function-list .fx-path { font-size: .75rem; }
+.fx-function-score { font-size: .875rem; }
+
+.fx-hotspot-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 1rem 2.5rem; }
+/* The map and the file ranking pair up at equal height; the top functions run full width beneath them. */
+.fx-hotspot-content { align-items: stretch; }
+.fx-hotspot-content > *, .fx-file, .fx-events { min-width: 0; }
+.fx-sunburst > p, .fx-rank > p { margin-top: .35rem; }
+.fx-sunburst-chart { display: block; width: min(100%, 26rem); height: auto; margin: .875rem auto .5rem; }
+.fx-sunburst-compact .fx-sunburst-chart { width: min(100%, 15.5rem); margin: 0 auto .5rem; }
+.fx-sunburst, .fx-scale, .fx-rank {
+  --band-0: var(--heat-0);
+  --band-1: var(--heat-1);
+  --band-2: var(--heat-2);
+  --band-3: var(--heat-3);
+  --band-4: var(--heat-4);
+}
+.fx-sunburst[data-palette="none"] {
+  --band-0: var(--grade-none);
+  --band-1: var(--grade-none);
+  --band-2: var(--grade-none);
+  --band-3: var(--grade-none);
+  --band-4: var(--grade-none);
+}
+.fx-sunburst[data-palette="neutral"], .fx-rank[data-palette="neutral"] {
+  --band-0: var(--neutral-0);
+  --band-1: var(--neutral-1);
+  --band-2: var(--neutral-2);
+  --band-3: var(--neutral-3);
+  --band-4: var(--neutral-4);
+}
+/* Security levels take the grade steps of the security mark: none is green, critical red. */
+:is(.fx-sunburst, .fx-scale)[data-palette="grade"] {
+  --band-0: var(--grade-a);
+  --band-1: var(--grade-b);
+  --band-2: var(--grade-c);
+  --band-3: var(--grade-d);
+  --band-4: var(--grade-f);
+}
+:is(.fx-sunburst, .fx-rank) [data-band="0"] { --band: var(--band-0); }
+/* Grey is no data: a file no plugin read. */
+.fx-sunburst [data-band="none"] { --band: var(--grade-none); }
+:is(.fx-sunburst, .fx-rank) [data-band="1"] { --band: var(--band-1); }
+:is(.fx-sunburst, .fx-rank) [data-band="2"] { --band: var(--band-2); }
+:is(.fx-sunburst, .fx-rank) [data-band="3"] { --band: var(--band-3); }
+:is(.fx-sunburst, .fx-rank) [data-band="4"] { --band: var(--band-4); }
+.fx-wedge path {
+  fill: var(--band);
+  stroke: var(--surface);
+  stroke-width: 1.1;
+  cursor: pointer;
+  transition: opacity .12s ease-out;
+}
+.fx-sunburst-chart[data-inspecting] .fx-wedge:not([data-related]) path { opacity: .28; }
+.fx-wedge-outline { fill: none; stroke: var(--ink); stroke-width: 1.75; stroke-linejoin: round; pointer-events: none; }
+.fx-wedge:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .fx-wedge path { transition: none; } }
+.fx-scale { display: flex; flex-wrap: wrap; gap: .25rem .5rem; align-items: center; }
+/* The scale is the language bar's strip: .5rem high, 2px apart, rounded only at its ends; its words sit under it. */
+.fx-scale-bar { display: flex; gap: 2px; width: 4.75rem; height: .5rem; overflow: hidden; border-radius: 999px; }
+.fx-scale-bar > span { flex: 1; background: var(--band); }
+.fx-scale-labelled { display: grid; gap: .25rem; }
+.fx-scale-labelled .fx-scale-bar { width: auto; }
+.fx-scale-words { display: flex; gap: 2px; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.fx-scale-words > span { flex: 1; min-width: 0; }
+.fx-sunburst-value, .fx-sunburst-unit {
+  text-anchor: middle;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.fx-sunburst-value { font-size: 1.5rem; font-weight: 650; }
+.fx-sunburst-unit { fill: var(--secondary); font-size: .75rem; }
+
+.fx-map-hint { color: var(--muted); }
+/* The readout keeps one shape whatever is pointed at: the path on one line, the value under it, at a fixed height,
+   so nothing around the map moves while the pointer travels across it. */
+.fx-map-summary {
+  display: grid;
+  grid-template-rows: 1.25rem 1.25rem;
+  align-content: start;
+  height: 2.75rem;
+  margin: 0;
+  overflow: hidden;
+  font-size: .875rem;
+  line-height: 1.25rem;
+}
+.fx-map-summary > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.fx-ranking { margin-top: .65rem; }
+.fx-ranking li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, .8fr) 4.5ch;
+  align-items: center;
+  gap: .55rem;
+  padding-inline: 0 .15rem;
+  border-top: 1px solid var(--rule);
+}
+/* The ranking beside the map is the page's side column: unframed, headed like a sidebar, raised to the title line. */
+.fx-hotspot-content > .fx-rank { margin-top: calc(-1 * var(--lift, 0px)); }
+.fx-view .fx-rank > h2 { margin-bottom: .5rem; font-size: 1rem; line-height: 1.35; }
+.fx-rank-link { min-height: 2.5rem; align-content: center; padding-block: .25rem; overflow-wrap: anywhere; }
+.fx-rank-path { display: block; color: var(--muted); font-size: .75rem; line-height: 1.25; }
+/* The language bar's strip: rounded track, rounded fill in the file's band colour. */
+.fx-rank-mark { display: flex; align-items: center; width: 100%; height: .5rem; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+.fx-rank-mark::after { content: ''; width: var(--length); height: 100%; border-radius: 999px; background: var(--band, var(--heat-2)); }
+.fx-rank-score { justify-self: end; font-size: .875rem; }
+.fx-rank .fx-page-buttons { margin-top: .7rem; }
+
+.fx-event-list > li { padding: .85rem 0; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
+.fx-event-list > li:last-child { padding-bottom: .25rem; }
+.fx-event-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .7rem; margin-bottom: .25rem; }
+.fx-state {
+  display: inline-block;
+  padding: .16rem .45rem;
+  border-radius: .3rem;
+  color: var(--secondary);
+  background: var(--selected);
+  font-size: .8125rem;
+  font-weight: 650;
+  line-height: 1.38;
+}
+.fx-state:is([data-state="high"], [data-state="failed"]) { background: var(--bad-bg); color: var(--bad-ink); }
+.fx-state:is([data-state="medium"], [data-state="blocked"], [data-state="partial"]) { background: var(--warn-bg); color: var(--warn-ink); }
+.fx-issue-list { overflow: clip; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); }
+.fx-issue + .fx-issue { border-top: 1px solid var(--rule); }
+.fx-issue-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 11rem;
+  align-items: center;
+  gap: .25rem 1rem;
+  min-height: 3rem;
+  padding: .5rem 1rem .5rem 2.25rem;
+  cursor: pointer;
+}
+.fx-issue-summary:hover { background: var(--band); }
+.fx-issue[open] > .fx-issue-summary { background: var(--band); border-bottom: 1px solid var(--rule); }
+.fx-issue-summary > span:first-of-type { display: flex; align-items: baseline; gap: .625rem; min-width: 0; }
+.fx-issue-summary strong { font-size: .9375rem; overflow-wrap: anywhere; }
+.fx-issue-summary .fx-state { justify-self: start; }
+.fx-issue-count { justify-self: end; color: var(--secondary); font-size: .8125rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fx-issue .fx-event-list { margin: 0; padding: 0 1rem .25rem 2.125rem; }
+.fx-issue .fx-event-list > li:first-child { border-top: 0; }
+.fx-ignore { margin-top: .125rem; }
+.fx-ignore > summary { width: fit-content; min-height: 1.75rem; padding: 0; font-size: .8125rem; color: var(--secondary); cursor: pointer; }
+.fx-ignore > summary:hover { color: var(--ink); }
+.fx-top-file { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8125rem; }
+.fx-aside .fx-top-files > li { padding: .3125rem 0; }
+.fx-ignore-box { position: relative; width: min(100%, 40rem); margin: .5rem 0; }
+.fx-ignore-code {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: .6rem 2.75rem .6rem .6rem;
+  border: 1px solid var(--rule);
+  border-radius: .3rem;
+  resize: vertical;
+  background: var(--surface);
+  color: var(--ink);
+  font: 1rem/1.4 ui-monospace, monospace;
+}
+.fx-copy {
+  position: absolute; top: .375rem; right: .375rem;
+  display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0;
+  border: 0; border-radius: .25rem; background: transparent; color: var(--secondary); cursor: pointer;
+}
+.fx-copy:hover { background: var(--surface-2); color: var(--ink); }
+.fx-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fx-copy svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+.fx-copy .fx-copy-check { display: none; stroke-width: 1.5; }
+.fx-copy.fx-copied { color: var(--good); }
+.fx-copy.fx-copied .fx-copy-sheets { display: none; }
+.fx-copy.fx-copied .fx-copy-check { display: inline; }
+.fx-copy-status:empty { display: none; }
+
+@media (max-width: 63rem) {
+  .fx-hotspot-content { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 42rem) {
+  .fx-tools { gap: .6rem .75rem; }
+  .fx-field:has(input) { flex-basis: 100%; max-width: none; }
+  .fx-table :is(thead th, .fx-path-column):first-child {
+    position: sticky;
+    z-index: 1;
+    left: 0;
+    width: 40vw;
+    max-width: 40vw;
+    background: var(--surface);
+    box-shadow: inset -1px 0 var(--rule);
+  }
+  .fx-table tbody :is(tr:hover, tr[data-selected]) .fx-path-column { background: var(--selected); }
+  .fx-ranking li { grid-template-columns: minmax(0, 1.35fr) minmax(0, .75fr) 4.5ch; }
+  .fx-page-buttons { justify-content: start; }
+  .fx-issue-summary { grid-template-columns: .75rem auto minmax(0, 1fr); }
+  .fx-issue-summary > span:first-of-type { grid-column: span 2; }
+  .fx-issue-summary > .fx-state { grid-column: 2; }
+  .fx-issue-summary .fx-note { display: block; margin: 0; }
+}
+
+/* Metrics toolbar: search, view switch and the column menu on one line at one height. */
+.fx-metrics-tools { align-items: center; }
+.fx-field-bare > .fx-field-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fx-segmented { display: inline-flex; flex: none; height: var(--control); padding: 2px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 8px; }
+.fx-segmented button { min-height: 0; padding: 0 .875rem; font-size: .875rem; color: var(--secondary); background: transparent; border: 0; border-radius: 6px; }
+.fx-segmented button:hover { color: var(--ink); }
+.fx-segmented button[aria-pressed="true"] { color: var(--ink); font-weight: 500; background: var(--surface); box-shadow: 0 0 0 1px var(--rule), 0 1px 2px rgb(15 23 32 / .08); }
+.fx-columns { position: relative; flex: none; margin-left: auto; }
+.fx-columns summary { display: inline-flex; align-items: center; min-height: var(--control); padding: 0 2rem 0 .75rem; font-size: .875rem; background: var(--surface) no-repeat right .65rem center / .7rem var(--chevron); border: 1px solid var(--rule-strong); border-radius: 8px; cursor: pointer; list-style: none; }
+.fx-columns summary::-webkit-details-marker { display: none; }
+.fx-columns[open] summary { border-color: var(--accent); }
+.fx-column-toggles { position: absolute; z-index: 15; top: calc(100% + .25rem); right: 0; display: grid; min-width: 13rem; padding: .25rem 0; background: var(--surface); border: 1px solid var(--rule-strong); border-radius: var(--radius); box-shadow: 0 12px 28px rgb(15 23 32 / .14), 0 2px 6px rgb(15 23 32 / .06); }
+.fx-column-toggle { display: flex; align-items: center; gap: .5rem; min-height: 2rem; padding: 0 .875rem; font-size: .875rem; font-weight: 400; color: var(--ink); cursor: pointer; }
+.fx-column-toggle:hover { background: var(--surface-2); }
+.fx-column-toggle input { appearance: auto; flex: none; width: 1rem; height: 1rem; min-height: 0; margin: 0; padding: 0; accent-color: var(--accent); }
+.fx-hotspot-content > .panel { margin-top: 0; }
+.fx-map-hint-quiet.fx-map-hint { visibility: hidden; }
+
+/* Hotspots: the title, then the folder path; what the map is coloured by sits in the map's own title row. */
+#hotspots:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; }
+#hotspots > h2 { margin: 0; }
+#hotspots-content, #hotspots-content > .fx-view { display: contents; }
+#hotspots .fx-hotspot-tools { display: contents; }
+#hotspots .fx-breadcrumbs { grid-column: 1 / -1; margin-top: 1rem; }
+#hotspots .fx-hotspot-content, #hotspots .fx-churn-provenance, #hotspots-content > .fx-note { grid-column: 1 / -1; margin-top: 1rem; }
+#hotspots .fx-churn-provenance { margin-top: .5rem; }
+#hotspots .fx-churn-provenance + .fx-hotspot-content { margin-top: .75rem; }
+.fx-entry-label { min-width: 0; }
+/* A path breaks after its slashes; a file name stays whole unless it alone is wider than the column. */
+.fx-entry:has(.fx-entry-label) { overflow-wrap: break-word; }
+.fx-entry-folder { color: var(--muted); }
+.fx-entry:hover .fx-entry-folder { color: inherit; }
+.fx-table .fx-zero { color: var(--muted); }
+.fx-table-scroll { container-type: inline-size; }
+@container (max-width: 52rem) {
+  /* In a narrow table the file name leads and its folder follows in small type, instead of one long wrapped path. */
+  .fx-entry-label { display: flex; flex-direction: column-reverse; }
+  .fx-entry:has(.fx-entry-label) { align-items: flex-start; }
+  .fx-entry:has(.fx-entry-label) > :is(.fx-file-icon, .fx-folder-icon) { margin-top: .3rem; }
+  .fx-entry-folder { font-size: .75rem; line-height: 1.3; }
+}
+
+/* Metrics: the list on the left, the details of the selection on the right, in rows of label and value. */
+.fx-split { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 2.5rem var(--aside, 20rem); align-items: start; }
+/* The handle lives in the gap: invisible until the pointer is over it, then a thin accent line to drag. */
+.fx-splitter { position: relative; align-self: stretch; min-height: 3rem; cursor: col-resize; touch-action: none; }
+.fx-splitter::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--rule-strong); opacity: 0; transition: opacity .12s; }
+.fx-splitter:hover::before, .fx-splitter:focus-visible::before, .fx-resizing .fx-splitter::before { opacity: 1; }
+.fx-splitter:focus-visible { outline: none; }
+.fx-resizing { cursor: col-resize; user-select: none; }
+.fx-main { display: grid; gap: 1rem; min-width: 0; }
+/* The aside needs no frame: the splitter and the framed list beside it already set it apart. */
+/* The side column scrolls down only: what it holds wraps or ellipsizes, never pushes it sideways. */
+.fx-aside { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: hidden auto; margin: 0; padding: .125rem .125rem 1rem 0; }
+.fx-aside-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: .75rem; }
+.fx-view .fx-aside-heading h2 { font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere; }
+.fx-aside-path { grid-column: 1; margin: .125rem 0 0; font-family: var(--mono); font-size: .75rem; color: var(--muted); overflow-wrap: anywhere; }
+.fx-aside .fx-close { grid-row: 1; grid-column: 2; justify-content: center; width: 1.75rem; min-height: 1.75rem; margin-right: -.125rem; color: var(--secondary); text-decoration: none; border-radius: 6px; }
+.fx-aside .fx-close::before { content: ""; width: .75rem; height: .75rem; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 1.5l9 9m0-9l-9 9' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 1.5l9 9m0-9l-9 9' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.fx-aside .fx-close:hover { color: var(--ink); background: var(--surface-2); }
+.fx-kv { margin: .75rem 0 0; font-variant-numeric: tabular-nums; }
+.fx-kv > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 1rem; padding: .375rem 0; border-top: 1px solid var(--rule); }
+.fx-kv dt { font-size: .875rem; color: var(--secondary); }
+.fx-kv dd { margin: 0; font-size: .9375rem; font-weight: 600; text-align: right; }
+.fx-kv dd.fx-note { grid-column: 1 / -1; margin-top: .0625rem; font-size: .75rem; font-weight: 400; color: var(--muted); text-align: left; }
+.fx-aside-links { display: flex; flex-wrap: wrap; gap: 0 1rem; margin: .25rem 0 0; }
+.fx-aside-section { margin-top: 1rem; }
+.fx-view .fx-aside-section h3 { margin: 0 0 .25rem; font-size: .75rem; font-weight: 600; color: var(--secondary); }
+.fx-aside .fx-function-list > li { padding: .3125rem 0; font-size: .8125rem; }
+.fx-aside .fx-function-list strong:not(.fx-function-score) { font-weight: 400; }
+.fx-aside .fx-function-score { font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.fx-aside .fx-functions { margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.fx-aside .fx-functions summary { min-height: 2.25rem; padding-block: .5rem; font-size: .8125rem; }
+@media (max-width: 63rem) {
+  /* Narrow, the details come first and the list follows. */
+  .fx-split { grid-template-columns: minmax(0, 1fr); row-gap: 1.5rem; }
+  .fx-split > .fx-splitter { display: none; }
+  .fx-aside { position: static; max-height: none; }
+  /* An open file leads; the totals of a folder or a selection follow the list. */
+  .fx-aside.fx-file { order: -1; }
+}
+@media (min-width: 42rem) and (max-width: 63rem) {
+  /* Full width, the label and value rows pair up in two columns instead of stretching across the page. */
+  .fx-aside .fx-kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; }
+  .fx-aside .fx-function-list { columns: 2; column-gap: 2.5rem; }
+  .fx-aside .fx-function-list > li { break-inside: avoid; }
+}
+
+/* Query field: chips and text in one control; the suggestions hang from it in the same frame. */
+.fx-metrics-tools .qf { flex: 1 1 24rem; min-width: 0; }
+.qf { position: relative; }
+.qf-box { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; min-height: var(--control); padding: .1875rem .375rem; background: var(--surface); border: 1px solid var(--rule-strong); border-radius: 8px; cursor: text; }
+.qf:focus-within .qf-box { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.qf.open .qf-box { border-radius: 8px 8px 0 0; border-color: var(--rule-strong); border-bottom-color: var(--rule); box-shadow: none; }
+.qf-chips { display: contents; }
+.qf-chip { display: inline-flex; align-items: center; gap: .3125rem; max-width: 100%; height: 1.625rem; padding: 0 .125rem 0 .5rem; font-size: .8125rem; line-height: 1; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; }
+.qf-chip-key { color: var(--secondary); }
+.qf-chip-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--ink); }
+.qf-chip-measure .qf-chip-value, .qf-chip-path .qf-chip-value { font-variant-numeric: tabular-nums; }
+.qf-chip-path .qf-chip-value { font-family: var(--mono); font-weight: 500; font-size: .75rem; }
+.qf-dot { flex: none; width: .5rem; height: .5rem; border-radius: 50%; }
+.fx-view .qf-remove { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; min-height: 0; padding: 0; color: var(--muted); background: transparent; border: 0; border-radius: 4px; }
+.qf-remove::before { content: ""; width: .5rem; height: .5rem; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 1.5l9 9m0-9l-9 9' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1.5 1.5l9 9m0-9l-9 9' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.fx-view .qf-remove:hover { color: var(--ink); background: var(--rule); }
+.fx-view .qf-input { flex: 1 1 10rem; min-width: 6rem; min-height: 1.625rem; padding: 0 .25rem; font-size: .875rem; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.fx-view .qf-input:focus, .fx-view .qf-input:focus-visible { outline: none; box-shadow: none; }
+.qf-popover { position: absolute; z-index: 15; top: 100%; left: 0; right: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--rule-strong); border-top: 0; border-radius: 0 0 var(--radius) var(--radius); box-shadow: 0 14px 32px rgb(15 23 32 / .14), 0 2px 6px rgb(15 23 32 / .06); }
+.qf-options { max-height: min(22rem, 55vh); margin: 0; padding: 0 0 .25rem; overflow-y: auto; list-style: none; overscroll-behavior: contain; }
+.qf-group { padding: .625rem .875rem .25rem; font-size: .6875rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.qf-option { display: flex; align-items: center; gap: .5rem; min-height: 2rem; padding: 0 .875rem; font-size: .875rem; cursor: pointer; }
+.qf-option.active { background: var(--surface-2); }
+.qf-option-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qf-option-detail { margin-left: auto; flex: none; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.qf-help { margin: 0; padding: .5rem .875rem; font-size: .75rem; color: var(--muted); border-top: 1px solid var(--rule); }
+
+/* Languages of the selection: one bar, and a legend whose names toggle their chips. */
+.fx-languages { display: grid; gap: .5rem; }
+.fx-language-bar { display: flex; gap: 2px; height: .5rem; overflow: hidden; border-radius: 999px; }
+.fx-language-segment { min-width: 2px; transition: opacity .15s; }
+.fx-language-segment.fx-off { opacity: .2; }
+.fx-language-legend { display: flex; flex-wrap: wrap; gap: .125rem .25rem; margin-left: -.375rem; }
+.fx-language-measure { display: inline-flex; align-items: center; min-height: 1.75rem; margin-left: auto; font-size: .75rem; color: var(--muted); }
+.fx-view .fx-language { display: inline-flex; align-items: center; gap: .375rem; min-height: 1.75rem; padding: 0 .375rem; font-size: .8125rem; color: var(--ink); background: transparent; border: 0; border-radius: 6px; }
+.fx-view .fx-language:hover { background: var(--surface-2); }
+.fx-view .fx-language[aria-pressed="true"] { background: var(--accent-soft); }
+.fx-language-dot { width: .5rem; height: .5rem; border-radius: 50%; }
+.fx-language-name { font-weight: 600; }
+.fx-language-share { color: var(--secondary); font-variant-numeric: tabular-nums; }
+.fx-hint { margin: 0; padding: .75rem 1rem; font-size: .875rem; color: var(--secondary); background: var(--band); border: 1px dashed var(--rule-strong); border-radius: var(--radius); }
+.fx-aside-selection { font-family: inherit; font-size: .8125rem; color: var(--secondary); }
+
+/* Component rows: a button that narrows the list to its files; the count follows the name. */
+.fx-view .fx-entry-button { display: inline-flex; align-items: center; gap: .5rem; min-height: 0; padding: 0; font: inherit; color: var(--accent); background: transparent; border: 0; text-align: left; cursor: pointer; }
+.fx-view .fx-entry-button:hover { text-decoration: underline; }
+.fx-entry-muted { display: inline-flex; align-items: center; gap: .5rem; color: var(--secondary); }
+.fx-entry-count { margin-left: .5rem; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fx-entry-tag { flex: none; margin-left: .5rem; padding: 0 .375rem; font-size: .6875rem; font-weight: 500; line-height: 1.125rem; color: var(--secondary); border: 1px solid var(--rule-strong); border-radius: 4px; }
+@media (max-width: 42rem) {
+  .fx-metrics-tools .qf { flex-basis: 100%; }
+  .fx-segmented button { padding: 0 .625rem; }
+}
+
+/* An open file: the source on the left, its figures and functions on the right. */
+.fx-split-source { --aside-default: 20rem; }
+.fx-source { min-width: 0; padding: 0; overflow: hidden; }
+.fx-source-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 1rem; padding: .625rem 1rem; background: var(--band); border-bottom: 1px solid var(--rule); }
+.fx-source-path { min-width: 0; font-size: .8125rem; color: var(--ink); overflow-wrap: anywhere; }
+.fx-source-name { display: inline-flex; align-items: center; gap: .125rem; min-width: 0; }
+.fx-source-name .fx-copy-inline { position: static; flex: none; width: 1.5rem; height: 1.5rem; }
+.fx-source-name .fx-copy-inline svg { width: .8125rem; height: .8125rem; }
+.fx-source-meta { display: inline-flex; align-items: center; gap: .375rem; font-size: .75rem; color: var(--secondary); }
+/* The switch between findings and coverage leads the head's right side; a narrow head wraps it under the name whole. */
+.fx-source-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .375rem .875rem; min-width: 0; }
+.fx-source-head:has(.fx-source-layer) { padding-block: .375rem; }
+.fx-source-layer { height: 1.75rem; }
+.fx-source-layer button { padding: 0 .625rem; font-size: .75rem; }
+/* Under the file name, on a phone, the switch and the meta line up on the left, as the name does. */
+@media (max-width: 42rem) { .fx-source-tools { justify-content: flex-start; } }
+.fx-source-wait, .fx-source-missing { margin: 0; padding: 1.25rem 1rem; }
+.fx-source-missing { color: var(--secondary); font-size: .875rem; }
+.src { overflow-x: auto; padding: .375rem 0 .75rem; font-family: var(--mono); font-size: .8125rem; line-height: 1.6; tab-size: 2; }
+.src-line { display: grid; grid-template-columns: 2.25rem 3rem max-content; min-width: 100%; width: max-content; }
+.src-line:hover { background: var(--band); }
+.src-mark { display: flex; align-items: center; justify-content: center; }
+.src-number { padding-right: .875rem; color: var(--muted); text-align: right; text-decoration: none; user-select: none; }
+.src-number:hover { color: var(--ink); }
+.src-code { padding-right: 1.5rem; font: inherit; white-space: pre; color: var(--ink); }
+.src-flagged { background: var(--warn-bg); }
+/* Coverage replaces the findings in the gutter and leaves the code plain: each measured line's cell is tinted, quiet
+   green where tests ran, coral where they missed, amber where they missed branches, and says how often it ran where
+   the report counts it; a miss needs no number. Blank and comment lines keep the strip's tint without a count; unmeasured lines
+   stay plain, and runs of lines join into one strip. */
+.src-cov { display: none; }
+.src[data-layer="coverage"] .src-complexity, .src[data-layer="coverage"] .src-note { display: none; }
+.src[data-layer="coverage"] .src-flagged { background: none; }
+.src[data-layer="coverage"] .src-line { grid-template-columns: 3.25rem 3rem max-content; }
+.src[data-layer="coverage"] .src-cov { display: flex; flex: 1; align-self: stretch; align-items: center; justify-content: flex-end;
+  padding-right: .5rem; font-family: var(--sans); font-size: .6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.src-cov-mark-covered { --cov-bg: var(--cov-hit-bg); color: var(--cov-hit-ink); background: var(--cov-bg); }
+.src-cov-mark-partial { --cov-bg: var(--cov-part-bg); color: var(--cov-part-ink); background: var(--cov-bg); }
+.src-cov-mark-uncovered { --cov-bg: var(--cov-miss-bg); color: var(--cov-miss-ink); background: var(--cov-bg); }
+/* The strip runs from the panel's head to its foot: the first and last cells reach over the code's own padding. */
+.src[data-layer="coverage"] .src-first .src-cov { box-shadow: 0 -.375rem 0 var(--cov-bg); }
+.src[data-layer="coverage"] .src-last .src-cov { box-shadow: 0 .75rem 0 var(--cov-bg); }
+.src[data-layer="coverage"] .src-first.src-last .src-cov { box-shadow: 0 -.375rem 0 var(--cov-bg), 0 .75rem 0 var(--cov-bg); }
+.src-target, .src-target:hover { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.src-complexity { min-width: 1.375rem; padding: 0 .25rem; font-family: var(--sans); font-size: .6875rem; font-weight: 650; line-height: 1.125rem; text-align: center; border-radius: 4px; color: var(--secondary); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--rule); }
+.src-band-1 { color: var(--heat-ink); background: var(--heat-1); box-shadow: none; }
+.src-band-2 { color: #fff; background: var(--heat-3); box-shadow: none; }
+.src-band-3 { color: #fff; background: var(--heat-4); box-shadow: none; }
+.src-note { display: grid; gap: .125rem; margin: .125rem 1rem .375rem 5.25rem; padding: .375rem .75rem; font-family: var(--sans); font-size: .8125rem; line-height: 1.4; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--grade-c); border-radius: 0 6px 6px 0; }
+.src-note strong { font-size: .75rem; font-weight: 600; color: var(--secondary); }
+.src-note-high { border-left-color: var(--bad); }
+.src-note-low, .src-note-unknown { border-left-color: var(--neutral-2); }
+.tok-k { color: var(--code-keyword); }
+.tok-s { color: var(--code-string); }
+.tok-n { color: var(--code-number); }
+.tok-c { color: var(--muted); font-style: italic; }
+
+/* Functions that lead into the code: the name or its first line, then the line number, then the score. */
+.fx-function-jumps > li { padding: 0; }
+.fx-view .fx-function-jump { display: flex; align-items: baseline; gap: .5rem; min-width: 0; min-height: 0; padding: .3125rem .25rem; margin-left: -.25rem; font: inherit; color: var(--ink); text-align: left; background: transparent; border: 0; border-radius: 4px; cursor: pointer; }
+.fx-view .fx-function-jump:hover { background: var(--surface-2); }
+.fx-function-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+code.fx-function-name { font-size: .75rem; color: var(--secondary); }
+.fx-function-line { flex: none; font-size: .6875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fx-function-line::before { content: "L"; }
+@media (max-width: 63rem) {
+  .fx-split-source { grid-template-columns: minmax(0, 1fr); }
+  .fx-splitter { display: none; }
+  .fx-split-source .fx-aside.fx-file { order: 0; }
+}
+.fx-split > .fx-aside { margin-top: calc(-1 * var(--lift, 0px)); }
+
+/* Issues: each occurrence bound to its code; the place, the message, then a few lines of the source. */
+.fx-occurrences > .fx-occurrence { display: grid; gap: .5rem; }
+.fx-occurrence-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+.fx-location { font-family: var(--mono); font-size: .8125rem; }
+.fx-occurrence-effort { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fx-occurrence-effort::before { content: "Effort "; }
+.fx-occurrence-message { margin: 0; font-size: .875rem; }
+.fx-occurrence-name { margin-right: .125rem; padding: .0625rem .3125rem; font-size: .8125rem; background: var(--surface-2); border-radius: 4px; }
+.src-excerpt { padding: .3125rem 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+.src-excerpt .src-line { grid-template-columns: .375rem 2.75rem max-content; }
+.src-excerpt .src-line:hover { background: transparent; }
+.src-range, .src-excerpt .src-range:hover { background: var(--warn-bg); box-shadow: inset 3px 0 0 var(--grade-c); }
+/* A finding's excerpt follows its severity badge: amber for medium (above), red for high, grey for low and unknown. */
+.fx-occurrences[data-level="high"] .src-range { background: var(--bad-bg); box-shadow: inset 3px 0 0 var(--bad); }
+.fx-occurrences:is([data-level="low"], [data-level="unknown"]) .src-range { background: var(--selected); box-shadow: inset 3px 0 0 var(--neutral-2); }
+.src-more { display: block; padding: .1875rem 1rem .125rem 3.125rem; font-family: var(--sans); font-size: .75rem; }
+
+/* Map heading with its shape switch; the treemap's labels and folder frames. */
+.fx-map-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+/* The two controls are one family: the same height, frame and type. */
+.fx-map-heading .fx-segmented { height: 2rem; }
+.fx-map-heading select { min-height: 2rem; height: 2rem; padding-block: 0; font-size: .8125rem; border-radius: 8px; }
+.fx-map-heading .fx-field { margin: 0; }
+.fx-sunburst-compact > .fx-map-heading { justify-content: flex-end; margin-bottom: .5rem; }
+/* The full map's scale: one strip the panel's width, under the title row. */
+.fx-sunburst:not(.fx-sunburst-compact) > .fx-scale { margin: .875rem 0 0; }
+.fx-sunburst:not(.fx-sunburst-compact) > .fx-scale:not(.fx-scale-labelled) .fx-scale-bar { flex: 1; }
+.fx-map-heading .fx-segmented button { padding: 0 .625rem; font-size: .8125rem; }
+.fx-sunburst[data-shape="tiles"] .fx-sunburst-chart { width: 100%; }
+.fx-sunburst-compact[data-shape="tiles"] .fx-sunburst-chart { width: 100%; }
+.fx-tile-label { font-size: 10.5px; font-weight: 600; fill: var(--heat-ink); pointer-events: none; }
+.fx-tile-label-light { fill: #fff; }
+.fx-sunburst[data-palette="neutral"] .fx-tile-label { fill: var(--ink); }
+.fx-treemap .fx-wedge path { stroke-width: 1; }
+.fx-issue-list, .fx-issue, .fx-occurrence, .fx-occurrence-code { min-width: 0; }
+.fx-occurrence-code { overflow: hidden; }
+
+/* Loading: a flat stand-in in the map's own frame and size. */
+.fx-map-stub .fx-sunburst-chart circle { fill: none; stroke: var(--surface-2); }
+.fx-map-stub .fx-sunburst-chart rect { fill: var(--surface-2); }
+
+/* A filter of several choices: the Columns menu's dropdown, with a count beside each option. */
+.fx-multi .fx-column-toggles { left: 0; right: auto; }
+.fx-multi .fx-multi-name { flex: 1; }
+.fx-multi .fx-multi-count { color: var(--muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.fx-multi-active summary { color: var(--ink); font-weight: 500; }
+
+/* Profile: how the report is made. The applied profile down the main column, the badges in the sidebar. */
+.profile-block + .profile-block { margin-top: 2.25rem; }
+.profile-block > h3 { margin: 0 0 .75rem; font-size: 1rem; }
+.profile-block > .detail { margin: 0 0 .5rem; }
+.profile-facts { margin: 0; }
+.profile-facts > div { display: grid; grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); gap: .5rem 1rem; align-items: baseline; padding: .625rem 0; border-top: 1px solid var(--rule); }
+.profile-facts > div:last-child { border-bottom: 1px solid var(--rule); }
+.profile-facts dt { color: var(--secondary); font-size: .875rem; }
+.profile-facts dd { margin: 0; }
+.profile-facts code { font-size: .8125rem; }
+/* Each language on its own line: its name, then the patterns of the files its plugin reads. */
+.profile-claims { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.profile-claims > li { display: grid; grid-template-columns: minmax(6rem, auto) minmax(0, 1fr); gap: .75rem; align-items: baseline; }
+.profile-claim { font-size: .875rem; color: var(--ink); }
+.profile-claim-patterns { display: flex; flex-wrap: wrap; align-items: baseline; gap: .375rem .75rem; }
+.profile-chips { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0; padding: 0; list-style: none; }
+.profile-chips li { padding: .0625rem .5rem; border-radius: 5px; background: var(--surface-2); color: var(--ink); font: .8125rem/1.6 var(--mono); overflow-wrap: anywhere; }
+.profile-rule { font-size: .8125rem; font-weight: 600; }
+/* A profile list: toolbar, table, then the count beside the page buttons, as in Metrics. */
+.profile-table-tools { margin-bottom: .75rem; }
+.profile-table .fx-pager { margin-top: .625rem; }
+.profile-plugin { color: var(--secondary); font-size: .875rem; }
+.profile-list code { font-size: .8125rem; }
+.profile-rule-meta { display: block; color: var(--muted); font-size: .75rem; }
+.profile-notes { margin-top: .625rem; }
+.profile-notes .fx-note { margin: .25rem 0 0; }
+.profile-ignores { margin: 0; padding: 0; list-style: none; }
+.profile-ignores li { display: grid; gap: .125rem; padding: .5rem 0; border-top: 1px solid var(--rule); }
+.profile-ignore-rule { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+.profile-ignore-rule code { font-size: .8125rem; }
+.profile-ignore-path { color: var(--secondary); font: .8125rem var(--mono); overflow-wrap: anywhere; }
+/* Badges: each area its badge, its scale in the grade colours, and the snippet that embeds it. */
+.profile-aside .fx-aside-heading .fx-segmented { height: 1.75rem; }
+.profile-aside .fx-aside-heading .fx-segmented button { padding: 0 .5rem; font-size: .75rem; }
+.profile-badge-area { display: grid; gap: .5rem; margin-top: 1.25rem; }
+.profile-badge-area > h3 { margin: 0; }
+.profile-badge { width: auto; height: 1.375rem; }
+.profile-scale { display: grid; gap: .25rem; }
+.profile-scale-strip { display: flex; gap: 2px; height: 1.25rem; overflow: hidden; border-radius: 999px; }
+.profile-scale-grade { flex: 1; display: grid; place-items: center; color: #fff; font-size: .6875rem; font-weight: 650; background: var(--grade-a); opacity: .3; }
+.profile-scale-grade[data-grade="B"] { background: var(--grade-b); }
+.profile-scale-grade[data-grade="C"] { background: var(--grade-c); }
+.profile-scale-grade[data-grade="D"] { background: var(--grade-d); }
+.profile-scale-grade[data-grade="F"] { background: var(--grade-f); }
+.profile-scale-grade[aria-current] { opacity: 1; }
+.profile-scale-words { display: flex; gap: 2px; color: var(--secondary); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.profile-scale-words > span { flex: 1; text-align: center; }
+.profile-snippet { position: relative; padding: .5rem 2.5rem .5rem .625rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface-2); }
+.profile-snippet code { display: block; font-size: .75rem; line-height: 1.45; overflow-wrap: anywhere; color: var(--ink); }
+.profile-snippet .fx-copy { position: absolute; top: .25rem; right: .25rem; }
+.profile-aside .fx-note { margin: 0; }
+.profile-aside > .profile-badge-note { margin-top: 1.25rem; padding-top: .75rem; border-top: 1px solid var(--rule); }
+.profile-aside > .profile-footnote { margin-top: .5rem; }
+
+/* Files no plugin read: a grey share at the end of the language bar, and one fold at the end of the Metrics list. */
+.fx-view :is(.fx-language-unread, .fx-language-lockfile) .fx-language-name { font-weight: 500; color: var(--secondary); }
+.fx-table .fx-unread td { padding-block: .25rem; background: var(--band); }
+.fx-table tbody .fx-unread:hover { background: var(--band); }
+.fx-view .fx-unread-toggle { display: inline-flex; align-items: center; gap: .5rem; min-height: 2rem; padding: 0; font: inherit; font-size: .8125rem; color: var(--secondary); background: none; border: 0; cursor: pointer; }
+.fx-view .fx-unread-toggle:hover { color: var(--ink); }
+.fx-unread-toggle::before { content: ""; width: .625rem; height: .625rem; background: currentColor; opacity: .7; -webkit-mask: var(--chevron-mask) center / contain no-repeat; mask: var(--chevron-mask) center / contain no-repeat; transform: rotate(-90deg); transition: transform .12s ease-out; }
+.fx-unread-toggle[aria-expanded="true"]::before { transform: none; }
+@media (prefers-reduced-motion: reduce) { .fx-unread-toggle::before { transition: none; } }
+
+/* Sources: the forge's page beside the file's language and size, and in place of an excerpt that cannot load. */
+.fx-source-meta .fx-source-forge { color: var(--secondary); }
+.fx-source-meta .fx-source-forge:hover { color: var(--accent-strong); }
+.fx-occurrence-away { padding: .375rem 0 0; font-size: .8125rem; }
+.fx-occurrence-away .fx-source-forge { color: var(--secondary); }
+/* A total over files that do not all carry the measure: the title says in how many it was measured. */
+.fx-table .fx-partial { text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; }

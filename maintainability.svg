@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="116" height="20" viewBox="0 0 116 20" role="img" aria-label="maintainability: A">
+  <defs>
+    <clipPath id="maintainability-clip"><rect width="116" height="20" rx="3"/></clipPath>
+    <linearGradient id="maintainability-label" x2="0" y2="100%">
+      <stop stop-color="#475265"/>
+      <stop offset="1" stop-color="#3a4557"/>
+    </linearGradient>
+    <linearGradient id="maintainability-value" x2="0" y2="100%">
+      <stop stop-color="#fff" stop-opacity=".06"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".06"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#maintainability-clip)">
+    <rect width="94" height="20" fill="url(#maintainability-label)"/>
+    <rect x="94" width="22" height="20" fill="#5ec269"/>
+    <rect x="94" width="22" height="20" fill="url(#maintainability-value)"/>
+  </g>
+  <g aria-hidden="true" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif" font-size="11">
+    <text x="7" y="14" font-weight="400" textLength="80" lengthAdjust="spacingAndGlyphs">maintainability</text>
+    <text x="101" y="14" font-weight="700" textLength="8" lengthAdjust="spacingAndGlyphs">A</text>
+  </g>
+</svg>
